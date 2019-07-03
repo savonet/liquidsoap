@@ -1,5 +1,5 @@
 Liquidsoap 1.4.0
-----------------
+================
 
 Below is a list of dependencies, mostly OCaml libraries. Optional libraries
 provide extra features. They need to be detected by the "configure" script.
@@ -10,129 +10,144 @@ liquidsoap-<version>-full.tar.bz2 tarballs for easier builds.
 
 Libraries not developed by Savonet are:
 
-   camlimages
-   camomile
-   gd4o
-   ocaml-pcre
-   ocaml-magic
-   ocaml-sdl
-   yojson
+- camlimages
+- camomile
+- gd4o
+- ocaml-pcre
+- ocaml-magic
+- ocaml-sdl
+- yojson
 
 Mandatory dependencies:
 
-   OCaml compiler        >= 4.07.0
-   ocaml-dtools          >= 0.4.0
-   ocaml-duppy           >= 0.6.0
-   ocaml-mm              >= 0.5.0
-   ocaml-pcre
-   menhir
-   sedlex
+- OCaml compiler        >= 4.07.0
+- ocaml-dtools          >= 0.4.0
+- ocaml-duppy           >= 0.6.0
+- ocaml-mm              >= 0.5.0
+- ocaml-pcre
+- menhir
+- sedlex
 
 Recommended dependencies:
 
-   camomile              >=1.0.0  Charset recoding in metadata
-   ocaml-magic           >=0.6    File type detection
-   festival                       Speech synthesis
+- camomile              >=1.0.0  Charset recoding in metadata
+- ocaml-magic           >=0.6    File type detection
+- festival                       Speech synthesis
 
-Optional dependencies :
+Optional dependencies:
 
-   ocaml-cry             >=0.6.0  Sending to Shoutcast & Icecast
-   ocaml-ogg             >=0.5.0  Ogg codecs
-   ocaml-vorbis          >=0.7.0  Ogg/Vorbis codec
-   ocaml-opus            >=0.1.1  Ogg/Opus codec
-   ocaml-theora          >=0.3.1  Ogg/Theora codec
-   ocaml-speex           >=0.2.1  Ogg/Speex codec
-   ocaml-flac            >=0.1.5  Flac and Ogg/Flac codec
-   ocaml-mad             >=0.4.4  MP3 decoding
-   ocaml-lame            >=0.3.2  MP3 encoding
-   ocaml-shine           >=0.2.0  Fixed-point MP3 encoding
-   ocaml-taglib          >=0.3.0  MP3ID3 metadata access
-   ocaml-faad            >=0.4.0  AAC stream decoding
-   ocaml-fdkaac          >=0.3.0  AAC(+) encoding
-   camlimages            >=4.0.0  Image decoding
-   ocaml-sdl                      Display, font & image support
-   ocaml-gavl            >=0.1.4  Video conversion using the gavl library
-   ocaml-ffmpeg          >=0.2.0  Video conversion using the ffmpeg library
-   ocaml-samplerate      >=0.1.1  Libsamplerate audio conversion
-   ocaml-lastfm          >=0.3.0  Lastfm protocol support
-   ocaml-xmlplaylist     >=0.1.3  XML-based playlist formats
-   ocaml-dssi            >=0.1.1  DSSI sound synthesis
-   ocaml-frei0r          >=0.1.0  Frei0r plugins
-   ocaml-lo              >=0.1.0  OSC (Open Sound Control) support
-   ocaml-ladspa          >=0.1.4  LADSPA plugins
-   ocaml-soundtouch      >=0.1.7  Libsoundtouch's audio effects
-   ocaml-ao              >=0.2.0  Output via libao
-   ocaml-alsa            >=0.2.1  ALSA I/O
-   ocaml-portaudio       >=0.2.0  Portaudio I/O
-   ocaml-pulseaudio      >=0.1.2  PulseAudio I/O
-   ocaml-bjack           >=0.1.3  Jack support
-   ocaml-gstreamer       >=0.3.0  GStreamer input, output and encoding/decoding
-   ocaml-inotify         >=1.0    Reloading playlists when changed
-   ocaml-ssl             >=0.5.2  SSL/https support
-   osx-secure-transport           SSL/https support via OSX's SecureTransport
-   yojson                         Parsing JSON data (of_json function)
-   gd4o                           Video.add_text() on servers without X
+- ocaml-cry             >=0.6.0  Sending to Shoutcast & Icecast
+- ocaml-ogg             >=0.5.0  Ogg codecs
+- ocaml-vorbis          >=0.7.0  Ogg/Vorbis codec
+- ocaml-opus            >=0.1.1  Ogg/Opus codec
+- ocaml-theora          >=0.3.1  Ogg/Theora codec
+- ocaml-speex           >=0.2.1  Ogg/Speex codec
+- ocaml-flac            >=0.1.5  Flac and Ogg/Flac codec
+- ocaml-mad             >=0.4.4  MP3 decoding
+- ocaml-lame            >=0.3.2  MP3 encoding
+- ocaml-shine           >=0.2.0  Fixed-point MP3 encoding
+- ocaml-taglib          >=0.3.0  MP3ID3 metadata access
+- ocaml-faad            >=0.4.0  AAC stream decoding
+- ocaml-fdkaac          >=0.3.0  AAC(+) encoding
+- camlimages            >=4.0.0  Image decoding
+- ocaml-sdl                      Display, font & image support
+- ocaml-gavl            >=0.1.4  Video conversion using the gavl library
+- ocaml-ffmpeg          >=0.2.0  Video conversion using the ffmpeg library
+- ocaml-samplerate      >=0.1.1  Libsamplerate audio conversion
+- ocaml-lastfm          >=0.3.0  Lastfm protocol support
+- ocaml-xmlplaylist     >=0.1.3  XML-based playlist formats
+- ocaml-dssi            >=0.1.1  DSSI sound synthesis
+- ocaml-frei0r          >=0.1.0  Frei0r plugins
+- ocaml-lo              >=0.1.0  OSC (Open Sound Control) support
+- ocaml-ladspa          >=0.1.4  LADSPA plugins
+- ocaml-soundtouch      >=0.1.7  Libsoundtouch's audio effects
+- ocaml-ao              >=0.2.0  Output via libao
+- ocaml-alsa            >=0.2.1  ALSA I/O
+- ocaml-portaudio       >=0.2.0  Portaudio I/O
+- ocaml-pulseaudio      >=0.1.2  PulseAudio I/O
+- ocaml-bjack           >=0.1.3  Jack support
+- ocaml-gstreamer       >=0.3.0  GStreamer input, output and encoding/decoding
+- ocaml-inotify         >=1.0    Reloading playlists when changed
+- ocaml-ssl             >=0.5.2  SSL/https support
+- osx-secure-transport           SSL/https support via OSX's SecureTransport
+- yojson                         Parsing JSON data (of_json function)
+- gd4o                           Video.add_text() on servers without X
 
 Runtime optional dependencies:
     
-   curl                           http/https/ftp support
+- curl                           http/https/ftp support
     
 How to install
 --------------
 
-*BSD users, as well as OSX users might need to export some variables that can be
+BSD users, as well as OSX users might need to export some variables that can be
 missing during the process:
 
-   % export CPPFLAGS=-I/usr/local/include
-   % export LDFLAGS=-L/usr/local/lib
-   % export OCAMLMKLIB_FLAGS=-L/usr/local/lib
+```
+% export CPPFLAGS=-I/usr/local/include
+% export LDFLAGS=-L/usr/local/lib
+% export OCAMLMKLIB_FLAGS=-L/usr/local/lib
+```
 
 Also, liquidsoap needs GNU make. If you have a GNU make, this is normally
-detected during configuration. If this check fails you can set the MAKE
+detected during configuration. If this check fails you can set the `MAKE`
 variable:
 
-   % export MAKE=`your make command`
+```
+% export MAKE=`your make command`
+```
 
-The following assumes your MAKE command is make. Change to yours if different.
+The following assumes your `MAKE` command is `make`. Change to yours if different.
 
 Now you can start the build configuration:
 
-   % ./configure
+```
+% ./configure
+```
 
 If you want a complete installation of liquidsoap, enabling a production use of
-liquidsoap as a daemon, you should pass --with-user=<login> and
---with-group=<group> options to indicate which user/group you have created for
+liquidsoap as a daemon, you should pass `--with-user=<login>` and
+`--with-group=<group>` options to indicate which user/group you have created for
 liquidsoap.
 
 Then, build the software:
 
-   % make
+```
+% make
+```
 
 You can also generate the documentation for liquidsoap:
 
-   % make doc
+```
+% make doc
+```
 
 It will generate the HTML documentation, including a version of the scripting
-API reference corresponding to your configuration. If Perl's module XML::DOM is
-not available it only generate a stub reference and issue a warning.
+API reference corresponding to your configuration.
 
 Then, you may proceed to the installation. You may need to be root for that.
 
-   % make install
+```
+% make install
+```
 
-This will not install files such as /var/log/liquidsoap unless you have provided
+This will not install files such as `/var/log/liquidsoap` unless you have provided
 a user/group under which liquidsoap should be ran. This behavior can be
-overridden by passing INSTALL_DAEMON="yes" (useful for preparing binary
+overridden by passing `INSTALL_DAEMON="yes"` (useful for preparing binary
 packages).
 
 For installing developers documentation, run:
 
-   % make api-doc-install
+```
+% make api-doc-install
+```
 
-Then if you want services to be installed in $prefix/etc/init.d, run one of the
-following. service is for a generic /bin/sh service, gentoo is for a gentoo
+Then if you want services to be installed in `$prefix/etc/init.d`, run one of the
+following. service is for a generic `/bin/sh` service, gentoo is for a gentoo
 compliant service, to be used iff you've a gentoo linux.
 
-   % make (service|gentoo)-install
+```
+% make (service|gentoo)-install
+```
 
-See /doc for understanding liquidsoap scripting. Have fun!
+See `/doc` for understanding liquidsoap scripting. Have fun!
