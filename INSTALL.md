@@ -23,7 +23,7 @@ Mandatory dependencies:
    OCaml compiler        >= 4.07.0
    ocaml-dtools          >= 0.4.0
    ocaml-duppy           >= 0.6.0
-   ocaml-mm              >= 0.4.0
+   ocaml-mm              >= 0.5.0
    ocaml-pcre
    menhir
    sedlex
@@ -48,7 +48,7 @@ Optional dependencies :
    ocaml-shine           >=0.2.0  Fixed-point MP3 encoding
    ocaml-taglib          >=0.3.0  MP3ID3 metadata access
    ocaml-faad            >=0.4.0  AAC stream decoding
-   ocaml-fdkaac          >=0.2.1  AAC(+) encoding
+   ocaml-fdkaac          >=0.3.0  AAC(+) encoding
    camlimages            >=4.0.0  Image decoding
    ocaml-sdl                      Display, font & image support
    ocaml-gavl            >=0.1.4  Video conversion using the gavl library
