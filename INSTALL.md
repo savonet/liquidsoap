@@ -96,9 +96,15 @@ Libraries not developed by Savonet are:
 | osx-secure-transport|         | SSL/https support via OSX's SecureTransport   |
 | yojson              |         | Parsing JSON data (of_json function)          |
 
-Runtime optional dependencies:
-    
-- curl                           http/https/ftp support
+### Runtime optional dependencies:
+
+| Dependency          | Functionality                                     |
+| ------------------- | ------------------------------------------------- |
+| awscli              | `s3://` and `polly://` protocol support           |
+| curl                | `http`/`https`/`ftp` protocol support             |
+| ffmpeg              | external I/O, `replay_gain` level computation, .. |
+| youtube-dl          | youtube video and playlist support                |
+
     
 ## Installing via configure
 
