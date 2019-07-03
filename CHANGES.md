@@ -76,6 +76,7 @@ Changed:
   `playlist.{reloadable,once,merge}` (#818)
 - Renamed `input.external` into `input.external.rawaudio`, added
   `input.external.wav`.
+- Renamed `gstreamer.hls` to `output.file.hls.gstreamer`.
 
 Fixed:
 
