@@ -68,7 +68,6 @@ end
 # @category Source / Video Processing
 def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,
                           ~buffer=0.2,~max=10.)
-
   cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:\
                      rate=#{video.frame.rate()} \
          -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}"
