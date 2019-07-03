@@ -1,6 +1,26 @@
 Liquidsoap 1.4.0
 ================
 
+Forewords
+---------
+
+Installing liquidsoap can be a difficult task. The software relies on a up-to date
+`OCaml` compiler, as well as a bunch of `OCaml` modules and, for most of them, corresponding
+C library dependencies.
+
+Our recommended way of installing liquidsoap is via [opam](http://opam.ocaml.org/). `opam` can take
+care of install the correct `OCaml` compiler, optional and required dependencies as well as system-specific
+package dependencies.
+
+The `opam` method is described in details in the [documentation](doc/content/install.md).
+We recommend that any interested user head over to this link to install the software via `opam`.
+
+The following of this document describes how to install the software via its `configure` script and is
+intended either for system administrators or package maintainers.
+
+Dependencies
+------------
+
 Below is a list of dependencies, mostly OCaml libraries. Optional libraries
 provide extra features. They need to be detected by the `configure` script.
 
@@ -84,29 +104,10 @@ Runtime optional dependencies:
     
 - curl                           http/https/ftp support
     
-How to install
---------------
+Installing via configure
+------------------------
 
-BSD users, as well as OSX users might need to export some variables that can be
-missing during the process:
-
-```
-% export CPPFLAGS=-I/usr/local/include
-% export LDFLAGS=-L/usr/local/lib
-% export OCAMLMKLIB_FLAGS=-L/usr/local/lib
-```
-
-Also, liquidsoap needs GNU make. If you have a GNU make, this is normally
-detected during configuration. If this check fails you can set the `MAKE`
-variable:
-
-```
-% export MAKE=`your make command`
-```
-
-The following assumes your `MAKE` command is `make`. Change to yours if different.
-
-Now you can start the build configuration:
+The build processus starts with by invoking the `configure` script:
 
 ```
 % ./configure
@@ -143,18 +144,6 @@ a user/group under which liquidsoap should be ran. This behavior can be
 overridden by passing `INSTALL_DAEMON="yes"` (useful for preparing binary
 packages).
 
-For installing developers documentation, run:
 
-```
-% make api-doc-install
-```
-
-Then if you want services to be installed in `$prefix/etc/init.d`, run one of the
-following. service is for a generic `/bin/sh` service, gentoo is for a gentoo
-compliant service, to be used iff you've a gentoo linux.
-
-```
-% make (service|gentoo)-install
-```
-
-See `/doc` for understanding liquidsoap scripting. Have fun!
+If you need to run liquidsoap as a daemon, you can then have a look at
+[liquidsoap-daemon](https://github.com/savonet/liquidsoap-daemon).
