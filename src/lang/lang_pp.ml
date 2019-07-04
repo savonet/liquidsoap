@@ -342,7 +342,10 @@ let uminus tokenizer =
   let was_number = ref false in
   let token () =
     match tokenizer () with
-    | Lang_parser.INT _,_,_ | Lang_parser.FLOAT _,_,_ as t ->
+    | Lang_parser.INT _,_,_
+    | Lang_parser.FLOAT _,_,_
+    | Lang_parser.VAR _,_,_
+    | Lang_parser.RPAR,_,_  as t ->
        was_number := true; t
     | Lang_parser.MINUS,startp,endp when not !was_number ->
        was_number := false; Lang_parser.UMINUS,startp,endp
