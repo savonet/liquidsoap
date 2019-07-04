@@ -1,12 +1,13 @@
 opam-version: "2.0"
 name: "liquidsoap"
+version: "1.4.0"
 maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
 build: [
-  ["./bootstrap"] {dev}
+  ["./bootstrap"] {pinned}
   ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
-  [make "clean"]
+  [make "clean"] {pinned}
   [make]
 ]
 install: [
@@ -99,14 +100,6 @@ conflicts: [
   "theora" {< "0.3.1"}
   "vorbis" {< "0.7.0"}
   "xmlplaylist" {< "0.1.3"}
-]
-depexts: [
-  ["automake" "autoconf"] {os-distribution = "alpine"}
-  ["automake" "autoconf"] {os-distribution = "centos"}
-  ["automake" "autoconf"] {os-distribution = "fedora"}
-  ["automake" "autoconf"] {os-family = "suse"}
-  ["automake" "autoconf"] {os-distribution = "debian"}
-  ["automake" "autoconf"] {os-distribution = "ubuntu"}
 ]
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
