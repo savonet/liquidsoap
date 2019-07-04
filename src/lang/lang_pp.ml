@@ -338,6 +338,19 @@ let parse_comments tokenizer =
   in
     token
 
+let uminus tokenizer =
+  let was_number = ref false in
+  let token () =
+    match tokenizer () with
+    | Lang_parser.INT _,_,_ | Lang_parser.FLOAT _,_,_ as t ->
+       was_number := true; t
+    | Lang_parser.MINUS,startp,endp when not !was_number ->
+       was_number := false; Lang_parser.UMINUS,startp,endp
+    | t ->
+       was_number := false; t
+  in
+  token
+
 (* Last but not least: remove new lines and merge some tokens around them
  * in order to remove some ambiguities, typically between:
  *   def foo \n (x,y) ... << Normal definition, starting with a couple
@@ -410,5 +423,6 @@ let mk_tokenizer ~pwd lexbuf =
     => eval_ifdefs
     => parse_comments
     => expand_string
+    => uminus
     => strip_newlines
     => expand_define
