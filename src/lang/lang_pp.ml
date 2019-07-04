@@ -338,6 +338,8 @@ let parse_comments tokenizer =
   in
     token
 
+(** Change MINUS to UMINUS if the minus is not preceeded by a number (or
+   an expression which could produce a number). *)
 let uminus tokenizer =
   let was_number = ref false in
   let token () =
