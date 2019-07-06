@@ -77,6 +77,8 @@ Changed:
 - Renamed `input.external` into `input.external.rawaudio`, added
   `input.external.wav`.
 - Renamed `gstreamer.hls` to `output.file.hls.gstreamer`.
+- Raise an error when using a format (e.g. `%vorbis`, `%mp3`, ..) that is not 
+  enabled. (#857)
 
 Fixed:
 

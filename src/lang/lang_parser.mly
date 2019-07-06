@@ -51,7 +51,14 @@
     in
       mk ~pos (RFun (fv,args,fn))
 
-  let mk_enc ~pos e = mk ~pos (Encoder e)
+  let mk_enc ~pos e =
+    begin
+     try
+      let (_:Encoder.factory) = Encoder.get_factory e in
+      ()
+     with Not_found -> raise (Unsupported_format pos)
+    end;
+    mk ~pos (Encoder e)
 
   (** Time intervals *)
 
@@ -305,8 +312,8 @@ expr:
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
-  | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
-  | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
+  | OGG LPAR ogg_items RPAR          { mk_enc ~pos:$loc (Encoder.Ogg $3) }
+  | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) }
@@ -451,8 +458,8 @@ cexpr:
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
-  | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
-  | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
+  | OGG LPAR ogg_items RPAR          { mk_enc ~pos:$loc (Encoder.Ogg $3) }
+  | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) } 
