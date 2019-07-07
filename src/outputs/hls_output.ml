@@ -369,7 +369,7 @@ class hls_output p =
             cur) (-1,[]) (List.rev (List.of_seq (Queue.to_seq segments)))
       in
       List.iter (fun el ->
-        if not (List.mem el pl) then
+        if el.discontinuous && not (List.mem el pl) then
           discontinuity <- discontinuity + 1) current_playlist;
       current_playlist <- pl;
       (id, pl)
