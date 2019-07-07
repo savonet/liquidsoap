@@ -350,12 +350,13 @@ class hls_output p =
            begin
             let fname = self#playlist_name s in
             let oc = self#open_out fname in
-            output_string oc "#EXTM3U\n";
-            output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (ceil segment_duration)));
-            output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" id);
+            output_string oc "#EXTM3U\r\n";
+            output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n" (int_of_float (ceil segment_duration)));
+            output_string oc "#EXT-X-VERSION:3\r\n";
+            output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" id);
             List.iter (fun segment ->
-                output_string oc (Printf.sprintf "#EXTINF:%.03f,\n" (Frame.seconds_of_master segment.len));
-                output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
+                output_string oc (Printf.sprintf "#EXTINF:%.03f,\r\n" (Frame.seconds_of_master segment.len));
+                output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\r\n")
               ) segments;
             (* output_string oc "#EXT-X-ENDLIST\n"; *)
             self#close_out (fname, oc);
