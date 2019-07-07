@@ -102,9 +102,10 @@ let hls_proto kind =
 
 type segment =
   {
-     id: int;
+     id:            int;
      discontinuous: bool;
-     mutable len: int
+     discontinuity: int;
+     mutable len:   int
   }
 
 (** A stream in the HLS (which typically contains many, with different qualities). *)
@@ -243,16 +244,11 @@ class hls_output p =
         ~content_kind:kind source
 
     (** Current segment ID *)
-    val mutable current_segment = {id=(-1);discontinuous=false;len=0}
+    val mutable current_segment =
+      {id=(-1);discontinuous=false;discontinuity=0;len=0}
 
     (** Available segments *)
     val mutable segments = Queue.create ()
-
-    (** Current playlist *)
-    val mutable current_playlist = []
-
-    (** Discontinuity mark *)
-    val mutable discontinuity = 0
 
     (** Opening date for current segment. *)
     val mutable open_tick = 0
@@ -315,13 +311,17 @@ class hls_output p =
     method private new_segment =
       if current_segment.id <> -1 then
         Queue.push current_segment segments;
-      let discontinuous =
-        !state = `Restarted
+      let discontinuous = !state = `Restarted in
+      let discontinuity =
+        if discontinuous then
+          current_segment.discontinuity + 1
+        else
+          current_segment.discontinuity
       in
       toggle_state `Streaming;
       let id = current_segment.id + 1 in
       let len = 0 in
-      current_segment <- {id;discontinuous;len};
+      current_segment <- {id;discontinuous;discontinuity;len};
       open_tick <- self#current_tick;
       self#log#debug "Opening segment %d." current_segment.id ;
       List.iter (fun s ->
@@ -361,21 +361,16 @@ class hls_output p =
       directory^^s.hls_name^".m3u8"
 
     method private get_playlist_data =
-      let id, pl =
-        List.fold_left (fun ((_,l) as cur) el ->
-          if List.length l < segments_per_playlist then
-            el.id, (el::l)
-          else
-            cur) (-1,[]) (List.rev (List.of_seq (Queue.to_seq segments)))
-      in
-      List.iter (fun el ->
-        if el.discontinuous && not (List.mem el pl) then
-          discontinuity <- discontinuity + 1) current_playlist;
-      current_playlist <- pl;
-      (id, pl)
+      List.fold_left (fun ((_,_,l) as cur) el ->
+        if List.length l < segments_per_playlist then
+          el.id, el.discontinuity, (el::l)
+        else
+          cur) (-1,-1,[]) (List.rev (List.of_seq (Queue.to_seq segments)))
 
     method private write_playlists =
-      let id, segments = self#get_playlist_data in
+      let id, discontinuity, segments =
+        self#get_playlist_data
+      in
       List.iter (fun s ->
           if List.length segments > 0 then
            begin
