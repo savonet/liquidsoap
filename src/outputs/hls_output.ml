@@ -313,7 +313,7 @@ class hls_output p =
         Queue.push current_segment segments;
       let discontinuous = !state = `Restarted in
       let discontinuity =
-        if discontinuous then
+        if current_segment.discontinuous then
           current_segment.discontinuity + 1
         else
           current_segment.discontinuity
