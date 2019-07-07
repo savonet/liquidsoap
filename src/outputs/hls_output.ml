@@ -229,13 +229,7 @@ class hls_output p =
       Output.encoded
         ~infallible ~on_start ~on_stop ~autostart
         ~output_kind:"output.file" ~name
-        ~content_kind:kind source
-
-
-    initializer
-      Gc.finalise (fun s ->
-        s#cleanup_segments;
-        s#cleanup_playlists) self
+        ~content_kind:kind source as output
 
     (** Current segment ID *)
     val mutable current_segment =
@@ -352,7 +346,7 @@ class hls_output p =
       let _, oc = Utils.get_some s.hls_oc in
       output_string oc b
 
-    method cleanup_segments =
+    method private cleanup_segments =
       self#unlink_segment current_segment;
       Queue.iter self#unlink_segment segments;
       Queue.clear segments;
@@ -419,7 +413,7 @@ class hls_output p =
         ) streams;
       self#close_out (fname, oc)
 
-    method cleanup_playlists =
+    method private cleanup_playlists =
       List.iter (fun s ->
         self#unlink (self#playlist_name s)) streams;
       self#unlink (directory^^playlist)
@@ -433,6 +427,11 @@ class hls_output p =
 
     method output_reset =
       self#toggle_state `Restart
+
+    method sleep =
+      self#cleanup_segments;
+      self#cleanup_playlists;
+      output#sleep
 
     method encode frame ofs len =
       current_segment.len <- current_segment.len + len;
