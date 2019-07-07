@@ -385,7 +385,7 @@ class hls_output p =
             output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n" (int_of_float (ceil segment_duration)));
             output_string oc "#EXT-X-VERSION:3\r\n";
             output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" id);
-            output_string oc (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d" discontinuity);
+            output_string oc (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n" discontinuity);
             List.iter (fun segment ->
                 if segment.discontinuous then
                   output_string oc "#EXT-X-DISCONTINUITY";
