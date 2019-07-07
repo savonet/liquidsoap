@@ -25,6 +25,23 @@
 let log = Log.make ["hls"; "output"]
 
 let hls_proto kind =
+  let segment_name_t = Lang.fun_t [
+    false, "duration", Lang.float_t;
+    false, "position", Lang.int_t;
+    false, "extname", Lang.string_t;
+    false, "", Lang.string_t
+  ] Lang.string_t in
+  let default_name = Lang.val_fun [
+    "duration", "duration", Lang.float_t, None;
+    "position", "position", Lang.int_t, None;
+    "extname", "extname", Lang.string_t, None;
+    "", "", Lang.string_t, None
+  ] ~ret_t:Lang.string_t (fun p _ ->
+    let position = Lang.to_int (List.assoc "position" p) in
+    let extname = Lang.to_string (List.assoc "extname" p) in
+    let sname = Lang.to_string (List.assoc "" p) in
+    Lang.string (Printf.sprintf "%s_%06d.%s" sname position extname))
+  in
   (Output.proto @ [
      "playlist",
      Lang.string_t,
@@ -36,10 +53,21 @@ let hls_proto kind =
      Some (Lang.float 10.),
      Some "Segment duration (in seconds).";
 
+     "segment_name",
+     segment_name_t,
+     Some default_name,
+     Some "Segment name. \
+           Default: `fun (~duration:_,~position,~extname,stream_name) -> \"#{stream_name}_#{position}.#{extname}\"`";
+
      "segments",
      Lang.int_t,
+     Some (Lang.int 15),
+     Some "Number of segments to keep on disk.";
+
+     "segments_per_playlist",
+     Lang.int_t,
      Some (Lang.int 10),
-     Some "Number of segments to keep.";
+     Some "Number of segments per playlist.";
 
      "perm",
      Lang.int_t,
@@ -178,7 +206,20 @@ class hls_output p =
   let segment_duration =
     Frame.seconds_of_master (segment_ticks * Lazy.force Frame.size)
   in
+  let segment_name =
+    Lang.to_fun ~t:Lang.string_t (List.assoc "segment_name" p)
+  in
+  let segment_name ~duration ~position ~extname sname =
+    Lang.to_string (segment_name [
+      "duration",Lang.float duration;
+      "position",Lang.int position;
+      "extname",Lang.string extname;
+      "",Lang.string sname
+    ])
+  in
   let max_segments = Lang.to_int (List.assoc "segments" p) in
+  let segments_per_playlist =
+    Lang.to_int (List.assoc "segments_per_playlist" p) in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
   let kind = Encoder.kind_of_format (List.hd streams).hls_format in
   object (self)
@@ -201,8 +242,13 @@ class hls_output p =
     val mutable current_metadata = None
 
     method private segment_name ?(relative=false) ~segment stream =
+      let duration =
+        Frame.seconds_of_master segment.len
+      in
       let fname =
-        Printf.sprintf "%s_%d.%s" stream.hls_name segment.id (Encoder.extension stream.hls_format)
+        segment_name ~position:segment.id ~duration
+                     ~extname:(Encoder.extension stream.hls_format)
+                     stream.hls_name
       in
       (if relative then "" else directory) ^^ fname
 
@@ -292,15 +338,22 @@ class hls_output p =
       directory^^s.hls_name^".m3u8"
 
     method private write_playlists =
+      let id, segments =
+        List.fold_left (fun ((_,l) as cur) el ->
+          if List.length l < segments_per_playlist then
+            el.id, (el::l)
+          else
+            cur) (-1,[]) (List.rev (List.of_seq (Queue.to_seq segments)))
+      in
       List.iter (fun s ->
-          if Queue.length segments > 0 then
+          if List.length segments > 0 then
            begin
             let fname = self#playlist_name s in
             let oc = self#open_out fname in
             output_string oc "#EXTM3U\n";
             output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (ceil segment_duration)));
-            output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" (Queue.peek segments).id);
-            Queue.iter (fun segment ->
+            output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" id);
+            List.iter (fun segment ->
                 output_string oc (Printf.sprintf "#EXTINF:%.03f,\n" (Frame.seconds_of_master segment.len));
                 output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
               ) segments;
