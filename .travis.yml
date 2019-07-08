@@ -3,7 +3,7 @@ services:
 - docker
 script:
 - docker build . --tag liquidsoap-build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis.docker-file
-- ./.travis-deb.sh "$TRAVIS_COMMIT"
+- ./.travis-deb.sh "$TRAVIS_COMMIT" "$TRAVIS_BRANCH"
 
 deploy:
   provider: s3
