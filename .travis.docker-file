@@ -13,6 +13,8 @@ RUN eval $(opam config env) && make update && \
      cd .. && ./bootstrap && ./configure && \
      make clean && make && cd liquidsoap && make doc
 
+RUN mkdir /tmp/debian && cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/liquidsoap.deb
+
 #WORKDIR /tmp/liquidsoap-full/liquidsoap
 
 #RUN eval $(opam config env) && make test

@@ -1,7 +1,18 @@
 sudo: required
-
 services:
-  - docker
-
+- docker
 script:
-  - docker build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis.docker-file .
+- docker build -t liquidsoap-build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis.docker-file
+- .travis-deb.sh "$TRAVIS_COMMIT"
+  .
+deploy:
+  provider: s3
+  access_key_id: AKIA6KFHFXRIWW5COSJE
+  secret_access_key:
+    secure: hPkyQfVBfKHi/bh8JzhOtmFT4gd+ln/gV8+Kyqh0sM1/UkaVTpzaKFT+meheIGhiNMYS/zM/V0RN665GLNNo3suAXOHc3P6Tl7VS0eHbqEKNhSW4fNLqVjxYxIhBWRivTWoIXU/n2jdg8GdSXKdqxauL/bgUWpL3cV4l4SQscq4=
+  bucket: debian.liquidsoap.info
+  skip_cleanup: true
+  local_dir: debian
+  acl: public_read
+  on:
+    repo: savonet/liquidsoap
