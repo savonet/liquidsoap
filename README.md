@@ -27,7 +27,7 @@ Copyright 2003-2019 Savonet team
 Installation
 ------------
 
-See the [INSTALL](INSTALL) file.
+See the [INSTALL](INSTALL.md) file.
 
 Documentation
 -------------

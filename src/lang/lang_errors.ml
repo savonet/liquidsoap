@@ -143,5 +143,10 @@ let report lexbuf f =
           Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@."
             a b ;
           raise Error
+      | Lang_values.Unsupported_format pos ->
+        let pos = T.print_pos pos in
+        error_header 12 pos;
+        Format.printf "Unsupported format!@ You must be missing an optional dependency.@]@.";
+        raise Error
       | End_of_file -> raise End_of_file
       | e -> print_error (-1) "Unknown error" ; raise e

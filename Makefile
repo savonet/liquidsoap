@@ -11,8 +11,7 @@ distclean: pre-distclean
 	rm -f Makefile.defs
 pre-distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
-	       src/configure.ml scripts/liquidsoap.initd \
-	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
+	       src/configure.ml scripts/liquidsoap.logrotate \
 	       gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
@@ -22,7 +21,7 @@ test:
 # Build liquidsoap as it will be used for building the doc
 doc-local: all
 
-.PHONY: system-install gentoo-install finish-configure
+.PHONY: finish-configure
 
 finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
@@ -86,9 +85,3 @@ endif
 	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
 	$(INSTALL_DIRECTORY) ${emacsdir}
 	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
-
-gentoo-install:
-	$(INSTALL_PROGRAM) -D scripts/liquidsoap.gentoo.initd ${sysconfdir}/init.d/liquidsoap
-
-service-install:
-	$(INSTALL_PROGRAM) -D scripts/liquidsoap.initd ${sysconfdir}/init.d/liquidsoap

@@ -1,12 +1,30 @@
-Liquidsoap 1.4.0
-================
+# Liquidsoap 1.4.0
+
+## Forewords
+
+Installing liquidsoap can be a difficult task. The software relies on a up-to date
+`OCaml` compiler, as well as a bunch of `OCaml` modules and, for most of them, corresponding
+C library dependencies.
+
+Our recommended way of installing liquidsoap is via [opam](http://opam.ocaml.org/). `opam` can take
+care of install the correct `OCaml` compiler, optional and required dependencies as well as system-specific
+package dependencies.
+
+The `opam` method is described in details in the [documentation](doc/content/install.md).
+We recommend that any interested user head over to this link to install the software via `opam`.
+
+The following of this document describes how to install the software via its `configure` script and is
+intended either for system administrators or package maintainers.
+
+## Dependencies
 
 Below is a list of dependencies, mostly OCaml libraries. Optional libraries
-provide extra features. They need to be detected by the "configure" script.
+provide extra features. They need to be detected by the `configure` script.
 
 Most of the libraries are developed by the Savonet project and, in addition to
 being available through traditional distribution channels, are bundled in the
-liquidsoap-<version>-full.tar.bz2 tarballs for easier builds.
+[liquidsoap-&lt;version&gt;-full.tar.bz2](https://github.com/savonet/liquidsoap/releases)
+tarballs for easier builds.
 
 Libraries not developed by Savonet are:
 
@@ -18,88 +36,79 @@ Libraries not developed by Savonet are:
 - ocaml-sdl
 - yojson
 
-Mandatory dependencies:
+### Mandatory dependencies:
 
-- OCaml compiler        >= 4.07.0
-- ocaml-dtools          >= 0.4.0
-- ocaml-duppy           >= 0.6.0
-- ocaml-mm              >= 0.5.0
-- ocaml-pcre
-- menhir
-- sedlex
+| Dependency     | Version   |
+| -------------- | --------- |
+| OCaml compiler | >= 4.08.0 |
+| ocaml-dtools   | >= 0.4.0  |
+| ocaml-duppy    | >= 0.6.0  |
+| ocaml-mm       | >= 0.5.0  |
+| ocaml-pcre     |           |
+| menhir         |           |
+| sedlex         |           |
 
-Recommended dependencies:
+### Recommended dependencies:
 
-- camomile              >=1.0.0  Charset recoding in metadata
-- ocaml-magic           >=0.6    File type detection
-- festival                       Speech synthesis
+| Dependency     | Version   | Functionality                |
+| -------------- | --------- | ---------------------------- |
+| camomile       | >=1.0.0   | Charset recoding in metadata |
 
-Optional dependencies:
+### Optional dependencies:
 
-- ocaml-cry             >=0.6.0  Sending to Shoutcast & Icecast
-- ocaml-ogg             >=0.5.0  Ogg codecs
-- ocaml-vorbis          >=0.7.0  Ogg/Vorbis codec
-- ocaml-opus            >=0.1.1  Ogg/Opus codec
-- ocaml-theora          >=0.3.1  Ogg/Theora codec
-- ocaml-speex           >=0.2.1  Ogg/Speex codec
-- ocaml-flac            >=0.1.5  Flac and Ogg/Flac codec
-- ocaml-mad             >=0.4.4  MP3 decoding
-- ocaml-lame            >=0.3.2  MP3 encoding
-- ocaml-shine           >=0.2.0  Fixed-point MP3 encoding
-- ocaml-taglib          >=0.3.0  MP3ID3 metadata access
-- ocaml-faad            >=0.4.0  AAC stream decoding
-- ocaml-fdkaac          >=0.3.0  AAC(+) encoding
-- camlimages            >=4.0.0  Image decoding
-- ocaml-sdl                      Display, font & image support
-- ocaml-gavl            >=0.1.4  Video conversion using the gavl library
-- ocaml-ffmpeg          >=0.2.0  Video conversion using the ffmpeg library
-- ocaml-samplerate      >=0.1.1  Libsamplerate audio conversion
-- ocaml-lastfm          >=0.3.0  Lastfm protocol support
-- ocaml-xmlplaylist     >=0.1.3  XML-based playlist formats
-- ocaml-dssi            >=0.1.1  DSSI sound synthesis
-- ocaml-frei0r          >=0.1.0  Frei0r plugins
-- ocaml-lo              >=0.1.0  OSC (Open Sound Control) support
-- ocaml-ladspa          >=0.1.4  LADSPA plugins
-- ocaml-soundtouch      >=0.1.7  Libsoundtouch's audio effects
-- ocaml-ao              >=0.2.0  Output via libao
-- ocaml-alsa            >=0.2.1  ALSA I/O
-- ocaml-portaudio       >=0.2.0  Portaudio I/O
-- ocaml-pulseaudio      >=0.1.2  PulseAudio I/O
-- ocaml-bjack           >=0.1.3  Jack support
-- ocaml-gstreamer       >=0.3.0  GStreamer input, output and encoding/decoding
-- ocaml-inotify         >=1.0    Reloading playlists when changed
-- ocaml-ssl             >=0.5.2  SSL/https support
-- osx-secure-transport           SSL/https support via OSX's SecureTransport
-- yojson                         Parsing JSON data (of_json function)
-- gd4o                           Video.add_text() on servers without X
+| Dependency          | Version | Functionality                                 |
+| ------------------- | ------- | --------------------------------------------- |
+| camlimages          | >=4.0.0 | Image decoding                                |
+| gd4o                |         | Video.add_text() on servers without X         |
+| ocaml-alsa          | >=0.2.1 | ALSA I/O                                      |
+| ocaml-ao            | >=0.2.0 | Output via libao                              |
+| ocaml-bjack         | >=0.1.3 | Jack support                                  |
+| ocaml-cry           | >=0.6.0 | Sending to Shoutcast & Icecast                |
+| ocaml-dssi          | >=0.1.1 | DSSI sound synthesis                          |
+| ocaml-faad          | >=0.4.0 | AAC stream decoding                           |
+| ocaml-fdkaac        | >=0.3.0 | AAC(+) encoding                               |
+| ocaml-ffmpeg        | >=0.2.0 | Video conversion using the ffmpeg library     | 
+| ocaml-flac          | >=0.1.5 | Flac and Ogg/Flac codec                       |
+| ocaml-frei0r        | >=0.1.0 | Frei0r plugins                                |
+| ocaml-gavl          | >=0.1.4 | Video conversion using the gavl library       |
+| ocaml-gstreamer     | >=0.3.0 | GStreamer input, output and encoding/decoding |
+| ocaml-inotify       | >=1.0   | Reloading playlists when changed              |
+| ocaml-ladspa        | >=0.1.4 | LADSPA plugins                                |
+| ocaml-lame          | >=0.3.2 | MP3 encoding                                  |
+| ocaml-lastfm        | >=0.3.0 | Lastfm scrobbling                             |
+| ocaml-lo            | >=0.1.0 | OSC (Open Sound Control) support              |
+| ocaml-mad           | >=0.4.4 | MP3 decoding                                  |
+| ocaml-magic         | >=0.6   | File type detection                           |
+| ocaml-ogg           | >=0.5.0 | Ogg codecs                                    |
+| ocaml-opus          | >=0.1.1 | Ogg/Opus codec                                |
+| ocaml-portaudio     | >=0.2.0 | Portaudio I/O                                 |
+| ocaml-pulseaudio    | >=0.1.2 | PulseAudio I/O                                |
+| ocaml-samplerate    | >=0.1.1 | Libsamplerate audio conversion                |
+| ocaml-sdl           |         | Display, font & image support                 |
+| ocaml-shine         | >=0.2.0 | Fixed-point MP3 encoding                      |
+| ocaml-soundtouch    | >=0.1.7 | Libsoundtouch's audio effects                 |
+| ocaml-speex         | >=0.2.1 | Ogg/Speex codec                               |
+| ocaml-ssl           | >=0.5.2 | SSL/https support                             |
+| ocaml-taglib        | >=0.3.0 | MP3ID3 metadata access                        |
+| ocaml-theora        | >=0.3.1 | Ogg/Theora codec                              |
+| ocaml-vorbis        | >=0.7.0 | Ogg/Vorbis codec                              |
+| ocaml-xmlplaylist   | >=0.1.3 | XML-based playlist formats                    |
+| osx-secure-transport|         | SSL/https support via OSX's SecureTransport   |
+| yojson              |         | Parsing JSON data (of_json function)          |
 
-Runtime optional dependencies:
+### Runtime optional dependencies:
+
+| Dependency          | Functionality                                     |
+| ------------------- | ------------------------------------------------- |
+| awscli              | `s3://` and `polly://` protocol support           |
+| curl                | `http`/`https`/`ftp` protocol support             |
+| ffmpeg              | external I/O, `replay_gain` level computation, .. |
+| youtube-dl          | youtube video and playlist support                |
+
     
-- curl                           http/https/ftp support
-    
-How to install
---------------
+## Installing via configure
 
-BSD users, as well as OSX users might need to export some variables that can be
-missing during the process:
-
-```
-% export CPPFLAGS=-I/usr/local/include
-% export LDFLAGS=-L/usr/local/lib
-% export OCAMLMKLIB_FLAGS=-L/usr/local/lib
-```
-
-Also, liquidsoap needs GNU make. If you have a GNU make, this is normally
-detected during configuration. If this check fails you can set the `MAKE`
-variable:
-
-```
-% export MAKE=`your make command`
-```
-
-The following assumes your `MAKE` command is `make`. Change to yours if different.
-
-Now you can start the build configuration:
+The build processus starts with by invoking the `configure` script:
 
 ```
 % ./configure
@@ -136,18 +145,6 @@ a user/group under which liquidsoap should be ran. This behavior can be
 overridden by passing `INSTALL_DAEMON="yes"` (useful for preparing binary
 packages).
 
-For installing developers documentation, run:
 
-```
-% make api-doc-install
-```
-
-Then if you want services to be installed in `$prefix/etc/init.d`, run one of the
-following. service is for a generic `/bin/sh` service, gentoo is for a gentoo
-compliant service, to be used iff you've a gentoo linux.
-
-```
-% make (service|gentoo)-install
-```
-
-See `/doc` for understanding liquidsoap scripting. Have fun!
+If you need to run liquidsoap as a daemon, you can then have a look at
+[liquidsoap-daemon](https://github.com/savonet/liquidsoap-daemon).
