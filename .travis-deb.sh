@@ -1,11 +1,19 @@
 #!/bin/sh
 
-COMMIT=$1
-BRANCH=$1
+TRAVIS_COMMIT=$1
+TRAVIS_BRANCH=$2
+TRAVIS_PULL_REQUEST_BRANCH=$3
+TRAVIS_PULL_REQUEST=$4
+
+if test "${TRAVIS_PULL_REQUEST}" = "false"; then
+  BRANCH="${TRAVIS_BRANCH}"
+else
+  BRANCH="${TRAVIS_PULL_REQUEST_BRANCH}"
+fi
 
 mkdir debian
 id=$(docker create liquidsoap-build)
-docker cp $id:/liquidsoap.deb debian/liquidsoap-${COMMIT}.deb
+docker cp $id:/tmp/liquidsoap.deb debian/liquidsoap-${COMMIT}.deb
 docker rm -v $id
 
 if test -n "${BRANCH}"; then
