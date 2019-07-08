@@ -40,7 +40,7 @@ let hls_proto kind =
     let position = Lang.to_int (List.assoc "position" p) in
     let extname = Lang.to_string (List.assoc "extname" p) in
     let sname = Lang.to_string (List.assoc "" p) in
-    Lang.string (Printf.sprintf "%s_%06d.%s" sname position extname))
+    Lang.string (Printf.sprintf "%s_%d.%s" sname position extname))
   in
   (Output.proto @ [
      "playlist",
