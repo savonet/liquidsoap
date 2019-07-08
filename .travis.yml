@@ -16,3 +16,4 @@ deploy:
   acl: public_read
   on:
     repo: savonet/liquidsoap
+    all_branches: true
