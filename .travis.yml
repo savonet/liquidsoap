@@ -2,9 +2,9 @@ sudo: required
 services:
 - docker
 script:
-- docker build -t liquidsoap-build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis.docker-file
+- docker build . --tag liquidsoap-build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis.docker-file
 - .travis-deb.sh "$TRAVIS_COMMIT"
-  .
+
 deploy:
   provider: s3
   access_key_id: AKIA6KFHFXRIWW5COSJE
