@@ -89,16 +89,17 @@ end
 
 # @flag hidden
 def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
-                           ~playlist,~segment_duration,~segments,
+                           ~playlist,~segment_name,~segment_duration,
+                           ~segments,~segments_per_playlist,
                            ~start,~port,~path,serve,formats,s)
   tmp_dir = file.temp_dir("hls","")
 
   serve(port=port,path=path,tmp_dir)
 
   output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
-                  playlist=playlist,start=start,
+                  playlist=playlist,start=start,segment_name=segment_name,
                   segment_duration=segment_duration,segments=segments,
-                  tmp_dir,formats,s)
+                  segments_per_playlist=segments_per_playlist,tmp_dir,formats,s)
 end
 
 # Output the source stream to an HTTP live stream served from the harbor HTTP server.
@@ -109,21 +110,25 @@ end
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
+# @param ~segment_name Segment name. Default: `fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
 # @param ~segments Number of segments to keep.
+# @param ~segments_per_playlist Number of segments per playlist.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~headers Default response headers.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
-                      ~segment_duration=10.,~segments=10,~start=true,
-                      ~playlist="stream.m3u8",~port=8000,~path="/",
+                      ~segment_duration=10.,~segments=15,~segments_per_playlist=10,
+                      ~segment_name=(fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
+                      ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",
                       ~headers=[("Access-Control-Allow-Origin","*")],formats,s)
   def serve(~port,~path,dir) =
     harbor.http.static(port=port,path=path,headers=headers,dir)
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
+                         segments_per_playlist=segments_per_playlist,segment_name=segment_name,
                          start=start,port=port,path=path,playlist=playlist,
                          serve,formats,s)
 end
@@ -137,21 +142,25 @@ end
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
+# @param ~segment_name Segment name. Default: `fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
 # @param ~segments Number of segments to keep.
+# @param ~segments_per_playlist Number of segments per playlist.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~port Port for incoming harbor (https) connections.
 # @param ~headers Default response headers.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
-                            ~segment_duration=10.,~segments=10,~start=true,
+                            ~segment_duration=10.,~segments=15,~segments_per_playlist=10,
+                            ~segment_name=(fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                             ~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],
-                            ~playlist="stream.m3u8",formats,s)
+                            ~start=true,~playlist="stream.m3u8",formats,s)
   def serve(~port,~path,dir) =
     harbor.https.static(port=port,path=path,headers=headers,dir)
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
+                         segments_per_playlist=segments_per_playlist,segment_name=segment_name,
                          start=start,port=port,path=path,playlist=playlist,
                          serve,formats,s)
 end

@@ -57,7 +57,7 @@ let hls_proto kind =
      segment_name_t,
      Some default_name,
      Some "Segment name. \
-           Default: `fun (~duration:_,~position,~extname,stream_name) -> \"#{stream_name}_#{position}.#{extname}\"`";
+           Default: `fun (~duration=_,~position,~extname,stream_name) -> \"#{stream_name}_#{position}.#{extname}\"`";
 
      "segments",
      Lang.int_t,
