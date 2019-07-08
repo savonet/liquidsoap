@@ -82,8 +82,6 @@ let encode_video encoder id content start len =
   in
   Ogg_muxer.encode encoder id data
 
-exception No_encoder of string
-
 let encoder_name = function
   | Ogg_format.Vorbis _ -> "vorbis"
   | Ogg_format.Opus _   -> "opus"
