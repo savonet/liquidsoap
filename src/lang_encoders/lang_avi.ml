@@ -27,8 +27,8 @@ let make params =
   let defaults =
     {
       Avi_format.
-      channels = 2;
-      samplerate = 44100
+      channels = Lazy.force Frame.audio_channels;
+      samplerate = Lazy.force Frame.audio_rate
     }
   in
   let avi =

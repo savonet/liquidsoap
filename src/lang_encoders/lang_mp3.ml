@@ -25,9 +25,9 @@ open Lang_encoders
 
 let mp3_base_defaults =
     { Mp3_format.
-        stereo = true ;
+        stereo = (Lazy.force Frame.audio_channels == 2) ;
         stereo_mode = Mp3_format.Joint_stereo ;
-        samplerate = 44100 ;
+        samplerate = Lazy.force Frame.audio_rate ;
         bitrate_control = Mp3_format.CBR 128 ;
         internal_quality = 2;
         id3v2 = None ;

@@ -31,8 +31,8 @@ let make params =
         bandwidth      = `Auto;
         bitrate        = 64;
         bitrate_mode   = `Constant;
-        channels       = 2;
-        samplerate     = 44100;
+        channels       = Lazy.force Frame.audio_channels;
+        samplerate     = Lazy.force Frame.audio_rate;
         sbr_mode       = false;
         transmux       = `Adts }
   in

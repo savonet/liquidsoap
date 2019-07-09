@@ -26,9 +26,9 @@ open Lang_encoders
 let flac_gen params =
   let defaults =
     { Flac_format.
-        channels = 2 ;
+        channels = Lazy.force Frame.audio_channels ;
         fill = None;
-        samplerate = 44100 ;
+        samplerate = Lazy.force Frame.audio_rate ;
         bits_per_sample = 16;
         compression = 5 }
   in
