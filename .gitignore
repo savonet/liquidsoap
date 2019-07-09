@@ -26,9 +26,10 @@ src/lang/lang_parser.mli
 src/*_depend
 src/liquidsoap
 doc/html
-doc/content/reference.txt
-doc/content/settings.txt
-doc/content/protocols.txt
+doc/content/install.md
+doc/content/reference.md
+doc/content/settings.md
+doc/content/protocols.md
 autodoc/
 *.annot
 scripts/tests/threesines/
