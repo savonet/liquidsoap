@@ -12,22 +12,23 @@ RUN eval $(opam config env) && make update && \
      cd liquidsoap && git fetch origin $TRAVIS_COMMIT && git checkout $TRAVIS_COMMIT && \
      cd .. && ./bootstrap && \
      ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
-                 --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var && \
+                 --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
+                 --with-camomile-data-dir=/usr/share/liquidsoap/camomile && \
      make clean && make && cd liquidsoap && make doc
-
-WORKDIR /tmp/liquidsoap-full/liquidsoap
 
 USER root
 
-ADD .travis.debian/ /tmp/liquidsoap-full/liquidsoap/debian
+ADD .travis/debian/ /tmp/liquidsoap-full/liquidsoap/debian
+
+ADD .travis/build-deb.sh /tmp/liquidsoap-full/liquidsoap/
 
 RUN chown -R opam /tmp/liquidsoap-full/liquidsoap/debian
 
 USER opam
 
-RUN fakeroot debian/rules binary
+WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/liquidsoap.deb
+RUN ./build-deb.sh
 
 #WORKDIR /tmp/liquidsoap-full/liquidsoap
 

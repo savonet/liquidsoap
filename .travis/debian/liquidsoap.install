@@ -1,4 +1,4 @@
 usr/bin/liquidsoap
 etc/logrotate.d/liquidsoap
-etc/etc/bash_completion.d/liquidsoap
+etc/bash_completion.d/liquidsoap
 usr/share/liquidsoap/*/*/*

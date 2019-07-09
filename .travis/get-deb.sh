@@ -11,11 +11,7 @@ else
   BRANCH="${TRAVIS_PULL_REQUEST_BRANCH}"
 fi
 
-mkdir debian
+rm -rf debian
 id=$(docker create liquidsoap-build)
-docker cp $id:/tmp/liquidsoap.deb debian/liquidsoap-${TRAVIS_COMMIT}.deb
+docker cp $id:/tmp/debian debian/
 docker rm -v $id
-
-if test -n "${BRANCH}"; then
-  cp debian/liquidsoap-${TRAVIS_COMMIT}.deb debian/liquidsoap-${BRANCH}.deb
-fi
