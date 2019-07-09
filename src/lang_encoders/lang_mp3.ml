@@ -23,7 +23,7 @@
 open Lang_values
 open Lang_encoders
 
-let mp3_base_defaults =
+let mp3_base_defaults () =
     { Mp3_format.
         stereo = (Lazy.force Frame.audio_channels == 2) ;
         stereo_mode = Mp3_format.Joint_stereo ;
@@ -78,7 +78,7 @@ let mp3_base f =
 
 let make_cbr params =
   let defaults =
-    { mp3_base_defaults with
+    { (mp3_base_defaults ()) with
        Mp3_format.
         bitrate_control = Mp3_format.CBR 128 }
   in
@@ -107,7 +107,7 @@ let make_cbr params =
 
 let make_abr params =
   let defaults =
-    { mp3_base_defaults with
+    { (mp3_base_defaults ()) with
        Mp3_format.
         bitrate_control =
          Mp3_format.ABR
@@ -173,7 +173,7 @@ let make_abr params =
 
 let make_vbr params =
   let defaults =
-    { mp3_base_defaults with
+    { (mp3_base_defaults ()) with
        Mp3_format.
         bitrate_control = Mp3_format.VBR 4 }
   in
