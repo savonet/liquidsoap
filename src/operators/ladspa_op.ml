@@ -212,7 +212,7 @@ let get_control_ports d =
     LADSPA parameters might depend on the samplerate. Lacking a better solution,
     we use the following default samplerate, potentially creating a mismatch
     between the doc and the actual behavior. *)
-let default_samplerate = 44100
+let default_samplerate () = Lazy.force Frame.audio_rate
 
 (* Make a parameter for each control port.
  * Returns the liquidsoap parameters and the parameters for the plugin. *)
@@ -232,7 +232,7 @@ let params_of_descr d =
              ),
              (match
                 Descriptor.port_get_default d
-                  ~samplerate:default_samplerate p
+                  ~samplerate:(default_samplerate ()) p
               with
                 | Some f ->
                     Some
@@ -245,11 +245,11 @@ let params_of_descr d =
              let bounds =
                let min =
                  Descriptor.port_get_min d
-                   ~samplerate:default_samplerate p
+                   ~samplerate:(default_samplerate ()) p
                in
                let max =
                  Descriptor.port_get_max d
-                   ~samplerate:default_samplerate p
+                   ~samplerate:(default_samplerate ()) p
                in
                  if (min, max) = (None, None) then ""
                  else

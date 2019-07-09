@@ -27,9 +27,9 @@ let make_cbr params =
   let defaults =
     { Vorbis_format.
         mode = Vorbis_format.CBR 128 ;
-        channels = 2 ;
+        channels = Lazy.force Frame.audio_channels ;
         fill = None;
-        samplerate = 44100 ;
+        samplerate = Lazy.force Frame.audio_rate ;
     }
   in
   let vorbis =
@@ -57,9 +57,9 @@ let make_abr params =
   let defaults =
     { Vorbis_format.
         mode = Vorbis_format.ABR (None,None,None) ;
-        channels = 2 ;
+        channels = Lazy.force Frame.audio_channels ;
         fill = None ;
-        samplerate = 44100 ;
+        samplerate = Lazy.force Frame.audio_rate ;
     }
   in
   let get_rates x =
@@ -99,9 +99,9 @@ let make params =
   let defaults =
     { Vorbis_format.
         mode = Vorbis_format.VBR 0.3 ;
-        channels = 2 ;
+        channels = Lazy.force Frame.audio_channels ;
         fill = None ;
-        samplerate = 44100 ;
+        samplerate = Lazy.force Frame.audio_rate ;
     }
   in
   let vorbis =

@@ -79,6 +79,8 @@ Changed:
 - Renamed `gstreamer.hls` to `output.file.hls.gstreamer`.
 - Raise an error when using a format (e.g. `%vorbis`, `%mp3`, ..) that is not 
   enabled. (#857)
+- Set default encoders and ladspa plugins samplerate and channels to configured
+  internal `"frame.audio.samplerate"` and `"frame.audio.channels"`. (#870)
 
 Fixed:
 

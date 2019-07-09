@@ -25,11 +25,11 @@ open Lang_encoders
 
 let make params =
   let defaults = { Wav_format.
-                    channels   = 2 ;
+                    channels   = Lazy.force Frame.audio_channels ;
                     samplesize = 16;
                     header = true;
                     duration = None;
-                    samplerate = 44100 } in
+                    samplerate = Lazy.force Frame.audio_rate } in
   let wav =
     List.fold_left
       (fun f ->
