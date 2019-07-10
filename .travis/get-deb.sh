@@ -14,5 +14,5 @@ fi
 rm -rf debian
 id=$(docker create liquidsoap-build)
 docker cp $id:/tmp/debian debian/
-cp -rf debian/pkgs/liquidsoap_${TRAVIS_COMMIT}-1.deb debian/pkgs/liquidsoap-${BRANCH}-1.deb
+cp -rf debian/pkgs/liquidsoap_0+${TRAVIS_COMMIT}-1.deb debian/pkgs/liquidsoap-0+${BRANCH}-1.deb
 docker rm -v $id

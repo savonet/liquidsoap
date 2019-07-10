@@ -7,7 +7,7 @@ COMMIT=$1
 DEBFULLNAME="The Savonet Team"
 DEBEMAIL="savonet-users@lists.sourceforge.net"
 
-dch --create --distribution unstable --package "liquidsoap" --newversion "${COMMIT}-1" "Build ${COMMIT}"
+dch --create --distribution unstable --package "liquidsoap" --newversion "0+${COMMIT}-1" "Build ${COMMIT}"
 
 eval $(opam config env)
 
