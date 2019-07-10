@@ -9,7 +9,7 @@ You can install liquidsoap with OPAM (recommended) or from source, or using a
 package available for your distribution (not covered by this documentation).
 
 * [Using OPAM](#install-using-opam)
-* [Debian/Ubuntu](#debian-ubuntu)
+* [Debian/Ubuntu](#debianubuntu)
 * [Windows](#windows)
 * [From source](#installing-from-source)
 * [Latest development version](#latest-development-version)
