@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 cd /tmp/liquidsoap-full/liquidsoap
 
 COMMIT=$1
