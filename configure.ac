@@ -130,7 +130,7 @@ fi
 dnl The following does not correctly uses prefix
 dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
 bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
-AS_IF([test -z "$bashcompdir"], [bashcompdir="${sysconfdir}/bash_completion.d"])
+AS_IF([test -z "$bashcompdir"], [bashcompdir="\${sysconfdir}/bash_completion.d"])
 AC_SUBST(bashcompdir)
 
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
@@ -898,6 +898,7 @@ AC_SUBST(shared_flag)
 
 echo
 
+AC_CONFIG_FILES([doc/content/install.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
 AC_OUTPUT
