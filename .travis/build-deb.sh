@@ -15,6 +15,6 @@ eval $(opam config env)
 
 fakeroot debian/rules binary
 
-mkdir /tmp/debian
+mkdir -p /tmp/debian/pkgs
 
-cp /tmp/liquidsoap-full/*.deb /tmp/debian
+cp /tmp/liquidsoap-full/*.deb /tmp/debian/pkgs
