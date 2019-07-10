@@ -8,6 +8,8 @@ TRAVIS_PULL_REQUEST_BRANCH=$3
 TRAVIS_PULL_REQUEST=$4
 DOCKER_TAG=$5
 
+echo "Docker tag: ${DOCKER_TAG}"
+
 DEBFULLNAME="The Savonet Team"
 DEBEMAIL="savonet-users@lists.sourceforge.net"
 
