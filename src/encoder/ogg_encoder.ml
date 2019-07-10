@@ -82,82 +82,39 @@ let encode_video encoder id content start len =
   in
   Ogg_muxer.encode encoder id data
 
+let encoder_name = function
+  | Ogg_format.Vorbis _ -> "vorbis"
+  | Ogg_format.Opus _   -> "opus"
+  | Ogg_format.Flac _   -> "flac"
+  | Ogg_format.Theora _ -> "theora"
+  | Ogg_format.Speex _  -> "speex"
+
+let get_encoder tr =
+  let name = encoder_name tr in
+  try
+    Hashtbl.find encoders name
+  with Not_found ->
+    Ogg_muxer.log#important
+      "Could not find any %s encoder." name ;
+      raise Not_found
+
 let encoder ogg =
-    (* We add a skeleton only 
-     * if there are more than one stream for now. *)
-    let skeleton = List.length ogg > 1 in
-    let create_track cur x = 
-      match x with
-        | Ogg_format.Vorbis x ->
-           begin 
-            try
-              let create_vorbis = 
-                Hashtbl.find encoders "vorbis"
-              in
-              create_vorbis (Ogg_format.Vorbis x) :: cur
-            with
-              | Not_found -> 
-                  Ogg_muxer.log#important
-                    "Could not find any vorbis encoder." ;
-                  raise Not_found          
-           end
-        | Ogg_format.Opus x ->
-           begin
-            try
-              let create_opus =
-                Hashtbl.find encoders "opus"
-              in
-              create_opus (Ogg_format.Opus x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important
-                    "Could not find any opus encoder." ;
-                  raise Not_found
-           end
-        | Ogg_format.Flac x ->
-           begin
-            try
-              let create_flac =
-                Hashtbl.find encoders "flac"
-              in
-              create_flac (Ogg_format.Flac x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important
-                    "Could not find any flac encoder." ;
-                  raise Not_found
-           end
-        | Ogg_format.Theora x ->
-           begin
-            try
-              let create_theora =
-                Hashtbl.find encoders "theora"
-              in
-              create_theora (Ogg_format.Theora x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important 
-                    "Could not find any theora encoder." ;
-                  raise Not_found
-           end
-        | Ogg_format.Speex x ->
-           begin
-            try
-              let create_speex =
-                Hashtbl.find encoders "speex"
-              in
-              create_speex (Ogg_format.Speex x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important
-                    "Could not find any speex encoder." ;
-                  raise Not_found
-           end
+    let check_track t =
+      let _:Ogg_format.item -> track = get_encoder t in
+      ()
     in
-    let tracks = 
-      List.fold_left create_track [] ogg 
-    in
+    List.iter check_track ogg; 
     fun name meta -> 
+      (* We add a skeleton only
+       * if there are more than one stream for now. *)
+      let skeleton = List.length ogg > 1 in
+      let create_track cur tr =
+        let create = get_encoder tr in
+        create tr :: cur
+      in
+      let tracks =
+        List.fold_left create_track [] ogg
+      in
       let ogg_enc = Ogg_muxer.create ~skeleton name in
       let rec enc =
        {

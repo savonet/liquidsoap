@@ -130,7 +130,7 @@ fi
 dnl The following does not correctly uses prefix
 dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
 bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
-AS_IF([test -z "$bashcompdir"], [bashcompdir="${sysconfdir}/bash_completion.d"])
+AS_IF([test -z "$bashcompdir"], [bashcompdir="\${sysconfdir}/bash_completion.d"])
 AC_SUBST(bashcompdir)
 
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
@@ -649,6 +649,11 @@ AC_ARG_ENABLE([camomile],
 
 AC_CHECK_OCAML_BINDING([camomile],[1.0.0])
 
+AC_ARG_WITH([camomile-data-dir],
+   AC_HELP_STRING(
+      [--with-camomile-data-dir=path],
+      [path to camomile data files (autodetected by default)]))
+
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
     echo let recode_tag ?in_enc:_ ?out_enc:_ s = s >> src/configure.ml
@@ -656,7 +661,18 @@ if test -z "$W_CAMOMILE" ; then
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi
 else
-    if test -n "$w_CUSTOM_PATH"; then
+    if test -n "${with_camomile_data_dir}" ; then
+      camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
+      cat >> src/configure.ml <<EOCONF
+module CamomileConfig =
+struct
+  let datadir = Filename.concat "${with_camomile_data_dir}" "database"
+  let localedir = Filename.concat "${with_camomile_data_dir}" "locales"
+  let charmapdir = Filename.concat "${with_camomile_data_dir}" "charmaps"
+  let unimapdir = Filename.concat "${with_camomile_data_dir}" "mappings"
+end
+EOCONF
+    elif test -n "$w_CUSTOM_PATH" ; then
       camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
       cat >> src/configure.ml <<EOCONF
 module CamomileConfig = 
@@ -898,6 +914,7 @@ AC_SUBST(shared_flag)
 
 echo
 
+AC_CONFIG_FILES([doc/content/install.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
 AC_OUTPUT

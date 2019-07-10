@@ -1,6 +1,10 @@
 Installing Savonet/Liquidsoap
 =============================
 
+*Note* These instructions are from the documentation from liquidsoap `@version@`.
+Make sure to consult the instructions from the version you wish to install,
+most likely the latest stable release.
+
 You can install liquidsoap with OPAM (recommended) or from source, or using a
 package available for your distribution (not covered by this documentation).
 

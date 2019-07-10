@@ -26,8 +26,8 @@ open Lang_encoders
 let make params =
   let defaults =
     { Shine_format.
-        channels = 2 ;
-        samplerate = 44100 ;
+        channels = Lazy.force Frame.audio_channels ;
+        samplerate = Lazy.force Frame.audio_rate ;
         bitrate = 128 }
   in
   let shine =

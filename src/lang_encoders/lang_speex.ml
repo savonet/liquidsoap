@@ -26,9 +26,9 @@ open Lang_encoders
 let make params =
   let defaults =
     { Speex_format.
-        stereo = false ;
+        stereo = (Lazy.force Frame.audio_channels = 2) ;
         fill = None ;
-        samplerate = 44100 ;
+        samplerate = Lazy.force Frame.audio_rate ;
         bitrate_control = Speex_format.Quality 7;
         mode = Speex_format.Narrowband ;
         frames_per_packet = 1 ;
