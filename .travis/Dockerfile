@@ -8,6 +8,8 @@ WORKDIR /tmp/liquidsoap-full
 
 ARG TRAVIS_COMMIT
 
+ARG TRAVIS_COMMIT_SHORT
+
 RUN eval $(opam config env) && make update && \
      cd liquidsoap && git fetch origin $TRAVIS_COMMIT && git checkout $TRAVIS_COMMIT && \
      cd .. && ./bootstrap && \
@@ -28,7 +30,7 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN ./build-deb.sh $TRAVIS_COMMIT
+RUN ./build-deb.sh $TRAVIS_COMMIT_SHORT
 
 #WORKDIR /tmp/liquidsoap-full/liquidsoap
 
