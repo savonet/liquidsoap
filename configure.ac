@@ -915,6 +915,7 @@ AC_SUBST(shared_flag)
 echo
 
 AC_CONFIG_FILES([doc/content/install.md])
+AC_CONFIG_FILES([doc/content/build.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
 AC_OUTPUT
