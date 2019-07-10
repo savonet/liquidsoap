@@ -20,13 +20,13 @@ eval $(opam config env)
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-dch --create --distribution unstable --package "liquidsoap" --newversion "0+${TRAVIS_COMMIT_SHORT}-1" "Build ${TRAVIS_COMMIT_SHORT}"
+dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${TRAVIS_COMMIT_SHORT}-1" "Build ${TRAVIS_COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 
 rm -rf debian/changelog
 
-dch --create --distribution unstable --package "liquidsoap" --newversion "0+${BRANCH}-1" "Build ${BRANCH}"
+dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${BRANCH}-1" "Build ${BRANCH}"
 
 fakeroot debian/rules binary
 
