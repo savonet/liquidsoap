@@ -1,9 +1,12 @@
 sudo: required
+env:
+  - DOCKER_TAG=debian_testing
+  - DOCKER_TAG=ubuntu_bionic
 services:
 - docker
 script:
 - export TRAVIS_COMMIT_SHORT="$(git rev-parse --short ${TRAVIS_COMMIT})"
-- docker build . --tag liquidsoap-build --no-cache --build-arg TRAVIS_PULL_REQUEST_BRANCH --build-arg TRAVIS_PULL_REQUEST --build-arg TRAVIS_BRANCH --build-arg TRAVIS_COMMIT --build-arg TRAVIS_COMMIT_SHORT -f .travis/Dockerfile
+- docker build . --tag liquidsoap-build --no-cache --build-arg DOCKER_TAG --build-arg TRAVIS_BRANCH --build-arg TRAVIS_COMMIT --build-arg TRAVIS_COMMIT_SHORT --build-arg TRAVIS_PULL_REQUEST --build-arg TRAVIS_PULL_REQUEST_BRANCH -f .travis/Dockerfile
 - ./.travis/get-deb.sh
 
 deploy:
@@ -11,7 +14,7 @@ deploy:
   access_key_id: AKIA6KFHFXRIWW5COSJE
   secret_access_key:
     secure: hPkyQfVBfKHi/bh8JzhOtmFT4gd+ln/gV8+Kyqh0sM1/UkaVTpzaKFT+meheIGhiNMYS/zM/V0RN665GLNNo3suAXOHc3P6Tl7VS0eHbqEKNhSW4fNLqVjxYxIhBWRivTWoIXU/n2jdg8GdSXKdqxauL/bgUWpL3cV4l4SQscq4=
-  bucket: debian.liquidsoap.info
+  bucket: deb.liquidsoap.info
   skip_cleanup: true
   local_dir: debian
   acl: public_read

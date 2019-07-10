@@ -6,6 +6,9 @@ TRAVIS_COMMIT_SHORT=$1
 TRAVIS_BRANCH=$2
 TRAVIS_PULL_REQUEST_BRANCH=$3
 TRAVIS_PULL_REQUEST=$4
+DOCKER_TAG=$5
+
+echo "Docker tag: ${DOCKER_TAG}"
 
 DEBFULLNAME="The Savonet Team"
 DEBEMAIL="savonet-users@lists.sourceforge.net"
@@ -30,6 +33,6 @@ dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${
 
 fakeroot debian/rules binary
 
-mkdir -p /tmp/debian/pkgs
+mkdir -p "/tmp/debian/pkgs/${DOCKER_TAG}"
 
-cp /tmp/liquidsoap-full/*.deb /tmp/debian/pkgs
+cp /tmp/liquidsoap-full/*.deb "/tmp/debian/pkgs/${DOCKER_TAG}"

@@ -1,20 +1,19 @@
-FROM savonet/liquidsoap-full
+ARG DOCKER_TAG
+FROM savonet/liquidsoap-full:$DOCKER_TAG
 
 MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
+
+# This looks like a bug..
+ARG DOCKER_TAG
+ARG TRAVIS_BRANCH
+ARG TRAVIS_COMMIT
+ARG TRAVIS_COMMIT_SHORT
+ARG TRAVIS_PULL_REQUEST
+ARG TRAVIS_PULL_REQUEST_BRANCH
 
 USER opam
 
 WORKDIR /tmp/liquidsoap-full
-
-ARG TRAVIS_COMMIT
-
-ARG TRAVIS_COMMIT_SHORT
-
-ARG TRAVIS_PULL_REQUEST_BRANCH
-
-ARG TRAVIS_PULL_REQUEST
-
-ARG TRAVIS_BRANCH
 
 RUN eval $(opam config env) && make update && \
      cd liquidsoap && git fetch origin $TRAVIS_COMMIT && git checkout $TRAVIS_COMMIT && \
@@ -36,7 +35,7 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN ./build-deb.sh "$TRAVIS_COMMIT_SHORT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST"
+RUN ./build-deb.sh "$TRAVIS_COMMIT_SHORT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST" "$DOCKER_TAG"
 
 #WORKDIR /tmp/liquidsoap-full/liquidsoap
 
