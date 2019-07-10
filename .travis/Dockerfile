@@ -10,6 +10,12 @@ ARG TRAVIS_COMMIT
 
 ARG TRAVIS_COMMIT_SHORT
 
+ARG TRAVIS_PULL_REQUEST_BRANCH
+
+ARG TRAVIS_PULL_REQUEST
+
+ARG TRAVIS_BRANCH
+
 RUN eval $(opam config env) && make update && \
      cd liquidsoap && git fetch origin $TRAVIS_COMMIT && git checkout $TRAVIS_COMMIT && \
      cd .. && ./bootstrap && \
@@ -30,7 +36,7 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN ./build-deb.sh $TRAVIS_COMMIT_SHORT
+RUN ./build-deb.sh "$TRAVIS_COMMIT_SHORT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST"
 
 #WORKDIR /tmp/liquidsoap-full/liquidsoap
 

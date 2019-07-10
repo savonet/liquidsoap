@@ -29,6 +29,4 @@ override_dh_auto_install:
 	dh_install
 
 override_dh_auto_clean:
-	dh_autoreconf_clean
-	rm -rf autodoc aclocal.m4 src/META
-	dh_clean
+	/bin/true
