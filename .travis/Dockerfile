@@ -28,7 +28,7 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN ./build-deb.sh
+RUN ./build-deb.sh $TRAVIS_COMMIT
 
 #WORKDIR /tmp/liquidsoap-full/liquidsoap
 
