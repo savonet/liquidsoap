@@ -2,8 +2,9 @@ sudo: required
 services:
 - docker
 script:
-- docker build . --tag liquidsoap-build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis/Dockerfile
-- ./.travis/get-deb.sh "$TRAVIS_COMMIT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST"
+- export TRAVIS_COMMIT_SHORT="$(git rev-parse --short ${TRAVIS_COMMIT})"
+- docker build . --tag liquidsoap-build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT_SHORT" -f .travis/Dockerfile
+- ./.travis/get-deb.sh "$TRAVIS_COMMIT_SHORT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST"
 
 deploy:
   provider: s3
