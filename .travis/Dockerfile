@@ -1,4 +1,5 @@
-FROM savonet/liquidsoap-full
+ARG DOCKER_TAG
+FROM savonet/liquidsoap-full:$DOCKER_TAG
 
 MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
 
@@ -36,7 +37,7 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN ./build-deb.sh "$TRAVIS_COMMIT_SHORT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST"
+RUN ./build-deb.sh "$TRAVIS_COMMIT_SHORT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST" "$DOCKER_TAG"
 
 #WORKDIR /tmp/liquidsoap-full/liquidsoap
 
