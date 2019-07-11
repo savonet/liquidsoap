@@ -93,11 +93,11 @@ struct
          let preferred = preferred_conf#get in
          match converters#get preferred with
            | Some _ ->
-              log#info "Using preferred samplerate converter: %s." preferred;
+              log#important "Using preferred samplerate converter: %s." preferred;
            | None ->
-              log#info "Couldn't find preferred samplerate converter: %s."
+              log#important "Couldn't find preferred samplerate converter: %s."
                 preferred;
               let (n,_) = List.hd converters#get_all in
-              log#info "Using %s samplerate converter" n))
+              log#important "Using %s samplerate converter" n))
 
 end
