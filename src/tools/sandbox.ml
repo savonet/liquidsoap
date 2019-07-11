@@ -102,7 +102,7 @@ let bwrap = {
         Printf.sprintf "%s --bind %S %S" t path path);
    cmd = (fun opts cmd ->
      let binary = Utils.which ~path:Configure.path conf_binary#get in
-     Printf.sprintf "%s %s --tmpfs /run --proc /proc --dev /dev %s" binary opts cmd)
+     Printf.sprintf "%s %s --proc /proc --dev /dev %s" binary opts cmd)
 }
 
 let cmd ?tmp ?rw ?ro ?network cmd =
