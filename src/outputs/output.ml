@@ -176,8 +176,9 @@ object (self)
       List.iter
         (fun (_,m) -> self#add_metadata m)
         (Frame.get_all_metadata memo) ;
-      (* Output that frame *)
-      self#output_send memo ;
+      (* Output that frame if it has some data *)
+      if Frame.position memo > 0 then
+        self#output_send memo ;
       if Frame.is_partial memo then begin
         self#log#important "Source failed (no more tracks) stopping output..." ;
         request_stop <- true
