@@ -91,14 +91,14 @@ let bwrap = {
   init = (fun ~tmp ~network -> Printf.sprintf
     "--new-session \
      --setenv TMPDIR %S --setenv TMP %S --setenv TEMPDIR %S --setenv TEMP %S \
-     %s --tmpfs /run --proc /proc --dev /dev %s" tmp tmp tmp tmp (if network then "" else "--unshare-net"));
+     %s" tmp tmp tmp tmp (if network then "" else "--unshare-net"));
   mount = (fun t ~flag path ->
     match flag with
       | `Ro ->
         Printf.sprintf "%s --ro-bind %S %S" t path path
       | `Rw ->
         Printf.sprintf "%s --bind %S %S" t path path);
-   cmd = Printf.sprintf "%s %s %s" conf_binary#get
+   cmd = Printf.sprintf "%s %s --tmpfs /run --proc /proc --dev /dev %s" conf_binary#get
 }
 
 let cmd ?tmp ?rw ?ro ?network cmd =
