@@ -1,7 +1,7 @@
 Installing Savonet/Liquidsoap
 =============================
 
-**Note** These instructions are from the documentation from liquidsoap `@version@`.
+**Note** These instructions are from the documentation from liquidsoap `1.4.0+scm`.
 Make sure to consult the instructions from the version you wish to install,
 most likely the latest stable release.
 
