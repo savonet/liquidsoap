@@ -23,15 +23,12 @@
 let log = Log.make ["sandbox"]
 
 let conf_sandbox =
-  Dtools.Conf.void ~p:(Configure.conf#plug "sandbox")
-    "External process settings"
-
-let conf_tool =
-  Dtools.Conf.string ~p:(conf_sandbox#plug "tool") ~d:Configure.sandbox_tool
-  "Sandbox tool to use."
+  Dtools.Conf.string ~p:(Configure.conf#plug "sandbox")
+    "Use sandboxing for external process. One of: `\"enabled\"`, \
+     `\"disabled\"` or `\"auto\"`."
 
 let conf_binary =
-  Dtools.Conf.string ~p:(conf_sandbox#plug "binary") ~d:Configure.sandbox_binary
+  Dtools.Conf.string ~p:(conf_sandbox#plug "binary") ~d:"bwrap"
   "Sandbox binary to use."
 
 let conf_tmp =
@@ -59,13 +56,18 @@ let () =
     if Lazy.force is_docker then
      begin
       log#important "Running inside a docker container, disabling sandboxing..";
-      conf_tool#set "disabled" 
+      conf_sandbox#set "disabled" 
      end
-    else if conf_tool#get = "disabled" then
+    else if Utils.which_opt ~path:Configure.path conf_binary#get = None then
+     begin
+      log#important "Could not find binary %s, disabling sandboxing.." conf_binary#get;
+      conf_sandbox#set "disabled"
+     end
+    else if conf_sandbox#get = "disabled" then
       log#important "Sandboxing disabled"
     else
      begin
-      log#important "Sandboxing using %s at %s" conf_tool#get conf_binary#get;
+      log#important "Sandboxing using bubblewrap at %s" (Utils.which ~path:Configure.path conf_binary#get);
       log#important "Temporary directory: %s" conf_tmp#get;
       log#important "Read/write directories: %s" (String.concat ", " conf_rw#get);  
       log#important "Read-only directories: %s" (String.concat ", " conf_ro#get);
@@ -98,15 +100,18 @@ let bwrap = {
         Printf.sprintf "%s --ro-bind %S %S" t path path
       | `Rw ->
         Printf.sprintf "%s --bind %S %S" t path path);
-   cmd = Printf.sprintf "%s %s --tmpfs /run --proc /proc --dev /dev %s" conf_binary#get
+   cmd = (fun opts cmd ->
+     let binary = Utils.which ~path:Configure.path conf_binary#get in
+     Printf.sprintf "%s %s --tmpfs /run --proc /proc --dev /dev %s" binary opts cmd)
 }
 
 let cmd ?tmp ?rw ?ro ?network cmd =
   let sandboxer =
-    match conf_tool#get with
+    (* This is intended to be extendable with more tools in the
+       future.. *)
+    match conf_sandbox#get with
       | "disabled" -> disabled
-      | "bwrap" -> bwrap
-      | v -> raise (Lang_errors.Invalid_value ((Lang.string v), "Invalid sandbox tool"))
+      | _ -> bwrap
   in
   let f d v =
     match v with

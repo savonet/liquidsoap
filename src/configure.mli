@@ -21,10 +21,6 @@ val libs_dir : string
 (** Directories where to search for libraries.. *)
 val findlib_path : string list
 
-(** Sandboxing configuration. *)
-val sandbox_tool : string
-val sandbox_binary: string
-
 (** Is dynlink available? *)
 val dynlink : bool
 

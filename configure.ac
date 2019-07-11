@@ -148,21 +148,6 @@ let big_endian = false
 __BLAH__
 fi
 
-AC_PATH_PROG([BWRAP],[bwrap],[])
-
-SANDBOX_TOOL=disabled
-SANDBOX_BINARY="requires bwrap"
-
-if test -n "${BWRAP}"; then
-  SANDBOX_TOOL=bwrap
-  SANDBOX_BINARY=$BWRAP
-fi
-
-cat >> src/configure.ml <<__BLAH__
-let sandbox_tool = "$SANDBOX_TOOL"
-let sandbox_binary = "$SANDBOX_BINARY"
-__BLAH__
-
 #
 # OCaml stuff
 #
@@ -961,8 +946,6 @@ cat <<EOMSG
  doc            : $datadir/doc
  bash completion: $bashcompdir
  emacs mode     : $emacsdir
- sandbox        : $SANDBOX_TOOL
- sanxbox binary : $SANDBOX_BINARY
 
  -------------------------------------------------------------------- Features
 
