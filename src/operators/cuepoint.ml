@@ -186,7 +186,7 @@ object (self)
 
   method private cue_out ~buf ~elapsed ~pos out_pos =
     self#log#important "Cueing out..." ;
-    (* If not alread and end of track, notify the source to end the track
+    (* If not already an end of track, notify the source to end the track
      * and do one more #get to consume any remaining data. *)
     if not (Frame.is_partial buf) then
      begin
