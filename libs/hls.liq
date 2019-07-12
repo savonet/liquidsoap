@@ -110,7 +110,7 @@ end
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
-# @param ~segment_name Segment name. Default: `fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
+# @param ~segment_name Segment name. Default: `fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
 # @param ~segments Number of segments to keep.
 # @param ~segments_per_playlist Number of segments per playlist.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
@@ -120,7 +120,7 @@ end
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
                       ~segment_duration=10.,~segments=15,~segments_per_playlist=10,
-                      ~segment_name=(fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
+                      ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                       ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",
                       ~headers=[("Access-Control-Allow-Origin","*")],formats,s)
   def serve(~port,~path,dir) =
@@ -142,7 +142,7 @@ end
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
-# @param ~segment_name Segment name. Default: `fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
+# @param ~segment_name Segment name. Default: `fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
 # @param ~segments Number of segments to keep.
 # @param ~segments_per_playlist Number of segments per playlist.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
@@ -152,7 +152,7 @@ end
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                             ~segment_duration=10.,~segments=15,~segments_per_playlist=10,
-                            ~segment_name=(fun (~duration=_,~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
+                            ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                             ~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],
                             ~start=true,~playlist="stream.m3u8",formats,s)
   def serve(~port,~path,dir) =

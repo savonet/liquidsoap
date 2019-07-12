@@ -26,13 +26,11 @@ let log = Log.make ["hls"; "output"]
 
 let hls_proto kind =
   let segment_name_t = Lang.fun_t [
-    false, "duration", Lang.float_t;
     false, "position", Lang.int_t;
     false, "extname", Lang.string_t;
     false, "", Lang.string_t
   ] Lang.string_t in
   let default_name = Lang.val_fun [
-    "duration", "duration", Lang.float_t, None;
     "position", "position", Lang.int_t, None;
     "extname", "extname", Lang.string_t, None;
     "", "", Lang.string_t, None
@@ -57,7 +55,7 @@ let hls_proto kind =
      segment_name_t,
      Some default_name,
      Some "Segment name. \
-           Default: `fun (~duration=_,~position,~extname,stream_name) -> \"#{stream_name}_#{position}.#{extname}\"`";
+           Default: `fun (~position,~extname,stream_name) -> \"#{stream_name}_#{position}.#{extname}\"`";
 
      "segments",
      Lang.int_t,
@@ -105,6 +103,7 @@ type segment =
      id:            int;
      discontinuous: bool;
      discontinuity: int;
+     files:         (string*string) List.t;
      mutable len:   int
   }
 
@@ -210,9 +209,8 @@ class hls_output p =
   let segment_name =
     Lang.to_fun ~t:Lang.string_t (List.assoc "segment_name" p)
   in
-  let segment_name ~duration ~position ~extname sname =
+  let segment_name ~position ~extname sname =
     Lang.to_string (segment_name [
-      "duration",Lang.float duration;
       "position",Lang.int position;
       "extname",Lang.string extname;
       "",Lang.string sname
@@ -233,7 +231,7 @@ class hls_output p =
 
     (** Current segment ID *)
     val mutable current_segment =
-      {id=(-1);discontinuous=false;discontinuity=0;len=0}
+      {id=(-1);files=[];discontinuous=false;discontinuity=0;len=0}
 
     (** Available segments *)
     val mutable segments = Queue.create ()
@@ -252,14 +250,18 @@ class hls_output p =
         | `Start,   _       -> state <- `Started
         | `Streaming, _     -> state <- `Streaming
 
+    method private segment_names id =
+      List.map (fun {hls_name;hls_format} ->
+        let fname =
+          segment_name ~position:id
+                       ~extname:(Encoder.extension hls_format)
+                       hls_name
+        in
+        hls_name,fname) streams
+
     method private segment_name ?(relative=false) ~segment stream =
-      let duration =
-        Frame.seconds_of_master segment.len
-      in
       let fname =
-        segment_name ~position:segment.id ~duration
-                     ~extname:(Encoder.extension stream.hls_format)
-                     stream.hls_name
+        List.assoc stream.hls_name segment.files
       in
       (if relative then "" else directory) ^^ fname
 
@@ -279,8 +281,7 @@ class hls_output p =
 
     method private unlink_segment segment =
       self#log#debug "Cleaning up segment %d.." segment.id ;
-      List.iter (fun s ->
-        self#unlink (self#segment_name ~segment s)) streams
+      List.iter (fun (_,fname) -> self#unlink fname) segment.files 
 
     method private close_out (fname, oc) =
       close_out oc;
@@ -299,7 +300,9 @@ class hls_output p =
         | None -> Meta_format.empty_metadata
       in
       s.hls_encoder.Encoder.insert_metadata meta; 
-      let fname = self#segment_name ~segment:current_segment s in
+      let fname =
+        self#segment_name ~segment:current_segment s
+      in
       let oc = self#open_out fname in
       s.hls_oc <- Some (fname, oc);
       match s.hls_encoder.Encoder.header with
@@ -319,7 +322,8 @@ class hls_output p =
       self#toggle_state `Streaming;
       let id = current_segment.id + 1 in
       let len = 0 in
-      current_segment <- {id;discontinuous;discontinuity;len};
+      let files = self#segment_names id in
+      current_segment <- {id;files;discontinuous;discontinuity;len};
       open_tick <- self#current_tick;
       self#log#debug "Opening segment %d." current_segment.id ;
       List.iter (fun s ->
