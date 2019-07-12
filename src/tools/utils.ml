@@ -642,10 +642,17 @@ let file_extension_len ~dir_sep name =
   in
   search_dot (String.length name - 1)
 
-let file_extension ?(dir_sep=Filename.dir_sep) name =
+let file_extension ?(leading_dot=true) ?(dir_sep=Filename.dir_sep) name =
   let dir_sep = dir_sep.[0] in
   let l = file_extension_len ~dir_sep name in
-  if l = 0 then "" else String.sub name (String.length name - l) l
+  let s =
+    if l = 0 then "" else
+      String.sub name (String.length name - l) l
+  in
+  try match leading_dot, s.[0] with
+    | false, '.' -> String.sub s 1 (String.length s - 1)
+    | _ -> s
+  with Invalid_argument _ -> s
 
 let quote s =
   let quote = '"' in

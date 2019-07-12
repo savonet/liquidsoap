@@ -19,7 +19,7 @@ using the AWS command-line to download a file from S3:
 
 ```liquidsoap
 def s3_protocol(~rlog,~maxtime,arg) =
-  extname = file.extension(dir_sep="/",arg)
+  extname = file.extension(leading_dot=false,dir_sep="/",arg)
   [process_uri(extname=extname,"aws s3 cp s3:#{arg} $(output)")]
 end
 add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
