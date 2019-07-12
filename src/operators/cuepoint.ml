@@ -186,9 +186,14 @@ object (self)
 
   method private cue_out ~buf ~elapsed ~pos out_pos =
     self#log#important "Cueing out..." ;
-    (* We're going to end the track, notify the source to do the
-     * same unless it is already over. *)
-    if not (Frame.is_partial buf) then source#abort_track ;
+    (* If not alread and end of track, notify the source to end the track
+     * and do one more #get to consume any remaining data. *)
+    if not (Frame.is_partial buf) then
+     begin
+      source#abort_track ;
+      self#slave_tick ;
+      source#get (Frame.create kind)
+     end;
     (* Quantify in the previous #get
      * - the amount of [extra] data past the cue point, to be dropped;
      * - the amount of [remaining] data, that should be left. *)
@@ -213,7 +218,6 @@ object (self)
       Frame.set_breaks buf
         (Utils.remove_one ((=) new_pos) (Frame.breaks buf)) ;
       Frame.add_break buf (pos + remaining) ;
-      self#slave_tick ;
       track_state <- None
 
   method private get_frame buf =
