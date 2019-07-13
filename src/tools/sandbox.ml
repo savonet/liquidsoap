@@ -112,14 +112,16 @@ let () =
       log#important "Sandboxing disabled"
     else
      begin
-      log#important "Sandboxing using bubblewrap at %s" (Utils.which ~path:Configure.path conf_binary#get);
-      log#important "Set environment variables: %s" (List.fold_left (fun cur (lbl,v) ->
-        Printf.sprintf "%s, %s=%S" cur lbl v) "" (get_setenv ()));
-      log#important "Unset environment variables: %s" (List.fold_left
-         (Printf.sprintf "%s,%s") "" conf_unsetenv#get);
-      log#important "Read/write directories: %s" (String.concat ", " conf_rw#get);  
+      log#important "Sandboxing external processes using bubblewrap at %s"
+        (Utils.which ~path:Configure.path conf_binary#get);
+      log#important "Set environment variables: %s"
+        (String.concat ", " (List.map (fun (lbl,v) ->
+          Printf.sprintf "%s=%S" lbl v) (get_setenv())));
+      log#important "Unset environment variables: %s"
+        (String.concat ", " conf_unsetenv#get);
+      log#important "Network allowed: %b" conf_network#get;
       log#important "Read-only directories: %s" (String.concat ", " conf_ro#get);
-      log#important "Network allowed: %b" conf_network#get
+      log#important "Read/write directories: %s" (String.concat ", " conf_rw#get) 
      end
   ))
 
