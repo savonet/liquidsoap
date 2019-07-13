@@ -132,8 +132,10 @@ fi
 AC_SUBST(W_[]BINDING())
 if test -z "${W_[]BINDING()}" ; then
     w_[]BINDING()="no (requires $1)"
+    b_[]BINDING()=false
 else
     w_[]BINDING()=yes
+    b_[]BINDING()=true
 fi])
 
 

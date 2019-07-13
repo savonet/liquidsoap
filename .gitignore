@@ -36,3 +36,4 @@ src/test/JSON_parse
 src/test/is_url
 src/test/timezone
 *.conflicts
+liquidsoap.config

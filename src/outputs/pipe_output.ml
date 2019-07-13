@@ -129,10 +129,13 @@ object (self)
     encoder <- Some (enc meta) ;
 
   method output_stop =
-    let flush = (Utils.get_some encoder).Encoder.stop () in
+    if self#is_open then
+     begin
+      let flush = (Utils.get_some encoder).Encoder.stop () in
       self#send flush ;
-      self#close_pipe ;
-      encoder <- None
+      self#close_pipe
+     end;
+    encoder <- None
 
   method output_reset = ()
 
