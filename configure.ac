@@ -347,7 +347,7 @@ AC_SUBST(MENHIR)
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[0.5.0],[],[1])
 
 #
 # Duppy

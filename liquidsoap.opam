@@ -19,7 +19,7 @@ remove: [
 depends: [
   "ocaml" {>= "4.08"}
   "camomile" {>= "1.0.0"}
-  "dtools" {>= "0.4.1"}
+  "dtools" {>= "0.5.0"}
   "duppy" {>= "0.8.0"}
   "menhir"
   "mm" {>= "0.5.0"}
