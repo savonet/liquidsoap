@@ -41,7 +41,7 @@ Libraries not developed by Savonet are:
 | Dependency     | Version   |
 | -------------- | --------- |
 | OCaml compiler | >= 4.08.0 |
-| ocaml-dtools   | >= 0.5.0  |
+| ocaml-dtools   | >= 0.4.0  |
 | ocaml-duppy    | >= 0.6.0  |
 | ocaml-mm       | >= 0.5.0  |
 | ocaml-pcre     |           |

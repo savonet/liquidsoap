@@ -30,17 +30,26 @@ let conf_sandbox =
 let tmpdir = Filename.get_temp_dir_name ()
 
 let conf_setenv =
+  let f = Printf.sprintf "%s=%S" in
   let default_env = [
-    ("TEMPDIR",tmpdir);
-    ("TEMP",tmpdir);
-    ("TMPDIR",tmpdir);
-    ("TMP",tmpdir)
+    (f "TEMPDIR" tmpdir);
+    (f "TEMP" tmpdir);
+    (f "TMPDIR" tmpdir);
+    (f "TMP" tmpdir)
   ] in
-  Dtools.Conf.list ~p:(Configure.conf#plug "setenv") ~d:default_env
+  Dtools.Conf.list ~p:(conf_sandbox#plug "setenv") ~d:default_env
   "Additional default environment variables."
 
+let get_setenv () =
+  List.fold_left
+    (fun cur s ->
+      match Pcre.split ~pat:"=" s with
+       | [] -> cur
+       | lbl::l -> (lbl, String.concat "=" l)::cur)
+    [] conf_setenv#get
+
 let conf_unsetenv =
-  Dtools.Conf.list ~p:(Configure.conf#plug "unsetenv") ~d:[]
+  Dtools.Conf.list ~p:(conf_sandbox#plug "unsetenv") ~d:[]
   "Environment varialbes to unset."
 
 let conf_binary =
@@ -105,7 +114,7 @@ let () =
      begin
       log#important "Sandboxing using bubblewrap at %s" (Utils.which ~path:Configure.path conf_binary#get);
       log#important "Set environment variables: %s" (List.fold_left (fun cur (lbl,v) ->
-        Printf.sprintf "%s, %s=%S" cur lbl v) "" conf_setenv#get);
+        Printf.sprintf "%s, %s=%S" cur lbl v) "" (get_setenv ()));
       log#important "Unset environment variables: %s" (List.fold_left
          (Printf.sprintf "%s,%s") "" conf_unsetenv#get);
       log#important "Read/write directories: %s" (String.concat ", " conf_rw#get);  
@@ -171,7 +180,7 @@ let cmd ?rw ?ro ?network cmd =
   let network = f conf_network#get network in
   let t = sandboxer.init ~network in
   let t =
-    List.fold_left (fun t (lbl,v) -> sandboxer.setenv t lbl v) t conf_setenv#get
+    List.fold_left (fun t (lbl,v) -> sandboxer.setenv t lbl v) t (get_setenv ())
   in
   let t =
     List.fold_left sandboxer.unsetenv t conf_unsetenv#get
