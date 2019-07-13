@@ -276,12 +276,13 @@ class hls_output p =
       on_file_change ~state:`Deleted fname;
       try
         Unix.unlink fname
-      with Unix.Unix_error (_, _, msg) ->
-        self#log#important "Could not remove file %s: %s" fname msg
+      with Unix.Unix_error (e, _, _) ->
+        self#log#important "Could not remove file %s: %s" fname (Unix.error_message e)
 
     method private unlink_segment segment =
       self#log#debug "Cleaning up segment %d.." segment.id ;
-      List.iter (fun (_,fname) -> self#unlink fname) segment.files 
+      List.iter (fun s ->
+        self#unlink (self#segment_name ~segment s)) streams
 
     method private close_out (fname, oc) =
       close_out oc;
