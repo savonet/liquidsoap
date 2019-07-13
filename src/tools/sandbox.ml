@@ -30,7 +30,7 @@ let conf_sandbox =
 let tmpdir = Filename.get_temp_dir_name ()
 
 let conf_setenv =
-  let f = Printf.sprintf "%s=%S" in
+  let f = Printf.sprintf "%s=%s" in
   let default_env = [
     (f "TEMPDIR" tmpdir);
     (f "TEMP" tmpdir);
