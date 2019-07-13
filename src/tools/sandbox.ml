@@ -47,6 +47,14 @@ let conf_network =
   Dtools.Conf.bool ~p:(conf_sandbox#plug "network") ~d:true
   "Enable network"
 
+let conf_shell =
+  Dtools.Conf.bool ~p:(conf_sandbox#plug "shell") ~d:true
+  "Run command inside shell"
+
+let conf_shell_path =
+  Dtools.Conf.string ~p:(conf_shell#plug "path") ~d:"/bin/sh"
+  "Patch to shell binary"
+
 let is_docker = lazy (
   Sys.unix && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0
 )
@@ -102,6 +110,11 @@ let bwrap = {
         Printf.sprintf "%s --bind %S %S" t path path);
    cmd = (fun opts cmd ->
      let binary = Utils.which ~path:Configure.path conf_binary#get in
+     let cmd =
+       if conf_shell#get then
+         Printf.sprintf "%s -c %S" conf_shell_path#get cmd
+       else cmd
+     in
      Printf.sprintf "%s %s --proc /proc --dev /dev %s" binary opts cmd)
 }
 
