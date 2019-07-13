@@ -326,6 +326,7 @@ if test "x$enable_graphics" = "xyes" ; then
 else
    W_GRAPHICS=""
    w_GRAPHICS="no"
+   b_GRAPHICS="false"
 fi
 
 #
@@ -967,59 +968,59 @@ cat <<EOMSG
  -------------------------------------------------------------------- Features
 
  * Supported input formats
-   - Vorbis            : $w_VORBIS
-   - Theora            : $w_THEORA
-   - Speex             : $w_SPEEX
-   - Flac (native)     : $w_FLAC
-   - Flac (ogg)        : $w_FLAC_OGG
-   - MP3               : $w_MAD
    - AAC               : $w_FAAD
    - Avcodec (ffmpeg)  : $w_FFMPEG
-   - XML playlists     : $w_XMLPLAYLIST
+   - Flac (native)     : $w_FLAC
+   - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM
+   - Opus              : $w_OPUS
+   - Speex             : $w_SPEEX
+   - Theora            : $w_THEORA
+   - Vorbis            : $w_VORBIS
+   - XML playlists     : $w_XMLPLAYLIST
 
  * Supported output formats
-   - Vorbis            : $w_VORBIS
+   - FDK-AAC           : $w_FDKAAC
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
-   - FDK-AAC           : $w_FDKAAC
-   - SPEEX             : $w_SPEEX
    - Opus              : $w_OPUS
+   - SPEEX             : $w_SPEEX
    - Theora            : $w_THEORA
+   - Vorbis            : $w_VORBIS
 
  * Tags
+   - charset detection : $w_CAMOMILE
    - Taglib (ID3 tags) : $w_TAGLIB
    - Vorbis            : $w_VORBIS
-   - charset detection : $w_CAMOMILE
 
  * Input / output
-   - Icecast/Shoutcast : $w_CRY
-   - AO                : $w_AO
-   - OSS               : $w_OSS
    - ALSA              : $w_ALSA
+   - AO                : $w_AO
+   - Icecast/Shoutcast : $w_CRY
+   - GStreamer         : $w_GSTREAMER
+   - JACK              : $w_BJACK
+   - OSS               : $w_OSS
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
-   - JACK              : $w_BJACK
-   - GStreamer         : $w_GSTREAMER
 
  * Audio manipulation
+   - LADSPA            : $w_LADSPA
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
-   - LADSPA            : $w_LADSPA
 
  * Video manipulation
-   - Gavl              : $w_GAVL
+   - camlimages        : $w_CAMLIMAGES
    - FFmpeg            : $w_FFMPEG
    - frei0r            : $w_FREI0R
-   - camlimages        : $w_CAMLIMAGES
+   - Gavl              : $w_GAVL
 
  * MIDI manipulation
    - DSSI              : $w_DSSI
 
  * Visualization
+   - GD                : $w_GD
    - Graphics          : $w_GRAPHICS
    - SDL               : $w_SDL
-   - GD                : $w_GD
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime
@@ -1027,10 +1028,10 @@ cat <<EOMSG
    - inotify           : $w_INOTIFY
    - lo                : $w_LO
    - magic             : $w_MAGIC
-   - yojson            : $w_YOJSON
-   - ssl               : $w_SSL
    - SecureTransport   : $w_OSX_SECURE_TRANSPORT
+   - ssl               : $w_SSL
    - windows service   : $w_WINSVC
+   - yojson            : $w_YOJSON
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
@@ -1078,3 +1079,51 @@ if ! test -f $DEFAULT_FONT ; then
 </WARNING>
 EOMSG
 fi
+
+cat >| liquidsoap.config <<EOCFG
+opam-version: "2.0"
+variables {
+  vorbis-enabled: $b_VORBIS
+  theora-enabled: $b_THEORA
+  speex-enabled: $b_SPEEX
+  flac-enabled: $b_FLAC
+  ogg_flac-enabled: $b_FLAC_OGG
+  mad-enabled: $b_MAD
+  faad-enabled: $b_FAAD
+  ffmpeg-enabled: $b_FFMPEG
+  xmlplaylist-enabled: $b_XMLPLAYLIST
+  lastfm-enabled: $b_LASTFM
+  lame-enabled: $b_LAME
+  shine-enabled: $b_SHINE
+  fdkaac-enabled: $b_FDKAAC
+  opus-enabled: $b_OPUS
+  taglib-enabled: $b_TAGLIB
+  camomile-enabled: $b_CAMOMILE
+  cry-enabled: $b_CRY
+  ao-enabled: $b_AO
+  ogg-enabled: $b_OGG
+  alsa-enabled: $b_ALSA
+  portaudio-enabled: $b_PORTAUDIO
+  pulseaudio-enabled: $b_PULSEAUDIO
+  bjack-enabled: $b_BJACK
+  gstreamer-enabled: $b_GSTREAMER
+  samplerate-enabled: $b_SAMPLERATE
+  soundtouch-enabled: $b_SOUNDTOUCH
+  ladspa-enabled: $b_LADSPA
+  gavl-enabled: $b_GAVL
+  ffmpeg-enabled: $b_FFMPEG
+  frei0r-enabled: $b_FREI0R
+  camlimages-enabled: $b_CAMLIMAGES
+  dssi-enabled: $b_DSSI
+  graphics-enabled: $b_GRAPHICS
+  sdl-enabled: $b_SDL
+  gd-enabled: $b_GD
+  inotify-enabled: $b_INOTIFY
+  lo-enabled: $b_LO
+  magic-enabled: $b_MAGIC
+  yojson-enabled: $b_YOJSON
+  ssl-enabled: $b_SSL
+  secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  winscv-enabled: $b_WINSVC
+}
+EOCFG
