@@ -380,6 +380,11 @@ let which ~path s =
   if test s then s else
     List.find test (List.map (fun d -> Filename.concat d s) path)
 
+let which_opt ~path s =
+  try
+    Some (which ~path s)
+  with Not_found -> None
+
 (** Get current timezone. *)
 external timezone : unit -> int = "liquidsoap_get_timezone"
 
