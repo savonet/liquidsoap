@@ -66,7 +66,7 @@ let conf_network =
 
 let conf_shell =
   Dtools.Conf.bool ~p:(conf_sandbox#plug "shell") ~d:true
-  "Run command inside shell. Defaults to `$SHELL` if set."
+  "Run command inside shell."
 
 let conf_shell_path =
   let d =
