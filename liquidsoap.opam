@@ -23,13 +23,13 @@ for more information." {failure}
 
 "✨ Congratulations on installing liquidsoap! ✨" {success}
 
-"We noticed that you did not install any mp3 decoder. This is a feature most 
+"We noticed that you did not install any mp3 decoder. This is a feature most
 users want. You might need to install the mad or ffmpeg package." {success & !mad-enabled & !ffmpeg-enabled}
 
 "We noticed that you did not install any mp3 encoder. This is a feature most
 users want. You might need to install the lame or shine package." {success & !lame-enabled & !shine-enabled}
 
-"We noticed that you did not install the taglib package that provides support 
+"We noticed that you did not install the taglib package that provides support
 for reading metatadata in audio files. This is a feature most users want." {success & !taglib-enabled}
 
 "We noticed that you did not install the samplerate package. We stronly
@@ -39,7 +39,7 @@ recommend this package for audio samplerate conversion." {success & !samperate-e
 output. This is a feature most users want." {success & !cry-enabled}
 
 "We noticed that you did not install any ssl support package. Liquidsoap won't
-be able to use any HTTPS feature. You might want to install one of ssl or 
+be able to use any HTTPS feature. You might want to install one of ssl or
 osx-secure-transport package." {success & !ssl-enabled & !secure-transport-enabled}
 ]
 depends: [
