@@ -102,7 +102,7 @@ conflicts: [
   "faad" {< "0.4.0"}
   "fdkaac" {< "0.3.0"}
   "ffmpeg" {< "0.2.0"}
-  "flac" {< "0.1.2"}
+  "flac" {< "0.1.5"}
   "frei0r" {< "0.1.0"}
   "gavl" {< "0.1.4"}
   "gstreamer" {< "0.3.0"}
