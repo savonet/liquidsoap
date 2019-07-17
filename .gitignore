@@ -26,7 +26,6 @@ src/lang/lang_parser.mli
 src/*_depend
 src/liquidsoap
 doc/html
-doc/content/install.md
 doc/content/reference.md
 doc/content/settings.md
 doc/content/protocols.md
@@ -37,3 +36,4 @@ src/test/JSON_parse
 src/test/is_url
 src/test/timezone
 *.conflicts
+liquidsoap.config

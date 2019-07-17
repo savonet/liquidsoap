@@ -12,7 +12,7 @@ distclean: pre-distclean
 pre-distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
 	       src/configure.ml scripts/liquidsoap.logrotate \
-	       gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
+	       gui/liguidsoap liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
 	$(MAKE) -C src/test test

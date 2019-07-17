@@ -1,93 +1,150 @@
-Building liquidsoap from source
-===============================
-From every sub-project's directory (ocaml-vorbis, ocaml-dtools, liquidsoap, 
-etc.) you can build using `./bootstrap`, `./configure`, 
-`make` and optionally install using `make install`.
+# Liquidsoap 1.4.0+scm
 
-If you are using the `liquidsoap-full` tarball,
-or the latest source code from our
-[github repository](https://github.com/savonet/liquidsoap-full),
-there is also a fast procedure for building liquidsoap
-that doesn't require installing the libraries provided by Savonet.
-The steps to follow are simple.
+## Forewords
 
-If you are using the git sources, you need to initialize all submodules
-by invoking `make init`, `make update` and finally `./bootstrap`.
+Installing liquidsoap can be a difficult task. The software relies on a up-to date
+`OCaml` compiler, as well as a bunch of `OCaml` modules and, for most of them, corresponding
+C library dependencies.
 
-You should now choose which features you want to enable when building liquidsoap.
-Each shipped feature can be enabled/disabled by editing the
-`PACKAGE` file.
-Depending on your version you might have to first copy 
-`PACKAGES.default` to `PACKAGES`.
+Our recommended way of installing liquidsoap is via [opam](http://opam.ocaml.org/). `opam` can take
+care of install the correct `OCaml` compiler, optional and required dependencies as well as system-specific
+package dependencies.
 
-Then run the usual commands:
+The `opam` method is described in details in the [documentation](doc/content/install.md).
+We recommend that any interested user head over to this link to install the software via `opam`.
+
+The following of this document describes how to install the software via its `configure` script and is
+intended either for system administrators or package maintainers.
+
+## Dependencies
+
+Below is a list of dependencies, mostly OCaml libraries. Optional libraries
+provide extra features. They need to be detected by the `configure` script.
+
+Most of the libraries are developed by the Savonet project and, in addition to
+being available through traditional distribution channels, are bundled in the
+[liquidsoap-&lt;version&gt;-full.tar.bz2](https://github.com/savonet/liquidsoap/releases)
+tarballs for easier builds.
+
+Libraries not developed by Savonet are:
+
+- camlimages
+- camomile
+- gd4o
+- ocaml-pcre
+- ocaml-magic
+- ocaml-sdl
+- yojson
+
+### Mandatory dependencies:
+
+| Dependency     | Version   |
+| -------------- | --------- |
+| OCaml compiler | >= 4.08.0 |
+| ocaml-dtools   | >= 0.4.0  |
+| ocaml-duppy    | >= 0.6.0  |
+| ocaml-mm       | >= 0.5.0  |
+| ocaml-pcre     |           |
+| menhir         |           |
+| sedlex         |           |
+
+### Recommended dependencies:
+
+| Dependency       | Version   | Functionality                  |
+| ---------------- | --------- | ------------------------------ |
+| camomile         | >=1.0.0   | Charset recoding in metadata   |
+| ocaml-samplerate | >=0.1.1   | Libsamplerate audio conversion |
+
+### Optional dependencies:
+
+| Dependency          | Version | Functionality                                 |
+| ------------------- | ------- | --------------------------------------------- |
+| camlimages          | >=4.0.0 | Image decoding                                |
+| gd4o                |         | Video.add_text() on servers without X         |
+| ocaml-alsa          | >=0.2.1 | ALSA I/O                                      |
+| ocaml-ao            | >=0.2.0 | Output via libao                              |
+| ocaml-bjack         | >=0.1.3 | Jack support                                  |
+| ocaml-cry           | >=0.6.0 | Sending to Shoutcast & Icecast                |
+| ocaml-dssi          | >=0.1.1 | DSSI sound synthesis                          |
+| ocaml-faad          | >=0.4.0 | AAC stream decoding                           |
+| ocaml-fdkaac        | >=0.3.0 | AAC(+) encoding                               |
+| ocaml-ffmpeg        | >=0.2.0 | Video conversion using the ffmpeg library     | 
+| ocaml-flac          | >=0.1.5 | Flac and Ogg/Flac codec                       |
+| ocaml-frei0r        | >=0.1.0 | Frei0r plugins                                |
+| ocaml-gavl          | >=0.1.4 | Video conversion using the gavl library       |
+| ocaml-gstreamer     | >=0.3.0 | GStreamer input, output and encoding/decoding |
+| ocaml-inotify       | >=1.0   | Reloading playlists when changed              |
+| ocaml-ladspa        | >=0.1.4 | LADSPA plugins                                |
+| ocaml-lame          | >=0.3.2 | MP3 encoding                                  |
+| ocaml-lastfm        | >=0.3.0 | Lastfm scrobbling                             |
+| ocaml-lo            | >=0.1.0 | OSC (Open Sound Control) support              |
+| ocaml-mad           | >=0.4.4 | MP3 decoding                                  |
+| ocaml-magic         | >=0.6   | File type detection                           |
+| ocaml-ogg           | >=0.5.0 | Ogg codecs                                    |
+| ocaml-opus          | >=0.1.1 | Ogg/Opus codec                                |
+| ocaml-portaudio     | >=0.2.0 | Portaudio I/O                                 |
+| ocaml-pulseaudio    | >=0.1.2 | PulseAudio I/O                                |
+| ocaml-sdl           |         | Display, font & image support                 |
+| ocaml-shine         | >=0.2.0 | Fixed-point MP3 encoding                      |
+| ocaml-soundtouch    | >=0.1.7 | Libsoundtouch's audio effects                 |
+| ocaml-speex         | >=0.2.1 | Ogg/Speex codec                               |
+| ocaml-ssl           | >=0.5.2 | SSL/https support                             |
+| ocaml-taglib        | >=0.3.0 | MP3ID3 metadata access                        |
+| ocaml-theora        | >=0.3.1 | Ogg/Theora codec                              |
+| ocaml-vorbis        | >=0.7.0 | Ogg/Vorbis codec                              |
+| ocaml-xmlplaylist   | >=0.1.3 | XML-based playlist formats                    |
+| osx-secure-transport|         | SSL/https support via OSX's SecureTransport   |
+| yojson              |         | Parsing JSON data (of_json function)          |
+
+### Runtime optional dependencies:
+
+| Dependency          | Functionality                                     |
+| ------------------- | ------------------------------------------------- |
+| awscli              | `s3://` and `polly://` protocol support           |
+| curl                | `http`/`https`/`ftp` protocol support             |
+| ffmpeg              | external I/O, `replay_gain` level computation, .. |
+| youtube-dl          | youtube video and playlist support                |
+
+    
+## Installing via configure
+
+The build processus starts with by invoking the `configure` script:
 
 ```
-# Configure all libraries and packages.
-# You may pass extra options such as --enable-debugging,
-# --prefix, --sysconfdir, --localstatedir, etc.
-./configure
-
-# Now, build all libraries and liquidsoap
-make
-
-# To install liquidsoap,
-# you usually need to type the following as root
-make install
+% ./configure
 ```
 
-Dependencies
-------------
-Here are liquidsoap's dependencies.
-All OCaml libraries are distributed by Savonet, except when linked.
-You may refer to the liquidsoap INSTALL file for required versions of the 
-libraries:
+If you want a complete installation of liquidsoap, enabling a production use of
+liquidsoap as a daemon, you should pass `--with-user=<login>` and
+`--with-group=<group>` options to indicate which user/group you have created for
+liquidsoap.
 
-* [ocamlfind](http://www.ocaml-programming.de/programming/findlib.html)
-* ocaml-dtools (>= 0.3.4)
-* ocaml-duppy (>= 0.4.2)
-* ocaml-mm (>= 0.4.0)
-* [ocaml-pcre](https://github.com/mmottl/pcre-ocaml)
+Then, build the software:
 
-And also optional dependencies. For most of these, you also need
-the associated C/C++ library, which is usually provided by your distribution's
-packaging system. You may as well need additional dependencies, such as `g++`, used
-for building bindings built on top of C++ libraries, as marked below and possibly
-also `libtool`.
+```
+% make
+```
 
-* ocaml-ogg for ogg audio and video formats
-* ocaml-vorbis for ogg/vorbis audio encoding and decoding
-* ocaml-cry for Icecast/Shoutcast streaming
-* ocaml-mad for mp3 decoding
-* ocaml-lame for mp3 encoding
-* ocaml-shine for fixed-point mp3 encoding
-* ocaml-faac for AAC encoding
-* ocaml-fdkaac for AAC(+) encoding. Replacement candidate for both voaac and aacplus
-* ocaml-flac for native flac and ogg/flac encoding/decoding
-* ocaml-theora for ogg/theora encoding/decoding
-* ocaml-gavl for video conversion
-* ocaml-samplerate for audio samplerate conversion
-* ocaml-taglib for MP3 audio tag reading (needs `g++`)
-* ocaml-magic for file type detection. This library is very useful for reading mp3 files. If not enabled, liquidsoap may accept as mp3 files that do not contains mp3 data, such as jpeg pictures.
-* ocaml-xmlplaylist for XML-based playlist formats
-* ocaml-soundtouch for soundtouch audio effects (need `g++`)
-* ocaml-lastfm and ocaml-xmllight for lastfm protocol support
-* [camomile](http://camomile.sourceforge.net/) for detecting metadata encoding and re-encoding them to utf8
-* ocaml-alsa for ALSA input/output
-* ocaml-ao for AO I/O
-* ocaml-portaudio for Portaudio I/O
-* ocaml-bjack for Jack output/input
-* ocaml-ladspa for LADSPA plugins
-* [xmlm](http://erratique.ch/software/xmlm)
-* [camlimages](http://pauillac.inria.fr/camlimages/) for image decoding
-* [ocaml-sdl](http://ocamlsdl.sourceforge.net/home.html) for display, font & image support
-* [ocaml-inotify](http://projects.snarc.org/ocaml-inotify) to monitor file changes, in particular with playlists.
+You can also generate the documentation for liquidsoap:
 
-Runtime dependencies include:
+```
+% make doc
+```
 
-* [curl](https://curl.haxx.se/) for downloading remote files (http, https, ftp)
-* [festival](http://www.cstr.ed.ac.uk/projects/festival/) for speech synthesis (say)
+It will generate the HTML documentation, including a version of the scripting
+API reference corresponding to your configuration.
 
-And other that you'll find on the project page, or in liquidsoap-full tarball.
+Then, you may proceed to the installation. You may need to be root for that.
+
+```
+% make install
+```
+
+This will not install files such as `/var/log/liquidsoap` unless you have provided
+a user/group under which liquidsoap should be ran. This behavior can be
+overridden by passing `INSTALL_DAEMON="yes"` (useful for preparing binary
+packages).
 
 
+If you need to run liquidsoap as a daemon, you can then have a look at
+[liquidsoap-daemon](https://github.com/savonet/liquidsoap-daemon).

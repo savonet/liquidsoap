@@ -29,11 +29,14 @@ let () =
   add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
     ["dir_sep",Lang.string_t,Some (Lang.string Filename.dir_sep),
      Some "Directory separator.";
+     "leading_dot",Lang.bool_t,Some (Lang.bool true),
+     Some "Return extension with a leading dot, e.g. `.foo`.";
      "",Lang.string_t,None,None]
     Lang.string_t
     (fun p ->
       let dir_sep = Lang.to_string (List.assoc "dir_sep" p) in
-      Lang.string (Utils.file_extension ~dir_sep
+      let leading_dot = Lang.to_bool (List.assoc "leading_dot" p) in
+      Lang.string (Utils.file_extension ~dir_sep ~leading_dot
         (Lang.to_string (List.assoc "" p))))
 
 let () =

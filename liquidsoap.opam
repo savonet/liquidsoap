@@ -16,6 +16,32 @@ install: [
 remove: [
   ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
 ]
+post-messages: [
+"We're sorry that your liquidsoap install failed. Check out our installation
+instructions at: https://www.liquidsoap.info/doc-%{version}%/install.html#opam
+for more information." {failure}
+
+"✨ Congratulations on installing liquidsoap! ✨" {success}
+
+"We noticed that you did not install any mp3 decoder. This is a feature most
+users want. You might need to install the mad or ffmpeg package." {success & !mad-enabled & !ffmpeg-enabled}
+
+"We noticed that you did not install any mp3 encoder. This is a feature most
+users want. You might need to install the lame or shine package." {success & !lame-enabled & !shine-enabled}
+
+"We noticed that you did not install the taglib package that provides support
+for reading metatadata in audio files. This is a feature most users want." {success & !taglib-enabled}
+
+"We noticed that you did not install the samplerate package. We stronly
+recommend this package for audio samplerate conversion." {success & !samperate-enabled}
+
+"We noticed that you did not install the cry package that provides icecast
+output. This is a feature most users want." {success & !cry-enabled}
+
+"We noticed that you did not install any ssl support package. Liquidsoap won't
+be able to use any HTTPS feature. You might want to install one of ssl or
+osx-secure-transport package." {success & !ssl-enabled & !secure-transport-enabled}
+]
 depends: [
   "ocaml" {>= "4.08"}
   "camomile" {>= "1.0.0"}
@@ -76,7 +102,7 @@ conflicts: [
   "faad" {< "0.4.0"}
   "fdkaac" {< "0.3.0"}
   "ffmpeg" {< "0.2.0"}
-  "flac" {< "0.1.2"}
+  "flac" {< "0.1.5"}
   "frei0r" {< "0.1.0"}
   "gavl" {< "0.1.4"}
   "gstreamer" {< "0.3.0"}

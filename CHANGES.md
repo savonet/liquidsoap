@@ -99,6 +99,9 @@ Fixed:
 - Fixed external process stop not detected on second and further calls (#833)
 - Add `seek` in operators where implementation is clear (#853) 
 - Do not enter buffering mode between tracks in `buffer` (#836)
+- Fixed file descriptor leak in external processes (#865)
+- Fixed encoded output creating empty files from failing sources (#876)
+- Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
 
 1.3.7 (09-04-2019)
 =====

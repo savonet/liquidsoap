@@ -1,4 +1,4 @@
-# Liquidsoap 1.4.0
+# Liquidsoap @version@
 
 ## Forewords
 
@@ -50,9 +50,10 @@ Libraries not developed by Savonet are:
 
 ### Recommended dependencies:
 
-| Dependency     | Version   | Functionality                |
-| -------------- | --------- | ---------------------------- |
-| camomile       | >=1.0.0   | Charset recoding in metadata |
+| Dependency       | Version   | Functionality                  |
+| ---------------- | --------- | ------------------------------ |
+| camomile         | >=1.0.0   | Charset recoding in metadata   |
+| ocaml-samplerate | >=0.1.1   | Libsamplerate audio conversion |
 
 ### Optional dependencies:
 
@@ -83,7 +84,6 @@ Libraries not developed by Savonet are:
 | ocaml-opus          | >=0.1.1 | Ogg/Opus codec                                |
 | ocaml-portaudio     | >=0.2.0 | Portaudio I/O                                 |
 | ocaml-pulseaudio    | >=0.1.2 | PulseAudio I/O                                |
-| ocaml-samplerate    | >=0.1.1 | Libsamplerate audio conversion                |
 | ocaml-sdl           |         | Display, font & image support                 |
 | ocaml-shine         | >=0.2.0 | Fixed-point MP3 encoding                      |
 | ocaml-soundtouch    | >=0.1.7 | Libsoundtouch's audio effects                 |
