@@ -81,6 +81,8 @@ Changed:
   enabled. (#857)
 - Set default encoders and ladspa plugins samplerate and channels to configured
   internal `"frame.audio.samplerate"` and `"frame.audio.channels"`. (#870)
+- Handle unary minus in the preprocessor instead of the parser in order to avoid
+  duplicating the parser. (#860)
 
 Fixed:
 
