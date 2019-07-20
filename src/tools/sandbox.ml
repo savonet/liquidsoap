@@ -96,6 +96,10 @@ let is_docker = lazy (
   Sys.unix && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0
 )
 
+let has_binary = lazy (
+  Utils.which_opt ~path:Configure.path conf_binary#get <> None
+)
+
 let () =
   ignore(Dtools.Init.at_start (fun () ->
     if Lazy.force is_docker then
@@ -103,7 +107,7 @@ let () =
       log#important "Running inside a docker container, disabling sandboxing..";
       conf_sandbox#set "disabled" 
      end
-    else if Utils.which_opt ~path:Configure.path conf_binary#get = None then
+    else if not (Lazy.force has_binary) then
      begin
       log#important "Could not find binary %s, disabling sandboxing.." conf_binary#get;
       conf_sandbox#set "disabled"
@@ -170,7 +174,8 @@ let cmd ?rw ?ro ?network cmd =
        future.. *)
     match conf_sandbox#get with
       | "disabled" -> disabled
-      | _ -> bwrap
+      | _ when Lazy.force has_binary -> bwrap
+      | _ -> disabled
   in
   let f d v =
     match v with
