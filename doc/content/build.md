@@ -1,4 +1,4 @@
-# Liquidsoap 1.4.0+scm
+# Liquidsoap 1.4.0
 
 ## Forewords
 

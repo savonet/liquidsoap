@@ -211,7 +211,7 @@ builtins = lang/lang_builtins.ml lang/builtins_json.ml \
            $(if $(W_LASTFM),lang/builtins_lastfm.ml)
 
 liquidsoap_sources= \
-	tools/log.ml $(tools) REVISION.ml converters/audio_converter.ml $(stream) \
+	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml $(encoder_formats) encoder.ml \
@@ -247,32 +247,6 @@ configure.ml:
 
 OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
-
-# Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
-REVISION.ml: Makefile $(liquidsoap_sources:REVISION.ml=)
-	if test -e ../.git && which git > /dev/null ; then \
-	  url=`git remote -v | grep origin | grep fetch | sed 's/origin//' | sed 's/ (.*)//' | tr -d '\t'` ; \
-	  head=`git rev-parse HEAD` ; \
-          date=`date +%Y%m%d:%H%M%S`; \
-	  echo "let rev = \" ($$url@$$head:$$date)\"" > REVISION.ml ; \
-	elif test -d .svn && which svn > /dev/null ; then \
-	  url=`LC_ALL=C svn info | grep URL | \
-	       sed -e 's:.*svnroot/savonet/\(.*\)/src:\1:'`; \
-	  revision=`LC_ALL=C svn info | grep Revision | \
-	            sed -e 's/Revision: \(.*\)/\1/'`  ; \
-	  echo "let rev = \" ($$url@rev$$revision)\"" > REVISION.ml ; \
-	elif test -d ../../.hg && which hg > /dev/null ; then \
-	  branch=`hg branch`; \
-	  revision=`LC_ALL=C hg parents | grep changeset: | \
-	       sed -e 's/changeset: *['0'-'9']*:\([^ ]*\).*/\1/'`; \
-          date=`date +%Y%m%d:%H%M%S`; \
-	  echo "let rev = \" ($$branch@$$revision:$$date)\"" > REVISION.ml ; \
-	else \
-	  echo "let rev = \"\"" > REVISION.ml ; \
-	fi
-
-clean-local:
-	rm -f REVISION.ml
 
 install-local: all-auto
 	$(INSTALL) -d $(bindir)

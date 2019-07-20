@@ -5,8 +5,9 @@ val version : string
 
 val restart : bool ref
 
-(** Is this build a SVN snapshot ? *)
-val scm_snapshot : bool
+(** Is this build a git snapshot ? *)
+val git_commit : string
+val git_snapshot : bool
 
 (** String describing the software. *)
 val vendor : string

@@ -4,20 +4,27 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
-# Remove +scm and set scm_snapshot to false before releasing
+# Set git_snapshot to false before releasing
 # Do not use $version below before the next line, since we grep
 # for the literal version there
-AC_INIT([liquidsoap],[1.4.0+scm])
-scm_snapshot=true
-version=1.4.0
+AC_INIT([liquidsoap],[1.4.0])
+git_snapshot=true
+version="$PACKAGE_VERSION"
 min_ocaml_version=4.08.0
+git_commit=`git rev-parse --short HEAD || true`
 
-if test $scm_snapshot != "false"; then
-  version="$version+scm"
-  libs_dir_version="scm"
+if test $git_snapshot != "false"; then
+  if test -n "$git_commit"; then
+    version="$version+git@$git_commit"
+    libs_dir_version="git/$git_commit"
+  else
+    version="$version+dev"
+    libs_dir_version="dev"
+  fi
 else
   libs_dir_version="$version"
 fi
+
 AC_SUBST(version)
 AC_SUBST(libs_dir_version)
 
@@ -50,7 +57,8 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 
 cat > src/configure.ml << _BLAH_
 let version = "$version"
-let scm_snapshot = $scm_snapshot
+let git_commit = "$git_commit"
+let git_snapshot = $git_snapshot
 let conf = Utils.conf
 let var_script = ref "default"
 let substs = ref

@@ -482,12 +482,12 @@ let options = [
     ["--version"],
     Arg.Unit (fun () ->
                 Printf.printf
-                  "Liquidsoap %s%s\n\
+                  "Liquidsoap %s\n\
                    Copyright (c) 2003-2019 Savonet team\n\
                    Liquidsoap is open-source software, \
                    released under GNU General Public License.\n\
                    See <http://liquidsoap.info> for more information.\n"
-                   Configure.version REVISION.rev ;
+                   Configure.version;
                 exit 0),
     "Display liquidsoap's version." ;
 
@@ -519,9 +519,9 @@ let expand_options options =
 module Make(Runner : Runner_t) =
 struct
   let () =
-    log#important "Liquidsoap %s%s" Configure.version REVISION.rev ;
+    log#important "Liquidsoap %s" Configure.version ;
     log#important "Using:%s" Configure.libs_versions ;
-    if Configure.scm_snapshot then
+    if Configure.git_snapshot then
       List.iter (log#severe "%s")
         ["";
          "DISCLAIMER: This version of Liquidsoap has been";

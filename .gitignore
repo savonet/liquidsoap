@@ -19,7 +19,6 @@ src/configure.ml
 *.cm*
 *.o
 *~
-src/REVISION.ml
 src/auto_clean
 src/lang/lang_parser.ml
 src/lang/lang_parser.mli
