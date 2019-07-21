@@ -59,11 +59,6 @@ let conf_binary =
 let conf_rw =
   let rw = [tmpdir] in
   let rw =
-    if Sys.unix then
-      ("/var/log"::"/var/run"::rw)
-    else rw
-  in
-  let rw =
     match Sys.getenv_opt "HOME" with
       | Some h -> h::rw
       | None -> rw
