@@ -18,17 +18,19 @@ else
   BRANCH="${TRAVIS_PULL_REQUEST_BRANCH}"
 fi
 
+DEB_VERSION=`date +"%Y%m%d%H%M"`
+
 eval $(opam config env)
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${TRAVIS_COMMIT_SHORT}~${RELEASE}-1" "Build ${TRAVIS_COMMIT_SHORT}"
+dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${TRAVIS_COMMIT_SHORT}~${RELEASE}-${DEB_VERSION}" "Build ${TRAVIS_COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 
 rm -rf debian/changelog
 
-dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${BRANCH}~${RELEASE}-1" "Build ${BRANCH}"
+dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${BRANCH}~${RELEASE}-${DEB_VERSION}" "Build ${BRANCH}"
 
 fakeroot debian/rules binary
 
