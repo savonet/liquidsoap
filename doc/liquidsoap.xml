@@ -35,6 +35,11 @@
       <item>!</item>
     </list>
 
+    <list name="Booleans">
+      <item>true</item>
+      <item>false</item>
+    </list>
+
     <list name="Types">
       <item>bool</item>
       <item>int</item>
@@ -63,6 +68,7 @@
         <!-- Identifiers and keywords. -->
         <keyword String="Keywords"                 context="#stay" attribute="Keyword" />
         <keyword String="Operators"                context="#stay" attribute="Operator" />
+        <keyword String="Booleans"                 context="#stay" attribute="Boolean" />
         <!-- <keyword String="Types"                    context="#stay" attribute="Type" /> -->
         <keyword String="Annotation"               context="#stay" attribute="Annotation" />
         <RegExpr String="%[a-zA-Z0-9]+"            context="#stay" attribute="Format" />
@@ -100,6 +106,7 @@
       <itemData name="Label"                   defStyleNum="dsVariable" />
 
       <itemData name="Decimal"                 defStyleNum="dsDecVal"   />
+      <itemData name="Boolean"                 defStyleNum="dsDecVal"   />
       <itemData name="Hexadecimal"             defStyleNum="dsBaseN"   />
       <itemData name="Float"                   defStyleNum="dsFloat"    />
       <itemData name="String"                  defStyleNum="dsString"   />
