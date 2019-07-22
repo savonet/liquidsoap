@@ -33,6 +33,7 @@ New:
 - Added `output.youtube.live.ffmpeg`.
 - Added `output.file.hls.ffmpeg`.
 - Added `reopen` telnet command in `output.external`.
+- Added `on_frame`.
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
 
