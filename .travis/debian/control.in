@@ -20,6 +20,12 @@ Recommends:
 Suggests:
  icecast2,
  awscli
+Provides:
+  liquidsoap-snapshot
+Conflicts:
+  liquidsoap-snapshot
+Replaces:
+  liquidsoap-snapshot
 Replaces:
  liquidsoap,
  liquidsoap-plugin-all,
