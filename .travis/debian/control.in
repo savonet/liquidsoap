@@ -25,9 +25,8 @@ Provides:
 Conflicts:
   liquidsoap-snapshot
 Replaces:
-  liquidsoap-snapshot
-Replaces:
  liquidsoap,
+ liquidsoap-snapshot,
  liquidsoap-plugin-all,
  liquidsoap-plugin-alsa [linux-any],
  liquidsoap-plugin-ao,
