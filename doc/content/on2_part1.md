@@ -252,7 +252,7 @@ print(1+f())
 ```
 
 Note that there is no return statement in liquidsoap (in fact there is
-no ``statement'' at all). Every expression evaluates to a value. A sequence
+no "statement" at all). Every expression evaluates to a value. A sequence
 evaluates to the value of its last expression (`42` in the body of the function
 `f`, and `print(1+f())` in the full program).
 The value ``returned'' by a function is simply the result of evaluating its
