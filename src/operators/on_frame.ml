@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 class on_frame ~kind f s =
-object (self)
+object
   inherit Source.operator ~name:"on_frame" kind [s]
 
   method stype = s#stype
