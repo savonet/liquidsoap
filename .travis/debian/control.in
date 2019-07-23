@@ -1,4 +1,4 @@
-Source: liquidsoap
+Source: @LIQ_PACKAGE@
 Section: sound
 Priority: optional
 Maintainer: Romain Beauxis <toots@rastageeks.org>
@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 10)
 Standards-Version: 4.3.0
 Homepage: https://liquidsoap.info/
 
-Package: liquidsoap
+Package: @LIQ_PACKAGE@
 Architecture: any
 Depends:
  ${shlibs:Depends},
@@ -21,6 +21,7 @@ Suggests:
  icecast2,
  awscli
 Replaces:
+ liquidsoap,
  liquidsoap-plugin-all,
  liquidsoap-plugin-alsa [linux-any],
  liquidsoap-plugin-ao,
@@ -57,6 +58,7 @@ Replaces:
  liquidsoap-plugin-vorbis,
  liquidsoap-plugin-xmlplaylist
 Breaks:
+ liquidsoap,
  liquidsoap-plugin-all,
  liquidsoap-plugin-alsa [linux-any],
  liquidsoap-plugin-ao,
