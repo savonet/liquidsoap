@@ -23,7 +23,9 @@ eval $(opam config env)
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-LIQ_PACKAGE="liquidsoap-${TRAVIS_COMMIT_SHORT}" 
+TAG=`echo "${TRAVIS_COMMIT_SHORT}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
+
+LIQ_PACKAGE="liquidsoap-${TAG}" 
 
 echo "Building ${LIQ_PACKAGE}.."
 
@@ -37,7 +39,9 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "${
 
 fakeroot debian/rules binary
 
-LIQ_PACKAGE="liquidsoap-${BRANCH}"
+TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
+
+LIQ_PACKAGE="liquidsoap-${TAG}"
 
 echo "Building ${LIQ_PACKAGE}.."
 
