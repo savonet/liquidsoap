@@ -678,5 +678,3 @@ def mkavailable(~id="mkavailable",~track_sensitive=bool_getter(true),~active=boo
 
   switch(id=id,track_sensitive=to_bool_getter(track_sensitive),[(to_bool_getter(available),s)])
 end
-
-# Create a source and 
