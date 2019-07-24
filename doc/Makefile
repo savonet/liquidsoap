@@ -50,8 +50,10 @@ doc-install:
 	if [ -f html/index.html ] ; then \
 	  cp -RfL html/* $(datadir)/doc/liquidsoap/html ; \
         fi
-	$(INSTALL) -d $(mandir)/man1
-	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
+	if [ -f liquidsoap.1 ] ; then \
+	  $(INSTALL) -d $(mandir)/man1 ; \
+	  $(INSTALL_DATA) liquidsoap.1 $(mandir)/man1 ; \
+	fi
 
 clean-local:
 	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
