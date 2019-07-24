@@ -42,7 +42,7 @@ Libraries not developed by Savonet are:
 | -------------- | --------- |
 | OCaml compiler | >= 4.08.0 |
 | ocaml-dtools   | >= 0.4.0  |
-| ocaml-duppy    | >= 0.6.1  |
+| ocaml-duppy    | >= 0.8.0  |
 | ocaml-mm       | >= 0.5.0  |
 | ocaml-pcre     |           |
 | menhir         |           |
