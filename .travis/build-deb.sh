@@ -7,6 +7,7 @@ TRAVIS_BRANCH=$2
 TRAVIS_PULL_REQUEST_BRANCH=$3
 TRAVIS_PULL_REQUEST=$4
 DOCKER_TAG=$5
+TRAVIS_BUILD_NUMBER=$6
 RELEASE=`echo "${DOCKER_TAG}" | cut -d'_' -f 2`
 
 DEBFULLNAME="The Savonet Team"
@@ -18,19 +19,39 @@ else
   BRANCH="${TRAVIS_PULL_REQUEST_BRANCH}"
 fi
 
-DEB_VERSION=`date +"%Y%m%d%H%M"`
-
 eval $(opam config env)
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${TRAVIS_COMMIT_SHORT}~${RELEASE}-${DEB_VERSION}" "Build ${TRAVIS_COMMIT_SHORT}"
+TAG=`echo "${TRAVIS_COMMIT_SHORT}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
 
-fakeroot debian/rules binary
+LIQ_PACKAGE="liquidsoap-${TAG}" 
+
+echo "Building ${LIQ_PACKAGE}.."
 
 rm -rf debian/changelog
 
-dch --create --distribution unstable --package "liquidsoap" --newversion "1:0+${BRANCH}~${RELEASE}-${DEB_VERSION}" "Build ${BRANCH}"
+cp -f debian/control.in debian/control
+
+sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
+
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:0-${TRAVIS_BUILD_NUMBER}~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
+
+fakeroot debian/rules binary
+
+TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
+
+LIQ_PACKAGE="liquidsoap-${TAG}"
+
+echo "Building ${LIQ_PACKAGE}.."
+
+rm -rf debian/changelog
+
+cp -f debian/control.in debian/control
+
+sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
+
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:0-${TRAVIS_BUILD_NUMBER}~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 
