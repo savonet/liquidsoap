@@ -46,8 +46,6 @@ let () =
      "inherit_env", Lang.bool_t,
      Some (Lang.bool true), Some "Inherit calling process's environment when \
        `env` parameter is empty.";
-     "tmpdir", Lang.string_t, Some (Lang.string "default"),
-     Some "Temporary directory for sandboxing. `\"default\"` is sandbox default.";
      "rwdirs", path_t, Some (Lang.list ~t:Lang.string_t [Lang.string "default"]),
      Some "Read/write directories for sandboxing. `\"default\"` expands to sandbox default.";
      "rodirs", path_t, Some (Lang.list ~t:Lang.string_t [Lang.string "default"]),
@@ -65,15 +63,6 @@ let () =
        let env = List.map (fun e ->
          let (k,v) = Lang.to_product e in
          Lang.to_string k, Lang.to_string v) env
-       in
-       let sandbox_tmp =
-         Lang.to_string (List.assoc "tmpdir" p)
-       in
-       let sandbox_tmp =
-         if sandbox_tmp = "default" then
-           Sandbox.conf_tmp#get
-         else
-           sandbox_tmp
        in
        let sandbox_rw =
          List.map Lang.to_string
@@ -121,7 +110,7 @@ let () =
        in
        let env = Array.of_list env in
        let cmd =
-         Sandbox.cmd ~tmp:sandbox_tmp ~rw:sandbox_rw ~ro:sandbox_ro
+         Sandbox.cmd ~rw:sandbox_rw ~ro:sandbox_ro
            ~network:sandbox_network (Lang.to_string (List.assoc "" p))
        in
        let buflen = 1024 in

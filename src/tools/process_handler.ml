@@ -116,8 +116,7 @@ let _kill = function
       let silent f = try f () with _ -> () in
       List.iter silent [(fun () -> Unix.close in_pipe);
                         (fun () -> Unix.close out_pipe);
-                        (fun () ->
-          ignore(close_process p))]
+                        (fun () -> ignore(close_process p))]
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
@@ -290,12 +289,19 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
             let {in_pipe;out_pipe;p;status}  =
               get_process t
             in
-            ignore(Unix.close in_pipe);
-            ignore(Unix.close out_pipe);
+            let silent f arg = try ignore(f arg) with _ -> () in
+            silent Unix.close in_pipe;
+            silent Unix.close out_pipe;
             let status =
               match status with
-                | Some status -> status
-                | None -> close_process p
+                | Some status ->
+                     (* Issue #865: if status is known, we still need
+                        to call Unix.close_process_full to cleanup the
+                        process' pipes. *)
+                     silent close_process p;
+                     status
+                | None ->
+                     close_process p
             in
             let descr =
               match status with

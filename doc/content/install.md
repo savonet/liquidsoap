@@ -1,13 +1,18 @@
 Installing Savonet/Liquidsoap
 =============================
 
+**Note** These instructions are from the documentation from liquidsoap `1.4.0`.
+Make sure to consult the instructions from the version you wish to install,
+most likely the latest stable release.
+
 You can install liquidsoap with OPAM (recommended) or from source, or using a
 package available for your distribution (not covered by this documentation).
 
-* [Using OPAM](#opam)
+* [Using OPAM](#install-using-opam)
+* [Debian/Ubuntu](#debianubuntu)
 * [Windows](#windows)
-* [From source](#source)
-* [Latest development version](#latest)
+* [From source](#installing-from-source)
+* [Latest development version](#latest-development-version)
 
 Install using OPAM
 ------------------
@@ -58,22 +63,69 @@ You can also install liquidsoap or any of its dependencies from source using
 OPAM. For instance:
 
 ```
-git clone --recursive https://github.com/savonet/liquidsoap.git
+git clone https://github.com/savonet/liquidsoap.git
 cd liquidsoap
 opam pin add liquidsoap .
 ```
 
 Most dependencies should be compatible with OPAM pinning. Let us know if you
-find one that isn't!
+find one that isn't.
 
-Windows build
+Debian/Ubuntu
 -------------
+
+We generate debian and ubuntu packages automatically as part of our CI workflow.
+These packages are available for quick testing of `liquidsoap` on certain Debian
+and Ubuntu distributions. However, we do not recommend them yet for production 
+purposes.
+
+Here's how to install:
+
+* First install the repository signing key:
+```
+[sudo] apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 20D63CCDDD0F62C2
+```
+* Then one of the following source:
+
+**debian/testing:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list
+```
+**debian/stretch:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list
+```
+**ubuntu/bionic:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list
+```
+* Finally, update your packages list:
+```
+[sudo] apt-get update
+```
+
+You can now see the list of available packages:
+```
+apt-cache show liquidsoap
+```
+
+Package versions are of the form: `1:0+<commit>~<distribution>-1` or `1:0+<branch>~<distribution>-1`. For instance,
+to install the latest `master` on `debian/testing`, you can do:
+```
+[sudo] apt-get install liquidsoap=1:0+master~testing-1
+```
+
+
+Windows
+-------
 
 You can download a liquidsoap for windows from our [release
 page](https://github.com/savonet/liquidsoap/releases), starting with version
 `1.3.4`.
 
-The build process is described [here](windows.html).
+Liquidsoap for windows is built using [opam-cross](https://github.com/ocaml-cross/opam-cross-windows). The build process is documented in  our [docker files](https://github.com/savonet/liquidsoap-full/tree/master/docker). `Dockerfile.win32-deps` installs all  the [mxe](https://mxe.cc/) dependencies and `Dockerfile.win32` produces the actual liquidsoap binary.
+
+You might want to refer to each project, [mxe](https://mxe.cc/) and [opam-cross](https://github.com/ocaml-cross/opam-cross-windows) for more details about cross-compiling for windows.
 
 Installing from source
 ----------------------

@@ -468,9 +468,12 @@ object (self)
     super#get_ready ?dynamic sl;
     let watch = !Configure.file_watcher in
     if reload = Watch then
-      self#on_shutdown
-        (watch [`Modify] (Utils.home_unrelate playlist_uri)
-          (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
+      if Http.is_url uri then
+        self#log#important "Cannot watch distant playlists, ignoring reload mode."
+      else
+        self#on_shutdown
+          (watch [`Modify] (Utils.home_unrelate playlist_uri)
+             (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
 
   method private check_next r =
     Lang.to_bool

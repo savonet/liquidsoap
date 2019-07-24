@@ -109,13 +109,14 @@ end
 # @param ~random Randomize playlist content
 # @param ~on_done Function to execute when the playlist is finished
 # @param ~reload_mode If set to "watch", will be reloaded when the playlist is changed
+# @param ~filter Filter out some files depending on metadata
 # @param uri Playlist URI
 def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",
                   ~default_duration=30.,~length=10.,~conservative=false,
-                  uri)
+                  ~filter=fun(_)->true,uri)
   let (reload, s) = playlist.reloadable(id=id,random=random,on_done=on_done,
                            conservative=conservative,default_duration=default_duration,
-                           uri)
+                           filter=filter,uri)
   if reload_mode == "watch" then
     unwatch = file.watch(uri,fun () -> reload())
     source.on_shutdown(s,unwatch)

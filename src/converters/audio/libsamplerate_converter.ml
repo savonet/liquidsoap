@@ -31,11 +31,11 @@ let quality_conf =
   Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
     "Resampling quality" ~d:"fast"
     ~comments:["Resampling quality, one of: \
-                \"best\", \
-                \"medium\", \
-                \"fast\", \
-                \"zero_order\", \
-                \"linear\". Refer to ocaml-samplerate for details."]
+                `\"best\"`, \
+                `\"medium\"`, \
+                `\"fast\"`, \
+                `\"zero_order\"` or \
+                `\"linear\"`. Refer to ocaml-samplerate for details."]
 
 let quality_of_string v = 
   match v with

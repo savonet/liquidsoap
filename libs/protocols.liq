@@ -254,8 +254,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
     end
 
   title = list.hd(default="",x)
-  ext   = file.extension(list.nth(default="",x,1))
-  ext   = string.sub(ext,start=1,length=string.length(ext)-1)
+  ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
   cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{quote(arg)}"
   process = process_uri(extname=ext,cmd)
@@ -464,7 +463,7 @@ end
 # Register the s3:// protocol 
 # @flag hidden
 def s3_protocol(~rlog,~maxtime,arg) =
-  extname = file.extension(dir_sep="/",arg)
+  extname = file.extension(leading_dot=false,dir_sep="/",arg)
   [process_uri(extname=extname,"#{aws_base()} s3 cp s3:#{arg} $(output)")]
 end
 add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",

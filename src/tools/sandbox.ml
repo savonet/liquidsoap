@@ -23,24 +23,48 @@
 let log = Log.make ["sandbox"]
 
 let conf_sandbox =
-  Dtools.Conf.void ~p:(Configure.conf#plug "sandbox")
-    "External process settings"
+  Dtools.Conf.string ~p:(Configure.conf#plug "sandbox") ~d:"auto"
+    "Use sandboxing for external process. One of: `\"enabled\"`, \
+     `\"disabled\"` or `\"auto\"`."
 
-let conf_tool =
-  Dtools.Conf.string ~p:(conf_sandbox#plug "tool") ~d:Configure.sandbox_tool
-  "Sandbox tool to use."
+let tmpdir = Filename.get_temp_dir_name ()
+
+let conf_setenv =
+  let f = Printf.sprintf "%s=%s" in
+  let default_env = [
+    (f "TEMPDIR" tmpdir);
+    (f "TEMP" tmpdir);
+    (f "TMPDIR" tmpdir);
+    (f "TMP" tmpdir)
+  ] in
+  Dtools.Conf.list ~p:(conf_sandbox#plug "setenv") ~d:default_env
+  "Additional default environment variables."
+
+let get_setenv () =
+  List.fold_left
+    (fun cur s ->
+      match Pcre.split ~pat:"=" s with
+       | [] -> cur
+       | lbl::l -> (lbl, String.concat "=" l)::cur)
+    [] conf_setenv#get
+
+let conf_unsetenv =
+  Dtools.Conf.list ~p:(conf_sandbox#plug "unsetenv") ~d:[]
+  "Environment varialbes to unset."
 
 let conf_binary =
-  Dtools.Conf.string ~p:(conf_sandbox#plug "binary") ~d:Configure.sandbox_binary
+  Dtools.Conf.string ~p:(conf_sandbox#plug "binary") ~d:"bwrap"
   "Sandbox binary to use."
 
-let conf_tmp =
-  Dtools.Conf.string ~p:(conf_sandbox#plug "tmpdir") ~d:(Filename.get_temp_dir_name())
-  "Temporary directory."
-
 let conf_rw =
-  Dtools.Conf.list ~p:(conf_sandbox#plug "rw") ~d:[]
-  "Read/write directories"
+  let rw = [tmpdir] in
+  let rw =
+    match Sys.getenv_opt "HOME" with
+      | Some h -> h::rw
+      | None -> rw
+  in
+  Dtools.Conf.list ~p:(conf_sandbox#plug "rw") ~d:rw
+  "Read/write directories. Default: `[$HOME;$TMPDIR]`."
 
 let conf_ro =
   Dtools.Conf.list ~p:(conf_sandbox#plug "ro") ~d:["/"]
@@ -50,8 +74,25 @@ let conf_network =
   Dtools.Conf.bool ~p:(conf_sandbox#plug "network") ~d:true
   "Enable network"
 
+let conf_shell =
+  Dtools.Conf.bool ~p:(conf_sandbox#plug "shell") ~d:true
+  "Run command inside shell."
+
+let conf_shell_path =
+  let d =
+    match Sys.getenv_opt  "SHELL" with
+      | Some shell -> shell
+      | None -> "/bin/sh"
+  in
+  Dtools.Conf.string ~p:(conf_shell#plug "path") ~d
+  "Patch to shell binary. Defaults to `$SHELL` if set and \"/bin/sh\" otherwise."
+
 let is_docker = lazy (
   Sys.unix && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0
+)
+
+let has_binary = lazy (
+  Utils.which_opt ~path:Configure.path conf_binary#get <> None
 )
 
 let () =
@@ -59,70 +100,95 @@ let () =
     if Lazy.force is_docker then
      begin
       log#important "Running inside a docker container, disabling sandboxing..";
-      conf_tool#set "disabled" 
+      conf_sandbox#set "disabled" 
      end
-    else if conf_tool#get = "disabled" then
+    else if not (Lazy.force has_binary) then
+     begin
+      log#important "Could not find binary %s, disabling sandboxing.." conf_binary#get;
+      conf_sandbox#set "disabled"
+     end
+    else if conf_sandbox#get = "disabled" then
       log#important "Sandboxing disabled"
     else
      begin
-      log#important "Sandboxing using %s at %s" conf_tool#get conf_binary#get;
-      log#important "Temporary directory: %s" conf_tmp#get;
-      log#important "Read/write directories: %s" (String.concat ", " conf_rw#get);  
+      log#important "Sandboxing external processes using bubblewrap at %s"
+        (Utils.which ~path:Configure.path conf_binary#get);
+      log#important "Set environment variables: %s"
+        (String.concat ", " (List.map (fun (lbl,v) ->
+          Printf.sprintf "%s=%S" lbl v) (get_setenv())));
+      log#important "Unset environment variables: %s"
+        (String.concat ", " conf_unsetenv#get);
+      log#important "Network allowed: %b" conf_network#get;
       log#important "Read-only directories: %s" (String.concat ", " conf_ro#get);
-      log#important "Network allowed: %b" conf_network#get
+      log#important "Read/write directories: %s" (String.concat ", " conf_rw#get) 
      end
   ))
 
 type t = string
 
 type sandboxer = {
-  init : tmp:string -> network:bool -> t;
+  init : network:bool -> t;
   mount: t -> flag:[`Rw|`Ro] -> string -> t;
+  setenv: t -> string -> string -> t;
+  unsetenv: t -> string -> t;
   cmd:   t -> string -> string
 }
 
 let disabled = {
-  init = (fun ~tmp:_ ~network:_ -> "");
+  init = (fun ~network:_ -> "");
   mount = (fun t ~flag:_ _ -> t);
+  setenv = (fun t _ _ -> t);
+  unsetenv = (fun t _ -> t);
   cmd = fun _ cmd -> cmd
 } 
 
 let bwrap = {
-  init = (fun ~tmp ~network -> Printf.sprintf
-    "--new-session --proc /proc --dev /dev \
-     --setenv TMPDIR %S --setenv TMP %S --setenv TEMPDIR %S --setenv TEMP %S \
-     --tmpfs /run %s" tmp tmp tmp tmp (if network then "" else "--unshare-net"));
+  init = (fun ~network ->
+    Printf.sprintf "--new-session %s" (if network then "" else "--unshare-net"));
   mount = (fun t ~flag path ->
     match flag with
       | `Ro ->
         Printf.sprintf "%s --ro-bind %S %S" t path path
       | `Rw ->
         Printf.sprintf "%s --bind %S %S" t path path);
-   cmd = Printf.sprintf "%s %s %s" conf_binary#get
+   setenv = Printf.sprintf "%s --setenv %S %S";
+   unsetenv = Printf.sprintf "%s --unsetenv %S";
+   cmd = (fun opts cmd ->
+     let binary = Utils.which ~path:Configure.path conf_binary#get in
+     let cmd =
+       if conf_shell#get then
+         Printf.sprintf "%s -c %S" conf_shell_path#get cmd
+       else cmd
+     in
+     Printf.sprintf "%s %s --proc /proc --dev /dev %s" binary opts cmd)
 }
 
-let cmd ?tmp ?rw ?ro ?network cmd =
+let cmd ?rw ?ro ?network cmd =
   let sandboxer =
-    match conf_tool#get with
+    (* This is intended to be extendable with more tools in the
+       future.. *)
+    match conf_sandbox#get with
       | "disabled" -> disabled
-      | "bwrap" -> bwrap
-      | v -> raise (Lang_errors.Invalid_value ((Lang.string v), "Invalid sandbox tool"))
+      | _ when Lazy.force has_binary -> bwrap
+      | _ -> disabled
   in
   let f d v =
     match v with
       | None -> d
       | Some v -> v
   in
-  let tmp = f conf_tmp#get tmp in
   let rw = f conf_rw#get rw in
   let ro = f conf_ro#get ro in
   let network = f conf_network#get network in
-  let t = sandboxer.init ~tmp ~network in
+  let t = sandboxer.init ~network in
   let t =
-    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Ro path) t ro
+    List.fold_left (fun t (lbl,v) -> sandboxer.setenv t lbl v) t (get_setenv ())
   in
   let t =
-    sandboxer.mount t ~flag:`Rw tmp
+    List.fold_left sandboxer.unsetenv t conf_unsetenv#get
+  in
+  let t =
+    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Ro path) t ro
   in
   let t =
     List.fold_left (fun t path -> sandboxer.mount t ~flag:`Rw path) t rw

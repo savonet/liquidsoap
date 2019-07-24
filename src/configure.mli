@@ -5,8 +5,9 @@ val version : string
 
 val restart : bool ref
 
-(** Is this build a SVN snapshot ? *)
-val scm_snapshot : bool
+(** Is this build a git snapshot ? *)
+val git_commit : string
+val git_snapshot : bool
 
 (** String describing the software. *)
 val vendor : string
@@ -20,10 +21,6 @@ val libs_dir : string
 
 (** Directories where to search for libraries.. *)
 val findlib_path : string list
-
-(** Sandboxing configuration. *)
-val sandbox_tool : string
-val sandbox_binary: string
 
 (** Is dynlink available? *)
 val dynlink : bool

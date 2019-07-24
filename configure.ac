@@ -4,20 +4,27 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
-# Remove +scm and set scm_snapshot to false before releasing
+# Set git_snapshot to false before releasing
 # Do not use $version below before the next line, since we grep
 # for the literal version there
-AC_INIT([liquidsoap],[1.4.0+scm])
-scm_snapshot=true
-version=1.4.0
+AC_INIT([liquidsoap],[1.4.0])
+git_snapshot=true
+version="$PACKAGE_VERSION"
 min_ocaml_version=4.08.0
+git_commit=`git rev-parse --short HEAD || true`
 
-if test $scm_snapshot != "false"; then
-  version="$version+scm"
-  libs_dir_version="scm"
+if test $git_snapshot != "false"; then
+  if test -n "$git_commit"; then
+    version="$version+git@$git_commit"
+    libs_dir_version="git/$git_commit"
+  else
+    version="$version+dev"
+    libs_dir_version="dev"
+  fi
 else
   libs_dir_version="$version"
 fi
+
 AC_SUBST(version)
 AC_SUBST(libs_dir_version)
 
@@ -50,7 +57,8 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 
 cat > src/configure.ml << _BLAH_
 let version = "$version"
-let scm_snapshot = $scm_snapshot
+let git_commit = "$git_commit"
+let git_snapshot = $git_snapshot
 let conf = Utils.conf
 let var_script = ref "default"
 let substs = ref
@@ -130,7 +138,7 @@ fi
 dnl The following does not correctly uses prefix
 dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
 bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
-AS_IF([test -z "$bashcompdir"], [bashcompdir="${sysconfdir}/bash_completion.d"])
+AS_IF([test -z "$bashcompdir"], [bashcompdir="\${sysconfdir}/bash_completion.d"])
 AC_SUBST(bashcompdir)
 
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
@@ -147,21 +155,6 @@ cat >> src/configure.ml <<__BLAH__
 let big_endian = false
 __BLAH__
 fi
-
-AC_PATH_PROG([BWRAP],[bwrap],[])
-
-SANDBOX_TOOL=disabled
-SANDBOX_BINARY="requires bwrap"
-
-if test -n "${BWRAP}"; then
-  SANDBOX_TOOL=bwrap
-  SANDBOX_BINARY=$BWRAP
-fi
-
-cat >> src/configure.ml <<__BLAH__
-let sandbox_tool = "$SANDBOX_TOOL"
-let sandbox_binary = "$SANDBOX_BINARY"
-__BLAH__
 
 #
 # OCaml stuff
@@ -326,6 +319,7 @@ if test "x$enable_graphics" = "xyes" ; then
 else
    W_GRAPHICS=""
    w_GRAPHICS="no"
+   b_GRAPHICS="false"
 fi
 
 #
@@ -649,6 +643,11 @@ AC_ARG_ENABLE([camomile],
 
 AC_CHECK_OCAML_BINDING([camomile],[1.0.0])
 
+AC_ARG_WITH([camomile-data-dir],
+   AC_HELP_STRING(
+      [--with-camomile-data-dir=path],
+      [path to camomile data files (autodetected by default)]))
+
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
     echo let recode_tag ?in_enc:_ ?out_enc:_ s = s >> src/configure.ml
@@ -656,7 +655,18 @@ if test -z "$W_CAMOMILE" ; then
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi
 else
-    if test -n "$w_CUSTOM_PATH"; then
+    if test -n "${with_camomile_data_dir}" ; then
+      camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
+      cat >> src/configure.ml <<EOCONF
+module CamomileConfig =
+struct
+  let datadir = Filename.concat "${with_camomile_data_dir}" "database"
+  let localedir = Filename.concat "${with_camomile_data_dir}" "locales"
+  let charmapdir = Filename.concat "${with_camomile_data_dir}" "charmaps"
+  let unimapdir = Filename.concat "${with_camomile_data_dir}" "mappings"
+end
+EOCONF
+    elif test -n "$w_CUSTOM_PATH" ; then
       camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
       cat >> src/configure.ml <<EOCONF
 module CamomileConfig = 
@@ -898,10 +908,9 @@ AC_SUBST(shared_flag)
 
 echo
 
+AC_CONFIG_FILES([doc/content/install.md])
+AC_CONFIG_FILES([doc/content/build.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
-AC_CONFIG_FILES([scripts/liquidsoap.initd],[chmod a-w scripts/liquidsoap.initd])
-AC_CONFIG_FILES([scripts/liquidsoap.gentoo.initd],
-                [chmod a-w scripts/liquidsoap.gentoo.initd])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
 AC_OUTPUT
 $MAKE finish-configure
@@ -946,65 +955,63 @@ cat <<EOMSG
  doc            : $datadir/doc
  bash completion: $bashcompdir
  emacs mode     : $emacsdir
- sandbox        : $SANDBOX_TOOL
- sanxbox binary : $SANDBOX_BINARY
 
  -------------------------------------------------------------------- Features
 
  * Supported input formats
-   - Vorbis            : $w_VORBIS
-   - Theora            : $w_THEORA
-   - Speex             : $w_SPEEX
-   - Flac (native)     : $w_FLAC
-   - Flac (ogg)        : $w_FLAC_OGG
-   - MP3               : $w_MAD
    - AAC               : $w_FAAD
    - Avcodec (ffmpeg)  : $w_FFMPEG
-   - XML playlists     : $w_XMLPLAYLIST
+   - Flac (native)     : $w_FLAC
+   - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM
+   - Opus              : $w_OPUS
+   - Speex             : $w_SPEEX
+   - Theora            : $w_THEORA
+   - Vorbis            : $w_VORBIS
+   - XML playlists     : $w_XMLPLAYLIST
 
  * Supported output formats
-   - Vorbis            : $w_VORBIS
+   - FDK-AAC           : $w_FDKAAC
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
-   - FDK-AAC           : $w_FDKAAC
-   - SPEEX             : $w_SPEEX
    - Opus              : $w_OPUS
+   - SPEEX             : $w_SPEEX
    - Theora            : $w_THEORA
+   - Vorbis            : $w_VORBIS
 
  * Tags
+   - charset detection : $w_CAMOMILE
    - Taglib (ID3 tags) : $w_TAGLIB
    - Vorbis            : $w_VORBIS
-   - charset detection : $w_CAMOMILE
 
  * Input / output
-   - Icecast/Shoutcast : $w_CRY
-   - AO                : $w_AO
-   - OSS               : $w_OSS
    - ALSA              : $w_ALSA
+   - AO                : $w_AO
+   - Icecast/Shoutcast : $w_CRY
+   - GStreamer         : $w_GSTREAMER
+   - JACK              : $w_BJACK
+   - OSS               : $w_OSS
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
-   - JACK              : $w_BJACK
-   - GStreamer         : $w_GSTREAMER
 
  * Audio manipulation
+   - LADSPA            : $w_LADSPA
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
-   - LADSPA            : $w_LADSPA
 
  * Video manipulation
-   - Gavl              : $w_GAVL
+   - camlimages        : $w_CAMLIMAGES
    - FFmpeg            : $w_FFMPEG
    - frei0r            : $w_FREI0R
-   - camlimages        : $w_CAMLIMAGES
+   - Gavl              : $w_GAVL
 
  * MIDI manipulation
    - DSSI              : $w_DSSI
 
  * Visualization
+   - GD                : $w_GD
    - Graphics          : $w_GRAPHICS
    - SDL               : $w_SDL
-   - GD                : $w_GD
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime
@@ -1012,10 +1019,10 @@ cat <<EOMSG
    - inotify           : $w_INOTIFY
    - lo                : $w_LO
    - magic             : $w_MAGIC
-   - yojson            : $w_YOJSON
-   - ssl               : $w_SSL
    - SecureTransport   : $w_OSX_SECURE_TRANSPORT
+   - ssl               : $w_SSL
    - windows service   : $w_WINSVC
+   - yojson            : $w_YOJSON
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
@@ -1063,3 +1070,51 @@ if ! test -f $DEFAULT_FONT ; then
 </WARNING>
 EOMSG
 fi
+
+cat >| liquidsoap.config <<EOCFG
+opam-version: "2.0"
+variables {
+  vorbis-enabled: $b_VORBIS
+  theora-enabled: $b_THEORA
+  speex-enabled: $b_SPEEX
+  flac-enabled: $b_FLAC
+  ogg_flac-enabled: $b_FLAC_OGG
+  mad-enabled: $b_MAD
+  faad-enabled: $b_FAAD
+  ffmpeg-enabled: $b_FFMPEG
+  xmlplaylist-enabled: $b_XMLPLAYLIST
+  lastfm-enabled: $b_LASTFM
+  lame-enabled: $b_LAME
+  shine-enabled: $b_SHINE
+  fdkaac-enabled: $b_FDKAAC
+  opus-enabled: $b_OPUS
+  taglib-enabled: $b_TAGLIB
+  camomile-enabled: $b_CAMOMILE
+  cry-enabled: $b_CRY
+  ao-enabled: $b_AO
+  ogg-enabled: $b_OGG
+  alsa-enabled: $b_ALSA
+  portaudio-enabled: $b_PORTAUDIO
+  pulseaudio-enabled: $b_PULSEAUDIO
+  bjack-enabled: $b_BJACK
+  gstreamer-enabled: $b_GSTREAMER
+  samplerate-enabled: $b_SAMPLERATE
+  soundtouch-enabled: $b_SOUNDTOUCH
+  ladspa-enabled: $b_LADSPA
+  gavl-enabled: $b_GAVL
+  ffmpeg-enabled: $b_FFMPEG
+  frei0r-enabled: $b_FREI0R
+  camlimages-enabled: $b_CAMLIMAGES
+  dssi-enabled: $b_DSSI
+  graphics-enabled: $b_GRAPHICS
+  sdl-enabled: $b_SDL
+  gd-enabled: $b_GD
+  inotify-enabled: $b_INOTIFY
+  lo-enabled: $b_LO
+  magic-enabled: $b_MAGIC
+  yojson-enabled: $b_YOJSON
+  ssl-enabled: $b_SSL
+  secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  winscv-enabled: $b_WINSVC
+}
+EOCFG

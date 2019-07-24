@@ -40,9 +40,9 @@ content/settings.md: $(LIQUIDSOAP)
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
 doc-install:
-	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
+	$(INSTALL)  -d $(datadir)/doc/liquidsoap/html
 	if [ -f html/index.html ] ; then \
-	  cp -RfL html/* $(datadir)/doc/$(DISTDIR)/html ; \
+	  cp -RfL html/* $(datadir)/doc/liquidsoap/html ; \
         fi
 	$(INSTALL) -d $(mandir)/man1
 	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1

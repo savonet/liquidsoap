@@ -15,9 +15,7 @@ but `%mp3(mono)` has type `format(audio=1,video=0,midi=0)`.
 
 The type of an output like `output.icecast`
 or `output.file` is something like
-```
-(...,format('a),...,source('a))->source('a)```
-.
+`(...,format('a),...,source('a))->source('a)`.
 This means that your source will have to have the same type as your format.
 
 For example if you write

@@ -95,8 +95,24 @@ let string_of_format = function
 
 (** ISO Base Media File Format, see RFC 6381 section 3.3. *)
 let iso_base_file_media_file_format = function
-  | MP3 _ | Shine _ -> "mp4a.40.34"
-  | FdkAacEnc _ -> "mp4a.40.2"
+  | MP3 _ | Shine _ -> "mp4a.40.34" (* I have also seen "mp4a.69" and "mp3" *)
+  | FdkAacEnc m ->
+     (
+       match m.Fdkaac_format.aot with
+         | `Mpeg_4 `AAC_LC -> "mp4a.40.2"
+         | `Mpeg_4 `HE_AAC -> "mp4a.40.5"
+         | `Mpeg_4 `HE_AAC_v2 -> "mp4a.40.29"
+         | `Mpeg_4 `AAC_LD -> "mp4a.40.23"
+         | `Mpeg_4 `AAC_ELD -> "mp4a.40.39"
+         | `Mpeg_2 `AAC_LC -> "mp4a.67"
+         | `Mpeg_2 `HE_AAC -> "mp4a.67" (* TODO: check this *)
+         | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *)
+     )
+  | Ogg [Ogg_format.Speex _] -> "speex"
+  | Ogg [Ogg_format.Vorbis _] -> "vorbis"
+  | Ogg [Ogg_format.Flac _] -> "flac"
+  | Ogg [Ogg_format.Theora _] -> "theora"
+  | Ogg [Ogg_format.Opus _] -> "opus"
   | _ -> raise Not_found
 
 (** Proposed extension for files. *)

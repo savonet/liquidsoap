@@ -82,140 +82,98 @@ let encode_video encoder id content start len =
   in
   Ogg_muxer.encode encoder id data
 
-let encoder ogg name meta =
-    (* We add a skeleton only 
-     * if there are more than one stream for now. *)
-    let skeleton = List.length ogg > 1 in
-    let ogg_enc = Ogg_muxer.create ~skeleton name in
-    let create_track cur x = 
-      match x with
-        | Ogg_format.Vorbis x ->
-           begin 
-            try
-              let create_vorbis = 
-                Hashtbl.find encoders "vorbis"
-              in
-              create_vorbis (Ogg_format.Vorbis x) :: cur
-            with
-              | Not_found -> 
-                  Ogg_muxer.log#important
-                    "%s: Could not find any vorbis encoder." name ;
-                  raise Not_found          
-           end
-        | Ogg_format.Opus x ->
-           begin
-            try
-              let create_opus =
-                Hashtbl.find encoders "opus"
-              in
-              create_opus (Ogg_format.Opus x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important
-                    "%s: Could not find any opus encoder." name ;
-                  raise Not_found
-           end
-        | Ogg_format.Flac x ->
-           begin
-            try
-              let create_flac =
-                Hashtbl.find encoders "flac"
-              in
-              create_flac (Ogg_format.Flac x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important
-                    "%s: Could not find any flac encoder." name ;
-                  raise Not_found
-           end
-        | Ogg_format.Theora x ->
-           begin
-            try
-              let create_theora =
-                Hashtbl.find encoders "theora"
-              in
-              create_theora (Ogg_format.Theora x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important 
-                    "%s: Could not find any theora encoder." name ;
-                  raise Not_found
-           end
-        | Ogg_format.Speex x ->
-           begin
-            try
-              let create_speex =
-                Hashtbl.find encoders "speex"
-              in
-              create_speex (Ogg_format.Speex x) :: cur
-            with
-              | Not_found ->
-                  Ogg_muxer.log#important
-                    "%s: Could not find any speex encoder." name ;
-                  raise Not_found
-           end
+let encoder_name = function
+  | Ogg_format.Vorbis _ -> "vorbis"
+  | Ogg_format.Opus _   -> "opus"
+  | Ogg_format.Flac _   -> "flac"
+  | Ogg_format.Theora _ -> "theora"
+  | Ogg_format.Speex _  -> "speex"
+
+let get_encoder tr =
+  let name = encoder_name tr in
+  try
+    Hashtbl.find encoders name
+  with Not_found ->
+    Ogg_muxer.log#important
+      "Could not find any %s encoder." name ;
+      raise Not_found
+
+let encoder ogg =
+    let check_track t =
+      let _:Ogg_format.item -> track = get_encoder t in
+      ()
     in
-    let tracks = 
-      List.fold_left create_track [] ogg 
-    in
-    let rec enc =
-     {
-      Encoder.
-       insert_metadata  = insert_metadata ;
-       encode = encode ;
-       header = None ;
-       stop   = stop
-     }
-    and streams_start () = 
-      let f track =
-        match track.id with
-          | Some _ -> ()
-          | None   -> track.id <- Some (track.reset ogg_enc meta)
+    List.iter check_track ogg; 
+    fun name meta -> 
+      (* We add a skeleton only
+       * if there are more than one stream for now. *)
+      let skeleton = List.length ogg > 1 in
+      let create_track cur tr =
+        let create = get_encoder tr in
+        create tr :: cur
       in
-      List.iter f tracks ;
-      Ogg_muxer.streams_start ogg_enc ;
-      enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
-    and encode frame start len =
-      (* We do a lazy start, to 
-       * avoid empty streams at beginning.. *)
-      if Ogg_muxer.state ogg_enc <> 
-         Ogg_muxer.Streaming 
-      then
-       begin
-        streams_start () ;
+      let tracks =
+        List.fold_left create_track [] ogg
+      in
+      let ogg_enc = Ogg_muxer.create ~skeleton name in
+      let rec enc =
+       {
+        Encoder.
+         insert_metadata  = insert_metadata ;
+         encode = encode ;
+         header = None ;
+         stop   = stop
+       }
+      and streams_start () = 
+        let f track =
+          match track.id with
+            | Some _ -> ()
+            | None   -> track.id <- Some (track.reset ogg_enc meta)
+        in
+        List.iter f tracks ;
+        Ogg_muxer.streams_start ogg_enc ;
         enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
-       end ;
-      let _,content = Frame.content frame start in
-      let f track = 
-        track.encode ogg_enc (Utils.get_some track.id) content start len
+      and encode frame start len =
+        (* We do a lazy start, to 
+         * avoid empty streams at beginning.. *)
+        if Ogg_muxer.state ogg_enc <> 
+           Ogg_muxer.Streaming 
+        then
+         begin
+          streams_start () ;
+          enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
+         end ;
+        let _,content = Frame.content frame start in
+        let f track = 
+          track.encode ogg_enc (Utils.get_some track.id) content start len
+        in
+        List.iter f tracks ;
+        Ogg_muxer.get_data ogg_enc
+      and ogg_stop () = 
+        let f track = 
+          track.id <- None
+        in
+        List.iter f tracks ;
+        if Ogg_muxer.state ogg_enc = 
+           Ogg_muxer.Streaming
+        then
+         begin
+          Ogg_muxer.end_of_stream ogg_enc ; 
+          enc.Encoder.header <- None 
+         end
+      and stop () = 
+        ogg_stop () ;
+        enc.Encoder.header <- None ;
+        Ogg_muxer.get_data ogg_enc
+      and insert_metadata m =
+        ogg_stop () ;
+        let f track =
+          track.id <- Some (track.reset ogg_enc m)
+        in
+        List.iter f tracks ;
+        enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
       in
-      List.iter f tracks ;
-      Ogg_muxer.get_data ogg_enc
-    and ogg_stop () = 
-      let f track = 
-        track.id <- None
-      in
-      List.iter f tracks ;
-      if Ogg_muxer.state ogg_enc = 
-         Ogg_muxer.Streaming
-      then
-       begin
-        Ogg_muxer.end_of_stream ogg_enc ; 
-        enc.Encoder.header <- None 
-       end
-    and stop () = 
-      ogg_stop () ;
-      enc.Encoder.header <- None ;
-      Ogg_muxer.get_data ogg_enc
-    and insert_metadata m =
-      ogg_stop () ;
-      let f track =
-        track.id <- Some (track.reset ogg_enc m)
-      in
-      List.iter f tracks ;
-      enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
-    in
-    enc
+      enc
 
 let () =
   Encoder.plug#register "OGG"

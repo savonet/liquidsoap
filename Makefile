@@ -11,9 +11,8 @@ distclean: pre-distclean
 	rm -f Makefile.defs
 pre-distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
-	       src/configure.ml scripts/liquidsoap.initd \
-	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
-	       gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
+	       src/configure.ml scripts/liquidsoap.logrotate \
+	       gui/liguidsoap liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
 	$(MAKE) -C src/test test
@@ -22,14 +21,14 @@ test:
 # Build liquidsoap as it will be used for building the doc
 doc-local: all
 
-.PHONY: system-install gentoo-install finish-configure
+.PHONY: finish-configure
 
 finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
-	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
-	@echo let bin_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
+	@echo let libs_dir = \"$(datadir)/liquidsoap/$(libs_dir_version)/libs\" >> src/configure.ml
+	@echo let bin_dir = \"$(datadir)/liquidsoap/$(libs_dir_version)/bin\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
@@ -73,10 +72,11 @@ ifeq ($(INSTALL_DAEMON),yes)
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/run/liquidsoap
 endif
 	$(INSTALL_DIRECTORY) $(bindir)
-	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_DIRECTORY) $(datadir)/liquidsoap/$(libs_dir_version)/bin
+	$(INSTALL_DIRECTORY) $(datadir)/liquidsoap/$(libs_dir_version)/libs
+	$(INSTALL_PROGRAM) scripts/extract-replaygain $(datadir)/liquidsoap/$(libs_dir_version)/bin
 	find libs | grep '\.liq$$' | while read l; do \
-	  $(INSTALL_DATA) $$l $(libdir)/liquidsoap/$(libs_dir_version) ; \
+	  $(INSTALL_DATA) $$l $(datadir)/liquidsoap/$(libs_dir_version)/libs ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example
@@ -86,9 +86,3 @@ endif
 	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
 	$(INSTALL_DIRECTORY) ${emacsdir}
 	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
-
-gentoo-install:
-	$(INSTALL_PROGRAM) -D scripts/liquidsoap.gentoo.initd ${sysconfdir}/init.d/liquidsoap
-
-service-install:
-	$(INSTALL_PROGRAM) -D scripts/liquidsoap.initd ${sysconfdir}/init.d/liquidsoap

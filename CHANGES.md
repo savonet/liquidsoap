@@ -76,6 +76,14 @@ Changed:
   `playlist.{reloadable,once,merge}` (#818)
 - Renamed `input.external` into `input.external.rawaudio`, added
   `input.external.wav`.
+- Renamed `gstreamer.hls` to `output.file.hls.gstreamer`.
+- Raise an error when using a format (e.g. `%vorbis`, `%mp3`, ..) that is not 
+  enabled. (#857)
+- Set default encoders and ladspa plugins samplerate and channels to configured
+  internal `"frame.audio.samplerate"` and `"frame.audio.channels"`. (#870)
+- Handle unary minus in the preprocessor instead of the parser in order to avoid
+  duplicating the parser. (#860)
+- Add `filter` option to `playlist.once`.
 
 Fixed:
 
@@ -92,6 +100,9 @@ Fixed:
 - Fixed external process stop not detected on second and further calls (#833)
 - Add `seek` in operators where implementation is clear (#853) 
 - Do not enter buffering mode between tracks in `buffer` (#836)
+- Fixed file descriptor leak in external processes (#865)
+- Fixed encoded output creating empty files from failing sources (#876)
+- Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
 
 1.3.7 (09-04-2019)
 =====

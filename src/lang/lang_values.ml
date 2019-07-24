@@ -25,6 +25,9 @@
 (** A parsing error. *)
 exception Parse_error of ((Lexing.position*Lexing.position)*string)
 
+(** Unsupported format *)
+exception Unsupported_format of (Lexing.position*Lexing.position)
+
 (** Are we in debugging mode? *)
 let debug =
   try
