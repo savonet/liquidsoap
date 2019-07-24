@@ -1,3 +1,12 @@
+1.5.0 ()
+=====
+
+New:
+
+- Switch to YUV420 as internal image format, should be much more efficient
+  (#848).
+- Add `output.file.dash.ffmpeg`.
+
 1.4.0 ()
 =====
 
