@@ -41,7 +41,7 @@ let parse_time t =
       let g = g sub in
         [g 1;g 2;Some (int_of_string (Pcre.get_substring sub 3));None]
 
-let skipped = [%sedlex.regexp? white_space|'\r'|'\t']
+let skipped = [%sedlex.regexp? Sub(white_space,'\n')|'\r'|'\t']
 
 let decimal_digit = [%sedlex.regexp? '0'..'9']
 
