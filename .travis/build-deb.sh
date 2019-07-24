@@ -23,7 +23,7 @@ eval $(opam config env)
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-LIQ_PACKAGE="liquidsoap-${TRAVIS_COMMIT_SHORT}-${RELEASE}" 
+LIQ_PACKAGE="liquidsoap-${TRAVIS_COMMIT_SHORT}" 
 
 echo "Building ${LIQ_PACKAGE}.."
 
@@ -33,11 +33,11 @@ cp -f debian/control.in debian/control
 
 sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
 
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "${TRAVIS_BUILD_NUMBER}:0-1" "Build ${TRAVIS_COMMIT_SHORT}"
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "${TRAVIS_BUILD_NUMBER}:0-1~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 
-LIQ_PACKAGE="liquidsoap-${BRANCH}-${RELEASE}"
+LIQ_PACKAGE="liquidsoap-${BRANCH}"
 
 echo "Building ${LIQ_PACKAGE}.."
 
@@ -47,7 +47,7 @@ cp -f debian/control.in debian/control
 
 sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
 
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "${TRAVIS_BUILD_NUMBER}:0-1" "Build ${TRAVIS_COMMIT_SHORT}"
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "${TRAVIS_BUILD_NUMBER}:0-1~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 
