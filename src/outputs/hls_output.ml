@@ -203,8 +203,11 @@ class hls_output p =
     Frame.master_of_seconds segment_duration /
       Lazy.force Frame.size
   in
+  let segment_master_duration =
+    segment_ticks * Lazy.force Frame.size
+  in
   let segment_duration =
-    Frame.seconds_of_master (segment_ticks * Lazy.force Frame.size)
+    Frame.seconds_of_master segment_master_duration
   in
   let segment_name =
     Lang.to_fun ~t:Lang.string_t (List.assoc "segment_name" p)
@@ -439,15 +442,15 @@ class hls_output p =
       output#sleep
 
     method encode frame ofs len =
+      if current_segment.len + len > segment_master_duration then
+        self#new_segment;
       current_segment.len <- current_segment.len + len;
       List.map (fun s ->
           s.hls_encoder.Encoder.encode frame ofs len
         ) streams
 
     method send b =
-      List.iter2 self#write_pipe streams b;
-      if self#current_tick - open_tick > segment_ticks then
-        self#new_segment
+      List.iter2 self#write_pipe streams b
 
     method insert_metadata m =
       List.iter (fun s ->
