@@ -798,6 +798,7 @@ AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
 AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
+AC_CHECK_OCAML_BINDING([srt],[0.1.0])
 AC_CHECK_OCAML_BINDING([lo],[0.1.2])
 AC_CHECK_OCAML_BINDING([gd])
 
@@ -993,6 +994,7 @@ cat <<EOMSG
    - OSS               : $w_OSS
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
+   - SRT               : $w_SRT
 
  * Audio manipulation
    - LADSPA            : $w_LADSPA
@@ -1115,6 +1117,7 @@ variables {
   yojson-enabled: $b_YOJSON
   ssl-enabled: $b_SSL
   secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  srt-enabled: $b_SRT
   winscv-enabled: $b_WINSVC
 }
 EOCFG

@@ -162,6 +162,7 @@ outputs = outputs/output.ml \
 	$(if $(W_ALSA),outputs/alsa_out.ml)
 
 io = io/udp_io.ml \
+	$(if $(W_SRT),io/srt_io.ml) \
 	$(if $(W_OSS),io/oss_io.ml) \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
