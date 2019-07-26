@@ -113,6 +113,7 @@ def output.youtube.live(~id="",
       x264enc bitrate=#{video_bitrate} byte-stream=false key-int-max=60 bframes=0 aud=true tune=zerolatency ! \
       video/x-h264,profile=main ! queue ! mux."
   audio_pipeline = "audioconvert ! #{audio_encoder} bitrate=#{audio_bitrate} ! queue ! mux."
+  key = (key : string)
   pipeline = "flvmux streamable=true name=mux ! rtmpsink location=\"#{url}/#{key} app=live2\""
 
   output.gstreamer.audio_video(id=id,video_pipeline=video_pipeline,
