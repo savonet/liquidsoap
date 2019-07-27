@@ -85,23 +85,32 @@ Here's how to install:
 ```
 [sudo] apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 20D63CCDDD0F62C2
 ```
+
 * Then one of the following source:
+
+**debian/stable:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/debian stable main >> /etc/apt/sources.list
+```
 
 **debian/testing:**
 ```
 [sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list
 ```
+
 **debian/stretch:**
 ```
 [sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list
 ```
+
 **ubuntu/bionic:**
 ```
 [sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list
 ```
-* Finally, update your packages list:
+
+**ubuntu/disco:**
 ```
-[sudo] apt-get update
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu disco main >> /etc/apt/sources.list
 ```
 
 You can now see the list of available packages:
