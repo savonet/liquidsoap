@@ -31,10 +31,12 @@ let log = Log.make ["decoder";"external"]
   * It pipes its data to the external process and read
   * the available output. *)
 let external_input process input =
+  let buflen = 1024 in
+  let buf = Bytes.create buflen in
   let on_stdin pusher =
-    let s,read = input.Decoder.read 1024 in
+    let read = input.Decoder.read buf 0 buflen in
     if read = 0 then `Stop else begin
-      Process_handler.write (Bytes.of_string s) pusher;
+      Process_handler.write (Bytes.sub buf 0 read) pusher;
       `Continue
     end
   in
@@ -48,12 +50,14 @@ let external_input process input =
   let process =
     Process_handler.run ~priority ~on_stdin ~on_stderr ~log process
   in
-  let read len =
+  let read buf ofs len =
     try
       Process_handler.on_stdout process (fun stdout ->
         let s = Process_handler.read len stdout in
-        Bytes.unsafe_to_string s,Bytes.length s)
-    with Process_handler.Finished -> "",0
+        let len = Bytes.length s in
+        Bytes.blit s 0 buf ofs len;
+        len)
+    with Process_handler.Finished -> 0
   in
   {Decoder.
     read = read;
@@ -172,12 +176,14 @@ let external_input_oblivious process filename prebuf =
   let process =
     Process_handler.run ~on_stderr ~log:(log#important "%s") command
   in
-  let read len =
+  let read buf ofs len =
     try
       Process_handler.on_stdout process (fun stdout ->
         let s = Process_handler.read len stdout in
-        Bytes.unsafe_to_string s,Bytes.length s)
-    with Process_handler.Finished -> "",0
+        let len = Bytes.length s in
+        Bytes.blit s 0 buf ofs len;
+        len)
+    with Process_handler.Finished -> 0
   in
   let close () =
     try

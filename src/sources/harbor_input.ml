@@ -56,7 +56,7 @@ struct
 
     val mutable relay_socket = None
     (** Function to read on socket. *)
-    val mutable relay_read = (fun _ _ -> assert false)
+    val mutable relay_read = (fun _ _ _ -> assert false)
     (* Mutex used to protect socket's state (close) *)
     val relay_m = Mutex.create ()
     val mutable create_decoder = fun _ -> assert false
@@ -115,11 +115,11 @@ struct
     method feed =
       self#log#important "Decoding..." ;
       let t0 = Unix.gettimeofday () in
-      let read len =
-        let buf,input = (fun len ->
+      let read buf ofs len =
+        let input = (fun buf len ->
           let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
            match socket with
-             | None -> Bytes.empty, 0
+             | None -> 0
              | Some socket ->
                  begin
                    try
@@ -129,7 +129,7 @@ struct
                          (* Wait for `Read event on socket. *)
                          Tutils.wait_for ~log (`Read fd) timeout;
                          (* Now read. *)
-                         relay_read socket len
+                         relay_read socket buf ofs len
                         with
                           | Harbor.Retry -> f ()
                      in
@@ -138,8 +138,8 @@ struct
                    | e -> self#log#severe "Error while reading from client: \
                               %s" (Printexc.to_string e);
                      self#disconnect ~lock:false;
-                     Bytes.empty,0
-                 end) len;
+                     0
+                 end) buf len;
         in
         begin
           match dump with
@@ -153,7 +153,7 @@ struct
                Printf.fprintf b "%f %d\n%!" time self#length
             | None -> ()
         end ;
-        Bytes.unsafe_to_string buf,input
+        input
       in
       let input =
         { Decoder.

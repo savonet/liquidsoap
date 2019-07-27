@@ -96,10 +96,15 @@ module Make (Generator:Generator.S_Asio) = struct
         let dst_len = Audio.length dst in
         dst, dst_len
     in
+    let buf = Bytes.create bytes_to_get in
     let decoder gen =
-      let data, bytes = input.Decoder.read bytes_to_get in
+      let bytes =
+        input.Decoder.read buf 0 bytes_to_get
+      in
       if bytes = 0 then raise End_of_stream;
-      let content, length = converter (String.sub data 0 bytes) in
+      let content, length =
+        converter (Bytes.sub_string buf 0 bytes)
+      in
       Generator.set_mode gen `Audio;
       Generator.put_audio gen content 0 length
     in

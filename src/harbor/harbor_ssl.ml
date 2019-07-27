@@ -91,10 +91,7 @@ struct
   type socket = Ssl.socket
   let name = "ssl"
   let file_descr_of_socket = Ssl.file_descr_of_socket
-  let read socket len =
-    let buf = Bytes.create len in
-    let n = Ssl.read socket buf 0 len in
-    buf, n
+  let read = Ssl.read
   let accept sock =
     let ctx = get_ctx () in
     let (s, caller) = Unix.accept sock in

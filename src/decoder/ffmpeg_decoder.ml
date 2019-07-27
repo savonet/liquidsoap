@@ -228,11 +228,7 @@ let () =
 module Make (Generator:Generator.S_Asio) =
 struct
 let create_decoder input =
-  let read buf ofs len =
-    let ret, len = input.Decoder.read len in
-    Bytes.blit_string ret 0 buf ofs len;
-    len
-  in
+  let read = input.Decoder.read in
   let seek =
     match input.Decoder.lseek with
       | None -> None

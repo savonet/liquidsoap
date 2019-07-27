@@ -129,17 +129,15 @@ struct
     in
       match metaint with
         | None ->
-            fun len ->
-              let b = Bytes.create len in
-              let r = read b 0 len in
-                if r < 0 then "",0 else Bytes.unsafe_to_string b,r
+            fun b ofs len ->
+              let r = read b ofs len in
+                if r < 0 then 0 else r
         | Some metaint ->
             let readcnt = ref 0 in
-              fun len ->
+              fun b ofs len ->
                 let len = min len (metaint - !readcnt) in
-                let b = Bytes.create len in
-                let r = read b 0 len in
-                  if r < 0 then "",0 else begin
+                let r = read b ofs len in
+                  if r < 0 then 0 else begin
                     readcnt := !readcnt + r;
                     if !readcnt = metaint then begin
                       readcnt := 0;
@@ -147,7 +145,7 @@ struct
                         | Some m -> insert_metadata m
                         | None -> ()
                     end ;
-                    Bytes.unsafe_to_string b,r
+                    r
                   end
   
   (** HTTP input *)
@@ -278,21 +276,21 @@ struct
           self#log#info "%s" s
         in
         (* Socket can't be closed while waiting on it. *)
-        (fun len ->
+        (fun buf ofs len ->
           let socket = Tutils.mutexify socket_m (fun () ->
             socket) ()
           in
           match socket with
-            | None -> "",0
+            | None -> 0
             | Some (socket,read,_) ->
                 begin
                  try
                   Http.wait_for ~log (`Read socket) timeout;
-                  read len
+                  read buf ofs len
                  with e -> self#log#severe "Error while reading from socket: \
                               %s" (Printexc.to_string e);
                            self#disconnect_no_lock;
-                           "",0
+                           0
                  end)
       in
       let read =
@@ -300,8 +298,8 @@ struct
           | None -> read
           | Some f ->
               let t0 = Unix.gettimeofday () in
-                fun len ->
-                  let ret = read len in
+                fun buf ofs len ->
+                  let ret = read buf ofs len in
                   let time = (Unix.gettimeofday () -. t0) /. 60. in
                     Printf.fprintf f "%f %d\n%!" time self#length ;
                     ret

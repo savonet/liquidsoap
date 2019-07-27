@@ -129,11 +129,10 @@ object (self)
           if l = [] then wait ()
       in
       (* Read data from the network. *)
-      let read len =
+      let read buf ofs len =
         wait () ;
-        let msg = Bytes.create len in
-        let n,_ = Unix.recvfrom socket msg 0 len [] in
-          Bytes.unsafe_to_string msg,n
+        let n,_ = Unix.recvfrom socket buf ofs len [] in
+        n
       in
       let input =
         { Decoder.

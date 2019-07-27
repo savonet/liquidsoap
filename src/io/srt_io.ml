@@ -234,7 +234,7 @@ object (self)
     in
     let buf = Buffer.create payload_size in
     let tmp = Bytes.create payload_size in
-    let read len =
+    let read bytes ofs len =
       if self#should_stop then raise Done;
       if Buffer.length buf < len then
        begin
@@ -243,11 +243,9 @@ object (self)
         Buffer.add_subbytes buf tmp 0 input
        end;
       let len = min len (Buffer.length buf) in
-      let ret =
-        Buffer.sub buf 0 len
-      in
+      Buffer.blit buf 0 bytes ofs len; 
       Utils.buffer_drop buf len;
-      ret,len
+      len
     in
     create_decoder { Decoder.
       read = read ;
