@@ -21,6 +21,8 @@
  *****************************************************************************)
 
 (** SRT input *)
+
+exception Done
   
 module G = Generator
 module Generator = Generator.From_audio_video_plus
@@ -28,6 +30,7 @@ module Generated = Generated.Make(Generator)
 
 class virtual base ~payload_size ~messageapi =
 object(self)
+  val mutex = Mutex.create ()
   val mutable socket = None
 
   method private string_of_address = function
@@ -35,28 +38,31 @@ object(self)
     | Unix.ADDR_INET (addr,port) ->
         Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
 
+  (* No blocking operation in prepare_socket, plz! *)
   method virtual private prepare_socket : Srt.socket -> unit
 
   method private get_socket =
-    match socket with
-      | Some s -> s
-      | None ->
-          let s =
-             Srt.socket Unix.PF_INET Unix.SOCK_DGRAM 0
-          in
-          Srt.setsockflag s Srt.payloadsize payload_size;
-          Srt.setsockflag s Srt.transtype `Live;
-          Srt.setsockflag s Srt.messageapi messageapi;
-          self#prepare_socket s;
-          socket <- Some s;
-          s
+    Tutils.mutexify mutex (fun () ->
+      match socket with
+        | Some s -> s
+        | None ->
+            let s =
+               Srt.socket Unix.PF_INET Unix.SOCK_DGRAM 0
+            in
+            Srt.setsockflag s Srt.payloadsize payload_size;
+            Srt.setsockflag s Srt.transtype `Live;
+            Srt.setsockflag s Srt.messageapi messageapi;
+            self#prepare_socket s;
+            socket <- Some s;
+            s) ()
 
   method private close_socket =
-    match socket with
-      | None -> ()
-      | Some s ->
-          Srt.close s;
-          socket <- None
+    Tutils.mutexify mutex (fun () ->
+      match socket with
+        | None -> ()
+        | Some s ->
+            Srt.close s;
+            socket <- None) ()
 end
   
 class input ~kind ~bind_address ~bufferize ~max ~payload_size
@@ -74,8 +80,7 @@ object (self)
   inherit
     Generated.source abg ~empty_on_abort:false ~bufferize
 
-  val mutable kill_feeding = None
-  val mutable wait_feeding = None
+  val mutable feeding_thread = None
 
   method private close_socket =
     match socket with
@@ -100,13 +105,7 @@ object (self)
     self#log#info "Setting up socket to listen at %s"
       (self#string_of_address bind_address);
 
-  method private feed (should_stop,has_stopped) =
-    let client, origin =
-      Srt.accept self#get_socket
-    in 
-    self#log_origin origin;
-    on_connect ();
-    Generator.set_mode generator `Undefined ;
+  method private create_decoder should_stop socket =
     let create_decoder =
       match
         Decoder.get_stream_decoder format kind
@@ -119,7 +118,8 @@ object (self)
     let read len =
       if Buffer.length buf < len then
        begin
-        let input = Srt.recvmsg client tmp payload_size in
+        if should_stop () then raise Done;
+        let input = Srt.recvmsg socket tmp payload_size in
         if input = 0 then raise End_of_file;
         Buffer.add_subbytes buf tmp 0 input
        end;
@@ -130,20 +130,30 @@ object (self)
       Utils.buffer_drop buf len;
       ret,len
     in
-    let input =
-      { Decoder.
-         read = read ;
-         tell = None;
-         length = None;
-         lseek = None }
-    in
-    let decoder = create_decoder input in
+    create_decoder { Decoder.
+      read = read ;
+      tell = None;
+      length = None;
+      lseek = None }
+
+  method private feed (should_stop,has_stopped) =
     try
+      if should_stop () then raise Done;
+      let client, origin =
+        Srt.accept self#get_socket
+      in 
+      self#log_origin origin;
+      on_connect ();
+      Generator.set_mode generator `Undefined ;
+      let decoder =
+        self#create_decoder should_stop client
+      in
       while true do
-        if should_stop () then failwith "stop" ;
+        if should_stop () then raise Done;
         let buffered = Generator.length abg in
         if max_ticks <= buffered then
           Thread.delay (Frame.seconds_of_audio (buffered-3*max_ticks/4));
+        if should_stop () then raise Done;
         decoder.Decoder.decode generator
       done
     with
@@ -152,24 +162,26 @@ object (self)
           Generator.add_break ~sync:`Drop generator ;
           on_disconnect ();
           has_stopped ();
+          self#close_socket;
           self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
           if not (should_stop ()) then
             self#feed  (should_stop,has_stopped)
     
   method wake_up act =
     super#wake_up act ;
-    begin match wait_feeding with
+    begin match feeding_thread with
       | None -> ()
-      | Some f -> f (); wait_feeding <- None
+      | Some (_,wait) -> wait ()
     end ;
-    let kill,wait = Tutils.stoppable_thread self#feed "SRT input" in
-    kill_feeding <- Some kill;
-    wait_feeding <- Some wait
+    feeding_thread <-
+      Some (Tutils.stoppable_thread self#feed self#id)
   
   method sleep =
-    (Utils.get_some kill_feeding) ();
-    kill_feeding <- None;
-    self#close_socket
+    begin match feeding_thread with
+      | None -> ()
+      | Some (kill,_) -> kill ()
+    end ;
+    feeding_thread <- None
 end
   
 let () =
@@ -254,35 +266,14 @@ object (self)
       ~on_start ~on_stop ~infallible ~autostart
       ~name:"output.srt" source
 
+  val data_condition = Condition.create ()
+  val data_mutex = Mutex.create ()
   val buffer = Buffer.create payload_size
   val tmp = Bytes.create payload_size
   val mutable encoder = None
+  val mutable seeding_thread = None 
 
-  method private prepare_socket socket =
-    let ipaddr =
-      (Unix.gethostbyname hostname).Unix.h_addr_list.(0)
-    in
-    let sockaddr = Unix.ADDR_INET (ipaddr, port) in
-    self#log#important "Connecting to srt://%s:%d.." hostname port;
-    Srt.connect socket sockaddr;
-    self#log#important "Output connected!"
-
-  method private output_start =
-    encoder <-
-      Some (encoder_factory self#id Meta_format.empty_metadata)
-
-  method private output_reset = self#output_start ; self#output_stop
-
-  method private output_stop =
-    self#close_socket;
-    Buffer.reset buffer;
-    encoder <- None
-
-  method private encode frame ofs len =
-    (Utils.get_some encoder).Encoder.encode frame ofs len
-
-  method private insert_metadata m =
-    (Utils.get_some encoder).Encoder.insert_metadata m
+  method private prepare_socket _ = ()
 
   method private send_chunk =
     let socket = self#get_socket in
@@ -292,8 +283,9 @@ object (self)
       else
         Srt.send socket data
     in
-    Buffer.blit buffer 0 tmp 0 payload_size;
-    Utils.buffer_drop buffer payload_size;
+    Tutils.mutexify data_mutex (fun () ->
+      Buffer.blit buffer 0 tmp 0 payload_size;
+      Utils.buffer_drop buffer payload_size) ();
     let rec f = function
       | pos when pos < payload_size ->
         let ret =
@@ -304,15 +296,88 @@ object (self)
     in
     f 0
 
-  method private send data =
-    Buffer.add_string buffer data;
+  method private wait_for_data =
+    Tutils.mutexify data_mutex (fun should_stop ->
+      if should_stop () then raise Done;
+      while Buffer.length buffer < payload_size do
+        if should_stop () then raise Done;
+        Condition.wait data_condition data_mutex
+      done)
+
+  method private get_encoder =
+    Tutils.mutexify data_mutex (fun () ->
+      match encoder with
+        | Some enc -> enc
+        | None ->
+            let enc = 
+              encoder_factory self#id Meta_format.empty_metadata
+            in
+            encoder <- Some enc;
+            enc) ()
+
+  method private clear_encoder =
+    Tutils.mutexify data_mutex (fun () ->
+      Buffer.reset buffer;
+      encoder <- None) ()
+
+  method private seed (should_stop,has_stopped) =
     try
-      while Buffer.length buffer >= payload_size do
-        self#send_chunk
-      done
+      self#clear_encoder;
+      if should_stop () then raise Done; 
+      let socket = self#get_socket in
+      let ipaddr =
+        (Unix.gethostbyname hostname).Unix.h_addr_list.(0)
+      in
+      let sockaddr = Unix.ADDR_INET (ipaddr, port) in
+      self#log#important "Connecting to srt://%s:%d.." hostname port;
+      Srt.connect socket sockaddr;
+      self#log#important "Output connected!";
+      let rec f () =
+        self#wait_for_data should_stop;
+        self#send_chunk;
+        f ()
+      in
+      f ()
     with exn ->
-           self#log#important "Error while sending data: %s" (Printexc.to_string exn);
-           self#close_socket
+      self#log#important "Error while sending data: %s" (Printexc.to_string exn);
+      self#close_socket;
+      if should_stop () then
+        has_stopped ()
+      else
+        self#seed (should_stop,has_stopped)
+
+  method private output_start =
+    begin match seeding_thread with
+      | None -> ()
+      | Some (_,wait) -> wait ()
+    end;
+    let (kill, wait) =
+      Tutils.stoppable_thread self#seed self#id
+    in
+    let kill () =
+      kill ();
+      Condition.signal data_condition
+    in
+    seeding_thread <-
+      Some (kill, wait)
+
+  method private output_reset = self#output_start ; self#output_stop
+
+  method private output_stop =
+    match seeding_thread with
+      | None -> ()
+      | Some (kill,_) -> kill ()
+
+  method private encode frame ofs len =
+    self#get_encoder.Encoder.encode frame ofs len
+
+  method private insert_metadata m =
+    self#get_encoder.Encoder.insert_metadata m
+
+  method private send =
+    Tutils.mutexify data_mutex (fun data ->
+      Buffer.add_string buffer data;
+      Condition.signal data_condition)
 end
 
 let () =
