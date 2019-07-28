@@ -284,30 +284,33 @@ object (self)
   method private insert_metadata m =
     (Utils.get_some encoder).Encoder.insert_metadata m
 
+  method private send_chunk =
+    let socket = self#get_socket in
+    let send data =
+      if messageapi then
+        Srt.sendmsg socket data (-1) false
+      else
+        Srt.send socket data
+    in
+    Buffer.blit buffer 0 tmp 0 payload_size;
+    Utils.buffer_drop buffer payload_size;
+    let rec f = function
+      | pos when pos < payload_size ->
+        let ret =
+          send (Bytes.sub tmp pos (payload_size-pos))
+        in
+        f (pos+ret)
+      | _ -> ()
+    in
+    f 0
+
   method private send data =
     Buffer.add_string buffer data;
-    match Buffer.length buffer with
-      | x when x < payload_size -> ()
-      | _ ->
-         let send socket data =
-           if messageapi then
-             Srt.sendmsg socket data (-1) false
-           else
-             Srt.send socket data
-         in
-         Buffer.blit buffer 0 tmp 0 payload_size;
-         Utils.buffer_drop buffer payload_size;
-         let rec f socket = function
-           | pos when pos < payload_size ->
-             let ret =
-               send socket (Bytes.sub tmp pos (payload_size-pos))
-             in
-             f socket (pos+ret)
-           | _ -> ()
-         in
-         try
-           f self#get_socket 0
-         with exn ->
+    try
+      while Buffer.length buffer >= payload_size do
+        self#send_chunk
+      done
+    with exn ->
            self#log#important "Error while sending data: %s" (Printexc.to_string exn);
            self#close_socket
 end
