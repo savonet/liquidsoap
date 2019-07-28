@@ -49,7 +49,7 @@ struct
         ~log ~kind
         ~overfull:(`Drop_old max_ticks)
         `Undefined
-     inn
+     in
   object (self)
     inherit  Source.source
       ~name:Harbor.source_name kind as super
