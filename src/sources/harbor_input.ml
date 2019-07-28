@@ -44,12 +44,22 @@ struct
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in
     let () = Harbor.init () in
+    let abg =
+      Generator.create 
+        ~log ~kind
+        ~overfull:(`Drop_old max_ticks)
+        `Undefined
+     inn
   object (self)
-    inherit  Source.source ~name:Harbor.source_name kind as super
-    inherit Generated.source
-              (Generator.create
-                 ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-              ~empty_on_abort:false ~replay_meta ~bufferize
+    inherit  Source.source
+      ~name:Harbor.source_name kind as super
+    inherit Generated.source abg
+      ~empty_on_abort:false ~replay_meta ~bufferize
+
+    initializer
+      self#register_command "buffer_length"
+        ~descr:"Show internal buffer length (in seconds)."
+        (fun _ -> Printf.sprintf "%.02f" (Frame.seconds_of_master (Generator.length abg)))
   
     val mutable relay_socket = None
     (** Function to read on socket. *)
