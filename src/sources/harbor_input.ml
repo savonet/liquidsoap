@@ -44,10 +44,17 @@ struct
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in
     let () = Harbor.init () in
-    let abg = Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined in
+    let abg =
+      Generator.create 
+        ~log ~kind
+        ~overfull:(`Drop_old max_ticks)
+        `Undefined
+     inn
   object (self)
-    inherit  Source.source ~name:Harbor.source_name kind as super
-    inherit Generated.source abg ~empty_on_abort:false ~replay_meta ~bufferize
+    inherit  Source.source
+      ~name:Harbor.source_name kind as super
+    inherit Generated.source abg
+      ~empty_on_abort:false ~replay_meta ~bufferize
 
     initializer
       self#register_command "buffer_length"
