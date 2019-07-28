@@ -273,6 +273,7 @@ object(self)
     Tutils.mutexify mutex (fun () ->
       try
         next_stop := `Sleep;
+        replay_pending := [];
         Process_handler.stop self#get_handler;
         handler <- None
       with Process_handler.Finished -> ()) ()
