@@ -48,6 +48,8 @@ Changed:
 - Removed `cross`/`crossfade` operators, superseeded by
   `smart_cross`/`smart_crossfade`
 - Rename `smart_cross`/`smart_crossfade` operators as `cross`/`crossfade`
+- Default behavior of `crossfade` is old (simple) crossfade. Use `smart=true`
+  to enable old `smart_crossfade` behavior.
 - Rename `file.duration` as `request.duration`
 - Removed duplicate `is_directory`
 - Rename `{basename,dirname}` as `path.{is_directory,basename,dirname}`

@@ -346,27 +346,34 @@ object (self)
     let compound =
       Clock.collect_after
         (fun () ->
+           let metadata = function
+             | None   -> Hashtbl.create 0
+             | Some m -> m
+           in
+           let before_metadata =
+             metadata before_metadata
+           in
+           let after_metadata =
+             metadata after_metadata
+           in
            let before =
-             new Generated.consumer ~kind gen_before
+             new Insert_metadata.replay ~kind before_metadata
+               (new Generated.consumer ~kind gen_before)
            in
            let after =
-             new Generated.consumer ~kind gen_after
+             new Insert_metadata.replay ~kind after_metadata
+               (new Generated.consumer ~kind gen_after)
            in
            let () =
              before#set_id (self#id ^ "_before") ;
              after#set_id (self#id ^ "_after")
            in
-           let metadata = function
-             | None ->
-                 Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
-             | Some m -> Lang.metadata m
-           in
            let f a b =
              let params =
                [ "", Lang.float db_before ;
                  "", Lang.float db_after ;
-                 "", metadata before_metadata ;
-                 "", metadata after_metadata ;
+                 "", Lang.metadata before_metadata ;
+                 "", Lang.metadata after_metadata ;
                  "", Lang.source a ;
                  "", Lang.source b ]
              in

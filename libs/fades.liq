@@ -258,15 +258,16 @@ end
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
 # @param ~conservative Always prepare for a premature end-of-track.
-# @param ~default      Transition used when no rule applies \
+# @param ~default      Smart crossfade: transition used when no rule applies \
 #                      (default: sequence).
-# @param ~high         Value, in dB, for loud sound level.
-# @param ~medium       Value, in dB, for medium sound level.
-# @param ~margin       Margin to detect sources that have too different \
+# @param ~smart        Enable smart crossfading
+# @param ~high         Smart crossfade: value, in dB, for loud sound level.
+# @param ~medium       Smart crossfade: value, in dB, for medium sound level.
+# @param ~margin       Smart crossfade: margin to detect sources that have too different \
 #                      sound level for crossing.
 # @param s             The input source.
 def crossfade(~start_next=5.,~override_duration="liq_cross_duration",
-              ~fade_in=3.,~fade_out=3.,
+              ~fade_in=3.,~fade_out=3.,~smart=false,
               ~default=(fun (a,b) -> sequence([a, b])),
               ~high=-15., ~medium=-32., ~margin=4.,
               ~width=2.,~conservative=true,s)
@@ -275,7 +276,15 @@ def crossfade(~start_next=5.,~override_duration="liq_cross_duration",
   add = fun (a,b) -> add(normalize=false,[b, a])
   log = log(label="crossfade")
 
-  def transition(a,b,ma,mb,sa,sb)
+  def simple_transition(a,b,ma,mb,sa,sb)
+    list.iter(fun(x)-> log(level=4,"Before: #{x}"),ma)
+    list.iter(fun(x)-> log(level=4,"After : #{x}"),mb)
+
+    log("Simple transition: crossed, fade-in, fade-out.")
+    add(fade.out(sa),fade.in(sb))
+  end
+
+  def smart_transition(a,b,ma,mb,sa,sb)
 
     list.iter(fun(x)-> log(level=4,"Before: #{x}"),ma)
     list.iter(fun(x)-> log(level=4,"After : #{x}"),mb)
@@ -329,6 +338,13 @@ def crossfade(~start_next=5.,~override_duration="liq_cross_duration",
       default(sa, sb)
     end
   end
+
+  transition =
+    if smart then
+      smart_transition
+    else
+      simple_transition
+    end
 
   cross(width=width, duration=start_next, conservative=conservative,
         transition,s)
