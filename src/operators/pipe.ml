@@ -40,7 +40,8 @@ type chunk = {
   mutable len: int
 }
 
-class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (source:source) =
+class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
+           ~restart_on_error (source:source) =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -49,6 +50,10 @@ class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (
   let audio_src_rate = float sample_rate in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let abg_max_len = Frame.audio_of_seconds max in
+  let replay_delay =
+    Frame.audio_of_seconds replay_delay
+  in
+  let pending_metadata = ref [] in
   let samplesize = ref 16 in
   let converter = ref
     (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:!samplesize
@@ -240,6 +245,12 @@ let proto =
     "process", Lang.string_t, None,
     Some "Process used to pipe data to.";
 
+    "replay_delay", Lang.float_t, Some (Lang.float (-1.)),
+    Some "Replay track marks and metadata from the input source \
+          on the output after a given delay. If negative (default) \
+          close and flush the process on each track and metadata to \
+          get an exact timing.";
+
     "data_length", Lang.int_t, Some (Lang.int (-1)),
     Some "Length passed in the WAV data chunk. \
           Data is streamed so no the consuming program \
@@ -266,8 +277,9 @@ let proto =
 
 let pipe p kind =
   let f v = List.assoc v p in
-  let process, data_len, bufferize, max, restart, restart_on_error, src =
+  let process, replay_delay, data_len, bufferize, max, restart, restart_on_error, src =
     Lang.to_string (f "process"),
+    Lang.to_float (f "replay_delay"),
     Lang.to_int (f "data_length"),
     Lang.to_float (f "buffer"),
     Lang.to_float (f "max"),
@@ -275,7 +287,7 @@ let pipe p kind =
     Lang.to_bool (f "restart_on_error"),
     Lang.to_source (f "")
   in
-  ((new pipe ~kind ~data_len ~bufferize ~max ~restart ~restart_on_error ~process src):>source)
+  ((new pipe ~kind ~replay_delay ~data_len ~bufferize ~max ~restart ~restart_on_error ~process src):>source)
 
 let () =
   Lang.add_operator "pipe" proto
