@@ -86,6 +86,8 @@ Changed:
 - Handle unary minus in the preprocessor instead of the parser in order to avoid
   duplicating the parser. (#860)
 - Add `filter` option to `playlist.once`.
+- Added a `replay_delay` option to the `pipe` operator to replay metadata and
+  breaks after a delay instead of restart the piping process. (#885)
 
 Fixed:
 

@@ -53,7 +53,6 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   let replay_delay =
     Frame.audio_of_seconds replay_delay
   in
-  let pending_metadata = ref [] in
   let samplesize = ref 16 in
   let converter = ref
     (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:!samplesize
@@ -75,6 +74,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   in
   let abg = Generator.create ~log ~kind `Audio in
   let mutex = Mutex.create () in
+  let replay_pending = ref [] in
   let next_stop = ref `Nothing in
   let header_read = ref false in
   let on_stdout pull =
@@ -98,6 +98,34 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       let len = Array.length data.(0) in
       let buffered = Generator.length abg in
       Generator.put_audio abg data 0 (Array.length data.(0));
+
+      let to_replay = Tutils.mutexify mutex (fun () ->
+        let pending = !replay_pending in
+        let to_replay, pending = List.fold_left (fun ((pos,b),cur) (pos',b') -> 
+          if pos'+len > replay_delay then
+           begin
+            if pos > 0 then
+              log "Cannot replay multiple element at once.. Picking up the most recent";
+            if pos > 0 && pos < pos' then (pos,b),cur else (pos',b'), cur
+           end
+          else (pos,b),(pos'+len,b')::cur) ((-1,`Nothing),[]) pending
+        in 
+        replay_pending := pending;
+        to_replay) ()
+      in
+      begin
+       match to_replay with
+         | -1, _ -> ()
+         | _, `Break_and_metadata m ->
+             Generator.add_metadata abg m;
+             Generator.add_break abg
+         | _, `Metadata m ->
+             Generator.add_metadata abg m
+         | _, `Break ->
+             Generator.add_break abg
+         | _ -> ()
+      end; 
+
       if abg_max_len < buffered+len then
         `Delay (Frame.seconds_of_audio (buffered+len-abg_max_len))
       else
@@ -195,9 +223,21 @@ object(self)
       let wlen = min 1024 len in
       let ret = pusher sbuf ofs wlen in
       if ret = len then begin
-        Tutils.mutexify mutex (fun () -> next_stop := next) ();
+        let action =
+          if next <> `Nothing && replay_delay >= 0 then
+           begin
+            Tutils.mutexify mutex (fun () ->
+              replay_pending := (0,next)::!replay_pending) ();
+            `Continue
+           end
+          else
+           begin
+            Tutils.mutexify mutex (fun () -> next_stop := next) ();
+            if next <> `Nothing then `Stop else `Continue
+           end
+        in
         ignore(Queue.take to_write); 
-        if next <> `Nothing then `Stop else `Continue
+        action
       end else begin
         chunk.ofs <- ofs+ret;
         chunk.len <- len-ret;
