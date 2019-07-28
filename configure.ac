@@ -800,7 +800,7 @@ AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 
 # TODO: switch to dune all the way?
-with_srt_types_dir=${with_srt_dir
+with_srt_types_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/types"
 AC_CHECK_OCAML_BINDING([srt.types],[0.1.0],[],[],[],[srt_types])
 
