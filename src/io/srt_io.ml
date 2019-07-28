@@ -181,6 +181,7 @@ object (self)
       | None -> ()
       | Some (kill,_) -> kill ()
     end ;
+    self#close_socket;
     feeding_thread <- None
 end
   
