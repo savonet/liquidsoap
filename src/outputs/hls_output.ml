@@ -400,6 +400,7 @@ class hls_output p =
       let fname = directory^^playlist in
       let oc = self#open_out fname in
       output_string oc "#EXTM3U\n";
+      output_string oc "#EXT-X-VERSION:3\n";
       List.iter (fun s ->
           let line =
             let bandwidth =
