@@ -28,6 +28,10 @@ module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
+let () =
+  Srt.startup ();
+  ignore (Dtools.Init.at_stop Srt.cleanup)
+
 class virtual base ~payload_size ~messageapi =
 object(self)
   val mutex = Mutex.create ()
