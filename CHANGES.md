@@ -35,6 +35,7 @@ New:
 - Added `reopen` telnet command in `output.external`.
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
+- Added `video.add_text.native`.
 
 Changed:
 
