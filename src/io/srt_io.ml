@@ -163,8 +163,6 @@ object (self)
       if Buffer.length buf < len then
        begin
         if should_stop () then raise Done;
-        self#poll ~should_stop socket;
-        if should_stop () then raise Done;
         let input = Srt.recvmsg socket tmp payload_size in
         if input = 0 then raise End_of_file;
         Buffer.add_subbytes buf tmp 0 input
@@ -191,6 +189,8 @@ object (self)
       let client, origin =
         Srt.accept s
       in 
+      Srt.setsockflag client Srt.sndsyn true;
+      Srt.setsockflag client Srt.rcvsyn true;
       if should_stop () then raise Done;
       self#log_origin origin;
       on_connect ();
