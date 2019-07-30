@@ -212,7 +212,6 @@ object (self)
           (* Feeding has stopped: adding a break here. *)
           Generator.add_break ~sync:`Drop generator ;
           on_disconnect ();
-          self#close_socket;
           if not (should_stop ()) then
             self#feed (should_stop,has_stopped)
           else
