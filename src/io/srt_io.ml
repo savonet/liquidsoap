@@ -32,10 +32,17 @@ let () =
   Srt.startup ();
   ignore (Dtools.Init.at_stop Srt.cleanup)
 
-class virtual base ~payload_size ~messageapi =
+type handler = {
+  socket: Srt.socket;
+  poll: Srt.poll
+}
+
+class virtual base ~payload_size ~mode ~poll_delay ~messageapi =
+  (* In ms *)
+  let timeout = int_of_float (poll_delay *. 1000.) in
 object(self)
   val mutex = Mutex.create ()
-  val mutable socket = None
+  val mutable handler = None
 
   method private string_of_address = function
     | Unix.ADDR_UNIX _ -> assert false
@@ -47,30 +54,68 @@ object(self)
 
   method private get_socket =
     Tutils.mutexify mutex (fun () ->
-      match socket with
-        | Some s -> s
+      match handler with
+        | Some {socket} -> socket
         | None ->
-            let s =
+            let socket =
                Srt.socket Unix.PF_INET Unix.SOCK_DGRAM 0
             in
-            Srt.setsockflag s Srt.payloadsize payload_size;
-            Srt.setsockflag s Srt.transtype `Live;
-            Srt.setsockflag s Srt.messageapi messageapi;
-            self#prepare_socket s;
-            socket <- Some s;
-            s) ()
+            Srt.setsockflag socket Srt.payloadsize payload_size;
+            Srt.setsockflag socket Srt.transtype `Live;
+            Srt.setsockflag socket Srt.messageapi messageapi;
+            self#prepare_socket socket;
+            let poll = Srt.epoll_create () in
+            begin
+             match mode with
+               | `Read  ->
+                   Srt.setsockflag socket Srt.rcvsyn false
+               | `Write ->
+                   Srt.setsockflag socket Srt.sndsyn false
+           end;
+           let f () = Srt.epoll_release poll in 
+           let h = {socket;poll} in
+           Gc.finalise_last f h;
+           handler <- Some h;
+           socket) ()
 
   method private close_socket =
     Tutils.mutexify mutex (fun () ->
-      match socket with
+      match handler with
         | None -> ()
-        | Some s ->
-            Srt.close s;
-            socket <- None) ()
+        | Some {socket} ->
+            Srt.close socket;
+            handler <- None) ()
+
+  method private get_poll =
+    Tutils.mutexify mutex (fun () ->
+      match handler with
+        | None -> raise Done
+        | Some {poll} -> poll) ()
+
+  method private poll ~should_stop socket =
+    let poll = self#get_poll in
+    Srt.epoll_add_usock poll socket (mode:>Srt.poll_flag);
+    let max_read, max_write =
+      match mode with
+        | `Read ->  1, 0
+        | `Write -> 0, 1
+    in
+    let rec f () =
+      try
+        if should_stop () then raise Done;
+        ignore(Srt.epoll_wait poll ~max_read ~max_write ~timeout);
+      with
+        | Srt.Error(`Etimeout,_) when not (should_stop ()) -> f ()
+        | exn ->
+           Srt.epoll_remove_usock poll socket;
+           raise exn
+    in
+    f ();
+    Srt.epoll_remove_usock poll socket
 end
   
 class input ~kind ~bind_address ~bufferize ~max ~payload_size
-            ~on_connect ~on_disconnect ~messageapi format =
+            ~poll_delay ~on_connect ~on_disconnect ~messageapi format =
   let max_ticks = Frame.master_of_seconds (Stdlib.max max bufferize) in
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -79,19 +124,12 @@ class input ~kind ~bind_address ~bufferize ~max ~payload_size
   in
 object (self)
   
-  inherit base ~payload_size ~messageapi
+  inherit base ~mode:`Read ~payload_size ~messageapi ~poll_delay
   inherit Source.source ~name:"input.srt" kind as super
   inherit
     Generated.source abg ~empty_on_abort:false ~bufferize
 
   val mutable feeding_thread = None
-
-  method private close_socket =
-    match socket with
-      | None -> ()
-      | Some s ->
-          Srt.close s;
-          socket <- None
 
   method stype = Source.Fallible
 
@@ -109,7 +147,7 @@ object (self)
     self#log#info "Setting up socket to listen at %s"
       (self#string_of_address bind_address);
 
-  method private create_decoder should_stop socket =
+  method private create_decoder ~should_stop socket =
     let create_decoder =
       match
         Decoder.get_stream_decoder format kind
@@ -122,6 +160,8 @@ object (self)
     let read len =
       if Buffer.length buf < len then
        begin
+        if should_stop () then raise Done;
+        self#poll ~should_stop socket;
         if should_stop () then raise Done;
         let input = Srt.recvmsg socket tmp payload_size in
         if input = 0 then raise End_of_file;
@@ -142,15 +182,19 @@ object (self)
 
   method private feed (should_stop,has_stopped) =
     try
+      let s = self#get_socket in
+      if should_stop () then raise Done;
+      self#poll ~should_stop s;
       if should_stop () then raise Done;
       let client, origin =
-        Srt.accept self#get_socket
+        Srt.accept s
       in 
+      if should_stop () then raise Done;
       self#log_origin origin;
       on_connect ();
       Generator.set_mode generator `Undefined ;
       let decoder =
-        self#create_decoder should_stop client
+        self#create_decoder ~should_stop client
       in
       while true do
         if should_stop () then raise Done;
@@ -162,14 +206,15 @@ object (self)
       done
     with
       | e ->
+          self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
           (* Feeding has stopped: adding a break here. *)
           Generator.add_break ~sync:`Drop generator ;
           on_disconnect ();
-          has_stopped ();
           self#close_socket;
-          self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
           if not (should_stop ()) then
-            self#feed  (should_stop,has_stopped)
+            self#feed (should_stop,has_stopped)
+          else
+            has_stopped ()
     
   method wake_up act =
     super#wake_up act ;
@@ -177,16 +222,21 @@ object (self)
       | None -> ()
       | Some (_,wait) -> wait ()
     end ;
-    feeding_thread <-
-      Some (Tutils.stoppable_thread self#feed self#id)
+    let (kill, wait) =
+      Tutils.stoppable_thread self#feed self#id
+    in
+    let kill () =
+       kill ();
+       self#close_socket
+    in
+    feeding_thread <- Some (kill,wait)
   
   method sleep =
     begin match feeding_thread with
       | None -> ()
       | Some (kill,_) -> kill ()
     end ;
-    self#close_socket;
-    feeding_thread <- None
+    feeding_thread <- None ;
 end
   
 let () =
@@ -194,13 +244,19 @@ let () =
   Lang.add_operator "input.srt"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Input
-    ~descr:"Receive a SRT stream."
+    ~descr:"Start a SRT agent in listener mode to receive and decode a stream."
     [ "bind_address", Lang.string_t, Some (Lang.string "0.0.0.0"),
       Some "Address to bind on the local machine.";
 
       "port", Lang.int_t, Some (Lang.int 8000),
-      Some "Port to bind on the local machine (note: ports in SRT are \
-            not related to TCP ports.)";
+      Some "Port to bind on the local machine. The term `port` as used in SRT \
+            is occasionally identical to the term `UDP port`. However SRT \
+            offers more flexibility than UDP because it manages ports as its \
+            own resources. For example, one port may be shared between various \
+            services.";
+
+      "poll_delay", Lang.float_t, Some (Lang.float 0.1),
+      Some "Timeout for the socket accept polling loop.";
   
       "buffer", Lang.float_t, Some (Lang.float 2.),
       Some "Duration of the pre-buffered data.";
@@ -247,6 +303,9 @@ let () =
                      "Maximum buffering inferior to pre-buffered data"));
          let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
          let payload_size = Lang.to_int (List.assoc "payload_size" p) in
+         let poll_delay =
+           Lang.to_float (List.assoc "poll_delay" p)
+         in
          let on_connect () =
            ignore
              (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) [])
@@ -258,14 +317,14 @@ let () =
          let format = Lang.to_string (List.assoc "" p) in
          ((new input ~kind ~bind_address ~payload_size
                     ~on_connect ~on_disconnect ~messageapi
-                    ~bufferize ~max format):>Source.source))
+                    ~poll_delay ~bufferize ~max format):>Source.source))
 
 class output ~kind ~payload_size ~messageapi
   ~on_start ~on_stop ~infallible ~autostart
-  ~port ~hostname ~encoder_factory source =
+  ~poll_delay ~port ~hostname ~encoder_factory source =
 object (self)
 
-  inherit base ~payload_size ~messageapi
+  inherit base ~mode:`Write ~payload_size ~messageapi ~poll_delay
   inherit
     Output.encoded ~output_kind:"srt" ~content_kind:kind
       ~on_start ~on_stop ~infallible ~autostart
@@ -280,7 +339,7 @@ object (self)
 
   method private prepare_socket _ = ()
 
-  method private send_chunk =
+  method private send_chunk should_stop =
     let socket = self#get_socket in
     let send data =
       if messageapi then
@@ -293,6 +352,9 @@ object (self)
       Utils.buffer_drop buffer payload_size) ();
     let rec f = function
       | pos when pos < payload_size ->
+        if should_stop () then raise Done;
+        self#poll ~should_stop socket;
+        if should_stop () then raise Done;
         let ret =
           send (Bytes.sub tmp pos (payload_size-pos))
         in
@@ -325,21 +387,28 @@ object (self)
       Buffer.reset buffer;
       encoder <- None) ()
 
+  method private connect_socket should_stop =
+    let ipaddr =
+      (Unix.gethostbyname hostname).Unix.h_addr_list.(0)
+    in
+    let sockaddr = Unix.ADDR_INET (ipaddr, port) in
+    try
+      self#log#important "Connecting to srt://%s:%d.." hostname port;
+      Srt.connect self#get_socket sockaddr;
+      self#log#important "Output connected!"
+   with
+     | Srt.Error(`Etimeout,_) when not (should_stop ()) ->
+        self#log#important "Timeout while trying to connect to srt://%s:%d.." hostname port;
+        self#connect_socket should_stop
+
   method private seed (should_stop,has_stopped) =
     try
       self#clear_encoder;
       if should_stop () then raise Done; 
-      let socket = self#get_socket in
-      let ipaddr =
-        (Unix.gethostbyname hostname).Unix.h_addr_list.(0)
-      in
-      let sockaddr = Unix.ADDR_INET (ipaddr, port) in
-      self#log#important "Connecting to srt://%s:%d.." hostname port;
-      Srt.connect socket sockaddr;
-      self#log#important "Output connected!";
+      self#connect_socket should_stop;
       let rec f () =
         self#wait_for_data should_stop;
-        self#send_chunk;
+        self#send_chunk should_stop;
         f ()
       in
       f ()
@@ -390,14 +459,21 @@ let () =
   Lang.add_operator "output.srt" ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output
-    ~descr:"Send a SRT stream."
+    ~descr:"Send a SRT stream to a distant host."
     (Output.proto @ [ 
       "host", Lang.string_t, Some (Lang.string "localhost"),
       Some "Address to connect to.";
 
       "port", Lang.int_t, Some (Lang.int 8000),
-      Some "Port to connect to (note: ports in SRT are \
-            not related to TCP ports.)";
+      Some "Port to bind on the local machine. The term `port` as used in SRT \
+            is occasionally identical to the term `UDP port`. However SRT \
+            offers more flexibility than UDP because it manages ports as its \
+            own resources. For example, one port may be shared between various \
+            services.";
+
+      "poll_delay", Lang.float_t, Some (Lang.float 2.),
+      Some "Timeout for socket connection. In some cases, liquidsoap may \
+            have to wait for that amount of time during a shutdown.";
 
       "payload_size", Lang.int_t, Some (Lang.int 1316),
       Some "Payload size." ;
@@ -418,6 +494,9 @@ let () =
          let source = Lang.assoc "" 2 p in
          let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
          let autostart = Lang.to_bool (List.assoc "start" p) in
+         let poll_delay =
+           Lang.to_float (List.assoc "poll_delay" p)
+         in
          let on_start =
            let f = List.assoc "on_start" p in
              fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
@@ -436,4 +515,4 @@ let () =
          in
          ((new output ~kind ~hostname ~port ~payload_size ~autostart
                       ~on_start ~on_stop ~infallible ~messageapi
-                      ~encoder_factory source):>Source.source))
+                      ~poll_delay ~encoder_factory source):>Source.source))
