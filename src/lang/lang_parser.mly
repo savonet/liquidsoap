@@ -334,8 +334,8 @@ ty:
   | LPAR argsty RPAR YIELDS ty{ Lang_types.make (Lang_types.Arrow ($2,$5)) }
 
 ty_tuple:
-  | ty COMMA ty { [$1; $3] }
-  | ty COMMA ty_tuple { $1::$3 }
+  | ty TIMES ty { [$1; $3] }
+  | ty TIMES ty_tuple { $1::$3 }
 
 ty_args:
   |                      { [] }

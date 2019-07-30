@@ -10,13 +10,19 @@ MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/se
 HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
 PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
-doc: md html
+doc: md man html
 
 md: $(MD)
 
 html: $(HTML)
 
 pdf: $(PDF)
+
+man: liquidsoap.1
+
+liquidsoap.1: liquidsoap.1.md
+	@echo "Generating $(@)..."
+	@pandoc -s -t man $< -o $@
 
 html/%.html: content/%.md template.html language.dtd
 	@echo Converting $(<) to $(@)...
@@ -44,8 +50,10 @@ doc-install:
 	if [ -f html/index.html ] ; then \
 	  cp -RfL html/* $(datadir)/doc/liquidsoap/html ; \
         fi
-	$(INSTALL) -d $(mandir)/man1
-	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
+	if [ -f liquidsoap.1 ] ; then \
+	  $(INSTALL) -d $(mandir)/man1 ; \
+	  $(INSTALL_DATA) liquidsoap.1 $(mandir)/man1 ; \
+	fi
 
 clean-local:
 	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
