@@ -94,6 +94,8 @@ object(self)
 
   method private poll ~should_stop socket =
     let poll = self#get_poll in
+    Srt.setsockflag socket Srt.sndsyn false;
+    Srt.setsockflag socket Srt.rcvsyn false;
     Srt.epoll_add_usock poll socket (mode:>Srt.poll_flag);
     let max_read, max_write =
       match mode with
@@ -392,13 +394,18 @@ object (self)
       (Unix.gethostbyname hostname).Unix.h_addr_list.(0)
     in
     let sockaddr = Unix.ADDR_INET (ipaddr, port) in
+    let socket = self#get_socket in
     try
       self#log#important "Connecting to srt://%s:%d.." hostname port;
+      let socket = self#get_socket in
+      Srt.setsockflag socket Srt.sndsyn true;
+      Srt.setsockflag socket Srt.rcvsyn true;
       Srt.connect self#get_socket sockaddr;
       self#log#important "Output connected!"
    with
      | Srt.Error(`Etimeout,_) when not (should_stop ()) ->
         self#log#important "Timeout while trying to connect to srt://%s:%d.." hostname port;
+        self#poll ~should_stop socket ;
         self#connect_socket should_stop
 
   method private seed (should_stop,has_stopped) =
