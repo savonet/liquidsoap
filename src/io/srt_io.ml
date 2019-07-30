@@ -224,7 +224,7 @@ let () =
       Some "Use message api" ;
 
       "", Lang.string_t, None,
-        Some "Mime (Content-Type) used to find a decoder for the iput stream." ]
+        Some "Mime (Content-Type) used to find a decoder for the input stream." ]
       (fun p kind ->
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
          let bind_address =
