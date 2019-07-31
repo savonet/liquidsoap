@@ -186,26 +186,28 @@ object (self)
       if should_stop () then raise Done;
       self#poll ~should_stop s;
       if should_stop () then raise Done;
-      let client, origin =
-        Srt.accept s
-      in 
-      Srt.setsockflag client Srt.sndsyn true;
-      Srt.setsockflag client Srt.rcvsyn true;
-      if should_stop () then raise Done;
-      self#log_origin origin;
-      on_connect ();
-      Generator.set_mode generator `Undefined ;
-      let decoder =
-        self#create_decoder ~should_stop client
-      in
-      while true do
+      let client, origin = Srt.accept s in
+      begin
+       try
+        Srt.setsockflag client Srt.sndsyn true;
+        Srt.setsockflag client Srt.rcvsyn true;
         if should_stop () then raise Done;
-        let buffered = Generator.length abg in
-        if max_ticks <= buffered then
-          Thread.delay (Frame.seconds_of_audio (buffered-3*max_ticks/4));
-        if should_stop () then raise Done;
-        decoder.Decoder.decode generator
-      done
+        self#log_origin origin;
+        on_connect ();
+        Generator.set_mode generator `Undefined ;
+        let decoder =
+          self#create_decoder ~should_stop client
+        in
+        while true do
+          if should_stop () then raise Done;
+          let buffered = Generator.length abg in
+          if max_ticks <= buffered then
+            Thread.delay (Frame.seconds_of_audio (buffered-3*max_ticks/4));
+          if should_stop () then raise Done;
+          decoder.Decoder.decode generator
+        done
+       with exn -> Srt.close client; raise exn
+      end 
     with
       | e ->
           self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
