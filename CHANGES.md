@@ -35,6 +35,7 @@ New:
 - Added `reopen` telnet command in `output.external`.
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
+- Added `video.add_text.native`.
 
 Changed:
 
@@ -86,6 +87,7 @@ Changed:
 - Handle unary minus in the preprocessor instead of the parser in order to avoid
   duplicating the parser. (#860)
 - Add `filter` option to `playlist.once`.
+- Add `buffer_length` telnet command to `input.harbor`.
 
 Fixed:
 
