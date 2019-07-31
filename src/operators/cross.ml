@@ -84,9 +84,7 @@ object (self)
   val mutable pending_after = Generator.create ()
 
   method private prepare_transition_source s =
-    let s =
-      (s:>source)
-    in
+    let s = (s:>source) in
     s#get_ready ~dynamic:true [(self:>source)] ;
     Clock.unify source#clock s#clock ;
     transition_source <- Some s
@@ -385,9 +383,8 @@ object (self)
                db_before db_after
                (Frame.seconds_of_master (Generator.length gen_before))
                (Frame.seconds_of_master (Generator.length gen_after)) ;
-             if Generator.length gen_before >
-                  Frame.master_of_audio minimum_length &&
-                Generator.length gen_before <= Generator.length gen_after then
+             if Frame.master_of_audio minimum_length <
+                  Generator.length gen_after then
                f before after
              else begin
                self#log#important "Not enough data for crossing." ;
@@ -448,7 +445,7 @@ let () =
             there may not be enough data for a decent composition. \
             Set to 0. to avoid having transitions after skips, \
             or more to avoid transitions on short tracks. \
-            With the negative default, transitions always occur." ;
+            With a negative default, transitions always occur." ;
 
       "width", Lang.float_t, Some (Lang.float 1.),
       Some "Width of the power computation window." ;

@@ -389,7 +389,7 @@ end
 # @param fn The applied function.
 # @param s The input source.
 def map_first_track(~id="",fn,s)
-  sequence(id=id,[fn(s),s])
+  fallback(id=id,track_sensitive=true,[fn(once(s)),s])
 end
 
 # Restrict a source to play only when a predicate is true.
