@@ -433,7 +433,8 @@ let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "cross"
     [ "duration", Lang.float_t, Some (Lang.float 5.),
-      Some "Duration in seconds of the crossed end of track." ;
+      Some "Duration (in seconds) of buffered data from each \
+            track that is used to compute the transision between tracks.";
 
       "override_duration", Lang.string_t, Some (Lang.string "liq_cross_duration"),
       Some "Metadata field which, if present and containing a float, \
@@ -447,7 +448,7 @@ let () =
             or more to avoid transitions on short tracks. \
             With a negative default, transitions always occur." ;
 
-      "width", Lang.float_t, Some (Lang.float 1.),
+      "width", Lang.float_t, Some (Lang.float 2.),
       Some "Width of the power computation window." ;
 
       "conservative", Lang.bool_t, Some (Lang.bool true),
