@@ -110,6 +110,7 @@ Fixed:
 - Fixed file descriptor leak in external processes (#865)
 - Fixed encoded output creating empty files from failing sources (#876)
 - Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
+- Fixed audio glitches when seeking within a MP3 file.
 
 1.3.7 (09-04-2019)
 =====
