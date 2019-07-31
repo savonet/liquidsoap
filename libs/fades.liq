@@ -224,8 +224,8 @@ def fade.in(~id="fade.in",~duration=3.,
     end
   end
 
-  s = on_track(start_fade,s)
   s = on_metadata(update_fade,s)
+  s = on_track(start_fade,s)
 
   amplify(id=id,override="",apply,s)
 end
