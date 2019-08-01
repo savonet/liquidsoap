@@ -21,7 +21,8 @@
  *****************************************************************************)
 
 let prebitmap =
-  [|
+  [
+    'A',
     [|
       " * ";
       "* *";
@@ -29,6 +30,7 @@ let prebitmap =
       "* *";
       "* *";
     |];
+    'B',
     [|
       "** ";
       "* *";
@@ -36,6 +38,7 @@ let prebitmap =
       "* *";
       "** ";
     |];
+    'C',
     [|
       " **";
       "*  ";
@@ -43,6 +46,7 @@ let prebitmap =
       "*  ";
       " **";
     |];
+    'D',
     [|
       "** ";
       "* *";
@@ -50,6 +54,7 @@ let prebitmap =
       "* *";
       "** ";
     |];
+    'E',
     [|
       "***";
       "*  ";
@@ -57,6 +62,7 @@ let prebitmap =
       "*  ";
       "***";
     |];
+    'F',
     [|
       "***";
       "*  ";
@@ -64,6 +70,7 @@ let prebitmap =
       "*  ";
       "*  ";
     |];
+    'G',
     [|
       " **";
       "*  ";
@@ -71,6 +78,7 @@ let prebitmap =
       "* *";
       " **";
     |];
+    'H',
     [|
       "* *";
       "* *";
@@ -78,6 +86,7 @@ let prebitmap =
       "* *";
       "* *";
     |];
+    'I',
     [|
       " * ";
       " * ";
@@ -85,6 +94,7 @@ let prebitmap =
       " * ";
       " * ";
     |];
+    'J',
     [|
       "  *";
       "  *";
@@ -92,6 +102,7 @@ let prebitmap =
       "* *";
       " * ";
     |];
+    'K',
     [|
       "* *";
       "** ";
@@ -99,6 +110,7 @@ let prebitmap =
       "** ";
       "* *";
     |];
+    'L',
     [|
       "*  ";
       "*  ";
@@ -106,6 +118,7 @@ let prebitmap =
       "*  ";
       "***";
     |];
+    'M',
     [|
       "* *";
       "***";
@@ -113,6 +126,7 @@ let prebitmap =
       "* *";
       "* *";
     |];
+    'N',
     [|
       "* *";
       "***";
@@ -120,6 +134,7 @@ let prebitmap =
       "***";
       "* *";
     |];
+    'O',
     [|
       " * ";
       "* *";
@@ -127,6 +142,7 @@ let prebitmap =
       "* *";
       " * ";
     |];
+    'P',
     [|
       "** ";
       "* *";
@@ -134,6 +150,7 @@ let prebitmap =
       "*  ";
       "*  ";
     |];
+    'Q',
     [|
       " * ";
       "* *";
@@ -141,6 +158,7 @@ let prebitmap =
       "* *";
       " **";
     |];
+    'R',
     [|
       "** ";
       "* *";
@@ -148,6 +166,7 @@ let prebitmap =
       "* *";
       "* *";
     |];
+    'S',
     [|
       " **";
       "*  ";
@@ -155,6 +174,7 @@ let prebitmap =
       "  *";
       "** ";
     |];
+    'T',
     [|
       "***";
       " * ";
@@ -162,6 +182,7 @@ let prebitmap =
       " * ";
       " * ";
     |];
+    'U',
     [|
       "* *";
       "* *";
@@ -169,6 +190,7 @@ let prebitmap =
       "* *";
       "***";
     |];
+    'V',
     [|
       "* *";
       "* *";
@@ -176,6 +198,7 @@ let prebitmap =
       "* *";
       " * ";
     |];
+    'W',
     [|
       "* *";
       "* *";
@@ -183,6 +206,7 @@ let prebitmap =
       "***";
       "* *";
     |];
+    'X',
     [|
       "* *";
       "* *";
@@ -190,6 +214,7 @@ let prebitmap =
       "* *";
       "* *";
     |];
+    'Y',
     [|
       "* *";
       "* *";
@@ -197,6 +222,7 @@ let prebitmap =
       " * ";
       " * ";
     |];
+    'Z',
     [|
       "***";
       "  *";
@@ -204,6 +230,7 @@ let prebitmap =
       "*  ";
       "***";
     |];
+    '0',
     [|
       " * ";
       "* *";
@@ -211,6 +238,7 @@ let prebitmap =
       "* *";
       " * ";
     |];
+    '1',
     [|
       " * ";
       "** ";
@@ -218,6 +246,7 @@ let prebitmap =
       " * ";
       " * ";
     |];
+    '2',
     [|
       " * ";
       "* *";
@@ -225,6 +254,7 @@ let prebitmap =
       " * ";
       "***";
     |];
+    '3',
     [|
       "** ";
       "  *";
@@ -232,6 +262,7 @@ let prebitmap =
       "  *";
       "** ";
     |];
+    '4',
     [|
       "  *";
       " **";
@@ -239,6 +270,7 @@ let prebitmap =
       "  *";
       "  *";
     |];
+    '5',
     [|
       "***";
       "*  ";
@@ -246,6 +278,7 @@ let prebitmap =
       "  *";
       "** ";
     |];
+    '6',
     [|
       " **";
       "*  ";
@@ -253,6 +286,7 @@ let prebitmap =
       "* *";
       " * ";
     |];
+    '7',
     [|
       "***";
       "  *";
@@ -260,6 +294,7 @@ let prebitmap =
       " * ";
       " * ";
     |];
+    '8',
     [|
       " * ";
       "* *";
@@ -267,6 +302,7 @@ let prebitmap =
       "* *";
       " * ";
     |];
+    '9',
     [|
       " * ";
       "* *";
@@ -274,6 +310,15 @@ let prebitmap =
       "  *";
       " * ";
     |];
+    ' ',
+    [|
+      "   ";
+      "   ";
+      "   ";
+      "   ";
+      "   ";
+    |];
+    '.',
     [|
       "   ";
       "   ";
@@ -281,6 +326,7 @@ let prebitmap =
       "   ";
       " * ";
     |];
+    ',',
     [|
       "   ";
       "   ";
@@ -288,6 +334,7 @@ let prebitmap =
       " * ";
       " * ";
     |];
+    '!',
     [|
       " * ";
       " * ";
@@ -295,6 +342,7 @@ let prebitmap =
       "   ";
       " * ";
     |];
+    '?',
     [|
       " * ";
       "* *";
@@ -302,14 +350,47 @@ let prebitmap =
       " * ";
       " * ";
     |];
-  |]
+    '-',
+    [|
+      "   ";
+      "   ";
+      "***";
+      "   ";
+      "   ";
+    |];
+    '+',
+    [|
+      "   ";
+      " * ";
+      "***";
+      " * ";
+      "   ";
+    |];
+    '=',
+    [|
+      "   ";
+      "***";
+      "   ";
+      "***";
+      "   ";
+    |];
+    ':',
+    [|
+      "   ";
+      " * ";
+      "   ";
+      " * ";
+      "   ";
+    |];
+  ]
 
-let bitmap = ref [||]
+let bitmap = ref []
 
 let init () =
   bitmap :=
-    Array.map
-      (fun a ->
+    List.map
+      (fun (c,a) ->
+        c,
         Array.map
           (fun s ->
             Array.init (String.length s) (fun i -> s.[i] <> ' ')
@@ -318,19 +399,14 @@ let init () =
 
 let char_height = 5
 
-let char_width = 3
-
 let char c =
   let bitmap = !bitmap in
   let c = Char.uppercase_ascii c in
-  if 'A' <= c && c <= 'Z' then bitmap.(int_of_char c - int_of_char 'A')
-  else if '0' <= c && c <= '9' then bitmap.(int_of_char c - int_of_char '0' + 26)
-  else if c = '.' then bitmap.(36)
-  else if c = ',' then bitmap.(37)
-  else if c = '!' then bitmap.(38)
-  else if c = '?' then bitmap.(39)
-  else if c = ' ' then Array.make char_height (Array.make char_width false)
-  else Array.make char_height (Array.make char_width true)
+  try
+    List.assoc c bitmap
+  with
+  | Not_found ->
+     Array.make char_height (Array.make 3 true)
 
 (** Space between chars. *)
 let char_space = 1
