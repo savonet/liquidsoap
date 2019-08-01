@@ -211,6 +211,7 @@ object (self)
     with
       | e ->
           self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
+          self#close_socket;
           (* Feeding has stopped: adding a break here. *)
           Generator.add_break ~sync:`Drop generator ;
           on_disconnect ();
