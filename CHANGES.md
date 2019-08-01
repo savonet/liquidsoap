@@ -97,6 +97,9 @@ Changed:
   duplicating the parser. (#860)
 - Add `filter` option to `playlist.once`.
 - Add `buffer_length` telnet command to `input.harbor`.
+- Bumped default `length` parameter for request-based sources (`playlist`,
+  `request.dynamic`, ..) to `40.` to assure that there always is at least
+  one request ready to play when the current one ends.
 
 Fixed:
 
@@ -116,6 +119,7 @@ Fixed:
 - Fixed file descriptor leak in external processes (#865)
 - Fixed encoded output creating empty files from failing sources (#876)
 - Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
+- Fixed audio glitches when seeking within a MP3 file.
 
 1.3.7 (09-04-2019)
 =====

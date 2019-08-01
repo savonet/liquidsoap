@@ -85,6 +85,9 @@ let init input =
           in
           ignore((Utils.get_some input.Decoder.lseek) seek_pos);
           dec := Mad.openstream input.Decoder.read;
+          (* Decode one frame to set the decoder to a good reading position
+           * on next read. *)
+          ignore(Mad.decode_frame_float !dec);
           (* We have to assume here that new_pos = seek_pos.. *)
           time_offset := seek_time
         with _ -> ()

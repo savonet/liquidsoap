@@ -84,9 +84,7 @@ object (self)
   val mutable pending_after = Generator.create ()
 
   method private prepare_transition_source s =
-    let s =
-      (s:>source)
-    in
+    let s = (s:>source) in
     s#get_ready ~dynamic:true [(self:>source)] ;
     Clock.unify source#clock s#clock ;
     transition_source <- Some s
@@ -385,9 +383,8 @@ object (self)
                db_before db_after
                (Frame.seconds_of_master (Generator.length gen_before))
                (Frame.seconds_of_master (Generator.length gen_after)) ;
-             if Generator.length gen_before >
-                  Frame.master_of_audio minimum_length &&
-                Generator.length gen_before <= Generator.length gen_after then
+             if Frame.master_of_audio minimum_length <
+                  Generator.length gen_after then
                f before after
              else begin
                self#log#important "Not enough data for crossing." ;
@@ -436,7 +433,8 @@ let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "cross"
     [ "duration", Lang.float_t, Some (Lang.float 5.),
-      Some "Duration in seconds of the crossed end of track." ;
+      Some "Duration (in seconds) of buffered data from each \
+            track that is used to compute the transision between tracks.";
 
       "override_duration", Lang.string_t, Some (Lang.string "liq_cross_duration"),
       Some "Metadata field which, if present and containing a float, \
@@ -448,9 +446,9 @@ let () =
             there may not be enough data for a decent composition. \
             Set to 0. to avoid having transitions after skips, \
             or more to avoid transitions on short tracks. \
-            With the negative default, transitions always occur." ;
+            With a negative default, transitions always occur." ;
 
-      "width", Lang.float_t, Some (Lang.float 1.),
+      "width", Lang.float_t, Some (Lang.float 2.),
       Some "Width of the power computation window." ;
 
       "conservative", Lang.bool_t, Some (Lang.bool true),
