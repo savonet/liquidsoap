@@ -283,7 +283,7 @@ let () =
       "messageapi", Lang.bool_t, Some (Lang.bool true),
       Some "Use message api" ;
 
-      "", Lang.string_t, None,
+      "", Lang.string_t, Some (Lang.string "application/ffmpeg"),
         Some "Mime (Content-Type) used to find a decoder for the input stream." ]
       (fun p kind ->
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
@@ -319,6 +319,12 @@ let () =
              (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
          in
          let format = Lang.to_string (List.assoc "" p) in
+         (match
+          Decoder.get_stream_decoder format kind
+         with
+          | None -> raise (Lang_errors.Invalid_value
+                      (List.assoc "" p, "Couldn't find a decoder for this format"))
+          | _ -> ());
          ((new input ~kind ~bind_address ~payload_size
                     ~on_connect ~on_disconnect ~messageapi
                     ~poll_delay ~bufferize ~max format):>Source.source))
