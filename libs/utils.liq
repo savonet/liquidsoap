@@ -389,7 +389,7 @@ end
 # @param fn The applied function.
 # @param s The input source.
 def map_first_track(~id="",fn,s)
-  sequence(id=id,[fn(s),s])
+  fallback(id=id,track_sensitive=true,[fn(once(s)),s])
 end
 
 # Restrict a source to play only when a predicate is true.
@@ -678,5 +678,3 @@ def mkavailable(~id="mkavailable",~track_sensitive=bool_getter(true),~active=boo
 
   switch(id=id,track_sensitive=to_bool_getter(track_sensitive),[(to_bool_getter(available),s)])
 end
-
-# Create a source and 

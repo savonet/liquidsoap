@@ -139,6 +139,8 @@ and 'a link_t =
   | Unknown of 'a list * 'a var list (** the clock variable is unknown but depends on other variables *)
   | Same_as of 'a var (** the clock variable is subtituted by another *)
 
+let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG" <> None
+
 let create_known c =
   Known c
 
@@ -265,7 +267,8 @@ object (self)
     if log != source_log then self#create_log
 
   initializer
-    Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
+    if debug then
+      Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
 
   (** Is the source infallible, i.e. is it always guaranteed that there
     * will be always be a next track immediately available. *)

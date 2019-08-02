@@ -24,6 +24,8 @@
 
 let log = Log.make ["hls"; "output"]
 
+let x_version = 3
+
 let hls_proto kind =
   let segment_name_t = Lang.fun_t [
     false, "position", Lang.int_t;
@@ -384,7 +386,7 @@ class hls_output p =
             let oc = self#open_out fname in
             output_string oc "#EXTM3U\r\n";
             output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n" (int_of_float (ceil segment_duration)));
-            output_string oc "#EXT-X-VERSION:3\r\n";
+            output_string oc (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
             output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" id);
             output_string oc (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n" discontinuity);
             List.iter (fun segment ->
@@ -399,7 +401,8 @@ class hls_output p =
         ) streams;
       let fname = directory^^playlist in
       let oc = self#open_out fname in
-      output_string oc "#EXTM3U\n";
+      output_string oc "#EXTM3U\r\n";
+      output_string oc (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
       List.iter (fun s ->
           let line =
             let bandwidth =
@@ -417,7 +420,7 @@ class hls_output p =
               bandwidth (if bandwidth = "" then "" else ",") codecs
           in
           output_string oc line;
-          output_string oc (s.hls_name^".m3u8\n")
+          output_string oc (s.hls_name^".m3u8\r\n")
         ) streams;
       self#close_out (fname, oc)
 
