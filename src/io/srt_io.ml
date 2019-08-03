@@ -230,6 +230,7 @@ object (self)
       self#handle_client client;
       (-1.)
     with
+      | Srt.Error(`Etimeout, _) -> 0.
       | e ->
           self#log#debug "Failed to connect: %s." (Printexc.to_string e);
           self#close_socket;
