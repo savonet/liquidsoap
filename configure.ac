@@ -7,10 +7,14 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Set git_snapshot to false before releasing
 # Do not use $version below before the next line, since we grep
 # for the literal version there
-AC_INIT([liquidsoap],[1.4.0])
+AC_INIT([liquidsoap],
+        m4_esyscmd([head -n1 VERSION | tr -d '\r\n']),
+        [savonet-users@lists.sourceforge.net],
+        [liquidsoap],
+        [https://github.com/savonet/liquidsoap])
 git_snapshot=true
 version="$PACKAGE_VERSION"
-min_ocaml_version=4.08.0
+min_ocaml_version=m4_esyscmd([tail -n1 VERSION | tr -d '\r\n'])
 git_commit=`git rev-parse --short HEAD || true`
 
 if test $git_snapshot != "false"; then
@@ -26,6 +30,7 @@ else
 fi
 
 AC_SUBST(version)
+AC_SUBST(min_ocaml_version)
 AC_SUBST(libs_dir_version)
 
 AC_PREREQ(2.61)
@@ -910,8 +915,10 @@ echo
 
 AC_CONFIG_FILES([doc/content/install.md])
 AC_CONFIG_FILES([doc/content/build.md])
+AC_CONFIG_FILES([doc/liquidsoap.1.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
+AC_CONFIG_FILES([liquidsoap.opam])
 AC_OUTPUT
 $MAKE finish-configure
 
