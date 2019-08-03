@@ -98,7 +98,7 @@ object(self)
         | None -> raise Done
         | Some {poll} -> poll) ()
 
-  method private poll ~should_stop socket =
+  method private poll ~recursive socket =
     let poll = self#get_poll in
     Srt.setsockflag socket Srt.sndsyn false;
     Srt.setsockflag socket Srt.rcvsyn false;
@@ -110,10 +110,10 @@ object(self)
     in
     let rec f () =
       try
-        if should_stop () then raise Done;
         ignore(Srt.Poll.wait poll ~max_read ~max_write ~timeout);
       with
-        | Srt.Error(`Etimeout,_) when not (should_stop ()) -> f ()
+        | Srt.Error(`Etimeout,_) when recursive () ->
+           f ()
         | exn ->
            Srt.Poll.remove_usock poll socket;
            raise exn
@@ -122,24 +122,36 @@ object(self)
     Srt.Poll.remove_usock poll socket
 end
   
-class input ~kind ~bind_address ~bufferize ~max ~payload_size
+class input ~kind ~bind_address ~max ~payload_size ~clock_safe
             ~poll_delay ~on_connect ~on_disconnect ~messageapi format =
-  let max_ticks = Frame.master_of_seconds (Stdlib.max max bufferize) in
+  let max_ticks = Frame.master_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
-  let abg =
+  let generator =
     Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined
   in
 object (self)
   
   inherit base ~mode:`Read ~payload_size ~messageapi ~poll_delay
   inherit Source.source ~name:"input.srt" kind as super
-  inherit
-    Generated.source abg ~empty_on_abort:false ~bufferize
 
-  val mutable feeding_thread = None
+  val client_m  = Mutex.create ()
+  val mutable client_data = None
+  val mutable connect_task = None
 
-  method stype = Source.Fallible
+  method stype       = Source.Fallible
+  method seek _      = 0
+  method remaining   = -1
+  method abort_track = Generator.add_break generator
+  method is_ready    =
+    Tutils.mutexify client_m (fun () ->
+      client_data <> None) ()
+
+  val mutable clock = None
+  method private get_clock =
+    match clock with
+      | Some c -> c
+      | None -> new Clock.self_sync self#id
 
   method private log_origin s =
     try
@@ -155,7 +167,7 @@ object (self)
     self#log#info "Setting up socket to listen at %s"
       (self#string_of_address bind_address);
 
-  method private create_decoder ~should_stop socket =
+  method private create_decoder socket =
     let create_decoder =
       match
         Decoder.get_stream_decoder format kind
@@ -168,7 +180,6 @@ object (self)
     let read len =
       if Buffer.length buf < len then
        begin
-        if should_stop () then raise Done;
         let input = Srt.recvmsg socket tmp payload_size in
         if input = 0 then raise End_of_file;
         Buffer.add_subbytes buf tmp 0 input
@@ -186,67 +197,98 @@ object (self)
       length = None;
       lseek = None }
 
-  method private feed (should_stop,has_stopped) =
+  method private handle_client socket =
+    Srt.setsockflag socket Srt.sndsyn true;
+    Srt.setsockflag socket Srt.rcvsyn true;
+    let decoder =
+      self#create_decoder socket
+    in
+    Tutils.mutexify client_m (fun () ->
+      Generator.set_mode generator `Undefined;
+      client_data <- Some (socket, decoder)) ();
+    on_connect ()
+
+  method private close_client =
+    on_disconnect ();
+    Tutils.mutexify client_m (fun () ->
+      match client_data with
+        | None -> ()
+        | Some (socket, _) ->
+            Srt.close socket;
+            self#wake_up_task;
+            client_data <- None) ()
+
+  method private connect =
     try
       let s = self#get_socket in
-      if should_stop () then raise Done;
-      self#poll ~should_stop s;
-      if should_stop () then raise Done;
+      self#poll ~recursive:(fun () -> false) s;
       let client, origin = Srt.accept s in
-      begin
-       try
-        Srt.setsockflag client Srt.sndsyn true;
-        Srt.setsockflag client Srt.rcvsyn true;
-        if should_stop () then raise Done;
-        self#log_origin origin;
-        on_connect ();
-        Generator.set_mode generator `Undefined ;
-        let decoder =
-          self#create_decoder ~should_stop client
-        in
-        while true do
-          if should_stop () then raise Done;
-          let buffered = Generator.length abg in
-          if max_ticks <= buffered then
-            Thread.delay (Frame.seconds_of_audio (buffered-3*max_ticks/4));
-          if should_stop () then raise Done;
-          decoder.Decoder.decode generator
-        done
-       with exn -> Srt.close client; raise exn
-      end 
+      self#log_origin origin;
+      self#handle_client client;
+      (-1.)
     with
       | e ->
-          self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
+          self#log#debug "Failed to connect: %s." (Printexc.to_string e);
           self#close_socket;
-          (* Feeding has stopped: adding a break here. *)
-          Generator.add_break ~sync:`Drop generator ;
-          on_disconnect ();
-          if not (should_stop ()) then
-            self#feed (should_stop,has_stopped)
-          else
-            has_stopped ()
-    
+          0.
+
+  method private start_task =
+    match connect_task with
+      | Some _ -> assert false
+      | None ->
+          let t =
+            Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+              (fun () -> self#connect)
+          in
+          Duppy.Async.wake_up t;
+          connect_task <- Some t
+
+  method private wake_up_task =
+    match connect_task with
+      | None -> assert false
+      | Some t -> Duppy.Async.wake_up t
+
+  method private stop_task =
+    match connect_task with
+      | None -> assert false
+      | Some t ->
+          Duppy.Async.stop t;
+          connect_task <- None
+
+  method private feed =
+    Tutils.mutexify client_m (fun () ->
+      let (_, decoder) = Utils.get_some client_data in
+      decoder.Decoder.decode generator) ()
+
+  method private get_frame frame =
+    let pos = Frame.position frame in
+    try
+      while Generator.length generator < Lazy.force Frame.size do
+        self#feed
+      done;
+      Generator.fill generator frame 
+    with exn ->
+      self#log#important "Feeding failed: %s" (Printexc.to_string exn);
+      self#close_client;
+      Frame.add_break frame pos
+
+  method private set_clock =
+    super#set_clock ;
+    if clock_safe then
+      Clock.unify self#clock
+        (Clock.create_known (self#get_clock:>Clock.clock))
+
   method wake_up act =
     super#wake_up act ;
-    begin match feeding_thread with
-      | None -> ()
-      | Some (_,wait) -> wait ()
-    end ;
-    let (kill, wait) =
-      Tutils.stoppable_thread self#feed self#id
-    in
-    let kill () =
-       kill ();
-       self#close_socket
-    in
-    feeding_thread <- Some (kill,wait)
+    if clock_safe then
+      self#get_clock#register_blocking_source ;
+    self#start_task
   
   method sleep =
-    begin match feeding_thread with
-      | None -> ()
-      | Some (kill,_) -> kill ()
-    end ;
-    feeding_thread <- None ;
+    self#stop_task;
+    if clock_safe then
+      self#get_clock#unregister_blocking_source ;
+    super#sleep
 end
   
 let () =
@@ -265,11 +307,11 @@ let () =
             own resources. For example, one port may be shared between various \
             services.";
 
+      "clock_safe", Lang.bool_t, Some (Lang.bool true),
+      Some "Force the use of a decicated clock.";
+
       "poll_delay", Lang.float_t, Some (Lang.float 0.1),
       Some "Timeout for the socket accept polling loop.";
-  
-      "buffer", Lang.float_t, Some (Lang.float 2.),
-      Some "Duration of the pre-buffered data.";
   
       "on_connect",
       Lang.fun_t [false,"",Lang.unit_t] Lang.unit_t,
@@ -305,14 +347,12 @@ let () =
          let bind_address =
            Unix.ADDR_INET (bind_address,port)
          in
-         let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
-         if bufferize >= max then
-           raise (Lang_errors.Invalid_value
-                    (List.assoc "max" p,
-                     "Maximum buffering inferior to pre-buffered data"));
          let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
          let payload_size = Lang.to_int (List.assoc "payload_size" p) in
+         let clock_safe =
+          Lang.to_bool (List.assoc "clock_safe" p)
+         in
          let poll_delay =
            Lang.to_float (List.assoc "poll_delay" p)
          in
@@ -331,9 +371,9 @@ let () =
           | None -> raise (Lang_errors.Invalid_value
                       (List.assoc "" p, "Couldn't find a decoder for this format"))
           | _ -> ());
-         ((new input ~kind ~bind_address ~payload_size
+         ((new input ~kind ~bind_address ~payload_size ~clock_safe
                     ~on_connect ~on_disconnect ~messageapi
-                    ~poll_delay ~bufferize ~max format):>Source.source))
+                    ~poll_delay ~max format):>Source.source))
 
 class output ~kind ~payload_size ~messageapi
   ~on_start ~on_stop ~infallible ~autostart
@@ -369,7 +409,7 @@ object (self)
     let rec f = function
       | pos when pos < payload_size ->
         if should_stop () then raise Done;
-        self#poll ~should_stop socket;
+        self#poll ~recursive:(fun () -> not (should_stop ())) socket;
         if should_stop () then raise Done;
         let ret =
           send (Bytes.sub tmp pos (payload_size-pos))
@@ -419,7 +459,7 @@ object (self)
    with
      | Srt.Error(`Etimeout,_) when not (should_stop ()) ->
         self#log#important "Timeout while trying to connect to srt://%s:%d.." hostname port;
-        self#poll ~should_stop socket ;
+        self#poll ~recursive:(fun () -> not (should_stop ()))  socket ;
         self#connect_socket should_stop
 
   method private seed (should_stop,has_stopped) =
