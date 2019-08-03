@@ -28,13 +28,19 @@ module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
+let log = Log.make ["srt"]
+
+let log_handler {Srt.Log.message} =
+  log#info "%s" message
+
 let () =
   Srt.startup ();
+  Srt.Log.set_handler log_handler;
   ignore (Dtools.Init.at_stop Srt.cleanup)
 
 type handler = {
   socket: Srt.socket;
-  poll: Srt.poll
+  poll: Srt.Poll.t
 }
 
 class virtual base ~payload_size ~mode ~poll_delay ~messageapi =
@@ -64,7 +70,7 @@ object(self)
             Srt.setsockflag socket Srt.transtype `Live;
             Srt.setsockflag socket Srt.messageapi messageapi;
             self#prepare_socket socket;
-            let poll = Srt.epoll_create () in
+            let poll = Srt.Poll.create () in
             begin
              match mode with
                | `Read  ->
@@ -72,7 +78,7 @@ object(self)
                | `Write ->
                    Srt.setsockflag socket Srt.sndsyn false
            end;
-           let f () = Srt.epoll_release poll in 
+           let f () = Srt.Poll.release poll in 
            let h = {socket;poll} in
            Gc.finalise_last f h;
            handler <- Some h;
@@ -96,7 +102,7 @@ object(self)
     let poll = self#get_poll in
     Srt.setsockflag socket Srt.sndsyn false;
     Srt.setsockflag socket Srt.rcvsyn false;
-    Srt.epoll_add_usock poll socket (mode:>Srt.poll_flag);
+    Srt.Poll.add_usock poll socket (mode:>Srt.Poll.flag);
     let max_read, max_write =
       match mode with
         | `Read ->  1, 0
@@ -105,15 +111,15 @@ object(self)
     let rec f () =
       try
         if should_stop () then raise Done;
-        ignore(Srt.epoll_wait poll ~max_read ~max_write ~timeout);
+        ignore(Srt.Poll.wait poll ~max_read ~max_write ~timeout);
       with
         | Srt.Error(`Etimeout,_) when not (should_stop ()) -> f ()
         | exn ->
-           Srt.epoll_remove_usock poll socket;
+           Srt.Poll.remove_usock poll socket;
            raise exn
     in
     f ();
-    Srt.epoll_remove_usock poll socket
+    Srt.Poll.remove_usock poll socket
 end
   
 class input ~kind ~bind_address ~bufferize ~max ~payload_size
