@@ -31,6 +31,9 @@ module Generated = Generated.Make(Generator)
 let log = Log.make ["srt"]
 
 let log_handler {Srt.Log.message} =
+  let message =
+    Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "_") message
+  in
   log#info "%s" message
 
 let () =
