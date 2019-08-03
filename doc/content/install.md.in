@@ -118,10 +118,10 @@ You can now see the list of available packages:
 apt-cache show liquidsoap
 ```
 
-Package versions are of the form: `1:0+<commit>~<distribution>-1` or `1:0+<branch>~<distribution>-1`. For instance,
-to install the latest `master` on `debian/testing`, you can do:
+Package names are of the form: `liquidsoap-<commit>` and `liquidsoap-<branch>`. For instance,
+to install the latest `master` you can do:
 ```
-[sudo] apt-get install liquidsoap=1:0+master~testing-1
+[sudo] apt-get install liquidsoap-master
 ```
 
 
