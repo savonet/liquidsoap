@@ -1,12 +1,5 @@
-dnl BEFORE RELEASING
-dnl Make sure that you edit the version number on the next line
-dnl as well as the "version" variable below AND the "libs_dir_version",
-dnl which is used as the final component of the standard .liq libdir,
-dnl $libdir/liquidsoap/$libs_dir_version
+# Liquidsoap autoconf setup
 
-# Set git_snapshot to false before releasing
-# Do not use $version below before the next line, since we grep
-# for the literal version there
 AC_INIT([liquidsoap],
         m4_esyscmd([head -n1 VERSION | tr -d '\r\n']),
         [savonet-users@lists.sourceforge.net],
