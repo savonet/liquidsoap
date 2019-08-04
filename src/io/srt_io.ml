@@ -28,13 +28,22 @@ module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
+let conf_srt =
+  Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
+
+let conf_log =
+  Dtools.Conf.void ~p:(conf_srt#plug "log") "Log configuration"
+
+let conf_level =
+  Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
+
 let log = Log.make ["srt"]
 
 let log_handler {Srt.Log.message} =
   let message =
     Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "_") message
   in
-  log#info "%s" message
+  log#f conf_level#get "%s" message
 
 let () =
   Srt.startup ();
