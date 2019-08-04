@@ -113,6 +113,7 @@ Fixed:
 - Fixed encoded output creating empty files from failing sources (#876)
 - Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
 - Fixed audio glitches when seeking within a MP3 file.
+- Fixed `insert_metadata` logic when insert new track and metadata (#903)
 
 1.3.7 (09-04-2019)
 =====
