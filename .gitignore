@@ -36,3 +36,4 @@ src/test/is_url
 src/test/timezone
 *.conflicts
 liquidsoap.config
+doc/liquidsoap.1.md

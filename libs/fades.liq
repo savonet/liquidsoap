@@ -224,8 +224,8 @@ def fade.in(~id="fade.in",~duration=3.,
     end
   end
 
-  s = on_track(start_fade,s)
   s = on_metadata(update_fade,s)
+  s = on_track(start_fade,s)
 
   amplify(id=id,override="",apply,s)
 end
@@ -249,7 +249,8 @@ end
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Track Processing
-# @param ~start_next   Crossing duration, if any.
+# @param ~duration     Duration (in seconds) of buffered data from each track \
+#                      that is used to compute the transision between tracks.
 # @param ~override_duration \
 #                      Metadata field which, if present and containing a \
 #                      float, overrides the 'duration' parameter for current \
@@ -258,6 +259,12 @@ end
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
 # @param ~conservative Always prepare for a premature end-of-track.
+# @param ~minimum      Minimum duration (in sec.) for a cross: \
+#                      If the track ends without any warning (e.g. in case of skip) \
+#                      there may not be enough data for a decent composition. \
+#                      Set to 0. to avoid having transitions after skips, \
+#                      or more to avoid transitions on short tracks. \
+#                      With a negative default, transitions always occur.    
 # @param ~default      Smart crossfade: transition used when no rule applies \
 #                      (default: sequence).
 # @param ~smart        Enable smart crossfading
@@ -266,11 +273,11 @@ end
 # @param ~margin       Smart crossfade: margin to detect sources that have too different \
 #                      sound level for crossing.
 # @param s             The input source.
-def crossfade(~start_next=5.,~override_duration="liq_cross_duration",
+def crossfade(~duration=5.,~override_duration="liq_cross_duration",
               ~fade_in=3.,~fade_out=3.,~smart=false,
               ~default=(fun (a,b) -> sequence([a, b])),
               ~high=-15., ~medium=-32., ~margin=4.,
-              ~width=2.,~conservative=true,s)
+              ~minimum=(-1.),~width=2.,~conservative=true,s)
   fade.out = fade.out(type="sin",duration=fade_out)
   fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])
@@ -346,8 +353,8 @@ def crossfade(~start_next=5.,~override_duration="liq_cross_duration",
       simple_transition
     end
 
-  cross(width=width, duration=start_next, conservative=conservative,
-        transition,s)
+  cross(width=width, duration=duration, conservative=conservative,
+        minimum=minimum,transition,s)
 end
 
 # Mixes two streams, with faded transitions between the state when only the

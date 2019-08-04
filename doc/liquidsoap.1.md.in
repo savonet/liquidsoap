@@ -2,11 +2,11 @@
 title: LIQUIDSOAP
 section: 1
 date: Jul 24, 2019
-header: Liquidsoap 1.4.0
-footer: Liquidsoap 1.4.0
+header: Liquidsoap @version@
+footer: Liquidsoap @version@
 ...
 
-<!-- .TH LIQUIDSOAP 1 "Jul 1, 2016" "Liquidsoap 1.4.0" -->
+<!-- .TH LIQUIDSOAP 1 "Jul 1, 2016" "Liquidsoap @version@" -->
 
 # NAME
 

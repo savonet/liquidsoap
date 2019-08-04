@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "liquidsoap"
-version: "1.4.0"
+version: "@PACKAGE_VERSION@"
 maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
@@ -43,7 +43,7 @@ be able to use any HTTPS feature. You might want to install one of ssl or
 osx-secure-transport package." {success & !ssl-enabled & !secure-transport-enabled}
 ]
 depends: [
-  "ocaml" {>= "4.08.0"}
+  "ocaml" {>= "@min_ocaml_version@"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.1"}
   "duppy" {>= "0.8.0"}
