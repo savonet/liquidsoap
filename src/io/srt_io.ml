@@ -41,7 +41,7 @@ let log = Log.make ["srt"]
 
 let log_handler {Srt.Log.message} =
   let message =
-    Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "_") message
+    Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "") message
   in
   log#f conf_level#get "%s" message
 
