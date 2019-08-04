@@ -286,16 +286,12 @@ object (self)
      Poll.add_socket ~mode:`Read self#get_socket on_connect
     end
 
-  method private feed =
-    Tutils.mutexify input_mutex (fun () ->
-      let (_, decoder) = Utils.get_some client_data in
-      decoder.Decoder.decode generator) ()
-
   method private get_frame frame =
     let pos = Frame.position frame in
+    let (_, decoder) = Utils.get_some client_data in
     try
       while Generator.length generator < Lazy.force Frame.size do
-        self#feed
+        decoder.Decoder.decode generator
       done;
       Generator.fill generator frame 
     with exn ->
@@ -456,6 +452,14 @@ object (self)
       if not (self#is `Stopped) then
         self#start_connect_task
 
+  method private send_chunks =
+    let len = Tutils.mutexify output_mutex (fun () ->
+      Buffer.length buffer)
+    in
+    while payload_size <= len () do
+      self#send_chunk
+    done
+
   method private get_encoder =
     Tutils.mutexify output_mutex (fun () ->
       match encoder with
@@ -549,13 +553,9 @@ object (self)
   method private send data =
     if self#is `Connected then
      begin
-      let len =
-        Tutils.mutexify output_mutex (fun data ->
-          Buffer.add_string buffer data;
-          Buffer.length buffer) data;
-      in
-      if len > payload_size then
-        self#send_chunk
+      Tutils.mutexify output_mutex
+        (Buffer.add_string buffer) data;
+      self#send_chunks
      end
 end
 
