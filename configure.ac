@@ -800,6 +800,7 @@ AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
 AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
 AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])
 AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
+AC_CHECK_OCAML_BINDING([lilv],[0.1.0])
 AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
@@ -1003,6 +1004,7 @@ cat <<EOMSG
 
  * Audio manipulation
    - LADSPA            : $w_LADSPA
+   - Lilv              : $w_LILV
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
 
