@@ -322,6 +322,7 @@ object (self)
       self#get_clock#unregister_blocking_source ;
     Tutils.mutexify input_mutex (fun () ->
       should_stop <- true) ();
+    self#close_client;
     super#sleep
 end
   
