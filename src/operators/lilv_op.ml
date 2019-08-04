@@ -305,6 +305,7 @@ let register_plugin plugin =
   let maker = Plugin.author_name plugin in
   let maker = if maker = "" then "" else " by " ^ maker in
   let descr = Plugin.name plugin ^ maker ^ "." in
+  let descr = descr ^ " This is in class " ^ Plugin.Class.label (Plugin.get_class plugin) ^ "." in
   let k =
     if mono then k else
       (* TODO: do we really need a fresh variable here? *)
