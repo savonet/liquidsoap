@@ -22,8 +22,6 @@
 
 (** SRT input *)
 
-exception Done
-  
 module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
@@ -35,7 +33,13 @@ let conf_log =
   Dtools.Conf.void ~p:(conf_srt#plug "log") "Log configuration"
 
 let conf_level =
-  Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
+  Dtools.Conf.int ~p:(conf_log#plug "level") ~d:5 "Level"
+
+let conf_poll =
+  Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
+
+let conf_timeout =
+  Dtools.Conf.int ~p:(conf_poll#plug "timeout") ~d:100"Timeout for polling loop, in ms"
 
 let log = Log.make ["srt"]
 
@@ -45,22 +49,101 @@ let log_handler {Srt.Log.message} =
   in
   log#f conf_level#get "%s" message
 
+(** Common polling task for all srt input/output.
+  * sockets entering a poll are always set to non-blocking
+  * and set back to blocking when exiting. They are also always
+  * removed from the poll when done. *)
+module Poll = struct
+  exception Empty
+
+  type t = {
+    p: Srt.Poll.t;
+    m: Mutex.t;
+    mutable max_read: int;
+    mutable max_write: int;
+    handlers: (Srt.socket, Srt.socket -> unit) Hashtbl.t
+  }
+  
+
+  let t =
+    let p = Srt.Poll.create () in
+    ignore (Dtools.Init.at_stop (fun () ->
+      Srt.Poll.release p));
+    let m = Mutex.create () in
+    let handlers = Hashtbl.create 0 in
+    {p;m;max_read=0;max_write=0;handlers}
+
+  let process () =
+    try
+      let max_read,max_write =
+        Tutils.mutexify t.m (fun () ->
+          let {max_read;max_write} = t in
+          max_read,max_write) ()
+      in
+      if max_read = 0 && max_write = 0 then
+        raise Empty;
+      let r,w =
+        Srt.Poll.wait t.p
+          ~max_read ~max_write
+          ~timeout:conf_timeout#get
+      in
+      let handlers = Tutils.mutexify t.m (fun () ->
+        t.max_read <- t.max_read - (List.length r);
+        t.max_write <- t.max_write - (List.length w);
+        t.handlers) ()
+      in
+      let apply fn s =
+        try fn s with
+         | exn ->
+            log#important "Error while execiting asynchronous callback: %s"
+              (Printexc.to_string exn)
+     in
+      List.iter (fun socket ->
+        Srt.setsockflag socket Srt.sndsyn true;
+        Srt.setsockflag socket Srt.rcvsyn true;
+        Srt.Poll.remove_usock t.p socket;
+        let fn = Hashtbl.find handlers socket in
+        apply fn socket) (r@w);
+      0.
+    with
+      | Empty -> (-1.)
+      | Srt.Error(`Etimeout,_) -> 0.
+
+  let task =
+    Duppy.Async.add
+      ~priority:Tutils.Blocking
+       Tutils.scheduler
+       process
+
+  let add_socket ~mode socket fn =
+    Srt.setsockflag socket Srt.sndsyn false;
+    Srt.setsockflag socket Srt.rcvsyn false;
+    Tutils.mutexify t.m (fun () ->
+      Hashtbl.add t.handlers socket fn;
+      Srt.Poll.add_usock t.p socket (mode:>Srt.Poll.flag);
+      match mode with
+        | `Read -> t.max_read <- t.max_read + 1
+        | `Write -> t.max_write <- t.max_write + 1) ();
+    Duppy.Async.wake_up task
+end
+
 let () =
   Srt.startup ();
   Srt.Log.set_handler log_handler;
   ignore (Dtools.Init.at_stop Srt.cleanup)
 
-type handler = {
-  socket: Srt.socket;
-  poll: Srt.Poll.t
-}
-
-class virtual base ~payload_size ~mode ~poll_delay ~messageapi =
-  (* In ms *)
-  let timeout = int_of_float (poll_delay *. 1000.) in
+class virtual base ~payload_size ~messageapi =
 object(self)
   val mutex = Mutex.create ()
-  val mutable handler = None
+  val mutable socket = None
+
+  method virtual id : string
+
+  val mutable clock = None
+  method private get_clock =
+    match clock with
+      | Some c -> c
+      | None -> new Clock.self_sync self#id
 
   method private string_of_address = function
     | Unix.ADDR_UNIX _ -> assert false
@@ -72,70 +155,30 @@ object(self)
 
   method private get_socket =
     Tutils.mutexify mutex (fun () ->
-      match handler with
-        | Some {socket} -> socket
+      match socket with
+        | Some socket -> socket
         | None ->
-            let socket =
+            let s =
                Srt.socket Unix.PF_INET Unix.SOCK_DGRAM 0
             in
-            Srt.setsockflag socket Srt.payloadsize payload_size;
-            Srt.setsockflag socket Srt.transtype `Live;
-            Srt.setsockflag socket Srt.messageapi messageapi;
-            self#prepare_socket socket;
-            let poll = Srt.Poll.create () in
-            begin
-             match mode with
-               | `Read  ->
-                   Srt.setsockflag socket Srt.rcvsyn false
-               | `Write ->
-                   Srt.setsockflag socket Srt.sndsyn false
-           end;
-           let f () = Srt.Poll.release poll in 
-           let h = {socket;poll} in
-           Gc.finalise_last f h;
-           handler <- Some h;
-           socket) ()
+            Srt.setsockflag s Srt.payloadsize payload_size;
+            Srt.setsockflag s Srt.transtype `Live;
+            Srt.setsockflag s Srt.messageapi messageapi;
+            self#prepare_socket s;
+            socket <- Some s;
+            s) ()
 
   method private close_socket =
     Tutils.mutexify mutex (fun () ->
-      match handler with
+      match socket with
         | None -> ()
-        | Some {socket} ->
-            Srt.close socket;
-            handler <- None) ()
-
-  method private get_poll =
-    Tutils.mutexify mutex (fun () ->
-      match handler with
-        | None -> raise Done
-        | Some {poll} -> poll) ()
-
-  method private poll ~recursive socket =
-    let poll = self#get_poll in
-    Srt.setsockflag socket Srt.sndsyn false;
-    Srt.setsockflag socket Srt.rcvsyn false;
-    Srt.Poll.add_usock poll socket (mode:>Srt.Poll.flag);
-    let max_read, max_write =
-      match mode with
-        | `Read ->  1, 0
-        | `Write -> 0, 1
-    in
-    let rec f () =
-      try
-        ignore(Srt.Poll.wait poll ~max_read ~max_write ~timeout);
-      with
-        | Srt.Error(`Etimeout,_) when recursive () ->
-           f ()
-        | exn ->
-           Srt.Poll.remove_usock poll socket;
-           raise exn
-    in
-    f ();
-    Srt.Poll.remove_usock poll socket
+        | Some s ->
+            Srt.close s;
+            socket <- None) ()
 end
   
 class input ~kind ~bind_address ~max ~payload_size ~clock_safe
-            ~poll_delay ~on_connect ~on_disconnect ~messageapi format =
+            ~on_connect ~on_disconnect ~messageapi format =
   let max_ticks = Frame.master_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -144,26 +187,20 @@ class input ~kind ~bind_address ~max ~payload_size ~clock_safe
   in
 object (self)
   
-  inherit base ~mode:`Read ~payload_size ~messageapi ~poll_delay
+  inherit base ~payload_size ~messageapi
   inherit Source.source ~name:"input.srt" kind as super
 
-  val client_m  = Mutex.create ()
+  val input_mutex  = Mutex.create ()
   val mutable client_data = None
-  val mutable connect_task = None
+  val mutable should_stop = false
 
   method stype       = Source.Fallible
   method seek _      = 0
   method remaining   = -1
   method abort_track = Generator.add_break generator
   method is_ready    =
-    Tutils.mutexify client_m (fun () ->
+    Tutils.mutexify input_mutex (fun () ->
       client_data <> None) ()
-
-  val mutable clock = None
-  method private get_clock =
-    match clock with
-      | Some c -> c
-      | None -> new Clock.self_sync self#id
 
   method private log_origin s =
     try
@@ -172,6 +209,9 @@ object (self)
     with exn ->
       self#log#important "Error while fetching connection source: %s"
         (Printexc.to_string exn)
+
+  method private should_stop =
+    Tutils.mutexify input_mutex (fun () -> should_stop) ()
 
   method private prepare_socket s =
     Srt.bind s bind_address;
@@ -215,61 +255,39 @@ object (self)
     let decoder =
       self#create_decoder socket
     in
-    Tutils.mutexify client_m (fun () ->
+    Tutils.mutexify input_mutex (fun () ->
       Generator.set_mode generator `Undefined;
       client_data <- Some (socket, decoder)) ();
     on_connect ()
 
   method private close_client =
     on_disconnect ();
-    Tutils.mutexify client_m (fun () ->
+    Tutils.mutexify input_mutex (fun () ->
       match client_data with
         | None -> ()
         | Some (socket, _) ->
             Srt.close socket;
-            self#wake_up_task;
-            client_data <- None) ()
+            client_data <- None) ();
+    self#connect
 
   method private connect =
+   let on_connect s =
     try
-      let s = self#get_socket in
-      self#poll ~recursive:(fun () -> false) s;
-      let client, origin = Srt.accept s in
-      self#log_origin origin;
-      self#handle_client client;
-      (-1.)
-    with
-      | Srt.Error(`Etimeout, _) -> 0.
-      | e ->
-          self#log#debug "Failed to connect: %s." (Printexc.to_string e);
-          self#close_socket;
-          0.
-
-  method private start_task =
-    match connect_task with
-      | Some _ -> assert false
-      | None ->
-          let t =
-            Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
-              (fun () -> self#connect)
-          in
-          Duppy.Async.wake_up t;
-          connect_task <- Some t
-
-  method private wake_up_task =
-    match connect_task with
-      | None -> assert false
-      | Some t -> Duppy.Async.wake_up t
-
-  method private stop_task =
-    match connect_task with
-      | None -> assert false
-      | Some t ->
-          Duppy.Async.stop t;
-          connect_task <- None
+     let client, origin = Srt.accept s in
+     self#log_origin origin;
+     self#handle_client client;
+    with exn ->
+      self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
+      self#connect
+   in
+   if not self#should_stop then
+    begin
+     self#close_socket;
+     Poll.add_socket ~mode:`Read self#get_socket on_connect
+    end
 
   method private feed =
-    Tutils.mutexify client_m (fun () ->
+    Tutils.mutexify input_mutex (fun () ->
       let (_, decoder) = Utils.get_some client_data in
       decoder.Decoder.decode generator) ()
 
@@ -295,12 +313,15 @@ object (self)
     super#wake_up act ;
     if clock_safe then
       self#get_clock#register_blocking_source ;
-    self#start_task
+    Tutils.mutexify input_mutex (fun () ->
+      should_stop <- false) ();
+    self#connect
   
   method sleep =
-    self#stop_task;
     if clock_safe then
       self#get_clock#unregister_blocking_source ;
+    Tutils.mutexify input_mutex (fun () ->
+      should_stop <- true) ();
     super#sleep
 end
   
@@ -323,9 +344,6 @@ let () =
       "clock_safe", Lang.bool_t, Some (Lang.bool true),
       Some "Force the use of a decicated clock.";
 
-      "poll_delay", Lang.float_t, Some (Lang.float 0.1),
-      Some "Timeout for the socket accept polling loop.";
-  
       "on_connect",
       Lang.fun_t [false,"",Lang.unit_t] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
@@ -366,9 +384,6 @@ let () =
          let clock_safe =
           Lang.to_bool (List.assoc "clock_safe" p)
          in
-         let poll_delay =
-           Lang.to_float (List.assoc "poll_delay" p)
-         in
          let on_connect () =
            ignore
              (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) [])
@@ -386,62 +401,62 @@ let () =
           | _ -> ());
          ((new input ~kind ~bind_address ~payload_size ~clock_safe
                     ~on_connect ~on_disconnect ~messageapi
-                    ~poll_delay ~max format):>Source.source))
+                    ~max format):>Source.source))
 
 class output ~kind ~payload_size ~messageapi
   ~on_start ~on_stop ~infallible ~autostart
-  ~poll_delay ~port ~hostname ~encoder_factory source =
+  ~clock_safe ~port ~hostname ~encoder_factory source =
 object (self)
 
-  inherit base ~mode:`Write ~payload_size ~messageapi ~poll_delay
+  inherit base ~payload_size ~messageapi
   inherit
     Output.encoded ~output_kind:"srt" ~content_kind:kind
       ~on_start ~on_stop ~infallible ~autostart
-      ~name:"output.srt" source
+      ~name:"output.srt" source as super
 
-  val data_condition = Condition.create ()
-  val data_mutex = Mutex.create ()
+  val output_mutex = Mutex.create ()
   val buffer = Buffer.create payload_size
   val tmp = Bytes.create payload_size
   val mutable encoder = None
-  val mutable seeding_thread = None 
+  val mutable connect_task = None
+  val mutable state = `Idle
 
-  method private prepare_socket _ = ()
+  method private is s =
+    Tutils.mutexify output_mutex (fun () ->
+      state = s) ()
 
-  method private send_chunk should_stop =
+  method private prepare_socket socket =
+    Srt.setsockflag socket Srt.sndsyn true;
+    Srt.setsockflag socket Srt.rcvsyn true
+
+  method private send_chunk =
     let socket = self#get_socket in
-    let send data =
-      if messageapi then
-        Srt.sendmsg socket data (-1) false
-      else
-        Srt.send socket data
-    in
-    Tutils.mutexify data_mutex (fun () ->
-      Buffer.blit buffer 0 tmp 0 payload_size;
-      Utils.buffer_drop buffer payload_size) ();
-    let rec f = function
-      | pos when pos < payload_size ->
-        if should_stop () then raise Done;
-        self#poll ~recursive:(fun () -> not (should_stop ())) socket;
-        if should_stop () then raise Done;
-        let ret =
-          send (Bytes.sub tmp pos (payload_size-pos))
-        in
-        f (pos+ret)
-      | _ -> ()
-    in
-    f 0
-
-  method private wait_for_data =
-    Tutils.mutexify data_mutex (fun should_stop ->
-      if should_stop () then raise Done;
-      while Buffer.length buffer < payload_size do
-        if should_stop () then raise Done;
-        Condition.wait data_condition data_mutex
-      done)
+    try
+      let send data =
+        if messageapi then
+          Srt.sendmsg socket data (-1) false
+        else
+          Srt.send socket data
+      in
+      Tutils.mutexify output_mutex (fun () ->
+        Buffer.blit buffer 0 tmp 0 payload_size;
+        Utils.buffer_drop buffer payload_size) ();
+      let rec f = function
+        | pos when pos < payload_size ->
+          let ret =
+            send (Bytes.sub tmp pos (payload_size-pos))
+          in
+          f (pos+ret)
+        | _ -> ()
+      in
+      f 0
+    with exn ->
+      self#log#important "Error while send client data: %s" (Printexc.to_string exn);
+      if not (self#is `Stopped) then
+        self#start_connect_task
 
   method private get_encoder =
-    Tutils.mutexify data_mutex (fun () ->
+    Tutils.mutexify output_mutex (fun () ->
       match encoder with
         | Some enc -> enc
         | None ->
@@ -452,80 +467,95 @@ object (self)
             enc) ()
 
   method private clear_encoder =
-    Tutils.mutexify data_mutex (fun () ->
+    Tutils.mutexify output_mutex (fun () ->
       Buffer.reset buffer;
       encoder <- None) ()
 
-  method private connect_socket should_stop =
-    let ipaddr =
-      (Unix.gethostbyname hostname).Unix.h_addr_list.(0)
-    in
-    let sockaddr = Unix.ADDR_INET (ipaddr, port) in
-    let socket = self#get_socket in
-    try
-      self#log#important "Connecting to srt://%s:%d.." hostname port;
-      let socket = self#get_socket in
-      Srt.setsockflag socket Srt.sndsyn true;
-      Srt.setsockflag socket Srt.rcvsyn true;
-      Srt.connect self#get_socket sockaddr;
-      self#log#important "Output connected!"
+  method private connect_fn () =
+   self#clear_encoder;
+   self#close_socket;
+   let socket = self#get_socket in
+   Tutils.mutexify output_mutex (fun () ->
+     state <- `Connecting) ();
+   try
+     let ipaddr =
+       (Unix.gethostbyname hostname).Unix.h_addr_list.(0)
+     in
+     let sockaddr = Unix.ADDR_INET (ipaddr, port) in
+     self#log#important "Connecting to srt://%s:%d.." hostname port;
+     Srt.connect socket sockaddr;
+     Tutils.mutexify output_mutex (fun () ->
+       state <- `Connected) ();
+     self#log#important "Output connected!";
+     (-1.)
    with
-     | Srt.Error(`Etimeout,_) when not (should_stop ()) ->
-        self#log#important "Timeout while trying to connect to srt://%s:%d.." hostname port;
-        self#poll ~recursive:(fun () -> not (should_stop ()))  socket ;
-        self#connect_socket should_stop
+     | Srt.Error(_,_) as exn ->
+        self#log#important "Connect failed: %s" (Printexc.to_string exn);
+        if not (self#is `Stopped) then 0. else (-1.)
 
-  method private seed (should_stop,has_stopped) =
-    try
-      self#clear_encoder;
-      if should_stop () then raise Done; 
-      self#connect_socket should_stop;
-      let rec f () =
-        self#wait_for_data should_stop;
-        self#send_chunk should_stop;
-        f ()
-      in
-      f ()
-    with exn ->
-      self#log#important "Error while sending data: %s" (Printexc.to_string exn);
-      self#close_socket;
-      if should_stop () then
-        has_stopped ()
-      else
-        self#seed (should_stop,has_stopped)
+  method private start_connect_task =
+    match connect_task with
+      | Some t ->
+          Duppy.Async.wake_up t
+      | None  ->
+          let t =
+            Duppy.Async.add
+              ~priority:Tutils.Blocking
+               Tutils.scheduler
+               self#connect_fn
+         in
+         connect_task <- Some t;
+         Duppy.Async.wake_up t
+
+  method private stop_connect_task =
+    match connect_task with
+      | None -> ()
+      | Some t ->
+          Duppy.Async.stop t;
+          connect_task <- None
+
+  method private set_clock =
+    super#set_clock ;
+    if clock_safe then
+      Clock.unify self#clock
+        (Clock.create_known (self#get_clock:>Clock.clock))
 
   method private output_start =
-    begin match seeding_thread with
-      | None -> ()
-      | Some (_,wait) -> wait ()
-    end;
-    let (kill, wait) =
-      Tutils.stoppable_thread self#seed self#id
-    in
-    let kill () =
-      kill ();
-      Condition.signal data_condition
-    in
-    seeding_thread <-
-      Some (kill, wait)
+    if clock_safe then
+      self#get_clock#register_blocking_source ;
+    Tutils.mutexify output_mutex (fun () ->
+      state <- `Started) ();
+    self#start_connect_task
 
   method private output_reset = self#output_start ; self#output_stop
 
   method private output_stop =
-    match seeding_thread with
-      | None -> ()
-      | Some (kill,_) -> kill ()
+    if clock_safe then
+      self#get_clock#unregister_blocking_source ;
+    Tutils.mutexify output_mutex (fun () ->
+      state <- `Stopped) ();
+    self#stop_connect_task
 
   method private encode frame ofs len =
-    self#get_encoder.Encoder.encode frame ofs len
+    if self#is `Connected then
+      self#get_encoder.Encoder.encode frame ofs len
+    else ""
 
   method private insert_metadata m =
-    self#get_encoder.Encoder.insert_metadata m
+    if self#is `Connected then
+      self#get_encoder.Encoder.insert_metadata m
 
-  method private send =
-    Tutils.mutexify data_mutex (fun data ->
-      Buffer.add_string buffer data;
-      Condition.signal data_condition)
+  method private send data =
+    if self#is `Connected then
+     begin
+      let len =
+        Tutils.mutexify output_mutex (fun data ->
+          Buffer.add_string buffer data;
+          Buffer.length buffer) data;
+      in
+      if len > payload_size then
+        self#send_chunk
+     end
 end
 
 let () =
@@ -545,9 +575,8 @@ let () =
             own resources. For example, one port may be shared between various \
             services.";
 
-      "poll_delay", Lang.float_t, Some (Lang.float 2.),
-      Some "Timeout for socket connection. In some cases, liquidsoap may \
-            have to wait for that amount of time during a shutdown.";
+      "clock_safe", Lang.bool_t, Some (Lang.bool true),
+      Some "Force the use of a decicated clock.";
 
       "payload_size", Lang.int_t, Some (Lang.int 1316),
       Some "Payload size." ;
@@ -568,9 +597,7 @@ let () =
          let source = Lang.assoc "" 2 p in
          let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
          let autostart = Lang.to_bool (List.assoc "start" p) in
-         let poll_delay =
-           Lang.to_float (List.assoc "poll_delay" p)
-         in
+         let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
          let on_start =
            let f = List.assoc "on_start" p in
              fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
@@ -588,5 +615,5 @@ let () =
                            "Cannot get a stream encoder for that format"))
          in
          ((new output ~kind ~hostname ~port ~payload_size ~autostart
-                      ~on_start ~on_stop ~infallible ~messageapi
-                      ~poll_delay ~encoder_factory source):>Source.source))
+                      ~on_start ~on_stop ~infallible ~messageapi ~clock_safe
+                      ~encoder_factory source):>Source.source))
