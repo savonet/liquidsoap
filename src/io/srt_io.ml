@@ -69,8 +69,6 @@ module Poll = struct
 
   let t =
     let p = Srt.Poll.create () in
-    ignore (Dtools.Init.at_stop (fun () ->
-      Srt.Poll.release p));
     let m = Mutex.create () in
     let handlers = Hashtbl.create 0 in
     {p;m;max_read=0;max_write=0;handlers}
