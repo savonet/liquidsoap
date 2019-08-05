@@ -130,7 +130,9 @@ end
 let () =
   Srt.startup ();
   Srt.Log.set_handler log_handler;
-  ignore (Dtools.Init.at_stop Srt.cleanup)
+  ignore (Dtools.Init.at_stop Srt.cleanup);
+  ignore (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom] (fun () ->
+    Srt.Poll.release Poll.t.Poll.p))
 
 class virtual base ~payload_size ~messageapi =
 object(self)
