@@ -453,6 +453,8 @@ object (self)
       f 0
     with exn ->
       self#log#important "Error while send client data: %s" (Printexc.to_string exn);
+      self#clear_encoder;
+      self#close_socket;
       if not (self#is `Stopped) then
         self#start_connect_task
 
@@ -481,8 +483,6 @@ object (self)
       encoder <- None) ()
 
   method private connect_fn () =
-   self#clear_encoder;
-   self#close_socket;
    let socket = self#get_socket in
    Tutils.mutexify output_mutex (fun () ->
      state <- `Connecting) ();
@@ -500,6 +500,8 @@ object (self)
    with
      | Srt.Error(_,_) as exn ->
         self#log#important "Connect failed: %s" (Printexc.to_string exn);
+        self#clear_encoder;
+        self#close_socket;
         if not (self#is `Stopped) then 0. else (-1.)
 
   method private start_connect_task =
