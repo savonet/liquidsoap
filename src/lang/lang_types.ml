@@ -592,11 +592,11 @@ let print_type_error error_header (flipped,ta,tb,a,b) =
       | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")"
   in
   let ta,tb,a,b = if flipped then tb,ta,b,a else ta,tb,a,b in
-  Format.printf  "this value has type@;<1 2>%a%s@ "
+  Format.printf  "this value has type@.@[<2>  %a@]%s@ "
     print_repr a
     (inferred_pos ta) ;
   Format.printf
-    "but it should be a %stype of%s@;<1 2>%a%s@]@."
+    "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
     (if flipped then "super" else "sub")
     (match tb.pos with
      | None -> ""

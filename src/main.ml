@@ -612,7 +612,7 @@ struct
     let cleanup_threads () =
       log#important "Shutdown started!" ;
       Clock.stop () ;
-      log#important "Waiting for threads to terminate..." ;
+      log#important "Waiting for main threads to terminate..." ;
       Tutils.join_all ();
       log#important "Threads terminated."
     in
