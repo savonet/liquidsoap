@@ -22,6 +22,8 @@
 
 (** SRT input *)
 
+exception Done
+
 module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
@@ -143,7 +145,10 @@ object(self)
   method private get_clock =
     match clock with
       | Some c -> c
-      | None -> new Clock.self_sync self#id
+      | None ->
+         let c = new Clock.self_sync self#id in
+         clock <- Some c;
+         c
 
   method private string_of_address = function
     | Unix.ADDR_UNIX _ -> assert false
@@ -230,6 +235,7 @@ object (self)
     let buf = Buffer.create payload_size in
     let tmp = Bytes.create payload_size in
     let read len =
+      if self#should_stop then raise Done;
       if Buffer.length buf < len then
        begin
         let input = Srt.recvmsg socket tmp payload_size in
