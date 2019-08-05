@@ -99,23 +99,19 @@ let log = Log.make ["threads"]
 let lock = Mutex.create ()
 let uncaught = ref None
 module Set = Set.Make (struct
-                         type t = (string*Thread.t)
+                         type t = (string*Condition.t)
                          let compare = compare
                        end)
 let all = ref (Set.empty)
+let queues = ref (Set.empty)
 
-(** Check that thread [s] is still running. *)
-let running s id = Set.mem (s,id) !all
-
-let join_all () =
+let join_all ~set () =
   let rec f () =
     try
-      let id = mutexify lock (fun () ->
-        let name, id = Set.choose !all in
-        log#info "Shuting down thread %s" name;
-        id) ()
-      in
-      Thread.join id;
+      mutexify lock (fun () ->
+        let name, c = Set.choose !set in
+        log#info "Waiting for thread %s to shutdown" name;
+        Condition.wait c lock) ();
       f ()
     with Not_found -> ()
   in
@@ -125,7 +121,9 @@ let no_problem = Condition.create ()
 
 exception Exit
 
-let create ~wait f x s =
+let create ~queue f x s =
+  let c = Condition.create () in
+  let set = if queue then queues else all in
   mutexify lock (
     fun () ->
       let id =
@@ -133,17 +131,13 @@ let create ~wait f x s =
           (fun x ->
              try
                f x ;
-               if wait then begin
-                 Mutex.lock lock ;
-                 all := Set.remove (s,(Thread.self ())) !all ;
+               mutexify lock (fun () ->
+                 set := Set.remove (s,c) !set ;
                  log#info
                    "Thread %S terminated (%d remaining)."
-                   s (Set.cardinal !all) ;
-                 Mutex.unlock lock
-               end else
-                 log#info "Thread %S terminated." s
+                   s (Set.cardinal !set);
+                 Condition.signal c) ();
              with e ->
-               Mutex.lock lock ;
                let backtrace = Printexc.get_backtrace () in
                begin match e with
                  | Exit ->
@@ -159,19 +153,17 @@ let create ~wait f x s =
                  let l = Pcre.split ~pat:"\n" backtrace in
                  List.iter (log#info "%s") l 
                 end ;
-               if wait then all := Set.remove (s,(Thread.self ())) !all ;
-               uncaught := Some e ;
-               Condition.signal no_problem ;
-               Mutex.unlock lock ;
+               mutexify lock (fun () ->
+                 set := Set.remove (s,c) !set ;
+                 uncaught := Some e ;
+                 Condition.signal no_problem ;
+                 Condition.signal c) ();
                if e <> Exit then raise e)
           x
       in
-        if wait then begin
-          all := Set.add (s,id) !all ;
-          log#info "Created thread %S (%d total)." s (Set.cardinal !all)
-        end else
-          log#info "Created thread %S." s ;
-        id
+      set := Set.add (s,c) !set ;
+      log#info "Created thread %S (%d total)." s (Set.cardinal !set);
+      id
   ) ()
 
 type priority =
@@ -188,15 +180,13 @@ let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () ->
   !started)
 
-let scheduler_queues = Queue.create ()
-
 let scheduler_shutdown_atom =
   Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
     log#important "Shutting down scheduler...";
     Duppy.stop scheduler;
     log#important "Scheduler shut down.";
-    log#important "Shutting down queues...";
-    Queue.iter Thread.join scheduler_queues;
+    log#important "Waiting for queue threads to terminate...";
+    join_all ~set:queues ();
     log#important "Queues shut down")
 
 let scheduler_log n =
@@ -221,9 +211,10 @@ let new_queue ?priorities ~name () =
                 Please report at: savonet-users@lists.sf.net" ;
        exit 1
    in
-   Queue.push (create ~wait:false queue () name) scheduler_queues
+   ignore(create ~queue:true queue () name)
 
-let create f x name = create ~wait:true f x name
+let create f x name = create ~queue:false f x name
+let join_all () = join_all ~set:all ()
 
 let () =
   (* A dtool atom to start
