@@ -203,7 +203,7 @@ object (self)
   method abort_track = Generator.add_break generator
   method is_ready    =
     Tutils.mutexify input_mutex (fun () ->
-      client_data <> None) ()
+      not (should_stop || client_data = None)) ()
 
   method private log_origin s =
     try
@@ -254,6 +254,7 @@ object (self)
       lseek = None }
 
   method private handle_client socket =
+    if self#should_stop then raise Done;
     Srt.setsockflag socket Srt.sndsyn true;
     Srt.setsockflag socket Srt.rcvsyn true;
     let decoder =
