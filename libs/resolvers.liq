@@ -1,5 +1,5 @@
 # @flag hidden
-def exec_replaygain(~extract_replaygain="#{configure.libdir}/extract-replaygain",
+def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
                        ~delay,file)
   log = log.info(label="extract.replaygain")
   let (stdout, stderr, status) = run_process("#{extract_replaygain} #{quote(file)}")
@@ -22,7 +22,7 @@ end
 # @param ~extract_replaygain The extraction program
 def enable_replaygain_metadata(
        ~delay=(-1.),
-       ~extract_replaygain="#{configure.libdir}/extract-replaygain")
+       ~extract_replaygain="#{configure.bindir}/extract-replaygain")
   def replaygain_metadata(file)
     ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
     if ret != "" then
