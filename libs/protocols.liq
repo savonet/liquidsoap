@@ -334,38 +334,121 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     end
   end
 
-  r = request.create.raw(arg)
-  delay = maxtime - gettimeofday()
-  if request.resolve(timeout=delay,r) then
-    res = request.filename(r)
-
-    annotate = if metadata then
-      parse_metadata(res)
-    else
-      ""
-    end
-   
-    # Now parse the audio
-    wav = file.temp("liq-process", ".wav")
-
-    replaygain_filter =
-      if replaygain then
-        # The extraction program
-        extract_replaygain =
-          get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
-        delay = maxtime - gettimeofday()
-        ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
-        if ret != "" then
-          "-af \"volume=#{ret}\""
-        else
-          ""
-        end
+  def replaygain_filter(file) =
+    if replaygain then
+      # The extraction program
+      extract_replaygain =
+        get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+      delay = maxtime - gettimeofday()
+      ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
+      if ret != "" then
+        "-af \"volume=#{ret}\""
       else
         ""
       end
-    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{replaygain_filter} #{quote(wav)}"
+    else
+      ""
+    end
+  end
 
-    uri = process_uri(extname="wav",uri=res,cmd)
+  def cue_points(m) =
+    cue_in = float_of_string(default=0., list.assoc(default="0.","liq_cue_in",m))
+    cue_out = float_of_string(default=0., list.assoc(default="","liq_cue_out",m))
+
+    args =
+      if cue_in > 0. then
+        "-ss #{cue_in}"
+      else
+        ""
+      end
+
+    if cue_out > cue_in then
+      "#{args} -t #{cue_out-cue_in}"
+    else
+      args
+    end
+  end
+
+  def fades(r) =
+    m = request.metadata(r)
+
+    fade_type = list.assoc(default="","liq_fade_type",m)
+    fade_in = list.assoc(default="","liq_fade_in",m)
+    cue_in = list.assoc(default="","liq_cue_in",m)
+    fade_out = list.assoc(default="","liq_fade_out",m)
+    cue_out = list.assoc(default="","liq_cue_out",m)
+
+    curve =
+      if fade_type == "lin" then
+        ":curve=tri"
+      elsif fade_type == "sin" then
+        ":curve=qsin"
+      elsif fade_type == "log" then
+        ":curve=log"
+      elsif fade_type == "exp" then
+        ":curve=exp"
+      else
+        ""
+      end
+      
+
+    args =
+      if fade_in != "" then
+        fade_in = float_of_string(default=0.,fade_in)
+        start_time =
+          if cue_in != "" then
+            float_of_string(default=0.,cue_in)
+          else
+            0.
+        end
+        ["afade=in:st=#{start_time}:d=#{fade_in}#{curve}"]
+      else
+        []
+      end
+
+    args =
+      if fade_out != "" then
+        fade_out = float_of_string(default=0.,fade_out)
+        end_time =
+          if cue_out != "" then
+            float_of_string(default=0.,cue_out)
+          else
+            request.duration(request.filename(r))
+          end
+        list.append(args,["afade=out:st=#{end_time-fade_out}:d=#{fade_out}#{curve}"])
+      else
+        args
+      end
+
+    if list.length(args) > 0 then
+      args = string.concat(separator=",",args)
+      "-af #{args}"
+    else
+      ""
+    end
+  end
+
+  r = request.create.raw(arg)
+  delay = maxtime - gettimeofday()
+  if request.resolve(timeout=delay,r) then
+    filename = request.filename(r)
+
+    annotate = if metadata then
+      parse_metadata(filename)
+    else
+      ""
+    end
+
+    # Now parse the audio
+    wav = file.temp("liq-process", ".wav")
+
+    cue_points = cue_points(request.metadata(r))
+    fades = fades(r)
+    replaygain_filter = replaygain_filter(filename)
+
+    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{cue_points} #{fades} #{replaygain_filter} #{quote(wav)}"
+
+    uri = process_uri(extname="wav",uri=filename,cmd)
 
     wav_r = request.create.raw(uri)
     delay = maxtime - gettimeofday()
