@@ -1,7 +1,7 @@
 register(name="Protocol Settings","protocol",())
 
 register(name="Replay_gain protocol settings","protocol.replay_gain",())
-register(name="Replay_gain path","protocol.replay_gain.path","#{configure.libdir}/extract-replaygain")
+register(name="Replay_gain path","protocol.replay_gain.path","#{configure.bindir}/extract-replaygain")
 
 # Register the replaygain protocol.
 # @flag hidden
@@ -9,7 +9,7 @@ def replaygain_protocol(~rlog,~maxtime,arg)
  delay = maxtime - gettimeofday()
  # The extraction program
  extract_replaygain =
-   get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+   get(default="#{configure.bindir}/extract-replaygain","protocol.replay_gain.path")
  ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
  if ret != "" then
   ["annotate:replay_gain=\"#{ret}\":#{arg}"]

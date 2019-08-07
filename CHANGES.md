@@ -36,6 +36,7 @@ New:
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
 - Added `video.add_text.native`.
+- Added `configure.bindir`
 
 Changed:
 
@@ -116,6 +117,7 @@ Fixed:
 - Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
 - Fixed audio glitches when seeking within a MP3 file.
 - Fixed `insert_metadata` logic when insert new track and metadata (#903)
+- Fixed `replay-gain` script default location.
 
 1.3.7 (09-04-2019)
 =====
