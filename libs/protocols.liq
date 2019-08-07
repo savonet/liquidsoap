@@ -311,6 +311,19 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     log(level=level,s)
   end
 
+  def annotate(m) =
+    def f(x) =
+      let (key,value) = x
+      "#{key}=#{quote(value)}"
+    end
+    m = string.concat(separator=",",list.map(f,m))
+    if string.length(m) > 0 then
+      "annotate:#{m}:"
+    else
+      ""
+    end
+  end
+
   def parse_metadata(file) =
     cmd = "#{ffmpeg} -i #{quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
     delay = maxtime - gettimeofday()
@@ -321,17 +334,12 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
       if list.length(m) >= 2 then
         key = list.hd(default="",m)
         value = string.concat(separator="=",list.tl(m))
-        list.add("#{key}=#{quote(value)}",cur)
+        list.add((key,value),cur)
       else
         cur
       end
     end
-    m = string.concat(separator=",",list.fold(f,[],lines))
-    if string.length(m) > 0 then
-      "annotate:#{m}:"
-    else
-      ""
-    end
+    list.fold(f,[],lines)
   end
 
   def replaygain_filter(file) =
@@ -432,12 +440,15 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
   delay = maxtime - gettimeofday()
   if request.resolve(timeout=delay,r) then
     filename = request.filename(r)
+    m = request.metadata(r)
 
-    annotate = if metadata then
-      parse_metadata(filename)
+    m = if metadata then
+      list.append(m,parse_metadata(filename))
     else
-      ""
+      m
     end
+
+    annotate = annotate(m)
 
     # Now parse the audio
     wav = file.temp("liq-process", ".wav")
