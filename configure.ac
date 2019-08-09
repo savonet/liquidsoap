@@ -806,7 +806,11 @@ with_srt_stubs_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs"
 AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[srt.types],[],[],[srt_stubs])
 
-AC_CHECK_OCAML_BINDING([srt],[0.1.0],[srt.types srt.stubs])
+with_srt_stubs_locked_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs/locked"
+AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[],[],[],[srt_stubs_locked])
+
+AC_CHECK_OCAML_BINDING([srt],[0.1.0],[srt.types srt.stubs srt.stubs.locked])
 
 AC_CHECK_OCAML_BINDING([lo],[0.1.2])
 AC_CHECK_OCAML_BINDING([gd])
