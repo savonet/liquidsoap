@@ -183,7 +183,7 @@ object(self)
 end
   
 class input ~kind ~bind_address ~max ~payload_size ~clock_safe
-            ~on_connect ~on_disconnect ~messageapi format =
+            ~debug ~on_connect ~on_disconnect ~messageapi format =
   let max_ticks = Frame.master_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -198,6 +198,7 @@ object (self)
   val input_mutex  = Mutex.create ()
   val mutable client_data = None
   val mutable should_stop = false
+  val mutable debug_idx = 0
 
   method stype       = Source.Fallible
   method seek _      = 0
@@ -224,6 +225,14 @@ object (self)
     self#log#info "Setting up socket to listen at %s"
       (self#string_of_address bind_address);
 
+  method private debug_dump buf len =
+    let fd =
+      open_out_bin (Printf.sprintf "dump-%d.raw" debug_idx)
+    in
+    debug_idx <- debug_idx + 1;
+    output fd buf 0 len;
+    close_out fd
+
   method private create_decoder socket =
     let create_decoder =
       match
@@ -239,6 +248,7 @@ object (self)
       if Buffer.length buf < len then
        begin
         let input = Srt.recvmsg socket tmp payload_size in
+        if debug then self#debug_dump tmp input;
         if input = 0 then raise End_of_file;
         Buffer.add_subbytes buf tmp 0 input
        end;
@@ -351,6 +361,10 @@ let () =
       "clock_safe", Lang.bool_t, Some (Lang.bool true),
       Some "Force the use of a decicated clock.";
 
+      (* Temporary workaround *)
+      "debug", Lang.bool_t, Some (Lang.bool false),
+      Some "Debug";
+
       "on_connect",
       Lang.fun_t [false,"",Lang.unit_t] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
@@ -386,6 +400,7 @@ let () =
            Unix.ADDR_INET (bind_address,port)
          in
          let max = Lang.to_float (List.assoc "max" p) in
+         let debug = Lang.to_bool (List.assoc "debug" p) in
          let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
          let payload_size = Lang.to_int (List.assoc "payload_size" p) in
          let clock_safe =
@@ -407,7 +422,7 @@ let () =
                       (List.assoc "" p, "Couldn't find a decoder for this format"))
           | _ -> ());
          ((new input ~kind ~bind_address ~payload_size ~clock_safe
-                    ~on_connect ~on_disconnect ~messageapi
+                    ~on_connect ~on_disconnect ~messageapi ~debug
                     ~max format):>Source.source))
 
 class output ~kind ~payload_size ~messageapi
