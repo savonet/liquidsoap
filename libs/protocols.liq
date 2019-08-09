@@ -409,7 +409,11 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
           else
             0.
         end
-        ["afade=in:st=#{start_time}:d=#{fade_in}#{curve}"]
+        if fade_in > 0. then
+          ["afade=in:st=#{start_time}:d=#{fade_in}#{curve}"]
+        else
+          []
+        end
       else
         []
       end
@@ -423,7 +427,11 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
           else
             request.duration(request.filename(r))
           end
-        list.append(args,["afade=out:st=#{end_time-fade_out}:d=#{fade_out}#{curve}"])
+        if fade_out > 0. then
+          list.append(args,["afade=out:st=#{end_time-fade_out}:d=#{fade_out}#{curve}"])
+        else
+          args
+        end
       else
         args
       end
