@@ -301,10 +301,13 @@ object (self)
     let pos = Frame.position frame in
     let (_, decoder) = Utils.get_some client_data in
     try
-      while Generator.length generator < Lazy.force Frame.size do
-        decoder.Decoder.decode generator
-      done;
-      Generator.fill generator frame 
+     while Generator.length generator < Lazy.force Frame.size do
+      (* Temporary workaround *)
+      try
+       decoder.Decoder.decode generator
+      with FFmpeg.Avutil.Failure s when s = "Failed to decode audio frame : Invalid data found when processing input" -> ()
+     done;
+     Generator.fill generator frame 
     with exn ->
       self#log#important "Feeding failed: %s" (Printexc.to_string exn);
       self#close_client;
