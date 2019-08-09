@@ -84,7 +84,7 @@ module Data = struct
     done
 end
 
-(* A plugin is created for each channel. *)
+(** A mono LV2 plugin: a plugin is created for each channel. *)
 class lilv_mono ~kind (source:source) plugin input output params =
 object
   inherit base ~kind source
@@ -162,6 +162,7 @@ object
       done
 end
 
+(** An LV2 plugin without audio input. *)
 class lilv_nosource ~kind plugin outputs params =
 object
   inherit base_nosource ~kind
@@ -194,6 +195,37 @@ object
       done;
       AFrame.add_break buf position
 end
+
+(** An LV2 plugin without audio output (e.g. to observe the stream). The input
+   stream is returned. *)
+class lilv_noout ~kind plugin inputs params =
+object
+  inherit base_nosource ~kind
+
+  val inst = Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
+
+  initializer
+    Plugin.Instance.activate inst
+
+  method private get_frame buf =
+    if must_fail then
+      (
+        AFrame.add_break buf (AFrame.position buf);
+        must_fail <- false
+      )
+    else
+      let offset = AFrame.position buf in
+      let b = AFrame.content buf offset in
+      let chans = Array.length b in
+      let position = AFrame.size () in
+      let len = position - offset in
+      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst p (Data.constant len (v ()))) params;
+      for c = 0 to chans - 1 do
+        Plugin.Instance.connect_port_float inst inputs.(c) (Data.of_array b.(c) offset len)
+      done;
+      Plugin.Instance.run inst len
+end
+
 
 (* List the indexes of control ports. *)
 let get_control_ports p =
@@ -303,9 +335,12 @@ let register_plugin plugin =
     )
   in
   let maker = Plugin.author_name plugin in
+  let maker_homepage = Plugin.author_homepage plugin in
+  let maker = if maker_homepage = "" then maker else Printf.sprintf "[%s](%s)" maker maker_homepage in
   let maker = if maker = "" then "" else " by " ^ maker in
   let descr = Plugin.name plugin ^ maker ^ "." in
-  let descr = descr ^ " This is in class " ^ Plugin.Class.label (Plugin.get_class plugin) ^ "." in
+  let descr = descr ^ " This is in class " ^ Plugin.Class.label (Plugin.plugin_class plugin) ^ "." in
+  let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
   let k =
     if mono then k else
       (* TODO: do we really need a fresh variable here? *)
@@ -329,6 +364,8 @@ let register_plugin plugin =
       let params = params p in
       if ni = 0 then
         new lilv_nosource ~kind plugin outputs params
+      else if no = 0 then
+        new lilv_noout ~kind plugin inputs params
       else if mono then
         new lilv_mono ~kind (Utils.get_some source) plugin inputs.(0) outputs.(0) params
       else
