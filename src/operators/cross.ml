@@ -237,11 +237,11 @@ object (self)
             self#cleanup_transition_source ;
             if source#is_ready then
              begin
+              self#get_frame frame;
               Frame.set_breaks frame
                 (match Frame.breaks frame with
-                   | _::l -> l
+                   | b::_::l -> b::l
                    | _ -> assert false) ;
-              self#get_frame frame
              end
            end
 
