@@ -235,6 +235,10 @@ object (self)
            begin
             status <- `Idle ;
             self#cleanup_transition_source ;
+            (* If underlying source if ready, try to continue filling up the frame
+             * using it. Each call to [get_frame] must add exactly one break so
+             * call it again and then remove the intermediate break that was just
+             * just added. *)
             if source#is_ready then
              begin
               self#get_frame frame;
