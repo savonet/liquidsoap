@@ -578,8 +578,7 @@ struct
     Lang.add_operator ("input."^protocol)
       ~kind:(Lang.Unconstrained (Lang.univ_t 1))
       ~category:Lang.Input
-      ~descr:("Forwards the given "^protocol^" stream. The relay can be \
-               paused/resumed using the start/stop telnet commands.")
+      ~descr:("Create a source that fetches a "^protocol^" stream.")
       [ "autostart", Lang.bool_t, Some (Lang.bool true),
         Some "Initially start relaying or not." ;
   
