@@ -96,22 +96,24 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
       path
     end
 
+  responseHeaders = headers
+
   def handler(~method,~protocol,~data,~headers,uri)
     ret = string.extract(pattern="^#{path}([^?]*)",uri)
 
     if list.length(ret) == 0 then
-      http_response(protocol=protocol,code=404,headers=headers,data="Not Found!")
+      http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
     else
       let (_,match) = list.hd(default=("1","foo"),ret)
       file = path.concat(directory, match)
       if file.exists(file) then
         if method == "OPTIONS" then
-          http_response(protocol=protocol,code=200,headers=headers)
+          http_response(protocol=protocol,code=200,headers=responseHeaders)
         else
-          http_response_stream(protocol=protocol,code=200,headers=headers,data_len=file.size(file),data=file.read(file))
+          http_response_stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(file),data=file.read(file))
         end
       else
-        http_response(protocol=protocol,code=404,headers=headers,data="Not Found!")
+        http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
       end
     end
   end
