@@ -530,7 +530,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.2.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.3.0])
 
 #
 # Jack
@@ -976,7 +976,7 @@ cat <<EOMSG
 
  * Supported input formats
    - AAC               : $w_FAAD
-   - Avcodec (ffmpeg)  : $w_FFMPEG
+   - Ffmpeg            : $w_FFMPEG
    - Flac (native)     : $w_FLAC
    - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM

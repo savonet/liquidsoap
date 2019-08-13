@@ -35,7 +35,9 @@ cp -f debian/control.in debian/control
 
 sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
 
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:0-${TRAVIS_BUILD_NUMBER}~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
+LIQ_VERSION=`head -n1 VERSION`
+
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${TRAVIS_BUILD_NUMBER}~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 
@@ -51,7 +53,7 @@ cp -f debian/control.in debian/control
 
 sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
 
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:0-${TRAVIS_BUILD_NUMBER}~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
+dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${TRAVIS_BUILD_NUMBER}~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
 
 fakeroot debian/rules binary
 

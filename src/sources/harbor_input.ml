@@ -477,7 +477,8 @@ struct
   include Harbor
   let init () = ()
   let source_name = "input.harbor"
-  let source_description = "Retrieves the given http stream from the harbor."
+  let source_description = "Create a source that receives a http/icecast stream \
+    and forwards it as a stream."
 end
 
 module Unix = Make(Unix_input)

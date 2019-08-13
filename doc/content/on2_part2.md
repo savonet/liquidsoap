@@ -416,7 +416,7 @@ def add_replaygain(m) =
   # Get the type
   type = m["type"]
   # The replaygain script is located there
-  script = "#{configure.libdir}/extract-replaygain"
+  script = "#{configure.bindir}/extract-replaygain"
   # The file name is contained in this value
   filename = m["filename"]
 

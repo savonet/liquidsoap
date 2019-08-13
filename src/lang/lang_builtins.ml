@@ -57,6 +57,7 @@ let () =
          (Lang.String str)
          Lang.string_t)
     [ ("libdir", "library directory", Configure.libs_dir) ;
+      ("bindir", "Internal script directory", Configure.bin_dir) ;
       ("rundir", "PID file directory", Configure.rundir) ;
       ("logdir", "logging directory", Configure.logdir) ;
       ("default_font", "default font file", Configure.default_font) ]
