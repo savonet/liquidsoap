@@ -37,6 +37,7 @@ New:
 - Added support for bash completion.
 - Added `video.add_text.native`.
 - Added `configure.bindir`
+- Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
 
 Changed:
 
