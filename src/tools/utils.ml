@@ -304,7 +304,7 @@ let utf8_next s i =
   else if n <= 0xf7 then i + 4
   else if n <= 0xfb then i + 5
   else if n <= 0xfd then i + 6
-  else failwith "utf_8.next"
+  else failwith "Utils.utf_8.next"
 (* End of Extlib code *)
 
 let escape_utf8_char =
@@ -448,7 +448,7 @@ let dir_exists d = Sys.file_exists d && is_dir d
 let rec mkdir ~perm dir =
   if Sys.file_exists dir then
     if is_dir dir then () else
-      raise (Unix.Unix_error (Unix.ENOTDIR,"mkdir",dir))
+      raise (Unix.Unix_error (Unix.ENOTDIR,"Utils.mkdir",dir))
   else
     let up = Filename.dirname dir in
       if up = "." then () else mkdir ~perm up ;
