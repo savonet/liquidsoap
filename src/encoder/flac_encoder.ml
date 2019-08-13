@@ -42,7 +42,7 @@ let encoder flac meta =
        total_samples = None;
     }
   in
-  let buf = Buffer.create 1024 in
+  let buf = Buffer.create Utils.pagesize in
   let write = fun chunk ->
     Buffer.add_bytes buf chunk
   in

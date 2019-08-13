@@ -6,6 +6,12 @@
 #include <stddef.h>
 #include <time.h>
 
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 /* Some libraries mess with locale. In OCaml, locale should always
  * be "C", otherwise float_of_string and other functions do not behave
  * as expected. This issues arises in particular when using telnet 
@@ -29,4 +35,14 @@ CAMLprim value liquidsoap_set_locale(value unit)
 CAMLprim value liquidsoap_get_timezone() {
   tzset();
   return Val_long(timezone);
+}
+
+CAMLprim value liquidsoao_get_pagesize() {
+#ifdef WIN32
+  SYSTEM_INFO systemInfo;
+  GetSystemInfo(&systemInfo);
+  return Val_int(systemInfo.dwPageSize);
+#else
+  return Val_int(getpagesize());
+#endif
 }

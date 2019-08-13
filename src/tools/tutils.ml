@@ -267,7 +267,7 @@ let start_forwarding () =
          events   = [`Read fd] ;
          handler  = f }
     in
-    let len = 1024 in
+    let len = Utils.pagesize in
     let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in

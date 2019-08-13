@@ -121,7 +121,7 @@ let encoder ext =
        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
        GU.flush ~log gst.bin;
-       let buf = Buffer.create 1024 in
+       let buf = Buffer.create Utils.pagesize in
        begin
         try
          while true do

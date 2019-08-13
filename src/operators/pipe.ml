@@ -93,7 +93,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         `Reschedule Tutils.Non_blocking
      end
     else
-      let data = Process_handler.read 1024 pull in
+      let data = Process_handler.read Utils.pagesize pull in
       let data = !converter (Bytes.unsafe_to_string data) in
       let len = Audio.length data in
       let buffered = Generator.length abg in
@@ -132,7 +132,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         `Continue
   in
   let on_stderr stderr =
-    (!log_error) (Bytes.unsafe_to_string (Process_handler.read 1024 stderr));
+    (!log_error) (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize stderr));
     `Continue
   in
   let on_stop = Tutils.mutexify mutex (fun e ->
@@ -220,7 +220,7 @@ object(self)
     try
       let ({sbuf;next;ofs;len} as chunk) = Queue.peek to_write in
       (* Select documentation: large write may still block.. *)
-      let wlen = min 1024 len in
+      let wlen = min Utils.pagesize len in
       let ret = pusher sbuf ofs wlen in
       if ret = len then begin
         let action =

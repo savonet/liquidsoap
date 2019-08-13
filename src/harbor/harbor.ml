@@ -604,7 +604,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                     simple_reply (websocket_error 1011 "Authentication failed.")
                 in
                 Duppy.Monad.bind __pa_duppy_0 (fun () ->
-                    let binary_data = Buffer.create 1024 in
+                    let binary_data = Buffer.create Utils.pagesize in
                     let read_socket socket =
                       match Websocket.read socket with
                       | `Binary buf -> Buffer.add_string binary_data buf

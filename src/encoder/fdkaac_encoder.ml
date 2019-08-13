@@ -108,7 +108,7 @@ struct
     in
     let src_freq = float (Frame.audio_of_seconds 1.) in
     let dst_freq = float samplerate in
-    let n = 1024 in
+    let n = Utils.pagesize in
     let buf = Buffer.create n in
     let encode frame start len =
       let start = Frame.audio_of_master start in

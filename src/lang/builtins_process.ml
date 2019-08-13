@@ -113,7 +113,7 @@ let () =
          Sandbox.cmd ~rw:sandbox_rw ~ro:sandbox_ro
            ~network:sandbox_network (Lang.to_string (List.assoc "" p))
        in
-       let buflen = 1024 in
+       let buflen = Utils.pagesize in
        let out_buf = Buffer.create buflen in
        let err_buf = Buffer.create buflen in
        let on_done (timed_out,status) =
@@ -140,9 +140,9 @@ let () =
          let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
          close_out out_ch;
          let pull buf ch =
-           let tmp = Bytes.create 1024 in
+           let tmp = Bytes.create Utils.pagesize in
            let rec aux () =
-             let n = input ch tmp 0 1024 in
+             let n = input ch tmp 0 Utils.pagesize in
                if n = 0 then () else
                 begin
                  Buffer.add_subbytes buf tmp 0 n;

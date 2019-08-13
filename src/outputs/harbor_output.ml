@@ -118,7 +118,7 @@ module Make (T : T) = struct
         , Some "Initial burst of data sent to the client." )
       ; ( "chunk"
         , Lang.int_t
-        , Some (Lang.int 1024)
+        , Some (Lang.int Utils.pagesize)
         , Some "Send data to clients using chunks of at least this length." )
       ; ( "on_connect"
         , Lang.fun_t

@@ -35,7 +35,7 @@ exception End_of_stream
 (** Buffered input device where
   * the buffer initially contains [Bytes.sub buf offset len]. *)
 let buffered_input input buf offset len =
-  let buffer = Buffer.create 1024 in
+  let buffer = Buffer.create Utils.pagesize in
   let pos = ref len in
   Buffer.add_subbytes buffer buf offset len;
   let drop len = 
@@ -89,7 +89,7 @@ let create_decoder input =
   let resampler = Rutils.create_audio () in
   let dec = Faad.create () in
   (* 1024 bytes seems usually enough to initiate the decoder.. *)
-  let initbuflen = 1024 in
+  let initbuflen = Utils.pagesize in
   let initbuf = Bytes.create initbuflen in
   let len = input.Decoder.read initbuf 0 initbuflen in
   let offset, sample_freq, chans =
@@ -167,7 +167,7 @@ let get_type filename =
   Tutils.finalize ~k:(fun () -> Unix.close fd)
     (fun () ->
       let dec = Faad.create () in
-      let aacbuflen = 1024 in
+      let aacbuflen = Utils.pagesize in
       let aacbuf = Bytes.create aacbuflen in
       let _,rate,channels =
         let n = Unix.read fd aacbuf 0 aacbuflen in
