@@ -28,7 +28,7 @@ let log = Log.make ["decoder";"ffmpeg"]
 let mime_types =
   Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "ffmpeg")
     "Mime-types used for decoding with ffmpeg"
-    ~d:[]
+    ~d:["application/ffmpeg"]
 
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
@@ -208,3 +208,93 @@ let check filename =
 
 let () =
   Request.dresolvers#register "FFMPEG" duration
+
+module Make (Generator:Generator.S_Asio) =
+struct
+let create_decoder input =
+  let read buf ofs len =
+    let ret, len = input.Decoder.read len in
+    Bytes.blit_string ret 0 buf ofs len;
+    len
+  in
+  let seek =
+    match input.Decoder.lseek with
+      | None -> None
+      | Some fn ->
+        Some (fun len _ -> fn len)
+  in
+  let container =
+    FFmpeg.Av.open_input_stream {FFmpeg.Av.read;seek}
+  in
+  (* Only audio for now *)
+  let (_, stream, codec) =
+    FFmpeg.Av.find_best_audio_stream container
+  in
+  let sample_freq =
+    FFmpeg.Avcodec.Audio.get_sample_rate codec
+  in
+  let in_sample_format =
+    FFmpeg.Avcodec.Audio.get_sample_format codec
+  in
+  let channel_layout =
+    FFmpeg.Avcodec.Audio.get_channel_layout codec
+  in
+  let target_sample_rate =
+    Lazy.force Frame.audio_rate
+  in
+  let converter =
+    Converter.create channel_layout ~in_sample_format sample_freq
+                     channel_layout target_sample_rate
+  in
+  let seek ticks =
+    let position = Frame.seconds_of_master ticks in
+    let position = Int64.of_float
+      (position *. 1000.)
+    in
+    try
+      FFmpeg.Av.seek stream `Millisecond position [||];
+      ticks
+    with Failure _ -> 0
+  in
+  let decode gen =
+    match FFmpeg.Av.read_frame stream with
+      | `Frame frame ->
+          let content =
+            Converter.convert converter frame
+          in
+          Generator.set_mode gen `Audio ;
+          Generator.put_audio gen content 0 (Array.length content.(0))
+      | `End_of_file ->
+          Generator.add_break gen;
+          raise End_of_file
+  in
+  { Decoder.
+     seek = seek;
+     decode = decode }
+end
+
+module D_stream = Make(Generator.From_audio_video_plus)
+
+let () =
+  Decoder.stream_decoders#register
+    "FFMPEG"
+    ~sdoc:"Use ffmpeg/libav to decode any stream with an appropriate MIME type."
+     (fun mime kind ->
+        let (<:) a b = Frame.mul_sub_mul a b in
+          if List.mem mime mime_types#get &&
+             (* Check that it is okay to have zero video and midi,
+              * and at least one audio channel. *)
+             Frame.Zero <: kind.Frame.video &&
+             Frame.Zero <: kind.Frame.midi &&
+             kind.Frame.audio <> Frame.Zero
+          then
+            (* In fact we can't be sure that we'll satisfy the content
+             * kind, because the stream might be mono or stereo.
+             * For now, we let this problem result in an error at
+             * decoding-time. Failing early would only be an advantage
+             * if there was possibly another plugin for decoding
+             * correctly the stream (e.g. by performing conversions). *)
+            Some D_stream.create_decoder
+          else
+            None)
+
