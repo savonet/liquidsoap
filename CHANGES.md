@@ -95,6 +95,8 @@ Changed:
 - Bumped default `length` parameter for request-based sources (`playlist`,
   `request.dynamic`, ..) to `40.` to assure that there always is at least
   one request ready to play when the current one ends.
+- `list.assoc` and `list.remove_assoc` require an ordered type as first
+  component.
 
 Fixed:
 
