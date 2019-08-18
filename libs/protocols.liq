@@ -290,21 +290,21 @@ add_protocol("tmp",tmp_protocol,
              doc="Mark the given uri as temporary. Useful when chaining protocols",
              temporary=true,syntax="tmp:uri")
 
-register(name="ffmpeg2wav protocol settings","protocol.ffmpeg2wav",())
-register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
-register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
-register(name="Extract metadata","protocol.ffmpeg2wav.metadata",true)
-register(name="Adjust replaygain","protocol.ffmpeg2wav.replaygain",false)
+register(name="ffmpeg protocol settings","protocol.ffmpeg",())
+register(name="Path to ffmpeg","protocol.ffmpeg.path","ffmpeg")
+register(name="Number of channels","protocol.ffmpeg.channels",2)
+register(name="Extract metadata","protocol.ffmpeg.metadata",true)
+register(name="Adjust replaygain","protocol.ffmpeg.replaygain",false)
 
-# Register ffmpeg2wav
+# Register ffmpeg
 # @flag hidden
-def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
-  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg2wav.path")
-  channels = get(default=2,"protocol.ffmpeg2wav.channels")
-  metadata = get(default=true,"protocol.ffmpeg2wav.metadata")
-  replaygain = get(default=false,"protocol.ffmpeg2wav.replaygain")
+def ffmpeg_protocol(~rlog,~maxtime,arg) =
+  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg.path")
+  channels = get(default=2,"protocol.ffmpeg.channels")
+  metadata = get(default=true,"protocol.ffmpeg.metadata")
+  replaygain = get(default=false,"protocol.ffmpeg.replaygain")
 
-  log = log(label="protocol.ffmpeg2wav")
+  log = log(label="protocol.ffmpeg")
 
   def log(~level,s) =
     rlog(s)
@@ -484,9 +484,9 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     []
   end
 end
-add_protocol("ffmpeg2wav",ffmpeg2wav_protocol,
+add_protocol("ffmpeg",ffmpeg_protocol,
              doc="Decode any file to wave using ffmpeg",
-             syntax="ffmpeg2wav:uri")
+             syntax="ffmpeg:uri")
 
 register(name="Text2wave protocol settings","protocol.text2wave",())
 register(name="Text2wave path","protocol.text2wave.path","text2wave")
