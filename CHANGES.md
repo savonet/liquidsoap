@@ -38,6 +38,7 @@ New:
 - Added `video.add_text.native`.
 - Added `configure.bindir`
 - Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
+- Added `for` and `while` loop functions.
 
 Changed:
 
