@@ -749,7 +749,7 @@ let assoc_value k l =
   with Found_assoc v -> v
 
 let () =
-  let t1 = Lang.univ_t 1 in
+  let t1 = Lang.univ_t ~constraints:[Lang_types.Ord] 1 in
   let t2 = Lang.univ_t 2 in
   let lt =
     Lang.list_t (Lang.product_t t1 t2)
@@ -771,7 +771,7 @@ let () =
        with Not_found -> default)
 
 let () =
-  let t1 = Lang.univ_t 1 in
+  let t1 = Lang.univ_t ~constraints:[Lang_types.Ord] 1 in
   let t2 = Lang.univ_t 2 in
   let lt =
     Lang.list_t (Lang.product_t t1 t2)
