@@ -457,6 +457,7 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     end
 
     annotate = annotate(m)
+    request.destroy(r)
 
     # Now parse the audio
     wav = file.temp("liq-process", ".wav")
@@ -472,12 +473,10 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     wav_r = request.create.raw(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,wav_r) then
-      request.destroy(r)
       request.destroy(wav_r)
       ["#{annotate}tmp:#{wav}"]
     else
       log(level=3,"Failed to resolve #{uri}")
-      request.destroy(r)
       []
     end
   else
