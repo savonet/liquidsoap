@@ -21,7 +21,7 @@ New:
   any playlist supported by `youtube-dl`) (#761)
 - Added `protocol.aws.endpoint` setting for the `s3://` protocol, thanks to
   @RecursiveGreen. (#778)
-- Added support for sandboxing `run_process` calls. Set safe defaults. (#785)
+- Added support for sandboxing `run_process` calls. (#785)
 - Added `harbor.{http,https}.static` to serve static path.
 - Added `log.{critical,severe,important,info,warning,debug}`. Use aliases in code as well (#800, #801, #802)
 - Added `sleep` function.
