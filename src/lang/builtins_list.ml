@@ -328,7 +328,7 @@ let () =
 
 let () =
   add_builtin "list.remove" ~cat:List
-    ~descr:"Remove a value from a list."
+    ~descr:"Remove a the first occurence of a value from a list."
     ["",Lang.univ_t 1,None,None;
      "",Lang.list_t (Lang.univ_t 1),None,None]
     (Lang.list_t (Lang.univ_t 1))
@@ -337,10 +337,12 @@ let () =
        let l = Lang.assoc "" 2 p in
        let t = Lang.of_list_t l.Lang.t in
        let l = Lang.to_list l in
-       let l = List.fold_left (fun l' x ->
-         if compare_value x a = 0 then l' else x::l') [] l
+       let rec aux k = function
+         | [] -> k []
+         | x::l -> if compare_value x a = 0 then k l else aux (fun l -> k (x::l)) l
        in
-         Lang.list ~t l)
+       let l = aux (fun l -> l) l in
+       Lang.list ~t l)
 
 let () =
   add_builtin "list.rev" ~cat:List
