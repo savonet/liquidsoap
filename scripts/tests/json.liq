@@ -20,7 +20,7 @@ test([],[1,2,3])
 test((1,"foo"), (2,"bar"))
 test([("foo",(1,"bar"))], [("gni",(2,"boo"))])
 test([(1,[("fr","bar")])], [(2,[("en","foo")])])
-test([("ping",())], [("pong",())])
+# test([("ping",())], [("pong",())])
 test([3],[])
 test([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4}"))
 
