@@ -124,6 +124,8 @@ Fixed:
 - Fixed `insert_metadata` logic when insert new track and metadata (#903)
 - Fixed `replay-gain` script default location.
 - Fixed audio glitches at the end of crossfade transitions.
+- Specify that `list.remove` removes only the first occurrence and avoid
+  reversing the list (#922).
 
 1.3.7 (09-04-2019)
 =====

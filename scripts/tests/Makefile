@@ -11,8 +11,6 @@ test: threesines $(TESTS)
 %: %.liq
 	@./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q ../../libs/pervasives.liq -" $<
 
-.PHONY: $(TEST)
-
 # Generate samples files in threesines directory
 
 threesines: threesines/a.wav threesines/b.wav threesines/c.wav
