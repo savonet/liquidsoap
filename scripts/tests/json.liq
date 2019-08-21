@@ -7,6 +7,7 @@ success = ref true
 def test(d,x) =
   y = of_json(default=d,json_of(x))
   if y == d or y != x then
+    print("Failure: #{x} => #{json_of(x)} => #{y}")
     success := false
   end
 end
