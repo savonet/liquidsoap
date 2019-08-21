@@ -111,11 +111,14 @@ def rec list.assoc(~default, key, l)
   list.case(default, f, l)
 end
 
+# Remove the first pair from an associative list.
+# @category List
+# @param key Key of pair to be removed.
+# @param l List of pairs (key,value).
 def rec list.remove_assoc(key, l)
   def f(x, l)
     let (k, v) = x
-    l = list.remove_assoc(key, l)
-    if k == key then l else list.cons((k,v), l) end
+    if k == key then l else list.cons((k,v), list.remove_assoc(key, l)) end
   end
   list.case([], f, l)
 end
