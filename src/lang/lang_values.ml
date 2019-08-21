@@ -546,7 +546,6 @@ let (>:) = T.(>:)
 let rec value_restriction t = match t.term with
   | Var _ -> true
   | Fun _ -> true
-  | RFun _ -> true
   | List l | Tuple l -> List.for_all value_restriction l
   | _ -> false
 
