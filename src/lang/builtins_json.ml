@@ -117,7 +117,7 @@ let rec to_json_pp f v =
        let rec aux = function
          | [] -> ()
          | [p] -> Format.fprintf f "%a" to_json_pp p
-         | p::l -> Format.fprintf f "%a,;<1 0>" to_json_pp p; aux l
+         | p::l -> Format.fprintf f "%a,@;<1 0>" to_json_pp p; aux l
        in
        aux l;
        Format.fprintf f "@]@;<1 0>]@]"
