@@ -75,10 +75,15 @@ def rec list.filter(p, l)
   list.case([], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end, l)
 end
 
-# Remove a value from a list.
+# Remove the first occurrence of a value from a list.
 # @category List
-def rec list.remove(x, l)
-  list.filter(fun (y) -> x != y, l)
+def list.remove(x, l)
+  def rec aux(k, l)
+    list.case(k([]),
+    fun (y, l) -> if x == y then k(l) else aux(fun (l) -> k(list.cons(y, l)), l) end,
+    l)
+  end
+  aux(fun (l) -> l, l)
 end
 
 # Concatenate two lists.
