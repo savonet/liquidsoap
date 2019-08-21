@@ -81,6 +81,28 @@ let () =
   let lt =
     Lang.list_t (Lang.product_t t1 t2)
   in
+  add_builtin "list.assoc" ~cat:List
+    ~descr:"Generalized l[k] with default value."
+    ["default",t2,None,Some "Default value if key does not exist";
+     "",t1,None,None ;
+     "",lt,None,None] t2
+    (fun p ->
+      let default = List.assoc "default" p in
+       let k = Lang.assoc "" 1 p in
+       let l =
+         List.map Lang.to_product
+           (Lang.to_list (Lang.assoc "" 2 p))
+       in
+       try
+         snd(assoc_value k l)
+       with Not_found -> default)
+
+let () =
+  let t1 = Lang.univ_t ~constraints:[Lang_types.Ord] 1 in
+  let t2 = Lang.univ_t 2 in
+  let lt =
+    Lang.list_t (Lang.product_t t1 t2)
+  in
   add_builtin "list.remove_assoc" ~cat:List
     ~descr:"Remove the first pair from an associative list."
     ["",t1,None,Some "Key of pair to be removed";
