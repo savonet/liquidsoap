@@ -5,14 +5,14 @@ include $(top_srcdir)/Makefile.rules
 
 test: threesines
 	@for i in $(wildcard *.liq) ; do \
-	  ./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q ../../lib/pervasives.liq -" $$i ; \
+	  ./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q ../../libs/pervasives.liq -" $$i ; \
 	done
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 
 # Generate samples files in threesines directory
 
 threesines: threesines/a.wav threesines/b.wav threesines/c.wav
-MKSINE= ../../src/liquidsoap  --no-pervasives -q ../../lib/utils.liq \
+MKSINE= ../../src/liquidsoap  --no-pervasives -q ../../libs/utils.liq \
 	  "clock.assign_new(sync=false,[ \
 	  output.file(%wav,\"$$fname\",fallible=true,on_stop=shutdown, \
 	  once(sine(duration=2.,$$freq)))])"
