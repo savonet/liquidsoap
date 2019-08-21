@@ -24,7 +24,7 @@ open Lang_builtins
 
 let () =
   (* TODO It would be good to generalize this one but we'd need a way to handle
-   *      errors. *)
+     errors. *)
   add_builtin "_[_]" ~cat:List
     ~descr:"l[k] returns the first v such that \
             (k,v) is in the list l (or \"\" if no such v exists)."
@@ -32,15 +32,38 @@ let () =
      "",Lang.metadata_t,None,None]
     Lang.string_t
     (fun p ->
-       let k = Lang.to_string (Lang.assoc "" 1 p) in
-       let l =
-         List.map
-           (fun p ->
-              let (a,b) = Lang.to_product p in
-                Lang.to_string a, Lang.to_string b)
-           (Lang.to_list (Lang.assoc "" 2 p))
-       in
-         Lang.string (try List.assoc k l with _ -> ""))
+      let k = Lang.to_string (Lang.assoc "" 1 p) in
+      let l =
+        List.map
+          (fun p ->
+            let (a,b) = Lang.to_product p in
+            Lang.to_string a, Lang.to_string b)
+          (Lang.to_list (Lang.assoc "" 2 p))
+      in
+      Lang.string (try List.assoc k l with _ -> ""))
+
+let () =
+  let a = Lang.univ_t 1 in
+  let b = Lang.univ_t 2 in
+  Lang.add_builtin "list.case"
+    ~category:(string_of_category List)
+    ~descr:"Define a function by case analysis, depending on whether a list is empty or not."
+    [
+      "", b, None, Some "Result when the list is empty.";
+      "", Lang.fun_t [false, "", a; false, "", Lang.list_t a] b, None, Some "Result when the list it non-empty.";
+      "", (Lang.list_t a), None, Some "List to perform case analysis on."
+    ]
+    b
+    (fun p b ->
+      let e,f,l =
+        match p with
+        | ["",e; "",f; "",l] -> e,f,l
+        | _ -> assert false
+      in
+      let a = Lang.of_list_t l.Lang.t in
+      match Lang.to_list l with
+      | [] -> e
+      | x::l -> Lang.apply ~t:b f ["",x; "", Lang.list ~t:a l])
 
 exception Found_assoc of (Lang.value*Lang.value)
 

@@ -64,7 +64,8 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
 
-(** Multiapply a value to arguments. *)
+(** Multiapply a value to arguments. The argument [t] is the type of the result
+   of the application. *)
 val apply : value -> env -> t:t -> value
 
 (** {3 Helpers for registering protocols} *)
