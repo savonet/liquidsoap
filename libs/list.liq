@@ -122,16 +122,3 @@ def rec list.remove_assoc(key, l)
   end
   list.case([], f, l)
 end
-
-print(list.hd(default=0,[]))
-print(list.hd(default=0,[5,6]))
-print(list.tl([]))
-print(list.tl([4,5,6]))
-print(list.is_empty([]))
-print(list.is_empty([1,2]))
-print(list.length([]))
-print(list.length([1,2,3]))
-# print(list.length(["a","b"]))
-print(list.mem(1,[4,5,6]))
-print(list.mem(5,[4,5,6]))
-# list.iter(print,[4,5,6])
