@@ -2,6 +2,7 @@
 %include "ref.liq"
 %include "list.liq"
 %include "utils.liq"
+%include "metadata.liq"
 %include "playlist.liq"
 %include "resolvers.liq"
 %include "fades.liq"

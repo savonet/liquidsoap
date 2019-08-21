@@ -40,6 +40,7 @@ New:
 - Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
 - Added `for` and `while` loop functions.
 - Added `list.case`.
+- Added `metadata.string_getter` and `metadata.float_getter`.
 
 Changed:
 
