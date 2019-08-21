@@ -36,57 +36,59 @@ object (self)
 
   method private get_frame buf =
     let offset = AFrame.position buf in
-      source#get buf ;
-      begin match override_field with
-        | Some f ->
-            List.iter
-              (fun (p,m) ->
-                 if p >= offset then try
-                   let s = Hashtbl.find m f in
-                   let k =
-                     try
-                       Scanf.sscanf s " %f dB" Audio.lin_of_dB
-                     with
-                       | _ -> float_of_string s
-                   in
-                     self#log#important "Overriding amplification: %f." k ;
-                     override <- Some k
-                 with _ -> ())
-              (AFrame.get_all_metadata buf)
-        | None -> ()
-      end ;
-      let k = match override with Some o -> o | None -> coeff () in
-        if k <> 1. then
-          Audio.amplify
-            k
-            (AFrame.content buf offset) offset
-            ((AFrame.position buf)-offset);
-        if AFrame.is_partial buf && override <> None then begin
-          self#log#important "End of the current overriding." ;
-          override <- None
-        end
-
+    source#get buf ;
+    begin match override_field with
+    | Some f ->
+       List.iter
+         (fun (p,m) ->
+           if p >= offset then
+             try
+               let s = Hashtbl.find m f in
+               let k =
+                 try
+                   Scanf.sscanf s " %f dB" Audio.lin_of_dB
+                 with
+                 | _ -> float_of_string s
+               in
+               self#log#important "Overriding amplification: %f." k ;
+               override <- Some k
+             with _ -> ())
+         (AFrame.get_all_metadata buf)
+    | None -> ()
+    end ;
+    let k = match override with Some o -> o | None -> coeff () in
+    if k <> 1. then
+      Audio.amplify
+        k
+        (AFrame.content buf offset) offset
+        ((AFrame.position buf)-offset);
+    if AFrame.is_partial buf && override <> None then begin
+        self#log#important "End of the current overriding." ;
+        override <- None
+      end
 end
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.any_fixed in
   Lang.add_operator "amplify"
-    [ "", Lang.float_getter_t 1,  None, Some "Multiplicative factor." ;
+    [
+      "", Lang.float_getter_t 1,  None, Some "Multiplicative factor." ;
       "override", Lang.string_t, Some (Lang.string "liq_amplify"),
-      Some "Specify the name of a metadata field that, when present \
-            and well-formed, overrides the amplification factor for the \
-            current track. Well-formed values are floats in decimal notation \
-            (e.g. '0.7') which are taken as normal/linear multiplicative \
-            factors; values can be passed in decibels with the suffix 'dB' \
-            (e.g. '-8.2 dB', but the spaces do not matter). Set to empty string \
-            \"\" to disable." ;
-      "", Lang.source_t k, None, None ]
+      Some "Specify the name of a metadata field that, when present and \
+            well-formed, overrides the amplification factor for the current \
+            track. Well-formed values are floats in decimal notation \
+            (e.g. `0.7`) which are taken as normal/linear multiplicative \
+            factors; values can be passed in decibels with the suffix `dB` \
+            (e.g. `-8.2 dB`, but the spaces do not matter). Set to empty string \
+            `\"\"` to disable." ;
+      "", Lang.source_t k, None, None
+    ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Multiply the amplitude of the signal."
     (fun p kind ->
-       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
-       let s = Lang.to_source (Lang.assoc "" 2 p) in
-       let o = Lang.to_string (Lang.assoc "override" 1 p) in
-       let o = if o = "" then None else Some (String.lowercase_ascii o) in
-         new amplify ~kind s o c)
+      let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
+      let s = Lang.to_source (Lang.assoc "" 2 p) in
+      let o = Lang.to_string (Lang.assoc "override" 1 p) in
+      let o = if o = "" then None else Some (String.lowercase_ascii o) in
+      new amplify ~kind s o c)
