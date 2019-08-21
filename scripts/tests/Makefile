@@ -1,13 +1,17 @@
 DISTFILES = Makefile $(wildcard *.liq) $(wildcard *.pl)
+LIQ = $(filter-out test.liq, $(wildcard *.liq))
+TESTS = $(basename $(LIQ))
 
 top_srcdir = ../..
 include $(top_srcdir)/Makefile.rules
 
-test: threesines
-	@for i in $(wildcard *.liq) ; do \
-	  ./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q ../../libs/pervasives.liq -" $$i ; \
-	done
+test: threesines $(TESTS)
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
+
+%: %.liq
+	@./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q ../../libs/pervasives.liq -" $<
+
+.PHONY: $(TEST)
 
 # Generate samples files in threesines directory
 
