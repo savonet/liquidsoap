@@ -57,7 +57,7 @@ let report lexbuf f =
         (if start.Lexing.pos_fname="" then "L" else
            Printf.sprintf "File %S, l" start.Lexing.pos_fname)
         start.Lexing.pos_lnum
-        (1+start.Lexing.pos_cnum-start.Lexing.pos_bol)
+        (start.Lexing.pos_cnum-start.Lexing.pos_bol)
         (if buf = "" then "" else (Printf.sprintf " before %S" buf)) ;
     in
     error_header idx pos;

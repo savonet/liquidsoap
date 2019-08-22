@@ -359,12 +359,14 @@ let strip_newlines tokenizer =
   let rec token () =
     let inject_varlpar var v =
       match tokenizer() with
-        | Lang_parser.LPAR,pos ->
+        | Lang_parser.LPAR,(_,endp) ->
             state := None ;
-            Lang_parser.VARLPAR var,pos
-        | Lang_parser.LBRA,pos ->
+            let startp = fst (snd v) in
+            Lang_parser.VARLPAR var,(startp,endp)
+        | Lang_parser.LBRA,(_,endp) ->
             state := None ;
-            Lang_parser.VARLBRA var,pos
+            let startp = fst (snd v) in
+            Lang_parser.VARLBRA var,(startp,endp)
         | Lang_parser.PP_ENDL,_ ->
             state := None ; v
         | x -> state := Some x ; v
@@ -375,7 +377,7 @@ let strip_newlines tokenizer =
             | Lang_parser.PP_ENDL,_ -> token ()
             | (Lang_parser.VAR _,_) as v ->
                 state := Some v ;
-                token()
+                token ()
             | x -> x
           end
       | Some ((Lang_parser.VAR var,_) as v) ->
@@ -402,7 +404,7 @@ let expand_define tokenizer =
             | Lang_parser.FLOAT _,_
             | Lang_parser.STRING _,_
             | Lang_parser.BOOL _,_ as def_val ->
-              defs := (def_name,(fst(def_val),pos)) :: !defs;
+              defs := (def_name,(fst def_val,pos)) :: !defs;
               token()
             | _ -> raise Parsing.Parse_error
           )
