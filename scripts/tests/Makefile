@@ -1,9 +1,8 @@
 DISTFILES = Makefile $(wildcard *.liq) $(wildcard *.pl)
-LIQ = $(filter-out test.liq, $(wildcard *.liq))
+LIQ = $(sort $(filter-out test.liq, $(wildcard *.liq)))
 TESTS = $(basename $(LIQ))
 
 top_srcdir = ../..
-include $(top_srcdir)/Makefile.rules
 
 test: threesines $(TESTS)
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
@@ -27,3 +26,5 @@ threesines/b.wav: ../../src/liquidsoap Makefile
 threesines/c.wav: ../../src/liquidsoap Makefile
 	mkdir -p threesines
 	fname=$@ ; freq=440. ; $(MKSINE)
+
+include $(top_srcdir)/Makefile.rules

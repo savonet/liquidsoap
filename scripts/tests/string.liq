@@ -19,5 +19,7 @@ test(string.match(pattern=".*ab.*","cccabc"), true)
 test(string.match(pattern=".*ab.*","cccbac"), false)
 test(string.trim("    abc  "), "abc")
 test(string.sub("abcd",start=1,length=2), "bc")
+test(string.contains(substring="bc","abcd"), true)
+test(string.contains(substring="bc","acbd"), false)
 
 if !success then test.pass() else test.fail() end
