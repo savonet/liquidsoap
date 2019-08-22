@@ -171,7 +171,7 @@ io = io/udp_io.ml \
 
 tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
         tools/utils.ml tools/plug.ml \
-	tools/rqueue.ml tools/sedlexing_compat.ml \
+	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
