@@ -137,6 +137,15 @@ let () =
          Lang.bool (Request.is_ready e))
 
 let () =
+  add_builtin "request.uri" ~cat:Liq
+    ~descr:"Initial URI of a reuqest."
+    [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
+    (fun p ->
+       let r = Lang.to_request (List.assoc "" p) in
+       Lang.string (Request.initial_uri r)
+    )
+
+let () =
   add_builtin "request.filename" ~cat:Liq
     ~descr:"Return a valid local filename if the request is ready, \
             and the empty string otherwise."
