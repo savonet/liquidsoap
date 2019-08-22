@@ -51,8 +51,8 @@ let report lexbuf f =
   let print_error idx error =
     flush_all () ;
     let pos =
-      let start = lexbuf.Sedlexing_compat.lex_curr_p in
-      let buf = Sedlexing_compat.Utf8.lexeme lexbuf in
+      let start = snd (Sedlexing.lexing_positions lexbuf) in
+      let buf = Sedlexing.Utf8.lexeme lexbuf in
       Printf.sprintf "%sine %d, char %d%s"
         (if start.Lexing.pos_fname="" then "L" else
            Printf.sprintf "File %S, l" start.Lexing.pos_fname)
