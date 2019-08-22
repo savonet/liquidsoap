@@ -275,22 +275,28 @@ let parse_comments tokenizer =
     in
     let main,special,params = parse_doc ([],[],[]) doc in
     let main = List.rev main and params = List.rev params in
-    (* Disabling smart concatenation because it does not play well with itemize and ```. *)
-    (*
-    let rec smart_concat = function
-      | [] -> ""
-      | [line] -> line
-      | line::lines ->
-         if line = "" || line.[String.length line - 1] = '.' then
-           line ^ "\n" ^ smart_concat lines
-         else if line.[String.length line - 1] = ' ' then
-           line ^ smart_concat lines
-         else
-           line ^ " " ^ smart_concat lines
+    let smart_concat lines =
+      let must_break = function
+        | ""::_ -> true
+        | "```"::_ -> true
+        | line::_ when line.[0] = '-' (* itemize *)-> true
+        | _ -> false
+      in
+      let rec text = function
+        | [] -> ""
+        | [line] -> line
+        | "```"::lines -> "```\n" ^ verb lines
+        | line::lines when line = "" || must_break lines -> line ^ "\n" ^ text lines
+        | line::lines -> line ^ " " ^ text lines
+      and verb = function
+        | "```"::lines -> "```\n" ^ text lines
+        | line::lines -> line ^ "\n" ^ verb lines
+        | [] -> "```"
+      in
+      text lines
     in
     let main = smart_concat main in
-     *)
-    let main = String.concat "\n" main in
+    (* let main = String.concat "\n" main in *)
     let doc =
       let sort = false in
       if main = "" then Doc.none ~sort () else Doc.trivial ~sort main
