@@ -35,7 +35,7 @@ struct
 
   let disconnect ssl =
     Ssl.shutdown ssl;
-    Unix.close Unix.close (Ssl.file_descr_of_socket ssl)
+    Unix.close (Ssl.file_descr_of_socket ssl)
 
   let wait_for ?log event timeout =
     let event =

@@ -91,7 +91,7 @@ struct
     (ssl_s, caller)
   let close ssl = 
     Ssl.shutdown ssl;
-    Unix.close Unix.close (Ssl.file_descr_of_socket ssl)
+    Unix.close (Ssl.file_descr_of_socket ssl)
 
   module Duppy =
   struct
