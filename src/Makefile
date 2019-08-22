@@ -170,9 +170,9 @@ io = io/udp_io.ml \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
-tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
-        tools/utils.ml tools/plug.ml \
-	tools/rqueue.ml tools/sedlexing_compat.ml \
+tools = tools/extralib.ml tools/JSON.ml tools/utils.ml \
+        tools/doc.ml  tools/plug.ml \
+	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
@@ -199,7 +199,9 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/lang_builtins.ml lang/builtins_json.ml \
+builtins = lang/lang_builtins.ml lang/builtins_list.ml \
+           lang/builtins_string.ml lang/builtins_json.ml \
+           lang/builtins_request.ml \
            lang/builtins_harbor.ml lang/builtins_dtools.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \

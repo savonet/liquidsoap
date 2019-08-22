@@ -69,10 +69,14 @@ def input.hls(~id="",~reload=10.,uri)
   def find_stream () =
     pl = request.create.raw(!playlist_uri)
     if request.resolve(pl) then
-      pl = request.filename(pl)
+      plfile = request.filename(pl)
       # Find sequence number
-      m = string.extract(pattern="#EXT-X-STREAM-INF[^\n]*\n([^\n]*)\n",file.contents(pl))
+      m = string.extract(pattern="#EXT-X-STREAM-INF[^\n]*\n([^\n]*)\n",file.contents(plfile))
       playlist_uri := list.assoc(default=!playlist_uri,"1",m)
+      # Add prefix if necessary
+      if not (string.contains(substring="/", !playlist_uri)) then
+        playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ !playlist_uri
+      end
       log(label=id,"Playlist: " ^ !playlist_uri)
     end
   end

@@ -290,25 +290,38 @@ add_protocol("tmp",tmp_protocol,
              doc="Mark the given uri as temporary. Useful when chaining protocols",
              temporary=true,syntax="tmp:uri")
 
-register(name="ffmpeg2wav protocol settings","protocol.ffmpeg2wav",())
-register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
-register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
-register(name="Extract metadata","protocol.ffmpeg2wav.metadata",true)
-register(name="Adjust replaygain","protocol.ffmpeg2wav.replaygain",false)
+register(name="ffmpeg protocol settings","protocol.ffmpeg",())
+register(name="Path to ffmpeg","protocol.ffmpeg.path","ffmpeg")
+register(name="Number of channels","protocol.ffmpeg.channels",2)
+register(name="Extract metadata","protocol.ffmpeg.metadata",true)
+register(name="Adjust replaygain","protocol.ffmpeg.replaygain",false)
 
-# Register ffmpeg2wav
+# Register ffmpeg
 # @flag hidden
-def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
-  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg2wav.path")
-  channels = get(default=2,"protocol.ffmpeg2wav.channels")
-  metadata = get(default=true,"protocol.ffmpeg2wav.metadata")
-  replaygain = get(default=false,"protocol.ffmpeg2wav.replaygain")
+def ffmpeg_protocol(~rlog,~maxtime,arg) =
+  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg.path")
+  channels = get(default=2,"protocol.ffmpeg.channels")
+  metadata = get(default=true,"protocol.ffmpeg.metadata")
+  replaygain = get(default=false,"protocol.ffmpeg.replaygain")
 
-  log = log(label="protocol.ffmpeg2wav")
+  log = log(label="protocol.ffmpeg")
 
   def log(~level,s) =
     rlog(s)
     log(level=level,s)
+  end
+
+  def annotate(m) =
+    def f(x) =
+      let (key,value) = x
+      "#{key}=#{quote(value)}"
+    end
+    m = string.concat(separator=",",list.map(f,m))
+    if string.length(m) > 0 then
+      "annotate:#{m}:"
+    else
+      ""
+    end
   end
 
   def parse_metadata(file) =
@@ -321,14 +334,111 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
       if list.length(m) >= 2 then
         key = list.hd(default="",m)
         value = string.concat(separator="=",list.tl(m))
-        list.add("#{key}=#{quote(value)}",cur)
+        list.add((key,value),cur)
       else
         cur
       end
     end
-    m = string.concat(separator=",",list.fold(f,[],lines))
-    if string.length(m) > 0 then
-      "annotate:#{m}:"
+    list.fold(f,[],lines)
+  end
+
+  def replaygain_filter(file) =
+    if replaygain then
+      # The extraction program
+      extract_replaygain =
+        get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+      delay = maxtime - gettimeofday()
+      ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
+      if ret != "" then
+        "-af \"volume=#{ret}\""
+      else
+        ""
+      end
+    else
+      ""
+    end
+  end
+
+  def cue_points(m) =
+    cue_in = float_of_string(default=0., list.assoc(default="0.","liq_cue_in",m))
+    cue_out = float_of_string(default=0., list.assoc(default="","liq_cue_out",m))
+
+    args =
+      if cue_in > 0. then
+        "-ss #{cue_in}"
+      else
+        ""
+      end
+
+    if cue_out > cue_in then
+      "#{args} -t #{cue_out-cue_in}"
+    else
+      args
+    end
+  end
+
+  def fades(r) =
+    m = request.metadata(r)
+
+    fade_type = list.assoc(default="","liq_fade_type",m)
+    fade_in = list.assoc(default="","liq_fade_in",m)
+    cue_in = list.assoc(default="","liq_cue_in",m)
+    fade_out = list.assoc(default="","liq_fade_out",m)
+    cue_out = list.assoc(default="","liq_cue_out",m)
+
+    curve =
+      if fade_type == "lin" then
+        ":curve=tri"
+      elsif fade_type == "sin" then
+        ":curve=qsin"
+      elsif fade_type == "log" then
+        ":curve=log"
+      elsif fade_type == "exp" then
+        ":curve=exp"
+      else
+        ""
+      end
+      
+
+    args =
+      if fade_in != "" then
+        fade_in = float_of_string(default=0.,fade_in)
+        start_time =
+          if cue_in != "" then
+            float_of_string(default=0.,cue_in)
+          else
+            0.
+        end
+        if fade_in > 0. then
+          ["afade=in:st=#{start_time}:d=#{fade_in}#{curve}"]
+        else
+          []
+        end
+      else
+        []
+      end
+
+    args =
+      if fade_out != "" then
+        fade_out = float_of_string(default=0.,fade_out)
+        end_time =
+          if cue_out != "" then
+            float_of_string(default=0.,cue_out)
+          else
+            request.duration(request.filename(r))
+          end
+        if fade_out > 0. then
+          list.append(args,["afade=out:st=#{end_time-fade_out}:d=#{fade_out}#{curve}"])
+        else
+          args
+        end
+      else
+        args
+      end
+
+    if list.length(args) > 0 then
+      args = string.concat(separator=",",args)
+      "-af #{args}"
     else
       ""
     end
@@ -337,45 +447,36 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
   r = request.create.raw(arg)
   delay = maxtime - gettimeofday()
   if request.resolve(timeout=delay,r) then
-    res = request.filename(r)
+    filename = request.filename(r)
+    m = request.metadata(r)
 
-    annotate = if metadata then
-      parse_metadata(res)
+    m = if metadata then
+      list.append(m,parse_metadata(filename))
     else
-      ""
+      m
     end
-   
+
+    annotate = annotate(m)
+    request.destroy(r)
+
     # Now parse the audio
     wav = file.temp("liq-process", ".wav")
 
-    replaygain_filter =
-      if replaygain then
-        # The extraction program
-        extract_replaygain =
-          get(default="#{configure.bindir}/extract-replaygain","protocol.replay_gain.path")
-        delay = maxtime - gettimeofday()
-        ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,request.filename(r))
-        if ret != "" then
-          "-af \"volume=#{ret}\""
-        else
-          ""
-        end
-      else
-        ""
-      end
-    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{replaygain_filter} #{quote(wav)}"
+    cue_points = cue_points(request.metadata(r))
+    fades = fades(r)
+    replaygain_filter = replaygain_filter(filename)
 
-    uri = process_uri(extname="wav",uri=res,cmd)
+    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{cue_points} #{fades} #{replaygain_filter} #{quote(wav)}"
+
+    uri = process_uri(extname="wav",uri=filename,cmd)
 
     wav_r = request.create.raw(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,wav_r) then
-      request.destroy(r)
       request.destroy(wav_r)
       ["#{annotate}tmp:#{wav}"]
     else
       log(level=3,"Failed to resolve #{uri}")
-      request.destroy(r)
       []
     end
   else
@@ -383,9 +484,9 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     []
   end
 end
-add_protocol("ffmpeg2wav",ffmpeg2wav_protocol,
+add_protocol("ffmpeg",ffmpeg_protocol,
              doc="Decode any file to wave using ffmpeg",
-             syntax="ffmpeg2wav:uri")
+             syntax="ffmpeg:uri")
 
 register(name="Text2wave protocol settings","protocol.text2wave",())
 register(name="Text2wave path","protocol.text2wave.path","text2wave")

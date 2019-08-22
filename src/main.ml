@@ -536,7 +536,7 @@ struct
          "If you are interested in collaborating to";
          "the development of Liquidsoap, feel free to";
          "drop us a mail at <savonet-devl@lists.sf.net>";
-         "or to join the #savonet IRC channel on Freenode.";
+         "or to join the slack chat at <http://slack.liquidsoap.info>.";
          "";
          "Please send any bug report or feature request";
          "at <https://github.com/savonet/liquidsoap/issues>.";
