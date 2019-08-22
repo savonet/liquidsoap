@@ -275,27 +275,8 @@ let parse_comments tokenizer =
     in
     let main,special,params = parse_doc ([],[],[]) doc in
     let main = List.rev main and params = List.rev params in
-    let smart_concat lines =
-      let must_break = function
-        | ""::_ -> true
-        | "```"::_ -> true
-        | line::_ when line.[0] = '-' (* itemize *)-> true
-        | _ -> false
-      in
-      let rec text = function
-        | [] -> ""
-        | [line] -> line
-        | "```"::lines -> "```\n" ^ verb lines
-        | line::lines when line = "" || must_break lines -> line ^ "\n" ^ text lines
-        | line::lines -> line ^ " " ^ text lines
-      and verb = function
-        | "```"::lines -> "```\n" ^ text lines
-        | line::lines -> line ^ "\n" ^ verb lines
-        | [] -> "```"
-      in
-      text lines
-    in
-    let main = smart_concat main in
+    let main = String.concat "\n" main in
+    let main = Utils.unbreak_md main in
     (* let main = String.concat "\n" main in *)
     let doc =
       let sort = false in

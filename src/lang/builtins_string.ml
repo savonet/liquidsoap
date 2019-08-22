@@ -186,10 +186,9 @@ let () =
 
 let () =
   add_builtin "string.match" ~cat:String
-    ~descr:"Match a string with an expression. \n\
-            Perl compatible regular expressions \
-            are recognized. Hence, special characters \
-            should be escaped."
+    ~descr:"Match a string with an expression. Perl compatible regular \
+            expressions are recognized. Hence, special characters should be \
+            escaped."
     [ "pattern", Lang.string_t, None, None ;
       "", Lang.string_t, None, None ]
     Lang.bool_t
@@ -202,8 +201,7 @@ let () =
 
 let () =
   add_builtin "string.recode" ~cat:String
-    ~descr:"Convert a string. Effective only if Camomile \
-            is enabled."
+    ~descr:"Convert a string. Effective only if Camomile is enabled."
     [ "in_enc", Lang.string_t, Some (Lang.string ""),
       Some "Input encoding. Autodetected if empty." ;
       "out_enc", Lang.string_t, Some (Lang.string "UTF-8"),

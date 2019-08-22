@@ -192,7 +192,7 @@ let print_lang (i:item) : unit =
          if c = ' ' then Format.pp_print_space f () else Format.pp_print_char f c)
       s
   in
-  Format.printf "@.@[%a@]@." print_string_split i#get_doc ;
+  Format.printf "@.@[%a@]@." print_string_split (Utils.unbreak_md i#get_doc);
   let sub = i#get_subsections in
   let sub =
     Format.printf "@.Type: %s@." (i#get_subsection "_type")#get_doc ;
