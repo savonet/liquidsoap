@@ -121,7 +121,7 @@ conflicts: [
   "shine" {< "0.2.0"}
   "soundtouch" {< "0.1.7"}
   "speex" {< "0.2.1"}
-  "ssl" {< "0.5.2"}
+  "ssl" {< "0.5.9"}
   "taglib" {< "0.3.0"}
   "theora" {< "0.3.1"}
   "vorbis" {< "0.7.0"}

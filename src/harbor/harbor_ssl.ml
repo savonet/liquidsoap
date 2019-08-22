@@ -89,7 +89,9 @@ struct
     let ssl_s = Ssl.embed_socket s ctx in
     Ssl.accept ssl_s;
     (ssl_s, caller)
-  let close =  Ssl.shutdown
+  let close ssl = 
+    Ssl.shutdown ssl;
+    Unix.close Unix.close (Ssl.file_descr_of_socket ssl)
 
   module Duppy =
   struct

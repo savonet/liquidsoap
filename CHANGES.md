@@ -129,6 +129,7 @@ Fixed:
 - Fixed audio glitches at the end of crossfade transitions.
 - Specify that `list.remove` removes only the first occurrence and avoid
   reversing the list (#922).
+- File descriptor leak when using openssl-based operators.
 
 1.3.7 (09-04-2019)
 =====
