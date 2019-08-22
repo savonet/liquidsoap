@@ -210,7 +210,7 @@ fi
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
-  liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+  liquidsoap_ocamlcflags="-g -annot -bin-annot $liquidsoap_ocamlcflags"
   liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
 fi
 # Disable nativecode if ocamlopt is not present
