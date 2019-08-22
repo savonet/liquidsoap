@@ -200,6 +200,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 
 builtins = lang/lang_builtins.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
+           lang/builtins_request.ml \
            lang/builtins_harbor.ml lang/builtins_dtools.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
