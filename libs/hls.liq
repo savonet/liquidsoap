@@ -4,46 +4,43 @@
 # @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI
 def input.hls(~id="",~reload=10.,uri)
-  # A reference to the playlist
   playlist = ref []
-  # Sequence number of the first element of the playlist
   sequence = ref 0
-  # A reference to the uri
   playlist_uri = ref uri
-  # The load function
+
   def load_playlist () =
     pl = request.create.raw(!playlist_uri)
     if request.resolve(pl) then
       pl = request.filename(pl)
-      # Find sequence number
+
       m = string.extract(pattern="#EXT-X-MEDIA-SEQUENCE:(\\d+)",file.contents(pl))
       pl_sequence = list.assoc(default="","1",m)
       log.info(label=id,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
-      # Fill the files
+
       files = playlist.parse(path=path.dirname(!playlist_uri)^"/",pl)
-      def file_request(el) =
+
+      def file_request(idx,el) =
         let (meta,file) = el
         s = list.fold(fun (cur, el) -> "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
-        if s == "" then file else "annotate:#{s}:#{file}" end
+        s = if s == "" then file else "annotate:#{s}:#{file}" end
+        (pl_sequence+idx, s)
       end
-      if !playlist == [] then
-        playlist := list.map(file_request,files)
-        sequence := pl_sequence
-      else
-        # Add only the files after the sequence
-        def rec aux(s,files) =
-          if files != [] then
-            if s == !sequence + list.length(!playlist) then
-              files = list.map(file_request,files)
-              playlist := list.append(!playlist,files)
-            else
-              aux(s+1,list.tl(files))
-            end
-          end
+
+      files = list.mapi(file_request,files)
+
+      let (first_idx, _) = list.hd(default=(-1,""),!playlist)
+
+      def add_file(playlist, file) =
+        let (idx,_) = file
+        if first_idx < idx and not list.mem_assoc(idx, playlist) then
+          list.append(playlist, [file])
+        else
+          playlist
         end
-        aux(pl_sequence, files)
       end
+
+      playlist := list.fold(add_file, !playlist, files)
     else
       log.severe(label=id,"Couldn't read playlist: request resolution failed.")
       playlist := []
@@ -51,29 +48,28 @@ def input.hls(~id="",~reload=10.,uri)
     request.destroy(pl)
     reload
   end
-  # The next function
+
   def rec next () =
     file =
       if list.length(!playlist) > 0 then
-        ret = list.hd(default="",!playlist)
+        let (_,ret) = list.hd(default=(1,""),!playlist)
         playlist := list.tl(!playlist)
         sequence := !sequence + 1
         ret
       else
-        # Playlist finished
         ""
       end
     request.create(file)
   end
-  # Find the stream in case there are many
+
   def find_stream () =
     pl = request.create.raw(!playlist_uri)
     if request.resolve(pl) then
       plfile = request.filename(pl)
-      # Find sequence number
+
       m = string.extract(pattern="#EXT-X-STREAM-INF[^\\n]*\\n([^\\r\\n]*)\\r?\\n",file.contents(plfile))
       playlist_uri := list.assoc(default=!playlist_uri,"1",m)
-      # Add prefix if necessary
+
       if not (string.contains(substring="/", !playlist_uri)) then
         playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ !playlist_uri
       end
@@ -81,13 +77,13 @@ def input.hls(~id="",~reload=10.,uri)
     end
   end
   find_stream ()
-  # Instanciate the source
-  source = request.dynamic(id=id,next)
-  # Merge the tracks
+
+  source = request.dynamic(id=id,default_duration=0.5,length=5.,next)
+
   source = merge_tracks(source)
-  # Populate the playlist
+
   add_timeout(0., load_playlist)
-  # Return
+
   source
 end
 
