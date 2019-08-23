@@ -106,6 +106,7 @@ Changed:
   protocol. Rename protocol to `ffmpeg`. (#909)
 - `list.assoc` and `list.remove_assoc` require an ordered type as first
   component.
+- Renamed `quote` to `string.quote`.
 
 Fixed:
 

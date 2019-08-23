@@ -2,7 +2,7 @@
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
                        ~delay,file)
   log = log.info(label="extract.replaygain")
-  let (stdout, stderr, status) = run_process("#{extract_replaygain} #{quote(file)}")
+  let (stdout, stderr, status) = run_process("#{extract_replaygain} #{string.quote(file)}")
   stdout = string.replace(pattern='\\n',fun (_) -> "",stdout)
   stderr = string.replace(pattern='\\n',fun (_) -> "",stderr)
   if status == ("exit","0") then

@@ -383,7 +383,7 @@ let () =
         (Utils.interpolate (fun k -> List.assoc k l) s))
 
 let () =
-  add_builtin "quote" ~cat:String ~descr:"Escape shell metacharacters."
+  add_builtin "string.quote" ~cat:String ~descr:"Escape shell metacharacters."
     ["",Lang.string_t,None,None] Lang.string_t
     (fun p ->
        let s = Lang.to_string (List.assoc "" p) in

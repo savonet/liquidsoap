@@ -346,8 +346,7 @@ end
 def get_mime(file) =
   def file_method(file) =
     if test_process("which file") then
-      list.hd(default="",get_process_lines("file -b --mime-type \
-                                  #{quote(file)}"))
+      list.hd(default="",get_process_lines("file -b --mime-type #{string.quote(file)}"))
     else
       ""
     end
