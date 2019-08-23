@@ -206,3 +206,11 @@ let () =
        let f = Lang.to_string (Lang.assoc "" 1 p) in
        let s = Lang.to_string (Lang.assoc "" 2 p) in
          Lang.string (Filename.concat f s))
+
+let () =
+  add_builtin "path.remove_extension" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.string_t
+    ~descr:"Remove the file extension from a path."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+       Lang.string (Filename.remove_extension f))

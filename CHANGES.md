@@ -44,6 +44,7 @@ New:
 - Added `string.contaings`.
 - Added `request.uri`.
 - Added `{input,output}.srt` (#898)
+- Added `path.remove_extension`.
 
 Changed:
 
