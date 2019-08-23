@@ -96,6 +96,14 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
       path
     end
 
+  def get_mime(file) =
+    list.hd(default="",get_process_lines("file -b -I #{quote(file)}"))
+  end
+
+%ifdef file.mime
+  get_mime = file.mime
+%endif
+
   responseHeaders = headers
 
   def handler(~method,~protocol,~data,~headers,uri)
@@ -109,6 +117,15 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
 
       file = path.concat(directory, match)
       if file.exists(file) then
+        mime = get_mime(file)
+
+        responseHeaders =
+          if mime != "" then
+            list.add(("Content-Type",mime),responseHeaders)
+          else
+            responseHeaders
+        end
+
         if method == "OPTIONS" or method == "HEAD" then
           http_response(protocol=protocol,code=200,headers=responseHeaders)
         else
