@@ -108,6 +108,30 @@ let () =
   add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter Lang.bool
 
 let () =
+  let kind = Lang.univ_t 1 in
+  add_builtin ~cat:Liq "encoder.content_type"
+    ~descr:"Return the content-type (mime) of an encoder, if known."
+    ["", Lang.format_t kind,None,None]
+    Lang.string_t
+    (fun p ->
+      let f = Lang.to_format (List.assoc "" p) in
+      try
+        Lang.string (Encoder.mime f)
+      with _ -> Lang.string "")
+
+let () =
+  let kind = Lang.univ_t 1 in
+  add_builtin ~cat:Liq "encoder.extension"
+    ~descr:"Return the file extension of an encoder, if known."
+    ["", Lang.format_t kind,None,None]
+    Lang.string_t
+    (fun p ->
+      let f = Lang.to_format (List.assoc "" p) in
+      try
+        Lang.string (Encoder.extension f)
+      with _ -> Lang.string "")
+
+let () =
   add_builtin ~cat:Liq "eval"
     ~descr:"Evaluate a string as an expression in the toplevel environment."
     ~flags:[Lang.Hidden]

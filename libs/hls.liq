@@ -94,7 +94,24 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
                            ~start,~port,~path,serve,formats,s)
   tmp_dir = file.temp_dir("hls","")
 
-  serve(port=port,path=path,tmp_dir)
+  def content_type(file) =
+    ext = file.extension(file)
+    if ext == ".m3u8" then
+      "application/x-mpegURL"
+    else
+      def f(cur,el) =
+        format = snd(el)
+        if ext == ".#{encoder.extension(format)}" then
+          encoder.content_type(format)
+        else
+          cur
+        end
+      end
+      list.fold(f,"",formats)
+    end
+  end
+
+  serve(port=port,path=path,content_type=content_type,tmp_dir)
 
   output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                   playlist=playlist,start=start,segment_name=segment_name,
@@ -123,8 +140,8 @@ def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
                       ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                       ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",
                       ~headers=[("Access-Control-Allow-Origin","*")],formats,s)
-  def serve(~port,~path,dir) =
-    harbor.http.static(port=port,path=path,headers=headers,dir)
+  def serve(~port,~path,~content_type,dir) =
+    harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
@@ -155,8 +172,8 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                             ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                             ~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],
                             ~start=true,~playlist="stream.m3u8",formats,s)
-  def serve(~port,~path,dir) =
-    harbor.https.static(port=port,path=path,headers=headers,dir)
+  def serve(~port,~path,~content_type,dir) =
+    harbor.https.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,

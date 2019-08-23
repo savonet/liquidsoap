@@ -126,6 +126,17 @@ let extension = function
   | FdkAacEnc _ -> "aac"
   | _ -> "audio"
 
+(** Mime types *)
+let mime = function
+  | WAV _ -> "audio/wav"
+  | AVI _ -> "video/avi"
+  | Ogg _ -> "application/ogg"
+  | MP3 _ -> "audio/mpeg"
+  | Shine _ -> "audio/mpeg"
+  | Flac _ -> "audio/flex"
+  | FdkAacEnc _ -> "audio/aac"
+  | _ -> "audio"
+
 (** Bitrate estimation in bits per second. *)
 let bitrate = function
   | MP3 w -> Mp3_format.bitrate w

@@ -88,21 +88,13 @@ def http_response_stream(
 end
 
 # @flag hidden
-def harbor.http.static.base(serve,~path,~port,~headers,directory) =
+def harbor.http.static.base(serve,~content_type,~path,~port,~headers,directory) =
   path =
     if string.sub(path,start=0,length=1) != "/" then
       "/#{path}"
     else
       path
     end
-
-  def get_mime(file) =
-    list.hd(default="",get_process_lines("file -b -I #{quote(file)}"))
-  end
-  ignore(get_mime)
-%ifdef file.mime
-  get_mime = file.mime
-%endif
 
   responseHeaders = headers
 
@@ -117,7 +109,7 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
 
       file = path.concat(directory, match)
       if file.exists(file) then
-        mime = get_mime(file)
+        mime = content_type(file)
 
         responseHeaders =
           if mime != "" then
@@ -143,14 +135,27 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
   list.iter(register, ["OPTIONS","HEAD","GET"])
 end
 
+# @flag hidden
+def get_mime_process(file) =
+  list.hd(default="",get_process_lines("file -b -I #{quote(file)}"))
+end
+
+# @flag hidden
+content_type = get_mime_process
+%ifdef file.mime
+# @flag hidden
+content_type = file.mime
+%endif
+
 # Serve a static path
 # @category Interaction
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~path Base path
 # @param ~headers Default response headers.
+# @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
-def harbor.http.static(~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.http.register,path=path,port=port,headers=headers,directory)
+def harbor.http.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
+  harbor.http.static.base(harbor.http.register,content_type=content_type,path=path,port=port,headers=headers,directory)
 end
 
 %ifdef harbor.https.register
@@ -159,8 +164,9 @@ end
 # @param ~port Port for incoming harbor (https) connections.
 # @param ~path Base path
 # @param ~headers Default response headers.
+# @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
-def harbor.https.static(~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.http.register,path=path,port=port,headers=headers,directory)
+def harbor.https.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
+  harbor.http.static.base(harbor.http.register,path=path,content_type=content_type,port=port,headers=headers,directory)
 end
 %endif
