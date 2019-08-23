@@ -366,8 +366,8 @@ let () =
       "messageapi", Lang.bool_t, Some (Lang.bool true),
       Some "Use message api" ;
 
-      "", Lang.string_t, Some (Lang.string "application/ffmpeg"),
-        Some "Mime (Content-Type) used to find a decoder for the input stream." ]
+      "content_type", Lang.string_t, Some (Lang.string "application/ffmpeg"),
+      Some "Content-Type (mime type) used to find a decoder for the input stream." ]
       (fun p kind ->
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
          let bind_address =
@@ -396,7 +396,7 @@ let () =
            ignore
              (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
          in
-         let format = Lang.to_string (List.assoc "" p) in
+         let format = Lang.to_string (List.assoc "content_type" p) in
          (match
           Decoder.get_stream_decoder format kind
          with
