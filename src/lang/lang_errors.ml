@@ -148,5 +148,7 @@ let report lexbuf f =
         error_header 12 pos;
         Format.printf "Unsupported format!@ You must be missing an optional dependency.@]@.";
         raise Error
+      | Sedlexing.MalFormed ->
+        print_error 13 "Malformed file."
       | End_of_file -> raise End_of_file
       | e -> print_error (-1) "Unknown error" ; raise e
