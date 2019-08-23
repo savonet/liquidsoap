@@ -105,9 +105,11 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
       http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
     else
       let (_,match) = list.hd(default=("1","foo"),ret)
+      match = string.trim(match)
+
       file = path.concat(directory, match)
       if file.exists(file) then
-        if method == "OPTIONS" then
+        if method == "OPTIONS" or method == "HEAD" then
           http_response(protocol=protocol,code=200,headers=responseHeaders)
         else
           http_response_stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(file),data=file.read(file))
@@ -121,7 +123,7 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
   def register(method)
     serve(port=port,method=method,"^#{path}",handler(method=method))
   end
-  list.iter(register, ["OPTIONS","GET"])
+  list.iter(register, ["OPTIONS","HEAD","GET"])
 end
 
 # Serve a static path
