@@ -99,7 +99,7 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
   def get_mime(file) =
     list.hd(default="",get_process_lines("file -b -I #{quote(file)}"))
   end
-
+  ignore(get_mime)
 %ifdef file.mime
   get_mime = file.mime
 %endif
