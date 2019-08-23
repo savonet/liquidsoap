@@ -43,6 +43,7 @@ New:
 - Added `metadata.string_getter` and `metadata.float_getter`.
 - Added `string.contaings`.
 - Added `request.uri`.
+- Added `{input,output}.srt` (#898)
 
 Changed:
 
