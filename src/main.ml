@@ -522,7 +522,7 @@ struct
     log#important "Liquidsoap %s" Configure.version ;
     log#important "Using:%s" Configure.libs_versions ;
     if Configure.git_snapshot then
-      List.iter (log#severe "%s")
+      List.iter (log#important "%s")
         ["";
          "DISCLAIMER: This version of Liquidsoap has been";
          "compiled from a snapshot of the development code.";
