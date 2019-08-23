@@ -115,7 +115,7 @@ let () =
     Utils.escape ~special_char ~escape_char f s
   in
   register_escape_fun ~name:"string.escape"
-                      ~descr:"Escape special charaters in a \
+                      ~descr:"Escape special characters in a \
                               string. String is parsed char by char. \
                               See `string.utf8.escape` for an UTF8-aware \
                               parsing function."
