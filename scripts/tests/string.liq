@@ -1,3 +1,5 @@
+#!/usr/bin/env liquidsoap
+
 %include "test.liq"
 
 success = ref(true)
@@ -19,6 +21,13 @@ test(string.match(pattern=".*ab.*","cccabc"), true)
 test(string.match(pattern=".*ab.*","cccbac"), false)
 test(string.trim("    abc  "), "abc")
 test(string.sub("abcd",start=1,length=2), "bc")
+test(string.sub("ab",start=0,length=10), "")
+test(string.sub("ab",start=10,length=5), "")
+test(string.contains(prefix="ab","abcd"), true)
+test(string.contains(prefix="ba","abcd"), false)
+test(string.contains(prefix="abcd","ab"), false)
+test(string.contains(suffix="cd","abcd"), true)
+test(string.contains(suffix="dc","abcd"), false)
 test(string.contains(substring="bc","abcd"), true)
 test(string.contains(substring="bc","acbd"), false)
 
