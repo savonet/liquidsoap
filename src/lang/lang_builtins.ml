@@ -649,7 +649,8 @@ let () =
                  Lang.string v
              end) ;
 
-  add_builtin "argv" ~cat:Sys ~descr:"Get command-line parameters."
+  add_builtin "argv" ~cat:Sys
+    ~descr:"Get command-line parameters. The parameters are numbered starting from 1, the zeroth parameter being the script name."
     ["default",Lang.string_t,Some (Lang.string ""),None;
      "",Lang.int_t,None,None]
     Lang.string_t
