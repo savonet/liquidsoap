@@ -61,22 +61,22 @@ def process_protocol(~rlog,~maxtime,arg)
                  ("output",quote(output)),
                  ("colon",":")]
 
-    log(level=4,"Executing #{cmd}")
+    log.info("Executing #{cmd}")
 
     env_vars = get(default=[],"protocol.process.env")
     env = environment()
-    def get_env(k) =
-      (k,env[k])
-    end
+    def get_env(k) = (k,env[k]) end
     env = list.map(get_env,env_vars)
     inherit_env = get(default=true,"protocol.process.inherit_env")
 
     delay = maxtime - gettimeofday()
-    let (_,_,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
+    let (stdout,stderr,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
     if status == ("exit","0") then
       [output]
     else
-      log(level=3,"Failed to execute #{cmd}: #{status}")
+      log.important("Failed to execute #{cmd}: #{status}")
+      log.info("Standard output:\n#{stdout}")
+      log.info("Error output:\n#{stderr}")
       []
     end
   end
