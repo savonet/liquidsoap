@@ -53,7 +53,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
     files =
       if file.is_directory(!playlist_uri) then
         log(label=id,"playlist is a directory.")
-        get_process_lines("find #{quote(!playlist_uri)} -type f | sort")
+        get_process_lines("find #{string.quote(!playlist_uri)} -type f | sort")
       else
         playlist = request.create.raw(!playlist_uri)
         result =
