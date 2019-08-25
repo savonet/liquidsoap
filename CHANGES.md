@@ -41,7 +41,7 @@ New:
 - Added `for` and `while` loop functions.
 - Added `list.case`.
 - Added `metadata.string_getter` and `metadata.float_getter`.
-- Added `string.contaings`.
+- Added `string.contains`.
 - Added `request.uri`.
 - Added `{input,output}.srt` (#898)
 - Added `path.remove_extension`.
