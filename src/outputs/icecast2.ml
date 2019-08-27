@@ -105,7 +105,7 @@ struct
         | Encoder.AVI m ->
             { quality = None ;
               bitrate = None ;
-              samplerate = Some m.Avi_format.samplerate ;
+              samplerate = Some (Lazy.force m.Avi_format.samplerate) ;
               channels = Some m.Avi_format.channels
             }
         | Encoder.Ogg o ->
