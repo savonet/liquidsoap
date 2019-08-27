@@ -95,7 +95,7 @@ end
 # @category List
 # @flag hidden
 def rec list.snoc(y, l)
-  list.case(l, y, fun (x, l) -> list.cons(x, list.snoc(y, l)))
+  list.case(l, list.cons(y, []), fun (x, l) -> list.cons(x, list.snoc(y, l)))
 end
 
 # Revert list order.
