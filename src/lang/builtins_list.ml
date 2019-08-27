@@ -49,15 +49,15 @@ let () =
     ~category:(string_of_category List)
     ~descr:"Define a function by case analysis, depending on whether a list is empty or not."
     [
+      "", (Lang.list_t a), None, Some "List to perform case analysis on.";
       "", b, None, Some "Result when the list is empty.";
       "", Lang.fun_t [false, "", a; false, "", Lang.list_t a] b, None, Some "Result when the list it non-empty.";
-      "", (Lang.list_t a), None, Some "List to perform case analysis on."
     ]
     b
     (fun p b ->
-      let e,f,l =
+      let l,e,f =
         match p with
-        | ["",e; "",f; "",l] -> e,f,l
+        | ["",l; "",e; "",f] -> e,f,l
         | _ -> assert false
       in
       let a = Lang.of_list_t l.Lang.t in
