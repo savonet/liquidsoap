@@ -33,11 +33,15 @@ let open_process cmd env =
   {stdin;stdout;stderr}
 
 let close_process {stdout;stdin;stderr} =
-  Unix.close_process_full (stdout,stdin,stderr)
+  try
+    Unix.close_process_full (stdout,stdin,stderr)
+  with Unix.Unix_error (Unix.ECHILD, _, _) -> Unix.WEXITED 0
 
 let wait {stdout;stdin;stderr} =
   let pid = Unix.process_full_pid (stdout,stdin,stderr) in
-  Unix.waitpid [] pid
+  try
+    Unix.waitpid [] pid
+  with Unix.Unix_error (Unix.ECHILD, _, _) -> pid, (Unix.WEXITED 0)
 
 type _t = {
   in_pipe:  Unix.file_descr;

@@ -115,7 +115,7 @@ let () =
     Utils.escape ~special_char ~escape_char f s
   in
   register_escape_fun ~name:"string.escape"
-                      ~descr:"Escape special charaters in a \
+                      ~descr:"Escape special characters in a \
                               string. String is parsed char by char. \
                               See `string.utf8.escape` for an UTF8-aware \
                               parsing function."
@@ -186,10 +186,9 @@ let () =
 
 let () =
   add_builtin "string.match" ~cat:String
-    ~descr:"Match a string with an expression. \n\
-            Perl compatible regular expressions \
-            are recognized. Hence, special characters \
-            should be escaped."
+    ~descr:"Match a string with an expression. Perl compatible regular \
+            expressions are recognized. Hence, special characters should be \
+            escaped."
     [ "pattern", Lang.string_t, None, None ;
       "", Lang.string_t, None, None ]
     Lang.bool_t
@@ -202,8 +201,7 @@ let () =
 
 let () =
   add_builtin "string.recode" ~cat:String
-    ~descr:"Convert a string. Effective only if Camomile \
-            is enabled."
+    ~descr:"Convert a string. Effective only if Camomile is enabled."
     [ "in_enc", Lang.string_t, Some (Lang.string ""),
       Some "Input encoding. Autodetected if empty." ;
       "out_enc", Lang.string_t, Some (Lang.string "UTF-8"),
@@ -385,7 +383,7 @@ let () =
         (Utils.interpolate (fun k -> List.assoc k l) s))
 
 let () =
-  add_builtin "quote" ~cat:String ~descr:"Escape shell metacharacters."
+  add_builtin "string.quote" ~cat:String ~descr:"Escape shell metacharacters."
     ["",Lang.string_t,None,None] Lang.string_t
     (fun p ->
        let s = Lang.to_string (List.assoc "" p) in

@@ -522,7 +522,7 @@ struct
     log#important "Liquidsoap %s" Configure.version ;
     log#important "Using:%s" Configure.libs_versions ;
     if Configure.git_snapshot then
-      List.iter (log#severe "%s")
+      List.iter (log#important "%s")
         ["";
          "DISCLAIMER: This version of Liquidsoap has been";
          "compiled from a snapshot of the development code.";
@@ -536,7 +536,7 @@ struct
          "If you are interested in collaborating to";
          "the development of Liquidsoap, feel free to";
          "drop us a mail at <savonet-devl@lists.sf.net>";
-         "or to join the #savonet IRC channel on Freenode.";
+         "or to join the slack chat at <http://slack.liquidsoap.info>.";
          "";
          "Please send any bug report or feature request";
          "at <https://github.com/savonet/liquidsoap/issues>.";

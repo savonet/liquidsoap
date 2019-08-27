@@ -134,7 +134,9 @@ if test -z `which pkg-config 2>/dev/null` ; then
 fi
 
 dnl The following does not correctly uses prefix
-PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir='${sysconfdir}/bash_completion.d')
+dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
+AS_IF([test -z "$bashcompdir"], [bashcompdir='${sysconfdir}/bash_completion.d'])
 AC_SUBST(bashcompdir)
 
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
@@ -208,7 +210,7 @@ fi
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
-  liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+  liquidsoap_ocamlcflags="-g -annot -bin-annot $liquidsoap_ocamlcflags"
   liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
 fi
 # Disable nativecode if ocamlopt is not present
@@ -794,6 +796,22 @@ AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
 AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
+
+# TODO: switch to dune all the way?
+with_srt_types_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/types"
+AC_CHECK_OCAML_BINDING([srt.types],[0.1.0],[],[],[],[srt_types])
+
+with_srt_stubs_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs"
+AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[srt.types],[],[],[srt_stubs])
+
+with_srt_stubs_locked_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs/locked"
+AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[],[],[],[srt_stubs_locked])
+
+AC_CHECK_OCAML_BINDING([srt],[0.1.0],[srt.types srt.stubs srt.stubs.locked])
+
 AC_CHECK_OCAML_BINDING([lo],[0.1.2])
 AC_CHECK_OCAML_BINDING([gd])
 
@@ -991,6 +1009,7 @@ cat <<EOMSG
    - OSS               : $w_OSS
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
+   - SRT               : $w_SRT
 
  * Audio manipulation
    - LADSPA            : $w_LADSPA
@@ -1113,6 +1132,7 @@ variables {
   yojson-enabled: $b_YOJSON
   ssl-enabled: $b_SSL
   secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  srt-enabled: $b_SRT
   winscv-enabled: $b_WINSVC
 }
 EOCFG

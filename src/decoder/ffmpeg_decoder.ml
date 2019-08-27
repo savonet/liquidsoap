@@ -33,7 +33,7 @@ let mime_types =
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
     "File extensions used for decoding with ffmpeg"
-    ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma"] (* Test *)
+    ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma";"osb"]
 
 module ConverterInput = FFmpeg.Swresample.Make(FFmpeg.Swresample.Frame)
 module Converter = ConverterInput(FFmpeg.Swresample.PlanarFloatArray)
@@ -112,15 +112,21 @@ let create_decoder fname =
     try
       FFmpeg.Av.seek stream `Millisecond position [||];
       ticks
-    with Failure _ -> 0
+    with FFmpeg.Avutil.Error _ -> 0
+  in
+  let rec read_frame () =
+    try FFmpeg.Av.read_frame stream with
+      | FFmpeg.Avutil.Error `Invalid_data ->
+         read_frame ()
   in
   let decode gen =
-    match FFmpeg.Av.read_frame stream with
-      | `Frame frame ->
-          let content = convert frame in
-          G.set_mode gen `Audio ;
-          G.put_audio gen content 0 (Array.length content.(0))
-      | `End_of_file -> 
+    try
+      let frame = read_frame () in
+      let content = convert frame in
+      G.set_mode gen `Audio ;
+      G.put_audio gen content 0 (Array.length content.(0))
+    with
+      | FFmpeg.Avutil.Error `Eof -> 
           G.add_break gen;
           raise End_of_file
   in
@@ -254,17 +260,23 @@ let create_decoder input =
     try
       FFmpeg.Av.seek stream `Millisecond position [||];
       ticks
-    with Failure _ -> 0
+    with FFmpeg.Avutil.Error _ -> 0
+  in
+  let rec read_frame () =
+    try FFmpeg.Av.read_frame stream with
+      | FFmpeg.Avutil.Error `Invalid_data ->
+         read_frame ()
   in
   let decode gen =
-    match FFmpeg.Av.read_frame stream with
-      | `Frame frame ->
-          let content =
-            Converter.convert converter frame
-          in
-          Generator.set_mode gen `Audio ;
-          Generator.put_audio gen content 0 (Array.length content.(0))
-      | `End_of_file ->
+    try
+      let frame = read_frame () in
+      let content =
+        Converter.convert converter frame
+      in
+      Generator.set_mode gen `Audio ;
+      Generator.put_audio gen content 0 (Array.length content.(0))
+    with
+      | FFmpeg.Avutil.Error `Eof ->
           Generator.add_break gen;
           raise End_of_file
   in

@@ -122,11 +122,14 @@ object (self)
   method private get_frame buf =
     source#get buf ;
     if Frame.is_partial buf && source#is_ready then
-      let pos = Frame.position buf in
-        self#log#info "End of track: merging." ;
-        self#get_frame buf ;
-        Frame.set_breaks buf
-          (Utils.remove_one ((=) pos) (Frame.breaks buf))
+     begin
+      self#log#info "End of track: merging." ;
+      self#get_frame buf ;
+      Frame.set_breaks buf
+        (match Frame.breaks buf with
+           | b::_::l -> b::l
+           | _ -> assert false)
+     end
 
 end
 

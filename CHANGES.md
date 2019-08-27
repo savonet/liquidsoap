@@ -41,6 +41,10 @@ New:
 - Added `for` and `while` loop functions.
 - Added `list.case`.
 - Added `metadata.string_getter` and `metadata.float_getter`.
+- Added `string.contains`.
+- Added `request.uri`.
+- Added `{input,output}.srt` (#898)
+- Added `path.remove_extension`.
 
 Changed:
 
@@ -102,6 +106,7 @@ Changed:
   protocol. Rename protocol to `ffmpeg`. (#909)
 - `list.assoc` and `list.remove_assoc` require an ordered type as first
   component.
+- Renamed `quote` to `string.quote`.
 
 Fixed:
 
@@ -127,6 +132,7 @@ Fixed:
 - Fixed audio glitches at the end of crossfade transitions.
 - Specify that `list.remove` removes only the first occurrence and avoid
   reversing the list (#922).
+- File descriptor leak when using openssl-based operators.
 
 1.3.7 (09-04-2019)
 =====

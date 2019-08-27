@@ -57,26 +57,26 @@ def process_protocol(~rlog,~maxtime,arg)
   output = file.temp("liq-process", ".#{extname}")
 
   def resolve(input) =
-    cmd = cmd % [("input",quote(input)),
-                 ("output",quote(output)),
+    cmd = cmd % [("input",string.quote(input)),
+                 ("output",string.quote(output)),
                  ("colon",":")]
 
-    log(level=4,"Executing #{cmd}")
+    log.info("Executing #{cmd}")
 
     env_vars = get(default=[],"protocol.process.env")
     env = environment()
-    def get_env(k) =
-      (k,env[k])
-    end
+    def get_env(k) = (k,env[k]) end
     env = list.map(get_env,env_vars)
     inherit_env = get(default=true,"protocol.process.inherit_env")
 
     delay = maxtime - gettimeofday()
-    let (_,_,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
+    let (stdout,stderr,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
     if status == ("exit","0") then
       [output]
     else
-      log(level=3,"Failed to execute #{cmd}: #{status}")
+      log.important("Failed to execute #{cmd}: #{status}")
+      log.info("Standard output:\n#{stdout}")
+      log.info("Error output:\n#{stderr}")
       []
     end
   end
@@ -146,7 +146,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
 
   # First define using curl.
   def get_mime() =
-    cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+    cmd = "#{curl} -sLI -X HEAD #{string.quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
     log(level=4,"Running #{cmd}")
     ret = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
     let (stdout,_,(status,code)) = ret
@@ -213,7 +213,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
       log(level=3,"No known file extension for mime: #{mime}")
       "osb"
     end
-  [process_uri(extname=extname,"#{curl} -sL #{quote(uri)} -o $(output)")]
+  [process_uri(extname=extname,"#{curl} -sL #{string.quote(uri)} -o $(output)")]
 end
 
 # Register download protocol
@@ -242,7 +242,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   end
 
   delay = maxtime - gettimeofday()
-  cmd = "#{binary} --get-title --get-filename -- #{quote(arg)}"
+  cmd = "#{binary} --get-title --get-filename -- #{string.quote(arg)}"
   log(level=4,"Executing #{cmd}")
   x = get_process_lines(timeout=delay,cmd)
 
@@ -256,11 +256,11 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   title = list.hd(default="",x)
   ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
-  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{quote(arg)}"
+  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{string.quote(arg)}"
   process = process_uri(extname=ext,cmd)
 
   if title != "" then
-    ["annotate:title=#{quote(title)}:#{process}"]
+    ["annotate:title=#{string.quote(title)}:#{process}"]
   else
     [process]
   end
@@ -314,7 +314,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   def annotate(m) =
     def f(x) =
       let (key,value) = x
-      "#{key}=#{quote(value)}"
+      "#{key}=#{string.quote(value)}"
     end
     m = string.concat(separator=",",list.map(f,m))
     if string.length(m) > 0 then
@@ -325,7 +325,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   end
 
   def parse_metadata(file) =
-    cmd = "#{ffmpeg} -i #{quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
+    cmd = "#{ffmpeg} -i #{string.quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
     delay = maxtime - gettimeofday()
     log(level=4,"Executing #{cmd}")
     lines = get_process_lines(timeout=delay,cmd)
@@ -466,7 +466,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     fades = fades(r)
     replaygain_filter = replaygain_filter(filename)
 
-    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{cue_points} #{fades} #{replaygain_filter} #{quote(wav)}"
+    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{cue_points} #{fades} #{replaygain_filter} #{string.quote(wav)}"
 
     uri = process_uri(extname="wav",uri=filename,cmd)
 
@@ -495,7 +495,7 @@ register(name="Text2wave path","protocol.text2wave.path","text2wave")
 # @flag hidden
 def text2wave_protocol(~rlog,~maxtime,arg) =
   binary = get(default="text2wave","protocol.text2wave.path")
-  [process_uri(extname="wav","echo #{quote(arg)} | #{binary} -scale 1.9 > $(output)")]
+  [process_uri(extname="wav","echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
@@ -547,7 +547,7 @@ def aws_base() =
 
   aws =
     if endpoint !="" then
-      "#{aws} --endpoint-url #{quote(endpoint)}"
+      "#{aws} --endpoint-url #{string.quote(endpoint)}"
     else
       aws
     end
@@ -555,7 +555,7 @@ def aws_base() =
   profile = get(default="","protocol.aws.profile")
 
   if profile !="" then
-    "#{aws} --profile #{quote(profile)}"
+    "#{aws} --profile #{string.quote(profile)}"
   else
     aws
   end
@@ -591,7 +591,7 @@ def polly_protocol(~rlog,~maxtime,text) =
 
   voice_id = get(default="Joanna","protocol.aws.polly.voice")
 
-  cmd = "#{aws} --text #{quote(text)} --voice-id #{quote(voice_id)} $(output)"
+  cmd = "#{aws} --text #{string.quote(text)} --voice-id #{string.quote(voice_id)} $(output)"
 
   [process_uri(extname=extname,cmd)]
 end

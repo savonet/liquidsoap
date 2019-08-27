@@ -30,7 +30,7 @@ def enable_external_ffmpeg_decoder() =
   mime_types = get(default=[],"decoder.mime_types.ffmpeg")
 
   def ffprobe_test(fname) =
-    json = get_process_output("#{ffprobe} -print_format json -show_streams #{quote(fname)}")
+    json = get_process_output("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
     default = [("streams",[[("channels",0)]])]
     data = of_json(default=default,json)
     streams = list.assoc(default=[],"streams",data)
@@ -71,7 +71,7 @@ def enable_external_mpc_decoder() =
     def get_channels(file) =
       int_of_string(
         list.hd(default="",
-          get_process_lines("#{mpcdec} -i #{quote(file)} 2>&1 \
+          get_process_lines("#{mpcdec} -i #{string.quote(file)} 2>&1 \
                              | grep channels | cut -d' ' -f 2")))
     end
     # Get the file's mime
@@ -97,7 +97,7 @@ def enable_external_mpc_decoder() =
 
   if which(mpcdec) != "" then
     log(label="external.decoder","Enabling MPCDEC external decoder.")
-    mpcdec_p = fun(f) -> "#{mpcdec} #{quote(f)} -"
+    mpcdec_p = fun(f) -> "#{mpcdec} #{string.quote(f)} -"
     add_oblivious_decoder(name="MPCDEC",description="Decode files using the mpcdec \
                 musepack decoder binary",test=test_mpc,mpcdec_p)
   else
@@ -131,7 +131,7 @@ def enable_external_flac_decoder() =
       if which(metaflac) != "" then
         channels = list.hd(default="",
                            get_process_lines("#{metaflac} \
-                                              --show-channels #{quote(file)}"))
+                                              --show-channels #{string.quote(file)}"))
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
@@ -156,7 +156,7 @@ def enable_external_flac_decoder() =
                 resolver.")
     def flac_meta(file)
       ret = get_process_lines("#{metaflac} --export-tags-to=- \
-                   #{quote(file)}")
+                   #{string.quote(file)}")
       ret = list.map(string.split(separator="="),ret)
       # Could be made better..
       def f(l',l)=
@@ -224,11 +224,11 @@ def enable_external_faad_decoder() =
   if which(faad) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FAAD decoder and \
                  metadata resolver.")
-    faad_p = (fun (f) -> "#{faad} -w #{quote(f)}")
+    faad_p = (fun (f) -> "#{faad} -w #{string.quote(f)}")
     def test_faad(file) =
       if faad_test(file) then
         channels = list.hd(default="",
-                           get_process_lines("#{faad} -i #{quote(file)} 2>&1 | \
+                           get_process_lines("#{faad} -i #{string.quote(file)} 2>&1 | \
                                               grep 'ch,'"))
         ret = string.extract(pattern=", (\\d) ch,",channels)
         ret =
@@ -249,7 +249,7 @@ def enable_external_faad_decoder() =
     def faad_meta(file) =
       if faad_test(file) then
         ret = get_process_lines("#{faad} -i \
-                     #{quote(file)} 2>&1")
+                     #{string.quote(file)} 2>&1")
         # Yea, this is ugly programming (again)!
         def get_meta(l,s)=
           ret = string.extract(pattern="^(\\w+):\\s(.+)$",s)
@@ -292,10 +292,10 @@ def osd_metadata(~color="green",~position="top",
         ~font="-*-courier-*-r-*-*-*-240-*-*-*-*-*-*",
         ~display=string_of_metadata,
         s)
-  osd = 'osd_cat -p #{position} --font #{quote(font)}'
+  osd = 'osd_cat -p #{position} --font #{string.quote(font)}'
       ^ ' --color #{color}'
   def feedback(m)
-    system("echo #{quote(display(m))} | #{osd} &")
+    system("echo #{string.quote(display(m))} | #{osd} &")
   end
   on_metadata(feedback,s)
 end
@@ -311,8 +311,8 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
            ~display=string_of_metadata,
            ~title="Liquidsoap: new track",s)
   send = 'notify-send -i #{icon} -u #{urgency}'
-       ^ ' -t #{time} #{quote(title)} '
-  on_metadata(fun (m) -> system(send^quote(display(m))),s)
+       ^ ' -t #{time} #{string.quote(title)} '
+  on_metadata(fun (m) -> system(send^string.quote(display(m))),s)
 end
 
 %ifdef input.external.wav
@@ -333,6 +333,6 @@ def input.mplayer(~id="input.mplayer",
                      "mplayer -really-quiet \
                        -af resample=#{audio.samplerate()},channels=#{audio.channels()} \
                        -ao pcm:file=/dev/stdout \
-                       -vc null -vo null #{quote(s)} 2>/dev/null")
+                       -vc null -vo null #{string.quote(s)} 2>/dev/null")
 end
 %endif

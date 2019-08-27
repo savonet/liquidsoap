@@ -33,4 +33,4 @@ exception Error
 (** Raise errors for warnings. *)
 val strict : bool ref
 
-val report : Sedlexing_compat.lexbuf -> (unit -> unit) -> unit
+val report : Sedlexing.lexbuf -> (unit -> unit) -> unit
