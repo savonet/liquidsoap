@@ -47,6 +47,14 @@ exception Error
 
 let strict = ref false
 
+(** Show error stacktraces. *)
+let debug_errors =
+  try
+    ignore (Sys.getenv "LIQUIDSOAP_DEBUG_ERRORS");
+    true
+  with
+    | Not_found -> false
+
 let report lexbuf f =
   let print_error idx error =
     flush_all () ;
@@ -63,6 +71,7 @@ let report lexbuf f =
     error_header idx pos;
     Format.printf "%s\n@]@." error
   in
+    if debug_errors then f () else
     try f () with
     (* Warnings *)
       | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
