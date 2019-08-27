@@ -472,7 +472,17 @@ struct
   let tm_map_types = map_types
 
   (** Map a function on all types occurring in a value. *)
-  let rec map_types f gen v = match v.value with
+  let rec map_types seen f gen v =
+    (* We record all seen terms in seen in order to avoid looping on recursive
+       functions, which make terms which are present in their own
+       environment. *)
+    let map_types = map_types (v::seen) in
+    (* In the case we have already seen this term, we don't map to avoid
+       looping. This is a hack but this situation never occurs with
+       non-recursive functions, and even for recursive ones it should be
+       ok... *)
+    if List.memq v seen then v else
+    match v.value with
     | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
         { v with t = f gen v.t }
     | Tuple l ->
@@ -490,9 +500,7 @@ struct
             value = 
               Fun (List.map aux p,
                    map_env (map_types f gen) applied,
-                   (* TODO: map_types loops infinitely in presence of recursive functions, I had to disable this... *)
-                   (* map_env (map_types f gen) env, *)
-                   env,
+                   map_env (map_types f gen) env,
                    tm_map_types f gen tm) }
     | FFI (p,applied,ffi) ->
         let aux = function
@@ -517,6 +525,7 @@ struct
         assert (f gen v.t = v.t) ;
         r := map_types f gen !r ;
         v
+  let map_types = map_types []
 
 end
 
