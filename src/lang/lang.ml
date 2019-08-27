@@ -451,18 +451,12 @@ let iter_sources f v =
     | Term.App (a,l) ->
         iter_term env a ;
         List.iter (fun (_,v) -> iter_term env v) l
-    | Term.Fun (_,proto,body) ->
+    | Term.Fun (_,proto,body)
+    | Term.RFun (_,_,proto,body) ->
         iter_term env body ;
         List.iter (fun (_,_,_,v) -> match v with
                      | Some v -> iter_term env v
                      | None -> ()) proto
-    | Term.RFun (fv,proto,fn) ->
-        begin
-          match (fn()).Term.term with
-            | Term.Let {Term.body=body} ->
-                iter_term env {v with Term.term = Term.Fun (fv,proto,body)}
-            | _ -> assert false
-        end
 
   and iter_value v = match v.value with
     | Source s -> f s
