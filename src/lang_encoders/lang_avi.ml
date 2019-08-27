@@ -27,8 +27,10 @@ let make params =
   let defaults =
     {
       Avi_format.
-      channels = Lazy.force Frame.audio_channels;
-      samplerate = Lazy.force Frame.audio_rate
+      (* We use a hardcoded value in order not to force the evaluation of the
+         number of channels too early, see #933. *)
+      channels = 2;
+      samplerate = Frame.audio_rate
     }
   in
   let avi =
@@ -38,7 +40,7 @@ let make params =
           | ("channels",{ term = Int c; _ }) ->
               { f with Avi_format.channels = c }
           | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
+              { f with Avi_format.samplerate = Lazy.from_val i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
