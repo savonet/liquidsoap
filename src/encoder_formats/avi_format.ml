@@ -22,15 +22,11 @@
 
 type t =
   {
-    (* Samplerate is lazy in order to avoid forcing the evaluation of the
-       samplerate at typing time, see #933. For channels this is pointless since
-       we really need that for typing. *)
-    samplerate : int Lazy.t;
+    samplerate : int;
     channels : int;
   }
 
 let to_string w =
-  let samplerate = Lazy.force w.samplerate in
   Printf.sprintf
     "%%avi(samplerate=%d,channels=%d)"
-    samplerate w.channels
+    w.samplerate w.channels
