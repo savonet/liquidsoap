@@ -122,7 +122,7 @@ struct
     let create_encoder mp3 =
       let enc = Lame.create_encoder () in
       (* Input settings *)
-      Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate) ;
+      Lame.set_out_samplerate enc (Lazy.force mp3.Mp3_format.samplerate) ;
       Lame.set_num_channels enc (if mp3.Mp3_format.stereo then 2 else 1) ;
       (* Internal quality *)
       Lame.set_quality enc mp3.Mp3_format.internal_quality ;
@@ -156,7 +156,6 @@ struct
                       Lame.set_vbr_max_bitrate enc br
                   | None -> ()) ;
       end;
-      Lame.set_out_samplerate enc mp3.Mp3_format.samplerate ;
       Lame.init_params enc;
       enc
     in

@@ -84,7 +84,7 @@ struct
     let params = [
       `Aot params.Fdkaac_format.aot;
       `Bandwidth bandwidth;
-      `Samplerate params.Fdkaac_format.samplerate;
+      `Samplerate (Lazy.force params.Fdkaac_format.samplerate);
       `Transmux params.Fdkaac_format.transmux;
       `Afterburner params.Fdkaac_format.afterburner;
     ] @ (
@@ -102,7 +102,7 @@ struct
   let encoder aac =
     let enc = create_encoder aac in
     let channels = aac.Fdkaac_format.channels in
-    let samplerate = aac.Fdkaac_format.samplerate in
+    let samplerate = (Lazy.force aac.Fdkaac_format.samplerate) in
     let samplerate_converter =
       Audio_converter.Samplerate.create channels
     in
