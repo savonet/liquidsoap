@@ -108,6 +108,7 @@ Changed:
 - `list.assoc` and `list.remove_assoc` require an ordered type as first
   component.
 - Renamed `quote` to `string.quote`.
+- Added `phase_inversion={true/false}` to `%opus` encoder (#937)
 
 Fixed:
 
