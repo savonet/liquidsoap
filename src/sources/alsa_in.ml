@@ -79,7 +79,7 @@ object (self)
     match device with
       | Some d -> d
       | None ->
-          self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
+          self#log#info "Using ALSA %s." (Alsa.get_version ()) ;
           let dev = Pcm.open_pcm alsa_device [Pcm.Capture] [] in
           let params = Pcm.get_params dev in
           begin try
@@ -98,8 +98,12 @@ object (self)
                      Audio.S16LE.to_audio sbuf 0 buf ofs r;
                      r)
           end ;
-          sample_freq <-
-            Pcm.set_rate_near dev params sample_freq Dir_eq; (* TODO: resample *)
+          sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq;
+          (* TODO: resample *)
+          if sample_freq <> Lazy.force Frame.audio_rate then
+            self#log#important "Got a sampling frequency of %d instead of %d \
+                                (TODO: should be resampled in the future)."
+              sample_freq (Lazy.force Frame.audio_rate);
           Pcm.set_channels dev params buffer_chans ;
           Pcm.set_params dev params ;
           Pcm.prepare dev ;
@@ -121,8 +125,8 @@ object (self)
         begin
          match e with
            | Buffer_xrun ->
-               self#log#severe "Overrun!"
-             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+               self#log#important "Overrun!"
+           | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end ;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then
          begin
