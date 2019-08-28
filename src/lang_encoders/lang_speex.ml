@@ -26,9 +26,9 @@ open Lang_encoders
 let make params =
   let defaults =
     { Speex_format.
-        stereo = (Lazy.force Frame.audio_channels = 2) ;
+        stereo = true ;
         fill = None ;
-        samplerate = Lazy.force Frame.audio_rate ;
+        samplerate = Frame.audio_rate;
         bitrate_control = Speex_format.Quality 7;
         mode = Speex_format.Narrowband ;
         frames_per_packet = 1 ;
@@ -46,7 +46,7 @@ let make params =
           | ("mono",{ term = Bool b; _}) ->
               { f with Speex_format.stereo = not b }
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Speex_format.samplerate = i }
+              { f with Speex_format.samplerate = Lazy.from_val i }
           | ("abr",{ term = Int i; _}) ->
               { f with Speex_format.
                         bitrate_control =

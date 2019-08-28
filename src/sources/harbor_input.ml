@@ -26,7 +26,6 @@ module Generated = Generated.Make(Generator)
 module type T =
 sig
   include Harbor.T
-  val init : unit -> unit
   val source_name : string
   val source_description : string
 end
@@ -43,7 +42,6 @@ struct
      * the source has an id *)
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in
-    let () = Harbor.init () in
     let abg =
       Generator.create 
         ~log ~kind
@@ -56,11 +54,6 @@ struct
     inherit Generated.source abg
       ~empty_on_abort:false ~replay_meta ~bufferize
 
-    initializer
-      self#register_command "buffer_length"
-        ~descr:"Show internal buffer length (in seconds)."
-        (fun _ -> Printf.sprintf "%.02f" (Frame.seconds_of_master (Generator.length abg)))
-  
     val mutable relay_socket = None
     (** Function to read on socket. *)
     val mutable relay_read = (fun _ _ -> assert false)
@@ -475,7 +468,6 @@ end
 module Unix_input =
 struct
   include Harbor
-  let init () = ()
   let source_name = "input.harbor"
   let source_description = "Create a source that receives a http/icecast stream \
     and forwards it as a stream."

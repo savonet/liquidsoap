@@ -156,7 +156,7 @@ struct
                       Lame.set_vbr_max_bitrate enc br
                   | None -> ()) ;
       end;
-      Lame.set_out_samplerate enc mp3.Mp3_format.samplerate ;
+      Lame.set_out_samplerate enc (Lazy.force mp3.Mp3_format.samplerate) ;
       Lame.init_params enc;
       enc
     in

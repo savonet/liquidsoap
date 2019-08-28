@@ -26,8 +26,10 @@ open Lang_encoders
 let make params =
   let defaults =
     { Shine_format.
-        channels = Lazy.force Frame.audio_channels ;
-        samplerate = Lazy.force Frame.audio_rate ;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
+        channels = 2;
+        samplerate = Frame.audio_rate;
         bitrate = 128 }
   in
   let shine =
@@ -37,7 +39,7 @@ let make params =
           | ("channels",{ term = Int i; _}) ->
               { f with Shine_format.channels = i }
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Shine_format.samplerate = i }
+              { f with Shine_format.samplerate = Lazy.from_val i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Shine_format.bitrate = i }
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->

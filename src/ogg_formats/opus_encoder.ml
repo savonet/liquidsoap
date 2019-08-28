@@ -58,6 +58,7 @@ let create_encoder ~opus ~comments () =
            opus.Opus_format.max_bandwidth ;
          maybe (fun (v) -> `Set_signal v) opus.Opus_format.signal;
          Opus.Encoder.apply_control (`Set_dtx opus.Opus_format.dtx) x;
+         Opus.Encoder.apply_control (`Set_phase_inversion_disabled (not opus.Opus_format.phase_inversion)) x;
          enc := Some x ;
          x
   in

@@ -401,7 +401,7 @@ AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
 # Opus
 #
 
-AC_CHECK_OCAML_BINDING([opus],[0.1.1],[ogg])
+AC_CHECK_OCAML_BINDING([opus],[0.1.3],[ogg])
 
 #
 # Speex
