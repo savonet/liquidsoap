@@ -45,6 +45,7 @@ New:
 - Added `request.uri`.
 - Added `{input,output}.srt` (#898)
 - Added `path.remove_extension`.
+- Added SSL read/write timeout options, use it for incoming socket connections (#932)
 
 Changed:
 
@@ -133,6 +134,7 @@ Fixed:
 - Specify that `list.remove` removes only the first occurrence and avoid
   reversing the list (#922).
 - File descriptor leak when using openssl-based operators.
+- Fixed SSL read taking too long to timeout (#932)
 
 1.3.7 (09-04-2019)
 =====
