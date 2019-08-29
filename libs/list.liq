@@ -1,5 +1,3 @@
-list.cons = list.add
-
 # Return the head (first element) of a list, or `default` if the list is empty.
 # @category List
 # @param ~default Default value if key does not exist.
@@ -46,7 +44,7 @@ end
 # Map a function on every element of a list.
 # @category List
 def rec list.map(f, l)
-  list.case(l, [], fun (x, l) -> list.cons(f(x), list.map(f, l)))
+  list.case(l, [], fun (x, l) -> list.add(f(x), list.map(f, l)))
 end
 
 # Map a function on every element of a list, along with its index.
@@ -72,7 +70,7 @@ end
 # Filter a list according to a filtering function.
 # @category List
 def rec list.filter(p, l)
-  list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
+  list.case(l, [], fun (x, l) -> if p(x) then list.add(x, list.filter(p, l)) else list.filter(p, l) end)
 end
 
 # Remove the first occurrence of a value from a list.
@@ -80,7 +78,7 @@ end
 def list.remove(x, l)
   def rec aux(k, l)
     list.case(l, k([]),
-    fun (y, l) -> if x == y then k(l) else aux(fun (l) -> k(list.cons(y, l)), l) end)
+    fun (y, l) -> if x == y then k(l) else aux(fun (l) -> k(list.add(y, l)), l) end)
   end
   aux(fun (l) -> l, l)
 end
@@ -88,14 +86,14 @@ end
 # Concatenate two lists.
 # @category List
 def rec list.append(l, m)
-  list.case(l, m, fun (x, l) -> list.cons(x, list.append(l, m)))
+  list.case(l, m, fun (x, l) -> list.add(x, list.append(l, m)))
 end
 
 # Add a new last element to the list.
 # @category List
 # @flag hidden
 def rec list.snoc(y, l)
-  list.case(l, list.cons(y, []), fun (x, l) -> list.cons(x, list.snoc(y, l)))
+  list.case(l, list.add(y, []), fun (x, l) -> list.add(x, list.snoc(y, l)))
 end
 
 # Revert list order.
@@ -122,7 +120,7 @@ end
 def rec list.remove_assoc(key, l)
   def f(x, l)
     let (k, v) = x
-    if k == key then l else list.cons((k,v), list.remove_assoc(key, l)) end
+    if k == key then l else list.add((k,v), list.remove_assoc(key, l)) end
   end
   list.case(l, [], f)
 end
