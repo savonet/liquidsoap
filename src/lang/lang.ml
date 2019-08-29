@@ -647,11 +647,6 @@ let type_and_run ~lib ast =
        Term.check_unused ~lib ast ;
        ignore (Term.eval_toplevel ast))
 
-(** The Parsing module is not thread safe, it has global variables
-  * describing the current parsing state. Hence we need to do one
-  * parsing at a time. *)
-let parse_lock = Mutex.create ()
-
 let mk_expr ~pwd processor lexbuf =
   let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
   let tokenizer = Lang_pp.mk_tokenizer ~pwd lexbuf in
@@ -659,7 +654,7 @@ let mk_expr ~pwd processor lexbuf =
     let token,(startp,endp) = tokenizer () in
     token,startp,endp
   in
-  Tutils.mutexify parse_lock processor tokenizer
+  processor tokenizer
 
 let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in

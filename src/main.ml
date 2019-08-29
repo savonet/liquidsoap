@@ -388,6 +388,14 @@ let options = [
     Arg.Unit (fun () -> Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
     "Print debugging log messages." ;
 
+    ["--debug-errors"],
+    Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
+    "Debug errors (show stacktrace instead of printing a message)." ;
+
+    ["--debug-lang"],
+    Arg.Unit (fun () -> Lang_values.conf_debug#set true),
+    "Debug language implementation." ;
+
     ["--strict"],
     Arg.Set Lang_errors.strict,
     "Execute script code in strict mode, issuing fatal errors \

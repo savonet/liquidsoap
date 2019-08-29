@@ -63,6 +63,7 @@ let report lexbuf f =
     error_header idx pos;
     Format.printf "%s\n@]@." error
   in
+    if Lang_values.conf_debug_errors#get then f () else
     try f () with
     (* Warnings *)
       | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->

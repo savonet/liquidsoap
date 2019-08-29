@@ -28,13 +28,26 @@ exception Parse_error of ((Lexing.position*Lexing.position)*string)
 (** Unsupported format *)
 exception Unsupported_format of (Lexing.position*Lexing.position)
 
+let conf =
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "lang")
+    "Language configuration."
+
+let conf_debug =
+  Dtools.Conf.bool ~p:(conf#plug "debug") ~d:false
+    "Debug language features such as type inference and reduction."
+
+let conf_debug_errors =
+  Dtools.Conf.bool ~p:(conf#plug "debug_errors") ~d:false
+    "Debug errors by showing stacktraces instead of printing messages."
+
 (** Are we in debugging mode? *)
 let debug =
   try
     ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG");
     true
   with
-    | Not_found -> false
+    | Not_found -> conf_debug#get
 
 (** {2 Kinds} *)
 
