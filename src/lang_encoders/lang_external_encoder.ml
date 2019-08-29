@@ -26,8 +26,10 @@ open Lang_encoders
 let make params =
   let defaults =
     { External_encoder_format.
-        channels = Lazy.force Frame.audio_channels ;
-        samplerate = Lazy.force Frame.audio_rate ;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
+        channels = 2;
+        samplerate = Frame.audio_rate;
         video = false ;
         header  = true ;
         restart_on_crash = false ;
@@ -41,7 +43,7 @@ let make params =
           | ("channels",{ term = Int c; _}) ->
               { f with External_encoder_format.channels = c }
           | ("samplerate",{ term = Int i; _}) ->
-             { f with External_encoder_format.samplerate = i }
+             { f with External_encoder_format.samplerate = Lazy.from_val i }
           | ("video",{ term = Bool h; _}) ->
               { f with External_encoder_format.video = h }
           | ("header",{ term = Bool h; _}) ->

@@ -109,6 +109,7 @@ Changed:
   component.
 - Renamed `quote` to `string.quote`.
 - Added `phase_inversion={true/false}` to `%opus` encoder (#937)
+- Fixed encoders forcing frame rate and audio channels too early (#933)
 
 Fixed:
 
