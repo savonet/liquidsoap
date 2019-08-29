@@ -1,3 +1,5 @@
+#!../../src/liquidsoap ../../libs/list.liq
+
 %include "test.liq"
 
 success = ref(true)

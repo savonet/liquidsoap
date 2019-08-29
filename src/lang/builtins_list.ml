@@ -57,7 +57,7 @@ let () =
     (fun p b ->
       let l,e,f =
         match p with
-        | ["",l; "",e; "",f] -> e,f,l
+        | ["",l; "",e; "",f] -> l,e,f
         | _ -> assert false
       in
       let a = Lang.of_list_t l.Lang.t in
