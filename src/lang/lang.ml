@@ -329,7 +329,7 @@ let to_plugin_doc category flags main_doc proto return_t =
 
 let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
   let t = builtin_type proto return_t in
-  let f env t = f (List.map (fun (s,(l,v)) -> assert (l=[]) ; s,v) env) t in
+  let f env t = f (List.map (fun (s,(g,v)) -> assert (g=[]) ; s,v) env) t in
   let value =
     { t = t ;
       value = FFI (List.map (fun (lbl,_,opt,_) -> lbl,lbl,opt) proto,
@@ -447,7 +447,15 @@ let iter_sources f v =
         (* If it's locally bound it won't be in [env]. *)
         (* TODO since inner-bound variables don't mask outer ones in [env],
          *   we are actually checking values that may be out of reach. *)
-        begin try iter_value (snd (List.assoc v env)) with Not_found -> () end
+      begin
+        try
+          let gv = List.assoc v env in
+          if Lazy.is_val gv then
+            let _,v = Lazy.force gv in
+            iter_value v
+          else ()
+        with Not_found -> ()
+      end
     | Term.App (a,l) ->
         iter_term env a ;
         List.iter (fun (_,v) -> iter_term env v) l
