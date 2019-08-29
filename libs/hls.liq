@@ -92,7 +92,7 @@ end
 def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
                            ~playlist,~segment_name,~segment_duration,
                            ~segments,~segments_per_playlist,
-                           ~start,~port,~path,serve,formats,s)
+                           ~on_file_change,~start,~port,~path,serve,formats,s)
   tmp_dir = file.temp_dir("hls","")
 
   def content_type(file) =
@@ -116,7 +116,7 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
 
   output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                   playlist=playlist,start=start,segment_name=segment_name,
-                  segment_duration=segment_duration,segments=segments,
+                  segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
                   segments_per_playlist=segments_per_playlist,tmp_dir,formats,s)
 end
 
@@ -124,6 +124,7 @@ end
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_file_change Callback executed when a file changes. `state` is one of: `"opened"`, `"closed"` or `"deleted"`, second argument is file path. Typical use: upload files to a CDN when done writting (`"close"` state and remove when `"deleted"`.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
@@ -139,13 +140,13 @@ end
 def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
                       ~segment_duration=10.,~segments=15,~segments_per_playlist=10,
                       ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
-                      ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",
+                      ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",~on_file_change=(fun (~state=_,_) -> ()),
                       ~headers=[("Access-Control-Allow-Origin","*")],formats,s)
   def serve(~port,~path,~content_type,dir) =
     harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
-                         segment_duration=segment_duration,segments=segments,
+                         segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
                          segments_per_playlist=segments_per_playlist,segment_name=segment_name,
                          start=start,port=port,path=path,playlist=playlist,
                          serve,formats,s)
@@ -156,6 +157,7 @@ end
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_file_change Callback executed when a file changes. `state` is one of: `"opened"`, `"closed"` or `"deleted"`, second argument is file path. Typical use: upload files to a CDN when done writting (`"close"` state and remove when `"deleted"`.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
@@ -172,7 +174,7 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                             ~segment_duration=10.,~segments=15,~segments_per_playlist=10,
                             ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                             ~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],
-                            ~start=true,~playlist="stream.m3u8",formats,s)
+                            ~on_file_change=(fun (~state=_,_) -> ()),~start=true,~playlist="stream.m3u8",formats,s)
   def serve(~port,~path,~content_type,dir) =
     harbor.https.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
@@ -180,6 +182,6 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                          segment_duration=segment_duration,segments=segments,
                          segments_per_playlist=segments_per_playlist,segment_name=segment_name,
                          start=start,port=port,path=path,playlist=playlist,
-                         serve,formats,s)
+                         on_file_change=on_file_change,serve,formats,s)
 end
 %endif
