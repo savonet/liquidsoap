@@ -68,6 +68,7 @@ struct
     function
       | Encoder.MP3 _ -> Some mpeg
       | Encoder.Shine _ -> Some mpeg
+      | Encoder.Ffmpeg _ -> None
       | Encoder.FdkAacEnc _ -> Some aac
       | Encoder.External _ -> None
       | Encoder.GStreamer _ -> None

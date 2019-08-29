@@ -96,6 +96,12 @@ struct
               samplerate = Some (Lazy.force m.Flac_format.samplerate) ;
               channels = Some m.Flac_format.channels
             }
+        | Encoder.Ffmpeg m ->
+            { quality    = None ;
+              bitrate    = m.Ffmpeg_format.bitrate ;
+              samplerate = Some (Lazy.force m.Ffmpeg_format.samplerate) ;
+              channels   = Some (m.Ffmpeg_format.channels)
+            }
         | Encoder.WAV m ->
             { quality = None ;
               bitrate = None ;

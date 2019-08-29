@@ -530,7 +530,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.3.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.3.1])
 
 #
 # Jack
@@ -988,6 +988,7 @@ cat <<EOMSG
 
  * Supported output formats
    - FDK-AAC           : $w_FDKAAC
+   - Ffmpeg            : $w_FFMPEG
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
    - Opus              : $w_OPUS
