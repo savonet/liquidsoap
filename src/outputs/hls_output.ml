@@ -232,7 +232,14 @@ class hls_output p =
   in
   let max_segments = Lang.to_int (List.assoc "segments" p) in
   let segments_per_playlist =
-    Lang.to_int (List.assoc "segments_per_playlist" p)
+    let s =
+      Lang.to_int (List.assoc "segments_per_playlist" p)
+    in
+    if max_segments < s then
+      raise (Lang_errors.Invalid_value
+        (Lang.assoc "segments" 1 p, "Not enough segments! segments should be \
+           greater or equal to segments_per_playlist!"));
+    s
   in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
   let kind = Encoder.kind_of_format (List.hd streams).hls_format in
