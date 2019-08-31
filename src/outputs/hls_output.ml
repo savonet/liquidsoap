@@ -69,6 +69,12 @@ let hls_proto kind =
      Some (Lang.int 10),
      Some "Number of segments per playlist.";
 
+     "encode_metadata",
+     Lang.bool_t,
+     Some (Lang.bool false),
+     Some "Insert metadata into encoded stream. Note: Some HLS players (in particular android native HLS player) \
+           expect a single mpegts stream. Encoding metadata will break that assumption.";
+
      "perm",
      Lang.int_t,
      Some (Lang.int 0o644),
@@ -135,6 +141,9 @@ class hls_output p =
   let on_start =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+  in
+  let encode_metadata =
+    Lang.to_bool (List.assoc "encode_metadata" p)
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
@@ -305,7 +314,8 @@ class hls_output p =
         | Some m -> m
         | None -> Meta_format.empty_metadata
       in
-      s.hls_encoder.Encoder.insert_metadata meta; 
+      if encode_metadata then
+        s.hls_encoder.Encoder.insert_metadata meta; 
       let fname =
         self#segment_name ~segment:current_segment s
       in
@@ -434,7 +444,12 @@ class hls_output p =
       self#new_segment
 
     method output_stop =
-      self#toggle_state `Stop
+      self#toggle_state `Stop;
+      let data = List.map (fun s ->
+          s.hls_encoder.Encoder.stop ()
+        ) streams
+      in
+      self#send data
 
     method output_reset =
       self#toggle_state `Restart
@@ -456,8 +471,9 @@ class hls_output p =
       List.iter2 self#write_pipe streams b
 
     method insert_metadata m =
-      List.iter (fun s ->
-        s.hls_encoder.Encoder.insert_metadata m) streams
+      if encode_metadata then
+        List.iter (fun s ->
+          s.hls_encoder.Encoder.insert_metadata m) streams
   end
 
 let () =
