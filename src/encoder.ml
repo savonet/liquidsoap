@@ -129,7 +129,7 @@ let extension = function
   | Shine _ -> "mp3"
   | Flac _ -> "flac"
   | FdkAacEnc _ -> "aac"
-  | _ -> ""
+  | _ -> raise Not_found
 
 (** Mime types *)
 let mime = function
