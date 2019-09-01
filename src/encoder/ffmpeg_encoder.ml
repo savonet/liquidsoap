@@ -68,7 +68,7 @@ let encoder ffmpeg meta =
   let make () =
     let converter =
       Resampler.create ~out_sample_format
-        src_channels dst_freq
+        src_channels src_freq
         dst_channels dst_freq
     in
     let write str ofs len =
@@ -79,7 +79,7 @@ let encoder ffmpeg meta =
       Av.open_output_stream format {write;seek=None}
     in
     let stream =
-      Av.new_audio_stream ~codec_id output
+      Av.new_audio_stream ~codec_id ~sample_rate:dst_freq output
     in
     {output; stream; converter}
   in

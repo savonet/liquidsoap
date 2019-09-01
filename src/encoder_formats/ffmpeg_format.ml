@@ -35,6 +35,6 @@ let bitrate {bitrate} =
 
 let to_string m =
   Printf.sprintf
-    "%%fmpeg(format=%s,codec=%s%s,channels=%d,samplerate=%d)"
+    "%%fmpeg(format=%S,codec=%S%s,channels=%d,samplerate=%d)"
     m.format m.codec (match m.bitrate with None -> "" | Some br -> Printf.sprintf ",bitrate=%d" br)
     m.channels (Lazy.force m.samplerate)
