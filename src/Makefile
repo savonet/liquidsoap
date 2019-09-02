@@ -30,6 +30,7 @@ ogg_muxer = \
 
 audio_converters = \
 	converters/audio/native_audio_converter.ml \
+	$(if $(W_FFMPEG),converters/audio/ffmpeg_audio_converter.ml) \
 	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml)
 
 video_converters = \
