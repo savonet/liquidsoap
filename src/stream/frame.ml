@@ -348,7 +348,7 @@ let create_content content_type =
   {
     audio =
       Array.init content_type.audio
-        (fun _ -> Array.make (audio_of_master !!size) 0.) ;
+        (fun _ -> Audio.Mono.create (audio_of_master !!size)) ;
     video =
       Array.init content_type.video
         (fun _ ->

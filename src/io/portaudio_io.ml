@@ -107,7 +107,8 @@ object (self)
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
       self#handle "write_stream"
-        (fun () -> Portaudio.write_stream stream buf 0 (Array.length buf.(0)))
+        (* (fun () -> Portaudio.write_stream stream buf 0 (Array.length buf.(0))) *)
+        (fun () -> failwith "TODO"; ())
 
 end
 
@@ -168,7 +169,8 @@ object (self)
     let buf = AFrame.content_of_type ~channels frame 0 in
       self#handle
         "read_stream"
-        (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
+        (* (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0))); *)
+        (fun () -> failwith "TODO"; ());
       AFrame.add_break frame (AFrame.size ())
 
 end

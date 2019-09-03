@@ -99,8 +99,9 @@ object
     let len = position - offset in
     for c = 0 to Array.length b - 1 do
       Descriptor.set_samples inst.(c) len;
-      Descriptor.connect_audio_port inst.(c) input b.(c) offset;
-      Descriptor.connect_audio_port inst.(c) output b.(c) offset;
+      (* Descriptor.connect_audio_port inst.(c) input b.(c) offset; *)
+      (* Descriptor.connect_audio_port inst.(c) output b.(c) offset; *)
+      failwith "TODO";
       List.iter
         (fun (p,v) -> Descriptor.connect_control_port_in inst.(c) p (v ()))
         params;
@@ -138,8 +139,9 @@ object
       (
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to Array.length b - 1 do
-          Descriptor.connect_audio_port inst inputs.(c) b.(c) offset;
-          Descriptor.connect_audio_port inst outputs.(c) b.(c) offset
+          (* Descriptor.connect_audio_port inst inputs.(c) b.(c) offset; *)
+          (* Descriptor.connect_audio_port inst outputs.(c) b.(c) offset *)
+          failwith "TODO"
         done;
         Descriptor.run inst
       )
@@ -147,10 +149,12 @@ object
       (* We have to change channels. *)
       let d = AFrame.content_of_type ~channels:oc buf offset in
       for c = 0 to Array.length b - 1 do
-        Descriptor.connect_audio_port inst inputs.(c) b.(c) offset
+        (* Descriptor.connect_audio_port inst inputs.(c) b.(c) offset *)
+        failwith "TODO"
       done;
       for c = 0 to Array.length d - 1 do
-        Descriptor.connect_audio_port inst outputs.(c) d.(c) offset
+        (* Descriptor.connect_audio_port inst outputs.(c) d.(c) offset *)
+        failwith "TODO"
       done;
       Descriptor.run inst
 end
@@ -186,7 +190,8 @@ object
         params;
       Descriptor.set_samples inst len;
       for c = 0 to Array.length b - 1 do
-        Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+        (* Descriptor.connect_audio_port inst outputs.(c) b.(c) offset; *)
+        failwith "TODO"
       done;
       Descriptor.run inst;
       AFrame.add_break buf position

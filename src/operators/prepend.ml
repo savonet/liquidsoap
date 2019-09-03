@@ -74,7 +74,7 @@ object (self)
           let peek_pcm = AFrame.content peek p in
           let peekpos = AFrame.size () - 1 in
             for i=0 to Array.length pcm - 1 do
-              pcm.(i).(p) <- peek_pcm.(i).(peekpos)
+              pcm.(i).{p} <- peek_pcm.(i).{peekpos}
             done ;
             begin match AFrame.get_metadata peek peekpos with
               | Some m -> AFrame.set_metadata buf p m

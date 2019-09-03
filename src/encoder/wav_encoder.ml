@@ -58,7 +58,7 @@ let encoder wav =
           Audio_converter.Samplerate.resample
                  converter ratio b start len
         in
-        b,0,Array.length b.(0)
+        b,0,Audio.length b
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =

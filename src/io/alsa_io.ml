@@ -44,10 +44,16 @@ object (self)
   val mutable pcm = None
 
   val mutable write =
-    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       (* Pcm.writen_float pcm buf ofs len *)
+       failwith "TODO"; 0
+    )
 
   val mutable read =
-    (fun pcm buf ofs len -> Pcm.readn_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       (* Pcm.readn_float pcm buf ofs len *)
+       failwith "TODO"; 0
+    )
 
   method open_device =
     self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
@@ -224,13 +230,13 @@ object (self)
     in
       try
         let r = ref 0 in
-          while !r < Array.length buf.(0) do
+          while !r < Audio.Mono.length buf.(0) do
             if !r <> 0 then
               self#log#info
                 "Partial write (%d instead of %d)! \
                  Selecting another buffer size or device can help."
-                !r (Array.length buf.(0));
-            r := !r + (write pcm buf !r (Array.length buf.(0) - !r))
+                !r (Audio.Mono.length buf.(0));
+            r := !r + (write pcm buf !r (Audio.Mono.length buf.(0) - !r))
           done
       with
         | e -> 
@@ -291,7 +297,7 @@ object (self)
               self#log#info
                    "Partial read (%d instead of %d)! \
                     Selecting another buffer size or device can help."
-                !r (Array.length buf.(0));
+                !r (Audio.length buf);
             r := !r + (read pcm buf !r (samples_per_frame - !r))
           done;
           AFrame.add_break frame (AFrame.size ())

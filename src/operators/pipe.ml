@@ -95,9 +95,9 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     else
       let data = Process_handler.read 1024 pull in
       let data = !converter (Bytes.unsafe_to_string data) in
-      let len = Array.length data.(0) in
+      let len = Audio.length data in
       let buffered = Generator.length abg in
-      Generator.put_audio abg data 0 (Array.length data.(0));
+      Generator.put_audio abg data 0 len;
 
       let to_replay = Tutils.mutexify mutex (fun () ->
         let pending = !replay_pending in
@@ -183,7 +183,7 @@ object(self)
       source#get tmp;
       self#slave_tick;
       let buf = AFrame.content_of_type ~channels tmp 0 in
-      let blen = Array.length buf.(0) in
+      let blen = Audio.length buf in
       let slen_of_len len = 2 * len * Array.length buf in
       let slen = slen_of_len blen in
       let sbuf = Bytes.create slen in

@@ -60,7 +60,7 @@ module Make (Generator:Generator.S_Asio) = struct
       let samplerate_converter = Audio_converter.Samplerate.create channels in
       fun src ->
         let len = String.length src / (sample_size * channels) in
-        let dst = Array.init channels (fun _ -> Array.make len 0.) in
+        let dst = Audio.create channels len in
         let sample =
           let pos = ref 0 in
           match format.format with
@@ -89,11 +89,11 @@ module Make (Generator:Generator.S_Asio) = struct
         in
         for i = 0 to len - 1 do
           for c = 0 to channels - 1 do
-            dst.(c).(i) <- sample ()
+            dst.(c).{i} <- sample ()
           done;
         done;
         let dst = Audio_converter.Samplerate.resample samplerate_converter ratio dst 0 len in
-        let dst_len = Array.length dst.(0) in
+        let dst_len = Audio.length dst in
         dst, dst_len
     in
     let decoder gen =

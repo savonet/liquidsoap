@@ -137,7 +137,7 @@ let encoder id ext =
                 Audio_converter.Samplerate.resample
                   converter ratio b start len
               in
-              b,0,Array.length b.(0)
+              b,0,Audio.length b
           in
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in

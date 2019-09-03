@@ -57,10 +57,11 @@ let samplerate_converter () =
   let quality = quality_of_string quality_conf#get in
   let converter = Samplerate.create quality 1 in
   let convert ratio b ofs len =
-    Samplerate.process_alloc converter ratio b ofs len
+    (* Samplerate.process_alloc converter ratio b ofs len *)
+    failwith "TODO";
+    assert false
   in
   convert
 
 let () = 
-  Audio_converter.Samplerate.converters#register 
-    "libsamplerate" samplerate_converter
+  Audio_converter.Samplerate.converters#register "libsamplerate" samplerate_converter

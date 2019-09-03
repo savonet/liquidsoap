@@ -41,7 +41,7 @@ struct
   (** A converter takes a convertion ratio (output samplerate / input
       samplerate), an audio buffer, an offset in the buffer, a duration in the
       buffer and returns a resampled buffer. *)
-  type converter = float -> float array -> int -> int -> float array
+  type converter = float -> Frame.audio_t -> int -> int -> Frame.audio_t
 
   type converter_plug = unit -> converter
 
@@ -77,11 +77,11 @@ struct
       raise Invalid_data;
     let convert i b =
       if ratio = 1. then
-        Array.sub b ofs len
+        Bigarray.Array1.sub b ofs len
       else
         conv.(i) ratio b ofs len
     in
-    if Array.length data.(0) = 0 then
+    if Bigarray.Array1.dim data.(0) = 0 then
       data
     else
       Array.mapi convert data

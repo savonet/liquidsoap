@@ -193,9 +193,11 @@ struct
         let encoded () = 
           has_started := true;
           if channels = 1 then
-            Lame.encode_buffer_float_part enc b.(0) b.(0) start len
+            (* Lame.encode_buffer_float_part enc b.(0) b.(0) start len *)
+            (failwith "TODO"; "")
           else
-            Lame.encode_buffer_float_part enc b.(0) b.(1) start len
+            (* Lame.encode_buffer_float_part enc b.(0) b.(1) start len *)
+            (failwith "TODO"; "")
         in
         match !id3v2 with
           | Rendered s when not !has_started ->

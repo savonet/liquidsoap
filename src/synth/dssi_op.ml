@@ -116,7 +116,8 @@ object
              ) params;
            Ladspa.Descriptor.set_samples inst len;
            for c = 0 to Array.length outputs - 1 do
-             Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+             (* Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset; *)
+             failwith "TODO"
            done;
         ) inst;
       assert (Array.length outputs = Array.length b);

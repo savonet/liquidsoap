@@ -59,12 +59,13 @@ let encoder flac meta =
           samplerate_converter (dst_freq /. src_freq)
           b start len
         in
-        b,0,Array.length b.(0)
+        b,0,Audio.length b
       else
         b,start,len
     in
-    let b = Array.map (fun x -> Array.sub x start len) b in
-    Flac.Encoder.process !enc cb b;
+    (* let b = Array.map (fun x -> Array.sub x start len) b in *)
+    (* Flac.Encoder.process !enc cb b; *)
+    failwith "TODO";
     let ret = Buffer.contents buf in
     Buffer.reset buf ;
     ret

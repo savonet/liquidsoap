@@ -36,7 +36,7 @@ object (self)
   (* Misc *)
   val mutable nzeros = numcoeffs - 1
   val mutable gain = 0.
-  val mutable xv = Array.make_matrix channels (numcoeffs) 0.
+  val mutable xv = Array.make_matrix channels numcoeffs 0.
 
   (* Coefficients *)
   val mutable xcoeffs = Array.make numcoeffs 0.
@@ -143,8 +143,8 @@ object (self)
         for c = 0 to 1 do
           for i = offset to AFrame.position buf - 1 do
             shift xv.(c) ;
-            xv.(c).(nzeros) <- b.(c).(i) /. gain ;
-            b.(c).(i) <- fold_left2 addtimes 0. xcoeffs xv.(c) ;
+            xv.(c).(nzeros) <- b.(c).{i} /. gain ;
+            b.(c).{i} <- fold_left2 addtimes 0. xcoeffs xv.(c) ;
           done;
         done;
 end

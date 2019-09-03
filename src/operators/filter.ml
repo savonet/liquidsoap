@@ -63,17 +63,17 @@ object
       let b_c = b.(c) in
       for i = offset to position - 1 do
         low.(c) <- low.(c) +. f *. band.(c);
-        high.(c) <- q *. b_c.(i) -. low.(c) -. q *. band.(c);
+        high.(c) <- q *. b_c.{i} -. low.(c) -. q *. band.(c);
         band.(c) <- f *. high.(c) +. band.(c);
         notch.(c) <- high.(c) +. low.(c);
-        b_c.(i) <-
+        b_c.{i} <-
           wet *.
           (match mode with
             | Low_pass -> low.(c)
             | High_pass -> high.(c)
             | Band_pass -> band.(c)
             | Notch -> notch.(c)
-          ) +. (1. -. wet) *. b_c.(i)
+          ) +. (1. -. wet) *. b_c.{i}
       done
     done
 end

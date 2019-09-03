@@ -48,7 +48,7 @@ let to_s16le b =
     assert (Audio.to_16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
   *)
-  Audio.S16LE.make fpcm 0 (Audio.duration fpcm)
+  Audio.S16LE.make fpcm 0 (Audio.length fpcm)
 
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)

@@ -218,7 +218,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
         let content =
           audio_resample ~audio_src_rate:(float info.Ogg_demuxer.sample_rate) buf
         in
-        Generator.put_audio buffer content 0 (Array.length content.(0))
+        Generator.put_audio buffer content 0 (Audio.length content)
       in
       let video_feed track buf =
         let info,_ = 
@@ -249,12 +249,14 @@ let create_decoder ?(merge_tracks=false) source mode input =
         if decode_audio then
           begin
             let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
-            Ogg_demuxer.decode_audio decoder track (audio_feed track) 
+            (* Ogg_demuxer.decode_audio decoder track (audio_feed track)  *)
+            failwith "TODO"; ()
           end ;
         if decode_video then
           begin
             let track = Utils.get_some tracks.Ogg_demuxer.video_track in
-            Ogg_demuxer.decode_video decoder track (video_feed track)
+            (* Ogg_demuxer.decode_video decoder track (video_feed track) *)
+            failwith "TODO"; ()
           end;
     with
         (* We catch [Ogg_demuxer.End_of_stream] only if asked to

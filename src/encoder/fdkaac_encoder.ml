@@ -120,7 +120,7 @@ struct
             samplerate_converter (dst_freq /. src_freq)
             b start len
           in
-          b,0,Array.length b.(0)
+          b,0,Audio.length b
         else
           b,start,len
       in

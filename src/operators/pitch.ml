@@ -28,7 +28,7 @@ let average_diff delta buf ofs len =
   let s = ref 0. in
     for i = 0 to len - delta - 1 do
       for c = 0 to Array.length buf - 1 do
-        s := !s +. abs_float (buf.(c).(ofs + i + delta) -. buf.(c).(ofs + i))
+        s := !s +. abs_float (buf.(c).{ofs + i + delta} -. buf.(c).{ofs + i})
       done
     done;
     !s /. (float ((len - delta) * (Array.length buf)))
@@ -66,7 +66,7 @@ object (self)
   val ring = Ringbuffer.create channels (2 * length)
 
   (** Array used to get data to analyze. *)
-  val databuf = Array.init channels (fun _ -> Array.make length 0.)
+  val databuf = Audio.create channels length
 
   val mutable computations = -1
 
@@ -84,7 +84,7 @@ object (self)
     let pos = AFrame.position buf in
     source#get buf;
     let buf = AFrame.content buf pos in
-      Ringbuffer.write ring buf 0 (Array.length buf.(0));
+      Ringbuffer.write ring buf 0 (Audio.Mono.length buf.(0));
       if Ringbuffer.read_space ring > length then
         Ringbuffer.read_advance ring (Ringbuffer.read_space ring - length);
       computations <- (computations + 1) mod every;

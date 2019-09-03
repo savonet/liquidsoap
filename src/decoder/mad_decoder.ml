@@ -52,7 +52,8 @@ let init input =
   (** Add an initial index. *)
   update_index ();
   let get_data () =
-    let data = Mad.decode_frame_float !dec in
+    (* let data = Mad.decode_frame_float !dec in *)
+    let data = failwith "TODO"; [||] in
     update_index ();
     data
   in
@@ -127,7 +128,7 @@ let create_decoder input =
          in
          Generator.set_mode gen `Audio ;
           Generator.put_audio gen content 0
-               (Array.length content.(0))) }
+               (Audio.length content)) }
 
 end
 

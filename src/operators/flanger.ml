@@ -39,7 +39,7 @@ object
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  val past = Array.init channels (fun _ -> Array.make past_len 0.)
+  val past = Audio.make channels past_len 0.
 
   val mutable past_pos = 0
 
@@ -62,9 +62,8 @@ object
                  (delay *. (1. -. cos (omega +. float c *. phase ())) /. 2.))
               mod past_len
             in
-              past.(c).(past_pos) <- b.(c).(i);
-              b.(c).(i) <- (b.(c).(i) +. past.(c).(delay) *. feedback)
-                           /. (1. +. feedback);
+              past.(c).{past_pos} <- b.(c).{i};
+              b.(c).{i} <- (b.(c).{i} +. past.(c).{delay} *. feedback) /. (1. +. feedback);
             done;
           omega <- omega +. d_omega;
           while omega > 2. *. pi do omega <- omega -. 2. *. pi done;

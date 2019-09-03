@@ -206,7 +206,7 @@ let () =
                log#info "Received audio data whereas the type indicates that there \
                          are no audio channels, ingoring it."
              else
-               Generator.put_audio abg data 0 (Array.length data.(0))
+               Generator.put_audio abg data 0 (Audio.length data)
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in

@@ -272,7 +272,9 @@ object (self)
     for i = start to stop - 1 do
       let squares =
         Array.fold_left
-          (fun squares track -> squares +. track.(i)*.track.(i))
+          (fun squares track ->
+             let x = track.{i} in
+             squares +. x *. x)
           0.
           pcm
       in
@@ -316,7 +318,9 @@ object (self)
         for i = start to stop - 1 do
           let squares =
             Array.fold_left
-              (fun squares track -> squares +. track.(i)*.track.(i))
+              (fun squares track ->
+                 let x = track.{i} in
+                 squares +. x *. x)
               0.
               pcm
           in

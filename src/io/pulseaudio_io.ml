@@ -111,7 +111,8 @@ object (self)
   method output_send memo =
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
-      Simple.write stream buf 0 (Array.length buf.(0))
+    (* Simple.write stream buf 0 (Audio.Mono.length buf.(0)) *)
+    failwith "TODO"; ()
 end
 
 class input ~kind p =
@@ -185,8 +186,9 @@ object (self)
     assert (0 = AFrame.position frame) ;
     let stream = Utils.get_some stream in
     let buf = AFrame.content_of_type ~channels frame 0 in
-      Simple.read stream buf 0 (Array.length buf.(0));
-      AFrame.add_break frame (AFrame.size ())
+    (* Simple.read stream buf 0 (Array.length buf.(0)); *)
+    failwith "TODO";
+    AFrame.add_break frame (AFrame.size ())
 
 end
 

@@ -40,7 +40,7 @@ object
       for i = p0 to p1-1 do
         let m =
           Array.fold_left
-            (fun m channel -> m +. channel.(i) *. channel.(i))
+            (fun m channel -> let x = channel.{i} in m +. x *. x)
             0.
             buf
         in

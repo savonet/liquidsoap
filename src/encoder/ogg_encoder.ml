@@ -49,7 +49,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
           samplerate_converter (dst_freq /. src_freq)
           b start len
         in
-        b,0,Array.length b.(0)
+        b,0,Audio.length b
       else
         b,start,len
     in
@@ -57,7 +57,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
      Ogg_muxer.Audio_data
       {
        Ogg_muxer.
-        data   = buf;
+        data   = ((* buf *) failwith "TODO"; [||]);
         offset = start;
         length = len
       }

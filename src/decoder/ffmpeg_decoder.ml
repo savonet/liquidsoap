@@ -122,9 +122,10 @@ let create_decoder fname =
   let decode gen =
     try
       let frame = read_frame () in
-      let content = convert frame in
+      (* let content = convert frame in *)
+      let content = failwith "TODO"; [||] in
       G.set_mode gen `Audio ;
-      G.put_audio gen content 0 (Array.length content.(0))
+      G.put_audio gen content 0 (Audio.length content)
     with
       | FFmpeg.Avutil.Error `Eof -> 
           G.add_break gen;
@@ -270,11 +271,10 @@ let create_decoder input =
   let decode gen =
     try
       let frame = read_frame () in
-      let content =
-        Converter.convert converter frame
-      in
+      (* let content = Converter.convert converter frame in *)
+      let content = failwith "TODO"; [||] in
       Generator.set_mode gen `Audio ;
-      Generator.put_audio gen content 0 (Array.length content.(0))
+      Generator.put_audio gen content 0 (Audio.length content)
     with
       | FFmpeg.Avutil.Error `Eof ->
           Generator.add_break gen;

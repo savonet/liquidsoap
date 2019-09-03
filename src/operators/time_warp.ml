@@ -236,8 +236,8 @@ struct
                   let srcc = src.(c) in
                   let dstc = dst.(c) in
                   for i = 0 to dlen - 1 do
-                    let x = srcc.(i * slen / dlen) in
-                    dstc.(i + dofs) <- x
+                    let x = srcc.{i * slen / dlen} in
+                    dstc.{i + dofs} <- x
                   done
                 done
           in

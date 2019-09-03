@@ -41,7 +41,8 @@ object
     let offset = AFrame.position buf in
     source#get buf;
     let len = AFrame.position buf - offset in
-    Soundtouch.BPM.put_samples_ni bpm (AFrame.content buf offset) offset len;
+    (* Soundtouch.BPM.put_samples_ni bpm (AFrame.content buf offset) offset len; *)
+    failwith "TODO";
     n <- n + len;
     if n >= every then
       (

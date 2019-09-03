@@ -85,7 +85,7 @@ object (self)
       (* Feed the volume buffer. *)
       let acontent = AFrame.content frame (Frame.audio_of_master offset) in
       for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
-        self#add_vol (Array.map (fun c -> let x = c.(i) in x*.x) acontent)
+        self#add_vol (Array.map (fun c -> let x = c.{i} in x*.x) acontent)
       done;
 
       (* Fill-in video information. *)

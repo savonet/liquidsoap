@@ -59,7 +59,7 @@ let encoder shine =
           samplerate_converter (dst_freq /. src_freq)
           b start len
         in
-        b,0,Array.length b.(0)
+        b,0,Audio.length b
       else
         Audio.copy b,start,len
     in
@@ -70,7 +70,8 @@ let encoder shine =
         Audio.blit b o data o' l
       in
       List.iter f l ;
-      Buffer.add_string encoded (Shine.encode_buffer enc data)
+      (* Buffer.add_string encoded (Shine.encode_buffer enc data) *)
+      failwith "TODO"
     done ;
     let ret = Buffer.contents encoded in
     Buffer.reset encoded;
