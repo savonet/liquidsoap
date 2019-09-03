@@ -226,7 +226,7 @@ object (self)
         Audio_converter.Samplerate.resample
           samplerate_converter
           (float alsa_rate /. float samples_per_second)
-          buf 0 (Array.length buf)
+          buf
     in
       try
         let r = ref 0 in

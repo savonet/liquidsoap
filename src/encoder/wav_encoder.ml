@@ -54,10 +54,7 @@ let encoder wav =
       if ratio = 1. then
         b,start,len
       else
-        let b =
-          Audio_converter.Samplerate.resample
-                 converter ratio b start len
-        in
+        let b = Audio_converter.Samplerate.resample converter ratio (Audio.sub b start len) in
         b,0,Audio.length b
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in

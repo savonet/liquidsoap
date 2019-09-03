@@ -47,7 +47,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
       if src_freq <> dst_freq then
         let b = Audio_converter.Samplerate.resample
           samplerate_converter (dst_freq /. src_freq)
-          b start len
+          (Audio.sub b start len)
         in
         b,0,Audio.length b
       else

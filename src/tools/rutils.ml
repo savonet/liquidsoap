@@ -46,12 +46,14 @@ let create_audio () =
         for i = new_audio_chans to new_audio_chans - 1 do
           Hashtbl.remove audio_converters i
         done ;
+      let ratio = audio_dst_rate /. audio_src_rate in
       let resample_chan n buf =
+        (* TODO: it's a bit weired to have to encapsulate as 1-channel... *)
         let resampler = Hashtbl.find audio_converters n in
         let ret =
           Audio_converter.Samplerate.resample
-            resampler (audio_dst_rate /. audio_src_rate)
-            [|buf|] 0 (Audio.Mono.length buf)
+            resampler ratio
+            [|buf|]
         in
         ret.(0)
       in
@@ -97,4 +99,4 @@ let create_from_iff ~format ~channels ~samplesize =
     Audio_converter.Samplerate.resample
       samplerate_converter
       ratio
-      dst 0 sample_len)
+      dst)

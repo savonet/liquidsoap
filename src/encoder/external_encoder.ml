@@ -135,7 +135,7 @@ let encoder id ext =
             else
               let b =
                 Audio_converter.Samplerate.resample
-                  converter ratio b start len
+                  converter ratio (Audio.sub b start len)
               in
               b,0,Audio.length b
           in

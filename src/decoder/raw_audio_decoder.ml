@@ -92,7 +92,7 @@ module Make (Generator:Generator.S_Asio) = struct
             dst.(c).{i} <- sample ()
           done;
         done;
-        let dst = Audio_converter.Samplerate.resample samplerate_converter ratio dst 0 len in
+        let dst = Audio_converter.Samplerate.resample samplerate_converter ratio dst in
         let dst_len = Audio.length dst in
         dst, dst_len
     in

@@ -64,9 +64,7 @@ object (self)
   val samplerate_converter = Audio_converter.Samplerate.create buffer_chans
   val mutable alsa_write =
     (fun pcm buf ofs len ->
-       (* Pcm.writen_float pcm buf ofs len *)
-       failwith "TODO";
-       0
+       Pcm.writen_float_ba pcm (Audio.sub buf ofs len)
     )
 
   method get_device =
@@ -152,7 +150,7 @@ object (self)
   method output_send buf =
     let buf = AFrame.content buf 0 in
     let ratio = float alsa_rate /. float samples_per_second in
-    let buf = Audio_converter.Samplerate.resample samplerate_converter ratio buf 0 (Audio.Mono.length buf.(0)) in
+    let buf = Audio_converter.Samplerate.resample samplerate_converter ratio buf in
     let f data =
       Audio.blit buf 0 data 0 (Audio.length buf)
     in

@@ -45,7 +45,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
       if ratio = 1. then
         pcm, astart, alen
       else
-        let pcm = Audio_converter.Samplerate.resample converter ratio pcm astart alen in
+        let pcm = Audio_converter.Samplerate.resample converter ratio (Audio.sub pcm astart alen) in
         pcm, 0, Audio.length pcm
     in
     let data = Bytes.create (2*channels*alen) in

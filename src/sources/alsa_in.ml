@@ -65,9 +65,7 @@ object (self)
 
   val mutable read_fun =
     (fun pcm (buf:Frame.audio_t array) ofs len ->
-       (* Pcm.readn_float pcm buf ofs len *)
-       failwith "TODO";
-       0
+       Pcm.readn_float_ba pcm (Audio.sub buf ofs len)
     )
 
   val mutable device = None
