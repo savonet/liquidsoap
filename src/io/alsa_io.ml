@@ -45,14 +45,14 @@ object (self)
 
   val mutable write =
     (fun pcm buf ofs len ->
-       (* Pcm.writen_float pcm buf ofs len *)
-       failwith "TODO"; 0
+       let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
+       Pcm.writen_float_ba pcm buf
     )
 
   val mutable read =
     (fun pcm buf ofs len ->
-       (* Pcm.readn_float pcm buf ofs len *)
-       failwith "TODO"; 0
+       let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
+       Pcm.readn_float_ba pcm buf
     )
 
   method open_device =

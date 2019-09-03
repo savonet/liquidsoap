@@ -542,7 +542,7 @@ AC_CHECK_OCAML_BINDING([bjack],[0.1.3])
 # Alsa
 #
 
-AC_CHECK_OCAML_BINDING([alsa],[0.2.1])
+AC_CHECK_OCAML_BINDING([alsa],[0.2.4])
 
 #
 # LibAO
