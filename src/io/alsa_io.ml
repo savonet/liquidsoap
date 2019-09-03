@@ -74,7 +74,7 @@ object (self)
           with
             | _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
-                self#log#severe "Falling back on interleaved S16LE";
+                self#log#important "Falling back on interleaved S16LE";
                 handle "format" (Pcm.set_format dev params) Pcm.Format_s16_le;
                 (
                   try
@@ -94,7 +94,7 @@ object (self)
                     )
                   with
                     | Alsa.Invalid_argument ->
-                        self#log#severe "Falling back on non-interleaved S16LE";
+                        self#log#important "Falling back on non-interleaved S16LE";
                         handle "access"
                           (Pcm.set_access dev params)
                           Pcm.Access_rw_noninterleaved;
