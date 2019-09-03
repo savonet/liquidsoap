@@ -111,8 +111,16 @@ object (self)
   method output_send memo =
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
-    (* Simple.write stream buf 0 (Audio.Mono.length buf.(0)) *)
-    failwith "TODO"; ()
+    let chans = Array.length buf in
+    let len = Audio.length buf in
+    let buf' = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (chans*len) in
+    for c = 0 to chans - 1 do
+      let bufc = buf.(c) in
+      for i = 0 to len - 1 do
+        Bigarray.Array1.unsafe_set buf' (i * chans + c) (Bigarray.Array1.unsafe_get bufc i)
+      done
+    done;
+    Simple.write_ba stream buf'
 end
 
 class input ~kind p =
