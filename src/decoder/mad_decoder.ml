@@ -52,8 +52,7 @@ let init input =
   (** Add an initial index. *)
   update_index ();
   let get_data () =
-    (* let data = Mad.decode_frame_float !dec in *)
-    let data = failwith "TODO"; [||] in
+    let data = Mad.decode_frame_float_ba !dec in
     update_index ();
     data
   in

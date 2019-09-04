@@ -185,8 +185,17 @@ object (self)
     let buf = AFrame.content_of_type ~channels frame 0 in
       self#handle
         "read_stream"
-        (* (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0))); *)
-        (fun () -> failwith "TODO"; ());
+        (fun () ->
+           let len = Audio.length buf in
+           let ibuf = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels*len) in
+           Portaudio.read_stream_ba stream (Bigarray.genarray_of_array1 ibuf) 0 len;
+           for c = 0 to channels - 1 do
+             let bufc = buf.(c) in
+             for i = 0 to len - 1 do
+               bufc.{i} <- Bigarray.Array1.unsafe_get ibuf (i*channels+c)
+             done
+           done
+        );
       AFrame.add_break frame (AFrame.size ())
 
 end
