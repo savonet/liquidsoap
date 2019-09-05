@@ -120,17 +120,13 @@ object (self)
         match converter with
           | Some c -> c
           | None ->
-              let c =
-                Audio_converter.Samplerate.create (Array.length content)
-              in
-                converter <- Some c ;
-                c
+            let c = Audio_converter.Samplerate.create (Array.length content) in
+            converter <- Some c ;
+            c
       in
       let len = stop-start in
-      let pcm =
-        Audio_converter.Samplerate.resample converter ratio (Audio.sub content start len)
-      in
-        { Frame.audio = pcm ; video = [||] ; midi = [||] }
+      let pcm = Audio_converter.Samplerate.resample converter ratio (Audio.sub content start len) in
+      { Frame.audio = pcm ; video = [||] ; midi = [||] }
     in
     let convert x = int_of_float (float x *. ratio) in
     let metadata =
