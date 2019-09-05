@@ -72,8 +72,7 @@ object
         (fun _ ->
            Ladspa.Descriptor.instantiate
              (Descriptor.ladspa d)
-             (Lazy.force Frame.audio_rate)
-             (AFrame.size ()))
+             (Lazy.force Frame.audio_rate))
 
   initializer
     Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)
@@ -112,12 +111,10 @@ object
         (fun inst ->
            List.iter
              (fun (p,v) ->
-                Ladspa.Descriptor.connect_control_port_in inst p (v ())
+                Ladspa.Descriptor.set_control_port inst p (v ())
              ) params;
-           Ladspa.Descriptor.set_samples inst len;
            for c = 0 to Array.length outputs - 1 do
-             (* Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset; *)
-             failwith "TODO"
+             Ladspa.Descriptor.connect_port inst outputs.(c) (Audio.Mono.sub b.(c) offset len)
            done;
         ) inst;
       assert (Array.length outputs = Array.length b);
