@@ -55,7 +55,9 @@ struct
   let preferred_conf =
     Dtools.Conf.string ~p:(samplerate_conf#plug "preferred")
       "Preferred samplerate converter"
-      ~d:"libsamplerate" ~comments:["Preferred samplerate converter."]
+      ~d:"libsamplerate"
+      ~comments:["Preferred samplerate converter. The native converter is always \
+                  available by setting this to \"native\"."]
 
   let converters : converter_plug Plug.plug =
     Plug.create "samplerate converters"
