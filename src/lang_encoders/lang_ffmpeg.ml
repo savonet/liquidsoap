@@ -28,9 +28,9 @@ let ffmpeg_gen params =
     { Ffmpeg_format.
         format = "mp3" ;
         codec = "libmp3lame" ;
-        bitrate = Some 128 ;
         channels = 2 ;
-        samplerate = Frame.audio_rate }
+        samplerate = Frame.audio_rate ;
+        options = Hashtbl.create 0 }
 
   in
   List.fold_left
@@ -40,12 +40,19 @@ let ffmpeg_gen params =
               { f with Ffmpeg_format.format = fmt }
           | ("codec",{ term = String c; _}) ->
               { f with Ffmpeg_format.codec = c }
-          | ("bitrate",{ term = Int br; _}) ->
-              { f with Ffmpeg_format.bitrate = Some br }
           | ("channels",{ term = Int i; _}) ->
               { f with Ffmpeg_format.channels = i }
           | ("samplerate",{ term = Int i; _}) ->
               { f with Ffmpeg_format.samplerate = Lazy.from_val i }
+          | (k,{ term = String s; _}) ->
+              Hashtbl.add f.Ffmpeg_format.options k (`String s);
+              f
+          | (k,{ term = Int i; _}) ->
+              Hashtbl.add f.Ffmpeg_format.options k (`Int i);
+              f
+          | (k,{ term = Float i; _}) ->
+              Hashtbl.add f.Ffmpeg_format.options k (`Float i);
+              f
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Ffmpeg_format.channels = 1 }
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->

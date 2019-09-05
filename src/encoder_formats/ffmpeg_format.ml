@@ -20,21 +20,32 @@
 
  *****************************************************************************)
 
+open FFmpeg
+
 type t = {
   format     : string;
   codec      : string;
-  bitrate    : int option;
   channels   : int;
   samplerate : int Lazy.t ;
+  options    : Avutil.opts
 }
 
-let bitrate {bitrate} =
-  match bitrate with
-    | Some br -> br
-    | None -> raise Not_found
+let string_of_options options =
+  let _v = function
+    | `String s -> Printf.sprintf "%S" s
+    | `Int i -> string_of_int i
+    | `Float f -> string_of_float f
+  in
+  String.concat ","
+    (Hashtbl.fold (fun k v c ->
+      let v = Printf.sprintf "%s=%s" k (_v v) in
+      v::c) options [])
 
 let to_string m =
+  let opts =
+    string_of_options m.options
+  in
   Printf.sprintf
-    "%%fmpeg(format=%S,codec=%S%s,channels=%d,samplerate=%d)"
-    m.format m.codec (match m.bitrate with None -> "" | Some br -> Printf.sprintf ",bitrate=%d" br)
-    m.channels (Lazy.force m.samplerate)
+    "%%fmpeg(format=%S,codec=%S,channels=%d,samplerate=%d%s)"
+    m.format m.codec m.channels (Lazy.force m.samplerate)
+    (if opts = "" then "" else Printf.sprintf ",%s" opts)

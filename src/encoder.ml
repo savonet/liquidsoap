@@ -147,7 +147,6 @@ let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
-  | Ffmpeg w -> Ffmpeg_format.bitrate w
   | _ -> raise Not_found
 
 (** An encoder, once initialized, is something that consumes

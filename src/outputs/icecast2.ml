@@ -98,7 +98,7 @@ struct
             }
         | Encoder.Ffmpeg m ->
             { quality    = None ;
-              bitrate    = m.Ffmpeg_format.bitrate ;
+              bitrate    = None ;
               samplerate = Some (Lazy.force m.Ffmpeg_format.samplerate) ;
               channels   = Some (m.Ffmpeg_format.channels)
             }
