@@ -128,8 +128,7 @@ object (self)
       in
       let len = stop-start in
       let pcm =
-        let content = Audio.sub content start len in
-        Audio_converter.Samplerate.resample converter ratio content
+        Audio_converter.Samplerate.resample converter ratio (Audio.sub content start len)
       in
         { Frame.audio = pcm ; video = [||] ; midi = [||] }
     in

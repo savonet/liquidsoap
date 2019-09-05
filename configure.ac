@@ -413,7 +413,7 @@ AC_CHECK_OCAML_BINDING([speex],[0.2.1],[ogg])
 # Mad
 #
 
-AC_CHECK_OCAML_BINDING([mad],[0.4.4])
+AC_CHECK_OCAML_BINDING([mad],[0.4.7])
 
 #
 # Flac

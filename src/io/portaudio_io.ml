@@ -117,13 +117,7 @@ object (self)
            done;
            let ba = Bigarray.genarray_of_array2 ba in
            *)
-           let ba = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels*len) in
-           for i = 0 to len - 1 do
-             for c = 0 to channels - 1 do
-               Bigarray.Array1.unsafe_set ba (channels*i+c) buf.(c).{i}
-             done
-           done;
-           let ba = Bigarray.genarray_of_array1 ba in
+           let ba = Bigarray.genarray_of_array1 (Audio.interleave buf) in
            Portaudio.write_stream_ba stream ba 0 len
         )
 end
