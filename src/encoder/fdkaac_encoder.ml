@@ -125,7 +125,7 @@ struct
           b,start,len
       in
       let encoded = Buffer.create n in
-      Buffer.add_string buf (Audio.S16LE.make b start len);
+      Buffer.add_string buf (Audio.S16LE.make (Audio.sub b start len));
       let len = Buffer.length buf in
       let rec f start =
         if start+n > len then

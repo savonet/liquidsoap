@@ -41,9 +41,8 @@ object
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
             Audio.Mono.blit
-              src.Frame.audio.(i) !start
-              dst.Frame.audio.(i) !start
-              !len
+              (Audio.Mono.sub src.Frame.audio.(i) !start !len)
+              (Audio.Mono.sub dst.Frame.audio.(i) !start !len)
           done ;
           for i = 0 to Array.length src.Frame.midi - 1 do
             MIDI.blit
@@ -132,9 +131,8 @@ object
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
               Audio.Mono.blit
-                src.Frame.audio.(i) !start
-                dst.Frame.audio.(i) !start
-                !len
+                (Audio.Mono.sub src.Frame.audio.(i) !start !len)
+                (Audio.Mono.sub dst.Frame.audio.(i) !start !len)
           done ;
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in

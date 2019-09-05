@@ -60,8 +60,9 @@ object (self)
     if k <> 1. then
       Audio.amplify
         k
-        (AFrame.content buf offset) offset
-        ((AFrame.position buf)-offset);
+        (Audio.sub
+           (AFrame.content buf offset) offset
+           ((AFrame.position buf)-offset));
     if AFrame.is_partial buf && override <> None then begin
         self#log#info "End of the current overriding." ;
         override <- None

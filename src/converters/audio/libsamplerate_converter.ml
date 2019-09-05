@@ -64,7 +64,7 @@ let samplerate_converter () =
     let buf = Audio.Mono.create outlen in
     let i, o = Samplerate.process_ba converter ratio b buf in
     if i < inlen then log#important "Could not convert all the input buffer (%d instead of %d)." i inlen;
-    Bigarray.Array1.sub buf 0 o
+    Audio.Mono.sub buf 0 o
   in
   convert
 

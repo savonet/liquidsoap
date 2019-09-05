@@ -143,22 +143,21 @@ object (self)
                if c<>1. && renorm then
                  Audio.amplify
                    c
-                   (fixed_content buffer offset).Frame.audio
+                   (Audio.sub (fixed_content buffer offset).Frame.audio
                    (Frame.audio_of_master offset)
-                   (Frame.audio_of_master (already-offset));
+                   (Frame.audio_of_master (already-offset)));
                if rank>0 then begin
                  (* The region grows, make sure it is clean before adding.
                   * TODO the same should be done for video. *)
                  if already>end_offset then
                    Audio.clear
-                     (fixed_content buf already).Frame.audio
+                     (Audio.sub (fixed_content buf already).Frame.audio
                      (Frame.audio_of_master end_offset)
-                     (Frame.audio_of_master (already-end_offset)) ;
+                     (Frame.audio_of_master (already-end_offset)));
                  (* Add to the main buffer. *)
                  Audio.add
-                   (fixed_content buf offset).Frame.audio offset
-                   (fixed_content tmp offset).Frame.audio offset
-                   (already-offset) ;
+                   (Audio.sub (fixed_content buf offset).Frame.audio offset (already-offset))
+                   (Audio.sub (fixed_content tmp offset).Frame.audio offset (already-offset));
                  let vbuf = (fixed_content buf offset).Frame.video in
                  let vtmp = (fixed_content tmp offset).Frame.video in
                  let (!) = Frame.video_of_master in

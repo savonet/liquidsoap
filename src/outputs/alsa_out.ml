@@ -88,7 +88,7 @@ object (self)
                     alsa_write <-
                       (fun pcm buf ofs len ->
                          let sbuf = Bytes.create (2 * len * Array.length buf) in
-                         Audio.S16LE.of_audio buf ofs sbuf 0 len;
+                         Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                          Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                       )
              );
@@ -152,7 +152,7 @@ object (self)
     let ratio = float alsa_rate /. float samples_per_second in
     let buf = Audio_converter.Samplerate.resample samplerate_converter ratio buf in
     let f data =
-      Audio.blit buf 0 data 0 (Audio.length buf)
+      Audio.blit buf data
     in
     ioring#put_block f
 

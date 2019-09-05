@@ -67,7 +67,7 @@ let encoder shine =
     while (G.length buf > samples) do
       let l = G.get buf samples in
       let f (b,o,o',l) = 
-        Audio.blit b o data o' l
+        Audio.blit (Audio.sub b o l) (Audio.sub data o' l)
       in
       List.iter f l ;
       (* Buffer.add_string encoded (Shine.encode_buffer enc data) *)

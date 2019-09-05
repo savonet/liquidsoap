@@ -545,7 +545,7 @@ let blit_content src src_pos dst dst_pos len =
     (fun a a' ->
        if a != a' then
          let (!) = audio_of_master in
-           Audio.Mono.blit a !src_pos a' !dst_pos !len) ;
+           Audio.Mono.blit (Audio.Mono.sub a !src_pos !len) (Audio.Mono.sub a' !dst_pos !len));
   Utils.array_iter2 src.video dst.video
     (fun v v' ->
        if v != v' then

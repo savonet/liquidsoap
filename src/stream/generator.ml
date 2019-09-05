@@ -595,7 +595,7 @@ struct
                    (* Same as above, even if in practice everything
                     * will always be aligned on the audio side. *)
                    let l = !(apos'+l) - !apos' in
-                     Audio.Mono.blit a !apos a' !fpos l) ;
+                     Audio.Mono.blit (Audio.Mono.sub a !apos l) (Audio.Mono.sub a' !fpos l)) ;
               if al=vl then
                 blit audio video
               else if al>vl then

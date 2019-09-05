@@ -142,7 +142,7 @@ object (self)
     let buffer = ioring#get_block in
     let fbuf = AFrame.content_of_type ~channels:buffer_chans buf 0 in
       for c = 0 to Array.length fbuf - 1 do
-        Audio.Mono.blit buffer.(c) 0 fbuf.(c) 0 buffer_length
+        Audio.Mono.blit (Audio.Mono.sub buffer.(c) 0 buffer_length) (Audio.Mono.sub fbuf.(c) 0 buffer_length)
       done;
       AFrame.add_break buf buffer_length
 

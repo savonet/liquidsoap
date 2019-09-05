@@ -49,7 +49,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
         pcm, 0, Audio.length pcm
     in
     let data = Bytes.create (2*channels*alen) in
-    Audio.S16LE.of_audio pcm astart data 0 alen;
+    Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =

@@ -225,9 +225,9 @@ struct
             let slen = min slen (RB.read_space c.rb) in
             if slen > 0 then
               let src = Audio.create channels slen in
-              RB.read c.rb src 0 slen;
+              RB.read c.rb src;
               if slen = dlen then
-                Audio.blit src 0 dst dofs slen
+                Audio.blit (Audio.sub src 0 slen) (Audio.sub dst dofs slen)
               else
                 (* TODO: we could do better than nearest interpolation. However,
                    for slight adaptations the difference should not really be
@@ -313,7 +313,8 @@ struct
               RB.read_advance c.rb n;
               MG.advance c.mg (Frame.master_of_audio n)
             );
-          RB.write c.rb buf 0 len;
+          failwith "TODO: do we really want to write len here?";
+          RB.write c.rb (Audio.sub buf 0 len);
           MG.feed_from_frame c.mg frame;
           if RB.read_space c.rb > prebuf then begin
             c.buffering <- false;

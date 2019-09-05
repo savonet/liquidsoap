@@ -261,7 +261,7 @@ object (self)
             assert (Array.length pcm = channels);
             let len = Frame.audio_of_master len in
             let data = Bytes.create (2*channels*len) in
-            Audio.S16LE.of_audio pcm 0 data 0 len;
+            Audio.S16LE.of_audio pcm data 0;
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time (Utils.get_some el.audio) data 0 (Bytes.length data)
           );
         if has_video then

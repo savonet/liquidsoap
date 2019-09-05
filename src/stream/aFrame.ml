@@ -48,7 +48,7 @@ let to_s16le b =
     assert (Audio.to_16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
   *)
-  Audio.S16LE.make fpcm 0 (Audio.length fpcm)
+  Audio.S16LE.make fpcm
 
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
@@ -75,11 +75,13 @@ exception No_chunk
 let get_chunk = get_chunk
 
 let blankify b off len =
-  Audio.clear (content b off) off len
+  Audio.clear (Audio.sub (content b off) off len)
 
-let multiply b off len c = Audio.amplify c (content b off) off len
+let multiply b off len c =
+  Audio.amplify c (Audio.sub (content b off) off len)
 
 let add b1 off1 b2 off2 len =
-  Audio.add (content b1 off1) off1 (content b2 off2) off2 len
+  Audio.add (Audio.sub (content b1 off1) off1 len) (Audio.sub (content b2 off2) off2 len)
 
-let rms b off len = Audio.Analyze.rms (content b off) off len
+let rms b off len =
+  Audio.Analyze.rms (Audio.sub (content b off) off len)

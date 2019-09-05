@@ -187,7 +187,7 @@ object(self)
       let slen_of_len len = 2 * len * Array.length buf in
       let slen = slen_of_len blen in
       let sbuf = Bytes.create slen in
-      Audio.S16LE.of_audio buf 0 sbuf 0 blen;
+      Audio.S16LE.of_audio buf sbuf 0;
       let metadata =
         List.sort (fun (pos,_) (pos',_) -> compare pos pos')
                   (Frame.get_all_metadata tmp)

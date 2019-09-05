@@ -34,7 +34,7 @@ object
     let off = Frame.audio_of_master off in
     let len = Frame.audio_of_master len in
     let buf = AFrame.content_of_type ~channels frame off in
-    g#fill buf off len
+    g#fill (Audio.sub buf off len)
 end
 
 let add name g =

@@ -60,13 +60,13 @@ let encoder wav =
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
       match sample_size with
-        | 32 -> Audio.S32LE.of_audio
-        | 24 -> Audio.S24LE.of_audio
+        | 32 -> fun buf s off -> Audio.S32LE.of_audio buf 0 s off (Audio.length buf)
+        | 24 -> fun buf s off -> Audio.S24LE.of_audio buf 0 s off (Audio.length buf)
         | 16 -> Audio.S16LE.of_audio
-        | 8 -> Audio.U8.of_audio
+        | 8 -> fun buf s off -> Audio.U8.of_audio buf 0 s off (Audio.length buf)
         | _ -> failwith "unsupported sample size"
     in
-    of_audio b start s 0 len;
+    of_audio b s 0;
     let s = Bytes.unsafe_to_string s in
     if !need_header then begin
       need_header := false ;

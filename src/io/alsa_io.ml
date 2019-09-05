@@ -82,7 +82,7 @@ object (self)
                     write <-
                     (fun pcm buf ofs len ->
                        let sbuf = Bytes.create (2 * len * Array.length buf) in
-                       Audio.S16LE.of_audio buf ofs sbuf 0 len;
+                       Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                        Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                     );
                     read <-
@@ -106,8 +106,7 @@ object (self)
                                (fun _ -> String.make (2 * len) (Char.chr 0))
                            in
                            for c = 0 to Audio.channels buf - 1 do
-                             Audio.S16LE.of_audio
-                               [|buf.(c)|] ofs (Bytes.of_string sbuf.(c)) 0 len
+                             Audio.S16LE.of_audio (Audio.sub [|buf.(c)|] ofs len) (Bytes.of_string sbuf.(c)) 0
                            done;
                            Pcm.writen pcm sbuf 0 len
                         );

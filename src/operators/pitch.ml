@@ -84,7 +84,7 @@ object (self)
     let pos = AFrame.position buf in
     source#get buf;
     let buf = AFrame.content buf pos in
-      Ringbuffer.write ring buf 0 (Audio.Mono.length buf.(0));
+      Ringbuffer.write ring buf;
       if Ringbuffer.read_space ring > length then
         Ringbuffer.read_advance ring (Ringbuffer.read_space ring - length);
       computations <- (computations + 1) mod every;
@@ -93,7 +93,7 @@ object (self)
         let wl_max = wl freq_min in
         let d_opt = ref infinity in
         let wl_opt = ref 0 in
-          Ringbuffer.read ring databuf 0 length;
+          Ringbuffer.read ring databuf;
           for l = wl_min to wl_max do
             let d = average_diff l databuf 0 length in
               if d < !d_opt then

@@ -37,7 +37,7 @@ object
       source#get buf ;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
-      Audio.clip b offset (position - offset)
+      Audio.clip (Audio.sub b offset (position - offset))
 end
 
 let () =

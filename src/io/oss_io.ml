@@ -90,7 +90,7 @@ object (self)
     let buf = AFrame.content memo 0 in
     let r = Audio.S16LE.size (Audio.channels buf) (Audio.length buf) in
     let s = Bytes.create r in
-    Audio.S16LE.of_audio buf 0 s 0 (Audio.length buf);
+    Audio.S16LE.of_audio buf s 0;
     let w = Unix.write fd s 0 r in
     assert (w = r)
 

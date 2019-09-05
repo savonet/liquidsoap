@@ -78,9 +78,8 @@ object (self)
 
       (* Reproduce audio data in the new contents. *)
       Audio.blit
-        src.Frame.audio (Frame.audio_of_master offset)
-        dst.Frame.audio (Frame.audio_of_master offset)
-        (Frame.audio_of_master len);
+        (Audio.sub src.Frame.audio (Frame.audio_of_master offset) (Frame.audio_of_master len))
+        (Audio.sub dst.Frame.audio (Frame.audio_of_master offset) (Frame.audio_of_master len));
 
       (* Feed the volume buffer. *)
       let acontent = AFrame.content frame (Frame.audio_of_master offset) in
