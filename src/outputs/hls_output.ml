@@ -462,8 +462,8 @@ class hls_output p =
       List.iter (fun s ->
           let line =
             Printf.sprintf
-              "#EXT-X-STREAM-INF:AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d,CODECS=%S\r\n"
-              s.hls_bandwidth s.hls_bandwidth  s.hls_codec
+              "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=%S\r\n"
+              s.hls_bandwidth  s.hls_codec
           in
           output_string oc line;
           output_string oc (s.hls_name^".m3u8\r\n")
