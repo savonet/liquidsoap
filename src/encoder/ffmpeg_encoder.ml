@@ -41,13 +41,12 @@ let encoder ffmpeg meta =
       | None -> failwith "No format for filename!"
       | Some f -> f
   in
-  let codec_name =
-    ffmpeg.Ffmpeg_format.codec
+  let codec =
+    Avcodec.Audio.find_encoder ffmpeg.Ffmpeg_format.codec
   in
-  let codec_id =
-    FFmpeg.Avcodec.Audio.find_encoder_id codec_name
+  let out_sample_format =
+    Avcodec.Audio.find_best_sample_format codec `Dbl
   in
-  let out_sample_format = `S16 in
   let src_freq = Frame.audio_of_seconds 1. in
   let channels = Lazy.force Frame.audio_channels in
   let src_channels =
@@ -68,8 +67,11 @@ let encoder ffmpeg meta =
   let buf = Buffer.create 1024 in
   let make () =
     let opts =
-      Hashtbl.copy ffmpeg.Ffmpeg_format.options
+      Av.mk_audio_opts ~channels:ffmpeg.Ffmpeg_format.channels
+                       ~sample_rate:(Lazy.force ffmpeg.Ffmpeg_format.samplerate)
+                       ()
     in
+    Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.options;
     let converter =
       Resampler.create ~out_sample_format
         src_channels src_freq
@@ -83,7 +85,7 @@ let encoder ffmpeg meta =
       Av.open_output_stream ~opts write format
     in
     let stream =
-      Av.new_audio_stream ~opts ~sample_format:out_sample_format ~channel_layout:dst_channels ~codec_name ~sample_rate:dst_freq output
+      Av.new_audio_stream ~opts ~codec output
     in
     if Hashtbl.length opts > 0 then
        failwith (Printf.sprintf "Unrecognized options: %s" 

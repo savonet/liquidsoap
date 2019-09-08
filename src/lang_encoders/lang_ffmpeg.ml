@@ -40,9 +40,11 @@ let ffmpeg_gen params =
               { f with Ffmpeg_format.format = fmt }
           | ("codec",{ term = String c; _}) ->
               { f with Ffmpeg_format.codec = c }
-          | ("channels",{ term = Int i; _}) ->
+          | ("channels",{ term = Int i; _})
+          | ("ac",{ term = Int i; _}) ->
               { f with Ffmpeg_format.channels = i }
-          | ("samplerate",{ term = Int i; _}) ->
+          | ("samplerate",{ term = Int i; _})
+          | ("ar",{ term = Int i; _}) ->
               { f with Ffmpeg_format.samplerate = Lazy.from_val i }
           | (k,{ term = String s; _}) ->
               Hashtbl.add f.Ffmpeg_format.options k (`String s);
