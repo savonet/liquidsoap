@@ -138,6 +138,7 @@ Fixed:
   reversing the list (#922).
 - File descriptor leak when using openssl-based operators.
 - Fixed SSL read taking too long to timeout (#932)
+- Fixed output starting when underlying source is not available (#393)
 
 1.3.7 (09-04-2019)
 =====
