@@ -60,11 +60,14 @@ let samplerate_converter () =
   let converter = Samplerate.create quality 1 in
   let convert ratio b =
     let inlen = Audio.Mono.length b in
-    let outlen = int_of_float (float inlen *. ratio +. 0.5) in
+    let outlen = int_of_float (float inlen *. ratio) in
     let buf = Audio.Mono.create outlen in
     let i, o = Samplerate.process_ba converter ratio b buf in
-    if i < inlen then log#important "Could not convert all the input buffer (%d instead of %d)." i inlen;
-    Audio.Mono.sub buf 0 o
+    if i < inlen then log#debug "Could not convert all the input buffer (%d instead of %d)." i inlen;
+    if o < outlen then log#debug "Unexpected output length (%d instead of %d)." o outlen;
+    (* TODO: the following would solve the issue but apparently messes up buffers *)
+    (* Audio.Mono.sub buf 0 o *)
+    buf
   in
   convert
 
