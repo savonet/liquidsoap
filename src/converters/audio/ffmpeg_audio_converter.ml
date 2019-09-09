@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+module Swresample = FFmpeg.Swresample
 module Resampler = Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
 
 let samplerate_converter () =
