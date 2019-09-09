@@ -63,9 +63,9 @@ let encoder flac meta =
       else
         b,start,len
     in
-    (* let b = Array.map (fun x -> Array.sub x start len) b in *)
-    (* Flac.Encoder.process !enc cb b; *)
-    failwith "TODO";
+    let b = Audio.sub b start len in
+    let b = Audio.to_array b in
+    Flac.Encoder.process !enc cb b;
     let ret = Buffer.contents buf in
     Buffer.reset buf ;
     ret

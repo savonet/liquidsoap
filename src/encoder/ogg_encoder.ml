@@ -57,7 +57,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
      Ogg_muxer.Audio_data
       {
        Ogg_muxer.
-        data   = ((* buf *) failwith "TODO"; [||]);
+        data   = Audio.to_array buf;
         offset = start;
         length = len
       }

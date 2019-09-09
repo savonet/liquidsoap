@@ -70,8 +70,7 @@ let encoder shine =
         Audio.blit (Audio.sub b o l) (Audio.sub data o' l)
       in
       List.iter f l ;
-      (* Buffer.add_string encoded (Shine.encode_buffer enc data) *)
-      failwith "TODO"
+      Buffer.add_string encoded (Shine.encode_buffer enc (Audio.to_array data))
     done ;
     let ret = Buffer.contents encoded in
     Buffer.reset encoded;

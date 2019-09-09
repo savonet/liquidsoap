@@ -249,14 +249,12 @@ let create_decoder ?(merge_tracks=false) source mode input =
         if decode_audio then
           begin
             let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
-            (* Ogg_demuxer.decode_audio decoder track (audio_feed track)  *)
-            failwith "TODO"; ()
+            Ogg_demuxer.decode_audio decoder track (fun buf -> audio_feed track (Audio.of_array buf))
           end ;
         if decode_video then
           begin
             let track = Utils.get_some tracks.Ogg_demuxer.video_track in
-            (* Ogg_demuxer.decode_video decoder track (video_feed track) *)
-            failwith "TODO"; ()
+            Ogg_demuxer.decode_video decoder track (video_feed track)
           end;
     with
         (* We catch [Ogg_demuxer.End_of_stream] only if asked to
