@@ -66,7 +66,7 @@ let encoder wav =
         | 8 -> fun buf s off -> Audio.U8.of_audio buf 0 s off (Audio.length buf)
         | _ -> failwith "unsupported sample size"
     in
-    of_audio b s 0;
+    of_audio (Audio.sub b start len) s 0;
     let s = Bytes.unsafe_to_string s in
     if !need_header then begin
       need_header := false ;
