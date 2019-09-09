@@ -165,5 +165,4 @@ let register name init render_text =
         ((new text ~kind init render_text ttf ttf_size color x y speed
             cycle meta txt source):>Source.source))
   in
-  add_operator ("video.add_text."^name);
-  add_operator "video.add_text"
+  add_operator ("video.add_text."^name)

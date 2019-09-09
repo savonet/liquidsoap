@@ -13,9 +13,11 @@ if [ "${STATUS}" == "0" ]; then
 fi
 
 if [ "${STATUS}" == "1" ]; then
-  echo -e "\033[0;31m[failed]\033[0m"
+    echo -e "\033[0;31m[failed]\033[0m"
+    exit 1
 fi
 
 if [ "${STATUS}" == "2" ]; then
-  echo -e "\033[1;33m[skipped]\033[0m"
+    echo -e "\033[1;33m[skipped]\033[0m"
+    exit 2
 fi

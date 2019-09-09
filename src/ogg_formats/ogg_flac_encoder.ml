@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 let create_encoder ~flac ~comments () =
-  let samplerate = flac.Flac_format.samplerate in
+  let samplerate = Lazy.force flac.Flac_format.samplerate in
   let p = 
     { Flac.Encoder.
        channels = flac.Flac_format.channels ;
@@ -114,7 +114,7 @@ let create_flac =
          Ogg_muxer.register_track ?fill:flac.Flac_format.fill ogg_enc enc
        in
        let src_freq = float (Frame.audio_of_seconds 1.) in
-       let dst_freq = float flac.Flac_format.samplerate in
+       let dst_freq = float (Lazy.force flac.Flac_format.samplerate) in
        let channels = flac.Flac_format.channels in
        let encode =
          Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()

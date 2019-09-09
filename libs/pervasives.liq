@@ -1,6 +1,8 @@
 %include "audio.liq"
 %include "ref.liq"
 %include "utils.liq"
+%include "string.liq"
+%include "metadata.liq"
 %include "playlist.liq"
 %include "resolvers.liq"
 %include "fades.liq"

@@ -1,3 +1,5 @@
+#!../../src/liquidsoap
+
 %include "test.liq"
 
 s = playlist(mode="randomize",reload=1,reload_mode="rounds","threesines")

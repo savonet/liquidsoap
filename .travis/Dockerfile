@@ -16,7 +16,7 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full
 
-RUN eval $(opam config env) && git pull && make update && \
+RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout master && git pull && \
      git fetch origin $TRAVIS_COMMIT && git checkout $TRAVIS_COMMIT && \
      cd .. && ./bootstrap && \
@@ -25,6 +25,10 @@ RUN eval $(opam config env) && git pull && make update && \
                  --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
                  --with-camomile-data-dir=/usr/share/liquidsoap/camomile && \
      make clean && make && cd liquidsoap && make doc
+
+WORKDIR /tmp/liquidsoap-full/liquidsoap
+
+RUN eval $(opam config env) && make test
 
 USER root
 
@@ -39,7 +43,3 @@ USER opam
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
 RUN ./build-deb.sh "$TRAVIS_COMMIT_SHORT" "$TRAVIS_BRANCH" "$TRAVIS_PULL_REQUEST_BRANCH" "$TRAVIS_PULL_REQUEST" "$DOCKER_TAG" "$TRAVIS_BUILD_NUMBER"
-
-#WORKDIR /tmp/liquidsoap-full/liquidsoap
-
-#RUN eval $(opam config env) && make test

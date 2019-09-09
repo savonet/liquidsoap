@@ -40,7 +40,8 @@ type chunk = {
   mutable len: int
 }
 
-class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (source:source) =
+class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
+           ~restart_on_error (source:source) =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -49,6 +50,9 @@ class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (
   let audio_src_rate = float sample_rate in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let abg_max_len = Frame.audio_of_seconds max in
+  let replay_delay =
+    Frame.audio_of_seconds replay_delay
+  in
   let samplesize = ref 16 in
   let converter = ref
     (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:!samplesize
@@ -70,6 +74,7 @@ class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (
   in
   let abg = Generator.create ~log ~kind `Audio in
   let mutex = Mutex.create () in
+  let replay_pending = ref [] in
   let next_stop = ref `Nothing in
   let header_read = ref false in
   let on_stdout pull =
@@ -93,6 +98,34 @@ class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (
       let len = Array.length data.(0) in
       let buffered = Generator.length abg in
       Generator.put_audio abg data 0 (Array.length data.(0));
+
+      let to_replay = Tutils.mutexify mutex (fun () ->
+        let pending = !replay_pending in
+        let to_replay, pending = List.fold_left (fun ((pos,b),cur) (pos',b') -> 
+          if pos'+len > replay_delay then
+           begin
+            if pos > 0 then
+              log "Cannot replay multiple element at once.. Picking up the most recent";
+            if pos > 0 && pos < pos' then (pos,b),cur else (pos',b'), cur
+           end
+          else (pos,b),(pos'+len,b')::cur) ((-1,`Nothing),[]) pending
+        in 
+        replay_pending := pending;
+        to_replay) ()
+      in
+      begin
+       match to_replay with
+         | -1, _ -> ()
+         | _, `Break_and_metadata m ->
+             Generator.add_metadata abg m;
+             Generator.add_break abg
+         | _, `Metadata m ->
+             Generator.add_metadata abg m
+         | _, `Break ->
+             Generator.add_break abg
+         | _ -> ()
+      end; 
+
       if abg_max_len < buffered+len then
         `Delay (Frame.seconds_of_audio (buffered+len-abg_max_len))
       else
@@ -190,9 +223,21 @@ object(self)
       let wlen = min 1024 len in
       let ret = pusher sbuf ofs wlen in
       if ret = len then begin
-        Tutils.mutexify mutex (fun () -> next_stop := next) ();
+        let action =
+          if next <> `Nothing && replay_delay >= 0 then
+           begin
+            Tutils.mutexify mutex (fun () ->
+              replay_pending := (0,next)::!replay_pending) ();
+            `Continue
+           end
+          else
+           begin
+            Tutils.mutexify mutex (fun () -> next_stop := next) ();
+            if next <> `Nothing then `Stop else `Continue
+           end
+        in
         ignore(Queue.take to_write); 
-        if next <> `Nothing then `Stop else `Continue
+        action
       end else begin
         chunk.ofs <- ofs+ret;
         chunk.len <- len-ret;
@@ -228,6 +273,7 @@ object(self)
     Tutils.mutexify mutex (fun () ->
       try
         next_stop := `Sleep;
+        replay_pending := [];
         Process_handler.stop self#get_handler;
         handler <- None
       with Process_handler.Finished -> ()) ()
@@ -239,6 +285,12 @@ let proto =
   [
     "process", Lang.string_t, None,
     Some "Process used to pipe data to.";
+
+    "replay_delay", Lang.float_t, Some (Lang.float (-1.)),
+    Some "Replay track marks and metadata from the input source \
+          on the output after a given delay. If negative (default) \
+          close and flush the process on each track and metadata to \
+          get an exact timing.";
 
     "data_length", Lang.int_t, Some (Lang.int (-1)),
     Some "Length passed in the WAV data chunk. \
@@ -266,8 +318,9 @@ let proto =
 
 let pipe p kind =
   let f v = List.assoc v p in
-  let process, data_len, bufferize, max, restart, restart_on_error, src =
+  let process, replay_delay, data_len, bufferize, max, restart, restart_on_error, src =
     Lang.to_string (f "process"),
+    Lang.to_float (f "replay_delay"),
     Lang.to_int (f "data_length"),
     Lang.to_float (f "buffer"),
     Lang.to_float (f "max"),
@@ -275,7 +328,7 @@ let pipe p kind =
     Lang.to_bool (f "restart_on_error"),
     Lang.to_source (f "")
   in
-  ((new pipe ~kind ~data_len ~bufferize ~max ~restart ~restart_on_error ~process src):>source)
+  ((new pipe ~kind ~replay_delay ~data_len ~bufferize ~max ~restart ~restart_on_error ~process src):>source)
 
 let () =
   Lang.add_operator "pipe" proto

@@ -51,7 +51,7 @@ let print_single_pos l =
       Printf.sprintf "file %s, " l.Lexing.pos_fname
   in
   let line,col = l.Lexing.pos_lnum, (l.Lexing.pos_cnum-l.Lexing.pos_bol) in
-  Printf.sprintf "%sline %d, character %d" file line (col+1)
+  Printf.sprintf "%sline %d, char %d" file line col
 
 let print_pos ?(prefix="at ") (start,stop) =
   let prefix =
@@ -62,9 +62,8 @@ let print_pos ?(prefix="at ") (start,stop) =
   let f l = l.Lexing.pos_lnum, (l.Lexing.pos_cnum-l.Lexing.pos_bol) in
   let lstart,cstart = f start in
   let lstop,cstop = f stop in
-  let cstart = 1+cstart in
   if lstart = lstop then
-    if cstart = cstop then
+    if cstop = cstart + 1 then
       Printf.sprintf "%sline %d, char %d" prefix lstart cstart
     else
       Printf.sprintf "%sline %d, char %d-%d" prefix lstart cstart cstop
@@ -592,11 +591,11 @@ let print_type_error error_header (flipped,ta,tb,a,b) =
       | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")"
   in
   let ta,tb,a,b = if flipped then tb,ta,b,a else ta,tb,a,b in
-  Format.printf  "this value has type@;<1 2>%a%s@ "
+  Format.printf  "this value has type@.@[<2>  %a@]%s@ "
     print_repr a
     (inferred_pos ta) ;
   Format.printf
-    "but it should be a %stype of%s@;<1 2>%a%s@]@."
+    "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
     (if flipped then "super" else "sub")
     (match tb.pos with
      | None -> ""

@@ -30,7 +30,7 @@ New:
   any playlist supported by `youtube-dl`) (#761)
 - Added `protocol.aws.endpoint` setting for the `s3://` protocol, thanks to
   @RecursiveGreen. (#778)
-- Added support for sandboxing `run_process` calls. Set safe defaults. (#785)
+- Added support for sandboxing `run_process` calls. (#785)
 - Added `harbor.{http,https}.static` to serve static path.
 - Added `log.{critical,severe,important,info,warning,debug}`. Use aliases in code as well (#800, #801, #802)
 - Added `sleep` function.
@@ -45,6 +45,16 @@ New:
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
 - Added `video.add_text.native`.
+- Added `configure.bindir`
+- Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
+- Added `for` and `while` loop functions.
+- Added `list.case`.
+- Added `metadata.string_getter` and `metadata.float_getter`.
+- Added `string.contains`.
+- Added `request.uri`.
+- Added `{input,output}.srt` (#898)
+- Added `path.remove_extension`.
+- Added SSL read/write timeout options, use it for incoming socket connections (#932)
 
 Changed:
 
@@ -96,10 +106,19 @@ Changed:
 - Handle unary minus in the preprocessor instead of the parser in order to avoid
   duplicating the parser. (#860)
 - Add `filter` option to `playlist.once`.
+- Added a `replay_delay` option to the `pipe` operator to replay metadata and
+  breaks after a delay instead of restart the piping process. (#885)
 - Add `buffer_length` telnet command to `input.harbor`.
 - Bumped default `length` parameter for request-based sources (`playlist`,
   `request.dynamic`, ..) to `40.` to assure that there always is at least
   one request ready to play when the current one ends.
+- Added support for cue in/out and fade in/out/type metadata support in `ffmpeg2wav`
+  protocol. Rename protocol to `ffmpeg`. (#909)
+- `list.assoc` and `list.remove_assoc` require an ordered type as first
+  component.
+- Renamed `quote` to `string.quote`.
+- Added `phase_inversion={true/false}` to `%opus` encoder (#937)
+- Fixed encoders forcing frame rate and audio channels too early (#933)
 
 Fixed:
 
@@ -120,6 +139,13 @@ Fixed:
 - Fixed encoded output creating empty files from failing sources (#876)
 - Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
 - Fixed audio glitches when seeking within a MP3 file.
+- Fixed `insert_metadata` logic when insert new track and metadata (#903)
+- Fixed `replay-gain` script default location.
+- Fixed audio glitches at the end of crossfade transitions.
+- Specify that `list.remove` removes only the first occurrence and avoid
+  reversing the list (#922).
+- File descriptor leak when using openssl-based operators.
+- Fixed SSL read taking too long to timeout (#932)
 
 1.3.7 (09-04-2019)
 =====

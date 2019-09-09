@@ -21,6 +21,13 @@
 
  *****************************************************************************)
 
+exception Bind_error of string
+
+let () = Printexc.register_printer (function
+  | Bind_error msg ->
+      Some (Printf.sprintf "Error while trying to bind server/telnet socket: %s" msg)
+  | _ -> None)
+
 let conf =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "server")
@@ -406,7 +413,11 @@ let start_socket () =
     failwith (Printf.sprintf "Unknown directory for the socket: %s" socket_dir)
   else () ;
   if Sys.file_exists socket_path then Unix.unlink socket_path else () ;
-  Unix.bind sock bind_addr ;
+  begin
+   try
+    Unix.bind sock bind_addr
+   with exn -> raise (Bind_error (Printexc.to_string exn))
+  end;
   Unix.listen sock max_conn ;
   ignore
     (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom] (fun () ->
@@ -449,7 +460,11 @@ let start_telnet () =
       ; handler= incoming } ]
   in
   Unix.setsockopt sock Unix.SO_REUSEADDR true ;
-  Unix.bind sock bind_addr ;
+  begin
+   try
+    Unix.bind sock bind_addr
+   with exn -> raise (Bind_error (Printexc.to_string exn))
+  end;
   Unix.listen sock max_conn ;
   Duppy.Task.add Tutils.scheduler
     { Duppy.Task.priority= Tutils.Non_blocking

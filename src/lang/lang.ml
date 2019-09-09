@@ -653,29 +653,19 @@ let type_and_run ~lib ast =
        Term.check_unused ~lib ast ;
        ignore (Term.eval_toplevel ast))
 
-(** The Parsing module is not thread safe, it has global variables
-  * describing the current parsing state. Hence we need to do one
-  * parsing at a time. *)
-let parse_lock = Mutex.create ()
-
 let mk_expr ~pwd processor lexbuf =
-  let processor =
-    MenhirLib.Convert.Simplified.traditional2revised processor
+  let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
+  let tokenizer = Lang_pp.mk_tokenizer ~pwd lexbuf in
+  let tokenizer () =
+    let token,(startp,endp) = tokenizer () in
+    token,startp,endp
   in
-  let tokenizer =
-    Lang_pp.mk_tokenizer ~pwd lexbuf
-  in
-  Tutils.mutexify parse_lock processor tokenizer
+  processor tokenizer
 
 let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
-  let lexbuf = Sedlexing_compat.Utf8.from_channel in_chan in
-    assert (lexbuf.Sedlexing_compat.lex_start_p = lexbuf.Sedlexing_compat.lex_curr_p) ;
+  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
     begin match ns with
-      | Some ns ->
-          lexbuf.Sedlexing_compat.lex_start_p <- { lexbuf.Sedlexing_compat.lex_start_p with
-                                             Lexing.pos_fname = ns } ;
-          lexbuf.Sedlexing_compat.lex_curr_p <- { lexbuf.Sedlexing_compat.lex_curr_p with
-                                             Lexing.pos_fname = ns }
+      | Some ns -> Sedlexing.set_filename lexbuf ns
       | None -> ()
     end ;
     try Lang_errors.report lexbuf (fun () ->
@@ -707,7 +697,7 @@ let from_string ?parse_only ~lib expr =
 
 let eval s =
   try
-    let lexbuf = Sedlexing_compat.Utf8.from_string s in
+    let lexbuf = Sedlexing.Utf8.from_string s in
     let expr =
       mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf
     in
@@ -736,7 +726,34 @@ let interactive () =
       "Logs can be found in %S.\n@."
       Dtools.Log.conf_file_path#get ;
   let lexbuf =
-    Sedlexing_compat.Utf8.from_interactive_channel stdin
+    (* See ocaml-community/sedlex#45 *)
+    let chunk_size = 512 in
+    let buf = Bytes.create chunk_size in
+    let cached = ref (-1) in
+    let position = ref (-1) in
+    let rec gen () =
+      match !position, !cached  with
+      | _, 0 ->
+         None
+      | -1, _ ->
+         begin
+           position := 0;
+           cached := input stdin buf 0 chunk_size
+         end;
+         gen ()
+      | len, c when len = c ->
+         position := -1;
+         (* This means that the last read was a full chunk. Safe to try a new
+            one right away. *)
+         if len = chunk_size then
+           gen ()
+         else
+           None
+      | len, _ ->
+         position := len+1;
+         Some (Bytes.get buf len)
+    in
+    Sedlexing.Utf8.from_gen gen
   in
   let rec loop () =
     Format.printf "# %!" ;

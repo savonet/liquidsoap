@@ -24,6 +24,26 @@ open Lang_values
 open Lang_encoders
 
 let make params =
+  let valid_samplerates = [
+    8000;  11025; 12000; 16000; 22050; 24000; 32000;
+    44100; 48000; 64000; 88200; 96000 ]
+  in
+  let check_samplerate ?t i =
+   lazy (
+    let i = Lazy.force i in
+    if not (List.mem i valid_samplerates) then
+      begin
+        let err =
+          Printf.sprintf "invalid samplerate value. Possible values: %s"
+            (String.concat ", "
+              (List.map string_of_int valid_samplerates))
+        in
+        match t with
+          | Some t -> raise (Error (t,err));
+          | None -> failwith err
+      end;
+    i)
+  in
   let defaults =
     { Fdkaac_format.
         afterburner    = false;
@@ -31,14 +51,12 @@ let make params =
         bandwidth      = `Auto;
         bitrate        = 64;
         bitrate_mode   = `Constant;
-        channels       = Lazy.force Frame.audio_channels;
-        samplerate     = Lazy.force Frame.audio_rate;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
+        channels       = 2;
+        samplerate     = check_samplerate Frame.audio_rate;
         sbr_mode       = false;
         transmux       = `Adts }
-  in
-  let valid_samplerates = [
-    8000;  11025; 12000; 16000; 22050; 24000; 32000;
-    44100; 48000; 64000; 88200; 96000 ]
   in
   let valid_vbr = [1;2;3;4;5] in
   let fdkaac =
@@ -72,16 +90,7 @@ let make params =
           | ("channels",{ term = Int i; _}) ->
               { f with Fdkaac_format.channels = i }
           | ("samplerate",({ term = Int i; _} as t)) ->
-              if not (List.mem i valid_samplerates) then
-               begin
-                let err =
-                  Printf.sprintf "invalid samplerate value. Possible values: %s"
-                  (String.concat ", "
-                    (List.map string_of_int valid_samplerates))
-                in
-                raise (Error (t,err));
-               end;
-              { f with Fdkaac_format.samplerate = i }
+              { f with Fdkaac_format.samplerate = check_samplerate ~t (Lazy.from_val i) }
           | ("sbr_mode",{ term = Bool b; _}) ->
               { f with Fdkaac_format.sbr_mode = b }
           | ("transmux",({ term = String s; _} as t)) ->

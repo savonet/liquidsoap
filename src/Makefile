@@ -99,11 +99,11 @@ operators = \
 	operators/midi_routing.ml operators/sleeper.ml \
 	operators/time_warp.ml operators/resample.ml \
 	operators/chord.ml operators/video_text.ml operators/window_op.ml \
+	operators/video_text_native.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	$(if $(W_FREI0R),operators/frei0r_op.ml) \
-	$(if $(W_GD),operators/video_text_native.ml) \
 	$(if $(W_GD),operators/video_text_gd.ml) \
 	$(if $(W_SDL),operators/video_text_sdl.ml) \
 	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
@@ -163,15 +163,16 @@ outputs = outputs/output.ml \
 	$(if $(W_ALSA),outputs/alsa_out.ml)
 
 io = io/udp_io.ml \
+	$(if $(W_SRT),io/srt_io.ml) \
 	$(if $(W_OSS),io/oss_io.ml) \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
-tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
-        tools/utils.ml tools/plug.ml \
-	tools/rqueue.ml tools/sedlexing_compat.ml \
+tools = tools/extralib.ml tools/JSON.ml tools/utils.ml \
+        tools/doc.ml  tools/plug.ml \
+	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
@@ -198,7 +199,9 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/lang_builtins.ml lang/builtins_json.ml \
+builtins = lang/lang_builtins.ml lang/builtins_list.ml \
+           lang/builtins_string.ml lang/builtins_json.ml \
+           lang/builtins_request.ml lang/builtins_http.ml \
            lang/builtins_harbor.ml lang/builtins_dtools.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \

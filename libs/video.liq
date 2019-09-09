@@ -178,3 +178,39 @@ def output.youtube.live.ffmpeg(~id="",~flush=false, ~fallible=false,
   output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
                          reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
 end
+
+video.add_text = video.add_text.native
+
+%ifdef video.add_text.sdl
+video.add_text = video.add_text.sdl
+%endif
+
+%ifdef video.add_text.gstreamer
+video.add_text = video.add_text.gstreamer
+%endif
+
+%ifdef video.add_text.gd
+video.add_text = video.add_text.gd
+%endif
+
+# Display a text using the first available operator in: gd, gstreamer, sdl or native
+# @param ~id Force the value of the source ID.
+# @param ~color Text color (in 0xRRGGBB format).
+# @param ~cycle Cycle text when it reaches left boundary.
+# @param ~font Path to ttf font file.
+# @param ~metadata Change text on a particular metadata (empty string means disabled).
+# @param ~size Font size.
+# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
+#               according to x and y in case they are variable).
+# @param ~x x offset.
+# @param ~y y offset.
+# @params d Text to display.
+def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
+                   ~metadata="",~size=18,~speed=70,~x=10,~y=10,
+                   d,s) =
+  video.add_text(id=id,cycle=cycle,font=font,
+     metadata=metadata,size=size,
+     speed=speed,x=x,y=y,d,s)
+end
+
+

@@ -370,8 +370,6 @@ inner_tuple:
 app_list_elem:
   | VAR GETS expr { $1,$3 }
   | expr          { "",$1 }
-/* Note that we can get rid of the COMMA iff we use cexpr instead of expr
- * for unlabelled parameters. */
 app_list:
   |                              { [] }
   | app_list_elem                { [$1] }

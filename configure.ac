@@ -1,16 +1,13 @@
-dnl BEFORE RELEASING
-dnl Make sure that you edit the version number on the next line
-dnl as well as the "version" variable below AND the "libs_dir_version",
-dnl which is used as the final component of the standard .liq libdir,
-dnl $libdir/liquidsoap/$libs_dir_version
+# Liquidsoap autoconf setup
 
-# Set git_snapshot to false before releasing
-# Do not use $version below before the next line, since we grep
-# for the literal version there
-AC_INIT([liquidsoap],[1.4.0])
+AC_INIT([liquidsoap],
+        m4_esyscmd([head -n1 VERSION | tr -d '\r\n']),
+        [savonet-users@lists.sourceforge.net],
+        [liquidsoap],
+        [https://github.com/savonet/liquidsoap])
 git_snapshot=true
 version="$PACKAGE_VERSION"
-min_ocaml_version=4.08.0
+min_ocaml_version=m4_esyscmd([tail -n1 VERSION | tr -d '\r\n'])
 git_commit=`git rev-parse --short HEAD || true`
 
 if test $git_snapshot != "false"; then
@@ -26,6 +23,7 @@ else
 fi
 
 AC_SUBST(version)
+AC_SUBST(min_ocaml_version)
 AC_SUBST(libs_dir_version)
 
 AC_PREREQ(2.61)
@@ -138,7 +136,7 @@ fi
 dnl The following does not correctly uses prefix
 dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
 bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
-AS_IF([test -z "$bashcompdir"], [bashcompdir="\${sysconfdir}/bash_completion.d"])
+AS_IF([test -z "$bashcompdir"], [bashcompdir='${sysconfdir}/bash_completion.d'])
 AC_SUBST(bashcompdir)
 
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
@@ -212,7 +210,7 @@ fi
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
-  liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+  liquidsoap_ocamlcflags="-g -annot -bin-annot $liquidsoap_ocamlcflags"
   liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
 fi
 # Disable nativecode if ocamlopt is not present
@@ -275,7 +273,7 @@ AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
 if test -z "${VERSION_OK}"; then
-  AC_MSG_ERROR([version 4.08.0 or greater of the OCaml compiler is required to build liquidsoap])
+  AC_MSG_ERROR([version $min_ocaml_version or greater of the OCaml compiler is required to build liquidsoap])
 fi
 
 AC_SUBST(BYTE)
@@ -403,7 +401,7 @@ AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
 # Opus
 #
 
-AC_CHECK_OCAML_BINDING([opus],[0.1.1],[ogg])
+AC_CHECK_OCAML_BINDING([opus],[0.1.3],[ogg])
 
 #
 # Speex
@@ -532,7 +530,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.2.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.4.0])
 
 #
 # Jack
@@ -798,6 +796,22 @@ AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
 AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
+
+# TODO: switch to dune all the way?
+with_srt_types_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/types"
+AC_CHECK_OCAML_BINDING([srt.types],[0.1.0],[],[],[],[srt_types])
+
+with_srt_stubs_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs"
+AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[srt.types],[],[],[srt_stubs])
+
+with_srt_stubs_locked_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs/locked"
+AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[],[],[],[srt_stubs_locked])
+
+AC_CHECK_OCAML_BINDING([srt],[0.1.0],[srt.types srt.stubs srt.stubs.locked])
+
 AC_CHECK_OCAML_BINDING([lo],[0.1.2])
 AC_CHECK_OCAML_BINDING([gd])
 
@@ -910,8 +924,10 @@ echo
 
 AC_CONFIG_FILES([doc/content/install.md])
 AC_CONFIG_FILES([doc/content/build.md])
+AC_CONFIG_FILES([doc/liquidsoap.1.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
+AC_CONFIG_FILES([liquidsoap.opam])
 AC_OUTPUT
 $MAKE finish-configure
 
@@ -960,7 +976,7 @@ cat <<EOMSG
 
  * Supported input formats
    - AAC               : $w_FAAD
-   - Avcodec (ffmpeg)  : $w_FFMPEG
+   - Ffmpeg            : $w_FFMPEG
    - Flac (native)     : $w_FLAC
    - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM
@@ -993,6 +1009,7 @@ cat <<EOMSG
    - OSS               : $w_OSS
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
+   - SRT               : $w_SRT
 
  * Audio manipulation
    - LADSPA            : $w_LADSPA
@@ -1115,6 +1132,7 @@ variables {
   yojson-enabled: $b_YOJSON
   ssl-enabled: $b_SSL
   secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  srt-enabled: $b_SRT
   winscv-enabled: $b_WINSVC
 }
 EOCFG

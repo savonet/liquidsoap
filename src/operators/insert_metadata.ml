@@ -44,26 +44,29 @@ object (self)
     new_track <- nt ;
     Mutex.unlock lock_m
 
-  method private has_metadata =
-    Tutils.mutexify lock_m (fun () -> metadata <> None) ()
+  method private add_metadata frame pos =
+    Tutils.mutexify lock_m (fun () ->
+      match metadata with
+        | None -> ()
+        | Some m ->
+            metadata <- None;
+            Frame.set_metadata frame pos m) ()
 
   method private insert_track =
-    Tutils.mutexify lock_m (fun () -> new_track && metadata <> None) ()
+    Tutils.mutexify lock_m (fun () ->
+      let ret = new_track in
+      new_track <- false;
+      ret) ()
 
   method private get_frame buf =
     let p = Frame.position buf in
     if self#insert_track then
       Frame.add_break buf p
     else
-      source#get buf;
-    Tutils.mutexify lock_m
-      (fun () ->
-        match metadata with
-        | Some m ->
-           Frame.set_metadata buf p m;
-           new_track <- false ;
-           metadata <- None
-        | None -> ()) ()
+     begin
+      self#add_metadata buf p;
+      source#get buf
+     end
 end
 
 let () =
