@@ -263,8 +263,5 @@ ifneq ($(BYTE),)
   endif
 endif
 
-# Dirty hack since ocamlcp does not play nicely with include
 profile:
-	-$(MAKE)
-	cd lang; ocamlc -c -I .. -I ../tools lang_values.ml
-	$(MAKE)
+	$(MAKE) OCAMLC="$(OCAMLC) -p"
