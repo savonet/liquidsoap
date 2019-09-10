@@ -137,7 +137,7 @@ object (self)
   method private may_start = if self#is_ready then start_stop#may_start
 
   method output_get_ready =
-    start_stop#may_start
+    self#may_start
 
   method private sleep =
     self#do_stop ;

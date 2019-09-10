@@ -30,7 +30,8 @@ ogg_muxer = \
 
 audio_converters = \
 	converters/audio/native_audio_converter.ml \
-	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml)
+	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml) \
+	$(if $(W_FFMPEG),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
 	converters/video_converter.ml \
@@ -263,8 +264,5 @@ ifneq ($(BYTE),)
   endif
 endif
 
-# Dirty hack since ocamlcp does not play nicely with include
 profile:
-	-$(MAKE)
-	cd lang; ocamlc -c -I .. -I ../tools lang_values.ml
-	$(MAKE)
+	$(MAKE) OCAMLC="$(OCAMLC) -p"
