@@ -46,6 +46,7 @@ New:
 - Added `{input,output}.srt` (#898)
 - Added `path.remove_extension`.
 - Added SSL read/write timeout options, use it for incoming socket connections (#932)
+- Added ffmpeg resampler (#947).
 
 Changed:
 
