@@ -91,7 +91,7 @@ end
 # @flag hidden
 def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
                            ~playlist,~segment_name,~segment_duration,
-                           ~segments,~segments_per_playlist,~encode_metadata,
+                           ~segments,~segments_overhead,~encode_metadata,
                            ~on_file_change,~start,~port,~path,serve,formats,s)
   tmp_dir = file.temp_dir("hls","")
 
@@ -117,7 +117,7 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
   output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,streams_info=streams_info,
                   playlist=playlist,start=start,segment_name=segment_name,encode_metadata=encode_metadata,
                   segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
-                  segments_per_playlist=segments_per_playlist,tmp_dir,formats,s)
+                  segments_overhead=segments_overhead,tmp_dir,formats,s)
 end
 
 # Output the source stream to an HTTP live stream served from the harbor HTTP server.
@@ -131,8 +131,8 @@ end
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
 # @param ~segment_name Segment name. Default: `fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
-# @param ~segments Number of segments to keep.
-# @param ~segments_per_playlist Number of segments per playlist.
+# @param ~segments Number of segments per playlist.
+# @param ~segments_overhead Number of segments to keep after they have been featured in the live playlist.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~streams_info Additional information about the streams. Should be a list of the form: `[(stream_name, (bandwidth, codec, extname)]`. See RFC 6381 for info about codec. Stream info are required when they cannot be inferred from the encoder.
 # @param ~port Port for incoming harbor (http) connections.
@@ -140,7 +140,7 @@ end
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encode_metadata=false,
-                      ~segment_duration=10.,~segments=15,~segments_per_playlist=10,~streams_info=[],
+                      ~segment_duration=10.,~segments=15,~segments_overhead=10,~streams_info=[],
                       ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                       ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",~on_file_change=(fun (~state=_,_) -> ()),
                       ~headers=[("Access-Control-Allow-Origin","*")],formats,s)
@@ -149,7 +149,7 @@ def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encod
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,encode_metadata=encode_metadata,
                          segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
-                         segments_per_playlist=segments_per_playlist,segment_name=segment_name,
+                         segments_overhead=segments_overhead,segment_name=segment_name,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
                          serve,formats,s)
 end
@@ -166,8 +166,8 @@ end
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
 # @param ~segment_name Segment name. Default: `fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
-# @param ~segments Number of segments to keep.
-# @param ~segments_per_playlist Number of segments per playlist.
+# @param ~segments Number of segments per playlist.
+# @param ~segments_overhead Number of segments to keep after they have been featured in the live playlist.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~streams_info Additional information about the streams. Should be a list of the form: `[(stream_name, (bandwidth, codec, extname)]`. See RFC 6381 for info about codec. Stream info are required when they cannot be inferred from the encoder.
 # @param ~port Port for incoming harbor (https) connections.
@@ -175,7 +175,7 @@ end
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},~encode_metadata=false,
-                            ~segment_duration=10.,~segments=15,~segments_per_playlist=10,streams_info=[],
+                            ~segment_duration=10.,~segments=15,~segments_overhead=10,streams_info=[],
                             ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                             ~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],
                             ~on_file_change=(fun (~state=_,_) -> ()),~start=true,~playlist="stream.m3u8",formats,s)
@@ -184,7 +184,7 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,encode_metadata=encode_metadata,
-                         segments_per_playlist=segments_per_playlist,segment_name=segment_name,
+                         segments_overhead=segments_overhead,segment_name=segment_name,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
                          on_file_change=on_file_change,serve,formats,s)
 end
