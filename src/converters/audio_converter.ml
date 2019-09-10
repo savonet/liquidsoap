@@ -52,25 +52,34 @@ struct
       "Samplerate conversion settings"
       ~comments:["Options related to samplerate conversion."]
 
-  let preferred_conf =
-    Dtools.Conf.string ~p:(samplerate_conf#plug "preferred")
-      "Preferred samplerate converter"
-      ~d:"libsamplerate" ~comments:["Preferred samplerate converter."]
+  let converters_conf =
+    Dtools.Conf.list ~p:(samplerate_conf#plug "converters")
+      "Preferred samplerate converters"
+      ~d:["ffmpeg"; "libsamplerate"; "native"]
+      ~comments:["Preferred samplerate converter. The native converter is always \
+                  available."]
 
   let converters : converter_plug Plug.plug =
     Plug.create "samplerate converters"
       ~doc:"Methods for converting samplerate."
 
   let create channels =
-    let preferred = preferred_conf#get in
-    match converters#get preferred with
-    | Some v ->
-      Array.init channels (fun _ -> v ())
-    | None ->
-         (* List should never be empty, since at least
-          * the native converter is available.. *)
-         let (_,v) = List.hd converters#get_all in
-         Array.init channels (fun _ -> v ())
+    let converter =
+      let rec f = function
+        | conv::l ->
+          (
+            match converters#get conv with
+            | Some v -> v
+            | None -> f l
+          )
+        | [] ->
+          (* This should never come up since the native converter is always
+             available. *)
+          assert false
+      in
+      f converters_conf#get
+    in
+    Array.init channels (fun _ -> converter ())
 
   let resample conv ratio data ofs len =
     if Array.length conv <> Array.length data then
@@ -88,16 +97,14 @@ struct
 
   (** Log which converter is used at start. *)
   let () =
-    ignore (Dtools.Init.at_start
-      (fun () ->
-         let preferred = preferred_conf#get in
-         match converters#get preferred with
-           | Some _ ->
-              log#important "Using preferred samplerate converter: %s." preferred;
-           | None ->
-              log#important "Couldn't find preferred samplerate converter: %s."
-                preferred;
-              let (n,_) = List.hd converters#get_all in
-              log#important "Using %s samplerate converter" n))
-
+    ignore
+      (Dtools.Init.at_start
+         (fun () ->
+            let rec f = function
+              | conv::_ when converters#get conv <> None ->
+                log#important "Using samplerate converter: %s." conv;
+              | _::l -> f l
+              | [] -> assert false
+            in
+         f converters_conf#get))
 end

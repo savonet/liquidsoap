@@ -20,29 +20,27 @@
 
  *****************************************************************************)
 
-(** Native audio converters *)
-
-let samplerate_conf =
-  Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "native")
-    "Native samplerate conversion settings"
-    ~comments:["Options related to native samplerate conversion."]
-
-let quality_conf =
-  Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
-    "Resampling quality" ~d:"linear"
-    ~comments:["Resampling quality: either \"nearest\" or \"linear\"."]
-
-let quality_of_string = function
-  | "nearest" -> `Nearest
-  | "linear" -> `Linear
-  | s ->
-    raise
-      (Lang_errors.Invalid_value
-         (Lang.string s,
-          "Native resampling quality must either be \"nearest\" or \"linear\"."))
+module Swresample = FFmpeg.Swresample
+module Resampler = Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
 
 let samplerate_converter () =
-  let mode = quality_of_string quality_conf#get in
-  Audio.Mono.resample ~mode
+  let chans = `Mono in
+  let in_freq = Lazy.force Frame.audio_rate in
+  let rs = ref None in
+  let rs_out_freq = ref 0 in
+  fun x buf ofs len ->
+    let out_freq = int_of_float (float in_freq *. x) in
+    if !rs = None || !rs_out_freq <> out_freq then
+      (
+        rs := Some (Resampler.create chans in_freq chans out_freq);
+        rs_out_freq := out_freq
+      );
+    let rs = Utils.get_some !rs in
+    let buf =
+      if ofs = 0 && len = Array.length buf then buf
+      else Array.sub buf ofs len
+    in
+    (Resampler.convert rs [|buf|]).(0)
 
-let () = Audio_converter.Samplerate.converters#register "native" samplerate_converter
+let () = 
+  Audio_converter.Samplerate.converters#register "ffmpeg" samplerate_converter
