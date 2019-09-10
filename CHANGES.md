@@ -112,6 +112,8 @@ Changed:
 - Added `phase_inversion={true/false}` to `%opus` encoder (#937)
 - Fixed encoders forcing frame rate and audio channels too early (#933)
 - Change filename to a string getter in file-based outputs. (#198)
+- Changed `audio.converter.samplerate.preferred` option to
+  `audio.converter.samplerate.converters` to give a list of possible converters.
 
 Fixed:
 
