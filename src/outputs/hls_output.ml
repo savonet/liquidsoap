@@ -63,12 +63,12 @@ let hls_proto kind =
      Some "Segment name. \
            Default: `fun (~position,~extname,stream_name) -> \"#{stream_name}_#{position}.#{extname}\"`";
 
-     "segments",
+     "segments_overhead",
      Lang.int_t,
-     Some (Lang.int 15),
-     Some "Number of segments to keep on disk.";
+     Some (Lang.int 5),
+     Some "Number of segments to keep after they have been featured in the live playlist.";
 
-     "segments_per_playlist",
+     "segments",
      Lang.int_t,
      Some (Lang.int 10),
      Some "Number of segments per playlist.";
@@ -269,16 +269,11 @@ class hls_output p =
       "",Lang.string sname
     ])
   in
-  let max_segments = Lang.to_int (List.assoc "segments" p) in
   let segments_per_playlist =
-    let s =
-      Lang.to_int (List.assoc "segments_per_playlist" p)
-    in
-    if max_segments < s then
-      raise (Lang_errors.Invalid_value
-        (Lang.assoc "segments" 1 p, "Not enough segments! segments should be \
-           greater or equal to segments_per_playlist!"));
-    s
+    Lang.to_int (List.assoc "segments" p)
+  in
+  let max_segments =
+    segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
   in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
   let kind = Encoder.kind_of_format (List.hd streams).hls_format in
