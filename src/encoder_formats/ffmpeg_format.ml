@@ -46,6 +46,6 @@ let to_string m =
     string_of_options m.options
   in
   Printf.sprintf
-    "%%fmpeg(format=%S,codec=%S,channels=%d,samplerate=%d%s)"
+    "%%fmpeg(format=%S,codec=%S,ac=%d,ar=%d%s)"
     m.format m.codec m.channels (Lazy.force m.samplerate)
     (if opts = "" then "" else Printf.sprintf ",%s" opts)
