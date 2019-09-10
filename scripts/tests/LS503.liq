@@ -7,11 +7,16 @@
 
 # Reopen stderr to /dev/null to
 # disable printing expected exception
-reopen.stderr("/dev/null")
+#reopen.stderr("/dev/null")
 
 on_shutdown(test.pass)
 
-p = input.http("http://localhost:8000/nonexistent")
+def on_error(_) =
+  shutdown()
+  3.
+end
+
+p = noise()
 o = output.icecast(%wav,fallible=true,host="nonexistent",
-                    mount="test",on_stop=shutdown,p)
+                    mount="test",on_error=on_error,p)
 
