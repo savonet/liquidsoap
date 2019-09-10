@@ -104,6 +104,20 @@ let hls_proto kind =
        `[(stream_name, (bandwidth, codec, extname)]`. See RFC 6381 for info about \
        codec. Stream info are required when they cannot be inferred from the encoder.";
 
+     "persist",
+     Lang.bool_t,
+     Some (Lang.bool false),
+     Some "Persist output accross restart. If enabled, generated files \
+           (segments and playlists) are kept on shutdown and the output \
+           state at the location given by `persist_at` and used on restart.";
+
+     "persist_at",
+     Lang.string_t,
+     Some (Lang.string "state.config"),
+     Some "Location of the configuration file used to restart the output \
+           when `persist=true`. Relative paths are assumed to be with regard \
+           to the directory for generated file."; 
+
      "",
      Lang.string_t,
      None,
@@ -174,6 +188,29 @@ class hls_output p =
     if not (Sys.file_exists directory) || not (Sys.is_directory directory) then
       raise (Lang_errors.Invalid_value (Lang.assoc "" 1 p, "The target directory does not exist"))
   in
+  let persist = Lang.to_bool (List.assoc "persist" p) in
+  let persist_at =
+    let p =
+      Lang.to_string (List.assoc "persist_at" p)
+    in
+    if Filename.is_relative p then
+      Filename.concat directory p
+    else
+      p
+  in
+  let () =
+    if persist then
+     begin
+      let dir = Filename.dirname persist_at in
+      try
+        Utils.mkdir ~perm:0o777 dir;
+      with exn ->
+        raise (Lang_errors.Invalid_value
+          (Lang.assoc "persist_at" 1 p,
+            (Printf.sprintf "Error while creating directory %S for persisting state: %s"
+              dir (Printexc.to_string exn))));
+     end
+  in 
   let streams_info =
     let streams_info = List.assoc "streams_info" p in
     let l = Lang.to_list streams_info in
@@ -269,6 +306,15 @@ class hls_output p =
       "",Lang.string sname
     ])
   in
+  let segment_names id =
+    List.map (fun {hls_name;hls_extname} ->
+      let fname =
+        segment_name ~position:id
+                     ~extname:hls_extname
+                     hls_name
+      in
+      hls_name,fname) streams
+  in
   let segments_per_playlist =
     Lang.to_int (List.assoc "segments" p)
   in
@@ -286,7 +332,7 @@ class hls_output p =
 
     (** Current segment ID *)
     val mutable current_segment =
-      {id=(-1);files=[];discontinuous=false;discontinuity=0;len=0}
+      {id=0;files=segment_names 0;discontinuous=false;discontinuity=0;len=0}
 
     (** Available segments *)
     val mutable segments = Queue.create ()
@@ -300,19 +346,12 @@ class hls_output p =
     method private toggle_state event =
       match event, state with
         | `Restart, _
+        | `Start,  `Resumed
         | `Start,  `Stopped -> state <- `Restarted
         | `Stop,    _       -> state <- `Stopped
         | `Start,   _       -> state <- `Started
         | `Streaming, _     -> state <- `Streaming
-
-    method private segment_names id =
-      List.map (fun {hls_name;hls_extname} ->
-        let fname =
-          segment_name ~position:id
-                       ~extname:hls_extname
-                       hls_name
-        in
-        hls_name,fname) streams
+        | `Resumed, _       -> state <- `Resumed
 
     method private segment_name ?(relative=false) ~segment stream =
       let fname =
@@ -366,36 +405,36 @@ class hls_output p =
         | Some s -> output_string oc s;
         | None -> ()
 
+    method private push_current_segment =
+      List.iter (fun s -> self#close_segment s) streams;
+      Queue.push current_segment segments;
+      if Queue.length segments >= max_segments then
+        self#unlink_segment (Queue.take segments);
+      self#write_playlists;
+      let id = current_segment.id + 1 in
+      let len = 0 in
+      let files = segment_names id in
+      current_segment <- {
+        discontinuous=false;
+        discontinuity=current_segment.discontinuity;
+        id;files;len
+      }
+
     method private new_segment =
-      if current_segment.id <> -1 then
-        Queue.push current_segment segments;
       let discontinuous = state = `Restarted in
       let discontinuity =
-        if current_segment.discontinuous then
+        if discontinuous then
           current_segment.discontinuity + 1
         else
           current_segment.discontinuity
       in
+      current_segment <- {current_segment with
+        discontinuous; discontinuity
+      };
       self#toggle_state `Streaming;
-      let id = current_segment.id + 1 in
-      let len = 0 in
-      let files = self#segment_names id in
-      current_segment <- {id;files;discontinuous;discontinuity;len};
       open_tick <- self#current_tick;
-      self#log#debug "Opening segment %d." current_segment.id ;
-      List.iter (fun s ->
-        self#close_segment s;
-        self#open_segment s) streams;
-      let old_segment =
-        if Queue.length segments >= max_segments then
-          Some (Queue.take segments)
-        else
-          None
-      in
-      self#write_playlists;
-      match old_segment with
-        | Some s -> self#unlink_segment s
-        | None -> ()  
+      self#log#debug "Opening segment %d." current_segment.id;
+      List.iter (fun s -> self#open_segment s) streams
 
     method private current_tick =
       if Source.Clock_variables.is_known self#clock then
@@ -485,14 +524,45 @@ class hls_output p =
     method output_reset =
       self#toggle_state `Restart
 
+    method private write_state =
+      let fd = open_out_bin persist_at in
+      Marshal.to_channel fd (current_segment,segments) [];
+      close_out fd
+
+    method private read_state =
+      let fd = open_in_bin persist_at in
+      let (c,s) = Marshal.from_channel fd in
+      close_in fd;
+      current_segment <- c;
+      segments <- s
+
+   method wake_up activation =
+     output#wake_up activation;
+     if persist && Sys.file_exists persist_at then
+      begin
+       self#toggle_state `Resumed;
+       self#read_state
+      end
+
     method sleep =
-      self#cleanup_segments;
-      self#cleanup_playlists;
+      if persist then
+       begin
+        self#push_current_segment;
+        self#write_state
+       end
+      else
+       begin
+        self#cleanup_segments;
+        self#cleanup_playlists;
+       end;
       output#sleep
 
     method encode frame ofs len =
       if current_segment.len + len > segment_master_duration then
-        self#new_segment;
+       begin
+        self#push_current_segment;
+        self#new_segment
+       end;
       current_segment.len <- current_segment.len + len;
       List.map (fun s ->
           s.hls_encoder.Encoder.encode frame ofs len
