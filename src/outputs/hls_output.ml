@@ -415,7 +415,7 @@ class hls_output p =
       let len = 0 in
       let files = segment_names id in
       (* Discontinuity is bumped each time a discontinuous
-       * segment exists the playlist. We keep track of it
+       * segment exits the playlist. We keep track of it
        * here. Any [current_segment] may be mark as discontinuous
        * during the next call to [self#new_segment], in which
        * case [discontinuity_count] is bumped in the following
