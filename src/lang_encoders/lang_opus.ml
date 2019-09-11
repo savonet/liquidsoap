@@ -37,6 +37,7 @@ let make params =
         signal = None ;
         frame_size = 20.;
         dtx = false;
+        phase_inversion = true
     }
   in
   let opus =
@@ -105,6 +106,8 @@ let make params =
               { f with Opus_format.fill = Some i }
           | ("dtx",{ term = Bool b; _}) ->
               { f with Opus_format.dtx = b }
+          | ("phase_inversion",{ term = Bool b; _}) ->
+              { f with Opus_format.phase_inversion = b }
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Opus_format.channels = 1 }
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->

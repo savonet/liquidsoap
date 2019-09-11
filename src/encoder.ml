@@ -124,7 +124,7 @@ let extension = function
   | Shine _ -> "mp3"
   | Flac _ -> "flac"
   | FdkAacEnc _ -> "aac"
-  | _ -> "audio"
+  | _ -> raise Not_found
 
 (** Mime types *)
 let mime = function
@@ -135,7 +135,7 @@ let mime = function
   | Shine _ -> "audio/mpeg"
   | Flac _ -> "audio/flex"
   | FdkAacEnc _ -> "audio/aac"
-  | _ -> "audio"
+  | _ -> "application/octet-stream"
 
 (** Bitrate estimation in bits per second. *)
 let bitrate = function

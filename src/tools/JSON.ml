@@ -1,9 +1,9 @@
-type json =
-  [ `Assoc of (string * json) list
+type t =
+  [ `Assoc of (string * t) list
   | `Bool of bool
   | `Float of float
   | `Int of int
-  | `List of json list
+  | `List of t list
   | `Null
   | `String of string
   ]
@@ -53,7 +53,7 @@ let from_string s =
 
 let escape_string s = String.escaped s
 
-let to_string (j:json) =
+let to_string (j:t) =
   let blank indent = String.make (2*indent) ' ' in
   let rec aux indent = function
     | `Bool b -> if b then "true" else "false"

@@ -218,10 +218,17 @@ let () =
   let t = Lang.univ_t 1 in
   Lang_builtins.add_builtin
    ~cat:Lang_builtins.String
-   ~descr:"Parse a json string into a liquidsoap value."
+   ~descr:"Parse a json string into a liquidsoap value. The value provided in \
+           the `default` parameter is quite important: only the part of the JSON \
+           data which has the same type as the `default` parameter will be kept \
+           (heterogeneous data cannot be represented in Liquidsoap because of \
+           typing). For instance, if the JSON `j` is\n```\n{\n \"a\": \
+           \"test\",\n \"b\": 5\n}\n```\nthe value returned by \
+           `of_json(default=[(\"\",0)], j)` will be `[(\"b\",5)]`: the pair \
+           `(\"a\",\"test\")` is not kept because it is not of type `string * \
+           int`."
    "of_json"
-   ["default", t, None, Some "Default value if string cannot \
-                              be parsed.";
+   ["default", t, None, Some "Default value if string cannot be parsed.";
     "", Lang.string_t, None, None ] t
    (fun p ->
      let default = List.assoc "default" p in

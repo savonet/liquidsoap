@@ -35,6 +35,12 @@ let conf_harbor_ssl_private_key =
 let conf_harbor_ssl_password =
   Conf.string ~p:(conf_harbor_ssl#plug "password") ~d:""
     "Path to the server's SSL password. (optional, blank if omited)"
+let conf_harbor_ssl_read_timeout =
+  Conf.float ~p:(conf_harbor_ssl#plug "read_timeout") ~d:(-1.)
+    "Read timeout on SSL sockets. Set to zero to never timeout, ignored (system default) if negative."
+let conf_harbor_ssl_write_timeout =
+  Conf.float ~p:(conf_harbor_ssl#plug "write_timeout") ~d:(-1.)
+    "Read timeout on SSL sockets. Set to zero to never timeout, ignored (system default) if negative."
 
 module Monad = Duppy.Monad
 module type Monad_t = module type of Monad with module Io := Monad.Io
@@ -74,6 +80,12 @@ let get_ctx =
           ctx := Some _ctx;
           _ctx)
 
+let set_socket_default fd =
+  if conf_harbor_ssl_read_timeout#get >= 0. then
+    Unix.setsockopt_float fd Unix.SO_RCVTIMEO conf_harbor_ssl_read_timeout#get;
+  if conf_harbor_ssl_write_timeout#get >= 0. then
+    Unix.setsockopt_float fd Unix.SO_SNDTIMEO conf_harbor_ssl_write_timeout#get 
+
 module Transport =
 struct
   type socket = Ssl.socket
@@ -86,6 +98,7 @@ struct
   let accept sock =
     let ctx = get_ctx () in
     let (s, caller) = Unix.accept sock in
+    set_socket_default s;
     let ssl_s = Ssl.embed_socket s ctx in
     Ssl.accept ssl_s;
     (ssl_s, caller)

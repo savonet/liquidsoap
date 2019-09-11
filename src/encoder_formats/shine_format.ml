@@ -22,14 +22,14 @@
 
 type t = {
   channels   : int ;
-  samplerate : int ;
+  samplerate : int Lazy.t ;
   bitrate    : int ;
 }
 
 let to_string m =
   Printf.sprintf "%%shine(channels=%d,samplerate=%d,bitrate=%d)"
     m.channels
-    m.samplerate
+    (Lazy.force m.samplerate)
     m.bitrate
 
 let bitrate m =

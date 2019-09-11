@@ -51,17 +51,18 @@ type signal = [
 ]
 
 type t = {
-  application   : application option ;
-  bitrate       : bitrate ;
-  complexity    : int option ;
-  channels      : int ;
-  frame_size    : float ;
-  max_bandwidth : max_bandwidth option ;
-  mode          : mode ;
-  samplerate    : int ;
-  signal        : signal option ;
-  fill          : int option ;
-  dtx           : bool ;
+  application     : application option ;
+  bitrate         : bitrate ;
+  complexity      : int option ;
+  channels        : int ;
+  frame_size      : float ;
+  max_bandwidth   : max_bandwidth option ;
+  mode            : mode ;
+  samplerate      : int ;
+  signal          : signal option ;
+  fill            : int option ;
+  dtx             : bool ;
+  phase_inversion : bool
 }
 
 let string_of_bitrate = function
@@ -95,7 +96,7 @@ let string_of_signal = function
 
 let to_string v =
   Printf.sprintf
-  "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f,dtx=%B)"
+  "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f,dtx=%B,phase_inversion=%b)"
     (string_of_mode v.mode)
     (string_of_bitrate v.bitrate)
     v.channels
@@ -106,3 +107,4 @@ let to_string v =
     v.samplerate
     v.frame_size
     v.dtx
+    v.phase_inversion

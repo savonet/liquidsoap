@@ -26,7 +26,7 @@ type restart_condition = Delay of int | Metadata | No_condition
 
 type t = {
   channels            : int ;
-  samplerate          : int ;
+  samplerate          : int Lazy.t ;
   video               : bool ;
   header              : bool ;
   restart_on_crash    : bool ;
@@ -44,7 +44,7 @@ let to_string e =
   Printf.sprintf "%%external(channels=%i,samplerate=%i,video=%b,header=%b,\
                             restart_on_crash=%b,%s,process=%s)"
     e.channels
-    e.samplerate
+    (Lazy.force e.samplerate)
     e.video
     e.header
     e.restart_on_crash

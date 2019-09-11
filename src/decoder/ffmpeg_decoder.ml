@@ -230,7 +230,7 @@ let create_decoder input =
         Some (fun len _ -> fn len)
   in
   let container =
-    FFmpeg.Av.open_input_stream {FFmpeg.Av.read;seek}
+    FFmpeg.Av.open_input_stream ?seek read
   in
   (* Only audio for now *)
   let (_, stream, codec) =

@@ -20,28 +20,27 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
+module Swresample = FFmpeg.Swresample
+module Resampler = Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
 
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      (* We use a hardcoded value in order not to force the evaluation of the
-         number of channels too early, see #933. *)
-      channels = 2;
-      samplerate = Frame.audio_rate
-    }
-  in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = Lazy.from_val i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-  Encoder.AVI avi
+let samplerate_converter () =
+  let chans = `Mono in
+  let in_freq = Lazy.force Frame.audio_rate in
+  let rs = ref None in
+  let rs_out_freq = ref 0 in
+  fun x buf ofs len ->
+    let out_freq = int_of_float (float in_freq *. x) in
+    if !rs = None || !rs_out_freq <> out_freq then
+      (
+        rs := Some (Resampler.create chans in_freq chans out_freq);
+        rs_out_freq := out_freq
+      );
+    let rs = Utils.get_some !rs in
+    let buf =
+      if ofs = 0 && len = Array.length buf then buf
+      else Array.sub buf ofs len
+    in
+    (Resampler.convert rs [|buf|]).(0)
+
+let () = 
+  Audio_converter.Samplerate.converters#register "ffmpeg" samplerate_converter

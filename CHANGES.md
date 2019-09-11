@@ -45,6 +45,8 @@ New:
 - Added `request.uri`.
 - Added `{input,output}.srt` (#898)
 - Added `path.remove_extension`.
+- Added SSL read/write timeout options, use it for incoming socket connections (#932)
+- Added ffmpeg resampler (#947).
 
 Changed:
 
@@ -107,6 +109,11 @@ Changed:
 - `list.assoc` and `list.remove_assoc` require an ordered type as first
   component.
 - Renamed `quote` to `string.quote`.
+- Added `phase_inversion={true/false}` to `%opus` encoder (#937)
+- Fixed encoders forcing frame rate and audio channels too early (#933)
+- Change filename to a string getter in file-based outputs. (#198)
+- Changed `audio.converter.samplerate.preferred` option to
+  `audio.converter.samplerate.converters` to give a list of possible converters.
 
 Fixed:
 
@@ -133,6 +140,8 @@ Fixed:
 - Specify that `list.remove` removes only the first occurrence and avoid
   reversing the list (#922).
 - File descriptor leak when using openssl-based operators.
+- Fixed SSL read taking too long to timeout (#932)
+- Fixed output starting when underlying source is not available (#393)
 
 1.3.7 (09-04-2019)
 =====

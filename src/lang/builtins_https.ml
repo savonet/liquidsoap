@@ -20,25 +20,27 @@
 
  *****************************************************************************)
 
+open Builtins_http
+
 let () =
-  let add_http_request = Lang_builtins.add_http_request (module Https) in
+  let add_http_request = add_http_request (module Https) in
   add_http_request
     "https.get"
     "Perform a full https GET request and return (status,headers),data."
-    Lang_builtins.Get;
+    Get;
   add_http_request
     "https.post"
     "Perform a full https POST request and return (status,headers),data."
-    Lang_builtins.Post;
+    Post;
   add_http_request
     "https.put"
     "Perform a full https PUT request and return (status,headers),data."
-    Lang_builtins.Put;
+    Put;
   add_http_request
     "https.head"
     "Perform a full https HEAD request and return (status,headers),data."
-    Lang_builtins.Head;
+    Head;
   add_http_request
     "https.delete"
     "Perform a full https DELETE request and return (status,headers),data."
-    Lang_builtins.Delete
+    Delete

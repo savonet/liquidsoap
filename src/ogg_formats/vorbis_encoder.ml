@@ -104,7 +104,7 @@ let create_vorbis =
   function 
    | Ogg_format.Vorbis vorbis -> 
       let channels = vorbis.Vorbis_format.channels in
-      let samplerate = vorbis.Vorbis_format.samplerate in
+      let samplerate = Lazy.force vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
         let m =  Meta_format.to_metadata m in
         let metadata = 

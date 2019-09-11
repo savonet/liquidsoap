@@ -401,7 +401,7 @@ AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
 # Opus
 #
 
-AC_CHECK_OCAML_BINDING([opus],[0.1.1],[ogg])
+AC_CHECK_OCAML_BINDING([opus],[0.1.3],[ogg])
 
 #
 # Speex
@@ -530,7 +530,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.3.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.4.0])
 
 #
 # Jack

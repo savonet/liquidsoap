@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
- (** Samplerate converter using libsamplerate *)
+(** Samplerate converter using libsamplerate *)
 
 let samplerate_conf = 
   Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate") 
