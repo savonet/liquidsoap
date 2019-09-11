@@ -133,11 +133,11 @@ let hls_proto kind =
 
 type segment =
   {
-     id:            int;
-     discontinuous: bool;
-     discontinuity: int;
-     files:         (string*string) List.t;
-     mutable len:   int
+     id:                  int;
+     discontinuous:       bool;
+     discontinuity_count: int;
+     files:               (string*string) List.t;
+     mutable len:         int
   }
 
 (** A stream in the HLS (which typically contains many, with different qualities). *)
@@ -332,7 +332,7 @@ class hls_output p =
 
     (** Current segment ID *)
     val mutable current_segment =
-      {id=0;files=segment_names 0;discontinuous=false;discontinuity=0;len=0}
+      {id=0;files=segment_names 0;discontinuous=false;discontinuity_count=0;len=0}
 
     (** Available segments *)
     val mutable segments = Queue.create ()
@@ -414,22 +414,26 @@ class hls_output p =
       let id = current_segment.id + 1 in
       let len = 0 in
       let files = segment_names id in
+      (* Discontinuity is bumped each time a discontinuous
+       * segment exists the playlist. We keep track of it
+       * here. Any [current_segment] may be mark as discontinuous
+       * during the next call to [self#new_segment], in which
+       * case [discontinuity_count] is bumped in the following
+       * segment. *)
+      let discontinuity_count =
+        if current_segment.discontinuous then
+          current_segment.discontinuity_count + 1
+        else
+          current_segment.discontinuity_count
+      in
       current_segment <- {
         discontinuous=false;
-        discontinuity=current_segment.discontinuity;
-        id;files;len
+        id;files;len;discontinuity_count
       }
 
     method private new_segment =
-      let discontinuous = state = `Restarted in
-      let discontinuity =
-        if discontinuous then
-          current_segment.discontinuity + 1
-        else
-          current_segment.discontinuity
-      in
       current_segment <- {current_segment with
-        discontinuous; discontinuity
+        discontinuous = state = `Restarted
       };
       self#toggle_state `Streaming;
       open_tick <- self#current_tick;
@@ -461,12 +465,12 @@ class hls_output p =
     method private get_playlist_data =
       List.fold_left (fun ((_,_,l) as cur) el ->
         if List.length l < segments_per_playlist then
-          el.id, el.discontinuity, (el::l)
+          el.id, el.discontinuity_count, (el::l)
         else
           cur) (-1,-1,[]) (List.rev (List.of_seq (Queue.to_seq segments)))
 
     method private write_playlists =
-      let id, discontinuity, segments =
+      let id, discontinuity_count, segments =
         self#get_playlist_data
       in
       List.iter (fun s ->
@@ -478,7 +482,7 @@ class hls_output p =
             output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n" (int_of_float (ceil segment_duration)));
             output_string oc (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
             output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" id);
-            output_string oc (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n" discontinuity);
+            output_string oc (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n" discontinuity_count);
             List.iter (fun segment ->
                 if segment.discontinuous then
                   output_string oc "#EXT-X-DISCONTINUITY\r\n";
