@@ -126,6 +126,7 @@ encoders = \
 	$(if $(W_SHINE),encoder/shine_encoder.ml) \
 	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
+        $(if $(W_FFMPEG),encoder/ffmpeg_encoder.ml) \
 	$(if $(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml) \
 	$(if $(W_TAGLIB),encoder/taglib_id3v2.ml) \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
@@ -141,6 +142,7 @@ encoder_formats = \
   encoder_formats/external_encoder_format.ml \
   encoder_formats/fdkaac_format.ml \
   encoder_formats/flac_format.ml \
+  encoder_formats/ffmpeg_format.ml \
   encoder_formats/gstreamer_format.ml \
   encoder_formats/mp3_format.ml \
   encoder_formats/opus_format.ml \
