@@ -529,6 +529,7 @@ class hls_output p =
       self#toggle_state `Restart
 
     method private write_state =
+      self#log#info "Reading state file at %S.." persist_at;
       let fd = open_out_bin persist_at in
       Marshal.to_channel fd (current_segment,segments) [];
       close_out fd
@@ -544,13 +545,16 @@ class hls_output p =
      output#wake_up activation;
      if persist && Sys.file_exists persist_at then
       begin
+       self#log#info "Resuming from saved state";
        self#toggle_state `Resumed;
-       self#read_state
+       self#read_state;
+       try Unix.unlink persist_at with _ -> ()
       end
 
     method sleep =
       if persist then
        begin
+        self#log#info "Saving state to %S.." persist_at;
         self#push_current_segment;
         self#write_state
        end
