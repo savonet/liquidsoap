@@ -31,6 +31,7 @@ exception Error
 let annotate s ~log _ =
   try
     (* Avoid =- being lexed as a single identifier. *)
+    (* TODO: we should really code a custom lexer instead of having such hacks *)
     let s = Pcre.substitute ~pat:"=-" ~subst:(fun _ -> "= -") s in
     let l = String.length s in
     let pos = ref 0 in
@@ -38,12 +39,18 @@ let annotate s ~log _ =
     let lexer = make_lexer [":";",";"="] str in
     let rec parse metadata =
       match Stream.next lexer with
-      | Kwd ":" -> metadata, (String.sub s !pos (l - !pos))
+      | Kwd ":" ->
+        let uri = String.sub s !pos (l - !pos) in
+        (* Revert the above hack. *)
+        let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
+        metadata, uri
       | Kwd "," -> parse metadata
       | Ident key ->
         if key<>"" && key.[0]=':' then
-          metadata,
-          String.sub key 1 (String.length key - 1) ^ String.sub s !pos (l - !pos)
+          let uri = String.sub key 1 (String.length key - 1) ^ String.sub s !pos (l - !pos) in
+          (* Revert the above hack. *)
+          let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
+          metadata, uri
         else
           begin
             match Stream.next lexer with
