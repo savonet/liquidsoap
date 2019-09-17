@@ -16,6 +16,10 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full
 
+# Update the packages that we provide.
+RUN apt-get update && \
+    apt-get instal -y libsrt-dev libavutil-dev libswscale-dev libavformat-dev libavcodec-dev libavdevice-dev libswresample-dev
+
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout master && git pull && \
      git fetch origin $TRAVIS_COMMIT && git checkout $TRAVIS_COMMIT && \
