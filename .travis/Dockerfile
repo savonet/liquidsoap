@@ -12,13 +12,15 @@ ARG TRAVIS_PULL_REQUEST
 ARG TRAVIS_PULL_REQUEST_BRANCH
 ARG TRAVIS_BUILD_NUMBER
 
-USER opam
-
-WORKDIR /tmp/liquidsoap-full
+USER root
 
 # Update the packages that we provide.
 RUN apt-get update && \
     apt-get instal -y libsrt-dev libavutil-dev libswscale-dev libavformat-dev libavcodec-dev libavdevice-dev libswresample-dev
+
+USER opam
+
+WORKDIR /tmp/liquidsoap-full
 
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout master && git pull && \
