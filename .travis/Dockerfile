@@ -16,7 +16,7 @@ USER root
 
 # Update the packages that we provide.
 RUN apt-get update && \
-    apt-get instal -y libsrt-dev libavutil-dev libswscale-dev libavformat-dev libavcodec-dev libavdevice-dev libswresample-dev
+    apt-get install -y libsrt-dev libavutil-dev libswscale-dev libavformat-dev libavcodec-dev libavdevice-dev libswresample-dev
 
 USER opam
 
