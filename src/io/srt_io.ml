@@ -112,6 +112,9 @@ module Poll = struct
       | Done
       | Empty -> (-1.)
       | Srt.Error(`Etimeout,_) -> 0.
+      (* Work around for #965 *)
+      | Srt.Error(`Einvparam, _) when not (Tutils.running ()) ->
+                 (-1.)
 
   let task =
     Duppy.Async.add
