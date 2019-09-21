@@ -57,6 +57,7 @@ let log_handler {Srt.Log.message} =
   * removed from the poll when done. *)
 module Poll = struct
   exception Empty
+  exception Done
 
   type t = {
     p: Srt.Poll.t;
@@ -82,6 +83,8 @@ module Poll = struct
       in
       if max_read = 0 && max_write = 0 then
         raise Empty;
+      if not Tutils.running () then
+        raise Done;
       let r,w =
         Srt.Poll.wait t.p
           ~max_read ~max_write
@@ -106,6 +109,7 @@ module Poll = struct
         apply fn socket) (r@w);
       0.
     with
+      | Done
       | Empty -> (-1.)
       | Srt.Error(`Etimeout,_) -> 0.
 

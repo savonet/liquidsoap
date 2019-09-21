@@ -356,9 +356,12 @@ let wait_for ?(log=fun _ -> ()) event timeout =
 
 (** Wait for some thread to crash *)
 let run = ref true
+let running =
+  mutexify lock (fun () -> !run)
 let main () =
   wait no_problem lock (fun () -> not (!run && !uncaught=None))
-let shutdown () = run := false; Condition.signal no_problem
+let shutdown =
+  mutexify lock (fun () -> run := false; Condition.signal no_problem)
 
 (** Thread-safe lazy cell. *)
 let lazy_cell f =
