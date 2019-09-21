@@ -83,7 +83,7 @@ module Poll = struct
       in
       if max_read = 0 && max_write = 0 then
         raise Empty;
-      if not Tutils.running () then
+      if not (Tutils.running ()) then
         raise Done;
       let r,w =
         Srt.Poll.wait t.p
