@@ -33,6 +33,21 @@ type handler = {
   stream: (Avutil.output, Avutil.audio) Av.stream;
   converter: (Swresample.PlanarFloatArray.t, Swresample.Frame.t) Swresample.ctx
 }
+(* Convert ffmpeg-specific options. *)
+let convert_options opts =
+  let convert name fn =
+    match Hashtbl.find_opt opts name with
+      | None -> ()
+      | Some v -> Hashtbl.replace opts name (fn v)
+  in
+  convert "sample_fmt" (function
+    | `String fmt ->
+        `Int (FFmpeg.Avutil.Sample_format.(get_id (find fmt)))
+    | _ -> assert false);
+  convert "channel_layout" (function
+    | `String layout ->
+        `Int (FFmpeg.Avutil.Channel_layout.(get_id (find layout)))
+    | _ -> assert false)
 
 let encoder ffmpeg meta =
   let short_name = ffmpeg.Ffmpeg_format.format in
@@ -65,13 +80,15 @@ let encoder ffmpeg meta =
       | _ -> failwith "%ffmpeg encoder only supports mono or stereo audio for now!"
   in
   let buf = Buffer.create 1024 in
+  let options = Hashtbl.copy ffmpeg.Ffmpeg_format.options in
+  convert_options options;
   let make () =
     let opts =
       Av.mk_audio_opts ~channels:ffmpeg.Ffmpeg_format.channels
                        ~sample_rate:(Lazy.force ffmpeg.Ffmpeg_format.samplerate)
                        ()
     in
-    Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.options;
+    Hashtbl.iter (Hashtbl.add opts) options;
     let converter =
       Resampler.create ~out_sample_format
         src_channels src_freq

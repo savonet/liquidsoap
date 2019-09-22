@@ -48,11 +48,11 @@ let ffmpeg_gen params =
               { f with Ffmpeg_format.samplerate = Lazy.from_val i }
           | ("sample_fmt",{ term = String fmt; _}) ->
               Hashtbl.add f.Ffmpeg_format.options "sample_fmt"
-                (`Int (FFmpeg.Avutil.Sample_format.(get_id (find fmt))));
+                (`String fmt);
               f
           | ("channel_layout",{ term = String layout; _}) ->
               Hashtbl.add f.Ffmpeg_format.options "channel_layout"
-                (`Int (FFmpeg.Avutil.Channel_layout.(get_id (find layout))));
+                (`String layout);
               f
           | (k,{ term = String s; _}) ->
               Hashtbl.add f.Ffmpeg_format.options k (`String s);
