@@ -64,6 +64,7 @@ output.file.hls(playlist="live.m3u8",
 ```
 
 Let's see what's important here:
+
 * `streams` describes the encoded streams. It's a list of: `(stream_name, encoder)`. `stream_name` is used to generate
   the corresponding media playlists. Encoders can be any encoder supported by liquidsoap. However, the [HLS RFC](https://tools.ietf.org/html/rfc8216)
   limits the list of possible encoders to `mp3` and `aac`. Furthermore, for the best possible compatible, it is recommended
