@@ -1,5 +1,5 @@
-HLS Input
-=========
+HLS Output
+==========
 
 Starting with liquidsoap `1.4.0`, it is possible to send your streams as [HLS output](https://en.wikipedia.org/wiki/HTTP_Live_Streaming).
 
