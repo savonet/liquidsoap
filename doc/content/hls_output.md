@@ -73,13 +73,13 @@ Let's see what's important here:
   [section 4.3.4.2](https://tools.ietf.org/html/rfc8216#section-4.3.4.2) of the RFC. It consists of a list
   of the form: `(stream_name, (average_bandwidth, codec_name, segments_file_extension))`. This list is inffered for the following formats:
   `%mp3`, `%fdkaac`, `%shine`. When using these formats, you do not need to pass an entry for the corresponding stream in this
-  list. However, since we're using the `%ffmpeg` encoder here, to get `MPEG-TS` encapsulated data, we need to add 
+  list. However, since we're using the `%ffmpeg` encoder to get `MPEG-TS` encapsulated data, we need to add 
   these info for each stream.
 * `persist` and `persist_at` are used to allow liquidsoap to restart while keeping the existing segments and playlists. When
   shutting down, liquidsoap stores the current configuration at `persist_at` and uses it to restart the HLS stream when
   restarting.
 * `segments` and `segments_overhead` are used to keep track of the generated segments. Each media playlist will contain
-  a numbe of segments defined by `segments` and an extra set of segments, defined by `segments_overhead`, is kept past the playlist size for those
+  a number of segments defined by `segments` and an extra set of segments, defined by `segments_overhead`, is kept past the playlist size for those
    listeners who are still listening on outdated segments.
    
 There are more useful options, in particular `on_file_change`, which can be used for instance to sync up your segments and playlists
