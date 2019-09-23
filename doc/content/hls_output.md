@@ -57,7 +57,7 @@ output.file.hls(playlist="live.m3u8",
                 segment_name=segment_name,
                 streams_info=streams_info,
                 persist=true,
-                persist_at="state.config",
+                persist_at="/path/to/state.config",
                 "/path/to/hls/directory",
                 streams,
                 source)
