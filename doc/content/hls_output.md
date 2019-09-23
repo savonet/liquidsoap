@@ -67,7 +67,7 @@ Let's see what's important here:
 
 * `streams` describes the encoded streams. It's a list of: `(stream_name, encoder)`. `stream_name` is used to generate
   the corresponding media playlists. Encoders can be any encoder supported by liquidsoap. However, the [HLS RFC](https://tools.ietf.org/html/rfc8216)
-  limits the list of possible encoders to `mp3` and `aac`. Furthermore, for the best possible compatible, it is recommended
+  limits the list of possible codecs to `mp3` and `aac`. Furthermore, for the best possible compatible, it is recommended
   to send data encapsulated in a `MPEG-TS` stream. Currently, the only encoder capable of doing this in liquidsoap is `%ffmpeg`.
 * `streams_info` describes additional data used to generated the HLS playlists according to
   [section 4.3.4.2](https://tools.ietf.org/html/rfc8216#section-4.3.4.2) of the RFC. It consists of a list
