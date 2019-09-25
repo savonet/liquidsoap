@@ -30,5 +30,7 @@ test(string.contains(suffix="cd","abcd"), true)
 test(string.contains(suffix="dc","abcd"), false)
 test(string.contains(substring="bc","abcd"), true)
 test(string.contains(substring="bc","acbd"), false)
+test(string.binary.to_int(little_endian=true,"abcd"),0x64636261)
+test(string.binary.to_int(little_endian=false,"abcd"),0x61626364)
 
 if !success then test.pass() else test.fail() end
