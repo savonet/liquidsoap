@@ -71,9 +71,6 @@ let create_decoder fname =
   let sample_freq =
     FFmpeg.Avcodec.Audio.get_sample_rate codec
   in
-  let in_sample_format =
-    FFmpeg.Avcodec.Audio.get_sample_format codec
-  in
   let channel_layout =
     FFmpeg.Avcodec.Audio.get_channel_layout codec
   in
@@ -81,7 +78,7 @@ let create_decoder fname =
     Lazy.force Frame.audio_rate
   in
   let converter =
-    Converter.create channel_layout ~in_sample_format sample_freq
+    Converter.create channel_layout sample_freq
                      channel_layout target_sample_rate
   in 
   let decr_remaining, get_remaining =
@@ -239,9 +236,6 @@ let create_decoder input =
   let sample_freq =
     FFmpeg.Avcodec.Audio.get_sample_rate codec
   in
-  let in_sample_format =
-    FFmpeg.Avcodec.Audio.get_sample_format codec
-  in
   let channel_layout =
     FFmpeg.Avcodec.Audio.get_channel_layout codec
   in
@@ -249,7 +243,7 @@ let create_decoder input =
     Lazy.force Frame.audio_rate
   in
   let converter =
-    Converter.create channel_layout ~in_sample_format sample_freq
+    Converter.create channel_layout sample_freq
                      channel_layout target_sample_rate
   in
   let seek ticks =
