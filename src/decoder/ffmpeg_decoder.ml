@@ -71,19 +71,12 @@ let create_decoder fname =
   let sample_freq =
     FFmpeg.Avcodec.Audio.get_sample_rate codec
   in
-  let in_sample_format =
-    FFmpeg.Avcodec.Audio.get_sample_format codec
-  in
   let channel_layout =
     FFmpeg.Avcodec.Audio.get_channel_layout codec
   in
   let target_sample_rate =
     Lazy.force Frame.audio_rate
   in
-  let converter =
-    Converter.create channel_layout ~in_sample_format sample_freq
-                     channel_layout target_sample_rate
-  in 
   let decr_remaining, get_remaining =
     let m = Mutex.create () in
     let decr_remaining = Tutils.mutexify m (fun v ->
@@ -94,9 +87,26 @@ let create_decoder fname =
     in
     decr_remaining, get_remaining
   in
+  let in_sample_format =
+    ref (FFmpeg.Avcodec.Audio.get_sample_format codec)
+  in
+  let mk_converter () =
+    Converter.create channel_layout ~in_sample_format:!in_sample_format sample_freq
+                     channel_layout target_sample_rate
+  in
+  let converter = ref (mk_converter ()) in
   let convert frame =
+    let frame_in_sample_format =
+      FFmpeg.Avutil.Audio.frame_get_sample_format frame
+    in
+    if !in_sample_format <> frame_in_sample_format then
+     begin
+      log#important "Sample format change detected!";
+      in_sample_format := frame_in_sample_format;
+      converter := mk_converter ();
+     end;
     let data = 
-      Converter.convert converter frame
+      Converter.convert !converter frame
     in
     let consumed =
       Frame.master_of_audio (Array.length data.(0))
@@ -239,18 +249,11 @@ let create_decoder input =
   let sample_freq =
     FFmpeg.Avcodec.Audio.get_sample_rate codec
   in
-  let in_sample_format =
-    FFmpeg.Avcodec.Audio.get_sample_format codec
-  in
   let channel_layout =
     FFmpeg.Avcodec.Audio.get_channel_layout codec
   in
   let target_sample_rate =
     Lazy.force Frame.audio_rate
-  in
-  let converter =
-    Converter.create channel_layout ~in_sample_format sample_freq
-                     channel_layout target_sample_rate
   in
   let seek ticks =
     let position = Frame.seconds_of_master ticks in
@@ -267,11 +270,28 @@ let create_decoder input =
       | FFmpeg.Avutil.Error `Invalid_data ->
          read_frame ()
   in
+  let in_sample_format =
+    ref (FFmpeg.Avcodec.Audio.get_sample_format codec)
+  in
+  let mk_converter () =
+    Converter.create channel_layout ~in_sample_format:!in_sample_format sample_freq
+                     channel_layout target_sample_rate
+  in
+  let converter = ref (mk_converter ()) in
   let decode gen =
     try
       let frame = read_frame () in
+      let frame_in_sample_format =
+        FFmpeg.Avutil.Audio.frame_get_sample_format frame
+      in
+      if !in_sample_format <> frame_in_sample_format then
+       begin
+        log#important "Sample format change detected!";
+        in_sample_format := frame_in_sample_format;
+        converter := mk_converter ();
+       end;
       let content =
-        Converter.convert converter frame
+        Converter.convert !converter frame
       in
       Generator.set_mode gen `Audio ;
       Generator.put_audio gen content 0 (Array.length content.(0))
