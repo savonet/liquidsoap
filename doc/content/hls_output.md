@@ -10,34 +10,28 @@ aac_lofi = %ffmpeg(format="mpegts",
                    codec="libfdk_aac",
                    channels=2,
                    ar=44100,
-                   b="32k",
-                   packetsize=4096,
+                   b="16k",
                    afterburner=1,
-                   profile="aac_he_v2",
-                   eld_sbr=1)
+                   profile="aac_he_v2")
 
 aac_midfi = %ffmpeg(format="mpegts",
                    codec="libfdk_aac",
                    channels=2,
                    ar=44100,
-                   b="96k",
-                   packetsize=4096,
+                   b="48k",
                    afterburner=1,
-                   profile="aac_he",
-                   eld_sbr=1)
+                   profile="aac_low")
 
 aac_hifi = %ffmpeg(format="mpegts",
                    codec="libfdk_aac",
                    channels=2,
                    ar=44100,
-                   b="192k",
-                   packetsize=4096,
+                   b="96k",
                    afterburner=1,
-                   profile="aac_low",
-                   eld_sbr=1)
+                   profile="aac_low")
 
 streams_info = [("aac_lofi",(40000,"mp4a.40.29","ts")),
-                ("aac_midfi",(110000,"mp4a.40.5","ts")),
+                ("aac_midfi",(110000,"mp4a.40.2","ts")),
                 ("aac_hifi",(220000,"mp4a.40.2","ts"))]
                 
 streams = [("aac_lofi",aac_lofi), 
