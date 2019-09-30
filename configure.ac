@@ -5,7 +5,7 @@ AC_INIT([liquidsoap],
         [savonet-users@lists.sourceforge.net],
         [liquidsoap],
         [https://github.com/savonet/liquidsoap])
-git_snapshot=true
+git_snapshot=false
 version="$PACKAGE_VERSION"
 min_ocaml_version=m4_esyscmd([tail -n1 VERSION | tr -d '\r\n'])
 git_commit=`git rev-parse --short HEAD || true`
@@ -503,7 +503,7 @@ AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.3.0])
+AC_CHECK_OCAML_BINDING([fdkaac],[0.3.1])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
