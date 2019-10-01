@@ -24,14 +24,14 @@
 
 open FFmpeg
 
-module Resampler = Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
+module Resampler = Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
 
 let log = Ffmpeg_config.log
 
 type handler = {
   output: Avutil.output Avutil.container;
   stream: (Avutil.output, Avutil.audio) Av.stream;
-  converter: (Swresample.PlanarFloatArray.t, Swresample.Frame.t) Swresample.ctx
+  converter: (Swresample.FltPlanarBigArray.t, Swresample.Frame.t) Swresample.ctx
 }
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
@@ -113,13 +113,8 @@ let encoder ffmpeg meta =
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let len = Frame.audio_of_master len in
-    let data = Array.map (fun channel ->
-      Array.sub channel start len)
-        (AFrame.content_of_type ~channels frame start)
-    in
-    let frame =
-      Resampler.convert !h.converter data
-    in
+    let data = Audio.sub (AFrame.content_of_type ~channels frame start) start len in
+    let frame = Resampler.convert !h.converter data in
     Av.write_frame !h.stream frame;
     let ret = Buffer.contents buf in
     Buffer.reset buf;
