@@ -1,12 +1,17 @@
-1.5.0
+1.5.0 (unreleased)
 =====
 
 New:
 
-- Added `string.nth`.
-- Added `string.binary.to_int`.
+- Added `string.nth` (#970).
+- Added `string.binary.to_int` (#970).
 
-1.4.0 ()
+Changed:
+
+- Fix implementation of recursive functions (#934).
+- Native Liquidsoap implementation of list functions (#920).
+
+1.4.0 (29-09-2019)
 =====
 
 New:

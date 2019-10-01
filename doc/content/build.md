@@ -1,4 +1,4 @@
-# Liquidsoap 1.4.0
+# Liquidsoap 1.5.0
 
 ## Forewords
 
@@ -67,7 +67,7 @@ Libraries not developed by Savonet are:
 | ocaml-cry           | >=0.6.0 | Sending to Shoutcast & Icecast                |
 | ocaml-dssi          | >=0.1.1 | DSSI sound synthesis                          |
 | ocaml-faad          | >=0.4.0 | AAC stream decoding                           |
-| ocaml-fdkaac        | >=0.3.0 | AAC(+) encoding                               |
+| ocaml-fdkaac        | >=0.3.1 | AAC(+) encoding                               |
 | ocaml-ffmpeg        | >=0.2.0 | Video conversion using the ffmpeg library     | 
 | ocaml-flac          | >=0.1.5 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        | >=0.1.0 | Frei0r plugins                                |

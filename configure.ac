@@ -503,7 +503,7 @@ AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.3.0])
+AC_CHECK_OCAML_BINDING([fdkaac],[0.3.1])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -530,7 +530,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.4.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.4.1])
 
 #
 # Jack
