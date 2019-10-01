@@ -1,3 +1,5 @@
+#!../../src/liquidsoap ../../libs/list.liq
+
 %include "test.liq"
 
 success = ref(true)
@@ -21,6 +23,7 @@ test(list.length(["a","b"]), 2)
 test(list.mem(1,[4,5,6]), false)
 test(list.mem(5,[4,5,6]), true)
 test(list.map(fun (x) -> 2*x,[1,2,3]), [2,4,6])
+test(list.map(fun (x) -> 2.*x,[1.,2.,3.]), [2.,4.,6.])
 test(list.mapi(fun (i,x) -> i+x,[1,1,2]), [1,2,4])
 test(list.filter(fun (x) -> x mod 2 == 0,[1,2,3,4,5]), [2,4])
 test(list.remove(1,[3,1,2,1,1]), [3,2,1,1])

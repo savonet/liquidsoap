@@ -137,3 +137,25 @@ let () =
     ~flags:[Lang.Hidden]
     [] Lang.int_t
     (fun _ -> Lang.int min_int)
+
+let () =
+  add_builtin "lsl" ~cat:Math ~descr:"Logical shift left."
+    [
+      "",Lang.int_t,None,Some "Number to shift.";
+      "",Lang.int_t,None,Some "Number of bits to shift."
+    ] Lang.int_t
+    (fun p ->
+       let n = Lang.to_int (Lang.assoc "" 1 p) in
+       let b = Lang.to_int (Lang.assoc "" 2 p) in
+       Lang.int (n lsl b))
+
+let () =
+  add_builtin "lsr" ~cat:Math ~descr:"Logical shift right."
+    [
+      "",Lang.int_t,None,Some "Number to shift.";
+      "",Lang.int_t,None,Some "Number of bits to shift."
+    ] Lang.int_t
+    (fun p ->
+       let n = Lang.to_int (Lang.assoc "" 1 p) in
+       let b = Lang.to_int (Lang.assoc "" 2 p) in
+       Lang.int (n lsr b))

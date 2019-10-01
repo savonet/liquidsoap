@@ -24,7 +24,6 @@ open Extralib
 open Gstreamer
 
 module GU = Gstreamer_utils
-module Img = Image.RGBA32
 
 let log = Log.make ["io";"gstreamer"]
 let gst_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "gstreamer")
@@ -267,9 +266,13 @@ object (self)
         if has_video then
           (
             let buf = content.Frame.video.(0) in
-            for i = 0 to Array.length buf - 1 do
-              let data = Img.data buf.(i) in
-              Gstreamer.App_src.push_buffer_data ~duration ~presentation_time  (Utils.get_some el.video) data 0 (Bigarray.Array1.dim data)
+            for i = 0 to Video.length buf - 1 do
+              let img = Video.get buf i in
+              let y,u,v = Image.YUV420.data img in
+              let buf = Gstreamer.Buffer.of_data_list (List.map (fun d -> d,0,Image.Data.length d) [y;u;v]) in
+              Gstreamer.Buffer.set_duration buf duration;
+              Gstreamer.Buffer.set_presentation_time buf presentation_time;
+              Gstreamer.App_src.push_buffer (Utils.get_some el.video) buf
             done;
           );
         presentation_time <- Int64.add presentation_time duration;
@@ -595,9 +598,9 @@ object (self)
   method private fill_video video =
     while video.pending () > 0 && not self#is_generator_at_max do
       let b = video.pull () in
-      let img = Img.make width height b in
-      let stream = [|img|] in
-      Generator.put_video gen [|stream|] 0 (Array.length stream)
+      let img = Image.YUV420.make_data width height b (Image.Data.round 4 width) (Image.Data.round 4 (width/2)) in
+      let stream = Video.single img in
+      Generator.put_video gen [|stream|] 0 (Video.length stream)
     done
 
   method get_frame frame =

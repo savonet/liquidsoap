@@ -97,3 +97,13 @@ let find_converter src dst =
     raise Not_found
   with
     | Exit x -> x ~proportional:proportional_scale_conf#get
+
+let scaler () ?(proportional=true) =
+  (* Video.Image.scale ~proportional *)
+  ignore proportional;
+  fun src dst ->
+  find_converter
+    (Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420)
+    (Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420)
+    (Image.Generic.of_YUV420 src)
+    (Image.Generic.of_YUV420 dst)

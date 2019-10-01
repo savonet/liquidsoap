@@ -138,6 +138,7 @@ let rec token lexbuf = match%sedlex lexbuf with
   | "%vorbis" -> VORBIS
   | "%opus"   -> OPUS
   | "%flac"   -> FLAC
+  | "%ffmpeg" -> FFMPEG
   | "%vorbis.cbr" -> VORBIS_CBR
   | "%vorbis.abr" -> VORBIS_ABR
   | "%theora" -> THEORA

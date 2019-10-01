@@ -1,5 +1,6 @@
 %include "audio.liq"
 %include "ref.liq"
+%include "list.liq"
 %include "utils.liq"
 %include "string.liq"
 %include "metadata.liq"

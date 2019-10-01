@@ -423,9 +423,7 @@ struct
     Queue.fold (fun n a -> n + audio_size (Generator.chunk_data a)) 0 t.audio.Generator.buffers
 
   let video_size t =
-    let image_size (i:Image.RGBA32.t) = Bigarray.Array1.size_in_bytes (Image.RGBA32.data i) in
-    let video_size (v:Frame.video_t) = Array.fold_left (fun n i -> n + image_size i) 0 v in
-    let buffer_size (b:Frame.video_t array) = Array.fold_left (fun n v -> n + video_size v) 0 b in
+    let buffer_size (b:Frame.video_t array) = Array.fold_left (fun n v -> n + Video.size v) 0 b in
     Queue.fold (fun n a -> n + buffer_size (Generator.chunk_data a)) 0 t.video.Generator.buffers
 
   let size t = audio_size t + video_size t
@@ -488,7 +486,7 @@ struct
 
   (** Add some video content. Offset and length are given in video samples. *)
   let put_video t content o l =
-    assert (content = [||] || Array.length content.(0) <= o+l) ;
+    assert (content = [||] || Video.length content.(0) <= o+l) ;
     let o = Frame.master_of_video o in
     let l = Frame.master_of_video l in
       Generator.put t.video content o l ;

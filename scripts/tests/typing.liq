@@ -44,8 +44,7 @@ def rec recid(x)
   x
 end
 ignore(recid(3) == 3)
-# TODO: recursive functions are not correcly generalized for now an the following line does not work
-# ignore(recid("a") == "a")
+ignore(recid("a") == "a")
 
 # More errors...
 # 0=="0"

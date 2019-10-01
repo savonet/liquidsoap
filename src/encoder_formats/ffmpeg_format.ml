@@ -20,19 +20,38 @@
 
  *****************************************************************************)
 
-let log = Log.make ["decoder";"ppm"]
+type opt_val = [
+  | `String of string
+  | `Int of int
+  | `Float of float
+]
 
-let load_image fname =
-  let ic = open_in_bin fname in
-  let len = in_channel_length ic in
-  let data = Bytes.create len in
-  really_input ic data 0 len;
-  close_in ic;
-  Image.YUV420.of_PPM (Bytes.unsafe_to_string data)
+type opts = (string, opt_val) Hashtbl.t
 
-let () =
-  Decoder.image_file_decoders#register "ppm"
-    ~sdoc:"Native decoding of PPM images."
-    (fun filename ->
-      let img = load_image filename in
-      Some img)
+type t = {
+  format     : string;
+  codec      : string;
+  channels   : int;
+  samplerate : int Lazy.t ;
+  options    : opts
+}
+
+let string_of_options options =
+  let _v = function
+    | `String s -> Printf.sprintf "%S" s
+    | `Int i -> string_of_int i
+    | `Float f -> string_of_float f
+  in
+  String.concat ","
+    (Hashtbl.fold (fun k v c ->
+      let v = Printf.sprintf "%s=%s" k (_v v) in
+      v::c) options [])
+
+let to_string m =
+  let opts =
+    string_of_options m.options
+  in
+  Printf.sprintf
+    "%%fmpeg(format=%S,codec=%S,ac=%d,ar=%d%s)"
+    m.format m.codec m.channels (Lazy.force m.samplerate)
+    (if opts = "" then "" else Printf.sprintf ",%s" opts)

@@ -121,6 +121,24 @@ has to be written first, by default its length is set to the maximun possible
 value. If you know the expected duration of the encoded data and you actually 
 care about the WAV length header then you should use this parameter.
 
+FFmpeg
+------
+The `%ffmpeg` encoder is the latest addition to our collection, starting with version `1.4.0`. It is only for audio encoding for now. You need to have [ocaml-ffmpeg](https://github.com/savonet/ocaml-ffmpeg) installed and up-to date to enable the encoder during liquidsoap's build.
+
+The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpeg.org/ffmpeg-formats.html#Muxers) and [encoders](https://www.ffmpeg.org/ffmpeg-codecs.html), including private configuration options. Configuration value are passed as key/values, with values being of types: `string`, `int`, or `float`. If a configuration is not recognized (or: unused), it will raise an error during the instantiation of the encoder. Here are some configuration examples:
+
+* **AAC encoding at `22050kHz` using `fdk-aac` encoder and `mpegts` muxer**
+```
+%ffmpeg(format="mpegts",ar=22050,codec="libfdk_aac",b="32k",afterburner=1,profile="aac_he_v2")
+```
+
+* **Mp3 encoding using `libshine`**
+```
+%ffmpeg(format="mp3",codec="libshine")
+```
+
+The `%ffmpeg` encoder is the prime encoder for HLS output as it is the only one of our collection of encoder which can produce Mpeg-ts muxed data, which is required by most HLS clients.
+
 Ogg
 ---
 The following formats can be put together in an Ogg container.
