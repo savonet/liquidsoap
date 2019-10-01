@@ -401,7 +401,7 @@ let () =
           Decoder.get_stream_decoder format kind
          with
           | None -> raise (Lang_errors.Invalid_value
-                      (List.assoc "" p, "Couldn't find a decoder for this format"))
+                      (List.assoc "content_type" p, "Couldn't find a decoder for this format"))
           | _ -> ());
          ((new input ~kind ~bind_address ~payload_size ~clock_safe
                     ~on_connect ~on_disconnect ~messageapi ~max

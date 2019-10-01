@@ -29,6 +29,7 @@ type format =
   | MP3 of Mp3_format.t
   | Shine of Shine_format.t
   | Flac of Flac_format.t
+  | Ffmpeg of Ffmpeg_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
   | GStreamer of Gstreamer_format.t
@@ -48,6 +49,9 @@ let kind_of_format = function
         Frame.video = 0 ; Frame.midi = 0 }
   | Flac m ->
       { Frame.audio = m.Flac_format.channels ;
+        Frame.video = 0 ; Frame.midi = 0 }
+  | Ffmpeg m ->
+      { Frame.audio = m.Ffmpeg_format.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
   | FdkAacEnc m ->
       { Frame.audio = m.Fdkaac_format.channels ;
@@ -89,6 +93,7 @@ let string_of_format = function
   | MP3 w -> Mp3_format.to_string w
   | Shine w -> Shine_format.to_string w
   | Flac w -> Flac_format.to_string w
+  | Ffmpeg w -> Ffmpeg_format.to_string w
   | FdkAacEnc w -> Fdkaac_format.to_string w
   | External w -> External_encoder_format.to_string w
   | GStreamer w -> Gstreamer_format.to_string w

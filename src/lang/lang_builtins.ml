@@ -526,10 +526,9 @@ let () =
       let v = List.assoc "" p in
       match v.Lang.value with
         | Lang.Fun (p,args,env,body) ->
-            let fn args t = Tutils.mutexify m (fun () ->
-              let env =
-                List.rev_append args env
-              in
+            let fn (args:Lang.full_env) t = Tutils.mutexify m (fun () ->
+              let args = List.map (fun (x,gv) -> x, Lazy.from_val gv) args in
+              let env = List.rev_append args env in
               let v = {v with Lang.value =
                 Lang.Fun ([],[],env,body)}
               in

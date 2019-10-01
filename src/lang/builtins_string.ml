@@ -42,6 +42,19 @@ let () =
        let l = List.map Lang.to_string l in
          Lang.string (String.concat sep l))
 
+let () =
+  add_builtin "string.nth" ~cat:String ~descr:"Retrieve a character in a string."
+    [
+      "", Lang.string_t, None, Some "String to look into.";
+      "", Lang.int_t, None, Some "Index of the character.";
+    ]
+    Lang.int_t
+    (fun p ->
+       let s = Lang.to_string (Lang.assoc "" 1 p) in
+       let n = Lang.to_int (Lang.assoc "" 2 p) in
+       Lang.int (int_of_char s.[n])
+    )
+
 (* Special characters that must be escaped *)
 let special_chars =
   (* Control chars between 0x00 and 0x1f *)

@@ -503,7 +503,7 @@ AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.3.0])
+AC_CHECK_OCAML_BINDING([fdkaac],[0.3.1])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -530,7 +530,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.4.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.4.1])
 
 #
 # Jack
@@ -793,6 +793,7 @@ AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
 AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
 AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])
 AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
+AC_CHECK_OCAML_BINDING([lilv],[0.1.0])
 AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
@@ -988,6 +989,7 @@ cat <<EOMSG
 
  * Supported output formats
    - FDK-AAC           : $w_FDKAAC
+   - Ffmpeg            : $w_FFMPEG
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
    - Opus              : $w_OPUS
@@ -1013,6 +1015,7 @@ cat <<EOMSG
 
  * Audio manipulation
    - LADSPA            : $w_LADSPA
+   - Lilv              : $w_LILV
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
 
