@@ -3,12 +3,8 @@
 
 New:
 
-- Switch to YUV420 as internal image format, should be much more efficient
-  (#848).
-- Add `output.file.dash.ffmpeg`.
-
-1.4.0 ()
-=======
+- Switch to YUV420 as internal image format, much more efficient (#848).
+- Added `output.file.dash.ffmpeg`.
 - Added LV2 support (#906).
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
