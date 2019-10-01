@@ -62,27 +62,10 @@ object
   method remaining = -1
 end
 
-module Data = struct
-  let create len = Bigarray.Array1.create Bigarray.Float32 Bigarray.c_layout len
-
-  let constant len x =
-    let data = create len in
-    Bigarray.Array1.fill data x;
-    data
-
-  let of_array a off len =
-  let data = create len in
-  for i = 0 to len - 1 do
-    Bigarray.Array1.unsafe_set data i a.(i+off)
-  done;
+let constant_data len x =
+  let data =  Bigarray.Array1.create Bigarray.Float32 Bigarray.c_layout len in
+  Bigarray.Array1.fill data x;
   data
-
-  let to_array data a off =
-    let len = Bigarray.Array1.dim data in
-    for i = 0 to len - 1 do
-      a.(i+off) <- Bigarray.Array1.unsafe_get data i
-    done
-end
 
 (** A mono LV2 plugin: a plugin is created for each channel. *)
 class lilv_mono ~kind (source:source) plugin input output params =
@@ -101,13 +84,11 @@ object
     let chans = Array.length b in
     let position = AFrame.position buf in
     let len = position - offset in
-    let output_data = Array.init chans (fun _ -> Data.create len) in
     for c = 0 to chans - 1 do
-      Plugin.Instance.connect_port_float inst.(c) input (Data.of_array b.(c) offset len);
-      Plugin.Instance.connect_port_float inst.(c) output output_data.(c);
-      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst.(c) p (Data.constant len (v ()))) params;
-      Plugin.Instance.run inst.(c) len;
-      Data.to_array output_data.(c) b.(c) offset
+      Plugin.Instance.connect_port_float inst.(c) input (Audio.Mono.sub b.(c) offset len);
+      Plugin.Instance.connect_port_float inst.(c) output (Audio.Mono.sub b.(c) offset len);
+      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst.(c) p (constant_data len (v ()))) params;
+      Plugin.Instance.run inst.(c) len
     done
 end
 
@@ -135,31 +116,23 @@ object
       params;
     if Array.length inputs = Array.length outputs then
       let chans = Array.length b in
-      let output_data = Array.init chans (fun _ -> Data.create len) in
       (* The simple case: number of channels does not get changed. *)
       for c = 0 to chans - 1 do
-        Plugin.Instance.connect_port_float inst inputs.(c) (Data.of_array b.(c) offset len);
-        Plugin.Instance.connect_port_float inst outputs.(c) output_data.(c)
+        Plugin.Instance.connect_port_float inst inputs.(c) (Audio.Mono.sub b.(c) offset len);
+        Plugin.Instance.connect_port_float inst outputs.(c) (Audio.Mono.sub b.(c) offset len)
       done;
-      Plugin.Instance.run inst len;
-      for c = 0 to chans - 1 do
-        Data.to_array output_data.(c) b.(c) offset
-      done
+      Plugin.Instance.run inst len
     else
       (* We have to change channels. *)
       let d = AFrame.content_of_type ~channels:oc buf offset in
       for c = 0 to Array.length b - 1 do
-        Plugin.Instance.connect_port_float inst inputs.(c) (Data.of_array b.(c) offset len)
+        Plugin.Instance.connect_port_float inst inputs.(c) (Audio.Mono.sub b.(c) offset len)
       done;
       let output_chans = Array.length d in
-      let output_data = Array.init output_chans (fun _ -> Data.create len) in
       for c = 0 to output_chans - 1 do
-        Plugin.Instance.connect_port_float inst outputs.(c) output_data.(c)
+        Plugin.Instance.connect_port_float inst outputs.(c) (Audio.Mono.sub b.(c) offset len)
       done;
-      Plugin.Instance.run inst len;
-      for c = 0 to output_chans - 1 do
-        Data.to_array output_data.(c) d.(c) offset
-      done
+      Plugin.Instance.run inst len
 end
 
 (** An LV2 plugin without audio input. *)
@@ -184,15 +157,11 @@ object
       let chans = Array.length b in
       let position = AFrame.size () in
       let len = position - offset in
-      let output_data = Array.init chans (fun _ -> Data.create len) in
-      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst p (Data.constant len (v ()))) params;
+      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst p (constant_data len (v ()))) params;
       for c = 0 to chans - 1 do
-        Plugin.Instance.connect_port_float inst outputs.(c) output_data.(c)
+        Plugin.Instance.connect_port_float inst outputs.(c) (Audio.Mono.sub b.(c) offset len)
       done;
       Plugin.Instance.run inst len;
-      for c = 0 to chans - 1 do
-        Data.to_array output_data.(c) b.(c) offset
-      done;
       AFrame.add_break buf position
 end
 
@@ -219,9 +188,9 @@ object
       let chans = Array.length b in
       let position = AFrame.size () in
       let len = position - offset in
-      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst p (Data.constant len (v ()))) params;
+      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst p (constant_data len (v ()))) params;
       for c = 0 to chans - 1 do
-        Plugin.Instance.connect_port_float inst inputs.(c) (Data.of_array b.(c) offset len)
+        Plugin.Instance.connect_port_float inst inputs.(c) (Audio.Mono.sub b.(c) offset len)
       done;
       Plugin.Instance.run inst len
 end
