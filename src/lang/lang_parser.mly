@@ -41,15 +41,12 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
-  let mk_rec_fun ~pos doc pat args body =
+  let mk_rec_fun ~pos pat args body =
+    let name = match pat with PVar name -> name | _ -> assert false in
     let bound = List.map (fun (_,x,_,_) -> x) args in
+    let bound = name::bound in
     let fv = Lang_values.free_vars ~bound body in
-    let rec fn () =
-      let fnv = mk ~pos (RFun (fv,args,fn)) in
-      mk ~pos (Let {doc=doc;pat;gen=[];
-                    def=fnv;body})
-    in
-      mk ~pos (RFun (fv,args,fn))
+      mk ~pos (RFun (name,fv,args,body))
 
   let mk_enc ~pos e =
     begin
@@ -404,7 +401,7 @@ binding:
       let doc = $1 in
       let pat = PVar $3 in
       let arglist = $4 in
-      let body = mk_rec_fun ~pos:$loc doc pat arglist $7 in
+      let body = mk_rec_fun ~pos:$loc pat arglist $7 in
       doc,pat,body
     }
 
