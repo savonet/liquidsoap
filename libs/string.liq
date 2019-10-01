@@ -34,6 +34,6 @@ end
 def string.binary.to_int(~little_endian=true, s)
   ans = ref(0)
   n = string.length(s)
-  for(0, n-1, fun (i) -> ans := lsl(!ans,8) + string.char(s, if little_endian then n-1-i else i end))
+  for(0, n-1, fun (i) -> ans := lsl(!ans,8) + string.nth(s, if little_endian then n-1-i else i end))
   !ans
 end

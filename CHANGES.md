@@ -3,7 +3,7 @@
 
 New:
 
-- Added `string.char`.
+- Added `string.nth`.
 - Added `string.binary.to_int`.
 
 1.4.0 ()

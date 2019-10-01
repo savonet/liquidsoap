@@ -43,7 +43,7 @@ let () =
          Lang.string (String.concat sep l))
 
 let () =
-  add_builtin "string.char" ~cat:String ~descr:"Retrieve a character in a string."
+  add_builtin "string.nth" ~cat:String ~descr:"Retrieve a character in a string."
     [
       "", Lang.string_t, None, Some "String to look into.";
       "", Lang.int_t, None, Some "Index of the character.";
