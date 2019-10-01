@@ -1,6 +1,11 @@
 1.5.0 (unreleased)
 =====
 
+New:
+
+- Added `string.nth` (#970).
+- Added `string.binary.to_int` (#970).
+
 Changed:
 
 - Fix implementation of recursive functions (#934).
