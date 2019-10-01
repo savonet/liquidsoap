@@ -41,15 +41,12 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
-  let mk_rec_fun ~pos doc pat args body =
+  let mk_rec_fun ~pos pat args body =
+    let name = match pat with PVar name -> name | _ -> assert false in
     let bound = List.map (fun (_,x,_,_) -> x) args in
+    let bound = name::bound in
     let fv = Lang_values.free_vars ~bound body in
-    let rec fn () =
-      let fnv = mk ~pos (RFun (fv,args,fn)) in
-      mk ~pos (Let {doc=doc;pat;gen=[];
-                    def=fnv;body})
-    in
-      mk ~pos (RFun (fv,args,fn))
+      mk ~pos (RFun (name,fv,args,body))
 
   let mk_enc ~pos e =
     begin
@@ -174,7 +171,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
+%token OGG FLAC FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
@@ -267,6 +264,7 @@ expr:
   | SHINE app_opt                    { mk_enc ~pos:$loc (Lang_shine.make $2) }
   | FDKAAC app_opt                   { mk_enc ~pos:$loc (Lang_fdkaac.make $2) }
   | FLAC app_opt                     { mk_enc ~pos:$loc (Lang_flac.make $2) }
+  | FFMPEG app_opt                   { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
   | EXTERNAL app_opt                 { mk_enc ~pos:$loc (Lang_external_encoder.make $2) }
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
@@ -403,7 +401,7 @@ binding:
       let doc = $1 in
       let pat = PVar $3 in
       let arglist = $4 in
-      let body = mk_rec_fun ~pos:$loc doc pat arglist $7 in
+      let body = mk_rec_fun ~pos:$loc pat arglist $7 in
       doc,pat,body
     }
 

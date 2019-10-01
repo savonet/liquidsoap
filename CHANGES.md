@@ -1,4 +1,11 @@
-1.4.0 ()
+1.5.0 (unreleased)
+=====
+
+Changed:
+
+- Fix implementation of recursive functions (#934).
+
+1.4.0 (29-09-2019)
 =====
 
 New:
@@ -8,6 +15,8 @@ New:
 - Added support for deconstructing tuples: `let (z,t,_) = x` (#838)
 - Added `input.{file,harbor}.hls` to read HLS stream (#59, #295, #296).
 - Added `output.hls` to natively stream in HLS (#758).
+- Added `%ffmpeg` native encoder, only for audio encoding for now (#952)
+- Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
 - Added `(to_){string,float,int,bool}_getter` operators to handle getters in
   script side.
 - Made `p` parameter in `smooth_add` a `float` getter (#601)
@@ -37,7 +46,6 @@ New:
 - Added support for bash completion.
 - Added `video.add_text.native`.
 - Added `configure.bindir`
-- Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
 - Added `for` and `while` loop functions.
 - Added `list.case`.
 - Added `metadata.string_getter` and `metadata.float_getter`.
@@ -47,6 +55,7 @@ New:
 - Added `path.remove_extension`.
 - Added SSL read/write timeout options, use it for incoming socket connections (#932)
 - Added ffmpeg resampler (#947).
+- Added `lsl` and `lsr`.
 
 Changed:
 

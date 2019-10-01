@@ -77,6 +77,8 @@ def process_protocol(~rlog,~maxtime,arg)
       log.important("Failed to execute #{cmd}: #{status}")
       log.info("Standard output:\n#{stdout}")
       log.info("Error output:\n#{stderr}")
+      log.info("Removing #{output}.")
+      file.unlink(output)
       []
     end
   end

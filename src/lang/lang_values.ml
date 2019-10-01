@@ -160,9 +160,6 @@ and in_term =
 | Var     of string
 | Seq     of term * term
 | App     of term * (string * term) list
-| RFun    of Vars.t *
-    (string*string*T.t*term option) list *
-    (unit -> term) (** a recursive function *)
 | Fun     of Vars.t *
     (string*string*T.t*term option) list *
     term
@@ -172,6 +169,11 @@ and in_term =
  * variables occurring in the function. It is used to
  * restrict the environment captured when a closure is
  * formed. *)
+| RFun    of string * Vars.t *
+    (string*string*T.t*term option) list *
+    term
+(* A recursive function, the first string is the name of the recursive
+   variable. *)
 and pattern =
   | PVar of string (** a variable *)
   | PTuple of pattern list (** a tuple *)
@@ -234,7 +236,7 @@ let rec free_vars tm = match tm.term with
         (fun v (_,t) -> Vars.union v (free_vars t))
         (free_vars hd)
         l
-  | RFun (fv,_,_)
+  | RFun (_,fv,_,_)
   | Fun (fv,_,_) -> fv
   | Let l ->
       Vars.union
@@ -284,15 +286,8 @@ let check_unused ~lib tm =
     | App (hd,l) ->
         let v = check v hd in
           List.fold_left (fun v (_,t) -> check v t) v l
-    (* A recursive function may not use its recursive let. *)
-    | RFun (fv,p,fn) ->
-      begin
-        match (fn()).term with
-          | Let {pat=pat;body=body} ->
-             let v = check v {tm with term = Fun (fv,p,body)} in
-             Vars.diff v (free_vars_pat pat)
-          | _ -> assert false
-      end
+    | RFun (_,arg,p,body) ->
+      check v { tm with term = Fun (arg,p,body) }
     | Fun (_,p,body) ->
         let v =
           List.fold_left
@@ -375,12 +370,9 @@ let rec map_types f (gen:'a list) tm =
   | Fun (fv,p,v) ->
       { t = f gen tm.t ;
         term = Fun (fv, List.map aux p, map_types f gen v) }
-  | RFun (fv,p,fn) ->
-      let fn () =
-        map_types f gen (fn ())
-      in
+  | RFun (x,fv,p,v) ->
       { t = f gen tm.t ;
-        term = RFun (fv, List.map aux p, fn) }
+        term = RFun (x, fv, List.map aux p, map_types f gen v) }
   | Let l ->
       let gen' = l.gen@gen in
         { t = f gen tm.t ;
@@ -415,16 +407,9 @@ let rec fold_types f gen x tm =
   | App (tm,l) ->
       let x = fold_types f gen x tm in
         List.fold_left (fun x (_,tm) -> fold_types f gen x tm) x l
-  | Fun (_,p,v) ->
+  | Fun (_,p,v)
+  | RFun (_,_,p,v) ->
       fold_types f gen (fold_proto x p) v
-  | RFun (_,p,fn) ->
-      begin
-        match (fn()).term with
-          | Let l ->
-              let x = f gen x l.def.t in
-              fold_types f gen (fold_proto x p) l.body
-          | _ -> assert false
-      end 
   | Let {gen=gen';def=def;body=body;_} ->
       let x = fold_types f (gen'@gen) x def in
         fold_types f gen x body
@@ -434,6 +419,8 @@ module V =
 struct
   type value = { mutable t : T.t ; value : in_value }
   and full_env = (string * ((int*T.constraints)list*value)) list
+  (* Some values have to be lazy in the environment because of recursive functions. *)
+  and lazy_full_env = (string * ((int*T.constraints)list*value) Lazy.t) list
   and in_value =
     | Bool    of bool
     | Int     of int
@@ -449,7 +436,7 @@ struct
       * to the function. Next parameters will be inserted between that
       * and the second env which is part of the closure. *)
     | Fun     of (string * string * value option) list *
-                 full_env * full_env * term
+                 full_env * lazy_full_env * term
     (** For a foreign function only the arguments are visible,
       * the closure doesn't capture anything in the environment. *)
     | FFI     of (string * string * value option) list *
@@ -495,12 +482,25 @@ struct
         Printf.sprintf "fun (%s) -> %s" (String.concat "," args) (print_term x)
     | Fun _ | FFI _ -> "<fun>"
 
-  let map_env f env = List.map (fun (s,(g,v)) -> s, (g, f v)) env
+  let map_env f (env:full_env) =
+    List.map (fun (s,(g,v)) -> s, (g, f v)) env
+
+  let map_lazy_env f (env:lazy_full_env) =
+    List.map
+      (fun (s,gv) ->
+         s,
+         Lazy.from_fun
+           (fun () ->
+              let g, v = Lazy.force gv in
+              (g, f v)
+           )
+      ) env
 
   let tm_map_types = map_types
 
   (** Map a function on all types occurring in a value. *)
-  let rec map_types f gen v = match v.value with
+  let rec map_types f gen v =
+    match v.value with
     | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
         { v with t = f gen v.t }
     | Tuple l ->
@@ -518,7 +518,7 @@ struct
             value = 
               Fun (List.map aux p,
                    map_env (map_types f gen) applied,
-                   map_env (map_types f gen) env,
+                   map_lazy_env (map_types f gen) env,
                    tm_map_types f gen tm) }
     | FFI (p,applied,ffi) ->
         let aux = function
@@ -734,18 +734,9 @@ let rec check ?(print_toplevel=false) ~level ~env e =
               a.t <: T.make ~level ~pos:None (T.Arrow (p,e.t))
       end
   | Fun (_,proto,body) -> check_fun ~proto ~env e body
-  | RFun (_,proto,fn) -> 
-     begin
-       match (fn()).term with
-       | Let {pat;def;body} ->
-          let penv, pa = type_of_pat ~level ~pos pat in
-          pa >: def.t;
-          let penv = List.map (fun (x,a) -> x,([],a)) penv in
-          let env = penv@env in
-          check_fun ~proto ~env def body;
-          e.t >: def.t
-       | _ -> assert false
-     end 
+  | RFun (x,_,proto,body) ->
+    let env = (x,([],e.t))::env in
+    check_fun ~proto ~env e body
   | Var var ->
       let generalized,orig =
         try
@@ -873,8 +864,8 @@ let instantiate ~generalized def =
       []
       def
 
-let lookup env var ty =
-  let generalized,def = List.assoc var env in
+let lookup (env:V.lazy_full_env) var ty =
+  let generalized,def = Lazy.force (List.assoc var env) in
   let v = instantiate ~generalized def in
     if debug then
       Printf.eprintf
@@ -901,6 +892,7 @@ let eval_pat pat v =
   aux [] pat v
 
 let rec eval ~env tm =
+  let env = (env : V.lazy_full_env) in
   let prepare_fun fv p env =
     (* Unlike OCaml we always evaluate default values,
      * and we do that early.
@@ -943,31 +935,18 @@ let rec eval ~env tm =
             instantiated in any way when evaluating the definition. But we don't
             double-check it. *)
          let v = eval ~env v in
-         let env = (List.map (fun (x,v) -> x,(gen,v)) (eval_pat pat v))@env in
+         let env = (List.map (fun (x,v) -> x,Lazy.from_val (gen,v)) (eval_pat pat v))@env in
          eval ~env b
       | Fun (fv,p,body) ->
           let (p,env) = prepare_fun fv p env in
             mk (V.Fun (p,[],env,body))
-      | RFun (fv,p,fn) ->
-         begin
-           match (fn ()).term with
-           | Let {pat;body} ->
-              let (p,env) = prepare_fun fv p env in
-              let rec ffi args t =
-                let v = mk (V.FFI (p,[],ffi)) in
-                let var =
-                  match pat with
-                  | PVar var -> var
-                  | _ -> assert false
-                in
-                let env = (var,([],v))::env in
-                let env = List.rev_append args env in
-                let f = mk (V.Fun ([],[],env,body)) in
-                apply ~t f []
-              in
-              mk (V.FFI (p,[],ffi))
-           | _ -> assert false
-         end
+      | RFun (x,fv,p,body) ->
+          let (p,env) = prepare_fun fv p env in
+          let rec v () =
+            let env = (x,Lazy.from_fun (fun () -> [], v ()))::env in
+            { V.t = tm.t ; value = V.Fun (p,[],env,body) }
+          in
+          v ()
       | Var var ->
           lookup env var tm.t
       | Seq (a,b) ->
@@ -987,7 +966,9 @@ and apply ~t f l =
     match f.V.value with
       | V.Fun (p,pe,e,body) ->
           p,pe,
-          (fun pe _ -> eval ~env:(List.rev_append pe e) body),
+          (fun pe _ ->
+             let pe = List.map (fun (x,gv) -> x, Lazy.from_val gv) pe in
+             eval ~env:(List.rev_append pe e) body),
           (fun p pe -> mk (V.Fun (p,pe,e,body)))
       | V.FFI (p,pe,f) ->
           p,pe,
@@ -1031,6 +1012,10 @@ and apply ~t f l =
          * it to an operator that expects an infallible one, an error
          * is issued about that FFI-made value and a position is needed. *)
         { v with V.t = T.make ~pos:t.T.pos (T.Link v.V.t) }
+
+let eval ~env tm =
+  let env = List.map (fun (x,gv) -> x, Lazy.from_val gv) env in
+  eval ~env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
    evaluation of the next scripts. Also try to generate a structured
