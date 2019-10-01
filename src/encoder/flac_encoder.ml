@@ -57,13 +57,14 @@ let encoder flac meta =
       if src_freq <> dst_freq then
         let b = Audio_converter.Samplerate.resample
           samplerate_converter (dst_freq /. src_freq)
-          b start len
+          (Audio.sub b start len)
         in
-        b,0,Array.length b.(0)
+        b,0,Audio.length b
       else
         b,start,len
     in
-    let b = Array.map (fun x -> Array.sub x start len) b in
+    let b = Audio.sub b start len in
+    let b = Audio.to_array b in
     Flac.Encoder.process !enc cb b;
     let ret = Buffer.contents buf in
     Buffer.reset buf ;

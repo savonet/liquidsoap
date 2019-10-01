@@ -124,16 +124,15 @@ let create_decoder input =
         if len = aacbuflen then
          begin
           let pos,data = Faad.decode dec (Bytes.unsafe_of_string aacbuf) 0 len in
+          let data = Audio.of_array data in
           begin try
-            processed := !processed + Array.length data.(0)
+            processed := !processed + Audio.length data
           with _ -> () end;
           drop pos ;
-          let content =
-            resampler ~audio_src_rate:(float sample_freq) data
-          in
+          let content = resampler ~audio_src_rate:(float sample_freq) data in
             (* TODO assert (Array.length content.(0) = length) ? *)
             Generator.set_mode gen `Audio ;
-            Generator.put_audio gen content 0 (Array.length content.(0))
+            Generator.put_audio gen content 0 (Audio.length content)
          end) }
 end
 
@@ -251,15 +250,14 @@ struct
     let decode gen =
       if !ended || !sample >= nb_samples || !sample < 0 then raise End_of_track;
       let data = Faad.Mp4.decode mp4 track !sample dec in
+      let data = Audio.of_array data in
       incr sample;
       begin try
-        pos := !pos + (Array.length data.(0))
+        pos := !pos + Audio.length data
       with _ -> () end;
-      let content =
-        resampler ~audio_src_rate:(float sample_freq) data
-      in
+      let content = resampler ~audio_src_rate:(float sample_freq) data in
       Generator.set_mode gen `Audio;
-      Generator.put_audio gen content 0 (Array.length content.(0))
+      Generator.put_audio gen content 0 (Audio.length content)
     in
     let seek ticks =
       try

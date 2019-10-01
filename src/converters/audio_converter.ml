@@ -39,9 +39,8 @@ struct
   exception Invalid_data
 
   (** A converter takes a convertion ratio (output samplerate / input
-      samplerate), an audio buffer, an offset in the buffer, a duration in the
-      buffer and returns a resampled buffer. *)
-  type converter = float -> float array -> int -> int -> float array
+      samplerate), an audio buffer, and returns a resampled buffer. *)
+  type converter = float -> Frame.audio_t -> Frame.audio_t
 
   type converter_plug = unit -> converter
 
@@ -81,19 +80,13 @@ struct
     in
     Array.init channels (fun _ -> converter ())
 
-  let resample conv ratio data ofs len =
-    if Array.length conv <> Array.length data then
-      raise Invalid_data;
+  let resample conv ratio data =
+    if Array.length conv <> Array.length data then raise Invalid_data;
     let convert i b =
-      if ratio = 1. then
-        Array.sub b ofs len
-      else
-        conv.(i) ratio b ofs len
+      if ratio = 1. then b
+      else conv.(i) ratio b
     in
-    if Array.length data.(0) = 0 then
-      data
-    else
-      Array.mapi convert data
+    Array.mapi convert data
 
   (** Log which converter is used at start. *)
   let () =

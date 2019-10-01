@@ -58,7 +58,7 @@ object
       let buf = AFrame.content buf offset in
       for i = offset to position - 1 do
         for c = 0 to channels - 1 do
-          let x = buf.(c).(i) in
+          let x = buf.(c).{i} in
           match mode with
           | RMS -> acc.(c) <- acc.(c) +. x *. x
           | Peak -> acc.(c) <- max acc.(c) (abs_float x)

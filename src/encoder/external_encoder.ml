@@ -135,13 +135,13 @@ let encoder id ext =
             else
               let b =
                 Audio_converter.Samplerate.resample
-                  converter ratio b start len
+                  converter ratio (Audio.sub b start len)
               in
-              b,0,Array.length b.(0)
+              b,0,Audio.length b
           in
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
-          Audio.S16LE.of_audio b start sbuf 0 len;
+          Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
           Bytes.unsafe_to_string sbuf
        end
     in

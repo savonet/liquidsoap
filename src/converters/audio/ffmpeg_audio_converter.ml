@@ -21,14 +21,14 @@
  *****************************************************************************)
 
 module Swresample = FFmpeg.Swresample
-module Resampler = Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
+module Resampler = Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.FltPlanarBigArray)
 
 let samplerate_converter () =
   let chans = `Mono in
   let in_freq = Lazy.force Frame.audio_rate in
   let rs = ref None in
   let rs_out_freq = ref 0 in
-  fun x buf ofs len ->
+  fun x buf ->
     let out_freq = int_of_float (float in_freq *. x) in
     if !rs = None || !rs_out_freq <> out_freq then
       (
@@ -36,10 +36,6 @@ let samplerate_converter () =
         rs_out_freq := out_freq
       );
     let rs = Utils.get_some !rs in
-    let buf =
-      if ofs = 0 && len = Array.length buf then buf
-      else Array.sub buf ofs len
-    in
     (Resampler.convert rs [|buf|]).(0)
 
 let () = 

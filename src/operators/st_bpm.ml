@@ -41,7 +41,9 @@ object
     let offset = AFrame.position buf in
     source#get buf;
     let len = AFrame.position buf - offset in
-    Soundtouch.BPM.put_samples_ni bpm (AFrame.content buf offset) offset len;
+    let buf = AFrame.content buf offset in
+    let ibuf = Audio.interleave (Audio.sub buf offset len) in
+    Soundtouch.BPM.put_samples_ba bpm ibuf;
     n <- n + len;
     if n >= every then
       (

@@ -29,9 +29,7 @@ class output ~kind ~clock_safe ~infallible
   let buffer_length = AFrame.size () in
   let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
-  let blank () =
-    Array.init buffer_chans (fun _ -> Array.make buffer_length 0.)
-  in
+  let blank () = Audio.make buffer_chans buffer_length 0. in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
@@ -42,7 +40,7 @@ object (self)
       ~infallible ~on_stop ~on_start ~content_kind:kind
       ~name ~output_kind:"output.alsa" source start
     as super
-  inherit [float array array] IoRing.output ~nb_blocks ~blank as ioring
+  inherit [Frame.audio_t array] IoRing.output ~nb_blocks ~blank as ioring
 
   method private set_clock =
     super#set_clock ;
@@ -65,7 +63,9 @@ object (self)
   val mutable alsa_rate = samples_per_second
   val samplerate_converter = Audio_converter.Samplerate.create buffer_chans
   val mutable alsa_write =
-    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       Pcm.writen_float_ba pcm (Audio.sub buf ofs len)
+    )
 
   method get_device =
     match device with
@@ -88,7 +88,7 @@ object (self)
                     alsa_write <-
                       (fun pcm buf ofs len ->
                          let sbuf = Bytes.create (2 * len * Array.length buf) in
-                         Audio.S16LE.of_audio buf ofs sbuf 0 len;
+                         Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                          Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                       )
              );
@@ -125,7 +125,7 @@ object (self)
   method push_block data =
     let dev = self#get_device in
     try
-      let len = Array.length data.(0) in
+      let len = Audio.length data in
       let rec f pos =
         if pos < len then
           let ret = alsa_write dev data pos (len - pos) in
@@ -150,11 +150,9 @@ object (self)
   method output_send buf =
     let buf = AFrame.content buf 0 in
     let ratio = float alsa_rate /. float samples_per_second in
-    let buf = Audio_converter.Samplerate.resample samplerate_converter
-                  ratio buf 0 (Array.length buf.(0))
-    in
+    let buf = Audio_converter.Samplerate.resample samplerate_converter ratio buf in
     let f data =
-      Audio.blit buf 0 data 0 (Audio.duration buf)
+      Audio.blit buf data
     in
     ioring#put_block f
 

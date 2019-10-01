@@ -76,7 +76,7 @@ object (self)
     if offset < end_pos then
     let content = AFrame.content buf offset in
     for i = offset to AFrame.position buf - 1 do
-      self#add_vol (Array.map (fun c -> let x = c.(i) in x*.x) content)
+      self#add_vol (Array.map (fun c -> let x = c.{i} in x*.x) content)
     done ;
     let volwidth = float (Graphics.size_x ()) /. float backpoints in
     let volheight = float (Graphics.size_y ()) /. float channels in

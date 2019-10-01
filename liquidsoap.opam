@@ -119,7 +119,7 @@ conflicts: [
   "pulseaudio" {< "0.1.2"}
   "samplerate" {< "0.1.1"}
   "shine" {< "0.2.0"}
-  "soundtouch" {< "0.1.7"}
+  "soundtouch" {< "0.1.9"}
   "speex" {< "0.2.1"}
   "ssl" {< "0.5.2"}
   "taglib" {< "0.3.0"}

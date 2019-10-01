@@ -68,11 +68,10 @@ object
       let gmax = gmax () in
         for i = offset to AFrame.position buf - 1 do
           for c = 0 to channels - 1 do
-            rms.(c) <- rms.(c) +. b.(c).(i) *. b.(c).(i);
-            b.(c).(i) <-
-              b.(c).(i) *.
-              ((float rmsc) *. vold.(c) +. (float (rmsi - rmsc)) *. v.(c)) /.
-              (float rmsi)
+            let bc = b.(c) in
+            let x = bc.{i} in
+            rms.(c) <- rms.(c) +. x *. x;
+            bc.{i} <- x *. ((float rmsc) *. vold.(c) +. (float (rmsi - rmsc)) *. v.(c)) /. (float rmsi)
           done;
           rmsc <- rmsc + 1;
           if rmsc >= rmsi then

@@ -36,7 +36,7 @@ let file_extensions =
     ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma";"webm";"osb"]
 
 module ConverterInput = FFmpeg.Swresample.Make(FFmpeg.Swresample.Frame)
-module Converter = ConverterInput(FFmpeg.Swresample.PlanarFloatArray)
+module Converter = ConverterInput(FFmpeg.Swresample.FltPlanarBigArray)
 
 module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered(G)
@@ -109,7 +109,7 @@ let create_decoder fname =
       Converter.convert !converter frame
     in
     let consumed =
-      Frame.master_of_audio (Array.length data.(0))
+      Frame.master_of_audio (Audio.length data)
     in
     decr_remaining consumed;
     data
@@ -134,7 +134,7 @@ let create_decoder fname =
       let frame = read_frame () in
       let content = convert frame in
       G.set_mode gen `Audio ;
-      G.put_audio gen content 0 (Array.length content.(0))
+      G.put_audio gen content 0 (Audio.length content)
     with
       | FFmpeg.Avutil.Error `Eof -> 
           G.add_break gen;
@@ -294,7 +294,7 @@ let create_decoder input =
         Converter.convert !converter frame
       in
       Generator.set_mode gen `Audio ;
-      Generator.put_audio gen content 0 (Array.length content.(0))
+      Generator.put_audio gen content 0 (Audio.length content)
     with
       | FFmpeg.Avutil.Error `Eof ->
           Generator.add_break gen;

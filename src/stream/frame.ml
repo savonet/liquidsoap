@@ -348,7 +348,7 @@ let create_content content_type =
   {
     audio =
       Array.init content_type.audio
-        (fun _ -> Array.make (audio_of_master !!size) 0.) ;
+        (fun _ -> Audio.Mono.create (audio_of_master !!size)) ;
     video =
       Array.init content_type.video
         (fun _ ->
@@ -545,7 +545,7 @@ let blit_content src src_pos dst dst_pos len =
     (fun a a' ->
        if a != a' then
          let (!) = audio_of_master in
-           Audio.Mono.blit a !src_pos a' !dst_pos !len) ;
+           Audio.Mono.blit (Audio.Mono.sub a !src_pos !len) (Audio.Mono.sub a' !dst_pos !len));
   Utils.array_iter2 src.video dst.video
     (fun v v' ->
        if v != v' then

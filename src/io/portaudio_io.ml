@@ -107,8 +107,19 @@ object (self)
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
       self#handle "write_stream"
-        (fun () -> Portaudio.write_stream stream buf 0 (Array.length buf.(0)))
-
+        (fun () ->
+           let len = Audio.length buf in
+           (* TODO: non-interleaved format does not seem to be supported here *)
+           (*
+           let ba = Bigarray.Array2.create Bigarray.float32 Bigarray.c_layout channels len in
+           for c = 0 to channels - 1 do
+             Bigarray.Array1.blit buf.(c) (Bigarray.Array2.slice_left ba c)
+           done;
+           let ba = Bigarray.genarray_of_array2 ba in
+           *)
+           let ba = Bigarray.genarray_of_array1 (Audio.interleave buf) in
+           Portaudio.write_stream_ba stream ba 0 len
+        )
 end
 
 class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
@@ -168,7 +179,17 @@ object (self)
     let buf = AFrame.content_of_type ~channels frame 0 in
       self#handle
         "read_stream"
-        (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
+        (fun () ->
+           let len = Audio.length buf in
+           let ibuf = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels*len) in
+           Portaudio.read_stream_ba stream (Bigarray.genarray_of_array1 ibuf) 0 len;
+           for c = 0 to channels - 1 do
+             let bufc = buf.(c) in
+             for i = 0 to len - 1 do
+               bufc.{i} <- Bigarray.Array1.unsafe_get ibuf (i*channels+c)
+             done
+           done
+        );
       AFrame.add_break frame (AFrame.size ())
 
 end

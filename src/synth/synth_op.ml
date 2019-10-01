@@ -51,7 +51,7 @@ object (self)
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let len = position - offset in
-      synth#play evs offset b offset len
+      synth#play evs offset (Audio.sub b offset len)
 end
 
 let register obj name descr =

@@ -85,8 +85,7 @@ object
       (fun _ ->
         Descriptor.instantiate
           d
-          (Lazy.force Frame.audio_rate)
-          (AFrame.size ()))
+          (Lazy.force Frame.audio_rate))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -98,13 +97,13 @@ object
     let position = AFrame.position buf in
     let len = position - offset in
     for c = 0 to Array.length b - 1 do
-      Descriptor.set_samples inst.(c) len;
-      Descriptor.connect_audio_port inst.(c) input b.(c) offset;
-      Descriptor.connect_audio_port inst.(c) output b.(c) offset;
+      let buf = Audio.Mono.sub b.(c) offset len in
+      Descriptor.connect_port inst.(c) input buf;
+      Descriptor.connect_port inst.(c) output buf;
       List.iter
-        (fun (p,v) -> Descriptor.connect_control_port_in inst.(c) p (v ()))
+        (fun (p,v) -> Descriptor.set_control_port inst.(c) p (v ()))
         params;
-      Descriptor.run inst.(c)
+      Descriptor.run inst.(c) len
     done
 end
 
@@ -119,7 +118,6 @@ object
     Descriptor.instantiate
       d
       (Lazy.force Frame.audio_rate)
-      (AFrame.size ())
 
   initializer
     Descriptor.activate inst
@@ -131,28 +129,28 @@ object
     let position = AFrame.position buf in
     let len = position - offset in
     List.iter
-      (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
+      (fun (p,v) -> Descriptor.set_control_port inst p (v ()))
       params;
-    Descriptor.set_samples inst len;
     if Array.length inputs = Array.length outputs then
       (
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to Array.length b - 1 do
-          Descriptor.connect_audio_port inst inputs.(c) b.(c) offset;
-          Descriptor.connect_audio_port inst outputs.(c) b.(c) offset
+          let buf = Audio.Mono.sub b.(c) offset len in
+          Descriptor.connect_port inst inputs.(c) buf;
+          Descriptor.connect_port inst outputs.(c) buf
         done;
-        Descriptor.run inst
+        Descriptor.run inst len
       )
     else
       (* We have to change channels. *)
       let d = AFrame.content_of_type ~channels:oc buf offset in
       for c = 0 to Array.length b - 1 do
-        Descriptor.connect_audio_port inst inputs.(c) b.(c) offset
+        Descriptor.connect_port inst inputs.(c) (Audio.Mono.sub b.(c) offset len)
       done;
       for c = 0 to Array.length d - 1 do
-        Descriptor.connect_audio_port inst outputs.(c) d.(c) offset
+        Descriptor.connect_port inst outputs.(c) (Audio.Mono.sub d.(c) offset len)
       done;
-      Descriptor.run inst
+      Descriptor.run inst len
 end
 
 class ladspa_nosource ~kind plugin descr outputs params =
@@ -165,7 +163,6 @@ object
     Descriptor.instantiate
       d
       (Lazy.force Frame.audio_rate)
-      (AFrame.size ())
 
   initializer
     Descriptor.activate inst
@@ -182,13 +179,12 @@ object
       let position = AFrame.size () in
       let len = position - offset in
       List.iter
-        (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
+        (fun (p,v) -> Descriptor.set_control_port inst p (v ()))
         params;
-      Descriptor.set_samples inst len;
       for c = 0 to Array.length b - 1 do
-        Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+        Descriptor.connect_port inst outputs.(c) (Audio.Mono.sub b.(c) offset len);
       done;
-      Descriptor.run inst;
+      Descriptor.run inst len;
       AFrame.add_break buf position
 end
 

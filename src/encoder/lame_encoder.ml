@@ -63,8 +63,7 @@ sig
   exception Init_params_not_called
   exception Psychoacoustic_problem
   exception Unknown_error of int
-  val encode_buffer_float_part :
-      encoder -> float array -> float array -> int -> int -> string
+  val encode_buffer_float_ba : encoder -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> string
   val encode_flush_nogap : encoder -> string
 end
 
@@ -192,10 +191,22 @@ struct
          end ;
         let encoded () = 
           has_started := true;
+          (* Yes, lame requires this absurd scaling... *)
+          let scale buf =
+            let len = Audio.Mono.length buf in
+            let sbuf = Audio.Mono.create len in
+            for i = 0 to len - 1 do
+              Bigarray.Array1.unsafe_set sbuf i (Bigarray.Array1.unsafe_get buf i *. 32768.)
+            done;
+            sbuf
+          in
           if channels = 1 then
-            Lame.encode_buffer_float_part enc b.(0) b.(0) start len
+            let buf = scale (Audio.Mono.sub b.(0) start len) in
+            Lame.encode_buffer_float_ba enc buf buf
           else
-            Lame.encode_buffer_float_part enc b.(0) b.(1) start len
+            let bufl = scale (Audio.Mono.sub b.(0) start len) in
+            let bufr = scale (Audio.Mono.sub b.(1) start len) in
+            Lame.encode_buffer_float_ba enc bufl bufr
         in
         match !id3v2 with
           | Rendered s when not !has_started ->

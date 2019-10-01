@@ -22,6 +22,8 @@
 
 (** Samplerate converter using libsamplerate *)
 
+let log = Log.make ["audio";"converter";"libsamplerate"]
+
 let samplerate_conf = 
   Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate") 
     "Libsamplerate conversion settings" 
@@ -56,11 +58,18 @@ let quality_of_string v =
 let samplerate_converter () = 
   let quality = quality_of_string quality_conf#get in
   let converter = Samplerate.create quality 1 in
-  let convert ratio b ofs len =
-    Samplerate.process_alloc converter ratio b ofs len
+  let convert ratio b =
+    let inlen = Audio.Mono.length b in
+    let outlen = int_of_float (float inlen *. ratio) in
+    let buf = Audio.Mono.create outlen in
+    let i, o = Samplerate.process_ba converter ratio b buf in
+    if i < inlen then log#debug "Could not convert all the input buffer (%d instead of %d)." i inlen;
+    if o < outlen then log#debug "Unexpected output length (%d instead of %d)." o outlen;
+    (* TODO: the following would solve the issue but apparently messes up buffers *)
+    (* Audio.Mono.sub buf 0 o *)
+    buf
   in
   convert
 
 let () = 
-  Audio_converter.Samplerate.converters#register 
-    "libsamplerate" samplerate_converter
+  Audio_converter.Samplerate.converters#register "libsamplerate" samplerate_converter

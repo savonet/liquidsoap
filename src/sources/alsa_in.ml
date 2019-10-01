@@ -34,10 +34,10 @@ class mic ~kind ~clock_safe device =
   let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
-  let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
+  let blank () = Audio.make buffer_chans buffer_length 0. in
 object (self)
   inherit active_source ~name:"input.alsa" kind as active_source
-  inherit [float array array] IoRing.input ~nb_blocks ~blank as ioring
+  inherit [Frame.audio_t array] IoRing.input ~nb_blocks ~blank as ioring
 
   method private set_clock =
     active_source#set_clock ;
@@ -64,7 +64,9 @@ object (self)
   val mutable sample_freq = Lazy.force Frame.audio_rate
 
   val mutable read_fun =
-    (fun pcm buf ofs len -> Pcm.readn_float pcm buf ofs len)
+    (fun pcm (buf:Frame.audio_t array) ofs len ->
+       Pcm.readn_float_ba pcm (Audio.sub buf ofs len)
+    )
 
   val mutable device = None
 
@@ -140,7 +142,7 @@ object (self)
     let buffer = ioring#get_block in
     let fbuf = AFrame.content_of_type ~channels:buffer_chans buf 0 in
       for c = 0 to Array.length fbuf - 1 do
-        Array.blit buffer.(c) 0 fbuf.(c) 0 buffer_length
+        Audio.Mono.blit (Audio.Mono.sub buffer.(c) 0 buffer_length) (Audio.Mono.sub fbuf.(c) 0 buffer_length)
       done;
       AFrame.add_break buf buffer_length
 

@@ -97,7 +97,7 @@ object (self)
 
   method output_send wav =
     let push data =
-      Audio.S16LE.of_audio (AFrame.content wav 0) 0 data 0 samples_per_frame
+      Audio.S16LE.of_audio (AFrame.content wav 0) data 0 
     in
     ioring#put_block push
 

@@ -46,7 +46,7 @@ object
     let b = AFrame.content buf offset in
     let pos = AFrame.position buf in
     let len = pos - offset in
-    effect#process b offset len
+    effect#process (Audio.sub b offset len)
 end
 
 let () =

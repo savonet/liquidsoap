@@ -118,14 +118,14 @@ struct
         if src_freq <> dst_freq then
           let b = Audio_converter.Samplerate.resample
             samplerate_converter (dst_freq /. src_freq)
-            b start len
+            (Audio.sub b start len)
           in
-          b,0,Array.length b.(0)
+          b,0,Audio.length b
         else
           b,start,len
       in
       let encoded = Buffer.create n in
-      Buffer.add_string buf (Audio.S16LE.make b start len);
+      Buffer.add_string buf (Audio.S16LE.make (Audio.sub b start len));
       let len = Buffer.length buf in
       let rec f start =
         if start+n > len then

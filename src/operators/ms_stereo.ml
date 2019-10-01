@@ -41,13 +41,13 @@ object
         for i = offset to AFrame.position buf -1 do
           match mode with
             | Encode ->
-              let left = buffer.(0).(i) and right = buffer.(1).(i) in
-                buffer.(0).(i) <- 0.5 *. (left +. right) ; (* mid *)
-                buffer.(1).(i) <- 0.5 *. (left -. right)   (* side *)
+              let left = buffer.(0).{i} and right = buffer.(1).{i} in
+                buffer.(0).{i} <- 0.5 *. (left +. right) ; (* mid *)
+                buffer.(1).{i} <- 0.5 *. (left -. right)   (* side *)
             | Decode ->
-              let mid = buffer.(0).(i) and side = buffer.(1).(i) in
-                buffer.(0).(i) <- mid +. side *. width ; (* left *)
-                buffer.(1).(i) <- mid -. side *. width   (* right *)
+              let mid = buffer.(0).{i} and side = buffer.(1).{i} in
+                buffer.(0).{i} <- mid +. side *. width ; (* left *)
+                buffer.(1).{i} <- mid -. side *. width   (* right *)
         done
 end
 

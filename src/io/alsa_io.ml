@@ -44,10 +44,16 @@ object (self)
   val mutable pcm = None
 
   val mutable write =
-    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
+       Pcm.writen_float_ba pcm buf
+    )
 
   val mutable read =
-    (fun pcm buf ofs len -> Pcm.readn_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
+       Pcm.readn_float_ba pcm buf
+    )
 
   method open_device =
     self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
@@ -68,7 +74,7 @@ object (self)
           with
             | _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
-                self#log#severe "Falling back on interleaved S16LE";
+                self#log#important "Falling back on interleaved S16LE";
                 handle "format" (Pcm.set_format dev params) Pcm.Format_s16_le;
                 (
                   try
@@ -76,7 +82,7 @@ object (self)
                     write <-
                     (fun pcm buf ofs len ->
                        let sbuf = Bytes.create (2 * len * Array.length buf) in
-                       Audio.S16LE.of_audio buf ofs sbuf 0 len;
+                       Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                        Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                     );
                     read <-
@@ -88,7 +94,7 @@ object (self)
                     )
                   with
                     | Alsa.Invalid_argument ->
-                        self#log#severe "Falling back on non-interleaved S16LE";
+                        self#log#important "Falling back on non-interleaved S16LE";
                         handle "access"
                           (Pcm.set_access dev params)
                           Pcm.Access_rw_noninterleaved;
@@ -100,8 +106,7 @@ object (self)
                                (fun _ -> String.make (2 * len) (Char.chr 0))
                            in
                            for c = 0 to Audio.channels buf - 1 do
-                             Audio.S16LE.of_audio
-                               [|buf.(c)|] ofs (Bytes.of_string sbuf.(c)) 0 len
+                             Audio.S16LE.of_audio (Audio.sub [|buf.(c)|] ofs len) (Bytes.of_string sbuf.(c)) 0
                            done;
                            Pcm.writen pcm sbuf 0 len
                         );
@@ -220,17 +225,17 @@ object (self)
         Audio_converter.Samplerate.resample
           samplerate_converter
           (float alsa_rate /. float samples_per_second)
-          buf 0 (Array.length buf)
+          buf
     in
       try
         let r = ref 0 in
-          while !r < Array.length buf.(0) do
+          while !r < Audio.Mono.length buf.(0) do
             if !r <> 0 then
               self#log#info
                 "Partial write (%d instead of %d)! \
                  Selecting another buffer size or device can help."
-                !r (Array.length buf.(0));
-            r := !r + (write pcm buf !r (Array.length buf.(0) - !r))
+                !r (Audio.Mono.length buf.(0));
+            r := !r + (write pcm buf !r (Audio.Mono.length buf.(0) - !r))
           done
       with
         | e -> 
@@ -291,7 +296,7 @@ object (self)
               self#log#info
                    "Partial read (%d instead of %d)! \
                     Selecting another buffer size or device can help."
-                !r (Array.length buf.(0));
+                !r (Audio.length buf);
             r := !r + (read pcm buf !r (samples_per_frame - !r))
           done;
           AFrame.add_break frame (AFrame.size ())

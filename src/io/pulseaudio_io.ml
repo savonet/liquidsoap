@@ -111,7 +111,16 @@ object (self)
   method output_send memo =
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
-      Simple.write stream buf 0 (Array.length buf.(0))
+    let chans = Array.length buf in
+    let len = Audio.length buf in
+    let buf' = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (chans*len) in
+    for c = 0 to chans - 1 do
+      let bufc = buf.(c) in
+      for i = 0 to len - 1 do
+        Bigarray.Array1.unsafe_set buf' (i * chans + c) (Bigarray.Array1.unsafe_get bufc i)
+      done
+    done;
+    Simple.write_ba stream buf'
 end
 
 class input ~kind p =
@@ -184,9 +193,17 @@ object (self)
   method input frame =
     assert (0 = AFrame.position frame) ;
     let stream = Utils.get_some stream in
+    let len = AFrame.size () in
+    let ibuf = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels*len) in
     let buf = AFrame.content_of_type ~channels frame 0 in
-      Simple.read stream buf 0 (Array.length buf.(0));
-      AFrame.add_break frame (AFrame.size ())
+    Simple.read_ba stream ibuf;
+    for c = 0 to channels - 1 do
+      let bufc = buf.(c) in
+      for i = 0 to len - 1 do
+        bufc.{i} <- Bigarray.Array1.unsafe_get ibuf (i*channels+c)
+      done
+    done;
+    AFrame.add_break frame (AFrame.size ())
 
 end
 

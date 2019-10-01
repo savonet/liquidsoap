@@ -33,10 +33,10 @@ struct
     ts m (fun () -> write_advance t n)
 
   let read (t,m) buf off len =
-    ts m (fun () -> read t buf off len)
+    ts m (fun () -> read t (Audio.sub buf off len))
 
   let write (t,m) buf off len =
-    ts m (fun () -> write t buf off len)
+    ts m (fun () -> write t (Audio.sub buf off len))
 
   let transmit (t,m) f =
     ts m (fun () -> transmit t f)

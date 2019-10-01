@@ -413,7 +413,7 @@ AC_CHECK_OCAML_BINDING([speex],[0.2.1],[ogg])
 # Mad
 #
 
-AC_CHECK_OCAML_BINDING([mad],[0.4.4])
+AC_CHECK_OCAML_BINDING([mad],[0.4.7])
 
 #
 # Flac
@@ -470,7 +470,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame],[0.3.2])
+AC_CHECK_OCAML_BINDING([lame],[0.3.4])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -542,7 +542,7 @@ AC_CHECK_OCAML_BINDING([bjack],[0.1.3])
 # Alsa
 #
 
-AC_CHECK_OCAML_BINDING([alsa],[0.2.1])
+AC_CHECK_OCAML_BINDING([alsa],[0.2.4])
 
 #
 # LibAO
@@ -789,12 +789,12 @@ fi
 # OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad],[0.4.0])
-AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
+AC_CHECK_OCAML_BINDING([soundtouch],[0.1.9])
 AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
-AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])
-AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
+AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.4])
+AC_CHECK_OCAML_BINDING([ladspa],[0.2.0])
+AC_CHECK_OCAML_BINDING([dssi],[0.1.3])
 AC_CHECK_OCAML_BINDING([lilv],[0.1.0])
-AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 

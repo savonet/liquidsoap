@@ -50,7 +50,7 @@ object
       let position = AFrame.position buf in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
-      effect#process b offset (position - offset)
+      effect#process (Audio.sub b offset (position - offset))
 end
 
 let () =

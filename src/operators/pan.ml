@@ -42,10 +42,9 @@ object
       let phi = (phi ()) *. phi_0 in
       let gain_left = ((tan phi_0) +. tan phi) /. 2. in
       let gain_right = ((tan phi_0) -. tan phi) /. 2. in
-        for i = offset to AFrame.position buf -1 do
-          buffer.(0).(i) <- buffer.(0).(i) *. gain_left;
-          buffer.(1).(i) <- buffer.(1).(i) *. gain_right
-        done
+      let len = AFrame.position buf - offset in
+      Audio.Mono.amplify gain_left (Audio.Mono.sub buffer.(0) offset len);
+      Audio.Mono.amplify gain_right (Audio.Mono.sub buffer.(1) offset len)
 end
 
 let () =

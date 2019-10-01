@@ -59,8 +59,8 @@ object
        for c = 0 to Array.length b - 1 do
          let b_c = b.(c) in
          for i = offset to position - 1 do
-           prev.(c) <- alpha *. b_c.(i) +. alpha' *. prev.(c);
-           b_c.(i) <- wet *. prev.(c) +. wet' *. b_c.(i)
+           prev.(c) <- alpha *. b_c.{i} +. alpha' *. prev.(c);
+           b_c.{i} <- wet *. prev.(c) +. wet' *. b_c.{i}
          done
        done
     | High_pass ->
@@ -68,9 +68,9 @@ object
        for c = 0 to Array.length b - 1 do
          let b_c = b.(c) in
          for i = offset to position - 1 do
-           prev.(c) <- alpha *. (prev.(c) +. b_c.(i) -. prev_in.(c));
-           prev_in.(c) <- b_c.(i);
-           b_c.(i) <- wet *. prev.(c) +. wet' *. b_c.(i)
+           prev.(c) <- alpha *. (prev.(c) +. b_c.{i} -. prev_in.(c));
+           prev_in.(c) <- b_c.{i};
+           b_c.{i} <- wet *. prev.(c) +. wet' *. b_c.{i}
          done
        done
 end

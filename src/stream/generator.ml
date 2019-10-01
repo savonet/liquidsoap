@@ -418,7 +418,7 @@ struct
 
   let audio_size t =
     let float_size = 8 in
-    let track_size (t:Frame.audio_t) = Array.length t * float_size in
+    let track_size (t:Frame.audio_t) = Audio.Mono.length t * float_size in
     let audio_size = Array.fold_left (fun n t -> n + track_size t) 0 in
     Queue.fold (fun n a -> n + audio_size (Generator.chunk_data a)) 0 t.audio.Generator.buffers
 
@@ -474,7 +474,7 @@ struct
 
   (** Add some audio content. Offset and length are given in audio samples. *)
   let put_audio t content o l =
-    assert (content = [||] || Array.length content.(0) >= o+l) ;
+    assert (content = [||] || Audio.Mono.length content.(0) >= o+l) ;
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
       Generator.put t.audio content o l ;
@@ -593,7 +593,7 @@ struct
                    (* Same as above, even if in practice everything
                     * will always be aligned on the audio side. *)
                    let l = !(apos'+l) - !apos' in
-                     Audio.Mono.blit a !apos a' !fpos l) ;
+                     Audio.Mono.blit (Audio.Mono.sub a !apos l) (Audio.Mono.sub a' !fpos l)) ;
               if al=vl then
                 blit audio video
               else if al>vl then

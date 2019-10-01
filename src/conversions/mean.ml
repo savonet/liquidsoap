@@ -26,11 +26,7 @@ class mean ~kind source =
   let dst_type = Frame.type_of_kind kind in
   let src_type = Frame.type_of_kind source#kind in
   let channels = src_type.Frame.audio in
-  let tmp_audio =
-    Array.init channels
-      (fun _ ->
-         Array.make (Frame.audio_of_master (Lazy.force Frame.size)) 0.)
-  in
+  let tmp_audio = Audio.create channels (Frame.audio_of_master (Lazy.force Frame.size)) in
   let channels = float channels in
 object (self)
   inherit operator kind [source] ~name:"mean"
@@ -68,8 +64,8 @@ object (self)
     let (!) = Frame.audio_of_master in
       (* Compute the mean of audio channels *)
       for i = !start to !(start+len) - 1 do
-        dst.Frame.audio.(0).(i) <-
-        Array.fold_left (fun m b -> m +. b.(i)) 0. src.Frame.audio
+        dst.Frame.audio.(0).{i} <-
+        Array.fold_left (fun m b -> m +. b.{i}) 0. src.Frame.audio
         /. channels
       done ;
       (* Finally, blit in case src_mono.Frame.midi/video is not already

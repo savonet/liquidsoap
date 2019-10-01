@@ -70,15 +70,15 @@ object (self)
     AFrame.clear databuf;
     source#get databuf;
     let db = AFrame.content databuf 0 in
-    Soundtouch.put_samples_ni st db 0 (Array.length db.(0));
+    let db = Audio.interleave db in
+    Soundtouch.put_samples_ba st db;
     let available = Soundtouch.get_available_samples st in
     if available > 0 then
-     begin
-      let tmp =
-        Array.init channels (fun _ -> Array.make available 0.)
-      in    
-      ignore (Soundtouch.get_samples_ni st tmp 0 available );
-      Generator.put_audio abg tmp 0 available
+      begin
+        let tmp = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels * available) in
+        ignore (Soundtouch.get_samples_ba st tmp);
+        let tmp = Audio.deinterleave channels tmp in
+        Generator.put_audio abg tmp 0 available
      end;
     if AFrame.is_partial databuf then
       Generator.add_break abg; 

@@ -36,7 +36,7 @@ object
       let off = Frame.audio_of_master off in
       let len = Frame.audio_of_master len in
       let b = content.Frame.audio in
-      Audio.Generator.white_noise b off len
+      Audio.Generator.white_noise (Audio.sub b off len)
     end ;
     begin
       let off = Frame.video_of_master off in

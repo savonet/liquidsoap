@@ -41,12 +41,11 @@ object
       let b = AFrame.content buf offset in
         for c = offset to Array.length b - 1 do
           let b_c = b.(c) in
-            for i = offset to AFrame.position buf - 1 do
-              (* Cf. http://en.wikipedia.org/wiki/Mu-law *)
-              let sign = if b_c.(i) < 0. then -1. else 1. in
-                b_c.(i) <-
-                sign *. log (1. +. mu  *. abs_float b_c.(i)) /. log (1. +. mu)
-            done
+          for i = offset to AFrame.position buf - 1 do
+            (* Cf. http://en.wikipedia.org/wiki/Mu-law *)
+            let sign = if b_c.{i} < 0. then -1. else 1. in
+            b_c.{i} <- sign *. log (1. +. mu  *. abs_float b_c.{i}) /. log (1. +. mu)
+          done
         done
 end
 

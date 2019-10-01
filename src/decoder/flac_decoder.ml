@@ -88,19 +88,14 @@ let create_decoder input =
       (fun gen ->
         let c = 
          Flac.Decoder.get_callbacks ?seek ?tell ?length read
-          (fun data -> 
-             let len = 
-               try
-                 Array.length data.(0)
-               with
-                 | _ -> 0
-             in
+           (fun data ->
+             let data = Audio.of_array data in
+             let len = try Audio.length data with _ -> 0 in
              processed := Int64.add !processed (Int64.of_int len);
-             let content =
-               resampler ~audio_src_rate:(float sample_freq) data
-             in
+             let content = resampler ~audio_src_rate:(float sample_freq) data in
              Generator.set_mode gen `Audio ;
-             Generator.put_audio gen content 0 (Array.length content.(0)))
+             Generator.put_audio gen content 0 (Audio.length content)
+          )
         in
         match Flac.Decoder.state decoder c with
           | `Search_for_metadata
