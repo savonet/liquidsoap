@@ -3,6 +3,7 @@
 
 New:
 
+- Added LV2 support (#906).
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
 
