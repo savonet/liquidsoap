@@ -8,8 +8,11 @@ New:
 
 Changed:
 
-- Fix implementation of recursive functions (#934).
 - Native Liquidsoap implementation of list functions (#920).
+
+Fixed:
+
+- Fix implementation of recursive functions (#934).
 
 1.4.0 (29-09-2019)
 =====
