@@ -23,7 +23,7 @@
 let log = Log.make ["sandbox"]
 
 let conf_sandbox =
-  Dtools.Conf.string ~p:(Configure.conf#plug "sandbox") ~d:"auto"
+  Dtools.Conf.string ~p:(Configure.conf#plug "sandbox") ~d:"disabled"
     "Use sandboxing for external process. One of: `\"enabled\"`, \
      `\"disabled\"` or `\"auto\"`."
 

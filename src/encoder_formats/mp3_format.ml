@@ -58,7 +58,7 @@ type t = {
   stereo_mode      : stereo_mode ;
   bitrate_control  : bitrate_control ;
   internal_quality : int ;
-  samplerate       : int ;
+  samplerate       : int Lazy.t ;
   id3v2            : id3v2_export option ;
   msg_interval     : float ;
   msg              : string
@@ -77,7 +77,7 @@ let to_string m =
     name
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
-    m.samplerate
+    (Lazy.force m.samplerate)
     (m.id3v2 <> None)
 
 let bitrate m =

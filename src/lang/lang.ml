@@ -329,7 +329,7 @@ let to_plugin_doc category flags main_doc proto return_t =
 
 let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
   let t = builtin_type proto return_t in
-  let f env t = f (List.map (fun (s,(l,v)) -> assert (l=[]) ; s,v) env) t in
+  let f env t = f (List.map (fun (s,(g,v)) -> assert (g=[]) ; s,v) env) t in
   let value =
     { t = t ;
       value = FFI (List.map (fun (lbl,_,opt,_) -> lbl,lbl,opt) proto,
@@ -447,22 +447,24 @@ let iter_sources f v =
         (* If it's locally bound it won't be in [env]. *)
         (* TODO since inner-bound variables don't mask outer ones in [env],
          *   we are actually checking values that may be out of reach. *)
-        begin try iter_value (snd (List.assoc v env)) with Not_found -> () end
+      begin
+        try
+          let gv = List.assoc v env in
+          if Lazy.is_val gv then
+            let _,v = Lazy.force gv in
+            iter_value v
+          else ()
+        with Not_found -> ()
+      end
     | Term.App (a,l) ->
         iter_term env a ;
         List.iter (fun (_,v) -> iter_term env v) l
-    | Term.Fun (_,proto,body) ->
+    | Term.Fun (_,proto,body)
+    | Term.RFun (_,_,proto,body) ->
         iter_term env body ;
         List.iter (fun (_,_,_,v) -> match v with
                      | Some v -> iter_term env v
                      | None -> ()) proto
-    | Term.RFun (fv,proto,fn) ->
-        begin
-          match (fn()).Term.term with
-            | Term.Let {Term.body=body} ->
-                iter_term env {v with Term.term = Term.Fun (fv,proto,body)}
-            | _ -> assert false
-        end
 
   and iter_value v = match v.value with
     | Source s -> f s
@@ -653,29 +655,19 @@ let type_and_run ~lib ast =
        Term.check_unused ~lib ast ;
        ignore (Term.eval_toplevel ast))
 
-(** The Parsing module is not thread safe, it has global variables
-  * describing the current parsing state. Hence we need to do one
-  * parsing at a time. *)
-let parse_lock = Mutex.create ()
-
 let mk_expr ~pwd processor lexbuf =
-  let processor =
-    MenhirLib.Convert.Simplified.traditional2revised processor
+  let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
+  let tokenizer = Lang_pp.mk_tokenizer ~pwd lexbuf in
+  let tokenizer () =
+    let token,(startp,endp) = tokenizer () in
+    token,startp,endp
   in
-  let tokenizer =
-    Lang_pp.mk_tokenizer ~pwd lexbuf
-  in
-  Tutils.mutexify parse_lock processor tokenizer
+  processor tokenizer
 
 let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
-  let lexbuf = Sedlexing_compat.Utf8.from_channel in_chan in
-    assert (lexbuf.Sedlexing_compat.lex_start_p = lexbuf.Sedlexing_compat.lex_curr_p) ;
+  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
     begin match ns with
-      | Some ns ->
-          lexbuf.Sedlexing_compat.lex_start_p <- { lexbuf.Sedlexing_compat.lex_start_p with
-                                             Lexing.pos_fname = ns } ;
-          lexbuf.Sedlexing_compat.lex_curr_p <- { lexbuf.Sedlexing_compat.lex_curr_p with
-                                             Lexing.pos_fname = ns }
+      | Some ns -> Sedlexing.set_filename lexbuf ns
       | None -> ()
     end ;
     try Lang_errors.report lexbuf (fun () ->
@@ -707,7 +699,7 @@ let from_string ?parse_only ~lib expr =
 
 let eval s =
   try
-    let lexbuf = Sedlexing_compat.Utf8.from_string s in
+    let lexbuf = Sedlexing.Utf8.from_string s in
     let expr =
       mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf
     in
@@ -736,7 +728,34 @@ let interactive () =
       "Logs can be found in %S.\n@."
       Dtools.Log.conf_file_path#get ;
   let lexbuf =
-    Sedlexing_compat.Utf8.from_interactive_channel stdin
+    (* See ocaml-community/sedlex#45 *)
+    let chunk_size = 512 in
+    let buf = Bytes.create chunk_size in
+    let cached = ref (-1) in
+    let position = ref (-1) in
+    let rec gen () =
+      match !position, !cached  with
+      | _, 0 ->
+         None
+      | -1, _ ->
+         begin
+           position := 0;
+           cached := input stdin buf 0 chunk_size
+         end;
+         gen ()
+      | len, c when len = c ->
+         position := -1;
+         (* This means that the last read was a full chunk. Safe to try a new
+            one right away. *)
+         if len = chunk_size then
+           gen ()
+         else
+           None
+      | len, _ ->
+         position := len+1;
+         Some (Bytes.get buf len)
+    in
+    Sedlexing.Utf8.from_gen gen
   in
   let rec loop () =
     Format.printf "# %!" ;

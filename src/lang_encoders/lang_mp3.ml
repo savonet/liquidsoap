@@ -23,11 +23,25 @@
 open Lang_values
 open Lang_encoders
 
+let check_samplerate ?t i =
+  lazy (
+    let i = Lazy.force i in
+    let allowed =
+      [8000;11025;12000;16000;22050;24000;32000;44100;48000]
+    in
+    if not (List.mem i allowed) then
+     begin
+      match t with
+        | Some t -> raise (Error (t,"invalid samplerate value"))
+        | None -> failwith "invalid samplerate value"
+     end;
+    i)
+
 let mp3_base_defaults () =
     { Mp3_format.
-        stereo = (Lazy.force Frame.audio_channels == 2) ;
+        stereo = true ;
         stereo_mode = Mp3_format.Joint_stereo ;
-        samplerate = Lazy.force Frame.audio_rate ;
+        samplerate = check_samplerate Frame.audio_rate;
         bitrate_control = Mp3_format.CBR 128 ;
         internal_quality = 2;
         id3v2 = None ;
@@ -58,12 +72,7 @@ let mp3_base f =
     | ("msg",{ term = String m; _ }) ->
         { f with Mp3_format.msg = m }
     | ("samplerate",({ term = Int i; _ } as t)) ->
-        let allowed =
-          [8000;11025;12000;16000;22050;24000;32000;44100;48000]
-        in
-        if not (List.mem i allowed) then
-          raise (Error (t,"invalid samplerate value")) ;
-        { f with Mp3_format.samplerate = i }
+        { f with Mp3_format.samplerate = check_samplerate ~t (Lazy.from_val i) }
     | ("id3v2",({ term = Bool true; _ } as t)) ->
         (match !Mp3_format.id3v2_export with
            | None -> raise (Error(t,"no id3v2 support available for the mp3 encoder"))

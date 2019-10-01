@@ -1,3 +1,5 @@
+#!../../src/liquidsoap
+
 %include "test.liq"
 
 first = ref("")

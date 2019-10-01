@@ -388,6 +388,14 @@ let options = [
     Arg.Unit (fun () -> Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
     "Print debugging log messages." ;
 
+    ["--debug-errors"],
+    Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
+    "Debug errors (show stacktrace instead of printing a message)." ;
+
+    ["--debug-lang"],
+    Arg.Unit (fun () -> Lang_values.conf_debug#set true),
+    "Debug language implementation." ;
+
     ["--strict"],
     Arg.Set Lang_errors.strict,
     "Execute script code in strict mode, issuing fatal errors \
@@ -522,7 +530,7 @@ struct
     log#important "Liquidsoap %s" Configure.version ;
     log#important "Using:%s" Configure.libs_versions ;
     if Configure.git_snapshot then
-      List.iter (log#severe "%s")
+      List.iter (log#important "%s")
         ["";
          "DISCLAIMER: This version of Liquidsoap has been";
          "compiled from a snapshot of the development code.";
@@ -536,7 +544,7 @@ struct
          "If you are interested in collaborating to";
          "the development of Liquidsoap, feel free to";
          "drop us a mail at <savonet-devl@lists.sf.net>";
-         "or to join the #savonet IRC channel on Freenode.";
+         "or to join the slack chat at <http://slack.liquidsoap.info>.";
          "";
          "Please send any bug report or feature request";
          "at <https://github.com/savonet/liquidsoap/issues>.";
@@ -612,7 +620,7 @@ struct
     let cleanup_threads () =
       log#important "Shutdown started!" ;
       Clock.stop () ;
-      log#important "Waiting for threads to terminate..." ;
+      log#important "Waiting for main threads to terminate..." ;
       Tutils.join_all ();
       log#important "Threads terminated."
     in

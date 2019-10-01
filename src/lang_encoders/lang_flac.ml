@@ -26,9 +26,11 @@ open Lang_encoders
 let flac_gen params =
   let defaults =
     { Flac_format.
-        channels = Lazy.force Frame.audio_channels ;
         fill = None;
-        samplerate = Lazy.force Frame.audio_rate ;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
+        channels = 2;
+        samplerate = Frame.audio_rate;
         bits_per_sample = 16;
         compression = 5 }
   in
@@ -38,7 +40,7 @@ let flac_gen params =
           | ("channels",{ term = Int i; _}) ->
               { f with Flac_format.channels = i }
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Flac_format.samplerate = i }
+              { f with Flac_format.samplerate = Lazy.from_val i }
           | ("compression",({ term = Int i; _} as t)) ->
               if i < 0 || i > 8 then
                 raise (Error (t,"invalid compression value")) ;

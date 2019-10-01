@@ -325,6 +325,27 @@ let escape_string escape s =
   Format.pp_print_flush f () ;
   Buffer.contents b
 
+(** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
+let unbreak_md md =
+  let must_break = function
+    | ""::_ -> true
+    | "```"::_ -> true
+    | line::_ when line.[0] = '-' (* itemize *)-> true
+    | _ -> false
+  in
+  let rec text = function
+    | [] -> ""
+    | [line] -> line
+    | "```"::lines -> "```\n" ^ verb lines
+    | line::lines when line = "" || must_break lines -> line ^ "\n" ^ text lines
+    | line::lines -> line ^ " " ^ text lines
+  and verb = function
+    | "```"::lines -> "```\n" ^ text lines
+    | line::lines -> line ^ "\n" ^ verb lines
+    | [] -> "```"
+  in
+  text (String.split_on_char '\n' md)
+
 (* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:

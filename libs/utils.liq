@@ -111,7 +111,7 @@ def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
   in(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
 
-# Output a stream using the 'output.prefered' operator. The input source does
+# Output a stream using the `output.prefered` operator. The input source does
 # not need to be infallible, blank will just be played during failures.
 # @param s the source to output
 # @category Source / Output
@@ -346,8 +346,7 @@ end
 def get_mime(file) =
   def file_method(file) =
     if test_process("which file") then
-      list.hd(default="",get_process_lines("file -b --mime-type \
-                                  #{quote(file)}"))
+      list.hd(default="",get_process_lines("file -b --mime-type #{string.quote(file)}"))
     else
       ""
     end
@@ -677,4 +676,31 @@ def mkavailable(~id="mkavailable",~track_sensitive=bool_getter(true),~active=boo
   output.dummy(switch([(to_bool_getter(active),s)]),fallible=true)
 
   switch(id=id,track_sensitive=to_bool_getter(track_sensitive),[(to_bool_getter(available),s)])
+end
+
+# A "for" loop: call multiple times a function with increasing integers as
+# arguments, between specified bounds. For instance, `for(5, 8, f)` is
+# equivalent to `f(5); f(6); f(7); f(8)`.
+# @param first First number
+# @param last Last number
+# @param f Function to be called
+# @category Liquidsoap
+def rec for(first, last, f)
+  if first <= last then
+    f(first)
+    for(first+1, last, f)
+  end
+end
+
+# A "while" loop: call multiple times a function as long as a condition is
+# satisfied.
+# @param cond Boolean condition
+# @param f Function to be called
+# @cateogry Liquidsoap
+def rec while(cond, f)
+  c = to_bool_getter(cond)
+  if c() then
+    f()
+    while(cond, f)
+  end
 end

@@ -22,8 +22,6 @@
 
 open Lang_parser
 
-module Sedlexing = Sedlexing_compat
-
 let parse_time t =
   let g sub n =
     let s = Pcre.get_substring sub n in
@@ -140,6 +138,7 @@ let rec token lexbuf = match%sedlex lexbuf with
   | "%vorbis" -> VORBIS
   | "%opus"   -> OPUS
   | "%flac"   -> FLAC
+  | "%ffmpeg" -> FFMPEG
   | "%vorbis.cbr" -> VORBIS_CBR
   | "%vorbis.abr" -> VORBIS_ABR
   | "%theora" -> THEORA
@@ -210,10 +209,9 @@ let rec token lexbuf = match%sedlex lexbuf with
         let t2 = String.trim t2 in
         INTERVAL (parse_time t1, parse_time t2)
   | var                        -> VAR (Sedlexing.Utf8.lexeme lexbuf)
-  | '"'  -> read_string '"' lexbuf.Sedlexing_compat.lex_start_p (Buffer.create 17) lexbuf
-  | '\'' -> read_string '\'' lexbuf.Sedlexing_compat.lex_start_p (Buffer.create 17) lexbuf
-  | _    -> raise (Lang_values.Parse_error ((lexbuf.Sedlexing_compat.lex_start_p, lexbuf.Sedlexing_compat.lex_curr_p),
-              ("Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf)))
+  | '"'  -> read_string '"' (fst (Sedlexing.lexing_positions lexbuf)) (Buffer.create 17) lexbuf
+  | '\'' -> read_string '\'' (fst (Sedlexing.lexing_positions lexbuf)) (Buffer.create 17) lexbuf
+  | _    -> raise (Lang_values.Parse_error (Sedlexing.lexing_positions lexbuf, "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf))
 and read_string c pos buf lexbuf = match%sedlex lexbuf with
   | '\\', '/'  -> Buffer.add_char buf '/'; read_string c pos buf lexbuf
   | '\\', '\\' -> Buffer.add_char buf '\\'; read_string c pos buf lexbuf
@@ -265,7 +263,5 @@ and read_string c pos buf lexbuf = match%sedlex lexbuf with
         Buffer.add_char buf c';
         read_string c pos buf lexbuf
        end
-  | eof -> raise (Lang_values.Parse_error ((pos,lexbuf.Sedlexing_compat.lex_curr_p),
-              ("String is not terminated")))
-  | _  -> raise (Lang_values.Parse_error ((pos,lexbuf.Sedlexing_compat.lex_curr_p),
-              ("Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf)))
+  | eof -> raise (Lang_values.Parse_error ((pos, snd (Sedlexing.lexing_positions lexbuf)), "String is not terminated"))
+  | _  -> raise (Lang_values.Parse_error ((pos, snd (Sedlexing.lexing_positions lexbuf)), "Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf))

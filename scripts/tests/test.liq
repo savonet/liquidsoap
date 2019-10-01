@@ -17,22 +17,30 @@ end
 # function triggers test.fail on repeated filenames, only clearing its list of
 # seen filenames once all nb_files have been seen.
 def test.check_non_repeating(~nb_files,~nb_rounds,s)
+  # List of seen filenames
+  seen = ref([])
+  # Number of rounds to test
+  iterations = ref(0)
 
-  seen = ref([])       # List of seen filenames
-  iterations = ref(0)  # Number of rounds to test
+  def already(fname)
+    list.assoc(default=false, fname, !seen)
+  end
 
   def check(m)
     fname = m["filename"]
-    cur_seen = !seen
-    if !iterations < nb_rounds and cur_seen[fname] != "" then
+    print("I: Playing #{fname}")
+    if !iterations < nb_rounds and already(fname) then
+      print("I: Already seen #{fname}")
       test.fail()
     else
       if list.length(!seen) < nb_files-1 then
-        seen := list.add((fname,fname),!seen)
+        seen := list.add((fname,true),!seen)
       else
+        print("I: ===")
         seen := []
         iterations := !iterations+1
         if !iterations == nb_rounds then
+          print("I: Test passed")
           test.pass()
         end
       end

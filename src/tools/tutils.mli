@@ -42,9 +42,6 @@ exception Exit
   * never return if some thread keeps running. *)
 val join_all : unit -> unit
 
-(** Check if a thread is running. *)
-val running : string -> Thread.t -> bool
-
 (** {1 Multi-tasking scheduler} *)
 
 (** Priorities for the different scheduler usages. *)

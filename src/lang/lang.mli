@@ -32,6 +32,7 @@ type t = Lang_types.t
 (** A typed value. *)
 type value = Lang_values.V.value = { mutable t : t ; value : in_value }
 and full_env = (string * ((int*Lang_types.constraints) list * value)) list
+and lazy_full_env = (string * ((int*Lang_types.constraints) list * value) Lazy.t) list
 and in_value = Lang_values.V.in_value =
   | Bool    of bool
   | Int     of int
@@ -44,7 +45,7 @@ and in_value = Lang_values.V.in_value =
   | Tuple    of value list
   | Ref     of value ref
   | Fun     of (string * string * value option) list *
-               full_env * full_env * Lang_values.term
+               full_env * lazy_full_env * Lang_values.term
   (** A function with given arguments (argument label, argument variable,
       default value), parameters already passed to the function, closure and
       value. *)
@@ -64,7 +65,8 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
 
-(** Multiapply a value to arguments. *)
+(** Multiapply a value to arguments. The argument [t] is the type of the result
+   of the application. *)
 val apply : value -> env -> t:t -> value
 
 (** {3 Helpers for registering protocols} *)

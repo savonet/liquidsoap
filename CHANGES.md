@@ -1,4 +1,20 @@
-1.4.0 ()
+1.5.0 (unreleased)
+=====
+
+New:
+
+- Added `string.nth` (#970).
+- Added `string.binary.to_int` (#970).
+
+Changed:
+
+- Native Liquidsoap implementation of list functions (#920).
+
+Fixed:
+
+- Fix implementation of recursive functions (#934).
+
+1.4.0 (29-09-2019)
 =====
 
 New:
@@ -8,6 +24,8 @@ New:
 - Added support for deconstructing tuples: `let (z,t,_) = x` (#838)
 - Added `input.{file,harbor}.hls` to read HLS stream (#59, #295, #296).
 - Added `output.hls` to natively stream in HLS (#758).
+- Added `%ffmpeg` native encoder, only for audio encoding for now (#952)
+- Added ffmpeg-based stream decoder, limited to mime type `application/ffmpeg` for now.
 - Added `(to_){string,float,int,bool}_getter` operators to handle getters in
   script side.
 - Made `p` parameter in `smooth_add` a `float` getter (#601)
@@ -21,7 +39,7 @@ New:
   any playlist supported by `youtube-dl`) (#761)
 - Added `protocol.aws.endpoint` setting for the `s3://` protocol, thanks to
   @RecursiveGreen. (#778)
-- Added support for sandboxing `run_process` calls. Set safe defaults. (#785)
+- Added support for sandboxing `run_process` calls. (#785)
 - Added `harbor.{http,https}.static` to serve static path.
 - Added `log.{critical,severe,important,info,warning,debug}`. Use aliases in code as well (#800, #801, #802)
 - Added `sleep` function.
@@ -36,6 +54,17 @@ New:
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
 - Added `video.add_text.native`.
+- Added `configure.bindir`
+- Added `for` and `while` loop functions.
+- Added `list.case`.
+- Added `metadata.string_getter` and `metadata.float_getter`.
+- Added `string.contains`.
+- Added `request.uri`.
+- Added `{input,output}.srt` (#898)
+- Added `path.remove_extension`.
+- Added SSL read/write timeout options, use it for incoming socket connections (#932)
+- Added ffmpeg resampler (#947).
+- Added `lsl` and `lsr`.
 
 Changed:
 
@@ -93,6 +122,16 @@ Changed:
 - Bumped default `length` parameter for request-based sources (`playlist`,
   `request.dynamic`, ..) to `40.` to assure that there always is at least
   one request ready to play when the current one ends.
+- Added support for cue in/out and fade in/out/type metadata support in `ffmpeg2wav`
+  protocol. Rename protocol to `ffmpeg`. (#909)
+- `list.assoc` and `list.remove_assoc` require an ordered type as first
+  component.
+- Renamed `quote` to `string.quote`.
+- Added `phase_inversion={true/false}` to `%opus` encoder (#937)
+- Fixed encoders forcing frame rate and audio channels too early (#933)
+- Change filename to a string getter in file-based outputs. (#198)
+- Changed `audio.converter.samplerate.preferred` option to
+  `audio.converter.samplerate.converters` to give a list of possible converters.
 
 Fixed:
 
@@ -114,6 +153,13 @@ Fixed:
 - Fixed `cue_cut` not working when used before `cross`/`crossfade` (#874)
 - Fixed audio glitches when seeking within a MP3 file.
 - Fixed `insert_metadata` logic when insert new track and metadata (#903)
+- Fixed `replay-gain` script default location.
+- Fixed audio glitches at the end of crossfade transitions.
+- Specify that `list.remove` removes only the first occurrence and avoid
+  reversing the list (#922).
+- File descriptor leak when using openssl-based operators.
+- Fixed SSL read taking too long to timeout (#932)
+- Fixed output starting when underlying source is not available (#393)
 
 1.3.7 (09-04-2019)
 =====

@@ -30,7 +30,8 @@ ogg_muxer = \
 
 audio_converters = \
 	converters/audio/native_audio_converter.ml \
-	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml)
+	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml) \
+	$(if $(W_FFMPEG),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
 	converters/video_converter.ml \
@@ -126,6 +127,7 @@ encoders = \
 	$(if $(W_SHINE),encoder/shine_encoder.ml) \
 	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
+        $(if $(W_FFMPEG),encoder/ffmpeg_encoder.ml) \
 	$(if $(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml) \
 	$(if $(W_TAGLIB),encoder/taglib_id3v2.ml) \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
@@ -141,6 +143,7 @@ encoder_formats = \
   encoder_formats/external_encoder_format.ml \
   encoder_formats/fdkaac_format.ml \
   encoder_formats/flac_format.ml \
+  encoder_formats/ffmpeg_format.ml \
   encoder_formats/gstreamer_format.ml \
   encoder_formats/mp3_format.ml \
   encoder_formats/opus_format.ml \
@@ -164,15 +167,16 @@ outputs = outputs/output.ml \
 	$(if $(W_ALSA),outputs/alsa_out.ml)
 
 io = io/udp_io.ml \
+	$(if $(W_SRT),io/srt_io.ml) \
 	$(if $(W_OSS),io/oss_io.ml) \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
-tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
-        tools/utils.ml tools/plug.ml \
-	tools/rqueue.ml tools/sedlexing_compat.ml \
+tools = tools/extralib.ml tools/JSON.ml tools/utils.ml \
+        tools/doc.ml  tools/plug.ml \
+	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
@@ -199,7 +203,9 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/lang_builtins.ml lang/builtins_json.ml \
+builtins = lang/lang_builtins.ml lang/builtins_list.ml \
+           lang/builtins_string.ml lang/builtins_json.ml \
+           lang/builtins_request.ml lang/builtins_http.ml \
            lang/builtins_harbor.ml lang/builtins_dtools.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
@@ -261,8 +267,5 @@ ifneq ($(BYTE),)
   endif
 endif
 
-# Dirty hack since ocamlcp does not play nicely with include
 profile:
-	-$(MAKE)
-	cd lang; ocamlc -c -I .. -I ../tools lang_values.ml
-	$(MAKE)
+	$(MAKE) OCAMLC="$(OCAMLC) -p"

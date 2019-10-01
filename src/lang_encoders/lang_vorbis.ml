@@ -27,9 +27,11 @@ let make_cbr params =
   let defaults =
     { Vorbis_format.
         mode = Vorbis_format.CBR 128 ;
-        channels = Lazy.force Frame.audio_channels ;
         fill = None;
-        samplerate = Lazy.force Frame.audio_rate ;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
+        channels = 2;
+        samplerate = Frame.audio_rate;
     }
   in
   let vorbis =
@@ -37,7 +39,7 @@ let make_cbr params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Vorbis_format.samplerate = i }
+              { f with Vorbis_format.samplerate = Lazy.from_val i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Vorbis_format.mode = Vorbis_format.CBR i }
           | ("channels",{ term = Int i; _}) ->
@@ -57,9 +59,9 @@ let make_abr params =
   let defaults =
     { Vorbis_format.
         mode = Vorbis_format.ABR (None,None,None) ;
-        channels = Lazy.force Frame.audio_channels ;
+        channels = 2 ;
         fill = None ;
-        samplerate = Lazy.force Frame.audio_rate ;
+        samplerate = Frame.audio_rate ;
     }
   in
   let get_rates x =
@@ -72,7 +74,7 @@ let make_abr params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Vorbis_format.samplerate = i }
+              { f with Vorbis_format.samplerate = Lazy.from_val i }
           | ("bitrate",{ term = Int i; _}) ->
               let (x,_,y) = get_rates f in
               { f with Vorbis_format.mode = Vorbis_format.ABR (x,Some i,y) }
@@ -99,9 +101,9 @@ let make params =
   let defaults =
     { Vorbis_format.
         mode = Vorbis_format.VBR 0.3 ;
-        channels = Lazy.force Frame.audio_channels ;
+        channels = 2 ;
         fill = None ;
-        samplerate = Lazy.force Frame.audio_rate ;
+        samplerate = Frame.audio_rate ;
     }
   in
   let vorbis =
@@ -109,7 +111,7 @@ let make params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Vorbis_format.samplerate = i }
+              { f with Vorbis_format.samplerate = Lazy.from_val i }
           | ("quality",({ term = Float q; _} as t)) ->
               if q<(-0.2) || q>1. then
                 raise (Error (t,"quality should be in [(-0.2)..1]")) ;
