@@ -1,6 +1,10 @@
 1.5.0 (unreleased)
 =====
 
+Changed:
+
+- Fix implementation of recursive functions (#934).
+
 1.4.0 (29-09-2019)
 =====
 
