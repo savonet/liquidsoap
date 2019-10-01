@@ -927,7 +927,7 @@ AC_CONFIG_FILES([doc/content/build.md])
 AC_CONFIG_FILES([doc/liquidsoap.1.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
-AC_CONFIG_FILES([liquidsoap.opam])
+AC_CONFIG_FILES([liquidsoap.opam],[chmod a-w liquidsoap.opam])
 AC_OUTPUT
 $MAKE finish-configure
 
