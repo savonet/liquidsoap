@@ -223,7 +223,7 @@ type content_type = (int,int,int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer
-and video_t = Video.buffer
+and video_t = Video.t
 and midi_t  = MIDI.buffer
 
 (** Compatibilities between content kinds, types and values.

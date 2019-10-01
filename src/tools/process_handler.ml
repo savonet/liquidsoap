@@ -249,7 +249,10 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         Unix.descr_of_in_channel process.p.stdout
       in
       let wrap f x =
-        try f x with exn -> raise (Wrapped exn)
+        try f x with exn ->
+          (* We print backtrace here because the wrapping make us loose it afterward. *)
+          log (Printexc.get_backtrace ());
+          raise (Wrapped exn)
       in
       let on_stdout =
         wrap

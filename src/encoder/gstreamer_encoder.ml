@@ -25,7 +25,6 @@
 open Gstreamer_format
 
 module GU = Gstreamer_utils
-module Img = Image.RGBA32
 
 let log = Log.make ["encoder"; "gstreamer"]
 
@@ -190,12 +189,16 @@ let encoder ext =
       let vstart = Frame.video_of_master start in
       let vlen = Frame.video_of_master len in
       for i = vstart to vstart+vlen-1 do
-        let data = Img.data vbuf.(i) in
-        let presentation_time =
-          Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration)
-        in
-        Gstreamer.App_src.push_buffer_data ~presentation_time ~duration:vduration
-          (Utils.get_some gst.video_src) data 0 (Bigarray.Array1.dim data);
+        let img = Video.get vbuf i in
+        (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
+        assert (Image.YUV420.y_stride img = ((Image.YUV420.width img + 3)/4)*4);
+        assert (Image.YUV420.uv_stride img = ((Image.YUV420.width img / 2 + 3)/4)*4);
+        let y,u,v = Image.YUV420.data img in
+        let presentation_time = Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration) in
+        let buf = Gstreamer.Buffer.of_data_list (List.map (fun d -> d,0,Image.Data.length d) [y;u;v]) in
+        Gstreamer.Buffer.set_presentation_time buf presentation_time;
+        Gstreamer.Buffer.set_duration buf vduration;
+        Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) buf
       done;
      end;
     GU.flush ~log gst.bin;

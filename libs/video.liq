@@ -46,11 +46,11 @@ def input.external.ffmpeg(~id="", ~show_command=false,
                           ~buffer=0.2,~max=10.,input)
   input = (input : string)
   ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
-  cmd = "#{ffmpeg} #{input} -f avi -vf format=rgb24 \
+  cmd = "#{ffmpeg} #{input} -f avi \
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
                #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\" \
-         -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
+         -c:v rawvideo -vf format=yuv420p -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
          -ar #{audio.samplerate()} pipe:1"
 
   if show_command then log.important("command: #{cmd}") end
@@ -68,7 +68,6 @@ end
 # @category Source / Video Processing
 def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,
                           ~buffer=0.2,~max=10.)
-
   cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:\
                      rate=#{video.frame.rate()} \
          -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}"
@@ -123,6 +122,30 @@ def output.file.hls.ffmpeg(~id="", ~flush=false, ~fallible=false,
   cmd = "-profile:v baseline -pix_fmt yuv420p -level 3.0 -s #{width}x#{height} -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{directory}/#{playlist}"
   output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
                          reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
+end
+
+# Output an MPEG-DASH playlist using ffmpeg
+# @category Output
+# @param ~id Force the value of the source ID.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~flush Perform a flush after each write.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
+# @param ~reopen_delay Prevent re-opening within that delay, in seconds.
+# @param ~reopen_on_metadata Re-open on every new metadata information.
+# @param ~reopen_when When should the output be re-opened.
+# @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
+# @param ~playlist Playlist name
+# @param ~directory Directory to write to
+def output.file.dash.ffmpeg(~id="", ~flush=false, ~fallible=false,
+                           ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
+                           ~reopen_on_metadata=false, ~reopen_when={false},
+                           ~start=true, ~playlist="stream.mpd", ~directory, s)
+  width = video.frame.width()
+  height = video.frame.height()
+  samplerate = audio.samplerate()
+  cmd = "-map 0 -map 0 -c:a libfdk_aac -c:v libx264 -b:v:0 800k -b:v:1 300k -s:v:1 #{width}x#{height} -profile:v:1 baseline -profile:v:0 main -bf 1 -keyint_min 120 -g 120 -sc_threshold 0 -b_strategy 0 -ar:a:1 #{samplerate} -use_timeline 1 -use_template 1 -window_size 5 -adaptation_sets \"id=0,streams=v id=1,streams=a\" -f dash #{directory}/#{playlist}"
+  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay, reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, show_command=true, cmd, s)
 end
 
 # Stream to youtube.

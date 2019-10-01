@@ -43,7 +43,7 @@ object
       let len = Frame.video_of_master len in
       let b = content.Frame.video in
       for c = 0 to Array.length b - 1 do
-        Video.randomize b.(c) off len
+        Video.iter Video.Image.randomize b.(c) off len
       done
     end
 

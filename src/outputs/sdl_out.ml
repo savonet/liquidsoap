@@ -22,6 +22,7 @@
 
 (** Output using SDL lib. *)
 
+
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
   let video_width    = Lazy.force Frame.video_width in
   let video_height   = Lazy.force Frame.video_height in
@@ -84,7 +85,7 @@ object (self)
     let rgb =
       let stop,c = Frame.content buf 0 in
         assert (stop = Lazy.force Frame.size) ;
-        c.Frame.video.(0).(0)
+        (Video.get c.Frame.video.(0) 0)
     in
     begin match Sdlvideo.surface_bpp surface with
       | 16 -> Sdl_utils.to_16 rgb surface

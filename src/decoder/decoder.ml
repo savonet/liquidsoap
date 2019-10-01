@@ -143,7 +143,7 @@ let file_decoders :
     ~register_hook:(fun (name,_) -> f conf_file_decoders name)
     ~doc:"File decoding methods." ~insensitive:true "file decoding"
 
-let image_file_decoders : (file -> Image.RGBA32.t option) Plug.plug =
+let image_file_decoders : (file -> Video.Image.t option) Plug.plug =
   Plug.create
     ~register_hook:(fun (name,_) -> f conf_image_file_decoders name)
     ~doc:"Image file decoding methods." ~insensitive:true "image file decoding"
@@ -338,6 +338,7 @@ struct
         with
           | e ->
              log#info "Decoding %S ended: %s." filename (Printexc.to_string e) ;
+             log#debug "%s" (Printexc.get_backtrace ()) ;
              decoding_done := true ;
              if conf_debug#get then raise e
         end ;

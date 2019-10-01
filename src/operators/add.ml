@@ -24,8 +24,6 @@
 
 open Source
 
-module Img = Image.RGBA32
-
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
 let get_again s buf =
@@ -164,7 +162,7 @@ object (self)
                  let (!) = Frame.video_of_master in
                    for c = 0 to Array.length vbuf - 1 do
                      for i = !offset to !already - 1 do
-                       video_loop rank vbuf.(c).(i) vtmp.(c).(i)
+                       video_loop rank (Video.get vbuf.(c) i) (Video.get vtmp.(c) i)
                      done
                    done
                end else begin
@@ -172,7 +170,7 @@ object (self)
                  let (!) = Frame.video_of_master in
                    for c = 0 to Array.length vbuf - 1 do
                      for i = !offset to !already - 1 do
-                       video_init vbuf.(c).(i)
+                       video_init (Video.get vbuf.(c) i)
                      done
                    done
                end ;
@@ -224,7 +222,7 @@ let () =
          new add ~kind ~renorm
                (List.map2 (fun w s -> (w,s)) weights sources)
                (fun _ -> ())
-               (fun _ buf tmp -> Img.add tmp buf))
+               (fun _ buf tmp -> Video.Image.add tmp buf))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -270,11 +268,12 @@ let () =
        let renorm = Lang.to_bool (List.assoc "normalize" p) in
        let proportional = Lang.to_bool (List.assoc "proportional" p) in
        let tp = tile_pos (List.length sources) in
+       let scale = Video_converter.scaler () in
        let video_loop n buf tmp =
          let x, y, w, h = tp.(n) in
          let x, y, w, h =
            if proportional then
-             let sw, sh = Img.width buf, Img.height buf in
+             let sw, sh = Video.Image.width buf, Video.Image.height buf in
                if w * sh < sw * h then
                  let h' = sh * w / sw in
                    x, y+(h-h')/2, w, h'
@@ -284,7 +283,9 @@ let () =
            else
              x, y, w, h
          in
-           Img.blit ~blank:false tmp buf ~x ~y ~w ~h
+         let tmp' = Video.Image.create w h in
+         scale tmp tmp';
+         Video.Image.add tmp' ~x ~y buf
        in
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then

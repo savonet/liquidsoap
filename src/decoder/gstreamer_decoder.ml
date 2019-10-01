@@ -25,7 +25,6 @@
 open Extralib
 
 module GU = Gstreamer_utils
-module Img = Image.RGBA32
 let log = Log.make ["decoder";"gstreamer"]
 
 type gst =
@@ -136,10 +135,16 @@ module Make (Generator : Generator.S_Asio) = struct
           let _, state, _ = Gstreamer.Element.get_state gst.bin in
           if state <> Gstreamer.Element.State_playing then
             failwith "Not in playing state!";
-          let b = Gstreamer.App_sink.pull_buffer_data (Utils.get_some gst.video_sink) in
-          let img = Img.make width  height b in
-          let stream = [|img|] in
-          Generator.put_video buffer [|stream|] 0 (Array.length stream)
+          let buf = Gstreamer.App_sink.pull_buffer (Utils.get_some gst.video_sink) in
+          (* let vm = Gstreamer.Buffer.get_video_meta buf in *)
+          let buf = Gstreamer.Buffer.to_data buf in
+          (* GStreamer's lines are strided to multiples of 4. *)
+          let round4 n = ((n+3) lsr 2) lsl 2 in
+          let y_stride = round4 width in
+          let uv_stride = round4 (width/2) in
+          let img = Image.YUV420.make_data width height buf y_stride uv_stride in
+          let stream = Video.single img in
+          Generator.put_video buffer [|stream|] 0 (Video.length stream)
         );
       GU.flush ~log gst.bin
     in

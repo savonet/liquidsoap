@@ -27,8 +27,6 @@ open Extralib
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.From_audio_video_plus
 
-module Img = Image.RGBA32
-
 exception Finished of string*bool
       
 class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data ?read_header command =
@@ -130,6 +128,7 @@ let () =
       let height = ref None in
       let audio_converter = ref None in
       let video_converter = ref None in
+      let video_scaler = Video_converter.scaler () in
       let read_header read =
         (* Reset the state. *)
         video_format := None;
@@ -142,7 +141,7 @@ let () =
           | `Video (fmt,w,h,fps) ->
              (* if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width); *)
              (* if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height); *)
-             log#info "Format: %s." (match fmt with `RGB24 -> "RGB24" | `I420 -> "YUV420");
+             log#info "Format: %s." (match fmt with `RGB24 -> "RGB24" | `I420 -> "I420");
              video_format := Some fmt;
              width := Some w;
              height := Some h;
@@ -162,19 +161,22 @@ let () =
                let video_format = Option.get !video_format in
                let of_string s =
                  match video_format with
-                 | `RGB24 -> Image.Generic.of_RGBA32 (Img.of_RGB24_string s w)
-                 | `I420 -> Image.Generic.of_YUV420 (Image.YUV420.of_YUV420_string s w h)
+                 | `RGB24 -> Image.YUV420.of_RGB24_string s w
+                 | `I420 ->
+                    (* TODO: can there be stride in avi videos? *)
+                    let h = (String.length s * 4 / 6) / w in
+                    Image.YUV420.of_YUV420_string s w h
                in
                let src = of_string data in
-               let in_width = Image.Generic.width src in
-               let in_height = Image.Generic.height src in
+               let in_width = Video.Image.width src in
+               let in_height = Video.Image.height src in
                let out_width = Lazy.force Frame.video_width in
                let out_height = Lazy.force Frame.video_height in
-               if out_width = in_width && out_height = in_height && video_format = `RGB24 then
-                 Image.Generic.to_RGBA32 src
+               if out_width = in_width && out_height = in_height && video_format = `I420 then
+                 src
                else
-                 let dst = Img.create out_width out_height in
-                 conv src (Image.Generic.of_RGBA32 dst);
+                 let dst = Video.Image.create out_width out_height in
+                 video_scaler src dst;
                  dst
              in
              video_converter := Some converter
@@ -198,7 +200,7 @@ let () =
              then
                failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
              let data = (Option.get !video_converter) data in
-             Generator.put_video abg [|[|data|]|] 0 1
+             Generator.put_video abg [|Video.single data|] 0 1
           | `Frame (`Audio, _, data) ->
              let converter = Utils.get_some !audio_converter in
              let data = converter data in
@@ -249,10 +251,10 @@ let () =
       let buf = Bytes.create buflen in
       let on_data abg reader =
         let ret = reader buf 0 buflen in
-        let data = Img.of_RGB24_string (Bytes.sub_string buf 0 ret) width in
+        let data = Image.YUV420.of_YUV420_string (Bytes.sub_string buf 0 ret) width height in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
-        Generator.put_video abg [|[|data|]|] 0 1
+        Generator.put_video abg [|Video.single data|] 0 1
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in
