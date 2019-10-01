@@ -90,27 +90,27 @@ Here's how to install:
 
 **debian/stable:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/debian stable main >> /etc/apt/sources.list
+[sudo] echo deb http://deb.liquidsoap.info/debian stable main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 **debian/testing:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list
+[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 **debian/stretch:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list
+[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 **ubuntu/bionic:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 **ubuntu/disco:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu disco main >> /etc/apt/sources.list
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu disco main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 You can now see the list of available packages:

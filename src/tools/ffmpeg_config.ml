@@ -14,7 +14,6 @@ let conf_verbosity =
 let conf_level =
   Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
 
-
 let () =
   ignore(Dtools.Init.at_start (fun () ->
     let verbosity =

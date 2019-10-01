@@ -21,24 +21,24 @@
  *****************************************************************************)
 
 let () =
-  let add_http_request = Lang_builtins.add_http_request (module Https_secure_transport) in
+  let add_http_request = Builtins_http.add_http_request (module Https_secure_transport) in
   add_http_request
     "https.get"
     "Perform a full https GET request and return (status,headers),data."
-    Lang_builtins.Get;
+    Builtins_http.Get;
   add_http_request
     "https.post"
     "Perform a full https POST request and return (status,headers),data."
-    Lang_builtins.Post;
+    Builtins_http.Post;
   add_http_request
     "https.put"
     "Perform a full https PUT request and return (status,headers),data."
-    Lang_builtins.Put;
+    Builtins_http.Put;
   add_http_request
     "https.head"
     "Perform a full https HEAD request and return (status,headers),data."
-    Lang_builtins.Head;
+    Builtins_http.Head;
   add_http_request
     "https.delete"
     "Perform a full https DELETE request and return (status,headers),data."
-    Lang_builtins.Delete
+    Builtins_http.Delete

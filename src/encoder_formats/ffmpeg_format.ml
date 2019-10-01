@@ -20,28 +20,38 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
+type opt_val = [
+  | `String of string
+  | `Int of int
+  | `Float of float
+]
 
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      (* We use a hardcoded value in order not to force the evaluation of the
-         number of channels too early, see #933. *)
-      channels = 2;
-      samplerate = Frame.audio_rate
-    }
+type opts = (string, opt_val) Hashtbl.t
+
+type t = {
+  format     : string;
+  codec      : string;
+  channels   : int;
+  samplerate : int Lazy.t ;
+  options    : opts
+}
+
+let string_of_options options =
+  let _v = function
+    | `String s -> Printf.sprintf "%S" s
+    | `Int i -> string_of_int i
+    | `Float f -> string_of_float f
   in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = Lazy.from_val i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
+  String.concat ","
+    (Hashtbl.fold (fun k v c ->
+      let v = Printf.sprintf "%s=%s" k (_v v) in
+      v::c) options [])
+
+let to_string m =
+  let opts =
+    string_of_options m.options
   in
-  Encoder.AVI avi
+  Printf.sprintf
+    "%%fmpeg(format=%S,codec=%S,ac=%d,ar=%d%s)"
+    m.format m.codec m.channels (Lazy.force m.samplerate)
+    (if opts = "" then "" else Printf.sprintf ",%s" opts)

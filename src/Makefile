@@ -30,7 +30,8 @@ ogg_muxer = \
 
 audio_converters = \
 	converters/audio/native_audio_converter.ml \
-	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml)
+	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml) \
+	$(if $(W_FFMPEG),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
 	converters/video_converter.ml \
@@ -125,6 +126,7 @@ encoders = \
 	$(if $(W_SHINE),encoder/shine_encoder.ml) \
 	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
+        $(if $(W_FFMPEG),encoder/ffmpeg_encoder.ml) \
 	$(if $(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml) \
 	$(if $(W_TAGLIB),encoder/taglib_id3v2.ml) \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
@@ -140,6 +142,7 @@ encoder_formats = \
   encoder_formats/external_encoder_format.ml \
   encoder_formats/fdkaac_format.ml \
   encoder_formats/flac_format.ml \
+  encoder_formats/ffmpeg_format.ml \
   encoder_formats/gstreamer_format.ml \
   encoder_formats/mp3_format.ml \
   encoder_formats/opus_format.ml \
@@ -201,7 +204,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 
 builtins = lang/lang_builtins.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
-           lang/builtins_request.ml \
+           lang/builtins_request.ml lang/builtins_http.ml \
            lang/builtins_harbor.ml lang/builtins_dtools.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
@@ -263,8 +266,5 @@ ifneq ($(BYTE),)
   endif
 endif
 
-# Dirty hack since ocamlcp does not play nicely with include
 profile:
-	-$(MAKE)
-	cd lang; ocamlc -c -I .. -I ../tools lang_values.ml
-	$(MAKE)
+	$(MAKE) OCAMLC="$(OCAMLC) -p"

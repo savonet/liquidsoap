@@ -171,7 +171,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
+%token OGG FLAC FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
@@ -264,6 +264,7 @@ expr:
   | SHINE app_opt                    { mk_enc ~pos:$loc (Lang_shine.make $2) }
   | FDKAAC app_opt                   { mk_enc ~pos:$loc (Lang_fdkaac.make $2) }
   | FLAC app_opt                     { mk_enc ~pos:$loc (Lang_flac.make $2) }
+  | FFMPEG app_opt                   { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
   | EXTERNAL app_opt                 { mk_enc ~pos:$loc (Lang_external_encoder.make $2) }
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }

@@ -42,6 +42,10 @@ let hls_proto kind =
     let sname = Lang.to_string (List.assoc "" p) in
     Lang.string (Printf.sprintf "%s_%d.%s" sname position extname))
   in
+  let stream_info_t =
+    Lang.product_t
+      Lang.string_t (Lang.tuple_t [Lang.int_t;Lang.string_t;Lang.string_t])
+  in
   (Output.proto @ [
      "playlist",
      Lang.string_t,
@@ -59,15 +63,21 @@ let hls_proto kind =
      Some "Segment name. \
            Default: `fun (~position,~extname,stream_name) -> \"#{stream_name}_#{position}.#{extname}\"`";
 
-     "segments",
+     "segments_overhead",
      Lang.int_t,
-     Some (Lang.int 15),
-     Some "Number of segments to keep on disk.";
+     Some (Lang.int 5),
+     Some "Number of segments to keep after they have been featured in the live playlist.";
 
-     "segments_per_playlist",
+     "segments",
      Lang.int_t,
      Some (Lang.int 10),
      Some "Number of segments per playlist.";
+
+     "encode_metadata",
+     Lang.bool_t,
+     Some (Lang.bool false),
+     Some "Insert metadata into encoded stream. Note: Some HLS players (in particular android native HLS player) \
+           expect a single mpegts stream. Encoding metadata will break that assumption.";
 
      "perm",
      Lang.int_t,
@@ -87,6 +97,27 @@ let hls_proto kind =
             file path. Typical use: upload files to a CDN when done writting (`\"close\"` \
             state and remove when `\"deleted\"`.";
 
+     "streams_info",
+     Lang.list_t (stream_info_t),
+     Some (Lang.list ~t:stream_info_t []),
+     Some "Additional information about the streams. Should be a list of the form: \
+       `[(stream_name, (bandwidth, codec, extname)]`. See RFC 6381 for info about \
+       codec. Stream info are required when they cannot be inferred from the encoder.";
+
+     "persist",
+     Lang.bool_t,
+     Some (Lang.bool false),
+     Some "Persist output accross restart. If enabled, generated files \
+           (segments and playlists) are kept on shutdown and the output \
+           state at the location given by `persist_at` and used on restart.";
+
+     "persist_at",
+     Lang.string_t,
+     Some (Lang.string "state.config"),
+     Some "Location of the configuration file used to restart the output \
+           when `persist=true`. Relative paths are assumed to be with regard \
+           to the directory for generated file."; 
+
      "",
      Lang.string_t,
      None,
@@ -102,21 +133,22 @@ let hls_proto kind =
 
 type segment =
   {
-     id:            int;
-     discontinuous: bool;
-     discontinuity: int;
-     files:         (string*string) List.t;
-     mutable len:   int
+     id:                  int;
+     discontinuous:       bool;
+     discontinuity_count: int;
+     files:               (string*string) List.t;
+     mutable len:         int
   }
 
 (** A stream in the HLS (which typically contains many, with different qualities). *)
 type hls_stream_desc =
   {
-    hls_name : string; (** name of the stream *)
-    hls_format : Encoder.format;
-    hls_encoder : Encoder.encoder;
-    hls_bandwidth : int option;
-    hls_codec : string option; (** codec (see RFC 6381) *)
+    hls_name       : string; (** name of the stream *)
+    hls_format     : Encoder.format;
+    hls_encoder    : Encoder.encoder;
+    hls_bandwidth  : int;
+    hls_codec      : string; (** codec (see RFC 6381) *)
+    hls_extname    : string;
     mutable hls_oc : (string*out_channel) option; (** currently encoded file *)
   }
 
@@ -136,6 +168,9 @@ class hls_output p =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
+  let encode_metadata =
+    Lang.to_bool (List.assoc "encode_metadata" p)
+  in
   let on_stop =
     let f = List.assoc "on_stop" p in
     fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
@@ -153,6 +188,41 @@ class hls_output p =
     if not (Sys.file_exists directory) || not (Sys.is_directory directory) then
       raise (Lang_errors.Invalid_value (Lang.assoc "" 1 p, "The target directory does not exist"))
   in
+  let persist = Lang.to_bool (List.assoc "persist" p) in
+  let persist_at =
+    let p =
+      Lang.to_string (List.assoc "persist_at" p)
+    in
+    if Filename.is_relative p then
+      Filename.concat directory p
+    else
+      p
+  in
+  let () =
+    if persist then
+     begin
+      let dir = Filename.dirname persist_at in
+      try
+        Utils.mkdir ~perm:0o777 dir;
+      with exn ->
+        raise (Lang_errors.Invalid_value
+          (Lang.assoc "persist_at" 1 p,
+            (Printf.sprintf "Error while creating directory %S for persisting state: %s"
+              dir (Printexc.to_string exn))));
+     end
+  in 
+  let streams_info =
+    let streams_info = List.assoc "streams_info" p in
+    let l = Lang.to_list streams_info in
+    List.map (fun el ->
+      let (name, specs) = Lang.to_product el in
+      let (bandwidth, codec, extname) =
+        match Lang.to_tuple specs with
+          | bandwidth::codec::extname::[] -> bandwidth, codec, extname
+          | _ -> assert false
+      in
+      (Lang.to_string name, (Lang.to_int bandwidth, Lang.to_string codec, Lang.to_string extname))) l
+  in 
   let streams =
     let streams = Lang.assoc "" 2 p in
     let l = Lang.to_list streams in
@@ -164,11 +234,6 @@ class hls_output p =
       let name, fmt = Lang.to_product s in
       let hls_name = Lang.to_string name in
       let hls_format = Lang.to_format fmt in
-      let hls_bandwidth =
-        try
-          Some (Encoder.bitrate hls_format)
-        with Not_found -> None
-      in
       let hls_encoder_factory =
         try Encoder.get_factory hls_format
         with Not_found -> raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))
@@ -176,12 +241,31 @@ class hls_output p =
       let hls_encoder =
         hls_encoder_factory hls_name Meta_format.empty_metadata
       in
-      let hls_codec =
-        try
-          Some (Encoder.iso_base_file_media_file_format hls_format)
-        with Not_found ->
-          log#important "Unknown ISO Base Media File Format, none will be output in the playlist.";
-          None
+      let hls_bandwidth, hls_codec, hls_extname =
+        try List.assoc hls_name streams_info with
+          Not_found -> 
+            let hls_bandwidth =
+              try
+                Encoder.bitrate hls_format
+              with Not_found ->
+                 raise (Lang_errors.Invalid_value (fmt, "Bandwidth cannot be inferred from codec, \
+                   please specify it in `streams_info`"))
+            in
+            let hls_codec =
+              try
+                Encoder.iso_base_file_media_file_format hls_format
+              with Not_found ->
+                 raise (Lang_errors.Invalid_value (fmt, "Codec cannot be inferred from codec, \
+                   please specify it in `streams_info`"))
+            in
+            let hls_extname =
+              try
+                Encoder.extension hls_format
+              with Not_found ->
+                 raise (Lang_errors.Invalid_value (fmt, "File extension cannot be inferred from codec, \
+                   please specify it in `streams_info`"))
+            in
+            hls_bandwidth, hls_codec, hls_extname
       in
       {
         hls_name;
@@ -189,6 +273,7 @@ class hls_output p =
         hls_encoder;
         hls_bandwidth;
         hls_codec;
+        hls_extname;
         hls_oc = None;
       }
     in
@@ -221,9 +306,20 @@ class hls_output p =
       "",Lang.string sname
     ])
   in
-  let max_segments = Lang.to_int (List.assoc "segments" p) in
+  let segment_names id =
+    List.map (fun {hls_name;hls_extname} ->
+      let fname =
+        segment_name ~position:id
+                     ~extname:hls_extname
+                     hls_name
+      in
+      hls_name,fname) streams
+  in
   let segments_per_playlist =
-    Lang.to_int (List.assoc "segments_per_playlist" p)
+    Lang.to_int (List.assoc "segments" p)
+  in
+  let max_segments =
+    segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
   in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
   let kind = Encoder.kind_of_format (List.hd streams).hls_format in
@@ -236,7 +332,7 @@ class hls_output p =
 
     (** Current segment ID *)
     val mutable current_segment =
-      {id=(-1);files=[];discontinuous=false;discontinuity=0;len=0}
+      {id=0;files=segment_names 0;discontinuous=false;discontinuity_count=0;len=0}
 
     (** Available segments *)
     val mutable segments = Queue.create ()
@@ -250,19 +346,12 @@ class hls_output p =
     method private toggle_state event =
       match event, state with
         | `Restart, _
+        | `Start,  `Resumed
         | `Start,  `Stopped -> state <- `Restarted
         | `Stop,    _       -> state <- `Stopped
         | `Start,   _       -> state <- `Started
         | `Streaming, _     -> state <- `Streaming
-
-    method private segment_names id =
-      List.map (fun {hls_name;hls_format} ->
-        let fname =
-          segment_name ~position:id
-                       ~extname:(Encoder.extension hls_format)
-                       hls_name
-        in
-        hls_name,fname) streams
+        | `Resumed, _       -> state <- `Resumed
 
     method private segment_name ?(relative=false) ~segment stream =
       let fname =
@@ -305,7 +394,8 @@ class hls_output p =
         | Some m -> m
         | None -> Meta_format.empty_metadata
       in
-      s.hls_encoder.Encoder.insert_metadata meta; 
+      if encode_metadata then
+        s.hls_encoder.Encoder.insert_metadata meta; 
       let fname =
         self#segment_name ~segment:current_segment s
       in
@@ -315,36 +405,40 @@ class hls_output p =
         | Some s -> output_string oc s;
         | None -> ()
 
-    method private new_segment =
-      if current_segment.id <> -1 then
-        Queue.push current_segment segments;
-      let discontinuous = state = `Restarted in
-      let discontinuity =
-        if current_segment.discontinuous then
-          current_segment.discontinuity + 1
-        else
-          current_segment.discontinuity
-      in
-      self#toggle_state `Streaming;
+    method private push_current_segment =
+      List.iter (fun s -> self#close_segment s) streams;
+      Queue.push current_segment segments;
+      if Queue.length segments >= max_segments then
+        self#unlink_segment (Queue.take segments);
+      self#write_playlists;
       let id = current_segment.id + 1 in
       let len = 0 in
-      let files = self#segment_names id in
-      current_segment <- {id;files;discontinuous;discontinuity;len};
-      open_tick <- self#current_tick;
-      self#log#debug "Opening segment %d." current_segment.id ;
-      List.iter (fun s ->
-        self#close_segment s;
-        self#open_segment s) streams;
-      let old_segment =
-        if Queue.length segments >= max_segments then
-          Some (Queue.take segments)
+      let files = segment_names id in
+      (* Discontinuity is bumped each time a discontinuous
+       * segment exits the playlist. We keep track of it
+       * here. Any [current_segment] may be mark as discontinuous
+       * during the next call to [self#new_segment], in which
+       * case [discontinuity_count] is bumped in the following
+       * segment. *)
+      let discontinuity_count =
+        if current_segment.discontinuous then
+          current_segment.discontinuity_count + 1
         else
-          None
+          current_segment.discontinuity_count
       in
-      self#write_playlists;
-      match old_segment with
-        | Some s -> self#unlink_segment s
-        | None -> ()  
+      current_segment <- {
+        discontinuous=false;
+        id;files;len;discontinuity_count
+      }
+
+    method private new_segment =
+      current_segment <- {current_segment with
+        discontinuous = state = `Restarted
+      };
+      self#toggle_state `Streaming;
+      open_tick <- self#current_tick;
+      self#log#debug "Opening segment %d." current_segment.id;
+      List.iter (fun s -> self#open_segment s) streams
 
     method private current_tick =
       if Source.Clock_variables.is_known self#clock then
@@ -371,12 +465,12 @@ class hls_output p =
     method private get_playlist_data =
       List.fold_left (fun ((_,_,l) as cur) el ->
         if List.length l < segments_per_playlist then
-          el.id, el.discontinuity, (el::l)
+          el.id, el.discontinuity_count, (el::l)
         else
           cur) (-1,-1,[]) (List.rev (List.of_seq (Queue.to_seq segments)))
 
     method private write_playlists =
-      let id, discontinuity, segments =
+      let id, discontinuity_count, segments =
         self#get_playlist_data
       in
       List.iter (fun s ->
@@ -388,7 +482,7 @@ class hls_output p =
             output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n" (int_of_float (ceil segment_duration)));
             output_string oc (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
             output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" id);
-            output_string oc (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n" discontinuity);
+            output_string oc (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n" discontinuity_count);
             List.iter (fun segment ->
                 if segment.discontinuous then
                   output_string oc "#EXT-X-DISCONTINUITY\r\n";
@@ -405,19 +499,9 @@ class hls_output p =
       output_string oc (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
       List.iter (fun s ->
           let line =
-            let bandwidth =
-              match s.hls_bandwidth with
-                | Some b -> Printf.sprintf "AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d" b b
-                | None -> ""
-            in
-            let codecs =
-              match s.hls_codec with
-              | Some codec -> Printf.sprintf "CODECS=\"%s\"" codec
-              | None -> ""
-            in
             Printf.sprintf
-              "#EXT-X-STREAM-INF:%s%s%s\n"
-              bandwidth (if bandwidth = "" then "" else ",") codecs
+              "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=%S\r\n"
+              s.hls_bandwidth  s.hls_codec
           in
           output_string oc line;
           output_string oc (s.hls_name^".m3u8\r\n")
@@ -434,19 +518,59 @@ class hls_output p =
       self#new_segment
 
     method output_stop =
-      self#toggle_state `Stop
+      self#toggle_state `Stop;
+      let data = List.map (fun s ->
+          s.hls_encoder.Encoder.stop ()
+        ) streams
+      in
+      self#send data
 
     method output_reset =
       self#toggle_state `Restart
 
+    method private write_state =
+      self#log#info "Reading state file at %S.." persist_at;
+      let fd = open_out_bin persist_at in
+      Marshal.to_channel fd (current_segment,segments) [];
+      close_out fd
+
+    method private read_state =
+      let fd = open_in_bin persist_at in
+      let (c,s) = Marshal.from_channel fd in
+      close_in fd;
+      current_segment <- c;
+      segments <- s
+
+   method wake_up activation =
+     output#wake_up activation;
+     if persist && Sys.file_exists persist_at then
+      begin
+       self#log#info "Resuming from saved state";
+       self#toggle_state `Resumed;
+       self#read_state;
+       try Unix.unlink persist_at with _ -> ()
+      end
+
     method sleep =
-      self#cleanup_segments;
-      self#cleanup_playlists;
+      if persist then
+       begin
+        self#log#info "Saving state to %S.." persist_at;
+        self#push_current_segment;
+        self#write_state
+       end
+      else
+       begin
+        self#cleanup_segments;
+        self#cleanup_playlists;
+       end;
       output#sleep
 
     method encode frame ofs len =
       if current_segment.len + len > segment_master_duration then
-        self#new_segment;
+       begin
+        self#push_current_segment;
+        self#new_segment
+       end;
       current_segment.len <- current_segment.len + len;
       List.map (fun s ->
           s.hls_encoder.Encoder.encode frame ofs len
@@ -456,8 +580,9 @@ class hls_output p =
       List.iter2 self#write_pipe streams b
 
     method insert_metadata m =
-      List.iter (fun s ->
-        s.hls_encoder.Encoder.insert_metadata m) streams
+      if encode_metadata then
+        List.iter (fun s ->
+          s.hls_encoder.Encoder.insert_metadata m) streams
   end
 
 let () =

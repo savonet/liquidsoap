@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type t = { samplerate : int;
+type t = { samplerate : int Lazy.t;
            samplesize : int;
            channels   : int;
            duration   : float option;
@@ -34,4 +34,4 @@ let to_string w =
   in
   Printf.sprintf
     "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b%s)"
-    w.samplerate w.channels w.samplesize w.header duration
+    (Lazy.force w.samplerate) w.channels w.samplesize w.header duration

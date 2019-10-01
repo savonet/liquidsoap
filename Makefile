@@ -1,7 +1,8 @@
 SUBDIRS= src examples doc gui scripts libs
-DISTFILES = CHANGES COPYING INSTALL README \
-	bootstrap configure.ac configure config.h.in \
-	Makefile Makefile.defs.in Makefile.rules install-sh
+DISTFILES = CHANGES CHANGES.md COPYING README README.md \
+	VERSION bootstrap configure.ac configure config.h.in \
+	Makefile Makefile.defs.in Makefile.rules install-sh \
+        liquidsoap.opam.in liquidsoap.opam
 DISTDIRS = m4
 
 top_srcdir=.

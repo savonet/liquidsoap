@@ -36,7 +36,7 @@ let conf_harbor_ssl_password =
   Conf.string ~p:(conf_harbor_ssl#plug "password") ~d:""
     "Path to the server's SSL password. (optional, blank if omited)"
 let conf_harbor_ssl_read_timeout =
-  Conf.float ~p:(conf_harbor_ssl#plug "read_timeout") ~d:0.1
+  Conf.float ~p:(conf_harbor_ssl#plug "read_timeout") ~d:(-1.)
     "Read timeout on SSL sockets. Set to zero to never timeout, ignored (system default) if negative."
 let conf_harbor_ssl_write_timeout =
   Conf.float ~p:(conf_harbor_ssl#plug "write_timeout") ~d:(-1.)

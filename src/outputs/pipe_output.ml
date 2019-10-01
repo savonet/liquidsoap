@@ -42,7 +42,7 @@ let pipe_proto kind arg_doc =
        Some "Encoding format." ;
 
        "",
-       Lang.string_t,
+       Lang.string_getter_t 1,
        None,
        Some (arg_doc ^
              " Some strftime conversion specifiers are available: \
@@ -80,7 +80,8 @@ class virtual piped_output p =
           raise (Lang_errors.Invalid_value (format_val,"Unsupported format"))
   in
   let source = Lang.assoc "" 3 p in
-  let name = Lang.to_string (Lang.assoc "" 2 p) in
+  let name = Lang.to_string_getter (Lang.assoc "" 2 p) in
+  let name = name () in
   let kind = Encoder.kind_of_format format in
 object (self)
 
@@ -221,7 +222,7 @@ end
 
 class file_output p = 
   let filename =
-    Lang.to_string (Lang.assoc "" 2 p)
+    Lang.to_string_getter (Lang.assoc "" 2 p)
   in 
   let append = Lang.to_bool (List.assoc "append" p) in
   let perm = Lang.to_int (List.assoc "perm" p) in
@@ -241,6 +242,7 @@ object (self)
       Open_wronly::Open_creat::
       (if append then [Open_append] else [Open_trunc])
     in
+    let filename = filename () in
     let filename = Utils.strftime filename in
     let filename = Utils.home_unrelate filename in
     (* Avoid / in metas for filename.. *)
@@ -306,13 +308,14 @@ let () =
 
 class external_output p =
   let process =
-    Lang.to_string (Lang.assoc "" 2 p)
+    Lang.to_string_getter (Lang.assoc "" 2 p)
   in
 object (self)
   inherit piped_output p
   inherit chan_output p
 
   method open_chan =
+    let process = process () in
     let process = self#interpolate process in
     Unix.open_process_out process
 

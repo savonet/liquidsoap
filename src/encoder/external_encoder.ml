@@ -45,10 +45,10 @@ let encoder id ext =
 
   let header =
     if ext.video then
-      Avi.header ~channels:ext.channels ~samplerate:ext.samplerate ()
+      Avi.header ~channels:ext.channels ~samplerate:(Lazy.force ext.samplerate) ()
     else if ext.header then
       Wav_aiff.wav_header ~channels:ext.channels
-          ~sample_rate:ext.samplerate
+          ~sample_rate:(Lazy.force ext.samplerate)
           ~sample_size:16 ()
     else ""
   in
@@ -114,7 +114,7 @@ let encoder id ext =
     Audio_converter.Samplerate.create ext.channels
   in
   let ratio =
-    (float ext.samplerate) /. (float (Frame.audio_of_seconds 1.))
+    (float (Lazy.force ext.samplerate)) /. (float (Frame.audio_of_seconds 1.))
   in
 
   let encode frame start len =
@@ -122,7 +122,7 @@ let encoder id ext =
     let sbuf =
       if ext.video then
         Avi_encoder.encode_frame
-          ~channels ~samplerate:ext.samplerate ~converter
+          ~channels ~samplerate:(Lazy.force ext.samplerate) ~converter
           frame start len
       else begin
           let start = Frame.audio_of_master start in

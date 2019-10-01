@@ -30,7 +30,7 @@ type mode =
 type t = {
   channels   : int ;
   mode       : mode ;
-  samplerate : int ;
+  samplerate : int Lazy.t ;
   fill       : int option ;
 }
 
@@ -53,4 +53,4 @@ let to_string v =
   Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)"
     (string_of_mode v.mode)
     v.channels
-    v.samplerate
+    (Lazy.force v.samplerate)
