@@ -163,17 +163,17 @@ object
       params ();
       let start = VFrame.position frame in
       let stop = VFrame.size () in
-      let buf = VFrame.content_of_type frame ~channels:1 in
-      let buf = buf.(0) in
+      let rgb = VFrame.content_of_type frame ~channels:1 in
+      let rgb = rgb.(0) in
       for i = start to stop - 1 do
-        failwith "TODO: restore frei0r";
-        (*
-        let img = buf.(i) in
-        let buf = Img.data img in
-        Frei0r.update0 instance t buf;
-        if bgra then Img.swap_rb img;
+        let img = Video.get rgb i in
+        let img = Image.YUV420.to_RGBA32 img in
+        let dst = Image.RGBA32.data img in
+        Frei0r.update0 instance t dst;
+        if bgra then Image.RGBA32.swap_rb img;
+        let img = Image.YUV420.of_RGBA32 img in
+        Video.set rgb i img;
         t <- t +. dt
-         *)
       done;
       VFrame.add_break frame stop
     end
