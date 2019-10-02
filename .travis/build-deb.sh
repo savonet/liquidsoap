@@ -35,7 +35,7 @@ cp -f debian/control.in debian/control
 
 sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
 
-LIQ_VERSION=`head -n1 VERSION`
+LIQ_VERSION=`opam show -f version .`
 
 dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${TRAVIS_BUILD_NUMBER}~${RELEASE}" "Build ${TRAVIS_COMMIT_SHORT}"
 
