@@ -1,13 +1,13 @@
 # Liquidsoap autoconf setup
 
 AC_INIT([liquidsoap],
-        m4_esyscmd([head -n1 VERSION | tr -d '\r\n']),
+        m4_esyscmd([cat liquidsoap.opam | grep ^version | sed 's/version: "\([^"]*\)"/\1/' | tr -d '\r\n']),
         [savonet-users@lists.sourceforge.net],
         [liquidsoap],
         [https://github.com/savonet/liquidsoap])
 git_snapshot=true
 version="$PACKAGE_VERSION"
-min_ocaml_version=m4_esyscmd([tail -n1 VERSION | tr -d '\r\n'])
+min_ocaml_version=m4_esyscmd([cat liquidsoap.opam | grep \"ocaml\" | sed 's/[ ]*"ocaml" {>= "\([^"]*\)"}/\1/' | tr -d '\r\n'])
 git_commit=`git rev-parse --short HEAD || true`
 
 if test $git_snapshot != "false"; then
@@ -928,7 +928,6 @@ AC_CONFIG_FILES([doc/content/build.md])
 AC_CONFIG_FILES([doc/liquidsoap.1.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
-AC_CONFIG_FILES([liquidsoap.opam],[chmod a-w liquidsoap.opam])
 AC_OUTPUT
 $MAKE finish-configure
 
@@ -974,6 +973,9 @@ cat <<EOMSG
  emacs mode     : $emacsdir
 
  -------------------------------------------------------------------- Features
+
+ * Liquidsoap
+   - version           : $version
 
  * Supported input formats
    - AAC               : $w_FAAD
