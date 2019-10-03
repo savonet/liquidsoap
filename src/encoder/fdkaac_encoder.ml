@@ -64,6 +64,12 @@ module type Fdkaac_t =
         val create : int -> t
         val set : t -> param -> unit
         val get : t -> param_name -> param
+        type info =
+          {
+            input_channels : int;
+            frame_length : int;
+          }
+        val info : t -> info
         val encode : t -> string -> int -> int -> string
         val flush : t -> string
       end
@@ -101,6 +107,7 @@ struct
   
   let encoder aac =
     let enc = create_encoder aac in
+    let info = Fdkaac.Encoder.info enc in
     let channels = aac.Fdkaac_format.channels in
     let samplerate = (Lazy.force aac.Fdkaac_format.samplerate) in
     let samplerate_converter =
@@ -108,7 +115,7 @@ struct
     in
     let src_freq = float (Frame.audio_of_seconds 1.) in
     let dst_freq = float samplerate in
-    let n = 1024 in
+    let n = channels*2*info.Fdkaac.Encoder.frame_length in
     let buf = Buffer.create n in
     let encode frame start len =
       let start = Frame.audio_of_master start in
