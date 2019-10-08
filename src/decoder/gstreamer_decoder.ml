@@ -127,7 +127,7 @@ module Make (Generator : Generator.S_Asio) = struct
           let b = Gstreamer.App_sink.pull_buffer_string (Utils.get_some gst.audio_sink) in
           let len = String.length b / (2*channels) in
           let buf = Audio.create channels len in
-          Audio.S16LE.to_audio b 0 buf 0 len;
+          Audio.S16LE.to_audio b 0 buf;
           Generator.put_audio buffer buf 0 len
         );
       if decode_video then

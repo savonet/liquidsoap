@@ -104,7 +104,7 @@ object (self)
     assert (0 = AFrame.position buf) ;
     let buffer = ioring#get_block in
     let fbuf = AFrame.content_of_type ~channels buf 0 in
-      Audio.S16LE.to_audio (Bytes.unsafe_to_string buffer) 0 fbuf 0 samples_per_frame ;
+      Audio.S16LE.to_audio (Bytes.unsafe_to_string buffer) 0 (Audio.sub fbuf 0 samples_per_frame);
       AFrame.add_break buf samples_per_frame
 
   method output = if AFrame.is_partial memo then self#get_frame memo

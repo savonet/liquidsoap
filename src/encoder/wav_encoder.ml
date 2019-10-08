@@ -60,10 +60,10 @@ let encoder wav =
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
       match sample_size with
-        | 32 -> fun buf s off -> Audio.S32LE.of_audio buf 0 s off (Audio.length buf)
-        | 24 -> fun buf s off -> Audio.S24LE.of_audio buf 0 s off (Audio.length buf)
+        | 32 -> fun buf s off -> Audio.S32LE.of_audio buf s off
+        | 24 -> fun buf s off -> Audio.S24LE.of_audio buf s off
         | 16 -> Audio.S16LE.of_audio
-        | 8 -> fun buf s off -> Audio.U8.of_audio buf 0 s off (Audio.length buf)
+        | 8 -> fun buf s off -> Audio.U8.of_audio buf s off
         | _ -> failwith "unsupported sample size"
     in
     of_audio (Audio.sub b start len) s 0;

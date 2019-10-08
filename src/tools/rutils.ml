@@ -95,7 +95,7 @@ let create_from_iff ~format ~channels ~samplesize =
       | 32 when format = `Wav -> Audio.S32LE.to_audio
       | _ -> failwith "unsuported sample size"
     in
-    to_audio src 0 dst 0 sample_len;
+    to_audio src 0 dst;
     Audio_converter.Samplerate.resample
       samplerate_converter
       ratio

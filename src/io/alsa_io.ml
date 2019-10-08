@@ -89,7 +89,7 @@ object (self)
                     (fun pcm buf ofs len ->
                        let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
                        let r = Pcm.readi pcm sbuf 0 len in
-                       Audio.S16LE.to_audio sbuf 0 buf ofs r;
+                       Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r);
                        r
                     )
                   with
@@ -119,8 +119,7 @@ object (self)
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
                            for c = 0 to Audio.channels buf - 1 do
-                             Audio.S16LE.to_audio
-                               sbuf.(c) 0 [|buf.(c)|] ofs len
+                             Audio.S16LE.to_audio sbuf.(c) 0 (Audio.sub [|buf.(c)|] ofs len)
                            done;
                            r
                         )

@@ -97,7 +97,7 @@ object (self)
                   (fun pcm buf ofs len ->
                      let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
                      let r = Pcm.readi pcm sbuf 0 len in
-                     Audio.S16LE.to_audio sbuf 0 buf ofs r;
+                     Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r);
                      r)
           end ;
           sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq;

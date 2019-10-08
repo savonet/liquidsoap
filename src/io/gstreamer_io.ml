@@ -591,7 +591,7 @@ object (self)
       let b = audio.pull() in
       let len = String.length b / (2*channels) in
       let buf = Audio.create channels len in
-      Audio.S16LE.to_audio b 0 buf 0 len;
+      Audio.S16LE.to_audio b 0 (Audio.sub buf 0 len);
       Generator.put_audio gen buf 0 len
     done
 
