@@ -32,7 +32,7 @@ module type Transport_t = sig
 
   val file_descr_of_socket : socket -> Unix.file_descr
 
-  val read : socket -> int -> bytes * int
+  val read : socket -> bytes -> int -> int -> int
 
   val accept : Unix.file_descr -> socket * Unix.sockaddr
 
@@ -61,10 +61,7 @@ module Unix_transport = struct
 
   let file_descr_of_socket socket = socket
 
-  let read socket len =
-    let buf = Bytes.create len in
-    let n = Unix.read socket buf 0 len in
-    (buf, n)
+  let read = Unix.read
 
   let accept fd = Unix.accept fd
 
@@ -96,7 +93,7 @@ module type T = sig
 
   val file_descr_of_socket : socket -> Unix.file_descr
 
-  val read : socket -> int -> Bytes.t * int
+  val read : socket -> bytes -> int -> int -> int
 
   val close : socket -> unit
 
@@ -138,7 +135,7 @@ module type T = sig
          method virtual relay :
               string
            -> (string * string) list
-           -> ?read:(socket -> int -> Bytes.t * int)
+           -> ?read:(socket -> bytes -> int -> int -> int)
            -> socket
            -> unit
 
@@ -199,7 +196,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       method virtual relay
           :    string
             -> (string * string) list
-            -> ?read:(socket -> int -> Bytes.t * int)
+            -> ?read:(socket -> bytes -> int -> int -> int)
             -> socket
             -> unit
 
@@ -489,13 +486,21 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               in
               let read =
                 if chunked then
-                  let read connection =
-                    let s, len =
-                      Http.read_chunked ~timeout:conf_timeout#get connection
-                    in
-                    (Bytes.of_string s, len)
+                  let buf = Buffer.create 1024 in
+                  let read connection b ofs len =
+                    if Buffer.length buf < len then
+                     begin
+                      let s, len =
+                        Http.read_chunked ~timeout:conf_timeout#get connection
+                      in
+                      Buffer.add_substring buf s 0 len
+                     end;
+                    let len = min len (Buffer.length buf) in
+                    Buffer.blit buf 0 b ofs len;
+                    Utils.buffer_drop buf len;
+                    len
                   in
-                  Some (fun connection _ -> read connection)
+                  Some read
                 else None
               in
               let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
@@ -627,13 +632,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                       | `Close _ -> raise Websocket_closed
                       | _ -> raise Retry
                     in
-                    let read socket len =
+                    let read socket buf ofs len =
                       if Buffer.length binary_data = 0 then read_socket socket
                       else () ;
                       let len = min (Buffer.length binary_data) len in
-                      let data = Buffer.sub binary_data 0 len in
+                      Buffer.blit binary_data 0 buf ofs len;
                       Utils.buffer_drop binary_data len ;
-                      (Bytes.of_string data, len)
+                      len
                     in
                     let f () =
                       source#relay stype headers ~read h.Duppy.Monad.Io.socket

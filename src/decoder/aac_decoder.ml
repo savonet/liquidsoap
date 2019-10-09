@@ -33,11 +33,11 @@ let () = Printexc.register_printer error_translator
 exception End_of_stream
 
 (** Buffered input device where
-  * the buffer initially contains [String.sub buf offset len]. *)
+  * the buffer initially contains [Bytes.sub buf offset len]. *)
 let buffered_input input buf offset len =
   let buffer = Buffer.create 1024 in
   let pos = ref len in
-  Buffer.add_substring buffer buf offset len;
+  Buffer.add_subbytes buffer buf offset len;
   let drop len = 
     pos := !pos + len;
     Utils.buffer_drop buffer len 
@@ -60,16 +60,20 @@ let buffered_input input buf offset len =
   (* Get at most [len] bytes from the buffer,
    * which is refilled from [input] if needed.
    * This does not remove data from the buffer. *)
-  let read len =
+  let tmplen = 1024 in
+  let tmp = Bytes.create tmplen in
+  let read buf ofs len =
     let size = Buffer.length buffer in
     let len = 
-      if size >= len then len else
-        let data,read = input.Decoder.read (len-size) in
+      if size > len then len else
+        let read = min tmplen len in
+        let read = input.Decoder.read tmp 0 read in
         if read = 0 then raise End_of_stream ;
-          Buffer.add_substring buffer data 0 read ;
-          size+read
+        Buffer.add_subbytes buffer tmp 0 read ;
+        min len (size+read)
     in
-      Buffer.sub buffer 0 len, len
+    Buffer.blit buffer 0 buf ofs len;
+    len
   in
   { Decoder.
      read = read;
@@ -85,12 +89,15 @@ let create_decoder input =
   let resampler = Rutils.create_audio () in
   let dec = Faad.create () in
   (* 1024 bytes seems usually enough to initiate the decoder.. *)
-  let (aacbuf,len) = input.Decoder.read 1024 in
+  let initbuflen = 1024 in
+  let initbuf = Bytes.create initbuflen in
+  let len = input.Decoder.read initbuf 0 initbuflen in
   let offset, sample_freq, chans =
-    Faad.init dec (Bytes.unsafe_of_string aacbuf) 0 len
+    Faad.init dec initbuf 0 len
   in
   let processed = ref 0 in
   let aacbuflen = Faad.min_bytes_per_channel * chans in
+  let aacbuf = Bytes.create aacbuflen in
   let input,drop,pos =
     buffered_input input aacbuf offset (len-offset)
   in
@@ -120,10 +127,10 @@ let create_decoder input =
      seek = seek;
      decode =
       (fun gen ->
-        let aacbuf,len = input.Decoder.read aacbuflen in
+        let len = input.Decoder.read aacbuf 0 aacbuflen in
         if len = aacbuflen then
          begin
-          let pos,data = Faad.decode dec (Bytes.unsafe_of_string aacbuf) 0 len in
+          let pos,data = Faad.decode dec aacbuf 0 len in
           let data = Audio.of_array data in
           begin try
             processed := !processed + Audio.length data
@@ -235,10 +242,7 @@ struct
   exception End_of_track
   let create_decoder input =
     let dec = Faad.create () in
-    let read len =
-      let ret,len = input.Decoder.read len in
-      Bytes.unsafe_of_string ret,0,len
-    in
+    let read = input.Decoder.read in
     let mp4 = Faad.Mp4.openfile ?seek:input.Decoder.lseek read in
     let resampler = Rutils.create_audio () in
     let track = Faad.Mp4.find_aac_track mp4 in

@@ -29,28 +29,23 @@ let log = Log.make ["decoder";"wav/aiff"]
 exception End_of_stream
 
 let really_input input buf ofs len =
-  let rec f len cur =
-    if len > 0 then
+  let rec f pos =
+    if pos < len then
      begin
-      let s,i = input len in
+      let i = input buf (ofs+pos) (len-pos) in
       if i=0 then raise End_of_stream else
-      f (len-i) (cur ^ String.sub s 0 i)
+      f (pos+i)
      end
-    else
-       cur
   in
-  let ret = f len "" in
-  String.blit ret 0 buf ofs len
+  f ofs
+
+let input fn = fn
 
 let input_byte input =
-  let s,i = input 1 in
+  let buf = Bytes.create 1 in
+  let i = input buf 0 1 in
     if i=0 then raise End_of_stream ;
-    int_of_char s.[0]
-
-let input input buf ofs len =
-  let ret,len = input len in
-  String.blit ret 0 buf ofs len ;
-  len
+    int_of_char (Bytes.get buf 0)
 
 let seek input len =
   let s = Bytes.create len in
@@ -78,15 +73,16 @@ let create ?header input =
 
   let main_decoder remaining =
     let remaining = ref remaining in
-    fun converter gen ->
     let bytes_to_get = 1024*64 in
-    let bytes_to_get = if !remaining = -1 then bytes_to_get else min !remaining bytes_to_get in
-    let data,bytes = input.Decoder.read bytes_to_get in
-      if !remaining <> -1 then remaining := !remaining - bytes;
-      if bytes=0 then raise End_of_stream ;
-      let content = converter (String.sub data 0 bytes) in
-        Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 (Audio.Mono.length content.(0))
+    let buf = Bytes.create bytes_to_get in
+    fun converter gen ->
+      let bytes_to_get = if !remaining = -1 then bytes_to_get else min !remaining bytes_to_get in
+      let bytes = input.Decoder.read buf 0 bytes_to_get in
+        if !remaining <> -1 then remaining := !remaining - bytes;
+        if bytes=0 then raise End_of_stream ;
+        let content = converter (Bytes.sub_string buf 0 bytes) in
+          Generator.set_mode gen `Audio ;
+          Generator.put_audio gen content 0 (Audio.Mono.length content.(0))
   in
 
   let read_header () =

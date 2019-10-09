@@ -66,10 +66,10 @@ Libraries not developed by Savonet are:
 | ocaml-bjack         | >=0.1.3 | Jack support                                  |
 | ocaml-cry           | >=0.6.0 | Sending to Shoutcast & Icecast                |
 | ocaml-dssi          | >=0.1.1 | DSSI sound synthesis                          |
-| ocaml-faad          | >=0.4.0 | AAC stream decoding                           |
+| ocaml-faad          | >=0.5.0 | AAC stream decoding                           |
 | ocaml-fdkaac        | >=0.3.1 | AAC(+) encoding                               |
 | ocaml-ffmpeg        | >=0.2.0 | Video conversion using the ffmpeg library     | 
-| ocaml-flac          | >=0.1.5 | Flac and Ogg/Flac codec                       |
+| ocaml-flac          | >=0.2.0 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        | >=0.1.0 | Frei0r plugins                                |
 | ocaml-gavl          | >=0.1.4 | Video conversion using the gavl library       |
 | ocaml-gstreamer     | >=0.3.0 | GStreamer input, output and encoding/decoding |
@@ -78,16 +78,16 @@ Libraries not developed by Savonet are:
 | ocaml-lame          | >=0.3.2 | MP3 encoding                                  |
 | ocaml-lastfm        | >=0.3.0 | Lastfm scrobbling                             |
 | ocaml-lo            | >=0.1.0 | OSC (Open Sound Control) support              |
-| ocaml-mad           | >=0.4.4 | MP3 decoding                                  |
+| ocaml-mad           | >=0.5.0 | MP3 decoding                                  |
 | ocaml-magic         | >=0.6   | File type detection                           |
-| ocaml-ogg           | >=0.5.0 | Ogg codecs                                    |
+| ocaml-ogg           | >=0.6.0 | Ogg codecs                                    |
 | ocaml-opus          | >=0.1.1 | Ogg/Opus codec                                |
 | ocaml-portaudio     | >=0.2.0 | Portaudio I/O                                 |
 | ocaml-pulseaudio    | >=0.1.2 | PulseAudio I/O                                |
 | ocaml-sdl           |         | Display, font & image support                 |
 | ocaml-shine         | >=0.2.0 | Fixed-point MP3 encoding                      |
 | ocaml-soundtouch    | >=0.1.7 | Libsoundtouch's audio effects                 |
-| ocaml-speex         | >=0.2.1 | Ogg/Speex codec                               |
+| ocaml-speex         | >=0.3.0 | Ogg/Speex codec                               |
 | ocaml-ssl           | >=0.5.2 | SSL/https support                             |
 | ocaml-taglib        | >=0.3.0 | MP3ID3 metadata access                        |
 | ocaml-theora        | >=0.3.1 | Ogg/Theora codec                              |

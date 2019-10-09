@@ -389,7 +389,7 @@ AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
+AC_CHECK_OCAML_BINDING([ogg],[0.6.0])
 
 #
 # Vorbis
@@ -407,19 +407,19 @@ AC_CHECK_OCAML_BINDING([opus],[0.1.3],[ogg])
 # Speex
 #
 
-AC_CHECK_OCAML_BINDING([speex],[0.2.1],[ogg])
+AC_CHECK_OCAML_BINDING([speex],[0.3.0],[ogg])
 
 #
 # Mad
 #
 
-AC_CHECK_OCAML_BINDING([mad],[0.4.7])
+AC_CHECK_OCAML_BINDING([mad],[0.5.0])
 
 #
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.1.5])
+AC_CHECK_OCAML_BINDING([flac],[0.2.0])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
@@ -788,7 +788,7 @@ fi
 
 # OCaml bindings
 
-AC_CHECK_OCAML_BINDING([faad],[0.4.0])
+AC_CHECK_OCAML_BINDING([faad],[0.5.0])
 AC_CHECK_OCAML_BINDING([soundtouch],[0.1.9])
 AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
 AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.4])
@@ -978,6 +978,7 @@ cat <<EOMSG
    - version           : $version
 
  * Supported input formats
+   - MP3               : $w_MAD
    - AAC               : $w_FAAD
    - Ffmpeg            : $w_FFMPEG
    - Flac (native)     : $w_FLAC

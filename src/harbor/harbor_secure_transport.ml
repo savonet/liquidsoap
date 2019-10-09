@@ -72,10 +72,8 @@ struct
   type socket = secure_transport_socket
   let name = "secure_transport"
   let file_descr_of_socket {sock} = sock
-  let read {ctx} len =
-    let buf = Bytes.create len in
-    let n = SecureTransport.read ctx buf 0 len in
-    buf, n
+  let read {ctx} buf ofs len =
+    SecureTransport.read ctx buf ofs len
   let accept sock =
     let (sock, caller) = Unix.accept sock in
     let ctx =

@@ -73,7 +73,7 @@ type 'a decoder =
     seek : int -> int }
 
 type input = 
-  { read : int -> string * int;
+  { read : bytes -> int -> int -> int;
     (* Seek to an absolute position in bytes. 
      * Returns the current position after seeking. *)
     lseek : (int -> int) option ;
@@ -416,13 +416,12 @@ struct
     let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
     let file_size = (Unix.stat filename).Unix.st_size in
     let proc_bytes = ref 0 in
-    let read len =
+    let read buf ofs len =
       try
-        let s = Bytes.create len in
-        let i = Unix.read fd s 0 len in
+        let i = Unix.read fd buf ofs len in
         proc_bytes := !proc_bytes + i;
-        Bytes.to_string s, i
-      with _ -> "", 0
+        i
+      with _ -> 0
     in
     let tell () =
       Unix.lseek fd 0 Unix.SEEK_CUR

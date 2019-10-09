@@ -26,7 +26,7 @@ type file = string
 type stream = string
 
 type input =
-  { read : int -> string * int;
+  { read : bytes -> int -> int -> int;
     (* Seek to an absolute position in bytes.
      * Returns the current position after seeking
      * or raises [No_seek] if no seek operation
