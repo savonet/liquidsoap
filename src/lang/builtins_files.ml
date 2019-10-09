@@ -122,7 +122,7 @@ let () =
       in
       try
         let ic = ref (Some (open_in_bin f)) in
-        let buflen = 1024 in
+        let buflen = Utils.pagesize in
         let buf = Bytes.create buflen in
         let fn () =
           match !ic with

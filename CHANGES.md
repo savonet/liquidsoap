@@ -13,6 +13,7 @@ Changed:
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
 - Switch to more efficient callback API for decoders (#979).
+- Use system pagesize for buffer allocation (#915).
 - Native Liquidsoap implementation of list functions (#920).
 
 Fixed:

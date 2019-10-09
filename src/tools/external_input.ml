@@ -50,7 +50,7 @@ object (self)
       else on_data reader
     in
     let on_stderr in_chan =
-      self#log#info "%s" (Bytes.unsafe_to_string (Process_handler.read 1024 in_chan));
+      self#log#info "%s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize in_chan));
       `Continue
     in
     let on_stop status =

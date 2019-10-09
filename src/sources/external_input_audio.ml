@@ -37,7 +37,7 @@ class external_input ~name ~kind ~restart ~bufferize
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
   let abg = Generator.create ~log ~kind `Audio in
-  let buflen = 1024 in
+  let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
   let on_data reader =
     let ret = reader buf 0 buflen in

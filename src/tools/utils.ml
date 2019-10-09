@@ -39,7 +39,12 @@ let some_or none = function
   | None   -> none
 
 (* Force locale to C *)
-external force_locale : unit -> unit = "liquidsoap_set_locale"
+external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]
+
+(** Get page size. *)
+external pagesize : unit -> int = "liquidsoao_get_pagesize" [@@noalloc]
+
+let pagesize = pagesize ()
 
 (** General configuration *)
 let conf = Dtools.Conf.void "Liquidsoap configuration"
@@ -185,11 +190,11 @@ let rec may_map f = function
  * different than its reported length.. *)
 let read_all filename =
   let channel = open_in filename in
-  let buflen = 1024 in
-  let tmp = Bytes.create 1024 in
+  let buflen = pagesize in
+  let tmp = Bytes.create pagesize in
   let contents = Buffer.create buflen in
   let rec read () =
-    let ret = input channel tmp 0 1024 in
+    let ret = input channel tmp 0 pagesize in
     if ret > 0 then
      begin
       Buffer.add_subbytes contents tmp 0 ret ;
@@ -407,7 +412,7 @@ let which_opt ~path s =
   with Not_found -> None
 
 (** Get current timezone. *)
-external timezone : unit -> int = "liquidsoap_get_timezone"
+external timezone : unit -> int = "liquidsoap_get_timezone" [@@noalloc]
 
 let string_of_timezone tz =
   (* TODO: not sure about why we need this... *)

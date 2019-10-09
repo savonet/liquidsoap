@@ -31,7 +31,7 @@ let log = Log.make ["decoder";"external"]
   * It pipes its data to the external process and read
   * the available output. *)
 let external_input process input =
-  let buflen = 1024 in
+  let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
   let on_stdin pusher =
     let read = input.Decoder.read buf 0 buflen in
@@ -41,7 +41,7 @@ let external_input process input =
     end
   in
   let on_stderr puller =
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller));
     `Continue
   in
   let log = log#important "%s" in
@@ -169,7 +169,7 @@ let log = Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
   let on_stderr puller =
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller));
     `Continue
   in
   let command = process filename in

@@ -187,8 +187,8 @@ let create ~skeleton id =
      {
       id       = id;
       skeleton = None;
-      header   = Buffer.create 1024 ;
-      encoded  = Buffer.create 1024 ;
+      header   = Buffer.create Utils.pagesize ;
+      encoded  = Buffer.create Utils.pagesize ;
       position = 0.;
       tracks   = Hashtbl.create 10;
       state    = Bos

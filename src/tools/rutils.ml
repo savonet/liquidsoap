@@ -74,7 +74,7 @@ let create_from_iff ~format ~channels ~samplesize =
   let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
   let sample_bytes = samplesize / 8 in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
-  let buf = Buffer.create 1024 in
+  let buf = Buffer.create Utils.pagesize in
   (fun ~audio_src_rate src ->
     let ratio = audio_dst_rate /. audio_src_rate in
     Buffer.add_string buf src;

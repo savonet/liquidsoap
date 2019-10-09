@@ -28,7 +28,7 @@ let encoder id ext =
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in
-  let buf = Buffer.create 1024 in
+  let buf = Buffer.create Utils.pagesize in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
 
@@ -54,7 +54,7 @@ let encoder id ext =
   in
 
   let on_stderr puller =
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller));
     `Continue
   in
   let on_start pusher =
@@ -81,7 +81,7 @@ let encoder id ext =
 
   let on_stdout = Tutils.mutexify mutex (fun puller ->
     begin
-      match Bytes.unsafe_to_string (Process_handler.read 1024 puller) with
+      match Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller) with
         | "" when !is_stop -> Condition.signal condition
         | s -> Buffer.add_string buf s
     end;

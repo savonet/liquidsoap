@@ -73,7 +73,7 @@ let create ?header input =
 
   let main_decoder remaining =
     let remaining = ref remaining in
-    let bytes_to_get = 1024*64 in
+    let bytes_to_get = Utils.pagesize*64 in
     let buf = Bytes.create bytes_to_get in
     fun converter gen ->
       let bytes_to_get = if !remaining = -1 then bytes_to_get else min !remaining bytes_to_get in
