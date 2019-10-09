@@ -60,7 +60,7 @@ let buffered_input input buf offset len =
   (* Get at most [len] bytes from the buffer,
    * which is refilled from [input] if needed.
    * This does not remove data from the buffer. *)
-  let tmplen = 1024 in
+  let tmplen = Utils.pagesize in
   let tmp = Bytes.create tmplen in
   let read buf ofs len =
     let size = Buffer.length buffer in

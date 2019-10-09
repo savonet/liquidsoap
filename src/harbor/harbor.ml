@@ -486,7 +486,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               in
               let read =
                 if chunked then
-                  let buf = Buffer.create 1024 in
+                  let buf = Buffer.create Utils.pagesize in
                   let read connection b ofs len =
                     if Buffer.length buf < len then
                      begin

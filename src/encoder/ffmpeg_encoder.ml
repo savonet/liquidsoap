@@ -79,7 +79,7 @@ let encoder ffmpeg meta =
       | 2 -> `Stereo
       | _ -> failwith "%ffmpeg encoder only supports mono or stereo audio for now!"
   in
-  let buf = Buffer.create 1024 in
+  let buf = Buffer.create Utils.pagesize in
   let options = Hashtbl.copy ffmpeg.Ffmpeg_format.options in
   convert_options options;
   let make () =
