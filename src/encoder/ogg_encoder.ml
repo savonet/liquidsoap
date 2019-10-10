@@ -148,7 +148,7 @@ let encoder ogg =
           track.encode ogg_enc (Utils.get_some track.id) content start len
         in
         List.iter f tracks ;
-        Ogg_muxer.get_data ogg_enc
+        Strings.of_string (Ogg_muxer.get_data ogg_enc)
       and ogg_stop () = 
         let f track = 
           track.id <- None
@@ -164,7 +164,7 @@ let encoder ogg =
       and stop () = 
         ogg_stop () ;
         enc.Encoder.header <- None ;
-        Ogg_muxer.get_data ogg_enc
+        Strings.of_string (Ogg_muxer.get_data ogg_enc)
       and insert_metadata m =
         ogg_stop () ;
         let f track =

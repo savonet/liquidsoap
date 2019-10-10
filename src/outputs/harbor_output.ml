@@ -504,9 +504,10 @@ module Make (T : T) = struct
                    on_connect ~protocol ~uri ~headers:h_headers ip )) )
 
       method send b =
-        let slen = String.length b in
+        let slen = Strings.length b in
+        failwith "TODO"; let b = assert false in
         if slen > 0 then (
-          chunk_len <- chunk_len + String.length b ;
+          chunk_len <- chunk_len + slen ;
           let wake_up =
             if chunk_len >= chunk then (
               chunk_len <- 0 ;

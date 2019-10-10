@@ -403,7 +403,7 @@ object (self)
     match Cry.get_status connection, encoder with
       | Cry.Connected _, Some enc ->
          enc.Encoder.encode frame ofs len
-      | _ -> ""
+      | _ -> Strings.empty
 
   method insert_metadata m =
     (* Update metadata using ICY if told to.. *)
@@ -471,9 +471,9 @@ object (self)
           end
       | Cry.Connected _ ->
           begin try
-            Cry.send connection b;
+            Strings.iter (Cry.send connection) b;
             match dump with
-              | Some s -> output_string s b
+              | Some s -> Strings.iter (output_string s) b
               | None -> () 
           with
             | e ->

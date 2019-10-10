@@ -121,19 +121,19 @@ let encoder ext =
        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
        GU.flush ~log gst.bin;
-       let buf = Buffer.create Utils.pagesize in
+       let buf = ref Strings.empty in
        begin
         try
          while true do
-           Buffer.add_string buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
+           buf := Strings.add !buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
          done
         with
           | Gstreamer.End_of_stream -> ()
        end; 
-       Buffer.contents buf
+       !buf
       end
     else
-      ""
+      Strings.empty
    in
    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
    GU.flush ~log gst.bin;
@@ -205,11 +205,11 @@ let encoder ext =
     (* Return result. *)
     presentation_time := Int64.add !presentation_time duration;
     if !samples = 0 then
-      ""
+      Strings.empty
     else
       let ans = Gstreamer.App_sink.pull_buffer_string gst.sink in
       decr_samples ();
-      ans
+      Strings.of_string ans
   in
 
   {

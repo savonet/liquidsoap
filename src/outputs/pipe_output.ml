@@ -131,11 +131,11 @@ object (self)
 
   method output_stop =
     if self#is_open then
-     begin
-      let flush = (Utils.get_some encoder).Encoder.stop () in
-      self#send flush ;
-      self#close_pipe
-     end;
+      begin
+        let flush = (Utils.get_some encoder).Encoder.stop () in
+        self#send flush;
+        self#close_pipe
+      end;
     encoder <- None
 
   method output_reset = ()
@@ -164,7 +164,7 @@ object (self)
   method send b =
     if not self#is_open then
       self#prepare_pipe ;
-    self#write_pipe b ; 
+    Strings.iter (fun s -> self#write_pipe s) b ; 
     if not reopening then
       if need_reset || 
          (Unix.gettimeofday () > reload_delay +. open_date &&

@@ -28,7 +28,7 @@ let encoder id ext =
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in
-  let buf = Buffer.create Utils.pagesize in
+  let buf = ref Strings.empty in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
 
@@ -83,15 +83,15 @@ let encoder id ext =
     begin
       match Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller) with
         | "" when !is_stop -> Condition.signal condition
-        | s -> Buffer.add_string buf s
+        | s -> buf := Strings.add !buf s
     end;
     `Continue)
   in
 
   let flush_buffer = Tutils.mutexify mutex (fun () ->
-    let content = Buffer.contents buf in
-    Buffer.reset buf;
-    content)
+      let ans = !buf in
+      buf := Strings.empty;
+      ans)
   in
 
   let process =
@@ -142,12 +142,12 @@ let encoder id ext =
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
           Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
-          Bytes.unsafe_to_string sbuf
+          Strings.of_string (Bytes.unsafe_to_string sbuf)
        end
     in
     Tutils.mutexify mutex (fun () ->
       try
-        Process_handler.on_stdin process (Process_handler.write (Bytes.of_string sbuf));
+        Process_handler.on_stdin process (fun push -> Strings.iter (fun s -> Process_handler.write (Bytes.of_string s) push) sbuf);
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
     flush_buffer ()
@@ -157,7 +157,7 @@ let encoder id ext =
     is_stop := true;
     Process_handler.stop process;
     Condition.wait condition mutex;
-    Buffer.contents buf)
+    !buf)
   in
   
   {

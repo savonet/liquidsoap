@@ -551,7 +551,7 @@ object (self)
   method private encode frame ofs len =
     if self#is `Connected then
       self#get_encoder.Encoder.encode frame ofs len
-    else ""
+    else Strings.empty
 
   method private insert_metadata m =
     if self#is `Connected then
@@ -560,8 +560,9 @@ object (self)
   method private send data =
     if self#is `Connected then
      begin
+      failwith "TODO: do we want to use a Strings instead of a Buffer for buffer?"; 
       Tutils.mutexify output_mutex
-        (Buffer.add_string buffer) data;
+        (fun data -> Strings.iter (Buffer.add_string buffer) data) data;
       self#send_chunks
      end
 end

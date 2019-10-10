@@ -168,8 +168,8 @@ type encoder = {
    * thread so there's no need to protect this
    * value with a mutex so far.. *)
   mutable header : string option ;
-  encode : Frame.t -> int -> int -> string ;
-  stop : unit -> string
+  encode : Frame.t -> int -> int -> Strings.t;
+  stop : unit -> Strings.t
 }
 
 type factory = string -> Meta_format.export_metadata -> encoder

@@ -44,6 +44,25 @@ let chunk id data =
   else
     ans ^ "\000"
 
+(* Audio in 16LE *)
+let audio_chunk b = chunk "01wb" b
+
+(* Video in RGB. *)
+let video_chunk b = chunk "00db" b
+
+(* TODO: this could be merged with the above with low cost *)
+
+(* The original data is cleared. *)
+let chunk_strings id data =
+  let n = Strings.length data in
+  let ans = Strings.append (Strings.of_list [id; dword n]) data in
+  let ans = if n mod 2 = 0 then ans else Strings.add ans "\000" in
+  ans
+
+let audio_chunk_strings b = chunk_strings "01wb" b
+
+let video_chunk_strings b = chunk_strings "00db" b
+
 let list = chunk "LIST"
 
 let header ~channels ~samplerate () =
@@ -169,14 +188,6 @@ let header ~channels ~samplerate () =
   ^ headers
   ^ info
   ^ "LIST" ^ dword_max () ^ "movi"
-
-(* Audio in 16LE *)
-let audio_chunk b =
-  chunk "01wb" b
-
-(* Video in RGB. *)
-let video_chunk b =
-  chunk "00db" b
 
 module Read = struct
   let read n f =

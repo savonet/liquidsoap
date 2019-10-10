@@ -448,7 +448,7 @@ class hls_output p =
 
     method private write_pipe s b =
       let _, oc = Utils.get_some s.hls_oc in
-      output_string oc b
+      Strings.iter (output_string oc) b
 
     method private cleanup_segments =
       self#unlink_segment current_segment;
@@ -519,10 +519,7 @@ class hls_output p =
 
     method output_stop =
       self#toggle_state `Stop;
-      let data = List.map (fun s ->
-          s.hls_encoder.Encoder.stop ()
-        ) streams
-      in
+      let data = List.map (fun s -> s.hls_encoder.Encoder.stop ()) streams in
       self#send data
 
     method output_reset =

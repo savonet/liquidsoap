@@ -70,16 +70,16 @@ let encoder wav =
     let s = Bytes.unsafe_to_string s in
     if !need_header then begin
       need_header := false ;
-      header ^ s
+      Strings.of_list [header; s]
     end else
-      s
+      Strings.of_string s
   in
     {
      Encoder.
       insert_metadata = (fun _ -> ()) ;
       encode = encode ;
       header = Some header ;
-      stop = (fun () -> "")
+      stop = (fun () -> Strings.empty)
     }
 
 let () =

@@ -75,7 +75,7 @@ let bit_at s pos =
 
 module Register(Lame : Lame_t) = 
 struct
-  type id3v2 = Waiting | Rendered of string | Done
+  type id3v2 = Waiting | Rendered of Strings.t | Done
 
   (* Notation: XYZ; X: copyright bit, Y: original bit, Z: private bit 
    *           !: negation
@@ -210,12 +210,13 @@ struct
         in
         match !id3v2 with
           | Rendered s when not !has_started ->
-              id3v2 := Done; 
-              (Printf.sprintf "%s%s" s (encoded ()))
-          | _ -> encoded ()
+            id3v2 := Done;
+            Strings.add s (encoded ())
+          | _ ->
+            Strings.of_string (encoded ())
       in
       let stop () =
-        Lame.encode_flush_nogap enc
+        Strings.of_string (Lame.encode_flush_nogap enc)
       in
       let insert_metadata = 
         match mp3.id3v2 with
@@ -225,7 +226,7 @@ struct
                match !id3v2 with
                  | Waiting ->
                      if not (Meta_format.is_empty m) then 
-                       id3v2 := Rendered (f m)
+                       id3v2 := Rendered (Strings.of_string (f m))
                  | _ -> ())
           | None -> (fun _ -> ())
       in

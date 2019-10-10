@@ -42,9 +42,9 @@ let encoder flac meta =
        total_samples = None;
     }
   in
-  let buf = Buffer.create Utils.pagesize in
+  let buf = ref Strings.empty in
   let write = fun chunk ->
-    Buffer.add_bytes buf chunk
+    buf := Strings.add !buf (Bytes.unsafe_to_string chunk)
   in
   let cb = Flac.Encoder.get_callbacks write in
   let enc = Flac.Encoder.create ~comments p cb in
@@ -66,13 +66,13 @@ let encoder flac meta =
     let b = Audio.sub b start len in
     let b = Audio.to_array b in
     Flac.Encoder.process !enc cb b;
-    let ret = Buffer.contents buf in
-    Buffer.reset buf ;
-    ret
+    let ans = !buf in
+    buf := Strings.empty;
+    ans
   in
   let stop () = 
     Flac.Encoder.finish !enc cb ;
-    Buffer.contents buf
+    !buf
   in
     {
      Encoder.

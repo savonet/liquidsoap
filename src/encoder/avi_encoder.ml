@@ -55,7 +55,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     let vbuf = vbuf.(0) in
     let vstart = Frame.video_of_master start in
     let vlen = Frame.video_of_master len in
-    let data = ref "" in
+    let data = ref Strings.empty in
     for i = vstart to vstart+vlen-1 do
       let img = Video.get vbuf i in
       (* TODO: change stride otherwise *)
@@ -63,14 +63,13 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
       assert (Image.YUV420.y_stride img = width);
       assert (Image.YUV420.uv_stride img = width/2);
       let y,u,v = Image.YUV420.data img in
-      (* TODO: efficiency can be improved.... *)
-      data := !data ^ Image.Data.to_string y;
-      data := !data ^ Image.Data.to_string u;
-      data := !data ^ Image.Data.to_string v
+      data := Strings.add !data (Image.Data.to_string y);
+      data := Strings.add !data (Image.Data.to_string u);
+      data := Strings.add !data (Image.Data.to_string v)
     done;
-    Avi.video_chunk !data
+    Avi.video_chunk_strings !data
   in
-  video ^ audio
+  Strings.add video audio
 
 let encoder avi =
   let channels = avi.channels in
@@ -84,7 +83,7 @@ let encoder avi =
     if !need_header then
       (
         need_header := false;
-        header ^ ans
+        Strings.dda header ans
       )
     else
       ans
@@ -94,7 +93,7 @@ let encoder avi =
     insert_metadata = (fun _ -> ());
     encode = encode;
     header = Some header;
-    stop = (fun () -> "")
+    stop = (fun () -> Strings.empty)
   }
 
 let () =

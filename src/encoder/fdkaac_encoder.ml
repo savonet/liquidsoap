@@ -124,20 +124,19 @@ struct
         else
           b,start,len
       in
-      let encoded = Buffer.create n in
+      let encoded = ref Strings.empty in
       Buffer.add_string buf (Audio.S16LE.make (Audio.sub b start len));
       let len = Buffer.length buf in
       let rec f start =
         if start+n > len then
          begin
           Utils.buffer_drop buf start;
-          Buffer.contents encoded
+          !encoded
          end
         else
          begin
           let data = Buffer.sub buf start n in
-          Buffer.add_string encoded
-            (Fdkaac.Encoder.encode enc data 0 n);
+          encoded := Strings.add !encoded (Fdkaac.Encoder.encode enc data 0 n);
           f (start+n)
         end
       in
@@ -145,10 +144,8 @@ struct
     in
     let stop () =
       let rem = Buffer.contents buf in
-      let s =
-        Fdkaac.Encoder.encode enc rem 0 (String.length rem)
-      in
-      s ^ (Fdkaac.Encoder.flush enc)
+      let s = Fdkaac.Encoder.encode enc rem 0 (String.length rem) in
+      Strings.of_list [s; Fdkaac.Encoder.flush enc]
     in
       {
         Encoder.
