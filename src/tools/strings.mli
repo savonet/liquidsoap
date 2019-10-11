@@ -11,6 +11,8 @@ val of_string : string -> t
 (** Render a buffer into a string. This operation can be costly (in terms of memory copies), avoid it. *)
 val to_string : t -> string
 
+val to_string_list : t -> string list
+
 val substring : t -> int -> int -> string
 
 (** Concatenation of strings. *)
@@ -39,6 +41,9 @@ val sub : t -> int -> int -> t
 
 (** Copy a substring. *)
 val blit : t -> int -> bytes -> int -> int -> unit
+
+(** Whether the buffer is the empty string. *)
+val is_empty : t -> bool
 
 (** Length of the buffer. *)
 val length : t -> int

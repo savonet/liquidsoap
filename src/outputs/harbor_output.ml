@@ -155,7 +155,7 @@ module Make (T : T) = struct
   type metadata = {mutable metadata: Frame.metadata option; metadata_m: Mutex.t}
 
   type client =
-    { mutable buffer: Buffer.t
+    { mutable buffer: Strings.t
     ; condition: Duppy_c.condition
     ; condition_m: Duppy_m.mutex
     ; mutex: Mutex.t
@@ -170,7 +170,7 @@ module Make (T : T) = struct
     ; close: unit -> unit
     ; handler: (Tutils.priority, Harbor.reply) Duppy.Monad.Io.handler }
 
-  let add_meta c data =
+  let add_meta c (data:Strings.t) =
     let get_meta meta =
       let f x =
         try Some (Hashtbl.find (Utils.get_some meta) x) with _ -> None
@@ -184,16 +184,14 @@ module Make (T : T) = struct
       let meta =
         match meta_info with
         | Some s when String.length s > max_title ->
-            Printf.sprintf "StreamTitle='%s...';"
-              (String.sub s 0 (max_title - 3))
+          Printf.sprintf "StreamTitle='%s...';" (String.sub s 0 (max_title - 3))
         | Some s -> Printf.sprintf "StreamTitle='%s';" s
         | None -> ""
       in
       let meta =
         match c.url with
         | Some s when String.length s > max_url ->
-            Printf.sprintf "%sStreamURL='%s...';" meta
-              (String.sub s 0 (max_url - 3))
+          Printf.sprintf "%sStreamURL='%s...';" meta (String.sub s 0 (max_url - 3))
         | Some s -> Printf.sprintf "%sStreamURL='%s';" meta s
         | None -> meta
       in
@@ -204,32 +202,39 @@ module Make (T : T) = struct
       Bytes.set ret 0 (Char.chr pad) ;
       String.blit meta 0 ret 1 len ;
       let ret = Bytes.unsafe_to_string ret in
-      if ret <> c.latest_meta then (
-        c.latest_meta <- ret ;
-        ret )
+      if ret <> c.latest_meta then
+        (
+          c.latest_meta <- ret ;
+          ret
+        )
       else "\000"
     in
     let rec process meta rem data =
       let pos = c.metaint - c.metapos in
-      let before = String.sub data 0 pos in
-      let after = String.sub data pos (String.length data - pos) in
-      if String.length after > c.metaint then (
-        let rem = Printf.sprintf "%s%s%s" rem before meta in
-        c.metapos <- 0 ;
-        process "\000" rem after )
-      else (
-        c.metapos <- String.length after ;
-        Printf.sprintf "%s%s%s%s" rem before meta after )
+      let before = Strings.sub data 0 pos in
+      let after = Strings.sub data pos (Strings.length data - pos) in
+      if Strings.length after > c.metaint then
+        (
+          let rem = Strings.concat [rem;before;Strings.of_string meta] in
+          c.metapos <- 0 ;
+          process "\000" rem after
+        )
+      else
+        (
+          c.metapos <- Strings.length after;
+          Strings.concat [rem;before;Strings.of_string meta;after]
+        )
     in
     if c.metaint > 0 then
-      if String.length data + c.metapos > c.metaint then
-        let meta =
-          Tutils.mutexify c.meta.metadata_m (fun () -> c.meta.metadata) ()
-        in
-        process (get_meta meta) "" data
-      else (
-        c.metapos <- c.metapos + String.length data ;
-        data )
+      let datalen = Strings.length data in
+      if datalen + c.metapos > c.metaint then
+        let meta = Tutils.mutexify c.meta.metadata_m (fun () -> c.meta.metadata) () in
+        process (get_meta meta) Strings.empty data
+      else
+        (
+          c.metapos <- c.metapos + datalen;
+          data
+        )
     else data
 
   let rec client_task c =
@@ -237,26 +242,38 @@ module Make (T : T) = struct
       Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
         (Tutils.mutexify c.mutex
            (fun () ->
-             let buflen = Buffer.length c.buffer in
+             let buflen = Strings.length c.buffer in
              let data =
-               if buflen > c.chunk then (
-                 let data = Some (add_meta c (Buffer.contents c.buffer)) in
-                 Buffer.reset c.buffer ; data )
-               else None
+               if buflen > c.chunk then
+                 let data = add_meta c c.buffer in
+                 c.buffer <- Strings.empty;
+                 data
+               else Strings.empty
              in
              Duppy.Monad.return data )
            ())
     in
     Duppy.Monad.bind __pa_duppy_0 (fun data ->
         Duppy.Monad.bind
-          ( match data with
-          | None ->
+          (
+            if Strings.is_empty data then
               Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
                   Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
                     (fun () -> Duppy_m.unlock c.condition_m ) )
-          | Some s ->
-              Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-                ~priority:Tutils.Non_blocking c.handler (Bytes.of_string s) )
+            else
+              let rec write = function
+                | s::l ->
+                  Duppy.Monad.bind
+                    (Duppy.Monad.Io.write ?timeout:(Some c.timeout)
+                       ~priority:Tutils.Non_blocking c.handler
+                       (* TODO: can we use unsafe_of_string here? *)
+                       (Bytes.of_string s)
+                    )
+                    (fun () -> write l)
+                | [] -> Duppy.Monad.return ()
+              in
+              write (Strings.to_string_list data)
+          )
           (fun () ->
             let __pa_duppy_0 =
               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
@@ -265,7 +282,9 @@ module Make (T : T) = struct
             in
             Duppy.Monad.bind __pa_duppy_0 (fun state ->
                 if state <> Done then client_task c else Duppy.Monad.return ()
-            ) ) )
+              )
+          )
+      )
 
   let client_task c =
     Tutils.mutexify c.mutex
@@ -436,8 +455,7 @@ module Make (T : T) = struct
           Printf.sprintf "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
             data.format icyheader extra_headers
         in
-        let buffer = Buffer.create buflen in
-        Strings.iter (Buffer.add_string buffer) (Utils.get_some encoder).Encoder.header;
+        let buffer = (Utils.get_some encoder).Encoder.header in
         let close () = try Harbor.close s with _ -> () in
         let rec client =
           { buffer
@@ -472,7 +490,7 @@ module Make (T : T) = struct
                 Tutils.mutexify client.mutex
                   (fun () ->
                     client.state <- Done ;
-                    Buffer.reset buffer )
+                    client.buffer <- Strings.empty )
                   () ;
                 on_disconnect ip ;
                 Harbor.Close (Harbor.mk_simple "")) }
@@ -503,7 +521,6 @@ module Make (T : T) = struct
 
       method send b =
         let slen = Strings.length b in
-        failwith "TODO"; let b = assert false in
         if slen > 0 then (
           chunk_len <- chunk_len + slen ;
           let wake_up =
@@ -542,11 +559,9 @@ module Make (T : T) = struct
                             | _ -> () ) ;
                             Queue.push c new_clients ; true
                         | Sending ->
-                            let buf = Buffer.length c.buffer in
-                            if buf + slen > buflen then
-                              Utils.buffer_drop c.buffer (min buf slen)
-                            else () ;
-                            Buffer.add_string c.buffer b ;
+                            let buf = Strings.length c.buffer in
+                            if buf + slen > buflen then c.buffer <- Strings.drop c.buffer (min buf slen);
+                            c.buffer <- Strings.append c.buffer b ;
                             Queue.push c new_clients ;
                             false
                         | Done -> false )

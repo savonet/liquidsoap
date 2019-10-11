@@ -190,7 +190,6 @@ let rec may_map f = function
  * different than its reported length.. *)
 let read_all filename =
   let channel = open_in filename in
-  let buflen = pagesize in
   let tmp = Bytes.create pagesize in
   let contents = ref Strings.empty in
   let rec read () =

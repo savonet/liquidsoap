@@ -16,6 +16,8 @@ let add (l:t) x : t = x::l
 
 let add_subbytes l s o len = add l (Bytes.sub_string s o len)
 
+let is_empty l = List.for_all (fun s -> s = "") l
+
 let rec iter f = function
   | [] -> ()
   | x::l -> iter f l; f x
@@ -93,6 +95,8 @@ let blit l o b ob len =
            len := !len - r
     ) l;
   assert (!len = 0)
+
+let to_string_list l = List.rev l
 
 let to_string l =
   let ans = Bytes.create (length l) in
