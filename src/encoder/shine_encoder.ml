@@ -79,7 +79,7 @@ let encoder shine =
   let stop () = Strings.of_string (Shine.flush enc) in
   { Encoder.
      insert_metadata = (fun _ -> ()) ;
-     header = None ;
+     header = Strings.empty ;
      encode = encode ;
      stop = stop }
 

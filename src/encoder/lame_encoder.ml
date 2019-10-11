@@ -235,7 +235,7 @@ struct
         {
           insert_metadata = insert_metadata ;
           encode = encode ;
-          header = None ;
+          header = Strings.empty ;
           stop = stop
         }
     in

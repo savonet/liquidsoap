@@ -437,9 +437,7 @@ module Make (T : T) = struct
             data.format icyheader extra_headers
         in
         let buffer = Buffer.create buflen in
-        ( match (Utils.get_some encoder).Encoder.header with
-        | Some s -> Buffer.add_string buffer s
-        | None -> () ) ;
+        Strings.iter (Buffer.add_string buffer) (Utils.get_some encoder).Encoder.header;
         let close () = try Harbor.close s with _ -> () in
         let rec client =
           { buffer

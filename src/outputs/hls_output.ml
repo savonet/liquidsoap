@@ -401,9 +401,7 @@ class hls_output p =
       in
       let oc = self#open_out fname in
       s.hls_oc <- Some (fname, oc);
-      match s.hls_encoder.Encoder.header with
-        | Some s -> output_string oc s;
-        | None -> ()
+      Strings.iter (output_string oc) s.hls_encoder.Encoder.header
 
     method private push_current_segment =
       List.iter (fun s -> self#close_segment s) streams;

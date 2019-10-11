@@ -79,7 +79,7 @@ let encoder flac meta =
       insert_metadata = ( fun _ -> ()) ;
       (* Flac encoder do not support header
        * for now. It will probably never do.. *)
-      header = None ;
+      header = Strings.empty ;
       encode = encode ;
       stop = stop
     }

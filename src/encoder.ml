@@ -167,7 +167,7 @@ type encoder = {
   (* Encoder are all called from the main 
    * thread so there's no need to protect this
    * value with a mutex so far.. *)
-  mutable header : string option ;
+  mutable header : Strings.t ;
   encode : Frame.t -> int -> int -> Strings.t;
   stop : unit -> Strings.t
 }

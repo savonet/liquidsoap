@@ -166,7 +166,7 @@ let encoder id ext =
      (* External encoders do not support 
       * headers for now. They will probably
       * never do.. *)
-     header = None;
+     header = Strings.empty;
      encode = encode;
      stop   = stop;
   }

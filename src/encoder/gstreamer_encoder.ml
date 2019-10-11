@@ -215,7 +215,7 @@ let encoder ext =
   {
     Encoder.
     insert_metadata = insert_metadata;
-    header = None;
+    header = Strings.empty;
     encode = encode;
     stop   = stop;
   }

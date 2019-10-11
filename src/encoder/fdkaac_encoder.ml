@@ -150,7 +150,7 @@ struct
       {
         Encoder.
          insert_metadata = (fun _ -> ()) ;
-         header = None ;
+         header = Strings.empty ;
          encode = encode ;
          stop = stop
       }
