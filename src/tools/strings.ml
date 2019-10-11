@@ -48,6 +48,31 @@ let drop l len =
   assert (r = 0);
   l
 
+let sub l o len =
+  assert (o + len <= length l);
+  let o = ref o in
+  let len = ref len in
+  let ans = ref empty in
+  iter
+    (fun s ->
+       if !len = 0 then ()
+       else
+         let ls = String.length s in
+         if !o >= ls then o := !o - ls
+         else
+           let r = min (ls - !o) !len in
+           let s =
+             if !o = 0 && r = ls then s
+             else String.sub s !o r
+           in
+           ans := add !ans s;
+           o := 0;
+           len := !len - r
+    ) l;
+  assert (!len = 0);
+  !ans
+
+(* We cannot share the code with sub because we don't want to uselessly sub the last string... *)
 let blit l o b ob len =
   assert (o + len <= length l);
   assert (ob + len <= Bytes.length b);

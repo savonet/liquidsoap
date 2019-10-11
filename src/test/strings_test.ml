@@ -9,4 +9,6 @@ let () =
   Strings.blit buf 1 b 0 2;
   assert (Bytes.unsafe_to_string b = "bc");
   Strings.blit buf 2 b 0 2;
-  assert (Bytes.unsafe_to_string b = "cd")
+  assert (Bytes.unsafe_to_string b = "cd");
+  assert (Strings.to_string (Strings.sub buf 1 2) = "bc");
+  assert (Strings.to_string (Strings.sub buf 2 2) = "cd")
