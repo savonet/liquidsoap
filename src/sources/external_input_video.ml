@@ -148,16 +148,7 @@ let () =
              if fps <> float (Lazy.force Frame.video_rate) then
                failwith (Printf.sprintf "Wrong video rate (%f instead of %d). Support for \
                                          timestretching should be added some day in the future." fps (Lazy.force Frame.video_rate));
-             let converter =
-               let conv =
-                 let pix =
-                   match fmt with
-                   | `RGB24 -> Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32
-                   | `I420 -> Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420
-                 in
-                 Video_converter.find_converter pix (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32)
-               in
-               fun data ->
+             let converter data =
                let video_format = Option.get !video_format in
                let of_string s =
                  match video_format with
