@@ -414,9 +414,7 @@ module Make (T : T) = struct
 
       val mutable chunk_len = 0
 
-      val mutable burst_data = []
-
-      val mutable burst_pos = 0
+      val mutable burst_data = Strings.empty
 
       val metadata = {metadata= None; metadata_m= Mutex.create ()}
 
@@ -529,19 +527,9 @@ module Make (T : T) = struct
               true )
             else false
           in
-          let rec f acc len l =
-            match l with
-            | x :: l' ->
-                let len' = String.length x in
-                if len + len' < burst then f (x :: acc) (len + len') l'
-                else (x :: acc, len' - burst + len)
-            | [] -> (acc, 0)
-          in
-          let data, pos = f [] 0 (b :: List.rev burst_data) in
-          burst_data <- data ;
-          burst_pos <- pos ;
+          burst_data <- Strings.keep (Strings.append burst_data b) burst;
           let new_clients = Queue.create () in
-          (match dump with Some s -> output_string s b | None -> ()) ;
+          (match dump with Some s -> Strings.iter (output_string s) b | None -> ()) ;
           Tutils.mutexify clients_m
             (fun () ->
               Queue.iter
@@ -551,12 +539,8 @@ module Make (T : T) = struct
                       (fun () ->
                         match c.state with
                         | Hello ->
-                            ( match burst_data with
-                            | x :: l ->
-                                Buffer.add_substring c.buffer x burst_pos
-                                  (String.length x - burst_pos) ;
-                                List.iter (Buffer.add_string c.buffer) l
-                            | _ -> () ) ;
+                            let bdlen = Strings.length burst_data in
+                            c.buffer <- Strings.append c.buffer (Strings.sub burst_data (max 0 (bdlen - burst)) (min bdlen burst));
                             Queue.push c new_clients ; true
                         | Sending ->
                             let buf = Strings.length c.buffer in

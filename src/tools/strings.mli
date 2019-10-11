@@ -36,6 +36,10 @@ val fold : ('a -> string -> 'a) -> 'a -> t -> 'a
 (** Drop the first given chars. *)
 val drop : t -> int -> t
 
+(** Keep a suffix of at least given length (the result might be longer). All
+    data is kept in case the buffer was shorter. *)
+val keep : t -> int -> t
+
 (** Sub-buffer of a buffer. *)
 val sub : t -> int -> int -> t
 

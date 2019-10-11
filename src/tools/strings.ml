@@ -50,6 +50,14 @@ let drop l len =
   assert (r = 0);
   l
 
+let keep l len =
+  let rec aux len = function
+    | _ when len <= 0 -> []
+    | x::l -> x::(aux (len - String.length x) l)
+    | [] -> []
+  in
+  aux len l
+
 let sub l o len =
   assert (o + len <= length l);
   let o = ref o in
