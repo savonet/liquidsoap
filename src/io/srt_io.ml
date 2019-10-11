@@ -417,7 +417,7 @@ object (self)
       ~name:"output.srt" source as super
 
   val output_mutex = Mutex.create ()
-  val buffer = Buffer.create payload_size
+  val buffer = ref Strings.empty
   val tmp = Bytes.create payload_size
   val mutable encoder = None
   val mutable connect_task = None
@@ -441,13 +441,12 @@ object (self)
           Srt.send socket data
       in
       Tutils.mutexify output_mutex (fun () ->
-        Buffer.blit buffer 0 tmp 0 payload_size;
-        Utils.buffer_drop buffer payload_size) ();
+          Strings.blit !buffer 0 tmp 0 payload_size;
+          buffer := Strings.drop !buffer payload_size) ();
       let rec f = function
         | pos when pos < payload_size ->
-          let ret =
-            send (Bytes.sub tmp pos (payload_size-pos))
-          in
+          (* TODO: it would be better if Srt.send / Srt.sendmsg would take an offset... *)
+          let ret = send (Bytes.sub tmp pos (payload_size-pos)) in
           f (pos+ret)
         | _ -> ()
       in
@@ -460,9 +459,7 @@ object (self)
         self#start_connect_task
 
   method private send_chunks =
-    let len = Tutils.mutexify output_mutex (fun () ->
-      Buffer.length buffer)
-    in
+    let len = Tutils.mutexify output_mutex (fun () -> Strings.length !buffer) in
     while payload_size <= len () do
       self#send_chunk
     done
@@ -480,8 +477,8 @@ object (self)
 
   method private clear_encoder =
     Tutils.mutexify output_mutex (fun () ->
-      Buffer.reset buffer;
-      encoder <- None) ()
+        buffer := Strings.empty;
+        encoder <- None) ()
 
   method private connect_fn () =
    let socket = self#get_socket in
@@ -560,9 +557,7 @@ object (self)
   method private send data =
     if self#is `Connected then
      begin
-      failwith "TODO: do we want to use a Strings instead of a Buffer for buffer?"; 
-      Tutils.mutexify output_mutex
-        (fun data -> Strings.iter (Buffer.add_string buffer) data) data;
+      Tutils.mutexify output_mutex (fun data -> buffer := Strings.append !buffer data) data;
       self#send_chunks
      end
 end
