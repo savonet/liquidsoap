@@ -20,10 +20,14 @@ let rec iter f = function
   | [] -> ()
   | x::l -> iter f l; f x
 
-let length l =
-  let n = ref 0 in
-  iter (fun s -> n := !n + String.length s) l;
-  !n
+let fold f x0 l =
+  let rec aux = function
+    | [] -> x0
+    | x::l -> f (aux l) x
+  in
+  aux l
+
+let length l = fold (fun n s -> n + String.length s) 0 l
 
 let append l1 l2 = l2@l1
 

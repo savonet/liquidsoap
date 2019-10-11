@@ -1,6 +1,9 @@
+(** String buffers where the main operation is to add strings at the end. *)
+
 (** A buffer of strings. *)
 type t
 
+(** The empty buffer. *)
 val empty : t
 
 val of_string : string -> t
@@ -8,19 +11,29 @@ val of_string : string -> t
 (** Render a buffer into a string. This operation can be costly (in terms of memory copies), avoid it. *)
 val to_string : t -> string
 
+(** Concatenation of strings. *)
 val of_list : string list -> t
-
-val dda : string -> t -> t
 
 (** Add a string at the end of a buffer. *)
 val add : t -> string -> t
 
+(** Add a string at the beginning of a buffer. *)
+val dda : string -> t -> t
+
+(** Add a substring of bytes. *)
 val add_subbytes : t -> Bytes.t -> int -> int -> t
 
+(** Iterate a function on all the strings contained in the buffer. *)
 val iter : (string -> unit) -> t -> unit
 
+(** Fold a function over all the strings in a buffer. *)
+val fold : ('a -> string -> 'a) -> 'a -> t -> 'a
+
+(** Length of the buffer. *)
 val length : t -> int
 
+(** Append two buffers. *)
 val append : t -> t -> t
 
+(** Concatenate a list of buffers. *)
 val concat : t list -> t
