@@ -26,7 +26,7 @@
 exception Parse_error of ((Lexing.position*Lexing.position)*string)
 
 (** Unsupported format *)
-exception Unsupported_format of (Lexing.position*Lexing.position)
+exception Unsupported_format of ((Lexing.position*Lexing.position)*Encoder.format)
 
 let conf =
   Dtools.Conf.void

@@ -144,10 +144,10 @@ let report lexbuf f =
           Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@."
             a b ;
           raise Error
-      | Lang_values.Unsupported_format pos ->
+      | Lang_values.Unsupported_format (pos,fmt) ->
         let pos = T.print_pos pos in
         error_header 12 pos;
-        Format.printf "Unsupported format!@ You must be missing an optional dependency.@]@.";
+        Format.printf "Unsupported format: %s.@ You must be missing an optional dependency.@]@." (Encoder.string_of_format fmt);
         raise Error
       | Sedlexing.MalFormed ->
         print_error 13 "Malformed file."

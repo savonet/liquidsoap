@@ -53,7 +53,7 @@
      try
       let (_:Encoder.factory) = Encoder.get_factory e in
       ()
-     with Not_found -> raise (Unsupported_format pos)
+     with Not_found -> raise (Unsupported_format (pos, e))
     end;
     mk ~pos (Encoder e)
 
