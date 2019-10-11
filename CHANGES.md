@@ -19,6 +19,7 @@ Changed:
 Fixed:
 
 - Fix implementation of recursive functions (#934).
+- Fix opam install error with some bash-completion confiuration (#980)
 
 1.4.0 (29-09-2019)
 =====

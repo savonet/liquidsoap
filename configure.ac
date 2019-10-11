@@ -133,10 +133,19 @@ if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
 
-dnl The following does not correctly uses prefix
-dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
-bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
-AS_IF([test -z "$bashcompdir"], [bashcompdir='${sysconfdir}/bash_completion.d'])
+AC_ARG_WITH([bash-completion-dir],
+   AC_HELP_STRING(
+      [--with-bash-completion-dir=path],
+      [path to directory used to install bash-completion files (autodetected by default)]))
+
+if test -n "${with_bash_completion_dir}" ; then
+  bashcompdir="${with_bash_completion_dir}"
+else
+  dnl The following does not correctly uses prefix
+  dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+  bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
+  AS_IF([test -z "$bashcompdir"], [bashcompdir='${sysconfdir}/bash_completion.d'])
+fi
 AC_SUBST(bashcompdir)
 
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
