@@ -44,7 +44,7 @@ let encoder flac meta =
   in
   let buf = ref Strings.empty in
   let write = fun chunk ->
-    buf := Strings.add !buf (Bytes.unsafe_to_string chunk)
+    buf := Strings.add !buf (Bytes.to_string chunk)
   in
   let cb = Flac.Encoder.get_callbacks write in
   let enc = Flac.Encoder.create ~comments p cb in
