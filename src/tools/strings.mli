@@ -29,6 +29,12 @@ val iter : (string -> unit) -> t -> unit
 (** Fold a function over all the strings in a buffer. *)
 val fold : ('a -> string -> 'a) -> 'a -> t -> 'a
 
+(** Drop the first given chars. *)
+val drop : t -> int -> t
+
+(** Copy a substring. *)
+val blit : t -> int -> bytes -> int -> int -> unit
+
 (** Length of the buffer. *)
 val length : t -> int
 

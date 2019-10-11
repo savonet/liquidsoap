@@ -31,7 +31,43 @@ let length l = fold (fun n s -> n + String.length s) 0 l
 
 let append l1 l2 = l2@l1
 
-let concat ll = List.concat ll
+let concat ll = List.concat (List.rev ll)
+
+let drop l len =
+  let rec aux len = function
+    | [] -> (len, [])
+    | x::l ->
+      let len, l = aux len l in
+      if len = 0 then 0, x::l
+      else
+        let lx = String.length x in
+        if len >= lx then (len-lx, l)
+        else (0, (String.sub x len (lx-len))::l)
+  in
+  let r, l = aux len l in
+  assert (r = 0);
+  l
+
+let blit l o b ob len =
+  assert (o + len <= length l);
+  assert (ob + len <= Bytes.length b);
+  let o = ref o in
+  let ob = ref ob in
+  let len = ref len in
+  iter
+    (fun s ->
+       if !len = 0 then ()
+       else
+         let ls = String.length s in
+         if !o >= ls then o := !o - ls
+         else
+           let r = min (ls - !o) !len in
+           String.blit s !o b !ob r;
+           o := 0;
+           ob := !ob + r;
+           len := !len - r
+    ) l;
+  assert (!len = 0)
 
 let to_string l =
   let ans = Bytes.create (length l) in
