@@ -313,7 +313,6 @@ struct
               RB.read_advance c.rb n;
               MG.advance c.mg (Frame.master_of_audio n)
             );
-          failwith "TODO: do we really want to write len here?";
           RB.write c.rb (Audio.sub buf 0 len);
           MG.feed_from_frame c.mg frame;
           if RB.read_space c.rb > prebuf then begin
