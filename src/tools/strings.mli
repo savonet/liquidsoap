@@ -11,6 +11,8 @@ val of_string : string -> t
 (** Render a buffer into a string. This operation can be costly (in terms of memory copies), avoid it. *)
 val to_string : t -> string
 
+val substring : t -> int -> int -> string
+
 (** Concatenation of strings. *)
 val of_list : string list -> t
 

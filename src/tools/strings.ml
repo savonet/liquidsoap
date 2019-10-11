@@ -104,3 +104,5 @@ let to_string l =
        o := !o + len
     ) l;
   Bytes.unsafe_to_string ans
+
+let substring l o len = to_string (sub l o len)
