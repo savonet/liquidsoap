@@ -27,6 +27,15 @@
 
 let log = Log.make ["decoder";"external"]
 
+let on_stderr =
+  let buf = Bytes.create Utils.pagesize in
+  fun puller ->
+    let len = puller buf 0 Utils.pagesize in
+    log#debug "stderr: %s"
+      (Bytes.unsafe_to_string 
+        (Bytes.sub buf 0 len));
+    `Continue
+
 (** This function is used to wrap around the "real" input.
   * It pipes its data to the external process and read
   * the available output. *)
@@ -36,13 +45,9 @@ let external_input process input =
   let on_stdin pusher =
     let read = input.Decoder.read buf 0 buflen in
     if read = 0 then `Stop else begin
-      Process_handler.write (Bytes.sub buf 0 read) pusher;
+      Process_handler.really_write (Bytes.sub buf 0 read) pusher;
       `Continue
     end
-  in
-  let on_stderr puller =
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller));
-    `Continue
   in
   let log = log#important "%s" in
   (* reading from input is blocking.. *)
@@ -52,11 +57,8 @@ let external_input process input =
   in
   let read buf ofs len =
     try
-      Process_handler.on_stdout process (fun stdout ->
-        let s = Process_handler.read len stdout in
-        let len = Bytes.length s in
-        Bytes.blit s 0 buf ofs len;
-        len)
+      Process_handler.on_stdout process (fun reader ->
+        reader buf ofs len)
     with Process_handler.Finished -> 0
   in
   {Decoder.
@@ -168,21 +170,14 @@ let register_stdin name sdoc mimes test process =
 let log = Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
-  let on_stderr puller =
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller));
-    `Continue
-  in
   let command = process filename in
   let process =
     Process_handler.run ~on_stderr ~log:(log#important "%s") command
   in
   let read buf ofs len =
     try
-      Process_handler.on_stdout process (fun stdout ->
-        let s = Process_handler.read len stdout in
-        let len = Bytes.length s in
-        Bytes.blit s 0 buf ofs len;
-        len)
+      Process_handler.on_stdout process (fun reader ->
+        reader buf ofs len)
     with Process_handler.Finished -> 0
   in
   let close () =

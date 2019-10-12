@@ -26,6 +26,9 @@ AC_SUBST(version)
 AC_SUBST(min_ocaml_version)
 AC_SUBST(libs_dir_version)
 
+ocaml_version_descr=">= ${min_ocaml_version}"
+AC_SUBST(ocaml_version_descr)
+
 AC_PREREQ(2.61)
 AC_CONFIG_SRCDIR([src/main.ml])
 AC_PROG_INSTALL
@@ -333,25 +336,25 @@ fi
 # Bytes
 #
 
-AC_CHECK_OCAML_BINDING([bytes],[],[],[1])
+AC_CHECK_OCAML_BINDING([bytes],[],[1])
 
 #
 # PCRE
 #
 
-AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
+AC_CHECK_OCAML_BINDING([pcre],[],[1])
 
 #
 # SEDLEX
 #
 
-AC_CHECK_OCAML_BINDING([sedlex],[2.0],[],[1],[sedlex sedlex.ppx],[1])
+AC_CHECK_OCAML_BINDING([sedlex],[],[1],[sedlex sedlex.ppx],[1])
 
 #
 # MENHIR
 #
 
-AC_CHECK_OCAML_BINDING([menhirLib],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([menhirLib],[],[1],[],[1])
 
 MENHIR=`which menhir 2>/dev/null`
 if test -z "${MENHIR}" ; then
@@ -363,77 +366,77 @@ AC_SUBST(MENHIR)
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[],[1])
 
 #
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[],[1])
 
 #
 # Cry
 #
 
-AC_CHECK_OCAML_BINDING([cry],[0.6.0])
+AC_CHECK_OCAML_BINDING([cry])
 
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.6.0],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[],[1])
 
 #
 # xmlplaylist
 #
 
-AC_CHECK_OCAML_BINDING([xmlplaylist],[0.1.3])
+AC_CHECK_OCAML_BINDING([xmlplaylist])
 
 #
 # Lastfm
 #
 
-AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
+AC_CHECK_OCAML_BINDING([lastfm],[xmlplaylist])
 
 #
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.6.0])
+AC_CHECK_OCAML_BINDING([ogg])
 
 #
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[ogg])
 
 #
 # Opus
 #
 
-AC_CHECK_OCAML_BINDING([opus],[0.1.3],[ogg])
+AC_CHECK_OCAML_BINDING([opus],[ogg])
 
 #
 # Speex
 #
 
-AC_CHECK_OCAML_BINDING([speex],[0.3.0],[ogg])
+AC_CHECK_OCAML_BINDING([speex],[ogg])
 
 #
 # Mad
 #
 
-AC_CHECK_OCAML_BINDING([mad],[0.5.0])
+AC_CHECK_OCAML_BINDING([mad])
 
 #
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.2.0])
+AC_CHECK_OCAML_BINDING([flac])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
-AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
+AC_CHECK_OCAML_BINDING([flac.ogg],[ogg flac],[],[],[flac])
 
 #
 # Dynlink
@@ -479,7 +482,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame],[0.3.4])
+AC_CHECK_OCAML_BINDING([lame])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -494,25 +497,25 @@ AC_SUBST(W_LAME_DYN)
 # Shine
 #
 
-AC_CHECK_OCAML_BINDING([shine],[0.2.0])
+AC_CHECK_OCAML_BINDING([shine])
 
 #
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer],[0.3.0])
+AC_CHECK_OCAML_BINDING([gstreamer])
 
 #
 # frei0r
 #
 
-AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
+AC_CHECK_OCAML_BINDING([frei0r])
 
 #
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.3.1])
+AC_CHECK_OCAML_BINDING([fdkaac])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -527,49 +530,49 @@ AC_SUBST(W_FDKAAC_DYN)
 # Theora
 #
 
-AC_CHECK_OCAML_BINDING([theora],[0.3.1],[ogg])
+AC_CHECK_OCAML_BINDING([theora],[ogg])
 
 #
 # Gavl
 #
 
-AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
+AC_CHECK_OCAML_BINDING([gavl])
 
 #
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.4.1])
+AC_CHECK_OCAML_BINDING([ffmpeg])
 
 #
 # Jack
 #
 
-AC_CHECK_OCAML_BINDING([bjack],[0.1.3])
+AC_CHECK_OCAML_BINDING([bjack])
 
 #
 # Alsa
 #
 
-AC_CHECK_OCAML_BINDING([alsa],[0.2.4])
+AC_CHECK_OCAML_BINDING([alsa])
 
 #
 # LibAO
 #
 
-AC_CHECK_OCAML_BINDING([ao],[0.2.0])
+AC_CHECK_OCAML_BINDING([ao])
 
 #
 # Samplerate
 #
 
-AC_CHECK_OCAML_BINDING([samplerate],[0.1.1])
+AC_CHECK_OCAML_BINDING([samplerate])
 
 #
 # Taglib
 #
 
-AC_CHECK_OCAML_BINDING([taglib],[0.3.0])
+AC_CHECK_OCAML_BINDING([taglib])
 
 #
 # OSS
@@ -592,7 +595,7 @@ AC_SUBST(W_OSS)
 # SSL
 #
 
-AC_CHECK_OCAML_BINDING([ssl],[0.5.2])
+AC_CHECK_OCAML_BINDING([ssl])
 
 if test "a$W_SSL" = "ayes"; then
     cat >> src/configure.ml <<EOCONF
@@ -648,7 +651,7 @@ fi
 AC_ARG_ENABLE([camomile],
   AS_HELP_STRING([--disable-camomile],[don't use camomile (no charset detection and conversion)]))
 
-AC_CHECK_OCAML_BINDING([camomile],[1.0.0])
+AC_CHECK_OCAML_BINDING([camomile])
 
 AC_ARG_WITH([camomile-data-dir],
    AC_HELP_STRING(
@@ -775,7 +778,7 @@ fi
 
 # Inotify
 
-AC_CHECK_OCAML_BINDING([inotify],[1.5])
+AC_CHECK_OCAML_BINDING([inotify])
 
 cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch
@@ -797,37 +800,37 @@ fi
 
 # OCaml bindings
 
-AC_CHECK_OCAML_BINDING([faad],[0.5.0])
-AC_CHECK_OCAML_BINDING([soundtouch],[0.1.9])
-AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
-AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.4])
-AC_CHECK_OCAML_BINDING([ladspa],[0.2.0])
-AC_CHECK_OCAML_BINDING([dssi],[0.1.3])
-AC_CHECK_OCAML_BINDING([lilv],[0.1.0])
-AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
-AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
+AC_CHECK_OCAML_BINDING([faad])
+AC_CHECK_OCAML_BINDING([soundtouch])
+AC_CHECK_OCAML_BINDING([portaudio])
+AC_CHECK_OCAML_BINDING([pulseaudio])
+AC_CHECK_OCAML_BINDING([ladspa])
+AC_CHECK_OCAML_BINDING([dssi])
+AC_CHECK_OCAML_BINDING([lilv])
+AC_CHECK_OCAML_BINDING([sdl],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
+AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
 
 # TODO: switch to dune all the way?
 with_srt_types_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/types"
-AC_CHECK_OCAML_BINDING([srt.types],[0.1.0],[],[],[],[srt_types])
+AC_CHECK_OCAML_BINDING([srt.types],[],[],[],[srt_types])
 
 with_srt_stubs_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs"
-AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[srt.types],[],[],[srt_stubs])
+AC_CHECK_OCAML_BINDING([srt.stubs],[srt.types],[],[],[srt_stubs])
 
 with_srt_stubs_locked_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs/locked"
-AC_CHECK_OCAML_BINDING([srt.stubs],[0.1.0],[],[],[],[srt_stubs_locked])
+AC_CHECK_OCAML_BINDING([srt.stubs],[],[],[],[srt_stubs_locked])
 
-AC_CHECK_OCAML_BINDING([srt],[0.1.0],[srt.types srt.stubs srt.stubs.locked])
+AC_CHECK_OCAML_BINDING([srt],[srt.types srt.stubs srt.stubs.locked])
 
-AC_CHECK_OCAML_BINDING([lo],[0.1.2])
+AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([gd])
 
 # Winsvc (to run as a service)
 
-AC_CHECK_OCAML_BINDING([winsvc],[0.0.1])
+AC_CHECK_OCAML_BINDING([winsvc])
 
 #
 # Tuning (See INSTALL to understand these features)

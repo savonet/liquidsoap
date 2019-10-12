@@ -332,12 +332,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
     t
 
-let read buflen pull =
-  let buf = Bytes.create buflen in
-  let ret = pull buf 0 buflen in
-  Bytes.sub buf 0 ret 
-
-let write data push =
+let really_write data push =
   let len = Bytes.length data in
   let rec f pos =
     if pos < len then
