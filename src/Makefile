@@ -187,7 +187,7 @@ tools = tools/extralib.ml tools/JSON.ml tools/utils.ml \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
-	tools/pool.ml tools/sha1.ml tools/websocket.ml \
+	tools/pool.ml tools/sha1.ml tools/websocket.ml tools/id3v2.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml)
 
 stream =stream/frame.ml stream/generator.ml \
