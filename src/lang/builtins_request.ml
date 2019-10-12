@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -35,7 +35,7 @@ let () =
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
     (Lang.request_t
-      (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t ~midi:Lang.zero_t))
+       (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t ~midi:Lang.zero_t))
     (fun p ->
        let indicators = List.assoc "indicators" p in
        let persistent = Lang.to_bool (List.assoc "persistent" p) in
@@ -54,7 +54,7 @@ let () =
        let indicators =
          List.map (fun x -> Request.indicator x) indicators
        in
-         Lang.request (Request.create_raw ~persistent ~indicators initial))
+       Lang.request (Request.create_raw ~persistent ~indicators initial))
 
 let () =
   Lang.add_builtin "request.create" ~category:(string_of_category Liq)
@@ -88,10 +88,10 @@ let () =
        in
        let kind =
          let k_t = Lang.of_request_t t in
-           Lang.frame_kind_of_kind_type k_t
+         Lang.frame_kind_of_kind_type k_t
        in
-         Lang.request
-           (Request.create ~kind ~persistent ~indicators initial))
+       Lang.request
+         (Request.create ~kind ~persistent ~indicators initial))
 
 let () =
   add_builtin "request.resolve" ~cat:Liq
@@ -105,9 +105,9 @@ let () =
     (fun p ->
        let timeout = Lang.to_float (List.assoc "timeout" p) in
        let r = Lang.to_request (List.assoc "" p) in
-         Lang.bool (try
-           Request.Resolved = Request.resolve r timeout
-         with _ -> false))
+       Lang.bool (try
+                    Request.Resolved = Request.resolve r timeout
+                  with _ -> false))
 
 let () =
   add_builtin "request.metadata" ~cat:Liq
@@ -124,7 +124,7 @@ let () =
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
        Lang.string (Request.string_of_log
-         (Request.get_log r)))
+                      (Request.get_log r)))
 
 let () =
   add_builtin "request.ready" ~cat:Liq
@@ -134,7 +134,7 @@ let () =
     ["", Lang.request_t (Lang.univ_t 1),None,None] Lang.bool_t
     (fun p ->
        let e = Lang.to_request (List.assoc "" p) in
-         Lang.bool (Request.is_ready e))
+       Lang.bool (Request.is_ready e))
 
 let () =
   add_builtin "request.uri" ~cat:Liq
@@ -152,10 +152,10 @@ let () =
     [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
-         Lang.string
-           (match Request.get_filename r with
-              | Some f -> f
-              | None -> ""))
+       Lang.string
+         (match Request.get_filename r with
+           | Some f -> f
+           | None -> ""))
 
 let () =
   add_builtin "request.destroy" ~cat:Liq
@@ -169,8 +169,8 @@ let () =
     (fun p ->
        let force = Lang.to_bool (List.assoc "force" p) in
        let e = Lang.to_request (List.assoc "" p) in
-         Request.destroy ~force e ;
-         Lang.unit)
+       Request.destroy ~force e ;
+       Lang.unit)
 
 let () =
   add_builtin "request.duration" ~cat:Liq
@@ -181,4 +181,4 @@ let () =
             not recognized as valid audio."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
-         Lang.float (try Request.duration f with Not_found -> -1.))
+       Lang.float (try Request.duration f with Not_found -> -1.))

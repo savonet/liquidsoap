@@ -1,26 +1,26 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
- (** Ogg Stream Encoder *)
+(** Ogg Stream Encoder *)
 
 let log = Log.make ["ogg.muxer"]
 
@@ -147,10 +147,10 @@ let add_page encoder ?(header=false) (h,v) =
   Buffer.add_string encoder.encoded h;
   Buffer.add_string encoder.encoded v;
   if header then
-   begin
-    Buffer.add_string encoder.header h;
-    Buffer.add_string encoder.header v
-   end
+    begin
+      Buffer.add_string encoder.header h;
+      Buffer.add_string encoder.header v
+    end
 
 let flush_pages os = 
   let rec f os l = 
@@ -158,10 +158,10 @@ let flush_pages os =
       f os (Ogg.Stream.flush_page os::l)
     with
       | Ogg.Not_enough_data -> 
-         let compare x y = 
-           compare (Ogg.Page.pageno x) (Ogg.Page.pageno y) 
-         in
-         List.sort compare l
+        let compare x y = 
+          compare (Ogg.Page.pageno x) (Ogg.Page.pageno y) 
+        in
+        List.sort compare l
   in
   f os []
 
@@ -177,14 +177,14 @@ let init_skeleton encoder =
   os
 
 let create ~skeleton id =
-   let skeleton encoder = 
-     if skeleton then
-       Some (init_skeleton encoder)
-     else
-       None
-   in
-   let encoder =
-     {
+  let skeleton encoder = 
+    if skeleton then
+      Some (init_skeleton encoder)
+    else
+      None
+  in
+  let encoder =
+    {
       id       = id;
       skeleton = None;
       header   = Buffer.create Utils.pagesize ;
@@ -192,24 +192,24 @@ let create ~skeleton id =
       position = 0.;
       tracks   = Hashtbl.create 10;
       state    = Bos
-     }
+    }
   in
   encoder.skeleton <- skeleton encoder ;
   encoder
 
 let register_track ?fill encoder track_encoder =
   if encoder.state = Streaming then
-   begin
-    log#info "%s: Invalid new track: ogg stream already started.." encoder.id;
-    raise Invalid_usage
-   end;
+    begin
+      log#info "%s: Invalid new track: ogg stream already started.." encoder.id;
+      raise Invalid_usage
+    end;
   if encoder.state = Eos then
-   begin
-    log#info "%s: Starting new sequentialized ogg stream." encoder.id;
-    if encoder.skeleton <> None then
-      encoder.skeleton <- Some (init_skeleton encoder);
-    encoder.state <- Bos;
-   end;
+    begin
+      log#info "%s: Starting new sequentialized ogg stream." encoder.id;
+      if encoder.skeleton <> None then
+        encoder.skeleton <- Some (init_skeleton encoder);
+      encoder.state <- Bos;
+    end;
   (** Initiate a new logical stream *)
   let serial = get_serial () in
   let os = Ogg.Stream.create ~serial () in
@@ -219,31 +219,31 @@ let register_track ?fill encoder track_encoder =
   let track = 
     match track_encoder.data_encoder with
       | Audio_encoder encoder -> 
-         Audio_track 
-           { 
-             os = os; 
-             encoder = encoder;
-             end_pos = track_encoder.end_of_page;
-             page_fill = fill;
-             available = Queue.create ();
-             remaining = None;
-             fisbone_data = track_encoder.fisbone_packet;
-             start_page = track_encoder.stream_start;
-             stream_end = track_encoder.end_of_stream
-           }
+        Audio_track 
+          { 
+            os = os; 
+            encoder = encoder;
+            end_pos = track_encoder.end_of_page;
+            page_fill = fill;
+            available = Queue.create ();
+            remaining = None;
+            fisbone_data = track_encoder.fisbone_packet;
+            start_page = track_encoder.stream_start;
+            stream_end = track_encoder.end_of_stream
+          }
       | Video_encoder encoder -> 
-         Video_track 
-           { 
-             os = os; 
-             encoder = encoder;
-             end_pos = track_encoder.end_of_page;
-             page_fill = fill;
-             available = Queue.create ();
-             remaining = None;
-             fisbone_data = track_encoder.fisbone_packet;
-             start_page = track_encoder.stream_start;
-             stream_end = track_encoder.end_of_stream
-           }
+        Video_track 
+          { 
+            os = os; 
+            encoder = encoder;
+            end_pos = track_encoder.end_of_page;
+            page_fill = fill;
+            available = Queue.create ();
+            remaining = None;
+            fisbone_data = track_encoder.fisbone_packet;
+            start_page = track_encoder.stream_start;
+            stream_end = track_encoder.end_of_stream
+          }
   in
   Hashtbl.add encoder.tracks serial track;
   serial
@@ -257,31 +257,31 @@ let streams_start encoder =
   begin
     match encoder.skeleton with
       | Some os ->
-         Hashtbl.iter 
+        Hashtbl.iter 
           (fun _ -> fun x ->
-            let sos = os_of_ogg_track x in
-            let f = fisbone_data_of_ogg_track x in 
-            match f sos with
-              | Some p -> Ogg.Stream.put_packet os p;
-              | None -> ())
+             let sos = os_of_ogg_track x in
+             let f = fisbone_data_of_ogg_track x in 
+             match f sos with
+               | Some p -> Ogg.Stream.put_packet os p;
+               | None -> ())
           encoder.tracks;
-          add_flushed_pages ~header:true encoder os
+        add_flushed_pages ~header:true encoder os
       | None -> ()
   end;
   Hashtbl.iter
-   (fun _ -> fun t ->
-     let os = os_of_ogg_track t in
-     let stream_start = stream_start_of_ogg_track t in
-     let pages = stream_start os in
-     List.iter (add_page ~header:true encoder) pages)
-   encoder.tracks;
+    (fun _ -> fun t ->
+       let os = os_of_ogg_track t in
+       let stream_start = stream_start_of_ogg_track t in
+       let pages = stream_start os in
+       List.iter (add_page ~header:true encoder) pages)
+    encoder.tracks;
   (** Finish skeleton stream now. *)
   begin
     match encoder.skeleton with
       | Some os -> 
-         Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-         let p = Ogg.Stream.flush_page os in
-         add_page ~header:true encoder p;
+        Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
+        let p = Ogg.Stream.flush_page os in
+        add_page ~header:true encoder p;
       | None -> ()
   end;
   encoder.state <- Streaming
@@ -293,21 +293,21 @@ let get_header x = Buffer.contents x.header
 let is_empty x =
   Ogg.Stream.eos x.os && x.remaining = None &&
   Queue.length x.available = 0 &&
-   begin
+  begin
     try
       let p = Ogg.Stream.get_page ?fill:x.page_fill x.os in
       Queue.add p x.available;
       false
     with
       | Ogg.Not_enough_data -> true
-   end
+  end
 
 (** Get the least remaining page of all tracks. *) 
 let least_remaining encoder = 
   let f _ t x = 
     match remaining_of_ogg_track t,x with
       | Some (new_pos,p),Some (_,pos,_) when new_pos <= pos 
-            -> Some (t,new_pos,p)
+        -> Some (t,new_pos,p)
       | Some (pos,p),None -> Some (t,pos,p)
       | _ -> x
   in
@@ -320,8 +320,8 @@ let remaining_pages encoder =
       x+1
     else
       x
-   in
-   Hashtbl.fold f encoder.tracks 0
+  in
+  Hashtbl.fold f encoder.tracks 0
 
 (** Fill output data with available pages.
   * The algorithm works as follow:
@@ -336,53 +336,53 @@ let remaining_pages encoder =
   *  + As soon as the encoder's position is ahead
   *    of a page, then this page can be written *)
 let add_available src encoder = 
- let rec fill src dst =
-  (** First we check if there is a remaining
-    * page that we can now output. *)
-  if remaining_pages encoder = Hashtbl.length encoder.tracks then
-  begin
-   match least_remaining encoder with
-     | None -> ()
-     | Some (track,pos,p) -> 
-          add_page encoder p;
-          encoder.position <- pos;
-          set_remaining_of_ogg_track track None
-  end;
-  (* Then, we proceed only if the track
-   * is the only one left, or there is no 
-   * remaining page. *)
-  if Hashtbl.length encoder.tracks <= 1 ||
-     src.remaining = None then
-   try
-     let p = 
-       try
-         Queue.take src.available
-       with
-         | Queue.Empty -> Ogg.Stream.get_page ?fill:src.page_fill src.os 
-     in
-     let pos = src.end_pos p in
-     begin
-      match pos with
-        (* Is the new position ahead ? *)
-        | Time pos ->
-           if pos > encoder.position then
-             (* We don't output the page now 
-              * since we want to let the possibility 
-              * for another stream to add pages 
-              * for a position between the current 
-              * position and this new one. *)
-             src.remaining <- Some (pos,p)
-           else
-            begin
-             add_page encoder p;
-             fill src dst
-            end
-        | Unknown ->
+  let rec fill src dst =
+    (** First we check if there is a remaining
+      * page that we can now output. *)
+    if remaining_pages encoder = Hashtbl.length encoder.tracks then
+      begin
+        match least_remaining encoder with
+          | None -> ()
+          | Some (track,pos,p) -> 
             add_page encoder p;
-            fill src dst
-     end
-   with
-     | Ogg.Not_enough_data -> ()
+            encoder.position <- pos;
+            set_remaining_of_ogg_track track None
+      end;
+    (* Then, we proceed only if the track
+     * is the only one left, or there is no 
+     * remaining page. *)
+    if Hashtbl.length encoder.tracks <= 1 ||
+       src.remaining = None then
+      try
+        let p = 
+          try
+            Queue.take src.available
+          with
+            | Queue.Empty -> Ogg.Stream.get_page ?fill:src.page_fill src.os 
+        in
+        let pos = src.end_pos p in
+        begin
+          match pos with
+            (* Is the new position ahead ? *)
+            | Time pos ->
+              if pos > encoder.position then
+                (* We don't output the page now 
+                 * since we want to let the possibility 
+                 * for another stream to add pages 
+                 * for a position between the current 
+                 * position and this new one. *)
+                src.remaining <- Some (pos,p)
+              else
+                begin
+                  add_page encoder p;
+                  fill src dst
+                end
+            | Unknown ->
+              add_page encoder p;
+              fill src dst
+        end
+      with
+        | Ogg.Not_enough_data -> ()
   in
   fill src encoder;
   if is_empty src then
@@ -391,32 +391,32 @@ let add_available src encoder =
 (** Encode data. Implicitely calls [streams_start]
   * if not called before. *)
 let encode encoder id data =
- if encoder.state = Bos then
-   streams_start encoder;
- if encoder.state = Eos then
-   begin
-    log#info "%s: Cannot encode: ogg stream finished.." encoder.id;
-    raise Invalid_usage
-   end;
- let queue_add src p = 
-   Queue.add p src.available
- in
- match data with
-   | Audio_data x -> 
+  if encoder.state = Bos then
+    streams_start encoder;
+  if encoder.state = Eos then
+    begin
+      log#info "%s: Cannot encode: ogg stream finished.." encoder.id;
+      raise Invalid_usage
+    end;
+  let queue_add src p = 
+    Queue.add p src.available
+  in
+  match data with
+    | Audio_data x -> 
       begin
-       match Hashtbl.find encoder.tracks id with
-         | Audio_track t ->
+        match Hashtbl.find encoder.tracks id with
+          | Audio_track t ->
             t.encoder x t.os (queue_add t);
             add_available t encoder
-         | _ -> raise Invalid_data
+          | _ -> raise Invalid_data
       end
-   | Video_data x -> 
+    | Video_data x -> 
       begin
-       match Hashtbl.find encoder.tracks id with
-         | Video_track t ->
+        match Hashtbl.find encoder.tracks id with
+          | Video_track t ->
             t.encoder x t.os (queue_add t);
             add_available t encoder
-         | _ -> raise Invalid_data
+          | _ -> raise Invalid_data
       end
 
 (** Finish a track.
@@ -425,32 +425,32 @@ let encode encoder id data =
 let end_of_track encoder id =
   let track = Hashtbl.find encoder.tracks id in
   if encoder.state = Bos then
-   begin
-    log#info "%s: Stream finished without calling streams_start !" encoder.id; 
-    streams_start encoder
-   end;
-   match track with
-       | Video_track x ->
-           if not (Ogg.Stream.eos x.os) then
-            begin
-             log#info "%s: Setting end of track %nx." encoder.id id; 
-             x.stream_end x.os
-            end;
-           add_available x encoder
-       | Audio_track x -> 
-           if not (Ogg.Stream.eos x.os) then
-            begin
-             log#info "%s: Setting end of track %nx." encoder.id id;
-             x.stream_end x.os
-            end;
-           add_available x encoder
+    begin
+      log#info "%s: Stream finished without calling streams_start !" encoder.id; 
+      streams_start encoder
+    end;
+  match track with
+    | Video_track x ->
+      if not (Ogg.Stream.eos x.os) then
+        begin
+          log#info "%s: Setting end of track %nx." encoder.id id; 
+          x.stream_end x.os
+        end;
+      add_available x encoder
+    | Audio_track x -> 
+      if not (Ogg.Stream.eos x.os) then
+        begin
+          log#info "%s: Setting end of track %nx." encoder.id id;
+          x.stream_end x.os
+        end;
+      add_available x encoder
 
 (** Flush data from all tracks in the stream. *)
 let flush encoder =
   begin
-   match encoder.skeleton with
-     | Some os -> add_flushed_pages encoder os
-     | None -> ()
+    match encoder.skeleton with
+      | Some os -> add_flushed_pages encoder os
+      | None -> ()
   end;
   while Hashtbl.length encoder.tracks > 0 do
     Hashtbl.iter (fun id -> fun _ -> end_of_track encoder id) encoder.tracks

@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,13 +25,13 @@ open Lang_builtins
 let () =
   let add op name descr =
     let t = Lang.float_t in
-      add_builtin name ~cat:Math ~descr
-        ["",t,None,None] t
-        (fun p ->
-           match p with
+    add_builtin name ~cat:Math ~descr
+      ["",t,None,None] t
+      (fun p ->
+         match p with
            | ["",{Lang.value=Lang.Float a;_}] ->
-                 Lang.float (op a)
-             | _ -> assert false)
+             Lang.float (op a)
+           | _ -> assert false)
   in
   add sqrt "sqrt" "Square root.";
   add exp "exp" "Exponential.";
@@ -51,34 +51,34 @@ let () =
 
 let () =
   let t = Lang.int_t in
-    add_builtin "mod" ~cat:Math
-      ~descr:"Integer remainder. If y is not zero, x == (x / y) * y + x mod y, \
-              and abs(x mod y) <= abs(y)-1."
-      ["",t,None,None;"",t,None,None] t
-      (fun p ->
-         match p with
+  add_builtin "mod" ~cat:Math
+    ~descr:"Integer remainder. If y is not zero, x == (x / y) * y + x mod y, \
+            and abs(x mod y) <= abs(y)-1."
+    ["",t,None,None;"",t,None,None] t
+    (fun p ->
+       match p with
          | ["",{Lang.value=Lang.Int a;_};"",{Lang.value=Lang.Int b;_}] ->
-               Lang.int (a mod b)
-           | _ -> assert false)
-
-let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
-    add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
-      ["",t,None,None] t
-      (function
-         | ["",{ Lang.value = Lang.Int i;_}] -> Lang.int (~- i)
-         | ["",{ Lang.value = Lang.Float i;_}] -> Lang.float (~-. i)
+           Lang.int (a mod b)
          | _ -> assert false)
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
-    add_builtin "abs" ~cat:Math ~descr:"Absolute value."
-      [ "",t,None,None ] t
-      (fun p ->
-         match (snd (List.hd p)).Lang.value with
-           | Lang.Int i   -> Lang.int (abs i)
-           | Lang.Float i -> Lang.float (abs_float i)
-           | _ -> assert false)
+  add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
+    ["",t,None,None] t
+    (function
+      | ["",{ Lang.value = Lang.Int i;_}] -> Lang.int (~- i)
+      | ["",{ Lang.value = Lang.Float i;_}] -> Lang.float (~-. i)
+      | _ -> assert false)
+
+let () =
+  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
+  add_builtin "abs" ~cat:Math ~descr:"Absolute value."
+    [ "",t,None,None ] t
+    (fun p ->
+       match (snd (List.hd p)).Lang.value with
+         | Lang.Int i   -> Lang.int (abs i)
+         | Lang.Float i -> Lang.float (abs_float i)
+         | _ -> assert false)
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
@@ -88,17 +88,17 @@ let () =
       (fun p ->
          match p with
            | ["",{Lang.value=Lang.Int a;_};"",{Lang.value=Lang.Int b;_}] ->
-               Lang.int (op_int a b)
+             Lang.int (op_int a b)
            | ["",{Lang.value=Lang.Float a;_};"",{Lang.value=Lang.Float b;_}] ->
-               Lang.float (op_float a b)
+             Lang.float (op_float a b)
            | _ -> assert false)
   in
-    register_op "Multiplication" "*" ( * ) ( *. ) ;
-    register_op "Division" "/" (/) (/.) ;
-    register_op "Addition" "+" (+) (+.) ;
-    register_op "Substraction " "-" (-) (-.) ;
-    register_op "Exponentiation" "pow"
-      (fun a b -> int_of_float ((float_of_int a) ** float_of_int b)) ( ** )
+  register_op "Multiplication" "*" ( * ) ( *. ) ;
+  register_op "Division" "/" (/) (/.) ;
+  register_op "Addition" "+" (+) (+.) ;
+  register_op "Substraction " "-" (-) (-.) ;
+  register_op "Exponentiation" "pow"
+    (fun a b -> int_of_float ((float_of_int a) ** float_of_int b)) ( ** )
 
 let () =
   add_builtin "random.float" ~cat:Math ~descr:"Generate a random value."
@@ -109,7 +109,7 @@ let () =
     (fun p ->
        let min = Lang.to_float (List.assoc "min" p) in
        let max = Lang.to_float (List.assoc "max" p) in
-         Lang.float (Random.float (max -. min) +. min))
+       Lang.float (Random.float (max -. min) +. min))
 
 let () =
   add_builtin "random.int" ~cat:Math ~descr:"Generate a random value."
@@ -119,7 +119,7 @@ let () =
     (fun p ->
        let min = Lang.to_int (List.assoc "min" p) in
        let max = Lang.to_int (List.assoc "max" p) in
-         Lang.int (Random.int (max - min) + min))
+       Lang.int (Random.int (max - min) + min))
 
 let () =
   add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random value."

@@ -76,38 +76,38 @@ class virtual unqueued ~kind ~name = object (self)
     assert (Tutils.seems_locked plock) ;
     assert (current = None) ;
     match self#get_next_file with
-    | None ->
-      self#log#debug "Failed to prepare track: no file." ;
-      false
-    | Some req when Request.is_ready req ->
-      assert (Frame.kind_sub_kind
-                (Utils.get_some (Request.kind req))
-                kind) ;
-      (* [Request.is_ready] ensures that we can get a filename from the request,
-         and it can be decoded. *)
-      let file = Utils.get_some (Request.get_filename req) in
-      let decoder = Utils.get_some (Request.get_decoder req) in
-      self#log#important "Prepared %S (RID %d)." file (Request.get_id req) ;
-      (* We use this mutex to avoid seeking and filling at the same time.. *)
-      let m = Mutex.create () in
-      current <-
-        Some
-          { req = req;
-            fill = Tutils.mutexify m
-                (fun buf ->
-                   (remaining <- decoder.Decoder.fill buf));
-            seek = Tutils.mutexify m
-                (fun len -> decoder.Decoder.fseek len);
-            close = decoder.Decoder.close } ;
-      remaining <- (-1) ;
-      send_metadata <- true ;
-      true
-    | Some req ->
-      (* We got an unresolved request.. this shoudn't actually happen *)
-      self#log#critical
-        "Failed to prepare track: request not ready." ;
-      Request.destroy req ;
-      false
+      | None ->
+        self#log#debug "Failed to prepare track: no file." ;
+        false
+      | Some req when Request.is_ready req ->
+        assert (Frame.kind_sub_kind
+                  (Utils.get_some (Request.kind req))
+                  kind) ;
+        (* [Request.is_ready] ensures that we can get a filename from the request,
+           and it can be decoded. *)
+        let file = Utils.get_some (Request.get_filename req) in
+        let decoder = Utils.get_some (Request.get_decoder req) in
+        self#log#important "Prepared %S (RID %d)." file (Request.get_id req) ;
+        (* We use this mutex to avoid seeking and filling at the same time.. *)
+        let m = Mutex.create () in
+        current <-
+          Some
+            { req = req;
+              fill = Tutils.mutexify m
+                  (fun buf ->
+                     (remaining <- decoder.Decoder.fill buf));
+              seek = Tutils.mutexify m
+                  (fun len -> decoder.Decoder.fseek len);
+              close = decoder.Decoder.close } ;
+        remaining <- (-1) ;
+        send_metadata <- true ;
+        true
+      | Some req ->
+        (* We got an unresolved request.. this shoudn't actually happen *)
+        self#log#critical
+          "Failed to prepare track: request not ready." ;
+        Request.destroy req ;
+        false
 
   (** Now we can write the source's methods. *)
 
@@ -126,17 +126,17 @@ class virtual unqueued ~kind ~name = object (self)
     end else begin
       let try_get () =
         match current with
-        | None ->
-          (* We're supposed to be ready so this shouldn't be reached. *)
-          assert false
-        | Some cur ->
-          if send_metadata then begin
-            Request.on_air cur.req ;
-            let m = Request.get_all_metadata cur.req in
-            Frame.set_metadata buf (Frame.position buf) m;
-            send_metadata <- false
-          end ;
-          cur.fill buf
+          | None ->
+            (* We're supposed to be ready so this shouldn't be reached. *)
+            assert false
+          | Some cur ->
+            if send_metadata then begin
+              Request.on_air cur.req ;
+              let m = Request.get_all_metadata cur.req in
+              Frame.set_metadata buf (Frame.position buf) m;
+              send_metadata <- false
+            end ;
+            cur.fill buf
       in
       Tutils.mutexify plock try_get () ;
       if Frame.is_partial buf then self#end_track false
@@ -144,8 +144,8 @@ class virtual unqueued ~kind ~name = object (self)
 
   method seek x =
     match current with
-    | None -> 0
-    | Some cur -> cur.seek x
+      | None -> 0
+      | Some cur -> cur.seek x
 
   method abort_track =
     self#end_track true
@@ -154,8 +154,8 @@ class virtual unqueued ~kind ~name = object (self)
 
   method copy_queue =
     match current with
-    | None -> []
-    | Some cur -> [cur.req]
+      | None -> []
+      | Some cur -> [cur.req]
 
 end
 
@@ -177,7 +177,7 @@ let priority = Tutils.Maybe_blocking
     - the source tries to have more than [length] seconds in queue
     - if the duration of a file is unknown we use [default_duration] seconds
     - downloading a file is required to take less than [timeout] seconds
-   *)
+*)
 class virtual queued ~kind ~name
     ?(length=10.) ?(default_duration=30.)
     ?(conservative=false) ?(timeout=20.) () = object (self)
@@ -330,9 +330,9 @@ class virtual queued ~kind ~name
       self#available_length < min_queue_length
     then
       match self#prefetch with
-      | Finished -> 0.
-      | Retry -> adaptative_delay ()
-      | Empty -> (-1.)
+        | Finished -> 0.
+        | Retry -> adaptative_delay ()
+        | Empty -> (-1.)
     else
       (-1.)
 
@@ -342,46 +342,46 @@ class virtual queued ~kind ~name
       Finished if all went OK. *)
   method private prefetch =
     match self#get_next_request with
-    | None -> Empty
-    | Some req ->
-      resolving <- Some req ;
-      begin match Request.resolve req timeout with
-        | Request.Resolved ->
-          let len =
-            match Request.get_metadata req "duration" with
-            | Some f ->
-              (try float_of_string f with _ -> default_duration)
-            | None -> default_duration
-          in
-          let rec remove_expired n =
-            if n = 0 then () else
-              let r = Queue.take retrieved in
-              if r.expired then begin
-                self#log#info "Dropping expired request." ;
-                Request.destroy r.request
-              end else
-                Queue.add r retrieved ;
-              remove_expired (n-1)
-          in
-          Mutex.lock qlock ;
-          remove_expired (Queue.length retrieved) ;
-          Queue.add
-            { request = req ; duration = len ; expired = false }
-            retrieved ;
-          self#log#info
-            "Remaining: %.1fs, queued: %.1fs, adding: %.1fs (RID %d)"
-            (Frame.seconds_of_master self#remaining)
-            queue_length len (Request.get_id req) ;
-          queue_length <- queue_length +. len ;
-          Mutex.unlock qlock ;
-          resolving <- None ;
-          Finished
-        | Request.Failed (* Failure of resolving or decoding *)
-        | Request.Timeout ->
-          resolving <- None ;
-          Request.destroy req ;
-          Retry
-      end
+      | None -> Empty
+      | Some req ->
+        resolving <- Some req ;
+        begin match Request.resolve req timeout with
+          | Request.Resolved ->
+            let len =
+              match Request.get_metadata req "duration" with
+                | Some f ->
+                  (try float_of_string f with _ -> default_duration)
+                | None -> default_duration
+            in
+            let rec remove_expired n =
+              if n = 0 then () else
+                let r = Queue.take retrieved in
+                if r.expired then begin
+                  self#log#info "Dropping expired request." ;
+                  Request.destroy r.request
+                end else
+                  Queue.add r retrieved ;
+                remove_expired (n-1)
+            in
+            Mutex.lock qlock ;
+            remove_expired (Queue.length retrieved) ;
+            Queue.add
+              { request = req ; duration = len ; expired = false }
+              retrieved ;
+            self#log#info
+              "Remaining: %.1fs, queued: %.1fs, adding: %.1fs (RID %d)"
+              (Frame.seconds_of_master self#remaining)
+              queue_length len (Request.get_id req) ;
+            queue_length <- queue_length +. len ;
+            Mutex.unlock qlock ;
+            resolving <- None ;
+            Finished
+          | Request.Failed (* Failure of resolving or decoding *)
+          | Request.Timeout ->
+            resolving <- None ;
+            Request.destroy req ;
+            Retry
+        end
 
   (** Provide the unqueued [super] with resolved requests. *)
   method private get_next_file =
@@ -396,9 +396,9 @@ class virtual queued ~kind ~name
         if not r.expired then queue_length <- queue_length -. r.duration ;
         Some r.request
       with
-      | Queue.Empty ->
-        self#log#debug "Queue is empty!" ;
-        None
+        | Queue.Empty ->
+          self#log#debug "Queue is empty!" ;
+          None
     in
     Mutex.unlock qlock ;
     (* A request has been taken off the queue, there is a chance that the
@@ -439,13 +439,13 @@ class virtual queued ~kind ~name
     Mutex.lock qlock ;
     let q =
       match current with
-      | None -> []
-      | Some cur -> [cur.req]
+        | None -> []
+        | Some cur -> [cur.req]
     in
     let q =
       match resolving with
-      | None -> q
-      | Some r -> r::q
+        | None -> q
+        | Some r -> r::q
     in
     let q = Queue.fold (fun l r -> r.request::l) q retrieved in
     Mutex.unlock qlock ;

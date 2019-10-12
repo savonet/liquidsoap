@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -30,8 +30,8 @@ let create_gen enc freq m =
   in
   let fisbone_packet os = 
     Some (Vorbis.Skeleton.fisbone
-           ~serialno:(Ogg.Stream.serialno os)
-           ~samplerate:(Int64.of_int freq) ())
+            ~serialno:(Ogg.Stream.serialno os)
+            ~samplerate:(Int64.of_int freq) ())
   in
   let stream_start os = 
     Ogg.Stream.put_packet os p2;
@@ -47,8 +47,8 @@ let create_gen enc freq m =
   in
   let empty_data () =
     Array.make
-       (Lazy.force Frame.audio_channels)
-       (Array.make 1 0.)
+      (Lazy.force Frame.audio_channels)
+      (Array.make 1 0.)
   in
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
@@ -67,7 +67,7 @@ let create_gen enc freq m =
     Vorbis.Encoder.end_of_stream enc os
   in
   {
-   Ogg_muxer.
+    Ogg_muxer.
     header_encoder = header_encoder;
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
@@ -79,20 +79,20 @@ let create_gen enc freq m =
 (** Rates are given in bits per seconds,
   * i.e. 128000 instead of 128.. *)
 let create_abr ~channels ~samplerate ~min_rate 
-               ~max_rate ~average_rate ~metadata () = 
+    ~max_rate ~average_rate ~metadata () = 
   let min_rate,max_rate,average_rate = 
     1000*min_rate,1000*max_rate,1000*average_rate
   in
   let enc = 
     Vorbis.Encoder.create channels samplerate max_rate 
-                          average_rate min_rate 
+      average_rate min_rate 
   in
   create_gen enc samplerate metadata
 
 let create_cbr ~channels ~samplerate ~bitrate ~metadata () = 
   create_abr ~channels ~samplerate ~min_rate:bitrate 
-             ~max_rate:bitrate ~average_rate:bitrate 
-             ~metadata ()
+    ~max_rate:bitrate ~average_rate:bitrate 
+    ~metadata ()
 
 let create ~channels ~samplerate ~quality ~metadata () = 
   let enc = 
@@ -102,7 +102,7 @@ let create ~channels ~samplerate ~quality ~metadata () =
 
 let create_vorbis =
   function 
-   | Ogg_format.Vorbis vorbis -> 
+    | Ogg_format.Vorbis vorbis -> 
       let channels = vorbis.Vorbis_format.channels in
       let samplerate = Lazy.force vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
@@ -119,18 +119,18 @@ let create_vorbis =
           in
           match vorbis.Vorbis_format.mode with
             | Vorbis_format.ABR (min_rate,average_rate,max_rate) 
-                -> let min_rate,average_rate,max_rate = 
-                     f min_rate, f average_rate, f max_rate
-                   in
-                   create_abr ~channels ~samplerate 
-                              ~max_rate ~average_rate 
-                              ~min_rate ~metadata ()
+              -> let min_rate,average_rate,max_rate = 
+                   f min_rate, f average_rate, f max_rate
+              in
+              create_abr ~channels ~samplerate 
+                ~max_rate ~average_rate 
+                ~min_rate ~metadata ()
             | Vorbis_format.CBR bitrate 
-                -> create_cbr ~channels ~samplerate 
-                              ~bitrate ~metadata ()
+              -> create_cbr ~channels ~samplerate 
+                   ~bitrate ~metadata ()
             | Vorbis_format.VBR quality 
-                -> create ~channels ~samplerate 
-                          ~quality ~metadata ()
+              -> create ~channels ~samplerate 
+                   ~quality ~metadata ()
         in
         Ogg_muxer.register_track ?fill:vorbis.Vorbis_format.fill ogg_enc enc
       in
@@ -140,11 +140,11 @@ let create_vorbis =
         Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () 
       in
       {
-       Ogg_encoder.
-         reset  = reset ;
-         encode = encode ;
-         id     = None
+        Ogg_encoder.
+        reset  = reset ;
+        encode = encode ;
+        id     = None
       }
-   | _ -> assert false    
+    | _ -> assert false    
 
 let () = Hashtbl.add Ogg_encoder.encoders "vorbis" create_vorbis

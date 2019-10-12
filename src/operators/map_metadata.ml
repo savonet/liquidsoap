@@ -1,65 +1,65 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
 
 class map_metadata ~kind source rewrite_f insert_missing update strip =
-object (self)
-  inherit operator ~name:"map_metadata" kind [source]
+  object (self)
+    inherit operator ~name:"map_metadata" kind [source]
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method remaining = source#remaining
-  method abort_track = source#abort_track
-  method seek n = source#seek n
+    method stype = source#stype
+    method is_ready = source#is_ready
+    method remaining = source#remaining
+    method abort_track = source#abort_track
+    method seek n = source#seek n
 
-  method private rewrite m =
-    let m' = Lang.apply ~t:Lang.metadata_t rewrite_f ["",Lang.metadata m] in
-    let replace_val v =
-      let (x,y) = Lang.to_product v in
-      let x = Lang.to_string x and y = Lang.to_string y in
-      if not strip then
-        Hashtbl.replace m x y
-      else
+    method private rewrite m =
+      let m' = Lang.apply ~t:Lang.metadata_t rewrite_f ["",Lang.metadata m] in
+      let replace_val v =
+        let (x,y) = Lang.to_product v in
+        let x = Lang.to_string x and y = Lang.to_string y in
+        if not strip then
+          Hashtbl.replace m x y
+        else
         if y <> "" then
           Hashtbl.replace m x y
-	else
+        else
           Hashtbl.remove m x
-    in
-    if not update then Hashtbl.clear m ;
-    List.iter replace_val (Lang.to_list m')
+      in
+      if not update then Hashtbl.clear m ;
+      List.iter replace_val (Lang.to_list m')
 
-  val mutable in_track = false
+    val mutable in_track = false
 
-  method private get_frame buf =
-    let p = Frame.position buf in
+    method private get_frame buf =
+      let p = Frame.position buf in
       source#get buf ;
       if insert_missing && not in_track && Frame.position buf > p then begin
         in_track <- true ;
         match Frame.get_metadata buf p with
           | None ->
-              self#log#important "Inserting missing metadata." ;
-              let h = Hashtbl.create 10 in
-                Frame.set_metadata buf p h
+            self#log#important "Inserting missing metadata." ;
+            let h = Hashtbl.create 10 in
+            Frame.set_metadata buf p h
           | Some _ -> ()
       end ;
       if Frame.is_partial buf then in_track <- false ;
@@ -72,15 +72,15 @@ object (self)
            end)
         (Frame.get_all_metadata buf)
 
-end
+  end
 
 let register =
   let kind = Lang.univ_t 1 in
   Lang.add_operator "map_metadata"
     [ "", Lang.fun_t
-            [false,"",
-             Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
-            (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)),
+        [false,"",
+         Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
+        (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)),
       None, Some "A function that returns new metadata." ;
       "update", Lang.bool_t, Some (Lang.bool true),
       Some "Update metadata. If false, existing metadata are cleared and \
@@ -102,4 +102,4 @@ let register =
        let update = Lang.to_bool (List.assoc "update" p) in
        let strip = Lang.to_bool (List.assoc "strip" p) in
        let missing = Lang.to_bool (List.assoc "insert_missing" p) in
-         new map_metadata ~kind source f missing update strip)
+       new map_metadata ~kind source f missing update strip)

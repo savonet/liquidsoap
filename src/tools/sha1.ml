@@ -135,6 +135,6 @@ let digest s =
   Int32.to_string_be !h0 ^ Int32.to_string_be !h1 ^ Int32.to_string_be !h2 ^ Int32.to_string_be !h3 ^ Int32.to_string_be !h4
 
 (* let () = *)
-  (* (\* Example from Wikipedia page *\) *)
-  (* let s = "The quick brown fox jumps over the lazy dog" in *)
-  (* assert (digest s = "\x2f\xd4\xe1\xc6\x7a\x2d\x28\xfc\xed\x84\x9e\xe1\xbb\x76\xe7\x39\x1b\x93\xeb\x12") *)
+(* (\* Example from Wikipedia page *\) *)
+(* let s = "The quick brown fox jumps over the lazy dog" in *)
+(* assert (digest s = "\x2f\xd4\xe1\xc6\x7a\x2d\x28\xfc\xed\x84\x9e\xe1\xbb\x76\xe7\x39\x1b\x93\xeb\x12") *)

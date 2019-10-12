@@ -1,30 +1,30 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
- (** Ogg Stream Encoder *)
+(** Ogg Stream Encoder *)
 
 val log : Log.t
 
- (** {2 Types} *)
+(** {2 Types} *)
 
 exception Invalid_data
 exception Invalid_usage
@@ -100,31 +100,31 @@ type t
   * You can't register new track on state Streaming. *)
 type state = Eos | Streaming | Bos
 
- (** {2 API} *)
+(** {2 API} *)
 
- (** Usage:
-   *
-   * Encoding:
-   *
-   * - [create ~skeleton name] : create a new encoder
-   * - [register_track encoder stream_encoder] : register a new track
-   * - ibid
-   * - (...)
-   * - [streams_start encoder] : start the tracks (optional)
-   * - [encode encoder track_serial track_data] : encode data for one track
-   * - ibid
-   * - (...)
-   * - (encode data for other tracks)
-   * - [end_of_track encoder track_serial] : ends a track. (track end do not need to be simultaneous)
-   * - (...)
-   * - [end_of_stream encoder]: ends all tracks as well as the encoder. Set Eos state on the encoder.
-   * - [register_track encoder stream_encoder] : register a new track, starts a new sequentialized stream
-   * - And so on..
-   *
-   * You get encoded data by calling [get_data], [peek_data].
-   *
-   * See: http://xiph.org/ogg/doc/oggstream.html for more details on the
-   * specifications of an ogg stream. This API reflects exactly what is recomended to do. *)
+(** Usage:
+  *
+  * Encoding:
+  *
+  * - [create ~skeleton name] : create a new encoder
+  * - [register_track encoder stream_encoder] : register a new track
+  * - ibid
+  * - (...)
+  * - [streams_start encoder] : start the tracks (optional)
+  * - [encode encoder track_serial track_data] : encode data for one track
+  * - ibid
+  * - (...)
+  * - (encode data for other tracks)
+  * - [end_of_track encoder track_serial] : ends a track. (track end do not need to be simultaneous)
+  * - (...)
+  * - [end_of_stream encoder]: ends all tracks as well as the encoder. Set Eos state on the encoder.
+  * - [register_track encoder stream_encoder] : register a new track, starts a new sequentialized stream
+  * - And so on..
+  *
+  * You get encoded data by calling [get_data], [peek_data].
+  *
+  * See: http://xiph.org/ogg/doc/oggstream.html for more details on the
+  * specifications of an ogg stream. This API reflects exactly what is recomended to do. *)
 
 (** Create a new encoder.
   * Add an ogg skeleton if [skeleton] is [true]. *)
@@ -168,7 +168,7 @@ val end_of_track : t -> nativeint -> unit
   * Set state to [Eos]. *)
 val end_of_stream : t -> unit
 
-  (** {2 Utils} *)
+(** {2 Utils} *)
 
 (** flush all availables pages from an ogg stream *)
 val flush_pages : Ogg.Stream.stream -> Ogg.Page.t list

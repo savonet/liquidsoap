@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -53,69 +53,69 @@ end
 module Generator =
 struct
 
-(** A chunk with given offset and length. *)
-type 'a chunk = 'a * int * int
+  (** A chunk with given offset and length. *)
+  type 'a chunk = 'a * int * int
 
-let chunk_data ((buf, _, _):'a chunk) = buf
+  let chunk_data ((buf, _, _):'a chunk) = buf
 
-(** A buffer is a queue of chunks. *)
-type 'a buffer = 'a chunk Queue.t
+  (** A buffer is a queue of chunks. *)
+  type 'a buffer = 'a chunk Queue.t
 
-(** All positions and lengths are in ticks. *)
-type 'a t = {
-  mutable length  : int ;
-  mutable offset  : int ;
-  mutable buffers : 'a buffer
-}
-
-let create () =
-  {
-    length    = 0 ;
-    offset    = 0 ;
-    buffers   = Queue.create ()
+  (** All positions and lengths are in ticks. *)
+  type 'a t = {
+    mutable length  : int ;
+    mutable offset  : int ;
+    mutable buffers : 'a buffer
   }
 
-let clear g =
-  g.length <- 0 ;
-  g.offset <- 0 ;
-  g.buffers <- Queue.create ()
+  let create () =
+    {
+      length    = 0 ;
+      offset    = 0 ;
+      buffers   = Queue.create ()
+    }
 
-let length b = b.length
+  let clear g =
+    g.length <- 0 ;
+    g.offset <- 0 ;
+    g.buffers <- Queue.create ()
 
-(** Remove [len] ticks of data. *)
-let rec remove g len =
-  assert (g.length >= len) ;
-  if len>0 then
-  let _,_,b_len = Queue.peek g.buffers in
-    (* Is it enough to advance in the first buffer?
-     * Or do we need to consume it completely and go farther in the queue? *)
-    if g.offset + len < b_len then begin
-      g.length <- g.length - len ;
-      g.offset <- g.offset + len ;
-    end else
-      let removed = b_len - g.offset in
+  let length b = b.length
+
+  (** Remove [len] ticks of data. *)
+  let rec remove g len =
+    assert (g.length >= len) ;
+    if len>0 then
+      let _,_,b_len = Queue.peek g.buffers in
+      (* Is it enough to advance in the first buffer?
+       * Or do we need to consume it completely and go farther in the queue? *)
+      if g.offset + len < b_len then begin
+        g.length <- g.length - len ;
+        g.offset <- g.offset + len ;
+      end else
+        let removed = b_len - g.offset in
         ignore (Queue.take g.buffers) ;
         g.length <- g.length - removed ;
         g.offset <- 0 ;
         remove g (len-removed)
 
-(** Remove data at the end of the generator: this is not a natural operation
-  * for Generators, it's done in linear time. *)
-let remove_end g remove_len =
-  (* Remove length [l] at the beginning of the buffers,
-   * should correspond exactly to some last [n] chunks. *)
-  let rec remove l =
-    if l>0 then
-      let (_,_,len) = Queue.take g.buffers in
+  (** Remove data at the end of the generator: this is not a natural operation
+    * for Generators, it's done in linear time. *)
+  let remove_end g remove_len =
+    (* Remove length [l] at the beginning of the buffers,
+     * should correspond exactly to some last [n] chunks. *)
+    let rec remove l =
+      if l>0 then
+        let (_,_,len) = Queue.take g.buffers in
         assert (l>=len) ;
         remove (l-len)
-  in
-  (* Go through the beginning of length [l] of the queue,
-   * possibly cut some element in half, remove the rest.
-   * The parsed elements are put back at the end
-   * of the queue. *)
-  let rec cut l =
-    let (c,ofs,len) = Queue.take g.buffers in
+    in
+    (* Go through the beginning of length [l] of the queue,
+     * possibly cut some element in half, remove the rest.
+     * The parsed elements are put back at the end
+     * of the queue. *)
+    let rec cut l =
+      let (c,ofs,len) = Queue.take g.buffers in
       if len<l then begin
         Queue.push (c,ofs,len) g.buffers ;
         cut (l-len)
@@ -123,50 +123,50 @@ let remove_end g remove_len =
         Queue.push (c,ofs,l) g.buffers ;
         remove (remove_len-(len-l))
       end
-  in
-  let new_len = g.length - remove_len in
+    in
+    let new_len = g.length - remove_len in
     assert (remove_len>0 && new_len>=0) ;
     cut new_len ;
     g.length <- new_len
 
-(** Feed an item into a generator.
-  * The item is put as such, not copied. *)
-let put g content ofs len =
-  g.length <- g.length + len ;
-  Queue.add (content,ofs,len) g.buffers
+  (** Feed an item into a generator.
+    * The item is put as such, not copied. *)
+  let put g content ofs len =
+    g.length <- g.length + len ;
+    Queue.add (content,ofs,len) g.buffers
 
-(*  Get [size] amount of data from [g].
-  * Returns a list where each element will typically be passed to a blit:
-  * its elements are of the form [b,o,o',l] where [o] is the offset of data
-  * in the block [b], [o'] is the position at which it should be written
-  * (the first position [o'] will always be [0]), and [l] is the length
-  * of data to be taken from that block. *)
-let get g size =
-  (* The main loop takes the current offset in the output buffer,
-   * and iterates on input buffer chunks. *)
-  let rec aux chunks offset =
-    (* How much (more) data should be output? *)
-    let needed = size - offset in
+  (*  Get [size] amount of data from [g].
+    * Returns a list where each element will typically be passed to a blit:
+    * its elements are of the form [b,o,o',l] where [o] is the offset of data
+    * in the block [b], [o'] is the position at which it should be written
+    * (the first position [o'] will always be [0]), and [l] is the length
+    * of data to be taken from that block. *)
+  let get g size =
+    (* The main loop takes the current offset in the output buffer,
+     * and iterates on input buffer chunks. *)
+    let rec aux chunks offset =
+      (* How much (more) data should be output? *)
+      let needed = size - offset in
       assert (needed>0) ;
       let block,block_ofs,block_len = Queue.peek g.buffers in
       let block_len = block_len - g.offset in
       let copied = min needed block_len in
       let chunks = (block, block_ofs + g.offset, offset, copied)::chunks in
-        (* Update buffer data -- did we consume a full block? *)
-        if block_len <= needed then begin
-          ignore (Queue.take g.buffers) ;
-          g.length <- g.length - block_len ;
-          g.offset <- 0
-        end else begin
-          g.length <- g.length - needed ;
-          g.offset <- g.offset + needed
-        end ;
-        (* Add more data by recursing on the next block, or finish. *)
-        if block_len < needed then
-          aux chunks (offset+block_len)
-        else
-          List.rev chunks
-  in
+      (* Update buffer data -- did we consume a full block? *)
+      if block_len <= needed then begin
+        ignore (Queue.take g.buffers) ;
+        g.length <- g.length - block_len ;
+        g.offset <- 0
+      end else begin
+        g.length <- g.length - needed ;
+        g.offset <- g.offset + needed
+      end ;
+      (* Add more data by recursing on the next block, or finish. *)
+      if block_len < needed then
+        aux chunks (offset+block_len)
+      else
+        List.rev chunks
+    in
     if size = 0 then [] else aux [] 0
 
 end
@@ -204,8 +204,8 @@ module Metadata = struct
 
   let remaining g =
     match g.breaks with
-    | a::_ -> a
-    | _ -> -1
+      | a::_ -> a
+      | _ -> -1
 
   let metadata g len =
     List.filter (fun (t,_) -> t < len) g.metadata
@@ -237,9 +237,9 @@ module Metadata = struct
 
   let drop_initial_break g =
     match g.breaks with
-    | 0::tl -> g.breaks <- tl
-    | [] -> () (* end of stream / underrun... *)
-    | _ -> assert false
+      | 0::tl -> g.breaks <- tl
+      | [] -> () (* end of stream / underrun... *)
+      | _ -> assert false
 
   let fill g frame =
     let offset = Frame.position frame in
@@ -251,7 +251,7 @@ module Metadata = struct
     in
     List.iter
       (fun (p,m) ->
-        if p < needed then Frame.set_metadata frame (offset+p) m
+         if p < needed then Frame.set_metadata frame (offset+p) m
       ) g.metadata;
     advance g needed;
     (* Mark the end of this filling. If the frame is partial it must be because
@@ -302,8 +302,8 @@ struct
   let advance fg len =
     let meta = List.map (fun (x,y) -> (x-len,y)) fg.metadata in
     let breaks = List.map (fun x -> x-len) fg.breaks in
-      fg.metadata <- List.filter (fun x -> fst x >= 0) meta;
-      fg.breaks <- List.filter (fun x -> x >= 0) breaks
+    fg.metadata <- List.filter (fun x -> fst x >= 0) meta;
+    fg.breaks <- List.filter (fun x -> x >= 0) breaks
 
   let remove fg len =
     Generator.remove fg.generator len ;
@@ -325,27 +325,27 @@ struct
   (** Take all data from a frame: breaks, metadata and available content. *)
   let feed_from_frame fg frame =
     let size = Lazy.force Frame.size in
-      fg.metadata <-
-        fg.metadata @
-          (List.map
-             (fun (p,m) -> length fg + p, m)
-             (Frame.get_all_metadata frame)) ;
-      fg.breaks <-
-        fg.breaks @
-          (List.map
-             (fun p -> length fg + p)
-             (* Filter out the last break, which only marks the end
-              * of frame, not a track limit (doesn't mean is_partial). *)
-             (List.filter (fun x -> x < size) (Frame.breaks frame))) ;
-      (* Feed all content layers into the generator. *)
-      let rec feed_all ofs = function
-        | (cstop,content)::contents ->
-            Generator.put fg.generator (Frame.copy content) ofs cstop ;
-            if cstop < size then
-              feed_all cstop contents
-        | [] -> assert false
-      in
-        feed_all 0 frame.Frame.contents
+    fg.metadata <-
+      fg.metadata @
+      (List.map
+         (fun (p,m) -> length fg + p, m)
+         (Frame.get_all_metadata frame)) ;
+    fg.breaks <-
+      fg.breaks @
+      (List.map
+         (fun p -> length fg + p)
+         (* Filter out the last break, which only marks the end
+          * of frame, not a track limit (doesn't mean is_partial). *)
+         (List.filter (fun x -> x < size) (Frame.breaks frame))) ;
+    (* Feed all content layers into the generator. *)
+    let rec feed_all ofs = function
+      | (cstop,content)::contents ->
+        Generator.put fg.generator (Frame.copy content) ofs cstop ;
+        if cstop < size then
+          feed_all cstop contents
+      | [] -> assert false
+    in
+    feed_all 0 frame.Frame.contents
 
   (* Fill a frame from the generator's data. *)
   let fill fg frame =
@@ -353,36 +353,36 @@ struct
     let buffer_size = Lazy.force Frame.size in
     let remaining =
       let l = remaining fg in
-        if l = -1 then length fg else l
+      if l = -1 then length fg else l
     in
     let needed = min (buffer_size-offset) remaining in
     let blocks = Generator.get fg.generator needed in
-      List.iter
-        (fun (block,o,o',size) ->
-           let ctype = Frame.type_of_content block in
-           let dst = Frame.content_of_type frame (offset+o') ctype in
-             Frame.blit_content
-               block o
-               dst (offset+o')
-               size)
-        blocks ;
-      List.iter
-        (fun (p,m) ->
-           if p < needed then
-             Frame.set_metadata frame (offset+p) m)
-        fg.metadata ;
-      advance fg needed ;
-      (* Mark the end of this filling.
-       * If the frame is partial it must be because of a break in the
-       * generator, or because the generator is emptying.
-       * Conversely, each break in the generator must cause a partial frame,
-       * so don't remove any if it isn't partial. *)
-      Frame.add_break frame (offset+needed) ;
-      if Frame.is_partial frame then
-        match fg.breaks with
-          | 0::tl -> fg.breaks <- tl
-          | [] -> () (* end of stream / underrun ... *)
-          | _ -> assert false
+    List.iter
+      (fun (block,o,o',size) ->
+         let ctype = Frame.type_of_content block in
+         let dst = Frame.content_of_type frame (offset+o') ctype in
+         Frame.blit_content
+           block o
+           dst (offset+o')
+           size)
+      blocks ;
+    List.iter
+      (fun (p,m) ->
+         if p < needed then
+           Frame.set_metadata frame (offset+p) m)
+      fg.metadata ;
+    advance fg needed ;
+    (* Mark the end of this filling.
+     * If the frame is partial it must be because of a break in the
+     * generator, or because the generator is emptying.
+     * Conversely, each break in the generator must cause a partial frame,
+     * so don't remove any if it isn't partial. *)
+    Frame.add_break frame (offset+needed) ;
+    if Frame.is_partial frame then
+      match fg.breaks with
+        | 0::tl -> fg.breaks <- tl
+        | [] -> () (* end of stream / underrun ... *)
+        | _ -> assert false
 
 end
 
@@ -446,12 +446,12 @@ struct
       | `Strict -> assert (audio_length t = video_length t)
       | `Ignore -> ()
       | `Drop ->
-          let alen = audio_length t in
-          let vlen = video_length t in
-            if alen>vlen then
-              Generator.remove_end t.audio (alen-vlen) ;
-            if vlen>alen then
-              Generator.remove_end t.video (vlen-alen)
+        let alen = audio_length t in
+        let vlen = video_length t in
+        if alen>vlen then
+          Generator.remove_end t.audio (alen-vlen) ;
+        if vlen>alen then
+          Generator.remove_end t.video (vlen-alen)
     end ;
     t.breaks <- t.breaks @ [length t]
 
@@ -477,24 +477,24 @@ struct
     assert (content = [||] || Audio.Mono.length content.(0) >= o+l) ;
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
-      Generator.put t.audio content o l ;
-      match t.mode with
-        | `Audio ->
-            Generator.put t.video [||] 0 l
-        | `Both -> ()
-        | `Video | `Undefined -> assert false
+    Generator.put t.audio content o l ;
+    match t.mode with
+      | `Audio ->
+        Generator.put t.video [||] 0 l
+      | `Both -> ()
+      | `Video | `Undefined -> assert false
 
   (** Add some video content. Offset and length are given in video samples. *)
   let put_video t content o l =
     assert (content = [||] || Video.length content.(0) <= o+l) ;
     let o = Frame.master_of_video o in
     let l = Frame.master_of_video l in
-      Generator.put t.video content o l ;
-      match t.mode with
-        | `Video ->
-            Generator.put t.audio [||] 0 l
-        | `Both -> ()
-        | `Audio | `Undefined -> assert false
+    Generator.put t.video content o l ;
+    match t.mode with
+      | `Video ->
+        Generator.put t.audio [||] 0 l
+      | `Both -> ()
+      | `Audio | `Undefined -> assert false
 
   (** Take all data from a frame: breaks, metadata and available content. *)
   let feed_from_frame t frame =
@@ -517,12 +517,12 @@ struct
         let content = Frame.copy content in
         (
           match mode t with
-          | `Audio -> put_audio t content.Frame.audio ofs cstop
-          | `Video -> put_video t content.Frame.video ofs cstop
-          | `Both ->
-            put_audio t content.Frame.audio ofs cstop;
-            put_video t content.Frame.video ofs cstop
-          | `Undefined -> ()
+            | `Audio -> put_audio t content.Frame.audio ofs cstop
+            | `Video -> put_video t content.Frame.video ofs cstop
+            | `Both ->
+              put_audio t content.Frame.audio ofs cstop;
+              put_video t content.Frame.video ofs cstop
+            | `Undefined -> ()
         );
         if cstop < size then feed_all cstop contents
       | [] -> assert false
@@ -533,8 +533,8 @@ struct
   let advance t len =
     let meta = List.map (fun (x,y) -> (x-len,y)) t.metadata in
     let breaks = List.map (fun x -> x-len) t.breaks in
-      t.metadata <- List.filter (fun x -> fst x >= 0) meta;
-      t.breaks <- List.filter (fun x -> x >= 0) breaks
+    t.metadata <- List.filter (fun x -> fst x >= 0) meta;
+    t.breaks <- List.filter (fun x -> x >= 0) breaks
 
   let remove t len =
     Generator.remove t.audio len ;
@@ -546,7 +546,7 @@ struct
     let size = Lazy.force Frame.size in
     let remaining =
       let l = remaining t in
-        if l = -1 then length t else l
+      if l = -1 then length t else l
     in
     let l = min (size-fpos) remaining in
     let audio = Generator.get t.audio l in
@@ -558,66 +558,66 @@ struct
     let rec blit audio video =
       match audio, video with
         | [],[] ->
-            Frame.add_break frame (fpos+l)
+          Frame.add_break frame (fpos+l)
         | (ablk,apos,apos',al)::audio,
           (vblk,vpos,vpos',vl)::video ->
-            (* Audio and video destination positions are the same,
-             * however they need be aligned.
-             * At the beginning they are aligned (and zero), but then
-             * we might advance from a few audio samples, which might
-             * not correspond to an integer number of video samples,
-             * after which vpos' is not the position of a video frame. *)
-            assert (apos'=vpos') ;
-            let fpos = fpos+apos' in
-            let ctype =
-              { Frame.
-                audio = Array.length ablk ;
-                video = Array.length vblk ;
-                midi  = 0 }
-            in
-            let dst = Frame.content_of_type frame fpos ctype in
-            let l = min al vl in
-              Utils.array_iter2 vblk dst.Frame.video
-                (fun v v' ->
-                   let (!) = Frame.video_of_master in
-                   (* How many samples should we output:
-                    * the number of samples expected in total after this
-                    * blit round, minus those that have been outputted before.
-                    * When everything is aligned, this is the same as [!l]. *)
-                   let l = !(vpos'+l) - !vpos' in
-                   Video.blit v !vpos v' !fpos l
-                ) ;
-              Utils.array_iter2 ablk dst.Frame.audio
-                (fun a a' ->
-                   let (!) = Frame.audio_of_master in
-                   (* Same as above, even if in practice everything
-                    * will always be aligned on the audio side. *)
-                   let l = !(apos'+l) - !apos' in
-                     Audio.Mono.blit (Audio.Mono.sub a !apos l) (Audio.Mono.sub a' !fpos l)) ;
-              if al=vl then
-                blit audio video
-              else if al>vl then
-                blit ((ablk,apos+vl,apos'+vl,al-vl)::audio) video
-              else
-                blit audio ((vblk,vpos+al,vpos'+al,vl-al)::video)
+          (* Audio and video destination positions are the same,
+           * however they need be aligned.
+           * At the beginning they are aligned (and zero), but then
+           * we might advance from a few audio samples, which might
+           * not correspond to an integer number of video samples,
+           * after which vpos' is not the position of a video frame. *)
+          assert (apos'=vpos') ;
+          let fpos = fpos+apos' in
+          let ctype =
+            { Frame.
+              audio = Array.length ablk ;
+              video = Array.length vblk ;
+              midi  = 0 }
+          in
+          let dst = Frame.content_of_type frame fpos ctype in
+          let l = min al vl in
+          Utils.array_iter2 vblk dst.Frame.video
+            (fun v v' ->
+               let (!) = Frame.video_of_master in
+               (* How many samples should we output:
+                * the number of samples expected in total after this
+                * blit round, minus those that have been outputted before.
+                * When everything is aligned, this is the same as [!l]. *)
+               let l = !(vpos'+l) - !vpos' in
+               Video.blit v !vpos v' !fpos l
+            ) ;
+          Utils.array_iter2 ablk dst.Frame.audio
+            (fun a a' ->
+               let (!) = Frame.audio_of_master in
+               (* Same as above, even if in practice everything
+                * will always be aligned on the audio side. *)
+               let l = !(apos'+l) - !apos' in
+               Audio.Mono.blit (Audio.Mono.sub a !apos l) (Audio.Mono.sub a' !fpos l)) ;
+          if al=vl then
+            blit audio video
+          else if al>vl then
+            blit ((ablk,apos+vl,apos'+vl,al-vl)::audio) video
+          else
+            blit audio ((vblk,vpos+al,vpos'+al,vl-al)::video)
         | _,_ -> assert false
     in
-      blit audio video ;
-      List.iter
-        (fun (p,m) ->
-           if p<l then
-             Frame.set_metadata frame (fpos+p) m)
-        t.metadata ;
-      advance t l ;
-      (* If the frame is partial it must be because of a break in the
-       * generator, or because the generator is emptying.
-       * Conversely, each break in the generator must cause a partial frame,
-       * so don't remove any if it isn't partial. *)
-      if Frame.is_partial frame then
-        match t.breaks with
-          | 0::tl -> t.breaks <- tl
-          | [] -> () (* end of stream / underrun ... *)
-          | _ -> assert false
+    blit audio video ;
+    List.iter
+      (fun (p,m) ->
+         if p<l then
+           Frame.set_metadata frame (fpos+p) m)
+      t.metadata ;
+    advance t l ;
+    (* If the frame is partial it must be because of a break in the
+     * generator, or because the generator is emptying.
+     * Conversely, each break in the generator must cause a partial frame,
+     * so don't remove any if it isn't partial. *)
+    if Frame.is_partial frame then
+      match t.breaks with
+        | 0::tl -> t.breaks <- tl
+        | [] -> () (* end of stream / underrun ... *)
+        | _ -> assert false
 end
 
 module From_audio_video_plus =
@@ -684,17 +684,17 @@ struct
       (fun () ->
          let p = Frame.position frame in
          let breaks = Frame.breaks frame in
-           Super.fill t.gen frame ;
-           let _,c = Frame.content frame p in
-             if not (Frame.type_has_kind (Frame.type_of_content c) t.kind) then
-               begin
-                 t.log "Incorrect stream type!" ;
-                 t.error <- true ;
-                 Super.clear t.gen ;
-                 Frame.clear_from frame p ;
-                 Frame.set_breaks frame (p::breaks)
-               end)
-        ()
+         Super.fill t.gen frame ;
+         let _,c = Frame.content frame p in
+         if not (Frame.type_has_kind (Frame.type_of_content c) t.kind) then
+           begin
+             t.log "Incorrect stream type!" ;
+             t.error <- true ;
+             Super.clear t.gen ;
+             Frame.clear_from frame p ;
+             Frame.set_breaks frame (p::breaks)
+           end)
+      ()
 
   let remove t len =
     Tutils.mutexify t.lock (Super.remove t.gen) len
@@ -703,11 +703,11 @@ struct
     assert (Tutils.seems_locked t.lock) ;
     match t.overfull with
       | Some (`Drop_old len) when Super.length t.gen + extra > len ->
-          let len = Super.length t.gen + extra - len in
-          let len_time = Frame.seconds_of_master len in
-          t.log
-            (Printf.sprintf "Buffer overrun: Dropping %.2fs. Consider increasing the max buffer size!" len_time);
-          Super.remove t.gen len
+        let len = Super.length t.gen + extra - len in
+        let len_time = Frame.seconds_of_master len in
+        t.log
+          (Printf.sprintf "Buffer overrun: Dropping %.2fs. Consider increasing the max buffer size!" len_time);
+        Super.remove t.gen len
       | _ -> ()
 
   let put_audio t buf off len =

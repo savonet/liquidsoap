@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -41,13 +41,13 @@ let convert_options opts =
       | Some v -> Hashtbl.replace opts name (fn v)
   in
   convert "sample_fmt" (function
-    | `String fmt ->
+      | `String fmt ->
         `Int (FFmpeg.Avutil.Sample_format.(get_id (find fmt)))
-    | _ -> assert false);
+      | _ -> assert false);
   convert "channel_layout" (function
-    | `String layout ->
+      | `String layout ->
         `Int (FFmpeg.Avutil.Channel_layout.(get_id (find layout)))
-    | _ -> assert false)
+      | _ -> assert false)
 
 let encoder ffmpeg meta =
   let short_name = ffmpeg.Ffmpeg_format.format in
@@ -85,8 +85,8 @@ let encoder ffmpeg meta =
   let make () =
     let opts =
       Av.mk_audio_opts ~channels:ffmpeg.Ffmpeg_format.channels
-                       ~sample_rate:(Lazy.force ffmpeg.Ffmpeg_format.samplerate)
-                       ()
+        ~sample_rate:(Lazy.force ffmpeg.Ffmpeg_format.samplerate)
+        ()
     in
     Hashtbl.iter (Hashtbl.add opts) options;
     let converter =
@@ -105,8 +105,8 @@ let encoder ffmpeg meta =
       Av.new_audio_stream ~opts ~codec output
     in
     if Hashtbl.length opts > 0 then
-       failwith (Printf.sprintf "Unrecognized options: %s" 
-         (Ffmpeg_format.string_of_options opts));
+      failwith (Printf.sprintf "Unrecognized options: %s" 
+                  (Ffmpeg_format.string_of_options opts));
     {output; stream; converter}
   in
   let h = ref (make ()) in
@@ -124,7 +124,7 @@ let encoder ffmpeg meta =
     Av.close !h.output;
     h := make ();
     let m = Hashtbl.fold (fun lbl v l ->
-      (lbl,v)::l) (Meta_format.to_metadata m) []
+        (lbl,v)::l) (Meta_format.to_metadata m) []
     in
     Av.set_metadata !h.stream m
   in
@@ -133,16 +133,16 @@ let encoder ffmpeg meta =
     Av.close !h.output;
     Buffer.contents buf
   in
-    {
-     Encoder.
-      insert_metadata = insert_metadata ;
-      header = None ;
-      encode = encode ;
-      stop = stop
-    }
+  {
+    Encoder.
+    insert_metadata = insert_metadata ;
+    header = None ;
+    encode = encode ;
+    stop = stop
+  }
 
 let () =
   Encoder.plug#register "FFMPEG"
     (function
-       | Encoder.Ffmpeg m -> Some (fun _ -> encoder m)
-       | _ -> None)
+      | Encoder.Ffmpeg m -> Some (fun _ -> encoder m)
+      | _ -> None)

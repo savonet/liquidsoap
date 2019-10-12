@@ -1,7 +1,7 @@
 (** Websockets. *)
-  
+
 type 'a unix_opt = 'a -> Bytes.t -> int -> int -> int
-  
+
 module type Transport_t =
 sig
   type socket
@@ -32,7 +32,7 @@ sig
   val write : socket -> msg -> unit
   val upgrade : (string * string) list -> string
 end
-  
+
 module Make(T:Transport_t) : Websocket_t with type socket = T.socket =
 struct
   type socket = T.socket
@@ -43,14 +43,14 @@ struct
     | `Ping of string
     | `Pong of string
     | `Text of string ]
-  
+
   (* Compute websocket anwser. *)
   let wsa wsk =
     let wsa = wsk ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in
     let wsa = Sha1.digest wsa in
     let wsa = Utils.encode64 wsa in
     wsa
-  
+
   (** Handle an upgrade to websocket request. *)
   let upgrade headers =
     assert (List.assoc "Upgrade" headers = "websocket");
@@ -77,7 +77,7 @@ struct
        %s\
        Upgrade: websocket\r\n\
        \r\n" origin wsa version
-  
+
   (** Websocket frames. *)
   module Frame = struct
     (** A websocket frame. *)
@@ -90,7 +90,7 @@ struct
         opcode : int;
         data : string;
       }
-  
+
     (** Forge a frame. *)
     let to_string f =
       let bit b = if b then 1 else 0 in
@@ -100,7 +100,7 @@ struct
       let b0 = String.make 1 b0 in
       let blen =
         if len <= 125 then
-         String.make 1 (char_of_int len)
+          String.make 1 (char_of_int len)
         else if len <= 0xffff then
           let ans = Bytes.create 3 in
           Bytes.set ans 0 '\126';
@@ -117,7 +117,7 @@ struct
           Bytes.unsafe_to_string ans
       in
       b0 ^ blen ^ f.data
-  
+
     (** Read a websocket frame. *)
     let read s =
       let read_char () =
@@ -185,7 +185,7 @@ struct
       let data = Bytes.unsafe_to_string data in
       { fin = fin; rsv1 = rsv1; rsv2 = rsv2; rsv3 = rsv3; opcode = opcode; data = data }
   end
-  
+
   let rec read s =
     let frame = Frame.read s in
     let data = frame.Frame.data in
@@ -193,47 +193,47 @@ struct
        control frames can be inserted in the middle of a fragmented packet. *)
     assert (frame.Frame.fin = true);
     match frame.Frame.opcode with
-    | 0x1 -> `Text data
-    | 0x2 -> `Binary data
-    | 0x8 ->
-      let reason =
-      if data = "" then
-        None
-      else
-        (
-          assert (String.length data >= 2);
-          let code = int_of_char data.[0] lsl 8 + int_of_char data.[1] in
-          Some (code, String.sub data 2 (String.length data - 2))
-        )
-      in
-      `Close reason
-    | 0x9 -> `Ping data
-    | 0xa -> `Pong data
-    | _ -> read s
-  
+      | 0x1 -> `Text data
+      | 0x2 -> `Binary data
+      | 0x8 ->
+        let reason =
+          if data = "" then
+            None
+          else
+            (
+              assert (String.length data >= 2);
+              let code = int_of_char data.[0] lsl 8 + int_of_char data.[1] in
+              Some (code, String.sub data 2 (String.length data - 2))
+            )
+        in
+        `Close reason
+      | 0x9 -> `Ping data
+      | 0xa -> `Pong data
+      | _ -> read s
+
   let to_string data =
     let frame = { Frame. fin = true; rsv1 = false; rsv2 = false; rsv3 = false; opcode = 0; data = "" } in
     let frame =
       match data with
-      | `Text s -> { frame with Frame. opcode = 0x1; data = s }
-      | `Binary data -> { frame with Frame. opcode = 0x2; data = data }
-      | `Close r ->
-        let data =
-          match r with
-          | None -> ""
-          | Some (n, msg) ->
-            let nn = Bytes.create 2 in
-            Bytes.set nn 0 (char_of_int (n lsr 8));
-            Bytes.set nn 1 (char_of_int (n land 0xff));
-            (Bytes.unsafe_to_string nn) ^ msg
-        in
-        { frame with Frame. opcode = 0x8; data = data }
-      | `Ping data -> { frame with Frame. opcode = 0x9; data = data }
-      | `Pong data -> { frame with Frame. opcode = 0xa; data = data }
-      | _ -> assert false
+        | `Text s -> { frame with Frame. opcode = 0x1; data = s }
+        | `Binary data -> { frame with Frame. opcode = 0x2; data = data }
+        | `Close r ->
+          let data =
+            match r with
+              | None -> ""
+              | Some (n, msg) ->
+                let nn = Bytes.create 2 in
+                Bytes.set nn 0 (char_of_int (n lsr 8));
+                Bytes.set nn 1 (char_of_int (n land 0xff));
+                (Bytes.unsafe_to_string nn) ^ msg
+          in
+          { frame with Frame. opcode = 0x8; data = data }
+        | `Ping data -> { frame with Frame. opcode = 0x9; data = data }
+        | `Pong data -> { frame with Frame. opcode = 0xa; data = data }
+        | _ -> assert false
     in
     Frame.to_string frame
-  
+
   let write s data =
     let frame = to_string data in
     let n = T.write s (Bytes.of_string frame) 0 (String.length frame) in

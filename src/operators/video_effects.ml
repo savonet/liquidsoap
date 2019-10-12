@@ -1,47 +1,47 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
 
 class effect ~kind effect (source:source) =
-object
-  inherit operator ~name:"video.effect" kind [source]
+  object
+    inherit operator ~name:"video.effect" kind [source]
 
-  method stype = source#stype
+    method stype = source#stype
 
-  method remaining = source#remaining
+    method remaining = source#remaining
 
-  method seek = source#seek
+    method seek = source#seek
 
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
+    method is_ready = source#is_ready
+    method abort_track = source#abort_track
 
-  method private get_frame buf =
-    match VFrame.get_content buf source with
-      | None -> ()
-      | Some (rgb,offset,length) ->
-         let rgb = rgb.(0) in
-         Video.iter effect rgb offset length
-end
+    method private get_frame buf =
+      match VFrame.get_content buf source with
+        | None -> ()
+        | Some (rgb,offset,length) ->
+          let rgb = rgb.(0) in
+          Video.iter effect rgb offset length
+  end
 
 let kind =
   Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ())
@@ -55,7 +55,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Video.Image.Effect.greyscale src)
+       new effect ~kind Video.Image.Effect.greyscale src)
 
 let () =
   Lang.add_operator "video.sepia"
@@ -66,7 +66,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Video.Image.Effect.sepia src)
+       new effect ~kind Video.Image.Effect.sepia src)
 
 let () =
   Lang.add_operator "video.invert"
@@ -77,7 +77,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Video.Image.Effect.invert src)
+       new effect ~kind Video.Image.Effect.invert src)
 
 (*
 let () =

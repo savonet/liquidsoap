@@ -1,6 +1,6 @@
 let json =
   [|
-"\
+    "\
 {\n\
   \"firstName\": \"John\",\n\
   \"lastName\": \"Smith\",\n\

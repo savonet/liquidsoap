@@ -1,32 +1,32 @@
 (* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 exception Bind_error of string
 
 let () = Printexc.register_printer (function
-  | Bind_error msg ->
+    | Bind_error msg ->
       Some (Printf.sprintf "Error while trying to bind server/telnet socket: %s" msg)
-  | _ -> None)
+    | _ -> None)
 
 let conf =
   Dtools.Conf.void
@@ -130,9 +130,9 @@ let register ns kind =
   in
   Tutils.mutexify lock
     (fun () ->
-      let ns = ns () in
-      Hashtbl.add namespaces ns kind ;
-      ns )
+       let ns = ns () in
+       Hashtbl.add namespaces ns kind ;
+       ns )
     ()
 
 let to_string = String.concat "."
@@ -145,13 +145,13 @@ let add ~ns ?usage ~descr cmd handler =
   let usage = prefix_ns usage ns in
   Tutils.mutexify lock
     (fun () ->
-      let name = prefix_ns cmd ns in
-      if Hashtbl.mem commands name then
-        log#severe
-          "Server command %s already registered! Previous definition replaced.."
-          name
-      else () ;
-      Hashtbl.replace commands (prefix_ns cmd ns) (handler, usage, descr) )
+       let name = prefix_ns cmd ns in
+       if Hashtbl.mem commands name then
+         log#severe
+           "Server command %s already registered! Previous definition replaced.."
+           name
+       else () ;
+       Hashtbl.replace commands (prefix_ns cmd ns) (handler, usage, descr) )
     ()
 
 (* ... maybe remove them *)
@@ -217,18 +217,18 @@ let read ~after payload = raise (Read {payload; after})
 let unregister ns =
   Tutils.mutexify lock
     (fun () ->
-      let ns_str = to_string ns in
-      let ns_len = String.length ns_str in
-      let is_prefix cmd =
-        String.length cmd > ns_len && ns_str = String.sub cmd 0 ns_len
-      in
-      let to_remove =
-        Hashtbl.fold
-          (fun cmd _ l -> if is_prefix cmd then cmd :: l else l)
-          commands []
-      in
-      List.iter (Hashtbl.remove commands) to_remove ;
-      Hashtbl.remove namespaces ns )
+       let ns_str = to_string ns in
+       let ns_len = String.length ns_str in
+       let is_prefix cmd =
+         String.length cmd > ns_len && ns_str = String.sub cmd 0 ns_len
+       in
+       let to_remove =
+         Hashtbl.fold
+           (fun cmd _ l -> if is_prefix cmd then cmd :: l else l)
+           commands []
+       in
+       List.iter (Hashtbl.remove commands) to_remove ;
+       Hashtbl.remove namespaces ns )
     ()
 
 (* The usage string sums up all the commands... *)
@@ -251,24 +251,24 @@ let () =
   add "quit" ~descr:"Close current server session." (fun _ -> raise Exit) ;
   add "help" ~usage:"help [<command>]"
     ~descr:"Get information on available commands." (fun args ->
-      try
-        let args = Pcre.substitute ~pat:"\\s*" ~subst:(fun _ -> "") args in
-        let _, us, d = Tutils.mutexify lock (Hashtbl.find commands) args in
-        Printf.sprintf "Usage: %s\r\n  %s" us d
-      with Not_found ->
-        (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
-        ^ "Available commands:" ^ usage () ^ "\r\n\r\n"
-        ^ "Type \"help <command>\" for more information." ) ;
+        try
+          let args = Pcre.substitute ~pat:"\\s*" ~subst:(fun _ -> "") args in
+          let _, us, d = Tutils.mutexify lock (Hashtbl.find commands) args in
+          Printf.sprintf "Usage: %s\r\n  %s" us d
+        with Not_found ->
+          (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
+          ^ "Available commands:" ^ usage () ^ "\r\n\r\n"
+          ^ "Type \"help <command>\" for more information." ) ;
   add "list"
     ~descr:"Get the list of available operators with their interfaces."
     (fun _ ->
-      Tutils.mutexify lock
-        (fun () ->
-          String.concat "\r\n"
-            (Hashtbl.fold
-               (fun k v s -> Printf.sprintf "%s : %s" (to_string k) v :: s)
-               namespaces []) )
-        () )
+       Tutils.mutexify lock
+         (fun () ->
+            String.concat "\r\n"
+              (Hashtbl.fold
+                 (fun k v s -> Printf.sprintf "%s : %s" (to_string k) v :: s)
+                 namespaces []) )
+         () )
 
 let exec s =
   let s, args =
@@ -281,23 +281,23 @@ let exec s =
     let command, _, _ = Tutils.mutexify lock (Hashtbl.find commands) s in
     command args
   with
-  | Server_wait opts -> raise (Server_wait opts)
-  | Write opts -> raise (Write opts)
-  | Read opts -> raise (Read opts)
-  | Exit -> raise Exit
-  | Not_found ->
+    | Server_wait opts -> raise (Server_wait opts)
+    | Write opts -> raise (Write opts)
+    | Read opts -> raise (Read opts)
+    | Exit -> raise Exit
+    | Not_found ->
       "ERROR: unknown command, type \"help\" to get a list of commands."
-  | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
+    | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
 
 let handle_client socket ip =
   let on_error e =
     ( match e with
-    | Duppy.Io.Io_error -> ()
-    | Duppy.Io.Timeout ->
+      | Duppy.Io.Io_error -> ()
+      | Duppy.Io.Timeout ->
         log#info "Timeout reached while communicating to client %s." ip
-    | Duppy.Io.Unix (c, p, m) ->
+      | Duppy.Io.Unix (c, p, m) ->
         log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-    | Duppy.Io.Unknown e -> log#important "%s" (Printexc.to_string e) ) ;
+      | Duppy.Io.Unknown e -> log#important "%s" (Printexc.to_string e) ) ;
     Duppy e
   in
   let h =
@@ -313,10 +313,10 @@ let handle_client socket ip =
     Duppy.Monad.bind __pa_duppy_0 (fun req ->
         let rec run exec =
           try Duppy.Monad.return (exec ()) with
-          | Server_wait opts ->
+            | Server_wait opts ->
               Duppy.Monad.bind (Duppy_c.wait opts.condition opts.mutex)
                 (fun () -> run opts.resume )
-          | Write opts ->
+            | Write opts ->
               (* Make sure write are synchronous by setting TCP_NODELAY off and off. *)
               Unix.setsockopt socket Unix.TCP_NODELAY false;
               Duppy.Monad.bind
@@ -325,9 +325,9 @@ let handle_client socket ip =
                    ~priority:Tutils.Non_blocking h
                    (Bytes.of_string opts.payload))
                 (fun () ->
-                  Unix.setsockopt socket Unix.TCP_NODELAY true;
-                  run opts.after)
-          | Read opts ->
+                   Unix.setsockopt socket Unix.TCP_NODELAY true;
+                   run opts.after)
+            | Read opts ->
               let __pa_duppy_0 =
                 Duppy.Monad.Io.read
                   ?timeout:(Some (get_timeout ()))
@@ -335,7 +335,7 @@ let handle_client socket ip =
               in
               Duppy.Monad.bind __pa_duppy_0 (fun ret ->
                   run (fun () -> opts.after ret) )
-          | e -> Duppy.Monad.raise e
+            | e -> Duppy.Monad.raise e
         in
         let __pa_duppy_0 =
           Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
@@ -348,37 +348,37 @@ let handle_client socket ip =
                     ?timeout:(Some (* "BEGIN\r\n"; *) (get_timeout ()))
                     ~priority:Tutils.Non_blocking h (Bytes.of_string ans))
                  (fun () ->
-                   Duppy.Monad.Io.write
-                     ?timeout:(Some (get_timeout ()))
-                     ~priority:Tutils.Non_blocking h
-                     (Bytes.of_string "\r\nEND\r\n") ))
+                    Duppy.Monad.Io.write
+                      ?timeout:(Some (get_timeout ()))
+                      ~priority:Tutils.Non_blocking h
+                      (Bytes.of_string "\r\nEND\r\n") ))
               (fun () -> Duppy.Monad.return ()) ) )
   in
   let close () = try Unix.close socket with _ -> () in
   let rec run () =
     let raise = function
       | (Exit | Duppy Duppy.Io.Timeout) as e ->
-          let on_error e =
-            ignore (on_error e) ;
-            log#important "Client %s disconnected while saying goodbye..!" ip ;
-            close ()
-          in
-          let msg =
-            match e with
+        let on_error e =
+          ignore (on_error e) ;
+          log#important "Client %s disconnected while saying goodbye..!" ip ;
+          close ()
+        in
+        let msg =
+          match e with
             | Exit -> "Bye!\r\n"
             | Duppy Duppy.Io.Timeout -> "Connection timed out.. Bye!\r\n"
             | _ -> assert false
-          in
-          let exec () =
-            log#important "Client %s disconnected." ip ;
-            close ()
-          in
-          Duppy.Io.write ~timeout:(get_timeout ())
-            ~priority:Tutils.Non_blocking ~on_error ~exec Tutils.scheduler
-            ~string:(Bytes.of_string msg) socket
-      | _ ->
-          log#important "Client %s disconnected without saying goodbye..!" ip ;
+        in
+        let exec () =
+          log#important "Client %s disconnected." ip ;
           close ()
+        in
+        Duppy.Io.write ~timeout:(get_timeout ())
+          ~priority:Tutils.Non_blocking ~on_error ~exec Tutils.scheduler
+          ~string:(Bytes.of_string msg) socket
+      | _ ->
+        log#important "Client %s disconnected without saying goodbye..!" ip ;
+        close ()
     in
     Duppy.Monad.run ~return:run ~raise process
   in
@@ -414,9 +414,9 @@ let start_socket () =
   else () ;
   if Sys.file_exists socket_path then Unix.unlink socket_path else () ;
   begin
-   try
-    Unix.bind sock bind_addr
-   with exn -> raise (Bind_error (Printexc.to_string exn))
+    try
+      Unix.bind sock bind_addr
+    with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
   Unix.listen sock max_conn ;
   ignore
@@ -441,7 +441,7 @@ let start_telnet () =
     ignore
       (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom]
          ~name:"Server shutdown" (fun () ->
-           log#important "Closing socket." ; Unix.close sock ))
+             log#important "Closing socket." ; Unix.close sock ))
   in
   (* Set TCP_NODELAY on the socket *)
   Unix.setsockopt sock Unix.TCP_NODELAY true ;
@@ -461,9 +461,9 @@ let start_telnet () =
   in
   Unix.setsockopt sock Unix.SO_REUSEADDR true ;
   begin
-   try
-    Unix.bind sock bind_addr
-   with exn -> raise (Bind_error (Printexc.to_string exn))
+    try
+      Unix.bind sock bind_addr
+    with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
   Unix.listen sock max_conn ;
   Duppy.Task.add Tutils.scheduler

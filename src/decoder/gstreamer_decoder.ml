@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -167,16 +167,16 @@ module Make (Generator : Generator.S_Asio) = struct
         GU.flush ~log gst.bin;
         Gstreamer_utils.master_of_time (Int64.sub new_pos pos) 
       with
-       | exn ->
-           log#important "Seek failed: %s" (Printexc.to_string exn);
-           log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
-           0
+        | exn ->
+          log#important "Seek failed: %s" (Printexc.to_string exn);
+          log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
+          0
     in
 
-  let close () =
-    ignore(Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
-    GU.flush ~log gst.bin
-  in
+    let close () =
+      ignore(Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
+      GU.flush ~log gst.bin
+    in
 
     { Decoder.
       decode = decode;
@@ -202,9 +202,9 @@ let file_extensions =
 let create_file_decoder filename content_type kind =
   let mode =
     match content_type.Frame.video, content_type.Frame.audio with
-    | 0, _ -> `Audio
-    | _, 0 -> `Video
-    | _, _ -> `Both
+      | 0, _ -> `Audio
+      | _, 0 -> `Video
+      | _, _ -> `Both
   in
   let channels = content_type.Frame.audio in
   let generator = G.create mode in
@@ -266,7 +266,7 @@ let get_type ~channels filename =
       else
         0
     with
-    | Gstreamer.Failed -> 0
+      | Gstreamer.Failed -> 0
   in
   { Frame. video; audio; midi = 0 }
 
@@ -274,33 +274,33 @@ let () =
   Decoder.file_decoders#register "GSTREAMER"
     ~sdoc:"Decode a file using GStreamer."
     (fun ~metadata:_ filename kind ->
-      if not (Decoder.test_file
-                ~mimes:mime_types#get
-                ~extensions:file_extensions#get
-                ~log filename)
-      then
-        None
-      else
-        let channels =
-          (* Get the default expected number of audio channels *)
-          (Frame.type_of_kind kind).Frame.audio
-        in
-        let content_type = get_type ~channels filename in
-        let content_type =
-          (* If the kind doesn't allow audio, or video, pretend that we don't
-           * have any: it will be dropped anyway. A more fine-grained approach
-           * might or might not be possible, based on the number of channels. *)
-          if kind.Frame.video = Frame.Zero then
-            { content_type with Frame.video = 0 }
-          else if kind.Frame.audio = Frame.Zero then
-            { content_type with Frame.audio = 0 }
-          else
-            content_type
-        in
-        if Frame.type_has_kind content_type kind then
-          Some (fun () -> create_file_decoder filename content_type kind)
-        else
-          None
+       if not (Decoder.test_file
+                 ~mimes:mime_types#get
+                 ~extensions:file_extensions#get
+                 ~log filename)
+       then
+         None
+       else
+         let channels =
+           (* Get the default expected number of audio channels *)
+           (Frame.type_of_kind kind).Frame.audio
+         in
+         let content_type = get_type ~channels filename in
+         let content_type =
+           (* If the kind doesn't allow audio, or video, pretend that we don't
+            * have any: it will be dropped anyway. A more fine-grained approach
+            * might or might not be possible, based on the number of channels. *)
+           if kind.Frame.video = Frame.Zero then
+             { content_type with Frame.video = 0 }
+           else if kind.Frame.audio = Frame.Zero then
+             { content_type with Frame.audio = 0 }
+           else
+             content_type
+         in
+         if Frame.type_has_kind content_type kind then
+           Some (fun () -> create_file_decoder filename content_type kind)
+         else
+           None
     )
 
 (** Stream decoder *)
@@ -333,9 +333,9 @@ let () =
    http://gstreamer.freedesktop.org/data/doc/gstreamer/head/manual/html/chapter-metadata.html *)
 let get_tags file =
   if not
-    (Decoder.test_file ~mimes:mime_types#get
-       ~extensions:file_extensions#get
-       ~log file)
+      (Decoder.test_file ~mimes:mime_types#get
+         ~extensions:file_extensions#get
+         ~log file)
   then raise Not_found;
   let pipeline =
     Printf.sprintf "filesrc location=\"%s\" ! decodebin ! fakesink" file
@@ -357,18 +357,18 @@ let get_tags file =
       match msg.Gstreamer.Bus.payload with
         | `Error _ -> GU.handler ~log ~on_error:(fun _ -> ()) msg; raise Exit
         | `Tag tags ->
-            List.iter
-              (fun (l,v) ->
-                match v with
-                  | [v] -> ans := (l,v) :: !ans
-                  | _ -> ()) tags
+          List.iter
+            (fun (l,v) ->
+               match v with
+                 | [v] -> ans := (l,v) :: !ans
+                 | _ -> ()) tags
         | _ -> assert false
     done;
     assert false
   with
-  | Exit ->
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
-    GU.flush ~log bin;
-    List.rev !ans
+    | Exit ->
+      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
+      GU.flush ~log bin;
+      List.rev !ans
 
 let () = Request.mresolvers#register "GSTREAMER" get_tags

@@ -1,34 +1,34 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
 (** Multithreading utilities *)
 
 (** {1 Thread wrapper}
-  Give names to threads, and forbid them to raise an exception;
-  if that happens, the thread dies anyway but it is logged and [main]
-  will notice it.
-  The main process is expected to run [main] after having launched
-  the needed threads: that function will sleep until a thread
-  raises an exception. *)
+    Give names to threads, and forbid them to raise an exception;
+    if that happens, the thread dies anyway but it is logged and [main]
+    will notice it.
+    The main process is expected to run [main] after having launched
+    the needed threads: that function will sleep until a thread
+    raises an exception. *)
 val create : ('a -> unit) -> 'a -> string -> Thread.t
 val main : unit -> unit
 val has_started : unit -> bool
@@ -100,5 +100,5 @@ val lazy_cell : (unit -> 'a) -> (unit -> 'a)
   * called to request that the thread stops, and the second to wait
   * that it has effectively stopped. *)
 val stoppable_thread :
-     (((unit -> bool) * (unit -> unit)) -> unit) -> string ->
-     (unit -> unit) * (unit -> unit)
+  (((unit -> bool) * (unit -> unit)) -> unit) -> string ->
+  (unit -> unit) * (unit -> unit)

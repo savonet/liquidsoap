@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -26,14 +26,14 @@ let () =
   let rec f ~name ~descr ~final_key cur path =
     match path with
       | el::rem ->
-          let cur =
-            try cur#path [el] with Dtools.Conf.Unbound _ ->
-              let name,descr,key = if rem = [] then (name,descr,final_key) else
+        let cur =
+          try cur#path [el] with Dtools.Conf.Unbound _ ->
+            let name,descr,key = if rem = [] then (name,descr,final_key) else
                 (String.capitalize_ascii el,[],Dtools.Conf.void)
-              in
-              key ~p:(cur#plug el) name ~comments:descr
-          in
-          f ~name ~descr ~final_key cur rem
+            in
+            key ~p:(cur#plug el) name ~comments:descr
+        in
+        f ~name ~descr ~final_key cur rem
       | [] -> cur
   in
   let univ =
@@ -60,32 +60,32 @@ let () =
        let make to_value b ?p ?l ?comments name  =
          let conf = b ?p ?l ?comments name in
          conf#on_change (fun v ->
-           ignore(on_change ["",to_value v]));
+             ignore(on_change ["",to_value v]));
          conf#ut
        in
        let final_key =
          match v.Lang.value with
            | Lang.String s ->
-               make Lang.string (Dtools.Conf.string ~d:s)
+             make Lang.string (Dtools.Conf.string ~d:s)
            | Lang.Int    s ->
-               make Lang.int (Dtools.Conf.int ~d:s)
+             make Lang.int (Dtools.Conf.int ~d:s)
            | Lang.Bool   s ->
-               make Lang.bool (Dtools.Conf.bool ~d:s)
+             make Lang.bool (Dtools.Conf.bool ~d:s)
            | Lang.Float  s ->
-               make Lang.float (Dtools.Conf.float ~d:s)
+             make Lang.float (Dtools.Conf.float ~d:s)
            | Lang.List   l ->
-               let l = List.map Lang.to_string l in
-               let to_value l =
-                 Lang.list ~t:Lang.string_t
-                   (List.map Lang.string l)
-               in
-               make to_value (Dtools.Conf.list ~d:l)
+             let l = List.map Lang.to_string l in
+             let to_value l =
+               Lang.list ~t:Lang.string_t
+                 (List.map Lang.string l)
+             in
+             make to_value (Dtools.Conf.list ~d:l)
            | Lang.Tuple []  ->
-               Dtools.Conf.void
+             Dtools.Conf.void
            | _ -> assert false
        in
        ignore(f ~name ~descr ~final_key
-         Configure.conf (Dtools.Conf.path_of_string path));
+                Configure.conf (Dtools.Conf.path_of_string path));
        Lang.unit)
 
 let () =
@@ -94,54 +94,54 @@ let () =
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
     with
       | Dtools.Conf.Unbound (_, _) ->
-          log#severe "WARNING: there is no configuration key named %S!" path
+        log#severe "WARNING: there is no configuration key named %S!" path
   in
-    add_builtin ~cat:Liq "set"
-      ~descr:"Change some setting. \
-              Use `liquidsoap --conf-descr` and \
-              `liquidsoap --conf-descr-key KEY` on \
-              the command-line to get some information \
-                                    about available settings."
-      ["",Lang.string_t,None,None;
-       "",Lang.univ_t ~constraints:[Lang_types.Dtools] 1,None,None]
-      Lang.unit_t
-      (fun p ->
-         let s = Lang.assoc "" 1 p in
-         let path = Lang.to_string s in
-           try begin match (Lang.assoc "" 2 p).Lang.value with
-               | Lang.Tuple []  -> set Dtools.Conf.as_unit   path ()
-               | Lang.String s -> set Dtools.Conf.as_string path s
-               | Lang.Int    s -> set Dtools.Conf.as_int    path s
-               | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
-               | Lang.Float  s -> set Dtools.Conf.as_float  path s
-               | Lang.List   l ->
-                   let l = List.map Lang.to_string l in
-                     set Dtools.Conf.as_list path l
-               | _ -> assert false
-             end ;
-             Lang.unit
-           with Dtools.Conf.Mismatch _ ->
-             let t =
-               Configure.conf#path
-                 (Dtools.Conf.path_of_string path)
-             in
-             let kind =
-               match t#kind with
-                 | Some "unit" -> "of type unit"
-                 | Some "int" -> "of type int"
-                 | Some "float" -> "of type float"
-                 | Some "bool" -> "of type bool"
-                 | Some "string" -> "of type string"
-                 | Some "list" -> "of type [string]"
-                 | _ -> "untyped"
-             in
-             let msg =
-               Printf.sprintf
-                 "key %S is %s, thus cannot be set to %s"
-                 (Lang.to_string s)
-                 kind (Lang.print_value (Lang.assoc "" 2 p))
-             in
-               raise (Lang_errors.Invalid_value (s,msg)))
+  add_builtin ~cat:Liq "set"
+    ~descr:"Change some setting. \
+            Use `liquidsoap --conf-descr` and \
+            `liquidsoap --conf-descr-key KEY` on \
+            the command-line to get some information \
+            about available settings."
+    ["",Lang.string_t,None,None;
+     "",Lang.univ_t ~constraints:[Lang_types.Dtools] 1,None,None]
+    Lang.unit_t
+    (fun p ->
+       let s = Lang.assoc "" 1 p in
+       let path = Lang.to_string s in
+       try begin match (Lang.assoc "" 2 p).Lang.value with
+         | Lang.Tuple []  -> set Dtools.Conf.as_unit   path ()
+         | Lang.String s -> set Dtools.Conf.as_string path s
+         | Lang.Int    s -> set Dtools.Conf.as_int    path s
+         | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
+         | Lang.Float  s -> set Dtools.Conf.as_float  path s
+         | Lang.List   l ->
+           let l = List.map Lang.to_string l in
+           set Dtools.Conf.as_list path l
+         | _ -> assert false
+       end ;
+         Lang.unit
+       with Dtools.Conf.Mismatch _ ->
+         let t =
+           Configure.conf#path
+             (Dtools.Conf.path_of_string path)
+         in
+         let kind =
+           match t#kind with
+             | Some "unit" -> "of type unit"
+             | Some "int" -> "of type int"
+             | Some "float" -> "of type float"
+             | Some "bool" -> "of type bool"
+             | Some "string" -> "of type string"
+             | Some "list" -> "of type [string]"
+             | _ -> "untyped"
+         in
+         let msg =
+           Printf.sprintf
+             "key %S is %s, thus cannot be set to %s"
+             (Lang.to_string s)
+             kind (Lang.print_value (Lang.assoc "" 2 p))
+         in
+         raise (Lang_errors.Invalid_value (s,msg)))
 
 let () =
   let get cast path v =
@@ -149,32 +149,32 @@ let () =
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#get
     with
       | Dtools.Conf.Unbound (_, _) ->
-          log#severe "WARNING: there is no configuration key named %S!" path ;
-          v
+        log#severe "WARNING: there is no configuration key named %S!" path ;
+        v
   in
   let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] 1 in
-    add_builtin "get" ~cat:Liq ~descr:"Get a setting's value."
-      ["default",univ,None,None;
-       "",Lang.string_t,None,None]
-      univ
-      (fun p ->
-         let path = Lang.to_string (List.assoc "" p) in
-         let v = List.assoc "default" p in
-           match v.Lang.value with
-             | Lang.Tuple [] ->
-                 Lang.unit
-             | Lang.String s ->
-                 Lang.string (get Dtools.Conf.as_string path s)
-             | Lang.Int s ->
-                 Lang.int (get Dtools.Conf.as_int path s)
-             | Lang.Bool s ->
-                 Lang.bool (get Dtools.Conf.as_bool path s)
-             | Lang.Float s ->
-                 Lang.float (get Dtools.Conf.as_float path s)
-             | Lang.List l ->
-                 let l = List.map Lang.to_string l in
-                   Lang.list ~t:Lang.string_t
-                     (List.map
-                        Lang.string
-                        (get Dtools.Conf.as_list path l))
-             | _ -> assert false)
+  add_builtin "get" ~cat:Liq ~descr:"Get a setting's value."
+    ["default",univ,None,None;
+     "",Lang.string_t,None,None]
+    univ
+    (fun p ->
+       let path = Lang.to_string (List.assoc "" p) in
+       let v = List.assoc "default" p in
+       match v.Lang.value with
+         | Lang.Tuple [] ->
+           Lang.unit
+         | Lang.String s ->
+           Lang.string (get Dtools.Conf.as_string path s)
+         | Lang.Int s ->
+           Lang.int (get Dtools.Conf.as_int path s)
+         | Lang.Bool s ->
+           Lang.bool (get Dtools.Conf.as_bool path s)
+         | Lang.Float s ->
+           Lang.float (get Dtools.Conf.as_float path s)
+         | Lang.List l ->
+           let l = List.map Lang.to_string l in
+           Lang.list ~t:Lang.string_t
+             (List.map
+                Lang.string
+                (get Dtools.Conf.as_list path l))
+         | _ -> assert false)

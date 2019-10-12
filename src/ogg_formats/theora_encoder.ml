@@ -1,32 +1,32 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 module Img = Image.Generic
 
 let create_encoder ~theora ~metadata () =
-   let quality,bitrate =
-     match theora.Theora_format.bitrate_control with
-       | Theora_format.Bitrate x -> 0,x
-       | Theora_format.Quality x -> x,0
+  let quality,bitrate =
+    match theora.Theora_format.bitrate_control with
+      | Theora_format.Bitrate x -> 0,x
+      | Theora_format.Quality x -> x,0
   in
   let width              = Lazy.force theora.Theora_format.width in
   let height             = Lazy.force theora.Theora_format.height in
@@ -45,7 +45,7 @@ let create_encoder ~theora ~metadata () =
   let speed              = theora.Theora_format.speed in
   let info =
     {
-     Theora.
+      Theora.
       frame_width = width;
       frame_height = height;
       picture_width = picture_width;
@@ -68,7 +68,7 @@ let create_encoder ~theora ~metadata () =
   in
   let params = 
     {
-     Theora.Encoder.
+      Theora.Encoder.
       keyframe_frequency = keyframe_frequency ;
       vp3_compatible     = vp3_compatible ;
       soft_target        = soft_target ;
@@ -126,13 +126,13 @@ let create_encoder ~theora ~metadata () =
     if granulepos < Int64.zero then
       Ogg_muxer.Unknown
     else
-      if granulepos <> Int64.zero then
-       let index = 
-         Int64.succ (Theora.Encoder.frames_of_granulepos enc granulepos)
-       in
-       Ogg_muxer.Time (Int64.to_float index /. (float fps)) 
-      else
-       Ogg_muxer.Time 0.
+    if granulepos <> Int64.zero then
+      let index = 
+        Int64.succ (Theora.Encoder.frames_of_granulepos enc granulepos)
+      in
+      Ogg_muxer.Time (Int64.to_float index /. (float fps)) 
+    else
+      Ogg_muxer.Time 0.
   in
   let end_of_stream os =
     (* Encode at least some data.. *)
@@ -160,7 +160,7 @@ let create_encoder ~theora ~metadata () =
     Theora.Encoder.eos enc os
   in
   {
-   Ogg_muxer.
+    Ogg_muxer.
     header_encoder = header_encoder;
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
@@ -172,21 +172,21 @@ let create_encoder ~theora ~metadata () =
 let create_theora = 
   function 
     | Ogg_format.Theora theora -> 
-       let reset ogg_enc m =
-         let metadata = 
-           Utils.list_of_metadata (Meta_format.to_metadata m) 
-         in 
-         let enc =
-           create_encoder ~theora ~metadata ()
-         in
-         Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc
-       in
-       { 
+      let reset ogg_enc m =
+        let metadata = 
+          Utils.list_of_metadata (Meta_format.to_metadata m) 
+        in 
+        let enc =
+          create_encoder ~theora ~metadata ()
+        in
+        Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc
+      in
+      { 
         Ogg_encoder.
-           encode = Ogg_encoder.encode_video ;
-           reset  = reset  ;
-           id     = None
-       }
+        encode = Ogg_encoder.encode_video ;
+        reset  = reset  ;
+        id     = None
+      }
     | _ -> assert false
 
 let () = Hashtbl.add Ogg_encoder.encoders "theora" create_theora

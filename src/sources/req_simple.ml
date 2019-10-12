@@ -98,9 +98,9 @@ class dynamic ~kind (f:Lang.value) length default_duration timeout conservative 
       Request.set_root_metadata req "source" self#id ;
       Some req
     with
-    | e ->
-      log#severe "Failed to obtain a media request!" ;
-      raise e
+      | e ->
+        log#severe "Failed to obtain a media request!" ;
+        raise e
 end
 
 let () =

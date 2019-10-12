@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -26,18 +26,18 @@ module Ringbuffer = Audio.Ringbuffer
 
 let average_diff delta buf ofs len =
   let s = ref 0. in
-    for i = 0 to len - delta - 1 do
-      for c = 0 to Array.length buf - 1 do
-        s := !s +. abs_float (buf.(c).{ofs + i + delta} -. buf.(c).{ofs + i})
-      done
-    done;
-    !s /. (float ((len - delta) * (Array.length buf)))
+  for i = 0 to len - delta - 1 do
+    for c = 0 to Array.length buf - 1 do
+      s := !s +. abs_float (buf.(c).{ofs + i + delta} -. buf.(c).{ofs + i})
+    done
+  done;
+  !s /. (float ((len - delta) * (Array.length buf)))
 
 let note_of_freq f =
   let x = log (f /. 440.) /. log 2. +. 1. in
   let x = if x < 0. then 100. +. x else x in
   let x, _ = modf x in
-    int_of_float (x *. 12.) mod 12
+  int_of_float (x *. 12.) mod 12
 
 let string_of_note = function
   | 0 -> "A"
@@ -60,30 +60,30 @@ class pitch ~kind every length freq_min freq_max (source:source) =
   let wl f = int_of_float (samples_per_second /. f) in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let length = Frame.audio_of_seconds length in
-object (self)
-  inherit operator ~name:"pitch" kind [source]
+  object (self)
+    inherit operator ~name:"pitch" kind [source]
 
-  val ring = Ringbuffer.create channels (2 * length)
+    val ring = Ringbuffer.create channels (2 * length)
 
-  (** Array used to get data to analyze. *)
-  val databuf = Audio.create channels length
+    (** Array used to get data to analyze. *)
+    val databuf = Audio.create channels length
 
-  val mutable computations = -1
+    val mutable computations = -1
 
-  method stype = source#stype
+    method stype = source#stype
 
-  method remaining = source#remaining
+    method remaining = source#remaining
 
-  method seek = source#seek
+    method seek = source#seek
 
-  method is_ready = source#is_ready
+    method is_ready = source#is_ready
 
-  method abort_track = source#abort_track
+    method abort_track = source#abort_track
 
-  method private get_frame buf =
-    let pos = AFrame.position buf in
-    source#get buf;
-    let buf = AFrame.content buf pos in
+    method private get_frame buf =
+      let pos = AFrame.position buf in
+      source#get buf;
+      let buf = AFrame.content buf pos in
       Ringbuffer.write ring buf;
       if Ringbuffer.read_space ring > length then
         Ringbuffer.read_advance ring (Ringbuffer.read_space ring - length);
@@ -93,21 +93,21 @@ object (self)
         let wl_max = wl freq_min in
         let d_opt = ref infinity in
         let wl_opt = ref 0 in
-          Ringbuffer.read ring databuf;
-          for l = wl_min to wl_max do
-            let d = average_diff l databuf 0 length in
-              if d < !d_opt then
-                (
-                  (* Printf.printf "d: %.02f      l: %d\n%!" d l; *)
-                  d_opt := d;
-                  wl_opt := l
-                )
-          done;
-          let f = samples_per_second /. float !wl_opt in
-          let f = if f > freq_max then 0. else f in
-            self#log#important "Found frequency: %.02f (%s)\n%!"
-              f (string_of_note (note_of_freq f))
-end
+        Ringbuffer.read ring databuf;
+        for l = wl_min to wl_max do
+          let d = average_diff l databuf 0 length in
+          if d < !d_opt then
+            (
+              (* Printf.printf "d: %.02f      l: %d\n%!" d l; *)
+              d_opt := d;
+              wl_opt := l
+            )
+        done;
+        let f = samples_per_second /. float !wl_opt in
+        let f = if f > freq_max then 0. else f in
+        self#log#important "Found frequency: %.02f (%s)\n%!"
+          f (string_of_note (note_of_freq f))
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
@@ -134,4 +134,4 @@ let () =
        let freq_min = Lang.to_float (f "freq_min") in
        let freq_max = Lang.to_float (f "freq_max") in
        let src = Lang.to_source (f "") in
-         new pitch ~kind 10 length freq_min freq_max src)
+       new pitch ~kind 10 length freq_min freq_max src)

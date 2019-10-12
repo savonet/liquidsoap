@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -59,15 +59,15 @@ let print_some_int v x =
 let to_string th =
   let f = Lazy.force in
   Printf.sprintf "%%theora(%s,width=%d,height=%d,picture_width=%d,\
-                         picture_height=%d,picture_x=%d,picture_y=%d,\
-                         aspect_numerator=%d,aspect_denominator=%d,\
-                         keyframe_frequence=%d,%s,\
-                         soft_target=%b,%s,%s)"
-  (bit_ctl_to_string th.bitrate_control) (f th.width) (f th.height)
-  (f th.picture_width) (f th.picture_height) th.picture_x th.picture_y
-  th.aspect_numerator th.aspect_denominator
-  th.keyframe_frequency
-  (print_some_bool "vp3_compatible" th.vp3_compatible)
-  th.soft_target
-  (print_some_int "buffer_delay" th.buffer_delay)
-  (print_some_int "speed" th.speed)
+                  picture_height=%d,picture_x=%d,picture_y=%d,\
+                  aspect_numerator=%d,aspect_denominator=%d,\
+                  keyframe_frequence=%d,%s,\
+                  soft_target=%b,%s,%s)"
+    (bit_ctl_to_string th.bitrate_control) (f th.width) (f th.height)
+    (f th.picture_width) (f th.picture_height) th.picture_x th.picture_y
+    th.aspect_numerator th.aspect_denominator
+    th.keyframe_frequency
+    (print_some_bool "vp3_compatible" th.vp3_compatible)
+    th.soft_target
+    (print_some_int "buffer_delay" th.buffer_delay)
+    (print_some_int "speed" th.speed)

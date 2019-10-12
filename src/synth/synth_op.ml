@@ -1,58 +1,58 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
 
 class synth ~kind (synth:Synth.synth) (source:source) chan volume =
-object (self)
-  inherit operator ~name:"synth" kind [source]
+  object (self)
+    inherit operator ~name:"synth" kind [source]
 
-  initializer
-    synth#set_volume volume
+    initializer
+      synth#set_volume volume
 
-  method stype = source#stype
+    method stype = source#stype
 
-  method remaining = source#remaining
+    method remaining = source#remaining
 
-  method is_ready = source#is_ready
+    method is_ready = source#is_ready
 
-  method abort_track = source#abort_track
+    method abort_track = source#abort_track
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
-    let midi = MFrame.content buf (MFrame.position buf) in
-    if chan >= Array.length midi then
-      (
-        self#log#important "Cannot read MIDI channel %d, stream only has %d channels." chan (Array.length midi);
-        source#get buf
-      )
-    else
-      let evs = midi.(chan) in
-      source#get buf;
-      let b = AFrame.content buf offset in
-      let position = AFrame.position buf in
-      let len = position - offset in
-      synth#play evs offset (Audio.sub b offset len)
-end
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      let midi = MFrame.content buf (MFrame.position buf) in
+      if chan >= Array.length midi then
+        (
+          self#log#important "Cannot read MIDI channel %d, stream only has %d channels." chan (Array.length midi);
+          source#get buf
+        )
+      else
+        let evs = midi.(chan) in
+        source#get buf;
+        let b = AFrame.content buf offset in
+        let position = AFrame.position buf in
+        let len = position - offset in
+        synth#play evs offset (Audio.sub b offset len)
+  end
 
 let register obj name descr =
   let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:1 ()) in
@@ -87,7 +87,7 @@ let register obj name descr =
            None
        in
        let src = Lang.to_source (f "") in
-         new synth ~kind (obj adsr) src chan volume);
+       new synth ~kind (obj adsr) src chan volume);
   let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:16 ()) in
   Lang.add_operator ("synth.all." ^ name)
     [
@@ -118,9 +118,9 @@ let register obj name descr =
        in
        let synths = Array.init ((Frame.type_of_kind kind).Frame.midi) (fun c -> 1, new synth ~kind (obj adsr) src c 1.) in
        let synths = Array.to_list synths in
-         new Add.add ~kind ~renorm:false synths
-           (fun _ -> ())
-           (fun _ buf tmp -> Video.Image.add buf tmp)
+       new Add.add ~kind ~renorm:false synths
+         (fun _ -> ())
+         (fun _ buf tmp -> Video.Image.add buf tmp)
     )
 
 let () = register (fun adsr -> (new Synth.sine ?adsr (Lazy.force Frame.audio_rate))) "sine" "Sine synthesizer."

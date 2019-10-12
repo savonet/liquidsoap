@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -39,39 +39,39 @@ let annotate s ~log _ =
     let lexer = make_lexer [":";",";"="] str in
     let rec parse metadata =
       match Stream.next lexer with
-      | Kwd ":" ->
-        let uri = String.sub s !pos (l - !pos) in
-        (* Revert the above hack. *)
-        let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
-        metadata, uri
-      | Kwd "," -> parse metadata
-      | Ident key ->
-        if key<>"" && key.[0]=':' then
-          let uri = String.sub key 1 (String.length key - 1) ^ String.sub s !pos (l - !pos) in
+        | Kwd ":" ->
+          let uri = String.sub s !pos (l - !pos) in
           (* Revert the above hack. *)
           let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
           metadata, uri
-        else
-          begin
-            match Stream.next lexer with
-            | Kwd "=" ->
-              begin
-                match Stream.next lexer with
-                | String s -> parse ((key,s)::metadata)
-                | Int i -> parse ((key,string_of_int i)::metadata)
-                | Float f -> parse ((key,string_of_float f)::metadata)
-                | Ident k -> parse ((key,k)::metadata)
+        | Kwd "," -> parse metadata
+        | Ident key ->
+          if key<>"" && key.[0]=':' then
+            let uri = String.sub key 1 (String.length key - 1) ^ String.sub s !pos (l - !pos) in
+            (* Revert the above hack. *)
+            let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
+            metadata, uri
+          else
+            begin
+              match Stream.next lexer with
+                | Kwd "=" ->
+                  begin
+                    match Stream.next lexer with
+                      | String s -> parse ((key,s)::metadata)
+                      | Int i -> parse ((key,string_of_int i)::metadata)
+                      | Float f -> parse ((key,string_of_float f)::metadata)
+                      | Ident k -> parse ((key,k)::metadata)
+                      | _ -> raise Error
+                  end
                 | _ -> raise Error
-              end
-            | _ -> raise Error
-          end
-      | _ -> raise Error
+            end
+        | _ -> raise Error
     in
     let metadata,uri = parse [] in
     [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
   with
-  | Error
-  | Stream.Failure | Stream.Error _ -> log "annotate: syntax error" ; []
+    | Error
+    | Stream.Failure | Stream.Error _ -> log "annotate: syntax error" ; []
 
 let () =
   Lang.add_protocol ~doc:"Add metadata to a request"

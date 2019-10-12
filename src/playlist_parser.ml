@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -42,18 +42,18 @@ let conf_cue_in_metadata =
   Dtools.Conf.string ~p:(conf_playlists#plug "cue_in_metadata") ~d:"liq_cue_in"
     "Cue in metadata for playlists with track index."
     ~comments:["Some playlists format, such as CUE files specify index points to start";
-      "tracks playback. In this case, tracks are resolved to a annotate: request with";
-      "a cue-in metadata containing the index. If you want to make use of this index,";
-      "you should specify here what label you want for this metadata and use the cue_cut";
-      "operator on the resulting source"]
+               "tracks playback. In this case, tracks are resolved to a annotate: request with";
+               "a cue-in metadata containing the index. If you want to make use of this index,";
+               "you should specify here what label you want for this metadata and use the cue_cut";
+               "operator on the resulting source"]
 let conf_cue_out_metadata =
   Dtools.Conf.string ~p:(conf_playlists#plug "cue_out_metadata") ~d:"liq_cue_out"
     "Cue out metadata for playlists with track index."
     ~comments:["Some playlists format, such as CUE files specify index points to start";
-      "tracks playback. In this case, tracks are resolved to a annotate: request with";
-      "a cue-in metadata containing the index. If you want to make use of this index,";
-      "you should specify here what label you want for this metadata and use the cue_cut";
-      "operator on the resulting source"]
+               "tracks playback. In this case, tracks are resolved to a annotate: request with";
+               "a cue-in metadata containing the index. If you want to make use of this index,";
+               "you should specify here what label you want for this metadata and use the cue_cut";
+               "operator on the resulting source"]
 
 (** A playlist is list of metadatas,uri *)
 type playlist = ((string * string) list * string) list
@@ -62,8 +62,8 @@ type playlist = ((string * string) list * string) list
 type plugin = {
   strict : bool; (* true is the format can be detected *)
   parser: ?pwd:string -> string -> playlist
-    (* The parser is expected to respect the order
-       of the files in the playlist. *)
+  (* The parser is expected to respect the order
+     of the files in the playlist. *)
 }
 
 (** Parsers are given a string and return a list of metadatas,uri, if possible. *)
@@ -96,11 +96,11 @@ let search_valid ?pwd string =
     let plugins = List.sort compare plugins in
     List.iter
       (fun (format,plugin) ->
-           log#info "Trying %s parser" format ;
-	   match try Some (plugin.parser ?pwd string) with _ -> None
-	      with
-	        | Some d -> raise (Exit (format,d))
-		| None -> () )
+         log#info "Trying %s parser" format ;
+         match try Some (plugin.parser ?pwd string) with _ -> None
+         with
+           | Some d -> raise (Exit (format,d))
+           | None -> () )
       plugins;
     log#important "No format found";
     raise Not_found

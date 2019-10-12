@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -31,40 +31,40 @@
 
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
 class basic ~kind source =
-object
-  inherit Source.operator kind [source] ~name:"audio_to_stereo"
+  object
+    inherit Source.operator kind [source] ~name:"audio_to_stereo"
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method remaining = source#remaining
-  method seek = source#seek
+    method stype = source#stype
+    method is_ready = source#is_ready
+    method abort_track = source#abort_track
+    method remaining = source#remaining
+    method seek = source#seek
 
-  val stereo = { Frame. audio=2 ; video = 0 ; midi = 0 }
+    val stereo = { Frame. audio=2 ; video = 0 ; midi = 0 }
 
-  method private get_frame frame =
-    let start = Frame.position frame in
-    let layers = source#get frame ; Frame.get_content_layers frame in
-    (** Install the final stereo layer, and copy everything to it *)
-    let dst = Frame.content_of_type frame start stereo in
-    let aux { Frame. content = src ; start = pos ; length = l } =
-      if pos >= start then begin
-        assert (src.Frame.video = [||] && src.Frame.midi = [||]) ;
-        match src.Frame.audio with
-          | [||] -> assert false
-          | [|chan|] ->
+    method private get_frame frame =
+      let start = Frame.position frame in
+      let layers = source#get frame ; Frame.get_content_layers frame in
+      (** Install the final stereo layer, and copy everything to it *)
+      let dst = Frame.content_of_type frame start stereo in
+      let aux { Frame. content = src ; start = pos ; length = l } =
+        if pos >= start then begin
+          assert (src.Frame.video = [||] && src.Frame.midi = [||]) ;
+          match src.Frame.audio with
+            | [||] -> assert false
+            | [|chan|] ->
               let content = { src with Frame.audio = [|chan;chan|] } in
-                Frame.blit_content content pos dst pos l
-          | [|_;_|] ->
+              Frame.blit_content content pos dst pos l
+            | [|_;_|] ->
               Frame.blit_content src pos dst pos l
-          | audio ->
+            | audio ->
               let content = { src with Frame.audio = Array.sub audio 0 2 } in
-                Frame.blit_content content pos dst pos l
-      end
-    in
+              Frame.blit_content content pos dst pos l
+        end
+      in
       List.iter aux layers
 
-end
+  end
 
 let () =
   let input_kind =

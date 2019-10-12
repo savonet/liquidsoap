@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -28,7 +28,7 @@ module Generator = Generator.From_audio_video_plus
 module Generated = Generated.From_audio_video_plus
 
 exception Finished of string*bool
-      
+
 class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data ?read_header command =
   let abg_max_len = Frame.master_of_seconds max in  
   (* We need a temporary log until the source has an id *)
@@ -60,43 +60,43 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data ?rea
     else
       `Continue
   in
-object (self)
-  inherit External_input.base ~name ~kind ?read_header
-                              ~restart ~restart_on_error ~on_data command as base
-  inherit Generated.source abg ~empty_on_abort:false ~bufferize
+  object (self)
+    inherit External_input.base ~name ~kind ?read_header
+        ~restart ~restart_on_error ~on_data command as base
+    inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
-  initializer
-    self#register_command "buffer_length"
-      ~descr:"Show internal buffer length (in seconds)."
-      (fun _ ->
-        Printf.sprintf
-          "audio buffer length: %.02f s\nvideo buffer length: %.02f s\ntotal buffer length: %.02f s"
-          (Frame.seconds_of_master (Generator.audio_length abg))
-          (Frame.seconds_of_master (Generator.video_length abg))
-          (Frame.seconds_of_master (Generator.length abg))
-      );
-    self#register_command "buffer_size"
-      ~descr:"Show internal buffer size."
-      (fun _ ->
-        Printf.sprintf
-          "audio buffer size: %s\nvideo buffer size: %s\ntotal buffer size: %s"
-          (Utils.string_of_size (Generator.audio_size abg))
-          (Utils.string_of_size (Generator.video_size abg))
-          (Utils.string_of_size (Generator.size abg))
-      )
+    initializer
+      self#register_command "buffer_length"
+        ~descr:"Show internal buffer length (in seconds)."
+        (fun _ ->
+           Printf.sprintf
+             "audio buffer length: %.02f s\nvideo buffer length: %.02f s\ntotal buffer length: %.02f s"
+             (Frame.seconds_of_master (Generator.audio_length abg))
+             (Frame.seconds_of_master (Generator.video_length abg))
+             (Frame.seconds_of_master (Generator.length abg))
+        );
+      self#register_command "buffer_size"
+        ~descr:"Show internal buffer size."
+        (fun _ ->
+           Printf.sprintf
+             "audio buffer size: %s\nvideo buffer size: %s\ntotal buffer size: %s"
+             (Utils.string_of_size (Generator.audio_size abg))
+             (Utils.string_of_size (Generator.video_size abg))
+             (Utils.string_of_size (Generator.size abg))
+        )
 
-  method wake_up x =
-    (* Now we can create the log function *)
-    log_ref := self#log#info "%s" ;
-    log_error := self#log#severe "%s" ;
-    self#log#debug "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
-    base#wake_up x
-end
+    method wake_up x =
+      (* Now we can create the log function *)
+      log_ref := self#log#info "%s" ;
+      log_error := self#log#severe "%s" ;
+      self#log#debug "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
+      base#wake_up x
+  end
 
 (***** AVI *****)
 
 let log = Log.make ["input"; "external"; "video"]
-  
+
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_video_any in
   let kind = Lang.Unconstrained k in
@@ -122,23 +122,23 @@ let () =
     ]
     ~kind
     (fun p kind ->
-      let command = Lang.to_string (List.assoc "" p) in
-      let video_format = ref None in
-      let width = ref None in
-      let height = ref None in
-      let audio_converter = ref None in
-      let video_converter = ref None in
-      let video_scaler = Video_converter.scaler () in
-      let read_header read =
-        (* Reset the state. *)
-        video_format := None;
-        width := None;
-        height := None;
-        audio_converter := None;
-        video_converter := None;
-        let h, _ = Avi.Read.headers_simple read in
-        let check = function
-          | `Video (fmt,w,h,fps) ->
+       let command = Lang.to_string (List.assoc "" p) in
+       let video_format = ref None in
+       let width = ref None in
+       let height = ref None in
+       let audio_converter = ref None in
+       let video_converter = ref None in
+       let video_scaler = Video_converter.scaler () in
+       let read_header read =
+         (* Reset the state. *)
+         video_format := None;
+         width := None;
+         height := None;
+         audio_converter := None;
+         video_converter := None;
+         let h, _ = Avi.Read.headers_simple read in
+         let check = function
+           | `Video (fmt,w,h,fps) ->
              (* if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width); *)
              (* if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height); *)
              log#info "Format: %s." (match fmt with `RGB24 -> "RGB24" | `I420 -> "I420");
@@ -152,11 +152,11 @@ let () =
                let video_format = Option.get !video_format in
                let of_string s =
                  match video_format with
-                 | `RGB24 -> Image.YUV420.of_RGB24_string s w
-                 | `I420 ->
-                    (* TODO: can there be stride in avi videos? *)
-                    let h = (String.length s * 4 / 6) / w in
-                    Image.YUV420.of_YUV420_string s w h
+                   | `RGB24 -> Image.YUV420.of_RGB24_string s w
+                   | `I420 ->
+                     (* TODO: can there be stride in avi videos? *)
+                     let h = (String.length s * 4 / 6) / w in
+                     Image.YUV420.of_YUV420_string s w h
                in
                let src = of_string data in
                let in_width = Video.Image.width src in
@@ -171,28 +171,28 @@ let () =
                  dst
              in
              video_converter := Some converter
-          | `Audio (channels, audio_src_rate) ->
+           | `Audio (channels, audio_src_rate) ->
              let audio_src_rate = float audio_src_rate in
              if !audio_converter <> None then failwith "Only one audio track is supported for now.";
              audio_converter := Some (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16 ~audio_src_rate)
-        in
-        List.iter check h;
-        `Continue
-      in
-      let on_data abg reader =
-        match Avi.Read.chunk reader with
-          | `Frame (_, _, data) when String.length data = 0 -> ()
-          | `Frame (`Video, _, data) ->
+         in
+         List.iter check h;
+         `Continue
+       in
+       let on_data abg reader =
+         match Avi.Read.chunk reader with
+           | `Frame (_, _, data) when String.length data = 0 -> ()
+           | `Frame (`Video, _, data) ->
              let width = Option.get !width in
              let height = Option.get !height in
              let video_format = Option.get !video_format in
              if (video_format = `RGB24 && String.length data <> width * height * 3)
-                || (video_format = `I420 && String.length data <> (width * height * 6) / 4)
+             || (video_format = `I420 && String.length data <> (width * height * 6) / 4)
              then
                failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
              let data = (Option.get !video_converter) data in
              Generator.put_video abg [|Video.single data|] 0 1
-          | `Frame (`Audio, _, data) ->
+           | `Frame (`Audio, _, data) ->
              let converter = Utils.get_some !audio_converter in
              let data = converter data in
              if kind.Frame.audio = Frame.Zero then
@@ -200,13 +200,13 @@ let () =
                          are no audio channels, ingoring it."
              else
                Generator.put_audio abg data 0 (Audio.length data)
-          | _ -> failwith "Invalid chunk."
-      in
-      let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let restart = Lang.to_bool (List.assoc "restart" p) in
-      let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
-      let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~name:"input.external.avi" ~kind ~restart ~bufferize ~restart_on_error ~max ~read_header ~on_data command):>Source.source))
+           | _ -> failwith "Invalid chunk."
+       in
+       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+       let restart = Lang.to_bool (List.assoc "restart" p) in
+       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+       let max = Lang.to_float (List.assoc "max" p) in
+       ((new video ~name:"input.external.avi" ~kind ~restart ~bufferize ~restart_on_error ~max ~read_header ~on_data command):>Source.source))
 
 (***** raw video *****)
 
@@ -235,20 +235,20 @@ let () =
     ]
     ~kind
     (fun p kind ->
-      let command = Lang.to_string (List.assoc "" p) in
-      let width = Lazy.force Frame.video_width in
-      let height = Lazy.force Frame.video_height in
-      let buflen = width * height * 3 in
-      let buf = Bytes.create buflen in
-      let on_data abg reader =
-        let ret = reader buf 0 buflen in
-        let data = Image.YUV420.of_YUV420_string (Bytes.sub_string buf 0 ret) width height in
-        (* Img.swap_rb data; *)
-        (* Img.Effect.flip data; *)
-        Generator.put_video abg [|Video.single data|] 0 1
-      in
-      let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let restart = Lang.to_bool (List.assoc "restart" p) in
-      let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
-      let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~name:"input.external.rawvideo" ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data command):>Source.source))
+       let command = Lang.to_string (List.assoc "" p) in
+       let width = Lazy.force Frame.video_width in
+       let height = Lazy.force Frame.video_height in
+       let buflen = width * height * 3 in
+       let buf = Bytes.create buflen in
+       let on_data abg reader =
+         let ret = reader buf 0 buflen in
+         let data = Image.YUV420.of_YUV420_string (Bytes.sub_string buf 0 ret) width height in
+         (* Img.swap_rb data; *)
+         (* Img.Effect.flip data; *)
+         Generator.put_video abg [|Video.single data|] 0 1
+       in
+       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+       let restart = Lang.to_bool (List.assoc "restart" p) in
+       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+       let max = Lang.to_float (List.assoc "max" p) in
+       ((new video ~name:"input.external.rawvideo" ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data command):>Source.source))

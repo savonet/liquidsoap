@@ -16,10 +16,10 @@
 exception Not_found
 
 type 'a cell = {
-    content : 'a ;
-    mutable next : 'a cell ;
-    mutable prev : 'a cell ;
-  } 
+  content : 'a ;
+  mutable next : 'a cell ;
+  mutable prev : 'a cell ;
+} 
 
 (* 
  *
@@ -50,12 +50,12 @@ let top q =
   Mutex.lock q.lock ;
   match q.length with
     | 0 ->
-	Mutex.unlock q.lock ; 
-	raise Not_found
+      Mutex.unlock q.lock ; 
+      raise Not_found
     | _ ->
-	let ans = q.top.content in
-	  Mutex.unlock q.lock ;
-	  ans
+      let ans = q.top.content in
+      Mutex.unlock q.lock ;
+      ans
 
 (* No need to lock here, length is always valid and we don't need coherence
  * for reading anything -- unlike q.top.content in [top]. *)
@@ -71,71 +71,71 @@ let to_list q =
       else aux (c.content::ans) c.next 
     in
     let ans = aux [] q.top in
-      Mutex.unlock q.lock ;
-      ans
+    Mutex.unlock q.lock ;
+    ans
 
 let insert_pred ?top q f x =
   Mutex.lock q.lock ;
   q.length <- q.length + 1 ;
   match q.length with
-  | 1 ->
+    | 1 ->
       let rec cell = {
         content = x ;
         next = cell ;
         prev = cell
       } in
-        q.top <- cell ;
-        Mutex.unlock q.lock
-  | _ ->
+      q.top <- cell ;
+      Mutex.unlock q.lock
+    | _ ->
       let i = ref (-1) in
       let rec aux c =
         incr i ;
         if f !i c.content then Some c else
-          if c.next == q.top then
-            None
-          else
-            aux c.next
+        if c.next == q.top then
+          None
+        else
+          aux c.next
       in
       match aux q.top with
-      | None -> Mutex.unlock q.lock ; raise Not_found
-      | Some c ->
+        | None -> Mutex.unlock q.lock ; raise Not_found
+        | Some c ->
           let cell = {
             content = x ;
             next = c ;
             prev = c.prev
           } in
-            if Some true = top then q.top <- cell ;
-            c.prev.next <- cell ;
-            c.prev <- cell ;
-            Mutex.unlock q.lock
+          if Some true = top then q.top <- cell ;
+          c.prev.next <- cell ;
+          c.prev <- cell ;
+          Mutex.unlock q.lock
 
 let remove_pred_index q f =
   Mutex.lock q.lock ;
   match q.length with
-  | 0 -> Mutex.unlock q.lock ; raise Not_found
-  | _ ->
+    | 0 -> Mutex.unlock q.lock ; raise Not_found
+    | _ ->
       let i = ref (-1) in
       let rec aux c =
         incr i ;
         if f !i c.content then Some c else
-          if c.next == q.top then
-            None
-          else
-            aux c.next
+        if c.next == q.top then
+          None
+        else
+          aux c.next
       in
       let a = aux q.top in
-        match a with
+      match a with
         | Some c ->
-            c.prev.next <- c.next ;
-            c.next.prev <- c.prev ;
-            q.length <- q.length - 1 ;
-            if q.top == c then
-              q.top <- c.next ;
-            Mutex.unlock q.lock ;
-            c.content,!i
+          c.prev.next <- c.next ;
+          c.next.prev <- c.prev ;
+          q.length <- q.length - 1 ;
+          if q.top == c then
+            q.top <- c.next ;
+          Mutex.unlock q.lock ;
+          c.content,!i
         | None ->
-            Mutex.unlock q.lock ;
-            raise Not_found
+          Mutex.unlock q.lock ;
+          raise Not_found
 
 let remove_pred q f = fst (remove_pred_index q f)
 
@@ -145,7 +145,7 @@ let remove q pos =
   remove_pred q (fun i _ -> (i - pos) mod q.length = 0)
 let insert q pos x =
   let p = if pos < 0 then -pos-1 else pos in
-    insert_pred q ~top:(pos=0) (fun i _ -> (i - p) mod q.length = 0) x
+  insert_pred q ~top:(pos=0) (fun i _ -> (i - p) mod q.length = 0) x
 
 let unshift q x = insert q 0 x
 let push q x = insert q (-1) x
@@ -161,8 +161,8 @@ let fold f x q =
     let rec fold c x =
       if c.next == q.top then f x c.content else fold c.next (f x c.content)
     in
-      try
-        let a = fold q.top x in
-          Mutex.unlock q.lock ;
-          a
-      with e -> Mutex.unlock q.lock ; raise e
+    try
+      let a = fold q.top x in
+      Mutex.unlock q.lock ;
+      a
+    with e -> Mutex.unlock q.lock ; raise e

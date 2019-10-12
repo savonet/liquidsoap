@@ -14,8 +14,8 @@ module List = struct
     | x::t ->
       (
         match f x with
-        | Some x -> x::(may_map f t)
-        | None -> may_map f t
+          | Some x -> x::(may_map f t)
+          | None -> may_map f t
       )
     | [] -> []
 
@@ -47,8 +47,8 @@ module String = struct
         let s0 = sub s n (n'-n) in
         aux (s0::res) (n'+1)
       with
-      | Not_found ->
-        (if n = 0 then s else sub s n (length s - n)) :: res
+        | Not_found ->
+          (if n = 0 then s else sub s n (length s - n)) :: res
     in
     List.rev (aux [] 0)
 end
@@ -73,19 +73,19 @@ module Unix = struct
       Array.iter
         (fun root ->
            (match lstat root with
-              | {st_kind=S_DIR} ->
-                  finddepth f
-                    (Array.map (Filename.concat root) (Sys.readdir root))
-              | _ -> ());
+             | {st_kind=S_DIR} ->
+               finddepth f
+                 (Array.map (Filename.concat root) (Sys.readdir root))
+             | _ -> ());
            f root)
         roots
     in
     let zap path =
       match lstat path with
         | {st_kind=S_DIR} ->
-            rmdir path
+          rmdir path
         | _ ->
-            unlink path
+          unlink path
     in
     finddepth zap [|dir|];
     rmdir dir
@@ -100,18 +100,18 @@ module Filename = struct
 
   let mk_temp_dir ?(mode=0o700) ?dir prefix suffix = 
     let dir = match dir with 
-    | Some d -> d
-    | None   -> get_temp_dir_name ()
+      | Some d -> d
+      | None   -> get_temp_dir_name ()
     in
     let raise_err msg = raise (Sys_error msg) in
     let rec loop count = 
       if count < 0 then raise_err "mk_temp_dir: too many failing attemps" else
-      let dir = Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix in 
-      try (Unix.mkdir dir mode; dir) with
-      | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
-      | Unix.Unix_error (Unix.EINTR, _, _)  -> loop count
-      | Unix.Unix_error (e, _, _)           -> 
-        raise_err ("mk_temp_dir: " ^ (Unix.error_message e))
+        let dir = Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix in 
+        try (Unix.mkdir dir mode; dir) with
+          | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
+          | Unix.Unix_error (Unix.EINTR, _, _)  -> loop count
+          | Unix.Unix_error (e, _, _)           -> 
+            raise_err ("mk_temp_dir: " ^ (Unix.error_message e))
     in
     loop 1000
 end

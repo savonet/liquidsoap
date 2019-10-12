@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -36,10 +36,10 @@ let encoder wav =
     match wav.duration with
       | None -> None
       | Some d -> 
-          Some (
-            int_of_float (d *. (float channels) *. 
-                               (float sample_rate) *.
-                               (float sample_size) /. 8.))
+        Some (
+          int_of_float (d *. (float channels) *. 
+                        (float sample_rate) *.
+                        (float sample_size) /. 8.))
   in
   let header =
     Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
@@ -74,16 +74,16 @@ let encoder wav =
     end else
       s
   in
-    {
-     Encoder.
-      insert_metadata = (fun _ -> ()) ;
-      encode = encode ;
-      header = Some header ;
-      stop = (fun () -> "")
-    }
+  {
+    Encoder.
+    insert_metadata = (fun _ -> ()) ;
+    encode = encode ;
+    header = Some header ;
+    stop = (fun () -> "")
+  }
 
 let () =
   Encoder.plug#register "WAV"
     (function
-       | Encoder.WAV w -> Some (fun _ _ -> encoder w)
-       | _ -> None)
+      | Encoder.WAV w -> Some (fun _ _ -> encoder w)
+      | _ -> None)

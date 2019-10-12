@@ -1,25 +1,25 @@
 (* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2016 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2016 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
-*****************************************************************************)
+ *****************************************************************************)
 open Harbor_base
 module Monad = Duppy.Monad
 
@@ -104,7 +104,7 @@ module type T = sig
   type reply = Close of (unit -> string) | Relay of string * (unit -> unit)
 
   type http_handler =
-       protocol:string
+    protocol:string
     -> data:string
     -> headers:(string * string) list
     -> socket:socket
@@ -130,28 +130,28 @@ module type T = sig
   class virtual source :
     kind:Frame.content_kind
     -> object
-         inherit Source.source
+      inherit Source.source
 
-         method virtual relay :
-              string
-           -> (string * string) list
-           -> ?read:(socket -> bytes -> int -> int -> int)
-           -> socket
-           -> unit
+      method virtual relay :
+        string
+        -> (string * string) list
+        -> ?read:(socket -> bytes -> int -> int -> int)
+        -> socket
+        -> unit
 
-         method virtual insert_metadata : (string, string) Hashtbl.t -> unit
+      method virtual insert_metadata : (string, string) Hashtbl.t -> unit
 
-         method virtual login : string * (string -> string -> bool)
+      method virtual login : string * (string -> string -> bool)
 
-         method virtual icy_charset : string option
+      method virtual icy_charset : string option
 
-         method virtual meta_charset : string option
+      method virtual meta_charset : string option
 
-         method virtual get_mime_type : string option
-       end
+      method virtual get_mime_type : string option
+    end
 
   val http_auth_check :
-       ?args:(string, string) Hashtbl.t
+    ?args:(string, string) Hashtbl.t
     -> login:string * (string -> string -> bool)
     -> (string * string) list
     -> (unit, reply) Duppy.Monad.t
@@ -194,11 +194,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       inherit Source.source ~name:"input.harbor" kind
 
       method virtual relay
-          :    string
-            -> (string * string) list
-            -> ?read:(socket -> bytes -> int -> int -> int)
-            -> socket
-            -> unit
+        :    string
+          -> (string * string) list
+          -> ?read:(socket -> bytes -> int -> int -> int)
+          -> socket
+          -> unit
 
       method virtual insert_metadata : (string, string) Hashtbl.t -> unit
 
@@ -222,18 +222,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let verb_of_string s =
     match String.uppercase_ascii s with
-    | "GET" -> `Get
-    | "POST" -> `Post
-    | "PUT" -> `Put
-    | "DELETE" -> `Delete
-    | "HEAD" -> `Head
-    | "OPTIONS" -> `Options
-    | _ -> raise Not_found
+      | "GET" -> `Get
+      | "POST" -> `Post
+      | "PUT" -> `Put
+      | "DELETE" -> `Delete
+      | "HEAD" -> `Head
+      | "OPTIONS" -> `Options
+      | _ -> raise Not_found
 
   let verb_or_source_of_string s =
     match String.uppercase_ascii s with
-    | "SOURCE" -> `Source
-    | _ -> verb_of_string s
+      | "SOURCE" -> `Source
+      | _ -> verb_of_string s
 
   let string_of_verb = function
     | `Get -> "GET"
@@ -276,7 +276,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let relayed s f = Duppy.Monad.raise (Relay (s, f))
 
   type http_handler =
-       protocol:string
+    protocol:string
     -> data:string
     -> headers:(string * string) list
     -> socket:socket
@@ -302,7 +302,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     try
       List.iter
         (fun (l, v) ->
-          if String.uppercase_ascii l = x then raise (Assoc v) else () )
+           if String.uppercase_ascii l = x then raise (Assoc v) else () )
         y ;
       raise Not_found
     with Assoc s -> s
@@ -335,8 +335,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let auth_data = Pcre.split ~pat:":" r in
     let requested_user, password =
       match auth_data with
-      | user :: password :: _ -> (user, password)
-      | _ -> ("", r)
+        | user :: password :: _ -> (user, password)
+        | _ -> ("", r)
     in
     let __pa_duppy_0 =
       try Duppy.Monad.return (find_source "/" (port - 1)) with Not_found ->
@@ -416,31 +416,31 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let auth = assoc_uppercase "AUTHORIZATION" headers in
           let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") auth in
           match data with
-          | "Basic" :: x :: _ -> (
-              let auth_data = Pcre.split ~pat:":" (Utils.decode64 x) in
-              match auth_data with
-              | x :: y :: _ -> (x, y)
-              | _ -> raise Not_found )
-          | _ -> raise Not_found
+            | "Basic" :: x :: _ -> (
+                let auth_data = Pcre.split ~pat:":" (Utils.decode64 x) in
+                match auth_data with
+                  | x :: y :: _ -> (x, y)
+                  | _ -> raise Not_found )
+            | _ -> raise Not_found
         with Not_found -> (
-          match args with
-          | Some args ->
-              (* ICY updates are done with
-                         * password sent in GET args
-                         * and user being valid_user
-                         * or user, if given. *)
-              let user =
-                try Hashtbl.find args "user" with Not_found -> valid_user
-              in
-              (user, Hashtbl.find args "pass")
-          | _ -> raise Not_found )
+            match args with
+              | Some args ->
+                (* ICY updates are done with
+                           * password sent in GET args
+                           * and user being valid_user
+                           * or user, if given. *)
+                let user =
+                  try Hashtbl.find args "user" with Not_found -> valid_user
+                in
+                (user, Hashtbl.find args "pass")
+              | _ -> raise Not_found )
       in
       auth_check ~auth_f user pass
     with
-    | Not_authenticated ->
+      | Not_authenticated ->
         log#info "Returned 401: wrong auth." ;
         http_reply "Wrong Authentication data"
-    | Not_found ->
+      | Not_found ->
         log#info "Returned 401: bad authentication." ;
         http_reply "No login / password supplied."
 
@@ -460,83 +460,83 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
         Duppy.Monad.bind
           ( if (* ICY and Xaudiocast auth check was done before.. *)
-               not auth
-          then exec_http_auth_check ~login:s#login h headers
-          else Duppy.Monad.return () )
+            not auth
+            then exec_http_auth_check ~login:s#login h headers
+            else Duppy.Monad.return () )
           (fun () ->
-            try
-              let sproto =
-                match (smethod : source_type) with
-                | `Shout -> "ICY"
-                | `Source -> "SOURCE"
-                | `Put -> "PUT (source)"
-                | `Post -> "POST (source)"
-                | `Xaudiocast -> "X-AUDIOCAST"
-              in
-              log#info "%s request on %s." sproto uri ;
-              let stype =
-                try assoc_uppercase "CONTENT-TYPE" headers with
-                | Not_found when smethod = `Shout || smethod = `Xaudiocast ->
-                    "audio/mpeg"
-                | Not_found -> raise Unknown_codec
-              in
-              let chunked =
-                try assoc_uppercase "TRANSFER-ENCODING" headers = "chunked"
-                with Not_found -> false
-              in
-              let read =
-                if chunked then
-                  let buf = Buffer.create Utils.pagesize in
-                  let read connection b ofs len =
-                    if Buffer.length buf < len then
-                     begin
-                      let s, len =
-                        Http.read_chunked ~timeout:conf_timeout#get connection
-                      in
-                      Buffer.add_substring buf s 0 len
-                     end;
-                    let len = min len (Buffer.length buf) in
-                    Buffer.blit buf 0 b ofs len;
-                    Utils.buffer_drop buf len;
-                    len
-                  in
-                  Some read
-                else None
-              in
-              let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
-              log#info "Adding source on mountpoint %S with type %S." uri stype ;
-              log#debug "Relaying %s." (string_of_protocol hprotocol) ;
-              let protocol =
-                match hprotocol with
-                | `Icy -> "ICY"
-                | `Ice_10 | `Http_10 -> "HTTP/1.0"
-                | `Http_11 -> "HTTP/1.1"
-                | _ -> assert false
-              in
-              relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) f
-            with
-            | Mount_taken ->
-                log#info "Returned 403: Mount taken" ;
-                simple_reply
-                  (http_error_page 403
-                     "Mountpoint already taken\r\n\
-                      WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
-                     "Mountpoint in use")
-            | Not_found ->
-                log#info "Returned 404 for '%s'." uri ;
-                simple_reply
-                  (http_error_page 404 "Not found"
-                     "This mountpoint isn't available.")
-            | Unknown_codec ->
-                log#info "Returned 501: unknown audio codec" ;
-                simple_reply
-                  (http_error_page 501 "Not Implemented"
-                     "This stream's format is not recognized.")
-            | e ->
-                log#info "Returned 500 for '%s': %s" uri (Printexc.to_string e) ;
-                simple_reply
-                  (http_error_page 500 "Internal Server Error"
-                     "The server could not handle your request.") ) )
+             try
+               let sproto =
+                 match (smethod : source_type) with
+                   | `Shout -> "ICY"
+                   | `Source -> "SOURCE"
+                   | `Put -> "PUT (source)"
+                   | `Post -> "POST (source)"
+                   | `Xaudiocast -> "X-AUDIOCAST"
+               in
+               log#info "%s request on %s." sproto uri ;
+               let stype =
+                 try assoc_uppercase "CONTENT-TYPE" headers with
+                   | Not_found when smethod = `Shout || smethod = `Xaudiocast ->
+                     "audio/mpeg"
+                   | Not_found -> raise Unknown_codec
+               in
+               let chunked =
+                 try assoc_uppercase "TRANSFER-ENCODING" headers = "chunked"
+                 with Not_found -> false
+               in
+               let read =
+                 if chunked then
+                   let buf = Buffer.create Utils.pagesize in
+                   let read connection b ofs len =
+                     if Buffer.length buf < len then
+                       begin
+                         let s, len =
+                           Http.read_chunked ~timeout:conf_timeout#get connection
+                         in
+                         Buffer.add_substring buf s 0 len
+                       end;
+                     let len = min len (Buffer.length buf) in
+                     Buffer.blit buf 0 b ofs len;
+                     Utils.buffer_drop buf len;
+                     len
+                   in
+                   Some read
+                 else None
+               in
+               let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
+               log#info "Adding source on mountpoint %S with type %S." uri stype ;
+               log#debug "Relaying %s." (string_of_protocol hprotocol) ;
+               let protocol =
+                 match hprotocol with
+                   | `Icy -> "ICY"
+                   | `Ice_10 | `Http_10 -> "HTTP/1.0"
+                   | `Http_11 -> "HTTP/1.1"
+                   | _ -> assert false
+               in
+               relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) f
+             with
+               | Mount_taken ->
+                 log#info "Returned 403: Mount taken" ;
+                 simple_reply
+                   (http_error_page 403
+                      "Mountpoint already taken\r\n\
+                       WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
+                      "Mountpoint in use")
+               | Not_found ->
+                 log#info "Returned 404 for '%s'." uri ;
+                 simple_reply
+                   (http_error_page 404 "Not found"
+                      "This mountpoint isn't available.")
+               | Unknown_codec ->
+                 log#info "Returned 501: unknown audio codec" ;
+                 simple_reply
+                   (http_error_page 501 "Not Implemented"
+                      "This stream's format is not recognized.")
+               | e ->
+                 log#info "Returned 500 for '%s': %s" uri (Printexc.to_string e) ;
+                 simple_reply
+                   (http_error_page 500 "Internal Server Error"
+                      "The server could not handle your request.") ) )
 
   exception Websocket_closed
 
@@ -545,18 +545,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let extract_packet s =
       let json =
         match Configure.JSON.from_string s with
-        | `Assoc json -> json
-        | _ -> raise Not_found
+          | `Assoc json -> json
+          | _ -> raise Not_found
       in
       let packet_type =
         match List.assoc "type" json with
-        | `String s -> s
-        | _ -> raise Not_found
+          | `String s -> s
+          | _ -> raise Not_found
       in
       let data =
         match List.assoc "data" json with
-        | `Assoc data -> Some data
-        | _ -> None
+          | `Assoc data -> Some data
+          | _ -> None
       in
       (packet_type, data)
     in
@@ -564,17 +564,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let error () = simple_reply (websocket_error 1002 "Invalid hello.") in
       try
         match Websocket.read s with
-        | `Text s -> (
-            log#debug "Hello packet: %s\n%!" s ;
-            match extract_packet s with
-            | "hello", data ->
-                let data = Utils.get_some data in
-                let mime = json_string_of (List.assoc "mime" data) in
-                let user = json_string_of (List.assoc "user" data) in
-                let password = json_string_of (List.assoc "password" data) in
-                Duppy.Monad.return (mime, mount, user, password)
-            | _ -> error () )
-        | _ -> error ()
+          | `Text s -> (
+              log#debug "Hello packet: %s\n%!" s ;
+              match extract_packet s with
+                | "hello", data ->
+                  let data = Utils.get_some data in
+                  let mime = json_string_of (List.assoc "mime" data) in
+                  let user = json_string_of (List.assoc "user" data) in
+                  let password = json_string_of (List.assoc "password" data) in
+                  Duppy.Monad.return (mime, mount, user, password)
+                | _ -> error () )
+          | _ -> error ()
       with _ -> error ()
     in
     Duppy.Monad.bind
@@ -582,68 +582,68 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
          ~priority:Tutils.Non_blocking h
          (Bytes.of_string (Websocket.upgrade headers)))
       (fun () ->
-        let __pa_duppy_0 =
-          Duppy.Monad.Io.exec ~priority:Tutils.Blocking h
-            (read_hello h.Duppy.Monad.Io.socket)
-        in
-        Duppy.Monad.bind __pa_duppy_0 (fun (stype, huri, user, password) ->
-            log#info "Mime type: %s" stype ;
-            log#info "Mount point: %s" huri ;
-            let __pa_duppy_0 =
-              try Duppy.Monad.return (find_source huri port)
-              with Not_found ->
-                log#info "Request failed: no mountpoint '%s'!" huri ;
-                simple_reply (websocket_error 1011 "This mountpoint isn't available.")
-            in
-            Duppy.Monad.bind __pa_duppy_0 (fun source ->
-                let _, auth_f = source#login in
-                let __pa_duppy_0 =
-                  try auth_check ~auth_f user password
-                  with Not_authenticated ->
-                    log#info "Authentication failed!" ;
-                    simple_reply (websocket_error 1011 "Authentication failed.")
-                in
-                Duppy.Monad.bind __pa_duppy_0 (fun () ->
-                    let binary_data = Buffer.create Utils.pagesize in
-                    let read_socket socket =
-                      match Websocket.read socket with
-                      | `Binary buf -> Buffer.add_string binary_data buf
-                      | `Text s -> (
-                        match extract_packet s with
-                        | "metadata", data ->
-                            log#debug "Metadata packet: %s\n%!" s ;
-                            let data = Utils.get_some data in
-                            let m =
-                              List.map
-                                (fun (l, v) -> (l, json_string_of v))
-                                data
-                            in
-                            let m =
-                              let ans = Hashtbl.create (List.length m) in
-                              (* TODO: convert charset *)
-                              let g x = x in
-                              List.iter
-                                (fun (l, v) -> Hashtbl.add ans (g l) (g v))
-                                m ;
-                              ans
-                            in
-                            source#insert_metadata m ; raise Retry
-                        | _ -> raise Retry )
-                      | `Close _ -> raise Websocket_closed
-                      | _ -> raise Retry
-                    in
-                    let read socket buf ofs len =
-                      if Buffer.length binary_data = 0 then read_socket socket
-                      else () ;
-                      let len = min (Buffer.length binary_data) len in
-                      Buffer.blit binary_data 0 buf ofs len;
-                      Utils.buffer_drop binary_data len ;
-                      len
-                    in
-                    let f () =
-                      source#relay stype headers ~read h.Duppy.Monad.Io.socket
-                    in
-                    relayed "" f ) ) ) )
+         let __pa_duppy_0 =
+           Duppy.Monad.Io.exec ~priority:Tutils.Blocking h
+             (read_hello h.Duppy.Monad.Io.socket)
+         in
+         Duppy.Monad.bind __pa_duppy_0 (fun (stype, huri, user, password) ->
+             log#info "Mime type: %s" stype ;
+             log#info "Mount point: %s" huri ;
+             let __pa_duppy_0 =
+               try Duppy.Monad.return (find_source huri port)
+               with Not_found ->
+                 log#info "Request failed: no mountpoint '%s'!" huri ;
+                 simple_reply (websocket_error 1011 "This mountpoint isn't available.")
+             in
+             Duppy.Monad.bind __pa_duppy_0 (fun source ->
+                 let _, auth_f = source#login in
+                 let __pa_duppy_0 =
+                   try auth_check ~auth_f user password
+                   with Not_authenticated ->
+                     log#info "Authentication failed!" ;
+                     simple_reply (websocket_error 1011 "Authentication failed.")
+                 in
+                 Duppy.Monad.bind __pa_duppy_0 (fun () ->
+                     let binary_data = Buffer.create Utils.pagesize in
+                     let read_socket socket =
+                       match Websocket.read socket with
+                         | `Binary buf -> Buffer.add_string binary_data buf
+                         | `Text s -> (
+                             match extract_packet s with
+                               | "metadata", data ->
+                                 log#debug "Metadata packet: %s\n%!" s ;
+                                 let data = Utils.get_some data in
+                                 let m =
+                                   List.map
+                                     (fun (l, v) -> (l, json_string_of v))
+                                     data
+                                 in
+                                 let m =
+                                   let ans = Hashtbl.create (List.length m) in
+                                   (* TODO: convert charset *)
+                                   let g x = x in
+                                   List.iter
+                                     (fun (l, v) -> Hashtbl.add ans (g l) (g v))
+                                     m ;
+                                   ans
+                                 in
+                                 source#insert_metadata m ; raise Retry
+                               | _ -> raise Retry )
+                         | `Close _ -> raise Websocket_closed
+                         | _ -> raise Retry
+                     in
+                     let read socket buf ofs len =
+                       if Buffer.length binary_data = 0 then read_socket socket
+                       else () ;
+                       let len = min (Buffer.length binary_data) len in
+                       Buffer.blit binary_data 0 buf ofs len;
+                       Utils.buffer_drop binary_data len ;
+                       len
+                     in
+                     let f () =
+                       source#relay stype headers ~read h.Duppy.Monad.Io.socket
+                     in
+                     relayed "" f ) ) ) )
 
   exception Handled of http_handler
 
@@ -671,7 +671,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       in
       Duppy.Monad.bind __pa_duppy_0 (fun mode ->
           match mode with
-          | "updinfo" ->
+            | "updinfo" ->
               let mount =
                 try Hashtbl.find args "mount" with Not_found -> "/"
               in
@@ -690,57 +690,57 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   Duppy.Monad.bind
                     (exec_http_auth_check ~args ~login:s#login h headers)
                     (fun () ->
-                      Duppy.Monad.bind
-                        ( if
-                          not
-                            (List.mem
-                               (Utils.get_some s#get_mime_type)
-                               conf_icy_metadata#get)
-                        then (
-                          log#info
-                            "Returned 405 for '%s': Source format does not \
-                             support ICY metadata update"
-                            uri ;
-                          simple_reply
-                            (http_error_page 405 "Method Not Allowed"
-                               "Method Not Allowed") )
-                        else Duppy.Monad.return () )
-                        (fun () ->
-                          Hashtbl.remove args "mount" ;
-                          Hashtbl.remove args "mode" ;
-                          let in_enc =
-                            try
-                              let enc =
-                                match
-                                  String.uppercase_ascii
-                                    (Hashtbl.find args "charset")
-                                with
-                                | "LATIN1" -> "ISO-8859-1"
-                                | s -> s
-                              in
-                              Hashtbl.remove args "charset" ;
-                              Some enc
-                            with Not_found ->
-                              if icy then s#icy_charset else s#meta_charset
-                          in
-                          (* Recode tags.. *)
-                          let f x y m =
-                            let g = Configure.recode_tag ?in_enc in
-                            Hashtbl.add m (g x) (g y) ;
-                            m
-                          in
-                          let args =
-                            Hashtbl.fold f args
-                              (Hashtbl.create (Hashtbl.length args))
-                          in
-                          s#insert_metadata args ;
-                          simple_reply
-                            (Printf.sprintf
-                               "HTTP/1.0 200 OK\r\n\
-                                \r\n\
-                                Updated metadatas for mount %s"
-                               mount) ) ) )
-          | _ -> ans_500 () )
+                       Duppy.Monad.bind
+                         ( if
+                           not
+                             (List.mem
+                                (Utils.get_some s#get_mime_type)
+                                conf_icy_metadata#get)
+                           then (
+                             log#info
+                               "Returned 405 for '%s': Source format does not \
+                                support ICY metadata update"
+                               uri ;
+                             simple_reply
+                               (http_error_page 405 "Method Not Allowed"
+                                  "Method Not Allowed") )
+                           else Duppy.Monad.return () )
+                         (fun () ->
+                            Hashtbl.remove args "mount" ;
+                            Hashtbl.remove args "mode" ;
+                            let in_enc =
+                              try
+                                let enc =
+                                  match
+                                    String.uppercase_ascii
+                                      (Hashtbl.find args "charset")
+                                  with
+                                    | "LATIN1" -> "ISO-8859-1"
+                                    | s -> s
+                                in
+                                Hashtbl.remove args "charset" ;
+                                Some enc
+                              with Not_found ->
+                                if icy then s#icy_charset else s#meta_charset
+                            in
+                            (* Recode tags.. *)
+                            let f x y m =
+                              let g = Configure.recode_tag ?in_enc in
+                              Hashtbl.add m (g x) (g y) ;
+                              m
+                            in
+                            let args =
+                              Hashtbl.fold f args
+                                (Hashtbl.create (Hashtbl.length args))
+                            in
+                            s#insert_metadata args ;
+                            simple_reply
+                              (Printf.sprintf
+                                 "HTTP/1.0 200 OK\r\n\
+                                  \r\n\
+                                  Updated metadatas for mount %s"
+                                 mount) ) ) )
+            | _ -> ans_500 () )
     in
     let rex = Pcre.regexp "^(.+)\\?(.+)$" in
     let base_uri, args =
@@ -752,9 +752,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let smethod = string_of_verb hmethod in
     let protocol =
       match hprotocol with
-      | `Http_10 -> "HTTP/1.0"
-      | `Http_11 -> "HTTP/1.1"
-      | _ -> assert false
+        | `Http_10 -> "HTTP/1.0"
+        | `Http_11 -> "HTTP/1.1"
+        | _ -> assert false
     in
     log#info "%s %s request on %s." protocol_name smethod base_uri ;
     let args = Http.args_split args in
@@ -780,16 +780,16 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       Hashtbl.iter f handler.http ;
       (* Otherwise, try with a standard handler. *)
       match base_uri with
-      (* Icecast *)
-      | "/admin/metadata" -> admin ~icy:false args
-      (* Shoutcast *)
-      | "/admin.cgi" -> admin ~icy:true args
-      | _ -> ans_404 ()
+        (* Icecast *)
+        | "/admin/metadata" -> admin ~icy:false args
+        (* Shoutcast *)
+        | "/admin.cgi" -> admin ~icy:true args
+        | _ -> ans_404 ()
     with
-    | Handled handler ->
+      | Handled handler ->
         Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
           (handler ~protocol ~data ~headers ~socket:h.Duppy.Monad.Io.socket uri)
-    | e ->
+      | e ->
         log#info "%s %s request on uri '%s' failed: %s" protocol_name smethod
           (Printexc.to_string e) uri ;
         ans_500 ()
@@ -801,8 +801,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         ~priority:Tutils.Non_blocking
         ~marker:
           ( match icy with
-          | true -> Duppy.Io.Split "[\r]?\n"
-          | false -> Duppy.Io.Split "[\r]?\n[\r]?\n" )
+            | true -> Duppy.Io.Split "[\r]?\n"
+            | false -> Duppy.Io.Split "[\r]?\n[\r]?\n" )
         h
     in
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
@@ -837,9 +837,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             let handle_source smethod =
               let __pa_duppy_0 =
                 (* X-audiocast sends lines of the form:
-         * [SOURCE password path] *)
+                 * [SOURCE password path] *)
                 match hprotocol with
-                | `Xaudiocast_uri uri ->
+                  | `Xaudiocast_uri uri ->
                     let password = huri in
                     (* We check authentication here *)
                     let __pa_duppy_0 =
@@ -855,26 +855,26 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                         Duppy.Monad.Io.exec
                           ~priority:
                             (* ICY = true means that authentication has already
-                   * hapenned *)
+                             * hapenned *)
                             Tutils.Maybe_blocking h
                           (let valid_user, auth_f = s#login in
                            if not (auth_f valid_user password) then
                              simple_reply "Invalid password!"
                            else Duppy.Monad.return (true, uri, `Xaudiocast)) )
-                | _ -> Duppy.Monad.return (false, huri, smethod)
+                  | _ -> Duppy.Monad.return (false, huri, smethod)
               in
               Duppy.Monad.bind __pa_duppy_0 (fun (auth, huri, smethod) ->
                   handle_source_request ~port ~auth ~smethod hprotocol h huri
                     headers )
             in
             match hmethod with
-            | `Put when is_source -> handle_source `Put
-            | `Post when is_source -> handle_source `Post
-            | `Source when not icy -> handle_source `Source
-            | `Get when hprotocol = `Websocket ->
+              | `Put when is_source -> handle_source `Put
+              | `Post when is_source -> handle_source `Post
+              | `Source when not icy -> handle_source `Source
+              | `Get when hprotocol = `Websocket ->
                 handle_websocket_request ~port h huri headers
-            | (`Get | `Post | `Put | `Delete | `Options | `Head) when not icy
-              ->
+              | (`Get | `Post | `Put | `Delete | `Options | `Head) when not icy
+                ->
                 let len =
                   try int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
                   with _ -> 0
@@ -889,26 +889,26 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 Duppy.Monad.bind __pa_duppy_0 (fun data ->
                     handle_http_request ~hmethod ~hprotocol ~data ~port h huri
                       headers )
-            | `Shout when icy ->
+              | `Shout when icy ->
                 Duppy.Monad.bind
                   (Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)
                      ~priority:Tutils.Non_blocking h
                      (Bytes.of_string "OK2\r\nicy-caps:11\r\n\r\n"))
                   (fun () ->
-                    (* Now parsing headers *)
-                    let __pa_duppy_0 =
-                      Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-                        ~priority:Tutils.Non_blocking
-                        ~marker:(Duppy.Io.Split "[\r]?\n[\r]?\n") h
-                    in
-                    Duppy.Monad.bind __pa_duppy_0 (fun s ->
-                        let lines =
-                          Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s
-                        in
-                        let headers = parse_headers lines in
-                        handle_source_request ~port ~auth:true ~smethod:`Shout
-                          hprotocol h huri headers ) )
-            | _ ->
+                     (* Now parsing headers *)
+                     let __pa_duppy_0 =
+                       Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
+                         ~priority:Tutils.Non_blocking
+                         ~marker:(Duppy.Io.Split "[\r]?\n[\r]?\n") h
+                     in
+                     Duppy.Monad.bind __pa_duppy_0 (fun s ->
+                         let lines =
+                           Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s
+                         in
+                         let headers = parse_headers lines in
+                         handle_source_request ~port ~auth:true ~smethod:`Shout
+                           hprotocol h huri headers ) )
+              | _ ->
                 log#info "Returned 501: not implemented" ;
                 simple_reply
                   (http_error_page 501 "Not Implemented"
@@ -928,18 +928,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Unix.setsockopt unix_socket Unix.TCP_NODELAY true ;
         let on_error e =
           ( match e with
-          | Duppy.Io.Io_error -> log#info "Client %s disconnected" ip
-          | Duppy.Io.Timeout ->
+            | Duppy.Io.Io_error -> log#info "Client %s disconnected" ip
+            | Duppy.Io.Timeout ->
               log#info "Timeout while communicating with client %s." ip
-          | Duppy.Io.Unix (c, p, m) ->
+            | Duppy.Io.Unix (c, p, m) ->
               log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-          | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e) ) ;
+            | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e) ) ;
           (* Sending an HTTP response in case of timeout
            * even though ICY connections are not HTTP.. *)
           if e = Duppy.Io.Timeout then
             Close (mk_simple
-              (http_error_page 408 "Request Time-out"
-                 "The server timed out waiting for the request."))
+                     (http_error_page 408 "Request Time-out"
+                        "The server timed out waiting for the request."))
           else Close (mk_simple "")
         in
         let h =
@@ -954,11 +954,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             match r with
               | Relay (s, exec) -> (s, exec)
               | Close fn ->
-                  let s = fn () in
-                  let exec =
-                    if s = "" then close else fun () -> reply (Close fn)
-                  in
-                  (s, exec)
+                let s = fn () in
+                let exec =
+                  if s = "" then close else fun () -> reply (Close fn)
+                in
+                (s, exec)
           in
           let on_error e =
             ignore (on_error e) ;

@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -67,19 +67,19 @@ let encoder ext =
           in
           let audio_pipeline =
             Utils.maybe (fun pipeline ->
-              Printf.sprintf "%s ! queue ! %s ! %s ! %s"
-                (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
-                (GU.Pipeline.convert_audio ())
-                pipeline
-                muxer) ext.audio
+                Printf.sprintf "%s ! queue ! %s ! %s ! %s"
+                  (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
+                  (GU.Pipeline.convert_audio ())
+                  pipeline
+                  muxer) ext.audio
           in
           let video_pipeline =
             Utils.maybe (fun pipeline ->
-              Printf.sprintf "%s ! queue ! %s ! %s ! %s"
-                (GU.Pipeline.video_src ~block:true "video_src")
-                (GU.Pipeline.convert_video ())
-                pipeline
-                muxer) ext.video
+                Printf.sprintf "%s ! queue ! %s ! %s ! %s"
+                  (GU.Pipeline.video_src ~block:true "video_src")
+                  (GU.Pipeline.convert_video ())
+                  pipeline
+                  muxer) ext.video
           in
           let muxer_pipeline = match ext.muxer with
             | Some muxer -> Printf.sprintf "%s name=muxer !" muxer
@@ -96,7 +96,7 @@ let encoder ext =
       try
         Some
           (Gstreamer.App_src.of_element
-            (Gstreamer.Bin.get_by_name bin "audio_src"))
+             (Gstreamer.Bin.get_by_name bin "audio_src"))
       with
         | Not_found -> None
     in
@@ -104,7 +104,7 @@ let encoder ext =
       try
         Some
           (Gstreamer.App_src.of_element
-            (Gstreamer.Bin.get_by_name bin "video_src"))
+             (Gstreamer.Bin.get_by_name bin "video_src"))
       with
         | Not_found -> None
     in
@@ -116,28 +116,28 @@ let encoder ext =
 
   let stop () =
     let ret =
-     if !samples > 0 then
-      begin
-       Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
-       Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
-       GU.flush ~log gst.bin;
-       let buf = Buffer.create Utils.pagesize in
-       begin
-        try
-         while true do
-           Buffer.add_string buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
-         done
-        with
-          | Gstreamer.End_of_stream -> ()
-       end; 
-       Buffer.contents buf
-      end
-    else
-      ""
-   in
-   ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
-   GU.flush ~log gst.bin;
-   ret
+      if !samples > 0 then
+        begin
+          Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
+          Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
+          GU.flush ~log gst.bin;
+          let buf = Buffer.create Utils.pagesize in
+          begin
+            try
+              while true do
+                Buffer.add_string buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
+              done
+            with
+              | Gstreamer.End_of_stream -> ()
+          end; 
+          Buffer.contents buf
+        end
+      else
+        ""
+    in
+    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
+    GU.flush ~log gst.bin;
+    ret
   in
 
   let insert_metadata m =
@@ -171,36 +171,36 @@ let encoder ext =
         }
     in
     if channels > 0 then
-     begin
-      (* Put audio. *)
-      let astart = Frame.audio_of_master start in
-      let alen = Frame.audio_of_master len in
-      let pcm = content.Frame.audio in
-      let data = Bytes.create (2*channels*alen) in
-      Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
-      Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time ~duration
-        (Utils.get_some gst.audio_src) data 0 (Bytes.length data);
-     end;
+      begin
+        (* Put audio. *)
+        let astart = Frame.audio_of_master start in
+        let alen = Frame.audio_of_master len in
+        let pcm = content.Frame.audio in
+        let data = Bytes.create (2*channels*alen) in
+        Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
+        Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time ~duration
+          (Utils.get_some gst.audio_src) data 0 (Bytes.length data);
+      end;
     if videochans > 0 then
-     begin
-      (* Put video. *)
-      let vbuf = content.Frame.video in
-      let vbuf = vbuf.(0) in
-      let vstart = Frame.video_of_master start in
-      let vlen = Frame.video_of_master len in
-      for i = vstart to vstart+vlen-1 do
-        let img = Video.get vbuf i in
-        (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
-        assert (Image.YUV420.y_stride img = ((Image.YUV420.width img + 3)/4)*4);
-        assert (Image.YUV420.uv_stride img = ((Image.YUV420.width img / 2 + 3)/4)*4);
-        let y,u,v = Image.YUV420.data img in
-        let presentation_time = Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration) in
-        let buf = Gstreamer.Buffer.of_data_list (List.map (fun d -> d,0,Image.Data.length d) [y;u;v]) in
-        Gstreamer.Buffer.set_presentation_time buf presentation_time;
-        Gstreamer.Buffer.set_duration buf vduration;
-        Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) buf
-      done;
-     end;
+      begin
+        (* Put video. *)
+        let vbuf = content.Frame.video in
+        let vbuf = vbuf.(0) in
+        let vstart = Frame.video_of_master start in
+        let vlen = Frame.video_of_master len in
+        for i = vstart to vstart+vlen-1 do
+          let img = Video.get vbuf i in
+          (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
+          assert (Image.YUV420.y_stride img = ((Image.YUV420.width img + 3)/4)*4);
+          assert (Image.YUV420.uv_stride img = ((Image.YUV420.width img / 2 + 3)/4)*4);
+          let y,u,v = Image.YUV420.data img in
+          let presentation_time = Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration) in
+          let buf = Gstreamer.Buffer.of_data_list (List.map (fun d -> d,0,Image.Data.length d) [y;u;v]) in
+          Gstreamer.Buffer.set_presentation_time buf presentation_time;
+          Gstreamer.Buffer.set_duration buf vduration;
+          Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) buf
+        done;
+      end;
     GU.flush ~log gst.bin;
     (* Return result. *)
     presentation_time := Int64.add !presentation_time duration;
@@ -223,11 +223,11 @@ let encoder ext =
 let () =
   Encoder.plug#register "GSTREAMER"
     (function
-    | Encoder.GStreamer params ->
+      | Encoder.GStreamer params ->
         let f _ m =
           let encoder = encoder params in
           encoder.Encoder.insert_metadata m;
           encoder
         in
         Some f
-    | _ -> None)
+      | _ -> None)

@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
@@ -49,8 +49,8 @@ val callback_ops : callback read_ops
 
 val fopen : string -> in_channel t
 (** Open the named file for reading, and return a new wav descriptor.
-   Raise [Sys_error] if the file could not be opened and [Not_a_iff_file]
-   if it hasn't the right format. *)
+    Raise [Sys_error] if the file could not be opened and [Not_a_iff_file]
+    if it hasn't the right format. *)
 
 val read_header : 'a read_ops -> 'a -> 'a t
 (** Generic opener. *)
@@ -73,7 +73,7 @@ val close : 'a t -> unit
 (** Returns the WAV header that declares the given format.
   * The lengths of file and data are set to their maximum possible value. *)
 val wav_header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
-                  unit -> string
+  unit -> string
 
 (** Returns the duration of the data.
     Warning: value may not be accurate for streams. *)

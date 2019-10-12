@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -33,7 +33,7 @@ let in_chan_ops = { really_input = really_input ;
                     input_byte = input_byte ;
                     input = input ;
                     seek = (fun ic len ->
-                      seek_in ic ((pos_in ic) + len));
+                        seek_in ic ((pos_in ic) + len));
                     close = close_in }
 
 (* buffer ofs len *)
@@ -42,7 +42,7 @@ type callback = Bytes.t -> int -> int -> int
 let callback_ops =
   let really_input read buf ofs len =
     let ret =
-       Extralib.read_retry read buf ofs len
+      Extralib.read_retry read buf ofs len
     in
     if ret < len then raise End_of_file
   in
@@ -104,9 +104,9 @@ let read_header read_ops ic =
   in
   let format =
     match read_string ic 4 with
-    | "RIFF" -> `Wav
-    | "FORM" -> `Aiff
-    | _ -> raise (Not_a_iff_file "Unknown file format.")
+      | "RIFF" -> `Wav
+      | "FORM" -> `Aiff
+      | _ -> raise (Not_a_iff_file "Unknown file format.")
   in
 
   let input_byte = read_ops.input_byte in
@@ -131,9 +131,9 @@ let read_header read_ops ic =
   ignore (read_int ic); (* size of the file *)
   begin
     match read_string ic 4 with
-    | "WAVE" when format = `Wav -> ()
-    | "AIFF" when format = `Aiff -> ()
-    | _ -> raise (Not_a_iff_file "Bad header")
+      | "WAVE" when format = `Wav -> ()
+      | "AIFF" when format = `Aiff -> ()
+      | _ -> raise (Not_a_iff_file "Bad header")
   end;
   let format_chunk = if format = `Wav then "fmt " else "COMM" in
 
@@ -198,8 +198,8 @@ let read_header read_ops ic =
       if fmt_len > 0x12 then
         begin
           match read_string ic 4 with
-          | "NONE" -> read_ops.seek ic (even_ceil (fmt_len - 0x16));
-          | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported")
+            | "NONE" -> read_ops.seek ic (even_ceil (fmt_len - 0x16));
+            | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported")
         end;
 
       (* Skip unhandled chunks. *)
@@ -228,12 +228,12 @@ let fopen file =
   try
     in_chan_read_header ic
   with
-  | End_of_file ->
-    close_in ic ;
-    raise (Not_a_iff_file "End of file unexpected")
-  | e ->
-    close_in ic ;
-    raise e
+    | End_of_file ->
+      close_in ic ;
+      raise (Not_a_iff_file "End of file unexpected")
+    | e ->
+      close_in ic ;
+      raise e
 
 let info w =
   Printf.sprintf
@@ -265,8 +265,8 @@ let short_string i =
   let up = i/256 in
   let down = i-256*up in
   Bytes.unsafe_to_string (Bytes.cat
-    (Bytes.make 1 (char_of_int down))
-    (Bytes.make 1 (char_of_int up)))
+                            (Bytes.make 1 (char_of_int down))
+                            (Bytes.make 1 (char_of_int up)))
 
 let int_string n =
   let s = Bytes.create 4 in
@@ -280,8 +280,8 @@ let wav_header ?len ~channels ~sample_rate ~sample_size () =
   (* The data lengths are set to their maximum possible values. *)
   let header_len,data_len =
     match len with
-    | None -> "\255\255\255\239","\219\255\255\239"
-    | Some v -> int_string (v+36), int_string v
+      | None -> "\255\255\255\239","\219\255\255\239"
+      | Some v -> int_string (v+36), int_string v
   in
   "RIFF" ^
   header_len ^
@@ -291,9 +291,9 @@ let wav_header ?len ~channels ~sample_rate ~sample_size () =
   (short_string channels) ^
   (int_string sample_rate) ^
   (int_string   (* bytes per second *)
-    (channels*sample_rate*sample_size/8)) ^
+     (channels*sample_rate*sample_size/8)) ^
   (short_string (* block size *)
-    (channels*sample_size/8)) ^
+     (channels*sample_size/8)) ^
   (short_string sample_size) ^
   "data" ^
   data_len

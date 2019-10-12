@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -42,15 +42,15 @@ let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
 let parse_uri uri =
   try
     let i = String.index uri ':' in
-      Some ((String.sub uri 0 i),
-            (String.sub uri (i+1) ((String.length uri)-(i+1))))
+    Some ((String.sub uri 0 i),
+          (String.sub uri (i+1) ((String.length uri)-(i+1))))
   with
     | _ -> None
 
 let cleanup =
   let re1 = Str.regexp "^[\t ]*" in
   let re2 = Str.regexp "[\t ]*$" in
-    fun s -> Str.global_replace re1 "" (Str.global_replace re2 "" s)
+  fun s -> Str.global_replace re1 "" (Str.global_replace re2 "" s)
 
 (** Metadata *)
 
@@ -61,26 +61,26 @@ let string_of_metadata metadata =
   let f = Format.formatter_of_buffer b in
   let escape f s = Utils.escape_utf8 f s in
   let first = ref true in
-    Hashtbl.iter (fun k v ->
-                    if !first then begin
-                      first := false ;
-                      try 
-                        Format.fprintf f "%s=%a" k escape v
-                      with _ -> ()
-                    end else
-                      try 
-                        Format.fprintf f "\n%s=%a" k escape v
-                      with _ -> ())
-      metadata ;
-    Format.pp_print_flush f () ;
-    Buffer.contents b
+  Hashtbl.iter (fun k v ->
+      if !first then begin
+        first := false ;
+        try 
+          Format.fprintf f "%s=%a" k escape v
+        with _ -> ()
+      end else
+        try 
+          Format.fprintf f "\n%s=%a" k escape v
+        with _ -> ())
+    metadata ;
+  Format.pp_print_flush f () ;
+  Buffer.contents b
 
 let short_string_of_metadata m =
   "Title: "^(
     try
       let t = Hashtbl.find m "title" in
-        if String.length t < 12 then t else
-          (String.sub t 0 9)^"..."
+      if String.length t < 12 then t else
+        (String.sub t 0 9)^"..."
     with
       | Not_found -> "(undef)"
   )
@@ -97,10 +97,10 @@ let pretty_date date =
 
 let string_of_log log =
   Queue.fold (fun s (date,msg) ->
-                s^(if s="" then
-                     Printf.sprintf "[%s] %s" (pretty_date date) msg
-                   else
-                     Printf.sprintf "\n[%s] %s" (pretty_date date) msg)) "" log
+      s^(if s="" then
+           Printf.sprintf "[%s] %s" (pretty_date date) msg
+         else
+           Printf.sprintf "\n[%s] %s" (pretty_date date) msg)) "" log
 
 (** Requests.
   * The purpose of a request is to get a valid file. The file can contain media
@@ -126,7 +126,7 @@ let string_of_log log =
   *   ] ;
   *   [ "mydb://myrequest" ] (* And this is the initial URI *)
   * ]
-  *)
+*)
 
 type indicator = {
   string : string ;
@@ -182,15 +182,15 @@ let duration file =
   try
     dresolvers#iter
       (fun _ resolver ->
-        try
-          let ans = resolver file in
-          raise (Duration ans)
-        with
-        | Duration e -> raise (Duration e)
-        | _ -> ());
+         try
+           let ans = resolver file in
+           raise (Duration ans)
+         with
+           | Duration e -> raise (Duration e)
+           | _ -> ());
     raise Not_found
   with
-  | Duration d -> d
+    | Duration d -> d
 
 (** Manage requests' metadata *)
 
@@ -203,8 +203,8 @@ let toplevel_metadata t =
 let iter_metadata t f =
   List.iter
     (function
-       | [] -> assert false
-       | h::_ -> f h.metadata)
+      | [] -> assert false
+      | h::_ -> f h.metadata)
     t.indicators ;
   f t.root_metadata
 
@@ -230,10 +230,10 @@ let get_root_metadata t k =
 
 let get_all_metadata t =
   let h = Hashtbl.create 20 in
-    iter_metadata t
-      (Hashtbl.iter
-         (fun k v -> if not (Hashtbl.mem h k) then Hashtbl.add h k v)) ;
-    h
+  iter_metadata t
+    (Hashtbl.iter
+       (fun k v -> if not (Hashtbl.mem h k) then Hashtbl.add h k v)) ;
+  h
 
 (** Logging *)
 
@@ -248,8 +248,8 @@ exception No_indicator
 
 let () =
   Printexc.register_printer (function
-    | No_indicator -> Some "All options exhausted while processing request" 
-    | _ -> None)
+      | No_indicator -> Some "All options exhausted while processing request" 
+      | _ -> None)
 
 let peek_indicator t =
   match t.indicators with
@@ -261,20 +261,20 @@ let rec pop_indicator t =
   let i,repop =
     match t.indicators with
       | (h::l)::ll ->
-          t.indicators <- if l = [] then ll else l::ll ;
-          h,(l=[] && ll<>[])
+        t.indicators <- if l = [] then ll else l::ll ;
+        h,(l=[] && ll<>[])
       | []::_ -> assert false
       | [] -> raise No_indicator
   in
-    if i.temporary then
-      begin try
+  if i.temporary then
+    begin try
         Unix.unlink i.string
       with
         | e ->
-            log#severe "Unlink failed: %S" (Printexc.to_string e)
-      end ;
-    t.decoder <- None ;
-    if repop then pop_indicator t
+          log#severe "Unlink failed: %S" (Printexc.to_string e)
+    end ;
+  t.decoder <- None ;
+  if repop then pop_indicator t
 
 let conf_metadata_decoders =
   Dtools.Conf.list
@@ -291,7 +291,7 @@ let get_decoders conf decoders =
     match decoders#get name with
       | Some p -> (name,p)::cur
       | None   -> log#severe "Cannot find decoder %s" name;
-                  cur
+        cur
   in
   List.fold_left f [] (List.rev conf#get)
 
@@ -304,8 +304,8 @@ let mresolvers =
 
 let conf_override_metadata =
   Dtools.Conf.bool ~p:(conf_metadata_decoders#plug "override") ~d:false
-      "Allow metadata resolvers to override metadata already \
-       set through annotate: or playlist resolution for instance."
+    "Allow metadata resolvers to override metadata already \
+     set through annotate: or playlist resolution for instance."
 
 let conf_duration =
   Dtools.Conf.bool ~p:(conf_metadata_decoders#plug "duration") ~d:false
@@ -332,60 +332,60 @@ let file_is_readable name =
 
 let local_check t =
   let check_decodable kind = try
-    while t.decoder = None && file_exists (peek_indicator t).string do
-      let indicator = peek_indicator t in
-      let name = indicator.string in
-      let metadata = get_all_metadata t in
+      while t.decoder = None && file_exists (peek_indicator t).string do
+        let indicator = peek_indicator t in
+        let name = indicator.string in
+        let metadata = get_all_metadata t in
         if not (file_is_readable name) then begin
           log#important "Read permission denied for %S!" name ;
           add_log t "Read permission denied!" ;
           pop_indicator t
         end else
-        match Decoder.get_file_decoder ~metadata name kind with
-          | Some (decoder_name,f) ->
+          match Decoder.get_file_decoder ~metadata name kind with
+            | Some (decoder_name,f) ->
               t.decoder <- Some f ;
               set_root_metadata t "decoder" decoder_name ;
               List.iter
                 (fun (_,resolver) ->
                    try
                      let ans = resolver name in
-                       List.iter
-                         (fun (k,v) ->
-                           let k = String.lowercase_ascii k in
-                           if conf_override_metadata#get || get_metadata t k = None then
-                             Hashtbl.replace indicator.metadata
+                     List.iter
+                       (fun (k,v) ->
+                          let k = String.lowercase_ascii k in
+                          if conf_override_metadata#get || get_metadata t k = None then
+                            Hashtbl.replace indicator.metadata
                               k (cleanup v))
-                         ans;
+                       ans;
                      if conf_duration#get && get_metadata t "duration" = None then
                        (
                          try
                            Hashtbl.replace indicator.metadata "duration" (string_of_float (duration name))
                          with
-                         | Not_found -> ()
+                           | Not_found -> ()
                        )
                    with
                      | _ -> ()) (get_decoders conf_metadata_decoders
-                                     mresolvers) ;
+                                   mresolvers) ;
               t.status <- Ready
-          | None -> pop_indicator t
+            | None -> pop_indicator t
       done
-  with
-    | No_indicator -> ()
+    with
+      | No_indicator -> ()
   in
-    match t.kind with None -> () | Some k -> check_decodable k
+  match t.kind with None -> () | Some k -> check_decodable k
 
 let push_indicators t l =
   if l <> [] then
     let hd = List.hd l in
-      add_log t (Printf.sprintf "Pushed [%S;...]." hd.string) ;
-      t.indicators <- l::t.indicators ;
-      t.decoder <- None ;
-      (* Performing a local check is quite fast and allows the request
-       * to be instantly available if it is only made of valid local files,
-       * without any need for a resolution process. *)
-      (* TODO sometimes it's not that fast actually, and it'd be nice
-       * to be able to disable this check in some cases, like playlist.safe. *)
-      local_check t
+    add_log t (Printf.sprintf "Pushed [%S;...]." hd.string) ;
+    t.indicators <- l::t.indicators ;
+    t.decoder <- None ;
+    (* Performing a local check is quite fast and allows the request
+     * to be instantly available if it is only made of valid local files,
+     * without any need for a resolution process. *)
+    (* TODO sometimes it's not that fast actually, and it'd be nice
+     * to be able to disable this check in some cases, like playlist.safe. *)
+    local_check t
 
 let is_ready t =
   t.indicators <> [] &&
@@ -403,40 +403,40 @@ let get_filename t =
 
 let update_metadata t =
   let replace = Hashtbl.replace t.root_metadata in
-    replace "rid" (string_of_int t.id) ;
-    replace "initial_uri" t.initial_uri ;
-    (* TOP INDICATOR *)
-    replace "temporary"
-      (match t.indicators with
-         | (h::_)::_ -> if h.temporary then "true" else "false"
-         | _ -> "false") ;
-    begin match get_filename t with
-      | Some f -> replace "filename" f
-      | None -> ()
-    end ;
-    (* STATUS *)
-    begin match t.resolving with
-      | Some d ->
-          replace "resolving" (pretty_date (Unix.localtime d))
-      | None -> ()
-    end ;
-    begin match t.on_air with
-      | Some d ->
-          replace "on_air" (pretty_date (Unix.localtime d))
-      | None -> ()
-    end ;
-    begin match t.kind with
-      | None -> ()
-      | Some k ->
-          replace "kind" (Frame.string_of_content_kind k)
-    end ;
-    replace "status"
-      (match t.status with
-         | Idle -> "idle"
-         | Resolving -> "resolving"
-         | Ready -> "ready"
-         | Playing -> "playing"
-         | Destroyed -> "destroyed")
+  replace "rid" (string_of_int t.id) ;
+  replace "initial_uri" t.initial_uri ;
+  (* TOP INDICATOR *)
+  replace "temporary"
+    (match t.indicators with
+      | (h::_)::_ -> if h.temporary then "true" else "false"
+      | _ -> "false") ;
+  begin match get_filename t with
+    | Some f -> replace "filename" f
+    | None -> ()
+  end ;
+  (* STATUS *)
+  begin match t.resolving with
+    | Some d ->
+      replace "resolving" (pretty_date (Unix.localtime d))
+    | None -> ()
+  end ;
+  begin match t.on_air with
+    | Some d ->
+      replace "on_air" (pretty_date (Unix.localtime d))
+    | None -> ()
+  end ;
+  begin match t.kind with
+    | None -> ()
+    | Some k ->
+      replace "kind" (Frame.string_of_content_kind k)
+  end ;
+  replace "status"
+    (match t.status with
+      | Idle -> "idle"
+      | Resolving -> "resolving"
+      | Ready -> "ready"
+      | Playing -> "playing"
+      | Destroyed -> "destroyed")
 
 let get_metadata t k = update_metadata t ; get_metadata t k
 let get_all_metadata t = update_metadata t ; get_all_metadata t
@@ -506,13 +506,13 @@ let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
     root_metadata = Hashtbl.create 10 ;
     indicators = [] }
   in
-    register t ;
-    List.iter
-      (fun (k,v) -> Hashtbl.replace t.root_metadata k v)
-      metadata ;
-    push_indicators t
-      (if indicators=[] then [indicator u] else indicators) ;
-    t
+  register t ;
+  List.iter
+    (fun (k,v) -> Hashtbl.replace t.root_metadata k v)
+    metadata ;
+  push_indicators t
+    (if indicators=[] then [indicator u] else indicators) ;
+  t
 
 let create_raw = create ~kind:None
 let create ~kind = create ~kind:(Some kind)
@@ -563,10 +563,10 @@ let is_static s =
   else
     match parse_uri s with
       | Some (proto,_) ->
-          begin match protocols#get proto with
-            | Some handler -> handler.static
-            | None -> false
-          end
+        begin match protocols#get proto with
+          | Some handler -> handler.static
+          | None -> false
+        end
       | None -> false
 
 (** Resolving engine. *)
@@ -590,42 +590,42 @@ let resolve t timeout =
     if file_exists i.string then local_check t else
       match parse_uri i.string with
         | Some (proto,arg) ->
-            begin match protocols#get proto with
-              | Some handler ->
-                  add_log t
-                    (Printf.sprintf
-                       "Resolving %S (timeout %.0fs)..."
-                       i.string timeout) ;
-                  let production =
-                    handler.resolve ~log:(add_log t) arg maxtime
-                  in
-                    if production = [] then begin
-                      log#info
-                        "Failed to resolve %S! \
-                         For more info, see server command 'trace %d'."
-                        i.string t.id ;
-                      ignore (pop_indicator t)
-                    end else
-                      push_indicators t production
-              | None ->
-                  log#important "Unknown protocol %S in URI %S!" proto i.string ;
-                  add_log t "Unknown protocol!" ;
-                  pop_indicator t
-            end
+          begin match protocols#get proto with
+            | Some handler ->
+              add_log t
+                (Printf.sprintf
+                   "Resolving %S (timeout %.0fs)..."
+                   i.string timeout) ;
+              let production =
+                handler.resolve ~log:(add_log t) arg maxtime
+              in
+              if production = [] then begin
+                log#info
+                  "Failed to resolve %S! \
+                   For more info, see server command 'trace %d'."
+                  i.string t.id ;
+                ignore (pop_indicator t)
+              end else
+                push_indicators t production
+            | None ->
+              log#important "Unknown protocol %S in URI %S!" proto i.string ;
+              add_log t "Unknown protocol!" ;
+              pop_indicator t
+          end
         | None ->
-            let log_level = if i.string = "" then 4 else 3 in
-            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
-            add_log t "Nonexistent file or ill-formed URI!" ;
-            pop_indicator t
+          let log_level = if i.string = "" then 4 else 3 in
+          log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
+          add_log t "Nonexistent file or ill-formed URI!" ;
+          pop_indicator t
   in
   let result =
     try
       while not (is_ready t) do
         let timeleft = maxtime -. (Unix.time ()) in
-          if timeleft > 0. then
-            resolve_step ()
-          else
-            ( add_log t "Global timeout." ; raise ExnTimeout )
+        if timeleft > 0. then
+          resolve_step ()
+        else
+          ( add_log t "Global timeout." ; raise ExnTimeout )
       done ;
       Resolved
     with
@@ -633,11 +633,11 @@ let resolve t timeout =
       | No_indicator -> add_log t "Every possibility failed!" ; Failed
   in
   let excess = (Unix.time ()) -. maxtime in
-    if excess > 0. then
-      log#severe "Time limit exceeded by %.2f secs!" excess ;
-    t.resolving <- None ;
-    if result <> Resolved then t.status <- Idle else t.status <- Ready ;
-    result
+  if excess > 0. then
+    log#severe "Time limit exceeded by %.2f secs!" excess ;
+  t.resolving <- None ;
+  if result <> Resolved then t.status <- Idle else t.status <- Ready ;
+  result
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 

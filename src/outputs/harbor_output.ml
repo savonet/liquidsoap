@@ -1,23 +1,23 @@
 (*****************************************************************************
-  
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-  
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
-  
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
-  
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+
  *****************************************************************************)
 
 (** Output to an harbor server. *)
@@ -177,25 +177,25 @@ module Make (T : T) = struct
       in
       let meta_info =
         match (f "artist", f "title") with
-        | Some a, Some t -> Some (Printf.sprintf "%s - %s" a t)
-        | Some s, None | None, Some s -> Some s
-        | None, None -> None
+          | Some a, Some t -> Some (Printf.sprintf "%s - %s" a t)
+          | Some s, None | None, Some s -> Some s
+          | None, None -> None
       in
       let meta =
         match meta_info with
-        | Some s when String.length s > max_title ->
+          | Some s when String.length s > max_title ->
             Printf.sprintf "StreamTitle='%s...';"
               (String.sub s 0 (max_title - 3))
-        | Some s -> Printf.sprintf "StreamTitle='%s';" s
-        | None -> ""
+          | Some s -> Printf.sprintf "StreamTitle='%s';" s
+          | None -> ""
       in
       let meta =
         match c.url with
-        | Some s when String.length s > max_url ->
+          | Some s when String.length s > max_url ->
             Printf.sprintf "%sStreamURL='%s...';" meta
               (String.sub s 0 (max_url - 3))
-        | Some s -> Printf.sprintf "%sStreamURL='%s';" meta s
-        | None -> meta
+          | Some s -> Printf.sprintf "%sStreamURL='%s';" meta s
+          | None -> meta
       in
       (* Pad string to a multiple of 16 bytes. *)
       let len = String.length meta in
@@ -237,41 +237,41 @@ module Make (T : T) = struct
       Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
         (Tutils.mutexify c.mutex
            (fun () ->
-             let buflen = Buffer.length c.buffer in
-             let data =
-               if buflen > c.chunk then (
-                 let data = Some (add_meta c (Buffer.contents c.buffer)) in
-                 Buffer.reset c.buffer ; data )
-               else None
-             in
-             Duppy.Monad.return data )
+              let buflen = Buffer.length c.buffer in
+              let data =
+                if buflen > c.chunk then (
+                  let data = Some (add_meta c (Buffer.contents c.buffer)) in
+                  Buffer.reset c.buffer ; data )
+                else None
+              in
+              Duppy.Monad.return data )
            ())
     in
     Duppy.Monad.bind __pa_duppy_0 (fun data ->
         Duppy.Monad.bind
           ( match data with
-          | None ->
+            | None ->
               Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
                   Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
                     (fun () -> Duppy_m.unlock c.condition_m ) )
-          | Some s ->
+            | Some s ->
               Duppy.Monad.Io.write ?timeout:(Some c.timeout)
                 ~priority:Tutils.Non_blocking c.handler (Bytes.of_string s) )
           (fun () ->
-            let __pa_duppy_0 =
-              Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
-                (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
-                 Duppy.Monad.return ret)
-            in
-            Duppy.Monad.bind __pa_duppy_0 (fun state ->
-                if state <> Done then client_task c else Duppy.Monad.return ()
-            ) ) )
+             let __pa_duppy_0 =
+               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
+                 (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
+                  Duppy.Monad.return ret)
+             in
+             Duppy.Monad.bind __pa_duppy_0 (fun state ->
+                 if state <> Done then client_task c else Duppy.Monad.return ()
+               ) ) )
 
   let client_task c =
     Tutils.mutexify c.mutex
       (fun () ->
-        assert (c.state = Hello) ;
-        c.state <- Sending )
+         assert (c.state = Hello) ;
+         c.state <- Sending )
       () ;
     Duppy.Monad.catch (client_task c) (fun _ -> Duppy.Monad.raise ())
 
@@ -299,8 +299,8 @@ module Make (T : T) = struct
     let recode ~icy m =
       let out_enc =
         match encoding with
-        | "" -> if icy then "ISO-8859-1" else "UTF-8"
-        | s -> String.uppercase_ascii s
+          | "" -> if icy then "ISO-8859-1" else "UTF-8"
+          | s -> String.uppercase_ascii s
       in
       let f = Configure.recode_tag ~out_enc in
       let meta = Hashtbl.create (Hashtbl.length m) in
@@ -329,8 +329,8 @@ module Make (T : T) = struct
     let mount = s "mount" in
     let uri =
       match mount.[0] with
-      | '/' -> mount
-      | _ -> Printf.sprintf "%c%s" '/' mount
+        | '/' -> mount
+        | _ -> Printf.sprintf "%c%s" '/' mount
     in
     let autostart = Lang.to_bool (List.assoc "start" p) in
     let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -351,7 +351,7 @@ module Make (T : T) = struct
       | { Lang.value=
             Lang.Fun (_, _, _, {Lang_values.term= Lang_values.Bool false; _}); _
         } ->
-          true
+        true
       | _ -> false
     in
     let auth_function = List.assoc "auth" p in
@@ -371,15 +371,15 @@ module Make (T : T) = struct
     let extra_headers =
       List.map
         (fun v ->
-          let f (x, y) = (Lang.to_string x, Lang.to_string y) in
-          f (Lang.to_product v) )
+           let f (x, y) = (Lang.to_string x, Lang.to_string y) in
+           f (Lang.to_product v) )
         (Lang.to_list (List.assoc "headers" p))
     in
     object (self)
       (** File descriptor where to dump. *)
       inherit Output.encoded
-                ~content_kind:kind ~output_kind:T.source_name ~infallible
-                  ~autostart ~on_start ~on_stop ~name:mount source
+          ~content_kind:kind ~output_kind:T.source_name ~infallible
+          ~autostart ~on_start ~on_stop ~name:mount source
 
       val mutable dump = None
 
@@ -416,7 +416,7 @@ module Make (T : T) = struct
       method add_client ~protocol ~headers ~uri ~args s =
         let ip =
           (* Show port = true to catch different clients from same
-         * ip *)
+           * ip *)
           let fd = Harbor.file_descr_of_socket s in
           Utils.name_of_sockaddr ~show_port:true (Unix.getpeername fd)
         in
@@ -438,8 +438,8 @@ module Make (T : T) = struct
         in
         let buffer = Buffer.create buflen in
         ( match (Utils.get_some encoder).Encoder.header with
-        | Some s -> Buffer.add_string buffer s
-        | None -> () ) ;
+          | Some s -> Buffer.add_string buffer s
+          | None -> () ) ;
         let close () = try Harbor.close s with _ -> () in
         let rec client =
           { buffer
@@ -462,46 +462,46 @@ module Make (T : T) = struct
           ; data= ""
           ; on_error=
               (fun e ->
-                ( match e with
-                | Duppy.Io.Timeout -> (self#log)#f 5 "Timeout error"
-                | Duppy.Io.Io_error -> (self#log)#f 5 "I/O error"
-                | Duppy.Io.Unix (c, p, m) ->
-                    (self#log)#f 5 "%s"
-                      (Printexc.to_string (Unix.Unix_error (c, p, m)))
-                | Duppy.Io.Unknown e ->
-                    (self#log)#f 5 "%s" (Printexc.to_string e) ) ;
-                (self#log)#f 4 "Client %s disconnected" ip ;
-                Tutils.mutexify client.mutex
-                  (fun () ->
-                    client.state <- Done ;
-                    Buffer.reset buffer )
-                  () ;
-                on_disconnect ip ;
-                Harbor.Close (Harbor.mk_simple "")) }
+                 ( match e with
+                   | Duppy.Io.Timeout -> (self#log)#f 5 "Timeout error"
+                   | Duppy.Io.Io_error -> (self#log)#f 5 "I/O error"
+                   | Duppy.Io.Unix (c, p, m) ->
+                     (self#log)#f 5 "%s"
+                       (Printexc.to_string (Unix.Unix_error (c, p, m)))
+                   | Duppy.Io.Unknown e ->
+                     (self#log)#f 5 "%s" (Printexc.to_string e) ) ;
+                 (self#log)#f 4 "Client %s disconnected" ip ;
+                 Tutils.mutexify client.mutex
+                   (fun () ->
+                      client.state <- Done ;
+                      Buffer.reset buffer )
+                   () ;
+                 on_disconnect ip ;
+                 Harbor.Close (Harbor.mk_simple "")) }
         in
         Duppy.Monad.bind
           (Duppy.Monad.catch
              ( if default_user <> "" || not (trivially_false auth_function) then
-               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
-                 (Harbor.http_auth_check ~args ~login:(default_user, login)
-                    headers)
-             else Duppy.Monad.return () )
+                 Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
+                   (Harbor.http_auth_check ~args ~login:(default_user, login)
+                      headers)
+               else Duppy.Monad.return () )
              (function
                | Harbor.Relay _ -> assert false
                | Harbor.Close s ->
-                   (self#log)#f 4 "Client %s failed to authenticate!" ip ;
-                   client.state <- Done ;
-                   Harbor.reply s))
+                 (self#log)#f 4 "Client %s failed to authenticate!" ip ;
+                 client.state <- Done ;
+                 Harbor.reply s))
           (fun () ->
-            Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
-              (Harbor.relayed reply (fun () ->
-                   (self#log)#f 4 "Client %s connected" ip ;
-                   Tutils.mutexify clients_m
-                     (fun () -> Queue.push client clients)
-                     () ;
-                   let h_headers = Hashtbl.create (List.length headers) in
-                   List.iter (fun (x, y) -> Hashtbl.add h_headers x y) headers ;
-                   on_connect ~protocol ~uri ~headers:h_headers ip )) )
+             Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
+               (Harbor.relayed reply (fun () ->
+                    (self#log)#f 4 "Client %s connected" ip ;
+                    Tutils.mutexify clients_m
+                      (fun () -> Queue.push client clients)
+                      () ;
+                    let h_headers = Hashtbl.create (List.length headers) in
+                    List.iter (fun (x, y) -> Hashtbl.add h_headers x y) headers ;
+                    on_connect ~protocol ~uri ~headers:h_headers ip )) )
 
       method send b =
         let slen = String.length b in
@@ -515,11 +515,11 @@ module Make (T : T) = struct
           in
           let rec f acc len l =
             match l with
-            | x :: l' ->
+              | x :: l' ->
                 let len' = String.length x in
                 if len + len' < burst then f (x :: acc) (len + len') l'
                 else (x :: acc, len' - burst + len)
-            | [] -> (acc, 0)
+              | [] -> (acc, 0)
           in
           let data, pos = f [] 0 (b :: List.rev burst_data) in
           burst_data <- data ;
@@ -528,43 +528,43 @@ module Make (T : T) = struct
           (match dump with Some s -> output_string s b | None -> ()) ;
           Tutils.mutexify clients_m
             (fun () ->
-              Queue.iter
-                (fun c ->
-                  let start =
-                    Tutils.mutexify c.mutex
-                      (fun () ->
-                        match c.state with
-                        | Hello ->
-                            ( match burst_data with
-                            | x :: l ->
-                                Buffer.add_substring c.buffer x burst_pos
-                                  (String.length x - burst_pos) ;
-                                List.iter (Buffer.add_string c.buffer) l
-                            | _ -> () ) ;
-                            Queue.push c new_clients ; true
-                        | Sending ->
-                            let buf = Buffer.length c.buffer in
-                            if buf + slen > buflen then
-                              Utils.buffer_drop c.buffer (min buf slen)
-                            else () ;
-                            Buffer.add_string c.buffer b ;
-                            Queue.push c new_clients ;
-                            false
-                        | Done -> false )
-                      ()
-                  in
-                  if start then
-                    Duppy.Monad.run ~return:c.close ~raise:c.close
-                      (client_task c)
-                  else () )
-                clients ;
-              if wake_up && Queue.length new_clients > 0 then
-                Duppy.Monad.run
-                  ~return:(fun () -> ())
-                  ~raise:(fun () -> ())
-                  (Duppy_c.broadcast duppy_c)
-              else () ;
-              clients <- new_clients )
+               Queue.iter
+                 (fun c ->
+                    let start =
+                      Tutils.mutexify c.mutex
+                        (fun () ->
+                           match c.state with
+                             | Hello ->
+                               ( match burst_data with
+                                 | x :: l ->
+                                   Buffer.add_substring c.buffer x burst_pos
+                                     (String.length x - burst_pos) ;
+                                   List.iter (Buffer.add_string c.buffer) l
+                                 | _ -> () ) ;
+                               Queue.push c new_clients ; true
+                             | Sending ->
+                               let buf = Buffer.length c.buffer in
+                               if buf + slen > buflen then
+                                 Utils.buffer_drop c.buffer (min buf slen)
+                               else () ;
+                               Buffer.add_string c.buffer b ;
+                               Queue.push c new_clients ;
+                               false
+                             | Done -> false )
+                        ()
+                    in
+                    if start then
+                      Duppy.Monad.run ~return:c.close ~raise:c.close
+                        (client_task c)
+                    else () )
+                 clients ;
+               if wake_up && Queue.length new_clients > 0 then
+                 Duppy.Monad.run
+                   ~return:(fun () -> ())
+                   ~raise:(fun () -> ())
+                   (Duppy_c.broadcast duppy_c)
+               else () ;
+               clients <- new_clients )
             () )
         else ()
 
@@ -585,8 +585,8 @@ module Make (T : T) = struct
         in
         Harbor.add_http_handler ~port ~verb:`Get ~uri handler ;
         match dumpfile with
-        | Some f -> dump <- Some (open_out_bin f)
-        | None -> ()
+          | Some f -> dump <- Some (open_out_bin f)
+          | None -> ()
 
       method output_stop =
         ignore ((Utils.get_some encoder).Encoder.stop ()) ;
@@ -595,18 +595,18 @@ module Make (T : T) = struct
         let new_clients = Queue.create () in
         Tutils.mutexify clients_m
           (fun () ->
-            Queue.iter
-              (fun c ->
-                Tutils.mutexify c.mutex
-                  (fun () ->
-                    c.state <- Done ;
-                    Duppy.Monad.run
-                      ~return:(fun () -> ())
-                      ~raise:(fun () -> ())
-                      (Duppy_c.broadcast duppy_c) )
-                  () )
-              clients ;
-            clients <- new_clients )
+             Queue.iter
+               (fun c ->
+                  Tutils.mutexify c.mutex
+                    (fun () ->
+                       c.state <- Done ;
+                       Duppy.Monad.run
+                         ~return:(fun () -> ())
+                         ~raise:(fun () -> ())
+                         (Duppy_c.broadcast duppy_c) )
+                    () )
+               clients ;
+             clients <- new_clients )
           () ;
         match dump with Some f -> close_out f | None -> ()
 
@@ -618,7 +618,7 @@ module Make (T : T) = struct
     Lang.add_operator ~category:Lang.Output ~active:true
       ~descr:T.source_description T.source_name (proto k)
       ~kind:(Lang.Unconstrained k) (fun p kind ->
-        (new output ~kind p :> Source.source) )
+          (new output ~kind p :> Source.source) )
 end
 
 module Unix_output = struct

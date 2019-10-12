@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -29,37 +29,37 @@ let test_text s =
   match Configure.data_mime with
     | None -> ()
     | Some get_mime ->
-        let mime = get_mime s in
-          if not (Pcre.pmatch ~pat:"text/.*" mime) then begin
-            log#important "Wrong mime type %s for playlist!" mime ;
-            (* TODO this shouldn't be an assert false, it can happen *)
-            assert false
-          end
+      let mime = get_mime s in
+      if not (Pcre.pmatch ~pat:"text/.*" mime) then begin
+        log#important "Wrong mime type %s for playlist!" mime ;
+        (* TODO this shouldn't be an assert false, it can happen *)
+        assert false
+      end
 
- let parse_extinf s =
-   try
-     let rex =
-       Pcre.regexp "#EXTINF:(\\d+),(.*)"
-     in
-     let sub = Pcre.exec ~rex s in
-     let duration =
-       Pcre.get_substring sub 1
-     in
-     let song =
-       Pcre.get_substring sub 2
-     in
-     let lines =
-       Pcre.split ~pat:" - " song
-     in
-     match lines with
-       | artist::title::[] ->
-           ["extinf_duration", duration;
-            "artist", Utils.trim artist;
-            "title", Utils.trim title]
-       | _ ->
-           ["extinf_duration", duration;
-            "song", Utils.trim song]
-   with Not_found -> []
+let parse_extinf s =
+  try
+    let rex =
+      Pcre.regexp "#EXTINF:(\\d+),(.*)"
+    in
+    let sub = Pcre.exec ~rex s in
+    let duration =
+      Pcre.get_substring sub 1
+    in
+    let song =
+      Pcre.get_substring sub 2
+    in
+    let lines =
+      Pcre.split ~pat:" - " song
+    in
+    match lines with
+      | artist::title::[] ->
+        ["extinf_duration", duration;
+         "artist", Utils.trim artist;
+         "title", Utils.trim title]
+      | _ ->
+        ["extinf_duration", duration;
+         "song", Utils.trim song]
+  with Not_found -> []
 
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
@@ -76,10 +76,10 @@ let parse_mpegurl ?pwd string =
   let rec get_urls cur lines =
     match lines with
       | x :: y :: lines when is_info x && not (skip_line y) ->
-          let metadata = parse_extinf x in
-          get_urls ((metadata, Playlist_parser.get_file ?pwd y) :: cur) lines
+        let metadata = parse_extinf x in
+        get_urls ((metadata, Playlist_parser.get_file ?pwd y) :: cur) lines
       | x :: lines when not (skip_line x) ->
-          get_urls (([], Playlist_parser.get_file ?pwd x) :: cur) lines
+        get_urls (([], Playlist_parser.get_file ?pwd x) :: cur) lines
       | _ :: lines -> get_urls cur lines
       | [] -> List.rev cur
   in
@@ -94,11 +94,11 @@ let parse_scpls ?pwd string =
   let urls =
     List.map
       (fun s ->
-           try
-	     let rex = Pcre.regexp ~flags:[`CASELESS] "file\\d*\\s*=\\s*(.*)\\s*" in
-       let sub = Pcre.exec ~rex s in
-       Pcre.get_substring sub 1
-	   with Not_found -> ""
+         try
+           let rex = Pcre.regexp ~flags:[`CASELESS] "file\\d*\\s*=\\s*(.*)\\s*" in
+           let sub = Pcre.exec ~rex s in
+           Pcre.get_substring sub 1
+         with Not_found -> ""
       )
       lines
   in
@@ -154,10 +154,10 @@ let parse_track s f =
 let parse_index s f =
   try
     Scanf.sscanf s "INDEX %i %i:%i:%i" (fun index min sec frames ->
-      let position =
-        (float_of_int min) *. 60. +. (float_of_int sec) +. (float_of_int frames) /. 75.
-      in
-      f index position)
+        let position =
+          (float_of_int min) *. 60. +. (float_of_int sec) +. (float_of_int frames) /. 75.
+        in
+        f index position)
   with
     | _ -> raise Not_found
 
@@ -165,11 +165,11 @@ let find_file l =
   let rec find cur rem =
     match rem with
       | x :: rem ->
-         begin
+        begin
           try
             parse_file x (fun title -> title, cur, rem)
           with Not_found -> find (x :: cur) rem
-         end
+        end
       | [] -> raise Not_found
   in
   let title, cur, rem = find [] l in
@@ -180,31 +180,31 @@ let parse_tracks index lines =
     match rem with
       | [] -> List.rev (track :: tracks)
       | x :: rem ->
-         begin
+        begin
           try
             parse_track x (fun index ->
-              let tracks = track :: tracks in
-              let track = {
-                number          = index;
-                track_title     = None;
-                track_performer = None;
-                indexes         = Hashtbl.create 1 }
-              in
-              parse tracks track rem)
+                let tracks = track :: tracks in
+                let track = {
+                  number          = index;
+                  track_title     = None;
+                  track_performer = None;
+                  indexes         = Hashtbl.create 1 }
+                in
+                parse tracks track rem)
           with _ ->
             let track = parse_title x (fun title ->
-              if title <> None then { track with track_title = title } else track)
+                if title <> None then { track with track_title = title } else track)
             in
             let track = parse_performer x (fun performer ->
-              if performer <> None then { track with track_performer = performer } else track)
+                if performer <> None then { track with track_performer = performer } else track)
             in
             begin
-             try
-              parse_index x (Hashtbl.add track.indexes)
-             with Not_found -> ()
+              try
+                parse_index x (Hashtbl.add track.indexes)
+              with Not_found -> ()
             end;
             parse tracks track rem
-         end
+        end
   in
   let track = {
     number          = index;
@@ -218,7 +218,7 @@ let parse_cue ?pwd string =
   test_text string ;
   let strings = split_lines string in
   let strings = List.map (fun string ->
-    Pcre.replace ~rex:(Pcre.regexp "^\\s+") string) strings
+      Pcre.replace ~rex:(Pcre.regexp "^\\s+") string) strings
   in
   let strings = List.filter (fun s -> s <> "") strings in
   let strings, file = find_file strings in
@@ -226,19 +226,19 @@ let parse_cue ?pwd string =
     match rem with
       | [] -> sheet
       | x :: rem ->
-          let sheet = parse_title x (fun title ->
+        let sheet = parse_title x (fun title ->
             if title <> None then { sheet with title = title } else sheet)
-          in
-          let sheet = parse_performer x (fun performer ->
+        in
+        let sheet = parse_performer x (fun performer ->
             if performer <> None then { sheet with performer = performer } else sheet)
-          in
-          begin
-           try
-             parse_track x (fun index ->
-               { sheet with tracks = parse_tracks index rem })
-           with
-             | Not_found -> parse sheet rem
-          end
+        in
+        begin
+          try
+            parse_track x (fun index ->
+                { sheet with tracks = parse_tracks index rem })
+          with
+            | Not_found -> parse sheet rem
+        end
   in
   let sheet = {
     file      = file;
@@ -270,22 +270,22 @@ let parse_cue ?pwd string =
   let rec export_tracks cur tracks =
     match tracks with
       | []          ->
-          assert (cur == []);
-          []
+        assert (cur == []);
+        []
       | track :: [] ->
-          List.rev (export_track track :: cur)
+        List.rev (export_track track :: cur)
       | track :: track' :: tracks ->
-           let cue_out =
+        let cue_out =
+          try
+            Some (string_of_float (Hashtbl.find track'.indexes 0))
+          with _ ->
+            begin
               try
-                Some (string_of_float (Hashtbl.find track'.indexes 0))
-              with _ ->
-                begin
-                 try
-                  Some (string_of_float (Hashtbl.find track'.indexes 1))
-                 with _ -> None
-                end
-            in
-            export_tracks (export_track ?cue_out track :: cur) (track' :: tracks)
+                Some (string_of_float (Hashtbl.find track'.indexes 1))
+              with _ -> None
+            end
+        in
+        export_tracks (export_track ?cue_out track :: cur) (track' :: tracks)
   in
   export_tracks [] sheet.tracks
 

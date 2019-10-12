@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -26,20 +26,20 @@ let wh iw ih w h =
   let frame_w = Lazy.force Frame.video_width in
   let frame_h = Lazy.force Frame.video_height in
   match w, h with
-  | None, None ->
-    (* By default resize anamorphically to the maximum size wrt the frame *)
-    let w = frame_w in
-    let h = ih * frame_w / iw in
-    let w, h =
-      if h <= frame_h then w, h else
-        let h = frame_h in
-        let w = iw * frame_h / ih in
-        w, h
-    in
-    w, h
-  | Some w, None -> w, ih*w/iw
-  | None, Some h -> iw*h/ih, h
-  | Some w, Some h -> w, h
+    | None, None ->
+      (* By default resize anamorphically to the maximum size wrt the frame *)
+      let w = frame_w in
+      let h = ih * frame_w / iw in
+      let w, h =
+        if h <= frame_h then w, h else
+          let h = frame_h in
+          let w = iw * frame_h / ih in
+          w, h
+      in
+      w, h
+    | Some w, None -> w, ih*w/iw
+    | None, Some h -> iw*h/ih, h
+    | Some w, Some h -> w, h
 
 let wh_string iw ih w h =
   let frame_w = Lazy.force Frame.video_width in
@@ -110,7 +110,7 @@ let create_decoder metadata img =
       let seconds = float_of_string (Hashtbl.find metadata "duration") in
       if seconds < 0. then -1 else Frame.video_of_seconds seconds
     with
-    | Not_found -> -1
+      | Not_found -> -1
   in
   let duration = ref duration in
   let close () = () in
@@ -144,16 +144,16 @@ let () =
   Decoder.file_decoders#register "Image"
     ~sdoc:"Decoder for static images."
     (fun ~metadata filename kind ->
-      let ctype = { Frame. video = 1; audio = 0; midi = 0 } in
-      try
-        if not (Frame.type_has_kind ctype kind) then raise Exit;
-        let img =
-          match Decoder.get_image_file_decoder filename with
-          | Some img -> img
-          | None -> failwith "Could not decode image file."
-        in
-        Some (fun () -> create_decoder metadata img)
-      with
-      | _ -> None
+       let ctype = { Frame. video = 1; audio = 0; midi = 0 } in
+       try
+         if not (Frame.type_has_kind ctype kind) then raise Exit;
+         let img =
+           match Decoder.get_image_file_decoder filename with
+             | Some img -> img
+             | None -> failwith "Could not decode image file."
+         in
+         Some (fun () -> create_decoder metadata img)
+       with
+         | _ -> None
     )
 

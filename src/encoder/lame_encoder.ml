@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -138,22 +138,22 @@ struct
       begin                  
         match mp3.Mp3_format.bitrate_control with
           | Mp3_format.VBR quality ->
-               Lame.set_vbr_mode enc Lame.Vbr_mtrh ;
-               Lame.set_vbr_quality enc quality
+            Lame.set_vbr_mode enc Lame.Vbr_mtrh ;
+            Lame.set_vbr_quality enc quality
           | Mp3_format.CBR br ->
-               Lame.set_brate enc br
+            Lame.set_brate enc br
           | Mp3_format.ABR abr ->
-               Lame.set_vbr_mode enc Lame.Vbr_abr ;
-               Lame.set_vbr_mean_bitrate enc abr.Mp3_format.mean_bitrate ;
-               Lame.set_vbr_hard_min enc abr.Mp3_format.hard_min ;
-               (match abr.Mp3_format.min_bitrate with
-                  | Some br -> 
-                      Lame.set_vbr_min_bitrate enc br
-                  | None -> ()) ;
-               (match abr.Mp3_format.max_bitrate with
-                  | Some br ->
-                      Lame.set_vbr_max_bitrate enc br
-                  | None -> ()) ;
+            Lame.set_vbr_mode enc Lame.Vbr_abr ;
+            Lame.set_vbr_mean_bitrate enc abr.Mp3_format.mean_bitrate ;
+            Lame.set_vbr_hard_min enc abr.Mp3_format.hard_min ;
+            (match abr.Mp3_format.min_bitrate with
+              | Some br -> 
+                Lame.set_vbr_min_bitrate enc br
+              | None -> ()) ;
+            (match abr.Mp3_format.max_bitrate with
+              | Some br ->
+                Lame.set_vbr_max_bitrate enc br
+              | None -> ()) ;
       end;
       Lame.set_out_samplerate enc (Lazy.force mp3.Mp3_format.samplerate) ;
       Lame.init_params enc;
@@ -179,16 +179,16 @@ struct
         let len = Frame.audio_of_master len in
         position := !position + len;
         if mp3.Mp3_format.msg <> "" && !position > msg_interval then
-         begin
-          match !is_sync with
-            | false  -> sync enc; is_sync := true
-            | true ->
-               position := 0 ;
-               bset enc (bit_at msg !msg_position) (bit_at msg (!msg_position+1)) ;
-               msg_position := (!msg_position + 2) mod msg_len ;
-               if !msg_position mod 8 = 0 then
-                 is_sync := false ;
-         end ;
+          begin
+            match !is_sync with
+              | false  -> sync enc; is_sync := true
+              | true ->
+                position := 0 ;
+                bset enc (bit_at msg !msg_position) (bit_at msg (!msg_position+1)) ;
+                msg_position := (!msg_position + 2) mod msg_len ;
+                if !msg_position mod 8 = 0 then
+                  is_sync := false ;
+          end ;
         let encoded () = 
           has_started := true;
           (* Yes, lame requires this absurd scaling... *)
@@ -210,8 +210,8 @@ struct
         in
         match !id3v2 with
           | Rendered s when not !has_started ->
-              id3v2 := Done; 
-              (Printf.sprintf "%s%s" s (encoded ()))
+            id3v2 := Done; 
+            (Printf.sprintf "%s%s" s (encoded ()))
           | _ -> encoded ()
       in
       let stop () =
@@ -220,26 +220,26 @@ struct
       let insert_metadata = 
         match mp3.id3v2 with
           | Some f -> 
-             (* Only insert metadata at the beginning.. *)
-             (fun m ->
+            (* Only insert metadata at the beginning.. *)
+            (fun m ->
                match !id3v2 with
                  | Waiting ->
-                     if not (Meta_format.is_empty m) then 
-                       id3v2 := Rendered (f m)
+                   if not (Meta_format.is_empty m) then 
+                     id3v2 := Rendered (f m)
                  | _ -> ())
           | None -> (fun _ -> ())
       in
       (* Try to insert initial metadata now.. *)
       insert_metadata metadata;
-        {
-          insert_metadata = insert_metadata ;
-          encode = encode ;
-          header = None ;
-          stop = stop
-        }
+      {
+        insert_metadata = insert_metadata ;
+        encode = encode ;
+        header = None ;
+        stop = stop
+      }
     in
     Encoder.plug#register name
       (function
-         | Encoder.MP3 mp3 -> Some (fun _ meta -> mp3_encoder mp3 meta)
-         | _ -> None)
+        | Encoder.MP3 mp3 -> Some (fun _ meta -> mp3_encoder mp3 meta)
+        | _ -> None)
 end

@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -128,7 +128,7 @@ let get_decoders conf decoders =
     match decoders#get name with
       | Some p -> (name,p)::cur
       | None   -> log#severe "Cannot find decoder %s" name;
-                  cur
+        cur
   in
   List.fold_left f [] (List.rev conf#get)
 
@@ -136,9 +136,9 @@ let get_decoders conf decoders =
   * times. This is at least useful to separate the actual opening of
   * the file from checking that it is a valid media file. *)
 let file_decoders :
-      (metadata:Frame.metadata -> file -> Frame.content_kind ->
-         (unit -> file_decoder) option)
-      Plug.plug =
+  (metadata:Frame.metadata -> file -> Frame.content_kind ->
+   (unit -> file_decoder) option)
+    Plug.plug =
   Plug.create 
     ~register_hook:(fun (name,_) -> f conf_file_decoders name)
     ~doc:"File decoding methods." ~insensitive:true "file decoding"
@@ -149,7 +149,7 @@ let image_file_decoders : (file -> Video.Image.t option) Plug.plug =
     ~doc:"Image file decoding methods." ~insensitive:true "image file decoding"
 
 let stream_decoders :
-      (stream -> Frame.content_kind -> stream_decoder option) Plug.plug =
+  (stream -> Frame.content_kind -> stream_decoder option) Plug.plug =
   Plug.create
     ~register_hook:(fun (name,_) -> f conf_stream_decoders name)
     ~doc:"Stream decoding methods." ~insensitive:true "stream decoding"
@@ -196,23 +196,23 @@ let test_file ?(log=log) ~mimes ~extensions fname =
          * set the same result as file extension.. *)
         | None -> ext_ok, None
         | Some mime_type ->
-            let mime = mime_type fname in
-            List.mem mime mimes, Some mime
+          let mime = mime_type fname in
+          List.mem mime mimes, Some mime
     in
-      if ext_ok || mime_ok then
-        true
-      else begin
-        if not mime_ok && mime <> None then
-          log#info "Invalid MIME type for %S: %s!" fname (Utils.get_some mime) ;
-        if not ext_ok then
-          log#info "Invalid file extension for %S!" fname ;
-        false
-      end
+    if ext_ok || mime_ok then
+      true
+    else begin
+      if not mime_ok && mime <> None then
+        log#info "Invalid MIME type for %S: %s!" fname (Utils.get_some mime) ;
+      if not ext_ok then
+        log#info "Invalid file extension for %S!" fname ;
+      false
+    end
 
 let dummy =
   { fill = (fun b ->
-      Frame.add_break b (Frame.position b) ;
-      0) ;
+        Frame.add_break b (Frame.position b) ;
+        0) ;
     fseek = (fun _ -> 0);
     close = (fun _ -> ()) }
 
@@ -227,28 +227,28 @@ let get_file_decoder ~metadata filename kind =
          match
            try decoder ~metadata filename kind with
              | e ->
-                 log#info
-                   "Decoder %S failed on %S: %s!"
-                   name filename (Printexc.to_string e) ;
-                 None
+               log#info
+                 "Decoder %S failed on %S: %s!"
+                 name filename (Printexc.to_string e) ;
+               None
          with
            | Some f ->
-               log#important "Method %S accepted %S." name filename ;
-               raise (Exit (name,f))
+             log#important "Method %S accepted %S." name filename ;
+             raise (Exit (name,f))
            | None -> ()) (get_decoders conf_file_decoders 
-                                       file_decoders) ;
+                            file_decoders) ;
     log#important
       "Unable to decode %S as %s!"
       filename (Frame.string_of_content_kind kind) ;
     None
   with
     | Exit (name,f) ->
-        Some (name,
-              fun () ->
-                try f () with exn ->
-                  log#severe "Decoder %S betrayed us on %S! Error: %s"
-                     name filename (Printexc.to_string exn);
-                  dummy)
+      Some (name,
+            fun () ->
+              try f () with exn ->
+                log#severe "Decoder %S betrayed us on %S! Error: %s"
+                  name filename (Printexc.to_string exn);
+                dummy)
 
 (** Get a valid image decoder creator for [filename]. *)
 let get_image_file_decoder filename =
@@ -256,25 +256,25 @@ let get_image_file_decoder filename =
   try
     List.iter
       (fun (name,decoder) ->
-        log#info "Trying method %S for %S..." name filename;
-        match
-          try decoder filename with
-          | e ->
-            log#info
-              "Decoder %S failed on %S: %s!"
-              name filename (Printexc.to_string e);
-            None
-        with
-        | Some img ->
-          log#important "Method %S accepted %S." name filename;
-          ans := Some img;
-          raise Stdlib.Exit
-        | None -> ()
+         log#info "Trying method %S for %S..." name filename;
+         match
+           try decoder filename with
+             | e ->
+               log#info
+                 "Decoder %S failed on %S: %s!"
+                 name filename (Printexc.to_string e);
+               None
+         with
+           | Some img ->
+             log#important "Method %S accepted %S." name filename;
+             ans := Some img;
+             raise Stdlib.Exit
+           | None -> ()
       ) (get_decoders conf_image_file_decoders image_file_decoders);
     log#important "Unable to decode %S!" filename;
     !ans
   with
-  | Stdlib.Exit -> !ans
+    | Stdlib.Exit -> !ans
 
 exception Exit_decoder of stream_decoder
 
@@ -285,10 +285,10 @@ let get_stream_decoder mime kind =
          log#info "Trying method %S for %S..." name mime ;
          match try decoder mime kind with _ -> None with
            | Some f ->
-               log#important "Method %S accepted %S." name mime ;
-               raise (Exit_decoder f)
+             log#important "Method %S accepted %S." name mime ;
+             raise (Exit_decoder f)
            | None -> ()) (get_decoders conf_stream_decoders
-                                       stream_decoders);
+                            stream_decoders);
     log#important "Unable to decode stream of type %S!" mime ;
     None
   with
@@ -332,15 +332,15 @@ struct
        * decoding stops at the first exception raised. *)
       if (not !decoding_done) then
         begin try
-          while Generator.length gen < prebuf do
-            decoder.decode gen
-          done
-        with
-          | e ->
-             log#info "Decoding %S ended: %s." filename (Printexc.to_string e) ;
-             log#debug "%s" (Printexc.get_backtrace ()) ;
-             decoding_done := true ;
-             if conf_debug#get then raise e
+            while Generator.length gen < prebuf do
+              decoder.decode gen
+            done
+          with
+            | e ->
+              log#info "Decoding %S ended: %s." filename (Printexc.to_string e) ;
+              log#debug "%s" (Printexc.get_backtrace ()) ;
+              decoding_done := true ;
+              if conf_debug#get then raise e
         end ;
 
       let offset = Frame.position frame in
@@ -351,66 +351,66 @@ struct
       in
       let c_type = Frame.type_of_content content in
       let position = Frame.position frame in
-        (* Check that we got only one chunk of data,
-         * and that it has a correct type. *)
-        if
-          not (c_end = frame_size && Frame.type_has_kind c_type kind)
-        then begin
-          if c_end = frame_size then
-            log#severe
-              "Decoder of %S produced %s, but %s was expected!"
-              filename
-              (Frame.string_of_content_type c_type)
-              (Frame.string_of_content_kind kind)
+      (* Check that we got only one chunk of data,
+       * and that it has a correct type. *)
+      if
+        not (c_end = frame_size && Frame.type_has_kind c_type kind)
+      then begin
+        if c_end = frame_size then
+          log#severe
+            "Decoder of %S produced %s, but %s was expected!"
+            filename
+            (Frame.string_of_content_type c_type)
+            (Frame.string_of_content_kind kind)
+        else
+          log#severe
+            "Decoder of %S produced non-uniform data: \
+             %s at %d, %s at %d! (End at %d)."
+            filename
+            (Frame.string_of_content_type c_type)
+            offset
+            (Frame.string_of_content_type
+               (Frame.type_of_content (snd (Frame.content frame c_end))))
+            c_end
+            position ;
+        (* Pretend nothing happened, and end decoding.
+         * We first restore a content layer with a valid type, so that
+         * the code which reads that frame doesn't see the anomaly.
+         * Then we reset breaks to indicate that there's no more data. *)
+        let _ =
+          Frame.content_of_type frame offset (Frame.type_of_kind kind)
+        in
+        Frame.set_breaks frame old_breaks ;
+        Frame.add_break frame offset ;
+        0
+      end else
+        try
+          if not !decoding_done then
+            remaining frame offset
           else
-            log#severe
-              "Decoder of %S produced non-uniform data: \
-               %s at %d, %s at %d! (End at %d)."
-              filename
-              (Frame.string_of_content_type c_type)
-              offset
-              (Frame.string_of_content_type
-                 (Frame.type_of_content (snd (Frame.content frame c_end))))
-              c_end
-              position ;
-          (* Pretend nothing happened, and end decoding.
-           * We first restore a content layer with a valid type, so that
-           * the code which reads that frame doesn't see the anomaly.
-           * Then we reset breaks to indicate that there's no more data. *)
-          let _ =
-            Frame.content_of_type frame offset (Frame.type_of_kind kind)
-          in
-            Frame.set_breaks frame old_breaks ;
-            Frame.add_break frame offset ;
             0
-        end else
-          try
-            if not !decoding_done then
-              remaining frame offset
-            else
-              0
-          with e ->
-            log#info "Error while getting decoder's remaining time: %s" (Printexc.to_string e);
-            decoding_done := true;
-            0
+        with e ->
+          log#info "Error while getting decoder's remaining time: %s" (Printexc.to_string e);
+          decoding_done := true;
+          0
     in
     let fseek len = 
       let gen_len = Generator.length gen in
       if len < 0 || len > gen_len then
         begin
-         Generator.clear gen;
-         gen_len + decoder.seek (len-gen_len)
+          Generator.clear gen;
+          gen_len + decoder.seek (len-gen_len)
         end
-       else
+      else
         (* Seek within the pre-buffered data if possible *)
         begin
-         Generator.remove gen len;
-         len
+          Generator.remove gen len;
+          len
         end
     in
-      { fill = fill ;
-        fseek = fseek;
-        close = close }
+    { fill = fill ;
+      fseek = fseek;
+      close = close }
 
   let file_decoder filename kind create_decoder gen = 
     let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
@@ -443,17 +443,17 @@ struct
     let remaining frame offset =
       let in_bytes = tell () in
       let gen_len = Generator.length gen in
-        out_ticks := !out_ticks + Frame.position frame - offset ;
-        (* Compute an estimated number of remaining ticks. *)
-        if !proc_bytes = 0 then -1 else
-          let compression =
-            (float (!out_ticks+gen_len)) /. (float !proc_bytes)
-          in
-          let remaining_ticks =
-            (float gen_len) +.
-            (float (file_size - in_bytes)) *. compression
-          in
-            int_of_float remaining_ticks
+      out_ticks := !out_ticks + Frame.position frame - offset ;
+      (* Compute an estimated number of remaining ticks. *)
+      if !proc_bytes = 0 then -1 else
+        let compression =
+          (float (!out_ticks+gen_len)) /. (float !proc_bytes)
+        in
+        let remaining_ticks =
+          (float gen_len) +.
+          (float (file_size - in_bytes)) *. compression
+        in
+        int_of_float remaining_ticks
     in
     let close () =
       Unix.close fd

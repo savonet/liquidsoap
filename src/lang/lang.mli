@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
@@ -66,7 +66,7 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 (** {2 Computation} *)
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
-   of the application. *)
+    of the application. *)
 val apply : value -> env -> t:t -> value
 
 (** {3 Helpers for registering protocols} *)
@@ -134,7 +134,7 @@ type lang_kind_formats =
 
 val any_fixed : lang_kind_formats
 val any_fixed_with :
-        ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_formats
+  ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_formats
 
 val empty : lang_kind_formats
 val audio_any : lang_kind_formats
@@ -263,7 +263,7 @@ val tuple : value list -> value
   * Items in the prototype indicate the label, type and optional
   * values. *)
 val val_fun : (string * string * t * value option) list -> ret_t:t ->
-              (env -> t -> value) -> value
+  (env -> t -> value) -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure

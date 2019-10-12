@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -35,11 +35,11 @@ let conf_duration =
   Conf.float ~p:(conf#plug "duration") ~d:0.04
     "Tentative frame duration in seconds"
     ~comments:[
-    "Audio and video samplerates constrain the possible frame durations.";
-    "This setting is used as a hint for the duration, when 'frame.audio.size'";
-    "is not provided.";
-    "Tweaking frame duration is tricky but needed when dealing with latency";
-    "or getting soundcard I/O correctly synchronized with liquidsoap."
+      "Audio and video samplerates constrain the possible frame durations.";
+      "This setting is used as a hint for the duration, when 'frame.audio.size'";
+      "is not provided.";
+      "Tweaking frame duration is tricky but needed when dealing with latency";
+      "or getting soundcard I/O correctly synchronized with liquidsoap."
     ]
 
 (* Audio *)
@@ -53,11 +53,11 @@ let conf_audio_size =
   Conf.int ~p:(conf_audio#plug "size")
     "Tentative frame duration in audio samples"
     ~comments:[
-    "Audio and video samplerates constrain the possible frame durations.";
-    "This setting is used as a hint for the duration, overriding";
-    "'frame.duration'.";
-    "Tweaking frame duration is tricky but needed when dealing with latency";
-    "or getting soundcard I/O correctly synchronized with liquidsoap."
+      "Audio and video samplerates constrain the possible frame durations.";
+      "This setting is used as a hint for the duration, overriding";
+      "'frame.duration'.";
+      "Tweaking frame duration is tricky but needed when dealing with latency";
+      "or getting soundcard I/O correctly synchronized with liquidsoap."
     ]
 
 (* Video *)
@@ -163,42 +163,42 @@ let log = Log.make ["frame"]
   * sample takes 1764 ticks: we need frames of size N*1764. *)
 let size =
   delayed (fun () ->
-             let audio = !!audio_rate in
-             let video = !!video_rate in
-             let master = !!master_rate in
-             let granularity = lcm (master/audio) (master/video) in
-             let target =
-               log#important
-                 "Using %dHz audio, %dHz video, %dHz master."
-                 audio video master ;
-               log#important
-                 "Frame size must be a multiple of %d ticks = \
-                  %d audio samples = %d video samples."
-                 granularity
-                 (audio_of_master granularity)
-                 (video_of_master granularity) ;
-               try let d = conf_audio_size#get in
-                     log#important
-                       "Targetting 'frame.audio.size': \
-                        %d audio samples = %d ticks."
-                       d (master_of_audio d) ;
-                     master_of_audio d
-               with Conf.Undefined _ ->
-                     log#important
-                       "Targetting 'frame.duration': \
-                        %.2fs = %d audio samples = %d ticks."
-                       conf_duration#get
-                       (audio_of_seconds conf_duration#get)
-                       (master_of_seconds conf_duration#get) ;
-                     master_of_seconds conf_duration#get
-             in
-             let s = upper_multiple granularity (max 1 target) in
-               log#important
-                 "Frames last %.2fs = \
-                    %d audio samples = %d video samples = %d ticks."
-                 (seconds_of_master s) (audio_of_master s)
-                 (video_of_master s) s ;
-               s)
+      let audio = !!audio_rate in
+      let video = !!video_rate in
+      let master = !!master_rate in
+      let granularity = lcm (master/audio) (master/video) in
+      let target =
+        log#important
+          "Using %dHz audio, %dHz video, %dHz master."
+          audio video master ;
+        log#important
+          "Frame size must be a multiple of %d ticks = \
+           %d audio samples = %d video samples."
+          granularity
+          (audio_of_master granularity)
+          (video_of_master granularity) ;
+        try let d = conf_audio_size#get in
+          log#important
+            "Targetting 'frame.audio.size': \
+             %d audio samples = %d ticks."
+            d (master_of_audio d) ;
+          master_of_audio d
+        with Conf.Undefined _ ->
+          log#important
+            "Targetting 'frame.duration': \
+             %.2fs = %d audio samples = %d ticks."
+            conf_duration#get
+            (audio_of_seconds conf_duration#get)
+            (master_of_seconds conf_duration#get) ;
+          master_of_seconds conf_duration#get
+      in
+      let s = upper_multiple granularity (max 1 target) in
+      log#important
+        "Frames last %.2fs = \
+         %d audio samples = %d video samples = %d ticks."
+        (seconds_of_master s) (audio_of_master s)
+        (video_of_master s) s ;
+      s)
 
 let duration = delayed (fun () -> float !!size /. float !!master_rate)
 
@@ -277,11 +277,11 @@ let type_of_kind k =
     | Zero -> 0
     | Succ m -> 1 + (aux (def-1) m)
   in
-    {
-      audio = aux !!audio_channels k.audio ;
-      video = aux !!video_channels k.video ;
-      midi = aux !!midi_channels k.midi
-    }
+  {
+    audio = aux !!audio_channels k.audio ;
+    video = aux !!video_channels k.video ;
+    midi = aux !!midi_channels k.midi
+  }
 
 let rec mul_of_int x = if x<=0 then Zero else Succ (mul_of_int (x-1))
 
@@ -296,7 +296,7 @@ let string_of_mul m =
     | Zero -> string_of_int acc
     | Variable -> string_of_int acc ^ "+"
   in
-    aux 0 m
+  aux 0 m
 
 let string_of_content_kind k =
   Printf.sprintf
@@ -394,12 +394,12 @@ let clear_from (b:t) pos =
   let rec aux = function
     | [] -> assert false
     | (end_pos,content)::l ->
-        if end_pos<pos then (end_pos,content) :: aux l else
-          [!!size,content]
+      if end_pos<pos then (end_pos,content) :: aux l else
+        [!!size,content]
   in
-    b.contents <- aux b.contents ;
-    b.breaks <- List.filter (fun p -> p <= pos) b.breaks ;
-    b.metadata <- List.filter (fun (p,_) -> p <= pos) b.metadata
+  b.contents <- aux b.contents ;
+  b.breaks <- List.filter (fun p -> p <= pos) b.breaks ;
+  b.metadata <- List.filter (fun (p,_) -> p <= pos) b.metadata
 
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b =
@@ -413,10 +413,10 @@ let advance b =
     | [] -> a
     | b::l -> last (max a b) l
   in
-    b.metadata <-
-      match last None b.metadata with
-        | None -> []
-        | Some (_,e) -> [-1,e]
+  b.metadata <-
+    match last None b.metadata with
+      | None -> []
+      | Some (_,e) -> [-1,e]
 
 (** Metadata stuff *)
 
@@ -459,9 +459,9 @@ let content (frame:t) pos =
   let rec aux = function
     | [] -> assert false
     | (end_pos,content)::l ->
-        if end_pos<=pos then aux l else end_pos,content
+      if end_pos<=pos then aux l else end_pos,content
   in
-    aux frame.contents
+  aux frame.contents
 
 (** Get the content for a given position and type in a frame.
   * Calling this function may trigger a change of the contents layout,
@@ -475,43 +475,43 @@ let content_of_type ?force (frame:t) pos content_type =
   let rec aux start_pos acc = function
     | [] -> assert false
     | (end_pos,content)::l ->
-        if end_pos<=pos then aux end_pos ((end_pos,content)::acc) l else
-          (* We are starting somewhere inside that layer. *)
-          if content_has_type content content_type then begin
-            if l=[] then assert (end_pos = !!size) else
-              frame.contents <- List.rev ((!!size,content)::acc) ;
-            assert (match force with Some c -> c = content | None -> true) ;
-            content
-          end else begin
-            if pos=start_pos then
-              (* We are erasing the current layer. *)
-              match acc with
-                | (_,content)::acc
-                  when content_has_type content content_type ->
-                    (* We must re-use the previous layer. *)
-                    frame.contents <- List.rev ((!!size, content)::acc) ;
-                    assert (match force with Some c -> c = content | None -> true) ;
-                    content
-                | _ ->
-                    let content =
-                      match force with
-                        | None -> create_content content_type
-                        | Some c -> c
-                    in
-                      frame.contents <- List.rev ((!!size, content)::acc) ;
-                      content
-            else
-              let acc = (pos,content)::acc in
+      if end_pos<=pos then aux end_pos ((end_pos,content)::acc) l else
+        (* We are starting somewhere inside that layer. *)
+      if content_has_type content content_type then begin
+        if l=[] then assert (end_pos = !!size) else
+          frame.contents <- List.rev ((!!size,content)::acc) ;
+        assert (match force with Some c -> c = content | None -> true) ;
+        content
+      end else begin
+        if pos=start_pos then
+          (* We are erasing the current layer. *)
+          match acc with
+            | (_,content)::acc
+              when content_has_type content content_type ->
+              (* We must re-use the previous layer. *)
+              frame.contents <- List.rev ((!!size, content)::acc) ;
+              assert (match force with Some c -> c = content | None -> true) ;
+              content
+            | _ ->
               let content =
                 match force with
                   | None -> create_content content_type
                   | Some c -> c
               in
-                frame.contents <- List.rev ((!!size, content)::acc) ;
-                content
-          end
+              frame.contents <- List.rev ((!!size, content)::acc) ;
+              content
+        else
+          let acc = (pos,content)::acc in
+          let content =
+            match force with
+              | None -> create_content content_type
+              | Some c -> c
+          in
+          frame.contents <- List.rev ((!!size, content)::acc) ;
+          content
+      end
   in
-    aux 0 [] frame.contents
+  aux 0 [] frame.contents
 
 (** [hide_contents frame] removes all content layers from the frame,
   * and returns a function that restores them in their current state.
@@ -519,9 +519,9 @@ let content_of_type ?force (frame:t) pos content_type =
   * is often needed in optimized content conversions. *)
 let hide_contents =
   fun (frame:t) ->
-    let save = frame.contents in
-      frame.contents <- [!!size, {audio=[||];video=[||];midi=[||]}] ;
-      (fun () -> frame.contents <- save)
+  let save = frame.contents in
+  frame.contents <- [!!size, {audio=[||];video=[||];midi=[||]}] ;
+  (fun () -> frame.contents <- save)
 
 (** A content layer representation (see [t.contents]). *)
 type content_layer =
@@ -536,16 +536,16 @@ let get_content_layers (frame:t) =
   let rec aux pos = function
     | [] -> []
     | (endpos,c)::l ->
-        { content = c ; start = pos ; length = endpos-pos } :: aux endpos l
+      { content = c ; start = pos ; length = endpos-pos } :: aux endpos l
   in
-    aux 0 frame.contents
+  aux 0 frame.contents
 
 let blit_content src src_pos dst dst_pos len =
   Utils.array_iter2 src.audio dst.audio
     (fun a a' ->
        if a != a' then
          let (!) = audio_of_master in
-           Audio.Mono.blit (Audio.Mono.sub a !src_pos !len) (Audio.Mono.sub a' !dst_pos !len));
+         Audio.Mono.blit (Audio.Mono.sub a !src_pos !len) (Audio.Mono.sub a' !dst_pos !len));
   Utils.array_iter2 src.video dst.video
     (fun v v' ->
        if v != v' then
@@ -567,7 +567,7 @@ let blit src src_pos dst dst_pos len =
   assert (src_pos + len <= end_pos) ;
   (* Get a compatible chunk in [dst]. *)
   let dst = content_of_type dst dst_pos (type_of_content src) in
-    blit_content src src_pos dst dst_pos len
+  blit_content src src_pos dst dst_pos len
 
 (** Raised by [get_chunk] when no chunk is available. *)
 exception No_chunk
@@ -594,10 +594,10 @@ let get_chunk ab from =
             (List.filter (fun x -> fst x < p) l) (* that is less than p *)
         with [] -> None | x::_ -> Some (snd x)
       in
-        match before_p from.metadata, before_p ab.metadata with
-          | Some b, a ->
-              if a <> Some b then set_metadata ab p b
-          | None, _ -> ()
+      match before_p from.metadata, before_p ab.metadata with
+        | Some b, a ->
+          if a <> Some b then set_metadata ab p b
+        | None, _ -> ()
     end ;
     (* Copy new metadata blocks for this chunk.
      * We exclude blocks at the end of chunk, leaving them to be copied
@@ -613,20 +613,20 @@ let get_chunk ab from =
     match f with
       | [] -> raise No_chunk
       | i::tl ->
-          (* Breaks are between ticks, they do range from 0 to size. *)
-          assert (0 <= i && i <= !!size);
-          if i = 0 && ab.breaks = [] then
-            (* The only empty track that we copy,
-             * trying to copy empty tracks in the middle could be useful
-             * for packets like those forged by add, with a fake first break,
-             * but isn't needed (yet) and is painful to implement. *)
-            copy_chunk 0
-          else if foffset <= p && i > p then begin
-            copy_chunk i
-          end else
-            aux i tl
+        (* Breaks are between ticks, they do range from 0 to size. *)
+        assert (0 <= i && i <= !!size);
+        if i = 0 && ab.breaks = [] then
+          (* The only empty track that we copy,
+           * trying to copy empty tracks in the middle could be useful
+           * for packets like those forged by add, with a fake first break,
+           * but isn't needed (yet) and is painful to implement. *)
+          copy_chunk 0
+        else if foffset <= p && i > p then begin
+          copy_chunk i
+        end else
+          aux i tl
   in
-    aux 0 (List.rev from.breaks)
+  aux 0 (List.rev from.breaks)
 
 let copy content =
   { audio = Array.map Audio.Mono.copy content.audio ;

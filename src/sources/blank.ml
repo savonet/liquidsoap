@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -29,34 +29,34 @@ class blank ~kind duration =
   (* The kind should not allow a variable number of channels,
    * so it can directly be seen as a type. *)
   let content_type = Frame.type_of_kind kind in
-object
-  inherit source ~name:"blank" kind
-  method stype = Infallible
-  method is_ready = true
+  object
+    inherit source ~name:"blank" kind
+    method stype = Infallible
+    method is_ready = true
 
-  (** Remaining time, -1 for infinity. *)
-  val mutable remaining = ticks
-  method remaining = remaining
+    (** Remaining time, -1 for infinity. *)
+    val mutable remaining = ticks
+    method remaining = remaining
 
-  method seek x = x
+    method seek x = x
 
-  method abort_track = remaining <- 0
+    method abort_track = remaining <- 0
 
-  method get_frame ab =
-    let position = Frame.position ab in
-    let length =
-      if remaining < 0 then
-        Lazy.force Frame.size - position
-      else
-        min remaining (Lazy.force Frame.size - position)
-    in
-    let content = Frame.content_of_type ab position content_type in
-    let video_pos = Frame.video_of_master position in
+    method get_frame ab =
+      let position = Frame.position ab in
+      let length =
+        if remaining < 0 then
+          Lazy.force Frame.size - position
+        else
+          min remaining (Lazy.force Frame.size - position)
+      in
+      let content = Frame.content_of_type ab position content_type in
+      let video_pos = Frame.video_of_master position in
       (* Audio *)
-    Audio.clear
-      (Audio.sub content.Frame.audio
-         (Frame.audio_of_master position)
-         (Frame.audio_of_master length));
+      Audio.clear
+        (Audio.sub content.Frame.audio
+           (Frame.audio_of_master position)
+           (Frame.audio_of_master length));
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))
@@ -66,7 +66,7 @@ object
         remaining <- ticks
       else if remaining > 0 then
         remaining <- remaining - length
-end
+  end
 
 let () =
   Lang.add_operator
@@ -78,17 +78,17 @@ let () =
       Some "Duration of blank tracks in seconds, default means forever." ]
     (fun p kind ->
        let d = Lang.to_float (List.assoc "duration" p) in
-         ((new blank ~kind d):>source))
+       ((new blank ~kind d):>source))
 
 class empty ~kind =
-object
-  inherit source ~name:"empty" kind
-  method stype = Fallible
-  method is_ready = false
-  method remaining = 0
-  method abort_track = ()
-  method get_frame _ = assert false
-end
+  object
+    inherit source ~name:"empty" kind
+    method stype = Fallible
+    method is_ready = false
+    method remaining = 0
+    method abort_track = ()
+    method get_frame _ = assert false
+  end
 
 let empty kind = ((new empty ~kind):>source)
 

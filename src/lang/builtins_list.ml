@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -32,15 +32,15 @@ let () =
      "",Lang.metadata_t,None,None]
     Lang.string_t
     (fun p ->
-      let k = Lang.to_string (Lang.assoc "" 1 p) in
-      let l =
-        List.map
-          (fun p ->
-            let (a,b) = Lang.to_product p in
-            Lang.to_string a, Lang.to_string b)
-          (Lang.to_list (Lang.assoc "" 2 p))
-      in
-      Lang.string (try List.assoc k l with _ -> ""))
+       let k = Lang.to_string (Lang.assoc "" 1 p) in
+       let l =
+         List.map
+           (fun p ->
+              let (a,b) = Lang.to_product p in
+              Lang.to_string a, Lang.to_string b)
+           (Lang.to_list (Lang.assoc "" 2 p))
+       in
+       Lang.string (try List.assoc k l with _ -> ""))
 
 let () =
   let a = Lang.univ_t 1 in
@@ -55,15 +55,15 @@ let () =
     ]
     b
     (fun p b ->
-      let l,e,f =
-        match p with
-        | ["",l; "",e; "",f] -> l,e,f
-        | _ -> assert false
-      in
-      let a = Lang.of_list_t l.Lang.t in
-      match Lang.to_list l with
-      | [] -> e
-      | x::l -> Lang.apply ~t:b f ["",x; "", Lang.list ~t:a l])
+       let l,e,f =
+         match p with
+           | ["",l; "",e; "",f] -> l,e,f
+           | _ -> assert false
+       in
+       let a = Lang.of_list_t l.Lang.t in
+       match Lang.to_list l with
+         | [] -> e
+         | x::l -> Lang.apply ~t:b f ["",x; "", Lang.list ~t:a l])
 
 let () =
   Lang.add_builtin "list.add"
@@ -73,14 +73,14 @@ let () =
      "",Lang.list_t (Lang.univ_t 1),None,None]
     (Lang.list_t (Lang.univ_t 1))
     (fun p t ->
-      let t = Lang.of_list_t t in
-      let x,l =
-        match p with
-        | ["",x;"",l] -> x,l
-        | _ -> assert false
-      in
-      let l = Lang.to_list l in
-      Lang.list ~t (x::l))
+       let t = Lang.of_list_t t in
+       let x,l =
+         match p with
+           | ["",x;"",l] -> x,l
+           | _ -> assert false
+       in
+       let l = Lang.to_list l in
+       Lang.list ~t (x::l))
 
 let () =
   let t = Lang.list_t (Lang.univ_t 1) in

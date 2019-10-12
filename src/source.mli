@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
@@ -29,146 +29,146 @@ type source_t = Fallible | Infallible
 
 (** The [source] use is to send music frames through the [get] method. *)
 class virtual source : ?name:string -> Frame.content_kind ->
-object
+  object
 
-  (** {1 Naming} *)
+    (** {1 Naming} *)
 
-  (** Identifier of the source. *)
-  method id : string
-  method set_id : ?definitive:bool -> string -> unit
+    (** Identifier of the source. *)
+    method id : string
+    method set_id : ?definitive:bool -> string -> unit
 
-  (** {1 Liveness type}
-    *
-    * [stype] is the liveness type, telling whether a scheduler is
-    * fallible or not, i.e. [get] will never fail.
-    * It is defined by each operator based on its sources' types. *)
+    (** {1 Liveness type}
+      *
+      * [stype] is the liveness type, telling whether a scheduler is
+      * fallible or not, i.e. [get] will never fail.
+      * It is defined by each operator based on its sources' types. *)
 
-  method virtual stype : source_t
+    method virtual stype : source_t
 
-  (** {1 Init/shutdown} *)
+    (** {1 Init/shutdown} *)
 
-  (** Registered server commands for the source *)
-  val mutable ns_kind : string
-  method register_command : descr:string -> ?usage:string -> string ->
-                            (string->string) -> unit
+    (** Registered server commands for the source *)
+    val mutable ns_kind : string
+    method register_command : descr:string -> ?usage:string -> string ->
+      (string->string) -> unit
 
-  (** Register a callback, to be executed when source shuts down. *)
-  method on_shutdown : (unit -> unit) -> unit
+    (** Register a callback, to be executed when source shuts down. *)
+    method on_shutdown : (unit -> unit) -> unit
 
-  (** The clock under which the source will run, initially unknown. *)
-  method clock : clock_variable
+    (** The clock under which the source will run, initially unknown. *)
+    method clock : clock_variable
 
-  (** Choose your clock, by adjusting to your children source,
-    * or anything custom. *)
-  method private set_clock : unit
+    (** Choose your clock, by adjusting to your children source,
+      * or anything custom. *)
+    method private set_clock : unit
 
-  (** The operator says to the source that he will ask it frames. *)
-  method get_ready : ?dynamic:bool -> source list -> unit
+    (** The operator says to the source that he will ask it frames. *)
+    method get_ready : ?dynamic:bool -> source list -> unit
 
-  (** Called when the source must be ready and had no active operator,
-    * means that the source has to initialize. *)
-  method private wake_up : source list -> unit
+    (** Called when the source must be ready and had no active operator,
+      * means that the source has to initialize. *)
+    method private wake_up : source list -> unit
 
-  (** Opposite of [get_ready] : the operator no longer needs the source. *)
-  method leave : ?dynamic:bool -> source -> unit
-  method private sleep : unit
+    (** Opposite of [get_ready] : the operator no longer needs the source. *)
+    method leave : ?dynamic:bool -> source -> unit
+    method private sleep : unit
 
-  (** Check if a source is up or not. *)
-  method is_up : bool
+    (** Check if a source is up or not. *)
+    method is_up : bool
 
-  (** {1 Streaming} *)
+    (** {1 Streaming} *)
 
-  (** What kind of content does this source produce. *)
-  method kind : Frame.content_kind
+    (** What kind of content does this source produce. *)
+    method kind : Frame.content_kind
 
-  (** Frame currently being filled. *)
-  val memo : Frame.t
-  method get_memo : Frame.t
+    (** Frame currently being filled. *)
+    val memo : Frame.t
+    method get_memo : Frame.t
 
-  (** Number of frames left in the current track. Defaults to -1=infinity. *)
-  method virtual remaining : int
+    (** Number of frames left in the current track. Defaults to -1=infinity. *)
+    method virtual remaining : int
 
-  (* [self#seek_ticks x] skips [x] master ticks.
-   * returns the number of ticks actually skipped.
-   * By default it always returns 0, refusing to seek at all.
-   * That method may be called from any thread, concurrently
-   * with [#get], so they should not interfer. *)
-  method seek : int -> int
+    (* [self#seek_ticks x] skips [x] master ticks.
+     * returns the number of ticks actually skipped.
+     * By default it always returns 0, refusing to seek at all.
+     * That method may be called from any thread, concurrently
+     * with [#get], so they should not interfer. *)
+    method seek : int -> int
 
-  (** [is_ready] tells you if [get] can be called. *)
-  method virtual is_ready : bool
+    (** [is_ready] tells you if [get] can be called. *)
+    method virtual is_ready : bool
 
-  (** [get buf] asks the source to fill the buffer [buf] if possible.
-    * The [get] call is partial when the buffer is not completely filled.
-    * [get] should never be called with a full buffer,
-    * and without checking that the source is ready. *)
-  method get : Frame.t -> unit
-  method private virtual get_frame : Frame.t -> unit
+    (** [get buf] asks the source to fill the buffer [buf] if possible.
+      * The [get] call is partial when the buffer is not completely filled.
+      * [get] should never be called with a full buffer,
+      * and without checking that the source is ready. *)
+    method get : Frame.t -> unit
+    method private virtual get_frame : Frame.t -> unit
 
-  (** Tells the source to finish the reading of current track. *)
-  method virtual abort_track : unit
+    (** Tells the source to finish the reading of current track. *)
+    method virtual abort_track : unit
 
-  method is_output : bool
+    method is_output : bool
 
-  (** Wait for output round to finish.
-    * Typically, output nodes compute an audio frame (a full buffer),
-    * then launch a few output threads, which take care of encoding
-    * and outputting (to a file, network, ...).
-    * In that case, after_output allows the node to wait for its
-    * output threads. *)
-  method after_output : unit
-  method advance : unit
+    (** Wait for output round to finish.
+      * Typically, output nodes compute an audio frame (a full buffer),
+      * then launch a few output threads, which take care of encoding
+      * and outputting (to a file, network, ...).
+      * In that case, after_output allows the node to wait for its
+      * output threads. *)
+    method after_output : unit
+    method advance : unit
 
-  (** {1 Utilities} *)
+    (** {1 Utilities} *)
 
-  (** Create a request with a "source" metadata. *)
-  method private create_request :
-    ?metadata:((string*string) list) ->
-    ?persistent:bool ->
-    ?indicators:(Request.indicator list) -> string ->
-    Request.t
+    (** Create a request with a "source" metadata. *)
+    method private create_request :
+      ?metadata:((string*string) list) ->
+      ?persistent:bool ->
+      ?indicators:(Request.indicator list) -> string ->
+      Request.t
 
-  method private log : Log.t
+    method private log : Log.t
 
-end
+  end
 
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source : ?name:string -> Frame.content_kind ->
-object
-  inherit source
+  object
+    inherit source
 
-  (** Special init phase for outputs. This method is called by Root after the
-    * standard get_ready propagation, after the Root clock is started.
-    * It allows enhancements of the initial latency. *)
-  method virtual output_get_ready : unit
+    (** Special init phase for outputs. This method is called by Root after the
+      * standard get_ready propagation, after the Root clock is started.
+      * It allows enhancements of the initial latency. *)
+    method virtual output_get_ready : unit
 
-  (** Start a new output round, triggers computation of a new frame. *)
-  method virtual output : unit
+    (** Start a new output round, triggers computation of a new frame. *)
+    method virtual output : unit
 
-  (** Do whatever needed when the latency gets too big and is reset. *)
-  method virtual output_reset : unit
+    (** Do whatever needed when the latency gets too big and is reset. *)
+    method virtual output_reset : unit
 
-  (** Is the source active ?
-    * If the returned value is [false], then [output_reset]
-    * should not be called on that source.
-    * If [output_reset] does nothing, this function can return any value.
-    * TODO that kind of detail could be left inside #output_reset *)
-  method virtual is_active : bool
-end
+    (** Is the source active ?
+      * If the returned value is [false], then [output_reset]
+      * should not be called on that source.
+      * If [output_reset] does nothing, this function can return any value.
+      * TODO that kind of detail could be left inside #output_reset *)
+    method virtual is_active : bool
+  end
 
 (* This is for defining a source which has children *)
 class virtual operator : ?name:string -> Frame.content_kind -> source list ->
-object
-  inherit source
-end
+  object
+    inherit source
+  end
 
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
 class virtual active_operator :
   ?name:string -> Frame.content_kind -> source list ->
-object
-  inherit active_source
-end
+  object
+    inherit active_source
+  end
 
 val has_outputs : unit -> bool
 val iterate_new_outputs : (active_source -> unit) -> unit
@@ -180,28 +180,28 @@ val iterate_new_outputs : (active_source -> unit) -> unit
   * is not a problem. *)
 
 class type clock =
-object
-  (** Identifier of the clock. *)
-  method id : string
+  object
+    (** Identifier of the clock. *)
+    method id : string
 
-  (** Attach an active source to the clock. *)
-  method attach : active_source -> unit
+    (** Attach an active source to the clock. *)
+    method attach : active_source -> unit
 
-  (** Detach active sources that satisfy a given criterion. *)
-  method detach : (active_source -> bool) -> unit
+    (** Detach active sources that satisfy a given criterion. *)
+    method detach : (active_source -> bool) -> unit
 
-  (** Manage subordinate clocks *)
+    (** Manage subordinate clocks *)
 
-  method attach_clock : clock_variable -> unit
-  method detach_clock : clock_variable -> unit
-  method sub_clocks : clock_variable list
+    method attach_clock : clock_variable -> unit
+    method detach_clock : clock_variable -> unit
+    method sub_clocks : clock_variable list
 
-  (** Streaming *)
+    (** Streaming *)
 
-  method start_outputs : (active_source -> bool) -> unit -> active_source list
-  method get_tick : int
-  method end_tick : unit
-end
+    method start_outputs : (active_source -> bool) -> unit -> active_source list
+    method get_tick : int
+    method end_tick : unit
+  end
 
 exception Clock_conflict of string*string
 exception Clock_loop of string*string
@@ -210,8 +210,8 @@ module Clock_variables :
 sig
   val to_string : clock_variable -> string
   val create_unknown : sources:(active_source list) ->
-                       sub_clocks:(clock_variable list) ->
-                       clock_variable
+    sub_clocks:(clock_variable list) ->
+    clock_variable
   val create_known : clock -> clock_variable
   val unify : clock_variable -> clock_variable -> unit
   val forget : clock_variable -> clock_variable -> unit

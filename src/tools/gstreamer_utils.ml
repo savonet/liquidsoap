@@ -14,20 +14,20 @@ let add_borders () = conf_add_borders#get
 
 let () =
   Configure.at_init (fun () ->
-    let debug =
-      try
-        int_of_string
-          (Sys.getenv "LIQ_GST_DEBUG_LEVEL")
-      with _ -> 0
-    in
-    Gstreamer.init ~argv:[|
-      "Liquidsoap";
-      "--gst-debug-spew";
-      Printf.sprintf "--gst-debug-level=%d" debug
-    |] ();
-  let major, minor, micro, nano = Gstreamer.version () in
-  let log = Log.make ["gstreamer";"loader"] in
-  log#important "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
+      let debug =
+        try
+          int_of_string
+            (Sys.getenv "LIQ_GST_DEBUG_LEVEL")
+        with _ -> 0
+      in
+      Gstreamer.init ~argv:[|
+        "Liquidsoap";
+        "--gst-debug-spew";
+        Printf.sprintf "--gst-debug-level=%d" debug
+      |] ();
+      let major, minor, micro, nano = Gstreamer.version () in
+      let log = Log.make ["gstreamer";"loader"] in
+      log#important "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
 
 module Pipeline = struct
   let convert_audio () =
@@ -53,8 +53,8 @@ module Pipeline = struct
   let audio_sink ?(drop=false) ?(sync=false) ?max_buffers ~channels name =
     let max_buffers =
       match max_buffers with
-      | None -> conf_max_buffers#get
-      | Some m -> m
+        | None -> conf_max_buffers#get
+        | Some m -> m
     in
     Printf.sprintf "appsink max-buffers=%d drop=%B sync=%B name=\"%s\" caps=\"%s\""
       max_buffers drop sync name
@@ -78,8 +78,8 @@ module Pipeline = struct
   let video_sink ?(drop=false) ?(sync=false) ?max_buffers name =
     let max_buffers =
       match max_buffers with
-      | None -> conf_max_buffers#get
-      | Some m -> m
+        | None -> conf_max_buffers#get
+        | Some m -> m
     in
     Printf.sprintf
       "appsink name=\"%s\" drop=%B sync=%B max-buffers=%d caps=\"%s\""
@@ -123,15 +123,15 @@ let handler ~(log:Log.t) ~on_error msg =
     | `Warning err -> log#important "[%s] Warning: %s" source err
     | `Info err -> log#info "[%s] Info: %s" source err
     | `State_changed (o,n,p) ->
-        let f = Gstreamer.Element.string_of_state in
-        let o = f o in
-        let n = f n in
-        let p =
-          match p with
-            | Gstreamer.Element.State_void_pending -> ""
-            | _ -> Printf.sprintf " (pending: %s)" (f p)
-        in
-        log#debug "[%s] State change: %s -> %s%s" source o n p
+      let f = Gstreamer.Element.string_of_state in
+      let o = f o in
+      let n = f n in
+      let p =
+        match p with
+          | Gstreamer.Element.State_void_pending -> ""
+          | _ -> Printf.sprintf " (pending: %s)" (f p)
+      in
+      log#debug "[%s] State change: %s -> %s%s" source o n p
     | _ -> assert false
 
 let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(on_error=fun _ -> ()) bin =
@@ -151,7 +151,7 @@ let () =
     Gstreamer.Loop.run loop
   in
   ignore(Dtools.Init.at_start (fun () ->
-    ignore(Tutils.create main () "gstreamer_main_loop")));
+      ignore(Tutils.create main () "gstreamer_main_loop")));
   ignore(Dtools.Init.at_stop (fun () ->
-    Gstreamer.Loop.quit loop))
+      Gstreamer.Loop.quit loop))
 

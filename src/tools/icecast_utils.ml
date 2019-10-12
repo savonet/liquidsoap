@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -30,10 +30,10 @@ let aac_mime = "audio/aac"
 let flac_mime = "audio/x-flac"
 
 let base_proto kind = 
-    ["format", Lang.string_t, Some (Lang.string ""),
-      Some "Format, e.g. \"audio/ogg\". \
-      When empty, the encoder is used to guess." ;
-     "", Lang.format_t kind, None, Some "Encoding format."]
+  ["format", Lang.string_t, Some (Lang.string ""),
+   Some "Format, e.g. \"audio/ogg\". \
+         When empty, the encoder is used to guess." ;
+   "", Lang.format_t kind, None, Some "Encoding format."]
 
 module type Icecast_t =
 sig
@@ -81,22 +81,22 @@ struct
     let v = Lang.assoc "" 1 p in
     let enc = Lang.to_format v in
     let info,format =
-       M.info_of_encoder enc,format_of_encoder enc
+      M.info_of_encoder enc,format_of_encoder enc
     in
     let encoder_factory =
       try Encoder.get_factory enc with
         | Not_found ->
-            raise (Lang_errors.Invalid_value
-                     (v, "No encoder found for that format"))
+          raise (Lang_errors.Invalid_value
+                   (v, "No encoder found for that format"))
     in
     let format =
       let f = Lang.to_string (List.assoc "format" p) in
-        if f <> "" then M.format_of_content f else
-          match format with
-            | Some x -> x
-            | None   -> raise (Lang_errors.Invalid_value (Lang.assoc "" 1 p,
-                                                 "No format (mime) found, \
-                                                  please specify one."))
+      if f <> "" then M.format_of_content f else
+        match format with
+          | Some x -> x
+          | None   -> raise (Lang_errors.Invalid_value (Lang.assoc "" 1 p,
+                                                        "No format (mime) found, \
+                                                         please specify one."))
     in
     { factory = encoder_factory;
       format  = format;

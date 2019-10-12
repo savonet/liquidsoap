@@ -1,43 +1,43 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 type mpeg2_aac =
   [
-     | `AAC_LC
-     | `HE_AAC
-     | `HE_AAC_v2
+    | `AAC_LC
+    | `HE_AAC
+    | `HE_AAC_v2
   ]
 
 type mpeg4_aac =
   [
-     | mpeg2_aac
-     | `AAC_LD
-     | `AAC_ELD
+    | mpeg2_aac
+    | `AAC_LD
+    | `AAC_ELD
   ]
 
 type aot =
   [
-     | `Mpeg_4 of mpeg4_aac
-     | `Mpeg_2 of mpeg2_aac
+    | `Mpeg_4 of mpeg4_aac
+    | `Mpeg_2 of mpeg2_aac
   ]
 
 type bandwidth =
@@ -48,18 +48,18 @@ type bandwidth =
 
 type bitrate_mode =
   [
-     | `Constant
-     | `Variable of int
+    | `Constant
+    | `Variable of int
   ]
 
 type transmux =
   [
-     | `Raw
-     | `Adif
-     | `Adts
-     | `Latm
-     | `Latm_out_of_band
-     | `Loas
+    | `Raw
+    | `Adif
+    | `Adts
+    | `Latm
+    | `Latm_out_of_band
+    | `Loas
   ]
 
 type t = {
@@ -119,7 +119,7 @@ let to_string m =
       | `Constant     -> Printf.sprintf "bitrate=%d" m.bitrate
   in
   Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,\
-                           samplerate=%d,sbr_mode=%b,transmux=%S)"
+                  samplerate=%d,sbr_mode=%b,transmux=%S)"
     m.afterburner (string_of_aot m.aot) br_info m.channels
     (Lazy.force m.samplerate) m.sbr_mode (string_of_transmux m.transmux)
 

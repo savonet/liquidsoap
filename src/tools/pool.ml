@@ -1,22 +1,22 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -81,9 +81,9 @@ struct
            (fun i entry ->
               match entry.value with
                 | Some t ->
-                    Mutex.unlock m ;
-                    f i t ;
-                    Mutex.lock m
+                  Mutex.unlock m ;
+                  f i t ;
+                  Mutex.lock m
                 | None -> ())
            h)
       f
@@ -96,7 +96,7 @@ struct
       (fun () ->
          Hashtbl.replace h i
            { (Hashtbl.find h i) with
-                death_time = Some (Unix.time () +. grace) })
+               death_time = Some (Unix.time () +. grace) })
       ()
 
   let next =
@@ -108,16 +108,16 @@ struct
       with
         | Not_found -> i
     in
-      Tutils.mutexify m
-        (fun () ->
-           let i = find 0 in
-             Hashtbl.replace h i { death_time = None ; value = None } ;
-             i)
+    Tutils.mutexify m
+      (fun () ->
+         let i = find 0 in
+         Hashtbl.replace h i { death_time = None ; value = None } ;
+         i)
 
   let add () =
     let i = next () in
-      i,
-      Tutils.mutexify m
-        (fun t -> Hashtbl.replace h i { death_time = None ; value = Some t })
+    i,
+    Tutils.mutexify m
+      (fun t -> Hashtbl.replace h i { death_time = None ; value = Some t })
 
 end

@@ -1,63 +1,63 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+   Liquidsoap, a programmable audio stream generator.
+   Copyright 2003-2019 Savonet team
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details, fully stated in the COPYING
-  file at the root of the liquidsoap distribution.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details, fully stated in the COPYING
+   file at the root of the liquidsoap distribution.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
 
 class normalize ~kind (source:source)
-           rmst  (** RMS target. *)
-           window  (** Number of samples for computing rms. *)
-           kup   (** Spring coefficient when the sound is going louder. *)
-           kdown (** Spring coefficient when the sound is going less loud. *)
-           threshold
-           gmin
-           gmax
-           =
-let channels = (Frame.type_of_kind kind).Frame.audio in
-let rmsi = Frame.audio_of_seconds window in
-object
-  inherit operator ~name:"normalize" kind [source]
+    rmst  (** RMS target. *)
+    window  (** Number of samples for computing rms. *)
+    kup   (** Spring coefficient when the sound is going louder. *)
+    kdown (** Spring coefficient when the sound is going less loud. *)
+    threshold
+    gmin
+    gmax
+  =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let rmsi = Frame.audio_of_seconds window in
+  object
+    inherit operator ~name:"normalize" kind [source]
 
-  (** Current squares of RMS. *)
-  val rms = Array.make channels 0.
-  (** Current number of samples used to compute [rmsl] and [rmsr]. *)
-  val mutable rmsc = 0
+    (** Current squares of RMS. *)
+    val rms = Array.make channels 0.
+    (** Current number of samples used to compute [rmsl] and [rmsr]. *)
+    val mutable rmsc = 0
 
-  (** Volume coefficients. *)
-  val v = Array.make channels 1.
-  (** Previous volume coefficients. *)
-  val vold = Array.make channels 1.
+    (** Volume coefficients. *)
+    val v = Array.make channels 1.
+    (** Previous volume coefficients. *)
+    val vold = Array.make channels 1.
 
-  method stype = source#stype
+    method stype = source#stype
 
-  method remaining = source#remaining
+    method remaining = source#remaining
 
-  method seek = source#seek
+    method seek = source#seek
 
-  method is_ready = source#is_ready
+    method is_ready = source#is_ready
 
-  method abort_track = source#abort_track
+    method abort_track = source#abort_track
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
+    method private get_frame buf =
+      let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.content buf offset in
       let rmst = rmst () in
@@ -66,17 +66,17 @@ object
       let threshold = threshold () in
       let gmin = gmin () in
       let gmax = gmax () in
-        for i = offset to AFrame.position buf - 1 do
-          for c = 0 to channels - 1 do
-            let bc = b.(c) in
-            let x = bc.{i} in
-            rms.(c) <- rms.(c) +. x *. x;
-            bc.{i} <- x *. ((float rmsc) *. vold.(c) +. (float (rmsi - rmsc)) *. v.(c)) /. (float rmsi)
-          done;
-          rmsc <- rmsc + 1;
-          if rmsc >= rmsi then
-            (
-              (* TODO: adapt this to channels chans. *)
+      for i = offset to AFrame.position buf - 1 do
+        for c = 0 to channels - 1 do
+          let bc = b.(c) in
+          let x = bc.{i} in
+          rms.(c) <- rms.(c) +. x *. x;
+          bc.{i} <- x *. ((float rmsc) *. vold.(c) +. (float (rmsi - rmsc)) *. v.(c)) /. (float rmsi)
+        done;
+        rmsc <- rmsc + 1;
+        if rmsc >= rmsi then
+          (
+            (* TODO: adapt this to channels chans. *)
               (*
               begin
                 let rmsl = sqrt (rms.(0) /. (float_of_int rmsi)) in
@@ -92,32 +92,32 @@ object
                     (Sutils.dB_of_lin (rmsr *. v.(1)))
               end ;
               *)
-              (* TODO: do all the computations in dB? *)
-              for c = 0 to channels - 1 do
-                let r = sqrt (rms.(c) /. (float_of_int rmsi)) in
-                  if r > threshold then
-                    if r *. v.(c) > rmst then
-                      v.(c) <- v.(c) +. kdown *. (rmst /. r -. v.(c))
-                    else
-                      v.(c) <- v.(c) +. kup *. (rmst /. r -. v.(c));
-                  vold.(c) <- v.(c);
-                  v.(c) <- max gmin (min gmax v.(c));
-                  rms.(c) <- 0.
-              done;
-              rmsc <- 0
-            )
+            (* TODO: do all the computations in dB? *)
+            for c = 0 to channels - 1 do
+              let r = sqrt (rms.(c) /. (float_of_int rmsi)) in
+              if r > threshold then
+                if r *. v.(c) > rmst then
+                  v.(c) <- v.(c) +. kdown *. (rmst /. r -. v.(c))
+                else
+                  v.(c) <- v.(c) +. kup *. (rmst /. r -. v.(c));
+              vold.(c) <- v.(c);
+              v.(c) <- max gmin (min gmax v.(c));
+              rms.(c) <- 0.
+            done;
+            rmsc <- 0
+          )
+      done;
+      (* Reset values if it is the end of the track. *)
+      if AFrame.is_partial buf then begin
+        for c = 0 to channels - 1 do
+          vold.(c) <- 1.;
+          v.(c) <- 1.;
+          rms.(c) <- 0.
         done;
-        (* Reset values if it is the end of the track. *)
-        if AFrame.is_partial buf then begin
-          for c = 0 to channels - 1 do
-            vold.(c) <- 1.;
-            v.(c) <- 1.;
-            rms.(c) <- 0.
-          done;
-          rmsc <- 0
-        end
+        rmsc <- 0
+      end
 
-end
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:7 Lang.any_fixed in
@@ -163,11 +163,11 @@ let () =
          Lang.to_float_getter (f "gain_max"),
          Lang.to_source (f "")
        in
-         new normalize ~kind src
-               (fun () -> Audio.lin_of_dB (target ()))
-               window
-               kup
-               kdown
-               (fun () -> Audio.lin_of_dB (threshold ()))
-               (fun () -> Audio.lin_of_dB (gmin ()))
-               (fun () -> Audio.lin_of_dB (gmax ())))
+       new normalize ~kind src
+         (fun () -> Audio.lin_of_dB (target ()))
+         window
+         kup
+         kdown
+         (fun () -> Audio.lin_of_dB (threshold ()))
+         (fun () -> Audio.lin_of_dB (gmin ()))
+         (fun () -> Audio.lin_of_dB (gmax ())))
