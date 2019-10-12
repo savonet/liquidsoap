@@ -97,12 +97,8 @@ val kill : t -> unit
 (** Whether the process was stopped. *)
 val stopped : t -> bool
 
-(** Read a given number of bytes (the result might be smaller than the requested
-   number of bytes). *)
-val read : int -> pull -> bytes
-
-(** Write bytes. *)
-val write : bytes -> push -> unit
+(** Write bytes recursively. *)
+val really_write : bytes -> push -> unit
 
 (** Synchronous (blocking) write on the process' stdin. Raises [Finished] if the
    process has been stopped/killed. *)
