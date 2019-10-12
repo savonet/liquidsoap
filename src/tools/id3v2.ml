@@ -16,6 +16,12 @@ let read_size ?(synch_safe=true) f =
   if synch_safe then int_of_char s.[0] lsl 21 + int_of_char s.[1] lsl 14 + int_of_char s.[2] lsl 7 + int_of_char s.[3]
   else int_of_char s.[0] lsl 24 + int_of_char s.[1] lsl 16 + int_of_char s.[2] lsl 8 + int_of_char s.[3]
 
+let recode enc s =
+  if enc = 0 then Configure.recode_tag ~in_enc:"ISO-8859-1" s
+  else if enc = 1 || enc = 2 then Configure.recode_tag ~in_enc:"UTF-16" s
+  else if enc = 3 then s
+  else s
+
 let parse f =
   let id = read f 3 in
   if id <> "ID3" then raise Invalid;
@@ -72,12 +78,7 @@ let parse f =
             String.length data
         in
         let text = String.sub data 1 (z - 1) in
-        let text =
-          if encoding = 0 then Configure.recode_tag ~in_enc:"ISO-8859-1" text
-          else if encoding = 3 then text (* already UTF-8 *)
-          else if text.[0] = '\xff' && text.[1] = '\xfe' then Configure.recode_tag ~in_enc:"UTF-16" text
-          else text
-        in
+        let text = recode encoding text in
         tags := (id, text) :: !tags
       else
         tags := (id, data) :: !tags;
@@ -95,12 +96,7 @@ type apic =
 
 let parse_apic apic =
   let text_encoding = int_of_char apic.[0] in
-  let recode s =
-    if text_encoding = 0 then Configure.recode_tag ~in_enc:"ISO-8859-1" s
-    else if text_encoding = 1 || text_encoding = 2 then Configure.recode_tag ~in_enc:"UTF-16" s
-    else if text_encoding = 3 then s
-    else s
-  in
+  let recode = recode text_encoding in
   let n = String.index_from apic 1 '\000' in
   let mime = recode (String.sub apic 1 (n-1)) in
   let n = n+1 in
