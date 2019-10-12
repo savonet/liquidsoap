@@ -56,11 +56,11 @@ let parse f =
       if id.[0] = 'T' then
         let id =
           match id with
-          | "TPE1" -> "Artist"
-          | "TIT2" -> "Title"
-          | "TALB" -> "Album"
-          | "TYER" -> "Year"
-          | "TRCK" -> "Track"
+          | "TPE1" -> "artist"
+          | "TIT2" -> "title"
+          | "TALB" -> "album"
+          | "TYER" -> "year"
+          | "TRCK" -> "track"
           | _ -> id
         in
         let encoding = int_of_char data.[0] in
