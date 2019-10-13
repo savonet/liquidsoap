@@ -13,8 +13,16 @@ let read_byte f =
 
 let read_size ?(synch_safe=true) f =
   let s = read f 4 in
-  if synch_safe then int_of_char s.[0] lsl 21 + int_of_char s.[1] lsl 14 + int_of_char s.[2] lsl 7 + int_of_char s.[3]
-  else int_of_char s.[0] lsl 24 + int_of_char s.[1] lsl 16 + int_of_char s.[2] lsl 8 + int_of_char s.[3]
+  let s0 = int_of_char s.[0] in
+  let s1 = int_of_char s.[1] in
+  let s2 = int_of_char s.[2] in
+  let s3 = int_of_char s.[3] in
+  if synch_safe then
+    (
+      if (s0 lor s1 lor s2 lor s3) land 0b10000000 <> 0 then raise Invalid;
+      s0 lsl 21 + s1 lsl 14 + s2 lsl 7 + s3
+    )
+  else s0 lsl 24 + s1 lsl 16 + s2 lsl 8 + s3
 
 let recode enc s =
   if enc = 0 then Configure.recode_tag ~in_enc:"ISO-8859-1" s
@@ -49,40 +57,45 @@ let parse f =
   let len = ref size in
   let tags = ref [] in
   while !len > 0 do
-    (* Printf.printf "len: %d\n" !len; *)
-    let id = read f 4 in
-    (* Printf.printf "id: %s\n" id; *)
-    if id = "\000\000\000\000" then len := 0 (* stop tag *)
-    else
-      let size = read_size ~synch_safe:(v>3) f in
-      (* Printf.printf "size: %d\n" size; *)
-      let _ = read f 2 in (* flags *)
-      let data = read f size in
-      (* if id <> "APIC" then Printf.printf "data: %S\n%!" data; *)
-      if id.[0] = 'T' then
-        let id =
-          match id with
-          | "TPE1" -> "artist"
-          | "TIT2" -> "title"
-          | "TALB" -> "album"
-          | "TYER" -> "year"
-          | "TRCK" -> "track"
-          | _ -> id
-        in
-        let encoding = int_of_char data.[0] in
-        let z =
-          if encoding = 0 then
-            try String.index_from data 1 '\000' with Not_found -> String.length data
-          else
-            (* TODO: look for \000\000 *)
-            String.length data
-        in
-        let text = String.sub data 1 (z - 1) in
-        let text = recode encoding text in
-        tags := (id, text) :: !tags
+    try
+      (* Printf.printf "len: %d\n" !len; *)
+      let id = read f 4 in
+      (* Printf.printf "id: %s\n" id; *)
+      if id = "\000\000\000\000" then len := 0 (* stop tag *)
       else
-        tags := (id, data) :: !tags;
-      len := !len - (size + 10)
+        let size = read_size ~synch_safe:(v>3) f in
+        (* Printf.printf "size: %d\n" size; *)
+        let flags = read f 2 in
+        let data = read f size in
+        (* if id <> "APIC" then Printf.printf "data: %S\n%!" data; *)
+        len := !len - (size + 10);
+        let compressed = int_of_char flags.[1] land 0b10000000 <> 0 in
+        let encrypted = int_of_char flags.[1] land 0b01000000 <> 0 in
+        if compressed || encrypted then raise Exit;
+        if id.[0] = 'T' then
+          let id =
+            match id with
+            | "TPE1" -> "artist"
+            | "TIT2" -> "title"
+            | "TALB" -> "album"
+            | "TYER" -> "year"
+            | "TRCK" -> "track"
+            | _ -> id
+          in
+          let encoding = int_of_char data.[0] in
+          let z =
+            if encoding = 0 then
+              try String.index_from data 1 '\000' with Not_found -> String.length data
+            else
+              (* TODO: look for \000\000 *)
+              String.length data
+          in
+          let text = String.sub data 1 (z - 1) in
+          let text = recode encoding text in
+          tags := (id, text) :: !tags
+        else
+          tags := (id, data) :: !tags;
+    with Exit -> ()
   done;
   !tags
 
