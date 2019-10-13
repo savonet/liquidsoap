@@ -417,7 +417,7 @@ object (self)
       ~name:"output.srt" source as super
 
   val output_mutex = Mutex.create ()
-  val buffer = ref Strings.empty
+  val buffer = Strings.empty ()
   val tmp = Bytes.create payload_size
   val mutable encoder = None
   val mutable connect_task = None
@@ -441,8 +441,8 @@ object (self)
           Srt.send socket data
       in
       Tutils.mutexify output_mutex (fun () ->
-          Strings.blit !buffer 0 tmp 0 payload_size;
-          buffer := Strings.drop !buffer payload_size) ();
+          Strings.blit buffer 0 tmp 0 payload_size;
+          Strings.drop buffer payload_size) ();
       let rec f = function
         | pos when pos < payload_size ->
           (* TODO: it would be better if Srt.send / Srt.sendmsg would take an offset... *)
@@ -459,7 +459,7 @@ object (self)
         self#start_connect_task
 
   method private send_chunks =
-    let len = Tutils.mutexify output_mutex (fun () -> Strings.length !buffer) in
+    let len = Tutils.mutexify output_mutex (fun () -> Strings.length buffer) in
     while payload_size <= len () do
       self#send_chunk
     done
@@ -477,8 +477,8 @@ object (self)
 
   method private clear_encoder =
     Tutils.mutexify output_mutex (fun () ->
-        buffer := Strings.empty;
-        encoder <- None) ()
+      Strings.flush buffer;
+      encoder <- None) ()
 
   method private connect_fn () =
    let socket = self#get_socket in
@@ -548,7 +548,7 @@ object (self)
   method private encode frame ofs len =
     if self#is `Connected then
       self#get_encoder.Encoder.encode frame ofs len
-    else Strings.empty
+    else Strings.empty ()
 
   method private insert_metadata m =
     if self#is `Connected then
@@ -557,7 +557,7 @@ object (self)
   method private send data =
     if self#is `Connected then
      begin
-      Tutils.mutexify output_mutex (fun data -> buffer := Strings.append !buffer data) data;
+      Tutils.mutexify output_mutex (Strings.append buffer) data;
       self#send_chunks
      end
 end

@@ -77,8 +77,8 @@ type t =
   {
     id               : string;
     mutable skeleton : Ogg.Stream.stream option;
-    mutable header   : Strings.t;
-    mutable encoded  : Strings.t;
+    header           : Strings.t;
+    encoded          : Strings.t;
     mutable position : float;
     tracks           : (nativeint,track) Hashtbl.t;
     mutable state    : state ;
@@ -134,8 +134,8 @@ let state encoder =
 
 (** Get and remove encoded data.. *)
 let get_data encoder =
-  let ans = encoder.encoded in
-  encoder.encoded <- Strings.empty;
+  let ans = Strings.copy encoder.encoded in
+  Strings.flush encoder.encoded;
   ans
 
 (** Peek encoded data without removing it. *)
@@ -144,12 +144,12 @@ let peek_data encoder =
 
 (** Add an ogg page. *)
 let add_page encoder ?(header=false) (h,v) =
-  encoder.encoded <- Strings.add encoder.encoded h;
-  encoder.encoded <- Strings.add encoder.encoded v;
+  Strings.add encoder.encoded h;
+  Strings.add encoder.encoded v;
   if header then
     begin
-      encoder.header <- Strings.add encoder.header h;
-      encoder.header <- Strings.add encoder.header v;
+      Strings.add encoder.header h;
+      Strings.add encoder.header v
     end
 
 let flush_pages os = 
@@ -187,8 +187,8 @@ let create ~skeleton id =
      {
       id       = id;
       skeleton = None;
-      header   = Strings.empty ;
-      encoded  = Strings.empty ;
+      header   = Strings.empty () ;
+      encoded  = Strings.empty () ;
       position = 0.;
       tracks   = Hashtbl.create 10;
       state    = Bos
@@ -463,7 +463,7 @@ let eos encoder =
   if Hashtbl.length encoder.tracks <> 0 then
     raise Invalid_usage ;
   log#info "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
-  encoder.header <- Strings.empty;
+  Strings.flush encoder.header;
   encoder.position <- 0.;
   encoder.state <- Eos
 

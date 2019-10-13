@@ -59,7 +59,7 @@ object (self)
 
   method private send data =
     let socket_send = Utils.get_some socket_send in
-    Strings.iter (fun s -> ignore (socket_send s 0 (String.length s))) data
+    Strings.iter (fun s ofs len -> ignore (socket_send s ofs len)) data
 
 end
 

@@ -1,123 +1,234 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2019 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+
+ *****************************************************************************)
+
 (** Operations on lists of strings. This is module is used in order to avoid
     concatenating (large) strings. Iterators are FIFO. *)
 
-(* List of "concatenated" strings, stored backwards. *)
-type t = string list
+type entry = {
+  mutable start: int;
+  mutable stop: int;
+  data: string
+}
 
-let empty = []
+type t = {
+  entries: entry Queue.t;
+  mutex: Mutex.t
+}
 
-let of_string s : t = [s]
+(* This is duplicated from Tutils to avoid circular dependencies. *)
+let mutexify lock f =
+  fun x ->
+    Mutex.lock lock ;
+    try
+      let ans = f x in Mutex.unlock lock ; ans
+    with
+      | e -> Mutex.unlock lock ; raise e
 
-let of_list l = List.rev l
+let entry_of_string s = {
+  start = 0;
+  stop  = String.length s;
+  data  = s
+}
 
-let dda x l = l@[x]
+let empty () = {
+  entries = Queue.create ();
+  mutex = Mutex.create ()
+}
 
-let add (l:t) x : t = x::l
+let of_string string =
+  let t = empty () in
+  Queue.push (entry_of_string string) t.entries;
+  t
 
-let add_subbytes t buf ofs len =
-  add t (Bytes.sub_string buf ofs len)
+let of_bytes b =
+  of_string (Bytes.to_string b)
 
-let add_subbytes l s o len = add l (Bytes.sub_string s o len)
+let unsafe_of_bytes b =
+  of_string (Bytes.unsafe_to_string b)
 
-let is_empty l = List.for_all (fun s -> s = "") l
-
-let rec iter f = function
-  | [] -> ()
-  | x::l -> iter f l; f x
-
-let fold f x0 l =
-  let rec aux = function
-    | [] -> x0
-    | x::l -> f (aux l) x
+let of_list l =
+  let t = empty () in
+  let l = List.filter (fun string ->
+    String.length string > 0) l
   in
-  aux l
+  let l = List.map entry_of_string l in
+  List.iter (fun entry -> Queue.push entry t.entries) l;
+  t
 
-let length l = fold (fun n s -> n + String.length s) 0 l
+let of_bytes_list l =
+  of_list (List.map Bytes.to_string l)
 
-let append l1 l2 = l2@l1
+let unsafe_of_bytes_list l =
+  of_list (List.map Bytes.unsafe_to_string l)
 
-let concat ll = List.concat (List.rev ll)
+let copy_queue t =
+  let q = Queue.create () in
+  Queue.iter (fun {start;stop;data} ->
+    Queue.add {start;stop;data} q) t.entries;
+  q
 
-let drop l len =
-  let rec aux len = function
-    | [] -> (len, [])
-    | x::l ->
-      let len, l = aux len l in
-      if len = 0 then 0, x::l
-      else
-        let lx = String.length x in
-        if len >= lx then (len-lx, l)
-        else (0, (String.sub x len (lx-len))::l)
+let copy_unsafe t = {
+  (empty ()) with
+     entries = copy_queue t
+}
+
+let copy t = mutexify t.mutex (fun () ->
+  copy_unsafe t) ()
+
+let add t = mutexify t.mutex (fun string ->
+  if String.length string > 0 then
+    Queue.push (entry_of_string string) t.entries)
+
+let add_bytes t b =
+  add t (Bytes.to_string b)
+
+let unsafe_add_bytes t b =
+  add t (Bytes.unsafe_to_string b)
+
+let add_substring t data ofs len =
+  mutexify t.mutex (fun () ->
+    if String.length data < ofs+len then
+      raise (Invalid_argument "Bytes_buffer.add_substring");
+    if len > 0 then
+      Queue.push {start = ofs; stop = ofs+len; data} t.entries) ()
+
+let add_subbytes t data ofs len =
+  if Bytes.length data < ofs+len then
+    raise (Invalid_argument "Bytes_buffer.add_substring");
+  add_substring t (Bytes.to_string data) ofs len
+
+let unsafe_add_subbytes t data ofs len =
+  if Bytes.length data < ofs+len then
+    raise (Invalid_argument "Bytes_buffer.add_substring");
+  add_substring t (Bytes.unsafe_to_string data) ofs len
+
+let length_unsafe t =
+  Queue.fold (fun count {start;stop} ->
+    count + stop - start) 0 t.entries
+
+let length t = mutexify t.mutex (fun () ->
+  length_unsafe t) ()
+
+let is_empty t = length t = 0
+
+let iter fn t = mutexify t.mutex (fun () ->
+  Queue.iter (fun {start;stop;data} ->
+    fn data start (start-stop)) t.entries) ()
+
+let fold fn init t = mutexify t.mutex (fun () ->
+  Queue.fold (fun cur {start;stop;data} ->
+    fn cur data start (stop-start)) init t.entries) ()
+
+let append t1 t2 = mutexify t1.mutex (fun () ->
+   mutexify t2.mutex (fun () ->
+      Queue.iter (fun {start;stop;data} ->
+         Queue.push {start;stop;data} t1.entries) t2.entries) ()) ()
+
+let concat l =
+  let t = empty () in
+  List.iter (append t) l;
+  t
+
+let drop_unsafe t len =
+  let rec f pending =
+    let {start;stop} as entry = Queue.peek t.entries in
+    let len = stop-start in
+    if pending < len then
+      entry.start <- entry.start+pending
+    else
+     begin
+      ignore(Queue.take t.entries);
+      f (pending-len)
+     end
   in
-  let r, l = aux len l in
-  assert (r = 0);
-  l
+  try f len with Queue.Empty -> ()
 
-let keep l len =
-  let rec aux len = function
-    | _ when len <= 0 -> []
-    | x::l -> x::(aux (len - String.length x) l)
-    | [] -> []
+let drop t = mutexify t.mutex (drop_unsafe t)
+
+let keep_unsafe t len =
+ let current_length = length_unsafe t in
+ if current_length > len then
+   drop_unsafe t (current_length-len)
+
+let keep t = mutexify t.mutex (keep_unsafe t)
+
+let sub_unsafe t ofs len =
+  let length = length_unsafe t in
+  if length-ofs < len then
+    raise (Invalid_argument "Bytes_buffer.sub");
+  let t = copy_unsafe t in
+  drop_unsafe t ofs;
+  let q = Queue.create () in
+  let rec f pending =
+    let {start;stop} as entry = Queue.take t.entries in
+    Queue.add entry q;
+    let entry_len = stop-start in
+    if pending <= entry_len then
+      entry.stop <- entry.stop-entry_len+pending
+    else
+      f (pending-entry_len)
   in
-  aux len l
+  begin
+   try
+    if len > 0 then f len
+   with Queue.Empty -> assert false
+  end;
+  {t with entries = q}
 
-let sub l o len =
-  assert (o + len <= length l);
-  let o = ref o in
-  let len = ref len in
-  let ans = ref empty in
-  iter
-    (fun s ->
-       if !len = 0 then ()
-       else
-         let ls = String.length s in
-         if !o >= ls then o := !o - ls
-         else
-           let r = min (ls - !o) !len in
-           let s =
-             if !o = 0 && r = ls then s
-             else String.sub s !o r
-           in
-           ans := add !ans s;
-           o := 0;
-           len := !len - r
-    ) l;
-  assert (!len = 0);
-  !ans
+let sub t ofs len = mutexify t.mutex (fun () ->
+  sub_unsafe t ofs len) ()
 
-(* We cannot share the code with sub because we don't want to uselessly sub the last string... *)
-let blit l o b ob len =
-  assert (o + len <= length l);
-  assert (ob + len <= Bytes.length b);
-  let o = ref o in
-  let ob = ref ob in
-  let len = ref len in
-  iter
-    (fun s ->
-       if !len = 0 then ()
-       else
-         let ls = String.length s in
-         if !o >= ls then o := !o - ls
-         else
-           let r = min (ls - !o) !len in
-           String.blit s !o b !ob r;
-           o := 0;
-           ob := !ob + r;
-           len := !len - r
-    ) l;
-  assert (!len = 0)
+let blit_unsafe t ofs_t target ofs len =
+  let t = sub_unsafe t ofs_t len in
+  ignore(Queue.fold (fun pos {start;stop;data} ->
+    let len = stop-start in
+    Bytes.blit_string data start target pos len;
+    pos+len) ofs t.entries)
 
-let to_string_list l = List.rev l
+let blit t ofs_t target ofs len = mutexify t.mutex (fun () ->
+  blit_unsafe t ofs_t target ofs len) ()  
 
-let to_string l =
-  let ans = Bytes.create (length l) in
-  let o = ref 0 in
-  iter
-    (fun s ->
-       let len = String.length s in
-       Bytes.blit_string s 0 ans !o len;
-       o := !o + len
-    ) l;
-  Bytes.unsafe_to_string ans
+let to_bytes t = mutexify t.mutex (fun () ->
+  let len = length_unsafe t in
+  let bytes = Bytes.create len in
+  blit_unsafe t 0 bytes 0 len;
+  bytes) ()
 
-let substring l o len = to_string (sub l o len)
+let to_string t =
+  Bytes.unsafe_to_string (to_bytes t)
+
+let flush t = mutexify t.mutex (fun () ->
+  Queue.clear t.entries) ()
+
+let to_list t = mutexify t.mutex (fun () ->
+  List.of_seq
+    (Seq.map (fun ({start;stop;data}) ->
+      data,start,stop-start)
+        (Queue.to_seq t.entries))) ()
+
+let to_bytes_list t =
+  List.map (fun (data,ofs,len) ->
+    Bytes.of_string data,ofs,len) (to_list t)
+
+let unsafe_to_bytes_list t =
+  List.map (fun (data,ofs,len) ->
+    Bytes.unsafe_of_string data,ofs,len) (to_list t)

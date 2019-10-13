@@ -28,7 +28,7 @@ let encoder id ext =
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in
-  let buf = ref Strings.empty in
+  let buf = Strings.empty () in
   let bytes = Bytes.create Utils.pagesize in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
@@ -88,15 +88,15 @@ let encoder id ext =
       let len = puller bytes 0 Utils.pagesize in
       match len with
         | 0 when !is_stop -> Condition.signal condition
-        | _ -> buf := Strings.add_subbytes !buf bytes 0 len
+        | _ -> Strings.unsafe_add_subbytes buf bytes 0 len
     end;
     `Continue)
   in
 
-  let flush_buffer = Tutils.mutexify mutex (fun () ->
-      let ans = !buf in
-      buf := Strings.empty;
-      ans)
+  let flush_buffer () = 
+    let ans = Strings.copy buf in
+    Strings.flush buf;
+    ans
   in
 
   let process =
@@ -147,14 +147,15 @@ let encoder id ext =
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
           Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
-          Strings.of_string (Bytes.unsafe_to_string sbuf)
+          Strings.unsafe_of_bytes sbuf
        end
     in
     Tutils.mutexify mutex (fun () ->
       try
         Process_handler.on_stdin process (fun push ->
-          Strings.iter (fun s ->
-            Process_handler.really_write (Bytes.of_string s) push) sbuf);
+          Strings.iter (fun s ofs len ->
+            Process_handler.really_write
+              (Bytes.unsafe_of_string (String.sub s ofs len)) push) sbuf);
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
     flush_buffer ()
@@ -164,7 +165,7 @@ let encoder id ext =
     is_stop := true;
     Process_handler.stop process;
     Condition.wait condition mutex;
-    !buf)
+    flush_buffer ())
   in
   
   {
@@ -173,7 +174,7 @@ let encoder id ext =
      (* External encoders do not support 
       * headers for now. They will probably
       * never do.. *)
-     header = Strings.empty;
+     header = Strings.empty ();
      encode = encode;
      stop   = stop;
   }

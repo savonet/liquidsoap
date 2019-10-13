@@ -20,13 +20,13 @@
 
  *****************************************************************************)
 
-(** Bytes buffers where the main operation is to add a string at the end. 
+(** Bytes buffers where the main operation is to add bytes at the end. 
   * Main purpose of these buffers is to avoid data copy as much as possible.
   * therefore, all functions receiving buffer entries have signatures of the form:
-  * [fn string offset length] where [offset] and [length] represents the portion of
-  * [string] that is actually held by the buffer. *)
+  * [fn bytes offset length] where [offset] and [length] represents the portion of
+  * [bytes] that is actually held by the buffer. *)
 
-(** A buffer of strings. *)
+(** A buffer of bytes. *)
 type t
 
 (** The empty buffer. *)
@@ -35,7 +35,7 @@ val empty : unit -> t
 (** Initialize a buffer wih the given string. *)
 val of_string : string -> t
 
-(** Initialize a buffer wih the given bytes.
+(** Initialize a buffer wih the given bytes. 
   * bytes will be copied. *)
 val of_bytes : bytes -> t
 
@@ -49,8 +49,8 @@ val to_bytes : t -> bytes
 (** Render a buffer as a string. *)
 val to_string : t -> string
 
-(** Concatenation of string. *)
-val of_list : string list -> t
+(** Concatenation of strings. *)
+val of_list : strings list -> t
 
 (** Concatenation of bytes.
   * bytes will be copied. *)
@@ -63,49 +63,28 @@ val unsafe_of_bytes_list : bytes list -> t
 (** Copy a buffer. *)
 val copy : t -> t
 
-(** Add a string at the end of the buffer. *)
-val add : t -> string -> unit
+(** Add bytes at the end of the buffer. *)
+val add : t -> bytes -> unit
 
-(** Add a bytes at the end of the buffer. 
-  * Bytes will be copied. *)
-val add_bytes : t -> bytes -> unit
-
-(** Add a bytes at the end of the buffer.
-  * Bytes will not be copied. *)
-val unsafe_add_bytes : t -> bytes -> unit
-
-(** Add a substring of a string at the end of the buffer. *)
-val add_substring : t -> string -> int -> int -> unit
-
-(** Add a subbytes of some bytes at the end of the buffer.
-  * bytes will be copied. *)
+(** Add a subbytes of bytes at the end of the buffer. *)
 val add_subbytes : t -> bytes -> int -> int -> unit
 
-(** Add a subbytes of some bytes at the end of the buffer.
-  * bytes will not be copied. *)
-val unsafe_add_subbytes : t -> bytes -> int -> int -> unit
+(** Add bytes at the beginning of the buffer. *)
+val dda : t -> bytes -> unit
 
-(** Iterate a function on all the strings contained in the buffer. *)
-val iter : (string -> int -> int -> unit) -> t -> unit
+(** Add a subbytes of bytes at the beginning of the buffer. *)
+val dda_subbytes : t -> bytes -> int -> int -> unit
 
-(** Fold a function over all the strings in a buffer. *)
-val fold : ('a -> string -> int -> int -> 'a) -> 'a -> t -> 'a
+(** Iterate a function on all the bytes contained in the buffer. *)
+val iter : (bytes -> int -> int -> unit) -> t -> unit
 
-(** Return a list of the strings contained in the buffer. *)
-val to_list : t -> (string*int*int) list
+(** Fold a function over all the bytes in a buffer. *)
+val fold : ('a -> bytes -> int -> int -> 'a) -> 'a -> t -> 'a
 
-(** Return a list of the bytes contained in the buffer.
-  * bytes will be copied. *)
-val to_bytes_list : t -> (bytes*int*int) list
-
-(** Return a list of the bytes contained in the buffer.
-  * bytes will not be copied. *)
-val unsafe_to_bytes_list : t -> (bytes*int*int) list
-
-(** Drop the first [n] characters. *)
+(** Drop the first given chars. *)
 val drop : t -> int -> unit
 
-(** Keep a suffix of at most [n] characters. *)
+(** Keep a suffix of at most the given length. *)
 val keep : t -> int -> unit
 
 (** Sub-buffer of a buffer. *)
@@ -125,6 +104,3 @@ val append : t -> t -> unit
 
 (** Concatenate a list of buffers. *)
 val concat : t list -> t
-
-(** Empty a buffer. *)
-val flush : t -> unit

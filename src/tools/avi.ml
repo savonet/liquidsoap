@@ -55,8 +55,9 @@ let video_chunk b = chunk "00db" b
 (* The original data is cleared. *)
 let chunk_strings id data =
   let n = Strings.length data in
-  let ans = Strings.append (Strings.of_list [id; dword n]) data in
-  let ans = if n mod 2 = 0 then ans else Strings.add ans "\000" in
+  let ans = Strings.of_list [id; dword n] in
+  Strings.append ans data;
+  if n mod 2 <> 0 then Strings.add ans "\000";
   ans
 
 let audio_chunk_strings b = chunk_strings "01wb" b

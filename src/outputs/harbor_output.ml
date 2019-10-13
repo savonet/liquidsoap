@@ -155,7 +155,7 @@ module Make (T : T) = struct
   type metadata = {mutable metadata: Frame.metadata option; metadata_m: Mutex.t}
 
   type client =
-    { mutable buffer: Strings.t
+    { buffer: Strings.t
     ; condition: Duppy_c.condition
     ; condition_m: Duppy_m.mutex
     ; mutex: Mutex.t
@@ -229,7 +229,7 @@ module Make (T : T) = struct
       let datalen = Strings.length data in
       if datalen + c.metapos > c.metaint then
         let meta = Tutils.mutexify c.meta.metadata_m (fun () -> c.meta.metadata) () in
-        process (get_meta meta) Strings.empty data
+        process (get_meta meta) (Strings.empty ()) data
       else
         (
           c.metapos <- c.metapos + datalen;
@@ -246,9 +246,9 @@ module Make (T : T) = struct
              let data =
                if buflen > c.chunk then
                  let data = add_meta c c.buffer in
-                 c.buffer <- Strings.empty;
+                 Strings.flush c.buffer;
                  data
-               else Strings.empty
+               else Strings.empty ()
              in
              Duppy.Monad.return data )
            ())
@@ -262,17 +262,16 @@ module Make (T : T) = struct
                     (fun () -> Duppy_m.unlock c.condition_m ) )
             else
               let rec write = function
-                | s::l ->
+                | (s,ofs,len)::l ->
                   Duppy.Monad.bind
                     (Duppy.Monad.Io.write ?timeout:(Some c.timeout)
                        ~priority:Tutils.Non_blocking c.handler
-                       (* TODO: can we use unsafe_of_string here? *)
-                       (Bytes.of_string s)
+                       (Bytes.unsafe_of_string (String.sub s ofs len))
                     )
                     (fun () -> write l)
                 | [] -> Duppy.Monad.return ()
               in
-              write (Strings.to_string_list data)
+              write (Strings.to_list data)
           )
           (fun () ->
             let __pa_duppy_0 =
@@ -414,7 +413,7 @@ module Make (T : T) = struct
 
       val mutable chunk_len = 0
 
-      val mutable burst_data = Strings.empty
+      val mutable burst_data = Strings.empty ()
 
       val metadata = {metadata= None; metadata_m= Mutex.create ()}
 
@@ -488,7 +487,7 @@ module Make (T : T) = struct
                 Tutils.mutexify client.mutex
                   (fun () ->
                     client.state <- Done ;
-                    client.buffer <- Strings.empty )
+                    Strings.flush client.buffer)
                   () ;
                 on_disconnect ip ;
                 Harbor.Close (Harbor.mk_simple "")) }
@@ -527,9 +526,10 @@ module Make (T : T) = struct
               true )
             else false
           in
-          burst_data <- Strings.keep (Strings.append burst_data b) burst;
+          Strings.append burst_data b;
+          Strings.keep burst_data burst;
           let new_clients = Queue.create () in
-          (match dump with Some s -> Strings.iter (output_string s) b | None -> ()) ;
+          (match dump with Some s -> Strings.iter (output_substring s) b | None -> ()) ;
           Tutils.mutexify clients_m
             (fun () ->
               Queue.iter
@@ -540,12 +540,15 @@ module Make (T : T) = struct
                         match c.state with
                         | Hello ->
                             let bdlen = Strings.length burst_data in
-                            c.buffer <- Strings.append c.buffer (Strings.sub burst_data (max 0 (bdlen - burst)) (min bdlen burst));
+                            let data =
+                              Strings.sub burst_data (max 0 (bdlen - burst)) (min bdlen burst)
+                            in
+                            Strings.append c.buffer data;
                             Queue.push c new_clients ; true
                         | Sending ->
                             let buf = Strings.length c.buffer in
-                            if buf + slen > buflen then c.buffer <- Strings.drop c.buffer (min buf slen);
-                            c.buffer <- Strings.append c.buffer b ;
+                            if buf + slen > buflen then Strings.drop c.buffer (min buf slen);
+                            Strings.append c.buffer b ;
                             Queue.push c new_clients ;
                             false
                         | Done -> false )

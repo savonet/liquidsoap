@@ -79,7 +79,7 @@ let encoder ffmpeg meta =
       | 2 -> `Stereo
       | _ -> failwith "%ffmpeg encoder only supports mono or stereo audio for now!"
   in
-  let buf = ref Strings.empty in
+  let buf = Strings.empty () in
   let options = Hashtbl.copy ffmpeg.Ffmpeg_format.options in
   convert_options options;
   let make () =
@@ -95,7 +95,7 @@ let encoder ffmpeg meta =
         dst_channels dst_freq
     in
     let write str ofs len =
-      buf := Strings.add_subbytes !buf str ofs len;
+      Strings.add_subbytes buf str ofs len;
       len
     in
     let output =
@@ -116,8 +116,8 @@ let encoder ffmpeg meta =
     let data = Audio.sub (AFrame.content_of_type ~channels frame start) start len in
     let frame = Resampler.convert !h.converter data in
     Av.write_frame !h.stream frame;
-    let ans = !buf in
-    buf := Strings.empty;
+    let ans = Strings.copy buf in
+    Strings.flush buf;
     ans
   in
   let insert_metadata m =
@@ -131,12 +131,14 @@ let encoder ffmpeg meta =
   insert_metadata meta;
   let stop () = 
     Av.close !h.output;
-    !buf
+    let ans = Strings.copy buf in
+    Strings.flush buf;
+    ans
   in
     {
      Encoder.
       insert_metadata = insert_metadata ;
-      header = Strings.empty ;
+      header = Strings.empty () ;
       encode = encode ;
       stop = stop
     }

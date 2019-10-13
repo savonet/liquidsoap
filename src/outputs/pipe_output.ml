@@ -101,7 +101,7 @@ object (self)
   val mutable current_metadata = None
 
   method virtual open_pipe : unit
-  method virtual write_pipe : string -> unit
+  method virtual write_pipe : string -> int -> int -> unit
   method virtual close_pipe : unit
   method virtual is_open : bool
 
@@ -164,7 +164,7 @@ object (self)
   method send b =
     if not self#is_open then
       self#prepare_pipe ;
-    Strings.iter (fun s -> self#write_pipe s) b ; 
+    Strings.iter self#write_pipe b ; 
     if not reopening then
       if need_reset || 
          (Unix.gettimeofday () > reload_delay +. open_date &&
@@ -205,9 +205,9 @@ object (self)
   method open_pipe = 
     chan <- Some (self#open_chan)
 
-  method write_pipe b = 
+  method write_pipe b ofs len = 
     let chan = Utils.get_some chan in
-    output_string chan b ;
+    output_substring chan b ofs len ;
     if flush then
       Stdlib.flush chan 
 

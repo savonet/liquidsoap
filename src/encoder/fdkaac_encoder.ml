@@ -109,7 +109,7 @@ struct
     let src_freq = float (Frame.audio_of_seconds 1.) in
     let dst_freq = float samplerate in
     let n = Utils.pagesize in
-    let buf = ref Strings.empty in
+    let buf = Strings.empty () in
     let encode frame start len =
       let start = Frame.audio_of_master start in
       let b = AFrame.content_of_type ~channels frame start in
@@ -124,26 +124,26 @@ struct
         else
           b,start,len
       in
-      let encoded = ref Strings.empty in
-      buf := Strings.add !buf (Audio.S16LE.make (Audio.sub b start len));
-      let len = ref (Strings.length !buf) in
-      while !len >= n do
-        let data = Strings.substring !buf 0 n in
-        buf := Strings.drop !buf n;
-        len := !len - n;
-        encoded := Strings.add !encoded (Fdkaac.Encoder.encode enc data 0 n)
+      let encoded = Strings.empty () in
+      Strings.add buf (Audio.S16LE.make (Audio.sub b start len));
+      while Strings.length buf >= n do
+        let data = Bytes.create 0 in
+        Strings.blit buf 0 data 0 n;
+        let data = Bytes.unsafe_to_string data in
+        Strings.drop buf n;
+        Strings.add encoded (Fdkaac.Encoder.encode enc data 0 n)
       done;
-      !encoded
+      encoded
     in
     let stop () =
-      let rem = Strings.to_string !buf in
+      let rem = Strings.to_string buf in
       let s = Fdkaac.Encoder.encode enc rem 0 (String.length rem) in
       Strings.of_list [s; Fdkaac.Encoder.flush enc]
     in
       {
         Encoder.
          insert_metadata = (fun _ -> ()) ;
-         header = Strings.empty ;
+         header = Strings.empty () ;
          encode = encode ;
          stop = stop
       }

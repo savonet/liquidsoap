@@ -211,7 +211,8 @@ struct
         match !id3v2 with
           | Rendered s when not !has_started ->
             id3v2 := Done;
-            Strings.add s (encoded ())
+            Strings.add s (encoded ());
+            s
           | _ ->
             Strings.of_string (encoded ())
       in
@@ -235,7 +236,7 @@ struct
         {
           insert_metadata = insert_metadata ;
           encode = encode ;
-          header = Strings.empty ;
+          header = Strings.empty () ;
           stop = stop
         }
     in

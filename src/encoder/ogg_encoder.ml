@@ -121,7 +121,7 @@ let encoder ogg =
         Encoder.
          insert_metadata  = insert_metadata ;
          encode = encode ;
-         header = Strings.empty ;
+         header = Strings.empty () ;
          stop   = stop
        }
       and streams_start () = 
@@ -159,11 +159,11 @@ let encoder ogg =
         then
          begin
           Ogg_muxer.end_of_stream ogg_enc ; 
-          enc.Encoder.header <- Strings.empty
+          enc.Encoder.header <- Strings.empty ()
          end
       and stop () = 
         ogg_stop () ;
-        enc.Encoder.header <- Strings.empty ;
+        enc.Encoder.header <- Strings.empty () ;
         Ogg_muxer.get_data ogg_enc
       and insert_metadata m =
         ogg_stop () ;
