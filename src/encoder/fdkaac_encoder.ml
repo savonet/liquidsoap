@@ -127,7 +127,7 @@ struct
       let encoded = Strings.empty () in
       Strings.add buf (Audio.S16LE.make (Audio.sub b start len));
       while Strings.length buf >= n do
-        let data = Bytes.create 0 in
+        let data = Bytes.create n in
         Strings.blit buf 0 data 0 n;
         let data = Bytes.unsafe_to_string data in
         Strings.drop buf n;
