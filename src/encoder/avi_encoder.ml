@@ -77,22 +77,25 @@ let encoder avi =
   let samplerate = Lazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
   (* TODO: use duration *)
-  let header = Strings.of_string (Avi.header ~channels ~samplerate ()) in
+  let header =
+    Avi.header ~channels ~samplerate ()
+  in
   let need_header = ref true in
   let encode frame start len =
     let ans = encode_frame ~channels ~samplerate ~converter frame start len in
     if !need_header then
      begin
         need_header := false;
-        Strings.append header ans
-     end;
-    ans
+        Strings.prepend header ans
+     end
+    else
+      Strings.seal ans
   in
   {
     Encoder.
     insert_metadata = (fun _ -> ());
     encode = encode;
-    header = header;
+    header = Strings.of_string header;
     stop = Strings.empty
   }
 

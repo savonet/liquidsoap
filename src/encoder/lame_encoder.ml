@@ -75,7 +75,7 @@ let bit_at s pos =
 
 module Register(Lame : Lame_t) = 
 struct
-  type id3v2 = Waiting | Rendered of Strings.t | Done
+  type id3v2 = Waiting | Rendered of [`RO] Strings.t | Done
 
   (* Notation: XYZ; X: copyright bit, Y: original bit, Z: private bit 
    *           !: negation
@@ -211,8 +211,9 @@ struct
         match !id3v2 with
           | Rendered s when not !has_started ->
             id3v2 := Done;
-            Strings.add s (encoded ());
-            s
+            let buf = Strings.copy s in
+            Strings.add buf (encoded ());
+            Strings.seal buf
           | _ ->
             Strings.of_string (encoded ())
       in

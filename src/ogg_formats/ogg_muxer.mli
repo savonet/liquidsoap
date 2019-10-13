@@ -134,13 +134,13 @@ val create : skeleton:bool -> string -> t
 val state : t -> state
 
 (** Get and remove encoded data.. *)
-val get_data : t -> Strings.t
+val get_data : t -> [`RO] Strings.t
 
 (** Get header of a stream. *)
-val get_header : t -> Strings.t
+val get_header : t -> [`RO] Strings.t
 
 (** Peek encoded data without removing it. *)
-val peek_data : t -> Strings.t
+val peek_data : t -> [`RO] Strings.t
 
 (** Register a new track to the stream.
   * The state needs to be [Bos] or [Eos].

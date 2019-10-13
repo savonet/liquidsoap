@@ -41,7 +41,9 @@ let encoder wav =
                                (float sample_rate) *.
                                (float sample_size) /. 8.))
   in
-  let header = Strings.of_string (Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()) in
+  let header =
+    Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
+  in
   let need_header = ref wav.header in
   let encode frame start len =
     let start = Frame.audio_of_master start in
@@ -68,8 +70,7 @@ let encoder wav =
     let s = Bytes.unsafe_to_string s in
     if !need_header then begin
       need_header := false;
-      Strings.add header s;
-      header
+      Strings.of_list [header; s]
     end else
       Strings.of_string s
   in
@@ -77,7 +78,7 @@ let encoder wav =
      Encoder.
       insert_metadata = (fun _ -> ()) ;
       encode = encode ;
-      header = header ;
+      header = Strings.of_string header ;
       stop   = Strings.empty
     }
 

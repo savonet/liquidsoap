@@ -77,8 +77,8 @@ type t =
   {
     id               : string;
     mutable skeleton : Ogg.Stream.stream option;
-    header           : Strings.t;
-    encoded          : Strings.t;
+    header           : [`RW] Strings.t;
+    encoded          : [`RW] Strings.t;
     mutable position : float;
     tracks           : (nativeint,track) Hashtbl.t;
     mutable state    : state ;
@@ -136,11 +136,11 @@ let state encoder =
 let get_data encoder =
   let ans = Strings.copy encoder.encoded in
   Strings.flush encoder.encoded;
-  ans
+  Strings.seal ans
 
 (** Peek encoded data without removing it. *)
 let peek_data encoder =
-  encoder.encoded
+  Strings.seal encoder.encoded
 
 (** Add an ogg page. *)
 let add_page encoder ?(header=false) (h,v) =
@@ -287,7 +287,8 @@ let streams_start encoder =
   encoder.state <- Streaming
 
 (** Get the first pages of each streams. *)
-let get_header x = x.header
+let get_header x =
+  Strings.seal x.header
 
 (** Is a track empty ?*)
 let is_empty x =

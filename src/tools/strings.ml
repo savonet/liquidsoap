@@ -29,7 +29,12 @@ type entry = {
   data: string
 }
 
-type t = {
+type mode = [
+  | `RW
+  | `RO
+]
+
+type 'a t = {
   entries: entry Queue.t;
   mutex: Mutex.t
 }
@@ -93,6 +98,21 @@ let copy_unsafe t = {
 
 let copy t = mutexify t.mutex (fun () ->
   copy_unsafe t) ()
+
+let seal = copy
+
+let prepend string t = mutexify t.mutex (fun () ->
+  let entries = Queue.create () in
+  let t_q = Queue.copy t.entries in
+  Queue.add (entry_of_string string) entries;
+  Queue.transfer t_q entries;
+  {(empty()) with entries}) ()
+
+let prepend_bytes b =
+  prepend (Bytes.to_string b)
+
+let unsafe_prepend_bytes b =
+  prepend (Bytes.unsafe_to_string b)
 
 let add t = mutexify t.mutex (fun string ->
   if String.length string > 0 then

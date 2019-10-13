@@ -167,9 +167,9 @@ type encoder = {
   (* Encoder are all called from the main 
    * thread so there's no need to protect this
    * value with a mutex so far.. *)
-  mutable header : Strings.t ;
-  encode : Frame.t -> int -> int -> Strings.t;
-  stop : unit -> Strings.t
+  mutable header : [`RO] Strings.t ;
+  encode : Frame.t -> int -> int -> [`RO] Strings.t;
+  stop : unit -> [`RO] Strings.t
 }
 
 type factory = string -> Meta_format.export_metadata -> encoder

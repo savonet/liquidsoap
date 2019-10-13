@@ -155,7 +155,7 @@ module Make (T : T) = struct
   type metadata = {mutable metadata: Frame.metadata option; metadata_m: Mutex.t}
 
   type client =
-    { buffer: Strings.t
+    { buffer: [`RW] Strings.t
     ; condition: Duppy_c.condition
     ; condition_m: Duppy_m.mutex
     ; mutex: Mutex.t
@@ -170,7 +170,7 @@ module Make (T : T) = struct
     ; close: unit -> unit
     ; handler: (Tutils.priority, Harbor.reply) Duppy.Monad.Io.handler }
 
-  let add_meta c (data:Strings.t) =
+  let add_meta c data =
     let get_meta meta =
       let f x =
         try Some (Hashtbl.find (Utils.get_some meta) x) with _ -> None
@@ -452,7 +452,9 @@ module Make (T : T) = struct
           Printf.sprintf "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
             data.format icyheader extra_headers
         in
-        let buffer = (Utils.get_some encoder).Encoder.header in
+        let buffer =
+          Strings.copy (Utils.get_some encoder).Encoder.header
+        in
         let close () = try Harbor.close s with _ -> () in
         let rec client =
           { buffer

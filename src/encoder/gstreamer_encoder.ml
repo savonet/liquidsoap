@@ -137,7 +137,7 @@ let encoder ext =
    in
    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
    GU.flush ~log gst.bin;
-   ret
+   Strings.seal ret
   in
 
   let insert_metadata m =

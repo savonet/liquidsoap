@@ -133,7 +133,7 @@ struct
         Strings.drop buf n;
         Strings.add encoded (Fdkaac.Encoder.encode enc data 0 n)
       done;
-      encoded
+      Strings.seal encoded
     in
     let stop () =
       let rem = Strings.to_string buf in
