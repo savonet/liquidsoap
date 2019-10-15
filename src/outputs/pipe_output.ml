@@ -164,6 +164,7 @@ object (self)
   method send b =
     if not self#is_open then
       self#prepare_pipe ;
+    (* TODO: this could be optimized if write_pipe took and offset / length *)
     Strings.iter (fun s -> self#write_pipe s) b ; 
     if not reopening then
       if need_reset || 

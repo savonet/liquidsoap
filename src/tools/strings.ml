@@ -19,29 +19,37 @@ let of_list l =
 
 let dda x l = l@[S.of_string x]
 
-let add_sv l x = x::l
+let add_view l x = x::l
 
-let add (l:t) x : t = add_sv l (S.of_string x)
+let add (l:t) x : t = add_view l (S.of_string x)
+
+let add_substring b x o l = add_view b (S.of_substring x o l)
 
 let add_subbytes l s o len = add l (Bytes.sub_string s o len)
 
 let is_empty l = List.for_all S.is_empty l
 
-let rec iter_sv f = function
+let rec iter_view f = function
   | [] -> ()
-  | x::l -> iter_sv f l; f x
+  | x::l -> iter_view f l; f x
+
+let iter_substring f b =
+  iter_view
+    (fun s ->
+       let s, o, l = S.to_substring s in
+       f s o l) b
 
 let iter f l =
-  iter_sv (fun s -> f (S.to_string s)) l
+  iter_view (fun s -> f (S.to_string s)) l
 
-let fold_sv f x0 l =
+let fold_view f x0 l =
   let rec aux = function
     | [] -> x0
     | x::l -> f (aux l) x
   in
   aux l
 
-let length l = fold_sv (fun n s -> n + S.length s) 0 l
+let length l = fold_view (fun n s -> n + S.length s) 0 l
 
 let append l1 l2 = l2@l1
 
@@ -67,7 +75,7 @@ let sub l o len =
   let o = ref o in
   let len = ref len in
   let ans = ref empty in
-  iter_sv
+  iter_view
     (fun s ->
        if !len = 0 then ()
        else
@@ -76,7 +84,7 @@ let sub l o len =
          else
            let r = min (ls - !o) !len in
            let s = S.sub s !o r in
-           ans := add_sv !ans s;
+           ans := add_view !ans s;
            o := 0;
            len := !len - r
     ) l;
@@ -87,7 +95,7 @@ let blit l b o =
   let len = length l in
   assert (o + len <= Bytes.length b);
   let o = ref o in
-  iter_sv
+  iter_view
     (fun s ->
        S.blit s b !o;
        o := !o + S.length s

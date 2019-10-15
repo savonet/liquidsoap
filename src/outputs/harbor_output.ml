@@ -266,6 +266,7 @@ module Make (T : T) = struct
                   Duppy.Monad.bind
                     (Duppy.Monad.Io.write ?timeout:(Some c.timeout)
                        ~priority:Tutils.Non_blocking c.handler
+                       (* TODO: this could be optimised if write took offset / length *)
                        (* TODO: can we use unsafe_of_string here? *)
                        (Bytes.of_string s)
                     )

@@ -19,6 +19,8 @@ val of_list : string list -> t
 (** Add a string at the end of a buffer. *)
 val add : t -> string -> t
 
+val add_substring : t -> string -> int -> int -> t
+
 (** Add subbytes at the end of a buffer. *)
 val add_subbytes : t -> bytes -> int -> int -> t
 
@@ -27,6 +29,8 @@ val dda : string -> t -> t
 
 (** Iterate a function on all the strings contained in the buffer. *)
 val iter : (string -> unit) -> t -> unit
+
+val iter_substring : (string -> int -> int -> unit) -> t -> unit
 
 (** Drop the first given chars. *)
 val drop : t -> int -> t
