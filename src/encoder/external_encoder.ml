@@ -29,6 +29,7 @@ let encoder id ext =
   let is_metadata_restart = ref false in
   let is_stop = ref false in
   let buf = ref Strings.empty in
+  let bytes = Bytes.create Utils.pagesize in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
 
@@ -54,11 +55,14 @@ let encoder id ext =
   in
 
   let on_stderr puller =
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller));
+    let len = puller bytes 0 Utils.pagesize in
+    log#debug "stderr: %s"
+      (Bytes.unsafe_to_string
+        (Bytes.sub bytes 0 len));
     `Continue
   in
   let on_start pusher =
-    Process_handler.write (Bytes.of_string header) pusher;
+    Process_handler.really_write (Bytes.of_string header) pusher;
     `Continue
   in
   let on_stop = function
@@ -81,9 +85,10 @@ let encoder id ext =
 
   let on_stdout = Tutils.mutexify mutex (fun puller ->
     begin
-      match Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller) with
-        | "" when !is_stop -> Condition.signal condition
-        | s -> buf := Strings.add !buf s
+      let len = puller bytes 0 Utils.pagesize in
+      match len with
+        | 0 when !is_stop -> Condition.signal condition
+        | _ -> buf := Strings.add_subbytes !buf bytes 0 len
     end;
     `Continue)
   in
@@ -147,7 +152,9 @@ let encoder id ext =
     in
     Tutils.mutexify mutex (fun () ->
       try
-        Process_handler.on_stdin process (fun push -> Strings.iter (fun s -> Process_handler.write (Bytes.of_string s) push) sbuf);
+        Process_handler.on_stdin process (fun push ->
+          Strings.iter (fun s ->
+            Process_handler.really_write (Bytes.of_string s) push) sbuf);
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
     flush_buffer ()

@@ -21,6 +21,9 @@ val of_list : string list -> t
 (** Add a string at the end of a buffer. *)
 val add : t -> string -> t
 
+(** Add subbytes at the end of a buffer. *)
+val add_subbytes : t -> bytes -> int -> int -> t
+
 (** Add a string at the beginning of a buffer. *)
 val dda : string -> t -> t
 

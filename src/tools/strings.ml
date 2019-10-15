@@ -14,6 +14,9 @@ let dda x l = l@[x]
 
 let add (l:t) x : t = x::l
 
+let add_subbytes t buf ofs len =
+  add t (Bytes.sub_string buf ofs len)
+
 let add_subbytes l s o len = add l (Bytes.sub_string s o len)
 
 let is_empty l = List.for_all (fun s -> s = "") l

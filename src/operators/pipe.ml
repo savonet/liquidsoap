@@ -69,7 +69,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
                            ?len ~sample_size:16 ())
   in
   let on_start push =
-    Process_handler.write header push;
+    Process_handler.really_write header push;
     `Continue
   in
   let abg = Generator.create ~log ~kind `Audio in
@@ -77,6 +77,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   let replay_pending = ref [] in
   let next_stop = ref `Nothing in
   let header_read = ref false in
+  let bytes = Bytes.create Utils.pagesize in
   let on_stdout pull =
     if not (!header_read) then
      begin
@@ -93,8 +94,11 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         `Reschedule Tutils.Non_blocking
      end
     else
-      let data = Process_handler.read Utils.pagesize pull in
-      let data = !converter (Bytes.unsafe_to_string data) in
+      let len = pull bytes 0 Utils.pagesize in
+      let data = !converter
+        (Bytes.unsafe_to_string
+          (Bytes.sub bytes 0 len))
+      in
       let len = Audio.length data in
       let buffered = Generator.length abg in
       Generator.put_audio abg data 0 len;
@@ -131,8 +135,12 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       else
         `Continue
   in
-  let on_stderr stderr =
-    (!log_error) (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize stderr));
+  let bytes = Bytes.create Utils.pagesize in
+  let on_stderr reader =
+    let len = reader bytes 0 Utils.pagesize in
+    (!log_error)
+      (Bytes.unsafe_to_string
+        (Bytes.sub bytes 0 len));
     `Continue
   in
   let on_stop = Tutils.mutexify mutex (fun e ->
