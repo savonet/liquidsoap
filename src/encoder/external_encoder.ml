@@ -155,9 +155,8 @@ let encoder id ext =
         Process_handler.on_stdin process
           (fun push ->
              Strings.iter
-               (fun s ->
-                  (* TODO: this could be optimized if really_write took offset / length *)
-                  Process_handler.really_write (Bytes.of_string s) push) sbuf);
+               (fun s offset length ->
+                  Process_handler.really_write ~offset ~length (Bytes.unsafe_of_string s) push) sbuf);
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
     flush_buffer ()

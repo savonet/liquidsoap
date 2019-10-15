@@ -27,10 +27,11 @@ val add_subbytes : t -> bytes -> int -> int -> t
 (** Add a string at the beginning of a buffer. *)
 val dda : string -> t -> t
 
-(** Iterate a function on all the strings contained in the buffer. *)
-val iter : (string -> unit) -> t -> unit
+(** Iterate a function on all the strings (with given offset and length)
+    contained in the buffer. *)
+val iter : (string -> int -> int -> unit) -> t -> unit
 
-val iter_substring : (string -> int -> int -> unit) -> t -> unit
+val iter_view : (StringView.t -> unit) -> t -> unit
 
 (** Drop the first given chars. *)
 val drop : t -> int -> t

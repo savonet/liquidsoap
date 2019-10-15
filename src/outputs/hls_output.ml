@@ -401,7 +401,7 @@ class hls_output p =
       in
       let oc = self#open_out fname in
       s.hls_oc <- Some (fname, oc);
-      Strings.iter (output_string oc) s.hls_encoder.Encoder.header
+      Strings.iter (output_substring oc) s.hls_encoder.Encoder.header
 
     method private push_current_segment =
       List.iter (fun s -> self#close_segment s) streams;
@@ -446,7 +446,7 @@ class hls_output p =
 
     method private write_pipe s b =
       let _, oc = Utils.get_some s.hls_oc in
-      Strings.iter (output_string oc) b
+      Strings.iter (output_substring oc) b
 
     method private cleanup_segments =
       self#unlink_segment current_segment;

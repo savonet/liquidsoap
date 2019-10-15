@@ -33,14 +33,11 @@ let rec iter_view f = function
   | [] -> ()
   | x::l -> iter_view f l; f x
 
-let iter_substring f b =
+let iter f b =
   iter_view
     (fun s ->
        let s, o, l = S.to_substring s in
        f s o l) b
-
-let iter f l =
-  iter_view (fun s -> f (S.to_string s)) l
 
 let fold_view f x0 l =
   let rec aux = function

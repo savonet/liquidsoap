@@ -264,18 +264,19 @@ module Make (T : T) = struct
               let rec write = function
                 | s::l ->
                   Duppy.Monad.bind
-                    (Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-                       ~priority:Tutils.Non_blocking c.handler
-                       (* TODO: this could be optimised if write took offset / length *)
-                       (* TODO: can we use unsafe_of_string here? *)
-                       (Bytes.of_string s)
+                    (
+                      let s, offset, length = StringView.to_substring s in
+                      Duppy.Monad.Io.write ?timeout:(Some c.timeout)
+                        ~priority:Tutils.Non_blocking c.handler
+                        ~offset ~length
+                        (Bytes.unsafe_of_string s)
                     )
                     (fun () -> write l)
                 | [] -> Duppy.Monad.return ()
               in
               let data =
                 let ans = ref [] in
-                Strings.iter (fun s -> ans := s :: !ans) data;
+                Strings.iter_view (fun s -> ans := s :: !ans) data;
                 (* TODO: could be optimized *)
                 List.rev !ans
               in
@@ -540,7 +541,7 @@ module Make (T : T) = struct
             Strings.sub bd (max 0 (len-burst)) (min len burst)
           );
           let new_clients = Queue.create () in
-          (match dump with Some s -> Strings.iter_substring (output_substring s) b | None -> ()) ;
+          (match dump with Some s -> Strings.iter (output_substring s) b | None -> ()) ;
           Tutils.mutexify clients_m
             (fun () ->
               Queue.iter
