@@ -540,7 +540,7 @@ module Make (T : T) = struct
             Strings.sub bd (max 0 (len-burst)) (min len burst)
           );
           let new_clients = Queue.create () in
-          (match dump with Some s -> Strings.iter (output_string s) b | None -> ()) ;
+          (match dump with Some s -> Strings.iter_substring (output_substring s) b | None -> ()) ;
           Tutils.mutexify clients_m
             (fun () ->
               Queue.iter
