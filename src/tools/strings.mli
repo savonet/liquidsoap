@@ -75,3 +75,35 @@ val append : t -> t -> t
 
 (** Concatenate a list of buffers. *)
 val concat : t list -> t
+
+(** Mutable and thread-safe variant. *)
+module Mutable : sig
+  type m
+
+  (** Convert from a immutable strings. *)
+  val of_strings : t -> m
+
+  (** Convert to a immutable strings. *)
+  val to_strings : m -> t
+
+  (** Add a string at the end of a buffer. *)
+  val add : m -> string -> unit
+
+  val add_substring : m -> string -> int -> int -> unit
+
+  (** Add subbytes at the end of a buffer. *)
+  val add_subbytes : m -> bytes -> int -> int -> unit
+
+  (** Add a string at the beginning of a buffer. *)
+  val dda : string -> m -> unit
+
+  (** Drop the first given chars. *)
+  val drop : m -> int -> unit
+
+  (** Whether the buffer is the empty string. *)
+  val is_empty : m -> bool
+
+  (** Length of the buffer. *)
+  val length : m -> int
+end
+

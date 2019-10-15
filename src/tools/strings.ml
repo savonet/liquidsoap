@@ -126,3 +126,46 @@ let to_string l =
   Bytes.unsafe_to_string ans
 
 let substring l o len = to_string (sub l o len)
+
+module Mutable = struct
+  type m = {
+    mutable strings: t;
+    mutex: Mutex.t
+  }
+
+  let of_strings strings = {
+    strings;mutex=Mutex.create()
+  }
+
+  let to_strings {strings} = strings
+
+  (* Copied from tutils.ml to avoid circular references. *)
+  let mutexify lock f =
+    fun x ->
+      Mutex.lock lock ;
+      try
+        let ans = f x in Mutex.unlock lock ; ans
+      with
+        | e -> Mutex.unlock lock ; raise e
+
+  let  add m s = mutexify m.mutex (fun () ->
+    m.strings <- add m.strings s) ()
+
+  let add_substring m s ofs len = mutexify m.mutex (fun () ->
+    m.strings <- add_substring m.strings s ofs len) ()
+
+  let add_subbytes m b ofs len = mutexify m.mutex (fun () ->
+    m.strings <- add_subbytes m.strings b ofs len) ()
+
+  let dda s m = mutexify m.mutex (fun () ->
+    m.strings <- dda s m.strings) () 
+
+  let drop m len = mutexify m.mutex (fun () ->
+    m.strings <- drop m.strings len) ()
+
+  let is_empty m = mutexify m.mutex (fun () ->
+    is_empty m.strings) ()
+
+  let length m = mutexify m.mutex (fun () ->
+    length m.strings) () 
+end
