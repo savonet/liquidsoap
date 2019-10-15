@@ -272,7 +272,13 @@ module Make (T : T) = struct
                     (fun () -> write l)
                 | [] -> Duppy.Monad.return ()
               in
-              write (Strings.to_string_list data)
+              let data =
+                let ans = ref [] in
+                Strings.iter (fun s -> ans := s :: !ans) data;
+                (* TODO: could be optimized *)
+                List.rev !ans
+              in
+              write data
           )
           (fun () ->
             let __pa_duppy_0 =
@@ -527,7 +533,11 @@ module Make (T : T) = struct
               true )
             else false
           in
-          burst_data <- Strings.keep (Strings.append burst_data b) burst;
+          burst_data <- (
+            let bd = Strings.append burst_data b in
+            let len = Strings.length bd in
+            Strings.sub bd (max 0 (len-burst)) (min len burst)
+          );
           let new_clients = Queue.create () in
           (match dump with Some s -> Strings.iter (output_string s) b | None -> ()) ;
           Tutils.mutexify clients_m

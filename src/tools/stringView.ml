@@ -17,6 +17,8 @@ let to_string s =
 
 let length s = s.length
 
+let is_empty s = s.length = 0
+
 let sub s o l =
   {
     string = s.string;
