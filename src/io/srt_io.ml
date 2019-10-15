@@ -445,7 +445,6 @@ object (self)
           buffer := Strings.drop !buffer payload_size) ();
       let rec f = function
         | pos when pos < payload_size ->
-          (* TODO: it would be better if Srt.send / Srt.sendmsg would take an offset... *)
           let ret = send (Bytes.sub tmp pos (payload_size-pos)) in
           f (pos+ret)
         | _ -> ()
