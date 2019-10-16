@@ -393,7 +393,7 @@ let options = [
     "Debug errors (show stacktrace instead of printing a message)." ;
 
     ["--debug-lang"],
-    Arg.Unit (fun () -> Lang_values.conf_debug#set true),
+    Arg.Unit (fun () -> Lang_types.debug := true; Lang_values.conf_debug#set true),
     "Debug language implementation." ;
 
     ["--strict"],
