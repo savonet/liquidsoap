@@ -471,7 +471,8 @@ object (self)
           end
       | Cry.Connected _ ->
           begin try
-            Strings.iter (fun s offset length -> Cry.send connection ~offset ~length s) b;
+            Strings.iter (fun s offset length ->
+              Cry.send connection ~offset ~length s) b;
             match dump with
               | Some s -> Strings.iter (output_substring s) b
               | None -> () 

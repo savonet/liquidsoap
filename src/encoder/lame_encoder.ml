@@ -233,9 +233,9 @@ struct
       (* Try to insert initial metadata now.. *)
       insert_metadata metadata;
         {
-          insert_metadata = insert_metadata ;
-          encode = encode ;
-          header = Strings.empty ;
+          insert_metadata = insert_metadata;
+          encode = encode;
+          header = Strings.empty;
           stop = stop
         }
     in

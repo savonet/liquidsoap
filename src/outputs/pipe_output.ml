@@ -164,8 +164,7 @@ object (self)
   method send b =
     if not self#is_open then
       self#prepare_pipe ;
-    (* TODO: this could be optimized if write_pipe took and offset / length *)
-    Strings.iter (fun s -> self#write_pipe s) b ; 
+    Strings.iter self#write_pipe b ; 
     if not reopening then
       if need_reset || 
          (Unix.gettimeofday () > reload_delay +. open_date &&
@@ -206,10 +205,11 @@ object (self)
   method open_pipe = 
     chan <- Some (self#open_chan)
 
-  method write_pipe b off len =
+  method write_pipe b ofs len = 
     let chan = Utils.get_some chan in
-    output_substring chan b off len;
-    if flush then Stdlib.flush chan
+    output_substring chan b ofs len ;
+    if flush then
+      Stdlib.flush chan 
 
   method close_pipe =
     self#close_chan (Utils.get_some chan);

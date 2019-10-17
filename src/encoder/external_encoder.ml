@@ -28,7 +28,7 @@ let encoder id ext =
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in
-  let buf = ref Strings.empty in
+  let buf = Strings.Mutable.empty () in
   let bytes = Bytes.create Utils.pagesize in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
@@ -88,15 +88,15 @@ let encoder id ext =
       let len = puller bytes 0 Utils.pagesize in
       match len with
         | 0 when !is_stop -> Condition.signal condition
-        | _ -> buf := Strings.add_subbytes !buf bytes 0 len
+        | _ -> Strings.Mutable.unsafe_add_subbytes buf bytes 0 len
     end;
     `Continue)
   in
 
-  let flush_buffer = Tutils.mutexify mutex (fun () ->
-      let ans = !buf in
-      buf := Strings.empty;
-      ans)
+  let flush_buffer () = 
+    let ans = Strings.Mutable.to_strings buf in
+    Strings.Mutable.flush buf;
+    ans
   in
 
   let process =
@@ -147,7 +147,7 @@ let encoder id ext =
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
           Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
-          Strings.of_string (Bytes.unsafe_to_string sbuf)
+          Strings.unsafe_of_bytes sbuf
        end
     in
     Tutils.mutexify mutex (fun () ->
@@ -166,7 +166,7 @@ let encoder id ext =
     is_stop := true;
     Process_handler.stop process;
     Condition.wait condition mutex;
-    !buf)
+    flush_buffer ())
   in
   
   {
