@@ -332,8 +332,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
     t
 
-let really_write ?offset ?length data push =
-  let offset = match offset with Some offset -> offset | None -> 0 in
+let really_write ?(offset=0) ?length data push =
   let length = match length with Some length -> length | None -> Bytes.length data in
   let rec f pos =
     if pos < length then
