@@ -584,7 +584,8 @@ let () =
         with Not_found -> ""))
 
 let () =
-  let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in
+  let ss = Lang.product_t Lang.string_t Lang.string_t in
+  let ret_t = Lang.list_t ss in
   add_builtin "environment" ~cat:Sys
     ~descr:"Return the process environment."
     [] ret_t
@@ -592,7 +593,7 @@ let () =
       let l = Utils.environment () in
       let l = List.map (fun (x,y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x,y) -> Lang.product x y) l in
-      Lang.list ~t:ret_t l)
+      Lang.list ~t:ss l)
 
 let () =
   add_builtin "setenv" ~cat:Sys

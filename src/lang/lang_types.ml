@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None
+let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
 
 (** Pretty-print getters as {t}. *)
 let pretty_getters = ref true
@@ -198,7 +198,7 @@ let repr ?(filter_out=fun _->false) ?(generalized=[]) t : repr =
   let evars = Hashtbl.create 10 in
   let evar i c =
     let constr_symbols,c = split_constr c in
-    if debug then
+    if !debug then
       `EVar (Printf.sprintf "?%s%d" constr_symbols i, c)
     else
       let s =
@@ -639,7 +639,7 @@ let constr_sub x y =
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explaination. *)
 let rec (<:) a b =
-  if debug then Printf.eprintf "%s <: %s\n" (print a) (print b) ;
+  if !debug then Printf.eprintf "%s <: %s\n" (print a) (print b) ;
   match (deref a).descr, (deref b).descr with
   | Constr c1, Constr c2 when constr_sub c1.name c2.name ->
      let rec aux pre p1 p2 =
