@@ -28,7 +28,7 @@ let encoder id ext =
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in
-  let buf = Strings.Mutable.empty () in
+  let buf = Strings_mutable.empty () in
   let bytes = Bytes.create Utils.pagesize in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
@@ -88,15 +88,9 @@ let encoder id ext =
       let len = puller bytes 0 Utils.pagesize in
       match len with
         | 0 when !is_stop -> Condition.signal condition
-        | _ -> Strings.Mutable.unsafe_add_subbytes buf bytes 0 len
+        | _ -> Strings_mutable.unsafe_add_subbytes buf bytes 0 len
     end;
     `Continue)
-  in
-
-  let flush_buffer () = 
-    let ans = Strings.Mutable.to_strings buf in
-    Strings.Mutable.flush buf;
-    ans
   in
 
   let process =
@@ -159,14 +153,14 @@ let encoder id ext =
                   Process_handler.really_write ~offset ~length (Bytes.unsafe_of_string s) push) sbuf);
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
-    flush_buffer ()
+    Strings_mutable.flush buf
   in
 
   let stop = Tutils.mutexify mutex (fun () ->
     is_stop := true;
     Process_handler.stop process;
     Condition.wait condition mutex;
-    flush_buffer ())
+    Strings_mutable.flush buf)
   in
   
   {

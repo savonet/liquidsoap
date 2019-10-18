@@ -121,11 +121,11 @@ let encoder ext =
        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
        GU.flush ~log gst.bin;
-       let buf = Strings.Mutable.empty () in
+       let buf = Strings_mutable.empty () in
        begin
         try
          while true do
-           Strings.Mutable.add buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
+           Strings_mutable.add buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
          done
         with
           | Gstreamer.End_of_stream -> ()
@@ -133,11 +133,11 @@ let encoder ext =
        buf
       end
     else
-      Strings.Mutable.empty ()
+      Strings_mutable.empty ()
    in
    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
    GU.flush ~log gst.bin;
-   Strings.Mutable.to_strings ret
+   Strings_mutable.to_strings ret
   in
 
   let insert_metadata m =

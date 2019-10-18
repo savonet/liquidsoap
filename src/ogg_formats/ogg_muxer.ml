@@ -77,8 +77,8 @@ type t =
   {
     id               : string;
     mutable skeleton : Ogg.Stream.stream option;
-    header           : Strings.Mutable.t;
-    encoded          : Strings.Mutable.t;
+    header           : Strings_mutable.t;
+    encoded          : Strings_mutable.t;
     mutable position : float;
     tracks           : (nativeint,track) Hashtbl.t;
     mutable state    : state ;
@@ -134,24 +134,20 @@ let state encoder =
 
 (** Get and remove encoded data.. *)
 let get_data encoder =
-  let ans =
-    Strings.Mutable.to_strings encoder.encoded
-  in
-  Strings.Mutable.flush encoder.encoded;
-  ans
+  Strings_mutable.flush encoder.encoded
 
 (** Peek encoded data without removing it. *)
 let peek_data encoder =
-  Strings.Mutable.to_strings encoder.encoded
+  Strings_mutable.to_strings encoder.encoded
 
 (** Add an ogg page. *)
 let add_page encoder ?(header=false) (h,v) =
-  Strings.Mutable.add encoder.encoded h;
-  Strings.Mutable.add encoder.encoded v;
+  Strings_mutable.add encoder.encoded h;
+  Strings_mutable.add encoder.encoded v;
   if header then
     begin
-      Strings.Mutable.add encoder.header h;
-      Strings.Mutable.add encoder.header v
+      Strings_mutable.add encoder.header h;
+      Strings_mutable.add encoder.header v
     end
 
 let flush_pages os = 
@@ -189,8 +185,8 @@ let create ~skeleton id =
      {
       id       = id;
       skeleton = None;
-      header   = Strings.Mutable.empty () ;
-      encoded  = Strings.Mutable.empty () ;
+      header   = Strings_mutable.empty () ;
+      encoded  = Strings_mutable.empty () ;
       position = 0.;
       tracks   = Hashtbl.create 10;
       state    = Bos
@@ -290,7 +286,7 @@ let streams_start encoder =
 
 (** Get the first pages of each streams. *)
 let get_header x =
-  Strings.Mutable.to_strings x.header
+  Strings_mutable.to_strings x.header
 
 (** Is a track empty ?*)
 let is_empty x =
@@ -466,7 +462,7 @@ let eos encoder =
   if Hashtbl.length encoder.tracks <> 0 then
     raise Invalid_usage ;
   log#info "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
-  Strings.Mutable.flush encoder.header;
+  ignore(Strings_mutable.flush encoder.header);
   encoder.position <- 0.;
   encoder.state <- Eos
 

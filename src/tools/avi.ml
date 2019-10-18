@@ -54,11 +54,11 @@ let video_chunk b = chunk "00db" b
 
 (* The original data is cleared. *)
 let chunk_strings id data =
-  let n = Strings.Mutable.length data in
+  let n = Strings_mutable.length data in
   let ans = Strings.of_list [id; dword n] in
   let ans =
     Strings.append ans
-      (Strings.Mutable.to_strings data) 
+      (Strings_mutable.to_strings data) 
   in
   if n mod 2 <> 0 then Strings.add ans "\000" else ans
 

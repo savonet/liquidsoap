@@ -48,7 +48,7 @@ let encoder shine =
   let samples = Shine.samples_per_pass enc in
   let data = Audio.create channels samples in
   let buf = G.create () in
-  let encoded = Strings.Mutable.empty () in
+  let encoded = Strings_mutable.empty () in
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
@@ -70,13 +70,9 @@ let encoder shine =
         Audio.blit (Audio.sub b o l) (Audio.sub data o' l)
       in
       List.iter f l ;
-      Strings.Mutable.add encoded (Shine.encode_buffer enc (Audio.to_array data))
+      Strings_mutable.add encoded (Shine.encode_buffer enc (Audio.to_array data))
     done ;
-    let ans =
-      Strings.Mutable.to_strings encoded
-    in
-    Strings.Mutable.flush encoded;
-    ans
+    Strings_mutable.flush encoded
   in
   let stop () = Strings.of_string (Shine.flush enc) in
   { Encoder.

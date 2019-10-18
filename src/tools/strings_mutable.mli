@@ -20,17 +20,22 @@
   
  *****************************************************************************)
   
-(** Immutable string buffers where the main operation is to add strings at the end. *)
-
+(** Mutable string buffers where the main operation is to add strings at the end. *)
+  
 type t
 
-include Strings_base.S with type buffer := t and type return := t
+include Strings_base.S with type buffer := t and type return := unit
+  
+val empty : unit -> t
+  
+(** Convert from a immutable strings. *)
+val of_strings : Strings.t -> t
+  
+(** Convert to a immutable strings. *)
+val to_strings : t -> Strings.t
 
-(** The empty buffer. *)
-val empty : t
+(** Append strings to the buffer. *)
+val append_strings : t -> Strings.t -> unit
 
-(** Concatenate a list of buffers. *)
-val concat : t list -> t
-
-(** Convert to a list of StringView. *)
-val to_list : t -> StringView.t list
+(** Empty the buffer and return its content. *)
+val flush : t -> Strings.t

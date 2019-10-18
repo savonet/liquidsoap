@@ -417,7 +417,7 @@ object (self)
       ~name:"output.srt" source as super
 
   val output_mutex = Mutex.create ()
-  val buffer = Strings.Mutable.empty ()
+  val buffer = Strings_mutable.empty ()
   val tmp = Bytes.create payload_size
   val mutable encoder = None
   val mutable connect_task = None
@@ -441,8 +441,8 @@ object (self)
           Srt.send socket data
       in
       Tutils.mutexify output_mutex (fun () ->
-        Strings.Mutable.blit (Strings.Mutable.sub buffer 0 payload_size) tmp 0;
-        Strings.Mutable.drop buffer payload_size) ();
+        Strings_mutable.blit (Strings_mutable.sub buffer 0 payload_size) tmp 0;
+        Strings_mutable.drop buffer payload_size) ();
       let rec f = function
         | pos when pos < payload_size ->
           let ret = send (Bytes.sub tmp pos (payload_size-pos)) in
@@ -459,7 +459,7 @@ object (self)
 
   method private send_chunks =
     let len = Tutils.mutexify output_mutex (fun () ->
-      Strings.Mutable.length buffer
+      Strings_mutable.length buffer
     ) in
     while payload_size <= len () do
       self#send_chunk
@@ -478,7 +478,7 @@ object (self)
 
   method private clear_encoder =
     Tutils.mutexify output_mutex (fun () ->
-      Strings.Mutable.flush buffer;
+      ignore(Strings_mutable.flush buffer);
       encoder <- None) ()
 
   method private connect_fn () =
@@ -559,7 +559,7 @@ object (self)
     if self#is `Connected then
      begin
       Tutils.mutexify output_mutex
-        (Strings.Mutable.append_strings buffer)
+        (Strings_mutable.append_strings buffer)
         data;
       self#send_chunks
      end
