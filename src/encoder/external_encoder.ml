@@ -88,7 +88,7 @@ let encoder id ext =
       let len = puller bytes 0 Utils.pagesize in
       match len with
         | 0 when !is_stop -> Condition.signal condition
-        | _ -> Strings_mutable.unsafe_add_subbytes buf bytes 0 len
+        | _ -> Strings_mutable.add_subbytes buf bytes 0 len
     end;
     `Continue)
   in

@@ -198,7 +198,7 @@ let read_all filename =
     let ret = input channel tmp 0 pagesize in
     if ret > 0 then
       begin
-        Strings_mutable.unsafe_add_subbytes contents tmp 0 ret;
+        Strings_mutable.add_subbytes contents tmp 0 ret;
         read ()
       end
   in
