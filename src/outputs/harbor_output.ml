@@ -155,7 +155,7 @@ module Make (T : T) = struct
   type metadata = {mutable metadata: Frame.metadata option; metadata_m: Mutex.t}
 
   type client =
-    { buffer: Strings_mutable.t
+    { buffer: Strings.Mutable.t
     ; condition: Duppy_c.condition
     ; condition_m: Duppy_m.mutex
     ; mutex: Mutex.t
@@ -242,10 +242,10 @@ module Make (T : T) = struct
       Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
         (Tutils.mutexify c.mutex
            (fun () ->
-             let buflen = Strings_mutable.length c.buffer in
+             let buflen = Strings.Mutable.length c.buffer in
              let data =
                if buflen > c.chunk then
-                 add_meta c (Strings_mutable.flush c.buffer)
+                 add_meta c (Strings.Mutable.flush c.buffer)
                else Strings.empty
              in
              Duppy.Monad.return data )
@@ -403,7 +403,7 @@ module Make (T : T) = struct
       val mutable chunk_len = 0
 
       val burst_data =
-        Strings_mutable.of_strings Strings.empty
+        Strings.Mutable.of_strings Strings.empty
 
       val metadata = {metadata= None; metadata_m= Mutex.create ()}
 
@@ -443,7 +443,7 @@ module Make (T : T) = struct
             data.format icyheader extra_headers
         in
         let buffer =
-          Strings_mutable.of_strings 
+          Strings.Mutable.of_strings 
             (Utils.get_some encoder).Encoder.header
         in
         let close () = try Harbor.close s with _ -> () in
@@ -480,7 +480,7 @@ module Make (T : T) = struct
                 Tutils.mutexify client.mutex
                   (fun () ->
                     client.state <- Done ;
-                    ignore(Strings_mutable.flush client.buffer))
+                    ignore(Strings.Mutable.flush client.buffer))
                   () ;
                 on_disconnect ip ;
                 Harbor.Close (Harbor.mk_simple "")) }
@@ -519,8 +519,8 @@ module Make (T : T) = struct
               true )
             else false
           in
-          Strings_mutable.append_strings burst_data b;
-          Strings_mutable.keep burst_data burst;
+          Strings.Mutable.append_strings burst_data b;
+          Strings.Mutable.keep burst_data burst;
           let new_clients = Queue.create () in
           (match dump with Some s -> Strings.iter (output_substring s) b | None -> ()) ;
           Tutils.mutexify clients_m
@@ -532,12 +532,12 @@ module Make (T : T) = struct
                       (fun () ->
                         match c.state with
                         | Hello ->
-                            Strings_mutable.append c.buffer burst_data;
+                            Strings.Mutable.append c.buffer burst_data;
                             Queue.push c new_clients ; true
                         | Sending ->
-                            let buf = Strings_mutable.length c.buffer in
-                            if buf + slen > buflen then Strings_mutable.drop c.buffer (min buf slen);
-                            Strings_mutable.append_strings c.buffer b ;
+                            let buf = Strings.Mutable.length c.buffer in
+                            if buf + slen > buflen then Strings.Mutable.drop c.buffer (min buf slen);
+                            Strings.Mutable.append_strings c.buffer b ;
                             Queue.push c new_clients ;
                             false
                         | Done -> false )

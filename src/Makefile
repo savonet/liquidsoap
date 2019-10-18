@@ -175,8 +175,7 @@ io = io/udp_io.ml \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/extralib.ml tools/JSON.ml \
-	tools/stringView.ml tools/strings_base.ml \
-        tools/strings.ml tools/strings_mutable.ml \
+	tools/stringView.ml tools/strings.ml \
         tools/utils.ml tools/doc.ml tools/plug.ml \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \

@@ -192,19 +192,19 @@ let read_all filename =
   let channel = open_in filename in
   let tmp = Bytes.create pagesize in
   let contents =
-    Strings_mutable.empty ()
+    Strings.Mutable.empty ()
   in
   let rec read () =
     let ret = input channel tmp 0 pagesize in
     if ret > 0 then
       begin
-        Strings_mutable.add_subbytes contents tmp 0 ret;
+        Strings.Mutable.add_subbytes contents tmp 0 ret;
         read ()
       end
   in
   read () ;
   close_in channel ;
-  Strings_mutable.to_string contents
+  Strings.Mutable.to_string contents
 
 (* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
