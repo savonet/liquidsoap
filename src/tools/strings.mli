@@ -21,125 +21,187 @@
  *****************************************************************************)
   
 (** String buffers where the main operation is to add strings at the end. *)
-  
-module type Strings = sig
-  (** A buffer of strings. *)
-  type buffer
 
-  type return
-  
-  (* Create a buffer from a string. *)
-  val of_string : string -> buffer
+(** A buffer of strings. *)
+type t
 
-  (* Create a buffer from the given bytes.
-   * bytes will be copied. *)
-  val of_bytes : bytes -> buffer
+type buffer = t
 
-  (* Create a buffer from the given bytes.
-   * bytes will not be copied. *)
-  val unsafe_of_bytes : bytes -> buffer
-  
-  (** Render a buffer into a string. This operation can be costly (in terms of memory copies), avoid it. *)
-  val to_string : buffer -> string
-  
-  val substring : buffer -> int -> int -> string
-  
-  (** Concatenation of strings. *)
-  val of_list : string list -> buffer
-  
-  (** Add a string at the end of a buffer. *)
-  val add : buffer -> string -> return
+(** The empty buffer. *)
+val empty : t
 
-  (** Add bytes at the end of a buffer.
-    * bytes will be copied. *)
-  val add_bytes : buffer -> bytes -> return
+(** Create a buffer from a string. *)
+val of_string : string -> t
 
-  (** Add bytes at the end of a buffer.
-    * bytes will not be copied. *)
-  val unsafe_add_bytes : buffer -> bytes -> return  
-  
-  val add_substring : buffer -> string -> int -> int -> return
-  
-  (** Add subbytes at the end of a buffer. *)
-  val add_subbytes : buffer -> bytes -> int -> int -> return
-  
-  (** Add subbytes at the end of a buffer with copying them. *)
-  val unsafe_add_subbytes : buffer -> bytes -> int -> int -> return
-  
-  (** Add a string at the beginning of a buffer. *)
-  val dda : string -> buffer -> return
-  
-  (** Iterate a function on all the strings (with given offset and length)
-      contained in the buffer. *)
-  val iter : (string -> int -> int -> unit) -> buffer -> unit
-  
-  val iter_view : (StringView.t -> unit) -> buffer -> unit
-  
-  (** Fold a function over all the strings (with given offset and length)
-      contained in the buffer. *)
-  val fold : ('a -> string -> int -> int -> 'a) -> 'a -> buffer -> 'a
-  
-  val fold_view : ('a -> StringView.t -> 'a) -> 'a -> buffer -> 'a
-  
-  (** Map a function over all the strings (with given offset and length)
-      contained in the buffer. *)
-  val map : (string -> int -> int -> (string*int*int)) -> buffer -> buffer
-  
-  val map_view : (StringView.t -> StringView.t) -> buffer -> buffer
-  
-  (** Drop the first given bytes. *)
-  val drop : buffer -> int -> return
-  
-  (** Keep at most the last given bytes. *)
-  val keep : buffer -> int -> return
-  
-  (** Sub-buffer of a buffer. *)
-  val sub : buffer -> int -> int -> buffer
-  
-  (** Copy a substring. *)
-  val blit : buffer -> bytes -> int -> unit
-  
-  (** Whether the buffer is the empty string. *)
-  val is_empty : buffer -> bool
-  
-  (** Length of the buffer. *)
-  val length : buffer -> int
-  
-  (** Append two buffers. *)
-  val append : buffer -> buffer -> return
-end
+(** Create a buffer from the given bytes which will be copied. *)
+val of_bytes : bytes -> t
 
-module Immutable : sig
-  type t
+(** Create a buffer from the given bytes which will not be copied (be careful). *)
+val unsafe_of_bytes : bytes -> t
+  
+(** Render a buffer into a string. This operation can be costly (in terms of
+    memory copies), avoid it. *)
+val to_string : t -> string
+  
+val substring : t -> int -> int -> string
+  
+(** Concatenation of strings. *)
+val of_list : string list -> t
+  
+(** Add a string at the end of a buffer. *)
+val add : t -> string -> t
 
-  include Strings with type buffer := t and type return := t
+(** Add bytes at the end of a buffer, bytes will be copied. *)
+  val add_bytes : t -> bytes -> t
 
-  (** The empty buffer. *)
-  val empty : t
+(** Add bytes at the end of a buffer, bytes will not be copied. *)
+val unsafe_add_bytes : t -> bytes -> t
+  
+val add_substring : t -> string -> int -> int -> t
+  
+(** Add subbytes at the end of a buffer. *)
+val add_subbytes : t -> bytes -> int -> int -> t
+  
+(** Add subbytes at the end of a buffer with copying them. *)
+val unsafe_add_subbytes : t -> bytes -> int -> int -> t
+  
+(** Add a string at the beginning of a buffer. *)
+val dda : string -> t -> t
+  
+(** Iterate a function on all the strings (with given offset and length)
+    contained in the buffer. *)
+val iter : (string -> int -> int -> unit) -> t -> unit
+  
+val iter_view : (StringView.t -> unit) -> t -> unit
+  
+(** Fold a function over all the strings (with given offset and length)
+    contained in the buffer. *)
+val fold : ('a -> string -> int -> int -> 'a) -> 'a -> t -> 'a
+  
+val fold_view : ('a -> StringView.t -> 'a) -> 'a -> t -> 'a
+  
+(** Map a function over all the strings (with given offset and length) contained
+    in the buffer. *)
+val map : (string -> int -> int -> (string*int*int)) -> t -> t
+  
+val map_view : (StringView.t -> StringView.t) -> t -> t
+  
+(** Drop the first given bytes. *)
+val drop : t -> int -> t
 
-  (** Concatenate a list of buffers. *)
-  val concat : t list -> t
-end
+(** Keep the last given bytes. *)
+val keep : t -> int -> t
+
+(** Sub-buffer of a buffer. *)
+val sub : t -> int -> int -> t
+
+(** Copy a substring. *)
+val blit : t -> bytes -> int -> unit
+
+(** Whether the buffer is the empty string. *)
+val is_empty : t -> bool
+
+(** Length of the buffer. *)
+val length : t -> int
+
+(** Append two buffers. *)
+val append : t -> t -> t
+
+(** Concatenate a list of buffers. *)
+val concat : t list -> t
   
 (** Mutable and thread-safe variant. *)
 module Mutable : sig
   type t
 
-  include Strings with type buffer := t and type return := unit
-  
+  (** The empty buffer. *)
   val empty : unit -> t
+
+  (** Create a buffer from a string. *)
+  val of_string : string -> t
+
+  val of_strings : buffer -> t
+
+  (** Create a buffer from the given bytes which will be copied. *)
+  val of_bytes : bytes -> t
+
+  (** Create a buffer from the given bytes which will not be copied (be
+      careful). *)
+  val unsafe_of_bytes : bytes -> t
   
-  (** Convert from a immutable strings. *)
-  val of_strings : Immutable.t -> t
+  (** Render a buffer into a string. This operation can be costly (in terms of
+      memory copies), avoid it. *)
+  val to_string : t -> string
+
+  val to_strings : t -> buffer
+
+  val substring : t -> int -> int -> string
+
+  (** Concatenation of strings. *)
+  val of_list : string list -> t
+
+  (** Add a string at the end of a buffer. *)
+  val add : t -> string -> unit
+
+  (** Add bytes at the end of a buffer, bytes will be copied. *)
+  val add_bytes : t -> bytes -> unit
+
+  (** Add bytes at the end of a buffer, bytes will not be copied. *)
+  val unsafe_add_bytes : t -> bytes -> unit
+
+  val add_substring : t -> string -> int -> int -> unit
   
-  (** Convert to a immutable strings. *)
-  val to_strings : t -> Immutable.t
+  (** Add subbytes at the end of a buffer. *)
+  val add_subbytes : t -> bytes -> int -> int -> unit
+
+  (** Add subbytes at the end of a buffer with copying them. *)
+  val unsafe_add_subbytes : t -> bytes -> int -> int -> unit
+
+  (** Add a string at the beginning of a buffer. *)
+  val dda : string -> t -> unit
+
+  (** Iterate a function on all the strings (with given offset and length)
+      contained in the buffer. *)
+  val iter : (string -> int -> int -> unit) -> t -> unit
+
+  val iter_view : (StringView.t -> unit) -> t -> unit
+  
+  (** Fold a function over all the strings (with given offset and length)
+      contained in the buffer. *)
+  val fold : ('a -> string -> int -> int -> 'a) -> 'a -> t -> 'a
+
+  val fold_view : ('a -> StringView.t -> 'a) -> 'a -> t -> 'a
+
+  (** Map a function over all the strings (with given offset and length)
+     contained in the buffer. *)
+  val map : (string -> int -> int -> (string*int*int)) -> t -> t
+
+  val map_view : (StringView.t -> StringView.t) -> t -> t
+  
+  (** Drop the first given bytes. *)
+  val drop : t -> int -> unit
+
+  (** Keep the last given bytes. *)
+  val keep : t -> int -> unit
+
+  (** Sub-buffer of a buffer. *)
+  val sub : t -> int -> int -> t
+
+  (** Copy a substring. *)
+  val blit : t -> bytes -> int -> unit
+
+  (** Whether the buffer is the empty string. *)
+  val is_empty : t -> bool
+
+  (** Length of the buffer. *)
+  val length : t -> int
+
+  (** Append two buffers. *)
+  val append : t -> t -> unit
 
   (** Append strings to the buffer. *)
-  val append_strings : t -> Immutable.t -> unit
+  val append_strings : t -> buffer -> unit
 
   (** Empty the buffer and return its content. *)
-  val flush : t -> Immutable.t
+  val flush : t -> buffer
 end 
-
-include module type of Immutable with type t = Immutable.t
