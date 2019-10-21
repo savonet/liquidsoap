@@ -95,7 +95,8 @@ val keep : t -> int -> t
 (** Sub-buffer of a buffer. *)
 val sub : t -> int -> int -> t
 
-(** Copy a substring. *)
+(** Copy a substring at given offset in the destination. Use [sub] on the first
+    argument in the case you want to blit a substring. *)
 val blit : t -> bytes -> int -> unit
 
 (** Whether the buffer is the empty string. *)
