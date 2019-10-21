@@ -403,7 +403,7 @@ module Make (T : T) = struct
       val mutable chunk_len = 0
 
       val burst_data =
-        Strings.Mutable.of_strings Strings.empty
+        Strings.Mutable.empty ()
 
       val metadata = {metadata= None; metadata_m= Mutex.create ()}
 
