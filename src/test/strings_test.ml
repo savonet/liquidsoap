@@ -11,4 +11,5 @@ let () =
   Strings.blit (Strings.sub buf 2 2) b 0;
   assert (Bytes.unsafe_to_string b = "cd");
   assert (Strings.to_string (Strings.sub buf 1 2) = "bc");
-  assert (Strings.to_string (Strings.sub buf 2 2) = "cd")
+  assert (Strings.to_string (Strings.sub buf 2 2) = "cd");
+  assert (Strings.to_string (Strings.keep buf 3) = "cde")

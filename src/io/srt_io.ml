@@ -41,7 +41,7 @@ let conf_poll =
   Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
 
 let conf_timeout =
-  Dtools.Conf.int ~p:(conf_poll#plug "timeout") ~d:100"Timeout for polling loop, in ms"
+  Dtools.Conf.int ~p:(conf_poll#plug "timeout") ~d:100 "Timeout for polling loop, in ms"
 
 let log = Log.make ["srt"]
 
@@ -560,7 +560,7 @@ object (self)
      begin
       Tutils.mutexify output_mutex
         (Strings.Mutable.append_strings buffer)
-        data;
+          data;
       self#send_chunks
      end
 end

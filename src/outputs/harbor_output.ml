@@ -184,14 +184,16 @@ module Make (T : T) = struct
       let meta =
         match meta_info with
         | Some s when String.length s > max_title ->
-          Printf.sprintf "StreamTitle='%s...';" (String.sub s 0 (max_title - 3))
+            Printf.sprintf "StreamTitle='%s...';"
+              (String.sub s 0 (max_title - 3))
         | Some s -> Printf.sprintf "StreamTitle='%s';" s
         | None -> ""
       in
       let meta =
         match c.url with
         | Some s when String.length s > max_url ->
-          Printf.sprintf "%sStreamURL='%s...';" meta (String.sub s 0 (max_url - 3))
+            Printf.sprintf "%sStreamURL='%s...';" meta
+              (String.sub s 0 (max_url - 3))
         | Some s -> Printf.sprintf "%sStreamURL='%s';" meta s
         | None -> meta
       in
@@ -202,39 +204,32 @@ module Make (T : T) = struct
       Bytes.set ret 0 (Char.chr pad) ;
       String.blit meta 0 ret 1 len ;
       let ret = Bytes.unsafe_to_string ret in
-      if ret <> c.latest_meta then
-        (
-          c.latest_meta <- ret ;
-          ret
-        )
+      if ret <> c.latest_meta then (
+        c.latest_meta <- ret ;
+        ret )
       else "\000"
     in
     let rec process meta rem data =
       let pos = c.metaint - c.metapos in
       let before = Strings.sub data 0 pos in
       let after = Strings.sub data pos (Strings.length data - pos) in
-      if Strings.length after > c.metaint then
-        (
-          let rem = Strings.concat [rem;before;Strings.of_string meta] in
-          c.metapos <- 0 ;
-          process "\000" rem after
-        )
-      else
-        (
-          c.metapos <- Strings.length after;
-          Strings.concat [rem;before;Strings.of_string meta;after]
-        )
+      if Strings.length after > c.metaint then (
+        let rem = Strings.concat [rem;before;Strings.of_string meta] in
+        c.metapos <- 0 ;
+        process "\000" rem after )
+      else (
+        c.metapos <- Strings.length after;
+        Strings.concat [rem;before;Strings.of_string meta;after] )
     in
     if c.metaint > 0 then
-      let datalen = Strings.length data in
-      if datalen + c.metapos > c.metaint then
-        let meta = Tutils.mutexify c.meta.metadata_m (fun () -> c.meta.metadata) () in
+      if Strings.length data + c.metapos > c.metaint then
+        let meta =
+          Tutils.mutexify c.meta.metadata_m (fun () -> c.meta.metadata) ()
+        in
         process (get_meta meta) Strings.empty data
-      else
-        (
-          c.metapos <- c.metapos + datalen;
-          data
-        )
+      else (
+        c.metapos <- c.metapos + Strings.length data;
+        data )
     else data
 
   let rec client_task c =
@@ -252,27 +247,30 @@ module Make (T : T) = struct
            ())
     in
     Duppy.Monad.bind __pa_duppy_0 (fun data ->
-      Duppy.Monad.bind
-        (Strings.fold
-          (fun cur str offset length ->
-            Duppy.Monad.bind cur (fun () ->
-              Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-                ~priority:Tutils.Non_blocking c.handler
-                ~offset ~length
-                (Bytes.unsafe_of_string str)))
-         (Duppy.Monad.return ())
-         data)
-         (fun () ->
-           let __pa_duppy_0 =
+        Duppy.Monad.bind
+          (if Strings.is_empty data then
+              Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
+                  Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
+                    (fun () -> Duppy_m.unlock c.condition_m ) )
+           else
+              Strings.fold
+                (fun cur str offset length ->
+                  Duppy.Monad.bind cur (fun () ->
+                    Duppy.Monad.Io.write ?timeout:(Some c.timeout)
+                      ~priority:Tutils.Non_blocking c.handler
+                      ~offset ~length
+                      (Bytes.unsafe_of_string str)))
+                (Duppy.Monad.return ())
+                data)
+          (fun () ->
+            let __pa_duppy_0 =
               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
-              (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
-               Duppy.Monad.return ret)
-          in
-          Duppy.Monad.bind __pa_duppy_0 (fun state ->
-              if state <> Done then client_task c else Duppy.Monad.return ()
-            )
-        )
-    )
+                (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
+                 Duppy.Monad.return ret)
+            in
+            Duppy.Monad.bind __pa_duppy_0 (fun state ->
+                if state <> Done then client_task c else Duppy.Monad.return ()
+            ) ) )
 
   let client_task c =
     Tutils.mutexify c.mutex
@@ -536,7 +534,8 @@ module Make (T : T) = struct
                             Queue.push c new_clients ; true
                         | Sending ->
                             let buf = Strings.Mutable.length c.buffer in
-                            if buf + slen > buflen then Strings.Mutable.drop c.buffer (min buf slen);
+                            if buf + slen > buflen then
+                              Strings.Mutable.drop c.buffer (min buf slen);
                             Strings.Mutable.append_strings c.buffer b ;
                             Queue.push c new_clients ;
                             false
