@@ -128,7 +128,7 @@ struct
       Strings.Mutable.add buf (Audio.S16LE.make (Audio.sub b start len));
       while Strings.Mutable.length buf >= n do
         let data = Bytes.create n in
-        Strings.Mutable.blit buf data n;
+        Strings.blit (Strings.sub (Strings.Mutable.to_strings buf) 0 n) data 0;
         let data = Bytes.unsafe_to_string data in
         Strings.Mutable.drop buf n;
         Strings.Mutable.add encoded (Fdkaac.Encoder.encode enc data 0 n)
