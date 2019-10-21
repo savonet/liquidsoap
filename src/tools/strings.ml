@@ -256,8 +256,8 @@ module Mutable = struct
   let to_string m = mutexify m.mutex (fun () ->
     to_string m.strings) ()
 
-  let blit m b n = mutexify m.mutex (fun () ->
-    blit m.strings b n) ()
+  let blit m b o = mutexify m.mutex (fun () ->
+    blit m.strings b o) ()
 
   let sub m ofs len = mutexify m.mutex (fun () ->
     of_strings (sub m.strings ofs len)) () 
