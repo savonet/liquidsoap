@@ -110,23 +110,31 @@ fi
 AC_SUBST(install_user)
 AC_SUBST(install_group)
 
-AC_MSG_CHECKING(whether user $install_user exists)
-if ! id $install_user >/dev/null 2>&1 ; then
+AC_ARG_ENABLE([daemon],AS_HELP_STRING([--disable-daemon],[don't install daemon]))
+AC_MSG_CHECKING(whether daemon is enabled)
+if test "x$enable_daemon" = "xno" ; then
   AC_MSG_RESULT(no)
   INSTALL_DAEMON=""
 else
-  AC_MSG_RESULT(ok)
-  AC_MSG_CHECKING(if user $install_user belongs to group $install_group)
-  if ! groups $install_user | grep $install_group >/dev/null 2>&1 ; then
+  AC_MSG_RESULT(yes)
+  AC_MSG_CHECKING(whether user $install_user exists)
+  if ! id $install_user >/dev/null 2>&1 ; then
     AC_MSG_RESULT(no)
     INSTALL_DAEMON=""
   else
     AC_MSG_RESULT(ok)
-    INSTALL_DAEMON="yes"
+    AC_MSG_CHECKING(if user $install_user belongs to group $install_group)
+    if ! groups $install_user | grep $install_group >/dev/null 2>&1 ; then
+      AC_MSG_RESULT(no)
+      INSTALL_DAEMON=""
+    else
+      AC_MSG_RESULT(ok)
+      INSTALL_DAEMON="yes"
+    fi
   fi
-fi
-if test "$INSTALL_DAEMON" != "yes" ; then
-  AC_MSG_WARN([Won't be able to install log and PID directories!])
+  if test "$INSTALL_DAEMON" != "yes" ; then
+    AC_MSG_WARN([Won't be able to install log and PID directories!])
+  fi
 fi
 AC_SUBST(INSTALL_DAEMON)
 
