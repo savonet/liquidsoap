@@ -530,6 +530,7 @@ module Make (T : T) = struct
                       (fun () ->
                         match c.state with
                         | Hello ->
+                            assert (Strings.Mutable.is_empty c.buffer);
                             Strings.Mutable.append c.buffer burst_data;
                             Queue.push c new_clients ; true
                         | Sending ->
