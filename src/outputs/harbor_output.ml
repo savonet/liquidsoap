@@ -419,8 +419,7 @@ module Make (T : T) = struct
 
       method add_client ~protocol ~headers ~uri ~args s =
         let ip =
-          (* Show port = true to catch different clients from same
-         * ip *)
+          (* Show port = true to catch different clients from same ip *)
           let fd = Harbor.file_descr_of_socket s in
           Utils.name_of_sockaddr ~show_port:true (Unix.getpeername fd)
         in
@@ -467,14 +466,15 @@ module Make (T : T) = struct
           ; on_error=
               (fun e ->
                 ( match e with
-                | Duppy.Io.Timeout -> (self#log)#f 5 "Timeout error"
-                | Duppy.Io.Io_error -> (self#log)#f 5 "I/O error"
+                | Duppy.Io.Timeout -> self#log#info "Timeout error for %s" ip
+                | Duppy.Io.Io_error -> self#log#info "I/O error for %s" ip
                 | Duppy.Io.Unix (c, p, m) ->
-                    (self#log)#f 5 "%s"
+                    self#log#info "Unix error for %s: %s" ip
                       (Printexc.to_string (Unix.Unix_error (c, p, m)))
                 | Duppy.Io.Unknown e ->
-                    (self#log)#f 5 "%s" (Printexc.to_string e) ) ;
-                (self#log)#f 4 "Client %s disconnected" ip ;
+                    self#log#debug "%s" (Printexc.to_string e) );
+                    self#log#debug "%s" (Printexc.get_backtrace ());
+                    self#log#info "Client %s disconnected" ip ;
                 Tutils.mutexify client.mutex
                   (fun () ->
                     client.state <- Done ;
@@ -483,6 +483,7 @@ module Make (T : T) = struct
                 on_disconnect ip ;
                 Harbor.Close (Harbor.mk_simple "")) }
         in
+        self#log#info "Serving client %s." ip;
         Duppy.Monad.bind
           (Duppy.Monad.catch
              ( if default_user <> "" || not (trivially_false auth_function) then
@@ -493,13 +494,13 @@ module Make (T : T) = struct
              (function
                | Harbor.Relay _ -> assert false
                | Harbor.Close s ->
-                   (self#log)#f 4 "Client %s failed to authenticate!" ip ;
+                   self#log#info "Client %s failed to authenticate!" ip ;
                    client.state <- Done ;
                    Harbor.reply s))
           (fun () ->
             Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
               (Harbor.relayed reply (fun () ->
-                   (self#log)#f 4 "Client %s connected" ip ;
+                   self#log#info "Client %s connected" ip ;
                    Tutils.mutexify clients_m
                      (fun () -> Queue.push client clients)
                      () ;
