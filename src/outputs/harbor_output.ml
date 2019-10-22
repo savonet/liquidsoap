@@ -209,24 +209,24 @@ module Make (T : T) = struct
         ret )
       else "\000"
     in
-    let rec process meta rem data =
+    let rec process meta data =
       let pos = c.metaint - c.metapos in
       let before = Strings.sub data 0 pos in
       let after = Strings.sub data pos (Strings.length data - pos) in
       if Strings.length after > c.metaint then (
-        let rem = Strings.concat [rem;before;Strings.of_string meta] in
+        let rem = Strings.concat [before;Strings.of_string meta] in
         c.metapos <- 0 ;
-        process "\000" rem after )
+        Strings.append rem (process "\000" after))
       else (
         c.metapos <- Strings.length after;
-        Strings.concat [rem;before;Strings.of_string meta;after] )
+        Strings.concat [before;Strings.of_string meta;after] )
     in
     if c.metaint > 0 then
       if Strings.length data + c.metapos > c.metaint then
         let meta =
           Tutils.mutexify c.meta.metadata_m (fun () -> c.meta.metadata) ()
         in
-        process (get_meta meta) Strings.empty data
+        process (get_meta meta) data
       else (
         c.metapos <- c.metapos + Strings.length data;
         data )
