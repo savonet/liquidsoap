@@ -84,6 +84,7 @@ let interactive = ref false
 let load_libs =
   let loaded = ref false in
     fun () ->
+      Startup.register_plugins ();
       if !pervasives && not !loaded then begin
         let save = !Configure.display_types in
           Configure.display_types := false ;

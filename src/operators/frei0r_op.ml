@@ -388,4 +388,5 @@ let register_plugins () =
   List.iter add plugin_dirs
 
 let () =
-  if frei0r_enable then register_plugins ()
+  if frei0r_enable then
+    Startup.register_plugin ~fast:false register_plugins
