@@ -94,7 +94,7 @@ module Make (T : T) = struct
       ; ("url", Lang.string_t, Some (Lang.string ""), None)
       ; ( "metaint"
         , Lang.int_t
-        , Some (Lang.int 16000)
+        , Some (Lang.int 8192)
         , Some "Interval used to send ICY metadata" )
       ; ( "auth"
         , Lang.fun_t
@@ -171,9 +171,9 @@ module Make (T : T) = struct
     ; handler: (Tutils.priority, Harbor.reply) Duppy.Monad.Io.handler }
 
   let add_meta c data =
-    let get_meta meta =
+    let mk_icy_meta meta =
       let f x =
-        try Some (Hashtbl.find (Utils.get_some meta) x) with _ -> None
+        try Some (Hashtbl.find meta x) with _ -> None
       in
       let meta_info =
         match (f "artist", f "title") with
@@ -200,36 +200,48 @@ module Make (T : T) = struct
       (* Pad string to a multiple of 16 bytes. *)
       let len = String.length meta in
       let pad = (len / 16) + 1 in
-      let ret = Bytes.make ((pad * 16) + 1) ' ' in
+      let ret = Bytes.make ((pad * 16) + 1) '\000' in
       Bytes.set ret 0 (Char.chr pad) ;
       String.blit meta 0 ret 1 len ;
-      let ret = Bytes.unsafe_to_string ret in
+      let ret =
+        Bytes.unsafe_to_string ret
+      in
       if ret <> c.latest_meta then (
         c.latest_meta <- ret ;
         ret )
       else "\000"
     in
-    let rec process meta data =
-      let pos = c.metaint - c.metapos in
-      let before = Strings.sub data 0 pos in
-      let after = Strings.sub data pos (Strings.length data - pos) in
-      if Strings.length after > c.metaint then (
-        let rem = Strings.concat [before;Strings.of_string meta] in
-        c.metapos <- 0 ;
-        Strings.append rem (process "\000" after))
-      else (
-        c.metapos <- Strings.length after;
-        Strings.concat [before;Strings.of_string meta;after] )
+    let get_meta () =
+      let meta =
+        Tutils.mutexify c.meta.metadata_m (fun () ->
+          let meta = c.meta.metadata in
+          c.meta.metadata <- None;
+          meta) ()
+      in
+      match meta with
+        | Some meta -> mk_icy_meta meta
+        | None -> "\000"
+    in
+    let rec process cur data =
+      let len = Strings.length data in
+      if c.metaint <= c.metapos + len then
+       begin
+        let meta = get_meta () in
+        let next_meta_pos = c.metaint - c.metapos in
+        let before = Strings.sub data 0 next_meta_pos in
+        let after = Strings.sub data next_meta_pos (len-next_meta_pos) in
+        let cur = Strings.concat [cur;before;Strings.of_string meta] in
+        c.metapos <- 0;
+        process cur after
+      end
+     else
+      begin
+        c.metapos <- c.metapos + len;
+        Strings.concat [cur;data]
+      end
     in
     if c.metaint > 0 then
-      if Strings.length data + c.metapos > c.metaint then
-        let meta =
-          Tutils.mutexify c.meta.metadata_m (fun () -> c.meta.metadata) ()
-        in
-        process (get_meta meta) data
-      else (
-        c.metapos <- c.metapos + Strings.length data;
-        data )
+      process Strings.empty data
     else data
 
   let rec client_task c =
@@ -531,7 +543,6 @@ module Make (T : T) = struct
                       (fun () ->
                         match c.state with
                         | Hello ->
-                            assert (Strings.Mutable.is_empty c.buffer);
                             Strings.Mutable.append c.buffer burst_data;
                             Queue.push c new_clients ; true
                         | Sending ->
