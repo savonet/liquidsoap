@@ -39,9 +39,10 @@ val of_bytes : bytes -> t
 (** Create a buffer from the given bytes which will not be copied (be careful). *)
 val unsafe_of_bytes : bytes -> t
   
-(** Render a buffer into a string. This operation can be costly (in terms of
+(** Render a buffer into bytes/string. This operation can be costly (in terms of
     memory copies), avoid it. *)
 val to_string : t -> string
+val to_bytes : t -> bytes
   
 val substring : t -> int -> int -> string
   
@@ -130,9 +131,10 @@ module Mutable : sig
       careful). *)
   val unsafe_of_bytes : bytes -> t
   
-  (** Render a buffer into a string. This operation can be costly (in terms of
+  (** Render a buffer into a string/bytes. This operation can be costly (in terms of
       memory copies), avoid it. *)
   val to_string : t -> string
+  val to_bytes : t -> bytes
 
   val to_strings : t -> buffer
 

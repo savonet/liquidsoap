@@ -149,11 +149,14 @@ let blit l b o =
        S.blit s b !o;
        o := !o + S.length s
     ) l
-  
-let to_string l =
+
+let to_bytes l =
   let ans = Bytes.create (length l) in
   blit l ans 0;
-  Bytes.unsafe_to_string ans
+  ans
+  
+let to_string l =
+  Bytes.unsafe_to_string (to_bytes l)
   
 let substring l o len = to_string (sub l o len)
   
@@ -252,6 +255,9 @@ module Mutable = struct
   
   let length m = mutexify m.mutex (fun () ->
     length m.strings) () 
+
+  let to_bytes m = mutexify m.mutex (fun () ->
+    to_bytes m.strings) ()
   
   let to_string m = mutexify m.mutex (fun () ->
     to_string m.strings) ()

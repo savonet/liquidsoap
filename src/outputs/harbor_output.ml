@@ -265,15 +265,9 @@ module Make (T : T) = struct
                   Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
                     (fun () -> Duppy_m.unlock c.condition_m ) )
            else
-              Strings.fold
-                (fun cur str offset length ->
-                  Duppy.Monad.bind cur (fun () ->
-                    Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-                      ~priority:Tutils.Non_blocking c.handler
-                      ~offset ~length
-                      (Bytes.unsafe_of_string str)))
-                (Duppy.Monad.return ())
-                data)
+             Duppy.Monad.Io.write ?timeout:(Some c.timeout)
+               ~priority:Tutils.Non_blocking c.handler
+               (Strings.to_bytes data))    
           (fun () ->
             let __pa_duppy_0 =
               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
