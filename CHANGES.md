@@ -14,6 +14,7 @@ Changed:
 - Use bigarrays for audio buffers (#950).
 - Switch to more efficient callback API for decoders (#979).
 - Use system pagesize for buffer allocation (#915).
+- Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
 
 Fixed:

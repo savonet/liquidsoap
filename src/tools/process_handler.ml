@@ -332,13 +332,13 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
     t
 
-let really_write data push =
-  let len = Bytes.length data in
+let really_write ?(offset=0) ?length data push =
+  let length = match length with Some length -> length | None -> Bytes.length data in
   let rec f pos =
-    if pos < len then
-      f (pos+(push data pos (len-pos)))
+    if pos < length then
+      f (pos+(push data pos (length-pos)))
   in
-  f 0
+  f offset
 
 let on_stdout t fn =
   let process = Tutils.mutexify t.mutex (fun () ->

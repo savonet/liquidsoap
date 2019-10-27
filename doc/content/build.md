@@ -42,7 +42,7 @@ Libraries not developed by Savonet are:
 | -------------- | ------------------------- |
 | OCaml compiler | >= 4.08.0     |
 | ocaml-dtools   |  >= 0.4.1    |
-| ocaml-duppy    |  >= 0.8.0     |
+| ocaml-duppy    |  >= 0.8.1     |
 | ocaml-mm       |  >= 0.6.0        |
 | ocaml-pcre     |       |
 | menhir         |  |
@@ -64,7 +64,7 @@ Libraries not developed by Savonet are:
 | ocaml-alsa          |  >= 0.2.4                 | ALSA I/O                                      |
 | ocaml-ao            |  >= 0.2.0                   | Output via libao                              |
 | ocaml-bjack         |  >= 0.1.3                | Jack support                                  |
-| ocaml-cry           |  >= 0.6.0                  | Sending to Shoutcast & Icecast                |
+| ocaml-cry           |  >= 0.6.5                  | Sending to Shoutcast & Icecast                |
 | ocaml-dssi          |  >= 0.1.3                 | DSSI sound synthesis                          |
 | ocaml-faad          |  >= 0.5.0                 | AAC stream decoding                           |
 | ocaml-fdkaac        |  >= 0.3.1               | AAC(+) encoding                               |

@@ -98,7 +98,7 @@ val kill : t -> unit
 val stopped : t -> bool
 
 (** Write bytes recursively. *)
-val really_write : bytes -> push -> unit
+val really_write : ?offset:int -> ?length:int -> bytes -> push -> unit
 
 (** Synchronous (blocking) write on the process' stdin. Raises [Finished] if the
    process has been stopped/killed. *)
