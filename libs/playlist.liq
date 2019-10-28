@@ -14,7 +14,7 @@
 # @param uri Playlist URI
 def playlist.reloadable(~id="",~random=false,~on_done={()},
                         ~default_duration=30.,~length=10.,~conservative=false,
-                        ~filter=fun(_)->true,uri)
+                        ~filter=fun(_)->true,~cmd_reload=?,uri)
   # A reference to the playlist
   playlist = ref []
   # A reference to the uri
@@ -93,10 +93,11 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
     has_stopped := false
     load_playlist()
   end
+  cmd_reload === reload
   # Load the playlist
   load_playlist()
   # Return
-  (reload,source)
+  source
 end
 
 # Custom playlist source written using the script language. It will read directory
@@ -114,9 +115,10 @@ end
 def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",
                   ~default_duration=30.,~length=10.,~conservative=false,
                   ~filter=fun(_)->true,uri)
-  let (reload, s) = playlist.reloadable(id=id,random=random,on_done=on_done,
+  reload = ?
+  s = playlist.reloadable(id=id,random=random,on_done=on_done,
                            conservative=conservative,default_duration=default_duration,
-                           filter=filter,uri)
+                           filter=filter,cmd_reload=?,uri)
   if reload_mode == "watch" then
     unwatch = file.watch(uri,fun () -> reload())
     source.on_shutdown(s,unwatch)
@@ -134,10 +136,10 @@ end
 # @param uri Playlist URI.
 def playlist.merge(~id="",~random=false,
                    ~default_duration=30.,~length=10.,~conservative=false,uri) =
-  pl = playlist.reloadable(id=id,random=random,
-                           conservative=conservative,default_duration=default_duration,
+  reload = ?
+  s = playlist.reloadable(id=id,random=random,
+                           conservative=conservative,default_duration=default_duration,cmd_reload=reload,
                            uri)
-  let (reload, s) = pl
   s = merge_tracks(s)
   on_end(delay=0.,fun(_,_)->reload(),s)
 end

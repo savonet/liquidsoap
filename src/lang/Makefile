@@ -7,7 +7,7 @@ DISTFILES = Makefile lang_parser.mly \
 top_srcdir=../..
 include $(top_srcdir)/Makefile.rules
 
-menhir:
+explain:
 	@rm -f lang_parser.conflicts
 	menhir --explain lang_parser.mly
 	@cat lang_parser.conflicts

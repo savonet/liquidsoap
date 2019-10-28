@@ -46,6 +46,7 @@ and descr =
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t
+  | Cmd of t
 val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t

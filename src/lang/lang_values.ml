@@ -60,6 +60,9 @@ let ref_t ?pos ?level t =
   T.make ?pos ?level
     (T.Constr { T.name = "ref" ; T.params = [T.Invariant,t] })
 
+let cmd_t ~pos ?level t =
+  T.make ~pos ?level (T.Cmd t)
+
 let zero_t = T.make T.Zero
 let succ_t t = T.make (T.Succ t)
 let variable_t = T.make T.Variable
@@ -154,6 +157,8 @@ and in_term =
 | List    of term list
 | Tuple   of term list
 | Ref     of term
+| Cmd
+| Set_cmd of string * term
 | Get     of term
 | Set     of term * term
 | Let     of let_t
@@ -198,6 +203,8 @@ let rec print_term v = match v.term with
       "["^(String.concat ", " (List.map print_term l))^"]"
   | Tuple l ->
      "(" ^ String.concat ", " (List.map print_term l) ^ ")"
+  | Cmd -> Printf.sprintf "cmd(?)"
+  | Set_cmd (x,v) -> Printf.sprintf "command.set(%s,%s)" x (print_term v)
   | Ref a ->
       Printf.sprintf "ref(%s)" (print_term a)
   | Fun (_,[],v) when is_ground v -> "{"^(print_term v)^"}"
@@ -224,6 +231,8 @@ let rec free_vars tm = match tm.term with
   | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
       Vars.empty
   | Var x -> Vars.singleton x
+  | Cmd -> Vars.empty
+  | Set_cmd (x, v) -> Vars.add x (free_vars v)
   | Ref r | Get r -> free_vars r
   | Tuple l ->
      List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
@@ -278,6 +287,8 @@ let check_unused ~lib tm =
     | Var s -> Vars.remove s v
     | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
     | Ref r -> check v r
+    | Cmd -> v
+    | Set_cmd (x, a) -> check (Vars.remove x v) a
     | Get r -> check v r
     | Tuple l -> List.fold_left (fun a -> check a) v l
     | Set (a,b) -> check (check v a) b
@@ -345,6 +356,12 @@ let rec map_types f (gen:'a list) tm =
   match tm.term with
   | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
       { tm with t = f gen tm.t }
+  | Cmd ->
+      { t = f gen tm.t ;
+        term = Cmd }
+  | Set_cmd (x, a) ->
+      { t = f gen tm.t ;
+        term = Set_cmd (x, map_types f gen a) }
   | Ref r ->
       { t = f gen tm.t ;
         term = Ref (map_types f gen r) }
@@ -398,6 +415,8 @@ let rec fold_types f gen x tm =
   | List l ->
       List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
   (* In the next cases, don't care about tm.t, nothing "new" in it. *)
+  | Cmd -> f gen x tm.t
+  | Set_cmd (_, a) -> fold_types f gen x a
   | Ref r | Get r ->
       fold_types f gen x r
   | Tuple l ->
@@ -431,6 +450,8 @@ struct
     | Encoder of Encoder.format
     | List    of value list
     | Tuple   of value list
+    | Cmd     of value option ref
+    | Set_cmd of string * value
     | Ref     of value ref
     (** The first environment contains the parameters already passed
       * to the function. Next parameters will be inserted between that
@@ -462,7 +483,12 @@ struct
     | Request _ -> "<request>"
     | Encoder e -> Encoder.string_of_format e
     | List l ->
-        "["^(String.concat ", " (List.map print_value l))^"]"
+      "["^(String.concat ", " (List.map print_value l))^"]"
+    | Cmd a ->
+      let a = match !a with None -> "?" | Some a -> print_value a in
+      Printf.sprintf "cmd(%s)" a
+    | Set_cmd (x, a) ->
+      Printf.sprintf "%s === %s" x (print_value a)
     | Ref a ->
         Printf.sprintf "ref(%s)" (print_value !a)
     | Tuple l ->
@@ -539,6 +565,12 @@ struct
     | Request _ ->
         assert (f gen v.t = v.t) ;
         v
+    | Cmd r ->
+      assert (f gen v.t = v.t) ;
+      r := Option.map (map_types f gen) !r;
+      v
+    | Set_cmd (x, v) ->
+      { t = f gen v.t ; value = Set_cmd (x, map_types f gen v) }
     | Ref r ->
         assert (f gen v.t = v.t) ;
         r := map_types f gen !r ;
@@ -671,6 +703,16 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Tuple l ->
      List.iter (fun a -> check ~level ~env a) l;
      e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
+  | Cmd ->
+    e.t >: cmd_t ~pos ~level (T.fresh_evar ~level ~pos)
+  | Set_cmd (x, a) ->
+    check ~level ~env a;
+    let generalized,orig =
+      try List.assoc x env
+      with Not_found -> raise (Unbound (e.t.T.pos,x))
+    in
+    T.instantiate ~level ~generalized orig >: cmd_t ~pos:(a.t.T.pos) ~level a.t;
+    e.t >: mk T.unit
   | Ref a ->
       check ~level ~env a ;
       e.t >: ref_t ~pos ~level a.t
@@ -917,6 +959,8 @@ let rec eval ~env tm =
       | Encoder x -> mk (V.Encoder x)
       | List l -> mk (V.List (List.map (eval ~env) l))
       | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
+      | Cmd -> mk (V.Cmd (ref None))
+      | Set_cmd (x, v) -> mk (V.Set_cmd (x, eval ~env v))
       | Ref v -> mk (V.Ref (ref (eval ~env v)))
       | Get r ->
           begin match (eval ~env r).V.value with
