@@ -22,6 +22,8 @@
 
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
 
+let unsafe_commands = ref false
+
 (** Pretty-print getters as {t}. *)
 let pretty_getters = ref true
 
@@ -678,9 +680,9 @@ let rec (<:) a b =
            | Error (a,b) -> raise (Error (`Cmd (!b1,a), `Cmd (!b2,b)))
      end;
      b1 := !b2
-  | Cmd (b1,t1), _ when !b1 ->
+  | Cmd (b1,t1), _ when !unsafe_commands || !b1 ->
      begin try t1 <: b with
-           | Error (a,b) -> raise (Error (`Cmd (true,a), b))
+           | Error (a,b) -> raise (Error (`Cmd (!b1,a), b))
      end
   | Tuple l, Tuple m ->
      if List.length l <> List.length m then

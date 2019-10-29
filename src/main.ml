@@ -396,6 +396,10 @@ let options = [
     Arg.Unit (fun () -> Lang_types.debug := true; Lang_values.conf_debug#set true),
     "Debug language implementation." ;
 
+    ["--unsafe-commands"],
+    Arg.Set Lang_types.unsafe_commands,
+    "Allow potentially undefined commands.";
+
     ["--strict"],
     Arg.Set Lang_errors.strict,
     "Execute script code in strict mode, issuing fatal errors \

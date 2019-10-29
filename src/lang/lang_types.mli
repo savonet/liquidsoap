@@ -22,6 +22,9 @@
 
 val debug : bool ref
 
+(** Allow commands which are potentially undefined. *)
+val unsafe_commands : bool ref
+
 type pos = (Lexing.position * Lexing.position)
 val print_single_pos : Lexing.position -> string
 val print_pos : ?prefix:string -> pos -> string
