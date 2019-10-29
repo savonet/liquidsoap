@@ -29,9 +29,7 @@ class clock : string -> Source.clock
 (** Wallclocks are clocks attached to a thread that periodically makes the
   * clock tick, which triggers the streaming of the active sources attached
   * to the clock. *)
-class wallclock : ?sync:bool -> string -> clock
-
-class self_sync : string ->
+class wallclock : ?sync:bool -> string ->
 object
   inherit Source.clock
   method register_blocking_source : unit

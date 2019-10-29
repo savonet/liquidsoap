@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "pa")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.wallclock ~sync:true "pa")
 
 let initialized = ref false
 

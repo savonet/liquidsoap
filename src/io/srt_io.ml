@@ -146,7 +146,7 @@ object(self)
     match clock with
       | Some c -> c
       | None ->
-         let c = new Clock.self_sync self#id in
+         let c = new Clock.wallclock ~sync:true self#id in
          clock <- Some c;
          c
 
@@ -531,8 +531,6 @@ object (self)
         (Clock.create_known (self#get_clock:>Clock.clock))
 
   method private output_start =
-    if clock_safe then
-      self#get_clock#register_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Started) ();
     self#start_connect_task

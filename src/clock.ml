@@ -394,25 +394,13 @@ object (self)
         errors
       end
 
-end
-
-(** {1 Self-sync wallclock}
-  * Special kind of clock for self-synched devices,
-  * that only does synchronization when all input/outputs are stopped
-  * (a normal non-synched wallclock goes 100% CPU when blocking I/O
-  * stops). *)
-
-class self_sync id =
-object
-  inherit wallclock ~sync:true id
-
   val mutable blocking_sources = 0
   val bs_lock = Mutex.create ()
 
   method register_blocking_source =
     Tutils.mutexify bs_lock
       (fun () ->
-         if blocking_sources = 0 then begin
+         if blocking_sources = 0 && sync then begin
            log#info "Delegating clock to active sources." ;
            sync <- false
          end ;
@@ -423,7 +411,7 @@ object
     Tutils.mutexify bs_lock
       (fun () ->
          blocking_sources <- blocking_sources - 1 ;
-         if blocking_sources = 0 then begin
+         if blocking_sources = 0 && not sync then begin
            sync <- true ;
            log#info "All active sources stopped, synching with wallclock."
          end)

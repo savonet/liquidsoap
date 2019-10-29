@@ -167,7 +167,7 @@ let () =
            (fun s ->
              try
                let s = Lang.to_source s in
-               Clock.unify s#clock (Clock.create_known clock)
+               Clock.unify s#clock (Clock.create_known (clock:>Clock.clock))
              with
              | Source.Clock_conflict (a,b) ->
                 raise (Lang_errors.Clock_conflict (s.Lang.t.Lang_types.pos,a,b))

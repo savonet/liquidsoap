@@ -25,7 +25,7 @@ open Source
 let log = Log.make ["input";"jack"]
 
 let bjack_clock =
-  Tutils.lazy_cell (fun () -> new Clock.self_sync "bjack")
+  Tutils.lazy_cell (fun () -> new Clock.wallclock ~sync:true "bjack")
 
 class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   let channels = (Frame.type_of_kind kind).Frame.audio in

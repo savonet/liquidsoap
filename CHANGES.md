@@ -16,6 +16,7 @@ Changed:
 - Use system pagesize for buffer allocation (#915).
 - Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
+- Merged self-synced clock with synced clock, should allow more flexibility when dealing with multiple self-synced sources/outputs.
 
 Fixed:
 
