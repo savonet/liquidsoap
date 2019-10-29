@@ -185,6 +185,37 @@ let () =
          (fun _ _ -> unwatch (); Lang.unit))
 
 let () =
+  add_builtin "file.ls" ~cat:Sys
+    [
+      "recursive",Lang.bool_t,Some (Lang.bool false),Some "Whether to look recursively in subdirectories.";
+      "",Lang.string_t,None,Some "Directory to look in."
+    ]
+    (Lang.list_t Lang.string_t)
+    ~descr:"List all the files in a directory."
+    (fun p ->
+       let recursive = Lang.to_bool (List.assoc "recursive" p) in
+       let dir = Lang.to_string (List.assoc "" p) in
+       let dir = Utils.home_unrelate dir in
+       let readdir dir = Array.to_list (Sys.readdir dir) in
+       let files =
+         if not recursive then
+           readdir dir
+         else
+           let rec aux acc = function
+             | f::l ->
+               if try Sys.is_directory f with _ -> false then
+                 aux (aux acc (readdir f)) l
+               else
+                 aux (f::acc) l
+             | [] -> acc
+           in
+           aux [] [dir]
+       in
+       let files = List.map Lang.string files in
+       Lang.list ~t:Lang.string_t files
+    )
+
+let () =
   add_builtin "path.basename" ~cat:Sys
     ["",Lang.string_t,None,None] Lang.string_t
     ~descr:"Get the base name of a path."
