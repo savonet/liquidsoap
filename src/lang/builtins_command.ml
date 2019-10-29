@@ -24,7 +24,7 @@ let log = Log.make ["lang";"commad"]
 
 let () =
   let t = Lang.univ_t 1 in
-  let cmd_t = Lang_values.cmd_t ~pos:t.Lang_types.pos ~set:true t in
+  let cmd_t = Lang.cmd_t t in
   Lang_builtins.add_builtin
     ~cat:Lang_builtins.Control
     ~descr:"Set the value of a command."
@@ -32,16 +32,8 @@ let () =
     ["", cmd_t, None, None;
      "", t, None, None ] Lang.unit_t
     (fun p ->
-       let c = Lang.assoc "" 1 p in
+       let c = Lang.to_cmd (Lang.assoc "" 1 p) in
        let v = Lang.assoc "" 2 p in
-       (
-         match c.Lang.value with
-         | Lang.Cmd c ->
-           (* This can should never happen since non-None value get changed into
-              the value itself. *)
-           assert (!c = None);
-           c := Some v
-         | _ -> failwith "Trying to use and undefined command."
-       );
+       c v;
        Lang.unit
     )

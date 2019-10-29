@@ -54,6 +54,7 @@ let list_t t  = T.make (T.List t)
 let of_list_t t = match (T.deref t).T.descr with
   | T.List t -> t
   | _ -> assert false
+let cmd_t t = Term.cmd_t ~pos:t.T.pos t
 
 let metadata_t = list_t (product_t string_t string_t)
 
@@ -620,6 +621,14 @@ let to_tuple t = match t.value with
 
 let to_product t = match t.value with
   | Tuple [a;b] -> (a,b)
+  | _ -> assert false
+
+let to_cmd t = match t.value with
+  | Cmd a ->
+    (
+      assert (!a = None);
+      fun x -> a := Some x
+    )
   | _ -> assert false
 
 let to_metadata_list t =

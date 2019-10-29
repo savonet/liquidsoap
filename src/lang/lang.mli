@@ -189,6 +189,7 @@ val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
 val to_fun : t:t -> value -> (string * value) list -> value
+val to_cmd : value -> (value -> unit)
 
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
@@ -207,6 +208,7 @@ val of_tuple_t : t -> t list
 
 val list_t     : t -> t
 val of_list_t  : t -> t
+val cmd_t      : t -> t
 
 val zero_t     : t
 val variable_t : t

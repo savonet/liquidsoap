@@ -60,7 +60,7 @@ let ref_t ?pos ?level t =
   T.make ?pos ?level
     (T.Constr { T.name = "ref" ; T.params = [T.Invariant,t] })
 
-let cmd_t ~pos ?level ?(set=false) t =
+let cmd_t ~pos ?level ?(set=true) t =
   T.make ~pos ?level (T.Cmd (ref set, t))
 
 let zero_t = T.make T.Zero
@@ -691,7 +691,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
      List.iter (fun a -> check ~level ~env a) l;
      e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
   | Cmd ->
-    e.t >: cmd_t ~pos ~level (T.fresh_evar ~level ~pos)
+    e.t >: cmd_t ~pos ~level ~set:false (T.fresh_evar ~level ~pos)
   | Ref a ->
       check ~level ~env a ;
       e.t >: ref_t ~pos ~level a.t
