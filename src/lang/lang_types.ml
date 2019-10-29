@@ -125,7 +125,7 @@ and descr =
   | Arrow     of (bool*string*t) list * t
   | EVar      of int*constraints (* type variable *)
   | Link      of t
-  | Cmd       of t
+  | Cmd       of bool ref * t (* the boolean is initially false, meaning the command has not been set. *)
 
 let unit = Tuple []
 
@@ -134,7 +134,7 @@ type repr = [
   | `Ground  of ground
   | `List    of repr
   | `Tuple   of repr list
-  | `Cmd     of repr
+  | `Cmd     of bool * repr
   | `Zero | `Succ of repr | `Variable
   | `Arrow     of (bool*string*repr) list * repr
   | `EVar      of string*constraints (* existential variable *)
@@ -233,7 +233,7 @@ let repr ?(filter_out=fun _->false) ?(generalized=[]) t : repr =
          else
            evar id c
       | Link t -> repr t
-      | Cmd t -> `Cmd (repr t)
+      | Cmd (b, t) -> `Cmd (!b, repr t)
   in
   repr t
 
@@ -311,8 +311,9 @@ let print_repr f t =
        let vars = print ~par:false vars t in
        Format.fprintf f "]@]" ;
        vars
-    | `Cmd t ->
-       Format.fprintf f "@[<1>cmd(" ;
+    | `Cmd (b,t) ->
+       let b = if b then "" else "unset_" in
+       Format.fprintf f "@[<1>%scmd(" b;
        let vars = print ~par:false vars t in
        Format.fprintf f ")@]" ;
        vars
@@ -467,7 +468,7 @@ let rec occur_check a b =
        b.level <- min b.level a.level
   | Ground _ -> ()
   | Link _ -> assert false
-  | Cmd t -> occur_check a t
+  | Cmd (_,t) -> occur_check a t
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
 let rec bind a0 b =
@@ -672,13 +673,13 @@ let rec (<:) a b =
      begin try t1 <: t2 with
            | Error (a,b) -> raise (Error (`List a, `List b))
      end
-  | Cmd t1, Cmd t2 ->
+  | Cmd (b1,t1), Cmd (b2,t2) when !b1 = !b2 ->
      begin try t1 <: t2 with
-           | Error (a,b) -> raise (Error (`Cmd a, `Cmd b))
+           | Error (a,b) -> raise (Error (`Cmd (!b1,a), `Cmd (!b2,b)))
      end
-  | Cmd t1, _ ->
+  | Cmd (b1,t1), _ when !b1 ->
      begin try t1 <: b with
-           | Error (a,b) -> raise (Error (`Cmd a, b))
+           | Error (a,b) -> raise (Error (`Cmd (true,a), b))
      end
   | Tuple l, Tuple m ->
      if List.length l <> List.length m then
@@ -857,7 +858,7 @@ let filter_vars f t =
     | EVar (i,constraints) ->
        if f t then (i,constraints)::l else l
     | Link _ -> assert false
-    | Cmd t -> aux l t
+    | Cmd (_,t) -> aux l t
   in
   aux [] t
 
@@ -896,7 +897,7 @@ let copy_with subst t =
         * and to make it possible to check if the application left
         * the type unchanged. *)
       cp (Link (aux t))
-    | Cmd t -> cp (Cmd (aux t))
+    | Cmd (b,t) -> cp (Cmd (b,aux t))
   in
   aux t
 
@@ -944,6 +945,6 @@ let iter_constr f t =
     | EVar _ ->
        if pos then has_var_pos := true else has_var_neg := true
     | Link _ -> assert false
-    | Cmd t -> aux pos t
+    | Cmd (_,t) -> aux pos t
   in
   aux true t ; !has_var_neg,!has_var_pos

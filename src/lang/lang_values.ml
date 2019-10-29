@@ -61,7 +61,7 @@ let ref_t ?pos ?level t =
     (T.Constr { T.name = "ref" ; T.params = [T.Invariant,t] })
 
 let cmd_t ~pos ?level t =
-  T.make ~pos ?level (T.Cmd t)
+  T.make ~pos ?level (T.Cmd (ref false, t))
 
 let zero_t = T.make T.Zero
 let succ_t t = T.make (T.Succ t)
