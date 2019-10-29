@@ -187,12 +187,14 @@ let () =
 let () =
   add_builtin "file.ls" ~cat:Sys
     [
+      "absolute",Lang.bool_t, Some (Lang.bool false),Some "Whether to return absolute paths.";
       "recursive",Lang.bool_t,Some (Lang.bool false),Some "Whether to look recursively in subdirectories.";
       "",Lang.string_t,None,Some "Directory to look in."
     ]
     (Lang.list_t Lang.string_t)
     ~descr:"List all the files in a directory."
     (fun p ->
+       let absolute = Lang.to_bool (List.assoc "absolute" p) in
        let recursive = Lang.to_bool (List.assoc "recursive" p) in
        let dir = Lang.to_string (List.assoc "" p) in
        let dir = Utils.home_unrelate dir in
@@ -216,6 +218,7 @@ let () =
            in
            aux Filename.current_dir_name [] [Filename.current_dir_name]
        in
+       let files = if absolute then List.map (Filename.concat dir) files else files in
        let files = List.map Lang.string files in
        Lang.list ~t:Lang.string_t files
     )
