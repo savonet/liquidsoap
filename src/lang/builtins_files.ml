@@ -201,15 +201,20 @@ let () =
          if not recursive then
            readdir dir
          else
-           let rec aux acc = function
+           let rec aux subdir acc = function
              | f::l ->
-               if try Sys.is_directory f with _ -> false then
-                 aux (aux acc (readdir f)) l
+               let concat d f = if d = Filename.current_dir_name then f else Filename.concat d f in
+               let df = concat subdir f in
+               let df = Filename.concat dir df in
+               if try Sys.is_directory df with _ -> false then
+                 let f = concat subdir f in
+                 let acc = if f <> Filename.current_dir_name then f::acc else acc in
+                 aux subdir (aux f acc (readdir df)) l
                else
-                 aux (f::acc) l
+                 aux subdir ((concat subdir f)::acc) l
              | [] -> acc
            in
-           aux [] [dir]
+           aux Filename.current_dir_name [] [Filename.current_dir_name]
        in
        let files = List.map Lang.string files in
        Lang.list ~t:Lang.string_t files
