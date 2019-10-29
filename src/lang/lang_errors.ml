@@ -151,5 +151,9 @@ let report lexbuf f =
         raise Error
       | Sedlexing.MalFormed ->
         print_error 13 "Malformed file."
+      | Lang_values.Unset_command pos ->
+        let pos = T.print_pos pos in
+        error_header 14 pos;
+        Format.printf "Using a command which was not yet set.@]@.";
       | End_of_file -> raise End_of_file
       | e -> print_error (-1) "Unknown error" ; raise e
