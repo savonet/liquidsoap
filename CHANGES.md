@@ -8,6 +8,7 @@ New:
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
 - Added `file.ls`.
+- Added support for commands (#1010).
 
 Changed:
 
@@ -17,6 +18,8 @@ Changed:
 - Use system pagesize for buffer allocation (#915).
 - Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
+- Changed the type of `playlist.reloadable`: the skip function is now a command
+  instead of being returned (#1010).
 
 Fixed:
 
