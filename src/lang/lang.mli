@@ -44,7 +44,6 @@ and in_value = Lang_values.V.in_value =
   | List    of value list
   | Tuple    of value list
   | Cmd     of value option ref
-  | Set_cmd of string * value
   | Ref     of value ref
   | Fun     of (string * string * value option) list *
                full_env * lazy_full_env * Lang_values.term

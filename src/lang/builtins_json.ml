@@ -67,8 +67,6 @@ let rec to_json_compact v =
     | Lang.Cmd v ->
       let v = match !v with None -> "?" | Some v -> to_json_compact v in
       Printf.sprintf "{\"command\":%s}" v
-    | Lang.Set_cmd (x,v) ->
-      Printf.sprintf "{\"set_command_%s\":%s}" x (to_json_compact v)
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
     | Lang.Request _ -> "\"<request>\""

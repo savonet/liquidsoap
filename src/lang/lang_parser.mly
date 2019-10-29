@@ -191,7 +191,6 @@
 %token UNDERSCORE
 %token NOT
 %token REF GET SET
-%token SETCMD
 %token PP_IFDEF PP_IFNDEF PP_IFENCODER PP_IFNENCODER PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
@@ -199,7 +198,6 @@
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
-%right SETCMD
 %nonassoc REF          /* ref (1+2) */
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
@@ -261,7 +259,6 @@ expr:
   | GET expr                         { mk ~pos:$loc (Get $2) }
   | expr SET expr                    { mk ~pos:$loc (Set ($1,$3)) }
   | QUESTION                         { mk ~pos:$loc Cmd }
-  | VAR SETCMD expr                  { mk ~pos:$loc (Set_cmd ($1,$3)) }
   | MP3 app_opt                      { mk_enc ~pos:$loc (Lang_mp3.make_cbr $2) }
   | MP3_VBR app_opt                  { mk_enc ~pos:$loc (Lang_mp3.make_vbr $2) }
   | MP3_ABR app_opt                  { mk_enc ~pos:$loc (Lang_mp3.make_abr $2) }

@@ -440,7 +440,6 @@ let iter_sources f v =
     | Term.Int _ | Term.Float _ | Term.Encoder _ -> ()
     | Term.List l -> List.iter (iter_term env) l
     | Term.Cmd -> ()
-    | Term.Set_cmd (_, a) -> iter_term env a
     | Term.Ref a | Term.Get a -> iter_term env a
     | Term.Tuple l -> List.iter (iter_term env) l
     | Term.Let {Term.def=a;body=b;_} | Term.Seq (a,b) | Term.Set (a,b) ->
@@ -497,7 +496,6 @@ let iter_sources f v =
         | Some r -> iter_value r
         | None -> ()
       )
-    | Set_cmd (_,a) -> iter_value a
     | Ref r ->
         if List.memq r !static_analysis_failed then () else
         (* Do not walk inside references, otherwise the list of "contained"

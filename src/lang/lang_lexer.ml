@@ -181,7 +181,6 @@ let rec token lexbuf = match%sedlex lexbuf with
   | "ref" -> REF
   | "!"   -> GET
   | ":="  -> SET
-  | "===" -> SETCMD
   | '_'   -> UNDERSCORE
 
   | "true"  -> BOOL true
