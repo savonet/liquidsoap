@@ -34,7 +34,7 @@ let split x =
   * requests are stored. These requests can typically be pushed when some
   * user emits a request. *)
 class queue ~kind
-  ?(requests=Queue.create()) ?(interactive=true)
+  ?(requests=Queue.create()) ?(interactive=true) ~cmd_push
   length default_duration timeout conservative =
 object (self)
   inherit Request_source.queued ~kind ~name:"request.queue"
@@ -44,15 +44,18 @@ object (self)
     if interactive then begin
       self#set_id ~definitive:false "queue" ;
       ns_kind <- "queue" ;
-      self#register_command "push" ~usage:"push <uri>"
-        ~descr:"Push a new request in the queue."
-        (fun req ->
-           let req = self#create_request req in
-           let id = Request.get_id req in
-             Request.set_root_metadata req "source_id"
-               (string_of_int (Oo.id self)) ;
-             self#push_request req ;
-             string_of_int id) ;
+      let () =
+        let queue req =
+          let req = self#create_request req in
+          Request.set_root_metadata req "source_id" (string_of_int (Oo.id self)) ;
+          self#push_request req ;
+          req
+        in
+        cmd_push (fun req -> ignore (queue req));
+        self#register_command "push" ~usage:"push <uri>"
+          ~descr:"Push a new request in the queue."
+          (fun req -> string_of_int (Request.get_id (queue req)))
+      in
       let print_queue q =
         String.concat " "
           (List.map
@@ -183,13 +186,20 @@ let () =
      ("interactive",Lang.bool_t,
       Some (Lang.bool true),
       Some "Should the queue be controllable via telnet?")::
+     ("cmd_push",
+      Lang.cmd_t (Lang.fun_t [false,"",Lang.string_t] Lang.unit_t),
+      Some (Lang.cmd (Lang.fun_t [false,"",Lang.string_t] Lang.unit_t)),
+      Some "Command to push requests in the queue."
+     )::
      Request_source.queued_proto)
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        let l,d,t,c = Request_source.extract_queued_params p in
        let interactive = Lang.to_bool (Lang.assoc "interactive" 1 p) in
        let requests = Queue.create () in
+       let cmd_push = Lang.to_cmd (List.assoc "cmd_push" p) in
+       let cmd_push f = cmd_push (Lang.val_fun ["","uri",Lang.string_t,None] ~ret_t:Lang.unit_t (fun env _ -> let uri = Lang.to_string (List.assoc "uri" env) in f uri; Lang.unit)) in
          List.iter
            (fun r -> Queue.add (Lang.to_request r) requests)
            (Lang.to_list (List.assoc "queue" p)) ;
-         ((new queue ~kind ~requests ~interactive l d t c) :> source))
+         ((new queue ~kind ~requests ~interactive ~cmd_push l d t c) :> source))
