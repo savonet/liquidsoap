@@ -397,7 +397,7 @@ let options = [
     "Debug language implementation." ;
 
     ["--unsafe-commands"],
-    Arg.Set Lang_types.unsafe_commands,
+    Arg.Unit (fun () -> log#important "%s" "Unsafe commands are allowed, please be careful!"; Lang_types.unsafe_commands := true),
     "Allow potentially undefined commands.";
 
     ["--strict"],
@@ -555,6 +555,7 @@ struct
          "";
          "We hope you enjoy this snapshot build of Liquidsoap!";
          ""]
+
 
   (** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
   let parse argv l f msg =

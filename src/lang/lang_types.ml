@@ -675,15 +675,6 @@ let rec (<:) a b =
      begin try t1 <: t2 with
            | Error (a,b) -> raise (Error (`List a, `List b))
      end
-  | Cmd (b1,t1), Cmd (b2,t2) when not !b1 || !b2 ->
-     begin try t1 <: t2 with
-           | Error (a,b) -> raise (Error (`Cmd (!b1,a), `Cmd (!b2,b)))
-     end;
-     b1 := !b2
-  | Cmd (b1,t1), _ when !unsafe_commands || !b1 ->
-     begin try t1 <: b with
-           | Error (a,b) -> raise (Error (`Cmd (!b1,a), b))
-     end
   | Tuple l, Tuple m ->
      if List.length l <> List.length m then
        begin
@@ -810,6 +801,15 @@ let rec (<:) a b =
               raise (Error (repr a,repr b))
      end
   | Link _,_ | _,Link _ -> assert false (* thanks to deref *)
+  | Cmd (b1,t1), Cmd (b2,t2) when not !b1 || !b2 ->
+     begin try t1 <: t2 with
+           | Error (a,b) -> raise (Error (`Cmd (!b1,a), `Cmd (!b2,b)))
+     end;
+     b1 := !b2
+  | Cmd (b1,t1), _ when !unsafe_commands || !b1 ->
+     begin try t1 <: b with
+           | Error (a,b) -> raise (Error (`Cmd (!b1,a), b))
+     end
   | _,_ ->
      (* The superficial representation is enough for explaining
       * the mismatch. *)

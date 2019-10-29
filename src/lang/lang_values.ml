@@ -912,6 +912,8 @@ let eval_pat pat v =
   in
   aux [] pat v
 
+exception Unset_command of (Lexing.position * Lexing.position) option
+
 let rec eval ~env tm =
   (* Printf.printf "eval: %s\n%!" (try print_term tm with _ -> "???"); *)
   let env = (env : V.lazy_full_env) in
@@ -1007,6 +1009,7 @@ and apply ~t f l =
           p,pe,
           (fun pe t -> f (List.rev pe) t),
           (fun p pe -> mk (V.FFI (p,pe,f)))
+      | V.Cmd c when !c = None -> raise (Unset_command f.V.t.T.pos)
       | _ -> assert false
   in
   let pe,p =
