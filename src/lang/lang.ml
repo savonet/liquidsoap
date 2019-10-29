@@ -230,6 +230,7 @@ let tuple l = mk ~t:(tuple_t (List.map (fun a -> a.t) l)) (Tuple l)
 let product a b = tuple [a;b]
 
 let list ~t l = mk ~t:(list_t t) (List l)
+let cmd t = mk ~t:(Lang_values.cmd_t ~pos:t.T.pos ~set:false t) (Cmd (ref None))
 
 let source s =
   mk ~t:(source_t (kind_type_of_frame_kind s#kind)) (Source s)

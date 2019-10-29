@@ -93,7 +93,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
     has_stopped := false
     load_playlist()
   end
-  cmd_reload === reload
+  command.set(cmd_reload,reload)
   # Load the playlist
   load_playlist()
   # Return
@@ -118,7 +118,7 @@ def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",
   reload = ?
   s = playlist.reloadable(id=id,random=random,on_done=on_done,
                            conservative=conservative,default_duration=default_duration,
-                           filter=filter,cmd_reload=?,uri)
+                           filter=filter,cmd_reload=reload,uri)
   if reload_mode == "watch" then
     unwatch = file.watch(uri,fun () -> reload())
     source.on_shutdown(s,unwatch)
