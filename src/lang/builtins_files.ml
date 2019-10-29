@@ -99,6 +99,7 @@ let () =
     ~descr:"Returns true if the file or directory exists."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
+       let f = Utils.home_unrelate f in
        Lang.bool (Sys.file_exists f))
 
 let () =
@@ -107,6 +108,7 @@ let () =
     ~descr:"Returns true if the file exists and is a directory."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
+       let f = Utils.home_unrelate f in
        Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
@@ -181,6 +183,45 @@ let () =
        let unwatch = watch [`Modify] fname f in
        Lang.val_fun [] ~ret_t:Lang.unit_t
          (fun _ _ -> unwatch (); Lang.unit))
+
+let () =
+  add_builtin "file.ls" ~cat:Sys
+    [
+      "absolute",Lang.bool_t, Some (Lang.bool false),Some "Whether to return absolute paths.";
+      "recursive",Lang.bool_t,Some (Lang.bool false),Some "Whether to look recursively in subdirectories.";
+      "",Lang.string_t,None,Some "Directory to look in."
+    ]
+    (Lang.list_t Lang.string_t)
+    ~descr:"List all the files in a directory."
+    (fun p ->
+       let absolute = Lang.to_bool (List.assoc "absolute" p) in
+       let recursive = Lang.to_bool (List.assoc "recursive" p) in
+       let dir = Lang.to_string (List.assoc "" p) in
+       let dir = Utils.home_unrelate dir in
+       let readdir dir = Array.to_list (Sys.readdir dir) in
+       let files =
+         if not recursive then
+           readdir dir
+         else
+           let rec aux subdir acc = function
+             | f::l ->
+               let concat d f = if d = Filename.current_dir_name then f else Filename.concat d f in
+               let df = concat subdir f in
+               let df = Filename.concat dir df in
+               if try Sys.is_directory df with _ -> false then
+                 let f = concat subdir f in
+                 let acc = if f <> Filename.current_dir_name then f::acc else acc in
+                 aux subdir (aux f acc (readdir df)) l
+               else
+                 aux subdir ((concat subdir f)::acc) l
+             | [] -> acc
+           in
+           aux Filename.current_dir_name [] [Filename.current_dir_name]
+       in
+       let files = if absolute then List.map (Filename.concat dir) files else files in
+       let files = List.map Lang.string files in
+       Lang.list ~t:Lang.string_t files
+    )
 
 let () =
   add_builtin "path.basename" ~cat:Sys
