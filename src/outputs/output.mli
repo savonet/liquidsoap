@@ -25,6 +25,8 @@
 (** Parameters needed to instantiate an output. *)
 val proto : (string * Lang.t * Lang.value option * string option) list
 
+val parse_proto : (string * Lang.value) list -> bool * (unit -> unit) * (unit -> unit) * bool * ((unit -> unit) -> unit)
+
 class virtual output :
   content_kind:Frame.content_kind ->
   output_kind:string ->
@@ -32,6 +34,7 @@ class virtual output :
   infallible:bool ->
   on_start:(unit->unit) ->
   on_stop:(unit->unit) ->
+  cmd_skip:((unit->unit)->unit) ->
   Lang.value ->
   bool ->
 object
@@ -76,6 +79,7 @@ class virtual encoded :
   infallible:bool ->
   on_start:(unit->unit) ->
   on_stop:(unit->unit) ->
+  cmd_skip:((unit->unit)->unit) ->
   autostart:bool ->
   Lang.value ->
 object

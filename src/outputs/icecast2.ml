@@ -323,16 +323,7 @@ class output ~kind p =
          (Cry.Icecast_mount mount), name
   in
 
-  let autostart = Lang.to_bool (List.assoc "start" p) in
-  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-  in
+  let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
 
   let host = s "host" in
   let port = e Lang.to_int "port" in
@@ -374,7 +365,7 @@ object (self)
 
   inherit Output.encoded
             ~content_kind:kind ~output_kind:"output.icecast"
-            ~infallible ~autostart ~on_start ~on_stop
+            ~infallible ~autostart ~on_start ~on_stop ~cmd_skip
             ~name source
 
   (** In this operator, we don't exactly follow the start/stop

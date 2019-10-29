@@ -25,7 +25,7 @@
 let bytes_per_sample = 2
 
 class output ~kind ~clock_safe
-       ~infallible ~on_stop ~on_start
+       ~infallible ~on_stop ~on_start ~cmd_skip
        ~nb_blocks ~server source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
@@ -36,7 +36,7 @@ class output ~kind ~clock_safe
   in
 object (self)
   inherit Output.output
-            ~infallible ~on_stop ~on_start ~content_kind:kind
+            ~infallible ~on_stop ~on_start ~cmd_skip ~content_kind:kind
             ~name:"output.jack" ~output_kind:"output.jack" source true
           as super
   inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
@@ -126,15 +126,7 @@ let () =
        let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let server = Lang.to_string (List.assoc "server" p) in
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
+       let infallible, on_start, on_stop, _, cmd_skip = Output.parse_proto p in
          ((new output ~kind ~clock_safe
-                  ~infallible ~on_start ~on_stop
+                  ~infallible ~on_start ~on_stop ~cmd_skip
                   ~nb_blocks ~server source):>Source.source))

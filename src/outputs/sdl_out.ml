@@ -23,13 +23,13 @@
 (** Output using SDL lib. *)
 
 
-class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class output ~infallible ~on_start ~on_stop ~autostart ~cmd_skip ~kind source =
   let video_width    = Lazy.force Frame.video_width in
   let video_height   = Lazy.force Frame.video_height in
   let () = Sdl_utils.init [`VIDEO] in
 object (self)
   inherit Output.output ~name:"sdl" ~output_kind:"output.sdl"
-    ~infallible ~on_start ~on_stop
+    ~infallible ~on_start ~on_stop ~cmd_skip
     ~content_kind:kind source autostart
 
   val mutable fullscreen = false
@@ -106,16 +106,7 @@ let () =
     ~category:Lang.Output
     ~descr:"Display a video using SDL."
     (fun p kind ->
-       let autostart = Lang.to_bool (List.assoc "start" p) in
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
+       let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
        let source = List.assoc "" p in
-         ((new output ~infallible ~autostart ~on_start ~on_stop
+         ((new output ~infallible ~autostart ~on_start ~on_stop ~cmd_skip
                  ~kind source):>Source.source))

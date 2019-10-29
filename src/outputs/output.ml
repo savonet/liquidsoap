@@ -50,8 +50,28 @@ let proto =
         If true, an infallible (normal) output will start outputting \
         as soon as it is created, \
         and a fallible output will (re)start as soon as its \
-        source becomes available for streaming."
+        source becomes available for streaming.";
+
+  "cmd_skip",
+  Lang.cmd_t (Lang.fun_t [] Lang.unit_t),
+  Some (Lang.cmd (Lang.fun_t [] Lang.unit_t)),
+  Some "Command to skip current track."
  ]
+
+let parse_proto p =
+  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let on_start =
+    let f = List.assoc "on_start" p in
+    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+  in
+  let on_stop =
+    let f = List.assoc "on_stop" p in
+    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+  in
+  let autostart = Lang.to_bool (List.assoc "start" p) in
+  let cmd_skip = Lang.to_cmd (List.assoc "cmd_skip" p) in
+  let cmd_skip f = cmd_skip (Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ -> f (); Lang.unit)) in
+  infallible, on_start, on_stop, autostart, cmd_skip
 
 (** Given abstract start stop and send methods, creates an output.
   * Takes care of pulling the data out of the source, type checkings,
@@ -59,7 +79,7 @@ let proto =
   * including start/stop. *)
 class virtual output ~content_kind ~output_kind ?(name="")
     ~infallible 
-    ~(on_start:unit->unit) ~(on_stop:unit->unit)
+    ~(on_start:unit->unit) ~(on_stop:unit->unit) ~cmd_skip
     val_source autostart =
   let source = Lang.to_source val_source in
 object (self)
@@ -87,6 +107,7 @@ object (self)
 
   initializer
     (* Add a few more server controls *)
+    cmd_skip (fun () -> self#skip);
     self#register_command 
                "skip" (fun _ -> self#skip ; "Done")
                ~descr:"Skip current song.";
@@ -199,12 +220,12 @@ object (self)
 
 end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class dummy ~infallible ~on_start ~on_stop ~autostart ~cmd_skip ~kind source =
 object
   inherit
     output source autostart
       ~name:"dummy" ~output_kind:"output.dummy"
-      ~infallible ~on_start ~on_stop
+      ~infallible ~on_start ~on_stop ~cmd_skip
       ~content_kind:kind
 
   method private output_reset  = ()
@@ -221,24 +242,19 @@ let () =
     ~descr:"Dummy output for debugging purposes."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let autostart = Lang.to_bool (List.assoc "start" p) in
-       let on_start = List.assoc "on_start" p in
-       let on_stop = List.assoc "on_stop" p in
-       let on_start () = ignore (Lang.apply ~t:Lang.unit_t on_start []) in
-       let on_stop () = ignore (Lang.apply ~t:Lang.unit_t on_stop []) in
-         ((new dummy ~kind ~on_start ~on_stop ~infallible ~autostart
+       let infallible, on_start, on_stop, autostart, cmd_skip = parse_proto p in
+         ((new dummy ~kind ~on_start ~on_stop ~infallible ~autostart ~cmd_skip
              (List.assoc "" p)):>Source.source))
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
 class virtual encoded
   ~content_kind ~output_kind ~name
-  ~infallible ~on_start ~on_stop
+  ~infallible ~on_start ~on_stop ~cmd_skip
   ~autostart source =
 object (self)
   inherit output
-            ~infallible ~on_start ~on_stop
+            ~infallible ~on_start ~on_stop ~cmd_skip
             ~content_kind ~output_kind ~name source autostart
 
   method virtual private insert_metadata : Meta_format.export_metadata -> unit

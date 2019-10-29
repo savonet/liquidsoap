@@ -52,18 +52,8 @@ let pipe_proto kind arg_doc =
        "", Lang.source_t kind, None, None ])
 
 class virtual piped_output p =
-  let e f v = f (List.assoc v p) in
   (* Output settings *)
-  let autostart = e Lang.to_bool "start" in
-  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-  in
+  let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
   let reload_predicate = List.assoc "reopen_when" p in
   let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
   let reload_on_metadata =
@@ -87,7 +77,7 @@ object (self)
 
   inherit
     Output.encoded
-      ~infallible ~on_start ~on_stop ~autostart
+      ~infallible ~on_start ~on_stop ~autostart ~cmd_skip
       ~output_kind:"output.file" ~name
       ~content_kind:kind source
 

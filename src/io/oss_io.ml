@@ -36,7 +36,7 @@ let force f fd x =
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "OSS")
 
-class output ~kind ~clock_safe ~on_start ~on_stop 
+class output ~kind ~clock_safe ~on_start ~on_stop ~cmd_skip
              ~infallible ~start dev val_source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -45,7 +45,7 @@ object (self)
 
   inherit
     Output.output
-      ~infallible ~on_stop ~on_start ~content_kind:kind
+      ~infallible ~on_stop ~on_start ~cmd_skip ~content_kind:kind
       ~name ~output_kind:"output.oss" val_source start
     as super
 
@@ -100,7 +100,6 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-
   inherit
     Start_stop.input
       ~content_kind:kind
@@ -172,20 +171,11 @@ let () =
     ~descr:"Output the source's stream to an OSS output device."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let start = Lang.to_bool (List.assoc "start" p) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
+       let infallible, on_start, on_stop, start, cmd_skip = Output.parse_proto p in
        let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
-         ((new output ~start ~on_start ~on_stop ~infallible 
+         ((new output ~start ~on_start ~on_stop ~infallible ~cmd_skip
                       ~kind ~clock_safe device source):>Source.source)
     );
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in

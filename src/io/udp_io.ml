@@ -21,13 +21,13 @@
  *****************************************************************************)
 
 class output ~kind
-  ~on_start ~on_stop ~infallible ~autostart
+  ~on_start ~on_stop ~infallible ~autostart ~cmd_skip
   ~hostname ~port ~encoder_factory source =
 object (self)
 
   inherit
     Output.encoded ~output_kind:"udp" ~content_kind:kind
-      ~on_start ~on_stop ~infallible ~autostart
+      ~on_start ~on_stop ~infallible ~autostart ~cmd_skip
       ~name:(Printf.sprintf "udp://%s:%d" hostname port) source
 
   val mutable socket_send = None
@@ -183,16 +183,7 @@ let () =
       ~kind:(Lang.Unconstrained k)
       (fun p kind ->
          (* Generic output parameters *)
-         let autostart = Lang.to_bool (List.assoc "start" p) in
-         let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-         let on_start =
-           let f = List.assoc "on_start" p in
-             fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-         in
-         let on_stop =
-           let f = List.assoc "on_stop" p in
-             fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-         in
+         let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
          (* Specific UDP parameters *)
          let port = Lang.to_int (List.assoc "port" p) in
          let hostname = Lang.to_string (List.assoc "host" p) in
@@ -205,7 +196,7 @@ let () =
                              "Cannot get a stream encoder for that format"))
          in
          let source = Lang.assoc "" 2 p in
-           ((new output ~kind ~on_start ~on_stop ~infallible ~autostart
+           ((new output ~kind ~on_start ~on_stop ~infallible ~autostart ~cmd_skip
                ~hostname ~port ~encoder_factory:fmt source):>Source.source))
 
 let () =

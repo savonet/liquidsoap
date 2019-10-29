@@ -347,16 +347,7 @@ module Make (T : T) = struct
         | _ ->
             Printf.sprintf "%c%s" '/' mount
     in
-    let autostart = Lang.to_bool (List.assoc "start" p) in
-    let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-    let on_start =
-      let f = List.assoc "on_start" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-    in
-    let on_stop =
-      let f = List.assoc "on_stop" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-    in
+    let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
     let url = match s "url" with "" -> None | x -> Some x in
     let port = e Lang.to_int "port" in
     let default_user = s "user" in
@@ -395,7 +386,7 @@ module Make (T : T) = struct
       (** File descriptor where to dump. *)
       inherit
         Output.encoded
-          ~content_kind:kind ~output_kind:T.source_name ~infallible ~autostart
+          ~content_kind:kind ~output_kind:T.source_name ~infallible ~autostart ~cmd_skip
             ~on_start ~on_stop ~name:mount source
 
       val mutable dump = None

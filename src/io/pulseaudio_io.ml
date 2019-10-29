@@ -46,7 +46,7 @@ object
   method virtual log : Log.t
 end
 
-class output ~infallible ~start ~on_start ~on_stop ~kind p =
+class output ~infallible ~start ~on_start ~on_stop ~cmd_skip ~kind p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
@@ -59,7 +59,7 @@ object (self)
   inherit base ~client ~device
   inherit
     Output.output
-      ~infallible ~on_stop ~on_start ~content_kind:kind
+      ~infallible ~on_stop ~on_start ~cmd_skip ~content_kind:kind
       ~name ~output_kind:"output.pulseaudio" val_source start
     as super
 
@@ -227,17 +227,8 @@ let () =
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p kind ->
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let start = Lang.to_bool (List.assoc "start" p) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-         ((new output ~infallible ~on_start ~on_stop ~start 
+       let infallible, on_start, on_stop, start, cmd_skip = Output.parse_proto p in
+         ((new output ~infallible ~on_start ~on_stop ~start ~cmd_skip
                       ~kind p):>Source.source)) ;
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)

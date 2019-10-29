@@ -406,14 +406,14 @@ let () =
                     format):>Source.source))
 
 class output ~kind ~payload_size ~messageapi
-  ~on_start ~on_stop ~infallible ~autostart
+  ~on_start ~on_stop ~infallible ~autostart ~cmd_skip
   ~clock_safe ~port ~hostname ~encoder_factory source =
 object (self)
 
   inherit base ~payload_size ~messageapi
   inherit
     Output.encoded ~output_kind:"srt" ~content_kind:kind
-      ~on_start ~on_stop ~infallible ~autostart
+      ~on_start ~on_stop ~infallible ~autostart ~cmd_skip
       ~name:"output.srt" source as super
 
   val output_mutex = Mutex.create ()
@@ -602,17 +602,8 @@ let () =
          let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
          let payload_size = Lang.to_int (List.assoc "payload_size" p) in
          let source = Lang.assoc "" 2 p in
-         let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-         let autostart = Lang.to_bool (List.assoc "start" p) in
          let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-         let on_start =
-           let f = List.assoc "on_start" p in
-             fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-         in
-         let on_stop =
-           let f = List.assoc "on_stop" p in
-             fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-         in
+         let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
          let encoder_factory =
            let fmt = Lang.assoc "" 1 p in
            try Encoder.get_factory (Lang.to_format fmt) with
@@ -622,5 +613,5 @@ let () =
                            "Cannot get a stream encoder for that format"))
          in
          ((new output ~kind ~hostname ~port ~payload_size ~autostart
-                      ~on_start ~on_stop ~infallible ~messageapi ~clock_safe
+                      ~on_start ~on_stop ~cmd_skip ~infallible ~messageapi ~clock_safe
                       ~encoder_factory source):>Source.source))

@@ -30,7 +30,7 @@ let get_clock =
   Tutils.lazy_cell (fun () -> new Clock.self_sync "ao")
 
 class output ~kind ~clock_safe ~nb_blocks ~driver
-             ~infallible ~on_start ~on_stop
+             ~infallible ~on_start ~on_stop ~cmd_skip
              ~options ?channels_matrix source start =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
@@ -41,7 +41,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver
   in
 object (self)
   inherit Output.output  ~content_kind:kind
-              ~infallible ~on_start ~on_stop
+              ~infallible ~on_start ~on_stop ~cmd_skip
               ~name:"ao" ~output_kind:"output.ao" source start as super
   inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
@@ -159,17 +159,8 @@ let () =
           else
             Some channels_matrix
        in
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let start = Lang.to_bool (List.assoc "start" p) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
+       let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
        let source = List.assoc "" p in
          ((new output ~kind ~clock_safe ~nb_blocks ~driver
-                      ~infallible ~on_start ~on_stop ?channels_matrix
-                      ~options source start):>Source.source))
+                      ~infallible ~on_start ~on_stop ~cmd_skip ?channels_matrix
+                      ~options source autostart):>Source.source))

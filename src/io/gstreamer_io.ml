@@ -152,7 +152,7 @@ end
 (* Audio/video output *)
 
 class output ~kind ~clock_safe ~on_error
-  ~infallible ~on_start ~on_stop ?(blocking=true)
+  ~infallible ~on_start ~on_stop ~cmd_skip ?(blocking=true)
   source start (pipeline,audio_pipeline,video_pipeline)
   =
   let has_audio, audio_pipeline =
@@ -168,7 +168,7 @@ class output ~kind ~clock_safe ~on_error
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
   inherit Output.output  ~content_kind:kind
-    ~infallible ~on_start ~on_stop
+    ~infallible ~on_start ~on_stop ~cmd_skip
     ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
   inherit [App_src.t,App_src.t] element_factory ~on_error
 
@@ -315,23 +315,14 @@ let () =
     (fun p kind ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
-      let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
         Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg])
       in
-      let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-      in
+      let infallible, on_start, on_stop, start, cmd_skip = Output.parse_proto p in
       let source = List.assoc "" p in
-      (new output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start ("",Some pipeline,None) :> Source.source)
+      (new output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop ~cmd_skip source start ("",Some pipeline,None) :> Source.source)
     )
 
 let () =
@@ -347,23 +338,14 @@ let () =
     (fun p kind ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
-      let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
         Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg])
       in
-      let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-      in
+      let infallible, on_start, on_stop, start, cmd_skip = Output.parse_proto p in
       let source = List.assoc "" p in
-      (new output ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start ("",None,Some pipeline) :> Source.source)
+      (new output ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~cmd_skip source start ("",None,Some pipeline) :> Source.source)
     )
 
 let () =
@@ -391,24 +373,15 @@ let () =
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
       let video_pipeline = Lang.to_string (List.assoc "video_pipeline" p) in
-      let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
         Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg])
       in
-      let start = Lang.to_bool (List.assoc "start" p) in
       let blocking = Lang.to_bool (List.assoc "blocking" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-      in
+      let infallible, on_start, on_stop, start, cmd_skip = Output.parse_proto p in
       let source = List.assoc "" p in
-      (new output ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking source start (pipeline,Some audio_pipeline,Some video_pipeline) :> Source.source)
+      (new output ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~cmd_skip ~blocking source start (pipeline,Some audio_pipeline,Some video_pipeline) :> Source.source)
     )
 
 (***** Input *****)

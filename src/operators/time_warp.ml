@@ -85,7 +85,7 @@ struct
   object
     inherit Output.output
       ~output_kind:"buffer" ~content_kind:kind
-      ~infallible ~on_start ~on_stop
+      ~infallible ~on_start ~on_stop ~cmd_skip:(fun _ -> ())
       source_val
       autostart
 
@@ -286,7 +286,7 @@ struct
   object
     inherit Output.output
       ~output_kind:"buffer" ~content_kind:kind
-      ~infallible ~on_start ~on_stop
+      ~infallible ~on_start ~on_stop ~cmd_skip:(fun _ -> ())
       source_val
       autostart
 

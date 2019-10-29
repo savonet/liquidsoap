@@ -183,7 +183,7 @@ object (self)
 end
 
 class output ~kind ~clock_safe ~start ~infallible
-             ~on_stop ~on_start dev val_source =
+             ~on_stop ~on_start ~cmd_skip dev val_source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
@@ -191,7 +191,7 @@ object (self)
 
   inherit
     Output.output
-      ~infallible ~on_stop ~on_start ~content_kind:kind
+      ~infallible ~on_stop ~on_start ~cmd_skip ~content_kind:kind
       ~name ~output_kind:"output.alsa" val_source start
     as super
   inherit base ~kind dev [Pcm.Playback]
@@ -343,22 +343,13 @@ let () =
        let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let start = Lang.to_bool (List.assoc "start" p) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
+       let infallible, on_start, on_stop, start, cmd_skip = Output.parse_proto p in
          if bufferize then
-           ((new Alsa_out.output ~kind ~clock_safe ~start ~on_start ~on_stop 
+           ((new Alsa_out.output ~kind ~clock_safe ~start ~on_start ~on_stop ~cmd_skip
                                  ~infallible device source):>Source.source)
          else
            ((new output ~kind ~clock_safe ~infallible 
-               ~start ~on_start ~on_stop device source):>Source.source))
+               ~start ~on_start ~on_stop ~cmd_skip device source):>Source.source))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in

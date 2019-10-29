@@ -164,16 +164,9 @@ let string_of_file_state = function
   | `Deleted -> "deleted"
 
 class hls_output p =
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-  in
+  let infallible, on_start, on_stop, autostart, cmd_skip = Output.parse_proto p in
   let encode_metadata =
     Lang.to_bool (List.assoc "encode_metadata" p)
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
   let on_file_change =
     let f = List.assoc "on_file_change" p in
@@ -181,8 +174,6 @@ class hls_output p =
       ignore (Lang.apply ~t:Lang.unit_t f ["state",Lang.string (string_of_file_state state);
                                            "",Lang.string fname])
   in
-  let autostart = Lang.to_bool (List.assoc "start" p) in
-  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
   let () =
     if not (Sys.file_exists directory) || not (Sys.is_directory directory) then
@@ -326,7 +317,7 @@ class hls_output p =
   object (self)
     inherit
       Output.encoded
-        ~infallible ~on_start ~on_stop ~autostart
+        ~infallible ~on_start ~on_stop ~autostart ~cmd_skip
         ~output_kind:"output.file" ~name
         ~content_kind:kind source as output
 
