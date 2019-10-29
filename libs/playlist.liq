@@ -52,8 +52,9 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
   def load_playlist () =
     files =
       if file.is_directory(!playlist_uri) then
-        log(label=id,"playlist is a directory.")
-        get_process_lines("find #{string.quote(!playlist_uri)} -type f | sort")
+        log(label=id,"Playlist is a directory.")
+        files = file.ls(absolute=true,recursive=true,!playlist_uri)
+        list.filter(fun(f) -> not (file.is_directory(f)), files)
       else
         playlist = request.create.raw(!playlist_uri)
         result =
