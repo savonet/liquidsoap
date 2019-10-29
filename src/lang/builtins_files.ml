@@ -99,6 +99,7 @@ let () =
     ~descr:"Returns true if the file or directory exists."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
+       let f = Utils.home_unrelate f in
        Lang.bool (Sys.file_exists f))
 
 let () =
@@ -107,6 +108,7 @@ let () =
     ~descr:"Returns true if the file exists and is a directory."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
+       let f = Utils.home_unrelate f in
        Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
