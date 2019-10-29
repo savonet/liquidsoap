@@ -335,7 +335,7 @@ object (self)
       -. time ()
     in
       if sync then
-        log#important "Streaming loop starts, synchronized with wallclock."
+        log#important "Streaming loop starts, synchronized with the CPU clock."
       else
         log#important "Streaming loop starts, synchronized by active sources." ;
       let rec loop () =
