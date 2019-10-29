@@ -673,10 +673,11 @@ let rec (<:) a b =
      begin try t1 <: t2 with
            | Error (a,b) -> raise (Error (`List a, `List b))
      end
-  | Cmd (b1,t1), Cmd (b2,t2) when !b1 = !b2 ->
+  | Cmd (b1,t1), Cmd (b2,t2) when not !b1 || !b2 ->
      begin try t1 <: t2 with
            | Error (a,b) -> raise (Error (`Cmd (!b1,a), `Cmd (!b2,b)))
-     end
+     end;
+     b1 := !b2
   | Cmd (b1,t1), _ when !b1 ->
      begin try t1 <: b with
            | Error (a,b) -> raise (Error (`Cmd (true,a), b))

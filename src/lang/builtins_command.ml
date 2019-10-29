@@ -24,7 +24,7 @@ let log = Log.make ["lang";"commad"]
 
 let () =
   let t = Lang.univ_t 1 in
-  let cmd_t = Lang_values.cmd_t ~pos:t.Lang_types.pos t in
+  let cmd_t = Lang_values.cmd_t ~pos:t.Lang_types.pos ~set:true t in
   Lang_builtins.add_builtin
     ~cat:Lang_builtins.Control
     ~descr:"Set the value of a command."
