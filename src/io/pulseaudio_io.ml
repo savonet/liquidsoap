@@ -95,13 +95,11 @@ object (self)
            stream <- None
 
   method output_start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
+    (get_clock ())#register_blocking_source ;
     self#open_device
 
   method output_stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
+    (get_clock ())#unregister_blocking_source ;
     self#close_device
 
   method output_reset =
@@ -156,13 +154,11 @@ object (self)
       Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
 
   method private start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
+    (get_clock ())#register_blocking_source ;
     self#open_device
 
   method private stop =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
+    (get_clock ())#register_blocking_source ;
     self#close_device
 
   method output_reset =

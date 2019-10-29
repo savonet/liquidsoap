@@ -53,11 +53,11 @@ object (self)
 
   method output_start =
     ioring#output_start ;
-    if clock_safe then (get_clock ())#register_blocking_source
+    (get_clock ())#register_blocking_source
 
   method output_stop =
     ioring#output_stop ;
-    if clock_safe then (get_clock ())#unregister_blocking_source
+    (get_clock ())#unregister_blocking_source
 
   val mutable device = None
 

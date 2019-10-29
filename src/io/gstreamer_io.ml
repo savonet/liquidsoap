@@ -186,7 +186,7 @@ object (self)
        playing. *)
     (* ignore (Element.get_state el.bin); *)
     self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
-    if clock_safe then (gst_clock ())#register_blocking_source
+    (gst_clock ())#register_blocking_source
 
   method output_stop =
     self#stop_task;
@@ -206,7 +206,7 @@ object (self)
               GU.flush ~log:self#log el.bin) ()
     in
     todo ();
-    if clock_safe then (gst_clock ())#unregister_blocking_source
+    (gst_clock ())#unregister_blocking_source
 
   method private make_element =
     let pipeline =

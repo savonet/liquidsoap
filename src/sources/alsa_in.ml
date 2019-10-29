@@ -47,13 +47,11 @@ object (self)
 
   method private wake_up l =
     active_source#wake_up l ;
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source
+    (Alsa_settings.get_clock ())#register_blocking_source
 
   method private sleep =
     ioring#sleep ;
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source
+    (Alsa_settings.get_clock ())#unregister_blocking_source
 
   method stype = Infallible
   method is_ready = true

@@ -48,12 +48,12 @@ object (self)
 
   method private wake_up l =
     active_source#wake_up l ;
-    if clock_safe then (bjack_clock ())#register_blocking_source
+    (bjack_clock ())#register_blocking_source
 
   method private sleep =
     active_source#sleep ;
     ioring#sleep ;
-    if clock_safe then (bjack_clock ())#unregister_blocking_source
+    (bjack_clock ())#unregister_blocking_source
 
   method stype = Infallible
   method is_ready = true

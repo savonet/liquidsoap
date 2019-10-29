@@ -205,13 +205,11 @@ object (self)
   val samplerate_converter = Audio_converter.Samplerate.create channels
 
   method output_start =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source ;
+    (Alsa_settings.get_clock ())#register_blocking_source ;
     self#open_device
 
   method output_stop =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source ;
+    (Alsa_settings.get_clock ())#unregister_blocking_source ;
     self#close_device
 
   method output_send memo =
@@ -275,13 +273,11 @@ object (self)
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
   method private start =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source ;
+    (Alsa_settings.get_clock ())#register_blocking_source ;
     self#open_device
 
   method private stop =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source ;
+    (Alsa_settings.get_clock ())#unregister_blocking_source ;
     self#close_device
 
   (* TODO: convert samplerate *)

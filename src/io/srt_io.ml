@@ -263,8 +263,7 @@ object (self)
     Tutils.mutexify input_mutex (fun () ->
       Generator.set_mode generator `Undefined;
       client_data <- Some (socket, decoder)) ();
-    if clock_safe then
-      self#get_clock#register_blocking_source ;
+    self#get_clock#register_blocking_source ;
     on_connect ()
 
   method private close_client =
@@ -275,8 +274,7 @@ object (self)
         | Some (socket, _) ->
             Srt.close socket;
             client_data <- None) ();
-    if clock_safe then
-      self#get_clock#unregister_blocking_source ;
+    self#get_clock#unregister_blocking_source ;
     self#connect
 
   method private connect =

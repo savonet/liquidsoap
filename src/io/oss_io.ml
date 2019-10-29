@@ -72,13 +72,11 @@ object (self)
           fd <- None
 
   method output_start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
+    (get_clock ())#register_blocking_source ;
     self#open_device
 
   method output_stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
+    (get_clock ())#unregister_blocking_source ;
     self#close_device
 
   method output_reset = 
@@ -117,8 +115,7 @@ object (self)
   val mutable fd = None
 
   method private start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
+    (get_clock ())#register_blocking_source ;
     self#open_device
 
   method private open_device =
@@ -129,8 +126,7 @@ object (self)
       force set_rate descr samples_per_second
 
   method private stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
+    (get_clock ())#unregister_blocking_source ;
     self#close_device
 
   method private close_device =
