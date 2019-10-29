@@ -7,7 +7,7 @@ New:
 - Added LV2 support (#906).
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
-- Added `file.ls`.
+- Added `file.ls` (#1011).
 
 Changed:
 
@@ -21,7 +21,7 @@ Changed:
 Fixed:
 
 - Fix implementation of recursive functions (#934).
-- Fix opam install error with some bash-completion confiuration (#980)
+- Fix opam install error with some bash-completion configuration (#980).
 
 1.4.0 (29-09-2019)
 =====
