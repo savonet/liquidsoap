@@ -1,6 +1,6 @@
 name: liquidsoap # you probably want to 'snapcraft register <name>'
-base: core18 # the base snap is the execution environment for this snap
-version: '1.4.0' # just for humans, typically '1.2+git' or '1.3.2'
+base: core18
+version: '1.4.0'
 summary: Swiss-army knife for multimedia streaming
 description: |
   Liquidsoap is a powerful and flexible language for describing your
@@ -14,6 +14,7 @@ grade: stable
 confinement: devmode # use 'strict' once you have the right plugs and slots
 
 parts:
-  my-part:
-    # See 'snapcraft plugins'
-    plugin: nil
+  liquidsoap:
+    plugin: autotools
+    source: https://github.com/savonet/liquidsoap/releases/download/1.4.0/liquidsoap-1.4.0.tar.bz2
+    build-packages: [ocaml]
