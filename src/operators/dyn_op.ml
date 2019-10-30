@@ -93,6 +93,7 @@ object (self)
   method remaining = match source with Some s -> s#remaining | None -> -1
   method abort_track = match source with Some s -> s#abort_track | None -> ()
   method seek n = match source with Some s -> s#seek n | None -> 0
+  method self_synced = match source with Some s -> s#self_synced | None -> false
 
 end
 

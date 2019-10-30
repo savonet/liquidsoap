@@ -55,6 +55,8 @@ object (self)
 
   method seek = source#seek
 
+  method self_synced = source#self_synced
+
   val mutable notes_on = []
 
   method private get_frame buf =

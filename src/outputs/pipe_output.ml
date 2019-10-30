@@ -314,6 +314,8 @@ object (self)
   inherit piped_output p
   inherit chan_output p
 
+  method self_synced = false
+
   method open_chan =
     let process = process () in
     let process = self#interpolate process in

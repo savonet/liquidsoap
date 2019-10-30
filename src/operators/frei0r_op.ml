@@ -51,6 +51,7 @@ object
   method remaining = source#remaining
   method seek = source#seek
   method is_ready = source#is_ready
+  method self_synced = source#self_synced
   method abort_track = source#abort_track
 
   val mutable t = 0.

@@ -41,6 +41,8 @@ object (self)
           as super
   inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
+  method self_synced = true
+
   method private set_clock =
     super#set_clock ;
     if clock_safe then

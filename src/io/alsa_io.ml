@@ -196,6 +196,8 @@ object (self)
     as super
   inherit base ~kind dev [Pcm.Playback]
 
+  method self_synced = true
+
   method private set_clock =
     super#set_clock ;
     if clock_safe then

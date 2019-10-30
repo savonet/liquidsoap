@@ -33,6 +33,7 @@ object
   inherit source ~name:"blank" kind
   method stype = Infallible
   method is_ready = true
+  method self_synced = false
 
   (** Remaining time, -1 for infinity. *)
   val mutable remaining = ticks
@@ -85,6 +86,7 @@ object
   inherit source ~name:"empty" kind
   method stype = Fallible
   method is_ready = false
+  method self_synced = false
   method remaining = 0
   method abort_track = ()
   method get_frame _ = assert false

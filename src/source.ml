@@ -294,6 +294,8 @@ object (self)
 
   method clock = clock
 
+  method virtual self_synced : bool
+
   method private set_clock =
     List.iter (fun s -> unify self#clock s#clock) sources
 

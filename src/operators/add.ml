@@ -53,6 +53,9 @@ object (self)
     else
       Fallible
 
+  method self_synced =
+    List.exists (fun (_,s) -> s#self_synced) sources
+
   method remaining =
     List.fold_left max 0
       (List.map

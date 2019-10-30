@@ -31,6 +31,8 @@ object(self)
   val mutable remaining = duration
   val mutable s : Source.source = source
 
+  method self_synced = source#self_synced
+
   method private set_clock =
     Clock.unify self#clock s#clock
 

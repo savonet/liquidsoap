@@ -37,6 +37,9 @@ object (self)
   method is_ready = true
   method remaining = -1
 
+  method self_synced =
+    Array.exists (fun s -> s#self_synced) source
+
   val tmp = Frame.create kind
 
   initializer

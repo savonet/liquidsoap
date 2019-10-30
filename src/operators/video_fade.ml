@@ -33,6 +33,7 @@ object
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = source#remaining
+  method self_synced = source#self_synced
 
   val mutable state = `Idle
 
@@ -88,6 +89,7 @@ object
 
   method stype = source#stype
   method abort_track = source#abort_track
+  method self_synced = source#self_synced
 
   (* Fade-out length (in video frames) for the current track.
    * The value is set at the beginning of every track, depending on metadata. *)

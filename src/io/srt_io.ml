@@ -141,6 +141,8 @@ object(self)
 
   method virtual id : string
 
+  method self_synced = true
+
   val mutable clock = None
   method private get_clock =
     match clock with

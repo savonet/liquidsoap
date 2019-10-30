@@ -58,6 +58,10 @@ object
   (** The clock under which the source will run, initially unknown. *)
   method clock : clock_variable
 
+  (** Does the source provide its own synchronization?
+    * Examples: Alsa, AO, SRT I/O, etc.. *)
+  method virtual self_synced : bool
+
   (** Choose your clock, by adjusting to your children source,
     * or anything custom. *)
   method private set_clock : unit

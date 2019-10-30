@@ -41,6 +41,8 @@ object (self)
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype
 
+  method self_synced = false
+
   val mutable cross_length = cross_length
   (* We need to store the end of a track, and compute the power of the signal
    * before the end of track. For doing so we need to remember a sliding window

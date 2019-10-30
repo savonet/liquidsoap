@@ -123,6 +123,11 @@ object (self)
 
   method is_ready = need_eot || selected <> None || self#cached_select <> None
 
+  method self_synced =
+    match self#cached_select with
+      | Some {source} -> source#self_synced
+      | None -> false
+
   method private get_frame ab =
     (* Choose the next child to be played.
      * [forget] tells that the current child has finished its track,
