@@ -19,6 +19,7 @@ Changed:
 - Use system pagesize for buffer allocation (#915).
 - Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
+- Added `fallible` option to `single` operator.
 
 Fixed:
 

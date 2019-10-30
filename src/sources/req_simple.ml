@@ -61,13 +61,15 @@ let () =
             that it can be fetched once. Typically, http, ftp, say requests are \
             static, and time is not."
     (( "", Lang.string_t, None, Some "URI where to find the file" )::
+     ("fallible", Lang.bool_t, Some (Lang.bool false), Some "Enforce fallibility of the request.")::
      queued_proto)
     ~kind:(Lang.Unconstrained (Lang.univ_t 1))
     (fun p kind ->
        let val_uri = List.assoc "" p in
+       let fallible = Lang.to_bool (List.assoc "fallible" p) in
        let l,d,t,c = extract_queued_params p in
        let uri = Lang.to_string val_uri in
-       if Request.is_static uri then
+       if not fallible && Request.is_static uri then
          let r = Request.create ~kind ~persistent:true uri in
          ((new unqueued ~kind r) :> source)
        else
