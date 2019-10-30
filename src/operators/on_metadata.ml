@@ -29,7 +29,7 @@ object (self)
   method abort_track = s#abort_track
   method remaining = s#remaining
   method seek n = s#seek n
-  method self_synced = s#self_synced
+  method self_sync = s#self_sync
 
   method private get_frame ab =
     let p = Frame.position ab in

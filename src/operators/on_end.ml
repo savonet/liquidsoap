@@ -32,7 +32,7 @@ object(self)
   method remaining = s#remaining
   method abort_track = s#abort_track
   method seek n = s#seek n
-  method self_synced = s#self_synced
+  method self_sync = s#self_sync
 
   method private on_new_metadata = ()
 

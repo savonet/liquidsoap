@@ -49,7 +49,7 @@ object (self)
       ~name ~output_kind:"output.oss" val_source start
     as super
 
-  method self_synced = true
+  method self_sync = true
 
   method private set_clock =
     super#set_clock ;

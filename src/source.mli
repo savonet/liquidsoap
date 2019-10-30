@@ -60,7 +60,7 @@ object
 
   (** Does the source provide its own synchronization?
     * Examples: Alsa, AO, SRT I/O, etc.. *)
-  method virtual self_synced : bool
+  method virtual self_sync : bool
 
   (** Choose your clock, by adjusting to your children source,
     * or anything custom. *)

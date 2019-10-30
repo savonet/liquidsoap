@@ -33,7 +33,7 @@ object (self)
       initialized := true
     end
 
-  method self_synced = true
+  method self_sync = true
 
   method virtual log : Log.t
 

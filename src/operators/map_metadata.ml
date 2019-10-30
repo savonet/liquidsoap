@@ -31,7 +31,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
   method seek n = source#seek n
-  method self_synced = source#self_synced
+  method self_sync = source#self_sync
 
   method private rewrite m =
     let m' = Lang.apply ~t:Lang.metadata_t rewrite_f ["",Lang.metadata m] in

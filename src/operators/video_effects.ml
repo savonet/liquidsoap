@@ -32,7 +32,7 @@ object
 
   method seek = source#seek
 
-  method self_synced = source#self_synced
+  method self_sync = source#self_sync
 
   method is_ready = source#is_ready
   method abort_track = source#abort_track

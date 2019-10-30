@@ -123,9 +123,9 @@ object (self)
 
   method is_ready = need_eot || selected <> None || self#cached_select <> None
 
-  method self_synced =
+  method self_sync =
     match self#cached_select with
-      | Some {source} -> source#self_synced
+      | Some {source} -> source#self_sync
       | None -> false
 
   method private get_frame ab =
@@ -200,9 +200,6 @@ object (self)
             | None -> ()
           end
     in
-      (* #select is called only when selected=None, and the cache is cleared
-       * as soon as the new selection is set. *)
-      assert (selected=None || cached_selected=None) ;
       if need_eot then begin
         need_eot <- false ;
         Frame.add_break ab (Frame.position ab)

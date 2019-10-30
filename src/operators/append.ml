@@ -125,10 +125,10 @@ object (self)
           source#seek n
       | `Append s -> s#seek n 
 
-  method self_synced =
+  method self_sync =
     match state with
-      | `Append s -> s#self_synced
-      | _ -> source#self_synced
+      | `Append s -> s#self_sync
+      | _ -> source#self_sync
 
   (* Other behaviours could be wanted, but for now #abort_track won't cancel
    * any to-be-appended track. *)

@@ -45,7 +45,7 @@ object (self)
       Clock.unify self#clock
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
-  method self_synced = true
+  method self_sync = true
 
   method private wake_up l =
     active_source#wake_up l

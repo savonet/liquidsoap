@@ -53,7 +53,7 @@ object (self)
 
   val mutable device = None
 
-  method self_synced = true
+  method self_sync = true
 
   method get_device =
     match device with

@@ -172,7 +172,7 @@ object (self)
     ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
   inherit [App_src.t,App_src.t] element_factory ~on_error
 
-  method self_synced = true
+  method self_sync = true
 
   method private set_clock =
     super#set_clock;
@@ -471,7 +471,7 @@ object (self)
 
   method stype = Source.Fallible
   method remaining = -1
-  method self_synced = true
+  method self_sync = true
 
   (* Source is ready when ready = true and gst has some audio or some video. *)
   val mutable ready = true

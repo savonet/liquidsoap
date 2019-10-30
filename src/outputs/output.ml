@@ -84,7 +84,7 @@ object (self)
   method virtual private output_send : Frame.t -> unit
 
   method stype = source#stype
-  method self_synced = source#self_synced
+  method self_sync = source#self_sync
 
   initializer
     (* Add a few more server controls *)

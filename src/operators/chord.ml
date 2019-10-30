@@ -55,7 +55,7 @@ object (self)
 
   method seek = source#seek
 
-  method self_synced = source#self_synced
+  method self_sync = source#self_sync
 
   val mutable notes_on = []
 

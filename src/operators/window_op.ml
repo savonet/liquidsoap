@@ -34,7 +34,7 @@ object
   method remaining = source#remaining
   method seek = source#seek
   method abort_track = source#abort_track
-  method self_synced = source#self_synced
+  method self_sync = source#self_sync
 
   (** Accumulator (e.g. sum of squares). *)
   val acc = Array.make channels 0.

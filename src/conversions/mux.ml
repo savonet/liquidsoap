@@ -57,7 +57,7 @@ object (self)
 
   inherit Source.operator ~name:"mux" kind [master;aux]
 
-  method self_synced = master#self_synced || aux#self_synced
+  method self_sync = master#self_sync || aux#self_sync
 
   method stype =
     if master#stype = Source.Infallible && aux#stype = Source.Infallible then

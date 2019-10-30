@@ -31,7 +31,7 @@ object (self)
 
   method stype = source#stype
 
-  method self_synced = source#self_synced
+  method self_sync = source#self_sync
 
   method remaining = source#remaining
 

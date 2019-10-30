@@ -314,7 +314,7 @@ object (self)
   inherit piped_output p
   inherit chan_output p
 
-  method self_synced = false
+  method self_sync = false
 
   method open_chan =
     let process = process () in

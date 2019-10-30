@@ -42,7 +42,7 @@ object (self)
     as super
   inherit [Frame.audio_t array] IoRing.output ~nb_blocks ~blank as ioring
 
-  method self_synced = true
+  method self_sync = true
 
   method private set_clock =
     super#set_clock ;

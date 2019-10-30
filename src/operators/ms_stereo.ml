@@ -32,7 +32,7 @@ object
   method is_ready = source#is_ready
   method remaining = source#remaining
   method seek = source#seek
-  method self_synced = source#self_synced
+  method self_sync = source#self_sync
   method abort_track = source#abort_track
 
   method private get_frame buf =

@@ -34,7 +34,7 @@ object
   method abort_track : unit
   method copy_queue : Request.t list
   method remaining : int
-  method self_synced : bool
+  method self_sync : bool
 end
 
 class virtual queued : kind:Frame.content_kind -> name:string ->
