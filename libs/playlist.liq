@@ -152,14 +152,16 @@ end
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~queue Initial queue of requests.
 # @param Timeout (in sec.) for a single download.
-def playlist.queue.pushable(~id="", ~conservative, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
+def request.queue.pushable(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
   queue = ref(queue)
   def next()
     uri = list.hd(default="", !queue)
     queue := list.tl(!queue)
+    log.debug(label=id, "Next song will be #{uri}.")
     request.create(uri)
   end
   def push(uri)
+    log.info(label=id, "Pushing #{uri} on the queue.")
     queue := list.append(!queue, [uri])
   end
   if interactive then
@@ -168,7 +170,7 @@ def playlist.queue.pushable(~id="", ~conservative, ~default_duration=30., ~inter
     def show_queue(_) = string.concat(separator="\n", !queue) end
     server.register(namespace="#{id}", description="Display current queue content.", usage="queue", "queue", show_queue)
   end
-  s = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, next)
+  s = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, active={!queue != []}, next)
   (push, s)
 end
 
@@ -181,6 +183,6 @@ end
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~queue Initial queue of requests.
 # @param Timeout (in sec.) for a single download.
-def playlist.queue(~id="", ~conservative, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
-  snd(playlist.queue.pushable(id=id, conservative=conservative, default_duration=default_duration, interactive=interactive, length=length, queue=queue, timeout=timeout))
+def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
+  snd(request.queue.pushable(id=id, conservative=conservative, default_duration=default_duration, interactive=interactive, length=length, queue=queue, timeout=timeout))
 end

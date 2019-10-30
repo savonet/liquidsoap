@@ -164,17 +164,6 @@ def sky(s)
       ])
 end
 
-# Append speech-synthesized tracks reading the metadata.
-# @category Source / Track Processing
-# @param ~pattern Pattern to use
-# @param s The source to use
-def say_metadata
-  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
-  fun (s,~pattern=p) ->
-    append(s,fun (m) -> request.queue(queue=[request.create(pattern % m)],
-                                      interactive=false))
-end
-
 %ifdef soundtouch
 # Increases the pitch, making voices sound like on helium.
 # @category Source / Sound Processing
@@ -511,6 +500,16 @@ end
 # @param s Source to extract from
 def stereo.right(s)
   mean(stereo.pan(pan=1., s))
+end
+
+# Append speech-synthesized tracks reading the metadata.
+# @category Source / Track Processing
+# @param ~pattern Pattern to use
+# @param s The source to use
+def say_metadata
+  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
+  fun (s,~pattern=p) ->
+    append(s, fun (m) -> once(single(pattern % m)))
 end
 
 # Rotate between overlapping sources. Next track starts according

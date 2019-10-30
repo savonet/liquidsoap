@@ -88,17 +88,20 @@ let () =
        let r = Lang.to_request (List.assoc "" p) in
        ((new unqueued ~kind r):>source))
 
-class dynamic ~kind (f:Lang.value) length default_duration timeout conservative = object (self)
+class dynamic ~kind ~active (f:Lang.value) length default_duration timeout conservative = object (self)
   inherit
     Request_source.queued ~kind ~name:"request.dynamic"
       ~length ~default_duration ~timeout ~conservative ()
 
   method get_next_request =
     try
-      let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
-      let req = Lang.to_request (Lang.apply ~t f []) in
-      Request.set_root_metadata req "source" self#id ;
-      Some req
+      if active () then
+        let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
+        let req = Lang.to_request (Lang.apply ~t f []) in
+        Request.set_root_metadata req "source" self#id ;
+        Some req
+      else
+        None
     with
     | e ->
       log#severe "Failed to obtain a media request!" ;
@@ -109,10 +112,14 @@ let () =
   let k = Lang.univ_t 1 in
   Lang.add_operator "request.dynamic" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    (( "", Lang.fun_t [] (Lang.request_t k), None, None)
+    (( "", Lang.fun_t [] (Lang.request_t k), None, None)::
+     ( "active", Lang.bool_getter_t 2, Some (Lang.bool true),
+       Some "Whether the source is active, i.e. should be fetching new requests \
+             (when set to false it stops after current request).")
      ::queued_proto)
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        let f = List.assoc "" p in
+       let active = Lang.to_bool_getter (List.assoc "active" p) in
        let l,d,t,c = extract_queued_params p in
-       ((new dynamic ~kind f l d t c) :> source))
+       ((new dynamic ~kind ~active f l d t c) :> source))
