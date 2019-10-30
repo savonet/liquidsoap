@@ -95,6 +95,8 @@ object
 
   method is_ready = source#is_ready && source2#is_ready
 
+  method self_sync = source#self_sync || source2#self_sync
+
   method abort_track = source#abort_track ; source2#abort_track
 
   val mutable t = 0.
@@ -149,6 +151,7 @@ object
 
   method stype = Infallible
   method is_ready = true
+  method self_sync = false
 
   val mutable must_fail = false
   method abort_track = must_fail <- true

@@ -112,6 +112,8 @@ object (self)
 
   val mutable fd = None
 
+  method self_sync = true
+
   method private start = self#open_device
 
   method private open_device =
