@@ -21,6 +21,8 @@ Changed:
 - Native Liquidsoap implementation of list functions (#920).
 - Added `fallible` option to `single` operator.
 - Changed `request.queue` into a Liquidsoap implementation (#1013).
+- Removed `request.equeue`, such a feature could be re-implemented in
+  Liquidsoap, see `request.queue`.
 
 Fixed:
 
