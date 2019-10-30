@@ -70,7 +70,8 @@ let report lexbuf f =
           flush_all () ;
           warning_header 1 (T.print_pos (Utils.get_some tm.Term.t.T.pos));
           Format.printf "This function application is partial,@ \
-                         maybe some arguments are missing.@]@.";
+                         being of type %s.@ \
+                         Maybe some arguments are missing.@]@." (T.print tm.Term.t);
           if !strict then raise Error
       | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
           flush_all () ;
