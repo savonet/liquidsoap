@@ -34,7 +34,7 @@ let force f fd x =
     if x <> x' then failwith "cannot obtain desired OSS settings"
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock ~sync:true "OSS")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
 
 class output ~kind ~clock_safe ~on_start ~on_stop 
              ~infallible ~start dev val_source =

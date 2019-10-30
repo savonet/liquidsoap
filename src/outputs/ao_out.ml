@@ -27,7 +27,7 @@ open Ao
 (** As with ALSA (even more maybe) it would be better to have one clock
   * per driver... but it might also depend on driver options. *)
 let get_clock =
-  Tutils.lazy_cell (fun () -> new Clock.clock ~sync:true "ao")
+  Tutils.lazy_cell (fun () -> new Clock.clock "ao")
 
 class output ~kind ~clock_safe ~nb_blocks ~driver
              ~infallible ~on_start ~on_stop

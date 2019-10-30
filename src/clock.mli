@@ -24,7 +24,19 @@
   * do much, except forcing that one source belongs to exactly one clock,
   * which prevents inconsistent uses of the source. Clocks are assigned to
   * sources at the end of the typing phase. *)
-class clock : ?sync:bool -> string -> Source.clock
+
+(** In [`CPU] mode, synchronization is governed by the CPU clock.
+  * In [`Mone] mode, there is no synchronization control (except for
+  * active sources latencies)
+  * In [[Audo] mode, synchronization is governed by the CPU unless at
+    least one active source is declared [self_synced]. *)
+type sync = [
+  | `Auto
+  | `CPU
+  | `None
+]
+
+class clock : ?sync:sync -> string -> Source.clock
 
 (** Indicates whether the application has started to run or not. *)
 val running : unit -> bool

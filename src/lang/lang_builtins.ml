@@ -149,9 +149,9 @@ let () =
     [ ("id", Lang.string_t, Some (Lang.string ""),
        Some "Identifier for the new clock. The default empty string means that \
              the identifier of the first source will be used.") ;
-      ("sync", Lang.bool_t, Some (Lang.bool true),
-       Some "Do not synchronize the clock on regular clock time, but try to \
-             run as fast as possible (CPU burning mode).") ;
+      ("sync", Lang.bool_t, Some (Lang.string "auto"),
+      Some "Synchronization mode. One of: `\"auto\"`, `\"cpu\"`, \
+            or `\"none\"`.");
       ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None,
        Some "List of sources to which the new clock will be assigned") ]
     Lang.unit_t
@@ -159,7 +159,15 @@ let () =
       match Lang.to_list (List.assoc "" p) with
       | [] -> Lang.unit
       | (hd::_) as sources ->
-         let sync = Lang.to_bool (List.assoc "sync" p) in
+         let sync = List.assoc "sync" p in
+         let sync =
+           match Lang.to_string sync with
+             | s when s = "auto" -> `Auto
+             | s when s = "cpu" -> `CPU
+             | s when s = "none" -> `None
+             | _ ->
+                raise (Lang_errors.Invalid_value (sync, "Invalid sync value"));
+         in
          let id = Lang.to_string (List.assoc "id" p) in
          let id = if id = "" then (Lang.to_source hd)#id else id in
          let clock = new Clock.clock ~sync id in

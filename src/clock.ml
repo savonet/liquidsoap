@@ -115,7 +115,23 @@ let usleep d =
    * This cheap thing does the job for now.. *)
   try Thread.delay d with Unix.Unix_error (Unix.EINTR, _, _) -> ()
 
-class clock ?(sync=true) id =
+(** In [`CPU] mode, synchronization is governed by the CPU clock.
+  * In [`Mone] mode, there is no synchronization control (except for
+  * active sources latencies)
+  * In [[Audo] mode, synchronization is governed by the CPU unless at
+    least one active source is declared [self_synced]. *)
+type sync = [
+  | `Auto
+  | `CPU
+  | `None
+]
+
+let sync_descr = function
+  | `Auto -> "auto-sync"
+  | `CPU -> "CPU sync"
+  | `None -> "no sync"
+
+class clock ?(sync=`Auto) id =
   object (self)
     initializer Clocks.add clocks (self :> Source.clock)
 
@@ -178,8 +194,6 @@ class clock ?(sync=true) id =
       let lock = Mutex.create () in
       fun f -> Tutils.mutexify lock f ()
 
-    val mutable sync = sync
-
     method private run =
       let acc = ref 0 in
       let max_latency = -.conf_max_latency#get in
@@ -192,17 +206,24 @@ class clock ?(sync=true) id =
         +. (frame_duration *. Int64.to_float (Int64.add !ticks 1L))
         -. time ()
       in
-      if sync then
-        log#important "Streaming loop starts, synchronized with the CPU clock."
-      else
-        log#important "Streaming loop starts, synchronized by active sources." ;
+      log#important "Streaming loop starts in %s mode" (sync_descr sync);
       let rec loop () =
         (* Stop running if there is no output. *)
         if outputs = [] then ()
         else (
-          let rem = if not sync then 0. else delay () in
+          let self_synced =
+            match sync with
+              | `Auto ->
+                   List.exists (fun (state,s) ->
+                     state = `Active && s#self_synced) outputs
+              | `CPU ->
+                   false
+              | `None ->
+                   true
+          in
+          let rem = if self_synced then 0. else delay () in
           (* Sleep a while or worry about the latency *)
-          if (not sync) || rem > 0. then (
+          if self_synced || rem > 0. then (
             acc := 0 ;
             usleep rem )
           else (

@@ -148,7 +148,7 @@ object(self)
     match clock with
       | Some c -> c
       | None ->
-         let c = new Clock.clock ~sync:true self#id in
+         let c = new Clock.clock self#id in
          clock <- Some c;
          c
 
