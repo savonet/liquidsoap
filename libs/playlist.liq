@@ -170,7 +170,7 @@ def request.queue.pushable(~id="", ~conservative=false, ~default_duration=30., ~
     def show_queue(_) = string.concat(separator="\n", !queue) end
     server.register(namespace="#{id}", description="Display current queue content.", usage="queue", "queue", show_queue)
   end
-  s = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, active={!queue != []}, next)
+  s = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={!queue != []}, next)
   (push, s)
 end
 

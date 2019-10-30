@@ -118,13 +118,13 @@ let () =
   Lang.add_operator "request.dynamic" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
     (( "", Lang.fun_t [] (Lang.request_t k), None, None)::
-     ( "active", Lang.bool_getter_t 2, Some (Lang.bool true),
-       Some "Whether the source is active, i.e. should be fetching new requests \
-             (when set to false it stops after current request).")
+     ( "available", Lang.bool_getter_t 2, Some (Lang.bool true),
+       Some "Whether some new requests are available (when set to false, it \
+             stops after current playing request).")
      ::queued_proto)
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        let f = List.assoc "" p in
-       let active = Lang.to_bool_getter (List.assoc "active" p) in
+       let active = Lang.to_bool_getter (List.assoc "available" p) in
        let l,d,t,c = extract_queued_params p in
        ((new dynamic ~kind ~active f l d t c) :> source))
