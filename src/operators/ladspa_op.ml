@@ -67,6 +67,8 @@ object
 
   method is_ready = true
 
+  method self_sync = false
+
   val mutable must_fail = false
 
   method abort_track =
