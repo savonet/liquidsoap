@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-exception Invalid_file
-
 let log = Log.make ["decoder";"id3v2"]
 
 (** Configuration keys for id3v2. *)
@@ -44,12 +42,12 @@ let get_tags fname =
     if not (Decoder.test_file ~mimes:mime_types#get 
                               ~extensions:file_extensions#get 
                               ~log fname) then
-      raise Invalid_file;
+      raise Id3v2.Invalid;
     let ic = open_in fname in
     Tutils.finalize ~k:(fun () -> close_in ic)
       (fun () -> Id3v2.parse (input ic))
   with
-  | Id3v2.Invalid -> []
+ | Id3v2.Invalid -> []
   | e ->
     log#info "Error while decoding file tags: %s" (Printexc.to_string e);       
     log#info "Backtrace:\n%s" (Printexc.get_backtrace());
