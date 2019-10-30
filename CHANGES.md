@@ -8,6 +8,8 @@ New:
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
 - Added `file.ls` (#1011).
+- Added native id3v2 tag parser, as well as associated function `file.mp3.tags`,
+  `file.mp3.parse_apic` and `file.cover` (#987).
 
 Changed:
 
