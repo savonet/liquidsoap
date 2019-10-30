@@ -150,7 +150,7 @@ let () =
        Some "Identifier for the new clock. The default empty string means that \
              the identifier of the first source will be used.") ;
       ("sync", Lang.bool_t, Some (Lang.bool true),
-       Some "Do not synchronize the clock on regular wallclock time, but try to \
+       Some "Do not synchronize the clock on regular clock time, but try to \
              run as fast as possible (CPU burning mode).") ;
       ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None,
        Some "List of sources to which the new clock will be assigned") ]
@@ -162,7 +162,7 @@ let () =
          let sync = Lang.to_bool (List.assoc "sync" p) in
          let id = Lang.to_string (List.assoc "id" p) in
          let id = if id = "" then (Lang.to_source hd)#id else id in
-         let clock = new Clock.wallclock ~sync id in
+         let clock = new Clock.clock ~sync id in
          List.iter
            (fun s ->
              try

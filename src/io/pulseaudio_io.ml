@@ -23,7 +23,7 @@
 open Pulseaudio
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.wallclock ~sync:true "pulse")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock ~sync:true "pulse")
 
 (** Error translator *)
 let error_translator e =
@@ -94,13 +94,9 @@ object (self)
            Pulseaudio.Simple.free s;
            stream <- None
 
-  method output_start =
-    (get_clock ())#register_blocking_source ;
-    self#open_device
+  method output_start = self#open_device
 
-  method output_stop =
-    (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method output_stop = self#close_device
 
   method output_reset =
     self#close_device ;
@@ -153,13 +149,9 @@ object (self)
     if clock_safe then
       Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
 
-  method private start =
-    (get_clock ())#register_blocking_source ;
-    self#open_device
+  method private start = self#open_device
 
-  method private stop =
-    (get_clock ())#register_blocking_source ;
-    self#close_device
+  method private stop = self#close_device
 
   method output_reset =
     self#close_device ;

@@ -146,7 +146,7 @@ object(self)
     match clock with
       | Some c -> c
       | None ->
-         let c = new Clock.wallclock ~sync:true self#id in
+         let c = new Clock.clock ~sync:true self#id in
          clock <- Some c;
          c
 
@@ -263,7 +263,6 @@ object (self)
     Tutils.mutexify input_mutex (fun () ->
       Generator.set_mode generator `Undefined;
       client_data <- Some (socket, decoder)) ();
-    self#get_clock#register_blocking_source ;
     on_connect ()
 
   method private close_client =
@@ -274,7 +273,6 @@ object (self)
         | Some (socket, _) ->
             Srt.close socket;
             client_data <- None) ();
-    self#get_clock#unregister_blocking_source ;
     self#connect
 
   method private connect =
@@ -536,8 +534,6 @@ object (self)
   method private output_reset = self#output_start ; self#output_stop
 
   method private output_stop =
-    if clock_safe then
-      self#get_clock#unregister_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Stopped) ();
     self#stop_connect_task

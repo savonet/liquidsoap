@@ -420,7 +420,7 @@ end
 # and return the source. It is a conveniency wrapper around clock.assign_new(),
 # allowing more concise scripts in some cases.
 # @category Liquidsoap
-# @param ~sync When `false`, do not synchronize the clock on regular wallclock time, \
+# @param ~sync When `false`, do not synchronize the clock on regular CPU time, \
 #              but try to run as fast as possible (CPU burning mode).
 def clock(~sync=true,~id="",s)
   clock.assign_new(sync=sync,id=id,[s])

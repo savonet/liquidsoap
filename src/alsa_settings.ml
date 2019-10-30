@@ -68,4 +68,4 @@ let alsa_buffer =
 (** A dedicated clock for all ALSA I/O operators, to make sure other
   * blocking I/O inteferes with them. In the future, we might even want
   * to have different clocks for different ALSA devices. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.wallclock ~sync:true "alsa")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock ~sync:true "alsa")

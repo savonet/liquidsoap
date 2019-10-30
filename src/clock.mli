@@ -24,17 +24,7 @@
   * do much, except forcing that one source belongs to exactly one clock,
   * which prevents inconsistent uses of the source. Clocks are assigned to
   * sources at the end of the typing phase. *)
-class clock : string -> Source.clock
-
-(** Wallclocks are clocks attached to a thread that periodically makes the
-  * clock tick, which triggers the streaming of the active sources attached
-  * to the clock. *)
-class wallclock : ?sync:bool -> string ->
-object
-  inherit Source.clock
-  method register_blocking_source : unit
-  method unregister_blocking_source : unit
-end
+class clock : ?sync:bool -> string -> Source.clock
 
 (** Indicates whether the application has started to run or not. *)
 val running : unit -> bool

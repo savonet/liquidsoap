@@ -58,7 +58,7 @@ type source_t = Fallible | Infallible
   *
   * Most clocks are passive, i.e. they don't run anything
   * directly, but may only tick when something happens to a source.
-  * The wallclock (formerly root.ml) is the default, active clock:
+  * The clock (formerly root.ml) is the default, active clock:
   * when started, it launches a thread which keeps ticking regularly.
   *
   * A clock needs to know all the active sources under its control,
@@ -75,7 +75,7 @@ type source_t = Fallible | Infallible
   *
   * The idea is that when an output is created it assigns a clock to itself
   * according to its sources' clocks. Eventually, all remaining unknown clocks
-  * are forced to wallclock. *)
+  * are forced to clock. *)
 
 class type ['a,'b] proto_clock =
 object

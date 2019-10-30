@@ -76,7 +76,7 @@ yields the following graph:
 operator; the rate of that clock is controlled by that operator,
 which can hence accelerate it around track changes without any
 risk of inconsistency.
-The other clock is simply a wallclock, so that the main stream
+The other clock is simply a CPU-based clock, so that the main stream
 is produced following the ``real'' time rate.
 
 Error messages

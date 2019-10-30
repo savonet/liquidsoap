@@ -46,12 +46,11 @@ object (self)
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
   method private wake_up l =
-    active_source#wake_up l ;
-    (Alsa_settings.get_clock ())#register_blocking_source
+    active_source#wake_up l
 
   method private sleep =
-    ioring#sleep ;
-    (Alsa_settings.get_clock ())#unregister_blocking_source
+    active_source#sleep ;
+    ioring#sleep
 
   method stype = Infallible
   method is_ready = true

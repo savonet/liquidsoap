@@ -26,7 +26,7 @@ open Gstreamer
 module GU = Gstreamer_utils
 
 let log = Log.make ["io";"gstreamer"]
-let gst_clock = Tutils.lazy_cell (fun () -> new Clock.wallclock ~sync:true "gstreamer")
+let gst_clock = Tutils.lazy_cell (fun () -> new Clock.clock ~sync:true "gstreamer")
 
 let string_of_state_change = function
   | Element.State_change_success    -> "success"
@@ -185,8 +185,7 @@ object (self)
        GStreamer is waiting for some data before answering that we are
        playing. *)
     (* ignore (Element.get_state el.bin); *)
-    self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
-    (gst_clock ())#register_blocking_source
+    self#register_task ~priority:Tutils.Blocking Tutils.scheduler
 
   method output_stop =
     self#stop_task;
@@ -205,8 +204,7 @@ object (self)
               ignore (Element.get_state el.bin);
               GU.flush ~log:self#log el.bin) ()
     in
-    todo ();
-    (gst_clock ())#unregister_blocking_source
+    todo ()
 
   method private make_element =
     let pipeline =
