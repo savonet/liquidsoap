@@ -627,7 +627,9 @@ let to_product t = match t.value with
 let to_cmd t = match t.value with
   | Cmd a ->
     (
-      assert (!a = None);
+      (* We cannot assert this because commands used as default values will be
+         set multiple times without causing any problem... *)
+      (* assert (!a = None); *)
       fun x -> a := Some x
     )
   | _ -> assert false
