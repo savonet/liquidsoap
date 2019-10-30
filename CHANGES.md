@@ -20,6 +20,7 @@ Changed:
 - Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
 - Added `fallible` option to `single` operator.
+- Changed `request.queue` into a Liquidsoap implementation.
 
 Fixed:
 

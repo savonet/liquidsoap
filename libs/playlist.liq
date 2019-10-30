@@ -142,3 +142,45 @@ def playlist.merge(~id="",~random=false,
   s = merge_tracks(s)
   on_end(delay=0.,fun(_,_)->reload(),s)
 end
+
+# Play a queue of uris. Returns a function to push new uris in the queue as well as the resulting source.
+# @category Source / Track Processing
+# @param ~id Force the value of the source ID.
+# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
+# @param ~default_duration When unknown, assume this duration (in sec.) for files.
+# @param ~interactive Should the queue be controllable via telnet?
+# @param ~length How much audio (in sec.) should be queued in advance.
+# @param ~queue Initial queue of requests.
+# @param Timeout (in sec.) for a single download.
+def playlist.queue.pushable(~id="", ~conservative, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
+  queue = ref(queue)
+  def next()
+    uri = list.hd(default="", !queue)
+    queue := list.tl(!queue)
+    request.create(uri)
+  end
+  def push(uri)
+    queue := list.append(!queue, [uri])
+  end
+  if interactive then
+    def push(uri) = push(uri); "done" end
+    server.register(namespace="#{id}", description="Push a new request in the queue.", usage="push <uri>", "push", push)
+    def show_queue(_) = string.concat(separator="\n", !queue) end
+    server.register(namespace="#{id}", description="Display current queue content.", usage="queue", "queue", show_queue)
+  end
+  s = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, next)
+  (push, s)
+end
+
+# Play a queue of uris. This function is mainly meant to be controlled over telnet.
+# @category Source / Track Processing
+# @param ~id Force the value of the source ID.
+# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
+# @param ~default_duration When unknown, assume this duration (in sec.) for files.
+# @param ~interactive Should the queue be controllable via telnet?
+# @param ~length How much audio (in sec.) should be queued in advance.
+# @param ~queue Initial queue of requests.
+# @param Timeout (in sec.) for a single download.
+def playlist.queue(~id="", ~conservative, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
+  snd(playlist.queue.pushable(id=id, conservative=conservative, default_duration=default_duration, interactive=interactive, length=length, queue=queue, timeout=timeout))
+end

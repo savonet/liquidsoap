@@ -70,7 +70,7 @@ sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
 	sources/req_simple.ml sources/playlist.ml \
-	sources/req_queue.ml sources/req_equeue.ml \
+	sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
 	$(if $(W_SSL),sources/https_source.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),sources/https_secure_transport_source.ml) \
