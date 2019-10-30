@@ -58,8 +58,8 @@ object (self)
     (Utils.get_some encoder).Encoder.insert_metadata m
 
   method private send data =
-    let sent = (Utils.get_some socket_send) data 0 (String.length data) in
-      ignore sent
+    let socket_send = Utils.get_some socket_send in
+    Strings.iter (fun s o l -> ignore (socket_send s o l)) data
 
 end
 

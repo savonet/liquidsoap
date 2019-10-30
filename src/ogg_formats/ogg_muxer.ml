@@ -77,8 +77,8 @@ type t =
   {
     id               : string;
     mutable skeleton : Ogg.Stream.stream option;
-    header           : Buffer.t;
-    encoded          : Buffer.t;
+    header           : Strings.Mutable.t;
+    encoded          : Strings.Mutable.t;
     mutable position : float;
     tracks           : (nativeint,track) Hashtbl.t;
     mutable state    : state ;
@@ -134,23 +134,21 @@ let state encoder =
 
 (** Get and remove encoded data.. *)
 let get_data encoder =
-  let b = Buffer.contents encoder.encoded in
-  Buffer.reset encoder.encoded;
-  b
+  Strings.Mutable.flush encoder.encoded
 
 (** Peek encoded data without removing it. *)
 let peek_data encoder =
-  Buffer.contents encoder.encoded
+  Strings.Mutable.to_strings encoder.encoded
 
 (** Add an ogg page. *)
 let add_page encoder ?(header=false) (h,v) =
-  Buffer.add_string encoder.encoded h;
-  Buffer.add_string encoder.encoded v;
+  Strings.Mutable.add encoder.encoded h;
+  Strings.Mutable.add encoder.encoded v;
   if header then
-   begin
-    Buffer.add_string encoder.header h;
-    Buffer.add_string encoder.header v
-   end
+    begin
+      Strings.Mutable.add encoder.header h;
+      Strings.Mutable.add encoder.header v
+    end
 
 let flush_pages os = 
   let rec f os l = 
@@ -187,8 +185,8 @@ let create ~skeleton id =
      {
       id       = id;
       skeleton = None;
-      header   = Buffer.create Utils.pagesize ;
-      encoded  = Buffer.create Utils.pagesize ;
+      header   = Strings.Mutable.empty () ;
+      encoded  = Strings.Mutable.empty () ;
       position = 0.;
       tracks   = Hashtbl.create 10;
       state    = Bos
@@ -287,7 +285,8 @@ let streams_start encoder =
   encoder.state <- Streaming
 
 (** Get the first pages of each streams. *)
-let get_header x = Buffer.contents x.header
+let get_header x =
+  Strings.Mutable.to_strings x.header
 
 (** Is a track empty ?*)
 let is_empty x =
@@ -463,7 +462,7 @@ let eos encoder =
   if Hashtbl.length encoder.tracks <> 0 then
     raise Invalid_usage ;
   log#info "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
-  Buffer.reset encoder.header ;
+  ignore(Strings.Mutable.flush encoder.header);
   encoder.position <- 0.;
   encoder.state <- Eos
 

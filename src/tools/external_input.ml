@@ -49,9 +49,14 @@ object (self)
         end
       else on_data reader
     in
-    let on_stderr in_chan =
-      self#log#info "%s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize in_chan));
-      `Continue
+    let on_stderr =
+      let buf = Bytes.create Utils.pagesize in
+      fun puller ->
+        let len = puller buf 0 Utils.pagesize in
+        self#log#info "%s"
+          (Bytes.unsafe_to_string
+            (Bytes.sub buf 0 len));
+        `Continue
     in
     let on_stop status =
       header_read <- false;

@@ -121,7 +121,7 @@ let encoder ogg =
         Encoder.
          insert_metadata  = insert_metadata ;
          encode = encode ;
-         header = None ;
+         header = Strings.empty ;
          stop   = stop
        }
       and streams_start () = 
@@ -132,7 +132,7 @@ let encoder ogg =
         in
         List.iter f tracks ;
         Ogg_muxer.streams_start ogg_enc ;
-        enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
+        enc.Encoder.header <- Ogg_muxer.get_header ogg_enc
       and encode frame start len =
         (* We do a lazy start, to 
          * avoid empty streams at beginning.. *)
@@ -141,7 +141,7 @@ let encoder ogg =
         then
          begin
           streams_start () ;
-          enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
+          enc.Encoder.header <- Ogg_muxer.get_header ogg_enc
          end ;
         let _,content = Frame.content frame start in
         let f track = 
@@ -159,11 +159,11 @@ let encoder ogg =
         then
          begin
           Ogg_muxer.end_of_stream ogg_enc ; 
-          enc.Encoder.header <- None 
+          enc.Encoder.header <- Strings.empty
          end
       and stop () = 
         ogg_stop () ;
-        enc.Encoder.header <- None ;
+        enc.Encoder.header <- Strings.empty ;
         Ogg_muxer.get_data ogg_enc
       and insert_metadata m =
         ogg_stop () ;
@@ -171,7 +171,7 @@ let encoder ogg =
           track.id <- Some (track.reset ogg_enc m)
         in
         List.iter f tracks ;
-        enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
+        enc.Encoder.header <- Ogg_muxer.get_header ogg_enc
       in
       enc
 

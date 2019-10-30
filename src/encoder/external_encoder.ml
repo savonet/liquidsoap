@@ -28,7 +28,8 @@ let encoder id ext =
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in
-  let buf = Buffer.create Utils.pagesize in
+  let buf = Strings.Mutable.empty () in
+  let bytes = Bytes.create Utils.pagesize in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
 
@@ -54,11 +55,14 @@ let encoder id ext =
   in
 
   let on_stderr puller =
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller));
+    let len = puller bytes 0 Utils.pagesize in
+    log#debug "stderr: %s"
+      (Bytes.unsafe_to_string
+        (Bytes.sub bytes 0 len));
     `Continue
   in
   let on_start pusher =
-    Process_handler.write (Bytes.of_string header) pusher;
+    Process_handler.really_write (Bytes.of_string header) pusher;
     `Continue
   in
   let on_stop = function
@@ -81,17 +85,12 @@ let encoder id ext =
 
   let on_stdout = Tutils.mutexify mutex (fun puller ->
     begin
-      match Bytes.unsafe_to_string (Process_handler.read Utils.pagesize puller) with
-        | "" when !is_stop -> Condition.signal condition
-        | s -> Buffer.add_string buf s
+      let len = puller bytes 0 Utils.pagesize in
+      match len with
+        | 0 when !is_stop -> Condition.signal condition
+        | _ -> Strings.Mutable.add_subbytes buf bytes 0 len
     end;
     `Continue)
-  in
-
-  let flush_buffer = Tutils.mutexify mutex (fun () ->
-    let content = Buffer.contents buf in
-    Buffer.reset buf;
-    content)
   in
 
   let process =
@@ -142,22 +141,26 @@ let encoder id ext =
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
           Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
-          Bytes.unsafe_to_string sbuf
+          Strings.unsafe_of_bytes sbuf
        end
     in
     Tutils.mutexify mutex (fun () ->
       try
-        Process_handler.on_stdin process (Process_handler.write (Bytes.of_string sbuf));
+        Process_handler.on_stdin process
+          (fun push ->
+             Strings.iter
+               (fun s offset length ->
+                  Process_handler.really_write ~offset ~length (Bytes.unsafe_of_string s) push) sbuf);
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
-    flush_buffer ()
+    Strings.Mutable.flush buf
   in
 
   let stop = Tutils.mutexify mutex (fun () ->
     is_stop := true;
     Process_handler.stop process;
     Condition.wait condition mutex;
-    Buffer.contents buf)
+    Strings.Mutable.flush buf)
   in
   
   {
@@ -166,7 +169,7 @@ let encoder id ext =
      (* External encoders do not support 
       * headers for now. They will probably
       * never do.. *)
-     header = None;
+     header = Strings.empty;
      encode = encode;
      stop   = stop;
   }

@@ -41,7 +41,7 @@ let conf_poll =
   Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
 
 let conf_timeout =
-  Dtools.Conf.int ~p:(conf_poll#plug "timeout") ~d:100"Timeout for polling loop, in ms"
+  Dtools.Conf.int ~p:(conf_poll#plug "timeout") ~d:100 "Timeout for polling loop, in ms"
 
 let log = Log.make ["srt"]
 
@@ -417,7 +417,7 @@ object (self)
       ~name:"output.srt" source as super
 
   val output_mutex = Mutex.create ()
-  val buffer = Buffer.create payload_size
+  val buffer = Strings.Mutable.empty ()
   val tmp = Bytes.create payload_size
   val mutable encoder = None
   val mutable connect_task = None
@@ -441,13 +441,11 @@ object (self)
           Srt.send socket data
       in
       Tutils.mutexify output_mutex (fun () ->
-        Buffer.blit buffer 0 tmp 0 payload_size;
-        Utils.buffer_drop buffer payload_size) ();
+        Strings.Mutable.blit (Strings.Mutable.sub buffer 0 payload_size) tmp 0;
+        Strings.Mutable.drop buffer payload_size) ();
       let rec f = function
         | pos when pos < payload_size ->
-          let ret =
-            send (Bytes.sub tmp pos (payload_size-pos))
-          in
+          let ret = send (Bytes.sub tmp pos (payload_size-pos)) in
           f (pos+ret)
         | _ -> ()
       in
@@ -461,8 +459,8 @@ object (self)
 
   method private send_chunks =
     let len = Tutils.mutexify output_mutex (fun () ->
-      Buffer.length buffer)
-    in
+      Strings.Mutable.length buffer
+    ) in
     while payload_size <= len () do
       self#send_chunk
     done
@@ -480,7 +478,7 @@ object (self)
 
   method private clear_encoder =
     Tutils.mutexify output_mutex (fun () ->
-      Buffer.reset buffer;
+      ignore(Strings.Mutable.flush buffer);
       encoder <- None) ()
 
   method private connect_fn () =
@@ -551,7 +549,7 @@ object (self)
   method private encode frame ofs len =
     if self#is `Connected then
       self#get_encoder.Encoder.encode frame ofs len
-    else ""
+    else Strings.empty
 
   method private insert_metadata m =
     if self#is `Connected then
@@ -561,7 +559,8 @@ object (self)
     if self#is `Connected then
      begin
       Tutils.mutexify output_mutex
-        (Buffer.add_string buffer) data;
+        (Strings.Mutable.append_strings buffer)
+          data;
       self#send_chunks
      end
 end

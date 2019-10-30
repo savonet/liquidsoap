@@ -8,7 +8,7 @@ def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain"
   if status == ("exit","0") then
     stdout
   else
-    log("Replaygain extraction failed: #{stderr}")
+    log("Replaygain extraction by #{extract_replaygain} failed with: #{stderr}")
     ""
   end
 end

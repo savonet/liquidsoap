@@ -20,27 +20,31 @@
 
  *****************************************************************************)
 
-open Builtins_http
+(** Strings with view on a substring. *)
 
-let () =
-  let add_http_request = add_http_request (module Https) in
-  add_http_request
-    "https.get"
-    "Perform a full https GET request and return (status,headers,data)."
-    Get;
-  add_http_request
-    "https.post"
-    "Perform a full https POST request and return (status,headers,data)."
-    Post;
-  add_http_request
-    "https.put"
-    "Perform a full https PUT request and return (status,headers,data)."
-    Put;
-  add_http_request
-    "https.head"
-    "Perform a full https HEAD request and return (status,headers,data)."
-    Head;
-  add_http_request
-    "https.delete"
-    "Perform a full https DELETE request and return (status,headers,data)."
-    Delete
+(** A string with view. *)
+type t
+
+(** Create from a string. *)
+val of_string : string -> t
+
+(** Create from a substring. *)
+val of_substring : string -> int -> int -> t
+
+(** Extract a string. *)
+val to_string : t -> string
+
+(** Extract valid substring. *)
+val to_substring : t -> string * int * int
+
+(** Whether it is empty. *)
+val is_empty : t -> bool
+
+(** Length. *)
+val length : t -> int
+
+(** Extract a substring with view. *)
+val sub : t -> int -> int -> t
+
+(** Blit to a bytes. *)
+val blit : t -> bytes -> int -> unit

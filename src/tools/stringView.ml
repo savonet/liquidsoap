@@ -20,27 +20,40 @@
 
  *****************************************************************************)
 
-open Builtins_http
+type t =
+  {
+    string : string;
+    offset : int;
+    length : int
+  }
 
-let () =
-  let add_http_request = add_http_request (module Https) in
-  add_http_request
-    "https.get"
-    "Perform a full https GET request and return (status,headers,data)."
-    Get;
-  add_http_request
-    "https.post"
-    "Perform a full https POST request and return (status,headers,data)."
-    Post;
-  add_http_request
-    "https.put"
-    "Perform a full https PUT request and return (status,headers,data)."
-    Put;
-  add_http_request
-    "https.head"
-    "Perform a full https HEAD request and return (status,headers,data)."
-    Head;
-  add_http_request
-    "https.delete"
-    "Perform a full https DELETE request and return (status,headers,data)."
-    Delete
+let of_string s =
+  {
+    string = s;
+    offset = 0;
+    length = String.length s;
+  }
+
+let of_substring s o l =
+  assert (0 <= o && 0 <= l && o + l <= String.length s);
+  {
+    string = s;
+    offset = o;
+    length = l;
+  }
+
+let to_string s =
+  String.sub s.string s.offset s.length
+
+let to_substring s =
+  s.string, s.offset, s.length
+
+let length s = s.length
+
+let is_empty s = s.length = 0
+
+let sub s o l =
+  of_substring s.string (s.offset + o) l
+
+let blit s b o =
+  String.blit s.string s.offset b o s.length

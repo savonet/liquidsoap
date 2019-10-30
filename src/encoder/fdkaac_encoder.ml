@@ -109,7 +109,7 @@ struct
     let src_freq = float (Frame.audio_of_seconds 1.) in
     let dst_freq = float samplerate in
     let n = Utils.pagesize in
-    let buf = Buffer.create n in
+    let buf = Strings.Mutable.empty () in
     let encode frame start len =
       let start = Frame.audio_of_master start in
       let b = AFrame.content_of_type ~channels frame start in
@@ -124,36 +124,30 @@ struct
         else
           b,start,len
       in
-      let encoded = Buffer.create n in
-      Buffer.add_string buf (Audio.S16LE.make (Audio.sub b start len));
-      let len = Buffer.length buf in
-      let rec f start =
-        if start+n > len then
-         begin
-          Utils.buffer_drop buf start;
-          Buffer.contents encoded
-         end
-        else
-         begin
-          let data = Buffer.sub buf start n in
-          Buffer.add_string encoded
-            (Fdkaac.Encoder.encode enc data 0 n);
-          f (start+n)
-        end
-      in
-      f 0
+      let encoded = Strings.Mutable.empty () in
+      Strings.Mutable.add buf (Audio.S16LE.make (Audio.sub b start len));
+      while Strings.Mutable.length buf >= n do
+        let data = Bytes.create n in
+        Strings.blit (Strings.sub (Strings.Mutable.to_strings buf) 0 n) data 0;
+        let data = Bytes.unsafe_to_string data in
+        Strings.Mutable.drop buf n;
+        Strings.Mutable.add encoded (Fdkaac.Encoder.encode enc data 0 n)
+      done;
+      Strings.Mutable.to_strings encoded
     in
     let stop () =
-      let rem = Buffer.contents buf in
-      let s =
-        Fdkaac.Encoder.encode enc rem 0 (String.length rem)
+      let rem =
+        Strings.Mutable.map (fun rem ofs len ->
+          let rem = Fdkaac.Encoder.encode enc rem ofs len in
+           rem, 0, String.length rem) buf
       in
-      s ^ (Fdkaac.Encoder.flush enc)
+      Strings.Mutable.add rem (Fdkaac.Encoder.flush enc);
+      Strings.Mutable.to_strings rem
     in
       {
         Encoder.
          insert_metadata = (fun _ -> ()) ;
-         header = None ;
+         header = Strings.empty ;
          encode = encode ;
          stop = stop
       }

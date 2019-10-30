@@ -190,20 +190,21 @@ let rec may_map f = function
  * different than its reported length.. *)
 let read_all filename =
   let channel = open_in filename in
-  let buflen = pagesize in
   let tmp = Bytes.create pagesize in
-  let contents = Buffer.create buflen in
+  let contents =
+    Strings.Mutable.empty ()
+  in
   let rec read () =
     let ret = input channel tmp 0 pagesize in
     if ret > 0 then
-     begin
-      Buffer.add_subbytes contents tmp 0 ret ;
-      read ()
-     end
+      begin
+        Strings.Mutable.add_subbytes contents tmp 0 ret;
+        read ()
+      end
   in
   read () ;
   close_in channel ;
-  Buffer.contents contents
+  Strings.Mutable.to_string contents
 
 (* Drop the first [len] bytes. *)
 let buffer_drop buffer len =

@@ -28,6 +28,9 @@ doc/content/protocols.md
 autodoc/
 *.annot
 scripts/tests/threesines/
+src/test/readavi
+src/test/simplelex_test
+src/test/strings_test
 src/test/JSON_parse
 src/test/is_url
 src/test/timezone

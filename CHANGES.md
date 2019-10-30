@@ -7,6 +7,7 @@ New:
 - Added LV2 support (#906).
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
+- Added `file.ls` (#1011).
 
 Changed:
 
@@ -14,12 +15,13 @@ Changed:
 - Use bigarrays for audio buffers (#950).
 - Switch to more efficient callback API for decoders (#979).
 - Use system pagesize for buffer allocation (#915).
+- Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
 
 Fixed:
 
 - Fix implementation of recursive functions (#934).
-- Fix opam install error with some bash-completion confiuration (#980)
+- Fix opam install error with some bash-completion configuration (#980).
 
 1.4.0 (29-09-2019)
 =====
