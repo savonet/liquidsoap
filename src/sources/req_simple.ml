@@ -91,7 +91,12 @@ let () =
 class dynamic ~kind ~active (f:Lang.value) length default_duration timeout conservative = object (self)
   inherit
     Request_source.queued ~kind ~name:"request.dynamic"
-      ~length ~default_duration ~timeout ~conservative ()
+      ~length ~default_duration ~timeout ~conservative () as super
+
+  method is_ready =
+    let ready = super#is_ready in
+    if not ready && active () then super#notify_new_request;
+    ready
 
   method get_next_request =
     try
