@@ -181,7 +181,7 @@ If you want to run an output as fast as your CPU allows,
 just attach it to a new clock without synchronization:
 
 ```liquidsoap
-clock.assign_new(sync=false,[output.file(%vorbis,"audio.ogg",source)])
+clock.assign_new(sync="none",[output.file(%vorbis,"audio.ogg",source)])
 ```
 
 This will automatically attach the appropriate sources to that clock.
@@ -278,7 +278,7 @@ twice. You should run it as `liquidsoap EXPR -- FILE`
 and observe that it fully exploits two cores:
 ```liquidsoap
 def one()
-  clock.assign_new(sync=false,
+  clock.assign_new(sync="none",
         [output.file(%mp3,"/dev/null",single(argv(1)))])
 end
 one()

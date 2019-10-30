@@ -34,7 +34,7 @@ object (self)
   val mutable seq_sources = sources
 
   method self_sync =
-    match List.rev sources with
+    match sources with
       | hd::_ -> hd#self_sync
       | [] -> false
 

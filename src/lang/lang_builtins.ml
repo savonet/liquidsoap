@@ -149,7 +149,7 @@ let () =
     [ ("id", Lang.string_t, Some (Lang.string ""),
        Some "Identifier for the new clock. The default empty string means that \
              the identifier of the first source will be used.") ;
-      ("sync", Lang.bool_t, Some (Lang.string "auto"),
+      ("sync", Lang.string_t, Some (Lang.string "auto"),
       Some "Synchronization mode. One of: `\"auto\"`, `\"cpu\"`, \
             or `\"none\"`.");
       ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None,

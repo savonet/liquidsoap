@@ -11,13 +11,15 @@ New:
 
 Changed:
 
+- Implemented per-frame clock synchronization mechanism, should allow for more
+  advanced flexibility when working with source synchronization while keeping
+  the default safe behavior. (#1012)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
 - Switch to more efficient callback API for decoders (#979).
 - Use system pagesize for buffer allocation (#915).
 - Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
-- Merged self-synced clock with synced clock, should allow more flexibility when dealing with multiple self-synced sources/outputs.
 
 Fixed:
 
