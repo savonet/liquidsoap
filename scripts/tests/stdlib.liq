@@ -12,5 +12,8 @@ def test(x, y)
 end
 
 test(getenv("BLAXXX"),"")
+test(file.is_directory("/"), true)
+test(file.is_directory("~"), true)
+test(file.is_directory("XXX"), false)
 
 if !success then test.pass() else test.fail() end
