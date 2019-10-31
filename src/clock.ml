@@ -115,10 +115,15 @@ let usleep d =
   try Thread.delay d with Unix.Unix_error (Unix.EINTR, _, _) -> ()
 
 (** In [`CPU] mode, synchronization is governed by the CPU clock.
-  * In [`None] mode, there is no synchronization control (except for
-  * active sources latencies)
+  * In [`None] mode, there is no synchronization control. Latency in
+  * is governed by the time it takes for the sources to produce and 
+  * output data.
   * In [`Auto] mode, synchronization is governed by the CPU unless at
-    least one active source is declared [self_sync]. *)
+  * least one active source is declared [self_sync] in which case latency
+  * is delegated to this source. A typical example being a source linked
+  * to a sound card, in which case the source latency is governed
+  * by the sound card's clock. Another case is synchronous network
+  * protocol such as [input.srt]. *)
 type sync = [
   | `Auto
   | `CPU
