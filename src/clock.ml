@@ -217,7 +217,7 @@ class clock ?(sync=`Auto) id =
            log#important "Delegating synchronisation to CPU clock"
          | None, true
          | Some false, true ->
-           log#important "Delegating synchronisation to active clocks"
+           log#important "Delegating synchronisation to active sources"
          | _ -> ()
       end;
       self_sync <- Some new_val;
