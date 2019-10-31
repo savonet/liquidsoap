@@ -153,7 +153,7 @@ def rec list.exists(p, l)
     if p(x) then
       true
     else
-      list.for_all(p, l)
+      list.exists(p, l)
     end
   end
   list.case(l, false, f)
