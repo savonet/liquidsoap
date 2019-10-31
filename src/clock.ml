@@ -117,7 +117,7 @@ let usleep d =
 (** In [`CPU] mode, synchronization is governed by the CPU clock.
   * In [`None] mode, there is no synchronization control (except for
   * active sources latencies)
-  * In [[Audo] mode, synchronization is governed by the CPU unless at
+  * In [`Auto] mode, synchronization is governed by the CPU unless at
     least one active source is declared [self_sync]. *)
 type sync = [
   | `Auto
