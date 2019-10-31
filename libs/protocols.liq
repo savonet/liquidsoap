@@ -601,3 +601,51 @@ add_protocol(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
                   Result might be mono, needs aws binary in the path.",
              syntax="polly:Text to read")
+
+# Protocol to synthesize audio.
+# @flag hidden
+def synth_protocol(~rlog,~maxtime,text) =
+  log.debug(label="synth", "Synthesizing request: #{text}")
+  args = string.split(separator=",", text)
+  args = list.map(string.split(separator="="), args)
+  if list.exists(fun(l)-> list.length(l) != 2, args) then
+    []
+  else
+    log.debug(label="synth", "Parsed arguments.")
+    args = list.map(fun(l) -> (list.hd(default="",l), list.hd(default="",list.tl(l))), args)
+    shape = ref("sine")
+    duration = ref(10.)
+    frequency = ref(440.)
+    def set(p)
+      let (k,v) = p
+      if k == "duration" then duration := float_of_string(v)
+      elsif k == "frequency" then frequency := float_of_string(v)
+      end
+    end
+    list.iter(set, args)
+    def synth(s)
+      file = file.temp("liq-synth",".wav")
+      log.info(label="synth", "Synthesizing #{!shape} in #{file}.")
+      done = ref(false)
+      def on_stop()
+        log.debug(label="synth", "done.")
+        done := true
+      end
+      clock.assign_new(sync=false, [output.file(fallible=true, on_stop=on_stop, %wav, file, once(s))])
+      log.debug(label="synth", "started...")
+      # This active wait could be improved with a dedicated operator.
+      while({not !done}, fun() -> sleep(1.))
+      log.debug(label="synth", "done")
+      [file]
+    end
+    if !shape == "sine" then
+      synth(sine(duration=!duration,!frequency))
+    else
+      []
+    end
+  end
+end
+
+add_protocol(static=true, temporary=true, "synth", synth_protocol,
+doc="Syntesize audio. Parameters are optional.",
+syntax="synth:shape=sine,frequency=440.,duration=10.")
