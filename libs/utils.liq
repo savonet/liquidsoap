@@ -6,31 +6,6 @@ def mksafe(~id="mksafe",s)
   fallback(id=id,track_sensitive=false,[s,blank(id="safe_blank")])
 end
 
-# list.mem_assoc(key,l) returns true if l contains a pair
-# (key,value)
-# @category List
-# @param a Key to look for
-# @param l List of pairs (key,value)
-def list.mem_assoc(a,l)
-  def f(cur, el) =
-    if not cur then
-      fst(el) == a
-    else
-      cur
-    end
-  end
-  list.fold(f, false, l)
-end
-
-# list.filter_assoc(key,l) returns all the elements of the form
-# (key, value) from l.
-# @category List
-# @param k Key to look for
-# @param l List of pairs (key,value)
-def list.filter_assoc(k,l)
-  list.filter(fun (el) -> fst(el) == k, l)
-end
-
 # Add a skip function to a source when it does not have one by default.
 # @category Interaction
 # @param s The source to attach the command to.
