@@ -54,7 +54,7 @@ object (self)
 
   method stype       = source#stype
 
-  method self_sync = source#self_sync
+  method self_sync   = source#self_sync
 
   method is_ready    =
     (Generator.length abg > 0) || source#is_ready

@@ -47,7 +47,7 @@ object (self)
   method stype = source#stype
   method is_ready = source#is_ready
   method abort_track = source#abort_track
-  method self_sync = false
+  method self_sync = source#self_sync
 
   (** For each track, the state may be:
     *  - None (undefined) if no track has started

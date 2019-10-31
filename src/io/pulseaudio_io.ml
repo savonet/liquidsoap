@@ -23,7 +23,7 @@
 open Pulseaudio
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "pulse")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "pulseaudio")
 
 (** Error translator *)
 let error_translator e =
