@@ -92,7 +92,7 @@ let create_decoder input =
     let len = input.Decoder.read initbuf 0 initbuflen in
     Faad.init dec initbuf 0 len
   in
-  drop offset;
+  drop offset; pos := 0;
   let processed = ref 0 in
   let aacbuflen = Faad.min_bytes_per_channel * chans in
   let aacbuf = Bytes.create aacbuflen in
