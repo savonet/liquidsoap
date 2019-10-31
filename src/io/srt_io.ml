@@ -441,7 +441,7 @@ object (self)
           Srt.send socket data
       in
       Tutils.mutexify output_mutex (fun () ->
-        Strings.Mutable.blit (Strings.Mutable.sub buffer 0 payload_size) tmp 0;
+        Strings.Mutable.blit buffer 0 tmp 0 payload_size;
         Strings.Mutable.drop buffer payload_size) ();
       let rec f = function
         | pos when pos < payload_size ->

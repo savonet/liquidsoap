@@ -191,7 +191,7 @@ module Mutable : sig
   val sub : t -> int -> int -> t
 
   (** Copy a substring. *)
-  val blit : t -> bytes -> int -> unit
+  val blit : t -> int -> bytes -> int -> int -> unit
 
   (** Whether the buffer is the empty string. *)
   val is_empty : t -> bool
