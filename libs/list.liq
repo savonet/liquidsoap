@@ -128,3 +128,33 @@ def rec list.remove_assoc(key, l)
   end
   list.case(l, [], f)
 end
+
+# Check that a predicate is satisfied for every element in a list.
+# @category List
+# @param p Predicate.
+# @param l List.
+def rec list.for_all(p, l)
+  def f(x, l)
+    if not p(x) then
+      false
+    else
+      list.for_all(p, l)
+    end
+  end
+  list.case(l, true, f)
+end
+
+# Check that a predicate is satisfied for some element in a list.
+# @category List
+# @param p Predicate.
+# @param l List.
+def rec list.exists(p, l)
+  def f(x, l)
+    if p(x) then
+      true
+    else
+      list.for_all(p, l)
+    end
+  end
+  list.case(l, false, f)
+end
