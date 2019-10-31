@@ -32,47 +32,44 @@ let () = Printexc.register_printer error_translator
 
 exception End_of_stream
 
-(** Buffered input device where
-  * the buffer initially contains [Bytes.sub buf offset len]. *)
-let buffered_input input buf offset len =
-  let buffer = Buffer.create Utils.pagesize in
-  let pos = ref len in
-  Buffer.add_subbytes buffer buf offset len;
+(** Buffered input device. *)
+let buffered_input input =
+  let buffer = Strings.Mutable.empty () in
+  let pos = ref 0 in
   let drop len = 
     pos := !pos + len;
-    Utils.buffer_drop buffer len 
+    Strings.Mutable.drop buffer len
   in
   let tell = 
     match input.Decoder.tell with
       | None -> None
-      | Some f -> Some (fun () -> Buffer.length buffer + f ())
+      | Some f -> Some (fun () -> Strings.Mutable.length buffer + f ())
   in
   let lseek = 
     match input.Decoder.lseek with
       | None -> None
       | Some f -> 
          let lseek len = 
-           Buffer.reset buffer;
+           ignore (Strings.Mutable.flush buffer);
            f len
          in
          Some lseek
   in
-  (* Get at most [len] bytes from the buffer,
-   * which is refilled from [input] if needed.
-   * This does not remove data from the buffer. *)
+  (* Get at most [len] bytes from the buffer, which is refilled from [input] if
+     needed. This does not remove data from the buffer. *)
   let tmplen = Utils.pagesize in
   let tmp = Bytes.create tmplen in
   let read buf ofs len =
-    let size = Buffer.length buffer in
+    let size = Strings.Mutable.length buffer in
     let len = 
       if size > len then len else
         let read = min tmplen len in
         let read = input.Decoder.read tmp 0 read in
         if read = 0 then raise End_of_stream ;
-        Buffer.add_subbytes buffer tmp 0 read ;
+        Strings.Mutable.add_subbytes buffer tmp 0 read ;
         min len (size+read)
     in
-    Buffer.blit buffer 0 buf ofs len;
+    Strings.Mutable.blit buffer 0 buf ofs len;
     len
   in
   { Decoder.
@@ -88,18 +85,17 @@ struct
 let create_decoder input =
   let resampler = Rutils.create_audio () in
   let dec = Faad.create () in
-  let initbuflen = Utils.pagesize in
-  let initbuf = Bytes.create initbuflen in
-  let len = input.Decoder.read initbuf 0 initbuflen in
+  let input, drop, pos = buffered_input input in
   let offset, sample_freq, chans =
+    let initbuflen = 1024 in
+    let initbuf = Bytes.create initbuflen in
+    let len = input.Decoder.read initbuf 0 initbuflen in
     Faad.init dec initbuf 0 len
   in
+  drop offset;
   let processed = ref 0 in
   let aacbuflen = Faad.min_bytes_per_channel * chans in
   let aacbuf = Bytes.create aacbuflen in
-  let input,drop,pos =
-    buffered_input input aacbuf offset (len-offset)
-  in
   (* We approximate bitrate for seeking.. *)
   let seek ticks =
     if !processed == 0 ||
