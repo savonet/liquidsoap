@@ -21,8 +21,7 @@ Changed:
 - Use new Strings module in order to avoid concatenations (#984).
 - Native Liquidsoap implementation of list functions (#920).
 - Added `fallible` option to `single` operator.
-- Changed `request.queue` into a Liquidsoap implementation. It now takes uris
-  instead of requests as input (#1013).
+- Changed `request.queue` into a Liquidsoap implementation (#1013).
 - Removed `request.equeue`, such a feature could be re-implemented in
   Liquidsoap, see `request.queue`.
 
