@@ -90,7 +90,6 @@ let leave (s : active_source) =
       (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
 
 (** {1 Clock implementation}
-  * This was formerly known as the Root.
   * One could think of several clocks for isolated parts of a script.
   * One can also think of alsa-clocks, etc. *)
 
