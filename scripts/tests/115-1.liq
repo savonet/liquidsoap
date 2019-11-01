@@ -8,8 +8,7 @@ s = add(normalize=true,[
 
 output.dummy(s)
 
-add_timeout(3.,{
+thread.run(delay)3.,{
   test.pass()
   shutdown()
-  (-1.)
 })

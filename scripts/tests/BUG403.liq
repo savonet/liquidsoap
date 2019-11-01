@@ -14,10 +14,10 @@
 
 r = ref false
 pred = { v=!r ; r:=false ; v }
-add_timeout(2.,{ r := true ; (-1.) })
+thread.run(delay=2., { r := true })
 
 mixer = fallback(id="mixer", track_sensitive=false,
   [at(pred, sine(duration=3.)), blank()])
 
 output.dummy(mixer)
-add_timeout(3.,{ test.pass() ; shutdown() ; (-1.) })
+thread.run(delay=3., { test.pass() ; shutdown()})
