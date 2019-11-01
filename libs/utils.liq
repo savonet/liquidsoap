@@ -363,24 +363,6 @@ def at(pred,s)
   switch([(pred,s)])
 end
 
-# Execute a given action when a predicate is true. This will be run in background.
-# @category System
-# @param ~every How often (in sec.) to check for the predicate.
-# @param ~once Execute the function only once.
-# @param ~changed Execute the function only if the predicate was false when last checked.
-# @param p Predicate indicating when to execute the function, typically a time interval such as `{10h-10h30}`.
-# @param f Function to execute when the predicate is true.
-def exec_at(~every=1., ~once=false, ~changed=true, p, f)
-  last = ref(false)
-  def check()
-    b = p()
-    if b and ((not changed) or !last == false) then f() end
-    last := b
-    if b and once then (-1.) else every end
-  end
-  thread.run.recurrent(delay=0., check)
-end
-
 # Assign a new clock to the given source (and to other time-dependent sources)
 # and return the source. It is a conveniency wrapper around clock.assign_new(),
 # allowing more concise scripts in some cases.
