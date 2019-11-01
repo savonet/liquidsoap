@@ -378,7 +378,7 @@ def exec_at(~every=1., ~once=false, ~changed=true, p, f)
     last := b
     if b and once then (-1.) else every end
   end
-  add_timeout(0., check)
+  thread.run.recurrent(0., check)
 end
 
 # Assign a new clock to the given source (and to other time-dependent sources)

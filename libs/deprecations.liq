@@ -36,3 +36,9 @@ def quote(s) =
   deprecated("quote", "string.quote")
   string.quote(s)
 end
+
+# Deprecated: this function has been replaced by thread.run.recurrent.
+# @flag hidden
+def add_timeout(~fast=true, delay, f)
+  thread.run.recurrent(fast=fast, delay=delay, f)
+end
