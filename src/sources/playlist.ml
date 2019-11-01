@@ -620,7 +620,7 @@ let () =
   in
 
   let fmt = Lang.univ_t 1 in
-
+  (*
     Lang.add_operator "playlist"
       ~category:Lang.Input
       ~descr:"Loop on a playlist of URIs."
@@ -649,7 +649,7 @@ let () =
            ((new playlist ~kind ~mime ~reload ~random ~on_track
                           ~length ~default_duration ~prefix ~timeout
                           ~check_next ~conservative uri):>source)) ;
-
+    *)
     Lang.add_operator "playlist.safe"
       ~category:Lang.Input
       ~descr:"Loop on a playlist of local files, \
