@@ -14,6 +14,7 @@ end
 
 deprecated()
 
+# Deprecated: this function has been replaced by input.external.rawaudio.
 # @flag hidden
 def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                    ~restart=true,~restart_on_error=false,
@@ -25,6 +26,7 @@ def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                           samplerate=samplerate,cmd)
 end
 
+# Deprecated: this function has been replaced by quote.
 # @flag hidden
 def quote(s) =
   log.severe(label="lang.deprecated", "WARNING: \"quote\" is deprecated! Please use \"string.quote\".")
