@@ -21,12 +21,13 @@ def request.queue.pushable(~id="", ~conservative=false, ~default_duration=30., ~
   end
   s = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next)
   if interactive then
+    namespace = if id == "" then "queue" else id end
     def push(uri) = push(request.create(uri)); "done" end
-    server.register(namespace="#{id}", description="Push a new request in the queue.", usage="push <uri>", "push", push)
+    server.register(namespace=namespace, description="Push a new request in the queue.", usage="push <uri>", "push", push)
     def show_queue(_) = string.concat(separator="\n", list.map(request.uri, !queue)) end
-    server.register(namespace="#{id}", description="Display current queue content.", usage="queue", "queue", show_queue)
+    server.register(namespace=namespace, description="Display current queue content.", usage="queue", "queue", show_queue)
     def skip(_) = source.skip(s); "done" end
-    server.register(namespace="#{id}", description="Skip current song.", usage="skip", "skip", skip)
+    server.register(namespace=namespace, description="Skip current song.", usage="skip", "skip", skip)
   end
   (push, s)
 end
