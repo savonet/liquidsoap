@@ -98,7 +98,13 @@ let print_functions doc =
   let add (f,_) = functions := f :: !functions in
   List.iter add doc;
   let functions = List.sort compare !functions in
-  List.iter print_endline functions
+  let ans = Strings.Mutable.empty () in
+  List.iter
+    (fun f ->
+       Strings.Mutable.add ans f;
+       Strings.Mutable.add ans "\n"
+    ) functions;
+  Strings.Mutable.to_strings ans
 
 let print_functions_md doc =
   let doc = to_json doc in
@@ -170,20 +176,20 @@ let print_protocols_md doc =
       Printf.printf "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p info syntax static
     ) doc
 
-let print : item -> unit =
+let print printf : item -> unit =
   let rec print indent doc =
     let prefix =
       Bytes.unsafe_to_string
         (Bytes.make indent ' ')
       in
-      Printf.printf "%s%s\n" prefix doc#get_doc ;
+      printf "%s%s\n" prefix doc#get_doc ;
       List.iter
         (fun (k,v) ->
-           Printf.printf "%s+ %s\n" prefix k ;
+           printf "%s+ %s\n" prefix k ;
            print (indent+1) v
         ) doc#get_subsections
   in
-    print 0
+  print 0
 
 let print_lang (i:item) : unit =
   let print_string_split f s =
