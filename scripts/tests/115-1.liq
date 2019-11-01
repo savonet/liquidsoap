@@ -1,3 +1,4 @@
+#!../../src/liquidsoap ../../libs/pervasives.liq
 %include "test.liq"
 
 s = add(normalize=true,[
@@ -8,7 +9,7 @@ s = add(normalize=true,[
 
 output.dummy(s)
 
-thread.run(delay)3.,{
+thread.run(delay=3.,{
   test.pass()
   shutdown()
 })
