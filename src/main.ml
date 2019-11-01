@@ -197,6 +197,13 @@ let print_string ?(pager=false) s =
   if not pager then print_string s
   else print_strings ~pager (Strings.of_string s)
 
+let kprint_string ?(pager=false) f =
+  if not pager then f (print_string ~pager)
+  else
+    let ans = Strings.Mutable.empty () in
+    f (Strings.Mutable.add ans);
+    print_strings ~pager (Strings.Mutable.to_strings ans)
+
 module LiqConf =
 struct
   (** Contains clones of Dtools.Conf.(descr|dump) but with a liq syntax. *)
@@ -456,7 +463,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_xml (Plug.plugs:Doc.item)),
+                kprint_string ~pager:true (Doc.print_xml (Plug.plugs:Doc.item))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols), \
@@ -466,7 +473,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_json (Plug.plugs:Doc.item)),
+                kprint_string ~pager:true (Doc.print_json (Plug.plugs:Doc.item))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols), \
@@ -476,7 +483,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                print_strings ~pager:true (Doc.print (Plug.plugs:Doc.item))),
+                (kprint_string ~pager:true (Doc.print (Plug.plugs:Doc.item)))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols)." ;
@@ -485,14 +492,14 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                print_strings ~pager:true (Doc.print_functions (Plug.plugs:Doc.item))),
+                kprint_string ~pager:true (Doc.print_functions (Plug.plugs:Doc.item))),
     Printf.sprintf "List all functions." ;
 
     ["--list-functions-md"],
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_functions_md (Plug.plugs:Doc.item)),
+                kprint_string ~pager:true (Doc.print_functions_md (Plug.plugs:Doc.item))),
     Printf.sprintf
       "Documentation of all functions in markdown." ;
 
@@ -500,7 +507,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_protocols_md (Plug.plugs:Doc.item)),
+                kprint_string ~pager:true (Doc.print_protocols_md (Plug.plugs:Doc.item))),
     Printf.sprintf
       "Documentation of all protocols in markdown." ;
 

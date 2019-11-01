@@ -56,27 +56,27 @@ let xml_escape s =
   let s = Str.global_replace lt "&lt;" s in
     s
 
-let print_xml item =
+let print_xml (doc : item) print_string =
   let rec print_xml indent doc =
     let prefix =
       Bytes.unsafe_to_string
         (Bytes.make indent ' ')
       in
-      Printf.printf "%s<info>%s</info>\n" prefix (xml_escape doc#get_doc) ;
+      Printf.kprintf print_string "%s<info>%s</info>\n" prefix (xml_escape doc#get_doc) ;
       List.iter
         (fun (k,v) ->
-           Printf.printf "%s<section>\n" prefix ;
-           Printf.printf " %s<label>%s</label>\n" prefix (xml_escape k) ;
+           Printf.kprintf print_string "%s<section>\n" prefix ;
+           Printf.kprintf print_string " %s<label>%s</label>\n" prefix (xml_escape k) ;
            print_xml (indent+1) v ;
-           Printf.printf "%s</section>\n" prefix
+           Printf.kprintf print_string "%s</section>\n" prefix
         ) doc#get_subsections
   in
-    Printf.printf "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" ;
-    Printf.printf "<all>\n" ;
-    print_xml 1 item ;
-    Printf.printf "</all>\n"
+    print_string "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" ;
+    print_string "<all>\n" ;
+    print_xml 1 doc ;
+    print_string "</all>\n"
 
-let rec to_json doc =
+let rec to_json (doc : item) =
   let ss = doc#get_subsections in
   let sanitize s = s in
   if ss = [] then `String (sanitize doc#get_doc)
@@ -86,10 +86,11 @@ let rec to_json doc =
     let ss = if info = "(no doc)" then ss else ("_info", `String (sanitize info))::ss in
     `Assoc ss
 
-let print_json item =
-  Printf.printf "%s\n" (JSON.to_string (to_json item))
+let print_json (doc : item) print_string =
+  print_string (JSON.to_string (to_json doc));
+  print_string "\n"
 
-let print_functions doc =
+let print_functions (doc : item) print_string =
   let doc = to_json doc in
   let to_assoc = function `Assoc l -> l | _ -> assert false in
   let doc = List.assoc "scripting values" (to_assoc doc) in
@@ -98,15 +99,9 @@ let print_functions doc =
   let add (f,_) = functions := f :: !functions in
   List.iter add doc;
   let functions = List.sort compare !functions in
-  let ans = Strings.Mutable.empty () in
-  List.iter
-    (fun f ->
-       Strings.Mutable.add ans f;
-       Strings.Mutable.add ans "\n"
-    ) functions;
-  Strings.Mutable.to_strings ans
+  List.iter print_string functions
 
-let print_functions_md doc =
+let print_functions_md (doc : item) print_string  =
   let doc = to_json doc in
   let to_assoc = function `Assoc l -> l | _ -> assert false in
   let to_string = function `String s -> s | _ -> assert false in
@@ -125,7 +120,7 @@ let print_functions_md doc =
   let by_cat = List.filter (fun (c,_) -> c <> "") by_cat in
   List.iter
     (fun (cat, ff) ->
-      Printf.printf "## %s\n\n" cat;
+      Printf.ksprintf print_string "## %s\n\n" cat;
       let ff = List.sort (fun (f,_) (f',_) -> compare f f') !ff in
       List.iter
         (fun (f,desc) ->
@@ -133,9 +128,9 @@ let print_functions_md doc =
           let flags = List.map (fun (_,f) -> to_string f) flags in
           if not (List.mem "hidden" flags) then
             (
-              Printf.printf "### `%s`\n\n" f;
-              Printf.printf "%s\n\n" (to_string (List.assoc "_info" desc));
-              Printf.printf "Type:\n```\n%s\n```\n\n" (to_string (List.assoc "_type" desc));
+              Printf.ksprintf print_string "### `%s`\n\n" f;
+              Printf.ksprintf print_string "%s\n\n" (to_string (List.assoc "_info" desc));
+              Printf.ksprintf print_string "Type:\n```\n%s\n```\n\n" (to_string (List.assoc "_type" desc));
               let args = List.filter (fun (n,_) -> n <> "_info" && n <> "_category" && n <> "_type" && n <> "_flag") desc in
               let args =
                 List.map
@@ -147,20 +142,20 @@ let print_functions_md doc =
                     n,s,t,d
                   ) args
               in
-              Printf.printf "Arguments:\n\n";
+              print_string "Arguments:\n\n";
               List.iter
                 (fun (n,s,t,d) ->
                   let d = if d = "None" then "" else ", which defaults to `"^d^"`" in
                   let s = if s = "" then "" else ": "^s in
-                  Printf.printf "- `%s` (of type `%s`%s)%s\n" n t d s
+                  Printf.ksprintf print_string "- `%s` (of type `%s`%s)%s\n" n t d s
                 ) args;
-              if List.mem "experimental" flags then Printf.printf "\nThis function is experimental.\n";
-              Printf.printf "\n"
+              if List.mem "experimental" flags then print_string "\nThis function is experimental.\n";
+              print_string "\n"
             )
         ) ff
     ) by_cat
 
-let print_protocols_md doc =
+let print_protocols_md (doc : item) print_string =
   let doc = to_json doc in
   let to_assoc = function `Assoc l -> l | _ -> assert false in
   let to_string = function `String s -> s | _ -> assert false in
@@ -173,25 +168,25 @@ let print_protocols_md doc =
       let syntax = to_string (List.assoc "syntax" v) in
       let static = to_string (List.assoc "static" v) in
       let static = if static = "true" then " This protocol is static." else "" in
-      Printf.printf "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p info syntax static
+      Printf.ksprintf print_string "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p info syntax static
     ) doc
 
-let print printf : item -> unit =
+let print (doc : item) print_string =
   let rec print indent doc =
     let prefix =
       Bytes.unsafe_to_string
         (Bytes.make indent ' ')
-      in
-      printf "%s%s\n" prefix doc#get_doc ;
+    in
+    Printf.ksprintf print_string "%s%s\n" prefix doc#get_doc ;
       List.iter
         (fun (k,v) ->
-           printf "%s+ %s\n" prefix k ;
+           Printf.ksprintf print_string "%s+ %s\n" prefix k ;
            print (indent+1) v
         ) doc#get_subsections
   in
-  print 0
+  print 0 doc
 
-let print_lang (i:item) : unit =
+let print_lang (i:item) =
   let print_string_split f s =
     String.iter
       (fun c ->

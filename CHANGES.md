@@ -11,6 +11,7 @@ New:
 - Added native id3v2 tag parser, as well as associated function `file.mp3.tags`,
   `file.mp3.parse_apic` and `file.cover` (#987).
 - Added `lists.exists` and `list.for_all`.
+- Use a pager to display long help results.
 
 Changed:
 
