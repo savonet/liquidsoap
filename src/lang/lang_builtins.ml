@@ -921,7 +921,10 @@ end
 let () =
   add_builtin "interactive.string" ~cat:Interaction
     ~descr:"Read a string from an interactive input."
-    ["",Lang.string_t,None,None; "",Lang.string_t,None,None ]
+    [
+      "", Lang.string_t, None, Some "Name of the variable.";
+      "", Lang.string_t, None, Some "Initial value."
+    ]
     (Lang.fun_t [] Lang.string_t)
     (fun p ->
        let name = Lang.to_string (Lang.assoc "" 1 p) in
@@ -943,7 +946,10 @@ let () =
 let () =
   add_builtin "interactive.float" ~cat:Interaction
     ~descr:"Read a float from an interactive input."
-    ["",Lang.string_t,None,None; "",Lang.float_t,None,None ]
+    [
+      "", Lang.string_t, None, Some "Name of the variable.";
+      "", Lang.float_t, None, Some "Initial value."
+    ]
     (Lang.fun_t [] Lang.float_t)
     (fun p ->
        let name = Lang.to_string (Lang.assoc "" 1 p) in
@@ -965,7 +971,10 @@ let () =
 let () =
   add_builtin "interactive.bool" ~cat:Interaction
     ~descr:"Read a boolean from an interactive input."
-    ["",Lang.string_t,None,None; "",Lang.bool_t,None,None ]
+    [
+      "", Lang.string_t, None, Some "Name of the variable.";
+      "", Lang.bool_t, None, Some "Initial value."
+    ]
     (Lang.fun_t [] Lang.bool_t)
     (fun p ->
        let name = Lang.to_string (Lang.assoc "" 1 p) in
