@@ -56,3 +56,32 @@ let () =
        in
        Duppy.Task.add Tutils.scheduler task;
        Lang.unit)
+
+let () =
+  let t = Lang.univ_t 1 in
+  add_builtin "mutexify" ~cat:Liq
+    ~descr:"Protect functions with a mutex to avoid concurrent calls, \
+            return original value otherwise."
+    ["",t,None,None] t
+    (fun p ->
+      let m = Mutex.create () in
+      let v = List.assoc "" p in
+      match v.Lang.value with
+        | Lang.Fun (p,args,env,body) ->
+            let fn (args:Lang.full_env) t = Tutils.mutexify m (fun () ->
+              let args = List.map (fun (x,gv) -> x, Lazy.from_val gv) args in
+              let env = List.rev_append args env in
+              let v = {v with Lang.value =
+                Lang.Fun ([],[],env,body)}
+              in
+              Lang.apply ~t v []) ()
+            in
+            { v with Lang.value =
+                Lang.FFI (p, args, fn) }
+        | Lang.FFI (p, args, fn) ->
+            let fn args t = Tutils.mutexify m (fun () ->
+              fn args t) ()
+            in
+            { v with Lang.value =
+                Lang.FFI (p, args, fn) }
+        | _ -> v)
