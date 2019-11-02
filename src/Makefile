@@ -213,6 +213,7 @@ builtins = lang/lang_builtins.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
            lang/builtins_process.ml lang/builtins_source.ml \
+           lang/builtins_interactive.ml \
            $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \
            $(if $(W_OSX_SECURE_TRANSPORT),lang/builtins_https_secure_transport.ml lang/builtins_harbor_secure_transport.ml) \
            $(if $(W_LO),lang/builtins_lo.ml) \
