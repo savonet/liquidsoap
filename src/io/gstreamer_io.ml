@@ -82,7 +82,7 @@ object (self)
     in
     if should_run then
       try
-        self#log#important "Restarting pipeline";
+        self#log#important "Restarting pipeline.";
         Tutils.mutexify element_m (fun () ->
           begin match element with
             | None -> ()
@@ -180,6 +180,7 @@ object (self)
 
   method output_start =
     let el = self#get_element in
+    self#log#info "Playing.";
     ignore (Element.set_state el.bin Element.State_playing);
     (* Don't uncomment the following line, it locks the program. I guess that
        GStreamer is waiting for some data before answering that we are
@@ -227,7 +228,7 @@ object (self)
       else
         pipeline
     in
-    self#log#debug "GStreamer pipeline: %s" pipeline;
+    self#log#info "GStreamer pipeline: %s" pipeline;
     let bin = Pipeline.parse_launch pipeline in
     let audio_src =
       if has_audio then

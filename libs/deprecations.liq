@@ -1,26 +1,30 @@
-# Deprecated APIs
-# @flag hidden
-def deprecated() =
-  def on_change_harbor_bind_addr(v) =
-    log.severe(label="lang.deprecated",
-        "WARNING: \"harbor.bind_addr\" is deprecated! Please use \"harbor.bind_addrs\".")
-    set("harbor.bind_addrs",[v])
-  end
+# Deprecated APIs.
 
-  register(name="[DEPRECATED] Harbor bind_addr",
-           descr="IP addresses on which the harbor should listen.",
-           on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")    
+# Mark a function as deprecated.
+# @flag hidden
+# @category Liquidsoap
+# @param old Old function name.
+# @param new New function name.
+def deprecated(old, new)
+  log.severe(label="lang.deprecated", "WARNING: \"#{old}\" is deprecated and will be removed in future version. Please use \"#{new}\" instead.")
 end
 
-deprecated()
+# @flag hidden
+def on_change_harbor_bind_addr(v) =
+  deprecated("harbor.bind_addr", "harbor.bind_addrs")
+  set("harbor.bind_addrs",[v])
+end
+
+register(name="[DEPRECATED] Harbor bind_addr",
+         descr="IP addresses on which the harbor should listen.",
+         on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")
 
 # Deprecated: this function has been replaced by input.external.rawaudio.
 # @flag hidden
 def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                    ~restart=true,~restart_on_error=false,
                    ~samplerate=44100,cmd) =
-  log.severe(label="lang.deprecated",
-    "WARNING: \"input.external\" is deprecated! Please use \"input.external.rawaudio\".")
+  deprecated("input.external", "input.external.rawaudio")
   input.external.rawaudio(id=id,buffer=buffer,channels=channels,
                           max=max,restart=restart,restart_on_error=restart_on_error,
                           samplerate=samplerate,cmd)
@@ -29,6 +33,6 @@ end
 # Deprecated: this function has been replaced by quote.
 # @flag hidden
 def quote(s) =
-  log.severe(label="lang.deprecated", "WARNING: \"quote\" is deprecated! Please use \"string.quote\".")
+  deprecated("quote", "string.quote")
   string.quote(s)
 end
