@@ -185,6 +185,15 @@ clock.assign_new(sync="none",[output.file(%vorbis,"audio.ogg",source)])
 ```
 
 This will automatically attach the appropriate sources to that clock.
+
+Another important use case of this operator is if your script involves multiple sources from the same external clock, typically multiple ALSA input or output from the same sound card or multiple jack input and output. By default (the so-called `clock_safe` mode), liquidsoap will assign a dedicated clock to each of those sources, leading either to an error or forcing the use of an unnecessary `buffer` (see below). Instead, you can allocate each source with `clock_safe=false` and assign them a single clock:
+
+```
+s1 = input.jack(clock_safe=false, ...)
+s2 = input.jack(clock_safe=false, ...)
+
+clock.assign_new([s1,s2])
+```
 However, you may need to do it for other operators if they are totally
 unrelated to the first one.
 
