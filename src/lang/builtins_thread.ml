@@ -59,9 +59,10 @@ let () =
 
 let () =
   let t = Lang.univ_t 1 in
-  add_builtin "mutexify" ~cat:Liq
-    ~descr:"Protect functions with a mutex to avoid concurrent calls, \
-            return original value otherwise."
+  add_builtin "thread.mutexify" ~cat:Liq
+    ~descr:"Protect functions with a mutex in order to avoid concurrent \
+            calls. It returns the original value when the argument is not a \
+            function."
     ["",t,None,None] t
     (fun p ->
       let m = Mutex.create () in
