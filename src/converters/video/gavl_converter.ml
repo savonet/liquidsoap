@@ -198,6 +198,8 @@ let create () =
         WH.add converters (proportional,src_f,dst_f) conv;
         conv
     in
+    (* We need to blank because we get garbage otherwise. *)
+    if not (Img.width src = Img.width dst && Img.height src = Img.height dst) then Img.blank dst;
     (* Now we convert *)
     Gavl.Video.convert conv (gavl_frame_of src) (gavl_frame_of dst)
   in
