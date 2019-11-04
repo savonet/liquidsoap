@@ -83,7 +83,7 @@ def input.hls(~id="",~reload=10.,uri)
 
   source = merge_tracks(source)
 
-  add_timeout(0., load_playlist)
+  thread.run.recurrent(load_playlist)
 
   source
 end

@@ -325,42 +325,6 @@ let () =
 (** Misc control/system functions. *)
 
 let () =
-  add_builtin "add_timeout" ~cat:Control
-    [ "fast", Lang.bool_t, Some (Lang.bool true),
-      Some
-        "Set to `false` if the execution of the code can take long \
-         in order to lower its priority below that of request resolutions and \
-         fast timeouts. \
-         This is only effective if you set a dedicated queue for fast tasks, \
-         see the \"scheduler\" settings for more details." ;
-      "",Lang.float_t,None,None ;
-      "",Lang.fun_t [] Lang.float_t,None,None ]
-    Lang.unit_t
-    ~descr:"Call a function in N seconds. \
-        If the result of the function is positive or null, the \
-        task will be scheduled again after this amount of time (in seconds)."
-    (fun p ->
-       let d = Lang.to_float (Lang.assoc "" 1 p) in
-       let f = Lang.assoc "" 2 p in
-       let priority =
-         if Lang.to_bool (List.assoc "fast" p) then
-           Tutils.Maybe_blocking
-         else
-           Tutils.Blocking
-       in
-       let rec t d =
-         { Duppy.Task.
-             priority = priority ;
-             events   = [`Delay d] ;
-             handler  =
-               fun _ ->
-	         let d = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
-                 if d >= 0. then [t d] else [] }
-       in
-         Duppy.Task.add Tutils.scheduler (t d);
-         Lang.unit)
-
-let () =
   let descr = "Execute a liquidsoap server command." in
   let cat = Liq in
   let params =
@@ -453,35 +417,6 @@ let () =
     (fun _ ->
       Gc.full_major () ;
       Lang.unit)
-
-let () =
-  let t = Lang.univ_t 1 in
-  add_builtin "mutexify" ~cat:Liq
-    ~descr:"Protect functions with a mutex to avoid concurrent calls, \
-            return original value otherwise."
-    ["",t,None,None] t
-    (fun p ->
-      let m = Mutex.create () in
-      let v = List.assoc "" p in
-      match v.Lang.value with
-        | Lang.Fun (p,args,env,body) ->
-            let fn (args:Lang.full_env) t = Tutils.mutexify m (fun () ->
-              let args = List.map (fun (x,gv) -> x, Lazy.from_val gv) args in
-              let env = List.rev_append args env in
-              let v = {v with Lang.value =
-                Lang.Fun ([],[],env,body)}
-              in
-              Lang.apply ~t v []) ()
-            in
-            { v with Lang.value =
-                Lang.FFI (p, args, fn) }
-        | Lang.FFI (p, args, fn) ->
-            let fn args t = Tutils.mutexify m (fun () ->
-              fn args t) ()
-            in
-            { v with Lang.value =
-                Lang.FFI (p, args, fn) }
-        | _ -> v)
 
 let () =
   add_builtin "system" ~cat:Sys

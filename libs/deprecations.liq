@@ -36,3 +36,24 @@ def quote(s) =
   deprecated("quote", "string.quote")
   string.quote(s)
 end
+
+# Deprecated: this function has been replaced by thread.run.recurrent.
+# @flag hidden
+def add_timeout(~fast=true, delay, f)
+  deprecated("add_timeout", "thread.run.recurrent")
+  thread.run.recurrent(fast=fast, delay=delay, f)
+end
+
+# Deprecated: this function has been replaced by thread.when.
+# @flag hidden
+def exec_at(~freq=1., ~pred, f)
+  deprecated("exec_at", "thread.when")
+  thread.when(every=freq, pred, f)
+end
+
+# Deprecated: this function has been replaced by thread.mutexify.
+# @flag hidden
+def mutexify(f)
+  deprecated("mutexify", "thread.mutexify")
+  thread.mutexify(f)
+end
