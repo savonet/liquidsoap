@@ -167,7 +167,7 @@ def output.youtube.live.ffmpeg(~id="",~flush=false, ~fallible=false,
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
                            ~start=true, ~url="rtmp://a.rtmp.youtube.com/live2",
-                           ~bitrate="2500",~quality="medium",~key,s)
+                           ~bitrate=2500,~quality="medium",~key,s)
   # Output parameters
   fps = video.frame.rate()
   samplerate = audio.samplerate()
