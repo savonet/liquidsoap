@@ -23,7 +23,7 @@
 open Lang_builtins
 
 let () =
-  add_builtin "thread.run" ~cat:Control
+  add_builtin "thread.run.recurrent" ~cat:Control
     [
       "fast", Lang.bool_t, Some (Lang.bool true),
       Some "Whether the thread is supposed to return quickly or not. Typically, \
@@ -34,10 +34,13 @@ let () =
             \"scheduler\" settings for more details." ;
       "delay", Lang.float_t, Some (Lang.float 0.),
       Some "Delay (in sec.) after which the thread should be lauched.";
-      "", Lang.fun_t [] Lang.unit_t, None, Some "Function to execute."
+      "", Lang.fun_t [] Lang.float_t, None,
+      Some "Function to execute recurrently. The returned value is the delay (in \
+            sec.) in which the function should be run again (it won't be run if \
+            the value is strictly negative)."
     ]
     Lang.unit_t
-    ~descr:"Run a function in a separate thread."
+    ~descr:"Run a recurrent function in a separate thread."
     (fun p ->
        let delay = Lang.to_float (List.assoc "delay" p) in
        let f = List.assoc "" p in
@@ -47,14 +50,16 @@ let () =
          else
            Tutils.Blocking
        in
-       let task =
+       let rec task delay =
          { Duppy.Task.
            priority = priority ;
            events   = [`Delay delay] ;
-           handler  = fun _ -> Lang.to_unit (Lang.apply ~t:Lang.unit_t f []); []
+           handler  = fun _ ->
+             let d = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
+             if d >= 0. then [task delay] else []
          }
        in
-       Duppy.Task.add Tutils.scheduler task;
+       Duppy.Task.add Tutils.scheduler (task delay);
        Lang.unit)
 
 let () =

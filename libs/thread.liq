@@ -1,19 +1,13 @@
-# TODO: we cannot easly define recursive functions with optional arguments for
-# now, see #1018.
-def rec thread.run.recurrent(~fast, ~delay, f)
-  def f ()
-    delay = f ()
-    if delay >= 0. then thread.run.recurrent(fast=fast, delay=delay, f) end
-  end
-  thread.run(fast=fast, delay=delay, f)
-end
-
-# Run a recurrent function in a separate thread.
+# Run a function in a separate thread.
 # @category Control
 # @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts. This is only effective if you set a dedicated queue for fast tasks, see the "scheduler" settings for more details.
 # @param ~delay Delay (in sec.) after which the thread should be lauched.
 # @param f Function to execute.
-def thread.run.recurrent(~fast=true, ~delay=0., f)
+def thread.run(~fast=true, ~delay=0., f)
+  def f() =
+    f()
+    (-1.)
+  end
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
 
