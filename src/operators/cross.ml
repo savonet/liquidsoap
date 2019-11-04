@@ -41,7 +41,10 @@ object (self)
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype
 
-  method self_sync = false
+  (* This is complicated. crossfade should never be used with [self_sync]
+   * sources but we do not have a static way of knowing it at the moment.
+   * Going with the same choice as above for now. *)
+  method self_sync = s#self_sync
 
   val mutable cross_length = cross_length
   (* We need to store the end of a track, and compute the power of the signal

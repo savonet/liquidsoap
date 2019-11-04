@@ -59,7 +59,16 @@ object
   method clock : clock_variable
 
   (** Does the source provide its own synchronization?
-    * Examples: Alsa, AO, SRT I/O, etc.. *)
+    * Examples: Alsa, AO, SRT I/O, etc.. This information
+    * is used at the clock level to decide wether or not
+    * we should synchronize with the CPU clock after producing
+    * a frame (for [`Auto] clocks). Please note that in the case
+    * of multiple sources filling the frame with different notion
+    * notion of synchronization, there is no consistent notion
+    * of time or synchronization. In this case (and with a [`Auto]
+    * clock), we simply decide based on wether there is one [self_sync]
+    * source or not. This logic should dictate how the method is
+    * implemented by the various operators. *)
   method virtual self_sync : bool
 
   (** Choose your clock, by adjusting to your children source,

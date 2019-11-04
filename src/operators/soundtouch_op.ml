@@ -28,21 +28,26 @@ class soundtouch ~kind (source:source) rate tempo pitch =
   let abg = Generator.create `Audio in
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator ~name:"soundtouch" kind [source]
+  inherit operator ~name:"soundtouch" kind [source] as super
 
   val st = Soundtouch.make channels (Lazy.force Frame.audio_rate)
 
   val databuf = Frame.create kind
 
   method private set_clock =
-    let slave_clock = Clock.create_known (new Clock.clock self#id) in
-    (* Our external clock should stricly contain the slave clock. *)
-    Clock.unify
-      self#clock
-      (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
-    Clock.unify slave_clock source#clock ;
-    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
-    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
+    if rate = 1. then
+      super#set_clock
+    else
+     begin
+      let slave_clock = Clock.create_known (new Clock.clock self#id) in
+      (* Our external clock should stricly contain the slave clock. *)
+      Clock.unify
+        self#clock
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
+      Clock.unify slave_clock source#clock ;
+      (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+      Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
+     end
 
   method private slave_tick =
     (Clock.get source#clock)#end_tick ;
@@ -54,7 +59,8 @@ object (self)
 
   method stype       = source#stype
 
-  method self_sync   = source#self_sync
+  method self_sync   =
+    if rate = 1. then source#self_sync else false
 
   method is_ready    =
     (Generator.length abg > 0) || source#is_ready
@@ -89,7 +95,8 @@ object (self)
     List.iter
       (fun (_,m) -> Generator.add_metadata abg m)
       (AFrame.get_all_metadata databuf);
-    self#slave_tick
+    if rate <> 1. then
+      self#slave_tick
 
   method private get_frame buf =
     let need = AFrame.size () - AFrame.position buf in
