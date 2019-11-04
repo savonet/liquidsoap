@@ -26,7 +26,7 @@ let () =
   add_builtin "thread.run" ~cat:Control
     [
       "fast", Lang.bool_t, Some (Lang.bool true),
-      Some "Whether the thread is supposed to quickly or not. Typically, \
+      Some "Whether the thread is supposed to return quickly or not. Typically, \
             blocking tasks (e.g. fetching data over the internet) should not be \
             considered to be fast. When set to `false` its priority will be \
             lowered below that of request resolutions and fast timeouts. This is \
