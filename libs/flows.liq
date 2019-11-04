@@ -81,7 +81,7 @@ def register_flow(~server="",~user="default",~password="default",
     ignore(request(cmd="ping radio",params=[]))
     ping_period
   end
-  add_timeout(fast=false,ping_period,ping)
+  thread.run.recurrent(fast=false, delay=ping_period, ping)
 
   # Register streams
   def register_stream(format_url)
@@ -97,11 +97,7 @@ def register_flow(~server="",~user="default",~password="default",
     artist = m["artist"]
     title = m["title"]
     params = [("m_title",title),("m_artist",artist)]
-    def update_song() =
-      request(cmd="metadata",params=params)
-      (-1.)
-    end
-    add_timeout(fast=false,0.,update_song)
+    thread.run(fast=false, {request(cmd="metadata",params=params)})
   end
   on_metadata(metadata,s)
 end

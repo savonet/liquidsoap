@@ -143,8 +143,12 @@ val audio_stereo : lang_kind_formats
 val audio_n : int -> lang_kind_formats
 val audio_variable : lang_kind_formats
 
+(** One video channel only. *)
 val video_only : lang_kind_formats
+(** [n] video channels only. *)
 val video_n : int -> lang_kind_formats
+(** One video channel, anything for other channels. *)
+val video : lang_kind_formats
 
 val midi_n : int -> lang_kind_formats
 val midi_only : lang_kind_formats

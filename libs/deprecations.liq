@@ -44,3 +44,24 @@ def playlist.safe(~id, ~mime_type, ~mode, ~on_track, ~prefix, ~reload, ~reload_m
   deprecated("playlist.safe", "")
   mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
+
+# Deprecated: this function has been replaced by thread.run.recurrent.
+# @flag hidden
+def add_timeout(~fast=true, delay, f)
+  deprecated("add_timeout", "thread.run.recurrent")
+  thread.run.recurrent(fast=fast, delay=delay, f)
+end
+
+# Deprecated: this function has been replaced by thread.when.
+# @flag hidden
+def exec_at(~freq=1., ~pred, f)
+  deprecated("exec_at", "thread.when")
+  thread.when(every=freq, pred, f)
+end
+
+# Deprecated: this function has been replaced by thread.mutexify.
+# @flag hidden
+def mutexify(f)
+  deprecated("mutexify", "thread.mutexify")
+  thread.mutexify(f)
+end

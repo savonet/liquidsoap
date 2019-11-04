@@ -323,14 +323,7 @@ AC_SUBST(W_CUSTOM_PATH)
 # Graphics
 #
 
-AC_ARG_ENABLE([graphics],AS_HELP_STRING([--enable-graphics],[use the graphics library]))
-if test "x$enable_graphics" = "xyes" ; then
-  AC_CHECK_OCAML_BINDING([graphics])
-else
-   W_GRAPHICS=""
-   w_GRAPHICS="no"
-   b_GRAPHICS="false"
-fi
+AC_CHECK_OCAML_BINDING([graphics])
 
 #
 # Bytes

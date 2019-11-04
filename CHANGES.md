@@ -31,6 +31,9 @@ Changed:
 - Removed `playlist.merged`: it is not that useful and can be achieved easily
   with `merge_tracs` on a `playlist` (#1015).
 - Deprecated `playlist.safe` (#1015).
+- Renamed `add_timeout` to `thread.run.recurrent`, added `thread.run` variant,
+  renamed `exec_at` to `thread.when` and renamed `mutexify` to `thread.mutexify`
+  (#1019).
 
 Fixed:
 
