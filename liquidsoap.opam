@@ -15,7 +15,6 @@ build: [
                  "--libdir=%{lib}%/liquidsoap/lib"
                  "--includedir=%{lib}%/liquidsoap/include"
                  "--datarootdir=%{lib}%/liquidsoap/share"
-                 "--disable-graphics"
                  "--with-bash-completion-dir=%{lib}%/liquidsoap/etc/bash_completion.d"
                  "--with-user=dummy"
                  "--with-group=dummy"]
