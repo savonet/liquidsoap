@@ -146,7 +146,7 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
   rreloader := {reloader()}
   if reload_mode == "seconds" and reload > 0 then
     n = float_of_int(reload)
-    add_timeout(n, {reloader(); n})
+    thread.run.recurrent(delay=n, {reloader(); n})
   elsif reload_mode == "watch" then
     unwatch = file.watch(uri, reloader)
     source.on_shutdown(s, unwatch)
