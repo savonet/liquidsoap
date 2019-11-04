@@ -55,8 +55,8 @@ let () =
            priority = priority ;
            events   = [`Delay delay] ;
            handler  = fun _ ->
-             let d = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
-             if d >= 0. then [task delay] else []
+             let delay = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
+             if delay >= 0. then [task delay] else []
          }
        in
        Duppy.Task.add Tutils.scheduler (task delay);
