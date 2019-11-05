@@ -44,6 +44,7 @@ decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
+	decoder/id3v2_plug.ml \
 	$(if $(W_FFMPEG),decoder/ffmpeg_decoder.ml) \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
@@ -68,8 +69,7 @@ protocols = \
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
-	sources/req_simple.ml sources/playlist.ml \
-	sources/req_queue.ml sources/req_equeue.ml \
+	sources/request_simple.ml sources/playlist.ml \
 	sources/generated.ml sources/http_source.ml \
 	$(if $(W_SSL),sources/https_source.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),sources/https_secure_transport_source.ml) \
@@ -188,7 +188,7 @@ tools = tools/extralib.ml tools/JSON.ml \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
-	tools/pool.ml tools/sha1.ml tools/websocket.ml \
+	tools/pool.ml tools/sha1.ml tools/websocket.ml tools/id3v2.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml)
 
 stream =stream/frame.ml stream/generator.ml \
@@ -204,14 +204,16 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/lang_builtins.ml lang/builtins_list.ml \
+builtins = lang/lang_builtins.ml \
+           lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_http.ml \
            lang/builtins_harbor.ml lang/builtins_dtools.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
-           lang/builtins_process.ml \
+           lang/builtins_process.ml lang/builtins_source.ml \
+           lang/builtins_interactive.ml \
            $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \
            $(if $(W_OSX_SECURE_TRANSPORT),lang/builtins_https_secure_transport.ml lang/builtins_harbor_secure_transport.ml) \
            $(if $(W_LO),lang/builtins_lo.ml) \

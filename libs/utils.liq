@@ -6,31 +6,6 @@ def mksafe(~id="mksafe",s)
   fallback(id=id,track_sensitive=false,[s,blank(id="safe_blank")])
 end
 
-# list.mem_assoc(key,l) returns true if l contains a pair
-# (key,value)
-# @category List
-# @param a Key to look for
-# @param l List of pairs (key,value)
-def list.mem_assoc(a,l)
-  def f(cur, el) =
-    if not cur then
-      fst(el) == a
-    else
-      cur
-    end
-  end
-  list.fold(f, false, l)
-end
-
-# list.filter_assoc(key,l) returns all the elements of the form
-# (key, value) from l.
-# @category List
-# @param k Key to look for
-# @param l List of pairs (key,value)
-def list.filter_assoc(k,l)
-  list.filter(fun (el) -> fst(el) == k, l)
-end
-
 # Add a skip function to a source when it does not have one by default.
 # @category Interaction
 # @param s The source to attach the command to.
@@ -162,17 +137,6 @@ def sky(s)
                  ratio = 6., gain = 6.7, knee = 0.3,
                  high(s))
       ])
-end
-
-# Append speech-synthesized tracks reading the metadata.
-# @category Source / Track Processing
-# @param ~pattern Pattern to use
-# @param s The source to use
-def say_metadata
-  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
-  fun (s,~pattern=p) ->
-    append(s,fun (m) -> request.queue(queue=[request.create(pattern % m)],
-                                      interactive=false))
 end
 
 %ifdef soundtouch
@@ -399,21 +363,22 @@ def at(pred,s)
   switch([(pred,s)])
 end
 
-# Execute a given action when a predicate is true. This will be run in
-# background.
+# Execute a given action when a predicate is true. This will be run in background.
 # @category System
-# @param ~freq Frequency for checking the predicate, in seconds.
-# @param ~pred Predicate indicating when to execute the function, \
-#              typically a time interval such as `{10h-10h30}`.
+# @param ~every How often (in sec.) to check for the predicate.
+# @param ~once Execute the function only once.
+# @param ~changed Execute the function only if the predicate was false when last checked.
+# @param p Predicate indicating when to execute the function, typically a time interval such as `{10h-10h30}`.
 # @param f Function to execute when the predicate is true.
-def exec_at(~freq=1.,~pred,f)
+def exec_at(~every=1., ~once=false, ~changed=true, p, f)
+  last = ref(false)
   def check()
-    if pred() then
-      f()
-    end
-    freq
+    b = p()
+    if b and ((not changed) or !last == false) then f() end
+    last := b
+    if b and once then (-1.) else every end
   end
-  add_timeout(freq,check)
+  add_timeout(0., check)
 end
 
 # Assign a new clock to the given source (and to other time-dependent sources)
@@ -510,6 +475,16 @@ end
 # @param s Source to extract from
 def stereo.right(s)
   mean(stereo.pan(pan=1., s))
+end
+
+# Append speech-synthesized tracks reading the metadata.
+# @category Source / Track Processing
+# @param ~pattern Pattern to use
+# @param s The source to use
+def say_metadata
+  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
+  fun (s,~pattern=p) ->
+    append(s, fun (m) -> once(single(pattern % m)))
 end
 
 # Rotate between overlapping sources. Next track starts according

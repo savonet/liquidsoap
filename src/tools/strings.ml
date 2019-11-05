@@ -194,7 +194,7 @@ module Mutable = struct
       with
         | e -> Mutex.unlock lock ; raise e
   
-  let  add m s = mutexify m.mutex (fun () ->
+  let add m s = mutexify m.mutex (fun () ->
     m.strings <- add m.strings s) ()
   
   let add_substring m s ofs len = mutexify m.mutex (fun () ->
@@ -262,8 +262,8 @@ module Mutable = struct
   let to_string m = mutexify m.mutex (fun () ->
     to_string m.strings) ()
 
-  let blit m b o = mutexify m.mutex (fun () ->
-    blit m.strings b o) ()
+  let blit m mo b bo len = mutexify m.mutex (fun () ->
+    blit (sub m.strings mo len) b bo) ()
 
   let sub m ofs len = mutexify m.mutex (fun () ->
     of_strings (sub m.strings ofs len)) () 

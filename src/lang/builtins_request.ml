@@ -138,7 +138,7 @@ let () =
 
 let () =
   add_builtin "request.uri" ~cat:Liq
-    ~descr:"Initial URI of a reuqest."
+    ~descr:"Initial URI of a request."
     [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
@@ -182,3 +182,12 @@ let () =
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.float (try Request.duration f with Not_found -> -1.))
+
+let () =
+  add_builtin "request.id" ~cat:Liq
+    ~descr:"Identifier of a request."
+    [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.int_t
+    (fun p ->
+       let r = Lang.to_request (List.assoc "" p) in
+       Lang.int (Request.get_id r)
+    )

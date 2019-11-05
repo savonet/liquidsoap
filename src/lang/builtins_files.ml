@@ -223,6 +223,8 @@ let () =
        Lang.list ~t:Lang.string_t files
     )
 
+(************** Paths ********************)
+
 let () =
   add_builtin "path.basename" ~cat:Sys
     ["",Lang.string_t,None,None] Lang.string_t
@@ -255,3 +257,40 @@ let () =
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
        Lang.string (Filename.remove_extension f))
+
+(************** MP3 ********************)
+
+let () =
+  add_builtin "file.mp3.tags" ~cat:Sys
+    [
+      "",Lang.string_t,None,Some "MP3 file of which the metadata should be read."
+    ] (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t))
+    ~descr:"Read the tags from an MP3 file using the builtin functions. Only \
+            ID3v2 tags are supported for now."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+       let ic = open_in f in
+       let ans =
+         try
+           let ans = Id3v2.parse (input ic) in
+           close_in ic;
+           ans
+         with _ -> close_in ic; []
+       in
+       Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
+         (List.map (fun (l,v) -> Lang.product (Lang.string l) (Lang.string v)) ans)
+    )
+
+let () =
+  add_builtin "file.mp3.parse_apic" ~cat:Sys
+    [
+      "",Lang.string_t,None,Some "APIC data."
+    ] (Lang.tuple_t [Lang.string_t; Lang.int_t; Lang.string_t; Lang.string_t])
+    ~descr:"Parse APIC ID3v2 tags (such as those obtained in the APIC tag from \
+            `file.mp3.tags`). The returned values are: mime, picture type, \
+            description, and picture data."
+    (fun p ->
+       let apic = Lang.to_string (List.assoc "" p) in
+       let apic = Id3v2.parse_apic apic in
+       Lang.tuple [Lang.string apic.Id3v2.mime; Lang.int apic.Id3v2.picture_type; Lang.string apic.Id3v2.description; Lang.string apic.Id3v2.data]
+    )

@@ -246,8 +246,8 @@ let get_file_decoder ~metadata filename kind =
         Some (name,
               fun () ->
                 try f () with exn ->
-                  log#severe "Decoder %S betrayed us on %S! Error: %s"
-                     name filename (Printexc.to_string exn);
+                  log#severe "Decoder %S betrayed us on %S! Error: %s\n%s"
+                     name filename (Printexc.to_string exn) (Printexc.get_backtrace ());
                   dummy)
 
 (** Get a valid image decoder creator for [filename]. *)

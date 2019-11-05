@@ -1,4 +1,4 @@
-#!../../src/liquidsoap
+#!../../../src/liquidsoap ../../../libs/pervasives.liq
 
 %include "test.liq"
 

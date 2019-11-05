@@ -4,6 +4,7 @@
 %include "utils.liq"
 %include "string.liq"
 %include "metadata.liq"
+%include "request.liq"
 %include "playlist.liq"
 %include "resolvers.liq"
 %include "fades.liq"

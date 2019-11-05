@@ -61,13 +61,15 @@ let () =
             that it can be fetched once. Typically, http, ftp, say requests are \
             static, and time is not."
     (( "", Lang.string_t, None, Some "URI where to find the file" )::
+     ("fallible", Lang.bool_t, Some (Lang.bool false), Some "Enforce fallibility of the request.")::
      queued_proto)
     ~kind:(Lang.Unconstrained (Lang.univ_t 1))
     (fun p kind ->
        let val_uri = List.assoc "" p in
+       let fallible = Lang.to_bool (List.assoc "fallible" p) in
        let l,d,t,c = extract_queued_params p in
        let uri = Lang.to_string val_uri in
-       if Request.is_static uri then
+       if not fallible && Request.is_static uri then
          let r = Request.create ~kind ~persistent:true uri in
          ((new unqueued ~kind r) :> source)
        else
@@ -86,17 +88,25 @@ let () =
        let r = Lang.to_request (List.assoc "" p) in
        ((new unqueued ~kind r):>source))
 
-class dynamic ~kind (f:Lang.value) length default_duration timeout conservative = object (self)
+class dynamic ~kind ~available (f:Lang.value) length default_duration timeout conservative = object (self)
   inherit
     Request_source.queued ~kind ~name:"request.dynamic"
-      ~length ~default_duration ~timeout ~conservative ()
+      ~length ~default_duration ~timeout ~conservative () as super
+
+  method is_ready =
+    let ready = super#is_ready in
+    if not ready && available () then super#notify_new_request;
+    ready
 
   method get_next_request =
     try
-      let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
-      let req = Lang.to_request (Lang.apply ~t f []) in
-      Request.set_root_metadata req "source" self#id ;
-      Some req
+      if available () then
+        let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
+        let req = Lang.to_request (Lang.apply ~t f []) in
+        Request.set_root_metadata req "source" self#id ;
+        Some req
+      else
+        None
     with
     | e ->
       log#severe "Failed to obtain a media request!" ;
@@ -107,10 +117,14 @@ let () =
   let k = Lang.univ_t 1 in
   Lang.add_operator "request.dynamic" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    (( "", Lang.fun_t [] (Lang.request_t k), None, None)
+    (( "", Lang.fun_t [] (Lang.request_t k), None, None)::
+     ( "available", Lang.bool_getter_t 2, Some (Lang.bool true),
+       Some "Whether some new requests are available (when set to false, it \
+             stops after current playing request).")
      ::queued_proto)
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        let f = List.assoc "" p in
+       let available = Lang.to_bool_getter (List.assoc "available" p) in
        let l,d,t,c = extract_queued_params p in
-       ((new dynamic ~kind f l d t c) :> source))
+       ((new dynamic ~kind ~available f l d t c) :> source))
