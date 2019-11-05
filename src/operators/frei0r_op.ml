@@ -392,4 +392,4 @@ let register_plugins () =
   List.iter add plugin_dirs
 
 let () =
-  if frei0r_enable then register_plugins ()
+  Configure.at_init (fun () -> if frei0r_enable then register_plugins ())
