@@ -396,6 +396,13 @@ let options = [
     Arg.Unit (fun () -> Lang_types.debug := true; Lang_values.conf_debug#set true),
     "Debug language implementation." ;
 
+    ["--profile"],
+    Arg.Unit (fun () ->
+        Lang_values.conf_profile#set true;
+        ignore (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] (fun () -> print_string (Profiler.stats ())))
+      ),
+    "Profile execution.";
+
     ["--strict"],
     Arg.Set Lang_errors.strict,
     "Execute script code in strict mode, issuing fatal errors \
