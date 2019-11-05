@@ -74,6 +74,8 @@ class lilv_mono ~kind (source:source) plugin input output params =
 object
   inherit base ~kind source
 
+  method self_sync = source#self_sync
+
   val inst = Array.init ((Frame.type_of_kind kind).Frame.audio) (fun _ -> Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate)))
 
   initializer
@@ -98,6 +100,8 @@ class lilv ~kind (source:source) plugin inputs outputs params =
   let oc = Array.length outputs in
 object
   inherit base ~kind source
+
+  method self_sync = source#self_sync
 
   val inst = Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
 
@@ -142,6 +146,8 @@ class lilv_nosource ~kind plugin outputs params =
 object
   inherit base_nosource ~kind
 
+  method self_sync = false
+
   val inst = Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
 
   initializer
@@ -169,9 +175,9 @@ end
 
 (** An LV2 plugin without audio output (e.g. to observe the stream). The input
    stream is returned. *)
-class lilv_noout ~kind plugin inputs params =
+class lilv_noout ~kind source plugin inputs params =
 object
-  inherit base_nosource ~kind
+  inherit base ~kind source
 
   val inst = Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
 
@@ -179,24 +185,17 @@ object
     Plugin.Instance.activate inst
 
   method private get_frame buf =
-    if must_fail then
-      (
-        AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false
-      )
-    else
-      let offset = AFrame.position buf in
-      let b = AFrame.content buf offset in
-      let chans = Array.length b in
-      let position = AFrame.size () in
-      let len = position - offset in
-      List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst p (constant_data len (v ()))) params;
-      for c = 0 to chans - 1 do
-        Plugin.Instance.connect_port_float inst inputs.(c) (Audio.Mono.sub b.(c) offset len)
-      done;
-      Plugin.Instance.run inst len
+    let offset = AFrame.position buf in
+    let b = AFrame.content buf offset in
+    let chans = Array.length b in
+    let position = AFrame.size () in
+    let len = position - offset in
+    List.iter (fun (p,v) -> Plugin.Instance.connect_port_float inst p (constant_data len (v ()))) params;
+    for c = 0 to chans - 1 do
+      Plugin.Instance.connect_port_float inst inputs.(c) (Audio.Mono.sub b.(c) offset len)
+    done;
+    Plugin.Instance.run inst len
 end
-
 
 (* List the indexes of control ports. *)
 let get_control_ports p =
@@ -336,7 +335,7 @@ let register_plugin plugin =
       if ni = 0 then
         new lilv_nosource ~kind plugin outputs params
       else if no = 0 then
-        new lilv_noout ~kind plugin inputs params
+        new lilv_noout ~kind (Utils.get_some source) plugin inputs params
       else if mono then
         new lilv_mono ~kind (Utils.get_some source) plugin inputs.(0) outputs.(0) params
       else
