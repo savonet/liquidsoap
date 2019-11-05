@@ -28,7 +28,7 @@ class soundtouch ~kind (source:source) rate tempo pitch =
   let abg = Generator.create `Audio in
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator ~name:"soundtouch" kind [source] as super
+  inherit operator ~name:"soundtouch" kind [source]
 
   val st = Soundtouch.make channels (Lazy.force Frame.audio_rate)
 
