@@ -421,7 +421,7 @@ object (self)
   val mutable connect_task = None
   val mutable state = `Idle
 
-  method self_sync = state = `Started
+  method self_sync = false
 
   method private is s =
     Tutils.mutexify output_mutex (fun () ->
