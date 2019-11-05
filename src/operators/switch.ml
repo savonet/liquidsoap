@@ -124,9 +124,13 @@ object (self)
   method is_ready = need_eot || selected <> None || self#cached_select <> None
 
   method self_sync =
-    match self#cached_select with
-      | Some {source} -> source#self_sync
-      | None -> false
+    match selected with
+      | Some (_,source) -> source#self_sync
+      | None ->
+         begin match self#cached_select with
+            | Some ({source}) -> source#self_sync
+            | None -> false
+         end
 
   method private get_frame ab =
     (* Choose the next child to be played.
@@ -200,6 +204,9 @@ object (self)
             | None -> ()
           end
     in
+      (* #select is called only when selected=None, and the cache is cleared	
+       * as soon as the new selection is set. *)	
+      assert (selected=None || cached_selected=None) ;
       if need_eot then begin
         need_eot <- false ;
         Frame.add_break ab (Frame.position ab)
