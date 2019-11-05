@@ -119,14 +119,14 @@ end
 # Add a new last element to the list.
 # @category List
 # @flag hidden
-def rec list.snoc(y, l)
-  list.case(l, list.cons(y, []), fun (x, l) -> list.cons(x, list.snoc(y, l)))
+def list.snoc(y, l)
+  list.ind(l, list.cons(y, []), fun (x, l, r) -> list.cons(x, r))
 end
 
 # Revert list order.
 # @category List
-def rec list.rev(l)
-  list.case(l, [], fun (x, l) -> list.snoc(x, list.rev(l)))
+def list.rev(l)
+  list.ind(l, [], fun (x, l, r) -> list.snoc(x, r))
 end
 
 # Associate a value to a key in an association list.
