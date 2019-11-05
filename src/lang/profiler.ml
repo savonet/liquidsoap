@@ -88,5 +88,8 @@ let stats () =
       ) l
   in
   let l = List.sort (fun (_,t) (_,t') -> - compare t t') l in
+  let l = List.map (fun (f,(self,total,n)) -> [|f; string_of_float self; string_of_float total; string_of_int n|]) l in
+  let l = [|"function"; "self"; "total"; "calls"|]::[||]::l in
+  let l = Array.of_list l in
   "PROFILING STATS\n\n" ^
-  String.concat "" (List.map (fun (f,(self,total,n)) -> Printf.sprintf "%s: %f %f %d\n" f self total n) l)
+  Utils.string_of_matrix l
