@@ -31,6 +31,7 @@ Changed:
 - Renamed `add_timeout` to `thread.run.recurrent`, added `thread.run` variant,
   renamed `exec_at` to `thread.when` and renamed `mutexify` to `thread.mutexify`
   (#1019).
+- Changed the weights of `add` to float (#1022).
 
 Fixed:
 

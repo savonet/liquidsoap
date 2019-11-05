@@ -197,6 +197,7 @@ object (self)
 
   val input_mutex  = Mutex.create ()
   val mutable client_data = None
+  val mutable decoder_data = None
   val mutable should_stop = false
 
   method stype       = Source.Fallible
@@ -259,12 +260,9 @@ object (self)
     if self#should_stop then raise Done;
     Srt.setsockflag socket Srt.sndsyn true;
     Srt.setsockflag socket Srt.rcvsyn true;
-    let decoder =
-      self#create_decoder socket
-    in
     Tutils.mutexify input_mutex (fun () ->
       Generator.set_mode generator `Undefined;
-      client_data <- Some (socket, decoder)) ();
+      client_data <- Some socket) ();
     on_connect ()
 
   method private close_client =
@@ -272,8 +270,9 @@ object (self)
     Tutils.mutexify input_mutex (fun () ->
       match client_data with
         | None -> ()
-        | Some (socket, _) ->
+        | Some socket ->
             Srt.close socket;
+            decoder_data <- None;
             client_data <- None) ();
     self#connect
 
@@ -295,7 +294,17 @@ object (self)
 
   method private get_frame frame =
     let pos = Frame.position frame in
-    let (_, decoder) = Utils.get_some client_data in
+    let socket = Utils.get_some client_data in
+    let decoder =
+      match decoder_data with
+        | None ->
+           let decoder =
+             self#create_decoder socket
+           in
+           decoder_data <- Some decoder;
+           decoder
+       | Some d -> d
+    in
     try
      while Generator.length generator < Lazy.force Frame.size do
        decoder.Decoder.decode generator
