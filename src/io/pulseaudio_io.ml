@@ -44,7 +44,7 @@ object
   val dev = device
 
   method virtual log : Log.t
-  method self_sync = true
+  method self_sync = dev <> None
 end
 
 class output ~infallible ~start ~on_start ~on_stop ~kind p =

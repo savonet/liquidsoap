@@ -49,8 +49,6 @@ object (self)
       ~name ~output_kind:"output.oss" val_source start
     as super
 
-  method self_sync = true
-
   method private set_clock =
     super#set_clock ;
     if clock_safe then
@@ -58,6 +56,8 @@ object (self)
         (Clock.create_known ((get_clock ()):>Clock.clock))
 
   val mutable fd = None
+
+  method self_sync = fd <> None
 
   method open_device =
     let descr = Unix.openfile dev [Unix.O_WRONLY] 0o200 in
@@ -112,7 +112,7 @@ object (self)
 
   val mutable fd = None
 
-  method self_sync = true
+  method self_sync = fd <> None
 
   method private start = self#open_device
 

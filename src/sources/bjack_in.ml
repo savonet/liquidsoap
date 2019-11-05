@@ -40,8 +40,6 @@ object (self)
   inherit active_source ~name:"input.jack" kind as active_source
   inherit [Bytes.t] IoRing.input ~nb_blocks ~blank as ioring
 
-  method self_sync = true
-
   method set_clock =
     active_source#set_clock ;
     if clock_safe then
@@ -63,6 +61,8 @@ object (self)
   val mutable sample_freq = samples_per_second
 
   val mutable device = None
+
+  method self_sync = device <> None
 
   method close =
     match device with

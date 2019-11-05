@@ -42,8 +42,6 @@ object (self)
     as super
   inherit [Frame.audio_t array] IoRing.output ~nb_blocks ~blank as ioring
 
-  method self_sync = true
-
   method private set_clock =
     super#set_clock ;
     if clock_safe then
@@ -51,6 +49,8 @@ object (self)
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
   val mutable device = None
+
+  method self_sync = device <> None
 
   val mutable alsa_rate = samples_per_second
   val samplerate_converter = Audio_converter.Samplerate.create buffer_chans

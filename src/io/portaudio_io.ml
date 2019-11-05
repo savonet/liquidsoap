@@ -33,8 +33,6 @@ object (self)
       initialized := true
     end
 
-  method self_sync = true
-
   method virtual log : Log.t
 
   (* TODO: inline this to be more efficient? *)
@@ -74,6 +72,8 @@ object (self)
         (Clock.create_known ((get_clock ()):>Clock.clock))
 
   val mutable stream = None
+
+  method self_sync = stream <> None
 
   method private open_device =
     self#handle
@@ -143,6 +143,8 @@ object (self)
   method private stop = self#close_device
 
   val mutable stream = None
+
+  method self_sync = stream <> None
 
   method private open_device =
     self#handle

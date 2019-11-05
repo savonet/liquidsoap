@@ -41,8 +41,6 @@ object (self)
           as super
   inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
-  method self_sync = true
-
   method private set_clock =
     super#set_clock ;
     if clock_safe then
@@ -50,6 +48,8 @@ object (self)
         (Clock.create_known ((Bjack_in.bjack_clock ()):>Clock.clock))
 
   val mutable device = None
+
+  method self_sync = device <> None
 
   method get_device =
     match device with

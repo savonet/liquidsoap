@@ -172,7 +172,8 @@ object (self)
     ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
   inherit [App_src.t,App_src.t] element_factory ~on_error
 
-  method self_sync = true
+  val mutable started = false
+  method self_sync = started
 
   method private set_clock =
     super#set_clock;
@@ -183,6 +184,7 @@ object (self)
   method output_start =
     let el = self#get_element in
     self#log#info "Playing.";
+    started <- true;
     ignore (Element.set_state el.bin Element.State_playing);
     (* Don't uncomment the following line, it locks the program. I guess that
        GStreamer is waiting for some data before answering that we are
@@ -192,6 +194,7 @@ object (self)
 
   method output_stop =
     self#stop_task;
+    started <- false;
     let todo =
       Tutils.mutexify element_m (fun () ->
         match element with
@@ -472,7 +475,6 @@ object (self)
 
   method stype = Source.Fallible
   method remaining = -1
-  method self_sync = true
 
   (* Source is ready when ready = true and gst has some audio or some video. *)
   val mutable ready = true
