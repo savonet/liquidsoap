@@ -35,19 +35,14 @@ object (self)
   val databuf = Frame.create kind
 
   method private set_clock =
-    if rate = 1. then
-      super#set_clock
-    else
-     begin
-      let slave_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should stricly contain the slave clock. *)
-      Clock.unify
-        self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
-      Clock.unify slave_clock source#clock ;
-      (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
-      Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
-     end
+   let slave_clock = Clock.create_known (new Clock.clock self#id) in
+   (* Our external clock should stricly contain the slave clock. *)
+   Clock.unify
+     self#clock
+     (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
+   Clock.unify slave_clock source#clock ;
+   (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+   Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   method private slave_tick =
     (Clock.get source#clock)#end_tick ;
@@ -59,8 +54,7 @@ object (self)
 
   method stype       = source#stype
 
-  method self_sync   =
-    if rate = 1. then source#self_sync else false
+  method self_sync   = false
 
   method is_ready    =
     (Generator.length abg > 0) || source#is_ready
