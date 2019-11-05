@@ -28,6 +28,9 @@ Changed:
 - Changed `request.queue` into a Liquidsoap implementation (#1013).
 - Removed `request.equeue`, such a feature could be re-implemented in
   Liquidsoap, see `request.queue`.
+- Renamed `add_timeout` to `thread.run.recurrent`, added `thread.run` variant,
+  renamed `exec_at` to `thread.when` and renamed `mutexify` to `thread.mutexify`
+  (#1019).
 
 Fixed:
 

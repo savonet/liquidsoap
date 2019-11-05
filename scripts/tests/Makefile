@@ -13,9 +13,8 @@ test: threesines $(TESTS)
 # Generate samples files in threesines directory
 
 threesines: threesines/a.wav threesines/b.wav threesines/c.wav
-MKSINE= ../../src/liquidsoap  --no-pervasives -q \
-	  ../../libs/list.liq ../../libs/utils.liq \
-	  "clock.assign_new(sync=\"none\",[ \
+MKSINE= ../../src/liquidsoap -q ../../libs/pervasives.liq \
+	  "clock.assign_new(sync="none",[ \
 	  output.file(%wav,\"$$fname\",fallible=true,on_stop=shutdown, \
 	  once(sine(duration=2.,$$freq)))])"
 threesines/a.wav: ../../src/liquidsoap Makefile
