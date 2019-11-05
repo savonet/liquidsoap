@@ -51,11 +51,7 @@ let debug =
        with
        | Not_found -> conf_debug#get)
 
-let conf_profile =
-  Dtools.Conf.bool ~p:(conf#plug "profile") ~d:false
-    "Profile execution."
-
-let profile = Lazy.from_fun (fun () -> conf_profile#get)
+let profile = ref false
 
 (** {2 Kinds} *)
 
@@ -966,7 +962,7 @@ let rec eval ~env tm =
             (eval ~env f)
             (List.map (fun (l,t) -> l, eval ~env t) l)
         in
-        if Lazy.force profile then
+        if !profile then
           (
             match f.term with
             | Var fname -> Profiler.time fname ans ()

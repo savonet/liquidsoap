@@ -398,7 +398,7 @@ let options = [
 
     ["--profile"],
     Arg.Unit (fun () ->
-        Lang_values.conf_profile#set true;
+        Lang_values.profile := true;
         ignore (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] (fun () -> print_string ("PROFILER STATS\n\n" ^ Profiler.stats ())))
       ),
     "Profile execution.";
