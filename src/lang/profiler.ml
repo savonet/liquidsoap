@@ -54,9 +54,9 @@ let time fname f x =
   let dt = t1 -. t0 in
   List.hd !children := !(List.hd !children) +. dt;
 
-  (* We count recursive calls as zero otherwise time is counted multiple times. *)
-  let total_time = if List.mem fname !stack then 0. else dt in
-  let self_time = total_time -. children_time in
+  (* TODO: time is counted multiple times in recursive calls. *)
+  let total_time = dt in
+  let self_time = dt -. children_time in
   let t = { total_time; self_time } in
   add fname t;
   ans
@@ -81,12 +81,12 @@ let stats () =
       (fun (f,t) ->
          f,
          (
-           List.fold_left (fun x t -> x +. t.total_time) 0. t,
            List.fold_left (fun x t -> x +. t.self_time) 0. t,
+           List.fold_left (fun x t -> x +. t.total_time) 0. t,
            List.length t
          )
       ) l
   in
   let l = List.sort (fun (_,t) (_,t') -> - compare t t') l in
   "PROFILING STATS\n\n" ^
-  String.concat "" (List.map (fun (f,(s,c,n)) -> Printf.sprintf "%s: %f %f %d\n" f s c n) l)
+  String.concat "" (List.map (fun (f,(self,total,n)) -> Printf.sprintf "%s: %f %f %d\n" f self total n) l)
