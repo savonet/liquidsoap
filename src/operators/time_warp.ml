@@ -53,6 +53,8 @@ struct
   object (self)
     inherit Source.source kind ~name:"warp_prod"
 
+    method self_sync = false
+
     method stype = Source.Fallible
 
     method remaining =
@@ -186,6 +188,8 @@ struct
     inherit Source.source kind ~name:"buffer.adaptative_producer"
 
     method stype = Source.Fallible
+
+    method self_sync = false
 
     method remaining =
       proceed c (fun () -> MG.remaining c.mg)

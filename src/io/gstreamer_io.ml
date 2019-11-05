@@ -26,7 +26,7 @@ open Gstreamer
 module GU = Gstreamer_utils
 
 let log = Log.make ["io";"gstreamer"]
-let gst_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "gstreamer")
+let gst_clock = Tutils.lazy_cell (fun () -> new Clock.clock "gstreamer")
 
 let string_of_state_change = function
   | Element.State_change_success    -> "success"
@@ -172,6 +172,8 @@ object (self)
     ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
   inherit [App_src.t,App_src.t] element_factory ~on_error
 
+  method self_sync = true
+
   method private set_clock =
     super#set_clock;
     if clock_safe then
@@ -186,8 +188,7 @@ object (self)
        GStreamer is waiting for some data before answering that we are
        playing. *)
     (* ignore (Element.get_state el.bin); *)
-    self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
-    if clock_safe then (gst_clock ())#register_blocking_source
+    self#register_task ~priority:Tutils.Blocking Tutils.scheduler
 
   method output_stop =
     self#stop_task;
@@ -206,8 +207,7 @@ object (self)
               ignore (Element.get_state el.bin);
               GU.flush ~log:self#log el.bin) ()
     in
-    todo ();
-    if clock_safe then (gst_clock ())#unregister_blocking_source
+    todo ()
 
   method private make_element =
     let pipeline =
@@ -472,6 +472,7 @@ object (self)
 
   method stype = Source.Fallible
   method remaining = -1
+  method self_sync = true
 
   (* Source is ready when ready = true and gst has some audio or some video. *)
   val mutable ready = true

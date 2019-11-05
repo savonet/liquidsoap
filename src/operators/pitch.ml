@@ -80,6 +80,8 @@ object (self)
 
   method abort_track = source#abort_track
 
+  method self_sync = source#self_sync
+
   method private get_frame buf =
     let pos = AFrame.position buf in
     source#get buf;

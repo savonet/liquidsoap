@@ -196,6 +196,8 @@ object (self)
     as super
   inherit base ~kind dev [Pcm.Playback]
 
+  method self_sync = true
+
   method private set_clock =
     super#set_clock ;
     if clock_safe then
@@ -205,13 +207,9 @@ object (self)
   val samplerate_converter = Audio_converter.Samplerate.create channels
 
   method output_start =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source ;
     self#open_device
 
   method output_stop =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source ;
     self#close_device
 
   method output_send memo =
@@ -268,6 +266,8 @@ object (self)
       ~on_start ~on_stop ~fallible ~autostart:start
     as super
 
+  method self_sync = true
+
   method private set_clock =
     super#set_clock ;
     if clock_safe then
@@ -275,13 +275,9 @@ object (self)
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
   method private start =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source ;
     self#open_device
 
   method private stop =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source ;
     self#close_device
 
   (* TODO: convert samplerate *)

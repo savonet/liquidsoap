@@ -31,6 +31,8 @@ object (self)
 
   method stype = source#stype
 
+  method self_sync = source#self_sync
+
   method remaining = source#remaining
 
   method is_ready = source#is_ready

@@ -76,7 +76,7 @@ yields the following graph:
 operator; the rate of that clock is controlled by that operator,
 which can hence accelerate it around track changes without any
 risk of inconsistency.
-The other clock is simply a wallclock, so that the main stream
+The other clock is simply a CPU-based clock, so that the main stream
 is produced following the ``real'' time rate.
 
 Error messages
@@ -181,10 +181,19 @@ If you want to run an output as fast as your CPU allows,
 just attach it to a new clock without synchronization:
 
 ```liquidsoap
-clock.assign_new(sync=false,[output.file(%vorbis,"audio.ogg",source)])
+clock.assign_new(sync="none",[output.file(%vorbis,"audio.ogg",source)])
 ```
 
 This will automatically attach the appropriate sources to that clock.
+
+Another important use case of this operator is if your script involves multiple sources from the same external clock, typically multiple ALSA input or output from the same sound card or multiple jack input and output. By default (the so-called `clock_safe` mode), liquidsoap will assign a dedicated clock to each of those sources, leading either to an error or forcing the use of an unnecessary `buffer` (see below). Instead, you can allocate each source with `clock_safe=false` and assign them a single clock:
+
+```
+s1 = input.jack(clock_safe=false, ...)
+s2 = input.jack(clock_safe=false, ...)
+
+clock.assign_new([s1,s2])
+```
 However, you may need to do it for other operators if they are totally
 unrelated to the first one.
 
@@ -278,7 +287,7 @@ twice. You should run it as `liquidsoap EXPR -- FILE`
 and observe that it fully exploits two cores:
 ```liquidsoap
 def one()
-  clock.assign_new(sync=false,
+  clock.assign_new(sync="none",
         [output.file(%mp3,"/dev/null",single(argv(1)))])
 end
 one()
