@@ -102,8 +102,8 @@ end
 
 # Concatenate two lists.
 # @category List
-def rec list.append(l, m)
-  list.case(l, m, fun (x, l) -> list.cons(x, list.append(l, m)))
+def list.append(l, m)
+  list.ind(l, m, fun (x, l, r) -> list.cons(x, r))
 end
 
 # Add a new last element to the list.

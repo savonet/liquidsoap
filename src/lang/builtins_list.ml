@@ -70,7 +70,9 @@ let () =
   let b = Lang.univ_t 2 in
   Lang.add_builtin "list.ind"
     ~category:(string_of_category List)
-    ~descr:"Define a function by induction on a list."
+    ~descr:"Define a function by induction on a list. This is slightly more \
+            efficient than defining a recursive function. The list is scanned \
+            from the right."
     [
       "", (Lang.list_t a), None, Some "List to perform induction on.";
       "", b, None, Some "Result when the list is empty.";

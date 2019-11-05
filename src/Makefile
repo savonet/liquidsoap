@@ -271,4 +271,4 @@ ifneq ($(BYTE),)
 endif
 
 profile:
-	$(MAKE) OCAMLC="$(OCAMLC) -p"
+	$(MAKE) OCAMLC="$(OCAMLC) -S -p"
