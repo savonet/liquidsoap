@@ -89,8 +89,7 @@ object (self)
     List.iter
       (fun (_,m) -> Generator.add_metadata abg m)
       (AFrame.get_all_metadata databuf);
-    if rate <> 1. then
-      self#slave_tick
+    self#slave_tick
 
   method private get_frame buf =
     let need = AFrame.size () - AFrame.position buf in
