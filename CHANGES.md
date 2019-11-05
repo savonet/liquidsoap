@@ -12,6 +12,7 @@ New:
   `file.mp3.parse_apic` and `file.cover` (#987).
 - Added `lists.exists` and `list.for_all`.
 - Added `list.init`.
+- Added `list.ind`.
 - Added `request.id`.
 
 Changed:
