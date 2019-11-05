@@ -42,13 +42,21 @@ object (self)
     as super
   inherit [Frame.audio_t array] IoRing.output ~nb_blocks ~blank as ioring
 
-  method self_sync = true
-
   method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
+
+  method output_start =
+    ioring#output_start ;
+    if clock_safe then
+      (Alsa_settings.get_clock ())#register_blocking_source
+
+  method output_stop =
+    ioring#output_stop ;
+    if clock_safe then
+      (Alsa_settings.get_clock ())#unregister_blocking_source
 
   val mutable device = None
 

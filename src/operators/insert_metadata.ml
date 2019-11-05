@@ -32,7 +32,6 @@ object (self)
   method remaining = source#remaining
   method seek = source#seek
   method abort_track = source#abort_track
-  method self_sync = source#self_sync
 
   val mutable metadata = None
   val mutable new_track = false
@@ -122,7 +121,6 @@ object
   method is_ready = src#is_ready
   method abort_track = src#abort_track
   method remaining = src#remaining
-  method self_sync = src#self_sync
 
   method private get_frame ab =
     let start = Frame.position ab in

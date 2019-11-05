@@ -48,8 +48,6 @@ class virtual unqueued ~kind ~name = object (self)
   val mutable current = None
   val plock = Mutex.create ()
 
-  method self_sync = false
-
   (** How to unload a request. *)
   method private end_track forced =
     Mutex.lock plock ;

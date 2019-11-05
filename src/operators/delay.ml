@@ -33,7 +33,6 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
   method seek = source#seek
-  method self_sync = source#self_sync
 
   val mutable last = if initial then Unix.time () else 0.
   val mutable in_track = false

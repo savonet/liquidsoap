@@ -36,7 +36,6 @@ object (self)
   method is_ready = true
   method seek x =
     if seek then x else 0
-  method self_sync = false
 
   val mutable remaining = track_size
   method remaining =

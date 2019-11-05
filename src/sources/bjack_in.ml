@@ -25,7 +25,7 @@ open Source
 let log = Log.make ["input";"jack"]
 
 let bjack_clock =
-  Tutils.lazy_cell (fun () -> new Clock.clock "bjack")
+  Tutils.lazy_cell (fun () -> new Clock.self_sync "bjack")
 
 class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   let channels = (Frame.type_of_kind kind).Frame.audio in
@@ -40,8 +40,6 @@ object (self)
   inherit active_source ~name:"input.jack" kind as active_source
   inherit [Bytes.t] IoRing.input ~nb_blocks ~blank as ioring
 
-  method self_sync = true
-
   method set_clock =
     active_source#set_clock ;
     if clock_safe then
@@ -49,11 +47,13 @@ object (self)
         (Clock.create_known ((bjack_clock ()):>Clock.clock))
 
   method private wake_up l =
-    active_source#wake_up l
+    active_source#wake_up l ;
+    if clock_safe then (bjack_clock ())#register_blocking_source
 
   method private sleep =
     active_source#sleep ;
-    ioring#sleep
+    ioring#sleep ;
+    if clock_safe then (bjack_clock ())#unregister_blocking_source
 
   method stype = Infallible
   method is_ready = true

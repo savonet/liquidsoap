@@ -92,7 +92,7 @@ output = "/tmp/output.ogg"
 source = once(single(input))
 
 # We use a clock with disabled synchronization
-clock.assign_new(sync="none",[source])
+clock.assign_new(sync=false,[source])
 
 # Finally, we output the source to an
 # ogg/vorbis file

@@ -29,7 +29,6 @@ object
 
   method stype = source#stype
   method is_ready = source#is_ready
-  method self_sync = source#self_sync
   method remaining = source#remaining
   method seek = source#seek
   method abort_track = source#abort_track

@@ -58,7 +58,7 @@ type source_t = Fallible | Infallible
   *
   * Most clocks are passive, i.e. they don't run anything
   * directly, but may only tick when something happens to a source.
-  * The clock is the default, active clock:
+  * The wallclock (formerly root.ml) is the default, active clock:
   * when started, it launches a thread which keeps ticking regularly.
   *
   * A clock needs to know all the active sources under its control,
@@ -75,7 +75,7 @@ type source_t = Fallible | Infallible
   *
   * The idea is that when an output is created it assigns a clock to itself
   * according to its sources' clocks. Eventually, all remaining unknown clocks
-  * are forced to clock. *)
+  * are forced to wallclock. *)
 
 class type ['a,'b] proto_clock =
 object
@@ -293,8 +293,6 @@ object (self)
   val clock : active_operator var = create_unknown ~sources:[] ~sub_clocks:[]
 
   method clock = clock
-
-  method virtual self_sync : bool
 
   method private set_clock =
     List.iter (fun s -> unify self#clock s#clock) sources

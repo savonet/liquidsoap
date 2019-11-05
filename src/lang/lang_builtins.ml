@@ -149,9 +149,9 @@ let () =
     [ ("id", Lang.string_t, Some (Lang.string ""),
        Some "Identifier for the new clock. The default empty string means that \
              the identifier of the first source will be used.") ;
-      ("sync", Lang.string_t, Some (Lang.string "auto"),
-      Some "Synchronization mode. One of: `\"auto\"`, `\"cpu\"`, \
-            or `\"none\"`.");
+      ("sync", Lang.bool_t, Some (Lang.bool true),
+       Some "Do not synchronize the clock on regular wallclock time, but try to \
+             run as fast as possible (CPU burning mode).") ;
       ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None,
        Some "List of sources to which the new clock will be assigned") ]
     Lang.unit_t
@@ -159,23 +159,15 @@ let () =
       match Lang.to_list (List.assoc "" p) with
       | [] -> Lang.unit
       | (hd::_) as sources ->
-         let sync = List.assoc "sync" p in
-         let sync =
-           match Lang.to_string sync with
-             | s when s = "auto" -> `Auto
-             | s when s = "cpu" -> `CPU
-             | s when s = "none" -> `None
-             | _ ->
-                raise (Lang_errors.Invalid_value (sync, "Invalid sync value"));
-         in
+         let sync = Lang.to_bool (List.assoc "sync" p) in
          let id = Lang.to_string (List.assoc "id" p) in
          let id = if id = "" then (Lang.to_source hd)#id else id in
-         let clock = new Clock.clock ~sync id in
+         let clock = new Clock.wallclock ~sync id in
          List.iter
            (fun s ->
              try
                let s = Lang.to_source s in
-               Clock.unify s#clock (Clock.create_known (clock:>Clock.clock))
+               Clock.unify s#clock (Clock.create_known clock)
              with
              | Source.Clock_conflict (a,b) ->
                 raise (Lang_errors.Clock_conflict (s.Lang.t.Lang_types.pos,a,b))

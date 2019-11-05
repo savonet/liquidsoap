@@ -33,11 +33,6 @@ object (self)
 
   val mutable seq_sources = sources
 
-  method self_sync =
-    match sources with
-      | hd::_ -> hd#self_sync
-      | [] -> false
-
   method stype =
     match List.rev sources with
       | hd::_ -> hd#stype
@@ -123,7 +118,6 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = -1
-  method self_sync = source#self_sync
 
   method private get_frame buf =
     source#get buf ;

@@ -34,7 +34,6 @@ object
   method seek = source#seek
   method is_ready = source#is_ready
   method abort_track = source#abort_track
-  method self_sync = source#self_sync
 
   method private get_frame buf =
     source#get buf;

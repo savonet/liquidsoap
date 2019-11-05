@@ -39,7 +39,6 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
-  method self_sync = source#self_sync
 
   val stereo = { Frame. audio=2 ; video = 0 ; midi = 0 }
 

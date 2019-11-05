@@ -38,7 +38,6 @@ object
   inherit Source.active_source
 
   method stype : Source.source_t
-  method self_sync : bool
   method remaining : int
   method output_get_ready : unit
   method output : unit

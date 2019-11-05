@@ -52,7 +52,6 @@ object (self)
   method is_ready = true
   method remaining = -1
   method abort_track = ()
-  method self_sync = false
   method output = if AFrame.is_partial memo then self#get_frame memo
 
   method output_get_ready =

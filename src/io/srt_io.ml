@@ -141,14 +141,12 @@ object(self)
 
   method virtual id : string
 
-  method self_sync = true
-
   val mutable clock = None
   method private get_clock =
     match clock with
       | Some c -> c
       | None ->
-         let c = new Clock.clock "srt" in
+         let c = new Clock.self_sync self#id in
          clock <- Some c;
          c
 
@@ -265,6 +263,8 @@ object (self)
     Tutils.mutexify input_mutex (fun () ->
       Generator.set_mode generator `Undefined;
       client_data <- Some (socket, decoder)) ();
+    if clock_safe then
+      self#get_clock#register_blocking_source ;
     on_connect ()
 
   method private close_client =
@@ -275,6 +275,8 @@ object (self)
         | Some (socket, _) ->
             Srt.close socket;
             client_data <- None) ();
+    if clock_safe then
+      self#get_clock#unregister_blocking_source ;
     self#connect
 
   method private connect =
@@ -529,6 +531,8 @@ object (self)
         (Clock.create_known (self#get_clock:>Clock.clock))
 
   method private output_start =
+    if clock_safe then
+      self#get_clock#register_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Started) ();
     self#start_connect_task
@@ -536,6 +540,8 @@ object (self)
   method private output_reset = self#output_start ; self#output_stop
 
   method private output_stop =
+    if clock_safe then
+      self#get_clock#unregister_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Stopped) ();
     self#stop_connect_task

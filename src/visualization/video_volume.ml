@@ -39,7 +39,6 @@ object (self)
   method is_ready = source#is_ready
   method remaining = source#remaining
   method abort_track = source#abort_track
-  method self_sync = source#self_sync
 
   (* Ringbuffer for previous values, with its current position. *)
   val vol = Array.init channels (fun _ -> Array.make backpoints 0.)

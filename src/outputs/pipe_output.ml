@@ -310,14 +310,9 @@ class external_output p =
   let process =
     Lang.to_string_getter (Lang.assoc "" 2 p)
   in
-  let self_sync =
-    Lang.to_bool (List.assoc "self_sync" p)
-  in
 object (self)
   inherit piped_output p
   inherit chan_output p
-
-  method self_sync = self_sync
 
   method open_chan =
     let process = process () in
@@ -330,19 +325,10 @@ object (self)
     with Sys_error msg when msg = "Broken pipe" -> ()
 end
 
-let pipe_proto kind descr = (
-    "self_sync",
-    Lang.bool_t,
-    Some (Lang.bool false),
-    Some "Set to `true` if the process is expected to control \
-          the output's latency. Typical example: `ffmpeg` with \
-          the `-re` command-line option.") ::
-    (chan_proto kind descr)
-
 let () =
   let kind = Lang.univ_t 1 in
   Lang.add_operator "output.external" ~active:true
-    (pipe_proto kind "Process to pipe data to.")
+    (chan_proto kind "Process to pipe data to.")
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output
     ~descr:"Send the stream to a process' standard input."

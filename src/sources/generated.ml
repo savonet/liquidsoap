@@ -50,8 +50,6 @@ object (self)
 
   method virtual private log : Log.t
 
-  method self_sync = false
-
   method seek len =
     if not seek || len <= 0 then 0 else
       Tutils.mutexify generator_lock (fun () ->

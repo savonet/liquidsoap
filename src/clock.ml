@@ -89,53 +89,8 @@ let leave (s : active_source) =
     List.iter (log#important "%s")
       (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
 
-(** {1 Clock implementation}
-  * One could think of several clocks for isolated parts of a script.
-  * One can also think of alsa-clocks, etc. *)
-
-let conf = Dtools.Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
-
-let conf_max_latency =
-  Dtools.Conf.float ~p:(conf#plug "max_latency") ~d:60. "Maximum latency in seconds"
-    ~comments:
-      [ "If the latency gets higher than this value, the outputs will be reset,";
-        "instead of trying to catch it up second by second.";
-        "The reset is typically only useful to reconnect icecast mounts." ]
-
-(** Timing stuff, make sure the frame rate is correct. *)
-
-let time = Unix.gettimeofday
-
-let usleep d =
-  (* In some implementations,
-   * Thread.delay uses Unix.select which can raise EINTR.
-   * A really good implementation would keep track of the elapsed time and then
-   * trigger another Thread.delay for the remaining time.
-   * This cheap thing does the job for now.. *)
-  try Thread.delay d with Unix.Unix_error (Unix.EINTR, _, _) -> ()
-
-(** In [`CPU] mode, synchronization is governed by the CPU clock.
-  * In [`None] mode, there is no synchronization control. Latency in
-  * is governed by the time it takes for the sources to produce and 
-  * output data.
-  * In [`Auto] mode, synchronization is governed by the CPU unless at
-  * least one active source is declared [self_sync] in which case latency
-  * is delegated to this source. A typical example being a source linked
-  * to a sound card, in which case the source latency is governed
-  * by the sound card's clock. Another case is synchronous network
-  * protocol such as [input.srt]. *)
-type sync = [
-  | `Auto
-  | `CPU
-  | `None
-]
-
-let sync_descr = function
-  | `Auto -> "auto-sync"
-  | `CPU -> "CPU sync"
-  | `None -> "no sync"
-
-class clock ?(sync=`Auto) id =
+(** Base clock class. *)
+class clock id =
   object (self)
     initializer Clocks.add clocks (self :> Source.clock)
 
@@ -192,91 +147,8 @@ class clock ?(sync=`Auto) id =
 
     method get_tick = round
 
-    val mutable running = false
-
-    val do_running =
-      let lock = Mutex.create () in
-      fun f -> Tutils.mutexify lock f ()
-
-    val mutable self_sync = None
-    method private self_sync =
-      let new_val =
-        match sync with
-          | `Auto ->
-               List.exists (fun (state,s) ->
-                 state = `Active && s#self_sync) outputs
-          | `CPU ->
-               false
-          | `None ->
-               true
-      in
-      begin
-       match self_sync, new_val with
-         | None, false
-         | Some true, false ->
-           log#important "Delegating synchronisation to CPU clock"
-         | None, true
-         | Some false, true ->
-           log#important "Delegating synchronisation to active sources"
-         | _ -> ()
-      end;
-      self_sync <- Some new_val;
-      new_val
-
-    method private run =
-      let acc = ref 0 in
-      let max_latency = -.conf_max_latency#get in
-      let last_latency_log = ref (time ()) in
-      let t0 = ref (time ()) in
-      let ticks = ref 0L in
-      let frame_duration = Lazy.force Frame.duration in
-      let delay () =
-        !t0
-        +. (frame_duration *. Int64.to_float (Int64.add !ticks 1L))
-        -. time ()
-      in
-      log#important "Streaming loop starts in %s mode" (sync_descr sync);
-      let rec loop () =
-        (* Stop running if there is no output. *)
-        if outputs = [] then ()
-        else (
-          let self_sync = self#self_sync in
-          let rem = if self_sync then 0. else delay () in
-          (* Sleep a while or worry about the latency *)
-          if self_sync || rem > 0. then (
-            acc := 0 ;
-            if rem > 0. then usleep rem )
-          else (
-            incr acc ;
-            if rem < max_latency then (
-              log#severe "Too much latency! Resetting active sources..." ;
-              List.iter
-                (function
-                  | `Active, s when s#is_active -> s#output_reset | _ -> ())
-                outputs ;
-              t0 := time () ;
-              ticks := 0L ;
-              acc := 0 )
-            else if
-              (rem <= -1. || !acc >= 100) && !last_latency_log +. 1. < time ()
-            then (
-              last_latency_log := time () ;
-              log#severe "We must catchup %.2f seconds%s!" (-.rem)
-                ( if !acc <= 100 then ""
-                else " (we've been late for 100 rounds)" ) ;
-              acc := 0 ) ) ;
-          ticks := Int64.add !ticks 1L ;
-          (* This is where the streaming actually happens: *)
-          self#end_tick ;
-          loop () )
-      in
-      loop () ;
-      do_running (fun () -> running <- false) ;
-      log#important "Streaming loop stopped."
-
-    val thread_name = "clock_" ^ id
-
-    (** This is the main streaming step *)
+    (** This is the main streaming step
+    * All clocks (wallclock, soundcard, stretch, etc) run this #end_tick *)
     method end_tick =
       let leaving, active =
         Tutils.mutexify lock
@@ -426,6 +298,110 @@ class clock ?(sync=`Auto) id =
         if leaving <> [] then (
           log#info "Stopping %d sources..." (List.length leaving) ;
           List.iter (fun (s : active_source) -> leave s) leaving ) ;
+        errors
+  end
+
+(** {1 Wallclock implementation}
+  * This was formerly known as the Root.
+  * One could think of several wallclocks for isolated parts of a script.
+  * One can also think of alsa-clocks, etc. *)
+
+open Dtools
+
+let conf = Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
+
+let conf_max_latency =
+  Conf.float ~p:(conf#plug "max_latency") ~d:60. "Maximum latency in seconds"
+    ~comments:
+      [ "If the latency gets higher than this value, the outputs will be reset,";
+        "instead of trying to catch it up second by second.";
+        "The reset is typically only useful to reconnect icecast mounts." ]
+
+(** Timing stuff, make sure the frame rate is correct. *)
+
+let time = Unix.gettimeofday
+
+let usleep d =
+  (* In some implementations,
+   * Thread.delay uses Unix.select which can raise EINTR.
+   * A really good implementation would keep track of the elapsed time and then
+   * trigger another Thread.delay for the remaining time.
+   * This cheap thing does the job for now.. *)
+  try Thread.delay d with Unix.Unix_error (Unix.EINTR, _, _) -> ()
+
+class wallclock ?(sync = true) id =
+  object (self)
+    inherit clock ("wallclock_" ^ id) as super
+
+    (** Main loop. *)
+
+    val mutable running = false
+
+    val do_running =
+      let lock = Mutex.create () in
+      fun f -> Tutils.mutexify lock f ()
+
+    val mutable sync = sync
+
+    method private run =
+      let acc = ref 0 in
+      let max_latency = -.conf_max_latency#get in
+      let last_latency_log = ref (time ()) in
+      let t0 = ref (time ()) in
+      let ticks = ref 0L in
+      let frame_duration = Lazy.force Frame.duration in
+      let delay () =
+        !t0
+        +. (frame_duration *. Int64.to_float (Int64.add !ticks 1L))
+        -. time ()
+      in
+      if sync then
+        log#important "Streaming loop starts, synchronized with wallclock."
+      else
+        log#important "Streaming loop starts, synchronized by active sources." ;
+      let rec loop () =
+        (* Stop running if there is no output. *)
+        if outputs = [] then ()
+        else (
+          let rem = if not sync then 0. else delay () in
+          (* Sleep a while or worry about the latency *)
+          if (not sync) || rem > 0. then (
+            acc := 0 ;
+            usleep rem )
+          else (
+            incr acc ;
+            if rem < max_latency then (
+              log#severe "Too much latency! Resetting active sources..." ;
+              List.iter
+                (function
+                  | `Active, s when s#is_active -> s#output_reset | _ -> ())
+                outputs ;
+              t0 := time () ;
+              ticks := 0L ;
+              acc := 0 )
+            else if
+              (rem <= -1. || !acc >= 100) && !last_latency_log +. 1. < time ()
+            then (
+              last_latency_log := time () ;
+              log#severe "We must catchup %.2f seconds%s!" (-.rem)
+                ( if !acc <= 100 then ""
+                else " (we've been late for 100 rounds)" ) ;
+              acc := 0 ) ) ;
+          ticks := Int64.add !ticks 1L ;
+          (* This is where the streaming actually happens: *)
+          super#end_tick ;
+          loop () )
+      in
+      loop () ;
+      do_running (fun () -> running <- false) ;
+      log#important "Streaming loop stopped."
+
+    val thread_name = "wallclock_" ^ id
+
+    method start_outputs filter =
+      let f = super#start_outputs filter in
+      fun () ->
+        let errors = f () in
         if List.exists (function `Active, _ -> true | _ -> false) outputs
         then
           do_running (fun () ->
@@ -433,6 +409,39 @@ class clock ?(sync=`Auto) id =
                 running <- true ;
                 ignore (Tutils.create (fun () -> self#run) () thread_name) )) ;
         errors
+  end
+
+(** {1 Self-sync wallclock}
+  * Special kind of clock for self-synched devices,
+  * that only does synchronization when all input/outputs are stopped
+  * (a normal non-synched wallclock goes 100% CPU when blocking I/O
+  * stops). *)
+
+class self_sync id =
+  object
+    inherit wallclock ~sync:true id
+
+    val mutable blocking_sources = 0
+
+    val bs_lock = Mutex.create ()
+
+    method register_blocking_source =
+      Tutils.mutexify bs_lock
+        (fun () ->
+          if blocking_sources = 0 then (
+            log#info "Delegating clock to active sources." ;
+            sync <- false ) ;
+          blocking_sources <- blocking_sources + 1)
+        ()
+
+    method unregister_blocking_source =
+      Tutils.mutexify bs_lock
+        (fun () ->
+          blocking_sources <- blocking_sources - 1 ;
+          if blocking_sources = 0 then (
+            sync <- true ;
+            log#info "All active sources stopped, synching with wallclock." ))
+        ()
   end
 
 (** {1 Global clock management} *)
@@ -487,7 +496,7 @@ let lock = Mutex.create ()
 (** We might not need a default clock, so we use a lazy clock value.
   * We don't use Lazy because we need a thread-safe mechanism. *)
 let get_default =
-  Tutils.lazy_cell (fun () -> (new clock "main" :> Source.clock))
+  Tutils.lazy_cell (fun () -> (new wallclock "main" :> Source.clock))
 
 (** A function displaying the varying number of allocated clocks. *)
 let gc_alarm =

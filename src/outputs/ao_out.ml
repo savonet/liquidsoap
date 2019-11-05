@@ -27,7 +27,7 @@ open Ao
 (** As with ALSA (even more maybe) it would be better to have one clock
   * per driver... but it might also depend on driver options. *)
 let get_clock =
-  Tutils.lazy_cell (fun () -> new Clock.clock "ao")
+  Tutils.lazy_cell (fun () -> new Clock.self_sync "ao")
 
 class output ~kind ~clock_safe ~nb_blocks ~driver
              ~infallible ~on_start ~on_stop
@@ -51,9 +51,15 @@ object (self)
       Clock.unify self#clock
         (Clock.create_known ((get_clock ()):>Clock.clock))
 
-  val mutable device = None
+  method output_start =
+    ioring#output_start ;
+    if clock_safe then (get_clock ())#register_blocking_source
 
-  method self_sync = true
+  method output_stop =
+    ioring#output_stop ;
+    if clock_safe then (get_clock ())#unregister_blocking_source
+
+  val mutable device = None
 
   method get_device =
     match device with
