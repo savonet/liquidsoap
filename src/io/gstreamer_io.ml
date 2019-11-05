@@ -493,6 +493,8 @@ object (self)
       log#info "Error when trying to check if ready: %s" (Printexc.to_string e);
       false
 
+  method self_sync = self#is_ready
+
   method abort_track = ()
 
   method wake_up activations =
