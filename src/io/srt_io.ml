@@ -146,7 +146,7 @@ object(self)
     match clock with
       | Some c -> c
       | None ->
-         let c = new Clock.self_sync self#id in
+         let c = new Clock.clock "srt" in
          clock <- Some c;
          c
 
@@ -208,6 +208,8 @@ object (self)
     Tutils.mutexify input_mutex (fun () ->
       not (should_stop || client_data = None)) ()
 
+  method self_sync = client_data <> None
+
   method private log_origin s =
     try
       self#log#info "New connection from %s"
@@ -261,8 +263,6 @@ object (self)
     Tutils.mutexify input_mutex (fun () ->
       Generator.set_mode generator `Undefined;
       client_data <- Some socket) ();
-    if clock_safe then
-      self#get_clock#register_blocking_source ;
     on_connect ()
 
   method private close_client =
@@ -274,8 +274,6 @@ object (self)
             Srt.close socket;
             decoder_data <- None;
             client_data <- None) ();
-    if clock_safe then
-      self#get_clock#unregister_blocking_source ;
     self#connect
 
   method private connect =
@@ -432,6 +430,8 @@ object (self)
   val mutable connect_task = None
   val mutable state = `Idle
 
+  method self_sync = false
+
   method private is s =
     Tutils.mutexify output_mutex (fun () ->
       state = s) ()
@@ -540,8 +540,6 @@ object (self)
         (Clock.create_known (self#get_clock:>Clock.clock))
 
   method private output_start =
-    if clock_safe then
-      self#get_clock#register_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Started) ();
     self#start_connect_task
@@ -549,8 +547,6 @@ object (self)
   method private output_reset = self#output_start ; self#output_stop
 
   method private output_stop =
-    if clock_safe then
-      self#get_clock#unregister_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Stopped) ();
     self#stop_connect_task

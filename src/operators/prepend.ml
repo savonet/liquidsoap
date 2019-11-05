@@ -113,6 +113,11 @@ object (self)
           let (+) a b = if a<0 || b<0 then -1 else a+b in
             if merge then s#remaining+source#remaining else s#remaining
 
+  method self_sync =
+    match state with
+      | `Prepend (s,_) -> s#self_sync
+      | _ -> source#self_sync
+
   (* Other behaviours could be wanted, but for now #abort_track won't abort
    * the prepended track. *)
   method abort_track = source#abort_track

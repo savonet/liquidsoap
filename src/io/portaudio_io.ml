@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "pa")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "portaudio")
 
 let initialized = ref false
 
@@ -73,6 +73,8 @@ object (self)
 
   val mutable stream = None
 
+  method self_sync = stream <> None
+
   method private open_device =
     self#handle
       "open_default_stream"
@@ -89,15 +91,9 @@ object (self)
           Portaudio.close_stream s ;
           stream <- None
 
-  method output_start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method output_start = self#open_device
 
-  method output_stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method output_stop = self#close_device
 
   method output_reset = 
     self#close_device ;
@@ -142,17 +138,13 @@ object (self)
     if clock_safe then
       Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
 
-  method private start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method private start = self#open_device
 
-  method private stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method private stop = self#close_device
 
   val mutable stream = None
+
+  method self_sync = stream <> None
 
   method private open_device =
     self#handle

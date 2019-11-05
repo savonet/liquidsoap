@@ -47,15 +47,9 @@ object (self)
       Clock.unify self#clock
         (Clock.create_known ((Bjack_in.bjack_clock ()):>Clock.clock))
 
-  method output_start =
-    ioring#output_start ;
-    if clock_safe then (Bjack_in.bjack_clock ())#register_blocking_source
-
-  method output_stop =
-    ioring#output_stop ;
-    if clock_safe then (Bjack_in.bjack_clock ())#unregister_blocking_source
-
   val mutable device = None
+
+  method self_sync = device <> None
 
   method get_device =
     match device with

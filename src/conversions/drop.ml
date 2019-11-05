@@ -30,6 +30,7 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame frame =
     let start = Frame.position frame in
@@ -74,6 +75,7 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame frame =
     let start = Frame.position frame in
@@ -120,6 +122,7 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame frame =
     let start = Frame.position frame in

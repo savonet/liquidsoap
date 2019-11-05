@@ -29,6 +29,7 @@ object
   method abort_track = s#abort_track
   method remaining = s#remaining
   method seek n = s#seek n
+  method self_sync = s#self_sync
 
   val mutable called = false
 

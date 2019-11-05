@@ -98,6 +98,7 @@ object (self)
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame ab =
     let p0 = AFrame.position ab in
@@ -135,6 +136,7 @@ object (self)
   method remaining = if self#in_blank then 0 else source#remaining
   method seek n = if self#in_blank then 0 else source#seek n
   method abort_track = source#abort_track
+  method self_sync = source#self_sync
 
   method private get_frame ab =
     let p0 = AFrame.position ab in
@@ -184,6 +186,7 @@ object (self)
   method remaining = source#remaining
   method seek = source#seek
   method abort_track = source#abort_track
+  method self_sync = source#self_sync
 
   method private get_frame ab =
     let first = ref true in
