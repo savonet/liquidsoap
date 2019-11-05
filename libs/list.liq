@@ -42,8 +42,8 @@ end
 
 # Compute the length of a list, i.e., the number of its elements.
 # @category List
-def rec list.length(l)
-  list.case(l, 0, fun (_, l) -> list.length(l)+1)
+def list.length(l)
+  list.ind(l, 0, fun (_, _, r) -> r+1)
 end
 
 # Check whether an element belongs to a list.
