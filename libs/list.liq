@@ -15,6 +15,19 @@ def list.tl(l)
   list.case(l, [], fun (_, l) -> l)
 end
 
+# Initialize a list.
+# @category List
+# @param n Number of elements in the list.
+# @param f Function such that `f i` is the `i`th element.
+def list.init(n, f)
+  def rec aux(i)
+    if i == n then [] else
+      list.add(f(i), aux(i+1))
+    end
+  end
+  aux(0)
+end
+
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
 # @category List
 def rec list.nth(~default, l, n)
