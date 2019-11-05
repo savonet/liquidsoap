@@ -661,3 +661,11 @@ let () =
        let v = if nl then v^"\n" else v in
          print_string v ; flush stdout ;
          Lang.unit)
+
+(** Profiling *)
+
+let () =
+  add_builtin "profiler.stats_string" ~cat:Interaction ~descr:"Profiling statistics."
+    []
+    Lang.string_t
+    (fun _ -> Lang.string (Profiler.stats ()))

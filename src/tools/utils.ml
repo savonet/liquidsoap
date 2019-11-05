@@ -734,7 +734,8 @@ let string_of_size n =
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
   let height = Array.length a in
-  let len = Array.make height 0 in
+  let width = Array.fold_left (fun h a -> max h (Array.length a)) 0 a in
+  let len = Array.make width 0 in
   for j = 0 to height - 1 do
     for i = 0 to Array.length a.(j) - 1 do
       len.(i) <- max len.(i) (String.length a.(j).(i))
