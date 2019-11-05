@@ -84,6 +84,16 @@ def rec list.fold(f, x, l)
   list.case(l, x, fun (e, l) -> list.fold(f, f(x, e), l))
 end
 
+# Fold a function on every element of a list. Similar to `list.fold` but
+# iterates from the right of the list. It is slighly more efficient than
+# `list.fold`.
+# @category List
+# @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.
+# @param x Initial value x1, to be updated by successive calls of `f(x,e)`.
+def list.fold_right(f, x, l)
+  list.ind(l, x, fun (e, l, r) -> f(e, r))
+end
+
 # Filter a list according to a filtering function.
 # @category List
 def rec list.filter(p, l)
