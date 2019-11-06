@@ -671,7 +671,12 @@ let () =
     (fun _ -> Lang_values.profile := true; Lang.unit)
 
 let () =
-  add_builtin "profiler.stats_string" ~cat:Liq ~descr:"Profiling statistics."
+  add_builtin "profiler.disable" ~cat:Liq ~descr:"Record profiling statistics."
+    []
+    Lang.unit_t
+    (fun _ -> Lang_values.profile := false; Lang.unit)
+let () =
+  add_builtin "profiler.stats.string" ~cat:Liq ~descr:"Profiling statistics."
     []
     Lang.string_t
     (fun _ -> Lang.string (Profiler.stats ()))

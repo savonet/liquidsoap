@@ -51,6 +51,8 @@ let debug =
        with
        | Not_found -> conf_debug#get)
 
+(* We want to keep this a reference and not a dtools and not something more
+   complicated (e.g. dtools) in order not to impact performances. *)
 let profile = ref false
 
 (** {2 Kinds} *)

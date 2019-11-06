@@ -397,10 +397,7 @@ let options = [
     "Debug language implementation." ;
 
     ["--profile"],
-    Arg.Unit (fun () ->
-        Lang_values.profile := true;
-        ignore (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] (fun () -> print_string ("PROFILER STATS\n\n" ^ Profiler.stats ())))
-      ),
+    Arg.Set Lang_values.profile,
     "Profile execution.";
 
     ["--strict"],
@@ -625,6 +622,7 @@ struct
   (* Now that outputs have been defined, we can start the main loop. *)
   let () =
     let cleanup_threads () =
+      if !Lang_values.profile then log#important "Profiler stats:\n\n%s" (Profiler.stats ());
       log#important "Shutdown started!" ;
       Clock.stop () ;
       log#important "Waiting for main threads to terminate..." ;
@@ -635,11 +633,11 @@ struct
       log#important "Cleaning downloaded files..." ;
       Request.clean () ;
       log#important "Freeing memory..." ;
-      Gc.full_major ();
+      Gc.full_major ()
     in
     let cleanup () =
       cleanup_threads ();
-      cleanup_final ()
+      cleanup_final ();
     in
     let after_stop () =
       if !Configure.restart then

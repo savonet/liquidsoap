@@ -1,4 +1,4 @@
 # Print profiling information.
 def profiler.print()
-  print(profiler.stats_string())
+  print(profiler.stats.string())
 end
