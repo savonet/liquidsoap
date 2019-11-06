@@ -800,7 +800,7 @@ AC_CHECK_OCAML_BINDING([pulseaudio])
 AC_CHECK_OCAML_BINDING([ladspa])
 AC_CHECK_OCAML_BINDING([dssi])
 AC_CHECK_OCAML_BINDING([lilv])
-AC_CHECK_OCAML_BINDING([sdl],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
+AC_CHECK_OCAML_BINDING([sdl2],[],[],[sdl2 sdl2.ba])
 AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
 
 # TODO: switch to dune all the way?
@@ -849,7 +849,7 @@ EOCONF
 AC_ARG_WITH([default-font],
             AS_HELP_STRING([--with-default-font],
                            [sets the default TTF font for video.add_text()]))
-if test "$w_SDL" = "yes" -o "$w_GD" = "yes" ; then
+if test "$w_SDL2" = "yes" -o "$w_GD" = "yes" ; then
   if test -z "$with_default_font" ; then
     DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
   else
@@ -1039,7 +1039,7 @@ cat <<EOMSG
  * Visualization
    - GD                : $w_GD
    - Graphics          : $w_GRAPHICS
-   - SDL               : $w_SDL
+   - SDL               : $w_SDL2
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime
@@ -1135,7 +1135,7 @@ variables {
   camlimages-enabled: $b_CAMLIMAGES
   dssi-enabled: $b_DSSI
   graphics-enabled: $b_GRAPHICS
-  sdl-enabled: $b_SDL
+  sdl-enabled: $b_SDL2
   gd-enabled: $b_GD
   inotify-enabled: $b_INOTIFY
   lo-enabled: $b_LO

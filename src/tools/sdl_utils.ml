@@ -24,8 +24,6 @@ module Gen = Image.Generic
 
 type event = 
         [ `AUDIO
-        | `CDROM
-        | `EVENTTHREAD
         | `EVERYTHING
         | `JOYSTICK
         | `NOPARACHUTE
@@ -47,26 +45,76 @@ let init l =
 
 let ttf_init () = start_ttf := true
 
-let () = 
+let () =
   ignore (Dtools.Init.at_start (fun () ->
-            if !start_ttf then
-              Sdlttf.init ();
+            (* if !start_ttf then Sdlttf.init (); *)
             match !options with
               | Some l -> Sdl.init l
               | _ -> ()))
 
-module Pool = Pool.Make(struct type t = Sdlvideo.surface end)
+module Pool = Pool.Make(struct type t = Sdlsurface.t end)
 let keep_alive s f =
   let i,do_add = Pool.add () in
     do_add s ;
     Tutils.finalize f ~k:(fun () -> Pool.remove i)
 
+module Surface = struct
+  let to_img surface =
+    keep_alive surface
+      (fun () ->
+         let width,height = Sdlsurface.get_dims surface in
+         let pitch = Sdlsurface.get_pitch surface in
+         let pixelformat = Sdlsurface.get_pixelformat_t surface in
+         let image = Sdlsurface_ba.get_pixels surface in
+         let img = Video.Image.create width height in
+         (
+           match pixelformat with
+           | SdlpixelFormat.RGB24 ->
+             for i = 0 to width-1 do
+               for j = 0 to height-1 do
+                 let r = image.{i+j*pitch} in
+                 let g = image.{i+j*pitch+1} in
+                 let b = image.{i+j*pitch+2} in
+                 Video.Image.set_pixel_rgba img i j (r,g,b,0xff)
+               done
+             done
+           | _ -> failwith ("Unhandled SDL pixel format: " ^ SdlpixelFormat.to_string pixelformat)
+         );
+         img
+      )
+
+  let of_img surface img =
+    keep_alive surface
+      (fun () ->
+         let width,height = Sdlsurface.get_dims surface in
+         let pitch = Sdlsurface.get_pitch surface in
+         let pixelformat = Sdlsurface.get_pixelformat_t surface in
+         let image = Sdlsurface_ba.get_pixels surface in
+         match pixelformat with
+         | SdlpixelFormat.RGB24 ->
+           for i = 0 to width-1 do
+             for j = 0 to height-1 do
+               (* let r,g,b,_ = Video.Image.get_pixel_rgba a i j in *)
+               (* Sdlvideo.get_palette_color surface image.{i+j*pitch} in *)
+               (* let g = Sdlvideo.get_palette_color surface image.{i+j*pitch+1} in *)
+               (* let b = Sdlvideo.get_palette_color surface image.{i+j*pitch+2} in *)
+               ()
+             done
+           done
+         | _ -> failwith ("Unhandled SDL pixel format: " ^ SdlpixelFormat.to_string pixelformat)
+      )
+end
+
+(*
+(*
 (** 8bit surfaces always use a palette *)
 let from_8 surface =
   keep_alive surface
     (fun () ->
-       let width,height,pitch = Sdlvideo.surface_dims surface in
-       let image = Sdlvideo.pixel_data_8 surface in
+       assert (Sdlsurface.has_palette surface);
+       let width,height = Sdlsurface.get_dims surface in
+       let pitch = Sdlsurface.get_pitch surface in
+       let image = Sdlsurface.get_pixels surface in
        let a = Video.Image.create width height in
          for i = 0 to width-1 do
            for j = 0 to height-1 do
@@ -77,13 +125,15 @@ let from_8 surface =
            done
          done ;
          a)
+*)
 
 (** 16bits surfaces contain specially packed RGB *)
 let to_16 rgb surface =
   keep_alive surface
     (fun () ->
-       let s = Sdlvideo.pixel_data_16 surface in
-       let width,height,pitch = Sdlvideo.surface_dims surface in
+       let width,height = Sdlsurface.get_dims surface in
+       let pitch = Sdlsurface.get_pitch surface in
+       let s = Sdlsurface.get_pixels surface in
        let pitch = pitch/2 in (* initial pitch was in bytes *)
        let fmt = Sdlvideo.surface_format surface in
          assert (width = Video.Image.width rgb && height = Video.Image.height rgb) ;
@@ -218,3 +268,4 @@ let from_32 surface =
              done
            done ;
            f)
+*)

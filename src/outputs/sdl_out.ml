@@ -34,15 +34,17 @@ object (self)
 
   val mutable fullscreen = false
 
+  val mutable window = None
+
   method output_start =
-    Sdlevent.enable_events (Sdlevent.quit_mask lor Sdlevent.keydown_mask);
-    (* Try to get 32bpp because it's faster (twice as fast here),
-     * but accept other formats too. *)
-    ignore (Sdlvideo.set_video_mode
-              ~w:video_width ~h:video_height
-              ~bpp:32 [`ANYFORMAT;`DOUBLEBUF]) ;
-    self#log#info "Initialized SDL video surface with %dbpp."
-      (Sdlvideo.surface_bpp (Sdlvideo.get_video_surface ()))
+    (* Sdlevent.enable_events (Sdlevent.quit_mask lor Sdlevent.keydown_mask); *)
+    (* Try to get 32bpp because it's faster (twice as fast here), but accept
+       other formats too. *)
+    (* ignore (Sdlvideo.set_video_mode *)
+              (* ~w:video_width ~h:video_height *)
+    (* ~bpp:32 [`ANYFORMAT;`DOUBLEBUF]) ; *)
+    window <- Some (Sdlwindow.create ~title:"Liquidsoap" ~pos:(`undefined, `undefined) ~dims:(video_width, video_height) ~flags:[]);
+    self#log#info "Initialized SDL video surface."
 
   (** We don't care about latency. *)
   method output_reset = ()
@@ -51,26 +53,29 @@ object (self)
   method output_stop = Sdl.quit ()
 
   method process_events =
-    match Sdlevent.poll () with
-      | Some Sdlevent.QUIT ->
+    match Sdlevent.poll_event () with
+      | Some (Sdlevent.Quit _) ->
         (* Avoid an immediate restart (which would happen with autostart).
          * But do not cancel autostart.
          * We should perhaps have a method in the output class for that
          * kind of thing, and try to get an uniform behavior. *)
         request_start <- false;
         request_stop <- true
-      | Some (Sdlevent.KEYDOWN k) ->
+      | Some (Sdlevent.KeyDown k) ->
         (
-          match k.Sdlevent.keysym with
-            | Sdlkey.KEY_f ->
+          match k.Sdlevent.keycode with
+            (*
+            | Sdlkeycode.F ->
               fullscreen <- not fullscreen;
               let mode = [`ANYFORMAT;`DOUBLEBUF] in
               let mode = if fullscreen then `FULLSCREEN::mode else mode in
               ignore (Sdlvideo.set_video_mode
                         ~w:video_width ~h:video_height
                         ~bpp:32 mode);
-            | Sdlkey.KEY_q ->
-              Sdlevent.add [Sdlevent.QUIT]
+            *)
+            | Sdlkeycode.Q ->
+              (* Sdlevent.add [Sdlevent.QUIT] *)
+              failwith "TODO: quit"
             | _ -> ()
         );
         self#process_events
@@ -80,20 +85,15 @@ object (self)
 
   method output_send buf =
     self#process_events;
-    let surface = Sdlvideo.get_video_surface () in
+    let window = Option.get window in
+    let surface = Sdlwindow.get_surface window in
     (* We only display the first image of each frame *)
     let rgb =
       let stop,c = Frame.content buf 0 in
-        assert (stop = Lazy.force Frame.size) ;
-        (Video.get c.Frame.video.(0) 0)
+      assert (stop = Lazy.force Frame.size);
+      (Video.get c.Frame.video.(0) 0)
     in
-    begin match Sdlvideo.surface_bpp surface with
-      | 16 -> Sdl_utils.to_16 rgb surface
-      | 32 -> Sdl_utils.to_32 rgb surface
-      | i -> failwith (Printf.sprintf "Unsupported format %dbpp" i)
-    end ;
-    Sdlvideo.flip surface
-
+    Sdl_utils.Surface.of_img surface rgb
 end
 
 let () =

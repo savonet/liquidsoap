@@ -25,6 +25,7 @@ module P = Image.Generic.Pixel
 
 let log = Log.make ["decoder";"sdlimage"]
 
+(*
 let load_image filename =
   let surface = Sdlloader.load_image filename in
   log#info "SDL loaded %S as %dbpp." filename (Sdlvideo.surface_bpp surface);
@@ -40,3 +41,4 @@ let () =
     (fun filename ->
       let img = load_image filename in
       Some img)
+*)

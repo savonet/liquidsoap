@@ -44,7 +44,7 @@ let note_of_char c =
         array_index knotes1 c + 59
 
 class keyboard ~kind velocity =
-  let () = Sdl_utils.init [`EVENTTHREAD; `VIDEO] in
+  let () = Sdl_utils.init [`VIDEO] in
 object (self)
   inherit Source.active_source ~name:"input.keyboard.sdl" kind
 
@@ -55,12 +55,10 @@ object (self)
   method self_sync = false
   method output = if AFrame.is_partial memo then self#get_frame memo
 
+  val mutable window = None
+
   method output_get_ready =
-    Sdlevent.disable_events (Sdlevent.all_events_mask);
-    Sdlevent.enable_events
-      (Sdlevent.make_mask
-         [Sdlevent.KEYDOWN_EVENT; Sdlevent.KEYUP_EVENT; Sdlevent.QUIT_EVENT]);
-    ignore (Sdlvideo.set_video_mode ~w:640 ~h:480 ~bpp:16 [])
+    window <- Some (Sdlwindow.create ~title:"Liquidsoap keyboard" ~pos:(`undefined, `undefined) ~dims:(640, 480) ~flags:[])
 
   method private sleep = Sdl.quit ()
 
@@ -77,31 +75,35 @@ object (self)
     let m = m.Frame.midi in
     let t =
       let ans = MIDI.create (MFrame.size ()) in
-        Sdlevent.pump ();
-        while Sdlevent.has_event () do
-          try
-            match Sdlevent.poll () with
-              | Some (Sdlevent.KEYDOWN k) ->
-                  let c = Sdlkey.char_of_key k.Sdlevent.keysym in
-                    if c = '+' || c = '*' then
-                      velocity <- min 1. (velocity +. 0.1)
-                    else if c = '-' || c = '/' then
-                      velocity <- max 0. (velocity -. 0.1)
-                    else
-                      let n = note_of_char c in
-                        (* Printf.printf "Playing note %d.\n%!" n; *)
-                        MIDI.insert ans (0,MIDI.Note_on (n, velocity))
-              | Some (Sdlevent.KEYUP k) ->
-                  let c = Sdlkey.char_of_key k.Sdlevent.keysym in
-                  let n = note_of_char c in
-                    (* Printf.printf "Stopping note %d.\n%!" n; *)
-                    MIDI.insert ans (0,MIDI.Note_off (n, velocity))
-              | _ -> ()
-          with
-            | Not_found
-            | Invalid_argument _ -> ()
-        done;
-        ans
+      while true do
+        try
+          match Sdlevent.poll_event () with
+          | Some (Sdlevent.KeyDown k) ->
+            let c = Sdlkeycode.to_string k.Sdlevent.keycode in
+            if String.length c <> 1 then raise Exit;
+            let c = c.[0] in
+            if c = '+' || c = '*' then
+              velocity <- min 1. (velocity +. 0.1)
+            else if c = '-' || c = '/' then
+              velocity <- max 0. (velocity -. 0.1)
+            else
+              let n = note_of_char c in
+              (* Printf.printf "Playing note %d.\n%!" n; *)
+              MIDI.insert ans (0,MIDI.Note_on (n, velocity))
+          | Some (Sdlevent.KeyUp k) ->
+            let c = Sdlkeycode.to_string k.Sdlevent.keycode in
+            if String.length c <> 1 then raise Exit;
+            let c = c.[0] in
+            let n = note_of_char c in
+            (* Printf.printf "Stopping note %d.\n%!" n; *)
+            MIDI.insert ans (0,MIDI.Note_off (n, velocity))
+          | _ -> ()
+        with
+        | Exit
+        | Not_found
+        | Invalid_argument _ -> ()
+      done;
+      ans
     in
       for c = 0 to Array.length m - 1 do
         MIDI.clear_all m.(c);

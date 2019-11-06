@@ -24,6 +24,7 @@ let init () =
   Sdl_utils.init [];
   Sdl_utils.ttf_init ()
 
+(*
 let get_font font size =
   try
     Sdlttf.open_font font size
@@ -32,9 +33,12 @@ let get_font font size =
       raise (Lang_errors.Invalid_value (Lang.string font, s))
     | e ->
       raise (Lang_errors.Invalid_value (Lang.string font, Printexc.to_string e))
+*)
 
 let render_text ~font ~size text =
+  let w, h = 0, 0 in
   let text = if text = "" then " " else text in
+    (*
   let font = get_font font size in
   let ts = Sdlttf.render_utf8_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
   let w, h =
@@ -45,6 +49,8 @@ let render_text ~font ~size text =
     let r, _, _ = Sdlvideo.get_pixel_color ts ~x ~y in
     r
   in
+*)
+  let get_pixel x y = failwith "TODO" in
   w, h, get_pixel
 
 let () =

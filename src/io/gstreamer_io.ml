@@ -247,6 +247,8 @@ object (self)
       else
         None
     in
+    let bus = Bus.of_element bin in
+    Bus.add_watch bus (Gstreamer_utils.handler ~log:self#log ~on_error:(fun e -> failwith e));
     {bin;audio=audio_src;video=video_src}
 
   val mutable presentation_time = Int64.zero
