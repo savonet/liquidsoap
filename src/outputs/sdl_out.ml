@@ -93,7 +93,8 @@ object (self)
       assert (stop = Lazy.force Frame.size);
       (Video.get c.Frame.video.(0) 0)
     in
-    Sdl_utils.Surface.of_img surface rgb
+    Sdl_utils.Surface.of_img surface rgb;
+    Sdlwindow.update_surface window
 end
 
 let () =

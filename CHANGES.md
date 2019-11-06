@@ -34,6 +34,7 @@ Changed:
   renamed `exec_at` to `thread.when` and renamed `mutexify` to `thread.mutexify`
   (#1019).
 - Changed the weights of `add` to float (#1022).
+- Switch from ocamlsdl to ocamlsdl2 (#1029).
 
 Fixed:
 

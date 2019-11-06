@@ -25,6 +25,8 @@ module Gen = Image.Generic
 type event = 
         [ `AUDIO
         | `EVERYTHING
+        | `GAMECONTROLLER
+        | `HAPTIC
         | `JOYSTICK
         | `NOPARACHUTE
         | `TIMER
@@ -69,7 +71,7 @@ module Surface = struct
          let img = Video.Image.create width height in
          (
            match pixelformat with
-           | SdlpixelFormat.RGB24 ->
+           | SdlpixelFormat.RGB888 ->
              for i = 0 to width-1 do
                for j = 0 to height-1 do
                  let r = image.{i+j*pitch} in
@@ -86,19 +88,20 @@ module Surface = struct
   let of_img surface img =
     keep_alive surface
       (fun () ->
-         let width,height = Sdlsurface.get_dims surface in
+         let width, height = Sdlsurface.get_dims surface in
          let pitch = Sdlsurface.get_pitch surface in
          let pixelformat = Sdlsurface.get_pixelformat_t surface in
          let image = Sdlsurface_ba.get_pixels surface in
+         Printf.printf "%d x %d (@ %d) / %d bpp: %d\n%!" width height pitch (Bigarray.Array1.dim image) ((Bigarray.Array1.dim image)/(width*height));
          match pixelformat with
-         | SdlpixelFormat.RGB24 ->
+         | SdlpixelFormat.RGB888 ->
            for i = 0 to width-1 do
              for j = 0 to height-1 do
-               (* let r,g,b,_ = Video.Image.get_pixel_rgba a i j in *)
-               (* Sdlvideo.get_palette_color surface image.{i+j*pitch} in *)
-               (* let g = Sdlvideo.get_palette_color surface image.{i+j*pitch+1} in *)
-               (* let b = Sdlvideo.get_palette_color surface image.{i+j*pitch+2} in *)
-               ()
+               let r,g,b,_ = Video.Image.get_pixel_rgba img i j in
+               image.{i+j*width} <- r;
+               (* image.{i+j*4+1} <- g; *)
+               (* image.{i+j*4+2} <- b; *)
+               (* image.{i+j*4+3} <- 0xff; *)
              done
            done
          | _ -> failwith ("Unhandled SDL pixel format: " ^ SdlpixelFormat.to_string pixelformat)
