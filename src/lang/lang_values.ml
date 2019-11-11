@@ -51,6 +51,10 @@ let debug =
        with
        | Not_found -> conf_debug#get)
 
+(* We want to keep this a reference and not a dtools and not something more
+   complicated (e.g. dtools) in order not to impact performances. *)
+let profile = ref false
+
 (** {2 Kinds} *)
 
 (* In a sense this could move to Lang_types, but I like to keep that
@@ -955,9 +959,18 @@ let rec eval ~env tm =
           ignore (eval ~env a) ;
           eval ~env b
       | App (f,l) ->
+        let ans () =
           apply ~t:tm.t
             (eval ~env f)
             (List.map (fun (l,t) -> l, eval ~env t) l)
+        in
+        if !profile then
+          (
+            match f.term with
+            | Var fname -> Profiler.time fname ans ()
+            | _ -> ans ()
+          )
+        else ans ()
 
 and apply ~t f l =
   let mk v = { V.t = t ; V.value = v } in

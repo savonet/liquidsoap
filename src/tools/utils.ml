@@ -730,3 +730,25 @@ let string_of_size n =
     Printf.sprintf "%.02f MiB" (float_of_int n /. float_of_int (1 lsl 20))
   else
     Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
+
+(** String representation of a matrix of strings. *)
+let string_of_matrix a =
+  let height = Array.length a in
+  let width = Array.fold_left (fun h a -> max h (Array.length a)) 0 a in
+  let len = Array.make width 0 in
+  for j = 0 to height - 1 do
+    for i = 0 to Array.length a.(j) - 1 do
+      len.(i) <- max len.(i) (String.length a.(j).(i))
+    done
+  done;
+  let ans = Strings.Mutable.empty () in
+  for j = 0 to height - 1 do
+    for i = 0 to Array.length a.(j) - 1 do
+      let s = a.(j).(i) in
+      if i <> 0 then Strings.Mutable.add ans " ";
+      Strings.Mutable.add ans s;
+      Strings.Mutable.add ans (String.make (len.(i) - String.length s) ' ')
+    done;
+    Strings.Mutable.add ans "\n";
+  done;
+  Strings.Mutable.to_string ans

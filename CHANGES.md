@@ -14,6 +14,8 @@ New:
 - Added `list.init`.
 - Added `list.ind`.
 - Added `request.id`.
+- Add a profiler for the language. It can be enabled with `profiler.enable` and
+  the results are obtained with `profiler.stats.string` (#1027).
 
 Changed:
 
