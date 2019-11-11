@@ -661,36 +661,3 @@ let () =
        let v = if nl then v^"\n" else v in
          print_string v ; flush stdout ;
          Lang.unit)
-
-(** Profiling *)
-
-let () =
-  add_builtin "profiler.enable" ~cat:Liq ~descr:"Record profiling statistics."
-    []
-    Lang.unit_t
-    (fun _ -> Lang_values.profile := true; Lang.unit)
-
-let () =
-  add_builtin "profiler.disable" ~cat:Liq ~descr:"Record profiling statistics."
-    []
-    Lang.unit_t
-    (fun _ -> Lang_values.profile := false; Lang.unit)
-
-let () =
-  add_builtin "profiler.run" ~cat:Liq ~descr:"Time a function with the profiler."
-    [
-      "", Lang.string_t, None, Some "Name of the profiled function.";
-      "", Lang.fun_t [] Lang.unit_t, None, Some "Function to profile.";
-    ] Lang.unit_t
-    (fun p ->
-       let name = Lang.to_string (Lang.assoc "" 1 p) in
-       let f = Lang.assoc "" 2 p in
-       let f () = ignore (Lang.apply f [] ~t:Lang.unit_t) in
-       Profiler.time name f ();
-       Lang.unit)
-
-let () =
-  add_builtin "profiler.stats.string" ~cat:Liq ~descr:"Profiling statistics."
-    []
-    Lang.string_t
-    (fun _ -> Lang.string (Profiler.stats ()))
