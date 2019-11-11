@@ -49,11 +49,15 @@ let ttf_init () = start_ttf := true
 
 let () = 
   ignore (Dtools.Init.at_start (fun () ->
-            if !start_ttf then
-              Sdlttf.init ();
-            match !options with
-              | Some l -> Sdl.init l
-              | _ -> ()))
+      if !start_ttf then
+        (
+          match Tsdl_ttf.Ttf.init () with
+          | Error (`Msg err) -> assert false
+          | Ok -> ()
+        );
+      match !options with
+      | Some l -> Sdl.init l
+      | _ -> ()))
 
 module Pool = Pool.Make(struct type t = Sdlvideo.surface end)
 let keep_alive s f =

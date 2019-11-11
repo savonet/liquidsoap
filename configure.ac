@@ -800,7 +800,9 @@ AC_CHECK_OCAML_BINDING([pulseaudio])
 AC_CHECK_OCAML_BINDING([ladspa])
 AC_CHECK_OCAML_BINDING([dssi])
 AC_CHECK_OCAML_BINDING([lilv])
-AC_CHECK_OCAML_BINDING([sdl],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
+AC_CHECK_OCAML_BINDING([tsdl])
+AC_CHECK_OCAML_BINDING([tsdl_ttf])
+AC_CHECK_OCAML_BINDING([tsdl_image])
 AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
 
 # TODO: switch to dune all the way?
@@ -1032,6 +1034,8 @@ cat <<EOMSG
    - FFmpeg            : $w_FFMPEG
    - frei0r            : $w_FREI0R
    - Gavl              : $w_GAVL
+   - SDL-image         : $w_TSDL_IMAGE
+   - SDL-ttf           : $w_TSDL_TTF
 
  * MIDI manipulation
    - DSSI              : $w_DSSI
@@ -1039,7 +1043,7 @@ cat <<EOMSG
  * Visualization
    - GD                : $w_GD
    - Graphics          : $w_GRAPHICS
-   - SDL               : $w_SDL
+   - SDL               : $w_TSDL
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime

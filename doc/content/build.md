@@ -84,7 +84,7 @@ Libraries not developed by Savonet are:
 | ocaml-opus          |  >= 0.1.3                 | Ogg/Opus codec                                |
 | ocaml-portaudio     |  >= 0.2.0            | Portaudio I/O                                 |
 | ocaml-pulseaudio    |  >= 0.1.4           | PulseAudio I/O                                |
-| ocaml-sdl           |                   | Display, font & image support                 |
+| ocaml-sdl           | @sdl_version_descr@                  | Display, font & image support                 |
 | ocaml-shine         |  >= 0.2.0                | Fixed-point MP3 encoding                      |
 | ocaml-soundtouch    |  >= 0.1.9           | Libsoundtouch's audio effects                 |
 | ocaml-speex         |  >= 0.3.0                | Ogg/Speex codec                               |
