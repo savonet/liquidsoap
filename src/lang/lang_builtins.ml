@@ -453,19 +453,6 @@ let () =
        Lang.float (Unix.gettimeofday ()))
 
 let () =
-  add_builtin "which" ~cat:Sys
-    ~descr:"which(\"progname\") searches for an executable \
-            named \"progname\" using directories from the PATH \
-            environment variable and returns \"\" if it could not \
-            find one."
-    ["",Lang.string_t,None,None]
-    Lang.string_t
-    (fun p ->
-      Lang.string (try
-          Utils.which ~path:Configure.path (Lang.to_string (List.assoc "" p))
-        with Not_found -> ""))
-
-let () =
   let ss = Lang.product_t Lang.string_t Lang.string_t in
   let ret_t = Lang.list_t ss in
   add_builtin "environment" ~cat:Sys

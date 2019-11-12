@@ -294,3 +294,14 @@ let () =
        let apic = Id3v2.parse_apic apic in
        Lang.tuple [Lang.string apic.Id3v2.mime; Lang.int apic.Id3v2.picture_type; Lang.string apic.Id3v2.description; Lang.string apic.Id3v2.data]
     )
+
+let () =
+  add_builtin "file.which" ~cat:Sys
+    ~descr:"`file.which(\"progname\")` looks for an executable named \
+            \"progname\" using directories from the PATH environment variable \
+            and returns \"\" if it could not find one."
+    ["",Lang.string_t,None,None]
+    Lang.string_t
+    (fun p ->
+       let file = Lang.to_string (List.assoc "" p) in
+       Lang.string (try Utils.which ~path:Configure.path file with Not_found -> ""))

@@ -57,3 +57,10 @@ def mutexify(f)
   deprecated("mutexify", "thread.mutexify")
   thread.mutexify(f)
 end
+
+# Deprecated: this function has been replaced by file.which.
+# @flag hidden
+def which(f)
+  deprecated("which", "file.which")
+  file.which(f)
+end

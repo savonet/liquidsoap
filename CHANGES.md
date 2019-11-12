@@ -36,6 +36,7 @@ Changed:
   renamed `exec_at` to `thread.when` and renamed `mutexify` to `thread.mutexify`
   (#1019).
 - Changed the weights of `add` to float (#1022).
+- Renamed `which` to `file.which`.
 
 Fixed:
 
