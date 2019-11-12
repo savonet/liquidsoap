@@ -404,6 +404,7 @@ let which ~path s =
       true
     with _ -> false
   in
+  if s = "" then raise Not_found;
   if test s then s else
     List.find test (List.map (fun d -> Filename.concat d s) path)
 
