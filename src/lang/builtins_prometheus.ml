@@ -221,11 +221,10 @@ let source_monitor ~label_names ~labels ~window s =
   s#add_watcher watcher
 
 let () =
-  let kind_t = Lang.univ_t 1 in
   let source_monitor_register_t =
     Lang.fun_t [
       false,"label_values",Lang.list_t Lang.string_t;
-      false,"",Lang.source_t kind_t
+      false,"",Lang.source_t (Lang.univ_t 2)
     ] Lang.unit_t
   in
   Lang_builtins.add_builtin "prometheus.monitor"
@@ -242,7 +241,7 @@ let () =
           (Lang.to_list (List.assoc "labels" p))
       in
       Lang.val_fun ["label_values","label_values",Lang.list_t Lang.string_t,None;
-                    "","",Lang.source_t (Lang.univ_t 1), None] ~ret_t:Lang.unit_t
+                    "","",Lang.source_t (Lang.univ_t 2), None] ~ret_t:Lang.unit_t
         (fun p _ ->
           let s = Lang.to_source (List.assoc "" p) in
           let labels_v = List.assoc "label_values" p in
