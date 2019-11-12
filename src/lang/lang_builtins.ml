@@ -646,6 +646,15 @@ let () =
          Lang.float (Audio.lin_of_dB x))
 
 let () =
+  add_builtin "seconds_of_master" ~cat:Liq
+    ~descr:"Convert a number of master ticks in seconds."
+    [ "", Lang.int_t, None, None ] Lang.float_t
+    (fun p ->
+      Lang.float
+        (Frame.seconds_of_master 
+          (Lang.to_int (List.assoc "" p))))
+
+let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."
     ["newline",Lang.bool_t,Some (Lang.bool true),
      Some "If true, a newline is added after displaying the value." ;

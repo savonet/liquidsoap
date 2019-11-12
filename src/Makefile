@@ -189,7 +189,8 @@ tools = tools/extralib.ml tools/JSON.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
 	tools/pool.ml tools/sha1.ml tools/websocket.ml tools/id3v2.ml \
-	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml)
+	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
+	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 
 stream =stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
@@ -220,7 +221,8 @@ builtins = lang/lang_builtins.ml \
            $(if $(W_LO),lang/builtins_lo.ml) \
            $(if $(W_MAGIC),lang/builtins_magic.ml) \
            $(if $(W_CRY),lang/builtins_cry.ml) \
-           $(if $(W_LASTFM),lang/builtins_lastfm.ml)
+           $(if $(W_LASTFM),lang/builtins_lastfm.ml) \
+           $(if $(W_PROMETHEUS),lang/builtins_prometheus.ml)
 
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
