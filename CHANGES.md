@@ -38,11 +38,13 @@ Changed:
   (#1019).
 - Changed the weights of `add` to float (#1022).
 - Renamed `which` to `file.which`.
+- Change `blank()` duration semantics to mean forever only on negative values.
 
 Fixed:
 
 - Fix implementation of recursive functions (#934).
 - Fix opam install error with some bash-completion configuration (#980).
+- Make `blank()` source unavailable past is expected duration (#668).
 
 1.4.0 (29-09-2019)
 =====
