@@ -490,18 +490,31 @@ add_protocol("ffmpeg",ffmpeg_protocol,
              doc="Decode any file to wave using ffmpeg",
              syntax="ffmpeg:uri")
 
+# Register stereo protocol which converts a file to stereo (currently decodes as
+# wav).
+# @flag hidden
+def stereo_protocol(~rlog, ~maxtime, arg)
+  # [process_uri_to_stereo(arg)]
+  file = file.temp("liq-stereo", ".wav")
+  print("Decoding to stereo #{arg} to #{file}")
+  output.file(%wav, file, fallible=true, audio_to_stereo(once(single(arg))))
+  print("Decoded")
+  [file]
+end
+add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
+
 register(name="Text2wave protocol settings","protocol.text2wave",())
 register(name="Text2wave path","protocol.text2wave.path","text2wave")
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
 def text2wave_protocol(~rlog,~maxtime,arg) =
-  binary = get(default="text2wave","protocol.text2wave.path")
-  [process_uri(extname="wav","echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
+  binary = get(default="text2wave", "protocol.text2wave.path")
+  [process_uri(extname="wav", "echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
-             syntax="text2wav2:Text to read")
+             syntax="text2wave:Text to read")
 
 register(name="gTTS protocol settings", "protocol.gtts",())
 register(name="gtts-cli binary path", "protocol.gtts.path", "gtts-cli")
@@ -516,19 +529,10 @@ add_protocol(static=true,"gtts",gtts_protocol,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
              syntax="gtts:Text to read")
 
-register(name="Say protocol settings","protocol.say",())
-register(name="Sox path","protocol.say.sox_path","sox")
-
 # Register the legacy say: protocol using text2wave and sox
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
-  sox = get(default="sox", "protocol.say.sox_path")
-  if file.which(get(default="", "protocol.text2wave.path")) != "" then
-    [process_uri(extname="wav",uri="text2wave:#{arg}","#{sox} $(input) -c 2 $(output)")]
-  else
-    log.info(label="say_protocol", "text2wave binary not found, trying gtts.")
-    [process_uri(extname="wav",uri="gtts:#{arg}","#{sox} $(input) -c 2 $(output)")]
-  end
+  ["stereo:text2wave:#{arg}", "stereo:gtts:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",
