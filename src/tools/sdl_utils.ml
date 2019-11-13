@@ -58,14 +58,43 @@ let () =
 
 module Surface = struct
   let to_img surface =
+    let width, height = Sdl.get_surface_size surface in
+    Printf.printf "to_img: %d x %d\n%!" width height;
     let fmt = Sdl.get_surface_format_enum surface in
-    match fmt with
-    (* let width, height = Sdl.get_surface_size surface in *)
-    | _ -> failwith ("img_of_surface: unhandled format " ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)))
+    Printf.printf "creating\n%!";
+    let img = Video.Image.create width height in
+    Printf.printf "created\n%!";
+    (
+      match fmt with
+      | fmt when fmt = Sdl.Pixel.format_rgb888 ->
+        let pix = Sdl.get_surface_pixels surface Bigarray.Int32 in
+        for i = 0 to width-1 do
+          for j = 0 to height-1 do
+            let p = Int32.to_int pix.{i+j*width} in
+            let r = p lsr 16 land 0xff in
+            let g = p lsr 8  land 0xff in
+            let b = p        land 0xff in
+            let a = 0xff               in
+            Video.Image.set_pixel_rgba img i j (r,g,b,a)
+          done
+        done
+      | fmt when fmt = Sdl.Pixel.format_index8 ->
+        Printf.printf "index8\n%!";
+        let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
+        for i = 0 to width-1 do
+          for j = 0 to height-1 do
+            let p = pix.{i+j*width} in
+            let a = 0xff in
+            Video.Image.set_pixel_rgba img i j (p,p,p,a)
+          done
+        done
+
+      | _ -> failwith ("img_of_surface: unhandled format " ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)))
+    );
+    img
 
   let of_img surface img =
     let width, height = Sdl.get_surface_size surface in
-    let pitch = Sdl.get_surface_pitch surface in
     let fmt = Sdl.get_surface_format_enum surface in
     match fmt with
     | fmt when fmt = Sdl.Pixel.format_rgb888 ->
@@ -73,7 +102,7 @@ module Surface = struct
       for i = 0 to width-1 do
         for j = 0 to height-1 do
           let r,g,b,_ = Video.Image.get_pixel_rgba img i j in
-          pix.{i+j*width} <- Int32.of_int (0xff lsl 24 + r lsl 16 + g lsl 8 + b);
+          pix.{i+j*width} <- Int32.of_int (r lsl 16 + g lsl 8 + b);
         done
       done
     | _ -> failwith ("img_of_surface: unhandled format " ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)))
