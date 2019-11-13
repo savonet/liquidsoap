@@ -39,8 +39,9 @@ let render_text ~font ~size text =
   let white = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
   let black = Sdl.Color.create ~r:0x00 ~g:0x00 ~b:0x00 ~a:0xff in
   let ts = Sdl_utils.check (fun () -> Ttf.render_utf8_shaded font text white black) () in
-  let w, h = Sdl.get_surface_size ts in
   let img = Sdl_utils.Surface.to_img ts in
+  let w = Video.Image.width img in
+  let h = Video.Image.height img in
   Sdl.free_surface ts;
   (* TODO: improve performance *)
   let get_pixel x y =
