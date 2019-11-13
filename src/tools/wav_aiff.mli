@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,6 +41,11 @@ type 'a read_ops =
   }
 
 val in_chan_ops :  in_channel read_ops
+
+(* buffer ofs len *)
+type callback = Bytes.t -> int -> int -> int
+
+val callback_ops : callback read_ops
 
 val fopen : string -> in_channel t
 (** Open the named file for reading, and return a new wav descriptor.

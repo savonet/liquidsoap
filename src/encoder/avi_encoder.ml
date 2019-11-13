@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,15 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** AVI encoder *)
 
 open Avi_format
-
-module Img = Image.RGBA32
 
 let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
@@ -45,11 +43,11 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
       if ratio = 1. then
         pcm, astart, alen
       else
-        let pcm = Audio_converter.Samplerate.resample converter ratio pcm astart alen in
-        pcm, 0, Array.length pcm.(0)
+        let pcm = Audio_converter.Samplerate.resample converter ratio (Audio.sub pcm astart alen) in
+        pcm, 0, Audio.length pcm
     in
     let data = Bytes.create (2*channels*alen) in
-    Audio.S16LE.of_audio pcm astart data 0 alen;
+    Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
@@ -57,31 +55,38 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     let vbuf = vbuf.(0) in
     let vstart = Frame.video_of_master start in
     let vlen = Frame.video_of_master len in
-    let data = ref "" in
+    let data = Strings.Mutable.empty () in
     for i = vstart to vstart+vlen-1 do
-      (* TODO: mplayer needs flipping, but not vlc or GStreamer... *)
-      (* Img.Effect.flip vbuf.(i); *)
-      Img.swap_rb vbuf.(i);
-      data := !data ^ Img.to_RGB24_string vbuf.(i)
+      let img = Video.get vbuf i in
+      (* TODO: change stride otherwise *)
+      let width = Image.YUV420.width img in
+      assert (Image.YUV420.y_stride img = width);
+      assert (Image.YUV420.uv_stride img = width/2);
+      let y,u,v = Image.YUV420.data img in
+      Strings.Mutable.add data (Image.Data.to_string y);
+      Strings.Mutable.add data (Image.Data.to_string u);
+      Strings.Mutable.add data (Image.Data.to_string v)
     done;
-    Avi.video_chunk !data
+    Avi.video_chunk_strings data
   in
-  video ^ audio
+  Strings.add video audio
 
 let encoder avi =
   let channels = avi.channels in
-  let samplerate = avi.samplerate in
+  let samplerate = Lazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
   (* TODO: use duration *)
-  let header = Avi.header ~channels ~samplerate () in
+  let header =
+    Avi.header ~channels ~samplerate ()
+  in
   let need_header = ref true in
   let encode frame start len =
     let ans = encode_frame ~channels ~samplerate ~converter frame start len in
     if !need_header then
-      (
+     begin
         need_header := false;
-        header ^ ans
-      )
+        Strings.dda header ans
+     end
     else
       ans
   in
@@ -89,8 +94,8 @@ let encoder avi =
     Encoder.
     insert_metadata = (fun _ -> ());
     encode = encode;
-    header = Some header;
-    stop = (fun () -> "")
+    header = Strings.of_string header;
+    stop = fun () -> Strings.empty
   }
 
 let () =

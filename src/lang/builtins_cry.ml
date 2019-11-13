@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Lang_builtins
 
-let log = Dtools.Log.make ["icy";"update_metadata"]
+let log = Log.make ["icy";"update_metadata"]
 
 let () =
   let user_agent = Lang.product (Lang.string "User-Agent")
@@ -88,7 +88,7 @@ let () =
           | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
           | "https" -> Cry.Https Cry.Source
           | _      -> 
-              raise (Lang.Invalid_value (v, "protocol should be one of: \
+              raise (Lang_errors.Invalid_value (v, "protocol should be one of: \
                                              'icy', 'http' or 'https'."))
       in
       let mount =
@@ -104,7 +104,7 @@ let () =
            ~mount ~headers metas
        with
          | e ->
-             log#f 2
+             log#severe
                "Manual metadata update failed: %s"
                (Printexc.to_string e)
       end ;

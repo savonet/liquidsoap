@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,17 +16,15 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Decode and read ogg files. *)
 
-module Img = Image.RGBA32
-module Gen = Image.Generic
-module P = Gen.Pixel
+module P = Image.Generic.Pixel
 
-let log = Dtools.Log.make ["decoder";"ogg"]
+let log = Log.make ["decoder";"ogg"]
 
 (** Generic decoder *)
 
@@ -47,31 +45,39 @@ let converter () =
         let converter =
           Video_converter.find_converter
              (P.YUV format)
-             (P.RGB P.RGBA32)
+             (P.YUV P.YUVJ420)
         in
         current_format := Some (format,converter) ;
         converter)
 
-(** Convert a video frame to RGB *)
-let video_convert =
+(** Convert a video frame to YUV *)
+let video_convert scale =
   let converter = converter () in
   (fun buf ->
-    let converter = converter buf.Ogg_demuxer.format in
     let width = Lazy.force Frame.video_width in
-    let height = Lazy.force Frame.video_height in
-    let rgb = Img.create width height in
-    let frame = Gen.of_RGBA32 rgb in
-    let sframe = 
-      Image.YUV420.make 
-        buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height 
-        buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride 
-        buf.Ogg_demuxer.u buf.Ogg_demuxer.v 
-        buf.Ogg_demuxer.uv_stride 
-   in
-    converter
-      (Gen.of_YUV420 sframe)
-      frame;
-    rgb)
+      let height = Lazy.force Frame.video_height in
+    if buf.Ogg_demuxer.format <> Ogg_demuxer.Yuvj_420 then
+      let img =
+        Image.YUV420.make
+          buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height
+          buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride
+          buf.Ogg_demuxer.u buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride
+      in
+      let img2 = Video.Image.create width height in
+      scale img img2;
+      img2
+    else
+      let converter = converter buf.Ogg_demuxer.format in
+      let yuv = Video.Image.create width height in
+      let frame = Image.Generic.of_YUV420 yuv in
+      let sframe =
+        Image.YUV420.make
+          buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height
+          buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride
+          buf.Ogg_demuxer.u buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride
+      in
+      converter (Image.Generic.of_YUV420 sframe) frame;
+      yuv)
 
 (** Stupid nearest neighbour resampling.
   * For meaningful results, one should first partially apply the freq params,
@@ -116,7 +122,7 @@ let video_resample () =
         (Utils.get_some !resampler) buf off len
       end
 
-let demuxer_log x = log#f 5 "%s" x
+let demuxer_log x = log#debug "%s" x
 
 module Make (Generator:Generator.S_Asio) =
 struct
@@ -141,6 +147,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
   in
   let audio_resample = Rutils.create_audio () in
   let video_resample = video_resample () in
+  let video_scale = Video_converter.scaler () ~proportional:true in
   let decode_audio = mode = `Both || mode = `Audio in
   let decode_video = mode = `Both || mode = `Video in
   let started = ref false in
@@ -218,7 +225,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
         let content =
           audio_resample ~audio_src_rate:(float info.Ogg_demuxer.sample_rate) buf
         in
-        Generator.put_audio buffer content 0 (Array.length content.(0))
+        Generator.put_audio buffer content 0 (Audio.length content)
       in
       let video_feed track buf =
         let info,_ = 
@@ -226,14 +233,14 @@ let create_decoder ?(merge_tracks=false) source mode input =
             decoder track 
         in
         let out_freq = Lazy.force Frame.video_rate in
-        let rgb = video_convert buf in
+        let rgb = video_convert video_scale buf in
         let in_freq = float info.Ogg_demuxer.fps_numerator /. 
                       float info.Ogg_demuxer.fps_denominator
         in
         let stream = 
-          video_resample ~in_freq ~out_freq [|rgb|] 0 1 
+          video_resample ~in_freq ~out_freq (Video.single rgb) 0 1
         in
-        Generator.put_video buffer [|stream|] 0 (Array.length stream) ;
+        Generator.put_video buffer [|stream|] 0 (Video.length stream) ;
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then
@@ -249,7 +256,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
         if decode_audio then
           begin
             let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
-            Ogg_demuxer.decode_audio decoder track (audio_feed track) 
+            Ogg_demuxer.decode_audio decoder track (fun buf -> audio_feed track (Audio.of_array buf))
           end ;
         if decode_video then
           begin
@@ -286,7 +293,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
     with
       | Ogg_demuxer.End_of_stream
       | Ogg.End_of_stream ->
-          log#f 4 "End of track reached while seeking!" ;
+          log#info "End of track reached while seeking!" ;
           0
   in
   { Decoder.
@@ -336,7 +343,7 @@ let get_type filename =
            else 
             0
          in
-           log#f 4
+           log#info
              "File %S recognized as audio=%d video=%d."
              filename audio video ;
            { Frame.

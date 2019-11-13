@@ -12,7 +12,7 @@ include $(top_srcdir)/Makefile.defs
 all: all-local all-subdirs all-auto
 install: install-local install-subdirs
 clean: clean-subdirs clean-local clean-buildings
-	rm -f *.~ *.orig *.cmo *.cmi *.cmx *.cma *.cmxa *.cmxs *.o *.so *.a *.annot
+	rm -f *.~ *.orig *.cmo *.cmi *.cmx *.cma *.cmxa *.cmxs *.o *.so *.a *.annot *.cmt *.cmti *.s
 doc: doc-local doc-subdirs doc-auto
 
 # Those rules must be bound
@@ -39,7 +39,7 @@ clean-subdirs:
 	done
 
 doc-subdirs:
-	-@for dir in $(SUBDIRS) ; do \
+	@for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir doc || exit $$? ; \
 	done
 
@@ -111,13 +111,14 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs)
 endif
 
 %.ml: %.mll
-	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
+	@echo $(<:.mll=.mli) $(<:.mll=.ml) >> auto_clean
 	$(V)echo OCAMLLEX $<
 	$(V)$(OCAMLLEX) $<
+
 %.ml %.mli: %.mly
-	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
-	$(V)echo OCAMLYACC $<
-	$(V)$(OCAMLYACC) $<
+	@echo $(<:.mly=.mli) $(<:.mly=.ml) $(<:.mly=.conflicts) >> auto_clean
+	$(V)echo MENHIR $<
+	$(V)$(MENHIR) --unused-tokens --explain $<
 
 %.$(o): %.ml
 	$(V)echo $(OCAMLCOMP) -c $<

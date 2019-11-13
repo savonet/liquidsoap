@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -36,6 +36,10 @@ object
 
   method remaining = source#remaining
 
+  method seek = source#seek
+
+  method self_sync = source#self_sync
+
   method is_ready = source#is_ready
 
   method abort_track = source#abort_track
@@ -52,7 +56,7 @@ object
     effect#set_threshold (threshold ());
     effect#set_ratio (ratio ());
     effect#set_knee (knee ());
-    effect#process b ofs len;
+    effect#process (Audio.sub b ofs len);
     (* Reset values if it is the end of the track. *)
     if AFrame.is_partial buf then
       effect#reset
@@ -75,7 +79,7 @@ let proto =
     "knee", Lang.float_getter_t 4, Some (Lang.float 1.),
     Some "Knee radius (dB).";
 
-    "rms_window", Lang.float_t, Some (Lang.float 0.1),
+    "window", Lang.float_t, Some (Lang.float 0.1),
     Some "Window for computing RMS (in sec).";
 
     "gain", Lang.float_getter_t 5, Some (Lang.float 0.),
@@ -92,7 +96,7 @@ let compress p kind =
     Lang.to_float_getter (f "threshold"),
     Lang.to_float_getter (f "ratio"),
     Lang.to_float_getter (f "knee"),
-    Lang.to_float (f "rms_window"),
+    Lang.to_float (f "window"),
     Lang.to_float_getter (f "gain"),
     Lang.to_source (f "")
   in
@@ -108,7 +112,7 @@ let compress p kind =
 
 let () =
   Lang.add_operator "compress"
-    (("ratio", Lang.float_t, Some (Lang.float 2.),
+    (("ratio", Lang.float_getter_t 6, Some (Lang.float 2.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
     ~kind:(Lang.Unconstrained k)
@@ -116,7 +120,7 @@ let () =
     ~descr:"Compress the signal."
     compress;
   Lang.add_operator "limit"
-    (("ratio", Lang.float_t, Some (Lang.float 20.),
+    (("ratio", Lang.float_getter_t 6, Some (Lang.float 20.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
     ~kind:(Lang.Unconstrained k)

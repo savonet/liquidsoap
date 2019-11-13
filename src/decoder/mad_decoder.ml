@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Decode mpeg audio files using libmad. *)
-
-open Dtools
 
 let log = Log.make ["decoder";"mad"]
 
@@ -54,7 +52,7 @@ let init input =
   (** Add an initial index. *)
   update_index ();
   let get_data () =
-    let data = Mad.decode_frame_float !dec in
+    let data = Mad.decode_frame_float_ba !dec in
     update_index ();
     data
   in
@@ -87,6 +85,9 @@ let init input =
           in
           ignore((Utils.get_some input.Decoder.lseek) seek_pos);
           dec := Mad.openstream input.Decoder.read;
+          (* Decode one frame to set the decoder to a good reading position
+           * on next read. *)
+          ignore(Mad.decode_frame_float !dec);
           (* We have to assume here that new_pos = seek_pos.. *)
           time_offset := seek_time
         with _ -> ()
@@ -126,7 +127,7 @@ let create_decoder input =
          in
          Generator.set_mode gen `Audio ;
           Generator.put_audio gen content 0
-               (Array.length content.(0))) }
+               (Audio.length content)) }
 
 end
 
@@ -136,12 +137,12 @@ module D = Make(G)
 
 (** Configuration keys for mad. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "mad")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "mad")
     "Mime-types used for guessing mpeg audio format"
     ~d:["audio/mpeg"; "audio/MPA"]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "mad")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "mad")
     "File extensions used for guessing mpeg audio format"
     ~d:["mp3"; "mp2"; "mp1"]
 
@@ -177,7 +178,7 @@ let get_type filename =
                | Mad.Layer_II  -> "II"
                | Mad.Layer_III -> "III"
            in
-           log#f 4
+           log#info
              "Libmad recognizes %S as mpeg audio \
               (layer %s, %ikbps, %dHz, %d channels)."
              filename
@@ -210,7 +211,7 @@ let () =
           kind.Frame.audio = Frame.Succ Frame.Variable ||
           (* libmad always respects the first two kinds *)
           if Frame.type_has_kind (get_type filename) kind then true else begin
-             log#f 3
+             log#important
                "File %S has an incompatible number of channels."
                filename ;
              false

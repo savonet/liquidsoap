@@ -16,29 +16,27 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Decode and read metadata using ffmpeg. *)
 
-open Dtools
-
 let log = Log.make ["decoder";"ffmpeg"]
 
 (** Configuration keys for ffmpeg. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "ffmpeg")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "ffmpeg")
     "Mime-types used for decoding with ffmpeg"
-    ~d:[]
+    ~d:["application/ffmpeg"]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
     "File extensions used for decoding with ffmpeg"
-    ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma"] (* Test *)
+    ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma";"webm";"osb"]
 
 module ConverterInput = FFmpeg.Swresample.Make(FFmpeg.Swresample.Frame)
-module Converter = ConverterInput(FFmpeg.Swresample.PlanarFloatArray)
+module Converter = ConverterInput(FFmpeg.Swresample.FltPlanarBigArray)
 
 module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered(G)
@@ -73,19 +71,12 @@ let create_decoder fname =
   let sample_freq =
     FFmpeg.Avcodec.Audio.get_sample_rate codec
   in
-  let in_sample_format =
-    FFmpeg.Avcodec.Audio.get_sample_format codec
-  in
   let channel_layout =
     FFmpeg.Avcodec.Audio.get_channel_layout codec
   in
   let target_sample_rate =
     Lazy.force Frame.audio_rate
   in
-  let converter =
-    Converter.create channel_layout ~in_sample_format sample_freq
-                     channel_layout target_sample_rate
-  in 
   let decr_remaining, get_remaining =
     let m = Mutex.create () in
     let decr_remaining = Tutils.mutexify m (fun v ->
@@ -96,12 +87,29 @@ let create_decoder fname =
     in
     decr_remaining, get_remaining
   in
+  let in_sample_format =
+    ref (FFmpeg.Avcodec.Audio.get_sample_format codec)
+  in
+  let mk_converter () =
+    Converter.create channel_layout ~in_sample_format:!in_sample_format sample_freq
+                     channel_layout target_sample_rate
+  in
+  let converter = ref (mk_converter ()) in
   let convert frame =
+    let frame_in_sample_format =
+      FFmpeg.Avutil.Audio.frame_get_sample_format frame
+    in
+    if !in_sample_format <> frame_in_sample_format then
+     begin
+      log#important "Sample format change detected!";
+      in_sample_format := frame_in_sample_format;
+      converter := mk_converter ();
+     end;
     let data = 
-      Converter.convert converter frame
+      Converter.convert !converter frame
     in
     let consumed =
-      Frame.master_of_audio (Array.length data.(0))
+      Frame.master_of_audio (Audio.length data)
     in
     decr_remaining consumed;
     data
@@ -114,15 +122,21 @@ let create_decoder fname =
     try
       FFmpeg.Av.seek stream `Millisecond position [||];
       ticks
-    with Failure _ -> 0
+    with FFmpeg.Avutil.Error _ -> 0
+  in
+  let rec read_frame () =
+    try FFmpeg.Av.read_frame stream with
+      | FFmpeg.Avutil.Error `Invalid_data ->
+         read_frame ()
   in
   let decode gen =
-    match FFmpeg.Av.read_frame stream with
-      | `Frame frame ->
-          let content = convert frame in
-          G.set_mode gen `Audio ;
-          G.put_audio gen content 0 (Array.length content.(0))
-      | `End_of_file -> 
+    try
+      let frame = read_frame () in
+      let content = convert frame in
+      G.set_mode gen `Audio ;
+      G.put_audio gen content 0 (Audio.length content)
+    with
+      | FFmpeg.Avutil.Error `Eof -> 
           G.add_break gen;
           raise End_of_file
   in
@@ -160,7 +174,7 @@ let get_type filename =
       let rate =
         FFmpeg.Avcodec.Audio.get_sample_rate codec
       in
-      log#f 4 "ffmpeg recognizes %S as: (%dHz,%d channels)."
+      log#info "ffmpeg recognizes %S as: (%dHz,%d channels)."
         filename rate channels ;
       {Frame.
          audio = channels ;
@@ -181,7 +195,7 @@ let () =
        if kind.Frame.audio = Frame.Variable ||
           kind.Frame.audio = Frame.Succ Frame.Variable ||
           if Frame.type_has_kind (get_type filename) kind then true else begin
-            log#f 3
+            log#important
               "File %S has an incompatible number of channels."
               filename ;
             false
@@ -191,7 +205,7 @@ let () =
        else
          None)
 
-let log = Dtools.Log.make ["metadata";"ffmpeg"]
+let log = Log.make ["metadata";"ffmpeg"]
 
 let get_tags file =
   let container =
@@ -210,3 +224,105 @@ let check filename =
 
 let () =
   Request.dresolvers#register "FFMPEG" duration
+
+module Make (Generator:Generator.S_Asio) =
+struct
+let create_decoder input =
+  let read = input.Decoder.read in
+  let seek =
+    match input.Decoder.lseek with
+      | None -> None
+      | Some fn ->
+        Some (fun len _ -> fn len)
+  in
+  let container =
+    FFmpeg.Av.open_input_stream ?seek read
+  in
+  (* Only audio for now *)
+  let (_, stream, codec) =
+    FFmpeg.Av.find_best_audio_stream container
+  in
+  let sample_freq =
+    FFmpeg.Avcodec.Audio.get_sample_rate codec
+  in
+  let channel_layout =
+    FFmpeg.Avcodec.Audio.get_channel_layout codec
+  in
+  let target_sample_rate =
+    Lazy.force Frame.audio_rate
+  in
+  let seek ticks =
+    let position = Frame.seconds_of_master ticks in
+    let position = Int64.of_float
+      (position *. 1000.)
+    in
+    try
+      FFmpeg.Av.seek stream `Millisecond position [||];
+      ticks
+    with FFmpeg.Avutil.Error _ -> 0
+  in
+  let rec read_frame () =
+    try FFmpeg.Av.read_frame stream with
+      | FFmpeg.Avutil.Error `Invalid_data ->
+         read_frame ()
+  in
+  let in_sample_format =
+    ref (FFmpeg.Avcodec.Audio.get_sample_format codec)
+  in
+  let mk_converter () =
+    Converter.create channel_layout ~in_sample_format:!in_sample_format sample_freq
+                     channel_layout target_sample_rate
+  in
+  let converter = ref (mk_converter ()) in
+  let decode gen =
+    try
+      let frame = read_frame () in
+      let frame_in_sample_format =
+        FFmpeg.Avutil.Audio.frame_get_sample_format frame
+      in
+      if !in_sample_format <> frame_in_sample_format then
+       begin
+        log#important "Sample format change detected!";
+        in_sample_format := frame_in_sample_format;
+        converter := mk_converter ();
+       end;
+      let content =
+        Converter.convert !converter frame
+      in
+      Generator.set_mode gen `Audio ;
+      Generator.put_audio gen content 0 (Audio.length content)
+    with
+      | FFmpeg.Avutil.Error `Eof ->
+          Generator.add_break gen;
+          raise End_of_file
+  in
+  { Decoder.
+     seek = seek;
+     decode = decode }
+end
+
+module D_stream = Make(Generator.From_audio_video_plus)
+
+let () =
+  Decoder.stream_decoders#register
+    "FFMPEG"
+    ~sdoc:"Use ffmpeg/libav to decode any stream with an appropriate MIME type."
+     (fun mime kind ->
+        let (<:) a b = Frame.mul_sub_mul a b in
+          if List.mem mime mime_types#get &&
+             (* Check that it is okay to have zero video and midi,
+              * and at least one audio channel. *)
+             Frame.Zero <: kind.Frame.video &&
+             Frame.Zero <: kind.Frame.midi &&
+             kind.Frame.audio <> Frame.Zero
+          then
+            (* In fact we can't be sure that we'll satisfy the content
+             * kind, because the stream might be mono or stereo.
+             * For now, we let this problem result in an error at
+             * decoding-time. Failing early would only be an advantage
+             * if there was possibly another plugin for decoding
+             * correctly the stream (e.g. by performing conversions). *)
+            Some D_stream.create_decoder
+          else
+            None)
+

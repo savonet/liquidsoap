@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -60,7 +60,7 @@ object (self)
                               Frame.set_breaks buf
                                 (Utils.remove_one ((=) pos) (Frame.breaks buf))
                         end else begin
-                          self#log#f 3
+                          self#log#important
                             "Track ends and append source is not ready: \
                              won't append." ;
                           self#unregister append ;
@@ -69,7 +69,7 @@ object (self)
                       else
                         state <- `Replay (Some append)
                 | _ ->
-                    self#log#f 3 "No metadata at beginning of track: \
+                    self#log#important "No metadata at beginning of track: \
                                   won't append." ;
                     state <- if finished then `Idle else `Replay None
               end
@@ -87,7 +87,7 @@ object (self)
                   Frame.set_breaks buf
                     (Utils.remove_one ((=) pos) (Frame.breaks buf))
             end else begin
-              self#log#f 3
+              self#log#important
                 "Track ends and append source is not ready: won't append." ;
               state <- `Idle ;
               self#unregister a
@@ -115,6 +115,20 @@ object (self)
       | `Replay (Some _) ->
           source#remaining
       | `Append s -> s#remaining
+
+  method seek n =
+    match state with
+      | `Idle | `Replay None -> source#seek n
+      | `Replay (Some s) when s#is_ready && merge ->
+          0
+      | `Replay (Some _) ->
+          source#seek n
+      | `Append s -> s#seek n 
+
+  method self_sync =
+    match state with
+      | `Append s -> s#self_sync
+      | _ -> source#self_sync
 
   (* Other behaviours could be wanted, but for now #abort_track won't cancel
    * any to-be-appended track. *)

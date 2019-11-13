@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
  (** Ogg Stream Encoder *)
 
-let log = Dtools.Log.make ["ogg.muxer"]
+let log = Log.make ["ogg.muxer"]
 
 exception Invalid_data
 exception Invalid_usage
@@ -77,8 +77,8 @@ type t =
   {
     id               : string;
     mutable skeleton : Ogg.Stream.stream option;
-    header           : Buffer.t;
-    encoded          : Buffer.t;
+    header           : Strings.Mutable.t;
+    encoded          : Strings.Mutable.t;
     mutable position : float;
     tracks           : (nativeint,track) Hashtbl.t;
     mutable state    : state ;
@@ -134,23 +134,21 @@ let state encoder =
 
 (** Get and remove encoded data.. *)
 let get_data encoder =
-  let b = Buffer.contents encoder.encoded in
-  Buffer.reset encoder.encoded;
-  b
+  Strings.Mutable.flush encoder.encoded
 
 (** Peek encoded data without removing it. *)
 let peek_data encoder =
-  Buffer.contents encoder.encoded
+  Strings.Mutable.to_strings encoder.encoded
 
 (** Add an ogg page. *)
 let add_page encoder ?(header=false) (h,v) =
-  Buffer.add_string encoder.encoded h;
-  Buffer.add_string encoder.encoded v;
+  Strings.Mutable.add encoder.encoded h;
+  Strings.Mutable.add encoder.encoded v;
   if header then
-   begin
-    Buffer.add_string encoder.header h;
-    Buffer.add_string encoder.header v
-   end
+    begin
+      Strings.Mutable.add encoder.header h;
+      Strings.Mutable.add encoder.header v
+    end
 
 let flush_pages os = 
   let rec f os l = 
@@ -187,8 +185,8 @@ let create ~skeleton id =
      {
       id       = id;
       skeleton = None;
-      header   = Buffer.create 1024 ;
-      encoded  = Buffer.create 1024 ;
+      header   = Strings.Mutable.empty () ;
+      encoded  = Strings.Mutable.empty () ;
       position = 0.;
       tracks   = Hashtbl.create 10;
       state    = Bos
@@ -200,12 +198,12 @@ let create ~skeleton id =
 let register_track ?fill encoder track_encoder =
   if encoder.state = Streaming then
    begin
-    log#f 4 "%s: Invalid new track: ogg stream already started.." encoder.id;
+    log#info "%s: Invalid new track: ogg stream already started.." encoder.id;
     raise Invalid_usage
    end;
   if encoder.state = Eos then
    begin
-    log#f 4 "%s: Starting new sequentialized ogg stream." encoder.id;
+    log#info "%s: Starting new sequentialized ogg stream." encoder.id;
     if encoder.skeleton <> None then
       encoder.skeleton <- Some (init_skeleton encoder);
     encoder.state <- Bos;
@@ -251,8 +249,8 @@ let register_track ?fill encoder track_encoder =
 (** Start streams, set state to Streaming. *)
 let streams_start encoder =
   if Hashtbl.length encoder.tracks = 0 then
-    log#f 4 "%s: Starting stream with no ogg track.." encoder.id;
-  log#f 4 "%s: Starting all streams" encoder.id;
+    log#info "%s: Starting stream with no ogg track.." encoder.id;
+  log#info "%s: Starting all streams" encoder.id;
   (** Add skeleton informations first. *)
   begin
     match encoder.skeleton with
@@ -287,7 +285,8 @@ let streams_start encoder =
   encoder.state <- Streaming
 
 (** Get the first pages of each streams. *)
-let get_header x = Buffer.contents x.header
+let get_header x =
+  Strings.Mutable.to_strings x.header
 
 (** Is a track empty ?*)
 let is_empty x =
@@ -395,7 +394,7 @@ let encode encoder id data =
    streams_start encoder;
  if encoder.state = Eos then
    begin
-    log#f 4 "%s: Cannot encode: ogg stream finished.." encoder.id;
+    log#info "%s: Cannot encode: ogg stream finished.." encoder.id;
     raise Invalid_usage
    end;
  let queue_add src p = 
@@ -426,21 +425,21 @@ let end_of_track encoder id =
   let track = Hashtbl.find encoder.tracks id in
   if encoder.state = Bos then
    begin
-    log#f 4 "%s: Stream finished without calling streams_start !" encoder.id; 
+    log#info "%s: Stream finished without calling streams_start !" encoder.id; 
     streams_start encoder
    end;
    match track with
        | Video_track x ->
            if not (Ogg.Stream.eos x.os) then
             begin
-             log#f 4 "%s: Setting end of track %nx." encoder.id id; 
+             log#info "%s: Setting end of track %nx." encoder.id id; 
              x.stream_end x.os
             end;
            add_available x encoder
        | Audio_track x -> 
            if not (Ogg.Stream.eos x.os) then
             begin
-             log#f 4 "%s: Setting end of track %nx." encoder.id id;
+             log#info "%s: Setting end of track %nx." encoder.id id;
              x.stream_end x.os
             end;
            add_available x encoder
@@ -462,8 +461,8 @@ let eos encoder =
     streams_start encoder;
   if Hashtbl.length encoder.tracks <> 0 then
     raise Invalid_usage ;
-  log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
-  Buffer.reset encoder.header ;
+  log#info "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
+  ignore(Strings.Mutable.flush encoder.header);
   encoder.position <- 0.;
   encoder.state <- Eos
 

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,41 +16,36 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Decode WAV files. *)
 
-let log = Dtools.Log.make ["decoder";"wav/aiff"]
+let log = Log.make ["decoder";"wav/aiff"]
 
 (** {1 Generic decoder} *)
 
 exception End_of_stream
 
 let really_input input buf ofs len =
-  let rec f len cur =
-    if len > 0 then
+  let rec f pos =
+    if pos < len then
      begin
-      let s,i = input len in
+      let i = input buf (ofs+pos) (len-pos) in
       if i=0 then raise End_of_stream else
-      f (len-i) (cur ^ String.sub s 0 i)
+      f (pos+i)
      end
-    else
-       cur
   in
-  let ret = f len "" in
-  String.blit ret 0 buf ofs len
+  f ofs
+
+let input fn = fn
 
 let input_byte input =
-  let s,i = input 1 in
+  let buf = Bytes.create 1 in
+  let i = input buf 0 1 in
     if i=0 then raise End_of_stream ;
-    int_of_char s.[0]
-
-let input input buf ofs len =
-  let ret,len = input len in
-  String.blit ret 0 buf ofs len ;
-  len
+    int_of_char (Bytes.get buf 0)
 
 let seek input len =
   let s = Bytes.create len in
@@ -78,15 +73,16 @@ let create ?header input =
 
   let main_decoder remaining =
     let remaining = ref remaining in
+    let bytes_to_get = Utils.pagesize*64 in
+    let buf = Bytes.create bytes_to_get in
     fun converter gen ->
-    let bytes_to_get = 1024*64 in
-    let bytes_to_get = if !remaining = -1 then bytes_to_get else min !remaining bytes_to_get in
-    let data,bytes = input.Decoder.read bytes_to_get in
-      if !remaining <> -1 then remaining := !remaining - bytes;
-      if bytes=0 then raise End_of_stream ;
-      let content = converter (String.sub data 0 bytes) in
-        Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 (Array.length content.(0))
+      let bytes_to_get = if !remaining = -1 then bytes_to_get else min !remaining bytes_to_get in
+      let bytes = input.Decoder.read buf 0 bytes_to_get in
+        if !remaining <> -1 then remaining := !remaining - bytes;
+        if bytes=0 then raise End_of_stream ;
+        let content = converter (Bytes.sub_string buf 0 bytes) in
+          Generator.set_mode gen `Audio ;
+          Generator.put_audio gen content 0 (Audio.Mono.length content.(0))
   in
 
   let read_header () =
@@ -109,7 +105,7 @@ let create ?header input =
         | `Wav -> "WAV"
         | `Aiff -> "AIFF"
     in
-      log#f 4
+      log#info
         "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
         format_descr samplerate samplesize datalen;
       header := Some (format,samplesize,channels,(float samplerate),datalen);
@@ -164,7 +160,7 @@ let get_type filename =
            let channels  = Wav_aiff.channels header in
            let sample_rate = Wav_aiff.sample_rate header in
            let ok_message s =
-             log#f 4
+             log#info
                "%S recognized as WAV file (%s,%dHz,%d channels)."
                  filename s sample_rate channels ;
            in
@@ -174,7 +170,7 @@ let get_type filename =
              | 24 -> ok_message "s24le"; channels
              | 32 -> ok_message "s32le"; channels
              | _ ->
-                log#f 4 "Only 8, 16, 24 and 32 bit WAV files \
+                log#info "Only 8, 16, 24 and 32 bit WAV files \
                          are supported at the moment.." ;
                 0
          in
@@ -209,7 +205,7 @@ let () =
          if Frame.type_has_kind file_type kind then
            Some (fun () -> create_file_decoder filename kind)
          else begin
-           log#f 3
+           log#important
              "WAV file %S has content type %s but %s was expected."
              filename
              (Frame.string_of_content_type file_type)
@@ -240,7 +236,7 @@ let () =
          if Frame.type_has_kind file_type kind then
            Some (fun () -> create_file_decoder filename kind)
          else begin
-           log#f 3
+           log#important
              "AIFF file %S has content type %s but %s was expected."
              filename
              (Frame.string_of_content_type file_type)

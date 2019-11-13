@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 *****************************************************************************)
 
@@ -60,10 +60,10 @@ let () =
     Lang.fun_t [] Lang.unit_t
   in
   add_builtin "server.condition" ~cat:Interaction
-    ~descr:"Create a pair of functions @(wait,(signal,broadcast))@ used to suspend and resume \
+    ~descr:"Create a pair of functions `(wait,(signal,broadcast))` used to suspend and resume \
             server command execution. Used to write interactive server commands \
-            through @server.wait@, @server.signal@, @server.broadcast@ and \
-            @server.write@."
+            through `server.wait`, `server.signal`, `server.broadcast` and \
+            `server.write`."
     []
     (Lang.product_t wait_t (Lang.product_t resume_t resume_t))
     (fun _ ->
@@ -100,7 +100,7 @@ let () =
   add_builtin "server.wait" ~cat:Interaction
     ~descr:"Wait on a server condition. Used to write interactive \
             server command. Should be used via the syntactic sugar: \
-            @server.wait <condition> then <after> end@"
+            `server.wait <condition> then <after> end`"
     ["",condition_t,None,Some "condition";
      "",resume_t,None,Some "code to execute when resuming"]
     Lang.string_t
@@ -121,7 +121,7 @@ let () =
   in
   add_builtin "server.write" ~cat:Interaction
     ~descr:"Execute a partial write while executing a server command. Should be used \
-            via the syntactic sugar: @server.write <string> then <after> end@"
+            via the syntactic sugar: `server.write <string> then <after> end`"
     ["",after_t,None,Some "function to run after write";
      "",Lang.string_t,None,Some "string to write"]
     Lang.string_t
@@ -154,14 +154,14 @@ let () =
   read ~args:["",Lang.string_t,None,Some "Read marker"]
        ~mk_marker:(fun p -> Duppy.Io.Split (Lang.to_string (Lang.assoc "" 2 p)))
        ~descr:"Read a string from the client up-to a marker. Marker can be any string of regular expression. \
-               Should be used via the syntactic sugar: @server.read <marker> : <varname> then <after> end@"
+               Should be used via the syntactic sugar: `server.read <marker> : <varname> then <after> end`"
        "server.read";
   read ~args:["",Lang.int_t,None,Some "Number of characters to read"]
        ~mk_marker:(fun p -> Duppy.Io.Length (Lang.to_int (Lang.assoc "" 2 p)))
        ~descr:"Read a string of fixed length from the client up-to a marker. \
-               Should be used via the syntactic sugar: @server.readchars <len> : <varname> then <after> end@"
+               Should be used via the syntactic sugar: `server.readchars <len> : <varname> then <after> end`"
        "server.readchars";
   read ~args:[] ~mk_marker:(fun _ -> Duppy.Io.Split "[\r\n]+")
        ~descr:"Read a line from the client. Should be used via the syntactic sugar: \
-               @server.readline <varname> then <after> end@"
+               `server.readline <varname> then <after> end`"
        "server.readline"

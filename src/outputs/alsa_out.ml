@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -29,9 +29,7 @@ class output ~kind ~clock_safe ~infallible
   let buffer_length = AFrame.size () in
   let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
-  let blank () =
-    Array.init buffer_chans (fun _ -> Array.make buffer_length 0.)
-  in
+  let blank () = Audio.make buffer_chans buffer_length 0. in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
@@ -42,7 +40,7 @@ object (self)
       ~infallible ~on_stop ~on_start ~content_kind:kind
       ~name ~output_kind:"output.alsa" source start
     as super
-  inherit [float array array] IoRing.output ~nb_blocks ~blank as ioring
+  inherit [Frame.audio_t array] IoRing.output ~nb_blocks ~blank as ioring
 
   method private set_clock =
     super#set_clock ;
@@ -50,28 +48,22 @@ object (self)
       Clock.unify self#clock
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
-  method output_start =
-    ioring#output_start ;
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source
-
-  method output_stop =
-    ioring#output_stop ;
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source
-
   val mutable device = None
+
+  method self_sync = device <> None
 
   val mutable alsa_rate = samples_per_second
   val samplerate_converter = Audio_converter.Samplerate.create buffer_chans
   val mutable alsa_write =
-    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       Pcm.writen_float_ba pcm (Audio.sub buf ofs len)
+    )
 
   method get_device =
     match device with
       | Some d -> d
       | None ->
-          self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
+          self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
           let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
           let params = Pcm.get_params dev in
           let bufsize,periods =
@@ -82,13 +74,13 @@ object (self)
                with
                  | _ ->
                     (* If we can't get floats we fallback on interleaved s16le *)
-                    self#log#f 2 "Falling back on interleaved S16LE";
+                    self#log#severe "Falling back on interleaved S16LE";
                     Pcm.set_access dev params Pcm.Access_rw_interleaved ;
                     Pcm.set_format dev params Pcm.Format_s16_le ;
                     alsa_write <-
                       (fun pcm buf ofs len ->
                          let sbuf = Bytes.create (2 * len * Array.length buf) in
-                         Audio.S16LE.of_audio buf ofs sbuf 0 len;
+                         Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                          Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                       )
              );
@@ -109,7 +101,7 @@ object (self)
              bufsize,
              (fst (Pcm.get_periods_max params))
           in
-          self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
+          self#log#important "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
             alsa_rate bufsize (Pcm.get_frame_size params) periods ;
           Pcm.set_params dev params ;
           device <- Some dev ;
@@ -125,7 +117,7 @@ object (self)
   method push_block data =
     let dev = self#get_device in
     try
-      let len = Array.length data.(0) in
+      let len = Audio.length data in
       let rec f pos =
         if pos < len then
           let ret = alsa_write dev data pos (len - pos) in
@@ -137,12 +129,12 @@ object (self)
         begin
          match e with
            | Buffer_xrun ->
-               self#log#f 2 "Underrun!"
-             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+               self#log#severe "Underrun!"
+             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end ;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then
          begin
-          self#log#f 2 "Trying to recover.." ;
+          self#log#severe "Trying to recover.." ;
           Pcm.recover dev e
          end
         else raise e
@@ -150,11 +142,9 @@ object (self)
   method output_send buf =
     let buf = AFrame.content buf 0 in
     let ratio = float alsa_rate /. float samples_per_second in
-    let buf = Audio_converter.Samplerate.resample samplerate_converter
-                  ratio buf 0 (Array.length buf.(0))
-    in
+    let buf = Audio_converter.Samplerate.resample samplerate_converter ratio buf in
     let f data =
-      Audio.blit buf 0 data 0 (Audio.duration buf)
+      Audio.blit buf data
     in
     ioring#put_block f
 

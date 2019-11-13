@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -53,6 +53,8 @@ struct
   object (self)
     inherit Source.source kind ~name:"warp_prod"
 
+    method self_sync = false
+
     method stype = Source.Fallible
 
     method remaining =
@@ -66,8 +68,8 @@ struct
         (fun () ->
            assert (not c.buffering) ;
            Generator.fill c.generator frame ;
-           if Generator.length c.generator = 0 then begin
-             self#log#f 3 "Buffer emptied, start buffering..." ;
+           if Frame.is_partial frame && Generator.length c.generator = 0 then begin
+             self#log#important "Buffer emptied, start buffering..." ;
              c.buffering <- true
            end)
 
@@ -187,6 +189,8 @@ struct
 
     method stype = Source.Fallible
 
+    method self_sync = false
+
     method remaining =
       proceed c (fun () -> MG.remaining c.mg)
 
@@ -225,9 +229,9 @@ struct
             let slen = min slen (RB.read_space c.rb) in
             if slen > 0 then
               let src = Audio.create channels slen in
-              RB.read c.rb src 0 slen;
+              RB.read c.rb src;
               if slen = dlen then
-                Audio.blit src 0 dst dofs slen
+                Audio.blit (Audio.sub src 0 slen) (Audio.sub dst dofs slen)
               else
                 (* TODO: we could do better than nearest interpolation. However,
                    for slight adaptations the difference should not really be
@@ -236,8 +240,8 @@ struct
                   let srcc = src.(c) in
                   let dstc = dst.(c) in
                   for i = 0 to dlen - 1 do
-                    let x = srcc.(i * slen / dlen) in
-                    dstc.(i + dofs) <- x
+                    let x = srcc.{i * slen / dlen} in
+                    dstc.{i + dofs} <- x
                   done
                 done
           in
@@ -257,7 +261,7 @@ struct
           let salen = scale alen in
           fill buf aofs alen salen;
           Frame.add_break frame (ofs+len);
-          (* self#log#f 5 "filled %d from %d (x %f)" len ofs scaling; *)
+          (* self#log#debug "filled %d from %d (x %f)" len ofs scaling; *)
 
           (* Fill in metadata *)
           let md = MG.metadata c.mg (scale len) in
@@ -267,8 +271,8 @@ struct
 
           (* If there is no data left, we should buffer again. *)
           if RB.read_space c.rb = 0 then begin
-            self#log#f 3 "Buffer emptied, start buffering...";
-            self#log#f 5 "Current scaling factor is x%f." scaling;
+            self#log#important "Buffer emptied, start buffering...";
+            self#log#debug "Current scaling factor is x%f." scaling;
             MG.advance c.mg (MG.length c.mg); (* sync just in case *)
             c.buffering <- true
           end)
@@ -313,7 +317,7 @@ struct
               RB.read_advance c.rb n;
               MG.advance c.mg (Frame.master_of_audio n)
             );
-          RB.write c.rb buf 0 len;
+          RB.write c.rb (Audio.sub buf 0 len);
           MG.feed_from_frame c.mg frame;
           if RB.read_space c.rb > prebuf then begin
             c.buffering <- false;

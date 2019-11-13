@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -58,7 +58,7 @@ type t = {
   stereo_mode      : stereo_mode ;
   bitrate_control  : bitrate_control ;
   internal_quality : int ;
-  samplerate       : int ;
+  samplerate       : int Lazy.t ;
   id3v2            : id3v2_export option ;
   msg_interval     : float ;
   msg              : string
@@ -77,6 +77,11 @@ let to_string m =
     name
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
-    m.samplerate
+    (Lazy.force m.samplerate)
     (m.id3v2 <> None)
 
+let bitrate m =
+  match m.bitrate_control with
+  | VBR _ -> raise Not_found
+  | CBR n -> n * 1000
+  | ABR abr -> abr.mean_bitrate * 1000

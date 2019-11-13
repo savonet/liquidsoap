@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -35,14 +35,14 @@ object (self)
   val databuf = Frame.create kind
 
   method private set_clock =
-    let slave_clock = Clock.create_known (new Clock.clock self#id) in
-    (* Our external clock should stricly contain the slave clock. *)
-    Clock.unify
-      self#clock
-      (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
-    Clock.unify slave_clock source#clock ;
-    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
-    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
+   let slave_clock = Clock.create_known (new Clock.clock self#id) in
+   (* Our external clock should stricly contain the slave clock. *)
+   Clock.unify
+     self#clock
+     (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
+   Clock.unify slave_clock source#clock ;
+   (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+   Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   method private slave_tick =
     (Clock.get source#clock)#end_tick ;
@@ -50,9 +50,11 @@ object (self)
     Frame.advance databuf
 
   initializer
-    self#log#f 3 "Using soundtouch %s." (Soundtouch.get_version_string st)
+    self#log#important "Using soundtouch %s." (Soundtouch.get_version_string st)
 
   method stype       = source#stype
+
+  method self_sync   = false
 
   method is_ready    =
     (Generator.length abg > 0) || source#is_ready
@@ -70,15 +72,15 @@ object (self)
     AFrame.clear databuf;
     source#get databuf;
     let db = AFrame.content databuf 0 in
-    Soundtouch.put_samples_ni st db 0 (Array.length db.(0));
+    let db = Audio.interleave db in
+    Soundtouch.put_samples_ba st db;
     let available = Soundtouch.get_available_samples st in
     if available > 0 then
-     begin
-      let tmp =
-        Array.init channels (fun _ -> Array.make available 0.)
-      in    
-      ignore (Soundtouch.get_samples_ni st tmp 0 available );
-      Generator.put_audio abg tmp 0 available
+      begin
+        let tmp = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels * available) in
+        ignore (Soundtouch.get_samples_ba st tmp);
+        let tmp = Audio.deinterleave channels tmp in
+        Generator.put_audio abg tmp 0 available
      end;
     if AFrame.is_partial databuf then
       Generator.add_break abg; 

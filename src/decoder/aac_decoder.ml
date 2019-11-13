@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Decode and read metadatas of AAC files. *)
-
-open Dtools
 
 let error_translator =
   function
@@ -34,44 +32,45 @@ let () = Printexc.register_printer error_translator
 
 exception End_of_stream
 
-(** Buffered input device where
-  * the buffer initially contains [String.sub buf offset len]. *)
-let buffered_input input buf offset len =
-  let buffer = Buffer.create 1024 in
-  let pos = ref len in
-  Buffer.add_substring buffer buf offset len;
+(** Buffered input device. *)
+let buffered_input input =
+  let buffer = Strings.Mutable.empty () in
+  let pos = ref 0 in
   let drop len = 
     pos := !pos + len;
-    Utils.buffer_drop buffer len 
+    Strings.Mutable.drop buffer len
   in
   let tell = 
     match input.Decoder.tell with
       | None -> None
-      | Some f -> Some (fun () -> Buffer.length buffer + f ())
+      | Some f -> Some (fun () -> Strings.Mutable.length buffer + f ())
   in
   let lseek = 
     match input.Decoder.lseek with
       | None -> None
       | Some f -> 
          let lseek len = 
-           Buffer.reset buffer;
+           ignore (Strings.Mutable.flush buffer);
            f len
          in
          Some lseek
   in
-  (* Get at most [len] bytes from the buffer,
-   * which is refilled from [input] if needed.
-   * This does not remove data from the buffer. *)
-  let read len =
-    let size = Buffer.length buffer in
+  (* Get at most [len] bytes from the buffer, which is refilled from [input] if
+     needed. This does not remove data from the buffer. *)
+  let tmplen = Utils.pagesize in
+  let tmp = Bytes.create tmplen in
+  let read buf ofs len =
+    let size = Strings.Mutable.length buffer in
     let len = 
-      if size >= len then len else
-        let data,read = input.Decoder.read (len-size) in
+      if size > len then len else
+        let read = min tmplen len in
+        let read = input.Decoder.read tmp 0 read in
         if read = 0 then raise End_of_stream ;
-          Buffer.add_substring buffer data 0 read ;
-          size+read
+        Strings.Mutable.add_subbytes buffer tmp 0 read ;
+        min len (size+read)
     in
-      Buffer.sub buffer 0 len, len
+    Strings.Mutable.blit buffer 0 buf ofs len;
+    len
   in
   { Decoder.
      read = read;
@@ -86,16 +85,17 @@ struct
 let create_decoder input =
   let resampler = Rutils.create_audio () in
   let dec = Faad.create () in
-  (* 1024 bytes seems usually enough to initiate the decoder.. *)
-  let (aacbuf,len) = input.Decoder.read 1024 in
+  let input, drop, pos = buffered_input input in
   let offset, sample_freq, chans =
-    Faad.init dec (Bytes.unsafe_of_string aacbuf) 0 len
+    let initbuflen = 1024 in
+    let initbuf = Bytes.create initbuflen in
+    let len = input.Decoder.read initbuf 0 initbuflen in
+    Faad.init dec initbuf 0 len
   in
+  drop offset; pos := 0;
   let processed = ref 0 in
   let aacbuflen = Faad.min_bytes_per_channel * chans in
-  let input,drop,pos =
-    buffered_input input aacbuf offset (len-offset)
-  in
+  let aacbuf = Bytes.create aacbuflen in
   (* We approximate bitrate for seeking.. *)
   let seek ticks =
     if !processed == 0 ||
@@ -122,30 +122,29 @@ let create_decoder input =
      seek = seek;
      decode =
       (fun gen ->
-        let aacbuf,len = input.Decoder.read aacbuflen in
+        let len = input.Decoder.read aacbuf 0 aacbuflen in
         if len = aacbuflen then
          begin
-          let pos,data = Faad.decode dec (Bytes.unsafe_of_string aacbuf) 0 len in
+          let pos,data = Faad.decode dec aacbuf 0 len in
+          let data = Audio.of_array data in
           begin try
-            processed := !processed + Array.length data.(0)
+            processed := !processed + Audio.length data
           with _ -> () end;
           drop pos ;
-          let content =
-            resampler ~audio_src_rate:(float sample_freq) data
-          in
+          let content = resampler ~audio_src_rate:(float sample_freq) data in
             (* TODO assert (Array.length content.(0) = length) ? *)
             Generator.set_mode gen `Audio ;
-            Generator.put_audio gen content 0 (Array.length content.(0))
+            Generator.put_audio gen content 0 (Audio.length content)
          end) }
 end
 
 let aac_mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "aac")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "aac")
     "Mime-types used for guessing AAC format"
     ~d:["audio/aac"; "audio/aacp"; "audio/x-hx-aac-adts"]
 
 let aac_file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "aac")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "aac")
     "File extensions used for guessing AAC format"
     ~d:["aac"]
 
@@ -163,13 +162,13 @@ let get_type filename =
   Tutils.finalize ~k:(fun () -> Unix.close fd)
     (fun () ->
       let dec = Faad.create () in
-      let aacbuflen = 1024 in
+      let aacbuflen = Utils.pagesize in
       let aacbuf = Bytes.create aacbuflen in
       let _,rate,channels =
         let n = Unix.read fd aacbuf 0 aacbuflen in
         Faad.init dec aacbuf 0 n
       in
-        log#f 4
+        log#info
           "Libfaad recognizes %S as AAC (%dHz,%d channels)."
           filename rate channels ;
           { Frame.
@@ -238,10 +237,7 @@ struct
   exception End_of_track
   let create_decoder input =
     let dec = Faad.create () in
-    let read len =
-      let ret,len = input.Decoder.read len in
-      Bytes.unsafe_of_string ret,0,len
-    in
+    let read = input.Decoder.read in
     let mp4 = Faad.Mp4.openfile ?seek:input.Decoder.lseek read in
     let resampler = Rutils.create_audio () in
     let track = Faad.Mp4.find_aac_track mp4 in
@@ -253,15 +249,14 @@ struct
     let decode gen =
       if !ended || !sample >= nb_samples || !sample < 0 then raise End_of_track;
       let data = Faad.Mp4.decode mp4 track !sample dec in
+      let data = Audio.of_array data in
       incr sample;
       begin try
-        pos := !pos + (Array.length data.(0))
+        pos := !pos + Audio.length data
       with _ -> () end;
-      let content =
-        resampler ~audio_src_rate:(float sample_freq) data
-      in
+      let content = resampler ~audio_src_rate:(float sample_freq) data in
       Generator.set_mode gen `Audio;
-      Generator.put_audio gen content 0 (Array.length content.(0))
+      Generator.put_audio gen content 0 (Audio.length content)
     in
     let seek ticks =
       try
@@ -289,7 +284,7 @@ let get_type filename =
         let mp4 = Faad.Mp4.openfile_fd fd in
         let track = Faad.Mp4.find_aac_track mp4 in
         let rate, channels = Faad.Mp4.init mp4 dec track in
-           log#f 4
+           log#info
              "Libfaad recognizes %S as MP4 (%dHz,%d channels)."
              filename rate channels ;
            { Frame.
@@ -298,12 +293,12 @@ let get_type filename =
              midi  = 0 })
 
 let mp4_mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "mp4")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "mp4")
     "Mime-types used for guessing MP4 format"
     ~d:["audio/mp4"; "application/mp4"]
 
 let mp4_file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "mp4")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "mp4")
     "File extensions used for guessing MP4 format"
     ~d:["m4a"; "m4b"; "m4p"; "m4v";
         "m4r"; "3gp"; "mp4"]
@@ -342,7 +337,7 @@ let () =
     else
     None)
 
-let log = Dtools.Log.make ["metadata";"mp4"]
+let log = Log.make ["metadata";"mp4"]
 
 let get_tags file =
   if not (Decoder.test_file ~mimes:mp4_mime_types#get

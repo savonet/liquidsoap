@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with ocaml-lame; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *)
 
 (* $Id$ *)
@@ -81,6 +81,8 @@ sig
       encoder -> float array -> float array -> int -> int -> string
   val encode_buffer_float :
       encoder -> float array -> float array -> int -> string
+  val encode_buffer_float_ba :
+      encoder -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> string
   val encode_flush : encoder -> string
   val encode_flush_nogap : encoder -> string
   module Id3tag :

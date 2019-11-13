@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -44,6 +44,7 @@ object (self)
   method is_ready = true
   method remaining = -1
   method abort_track = ()
+  method self_sync = false
   method output = if AFrame.is_partial memo then self#get_frame memo
 
   val mutable ev = MIDI.create (MFrame.size ())
@@ -79,7 +80,7 @@ object (self)
               Bytes.get c 0
           in
             begin try
-              self#log#f 3 "Playing note %d." (note_of_char c);
+              self#log#important "Playing note %d." (note_of_char c);
               self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
             with
               | Not_found -> ()

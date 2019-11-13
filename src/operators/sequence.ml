@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -31,10 +31,15 @@ class sequence ~kind ?(merge=false) sources =
 object (self)
   inherit operator ~name:"sequence" kind sources
 
-  val mutable sources = sources
+  val mutable seq_sources = sources
+
+  method self_sync =
+    match sources with
+      | hd::_ -> hd#self_sync
+      | [] -> false
 
   method stype =
-    match sources with
+    match List.rev sources with
       | hd::_ -> hd#stype
       | [] -> Source.Fallible
 
@@ -47,7 +52,7 @@ object (self)
     List.iter (fun s -> (s:>source)#leave (self:>source)) sources
 
   (** When head_ready is true, it must be that:
-    *  - (List.hd sources)#is_ready
+    *  - (List.hd seq_sources)#is_ready
     *  - or we have started playing a track of (List.hd sources)
     *    and that track has not ended yet.
     * In case the head source becomes unavailable before its end of track,
@@ -57,36 +62,34 @@ object (self)
     * inserted an end of track automatically instead of calling #get_frame. *)
   val mutable head_ready = false
 
-  method is_ready = head_ready || List.exists (fun s -> s#is_ready) sources
+  method is_ready = head_ready || List.exists (fun s -> s#is_ready) seq_sources
 
   method remaining =
     if merge then
       let (+) a b = if a<0 || b<0 then -1 else a+b in
-        List.fold_left (+) 0 (List.map (fun s -> s#remaining) sources)
+        List.fold_left (+) 0 (List.map (fun s -> s#remaining) seq_sources)
     else
-      (List.hd sources)#remaining
+      (List.hd seq_sources)#remaining
 
   method abort_track =
     if merge then begin
-      match List.rev sources with
+      match List.rev seq_sources with
         | [] -> assert false
-        | hd::tl ->
-            sources <- [hd] ;
-            List.iter (fun (s:source) -> s#leave (self:>source)) tl
+        | hd::_ ->
+            seq_sources <- [hd]
     end ;
-    match sources with
+    match seq_sources with
       | hd::_ -> hd#abort_track
       | _ -> ()
 
   method private get_frame buf =
     if head_ready then begin
-      let hd = List.hd sources in
+      let hd = List.hd seq_sources in
         hd#get buf ;
         if Frame.is_partial buf then begin
           head_ready <- false ;
-          if List.length sources > 1 then begin
-            hd#leave (self:>source) ;
-            sources <- List.tl sources ;
+          if List.length seq_sources > 1 then begin
+            seq_sources <- List.tl seq_sources ;
             if merge && self#is_ready then
               let pos = Frame.position buf in
                 self#get_frame buf ;
@@ -95,13 +98,12 @@ object (self)
           end
         end
     end else begin
-      match sources with
+      match seq_sources with
         | a::(_::_ as tl) ->
             if a#is_ready then
               head_ready <- true
             else begin
-              a#leave (self:>source) ;
-              sources <- tl
+              seq_sources <- tl
             end ;
             self#get_frame buf
         | [a] ->
@@ -121,15 +123,19 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = -1
+  method self_sync = source#self_sync
 
   method private get_frame buf =
     source#get buf ;
     if Frame.is_partial buf && source#is_ready then
-      let pos = Frame.position buf in
-        self#log#f 4 "End of track: merging." ;
-        self#get_frame buf ;
-        Frame.set_breaks buf
-          (Utils.remove_one ((=) pos) (Frame.breaks buf))
+     begin
+      self#log#info "End of track: merging." ;
+      self#get_frame buf ;
+      Frame.set_breaks buf
+        (match Frame.breaks buf with
+           | b::_::l -> b::l
+           | _ -> assert false)
+     end
 
 end
 
@@ -143,9 +149,7 @@ let () =
       "", Lang.list_t (Lang.source_t k), None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Play only one track of every successive source, \
-            except for the last one which is played as much as available. \
-            Sources are released after being used, allowing them to shutdown \
-            cleanly and free their resources."
+            except for the last one which is played as much as available."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        new sequence ~kind
@@ -157,7 +161,9 @@ let () =
   Lang.add_operator "merge_tracks"
     [ "", Lang.source_t k, None, None ]
     ~category:Lang.TrackProcessing
-    ~descr:"Merge consecutive tracks from the input source."
+    ~descr:"Merge consecutive tracks from the input source. They will be \
+            considered as one big track, so `on_track()` will not trigger \
+            for example."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))

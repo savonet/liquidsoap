@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -64,33 +64,33 @@ let make params =
                 raise (Error (t,"invalid frame width value \
                                  (should be a multiple of 16)")) ;
               { f with Theora_format.
-                    width = Utils.LazyCompat.from_val i;
-                    picture_width = Utils.LazyCompat.from_val i }
+                    width = lazy i;
+                    picture_width = lazy i }
           | ("height",({ term = Int i; _} as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
                 raise (Error (t,"invalid frame height value \
                                  (should be a multiple of 16)")) ;
               { f with Theora_format.
-                    height = Utils.LazyCompat.from_val i;
-                    picture_height = Utils.LazyCompat.from_val i }
+                    height = lazy i;
+                    picture_height = lazy i }
           | ("picture_width",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than width. *)
-              if i > Utils.LazyCompat.force f.Theora_format.width then
+              if i > Lazy.force f.Theora_format.width then
                 raise (Error (t,"picture width must not be larger than width")) ;
-              { f with Theora_format.picture_width = Utils.LazyCompat.from_val i }
+              { f with Theora_format.picture_width = lazy i }
           | ("picture_height",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than height. *)
-              if i > Utils.LazyCompat.force f.Theora_format.height then
+              if i > Lazy.force f.Theora_format.height then
                 raise (Error (t,"picture height must not be larger than height")) ;
-              { f with Theora_format.picture_height = Utils.LazyCompat.from_val i }
+              { f with Theora_format.picture_height = lazy i }
           | ("picture_x",({ term = Int i; _} as t)) ->
               (* According to the doc: must be no larger than width-picture_width
                * or 255, whichever is smaller. *)
               if
                 i > min
-                     ((Utils.LazyCompat.force f.Theora_format.width) -
-                      (Utils.LazyCompat.force f.Theora_format.picture_width))
+                     ((Lazy.force f.Theora_format.width) -
+                      (Lazy.force f.Theora_format.picture_width))
                      255
               then
                 raise (Error (t,"picture x must not be larger than \
@@ -101,12 +101,12 @@ let make params =
               (* According to the doc: must be no larger than width-picture_width
                * and frame_height-pic_height-pic_y must be no larger than 255. *)
               if
-                i > ((Utils.LazyCompat.force f.Theora_format.height) -
-                     (Utils.LazyCompat.force f.Theora_format.picture_height))
+                i > ((Lazy.force f.Theora_format.height) -
+                     (Lazy.force f.Theora_format.picture_height))
               then
                 raise (Error (t,"picture y must not be larger than height - \
                                  picture height"));
-              if (Utils.LazyCompat.force f.Theora_format.picture_height) - i > 255 then
+              if (Lazy.force f.Theora_format.picture_height) - i > 255 then
                 raise (Error (t,"picture height - picture y must not be \
                                  larger than 255")) ;
               { f with Theora_format.picture_y = i }

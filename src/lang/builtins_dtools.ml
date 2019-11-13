@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -80,7 +80,7 @@ let () =
                    (List.map Lang.string l)
                in
                make to_value (Dtools.Conf.list ~d:l)
-           | Lang.Unit     ->
+           | Lang.Tuple []  ->
                Dtools.Conf.void
            | _ -> assert false
        in
@@ -94,12 +94,12 @@ let () =
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
     with
       | Dtools.Conf.Unbound (_, _) ->
-          log#f 2 "WARNING: there is no configuration key named %S!" path
+          log#severe "WARNING: there is no configuration key named %S!" path
   in
     add_builtin ~cat:Liq "set"
       ~descr:"Change some setting. \
-              Use <code>liquidsoap --conf-descr</code> and \
-              <code>liquidsoap --conf-descr-key KEY</code> on \
+              Use `liquidsoap --conf-descr` and \
+              `liquidsoap --conf-descr-key KEY` on \
               the command-line to get some information \
                                     about available settings."
       ["",Lang.string_t,None,None;
@@ -109,7 +109,7 @@ let () =
          let s = Lang.assoc "" 1 p in
          let path = Lang.to_string s in
            try begin match (Lang.assoc "" 2 p).Lang.value with
-               | Lang.Unit     -> set Dtools.Conf.as_unit   path ()
+               | Lang.Tuple []  -> set Dtools.Conf.as_unit   path ()
                | Lang.String s -> set Dtools.Conf.as_string path s
                | Lang.Int    s -> set Dtools.Conf.as_int    path s
                | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
@@ -141,7 +141,7 @@ let () =
                  (Lang.to_string s)
                  kind (Lang.print_value (Lang.assoc "" 2 p))
              in
-               raise (Lang.Invalid_value (s,msg)))
+               raise (Lang_errors.Invalid_value (s,msg)))
 
 let () =
   let get cast path v =
@@ -149,7 +149,7 @@ let () =
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#get
     with
       | Dtools.Conf.Unbound (_, _) ->
-          log#f 2 "WARNING: there is no configuration key named %S!" path ;
+          log#severe "WARNING: there is no configuration key named %S!" path ;
           v
   in
   let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] 1 in
@@ -161,7 +161,7 @@ let () =
          let path = Lang.to_string (List.assoc "" p) in
          let v = List.assoc "default" p in
            match v.Lang.value with
-             | Lang.Unit ->
+             | Lang.Tuple [] ->
                  Lang.unit
              | Lang.String s ->
                  Lang.string (get Dtools.Conf.as_string path s)

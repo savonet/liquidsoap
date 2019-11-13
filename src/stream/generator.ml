@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -55,6 +55,9 @@ struct
 
 (** A chunk with given offset and length. *)
 type 'a chunk = 'a * int * int
+
+let chunk_data ((buf, _, _):'a chunk) = buf
+
 (** A buffer is a queue of chunks. *)
 type 'a buffer = 'a chunk Queue.t
 
@@ -413,6 +416,18 @@ struct
   let length t =
     min (Generator.length t.audio) (Generator.length t.video)
 
+  let audio_size t =
+    let float_size = 8 in
+    let track_size (t:Frame.audio_t) = Audio.Mono.length t * float_size in
+    let audio_size = Array.fold_left (fun n t -> n + track_size t) 0 in
+    Queue.fold (fun n a -> n + audio_size (Generator.chunk_data a)) 0 t.audio.Generator.buffers
+
+  let video_size t =
+    let buffer_size (b:Frame.video_t array) = Array.fold_left (fun n v -> n + Video.size v) 0 b in
+    Queue.fold (fun n a -> n + buffer_size (Generator.chunk_data a)) 0 t.video.Generator.buffers
+
+  let size t = audio_size t + video_size t
+
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining t =
     match t.breaks with
@@ -459,7 +474,7 @@ struct
 
   (** Add some audio content. Offset and length are given in audio samples. *)
   let put_audio t content o l =
-    assert (content = [||] || Array.length content.(0) >= o+l) ;
+    assert (content = [||] || Audio.Mono.length content.(0) >= o+l) ;
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
       Generator.put t.audio content o l ;
@@ -471,7 +486,7 @@ struct
 
   (** Add some video content. Offset and length are given in video samples. *)
   let put_video t content o l =
-    assert (content = [||] || Array.length content.(0) <= o+l) ;
+    assert (content = [||] || Video.length content.(0) <= o+l) ;
     let o = Frame.master_of_video o in
     let l = Frame.master_of_video l in
       Generator.put t.video content o l ;
@@ -578,7 +593,7 @@ struct
                    (* Same as above, even if in practice everything
                     * will always be aligned on the audio side. *)
                    let l = !(apos'+l) - !apos' in
-                     Audio.Mono.blit a !apos a' !fpos l) ;
+                     Audio.Mono.blit (Audio.Mono.sub a !apos l) (Audio.Mono.sub a' !fpos l)) ;
               if al=vl then
                 blit audio video
               else if al>vl then
@@ -650,6 +665,10 @@ struct
   let video_length t = Tutils.mutexify t.lock Super.video_length t.gen
   let length t = Tutils.mutexify t.lock Super.length t.gen
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
+
+  let audio_size t = Tutils.mutexify t.lock Super.audio_size t.gen
+  let video_size t = Tutils.mutexify t.lock Super.video_size t.gen
+  let size t = Tutils.mutexify t.lock Super.size t.gen
 
   let set_rewrite_metadata t f = t.map_meta <- f
 

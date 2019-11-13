@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -31,6 +31,8 @@ object (self)
 
   method stype = source#stype
 
+  method self_sync = source#self_sync
+
   method remaining = source#remaining
 
   method is_ready = source#is_ready
@@ -42,7 +44,7 @@ object (self)
     let midi = MFrame.content buf (MFrame.position buf) in
     if chan >= Array.length midi then
       (
-        self#log#f 3 "Cannot read MIDI channel %d, stream only has %d channels." chan (Array.length midi);
+        self#log#important "Cannot read MIDI channel %d, stream only has %d channels." chan (Array.length midi);
         source#get buf
       )
     else
@@ -51,7 +53,7 @@ object (self)
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let len = position - offset in
-      synth#play evs offset b offset len
+      synth#play evs offset (Audio.sub b offset len)
 end
 
 let register obj name descr =
@@ -116,11 +118,11 @@ let register obj name descr =
          else
            None
        in
-       let synths = Array.init ((Frame.type_of_kind kind).Frame.midi) (fun c -> 1, new synth ~kind (obj adsr) src c 1.) in
+       let synths = Array.init ((Frame.type_of_kind kind).Frame.midi) (fun c -> 1., new synth ~kind (obj adsr) src c 1.) in
        let synths = Array.to_list synths in
          new Add.add ~kind ~renorm:false synths
            (fun _ -> ())
-           (fun _ buf tmp -> Image.RGBA32.add buf tmp)
+           (fun _ buf tmp -> Video.Image.add buf tmp)
     )
 
 let () = register (fun adsr -> (new Synth.sine ?adsr (Lazy.force Frame.audio_rate))) "sine" "Sine synthesizer."

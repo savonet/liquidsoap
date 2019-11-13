@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -48,7 +48,7 @@ let to_s16le b =
     assert (Audio.to_16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
   *)
-  Audio.S16LE.make fpcm 0 (Audio.duration fpcm)
+  Audio.S16LE.make fpcm
 
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
@@ -75,11 +75,13 @@ exception No_chunk
 let get_chunk = get_chunk
 
 let blankify b off len =
-  Audio.clear (content b off) off len
+  Audio.clear (Audio.sub (content b off) off len)
 
-let multiply b off len c = Audio.amplify c (content b off) off len
+let multiply b off len c =
+  Audio.amplify c (Audio.sub (content b off) off len)
 
 let add b1 off1 b2 off2 len =
-  Audio.add (content b1 off1) off1 (content b2 off2) off2 len
+  Audio.add (Audio.sub (content b1 off1) off1 len) (Audio.sub (content b2 off2) off2 len)
 
-let rms b off len = Audio.Analyze.rms (content b off) off len
+let rms b off len =
+  Audio.Analyze.rms (Audio.sub (content b off) off len)

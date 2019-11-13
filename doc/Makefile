@@ -1,142 +1,86 @@
-.PHONY: doc upload all-subdirs
+.PHONY: md doc upload all-subdirs
 
-SUBDIRS = content liqi
-DISTFILES = liquidsoap.1 Makefile protocols_to_liqi.pl reference_to_liqi.pl no-ref.txt \
-	    template.html snippet.html
+SUBDIRS = content
+DISTFILES = liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml
 DISTDIRS = orig
-PERL_DOM = $(shell perl -MXML::DOM -e1 > /dev/null 2>&1 && echo yes)
+LIQUIDSOAP = ../src/liquidsoap
+PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
-CONTENT=$(wildcard content/*.txt)
-PRE_HTML=$(shell echo $(CONTENT:.txt=.html) | sed -e 's/content\//html\//g') \
-     html/reference.html html/settings.html html/protocols.html
-HTML=html/scripts/index.html
-TEX=$(shell echo $(CONTENT:.txt=.tex) | sed -e 's/content\//tex\//g')
-PDF=$(TEX:.tex=.pdf)
+MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/settings.md
+HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
+PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
-LIQI = cd html && ../liqi/liqi \
-	     --template ../template.html --snippet-template ../snippet.html \
-		 --subst rel:
-LIQI_DEPS = liqi/liqi template.html snippet.html
+doc: md man html
 
-# PDF is not ready for end-users yet.
-doc: html
+md: $(MD)
 
 html: $(HTML)
 
-pdf: liqref.pdf
+pdf: $(PDF)
 
-liqref.pdf: tex/liqref.tex $(TEX)
-	@echo Compiling liqref.pdf...
-	@cd tex; pdflatex -interaction nonstopmode liqref.tex
+man: liquidsoap.1
 
-html/scripts/index.html: html/scripts/index.txt $(LIQI_DEPS)
-	@echo Generating $(@)...
-	@#Has to be called from html to put scripts in the right place
-	$(LIQI) --subst rel:../ -i ../$(<) -o ../$(@)
+liquidsoap.1: liquidsoap.1.md
+	@echo "Generating $(@)..."
+	@pandoc -s -t man $< -o $@
 
-# I have to tell make that index.txt will be there
-# once the HTML have been generated.
-# Also ensures that the index is built last even with a concurrent make run.
-html/scripts/index.txt: $(PRE_HTML)
-
-html/%.html: content/%.txt $(LIQI_DEPS)
+html/%.html: content/%.md template.html language.dtd
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
-	@#Has to be called from html to put scripts in the right place
-	@$(LIQI) -i ../$(<) -o ../$(@)
+	@$(PANDOC) $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
 
-tex/%.tex: content/%.txt liqi/liqi
+pdf/%.pdf: content/%.md language.dtd
+	@mkdir -p pdf
 	@echo Converting $(<) to $(@)...
-	@test -d tex || mkdir tex
-	@./liqi/liqi --latex -i $(<) -o $(@)
+	@$(PANDOC) $< -o $@
 
-tex/%.pdf: tex/%.tex
-	@echo Converting $(<) to $(@)...
-	@cd tex; pdflatex ../$(<)
+content/protocols.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-protocols-md > $@
 
-liqi/liqi: all-subdirs
-	@# If I don't put anything here, make tries to build liqi/liqi
-	@# from liqi/liqi.o by using gcc
+content/reference.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-functions-md > $@
 
-../src/liquidsoap:
-	@echo "Liquidsoap does not seem to be built. You have to build it before."
-	@echo "Go to the toplevel and type 'make'"
-	exit 1
+content/settings.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --conf-descr-md > $@
 
-content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
-ifeq ($(PERL_DOM),yes)
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
-	  --no-pervasives ../scripts/pervasives.liq --list-plugins-xml | \
-	  ./reference_to_liqi.pl > $(@)
-else
-	@echo "-> You don't seem to have perl XML::DOM module installed."
-	@echo "-> Language reference cannot be generated."
-	@cp no-ref.txt content/reference.txt
-endif
-
-content/protocols.txt: protocols_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
-ifeq ($(PERL_DOM),yes)
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
-	  --no-pervasives ../scripts/pervasives.liq --list-plugins-xml | \
-	  ./protocols_to_liqi.pl > $(@)
-else
-	@echo "-> You don't seem to have perl XML::DOM module installed."
-	@echo "-> protocols reference cannot be generated."
-	@cp no-protocols.txt content/protocols.txt
-endif
-
-content/settings.txt: ../src/liquidsoap
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../scripts/pervasives.liq \
-	--conf-descr-liqi > $(@)
-
-VERSION="`../src/liquidsoap --version | head -n 1`"
-
-test: html
-	@echo "Testing code snippets with \033[1m$(VERSION)\033[0m"
-	@echo ""
-	@find html/scripts | grep '\.liq' | sort \
-	  | ./scripts/test_snippets "`pwd`/../src/liquidsoap -p"
-	@echo ""
-	@echo "Testing shell scripts.."
-	@echo "Please remember that it does not test liq syntax used inline.."
-	@echo ""
-	@find html/scripts | grep '\.sh' | sort | ./scripts/test_snippets "sh -n"
-	@echo ""
-	@echo "Testing perl scripts.."
-	@echo ""
-	@find html/scripts | grep '\.pl' | sort | ./scripts/test_snippets "perl -c"
-
-spell-check: $(CONTENT:.txt=.txt.spell)
-
-content/%.txt.spell: content/%.txt
-	-aspell -d en_US-w_accents -c $(<)
-	touch $(@)
+VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
 doc-install:
-	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
+	$(INSTALL)  -d $(datadir)/doc/liquidsoap/html
 	if [ -f html/index.html ] ; then \
-	  cp -RfL html/* $(datadir)/doc/$(DISTDIR)/html ; \
+	  cp -RfL html/* $(datadir)/doc/liquidsoap/html ; \
         fi
-	$(INSTALL) -d $(mandir)/man1
-	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
+	if [ -f liquidsoap.1 ] ; then \
+	  $(INSTALL) -d $(mandir)/man1 ; \
+	  $(INSTALL_DATA) liquidsoap.1 $(mandir)/man1 ; \
+	fi
 
 clean-local:
-	rm -rf html $(TEX) content/reference.txt content/protocols.txt content/settings.txt content/*.txt.spell
+	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
 
-RCP=rsync -rLtCP --include="*.exe" --exclude="*.swp" --exclude="*.svn" \
-	--delete --stats
-RHOST=shell.sf.net:/home/groups/s/sa/savonet/htdocs/new/liq-svn
-upload: update
-	cd html ; $(RCP) . $(RHOST)
-	ssh $(USER)@shell.sf.net "chgrp -R savonet \
-	                            /home/groups/s/sa/savonet/htdocs \
-	                            > /dev/null 2>&1"
-	ssh $(USER)@shell.sf.net "find /home/groups/s/sa/savonet/htdocs \
-	                            -type d -exec chmod 2775 '{}' ';' \
-	                            > /dev/null 2>&1"
-	ssh $(USER)@shell.sf.net "find /home/groups/s/sa/savonet/htdocs \
-	                            -type f -exec chmod  664 '{}' ';' \
-	                            > /dev/null 2>&1"
+$(LIQUIDSOAP):
+	@echo "Liquidsoap does not seem to be built. You have to build it before."
+	@echo "Go to the toplevel and type 'make'"
+	@exit 1
+
+language.dtd:
+	curl https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd -o $@
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules
+
+############ SPHINX DOC #########################
+
+# You can set these variables from the command line.
+SPHINXOPTS    =
+SPHINXBUILD   = sphinx-build
+SOURCEDIR     = .
+BUILDDIR      = _build
+
+sphinx-html:
+	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+# Catch-all target: route all unknown targets to Sphinx using the new
+# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+# %: Makefile md
+#	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

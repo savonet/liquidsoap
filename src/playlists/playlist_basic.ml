@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["playlist";"basic"]
+let log = Log.make ["playlist";"basic"]
 
 let split_lines buf =
   Pcre.split ~pat:"[\r\n]+" buf
@@ -31,7 +31,7 @@ let test_text s =
     | Some get_mime ->
         let mime = get_mime s in
           if not (Pcre.pmatch ~pat:"text/.*" mime) then begin
-            log#f 3 "Wrong mime type %s for playlist!" mime ;
+            log#important "Wrong mime type %s for playlist!" mime ;
             (* TODO this shouldn't be an assert false, it can happen *)
             assert false
           end

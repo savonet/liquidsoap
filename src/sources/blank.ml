@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -24,19 +24,21 @@ open Source
 
 class blank ~kind duration =
   let ticks =
-    if duration = 0. then -1 else Frame.master_of_seconds duration
+    if duration < 0. then -1 else Frame.master_of_seconds duration
   in
   (* The kind should not allow a variable number of channels,
    * so it can directly be seen as a type. *)
   let content_type = Frame.type_of_kind kind in
 object
   inherit source ~name:"blank" kind
-  method stype = Infallible
-  method is_ready = true
 
   (** Remaining time, -1 for infinity. *)
   val mutable remaining = ticks
   method remaining = remaining
+
+  method stype = Infallible
+  method is_ready = remaining <> 0
+  method self_sync = false
 
   method seek x = x
 
@@ -53,9 +55,10 @@ object
     let content = Frame.content_of_type ab position content_type in
     let video_pos = Frame.video_of_master position in
       (* Audio *)
-      Audio.clear content.Frame.audio
-        (Frame.audio_of_master position)
-        (Frame.audio_of_master length) ;
+    Audio.clear
+      (Audio.sub content.Frame.audio
+         (Frame.audio_of_master position)
+         (Frame.audio_of_master length));
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))
@@ -73,8 +76,8 @@ let () =
     ~category:Lang.Input
     ~descr:"Produce silence and blank images."
     ~kind:(Lang.Unconstrained (Lang.univ_t 1))
-    [ "duration", Lang.float_t, Some (Lang.float 0.),
-      Some "Duration of blank tracks in seconds, default means forever." ]
+    [ "duration", Lang.float_t, Some (Lang.float (-1.)),
+      Some "Duration of blank tracks in seconds, Negative value means forever." ]
     (fun p kind ->
        let d = Lang.to_float (List.assoc "duration" p) in
          ((new blank ~kind d):>source))
@@ -84,6 +87,7 @@ object
   inherit source ~name:"empty" kind
   method stype = Fallible
   method is_ready = false
+  method self_sync = false
   method remaining = 0
   method abort_track = ()
   method get_frame _ = assert false

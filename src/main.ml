@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,9 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
-
-open Dtools
 
 (** Runner module signature. *)
 module type Runner_t =
@@ -35,16 +33,16 @@ let usage =
   \ - OPTION is one of the options listed below:\n"
 
 let () =
-  Configure.conf#plug "init" Init.conf ;
-  Configure.conf#plug "log" Log.conf
+  Configure.conf#plug "init" Dtools.Init.conf ;
+  Configure.conf#plug "log" Dtools.Log.conf
 
 (* Set log to stdout by default *)
 let () =
-  Log.conf_stdout#set_d (Some true);
-  Log.conf_file#set_d (Some false);
-  Log.conf_file_path#on_change (fun _ ->
-    Log.conf_stdout#set_d (Some false);
-    Log.conf_file#set_d (Some true))
+  Dtools.Log.conf_stdout#set_d (Some true);
+  Dtools.Log.conf_file#set_d (Some false);
+  Dtools.Log.conf_file_path#on_change (fun _ ->
+    Dtools.Log.conf_stdout#set_d (Some false);
+    Dtools.Log.conf_file#set_d (Some true))
 
 (* Should we not run the active sources? *)
 let dont_run = ref false
@@ -185,29 +183,29 @@ struct
       match t#kind with
         | None -> None
         | Some "unit" -> Some "()"
-        | Some "int" -> Some (string_of_int (Conf.as_int t)#get)
-        | Some "float" -> Some (string_of_float (Conf.as_float t)#get)
-        | Some "bool" -> Some (string_of_bool (Conf.as_bool t)#get)
-        | Some "string" -> Some (format_string (Conf.as_string t)#get)
-        | Some "list" -> Some (format_list (Conf.as_list t)#get)
+        | Some "int" -> Some (string_of_int (Dtools.Conf.as_int t)#get)
+        | Some "float" -> Some (string_of_float (Dtools.Conf.as_float t)#get)
+        | Some "bool" -> Some (string_of_bool (Dtools.Conf.as_bool t)#get)
+        | Some "string" -> Some (format_string (Dtools.Conf.as_string t)#get)
+        | Some "list" -> Some (format_list (Dtools.Conf.as_list t)#get)
         | _ -> assert false
     with
-      | Conf.Undefined _ -> None
+      | Dtools.Conf.Undefined _ -> None
 
   let get_d_string t =
     let mapopt f = (function None -> None | Some x -> Some (f x)) in
       try
         match t#kind with
           | None -> None
-          | Some "unit" -> mapopt (fun () -> "()") (Conf.as_unit t)#get_d
-          | Some "int" -> mapopt string_of_int (Conf.as_int t)#get_d
-          | Some "float" -> mapopt string_of_float (Conf.as_float t)#get_d
-          | Some "bool" -> mapopt string_of_bool (Conf.as_bool t)#get_d
-          | Some "string" -> mapopt format_string (Conf.as_string t)#get_d
-          | Some "list" -> mapopt format_list (Conf.as_list t)#get_d
+          | Some "unit" -> mapopt (fun () -> "()") (Dtools.Conf.as_unit t)#get_d
+          | Some "int" -> mapopt string_of_int (Dtools.Conf.as_int t)#get_d
+          | Some "float" -> mapopt string_of_float (Dtools.Conf.as_float t)#get_d
+          | Some "bool" -> mapopt string_of_bool (Dtools.Conf.as_bool t)#get_d
+          | Some "string" -> mapopt format_string (Dtools.Conf.as_string t)#get_d
+          | Some "list" -> mapopt format_list (Dtools.Conf.as_list t)#get_d
           | _ -> assert false
       with
-        | Conf.Undefined _ -> None
+        | Dtools.Conf.Undefined _ -> None
 
   let string_of_path p =
     String.concat "." p
@@ -230,59 +228,53 @@ struct
         end ^
         String.concat "" subs
     in
-      aux (string_of_path prefix) (t#path prefix)
+    aux (string_of_path prefix) (t#path prefix)
 
-  let descr ?(liqi=false) ?(prefix=[]) t =
+  let list_conf_keys ?(prefix=[]) t =
+    let rec aux prefix t =
+      let p s = if prefix = "" then s else prefix ^ "." ^ s in
+      let subs = List.map (function s -> aux (p s) (t#path [s])) t#subs in
+      prefix :: (List.flatten subs)
+    in
+    let l = aux (string_of_path prefix) (t#path prefix) in
+    let l = List.sort compare l in
+    String.concat "\n" l ^ "\n"
+
+  let descr ?(md=false) ?(prefix=[]) t =
     let rec aux level prefix t =
       let p s = if prefix = "" then s else prefix ^ "." ^ s in
-      let subs =
-        List.map (function s -> aux (level+1) (p s) (t#path [s])) t#subs
-      in
-      let title,default,set,comment =
-        if liqi then
-          Printf.sprintf "h%d. %s\n",
-          Printf.sprintf "Default: @%s@\n",
-          Printf.sprintf "%%%%\n\
-                          set(%S,%s)\n\
-                          %%%%\n",
-          (fun l -> String.concat ""
-                     (List.map (fun s -> Printf.sprintf "%s\n" s) l))
-        else
-          (fun _ ->
-             if t#kind = None then
-               Printf.sprintf "### %s\n\n"
-             else
-               Printf.sprintf "## %s\n"),
-          Printf.sprintf "# Default: %s\n",
-          Printf.sprintf "set(%S,%s)\n",
-          (fun l -> Printf.sprintf "# Comments:\n%s"
-                  (String.concat ""
-                    (List.map (fun s -> Printf.sprintf "#  %s\n" s) l)))
-      in
-        begin match t#kind, get_string t with
-        | None, None -> title level t#descr
-        | Some _, Some p ->
-            title level t#descr ^
-            begin match get_d_string t with
-              | None -> ""
-              | Some d -> default d
-            end ^
-            set prefix p ^
-            begin match t#comments with
-              | [] -> ""
-              | l -> comment l
-            end ^
-            "\n"
-        | _ -> ""
-        end ^
-        String.concat "" subs
+      let subs = List.map (function s -> aux (level+1) (p s) (t#path [s])) t#subs in
+      let title n s = Printf.sprintf "%s %s\n\n" (String.make n '#') s in
+      begin match t#kind, get_string t with
+      | None, None -> title level t#descr
+      | Some _, Some p ->
+         let comments =
+           match t#comments with
+           | [] -> ""
+           | l -> String.concat "\n" l ^ "\n"
+         in
+         let set =
+           if md then
+             Printf.sprintf "```liquidsoap\nset(%S,%s)\n```\n" prefix p
+           else
+             Printf.sprintf "\n    set(%S,%s)\n\n" prefix p
+         in
+         title level t#descr ^ comments ^ set ^ "\n"
+         (*
+           begin match get_d_string t with
+           | None -> ""
+           | Some d -> default d
+           end
+          *)
+      | _ -> ""
+      end ^ String.concat "" subs
     in
-      aux 2 (string_of_path prefix) (t#path prefix)
+    aux 1 (string_of_path prefix) (t#path prefix)
 
   let descr_key t p =
     try
       load_libs () ;
-      print_string (descr ~prefix:(Conf.path_of_string p) t);
+      print_string (descr ~prefix:(Dtools.Conf.path_of_string p) t);
       exit 0
     with
       | Dtools.Conf.Unbound _ ->
@@ -301,16 +293,21 @@ struct
         load_libs () ;
         print_string (descr t); exit 0),
       "Display a described table of the configuration keys.";
-      ["--conf-descr-liqi"],
+      ["--conf-descr-md"],
       Arg.Unit (fun () ->
         load_libs () ;
-        print_string (descr ~liqi:true t); exit 0),
-      "Display a described table of the configuration keys in liqi (documentation wiki) format.";
+        print_string (descr ~md:true t); exit 0),
+      "Display configuration keys in markdown format.";
       ["--conf-dump"],
       Arg.Unit (fun () ->
         load_libs () ;
         print_string (dump t); exit 0),
       "Dump the configuration state";
+      ["--list-conf-keys"],
+      Arg.Unit (fun () ->
+          load_libs();
+          print_string (list_conf_keys t); exit 0),
+      "List configuration keys.";
     ]
 
 end
@@ -375,11 +372,11 @@ let options = [
     "Parse scripts but do not type-check and run them." ;
 
     ["-q";"--quiet"],
-    Arg.Unit (fun () -> Log.conf_stdout#set false),
+    Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
     "Do not print log messages on standard output." ;
 
     ["-v";"--verbose"],
-    Arg.Unit (fun () -> Log.conf_stdout#set true),
+    Arg.Unit (fun () -> Dtools.Log.conf_stdout#set true),
     "Print log messages on standard output." ;
 
     ["-f";"--force-start"],
@@ -388,19 +385,31 @@ let options = [
      even when no active source is initially defined." ;
 
     ["--debug"],
-    Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
+    Arg.Unit (fun () -> Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
     "Print debugging log messages." ;
 
+    ["--debug-errors"],
+    Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
+    "Debug errors (show stacktrace instead of printing a message)." ;
+
+    ["--debug-lang"],
+    Arg.Unit (fun () -> Lang_types.debug := true; Lang_values.conf_debug#set true),
+    "Debug language implementation." ;
+
+    ["--profile"],
+    Arg.Set Lang_values.profile,
+    "Profile execution.";
+
     ["--strict"],
-    Arg.Set Lang_values.strict,
+    Arg.Set Lang_errors.strict,
     "Execute script code in strict mode, issuing fatal errors \
      instead of warnings in some cases. Currently: unused variables \
      and ignored expressions. " ]
     @
     (* Unix.fork is not implemented in Win32. *)
-    (if Sys.os_type <> "Win32" then
+    (if not Sys.win32 then
       [["-d";"--daemon"],
-       Arg.Unit (fun _ -> Init.conf_daemon#set true),
+       Arg.Unit (fun _ -> Dtools.Init.conf_daemon#set true),
        "Run in daemon mode."]
      else [])
     @
@@ -430,6 +439,16 @@ let options = [
        supported formats and protocols), \
        output as XML." ;
 
+    ["--list-plugins-json"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_json (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "List all plugins (builtin scripting values, \
+       supported formats and protocols), \
+       output as JSON." ;
+
     ["--list-plugins"],
     Arg.Unit (fun () ->
                 secondary_task := true ;
@@ -438,6 +457,29 @@ let options = [
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols)." ;
+
+    ["--list-functions"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_functions (Plug.plugs:Doc.item)),
+    Printf.sprintf "List all functions." ;
+
+    ["--list-functions-md"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_functions_md (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "Documentation of all functions in markdown." ;
+
+    ["--list-protocols-md"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_protocols_md (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "Documentation of all protocols in markdown." ;
 
     ["--no-pervasives"],
     Arg.Clear pervasives,
@@ -452,12 +494,12 @@ let options = [
     ["--version"],
     Arg.Unit (fun () ->
                 Printf.printf
-                  "Liquidsoap %s%s\n\
-                   Copyright (c) 2003-2018 Savonet team\n\
+                  "Liquidsoap %s\n\
+                   Copyright (c) 2003-2019 Savonet team\n\
                    Liquidsoap is open-source software, \
                    released under GNU General Public License.\n\
                    See <http://liquidsoap.info> for more information.\n"
-                   Configure.version REVISION.rev ;
+                   Configure.version;
                 exit 0),
     "Display liquidsoap's version." ;
 
@@ -489,10 +531,10 @@ let expand_options options =
 module Make(Runner : Runner_t) =
 struct
   let () =
-    log#f 3 "Liquidsoap %s%s" Configure.version REVISION.rev ;
-    log#f 3 "Using:%s" Configure.libs_versions ;
-    if Configure.scm_snapshot then
-      List.iter (log#f 2 "%s")
+    log#important "Liquidsoap %s" Configure.version ;
+    log#important "Using:%s" Configure.libs_versions ;
+    if Configure.git_snapshot then
+      List.iter (log#important "%s")
         ["";
          "DISCLAIMER: This version of Liquidsoap has been";
          "compiled from a snapshot of the development code.";
@@ -506,7 +548,7 @@ struct
          "If you are interested in collaborating to";
          "the development of Liquidsoap, feel free to";
          "drop us a mail at <savonet-devl@lists.sf.net>";
-         "or to join the #savonet IRC channel on Freenode.";
+         "or to join the slack chat at <http://slack.liquidsoap.info>.";
          "";
          "Please send any bug report or feature request";
          "at <https://github.com/savonet/liquidsoap/issues>.";
@@ -536,9 +578,9 @@ struct
     Random.self_init () ;
 
     (* Set the default values. *)
-    Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log") ;
-    Init.conf_daemon_pidfile#set_d (Some true) ;
-    Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid") ;
+    Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log") ;
+    Dtools.Init.conf_daemon_pidfile#set_d (Some true) ;
+    Dtools.Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid") ;
 
     (* We only allow evaluation of
      * lazy configuration keys now. *)
@@ -555,7 +597,7 @@ struct
 
     (* Now that the paths have their definitive value, expand <shortcuts>. *)
     let subst conf = conf#set (Configure.subst_vars conf#get) in
-    subst Init.conf_daemon_pidfile_path ;
+    subst Dtools.Init.conf_daemon_pidfile_path ;
 
     let check_dir conf_path kind =
       let path = conf_path#get in
@@ -566,40 +608,41 @@ struct
               "FATAL ERROR: %s directory %S does not exist.\n\
                To change it, add the following to your script:\n\
               \  set(%S, \"<path>\")\n"
-              kind dir (Conf.string_of_path (List.hd routes)) ;
+              kind dir (Dtools.Conf.string_of_path (List.hd routes)) ;
             exit 1
     in
-      if Log.conf_file#get then
+      if Dtools.Log.conf_file#get then
         begin
-          subst Log.conf_file_path ;
-          check_dir Log.conf_file_path "Log"
+          subst Dtools.Log.conf_file_path ;
+          check_dir Dtools.Log.conf_file_path "Log"
         end;
-      if Init.conf_daemon#get && Init.conf_daemon_pidfile#get then
-        check_dir Init.conf_daemon_pidfile_path "PID"
+      if Dtools.Init.conf_daemon#get && Dtools.Init.conf_daemon_pidfile#get then
+        check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
 
   (* Now that outputs have been defined, we can start the main loop. *)
   let () =
     let cleanup_threads () =
-      log#f 3 "Shutdown started!" ;
+      if !Lang_values.profile then log#important "Profiler stats:\n\n%s" (Profiler.stats ());
+      log#important "Shutdown started!" ;
       Clock.stop () ;
-      log#f 3 "Waiting for threads to terminate..." ;
+      log#important "Waiting for main threads to terminate..." ;
       Tutils.join_all ();
-      log#f 3 "Threads terminated."
+      log#important "Threads terminated."
     in
     let cleanup_final () =
-      log#f 3 "Cleaning downloaded files..." ;
+      log#important "Cleaning downloaded files..." ;
       Request.clean () ;
-      log#f 3 "Freeing memory..." ;
-      Gc.full_major ();
+      log#important "Freeing memory..." ;
+      Gc.full_major ()
     in
     let cleanup () =
       cleanup_threads ();
-      cleanup_final ()
+      cleanup_final ();
     in
     let after_stop () =
       if !Configure.restart then
        begin
-        log#f 3 "Restarting..." ;
+        log#important "Restarting..." ;
          Unix.execv Sys.executable_name Sys.argv
        end
     in
@@ -607,14 +650,14 @@ struct
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
        * for this: we want Unix EPIPE error and not SIGPIPE, which
        * crashes the program.. *)
-      if Sys.os_type <> "Win32" then
+      if not Sys.win32 then
        begin
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe])
        end;
       (* On Windows we need to initiate shutdown ourselves by catching INT
        * since dtools doesn't do it. *)
-      if Sys.os_type = "Win32" then
+      if Sys.win32 then
         Sys.set_signal Sys.sigint
           (Sys.Signal_handle (fun _ -> Tutils.shutdown ())) ;
       (* TODO if start fails (e.g. invalid password or mountpoint) it
@@ -624,24 +667,24 @@ struct
       Tutils.main ()
     in
       (* We join threads, then shutdown duppy, then do the final task. *)
-      ignore (Init.make ~before:[Tutils.scheduler_shutdown_atom] cleanup_threads);
-      ignore (Init.make ~before:[Dtools.Log.stop] cleanup_final);
-      ignore (Init.make ~after:[Dtools.Init.stop] after_stop); 
+      ignore (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] cleanup_threads);
+      ignore (Dtools.Init.make ~before:[Dtools.Log.stop] cleanup_final);
+      ignore (Dtools.Init.make ~after:[Dtools.Init.stop] after_stop); 
       startup ();
       if !interactive then begin
         load_libs () ;
-        Log.conf_stdout#set_d (Some false) ;
-        Log.conf_file#set_d (Some true) ;
+        Dtools.Log.conf_stdout#set_d (Some false) ;
+        Dtools.Log.conf_file#set_d (Some true) ;
         let default_log =
           Filename.temp_file
             (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ())) ".log"
         in
-        Log.conf_file_path#set_d (Some default_log) ;
-        Log.conf_file#set true ;
-        ignore (Init.at_stop (fun _ -> Sys.remove default_log)) ;
+        Dtools.Log.conf_file_path#set_d (Some default_log) ;
+        Dtools.Log.conf_file#set true ;
+        ignore (Dtools.Init.at_stop (fun _ -> Sys.remove default_log)) ;
         check_directories () ;
         ignore (Thread.create Lang.interactive ()) ;
-        Init.init main
+        Dtools.Init.init main
       end else if Source.has_outputs () || force_start#get then
         if not !dont_run then begin
           check_directories () ;
@@ -656,9 +699,9 @@ struct
             exit (-1)
           in
           begin try
-            Init.init ~prohibit_root:(not allow_root#get) main
+            Dtools.Init.init ~prohibit_root:(not allow_root#get) main
           with
-            | Init.Root_prohibited e -> on_error e
+            | Dtools.Init.Root_prohibited e -> on_error e
           end
         end else
           cleanup ()

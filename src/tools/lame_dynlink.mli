@@ -40,6 +40,8 @@ module type Lame_t =
       encoder -> float array -> float array -> int -> int -> string
     val encode_buffer_float :
       encoder -> float array -> float array -> int -> string
+    val encode_buffer_float_ba :
+      encoder -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> string
     val encode_flush : encoder -> string
     val encode_flush_nogap : encoder -> string
     module Id3tag :

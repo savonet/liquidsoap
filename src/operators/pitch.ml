@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -28,7 +28,7 @@ let average_diff delta buf ofs len =
   let s = ref 0. in
     for i = 0 to len - delta - 1 do
       for c = 0 to Array.length buf - 1 do
-        s := !s +. abs_float (buf.(c).(ofs + i + delta) -. buf.(c).(ofs + i))
+        s := !s +. abs_float (buf.(c).{ofs + i + delta} -. buf.(c).{ofs + i})
       done
     done;
     !s /. (float ((len - delta) * (Array.length buf)))
@@ -66,7 +66,7 @@ object (self)
   val ring = Ringbuffer.create channels (2 * length)
 
   (** Array used to get data to analyze. *)
-  val databuf = Array.init channels (fun _ -> Array.make length 0.)
+  val databuf = Audio.create channels length
 
   val mutable computations = -1
 
@@ -74,15 +74,19 @@ object (self)
 
   method remaining = source#remaining
 
+  method seek = source#seek
+
   method is_ready = source#is_ready
 
   method abort_track = source#abort_track
+
+  method self_sync = source#self_sync
 
   method private get_frame buf =
     let pos = AFrame.position buf in
     source#get buf;
     let buf = AFrame.content buf pos in
-      Ringbuffer.write ring buf 0 (Array.length buf.(0));
+      Ringbuffer.write ring buf;
       if Ringbuffer.read_space ring > length then
         Ringbuffer.read_advance ring (Ringbuffer.read_space ring - length);
       computations <- (computations + 1) mod every;
@@ -91,7 +95,7 @@ object (self)
         let wl_max = wl freq_min in
         let d_opt = ref infinity in
         let wl_opt = ref 0 in
-          Ringbuffer.read ring databuf 0 length;
+          Ringbuffer.read ring databuf;
           for l = wl_min to wl_max do
             let d = average_diff l databuf 0 length in
               if d < !d_opt then
@@ -103,7 +107,7 @@ object (self)
           done;
           let f = samples_per_second /. float !wl_opt in
           let f = if f > freq_max then 0. else f in
-            self#log#f 3 "Found frequency: %.02f (%s)\n%!"
+            self#log#important "Found frequency: %.02f (%s)\n%!"
               f (string_of_note (note_of_freq f))
 end
 

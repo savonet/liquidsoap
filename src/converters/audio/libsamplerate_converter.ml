@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
- (** Samplerate converter using libsamplerate *)
+(** Samplerate converter using libsamplerate *)
+
+let log = Log.make ["audio";"converter";"libsamplerate"]
 
 let samplerate_conf = 
   Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate") 
@@ -31,11 +33,11 @@ let quality_conf =
   Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
     "Resampling quality" ~d:"fast"
     ~comments:["Resampling quality, one of: \
-                \"best\", \
-                \"medium\", \
-                \"fast\", \
-                \"zero_order\", \
-                \"linear\". Refer to ocaml-samplerate for details."]
+                `\"best\"`, \
+                `\"medium\"`, \
+                `\"fast\"`, \
+                `\"zero_order\"` or \
+                `\"linear\"`. Refer to ocaml-samplerate for details."]
 
 let quality_of_string v = 
   match v with
@@ -44,7 +46,7 @@ let quality_of_string v =
     | "fast" -> Samplerate.Conv_fastest
     | "zero_order" -> Samplerate.Conv_zero_order_hold
     | "linear" -> Samplerate.Conv_linear
-    | _ -> raise (Lang.Invalid_value 
+    | _ -> raise (Lang_errors.Invalid_value 
                     (Lang.string v,
                       "libsamplerate quality must be one of: \
                        \"best\", \
@@ -56,11 +58,18 @@ let quality_of_string v =
 let samplerate_converter () = 
   let quality = quality_of_string quality_conf#get in
   let converter = Samplerate.create quality 1 in
-  let convert ratio b ofs len =
-    Samplerate.process_alloc converter ratio b ofs len
+  let convert ratio b =
+    let inlen = Audio.Mono.length b in
+    let outlen = int_of_float (float inlen *. ratio) in
+    let buf = Audio.Mono.create outlen in
+    let i, o = Samplerate.process_ba converter ratio b buf in
+    if i < inlen then log#debug "Could not convert all the input buffer (%d instead of %d)." i inlen;
+    if o < outlen then log#debug "Unexpected output length (%d instead of %d)." o outlen;
+    (* TODO: the following would solve the issue but apparently messes up buffers *)
+    (* Audio.Mono.sub buf 0 o *)
+    buf
   in
   convert
 
 let () = 
-  Audio_converter.Samplerate.converters#register 
-    "libsamplerate" samplerate_converter
+  Audio_converter.Samplerate.converters#register "libsamplerate" samplerate_converter

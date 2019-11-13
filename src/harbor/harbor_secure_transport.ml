@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -49,7 +49,7 @@ struct
   type socket = secure_transport_socket
   let read {ctx} buf ofs len =
     SecureTransport.read ctx buf ofs len
-  let read_retry = Extralib.read_retry read
+  let read_retry fd = Extralib.read_retry (read fd)
   let write {ctx} buf ofs len =
     SecureTransport.write ctx buf ofs len
 end
@@ -70,11 +70,10 @@ end
 module Transport =
 struct
   type socket = secure_transport_socket
+  let name = "secure_transport"
   let file_descr_of_socket {sock} = sock
-  let read {ctx} len =
-    let buf = Bytes.create len in
-    let n = SecureTransport.read ctx buf 0 len in
-    buf, n
+  let read {ctx} buf ofs len =
+    SecureTransport.read ctx buf ofs len
   let accept sock =
     let (sock, caller) = Unix.accept sock in
     let ctx =

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -63,8 +63,7 @@ sig
   exception Init_params_not_called
   exception Psychoacoustic_problem
   exception Unknown_error of int
-  val encode_buffer_float_part :
-      encoder -> float array -> float array -> int -> int -> string
+  val encode_buffer_float_ba : encoder -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t -> string
   val encode_flush_nogap : encoder -> string
 end
 
@@ -76,7 +75,7 @@ let bit_at s pos =
 
 module Register(Lame : Lame_t) = 
 struct
-  type id3v2 = Waiting | Rendered of string | Done
+  type id3v2 = Waiting | Rendered of Strings.t | Done
 
   (* Notation: XYZ; X: copyright bit, Y: original bit, Z: private bit 
    *           !: negation
@@ -156,7 +155,7 @@ struct
                       Lame.set_vbr_max_bitrate enc br
                   | None -> ()) ;
       end;
-      Lame.set_out_samplerate enc mp3.Mp3_format.samplerate ;
+      Lame.set_out_samplerate enc (Lazy.force mp3.Mp3_format.samplerate) ;
       Lame.init_params enc;
       enc
     in
@@ -192,19 +191,32 @@ struct
          end ;
         let encoded () = 
           has_started := true;
+          (* Yes, lame requires this absurd scaling... *)
+          let scale buf =
+            let len = Audio.Mono.length buf in
+            let sbuf = Audio.Mono.create len in
+            for i = 0 to len - 1 do
+              Bigarray.Array1.unsafe_set sbuf i (Bigarray.Array1.unsafe_get buf i *. 32768.)
+            done;
+            sbuf
+          in
           if channels = 1 then
-            Lame.encode_buffer_float_part enc b.(0) b.(0) start len
+            let buf = scale (Audio.Mono.sub b.(0) start len) in
+            Lame.encode_buffer_float_ba enc buf buf
           else
-            Lame.encode_buffer_float_part enc b.(0) b.(1) start len
+            let bufl = scale (Audio.Mono.sub b.(0) start len) in
+            let bufr = scale (Audio.Mono.sub b.(1) start len) in
+            Lame.encode_buffer_float_ba enc bufl bufr
         in
         match !id3v2 with
           | Rendered s when not !has_started ->
-              id3v2 := Done; 
-              (Printf.sprintf "%s%s" s (encoded ()))
-          | _ -> encoded ()
+            id3v2 := Done;
+            Strings.add s (encoded ())
+          | _ ->
+            Strings.of_string (encoded ())
       in
       let stop () =
-        Lame.encode_flush_nogap enc
+        Strings.of_string (Lame.encode_flush_nogap enc)
       in
       let insert_metadata = 
         match mp3.id3v2 with
@@ -214,16 +226,16 @@ struct
                match !id3v2 with
                  | Waiting ->
                      if not (Meta_format.is_empty m) then 
-                       id3v2 := Rendered (f m)
+                       id3v2 := Rendered (Strings.of_string (f m))
                  | _ -> ())
           | None -> (fun _ -> ())
       in
       (* Try to insert initial metadata now.. *)
       insert_metadata metadata;
         {
-          insert_metadata = insert_metadata ;
-          encode = encode ;
-          header = None ;
+          insert_metadata = insert_metadata;
+          encode = encode;
+          header = Strings.empty;
           stop = stop
         }
     in

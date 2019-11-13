@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -26,21 +26,27 @@ module T = Lang_types
 
 type t = T.t
 
-let log = Dtools.Log.make ["lang"]
+let log = Log.make ["lang"]
 
 (** Type construction *)
 
 let ground_t x = T.make (T.Ground x)
 
 let int_t     = ground_t T.Int
-let unit_t    = ground_t T.Unit
+let unit_t    = T.make T.unit
 let float_t   = ground_t T.Float
 let bool_t    = ground_t T.Bool
 let string_t  = ground_t T.String
-let product_t a b = T.make (T.Product (a,b))
-let of_product_t t = match (T.deref t).T.descr with
-  | T.Product (t,t') -> t,t'
+let tuple_t l = T.make (T.Tuple l)
+let product_t a b = tuple_t [a;b]
+
+let of_tuple_t t = match (T.deref t).T.descr with
+  | T.Tuple l -> l
   | _ -> assert false
+let of_product_t t =
+  match of_tuple_t t with
+  | [a;b] -> a,b
+  | _ ->  assert false
 
 let fun_t p b = T.make (T.Arrow (p,b))
 
@@ -131,7 +137,7 @@ let frame_kind_of_kind_type t =
   * [Variable n] means any (possibly variable) number of channels that
   *   is [>=n]. *)
 type lang_kind_format =
-  | Fixed of int | Variable of int | Any_fixed of int
+  | Fixed of int | Any_fixed of int | Variable of int
 type lang_kind_formats =
   | Unconstrained of t
   | Constrained of
@@ -178,6 +184,10 @@ let video_only =
   Constrained
     { Frame. audio = Fixed 0 ; video = Fixed 1 ; midi = Fixed 0 }
 
+let video =
+  Constrained
+    { Frame. audio = Any_fixed 0 ; video = Fixed 1 ; midi = Any_fixed 0 }
+
 let audio_video_any =
   Constrained
     { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Fixed 0 }
@@ -214,12 +224,13 @@ let kind_type_of_kind_format ~fresh fmt =
 (** Value construction *)
 
 let mk ~t v = { t = t ; value = v }
-let unit = mk ~t:unit_t Unit
+let unit = mk ~t:unit_t unit
 let int i = mk ~t:int_t (Int i)
 let bool i = mk ~t:bool_t (Bool i)
 let float i = mk ~t:float_t (Float i)
 let string i = mk ~t:string_t (String i)
-let product a b = mk ~t:(product_t a.t b.t) (Product (a,b))
+let tuple l = mk ~t:(tuple_t (List.map (fun a -> a.t) l)) (Tuple l)
+let product a b = tuple [a;b]
 
 let list ~t l = mk ~t:(list_t t) (List l)
 
@@ -249,7 +260,7 @@ let val_cst_fun p c =
     (* Convert the value into a term if possible,
      * to enable introspection, mostly for printing. *)
     match c.value with
-      | Unit -> f Term.Unit
+      | Tuple [] -> f Term.unit
       | Int i -> f (Term.Int i)
       | Bool i -> f (Term.Bool i)
       | Float i -> f (Term.Float i)
@@ -262,9 +273,6 @@ let metadata m =
     (Hashtbl.fold
        (fun k v l -> (product (string k) (string v))::l)
        m [])
-
-(** Runtime error, should eventually disappear. *)
-exception Invalid_value of value*string
 
 (** Helpers for defining protocols. *)
 
@@ -325,7 +333,7 @@ let to_plugin_doc category flags main_doc proto return_t =
 
 let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
   let t = builtin_type proto return_t in
-  let f env t = f (List.map (fun (s,(l,v)) -> assert (l=[]) ; s,v) env) t in
+  let f env t = f (List.map (fun (s,(g,v)) -> assert (g=[]) ; s,v) env) t in
   let value =
     { t = t ;
       value = FFI (List.map (fun (lbl,_,opt,_) -> lbl,lbl,opt) proto,
@@ -382,9 +390,6 @@ let string_of_category x = "Source / " ^ match x with
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 
-exception Clock_conflict of (T.pos option * string * string)
-exception Clock_loop of (T.pos option * string * string)
-
 let add_operator
       ~category ~descr ?(flags=[])
       ?(active=false) name proto ~kind f =
@@ -418,9 +423,9 @@ let add_operator
   let f env t =
     try f env t with
       | Source.Clock_conflict (a,b) ->
-          raise (Clock_conflict (t.T.pos,a,b))
+          raise (Lang_errors.Clock_conflict (t.T.pos,a,b))
       | Source.Clock_loop (a,b) ->
-          raise (Clock_loop (t.T.pos,a,b))
+          raise (Lang_errors.Clock_loop (t.T.pos,a,b))
   in
   let fresh = (* TODO *) 1 in
   let kind_type = kind_type_of_kind_format ~fresh kind in
@@ -435,40 +440,41 @@ let static_analysis_failed = ref []
 
 let iter_sources f v =
   let rec iter_term env v = match v.Term.term with
-    | Term.Unit | Term.Bool _ | Term.String _
+    | Term.Bool _ | Term.String _
     | Term.Int _ | Term.Float _ | Term.Encoder _ -> ()
     | Term.List l -> List.iter (iter_term env) l
     | Term.Ref a | Term.Get a -> iter_term env a
-    | Term.Let {Term.def=a;body=b;_}
-    | Term.Product (a,b) | Term.Seq (a,b) | Term.Set (a,b) ->
+    | Term.Tuple l -> List.iter (iter_term env) l
+    | Term.Let {Term.def=a;body=b;_} | Term.Seq (a,b) | Term.Set (a,b) ->
         iter_term env a ; iter_term env b
     | Term.Var v ->
         (* If it's locally bound it won't be in [env]. *)
         (* TODO since inner-bound variables don't mask outer ones in [env],
          *   we are actually checking values that may be out of reach. *)
-        begin try iter_value (snd (List.assoc v env)) with Not_found -> () end
+      begin
+        try
+          let gv = List.assoc v env in
+          if Lazy.is_val gv then
+            let _,v = Lazy.force gv in
+            iter_value v
+          else ()
+        with Not_found -> ()
+      end
     | Term.App (a,l) ->
         iter_term env a ;
         List.iter (fun (_,v) -> iter_term env v) l
-    | Term.Fun (_,proto,body) ->
+    | Term.Fun (_,proto,body)
+    | Term.RFun (_,_,proto,body) ->
         iter_term env body ;
         List.iter (fun (_,_,_,v) -> match v with
                      | Some v -> iter_term env v
                      | None -> ()) proto
-    | Term.RFun (fv,proto,fn) ->
-        begin
-          match (fn()).Term.term with
-            | Term.Let {Term.body=body} ->
-                iter_term env {v with Term.term = Term.Fun (fv,proto,body)}
-            | _ -> assert false
-        end
 
   and iter_value v = match v.value with
     | Source s -> f s
-    | Unit | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
+    | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
     | List l -> List.iter iter_value l
-    | Product (a,b) ->
-        iter_value a ; iter_value b
+    | Tuple l -> List.iter iter_value l
     | Fun (proto,pe,env,body) ->
         (* The following is necessarily imprecise: we might see
          * sources that will be unused in the execution of the function. *)
@@ -512,7 +518,7 @@ let iter_sources f v =
         in
           static_analysis_failed := r :: !static_analysis_failed ;
           if may_have_source then
-            log#f 2 "WARNING! \
+            log#severe "WARNING! \
                      Found a reference, potentially containing sources, \
                      inside a dynamic source-producing function. \
                      Static analysis cannot be performed: \
@@ -527,7 +533,7 @@ let apply f p ~t =
 (** {1 High-level manipulation of values} *)
 
 let to_unit t = match t.value with
-  | Unit -> ()
+  | Tuple [] -> ()
   | _ -> assert false
 
 let to_bool t = match t.value with
@@ -604,8 +610,12 @@ let to_list t = match t.value with
   | List l -> l
   | _ -> assert false
 
+let to_tuple t = match t.value with
+  | Tuple l -> l
+  | _ -> assert false
+
 let to_product t = match t.value with
-  | Product (a,b) -> (a,b)
+  | Tuple [a;b] -> (a,b)
   | _ -> assert false
 
 let to_metadata_list t =
@@ -649,159 +659,25 @@ let type_and_run ~lib ast =
        Term.check_unused ~lib ast ;
        ignore (Term.eval_toplevel ast))
 
-(** The Parsing module is not thread safe, it has global variables
-  * describing the current parsing state. Hence we need to do one
-  * parsing at a time. *)
-let parse_lock = Mutex.create ()
-
-(** Exception raised by report_error after an error has been displayed.
-  * Unknown errors are re-raised, so that their content is not totally lost. *)
-exception Error
-
-let report_error lexbuf f =
-  let print_error error =
-    flush_all () ;
-    let start = lexbuf.Lexing.lex_curr_p in
-      Printf.printf "%sine %d, char %d"
-        (if start.Lexing.pos_fname="" then "L" else
-           Printf.sprintf "File %S, l" start.Lexing.pos_fname)
-        start.Lexing.pos_lnum
-        (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
-      if lexbuf.Lexing.lex_curr_pos - lexbuf.Lexing.lex_start_pos <= 0 then
-        Printf.printf ": %s!\n" error
-      else
-        Printf.printf
-          " before %S: %s!\n" (Lexing.lexeme lexbuf) error
+let mk_expr ~pwd processor lexbuf =
+  let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
+  let tokenizer = Lang_pp.mk_tokenizer ~pwd lexbuf in
+  let tokenizer () =
+    let token,(startp,endp) = tokenizer () in
+    token,startp,endp
   in
-    try f () with
-      | Failure s when s = "lexing: empty token" -> print_error "Empty token" ; raise Error
-      | Parsing.Parse_error -> print_error "Parse error" ; raise Error
-      | Lang_values.Parse_error (pos,s) ->
-        let pos = T.print_pos pos in
-        Format.printf "@[<2>%s:@ %s@]@." pos s;
-        raise Error
-      | Term.Unbound (pos,s) ->
-          let pos = T.print_pos (Utils.get_some pos) in
-            Format.printf
-              "@[<2>%s:@ the variable %s@ used here@ has not been@ \
-                 previously@ defined.@]@."
-            pos s ;
-            raise Error
-      | T.Type_Error explain ->
-          flush_all () ;
-          T.print_type_error explain ;
-          raise Error
-      | Term.No_label (f,lbl,first,x) ->
-          let pos_f =
-            T.print_pos ~prefix:"at " (Utils.get_some f.Term.t.T.pos)
-          in
-          let pos_x = T.print_pos (Utils.get_some x.Term.t.T.pos) in
-            flush_all () ;
-            Format.printf
-              "@[<2>%s:@ cannot apply@ that parameter@ \
-               because@ the function@ (%s)@ "
-              pos_x pos_f ;
-            Format.printf
-              "has %s@ %s!@]@."
-              (if first then "no" else "no more")
-              (if lbl="" then "unlabeled argument" else
-                 Format.sprintf "argument labeled %S" lbl) ;
-            raise Error
-      | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
-          flush_all () ;
-          Format.printf
-            "@[<2>%s:@ This term@ would evaluate to@ a function@ \
-               which@ would then be dropped.@ \
-               This is usually@ the sign@ of@ an unintended@ \
-               partial application:@ some arguments@ may \
-               be@ missing.@]@."
-            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          raise Error
-      | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
-          flush_all () ;
-          Format.printf
-            "@[<2>%s:@ This term@ would evaluate to@ a (passive) source@ \
-               which@ would then be dropped.@ \
-               This is@ usually@ the sign of@ a@ misunderstanding:@ \
-               only active@ sources@ are animated@ on their own;@ \
-               dangling@ passive sources@ are just dead code.@]@."
-            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          raise Error
-      | Term.Ignored tm ->
-          flush_all () ;
-          Format.printf
-            "@[<2>%s:@ The result of@ evaluating this term@ \
-               would be@ dropped,@ but@ it does not@ have type@ \
-               unit or active_source.@ Use ignore(...)@ if you meant@ to@ \
-               drop it,@ \
-               otherwise@ this is a sign@ that@ \
-               your script@ does not do@ what you intend.@]@."
-            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          raise Error
-      | Term.Unused_variable (s,pos) ->
-          flush_all () ;
-          Format.printf
-            "@[<2>At %s:@ The variable@ %s@ defined here\
-               @ is not used@ anywhere@ in@ its scope.@ \
-               Use ignore(...)@ instead of@ %s = ...@ if@ you meant@ \
-               to not use it.@ \
-               Otherwise,@ this may be a typo@ or a sign that@ your script@ \
-               does not do@ what you intend.@]@."
-            (T.print_single_pos pos) s s ;
-          raise Error
-      | Invalid_value (v,msg) ->
-          Format.printf
-            "@[<2>%s:@ %s.@]@."
-            (T.print_pos ~prefix:"Invalid value at "
-               (Utils.get_some v.t.T.pos))
-            msg ;
-          raise Error
-      | Lang_encoders.Error (v,s) ->
-          Format.printf
-            "@[<2>Error in encoding format at@ %s:@ %s.@]@."
-            (T.print_pos ~prefix:""
-               (Utils.get_some v.Lang_values.t.T.pos))
-            s ;
-          raise Error
-      | Failure s ->
-          Format.printf "Error: %s!@." s ;
-          raise Error
-      | Clock_conflict (pos,a,b) ->
-          (* TODO better printing of clock errors: we don't have position
-           *   information, use the source's ID *)
-          Format.printf
-            "@[<2>%s:@ a source cannot@ belong to@ two clocks@ (%s,@ %s).@]@."
-            (T.print_pos ~prefix:"Error when initializing source at "
-               (Utils.get_some pos))
-            a b ;
-          raise Error
-      | Clock_loop (pos,a,b) ->
-          Format.printf
-            "@[<2>%s:@ cannot unify@ two@ nested clocks@ (%s,@ %s).@]@."
-            (T.print_pos ~prefix:"Error when initializing source at "
-               (Utils.get_some pos))
-            a b ;
-          raise Error
-      | e -> print_error "Unknown error" ; raise e
+  processor tokenizer
 
 let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
-  let lexbuf = Lexing.from_channel in_chan in
-    assert (lexbuf.Lexing.lex_start_p = lexbuf.Lexing.lex_curr_p) ;
+  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
     begin match ns with
-      | Some ns ->
-          lexbuf.Lexing.lex_start_p <- { lexbuf.Lexing.lex_start_p with
-                                             Lexing.pos_fname = ns } ;
-          lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
-                                             Lexing.pos_fname = ns }
+      | Some ns -> Sedlexing.set_filename lexbuf ns
       | None -> ()
     end ;
-    try report_error lexbuf (fun () ->
-      let tokenizer = Lang_pp.token dir in
-      let program =
-        Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
-      in
-        if not parse_only then type_and_run ~lib program)
-    with Error -> exit 1
+    try Lang_errors.report lexbuf (fun () ->
+      let expr = mk_expr ~pwd:dir Lang_parser.program lexbuf in
+        if not parse_only then type_and_run ~lib expr)
+    with Lang_errors.Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -827,10 +703,9 @@ let from_string ?parse_only ~lib expr =
 
 let eval s =
   try
-    let lexbuf = Lexing.from_string s in
-    let tokenizer = Lang_pp.token "/nonexistent" in
+    let lexbuf = Sedlexing.Utf8.from_string s in
     let expr =
-      Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
+      mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf
     in
       Clock.collect_after
         (fun () ->
@@ -847,7 +722,7 @@ let from_in_channel ?parse_only ~lib x =
 
 let interactive () =
   Format.printf
-    "\nWelcome to the EXPERIMENTAL liquidsoap interactive loop.\n\n\
+    "\nWelcome to the liquidsoap interactive loop.\n\n\
      You may enter any sequence of expressions, terminated by \";;\".\n\
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), \
@@ -856,34 +731,61 @@ let interactive () =
     Format.printf
       "Logs can be found in %S.\n@."
       Dtools.Log.conf_file_path#get ;
-  let lexbuf = Lexing.from_channel stdin in
+  let lexbuf =
+    (* See ocaml-community/sedlex#45 *)
+    let chunk_size = 512 in
+    let buf = Bytes.create chunk_size in
+    let cached = ref (-1) in
+    let position = ref (-1) in
+    let rec gen () =
+      match !position, !cached  with
+      | _, 0 ->
+         None
+      | -1, _ ->
+         begin
+           position := 0;
+           cached := input stdin buf 0 chunk_size
+         end;
+         gen ()
+      | len, c when len = c ->
+         position := -1;
+         (* This means that the last read was a full chunk. Safe to try a new
+            one right away. *)
+         if len = chunk_size then
+           gen ()
+         else
+           None
+      | len, _ ->
+         position := len+1;
+         Some (Bytes.get buf len)
+    in
+    Sedlexing.Utf8.from_gen gen
+  in
   let rec loop () =
     Format.printf "# %!" ;
     if
       try
-        report_error lexbuf (fun () ->
-        let tokenizer = Lang_pp.token (Unix.getcwd ()) in
-        let expr =
-          Tutils.finalize
-            ~k:(fun () -> Lexing.flush_input lexbuf)
-            (fun () ->
-               Tutils.mutexify parse_lock
-                 (Lang_parser.interactive tokenizer) lexbuf)
-        in
+        Lang_errors.report lexbuf (fun () ->
+          let expr =
+            mk_expr ~pwd:(Unix.getcwd ()) Lang_parser.interactive lexbuf
+          in
           Term.check ~ignored:false expr ;
           Term.check_unused ~lib:true expr ;
           Clock.collect_after
             (fun () ->
-               ignore (Term.eval_toplevel ~interactive:true expr)) ;
-          true)
+               ignore (Term.eval_toplevel ~interactive:true expr)));
+          true
       with
         | End_of_file ->
             Format.printf "Bye bye!@." ;
             false
-        | Error ->
+        | Lang_errors.Error ->
             true
         | e ->
-            Format.printf "Exception: %s!@." (Printexc.to_string e) ;
+            let e =
+              Console.colorize [`white;`bold] (Printexc.to_string e)
+            in
+            Format.printf "Exception: %s!@." e ;
             true
     then
       loop ()

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -27,8 +27,10 @@ let make params =
   let defaults =
     {
       Avi_format.
+      (* We use a hardcoded value in order not to force the evaluation of the
+         number of channels too early, see #933. *)
       channels = 2;
-      samplerate = 44100
+      samplerate = Frame.audio_rate
     }
   in
   let avi =
@@ -38,7 +40,7 @@ let make params =
           | ("channels",{ term = Int c; _ }) ->
               { f with Avi_format.channels = c }
           | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
+              { f with Avi_format.samplerate = Lazy.from_val i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in

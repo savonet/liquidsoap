@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -24,20 +24,39 @@ open Lang_values
 open Lang_encoders
 
 let make params =
+  let valid_samplerates = [
+    8000;  11025; 12000; 16000; 22050; 24000; 32000;
+    44100; 48000; 64000; 88200; 96000 ]
+  in
+  let check_samplerate ?t i =
+   lazy (
+    let i = Lazy.force i in
+    if not (List.mem i valid_samplerates) then
+      begin
+        let err =
+          Printf.sprintf "invalid samplerate value. Possible values: %s"
+            (String.concat ", "
+              (List.map string_of_int valid_samplerates))
+        in
+        match t with
+          | Some t -> raise (Error (t,err));
+          | None -> failwith err
+      end;
+    i)
+  in
   let defaults =
     { Fdkaac_format.
         afterburner    = false;
         aot            = `Mpeg_4 `HE_AAC_v2;
+        bandwidth      = `Auto;
         bitrate        = 64;
         bitrate_mode   = `Constant;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
         channels       = 2;
-        samplerate     = 44100;
+        samplerate     = check_samplerate Frame.audio_rate;
         sbr_mode       = false;
         transmux       = `Adts }
-  in
-  let valid_samplerates = [
-    8000;  11025; 12000; 16000; 22050; 24000; 32000;
-    44100; 48000; 64000; 88200; 96000 ]
   in
   let valid_vbr = [1;2;3;4;5] in
   let fdkaac =
@@ -62,21 +81,16 @@ let make params =
                 raise (Error (t,err));
                end;
               { f with Fdkaac_format.bitrate_mode = `Variable i }
+          | ("bandwidth", { term = Int i; _ }) ->
+              { f with Fdkaac_format.bandwidth = `Fixed i }
+          | ("bandwidth", { term = String s; _ }) when String.lowercase_ascii s = "auto" ->
+              { f with Fdkaac_format.bandwidth = `Auto }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Fdkaac_format.bitrate = i }
           | ("channels",{ term = Int i; _}) ->
               { f with Fdkaac_format.channels = i }
           | ("samplerate",({ term = Int i; _} as t)) ->
-              if not (List.mem i valid_samplerates) then
-               begin
-                let err =
-                  Printf.sprintf "invalid samplerate value. Possible values: %s"
-                  (String.concat ", "
-                    (List.map string_of_int valid_samplerates))
-                in
-                raise (Error (t,err));
-               end;
-              { f with Fdkaac_format.samplerate = i }
+              { f with Fdkaac_format.samplerate = check_samplerate ~t (Lazy.from_val i) }
           | ("sbr_mode",{ term = Bool b; _}) ->
               { f with Fdkaac_format.sbr_mode = b }
           | ("transmux",({ term = String s; _} as t)) ->

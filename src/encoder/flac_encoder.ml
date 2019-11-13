@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -30,7 +30,7 @@ let encoder flac meta =
   let samplerate_converter =
     Audio_converter.Samplerate.create channels
   in
-  let samplerate = flac.Flac_format.samplerate in
+  let samplerate = Lazy.force flac.Flac_format.samplerate in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   let p =
@@ -42,9 +42,9 @@ let encoder flac meta =
        total_samples = None;
     }
   in
-  let buf = Buffer.create 1024 in
+  let buf = Strings.Mutable.empty () in
   let write = fun chunk ->
-    Buffer.add_bytes buf chunk
+    Strings.Mutable.add_bytes buf chunk
   in
   let cb = Flac.Encoder.get_callbacks write in
   let enc = Flac.Encoder.create ~comments p cb in
@@ -57,28 +57,27 @@ let encoder flac meta =
       if src_freq <> dst_freq then
         let b = Audio_converter.Samplerate.resample
           samplerate_converter (dst_freq /. src_freq)
-          b start len
+          (Audio.sub b start len)
         in
-        b,0,Array.length b.(0)
+        b,0,Audio.length b
       else
         b,start,len
     in
-    let b = Array.map (fun x -> Array.sub x start len) b in
+    let b = Audio.sub b start len in
+    let b = Audio.to_array b in
     Flac.Encoder.process !enc cb b;
-    let ret = Buffer.contents buf in
-    Buffer.reset buf ;
-    ret
+    Strings.Mutable.flush buf
   in
   let stop () = 
     Flac.Encoder.finish !enc cb ;
-    Buffer.contents buf
+    Strings.Mutable.flush buf
   in
     {
      Encoder.
       insert_metadata = ( fun _ -> ()) ;
       (* Flac encoder do not support header
        * for now. It will probably never do.. *)
-      header = None ;
+      header = Strings.empty ;
       encode = encode ;
       stop = stop
     }

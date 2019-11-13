@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -56,7 +56,7 @@ let scale_mode_of_arg x =
         raise (Internal m)
     in
     List.iter f scale_modes;
-    raise ((Lang.Invalid_value
+    raise ((Lang_errors.Invalid_value
                     (Lang.string x, 
                      "gavl scale mode must be one of: " ^ scale_args)))
   with
@@ -198,6 +198,8 @@ let create () =
         WH.add converters (proportional,src_f,dst_f) conv;
         conv
     in
+    (* We need to blank because we get garbage otherwise. *)
+    if not (Img.width src = Img.width dst && Img.height src = Img.height dst) then Img.blank dst;
     (* Now we convert *)
     Gavl.Video.convert conv (gavl_frame_of src) (gavl_frame_of dst)
   in

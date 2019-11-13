@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,14 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Streaming a playlist *)
 
 open Source
-open Dtools
 
 (* Random: every file is choosed randomly.
  * Randomize: the playlist is shuffled, then read linearly,
@@ -63,7 +62,7 @@ let rec list_files (log : Log.t) dir =
                 Sys.readdir dir
               with
                 | Sys_error _ ->
-                    log#f 3 "Could not read directory %s" dir ;
+                    log#important "Could not read directory %s" dir ;
                     [||]
             )
          )
@@ -133,7 +132,7 @@ object (self)
     ?persistent:bool ->
     ?indicators:(Request.indicator list) -> string ->
     Request.t
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
   method virtual private expire : (Request.t -> bool) -> unit
 
   (** How to get the playlist. *)
@@ -166,7 +165,7 @@ object (self)
     let _playlist =
       let read_playlist filename =
         if is_dir filename then begin
-          self#log#f 3 "Playlist is a directory." ;
+          self#log#important "Playlist is a directory." ;
           list_files self#log filename
         end else
           try
@@ -182,20 +181,20 @@ object (self)
               let (format,playlist) =
                 match mime with
                   | "" ->
-                      self#log#f 3
+                      self#log#important
                         "No mime type specified, trying autodetection." ;
                       Playlist_parser.search_valid ~pwd content
                   | x ->
                       begin match Playlist_parser.parsers#get x with
                         | Some plugin ->
-                            (x,plugin.Playlist_parser.parser content)
+                            (x,plugin.Playlist_parser.parser ~pwd content)
                         | None ->
-                            self#log#f 3
+                            self#log#important
                               "Unknown mime type, trying autodetection." ;
-                            Playlist_parser.search_valid content
+                            Playlist_parser.search_valid ~pwd content
                       end
               in
-                self#log#f 3 "Playlist treated as format %s" format  ;
+                self#log#important "Playlist treated as format %s" format  ;
                 List.map (fun (l, x) ->
                   if l = [] then x else
                     Printf.sprintf "annotate:%s:%s"
@@ -204,12 +203,12 @@ object (self)
                       x) playlist
           with
             | e ->
-                self#log#f 3
+                self#log#important
                   "Could not parse playlist: %s" (Printexc.to_string e) ;
                 []
       in
       let req =
-        self#log#f 3 "Loading playlist..." ;
+        self#log#important "Loading playlist..." ;
         Request.create_raw uri
       in
         match Request.resolve req timeout with
@@ -226,7 +225,7 @@ object (self)
                   | Request.Failed -> "Failed"
                   | Request.Resolved -> assert false
               in
-              self#log#f 2
+              self#log#severe
                 "%s when resolving playlist URI %S!"
                 reason uri ;
               Request.destroy req ;
@@ -239,7 +238,7 @@ object (self)
         (List.filter self#is_valid _playlist)
     in
       if _playlist = [] && reload <> `No && self#stype = Infallible then
-        self#log#f 3 "Got an empty list: keeping the old one."
+        self#log#important "Got an empty list: keeping the old one."
       else begin
         (* Don't worry if a reload fails,
          * otherwise, the source type must be aware of the failure *)
@@ -260,7 +259,7 @@ object (self)
         if reload <> `Round then self#expire (fun _ -> true) ;
         Mutex.unlock mylock ;
 
-        self#log#f 3
+        self#log#important
           "Successfully loaded a playlist of %d tracks."
           (Array.length !playlist)
       end
@@ -378,7 +377,7 @@ object (self)
           Mutex.unlock mylock ;
           Some r
         end else begin
-          self#log#f 3 "Request (RID %d) rejected by check_next!" id ;
+          self#log#important "Request (RID %d) rejected by check_next!" id ;
           Request.destroy r ;
           get_uri ()
         end
@@ -469,9 +468,12 @@ object (self)
     super#get_ready ?dynamic sl;
     let watch = !Configure.file_watcher in
     if reload = Watch then
-      self#on_shutdown
-        (watch [`Modify] (Utils.home_unrelate playlist_uri)
-          (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
+      if Http.is_url uri then
+        self#log#important "Cannot watch distant playlists, ignoring reload mode."
+      else
+        self#on_shutdown
+          (watch [`Modify] (Utils.home_unrelate playlist_uri)
+             (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
 
   method private check_next r =
     Lang.to_bool
@@ -560,7 +562,7 @@ let () =
       Some (Lang.val_cst_fun ["",Lang.int_t,None;"last",Lang.bool_t,None] (Lang.bool false)),
       Some "Function to execute when playlist is about to play its next track. \
             Receives track position in the playlist and wether this is the last track. \
-            Force a reload by returning @true@ in this function. " ;
+            Force a reload by returning `true` in this function. " ;
 
       "prefix",
       Lang.string_t,
@@ -581,13 +583,13 @@ let () =
       if ss = "watch" then Watch
       else
         (
-          if arg < 0 then raise (Lang.Invalid_value (i,"must be positive")) ;
+          if arg < 0 then raise (Lang_errors.Invalid_value (i,"must be positive")) ;
           if arg = 0 then Never else
             begin match ss with
             | "rounds"  -> Every_N_rounds arg
             | "seconds" -> Every_N_seconds (float_of_int arg)
             | _ ->
-              raise (Lang.Invalid_value
+              raise (Lang_errors.Invalid_value
                        (s,"valid values are 'rounds', 'seconds' and 'watch'"))
             end
         )
@@ -598,7 +600,7 @@ let () =
       | "randomize" -> Randomize
       | "normal" -> Normal
       | _ ->
-          raise (Lang.Invalid_value
+          raise (Lang_errors.Invalid_value
                    (s,"valid values are 'random', 'randomize' and 'normal'"))
   in
   let check_next k =

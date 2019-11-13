@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -38,13 +38,14 @@ object(self)
   method remaining = s#remaining
   method abort_track = s#abort_track
   method seek n = s#seek n
+  method self_sync = s#self_sync
 
   val mutable elapsed = 0L
   val mutable offset = ticks_of_offset offset
   val mutable executed = false
 
   method private execute =
-    self#log#f 4 "Executing on_offset callback.";
+    self#log#info "Executing on_offset callback.";
     let pos =
       (Int64.to_float elapsed) /. (float (Lazy.force Frame.master_rate))
     in
@@ -61,13 +62,13 @@ object(self)
         with Failure _ -> raise (Invalid_override pos)
       in
       let ticks = ticks_of_offset pos in
-      self#log#f 4 "Setting new offset to %.02fs (%Li ticks)" pos ticks;
+      self#log#info "Setting new offset to %.02fs (%Li ticks)" pos ticks;
       offset <- ticks
     with
       | Failure _
       | Not_found -> ()
       | Invalid_override pos ->
-          self#log#f 3 "Invalid value for override metadata: %s" pos
+          self#log#important "Invalid value for override metadata: %s" pos
 
   method private get_frame ab =
     let pos =

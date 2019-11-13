@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -40,6 +40,12 @@ type aot =
      | `Mpeg_2 of mpeg2_aac
   ]
 
+type bandwidth =
+  [
+    | `Auto
+    | `Fixed of int
+  ]
+
 type bitrate_mode =
   [
      | `Constant
@@ -59,10 +65,11 @@ type transmux =
 type t = {
   afterburner    : bool;
   aot            : aot;
+  bandwidth      : bandwidth;
   bitrate_mode   : bitrate_mode;
   bitrate        : int;
   channels       : int;
-  samplerate     : int;
+  samplerate     : int Lazy.t;
   sbr_mode       : bool;
   transmux       : transmux
 }
@@ -114,4 +121,6 @@ let to_string m =
   Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,\
                            samplerate=%d,sbr_mode=%b,transmux=%S)"
     m.afterburner (string_of_aot m.aot) br_info m.channels
-    m.samplerate m.sbr_mode (string_of_transmux m.transmux)
+    (Lazy.force m.samplerate) m.sbr_mode (string_of_transmux m.transmux)
+
+let bitrate m = m.bitrate * 1000

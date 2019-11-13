@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 (** Values and types of the liquidsoap language. *)
 
-val log : Dtools.Log.t
+val log : Log.t
 
 (** The type of a value. *)
 type t = Lang_types.t
@@ -30,10 +30,10 @@ type t = Lang_types.t
 (** {2 Values} *)
 
 (** A typed value. *)
-type value = { mutable t : t ; value : in_value }
+type value = Lang_values.V.value = { mutable t : t ; value : in_value }
 and full_env = (string * ((int*Lang_types.constraints) list * value)) list
-and in_value =
-  | Unit
+and lazy_full_env = (string * ((int*Lang_types.constraints) list * value) Lazy.t) list
+and in_value = Lang_values.V.in_value =
   | Bool    of bool
   | Int     of int
   | String  of string
@@ -42,10 +42,10 @@ and in_value =
   | Request of Request.t
   | Encoder of Encoder.format
   | List    of value list
-  | Product of value * value
+  | Tuple    of value list
   | Ref     of value ref
   | Fun     of (string * string * value option) list *
-               full_env * full_env * Lang_values.term
+               full_env * lazy_full_env * Lang_values.term
   (** A function with given arguments (argument label, argument variable,
       default value), parameters already passed to the function, closure and
       value. *)
@@ -65,7 +65,8 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
 
-(** Multiapply a value to arguments. *)
+(** Multiapply a value to arguments. The argument [t] is the type of the result
+   of the application. *)
 val apply : value -> env -> t:t -> value
 
 (** {3 Helpers for registering protocols} *)
@@ -120,12 +121,16 @@ val string_of_category : category -> string
 (** Get a string representation of a [doc_flag]. *)
 val string_of_flag : doc_flag -> string
 
+(** Description of how many channels of given type an operator requires. *)
 type lang_kind_format =
-  | Fixed of int | Variable of int | Any_fixed of int
+  | Fixed of int (** exactly [n] channels *)
+  | Any_fixed of int (** a fixed number of channels which is at least [n] *)
+  | Variable of int (** a variable number of channel which always at least [n] *)
+(** Description of all the channels an operator requires. *)
 type lang_kind_formats =
-  | Unconstrained of t
+  | Unconstrained of t (** no requirements *)
   | Constrained of
-      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields (** specification of requirements for audio, video, etc. *)
 
 val any_fixed : lang_kind_formats
 val any_fixed_with :
@@ -138,8 +143,12 @@ val audio_stereo : lang_kind_formats
 val audio_n : int -> lang_kind_formats
 val audio_variable : lang_kind_formats
 
+(** One video channel only. *)
 val video_only : lang_kind_formats
+(** [n] video channels only. *)
 val video_n : int -> lang_kind_formats
+(** One video channel, anything for other channels. *)
+val video : lang_kind_formats
 
 val midi_n : int -> lang_kind_formats
 val midi_only : lang_kind_formats
@@ -176,6 +185,7 @@ val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_list : value -> value list
 val to_product : value -> value * value
+val to_tuple : value -> value list
 val to_metadata_list : value -> (string*string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
@@ -195,6 +205,8 @@ val bool_t     : t
 val string_t   : t
 val product_t  : t -> t -> t
 val of_product_t : t -> t * t
+val tuple_t  : t list -> t
+val of_tuple_t : t -> t list
 
 val list_t     : t -> t
 val of_list_t  : t -> t
@@ -249,6 +261,7 @@ val list : t:t -> value list -> value
 val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value
+val tuple : value list -> value
 
 (** Build a function from an OCaml function.
   * Items in the prototype indicate the label, type and optional
@@ -265,13 +278,6 @@ val val_cst_fun : (string * t * value option) list -> value -> value
 val metadata : Frame.metadata -> value
 
 (** {2 Errors raised by other modules} *)
-
-exception Invalid_value of value * string
-
-(** More informative version of clocks exceptions from Source,
-  * used for re-raising and displaying better error messages *)
-exception Clock_conflict of (Lang_types.pos option * string * string)
-exception Clock_loop of (Lang_types.pos option * string * string)
 
 (** {2 Main script evaluation} *)
 

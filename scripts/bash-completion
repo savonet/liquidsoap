@@ -1,0 +1,45 @@
+if [ -z "$BASH_VERSION" ]; then return 0; fi
+
+_liquidsoap_add()
+{
+    IFS=$'\n' _liquidsoap_reply+=("$@")
+}
+
+_liquidsoap_add_f()
+{
+    local cmd
+    cmd=$1; shift
+    _liquidsoap_add "$($cmd "$@" 2>/dev/null)"
+}
+
+_liquidsoap()
+{
+    local IFS cmd cur compgen_opt
+
+    cmd=${COMP_WORDS[1]}
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev=${COMP_WORDS[COMP_CWORD-1]}
+    compgen_opt=()
+    _liquidsoap_reply=()
+
+    case "$prev" in
+        "--conf-descr-key")
+            _liquidsoap_add_f liquidsoap --list-conf-keys
+            ;;
+
+        "-h"|"-help"|"--help")
+            _liquidsoap_add_f liquidsoap --list-functions
+            ;;
+
+        *)
+            _liquidsoap_reply+=("--check --conf-descr --conf-descr-key --conf-dump --debug -h --help -i --interactive --list-plugins --no-pervasives --parse-only --quiet -r --strict --version --verbose")
+            compgen_opt+=(-o filenames -f)
+            ;;
+    esac
+
+    COMPREPLY=($(compgen -W "${_liquidsoap_reply[*]}" "${compgen_opt[@]}" -- "$cur"))
+    unset _liquidsoap_reply
+    return 0
+}
+
+complete -F _liquidsoap liquidsoap

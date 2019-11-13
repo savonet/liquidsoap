@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -35,6 +35,33 @@ let in_chan_ops = { really_input = really_input ;
                     seek = (fun ic len ->
                       seek_in ic ((pos_in ic) + len));
                     close = close_in }
+
+(* buffer ofs len *)
+type callback = Bytes.t -> int -> int -> int
+
+let callback_ops =
+  let really_input read buf ofs len =
+    let ret =
+       Extralib.read_retry read buf ofs len
+    in
+    if ret < len then raise End_of_file
+  in
+  let input read = read in
+  let _read read len =
+    let buf = Bytes.create len in
+    really_input read buf 0 len;
+    buf
+  in
+  let input_byte read =
+    Char.code (Bytes.get (_read read 1) 0)
+  in
+  let seek read n = ignore(_read read n) in
+  let close _ = () in
+  {really_input;
+   input_byte;
+   input;
+   seek;
+   close}
 
 type format = [ `Aiff | `Wav ]
 

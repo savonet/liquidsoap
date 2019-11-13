@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -30,7 +30,7 @@ type mode =
 type t = {
   channels   : int ;
   mode       : mode ;
-  samplerate : int ;
+  samplerate : int Lazy.t ;
   fill       : int option ;
 }
 
@@ -53,4 +53,4 @@ let to_string v =
   Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)"
     (string_of_mode v.mode)
     v.channels
-    v.samplerate
+    (Lazy.force v.samplerate)

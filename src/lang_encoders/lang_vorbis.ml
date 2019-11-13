@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -27,9 +27,11 @@ let make_cbr params =
   let defaults =
     { Vorbis_format.
         mode = Vorbis_format.CBR 128 ;
-        channels = 2 ;
         fill = None;
-        samplerate = 44100 ;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
+        channels = 2;
+        samplerate = Frame.audio_rate;
     }
   in
   let vorbis =
@@ -37,7 +39,7 @@ let make_cbr params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Vorbis_format.samplerate = i }
+              { f with Vorbis_format.samplerate = Lazy.from_val i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Vorbis_format.mode = Vorbis_format.CBR i }
           | ("channels",{ term = Int i; _}) ->
@@ -59,7 +61,7 @@ let make_abr params =
         mode = Vorbis_format.ABR (None,None,None) ;
         channels = 2 ;
         fill = None ;
-        samplerate = 44100 ;
+        samplerate = Frame.audio_rate ;
     }
   in
   let get_rates x =
@@ -72,7 +74,7 @@ let make_abr params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Vorbis_format.samplerate = i }
+              { f with Vorbis_format.samplerate = Lazy.from_val i }
           | ("bitrate",{ term = Int i; _}) ->
               let (x,_,y) = get_rates f in
               { f with Vorbis_format.mode = Vorbis_format.ABR (x,Some i,y) }
@@ -101,7 +103,7 @@ let make params =
         mode = Vorbis_format.VBR 0.3 ;
         channels = 2 ;
         fill = None ;
-        samplerate = 44100 ;
+        samplerate = Frame.audio_rate ;
     }
   in
   let vorbis =
@@ -109,7 +111,7 @@ let make params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Vorbis_format.samplerate = i }
+              { f with Vorbis_format.samplerate = Lazy.from_val i }
           | ("quality",({ term = Float q; _} as t)) ->
               if q<(-0.2) || q>1. then
                 raise (Error (t,"quality should be in [(-0.2)..1]")) ;

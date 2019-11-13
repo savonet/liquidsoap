@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -35,7 +35,7 @@ let () =
   in
   add sqrt "sqrt" "Square root.";
   add exp "exp" "Exponential.";
-  add Pervasives.log "log_e" "Natural logarithm.";
+  add Stdlib.log "log_e" "Natural logarithm.";
   add log10 "log_10" "Base 10 logarithm.";
   add sin "sin" "Sine. Argument is in radians.";
   add cos "cos" "Cosine. Argument is in radians.";
@@ -113,8 +113,8 @@ let () =
 
 let () =
   add_builtin "random.int" ~cat:Math ~descr:"Generate a random value."
-    ["min",Lang.float_t,Some (Lang.int min_int),None;
-     "max",Lang.float_t,Some (Lang.int max_int),None]
+    ["min",Lang.int_t,Some (Lang.int (1-(1 lsl 29))),None;
+     "max",Lang.int_t,Some (Lang.int (1 lsl 29)),None]
     Lang.int_t
     (fun p ->
        let min = Lang.to_int (List.assoc "min" p) in
@@ -137,3 +137,25 @@ let () =
     ~flags:[Lang.Hidden]
     [] Lang.int_t
     (fun _ -> Lang.int min_int)
+
+let () =
+  add_builtin "lsl" ~cat:Math ~descr:"Logical shift left."
+    [
+      "",Lang.int_t,None,Some "Number to shift.";
+      "",Lang.int_t,None,Some "Number of bits to shift."
+    ] Lang.int_t
+    (fun p ->
+       let n = Lang.to_int (Lang.assoc "" 1 p) in
+       let b = Lang.to_int (Lang.assoc "" 2 p) in
+       Lang.int (n lsl b))
+
+let () =
+  add_builtin "lsr" ~cat:Math ~descr:"Logical shift right."
+    [
+      "",Lang.int_t,None,Some "Number to shift.";
+      "",Lang.int_t,None,Some "Number of bits to shift."
+    ] Lang.int_t
+    (fun p ->
+       let n = Lang.to_int (Lang.assoc "" 1 p) in
+       let b = Lang.to_int (Lang.assoc "" 2 p) in
+       Lang.int (n lsr b))

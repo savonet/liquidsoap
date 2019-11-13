@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,9 +25,8 @@
 open Gstreamer_format
 
 module GU = Gstreamer_utils
-module Img = Image.RGBA32
 
-let log = Dtools.Log.make ["encoder"; "gstreamer"]
+let log = Log.make ["encoder"; "gstreamer"]
 
 type gst =
   {
@@ -122,23 +121,23 @@ let encoder ext =
        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
        GU.flush ~log gst.bin;
-       let buf = Buffer.create 1024 in
+       let buf = Strings.Mutable.empty () in
        begin
         try
          while true do
-           Buffer.add_string buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
+           Strings.Mutable.add buf (Gstreamer.App_sink.pull_buffer_string gst.sink)
          done
         with
           | Gstreamer.End_of_stream -> ()
        end; 
-       Buffer.contents buf
+       buf
       end
     else
-      ""
+      Strings.Mutable.empty ()
    in
    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
    GU.flush ~log gst.bin;
-   ret
+   Strings.Mutable.to_strings ret
   in
 
   let insert_metadata m =
@@ -178,7 +177,7 @@ let encoder ext =
       let alen = Frame.audio_of_master len in
       let pcm = content.Frame.audio in
       let data = Bytes.create (2*channels*alen) in
-      Audio.S16LE.of_audio pcm astart data 0 alen;
+      Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
       Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time ~duration
         (Utils.get_some gst.audio_src) data 0 (Bytes.length data);
      end;
@@ -190,29 +189,33 @@ let encoder ext =
       let vstart = Frame.video_of_master start in
       let vlen = Frame.video_of_master len in
       for i = vstart to vstart+vlen-1 do
-        let data = Img.data vbuf.(i) in
-        let presentation_time =
-          Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration)
-        in
-        Gstreamer.App_src.push_buffer_data ~presentation_time ~duration:vduration
-          (Utils.get_some gst.video_src) data 0 (Bigarray.Array1.dim data);
+        let img = Video.get vbuf i in
+        (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
+        assert (Image.YUV420.y_stride img = ((Image.YUV420.width img + 3)/4)*4);
+        assert (Image.YUV420.uv_stride img = ((Image.YUV420.width img / 2 + 3)/4)*4);
+        let y,u,v = Image.YUV420.data img in
+        let presentation_time = Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration) in
+        let buf = Gstreamer.Buffer.of_data_list (List.map (fun d -> d,0,Image.Data.length d) [y;u;v]) in
+        Gstreamer.Buffer.set_presentation_time buf presentation_time;
+        Gstreamer.Buffer.set_duration buf vduration;
+        Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) buf
       done;
      end;
     GU.flush ~log gst.bin;
     (* Return result. *)
     presentation_time := Int64.add !presentation_time duration;
     if !samples = 0 then
-      ""
+      Strings.empty
     else
       let ans = Gstreamer.App_sink.pull_buffer_string gst.sink in
       decr_samples ();
-      ans
+      Strings.of_string ans
   in
 
   {
     Encoder.
     insert_metadata = insert_metadata;
-    header = None;
+    header = Strings.empty;
     encode = encode;
     stop   = stop;
   }

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["liqfm"]
+let log = Log.make ["liqfm"]
 
 (* A custom implementation of HTTP 
  * requests. *)
@@ -41,7 +41,7 @@ module Liq_http =
               ~host ~url ~request () =
   try
     let log s =
-      log#f 4 "%s" s
+      log#info "%s" s
     in
     let timeout = 
       match timeout with
@@ -90,7 +90,7 @@ type task =
           bool * (string, string) Hashtbl.t) Queue.t ;
   }
 
-let log = Dtools.Log.make ["audioscrobbler"]
+let log = Log.make ["audioscrobbler"]
 
 exception Duration
 
@@ -101,7 +101,7 @@ let init host =
  let submissions = Queue.create () in
  (* A mutex to manage thread concurrency *)
  let submit_m = Mutex.create () in
- let reason = log#f 3 "Lastfm Submission failed: %s" in
+ let reason = log#important "Lastfm Submission failed: %s" in
  (* Define a new task *)
  let do_submit () =
    try
@@ -116,16 +116,19 @@ let init host =
           | NowPlaying -> "nowplaying"
       in
       let (h,p) = host in
-      log#f 4 "Submiting %s -- %s with mode: %s to %s:%i" 
+      log#info "Submiting %s -- %s with mode: %s to %s:%i" 
          artist track s h p;
       try
         let duration () =
           try
-            float_of_string (Hashtbl.find m "duration")
+            match float_of_string_opt (Hashtbl.find m "duration") with
+            | Some d -> d
+            | None -> raise Not_found
           with
-            | Not_found | Failure "float_of_string" ->
+            | Not_found ->
+               let exception Bad_rid in
                try
-                 let rid = int_of_string (Hashtbl.find m "rid") in
+                 let rid = match int_of_string_opt (Hashtbl.find m "rid") with Some rid -> rid | None -> raise Bad_rid in
                  let request = Request.from_id rid in
                    match request with
                      | Some s ->
@@ -137,8 +140,8 @@ let init host =
                      | None -> raise Not_found
                with
                  | Not_found -> raise Duration
-                 | Failure "int_of_string" ->
-                     log#f 2 "Metadata 'rid' is not associated to an integer!" ;
+                 | Bad_rid ->
+                     log#severe "Metadata 'rid' is not associated to an integer!" ;
                      raise Duration
         in
         let duration = 
@@ -175,15 +178,15 @@ let init host =
         (login,stype,song) :: songs
       with
         | Duration ->
-            log#f 4 "could not submit track %s -- %s, no duration available"
+            log#info "could not submit track %s -- %s, no duration available"
               artist track ;
             songs
         | Error e ->
-            log#f 4 "could not submit track %s -- %s, %s"
+            log#info "could not submit track %s -- %s, %s"
               artist track (string_of_error e) ;
             songs
         | e ->
-            log#f 4 "could not submit track %s -- %s: unknown error %s"
+            log#info "could not submit track %s -- %s: unknown error %s"
               artist track (Printexc.to_string e) ;
             songs
      in

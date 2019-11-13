@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -129,17 +129,15 @@ struct
     in
       match metaint with
         | None ->
-            fun len ->
-              let b = Bytes.create len in
-              let r = read b 0 len in
-                if r < 0 then "",0 else Bytes.unsafe_to_string b,r
+            fun b ofs len ->
+              let r = read b ofs len in
+                if r < 0 then 0 else r
         | Some metaint ->
             let readcnt = ref 0 in
-              fun len ->
+              fun b ofs len ->
                 let len = min len (metaint - !readcnt) in
-                let b = Bytes.create len in
-                let r = read b 0 len in
-                  if r < 0 then "",0 else begin
+                let r = read b ofs len in
+                  if r < 0 then 0 else begin
                     readcnt := !readcnt + r;
                     if !readcnt = metaint then begin
                       readcnt := 0;
@@ -147,7 +145,7 @@ struct
                         | Some m -> insert_metadata m
                         | None -> ()
                     end ;
-                    Bytes.unsafe_to_string b,r
+                    r
                   end
   
   (** HTTP input *)
@@ -190,7 +188,7 @@ struct
           ~bind_address ~autostart ~bufferize ~max ~timeout
           ~debug ~on_connect ~on_disconnect ?(logfile=None)
           ~user_agent url =
-    let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
+    let max_ticks = Frame.master_of_seconds (Stdlib.max max bufferize) in
     (* We need a temporary log until the source has an ID. *)
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in
@@ -248,17 +246,24 @@ struct
                 \"polling\" (attempting to connect to the HTTP stream) \
                 or \"connected <url>\" (connected to <url>, buffering or \
                 playing back the stream)."
-         (Tutils.mutexify socket_m (fun _ ->
-           match socket with
-             | Some (_,_,url) -> "connected " ^ url
-             | None -> if relaying then "polling" else "stopped")) ;
+         (fun _ ->
+           match Mutex.try_lock socket_m with
+             | false -> "A state change is currently happening. Try later!"
+             | true ->
+               let ret =
+                 match socket with
+                   | Some (_,_,url) -> "connected " ^ url
+                   | None -> if relaying then "polling" else "stopped"
+               in
+               Mutex.unlock socket_m;
+               ret);
       self#register_command "buffer_length" ~usage:"buffer_length"
                             ~descr:"Get the buffer's length, in seconds."
         (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
   
     (* Insert metadata *)
     method insert_metadata m =
-      self#log#f 3
+      self#log#important
         "New metadata chunk: %s -- %s."
         (try Hashtbl.find m "artist" with _ -> "?")
         (try Hashtbl.find m "title" with _ -> "?") ;
@@ -268,24 +273,24 @@ struct
     method feeding should_stop create_decoder =
       let read =
         let log s =
-          self#log#f 4 "%s" s
+          self#log#info "%s" s
         in
         (* Socket can't be closed while waiting on it. *)
-        (fun len ->
+        (fun buf ofs len ->
           let socket = Tutils.mutexify socket_m (fun () ->
             socket) ()
           in
           match socket with
-            | None -> "",0
+            | None -> 0
             | Some (socket,read,_) ->
                 begin
                  try
                   Http.wait_for ~log (`Read socket) timeout;
-                  read len
-                 with e -> self#log#f 2 "Error while reading from socket: \
+                  read buf ofs len
+                 with e -> self#log#severe "Error while reading from socket: \
                               %s" (Printexc.to_string e);
                            self#disconnect_no_lock;
-                           "",0
+                           0
                  end)
       in
       let read =
@@ -293,8 +298,8 @@ struct
           | None -> read
           | Some f ->
               let t0 = Unix.gettimeofday () in
-                fun len ->
-                  let ret = read len in
+                fun buf ofs len ->
+                  let ret = read buf ofs len in
                   let time = (Unix.gettimeofday () -. t0) /. 60. in
                     Printf.fprintf f "%f %d\n%!" time self#length ;
                     ret
@@ -321,16 +326,16 @@ struct
               Generator.add_break ~sync:`Drop generator ;
               begin match e with
                 | Failure s ->
-                    self#log#f 2 "Feeding stopped: %s" s
+                    self#log#severe "Feeding stopped: %s" s
                 | G.Incorrect_stream_type ->
-                  self#log#f 2 "Feeding stopped: the decoded stream was not of \
+                  self#log#severe "Feeding stopped: the decoded stream was not of \
                                 the right type. The typical situation is when \
                                 you expect a stereo stream whereas the \
                                 stream is mono (in this case the situation can \
                                 easily be solved by using the audio_to_stereo \
                                 operator to convert the stream to a stereo one)."
                 | e ->
-                    self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
+                    self#log#severe "Feeding stopped: %s" (Printexc.to_string e)
               end ;
               begin match logf with
                 | Some f -> close_out f ; logf <- None
@@ -365,7 +370,7 @@ struct
       in
       let request =
         Printf.sprintf
-          "%sUser-Agent: %s\r\n%sIcy-MetaData:1\r\n\r\n"
+          "%sUser-Agent: %s\r\n%sIcy-MetaData: 1\r\n\r\n"
           req user_agent auth
       in
       try
@@ -373,10 +378,10 @@ struct
           Tutils.mutexify socket_m (fun () ->
             if socket <> None then
               failwith "Cannot connect while already connected..";
-            self#log#f 4 "Connecting to <%s://%s:%d%s>..." protocol host port mount ;
+            self#log#info "Connecting to <%s://%s:%d%s>..." protocol host port mount ;
             let s = Http.connect ?bind_address host port in
             let log s =
-              self#log#f 4 "%s" s
+              self#log#info "%s" s
             in
             let (_, fields as ret) =
               Http.request ~log ~timeout s request
@@ -392,7 +397,7 @@ struct
               with _ -> false
             in
             if chunked then
-              self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+              self#log#info "Chunked HTTP/1.1 transfer" ;
             (* read_stream has a state, so we must create it here.. *)
             let read =
               read_stream s chunked metaint self#insert_metadata
@@ -414,7 +419,7 @@ struct
                with
                  | Not_found -> content_type
         in
-        self#log#f 4 "Content-type %S." content_type ;
+        self#log#info "Content-type %S." content_type ;
         if status = 301 || status = 302 || 
            status = 303 || status = 307
         then begin
@@ -430,11 +435,11 @@ struct
             else
               location
           in
-          self#log#f 4 "Redirected to %s" location;
+          self#log#info "Redirected to %s" location;
           raise (Redirection location)
         end ;
         if status <> 200 then begin
-          self#log#f 4 "Could not get file: %s" status_msg;
+          self#log#info "Could not get file: %s" status_msg;
           raise Internal
         end ;
         on_connect fields ;
@@ -476,7 +481,7 @@ struct
           playlist_process playlist
         in
           try
-            self#log#f 4
+            self#log#info
               "Trying playlist parser for mime %s" content_type ;
             match Playlist_parser.parsers#get content_type with
               | None -> raise Not_found
@@ -508,13 +513,13 @@ struct
                           logf <-
                             Some (open_out_bin (Utils.home_unrelate f))
                         with e ->
-                          self#log#f 2
+                          self#log#severe
                             "Could not open log file: %s"
                             (Printexc.to_string e)
                         end
                     | None -> ()
                   end ;
-                  self#log#f 3 "Decoding..." ;
+                  self#log#important "Decoding..." ;
                   Generator.set_rewrite_metadata generator
                     (fun m -> Hashtbl.add m "source_url" url ; m) ;
                   self#feeding
@@ -526,11 +531,11 @@ struct
             self#connect poll_should_stop location
         | Http.Error e ->
             self#disconnect;
-            self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
+            self#log#info "Connection failed: %s!" (Http.string_of_error e) ;
             if debug then raise (Http.Error e)
         | e ->
             self#disconnect;
-            self#log#f 4 "Connection failed: %s" (Printexc.to_string e) ;
+            self#log#info "Connection failed: %s" (Printexc.to_string e) ;
             if debug then raise e
   
     (* Take care of (re)starting the decoding *)
@@ -548,7 +553,7 @@ struct
     method wake_up act =
       super#wake_up act ;
       (* Now we can create the log function *)
-      log_ref := (fun s -> self#log#f 3 "%s" s) ;
+      log_ref := (fun s -> self#log#important "%s" s) ;
       (* Wait for the old polling thread to return, then create a new one. *)
       assert (kill_polling = None) ;
       begin match wait_polling with
@@ -571,8 +576,7 @@ struct
     Lang.add_operator ("input."^protocol)
       ~kind:(Lang.Unconstrained (Lang.univ_t 1))
       ~category:Lang.Input
-      ~descr:("Forwards the given "^protocol^" stream. The relay can be \
-               paused/resumed using the start/stop telnet commands.")
+      ~descr:("Create a source that fetches a "^protocol^" stream.")
       [ "autostart", Lang.bool_t, Some (Lang.bool true),
         Some "Initially start relaying or not." ;
   
@@ -640,7 +644,7 @@ struct
                | "normal" -> Normal
                | _ ->
                    raise
-                     (Lang.Invalid_value
+                     (Lang_errors.Invalid_value
                         (s,
                          "valid values are 'random', 'randomize', \
                           'normal' and 'first'"))
@@ -649,7 +653,7 @@ struct
          let () =
            try ignore (parse_url url) with
              | Failure _ ->
-                 raise (Lang.Invalid_value (List.assoc "" p, "invalid URL"))
+                 raise (Lang_errors.Invalid_value (List.assoc "" p, "invalid URL"))
          in
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
@@ -677,7 +681,7 @@ struct
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
          if bufferize >= max then
-           raise (Lang.Invalid_value
+           raise (Lang_errors.Invalid_value
                     (List.assoc "max" p,
                      "Maximum buffering inferior to pre-buffered data"));
          let on_connect l =

@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 *****************************************************************************)
 
@@ -32,6 +32,7 @@ end
 module Make(Harbor:T) =
 struct
   let name_up = String.uppercase_ascii Harbor.name
+  let resp_t = Lang.string_getter_t 1
   let () =
     Lang_builtins.add_builtin ("harbor." ^ Harbor.name ^ ".register") ~cat:Liq
       ~descr:(Printf.sprintf 
@@ -43,7 +44,9 @@ struct
              and returns the answer sent to the client, including HTTP headers. \
              Registered uri can be regular expressions \
              (e.g. \".+\\.php\") and can override default \
-             metadata handlers." name_up)
+             metadata handlers. Response is a string getter, i.e. \
+             either of type `string` or type `()->string`. In the later case, \
+             getter function will be called until it returns an empty string." name_up)
       [ "port",Lang.int_t,None,Some "Port to server.";
         "method", Lang.string_t, None, Some "Accepted method";
         "",Lang.string_t,None,Some "URI to serve." ;
@@ -52,8 +55,8 @@ struct
                        (false,"headers",Lang.list_t
                                    (Lang.product_t Lang.string_t
                                                    Lang.string_t));
-                       (false,"",Lang.string_t)]
-        Lang.string_t,
+                       (false,"", Lang.string_t)]
+        resp_t,
         None,Some "Function to execute. method argument \
                    is \"PUT\" or \"GET\", protocol argument is \
                    \"HTTP/1.1\" or \"HTTP/1.0\" etc., data argument \
@@ -78,12 +81,16 @@ struct
            let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
                              l
            in
-           Harbor.reply
-             (Lang.to_string
-               (Lang.apply ~t:Lang.string_t
-                           f [("",Lang.string uri);("headers",l);
-                              ("data",Lang.string data);
-                              ("protocol",Lang.string protocol)]))
+           let resp =
+             Lang.apply ~t:resp_t
+                        f [("",Lang.string uri);("headers",l);
+                           ("data",Lang.string data);
+                           ("protocol",Lang.string protocol)]
+           in
+           try
+             Harbor.simple_reply (Lang.to_string resp)
+           with _ ->
+             Harbor.reply (Lang.to_string_getter resp)
          in
          Harbor.add_http_handler ~port ~verb ~uri f;
          Lang.unit)

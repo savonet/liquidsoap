@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
-
-module Img = Image.RGBA32
 
 (* TODO: share code with visu.volume. *)
 
@@ -41,6 +39,7 @@ object (self)
   method is_ready = source#is_ready
   method remaining = source#remaining
   method abort_track = source#abort_track
+  method self_sync = source#self_sync
 
   (* Ringbuffer for previous values, with its current position. *)
   val vol = Array.init channels (fun _ -> Array.make backpoints 0.)
@@ -78,14 +77,13 @@ object (self)
 
       (* Reproduce audio data in the new contents. *)
       Audio.blit
-        src.Frame.audio (Frame.audio_of_master offset)
-        dst.Frame.audio (Frame.audio_of_master offset)
-        (Frame.audio_of_master len);
+        (Audio.sub src.Frame.audio (Frame.audio_of_master offset) (Frame.audio_of_master len))
+        (Audio.sub dst.Frame.audio (Frame.audio_of_master offset) (Frame.audio_of_master len));
 
       (* Feed the volume buffer. *)
       let acontent = AFrame.content frame (Frame.audio_of_master offset) in
       for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
-        self#add_vol (Array.map (fun c -> let x = c.(i) in x*.x) acontent)
+        self#add_vol (Array.map (fun c -> let x = c.{i} in x*.x) acontent)
       done;
 
       (* Fill-in video information. *)
@@ -94,12 +92,16 @@ object (self)
       let buf = dst.Frame.video.(0) in
       let start = Frame.video_of_master offset in
       let stop = start + Frame.video_of_master len in
+      let line img c p q =
+        let f i j = if 0 <= i && i < Image.YUV420.width img && 0 <= j && j < Image.YUV420.height img then Image.YUV420.set_pixel_rgba img i j c in
+        Image.Draw.line f p q
+      in
       for f = start to stop - 1 do
-        let buf = buf.(f) in
-        Img.blank_all buf;
+        let buf = Video.get buf f in
+        Video.Image.blank buf;
         for i = 0 to channels - 1 do
           let y = int_of_float (volheight *. float i) in
-          Img.Draw.line buf (90,90,90,0xff) (0,y) (width-1,y);
+          line buf (90,90,90,0xff) (0,y) (width-1,y);
           for chan = 0 to channels-1 do
             let vol = vol.(chan) in
             let chan_height = int_of_float (volheight *. float chan) in
@@ -111,7 +113,7 @@ object (self)
                 int_of_float (volwidth *. float i),
                 height - (chan_height + int_of_float (volheight *. vol.((i+pos) mod backpoints))) - 1
               in
-              Img.Draw.line buf (0,0xff,0,0xff) !pt0 pt1;
+              line buf (0,0xff,0,0xff) !pt0 pt1;
               pt0 := pt1
             done
           done

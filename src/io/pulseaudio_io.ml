@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,14 +16,14 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Pulseaudio
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "pulse")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "pulseaudio")
 
 (** Error translator *)
 let error_translator e =
@@ -43,7 +43,8 @@ object
   val client_name = client
   val dev = device
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
+  method self_sync = dev <> None
 end
 
 class output ~infallible ~start ~on_start ~on_stop ~kind p =
@@ -94,15 +95,9 @@ object (self)
            Pulseaudio.Simple.free s;
            stream <- None
 
-  method output_start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method output_start = self#open_device
 
-  method output_stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method output_stop = self#close_device
 
   method output_reset =
     self#close_device ;
@@ -111,7 +106,16 @@ object (self)
   method output_send memo =
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
-      Simple.write stream buf 0 (Array.length buf.(0))
+    let chans = Array.length buf in
+    let len = Audio.length buf in
+    let buf' = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (chans*len) in
+    for c = 0 to chans - 1 do
+      let bufc = buf.(c) in
+      for i = 0 to len - 1 do
+        Bigarray.Array1.unsafe_set buf' (i * chans + c) (Bigarray.Array1.unsafe_get bufc i)
+      done
+    done;
+    Simple.write_ba stream buf'
 end
 
 class input ~kind p =
@@ -146,15 +150,9 @@ object (self)
     if clock_safe then
       Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
 
-  method private start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method private start = self#open_device
 
-  method private stop =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#close_device
+  method private stop = self#close_device
 
   method output_reset =
     self#close_device ;
@@ -184,9 +182,17 @@ object (self)
   method input frame =
     assert (0 = AFrame.position frame) ;
     let stream = Utils.get_some stream in
+    let len = AFrame.size () in
+    let ibuf = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels*len) in
     let buf = AFrame.content_of_type ~channels frame 0 in
-      Simple.read stream buf 0 (Array.length buf.(0));
-      AFrame.add_break frame (AFrame.size ())
+    Simple.read_ba stream ibuf;
+    for c = 0 to channels - 1 do
+      let bufc = buf.(c) in
+      for i = 0 to len - 1 do
+        bufc.{i} <- Bigarray.Array1.unsafe_get ibuf (i*channels+c)
+      done
+    done;
+    AFrame.add_break frame (AFrame.size ())
 
 end
 
@@ -195,7 +201,7 @@ let () =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
   let proto =
-    (Output.proto @ [ "client", Lang.string_t, 
+    ([ "client", Lang.string_t, 
         Some (Lang.string "liquidsoap"), None ;
       "device", Lang.string_t,
         Some (Lang.string ""), 
@@ -205,7 +211,7 @@ let () =
         Some "Force the use of the dedicated Pulseaudio clock." ])
   in
   Lang.add_operator "output.pulseaudio" ~active:true
-    (proto @ ["", Lang.source_t k, None, None])
+    (Output.proto @ proto @ ["", Lang.source_t k, None, None])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."

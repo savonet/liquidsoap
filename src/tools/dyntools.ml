@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (* Dynamic loading. *)
 
-let dyn_log = Dtools.Log.make ["dynamic";"loader"]
+let dyn_log = Log.make ["dynamic";"loader"]
 
 let dynlink_suffix =
   if Dynlink.is_native then
@@ -69,12 +69,12 @@ let load_dynlinks () =
         end
       with
         | Dynlink.Error e ->
-            dyn_log#f 3 "Error while loading dynamic %s at %s" name path;
-            dyn_log#f 3 "%s" (Dynlink.error_message e)) dynload.path;
-     dyn_log#f 3 "Could not find dynamic module for %s." name
+            dyn_log#important "Error while loading dynamic %s at %s" name path;
+            dyn_log#important "%s" (Dynlink.error_message e)) dynload.path;
+     dyn_log#important "Could not find dynamic module for %s." name
     with
       | Done path ->
-          dyn_log#f 3 "Loaded dynamic %s from %s" name path;
+          dyn_log#important "Loaded dynamic %s from %s" name path;
           dynload.load ()
   in
   Hashtbl.iter load_library dynlink_list

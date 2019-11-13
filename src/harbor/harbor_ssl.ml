@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -35,6 +35,12 @@ let conf_harbor_ssl_private_key =
 let conf_harbor_ssl_password =
   Conf.string ~p:(conf_harbor_ssl#plug "password") ~d:""
     "Path to the server's SSL password. (optional, blank if omited)"
+let conf_harbor_ssl_read_timeout =
+  Conf.float ~p:(conf_harbor_ssl#plug "read_timeout") ~d:(-1.)
+    "Read timeout on SSL sockets. Set to zero to never timeout, ignored (system default) if negative."
+let conf_harbor_ssl_write_timeout =
+  Conf.float ~p:(conf_harbor_ssl#plug "write_timeout") ~d:(-1.)
+    "Read timeout on SSL sockets. Set to zero to never timeout, ignored (system default) if negative."
 
 module Monad = Duppy.Monad
 module type Monad_t = module type of Monad with module Io := Monad.Io
@@ -43,7 +49,7 @@ module Websocket_transport =
 struct
   type socket = Ssl.socket
   let read = Ssl.read
-  let read_retry = Extralib.read_retry Ssl.read
+  let read_retry fd = Extralib.read_retry (Ssl.read fd)
   let write = Ssl.write
 end
 
@@ -74,21 +80,28 @@ let get_ctx =
           ctx := Some _ctx;
           _ctx)
 
+let set_socket_default fd =
+  if conf_harbor_ssl_read_timeout#get >= 0. then
+    Unix.setsockopt_float fd Unix.SO_RCVTIMEO conf_harbor_ssl_read_timeout#get;
+  if conf_harbor_ssl_write_timeout#get >= 0. then
+    Unix.setsockopt_float fd Unix.SO_SNDTIMEO conf_harbor_ssl_write_timeout#get 
+
 module Transport =
 struct
   type socket = Ssl.socket
+  let name = "ssl"
   let file_descr_of_socket = Ssl.file_descr_of_socket
-  let read socket len =
-    let buf = Bytes.create len in
-    let n = Ssl.read socket buf 0 len in
-    buf, n
+  let read = Ssl.read
   let accept sock =
     let ctx = get_ctx () in
     let (s, caller) = Unix.accept sock in
+    set_socket_default s;
     let ssl_s = Ssl.embed_socket s ctx in
     Ssl.accept ssl_s;
     (ssl_s, caller)
-  let close =  Ssl.shutdown
+  let close ssl = 
+    Ssl.shutdown ssl;
+    Unix.close (Ssl.file_descr_of_socket ssl)
 
   module Duppy =
   struct

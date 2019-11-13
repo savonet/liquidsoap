@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,8 +25,7 @@
 open Extralib
 
 module GU = Gstreamer_utils
-module Img = Image.RGBA32
-let log = Dtools.Log.make ["decoder";"gstreamer"]
+let log = Log.make ["decoder";"gstreamer"]
 
 type gst =
   {
@@ -42,8 +41,8 @@ module Make (Generator : Generator.S_Asio) = struct
     let decode_audio = mode = `Both || mode = `Audio in
     let decode_video = mode = `Both || mode = `Video in
 
-    log#f 4 "Using %s." (Gstreamer.version_string ());
-    log#f 5 "Decode A/V: %B/%B." decode_audio decode_video;
+    log#info "Using %s." (Gstreamer.version_string ());
+    log#debug "Decode A/V: %B/%B." decode_audio decode_video;
 
     let gst_max_buffers = GU.max_buffers () in
 
@@ -69,7 +68,7 @@ module Make (Generator : Generator.S_Asio) = struct
         Printf.sprintf "filesrc location=%S ! decodebin name=d%s%s"
           fname audio_pipeline video_pipeline
       in
-      log#f 5 "Gstreamer pipeline: %s." pipeline;
+      log#debug "Gstreamer pipeline: %s." pipeline;
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
       let audio_sink =
         if decode_audio then
@@ -128,7 +127,7 @@ module Make (Generator : Generator.S_Asio) = struct
           let b = Gstreamer.App_sink.pull_buffer_string (Utils.get_some gst.audio_sink) in
           let len = String.length b / (2*channels) in
           let buf = Audio.create channels len in
-          Audio.S16LE.to_audio b 0 buf 0 len;
+          Audio.S16LE.to_audio b 0 buf;
           Generator.put_audio buffer buf 0 len
         );
       if decode_video then
@@ -136,10 +135,16 @@ module Make (Generator : Generator.S_Asio) = struct
           let _, state, _ = Gstreamer.Element.get_state gst.bin in
           if state <> Gstreamer.Element.State_playing then
             failwith "Not in playing state!";
-          let b = Gstreamer.App_sink.pull_buffer_data (Utils.get_some gst.video_sink) in
-          let img = Img.make width  height b in
-          let stream = [|img|] in
-          Generator.put_video buffer [|stream|] 0 (Array.length stream)
+          let buf = Gstreamer.App_sink.pull_buffer (Utils.get_some gst.video_sink) in
+          (* let vm = Gstreamer.Buffer.get_video_meta buf in *)
+          let buf = Gstreamer.Buffer.to_data buf in
+          (* GStreamer's lines are strided to multiples of 4. *)
+          let round4 n = ((n+3) lsr 2) lsl 2 in
+          let y_stride = round4 width in
+          let uv_stride = round4 (width/2) in
+          let img = Image.YUV420.make_data width height buf y_stride uv_stride in
+          let stream = Video.single img in
+          Generator.put_video buffer [|stream|] 0 (Video.length stream)
         );
       GU.flush ~log gst.bin
     in
@@ -163,8 +168,8 @@ module Make (Generator : Generator.S_Asio) = struct
         Gstreamer_utils.master_of_time (Int64.sub new_pos pos) 
       with
        | exn ->
-           log#f 3 "Seek failed: %s" (Printexc.to_string exn);
-           log#f 4 "Backtrace:\n%s" (Printexc.get_backtrace ());
+           log#important "Seek failed: %s" (Printexc.to_string exn);
+           log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
            0
     in
 
@@ -238,7 +243,7 @@ let get_type ~channels filename =
     GU.flush ~log bin;
     if state = Gstreamer.Element.State_paused then
       (
-        log#f 5 "File %s has audio." filename;
+        log#debug "File %s has audio." filename;
         channels
       )
     else
@@ -255,7 +260,7 @@ let get_type ~channels filename =
       ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
       if state = Gstreamer.Element.State_paused then
         (
-          log#f 5 "File %s has video." filename;
+          log#debug "File %s has video." filename;
           1
         )
       else

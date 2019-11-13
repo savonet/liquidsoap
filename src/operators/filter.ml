@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -32,8 +32,10 @@ object
 
   method stype = source#stype
   method remaining = source#remaining
+  method seek = source#seek
   method is_ready = source#is_ready
   method abort_track = source#abort_track
+  method self_sync = source#self_sync
 
   val mutable low = Array.make channels 0.
   val mutable high = Array.make channels 0.
@@ -62,17 +64,17 @@ object
       let b_c = b.(c) in
       for i = offset to position - 1 do
         low.(c) <- low.(c) +. f *. band.(c);
-        high.(c) <- q *. b_c.(i) -. low.(c) -. q *. band.(c);
+        high.(c) <- q *. b_c.{i} -. low.(c) -. q *. band.(c);
         band.(c) <- f *. high.(c) +. band.(c);
         notch.(c) <- high.(c) +. low.(c);
-        b_c.(i) <-
+        b_c.{i} <-
           wet *.
           (match mode with
             | Low_pass -> low.(c)
             | High_pass -> high.(c)
             | Band_pass -> band.(c)
             | Notch -> notch.(c)
-          ) +. (1. -. wet) *. b_c.(i)
+          ) +. (1. -. wet) *. b_c.{i}
       done
     done
 end
@@ -109,7 +111,7 @@ let () =
           | "high" -> High_pass
           | "band" -> Band_pass
           | "notch" -> Notch
-          | _ -> raise (Lang.Invalid_value
+          | _ -> raise (Lang_errors.Invalid_value
                           (mode,
                            "valid values are low|high|band|notch"))
       in

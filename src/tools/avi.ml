@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 *****************************************************************************)
 
@@ -44,12 +44,34 @@ let chunk id data =
   else
     ans ^ "\000"
 
+(* Audio in 16LE *)
+let audio_chunk b = chunk "01wb" b
+
+(* Video in RGB. *)
+let video_chunk b = chunk "00db" b
+
+(* TODO: this could be merged with the above with low cost *)
+
+(* The original data is cleared. *)
+let chunk_strings id data =
+  let n = Strings.Mutable.length data in
+  let ans = Strings.of_list [id; dword n] in
+  let ans =
+    Strings.append ans
+      (Strings.Mutable.to_strings data) 
+  in
+  if n mod 2 <> 0 then Strings.add ans "\000" else ans
+
+let audio_chunk_strings b = chunk_strings "01wb" b
+
+let video_chunk_strings b = chunk_strings "00db" b
+
 let list = chunk "LIST"
 
 let header ~channels ~samplerate () =
   (* Writing in two steps because 0xffffffff cannot be represented on 32 bits
      architectures. *)
-  let dword_max () = ignore(word 0xffff); word 0xffff in
+  let dword_max () = word 0xffff ^ word 0xffff in
   let video_rate = Lazy.force Frame.video_rate in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
@@ -79,7 +101,7 @@ let header ~channels ~samplerate () =
         "strh"
         (
           "vids" (* stream type *)
-          ^ dword 0 (* stream codec *)
+          ^ dword 0x30323449 (* fourcc (codec) *)
           ^ dword 0 (* flags *)
           ^ word 0 (* priority *)
           ^ word 0 (* language *)
@@ -106,9 +128,9 @@ let header ~channels ~samplerate () =
           ^ dword width (* width *)
           ^ dword height (* height *)
           ^ word 1 (* panes *)
-          ^ word 24 (* depth *)
-          ^ dword 0 (* RGB uncompressed format *)
-          ^ dword 0 (* image size *)
+          ^ word 12 (* depth *)
+          ^ dword 0x30323449 (* codec: I420 *)
+          ^ dword (width*height*6/4) (* image size *)
           ^ dword 0 (* pixels / x meter *)
           ^ dword 0 (* pixels / y meter *)
           ^ dword 0 (* colors used *)
@@ -170,20 +192,11 @@ let header ~channels ~samplerate () =
   ^ info
   ^ "LIST" ^ dword_max () ^ "movi"
 
-(* Audio in 16LE *)
-let audio_chunk b =
-  chunk "01wb" b
-
-(* Video in RGB. *)
-let video_chunk b =
-  chunk "00db" b
-
 module Read = struct
   let read n f =
     let s = Bytes.create n in
-    let k = Unix.read_retry f s 0 n in
-    if k = 0 && n <> 0 then raise End_of_file;
-    assert (k = n);
+    let k = read_retry f s 0 n in
+    if k <> n then raise End_of_file;
     Bytes.unsafe_to_string s
 
   let word f =
@@ -257,8 +270,11 @@ module Read = struct
        let stream_type = read 4 f in
        must "Wrong strh length." (len = 56);
        let fourcc = dword f in
-       must "Wrong vids fourcc." (stream_type <> "vids" || fourcc = 0 ||
-           fourcc = 0x52474218 (* RGB24 *));
+       if not (stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218 (* RGB24 *) || fourcc = 0x30323449 (* I420 *)) then
+         (
+           let err = Printf.sprintf "Wrong %s fourcc: 0x%x." stream_type fourcc in
+           must err false
+         );
        must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
        let flags = dword f in
        must "Wrong strh flags." (flags = 0);
@@ -289,7 +305,7 @@ module Read = struct
        let _ = word f in
        (* bottom *)
        let _ = word f in
-       `strh (stream_type, fps)
+       `strh (stream_type, fourcc, fps)
     | "strf" ->
        let s = read len f in
        `strf s
@@ -367,11 +383,17 @@ module Read = struct
         let dword = dword strf in
         begin
           match List.hd l with
-          | `strh (stream_type, fps) ->
+          | `strh (stream_type, fourcc, fps) ->
              if stream_type = "vids" then
                (
                  (* Printf.printf "video: %dx%d@%f\n%!" width height fps; *)
-                 streams := `Video (width, height, fps) :: !streams
+                 let fourcc =
+                   match fourcc with
+                   | 0 | 0x52474218 -> `RGB24
+                   | 0x30323449 -> `I420
+                   | _ -> assert false
+                 in
+                 streams := `Video (fourcc, width, height, fps) :: !streams
                )
              else if stream_type = "auds" then
                let codec = word 0 in

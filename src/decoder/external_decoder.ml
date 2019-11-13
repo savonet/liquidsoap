@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,35 +25,41 @@
 (** First, an external decoder that receives
   * on its stdin. *)
 
-let log = Dtools.Log.make ["decoder";"external"]
+let log = Log.make ["decoder";"external"]
+
+let on_stderr =
+  let buf = Bytes.create Utils.pagesize in
+  fun puller ->
+    let len = puller buf 0 Utils.pagesize in
+    log#debug "stderr: %s"
+      (Bytes.unsafe_to_string 
+        (Bytes.sub buf 0 len));
+    `Continue
 
 (** This function is used to wrap around the "real" input.
   * It pipes its data to the external process and read
   * the available output. *)
 let external_input process input =
+  let buflen = Utils.pagesize in
+  let buf = Bytes.create buflen in
   let on_stdin pusher =
-    let s,read = input.Decoder.read 1024 in
+    let read = input.Decoder.read buf 0 buflen in
     if read = 0 then `Stop else begin
-      Process_handler.write (Bytes.of_string s) pusher;
+      Process_handler.really_write (Bytes.sub buf 0 read) pusher;
       `Continue
     end
   in
-  let on_stderr puller =
-    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
-    `Continue
-  in
-  let log = log#f 3 "%s" in
+  let log = log#important "%s" in
   (* reading from input is blocking.. *)
   let priority = Tutils.Blocking in
   let process =
     Process_handler.run ~priority ~on_stdin ~on_stderr ~log process
   in
-  let read len =
+  let read buf ofs len =
     try
-      Process_handler.on_stdout process (fun stdout ->
-        let s = Process_handler.read len stdout in
-        Bytes.unsafe_to_string s,Bytes.length s)
-    with Process_handler.Finished -> "",0
+      Process_handler.on_stdout process (fun reader ->
+        reader buf ofs len)
+    with Process_handler.Finished -> 0
   in
   {Decoder.
     read = read;
@@ -161,23 +167,18 @@ let register_stdin name sdoc mimes test process =
   * of the buffer when the external decoder
   * has exited. *)
 
-let log = Dtools.Log.make ["decoder";"external";"oblivious"]
+let log = Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
-  let on_stderr puller =
-    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
-    `Continue
-  in
   let command = process filename in
   let process =
-    Process_handler.run ~on_stderr ~log:(log#f 3 "%s") command
+    Process_handler.run ~on_stderr ~log:(log#important "%s") command
   in
-  let read len =
+  let read buf ofs len =
     try
-      Process_handler.on_stdout process (fun stdout ->
-        let s = Process_handler.read len stdout in
-        Bytes.unsafe_to_string s,Bytes.length s)
-    with Process_handler.Finished -> "",0
+      Process_handler.on_stdout process (fun reader ->
+        reader buf ofs len)
+    with Process_handler.Finished -> 0
   in
   let close () =
     try
@@ -201,7 +202,7 @@ let external_input_oblivious process filename prebuf =
          done
        with
          | e ->
-             log#f 4 "Decoding %s ended: %s." command (Printexc.to_string e) ;
+             log#info "Decoding %s ended: %s." command (Printexc.to_string e) ;
              close ()
        end ;
      Generator.fill gen frame ;

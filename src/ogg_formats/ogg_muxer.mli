@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
  (** Ogg Stream Encoder *)
 
-val log : Dtools.Log.t
+val log : Log.t
 
  (** {2 Types} *)
 
@@ -134,13 +134,13 @@ val create : skeleton:bool -> string -> t
 val state : t -> state
 
 (** Get and remove encoded data.. *)
-val get_data : t -> string
+val get_data : t -> Strings.t
 
 (** Get header of a stream. *)
-val get_header : t -> string
+val get_header : t -> Strings.t
 
 (** Peek encoded data without removing it. *)
-val peek_data : t -> string
+val peek_data : t -> Strings.t
 
 (** Register a new track to the stream.
   * The state needs to be [Bos] or [Eos].

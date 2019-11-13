@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "pa")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "portaudio")
 
 let initialized = ref false
 
@@ -33,7 +33,7 @@ object (self)
       initialized := true
     end
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
 
   (* TODO: inline this to be more efficient? *)
   method handle lbl f =
@@ -45,10 +45,10 @@ object (self)
       | Portaudio.Unanticipated_host_error ->
           let n, s = Portaudio.get_last_host_error () in
             if n = 0 then
-              self#log#f 3
+              self#log#important
                 "Unanticipated host error in %s. (ignoring)" lbl
             else
-              self#log#f 3
+              self#log#important
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
 end
 
@@ -73,6 +73,8 @@ object (self)
 
   val mutable stream = None
 
+  method self_sync = stream <> None
+
   method private open_device =
     self#handle
       "open_default_stream"
@@ -89,15 +91,9 @@ object (self)
           Portaudio.close_stream s ;
           stream <- None
 
-  method output_start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method output_start = self#open_device
 
-  method output_stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method output_stop = self#close_device
 
   method output_reset = 
     self#close_device ;
@@ -107,8 +103,19 @@ object (self)
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
       self#handle "write_stream"
-        (fun () -> Portaudio.write_stream stream buf 0 (Array.length buf.(0)))
-
+        (fun () ->
+           let len = Audio.length buf in
+           (* TODO: non-interleaved format does not seem to be supported here *)
+           (*
+           let ba = Bigarray.Array2.create Bigarray.float32 Bigarray.c_layout channels len in
+           for c = 0 to channels - 1 do
+             Bigarray.Array1.blit buf.(c) (Bigarray.Array2.slice_left ba c)
+           done;
+           let ba = Bigarray.genarray_of_array2 ba in
+           *)
+           let ba = Bigarray.genarray_of_array1 (Audio.interleave buf) in
+           Portaudio.write_stream_ba stream ba 0 len
+        )
 end
 
 class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
@@ -131,17 +138,13 @@ object (self)
     if clock_safe then
       Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
 
-  method private start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method private start = self#open_device
 
-  method private stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method private stop = self#close_device
 
   val mutable stream = None
+
+  method self_sync = stream <> None
 
   method private open_device =
     self#handle
@@ -168,7 +171,17 @@ object (self)
     let buf = AFrame.content_of_type ~channels frame 0 in
       self#handle
         "read_stream"
-        (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
+        (fun () ->
+           let len = Audio.length buf in
+           let ibuf = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels*len) in
+           Portaudio.read_stream_ba stream (Bigarray.genarray_of_array1 ibuf) 0 len;
+           for c = 0 to channels - 1 do
+             let bufc = buf.(c) in
+             for i = 0 to len - 1 do
+               bufc.{i} <- Bigarray.Array1.unsafe_get ibuf (i*channels+c)
+             done
+           done
+        );
       AFrame.add_break frame (AFrame.size ())
 
 end

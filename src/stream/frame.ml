@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -90,7 +90,7 @@ let conf_midi_channels =
 let lazy_config_eval = ref false
 let allow_lazy_config_eval () = lazy_config_eval := true
 
-let delayed f = Utils.LazyCompat.from_fun f
+let delayed f = lazy (f ())
 let delayed_conf x =
   delayed
     (fun () ->
@@ -155,7 +155,7 @@ let seconds_of_master d = float d /. float !!master_rate
 let seconds_of_audio d = float d /. float !!audio_rate
 let seconds_of_video d = float d /. float !!video_rate
 
-let log = Dtools.Log.make ["frame"]
+let log = Log.make ["frame"]
 
 (** The frame size (in master ticks) should allow for an integer
   * number of samples of all types (audio, video).
@@ -168,23 +168,23 @@ let size =
              let master = !!master_rate in
              let granularity = lcm (master/audio) (master/video) in
              let target =
-               log#f 3
+               log#important
                  "Using %dHz audio, %dHz video, %dHz master."
                  audio video master ;
-               log#f 3
+               log#important
                  "Frame size must be a multiple of %d ticks = \
                   %d audio samples = %d video samples."
                  granularity
                  (audio_of_master granularity)
                  (video_of_master granularity) ;
                try let d = conf_audio_size#get in
-                     log#f 3
+                     log#important
                        "Targetting 'frame.audio.size': \
                         %d audio samples = %d ticks."
                        d (master_of_audio d) ;
                      master_of_audio d
                with Conf.Undefined _ ->
-                     log#f 3
+                     log#important
                        "Targetting 'frame.duration': \
                         %.2fs = %d audio samples = %d ticks."
                        conf_duration#get
@@ -193,7 +193,7 @@ let size =
                      master_of_seconds conf_duration#get
              in
              let s = upper_multiple granularity (max 1 target) in
-               log#f 3
+               log#important
                  "Frames last %.2fs = \
                     %d audio samples = %d video samples = %d ticks."
                  (seconds_of_master s) (audio_of_master s)
@@ -223,7 +223,7 @@ type content_type = (int,int,int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer
-and video_t = Video.buffer
+and video_t = Video.t
 and midi_t  = MIDI.buffer
 
 (** Compatibilities between content kinds, types and values.
@@ -348,7 +348,7 @@ let create_content content_type =
   {
     audio =
       Array.init content_type.audio
-        (fun _ -> Array.make (audio_of_master !!size) 0.) ;
+        (fun _ -> Audio.Mono.create (audio_of_master !!size)) ;
     video =
       Array.init content_type.video
         (fun _ ->
@@ -545,7 +545,7 @@ let blit_content src src_pos dst dst_pos len =
     (fun a a' ->
        if a != a' then
          let (!) = audio_of_master in
-           Audio.Mono.blit a !src_pos a' !dst_pos !len) ;
+           Audio.Mono.blit (Audio.Mono.sub a !src_pos !len) (Audio.Mono.sub a' !dst_pos !len));
   Utils.array_iter2 src.video dst.video
     (fun v v' ->
        if v != v' then
@@ -621,7 +621,7 @@ let get_chunk ab from =
              * for packets like those forged by add, with a fake first break,
              * but isn't needed (yet) and is painful to implement. *)
             copy_chunk 0
-          else if foffset < i && i > p then begin
+          else if foffset <= p && i > p then begin
             copy_chunk i
           end else
             aux i tl

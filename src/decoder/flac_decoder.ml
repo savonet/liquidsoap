@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Decode and read metadata from flac files. *)
-
-open Dtools
 
 let log = Log.make ["decoder";"flac"]
 
@@ -90,19 +88,14 @@ let create_decoder input =
       (fun gen ->
         let c = 
          Flac.Decoder.get_callbacks ?seek ?tell ?length read
-          (fun data -> 
-             let len = 
-               try
-                 Array.length data.(0)
-               with
-                 | _ -> 0
-             in
+           (fun data ->
+             let data = Audio.of_array data in
+             let len = try Audio.length data with _ -> 0 in
              processed := Int64.add !processed (Int64.of_int len);
-             let content =
-               resampler ~audio_src_rate:(float sample_freq) data
-             in
+             let content = resampler ~audio_src_rate:(float sample_freq) data in
              Generator.set_mode gen `Audio ;
-             Generator.put_audio gen content 0 (Array.length content.(0)))
+             Generator.put_audio gen content 0 (Audio.length content)
+          )
         in
         match Flac.Decoder.state decoder c with
           | `Search_for_metadata
@@ -116,12 +109,12 @@ end
 
 (** Configuration keys for flac. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "flac")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "flac")
     "Mime-types used for guessing FLAC format"
     ~d:["audio/x-flac"]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "flac")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "flac")
     "File extensions used for guessing FLAC format"
     ~d:["flac"]
 
@@ -149,7 +142,7 @@ let get_type filename =
          let rate,channels = info.Flac.Decoder.sample_rate,
                              info.Flac.Decoder.channels
          in
-           log#f 4
+           log#info
              "Libflac recognizes %S as FLAC (%dHz,%d channels)."
              filename rate channels ;
            { Frame.
@@ -172,7 +165,7 @@ let () =
           kind.Frame.audio = Frame.Succ Frame.Variable ||
           (* libmad always respects the first two kinds *)
           if Frame.type_has_kind (get_type filename) kind then true else begin
-            log#f 3
+            log#important
               "File %S has an incompatible number of channels."
               filename ;
             false
@@ -207,7 +200,7 @@ let () =
           else
             None)
 
-let log = Dtools.Log.make ["metadata";"flac"]
+let log = Log.make ["metadata";"flac"]
 
 let get_tags file =
   if not (Decoder.test_file ~mimes:mime_types#get

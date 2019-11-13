@@ -1,7 +1,7 @@
 (*****************************************************************************
   
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
   
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
   
  *****************************************************************************)
   
@@ -54,7 +54,7 @@ module type Fdkaac_t =
         type param =
             [ `Afterburner of bool
             | `Aot of aot
-            | `Bandwidth of bool
+            | `Bandwidth of int
             | `Bitrate of int
             | `Bitrate_mode of bitrate_mode
             | `Granule_length of int
@@ -77,9 +77,14 @@ struct
     let encoder =
       Fdkaac.Encoder.create params.Fdkaac_format.channels
     in
+    let bandwidth = match params.Fdkaac_format.bandwidth with
+      | `Auto -> 0
+      | `Fixed b -> b
+    in
     let params = [
       `Aot params.Fdkaac_format.aot;
-      `Samplerate params.Fdkaac_format.samplerate;
+      `Bandwidth bandwidth;
+      `Samplerate (Lazy.force params.Fdkaac_format.samplerate);
       `Transmux params.Fdkaac_format.transmux;
       `Afterburner params.Fdkaac_format.afterburner;
     ] @ (
@@ -97,14 +102,14 @@ struct
   let encoder aac =
     let enc = create_encoder aac in
     let channels = aac.Fdkaac_format.channels in
-    let samplerate = aac.Fdkaac_format.samplerate in
+    let samplerate = (Lazy.force aac.Fdkaac_format.samplerate) in
     let samplerate_converter =
       Audio_converter.Samplerate.create channels
     in
     let src_freq = float (Frame.audio_of_seconds 1.) in
     let dst_freq = float samplerate in
-    let n = 1024 in
-    let buf = Buffer.create n in
+    let n = Utils.pagesize in
+    let buf = Strings.Mutable.empty () in
     let encode frame start len =
       let start = Frame.audio_of_master start in
       let b = AFrame.content_of_type ~channels frame start in
@@ -113,42 +118,36 @@ struct
         if src_freq <> dst_freq then
           let b = Audio_converter.Samplerate.resample
             samplerate_converter (dst_freq /. src_freq)
-            b start len
+            (Audio.sub b start len)
           in
-          b,0,Array.length b.(0)
+          b,0,Audio.length b
         else
           b,start,len
       in
-      let encoded = Buffer.create n in
-      Buffer.add_string buf (Audio.S16LE.make b start len);
-      let len = Buffer.length buf in
-      let rec f start =
-        if start+n > len then
-         begin
-          Utils.buffer_drop buf start;
-          Buffer.contents encoded
-         end
-        else
-         begin
-          let data = Buffer.sub buf start n in
-          Buffer.add_string encoded
-            (Fdkaac.Encoder.encode enc data 0 n);
-          f (start+n)
-        end
-      in
-      f 0
+      let encoded = Strings.Mutable.empty () in
+      Strings.Mutable.add buf (Audio.S16LE.make (Audio.sub b start len));
+      while Strings.Mutable.length buf >= n do
+        let data = Bytes.create n in
+        Strings.blit (Strings.sub (Strings.Mutable.to_strings buf) 0 n) data 0;
+        let data = Bytes.unsafe_to_string data in
+        Strings.Mutable.drop buf n;
+        Strings.Mutable.add encoded (Fdkaac.Encoder.encode enc data 0 n)
+      done;
+      Strings.Mutable.to_strings encoded
     in
     let stop () =
-      let rem = Buffer.contents buf in
-      let s =
-        Fdkaac.Encoder.encode enc rem 0 (String.length rem)
+      let rem =
+        Strings.Mutable.map (fun rem ofs len ->
+          let rem = Fdkaac.Encoder.encode enc rem ofs len in
+           rem, 0, String.length rem) buf
       in
-      s ^ (Fdkaac.Encoder.flush enc)
+      Strings.Mutable.add rem (Fdkaac.Encoder.flush enc);
+      Strings.Mutable.to_strings rem
     in
       {
         Encoder.
          insert_metadata = (fun _ -> ()) ;
-         header = None ;
+         header = Strings.empty ;
          encode = encode ;
          stop = stop
       }

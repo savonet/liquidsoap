@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,14 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-open Dtools
-
 let conf_scheduler =
-  Conf.void ~p:(Utils.conf#plug "scheduler") "Internal scheduler"
+  Dtools.Conf.void ~p:(Utils.conf#plug "scheduler") "Internal scheduler"
     ~comments:[
       "The scheduler is used to process various tasks in liquidsoap." ;
       "There are three kinds of tasks:" ;
@@ -33,7 +31,7 @@ let conf_scheduler =
       "such as request resolution (audio file downloading and checking)." ;
       "Finally, \"slow\" tasks are those that are always taking a long time," ;
       "like last.fm submission, or user-defined tasks register via" ;
-      "<code>add_timeout()</code>." ;
+      "`thread.run`." ;
       "The scheduler consists in a number of queues that process incoming" ;
       "tasks. Some queues might only process some kinds of tasks so that" ;
       "they are more responsive." ;
@@ -42,7 +40,7 @@ let conf_scheduler =
     ]
 
 let generic_queues =
-  Conf.int ~p:(conf_scheduler#plug "generic_queues") ~d:2
+  Dtools.Conf.int ~p:(conf_scheduler#plug "generic_queues") ~d:2
     "Generic queues"
     ~comments:[
       "Number of event queues accepting any kind of task." ;
@@ -51,17 +49,17 @@ let generic_queues =
       "a stalled download. But N stalled download can block N queues anyway."
     ]
 let fast_queues =
-  Conf.int ~p:(conf_scheduler#plug "fast_queues") ~d:0
+  Dtools.Conf.int ~p:(conf_scheduler#plug "fast_queues") ~d:0
      "Fast queues"
      ~comments:[
        "Number of queues that are dedicated to fast tasks." ;
        "It might be useful to create some if your request resolutions," ;
-       "or some user defined tasks (cf. <code>add_timeout()</code>), are" ;
+       "or some user defined tasks (cf `thread.run`), are" ;
        "delayed too much because of slow tasks blocking the generic queues," ;
-       "such as last.fm submissions or slow <code>add_timeout</code> handlers."
+       "such as last.fm submissions or slow `thread.run` handlers."
      ]
 let non_blocking_queues =
-  Conf.int ~p:(conf_scheduler#plug "non_blocking_queues") ~d:2
+  Dtools.Conf.int ~p:(conf_scheduler#plug "non_blocking_queues") ~d:2
      "Non-blocking queues"
      ~comments:[
        "Number of queues dedicated to internal non-blocking tasks." ;
@@ -70,7 +68,7 @@ let non_blocking_queues =
      ]
 
 let scheduler_log =
-  Conf.bool ~p:(conf_scheduler#plug "log") ~d:false
+  Dtools.Conf.bool ~p:(conf_scheduler#plug "log") ~d:false
     "Log scheduler messages"
 
 let mutexify lock f =
@@ -85,7 +83,7 @@ let finalize ~k f =
   try let x = f () in k () ; x with e -> k () ; raise e
 
 let seems_locked =
-  if Sys.os_type = "Win32" then (fun _ -> true) else
+  if Sys.win32 then (fun _ -> true) else
     fun m ->
       if Mutex.try_lock m then begin
         Mutex.unlock m ;
@@ -101,23 +99,19 @@ let log = Log.make ["threads"]
 let lock = Mutex.create ()
 let uncaught = ref None
 module Set = Set.Make (struct
-                         type t = (string*Thread.t)
+                         type t = (string*Condition.t)
                          let compare = compare
                        end)
 let all = ref (Set.empty)
+let queues = ref (Set.empty)
 
-(** Check that thread [s] is still running. *)
-let running s id = Set.mem (s,id) !all
-
-let join_all () =
+let join_all ~set () =
   let rec f () =
     try
-      let id = mutexify lock (fun () ->
-        let name, id = Set.choose !all in
-        log#f 3 "Shuting down thread %s" name;
-        id) ()
-      in
-      Thread.join id;
+      mutexify lock (fun () ->
+        let name, c = Set.choose !set in
+        log#info "Waiting for thread %s to shutdown" name;
+        Condition.wait c lock) ();
       f ()
     with Not_found -> ()
   in
@@ -127,7 +121,9 @@ let no_problem = Condition.create ()
 
 exception Exit
 
-let create ~wait f x s =
+let create ~queue f x s =
+  let c = Condition.create () in
+  let set = if queue then queues else all in
   mutexify lock (
     fun () ->
       let id =
@@ -135,45 +131,39 @@ let create ~wait f x s =
           (fun x ->
              try
                f x ;
-               if wait then begin
-                 Mutex.lock lock ;
-                 all := Set.remove (s,(Thread.self ())) !all ;
-                 log#f 3
+               mutexify lock (fun () ->
+                 set := Set.remove (s,c) !set ;
+                 log#info
                    "Thread %S terminated (%d remaining)."
-                   s (Set.cardinal !all) ;
-                 Mutex.unlock lock
-               end else
-                 log#f 3 "Thread %S terminated." s
+                   s (Set.cardinal !set);
+                 Condition.signal c) ();
              with e ->
-               Mutex.lock lock ;
                let backtrace = Printexc.get_backtrace () in
                begin match e with
                  | Exit ->
-                     log#f 3 "Thread %S exited." s
+                     log#info "Thread %S exited." s
                  | Failure e ->
-                     log#f 1 "Thread %S failed: %s!" s e
+                     log#important "Thread %S failed: %s!" s e
                  | e ->
-                     log#f 1 "Thread %S aborts with exception %s!"
+                     log#important "Thread %S aborts with exception %s!"
                               s (Printexc.to_string e)
                end ;
                if e <> Exit then
                 begin
                  let l = Pcre.split ~pat:"\n" backtrace in
-                 List.iter (log#f 3 "%s") l 
+                 List.iter (log#info "%s") l 
                 end ;
-               if wait then all := Set.remove (s,(Thread.self ())) !all ;
-               uncaught := Some e ;
-               Condition.signal no_problem ;
-               Mutex.unlock lock ;
+               mutexify lock (fun () ->
+                 set := Set.remove (s,c) !set ;
+                 uncaught := Some e ;
+                 Condition.signal no_problem ;
+                 Condition.signal c) ();
                if e <> Exit then raise e)
           x
       in
-        if wait then begin
-          all := Set.add (s,id) !all ;
-          log#f 3 "Created thread %S (%d total)." s (Set.cardinal !all)
-        end else
-          log#f 3 "Created thread %S." s ;
-        id
+      set := Set.add (s,c) !set ;
+      log#info "Created thread %S (%d total)." s (Set.cardinal !set);
+      id
   ) ()
 
 type priority =
@@ -190,21 +180,19 @@ let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () ->
   !started)
 
-let scheduler_queues = Queue.create ()
-
 let scheduler_shutdown_atom =
   Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
-    log#f 3 "Shutting down scheduler...";
+    log#important "Shutting down scheduler...";
     Duppy.stop scheduler;
-    log#f 3 "Scheduler shut down.";
-    log#f 3 "Shutting down queues...";
-    Queue.iter Thread.join scheduler_queues;
-    log#f 3 "Queues shut down")
+    log#important "Scheduler shut down.";
+    log#important "Waiting for queue threads to terminate...";
+    join_all ~set:queues ();
+    log#important "Queues shut down")
 
 let scheduler_log n =
   if scheduler_log#get then
     let log = Log.make [n] in
-    fun m -> log#f 4 "%s" m
+    fun m -> log#info "%s" m
   else
     fun _ -> ()
 
@@ -217,21 +205,22 @@ let new_queue ?priorities ~name () =
          | Some priorities ->
              Duppy.queue scheduler ~log:qlog ~priorities name
      with e ->
-       log#f 2 "Queue %s crashed with exception %s\n\
+       log#severe "Queue %s crashed with exception %s\n\
                 %s" name (Printexc.to_string e) (Printexc.get_backtrace());
-       log#f 1 "PANIC: Liquidsoap has crashed, exiting.,\n\
+       log#critical "PANIC: Liquidsoap has crashed, exiting.,\n\
                 Please report at: savonet-users@lists.sf.net" ;
        exit 1
    in
-   Queue.push (create ~wait:false queue () name) scheduler_queues
+   ignore(create ~queue:true queue () name)
 
-let create f x name = create ~wait:true f x name
+let create f x name = create ~queue:false f x name
+let join_all () = join_all ~set:all ()
 
 let () =
   (* A dtool atom to start
    * tasks *)
-   ignore(Init.make 
-     ~name:"init-queues-start" ~after:[Init.start] (fun () ->
+   ignore(Dtools.Init.make
+     ~name:"init-queues-start" ~after:[Dtools.Init.start] (fun () ->
       for i = 1 to generic_queues#get do
         let name = Printf.sprintf "generic queue #%d" i in
           new_queue ~name ()
@@ -265,11 +254,11 @@ let start_forwarding () =
   (* Without the eta-expansion, the timestamp is computed once for all. *)
   let log_stdout =
     let log = Log.make ["stdout"] in
-      fun s -> log#f 3 "%s" s
+      fun s -> log#important "%s" s
   in
   let log_stderr =
     let log = Log.make ["stderr"] in
-      fun s -> log#f 3 "%s" s
+      fun s -> log#important "%s" s
   in
   let forward fd log =
     let task ~priority f =
@@ -278,7 +267,7 @@ let start_forwarding () =
          events   = [`Read fd] ;
          handler  = f }
     in
-    let len = 1024 in
+    let len = Utils.pagesize in
     let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in

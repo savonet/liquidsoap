@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,15 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Play multiple sources at the same time, and perform weighted mix *)
 
 open Source
-
-module Img = Image.RGBA32
 
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
@@ -33,7 +31,7 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * The [video_init] (resp. [video_loop]) parameter is used to pre-process
   * the first layer (resp. next layers) in the sum; this generalization
   * is used to add either as an overlay or as a tiling. *)
-class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
+class add ~kind ~renorm (sources: (float*source) list) video_init video_loop =
 object
   inherit operator ~name:"add" kind (List.map snd sources)
 
@@ -48,6 +46,9 @@ object
     else
       Fallible
 
+  method self_sync =
+    List.exists (fun (_,s) -> s#self_sync) sources
+
   method remaining =
     List.fold_left max 0
       (List.map
@@ -57,6 +58,11 @@ object
   method abort_track = List.iter (fun (_,s) -> s#abort_track) sources
 
   method is_ready = List.exists (fun (_,s) -> s#is_ready) sources
+
+  method seek n =
+    match sources with
+      | (_,s) :: [] -> s#seek n
+      | _ -> 0
 
   (* We fill the buffer as much as possible, removing internal breaks.
    * Every ready source is asked for as much data as possible, by asking
@@ -79,10 +85,10 @@ object
     (* Compute the list of ready sources, and their total weight *)
     let weight,sources =
       List.fold_left
-        (fun (t,l) (w,s) -> w+t,if s#is_ready then (w,s)::l else l)
-        (0,[]) sources
+        (fun (t,l) (w,s) -> w +. t,if s#is_ready then (w,s)::l else l)
+        (0.,[]) sources
     in
-    let weight = float weight in
+    let weight = weight in
 
     (* Our sources are not allowed to have variable stream kinds.
      * This is necessary, because then we might not be able to sum them
@@ -112,32 +118,31 @@ object
            in
            s#get buffer;
            let already = Frame.position buffer in
-           let c = (float w)/.weight in
+           let c = w/.weight in
                if c<>1. && renorm then
                  Audio.amplify
                    c
-                   (fixed_content buffer offset).Frame.audio
+                   (Audio.sub (fixed_content buffer offset).Frame.audio
                    (Frame.audio_of_master offset)
-                   (Frame.audio_of_master (already-offset));
+                   (Frame.audio_of_master (already-offset)));
                if rank>0 then begin
                  (* The region grows, make sure it is clean before adding.
                   * TODO the same should be done for video. *)
                  if already>end_offset then
                    Audio.clear
-                     (fixed_content buf already).Frame.audio
+                     (Audio.sub (fixed_content buf already).Frame.audio
                      (Frame.audio_of_master end_offset)
-                     (Frame.audio_of_master (already-end_offset)) ;
+                     (Frame.audio_of_master (already-end_offset)));
                  (* Add to the main buffer. *)
                  Audio.add
-                   (fixed_content buf offset).Frame.audio offset
-                   (fixed_content tmp offset).Frame.audio offset
-                   (already-offset) ;
+                   (Audio.sub (fixed_content buf offset).Frame.audio offset (already-offset))
+                   (Audio.sub (fixed_content tmp offset).Frame.audio offset (already-offset));
                  let vbuf = (fixed_content buf offset).Frame.video in
                  let vtmp = (fixed_content tmp offset).Frame.video in
                  let (!) = Frame.video_of_master in
                    for c = 0 to Array.length vbuf - 1 do
                      for i = !offset to !already - 1 do
-                       video_loop rank vbuf.(c).(i) vtmp.(c).(i)
+                       video_loop rank (Video.get vbuf.(c) i) (Video.get vtmp.(c) i)
                      done
                    done
                end else begin
@@ -145,7 +150,7 @@ object
                  let (!) = Frame.video_of_master in
                    for c = 0 to Array.length vbuf - 1 do
                      for i = !offset to !already - 1 do
-                       video_init vbuf.(c).(i)
+                       video_init (Video.get vbuf.(c) i)
                      done
                    done
                end ;
@@ -172,7 +177,7 @@ let () =
            Only relay metadata from the first source that is effectively \
            summed."
     [ "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
+      "weights", Lang.list_t Lang.float_t, Some (Lang.list ~t:Lang.int_t []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "", Lang.list_t (Lang.source_t kind_t), None, None ]
@@ -180,24 +185,24 @@ let () =
     (fun p kind ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
-         List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
+         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
        in
        let weights =
          if weights = [] then
-           Utils.make_list (List.length sources) 1
+           Utils.make_list (List.length sources) 1.
          else
            weights
        in
        let renorm = Lang.to_bool (List.assoc "normalize" p) in
          if List.length weights <> List.length sources then
            raise
-             (Lang.Invalid_value
+             (Lang_errors.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
          new add ~kind ~renorm
                (List.map2 (fun w s -> (w,s)) weights sources)
                (fun _ -> ())
-               (fun _ buf tmp -> Img.add buf tmp))
+               (fun _ buf tmp -> Video.Image.add tmp buf))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -221,7 +226,7 @@ let () =
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
       "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
+      "weights", Lang.list_t Lang.float_t, Some (Lang.list ~t:Lang.int_t []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "proportional", Lang.bool_t, Some (Lang.bool true),
@@ -232,22 +237,23 @@ let () =
     (fun p kind ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
-         List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
+         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
        in
        let weights =
          if weights = [] then
-           Utils.make_list (List.length sources) 1
+           Utils.make_list (List.length sources) 1.
          else
            weights
        in
        let renorm = Lang.to_bool (List.assoc "normalize" p) in
        let proportional = Lang.to_bool (List.assoc "proportional" p) in
        let tp = tile_pos (List.length sources) in
+       let scale = Video_converter.scaler () in
        let video_loop n buf tmp =
          let x, y, w, h = tp.(n) in
          let x, y, w, h =
            if proportional then
-             let sw, sh = Img.width buf, Img.height buf in
+             let sw, sh = Video.Image.width buf, Video.Image.height buf in
                if w * sh < sw * h then
                  let h' = sh * w / sw in
                    x, y+(h-h')/2, w, h'
@@ -257,12 +263,14 @@ let () =
            else
              x, y, w, h
          in
-           Img.blit ~blank:false tmp buf ~x ~y ~w ~h
+         let tmp' = Video.Image.create w h in
+         scale tmp tmp';
+         Video.Image.add tmp' ~x ~y buf
        in
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then
            raise
-             (Lang.Invalid_value
+             (Lang_errors.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
          new add ~kind ~renorm

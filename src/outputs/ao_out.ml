@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -27,7 +27,7 @@ open Ao
 (** As with ALSA (even more maybe) it would be better to have one clock
   * per driver... but it might also depend on driver options. *)
 let get_clock =
-  Tutils.lazy_cell (fun () -> new Clock.self_sync "ao")
+  Tutils.lazy_cell (fun () -> new Clock.clock "ao")
 
 class output ~kind ~clock_safe ~nb_blocks ~driver
              ~infallible ~on_start ~on_stop
@@ -51,15 +51,9 @@ object (self)
       Clock.unify self#clock
         (Clock.create_known ((get_clock ()):>Clock.clock))
 
-  method output_start =
-    ioring#output_start ;
-    if clock_safe then (get_clock ())#register_blocking_source
-
-  method output_stop =
-    ioring#output_stop ;
-    if clock_safe then (get_clock ())#unregister_blocking_source
-
   val mutable device = None
+
+  method self_sync = device <> None
 
   method get_device =
     match device with
@@ -74,7 +68,7 @@ object (self)
               find_driver driver
            in
            let dev =
-             self#log#f 3
+             self#log#important
                "Opening %s (%d channels)..."
                driver.Ao.name channels ;
              open_live ~driver ~options ?channels_matrix
@@ -101,7 +95,7 @@ object (self)
       let push data =
         let pcm = AFrame.content wav 0 in
           assert (Array.length pcm = channels) ;
-          Audio.S16LE.of_audio pcm 0 data 0 (AFrame.size ())
+          Audio.S16LE.of_audio pcm data 0
       in
         ioring#put_block push
 

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -51,7 +51,7 @@ object (self)
                       Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
               in
                 if inhibit then begin
-                  self#log#f 4 "Prepending disabled from metadata \
+                  self#log#info "Prepending disabled from metadata \
                                 (\"liq_prepend\"=\"false\")." ;
                   state <- `Buffer peek ;
                   self#get_frame buf
@@ -60,7 +60,7 @@ object (self)
                   let prepend = Lang.to_source (Lang.apply ~t f ["",lang_m]) in
                     self#register prepend ;
                     if not prepend#is_ready then begin
-                      self#log#f 3
+                      self#log#important
                         "Candidate to prepending not ready. Abort!" ;
                       state <- `Buffer peek ;
                       self#unregister prepend
@@ -74,7 +74,7 @@ object (self)
           let peek_pcm = AFrame.content peek p in
           let peekpos = AFrame.size () - 1 in
             for i=0 to Array.length pcm - 1 do
-              pcm.(i).(p) <- peek_pcm.(i).(peekpos)
+              pcm.(i).{p} <- peek_pcm.(i).{peekpos}
             done ;
             begin match AFrame.get_metadata peek peekpos with
               | Some m -> AFrame.set_metadata buf p m
@@ -112,6 +112,11 @@ object (self)
       | `Prepend (s,_) ->
           let (+) a b = if a<0 || b<0 then -1 else a+b in
             if merge then s#remaining+source#remaining else s#remaining
+
+  method self_sync =
+    match state with
+      | `Prepend (s,_) -> s#self_sync
+      | _ -> source#self_sync
 
   (* Other behaviours could be wanted, but for now #abort_track won't abort
    * the prepended track. *)

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -37,7 +37,7 @@ let create speex ~metadata () =
       | _     -> false
   in
   let channels = if speex.Speex_format.stereo then 2 else 1 in
-  let rate = speex.Speex_format.samplerate in
+  let rate = Lazy.force speex.Speex_format.samplerate in
   let header =
     Speex.Header.init ~frames_per_packet ~mode
                       ~vbr ~nb_channels:channels ~rate ()
@@ -198,7 +198,7 @@ let create_speex =
       in
       let channels = if speex.Speex_format.stereo then 2 else 1 in
       let src_freq = float (Frame.audio_of_seconds 1.) in
-      let dst_freq = float speex.Speex_format.samplerate in
+      let dst_freq = float (Lazy.force speex.Speex_format.samplerate) in
       let encode = 
         Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () 
       in

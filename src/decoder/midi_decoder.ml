@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -27,10 +27,10 @@ exception Invalid_header
 
 exception Invalid_data
 
-let log = Dtools.Log.make ["decoder";"midi"]
+let log = Log.make ["decoder";"midi"]
 
 let decoder ~channels file =
-  log#f 4 "Decoding %S..." file;
+  log#info "Decoding %S..." file;
   let fd = new MIDI.IO.Reader.of_file file in
   let closed = ref false in
 
@@ -41,7 +41,7 @@ let decoder ~channels file =
   in
   let close_on_err f x =
     try f x with e ->
-      log#f 4 "Closing on error: %s." (Printexc.to_string e);
+      log#info "Closing on error: %s." (Printexc.to_string e);
       close (); raise e
   in
 

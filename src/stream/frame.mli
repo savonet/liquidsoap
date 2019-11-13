@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ type content_type = (int, int, int) fields
 (** Actual content of a frame. *)
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer (** Audio data. *)
-and video_t = Video.buffer (** Video data. *)
+and video_t = Video.t (** Video data. *)
 and midi_t = MIDI.buffer (** MIDI data. *)
 
 (** [blit_content c1 o1 c2 o2 l] copies [l] data from [c1] starting at offset

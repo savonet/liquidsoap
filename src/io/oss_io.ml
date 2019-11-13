@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -34,7 +34,7 @@ let force f fd x =
     if x <> x' then failwith "cannot obtain desired OSS settings"
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "OSS")
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
 
 class output ~kind ~clock_safe ~on_start ~on_stop 
              ~infallible ~start dev val_source =
@@ -57,6 +57,8 @@ object (self)
 
   val mutable fd = None
 
+  method self_sync = fd <> None
+
   method open_device =
     let descr = Unix.openfile dev [Unix.O_WRONLY] 0o200 in
       fd <- Some descr ;
@@ -71,15 +73,9 @@ object (self)
           Unix.close x ;
           fd <- None
 
-  method output_start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method output_start = self#open_device
 
-  method output_stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method output_stop = self#close_device
 
   method output_reset = 
     self#close_device ;
@@ -88,9 +84,9 @@ object (self)
   method output_send memo =
     let fd = Utils.get_some fd in
     let buf = AFrame.content memo 0 in
-    let r = Audio.S16LE.length (Audio.channels buf) (Audio.duration buf) in
+    let r = Audio.S16LE.size (Audio.channels buf) (Audio.length buf) in
     let s = Bytes.create r in
-    Audio.S16LE.of_audio buf 0 s 0 (Audio.duration buf);
+    Audio.S16LE.of_audio buf s 0;
     let w = Unix.write fd s 0 r in
     assert (w = r)
 
@@ -116,10 +112,9 @@ object (self)
 
   val mutable fd = None
 
-  method private start =
-    if clock_safe then
-      (get_clock ())#register_blocking_source ;
-    self#open_device
+  method self_sync = fd <> None
+
+  method private start = self#open_device
 
   method private open_device =
     let descr = Unix.openfile dev [Unix.O_RDONLY] 0o400 in
@@ -128,10 +123,7 @@ object (self)
       force set_channels descr channels ;
       force set_rate descr samples_per_second
 
-  method private stop =
-    if clock_safe then
-      (get_clock ())#unregister_blocking_source ;
-    self#close_device
+  method private stop = self#close_device
 
   method private close_device =
     Unix.close (Utils.get_some fd) ;
@@ -145,12 +137,12 @@ object (self)
     assert (0 = AFrame.position frame) ;
     let fd = Utils.get_some fd in
     let buf = AFrame.content_of_type ~channels frame 0 in
-    let len = 2 * (Array.length buf) * (Array.length buf.(0)) in
+    let len = 2 * (Array.length buf) * (Audio.Mono.length buf.(0)) in
     let s = Bytes.create len in
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r) ;
-      Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf 0 (Audio.duration buf);
+      Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf;
       AFrame.add_break frame (AFrame.size ())
 
 end

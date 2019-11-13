@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -37,6 +37,7 @@ let make params =
         signal = None ;
         frame_size = 20.;
         dtx = false;
+        phase_inversion = true
     }
   in
   let opus =
@@ -105,6 +106,8 @@ let make params =
               { f with Opus_format.fill = Some i }
           | ("dtx",{ term = Bool b; _}) ->
               { f with Opus_format.dtx = b }
+          | ("phase_inversion",{ term = Bool b; _}) ->
+              { f with Opus_format.phase_inversion = b }
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Opus_format.channels = 1 }
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->

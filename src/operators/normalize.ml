@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -50,6 +50,10 @@ object
 
   method remaining = source#remaining
 
+  method seek = source#seek
+
+  method self_sync = source#self_sync
+
   method is_ready = source#is_ready
 
   method abort_track = source#abort_track
@@ -66,11 +70,10 @@ object
       let gmax = gmax () in
         for i = offset to AFrame.position buf - 1 do
           for c = 0 to channels - 1 do
-            rms.(c) <- rms.(c) +. b.(c).(i) *. b.(c).(i);
-            b.(c).(i) <-
-              b.(c).(i) *.
-              ((float rmsc) *. vold.(c) +. (float (rmsi - rmsc)) *. v.(c)) /.
-              (float rmsi)
+            let bc = b.(c) in
+            let x = bc.{i} in
+            rms.(c) <- rms.(c) +. x *. x;
+            bc.{i} <- x *. ((float rmsc) *. vold.(c) +. (float (rmsi - rmsc)) *. v.(c)) /. (float rmsi)
           done;
           rmsc <- rmsc + 1;
           if rmsc >= rmsi then
@@ -80,7 +83,7 @@ object
               begin
                 let rmsl = sqrt (rms.(0) /. (float_of_int rmsi)) in
                 let rmsr = sqrt (rms.(1) /. (float_of_int rmsi)) in
-                  self#log#f 4
+                  self#log#info
                     "%6.02f  *  %4.02f  ->  %6.02f    |    \
                     %6.02f  *  %4.02f  ->  %6.02f"
                     (Sutils.dB_of_lin rmsl)

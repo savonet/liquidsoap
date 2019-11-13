@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -24,12 +24,10 @@
   * [src/protocols] plugins provide ways
   * to resolve URIs: fetch, generate, ... *)
 
-open Dtools
-
 let conf =
-  Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
+  Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 let grace_time =
-  Conf.float ~p:(conf#plug "grace_time") ~d:600.
+  Dtools.Conf.float ~p:(conf#plug "grace_time") ~d:600.
     "Time (in seconds) after which a destroyed request cannot be accessed anymore."
 
 let log = Log.make ["request"]
@@ -248,6 +246,11 @@ let get_log t = t.log
 
 exception No_indicator
 
+let () =
+  Printexc.register_printer (function
+    | No_indicator -> Some "All options exhausted while processing request" 
+    | _ -> None)
+
 let peek_indicator t =
   match t.indicators with
     | (h::_)::_ -> h
@@ -268,7 +271,7 @@ let rec pop_indicator t =
         Unix.unlink i.string
       with
         | e ->
-            log#f 2 "Unlink failed: %S" (Printexc.to_string e)
+            log#severe "Unlink failed: %S" (Printexc.to_string e)
       end ;
     t.decoder <- None ;
     if repop then pop_indicator t
@@ -287,7 +290,7 @@ let get_decoders conf decoders =
   let f cur name =
     match decoders#get name with
       | Some p -> (name,p)::cur
-      | None   -> log#f 2 "Cannot find decoder %s" name;
+      | None   -> log#severe "Cannot find decoder %s" name;
                   cur
   in
   List.fold_left f [] (List.rev conf#get)
@@ -300,12 +303,12 @@ let mresolvers =
     ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
 let conf_override_metadata =
-  Conf.bool ~p:(conf_metadata_decoders#plug "override") ~d:false
+  Dtools.Conf.bool ~p:(conf_metadata_decoders#plug "override") ~d:false
       "Allow metadata resolvers to override metadata already \
        set through annotate: or playlist resolution for instance."
 
 let conf_duration =
-  Conf.bool ~p:(conf_metadata_decoders#plug "duration") ~d:false
+  Dtools.Conf.bool ~p:(conf_metadata_decoders#plug "duration") ~d:false
     "Compute duration in the \"duration\" metadata, if the metadata is not \
      already present. This can take a long time and the use of this option is \
      not recommended: the proper way is to have a script precompute the \
@@ -334,7 +337,7 @@ let local_check t =
       let name = indicator.string in
       let metadata = get_all_metadata t in
         if not (file_is_readable name) then begin
-          log#f 3 "Read permission denied for %S!" name ;
+          log#important "Read permission denied for %S!" name ;
           add_log t "Read permission denied!" ;
           pop_indicator t
         end else
@@ -472,7 +475,21 @@ let resolving_requests () =
 
 (** Creation *)
 
+let leak_warning =
+  Dtools.Conf.int ~p:(conf#plug "leak_warning") ~d:100
+    "Number of requests at which a leak warning should be issued."
+
 let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
+  (* Find instantaneous request loops *)
+  let () =
+    let n = Pool.size () in
+    if n > 0 && n mod leak_warning#get = 0 then
+      log#severe
+        "There are currently %d RIDs, possible request leak! Please check that \
+         you don't have a loop on empty/unavailable requests, or creating \
+         requests without destroying them. Decreasing request.grace_time can \
+         also help." n
+  in
   let rid,register = Pool.add () in
   let t = {
     id = rid ;
@@ -583,7 +600,7 @@ let resolve t timeout =
                     handler.resolve ~log:(add_log t) arg maxtime
                   in
                     if production = [] then begin
-                      log#f 4
+                      log#info
                         "Failed to resolve %S! \
                          For more info, see server command 'trace %d'."
                         i.string t.id ;
@@ -591,7 +608,7 @@ let resolve t timeout =
                     end else
                       push_indicators t production
               | None ->
-                  log#f 3 "Unknown protocol %S in URI %S!" proto i.string ;
+                  log#important "Unknown protocol %S in URI %S!" proto i.string ;
                   add_log t "Unknown protocol!" ;
                   pop_indicator t
             end
@@ -617,7 +634,7 @@ let resolve t timeout =
   in
   let excess = (Unix.time ()) -. maxtime in
     if excess > 0. then
-      log#f 2 "Time limit exceeded by %.2f secs!" excess ;
+      log#severe "Time limit exceeded by %.2f secs!" excess ;
     t.resolving <- None ;
     if result <> Resolved then t.status <- Idle else t.status <- Ready ;
     result

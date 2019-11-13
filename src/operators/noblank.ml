@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,7 +25,7 @@ open Source
 (** Below, lengths are in audio samples, thresholds in RMS (in [0.;1.]). *)
 
 class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise ~threshold =
-object
+object(self)
   (** State can be either
     *  - `Noise l: the source is considered to be emitting,
     *     but it has been silent for l samples;
@@ -33,8 +33,23 @@ object
     *     but it has been noisy for l samples. *)
   val mutable state = if start_blank then `Blank 0 else `Noise 0
 
+  method virtual private log : Log.t
+
   method private in_blank =
     match state with `Blank _ -> true | _ -> false
+
+  method private string_of_state = function
+    | `Blank _ -> "blank"
+    | `Noise _ -> "no blank"
+
+  method private set_state s =
+    begin match state, s with
+      | `Blank _, `Noise _
+      | `Noise _, `Blank _ ->
+           self#log#info "Setting state to %s" (self#string_of_state s)
+      | _ -> ()
+    end;
+    state <- s
 
   (** This method should be called after the frame [s] has been
     * filled, where [p0] is the position in [s] before filling. *)
@@ -43,7 +58,7 @@ object
      *      By the way it was absent in [eat_blank]. *)
     if AFrame.is_partial s || p0 > 0 then
       (* Don't bother analyzing the end of this track, jump to the new state. *)
-      (if track_sensitive then state <- `Noise 0)
+      (if track_sensitive then self#set_state (`Noise 0))
     else
       let len = AFrame.position s - p0 in
       let rms = AFrame.rms s p0 len in
@@ -53,22 +68,22 @@ object
         match state with
           | `Noise blank_len ->
               if noise then
-                (if blank_len <> 0 then state <- `Noise 0)
+                (if blank_len <> 0 then self#set_state (`Noise 0))
               else
                 let blank_len = blank_len + len in
                   if blank_len <= max_blank then
-                    state <- `Noise blank_len
+                    self#set_state (`Noise blank_len)
                   else
-                    state <- `Blank 0
+                    self#set_state (`Blank 0)
           | `Blank noise_len ->
               if noise then
                 let noise_len = noise_len + len in
                   if noise_len < min_noise then
-                    state <- `Blank noise_len
+                    self#set_state (`Blank noise_len)
                   else
-                    state <- `Noise 0
+                    self#set_state (`Noise 0)
               else
-                (if noise_len <> 0 then state <- `Blank 0)
+                (if noise_len <> 0 then self#set_state (`Blank 0))
 
 end
 
@@ -82,6 +97,8 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = source#remaining
+  method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame ab =
     let p0 = AFrame.position ab in
@@ -97,7 +114,8 @@ object (self)
 
 end
 
-class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive source =
+class strip ~kind ~start_blank ~max_blank ~min_noise
+            ~threshold ~track_sensitive source =
 object (self)
 
   (* Stripping is easy:
@@ -116,7 +134,9 @@ object (self)
   method stype = Fallible
   method is_ready = not self#in_blank && source#is_ready
   method remaining = if self#in_blank then 0 else source#remaining
+  method seek n = if self#in_blank then 0 else source#seek n
   method abort_track = source#abort_track
+  method self_sync = source#self_sync
 
   method private get_frame ab =
     let p0 = AFrame.position ab in
@@ -135,7 +155,8 @@ object (self)
      * the track ends, the beginning of the next track won't be lost. (Because
      * of granularity issues, the change of #is_ready only takes effect at the
      * end of the clock cycle). *)
-    if self#in_blank && AFrame.is_partial memo then self#get_frame memo
+    if source#is_ready && self#in_blank && AFrame.is_partial memo then
+      self#get_frame memo
 
   method output_reset = ()
   method output_get_ready = ()
@@ -163,7 +184,9 @@ object (self)
   method stype = Fallible
   method is_ready = source#is_ready
   method remaining = source#remaining
+  method seek = source#seek
   method abort_track = source#abort_track
+  method self_sync = source#self_sync
 
   method private get_frame ab =
     let first = ref true in
@@ -221,7 +244,7 @@ let extract p =
     let v = f "threshold" in
     let t = Lang.to_float v in
       if t>0. then
-        raise (Lang.Invalid_value (v,"threshold should be negative")) ;
+        raise (Lang_errors.Invalid_value (v,"threshold should be negative")) ;
       Audio.lin_of_dB t
   in
   let ts = Lang.to_bool (f "track_sensitive") in

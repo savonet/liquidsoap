@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,15 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
-open Dtools
 open Extralib
-
-module Img = Image.RGBA32
 
 type t = Float | Int | Bool
 
@@ -52,7 +49,9 @@ object
 
   method stype = source#stype
   method remaining = source#remaining
+  method seek = source#seek
   method is_ready = source#is_ready
+  method self_sync = source#self_sync
   method abort_track = source#abort_track
 
   val mutable t = 0.
@@ -64,12 +63,16 @@ object
       params ();
       let rgb = rgb.(0) in
       for i = offset to offset + length - 1 do
-        let img = rgb.(i) in
-        if bgra then Img.swap_rb img;
-        let src = Img.data (Img.copy img) in
-        let dst = Img.data img in
+        (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
+        let img = Video.get rgb i in
+        let img = Image.YUV420.to_RGBA32 img in
+        if bgra then Image.RGBA32.swap_rb img;
+        let src = Image.RGBA32.data (Image.RGBA32.copy img) in
+        let dst = Image.RGBA32.data img in
         Frei0r.update1 instance t src dst;
-        if bgra then Img.swap_rb img;
+        if bgra then Image.RGBA32.swap_rb img;
+        let img = Image.YUV420.of_RGBA32 img in
+        Video.set rgb i img;
         t <- t +. dt
       done
 end
@@ -91,6 +94,8 @@ object
       | x,y -> min x y
 
   method is_ready = source#is_ready && source2#is_ready
+
+  method self_sync = source#self_sync || source2#self_sync
 
   method abort_track = source#abort_track ; source2#abort_track
 
@@ -119,15 +124,20 @@ object
       let rgb = rgb.(0) in
       let rgb' = rgb'.(0) in
       for i = offset to offset + length - 1 do
-        let img = rgb.(i) in
-        let img' = rgb'.(i) in
-        if bgra then Img.swap_rb img;
-        if bgra then Img.swap_rb img';
-        let src = Img.data (Img.copy img) in
-        let src' = Img.data img' in
-        let dst = Img.data img in
+        (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
+        let img = Video.get rgb i in
+        let img = Image.YUV420.to_RGBA32 img in
+        let img' = Video.get rgb' i in
+        let img' = Image.YUV420.to_RGBA32 img' in
+        if bgra then Image.RGBA32.swap_rb img;
+        if bgra then Image.RGBA32.swap_rb img';
+        let src = Image.RGBA32.data (Image.RGBA32.copy img) in
+        let src' = Image.RGBA32.data img' in
+        let dst = Image.RGBA32.data img in
         Frei0r.update2 instance t src src' dst;
-        if bgra then Img.swap_rb img;
+        if bgra then Image.RGBA32.swap_rb img;
+        let img = Image.YUV420.of_RGBA32 img in
+        Video.set rgb i img;
         t <- t +. dt
       done
     | _ -> ()
@@ -141,6 +151,7 @@ object
 
   method stype = Infallible
   method is_ready = true
+  method self_sync = false
 
   val mutable must_fail = false
   method abort_track = must_fail <- true
@@ -156,13 +167,16 @@ object
       params ();
       let start = VFrame.position frame in
       let stop = VFrame.size () in
-      let buf = VFrame.content_of_type frame ~channels:1 in
-      let buf = buf.(0) in
+      let rgb = VFrame.content_of_type frame ~channels:1 in
+      let rgb = rgb.(0) in
       for i = start to stop - 1 do
-        let img = buf.(i) in
-        let buf = Img.data img in
-        Frei0r.update0 instance t buf;
-        if bgra then Img.swap_rb img;
+        let img = Video.get rgb i in
+        let img = Image.YUV420.to_RGBA32 img in
+        let dst = Image.RGBA32.data img in
+        Frei0r.update0 instance t dst;
+        if bgra then Image.RGBA32.swap_rb img;
+        let img = Image.YUV420.of_RGBA32 img in
+        Video.set rgb i img;
         t <- t +. dt
       done;
       VFrame.add_break frame stop
@@ -372,10 +386,10 @@ let register_plugins () =
       | End_of_file -> Unix.closedir dir
     with
     | Unix.Unix_error (e,_,_) ->
-      log#f 4 "Error while loading directory %s: %s"
+      log#info "Error while loading directory %s: %s"
         plugins_dir (Unix.error_message e)
   in
   List.iter add plugin_dirs
 
 let () =
-  if frei0r_enable then register_plugins ()
+  Configure.at_init (fun () -> if frei0r_enable then register_plugins ())

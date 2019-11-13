@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -32,7 +32,9 @@ object
   method stype = source#stype
   method is_ready = source#is_ready
   method remaining = source#remaining
+  method seek = source#seek
   method abort_track = source#abort_track
+  method self_sync = source#self_sync
 
   (** Accumulator (e.g. sum of squares). *)
   val acc = Array.make channels 0.
@@ -57,7 +59,7 @@ object
       let buf = AFrame.content buf offset in
       for i = offset to position - 1 do
         for c = 0 to channels - 1 do
-          let x = buf.(c).(i) in
+          let x = buf.(c).{i} in
           match mode with
           | RMS -> acc.(c) <- acc.(c) +. x *. x
           | Peak -> acc.(c) <- max acc.(c) (abs_float x)
@@ -97,9 +99,12 @@ let declare mode suffix format fun_ret_t f_ans =
   Lang.add_builtin (name^suffix)
     ~category:(Lang.string_of_category Lang.Visualization)
     ~descr:("Get current "^doc^" of the source. \
-            Returns a pair @(f,s)@ where s is a new source and \
-            @f@ is a function of type @() -> float@ and \
-            returns the current "^doc^" of the source.")
+            Returns a pair `(f,s)` where s is a new source and \
+            `f` is a function of type `() -> float` and \
+            returns the current "^doc^" of the source, with \
+            `0.0 <= "^doc^" <= 1.0`. Some operators like `amplify` \
+            and `compress` can produce amplitudes greater than 1.0 \
+            if misconfigured, inducing clipping in the output.")
     [
       "id", Lang.string_t,Some (Lang.string ""), Some "Force the value of the source ID.";
       "duration", Lang.float_getter_t 2, Some (Lang.float 0.5), Some "Duration of the window (in seconds). A value <= 0, means that computation should not be performed.";

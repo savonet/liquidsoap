@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,32 +16,26 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
 open Ladspa
-open Dtools
 
 type t = Float | Int | Bool
 
 let log = Log.make ["LADSPA extension"]
 
-let ladspa_enable =
-  try
-    let venv = Unix.getenv "LIQ_LADSPA" in
-      venv = "1" || venv = "true"
-  with
-    | Not_found -> true
+let conf_ladspa =
+  Dtools.Conf.void ~p:(Utils.conf#plug "ladspa") "Lasdpa Configuration"
 
-let plugin_dirs =
-  try
-    let path = Unix.getenv "LIQ_LADSPA_PATH" in
-      Pcre.split ~pat:":" path
-  with
-    | Not_found -> ["/usr/lib64/ladspa";"/usr/lib/ladspa";"/usr/local/lib/ladspa"]
+let conf_enable =
+  Dtools.Conf.bool ~p:(conf_ladspa#plug "enable") ~d:true "Enable Ladspa "
 
+let conf_dirs =
+  Dtools.Conf.list ~p:(conf_ladspa#plug "dirs") ~d:["/usr/lib64/ladspa";"/usr/lib/ladspa";"/usr/local/lib/ladspa"]
+    "Directories to search for plugins"
 
 let port_t d p =
   if Descriptor.port_is_boolean d p then Bool
@@ -56,7 +50,11 @@ object
 
   method remaining = source#remaining
 
+  method seek = source#seek
+
   method is_ready = source#is_ready
+
+  method self_sync = source#self_sync
 
   method abort_track = source#abort_track
 end
@@ -68,6 +66,8 @@ object
   method stype = Infallible
 
   method is_ready = true
+
+  method self_sync = false
 
   val mutable must_fail = false
 
@@ -89,8 +89,7 @@ object
       (fun _ ->
         Descriptor.instantiate
           d
-          (Lazy.force Frame.audio_rate)
-          (AFrame.size ()))
+          (Lazy.force Frame.audio_rate))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -102,13 +101,13 @@ object
     let position = AFrame.position buf in
     let len = position - offset in
     for c = 0 to Array.length b - 1 do
-      Descriptor.set_samples inst.(c) len;
-      Descriptor.connect_audio_port inst.(c) input b.(c) offset;
-      Descriptor.connect_audio_port inst.(c) output b.(c) offset;
+      let buf = Audio.Mono.sub b.(c) offset len in
+      Descriptor.connect_port inst.(c) input buf;
+      Descriptor.connect_port inst.(c) output buf;
       List.iter
-        (fun (p,v) -> Descriptor.connect_control_port_in inst.(c) p (v ()))
+        (fun (p,v) -> Descriptor.set_control_port inst.(c) p (v ()))
         params;
-      Descriptor.run inst.(c)
+      Descriptor.run inst.(c) len
     done
 end
 
@@ -123,7 +122,6 @@ object
     Descriptor.instantiate
       d
       (Lazy.force Frame.audio_rate)
-      (AFrame.size ())
 
   initializer
     Descriptor.activate inst
@@ -135,28 +133,28 @@ object
     let position = AFrame.position buf in
     let len = position - offset in
     List.iter
-      (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
+      (fun (p,v) -> Descriptor.set_control_port inst p (v ()))
       params;
-    Descriptor.set_samples inst len;
     if Array.length inputs = Array.length outputs then
       (
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to Array.length b - 1 do
-          Descriptor.connect_audio_port inst inputs.(c) b.(c) offset;
-          Descriptor.connect_audio_port inst outputs.(c) b.(c) offset
+          let buf = Audio.Mono.sub b.(c) offset len in
+          Descriptor.connect_port inst inputs.(c) buf;
+          Descriptor.connect_port inst outputs.(c) buf
         done;
-        Descriptor.run inst
+        Descriptor.run inst len
       )
     else
       (* We have to change channels. *)
       let d = AFrame.content_of_type ~channels:oc buf offset in
       for c = 0 to Array.length b - 1 do
-        Descriptor.connect_audio_port inst inputs.(c) b.(c) offset
+        Descriptor.connect_port inst inputs.(c) (Audio.Mono.sub b.(c) offset len)
       done;
       for c = 0 to Array.length d - 1 do
-        Descriptor.connect_audio_port inst outputs.(c) d.(c) offset
+        Descriptor.connect_port inst outputs.(c) (Audio.Mono.sub d.(c) offset len)
       done;
-      Descriptor.run inst
+      Descriptor.run inst len
 end
 
 class ladspa_nosource ~kind plugin descr outputs params =
@@ -169,7 +167,6 @@ object
     Descriptor.instantiate
       d
       (Lazy.force Frame.audio_rate)
-      (AFrame.size ())
 
   initializer
     Descriptor.activate inst
@@ -186,13 +183,12 @@ object
       let position = AFrame.size () in
       let len = position - offset in
       List.iter
-        (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
+        (fun (p,v) -> Descriptor.set_control_port inst p (v ()))
         params;
-      Descriptor.set_samples inst len;
       for c = 0 to Array.length b - 1 do
-        Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+        Descriptor.connect_port inst outputs.(c) (Audio.Mono.sub b.(c) offset len);
       done;
-      Descriptor.run inst;
+      Descriptor.run inst len;
       AFrame.add_break buf position
 end
 
@@ -268,7 +264,7 @@ let params_of_descr d =
                        | None -> ()
                      end ;
                      bounds :=
-                     !bounds ^ "<code>" ^ (Utils.normalize_parameter_string (Descriptor.port_name d p)) ^ "</code>";
+                     !bounds ^ "`" ^ (Utils.normalize_parameter_string (Descriptor.port_name d p)) ^ "`";
                      begin match max with
                        | Some f ->
                            begin match t with
@@ -419,11 +415,12 @@ let register_plugins () =
           | End_of_file -> Unix.closedir dir
     with
       | Unix.Unix_error (e,_,_) ->
-          log#f 4 "Error while loading directory %s: %s"
+          log#info "Error while loading directory %s: %s"
             plugins_dir (Unix.error_message e)
   in
-    List.iter add plugin_dirs
+    List.iter add conf_dirs#get
 
 let () =
-  if ladspa_enable then
-    register_plugins ()
+  Configure.at_init (fun () ->
+    if conf_enable#get then
+      register_plugins ())

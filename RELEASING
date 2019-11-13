@@ -5,9 +5,10 @@
  [] Run tests! We have too few, but we do have some: "make test".
  [] Update copyright years in headers and check that all files have license
      headers.
- [] Check version in configure.ac, README and INSTALL.
- [] Check version and contents in the man pages (mainly doc/liquidsoap.1).
- [] Update dependencies in INSTALL.
+ [] Check version in VERSION
+ [] Set git_snapshot to false in configure.ac, run ./bootstrap and ./configure
+ [] Check contents in the man pages (mainly doc/liquidsoap.1.md).
+ [] Update dependencies in doc/content/build.md
  [] Fill-in CHANGES, with the release date.
  [] make clean
  [] make tarball

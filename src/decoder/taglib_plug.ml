@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 exception Invalid_file
 
-let log = Dtools.Log.make ["decoder";"taglib"]
+let log = Log.make ["decoder";"taglib"]
 
 (** Configuration keys for taglib. *)
 let mime_types =
@@ -69,8 +69,8 @@ let get_tags fname =
   with
     | Invalid_file -> []
     | e ->
-       log#f 4 "Error while decoding file tags: %s" (Printexc.to_string e);       
-       log#f 4 "Backtrace:\n%s" (Printexc.get_backtrace());
+       log#info "Error while decoding file tags: %s" (Printexc.to_string e);       
+       log#info "Backtrace:\n%s" (Printexc.get_backtrace());
        raise Not_found
 
 let () = Request.mresolvers#register "TAGLIB" get_tags

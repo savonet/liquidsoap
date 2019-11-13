@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,21 +16,19 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Plug for playlist parsing, in which [src/playlists] plugins come. *)
 
-open Dtools
-
 let log = Log.make ["playlist parser"]
 
 let conf_playlists =
-  Conf.void ~p:(Configure.conf#plug "playlists")
+  Dtools.Conf.void ~p:(Configure.conf#plug "playlists")
     "Playlist formats"
 let conf_mime_types =
-  Conf.void ~p:(conf_playlists#plug "mime_types")
+  Dtools.Conf.void ~p:(conf_playlists#plug "mime_types")
     "Mime-types used for guessing playlist formats."
     ~comments:[
       "When a mime-type is available (e.g. with input.http), it can be used";
@@ -41,7 +39,7 @@ let conf_mime_types =
       "contact the developpers."
     ]
 let conf_cue_in_metadata =
-  Conf.string ~p:(conf_playlists#plug "cue_in_metadata") ~d:"liq_cue_in"
+  Dtools.Conf.string ~p:(conf_playlists#plug "cue_in_metadata") ~d:"liq_cue_in"
     "Cue in metadata for playlists with track index."
     ~comments:["Some playlists format, such as CUE files specify index points to start";
       "tracks playback. In this case, tracks are resolved to a annotate: request with";
@@ -49,7 +47,7 @@ let conf_cue_in_metadata =
       "you should specify here what label you want for this metadata and use the cue_cut";
       "operator on the resulting source"]
 let conf_cue_out_metadata =
-  Conf.string ~p:(conf_playlists#plug "cue_out_metadata") ~d:"liq_cue_out"
+  Dtools.Conf.string ~p:(conf_playlists#plug "cue_out_metadata") ~d:"liq_cue_out"
     "Cue out metadata for playlists with track index."
     ~comments:["Some playlists format, such as CUE files specify index points to start";
       "tracks playback. In this case, tracks are resolved to a annotate: request with";
@@ -98,13 +96,13 @@ let search_valid ?pwd string =
     let plugins = List.sort compare plugins in
     List.iter
       (fun (format,plugin) ->
-           log#f 4 "Trying %s parser" format ;
+           log#info "Trying %s parser" format ;
 	   match try Some (plugin.parser ?pwd string) with _ -> None
 	      with
 	        | Some d -> raise (Exit (format,d))
 		| None -> () )
       plugins;
-    log#f 3 "No format found";
+    log#important "No format found";
     raise Not_found
   with
     | Exit (format,d) -> format,d

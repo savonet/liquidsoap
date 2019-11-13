@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -44,7 +44,7 @@ object
         c.Frame.video.(0)
     in
       for frame = 0 to 0 do
-        let img = Image.RGBA32.to_int_image rgb.(frame) in
+        let img = Video.Image.to_int_image (Video.get rgb frame) in
         let img = Graphics.make_image img in
           Graphics.draw_image img 0 0
       done
@@ -53,7 +53,7 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.video_only in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.video in
   Lang.add_operator "output.graphics" ~active:true
     (Output.proto @ [
       "", Lang.source_t k, None, None

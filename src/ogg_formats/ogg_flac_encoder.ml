@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 let create_encoder ~flac ~comments () =
-  let samplerate = flac.Flac_format.samplerate in
+  let samplerate = Lazy.force flac.Flac_format.samplerate in
   let p = 
     { Flac.Encoder.
        channels = flac.Flac_format.channels ;
@@ -114,7 +114,7 @@ let create_flac =
          Ogg_muxer.register_track ?fill:flac.Flac_format.fill ogg_enc enc
        in
        let src_freq = float (Frame.audio_of_seconds 1.) in
-       let dst_freq = float flac.Flac_format.samplerate in
+       let dst_freq = float (Lazy.force flac.Flac_format.samplerate) in
        let channels = flac.Flac_format.channels in
        let encode =
          Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()

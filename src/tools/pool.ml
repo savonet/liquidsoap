@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -38,6 +38,7 @@ sig
   val fold : (int -> t -> 'a -> 'a) -> 'a -> 'a
   val iter : (int -> t -> unit) -> unit
   val remove : int -> unit
+  val size : unit -> int
 end
 
 module Make (P:T) : (S with type t = P.t) =
@@ -52,6 +53,9 @@ struct
 
   let m = Mutex.create ()
   let h : (int,entry) Hashtbl.t = Hashtbl.create 100
+
+  let size =
+    Tutils.mutexify m (fun () -> Hashtbl.length h)
 
   let find =
     Tutils.mutexify m

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,21 +16,20 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-open Dtools
 open Extralib
 
 module S = LO.Server
 
 let conf_osc =
-  Conf.void ~p:(Configure.conf#plug "osc")
+  Dtools.Conf.void ~p:(Configure.conf#plug "osc")
     "Interactions through the OSC protocol."
 
 let conf_port =
-  Conf.int ~p:(conf_osc#plug "port") ~d:7777
+  Dtools.Conf.int ~p:(conf_osc#plug "port") ~d:7777
     "Port for OSC server."
 
 (* (path,type),handler *)
@@ -70,6 +69,14 @@ let start_server () =
     let s = S.create port handler in
     server := Some s;
     ignore (Thread.create (fun () -> while true do S.recv s done) ())
+
+let _ =
+  Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom]
+    (fun () ->
+      match !server with
+      | Some s -> S.stop s; server := None
+      | None -> ()
+    )
 
 let register name osc_t liq_t =
   let val_array vv =

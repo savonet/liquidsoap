@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,6 +58,19 @@ object
   (** The clock under which the source will run, initially unknown. *)
   method clock : clock_variable
 
+  (** Does the source provide its own synchronization?
+    * Examples: Alsa, AO, SRT I/O, etc.. This information
+    * is used at the clock level to decide wether or not
+    * we should synchronize with the CPU clock after producing
+    * a frame (for [`Auto] clocks). Please note that in the case
+    * of multiple sources filling the frame with different notion
+    * notion of synchronization, there is no consistent notion
+    * of time or synchronization. In this case (and with a [`Auto]
+    * clock), we simply decide based on wether there is one [self_sync]
+    * source or not. This logic should dictate how the method is
+    * implemented by the various operators. *)
+  method virtual self_sync : bool
+
   (** Choose your clock, by adjusting to your children source,
     * or anything custom. *)
   method private set_clock : unit
@@ -80,6 +93,10 @@ object
 
   (** What kind of content does this source produce. *)
   method kind : Frame.content_kind
+
+  (** Frame currently being filled. *)
+  val memo : Frame.t
+  method get_memo : Frame.t
 
   (** Number of frames left in the current track. Defaults to -1=infinity. *)
   method virtual remaining : int
@@ -124,7 +141,7 @@ object
     ?indicators:(Request.indicator list) -> string ->
     Request.t
 
-  method private log : Dtools.Log.t
+  method private log : Log.t
 
 end
 
@@ -132,7 +149,6 @@ end
 and virtual active_source : ?name:string -> Frame.content_kind ->
 object
   inherit source
-  val memo : Frame.t
 
   (** Special init phase for outputs. This method is called by Root after the
     * standard get_ready propagation, after the Root clock is started.

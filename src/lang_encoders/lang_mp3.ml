@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,18 +16,32 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Lang_values
 open Lang_encoders
 
-let mp3_base_defaults =
+let check_samplerate ?t i =
+  lazy (
+    let i = Lazy.force i in
+    let allowed =
+      [8000;11025;12000;16000;22050;24000;32000;44100;48000]
+    in
+    if not (List.mem i allowed) then
+     begin
+      match t with
+        | Some t -> raise (Error (t,"invalid samplerate value"))
+        | None -> failwith "invalid samplerate value"
+     end;
+    i)
+
+let mp3_base_defaults () =
     { Mp3_format.
         stereo = true ;
         stereo_mode = Mp3_format.Joint_stereo ;
-        samplerate = 44100 ;
+        samplerate = check_samplerate Frame.audio_rate;
         bitrate_control = Mp3_format.CBR 128 ;
         internal_quality = 2;
         id3v2 = None ;
@@ -58,12 +72,7 @@ let mp3_base f =
     | ("msg",{ term = String m; _ }) ->
         { f with Mp3_format.msg = m }
     | ("samplerate",({ term = Int i; _ } as t)) ->
-        let allowed =
-          [8000;11025;12000;16000;22050;24000;32000;44100;48000]
-        in
-        if not (List.mem i allowed) then
-          raise (Error (t,"invalid samplerate value")) ;
-        { f with Mp3_format.samplerate = i }
+        { f with Mp3_format.samplerate = check_samplerate ~t (Lazy.from_val i) }
     | ("id3v2",({ term = Bool true; _ } as t)) ->
         (match !Mp3_format.id3v2_export with
            | None -> raise (Error(t,"no id3v2 support available for the mp3 encoder"))
@@ -78,7 +87,7 @@ let mp3_base f =
 
 let make_cbr params =
   let defaults =
-    { mp3_base_defaults with
+    { (mp3_base_defaults ()) with
        Mp3_format.
         bitrate_control = Mp3_format.CBR 128 }
   in
@@ -107,7 +116,7 @@ let make_cbr params =
 
 let make_abr params =
   let defaults =
-    { mp3_base_defaults with
+    { (mp3_base_defaults ()) with
        Mp3_format.
         bitrate_control =
          Mp3_format.ABR
@@ -173,7 +182,7 @@ let make_abr params =
 
 let make_vbr params =
   let defaults =
-    { mp3_base_defaults with
+    { (mp3_base_defaults ()) with
        Mp3_format.
         bitrate_control = Mp3_format.VBR 4 }
   in

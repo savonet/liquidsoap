@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,11 +29,9 @@ val converter_conf : Dtools.Conf.ut
 
 module Samplerate :
 sig
-
-
   exception Invalid_data
 
-  type converter = float -> float array -> int -> int -> float array
+  type converter = float -> Frame.audio_t -> Frame.audio_t
 
   type converter_plug = unit -> converter
 
@@ -46,10 +44,9 @@ sig
   (** [create chan_nb] creates a converter. *)
   val create : int -> t
 
-  (** [resample converter ratio data offset length]: converts input data
-    * at given ratio.
-    * Raises [Invalid_data] if number of channels do not match
-    * the number passed at [create]. *)
-  val resample : t -> float -> float array array -> int -> int -> float array array
+  (** [resample converter ratio data]: converts input data at given
+      ratio. Raises [Invalid_data] if number of channels do not match the number
+      passed at [create]. *)
+  val resample : t -> float -> Frame.audio_t array -> Frame.audio_t array
 end
 

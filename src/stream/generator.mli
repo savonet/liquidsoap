@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -192,6 +192,15 @@ sig
   (** Length of data available in both audio and video. *)
   val length : t -> int
 
+  (** Size of audio data in bytes. *)
+  val audio_size : t -> int
+
+  (** Size of video data in bytes. *)
+  val video_size : t -> int
+
+  (** Size of data in bytes. *)
+  val size : t -> int
+
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   val remaining : t -> int
 
@@ -262,6 +271,10 @@ sig
   val video_length : t -> int
   val length : t -> int
   val remaining : t -> int
+
+  val audio_size : t -> int
+  val video_size : t -> int
+  val size : t -> int
 
   val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
   val add_metadata : t -> Frame.metadata -> unit

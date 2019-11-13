@@ -290,7 +290,7 @@ struct
           let n = Transport.read socket buf 0 buflen in
             Bytes.sub_string buf 0 n
       | None ->
-          let buflen = 1024 in
+          let buflen = Utils.pagesize in
           let buf = Bytes.create buflen in
           let ans = ref "" in
           let n = ref buflen in

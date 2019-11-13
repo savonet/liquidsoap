@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
 open Dssi
-open Dtools
 
 let log = Log.make ["DSSI synthesizer"]
 
@@ -62,6 +61,8 @@ object
 
   method is_ready = source#is_ready
 
+  method self_sync = source#self_sync
+
   method abort_track = source#abort_track
 
   val di =
@@ -73,8 +74,7 @@ object
         (fun _ ->
            Ladspa.Descriptor.instantiate
              (Descriptor.ladspa d)
-             (Lazy.force Frame.audio_rate)
-             (AFrame.size ()))
+             (Lazy.force Frame.audio_rate))
 
   initializer
     Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)
@@ -113,11 +113,10 @@ object
         (fun inst ->
            List.iter
              (fun (p,v) ->
-                Ladspa.Descriptor.connect_control_port_in inst p (v ())
+                Ladspa.Descriptor.set_control_port inst p (v ())
              ) params;
-           Ladspa.Descriptor.set_samples inst len;
            for c = 0 to Array.length outputs - 1 do
-             Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+             Ladspa.Descriptor.connect_port inst outputs.(c) (Audio.Mono.sub b.(c) offset len)
            done;
         ) inst;
       assert (Array.length outputs = Array.length b);
@@ -190,18 +189,18 @@ let register_plugin ?(log_errors=false) pname =
                (
                  register_descr pname n d o;
                  if log_errors then
-                   log#f 3 "Registered DSSI plugin: %s." (Ladspa.Descriptor.label ladspa_descr)
+                   log#important "Registered DSSI plugin: %s." (Ladspa.Descriptor.label ladspa_descr)
                )
              else
                if log_errors then
-                 log#f 3 "Plugin %s has inputs, don't know how to handle them for now." (Ladspa.Descriptor.label ladspa_descr)
+                 log#important "Plugin %s has inputs, don't know how to handle them for now." (Ladspa.Descriptor.label ladspa_descr)
         ) descr
       (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
       (* Plugin.unload p *)
   with
     | Plugin.Not_a_plugin ->
       if log_errors then
-        log#f 3 "File \"%s\" is not a plugin!" pname
+        log#important "File \"%s\" is not a plugin!" pname
 
 let register_plugins () =
   let plugins =
@@ -219,7 +218,7 @@ let register_plugins () =
             | End_of_file -> Unix.closedir dir
       with
         | Unix.Unix_error (e,_,_) ->
-            log#f 4 "Error while loading directory %s: %s"
+            log#info "Error while loading directory %s: %s"
               plugins_dir (Unix.error_message e)
     in
       List.iter add plugin_dirs ;

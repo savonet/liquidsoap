@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Output using SDL lib. *)
 
-open Sdl
 
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
   let video_width    = Lazy.force Frame.video_width in
@@ -42,7 +41,7 @@ object (self)
     ignore (Sdlvideo.set_video_mode
               ~w:video_width ~h:video_height
               ~bpp:32 [`ANYFORMAT;`DOUBLEBUF]) ;
-    self#log#f 4 "Initialized SDL video surface with %dbpp."
+    self#log#info "Initialized SDL video surface with %dbpp."
       (Sdlvideo.surface_bpp (Sdlvideo.get_video_surface ()))
 
   (** We don't care about latency. *)
@@ -86,7 +85,7 @@ object (self)
     let rgb =
       let stop,c = Frame.content buf 0 in
         assert (stop = Lazy.force Frame.size) ;
-        c.Frame.video.(0).(0)
+        (Video.get c.Frame.video.(0) 0)
     in
     begin match Sdlvideo.surface_bpp surface with
       | 16 -> Sdl_utils.to_16 rgb surface
@@ -98,7 +97,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.video_only in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.video in
   Lang.add_operator "output.sdl" ~active:true
     (Output.proto @ [
       "", Lang.source_t k, None, None

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -37,20 +37,28 @@ class virtual base ~kind dev mode =
   let periods = Alsa_settings.periods#get in
 object (self)
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
 
   val mutable alsa_rate = -1
 
   val mutable pcm = None
 
   val mutable write =
-    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
+       Pcm.writen_float_ba pcm buf
+    )
 
   val mutable read =
-    (fun pcm buf ofs len -> Pcm.readn_float pcm buf ofs len)
+    (fun pcm buf ofs len ->
+       let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
+       Pcm.readn_float_ba pcm buf
+    )
+
+  method self_sync = pcm <> None
 
   method open_device =
-    self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
+    self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
     try
       let dev =
         match pcm with
@@ -68,7 +76,7 @@ object (self)
           with
             | _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
-                self#log#f 2 "Falling back on interleaved S16LE";
+                self#log#important "Falling back on interleaved S16LE";
                 handle "format" (Pcm.set_format dev params) Pcm.Format_s16_le;
                 (
                   try
@@ -76,19 +84,19 @@ object (self)
                     write <-
                     (fun pcm buf ofs len ->
                        let sbuf = Bytes.create (2 * len * Array.length buf) in
-                       Audio.S16LE.of_audio buf ofs sbuf 0 len;
+                       Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                        Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                     );
                     read <-
                     (fun pcm buf ofs len ->
                        let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
                        let r = Pcm.readi pcm sbuf 0 len in
-                       Audio.S16LE.to_audio sbuf 0 buf ofs r;
+                       Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r);
                        r
                     )
                   with
                     | Alsa.Invalid_argument ->
-                        self#log#f 2 "Falling back on non-interleaved S16LE";
+                        self#log#important "Falling back on non-interleaved S16LE";
                         handle "access"
                           (Pcm.set_access dev params)
                           Pcm.Access_rw_noninterleaved;
@@ -100,8 +108,7 @@ object (self)
                                (fun _ -> String.make (2 * len) (Char.chr 0))
                            in
                            for c = 0 to Audio.channels buf - 1 do
-                             Audio.S16LE.of_audio
-                               [|buf.(c)|] ofs (Bytes.of_string sbuf.(c)) 0 len
+                             Audio.S16LE.of_audio (Audio.sub [|buf.(c)|] ofs len) (Bytes.of_string sbuf.(c)) 0
                            done;
                            Pcm.writen pcm sbuf 0 len
                         );
@@ -114,8 +121,7 @@ object (self)
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
                            for c = 0 to Audio.channels buf - 1 do
-                             Audio.S16LE.to_audio
-                               sbuf.(c) 0 [|buf.(c)|] ofs len
+                             Audio.S16LE.to_audio sbuf.(c) 0 (Audio.sub [|buf.(c)|] ofs len)
                            done;
                            r
                         )
@@ -143,21 +149,21 @@ object (self)
         in
           alsa_rate <- rate;
           if rate <> samples_per_second then
-            self#log#f 3
+            self#log#important
               "Could not set sample rate to 'frequency' (%d Hz), got %d."
               samples_per_second rate ;
           if bufsize <> samples_per_frame then
-            self#log#f 3
+            self#log#important
               "Could not set buffer size to 'frame.size' (%d samples), got %d."
               samples_per_frame bufsize ;
-          self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
+          self#log#important "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
             alsa_rate bufsize (Pcm.get_frame_size params) periods ;
           (
           try
             Pcm.set_params dev params
           with
             | Alsa.Invalid_argument as e ->
-                self#log#f 1
+                self#log#critical
                   "Setting alsa parameters failed (invalid argument)!";
                 raise e
           );
@@ -201,13 +207,9 @@ object (self)
   val samplerate_converter = Audio_converter.Samplerate.create channels
 
   method output_start =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source ;
     self#open_device
 
   method output_stop =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source ;
     self#close_device
 
   method output_send memo =
@@ -220,31 +222,31 @@ object (self)
         Audio_converter.Samplerate.resample
           samplerate_converter
           (float alsa_rate /. float samples_per_second)
-          buf 0 (Array.length buf)
+          buf
     in
       try
         let r = ref 0 in
-          while !r < Array.length buf.(0) do
+          while !r < Audio.Mono.length buf.(0) do
             if !r <> 0 then
-              self#log#f 4
+              self#log#info
                 "Partial write (%d instead of %d)! \
                  Selecting another buffer size or device can help."
-                !r (Array.length buf.(0));
-            r := !r + (write pcm buf !r (Array.length buf.(0) - !r))
+                !r (Audio.Mono.length buf.(0));
+            r := !r + (write pcm buf !r (Audio.Mono.length buf.(0) - !r))
           done
       with
         | e -> 
           begin
            match e with
              | Buffer_xrun -> 
-                 self#log#f 2
+                 self#log#severe
                    "Underrun! \
                     You may minimize them by increasing the buffer size."
-             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
           end ;
           if e = Buffer_xrun || e = Suspended || e = Interrupted then
            begin
-            self#log#f 2 "Trying to recover.." ;
+            self#log#severe "Trying to recover.." ;
             Pcm.recover pcm e ;
             self#output
            end
@@ -271,13 +273,9 @@ object (self)
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
   method private start =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source ;
     self#open_device
 
   method private stop =
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source ;
     self#close_device
 
   (* TODO: convert samplerate *)
@@ -288,10 +286,10 @@ object (self)
         let r = ref 0 in
           while !r < samples_per_frame do
             if !r <> 0 then
-              self#log#f 4
+              self#log#info
                    "Partial read (%d instead of %d)! \
                     Selecting another buffer size or device can help."
-                !r (Array.length buf.(0));
+                !r (Audio.length buf);
             r := !r + (read pcm buf !r (samples_per_frame - !r))
           done;
           AFrame.add_break frame (AFrame.size ())
@@ -300,14 +298,14 @@ object (self)
           begin
            match e with
              | Buffer_xrun ->
-                 self#log#f 2
+                 self#log#severe
                    "Overrun! \
                     You may minimize them by increasing the buffer size."
-             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
           end ;
           if e = Buffer_xrun || e = Suspended || e = Interrupted then
            begin
-            self#log#f 2 "Trying to recover.." ;
+            self#log#severe "Trying to recover.." ;
             Pcm.recover pcm e ;
             self#output
            end

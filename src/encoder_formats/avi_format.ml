@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,17 +16,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 type t =
   {
-    samplerate : int;
+    (* Samplerate is lazy in order to avoid forcing the evaluation of the
+       samplerate at typing time, see #933. For channels this is pointless since
+       we really need that for typing. *)
+    samplerate : int Lazy.t;
     channels : int;
   }
 
 let to_string w =
+  let samplerate = Lazy.force w.samplerate in
   Printf.sprintf
     "%%avi(samplerate=%d,channels=%d)"
-    w.samplerate w.channels
+    samplerate w.channels

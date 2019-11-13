@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,20 +16,9 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
-
-module Img = Image.RGBA32
-module Gen = Image.Generic
-
-(** Converter used to resize images. *)
-let converter =
-  Utils.LazyCompat.from_fun
-    (fun () ->
-      Video_converter.find_converter
-        (Gen.Pixel.RGB Gen.Pixel.RGBA32)
-        (Gen.Pixel.RGB Gen.Pixel.RGBA32))
 
 (** Function to retrieve width an height from parameters. *)
 (* TODO: put this in some library as it can be used in many other places... *)
@@ -90,7 +79,7 @@ let off_string iw ih ox oy =
 
 let create_decoder metadata img =
   (* Dimensions. *)
-  let img_w, img_h = Img.dimensions img in
+  let img_w, img_h = Video.Image.dimensions img in
   let width = try Hashtbl.find metadata "width" with Not_found -> "" in
   let height = try Hashtbl.find metadata "height" with Not_found -> "" in
   let width, height = wh_string img_w img_h width height in
@@ -98,21 +87,21 @@ let create_decoder metadata img =
   let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
   let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
+  let scale = Video_converter.scaler () in
   let img =
     let img =
       if (width,height) = (img_w,img_h) then img else
-        (* Img.Scale.create img width height *)
-        let img' = Img.create width height in
-        let converter = Lazy.force converter in
-        converter (Gen.of_RGBA32 img) (Gen.of_RGBA32 img');
+        let img' = Video.Image.create width height in
+        scale img img';
         img'
     in
     let img =
-      if (off_x,off_y) = (0,0) then img else
-        let img' = Img.create (width+off_x) (height+off_y) in
-        Img.blank_all img';
-        Img.add img img' ~x:off_x ~y:off_y;
-        img'
+      let img' = Video.Image.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height) in
+      (* The following can be uncommented to make valgrind happier *)
+      (* Video.Image.blank img'; *)
+      Image.YUV420.fill_alpha img' 0;
+      Video.Image.add img img' ~x:off_x ~y:off_y;
+      img'
     in
     img
   in
@@ -139,7 +128,7 @@ let create_decoder metadata img =
        * layer will be re-used.  In fact, we might even need to explicitly
        * blankify because our image might be transparent and the current frame
        * might contain random stuff. *)
-      Img.blit img video.(i)
+      Video.Image.blit img (Video.get video i)
     done ;
     if !duration = -1 then -1 else begin
       duration := !duration - (stop-start);

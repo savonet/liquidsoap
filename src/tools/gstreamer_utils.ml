@@ -1,18 +1,14 @@
-open Dtools
-
-module Img = Image.RGBA32
-
 let conf_gstreamer =
-  Conf.void ~p:(Configure.conf#plug "gstreamer")
+  Dtools.Conf.void ~p:(Configure.conf#plug "gstreamer")
     "Media decoding/endcoding through gstreamer."
 
 let conf_max_buffers =
-  Conf.int ~p:(conf_gstreamer#plug "max_buffers") ~d:10
+  Dtools.Conf.int ~p:(conf_gstreamer#plug "max_buffers") ~d:10
     "Maximal number of buffers."
 let max_buffers () = conf_max_buffers#get
 
 let conf_add_borders =
-  Conf.bool ~p:(conf_gstreamer#plug "add_borders") ~d:true
+  Dtools.Conf.bool ~p:(conf_gstreamer#plug "add_borders") ~d:true
     "Add borders in order to keep video aspect ratio."
 let add_borders () = conf_add_borders#get
 
@@ -30,8 +26,8 @@ let () =
       Printf.sprintf "--gst-debug-level=%d" debug
     |] ();
   let major, minor, micro, nano = Gstreamer.version () in
-  let log = Dtools.Log.make ["gstreamer";"loader"] in
-  log#f 3 "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
+  let log = Log.make ["gstreamer";"loader"] in
+  log#important "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
 
 module Pipeline = struct
   let convert_audio () =
@@ -50,7 +46,7 @@ module Pipeline = struct
     Printf.sprintf "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d"
       channels rate
 
-  let audio_src ~channels ?(maxBytes=10*1024) ?(block=true) ?(format=Gstreamer.Format.Time) name =
+  let audio_src ~channels ?(maxBytes=10*Utils.pagesize) ?(block=true) ?(format=Gstreamer.Format.Time) name =
     Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s max-bytes=%d"
       name block (audio_format channels) (Gstreamer.Format.to_string format) maxBytes
 
@@ -69,10 +65,10 @@ module Pipeline = struct
     let height = Lazy.force Frame.video_height in
     let fps = Lazy.force Frame.video_rate in
     Printf.sprintf
-      "video/x-raw,format=RGBA,width=%d,height=%d,framerate=%d/1,pixel-aspect-ratio=1/1"
+      "video/x-raw,format=I420,width=%d,height=%d,framerate=%d/1,pixel-aspect-ratio=1/1"
       width height fps
 
-  let video_src ?(block=true) ?(maxBytes=10*1024) ?(format=Gstreamer.Format.Time) name =
+  let video_src ?(block=true) ?(maxBytes=10*Utils.pagesize) ?(format=Gstreamer.Format.Time) name =
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
     let blocksize = width * height * 4 in
@@ -104,7 +100,7 @@ let render_image pipeline =
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_playing);
   ignore (Gstreamer.Element.get_state bin);
   let buf = Gstreamer.App_sink.pull_buffer_data sink in
-  let img = Img.make width height buf in
+  let img = Image.YUV420.make_data width height buf (Image.Data.round 4 width) (Image.Data.round 4 (width/2)) in
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
   img
 
@@ -120,12 +116,12 @@ let time_of_audio tick =
 let time_of_video tick =
   Int64.mul (Int64.of_float ((Frame.seconds_of_video tick) *. 10000.)) 100000L
 
-let handler ~(log:Dtools.Log.t) ~on_error msg =
+let handler ~(log:Log.t) ~on_error msg =
   let source = msg.Gstreamer.Bus.source in
   match msg.Gstreamer.Bus.payload with
-    | `Error err -> log#f 2 "[%s] Error: %s" source err; on_error err
-    | `Warning err -> log#f 3 "[%s] Warning: %s" source err
-    | `Info err -> log#f 4 "[%s] Info: %s" source err
+    | `Error err -> log#severe "[%s] Error: %s" source err; on_error err
+    | `Warning err -> log#important "[%s] Warning: %s" source err
+    | `Info err -> log#info "[%s] Info: %s" source err
     | `State_changed (o,n,p) ->
         let f = Gstreamer.Element.string_of_state in
         let o = f o in
@@ -135,7 +131,7 @@ let handler ~(log:Dtools.Log.t) ~on_error msg =
             | Gstreamer.Element.State_void_pending -> ""
             | _ -> Printf.sprintf " (pending: %s)" (f p)
         in
-        log#f 5 "[%s] State change: %s -> %s%s" source o n p
+        log#debug "[%s] State change: %s -> %s%s" source o n p
     | _ -> assert false
 
 let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(on_error=fun _ -> ()) bin =

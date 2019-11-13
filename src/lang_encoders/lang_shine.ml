@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -26,8 +26,10 @@ open Lang_encoders
 let make params =
   let defaults =
     { Shine_format.
-        channels = 2 ;
-        samplerate = 44100 ;
+        (* We use a hardcoded value in order not to force the evaluation of the
+           number of channels too early, see #933. *)
+        channels = 2;
+        samplerate = Frame.audio_rate;
         bitrate = 128 }
   in
   let shine =
@@ -37,7 +39,7 @@ let make params =
           | ("channels",{ term = Int i; _}) ->
               { f with Shine_format.channels = i }
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Shine_format.samplerate = i }
+              { f with Shine_format.samplerate = Lazy.from_val i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Shine_format.bitrate = i }
           | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->

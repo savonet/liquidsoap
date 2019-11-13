@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -34,21 +34,21 @@ let create_encoder ~samplerate ~bitrate ~channels =
 
 let encoder shine =
   let channels = shine.channels in
-  let enc = create_encoder ~samplerate:shine.samplerate 
+  let samplerate = Lazy.force shine.samplerate in
+  let enc = create_encoder ~samplerate
                            ~bitrate:shine.bitrate 
                            ~channels 
   in
   let samplerate_converter =
     Audio_converter.Samplerate.create channels
   in
-  let samplerate = shine.samplerate in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   (* Shine accepts data of a fixed length.. *)
   let samples = Shine.samples_per_pass enc in
   let data = Audio.create channels samples in
   let buf = G.create () in
-  let encoded = Buffer.create 1024 in
+  let encoded = Strings.Mutable.empty () in
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
@@ -57,9 +57,9 @@ let encoder shine =
       if src_freq <> dst_freq then
         let b = Audio_converter.Samplerate.resample
           samplerate_converter (dst_freq /. src_freq)
-          b start len
+          (Audio.sub b start len)
         in
-        b,0,Array.length b.(0)
+        b,0,Audio.length b
       else
         Audio.copy b,start,len
     in
@@ -67,19 +67,17 @@ let encoder shine =
     while (G.length buf > samples) do
       let l = G.get buf samples in
       let f (b,o,o',l) = 
-        Audio.blit b o data o' l
+        Audio.blit (Audio.sub b o l) (Audio.sub data o' l)
       in
       List.iter f l ;
-      Buffer.add_string encoded (Shine.encode_buffer enc data)
+      Strings.Mutable.add encoded (Shine.encode_buffer enc (Audio.to_array data))
     done ;
-    let ret = Buffer.contents encoded in
-    Buffer.reset encoded;
-    ret
+    Strings.Mutable.flush encoded
   in
-  let stop () = Shine.flush enc in
+  let stop () = Strings.of_string (Shine.flush enc) in
   { Encoder.
      insert_metadata = (fun _ -> ()) ;
-     header = None ;
+     header = Strings.empty ;
      encode = encode ;
      stop = stop }
 

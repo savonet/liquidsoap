@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,33 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-  (** Native audio converters *)
+(** Native audio converters *)
 
-(* TODO: setting to be able to choose linear resampling. *)
-let samplerate_converter () x = Audio.Mono.resample x
+let samplerate_conf =
+  Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "native")
+    "Native samplerate conversion settings"
+    ~comments:["Options related to native samplerate conversion."]
+
+let quality_conf =
+  Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
+    "Resampling quality" ~d:"linear"
+    ~comments:["Resampling quality: either \"nearest\" or \"linear\"."]
+
+let quality_of_string = function
+  | "nearest" -> `Nearest
+  | "linear" -> `Linear
+  | s ->
+    raise
+      (Lang_errors.Invalid_value
+         (Lang.string s,
+          "Native resampling quality must either be \"nearest\" or \"linear\"."))
+
+let samplerate_converter () =
+  let mode = quality_of_string quality_conf#get in
+  Audio.Mono.resample ~mode
 
 let () = Audio_converter.Samplerate.converters#register "native" samplerate_converter

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -36,7 +36,7 @@ object (self)
   (* Misc *)
   val mutable nzeros = numcoeffs - 1
   val mutable gain = 0.
-  val mutable xv = Array.make_matrix channels (numcoeffs) 0.
+  val mutable xv = Array.make_matrix channels numcoeffs 0.
 
   (* Coefficients *)
   val mutable xcoeffs = Array.make numcoeffs 0.
@@ -44,7 +44,7 @@ object (self)
   val mutable temp = Array.make 2048 {re = 0. ; im = 0.}
 
   initializer
-    self#log#f 4
+    self#log#info
       "Init: alpha=%+.013f beta=%+.013f \
              F1=%+.013f F2=%+.013f \
              tau=%+.013f zeros=%d."
@@ -104,15 +104,15 @@ object (self)
         xcoeffs <- Array.mapi
                      (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.)
                      xcoeffs;
-        self#log#f 4 "Xcoeffs: %s"
+        self#log#info "Xcoeffs: %s"
           (String.concat "\n"
              (Array.to_list
                 (Array.mapi
                    (fun i a -> Printf.sprintf "%d: %+.013f." i a)
                    xcoeffs))) ;
         gain <- Array.fold_left (+.) 0. xcoeffs ;
-        self#log#f 4 "Gain: %+.013f." gain ;
-        self#log#f 4 "Init done."
+        self#log#info "Gain: %+.013f." gain ;
+        self#log#info "Init done."
 
   (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
 
@@ -122,7 +122,11 @@ object (self)
 
   method is_ready = source#is_ready
 
+  method seek = source#seek
+
   method abort_track = source#abort_track
+
+  method self_sync = source#self_sync
 
   method private get_frame buf =
     let offset = AFrame.position buf in
@@ -141,8 +145,8 @@ object (self)
         for c = 0 to 1 do
           for i = offset to AFrame.position buf - 1 do
             shift xv.(c) ;
-            xv.(c).(nzeros) <- b.(c).(i) /. gain ;
-            b.(c).(i) <- fold_left2 addtimes 0. xcoeffs xv.(c) ;
+            xv.(c).(nzeros) <- b.(c).{i} /. gain ;
+            b.(c).{i} <- fold_left2 addtimes 0. xcoeffs xv.(c) ;
           done;
         done;
 end

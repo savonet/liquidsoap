@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -29,24 +29,25 @@ object
   method abort_track = s#abort_track
   method remaining = s#remaining
   method seek n = s#seek n
+  method self_sync = s#self_sync
 
   val mutable called = false
 
   method private get_frame ab =
     let p = Frame.position ab in
-      s#get ab ;
-      if not called then begin
+    s#get ab ;
+    if not called then
+      begin
         let m =
           match Frame.get_metadata ab p with
-            | None ->
-                Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
-            | Some m -> Lang.metadata m
+          | None ->
+             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
+          | Some m -> Lang.metadata m
         in
-          ignore (Lang.apply ~t:Lang.unit_t f ["",m]) ;
-          called <- true
+        ignore (Lang.apply ~t:Lang.unit_t f ["",m]) ;
+        called <- true
       end ;
-      if Frame.is_partial ab then called <- false
-
+    if Frame.is_partial ab then called <- false
 end
 
 let () =
@@ -57,17 +58,15 @@ let () =
         [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
         Lang.unit_t,
       None,
-      Some "Function called on every beginning of track in the stream, \
-            with the corresponding metadata as argument. \
-            If there is no metadata at the beginning of track, the empty \
-            list is passed. \
-            That function should be fast because it is executed in the \
-            main streaming thread." ;
+      Some "Function called on every beginning of track in the stream, with the \
+            corresponding metadata as argument. If there is no metadata at the \
+            beginning of track, the empty list is passed. That function should \
+            be fast because it is executed in the main streaming thread." ;
       "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on new tracks."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let f = Lang.assoc "" 1 p in
-       let s = Lang.to_source (Lang.assoc "" 2 p) in
-         new on_track ~kind f s)
+      let f = Lang.assoc "" 1 p in
+      let s = Lang.to_source (Lang.assoc "" 2 p) in
+      new on_track ~kind f s)

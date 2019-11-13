@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,13 +20,15 @@
 
  *****************************************************************************)
 
+val debug : bool ref
+
 type pos = (Lexing.position * Lexing.position)
 val print_single_pos : Lexing.position -> string
 val print_pos : ?prefix:string -> pos -> string
 
 type variance = Covariant | Contravariant | Invariant
 
-type ground = Unit | Bool | Int | String | Float
+type ground = Bool | Int | String | Float
 val print_ground : ground -> string
 
 type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
@@ -39,11 +41,12 @@ and descr =
   | Constr of constructed
   | Ground of ground
   | List of t
-  | Product of t * t
+  | Tuple of t list
   | Zero | Succ of t | Variable
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t
+val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
 
@@ -66,7 +69,7 @@ val generalizable : level:int -> t -> (int*constraints) list
 
 type explanation
 exception Type_Error of explanation
-val print_type_error : explanation -> unit
+val print_type_error : (string -> unit) -> explanation -> unit
 val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 

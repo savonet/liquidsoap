@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -68,7 +68,7 @@ object (self)
     (* This should be done before the active_operator initializer
      * attaches us to a clock. *)
     if infallible && source#stype <> Infallible then
-      raise (Lang.Invalid_value (val_source, "That source is fallible"))
+      raise (Lang_errors.Invalid_value (val_source, "That source is fallible"))
 
   inherit active_operator ~name:output_kind content_kind [source] as super
 
@@ -84,6 +84,7 @@ object (self)
   method virtual private output_send : Frame.t -> unit
 
   method stype = source#stype
+  method self_sync = source#self_sync
 
   initializer
     (* Add a few more server controls *)
@@ -130,14 +131,14 @@ object (self)
     source#get_ready ((self:>operator)::activation) ;
     if infallible then
       while not source#is_ready do
-        self#log#f 3 "Waiting for %S to be ready..." source#id ;
+        self#log#important "Waiting for %S to be ready..." source#id ;
         Thread.delay 1. ;
       done
 
   method private may_start = if self#is_ready then start_stop#may_start
 
   method output_get_ready =
-    start_stop#may_start
+    self#may_start
 
   method private sleep =
     self#do_stop ;
@@ -169,17 +170,18 @@ object (self)
       while Frame.is_partial memo && self#is_ready do
         incr get_count ;
         if !get_count > Lazy.force Frame.size then
-          self#log#f 2
+          self#log#severe
             "Warning: there may be an infinite sequence of empty tracks!" ;
         source#get memo
       done ;
       List.iter
         (fun (_,m) -> self#add_metadata m)
         (Frame.get_all_metadata memo) ;
-      (* Output that frame *)
-      self#output_send memo ;
+      (* Output that frame if it has some data *)
+      if Frame.position memo > 0 then
+        self#output_send memo ;
       if Frame.is_partial memo then begin
-        self#log#f 3 "Source failed (no more tracks) stopping output..." ;
+        self#log#important "Source failed (no more tracks) stopping output..." ;
         request_stop <- true
       end
     end ;
@@ -191,7 +193,7 @@ object (self)
     super#after_output ;
     (* Perform skip if needed *)
     if skip then begin
-      self#log#f 3 "Performing user-requested skip" ;
+      self#log#important "Performing user-requested skip" ;
       skip <- false ;
       self#abort_track
     end
@@ -241,8 +243,8 @@ object (self)
             ~content_kind ~output_kind ~name source autostart
 
   method virtual private insert_metadata : Meta_format.export_metadata -> unit
-  method virtual private encode : Frame.t -> int -> int -> string
-  method virtual private send : string -> unit
+  method virtual private encode : Frame.t -> int -> int -> 'a
+  method virtual private send : 'a -> unit
 
   method private output_send frame =
     let rec output_chunks frame =

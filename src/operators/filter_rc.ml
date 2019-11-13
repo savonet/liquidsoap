@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -33,6 +33,8 @@ object
 
   method stype = source#stype
   method remaining = source#remaining
+  method seek = source#seek
+  method self_sync = source#self_sync
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
@@ -58,8 +60,8 @@ object
        for c = 0 to Array.length b - 1 do
          let b_c = b.(c) in
          for i = offset to position - 1 do
-           prev.(c) <- alpha *. b_c.(i) +. alpha' *. prev.(c);
-           b_c.(i) <- wet *. prev.(c) +. wet' *. b_c.(i)
+           prev.(c) <- alpha *. b_c.{i} +. alpha' *. prev.(c);
+           b_c.{i} <- wet *. prev.(c) +. wet' *. b_c.{i}
          done
        done
     | High_pass ->
@@ -67,9 +69,9 @@ object
        for c = 0 to Array.length b - 1 do
          let b_c = b.(c) in
          for i = offset to position - 1 do
-           prev.(c) <- alpha *. (prev.(c) +. b_c.(i) -. prev_in.(c));
-           prev_in.(c) <- b_c.(i);
-           b_c.(i) <- wet *. prev.(c) +. wet' *. b_c.(i)
+           prev.(c) <- alpha *. (prev.(c) +. b_c.{i} -. prev_in.(c));
+           prev_in.(c) <- b_c.{i};
+           b_c.{i} <- wet *. prev.(c) +. wet' *. b_c.{i}
          done
        done
 end
@@ -101,7 +103,7 @@ let () =
         match Lang.to_string mode with
           | "low" -> Low_pass
           | "high" -> High_pass
-          | _ -> raise (Lang.Invalid_value
+          | _ -> raise (Lang_errors.Invalid_value
                           (mode,
                            "valid values are low|high"))
       in

@@ -1,11 +1,11 @@
 ;; liquidsoap-mode.el -- Liquidsoap major mode
-;; Copyright (C) 2003-2018 Samuel Mimram
+;; Copyright (C) 2003-2019 Samuel Mimram
 
 (defvar liquidsoap-font-lock-keywords
  '(
    ("#.*" . 'font-lock-comment-face)
    ("^\\(%ifdef .*\\|%ifndef .*\\|%ifencoder .*\\|%ifnencoder .*\\|%endif\\|%include\\|%define\\)" . 'font-lock-preprocessor-face)
-   ("\\<\\(fun\\|def\\|begin\\|end\\|if\\|then\\|else\\|elsif\\)\\>\\|->\\|;" . font-lock-keyword-face)
+   ("\\<\\(fun\\|def\\|rec\\|begin\\|end\\|if\\|then\\|else\\|elsif\\|let\\)\\>\\|->\\|;" . font-lock-keyword-face)
    ("\\<\\(and\\|or\\|not\\|mod\\|ref\\)\\>\\|:=" . font-lock-builtin-face)
    ("\\<\\(true\\|false\\)\\>" . font-lock-constant-face)
    ("\\<def[ \t]+\\([^ (]*\\)" 1 'font-lock-function-name-face)

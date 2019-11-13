@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -26,7 +26,6 @@ module Generated = Generated.Make(Generator)
 module type T =
 sig
   include Harbor.T
-  val init : unit -> unit
   val source_name : string
   val source_description : string
 end
@@ -43,17 +42,21 @@ struct
      * the source has an id *)
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in
-    let () = Harbor.init () in
+    let abg =
+      Generator.create 
+        ~log ~kind
+        ~overfull:(`Drop_old max_ticks)
+        `Undefined
+     in
   object (self)
-    inherit  Source.source ~name:Harbor.source_name kind as super
-    inherit Generated.source
-              (Generator.create
-                 ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-              ~empty_on_abort:false ~replay_meta ~bufferize
-  
+    inherit  Source.source
+      ~name:Harbor.source_name kind as super
+    inherit Generated.source abg
+      ~empty_on_abort:false ~replay_meta ~bufferize
+
     val mutable relay_socket = None
     (** Function to read on socket. *)
-    val mutable relay_read = (fun _ _ -> assert false)
+    val mutable relay_read = (fun _ _ _ -> assert false)
     (* Mutex used to protect socket's state (close) *)
     val relay_m = Mutex.create ()
     val mutable create_decoder = fun _ -> assert false
@@ -102,7 +105,7 @@ struct
        * as the "title" field if "title" is not provided. *)
       if not (Hashtbl.mem m "title") then
         (try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
-      self#log#f 3 "New metadata chunk %s -- %s."
+      self#log#important "New metadata chunk %s -- %s."
         (try Hashtbl.find m "artist" with _ -> "?")
         (try Hashtbl.find m "title" with _ -> "?") ;
       Generator.add_metadata generator m
@@ -110,13 +113,13 @@ struct
     method get_mime_type = mime_type
   
     method feed =
-      self#log#f 3 "Decoding..." ;
+      self#log#important "Decoding..." ;
       let t0 = Unix.gettimeofday () in
-      let read len =
-        let buf,input = (fun len ->
+      let read buf ofs len =
+        let input = (fun buf len ->
           let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
            match socket with
-             | None -> Bytes.empty, 0
+             | None -> 0
              | Some socket ->
                  begin
                    try
@@ -126,17 +129,17 @@ struct
                          (* Wait for `Read event on socket. *)
                          Tutils.wait_for ~log (`Read fd) timeout;
                          (* Now read. *)
-                         relay_read socket len
+                         relay_read socket buf ofs len
                         with
                           | Harbor.Retry -> f ()
                      in
                      f ()
                    with
-                   | e -> self#log#f 2 "Error while reading from client: \
+                   | e -> self#log#severe "Error while reading from client: \
                               %s" (Printexc.to_string e);
                      self#disconnect ~lock:false;
-                     Bytes.empty,0
-                 end) len;
+                     0
+                 end) buf len;
         in
         begin
           match dump with
@@ -150,7 +153,7 @@ struct
                Printf.fprintf b "%f %d\n%!" time self#length
             | None -> ()
         end ;
-        Bytes.unsafe_to_string buf,input
+        input
       in
       let input =
         { Decoder.
@@ -172,7 +175,7 @@ struct
           | e ->
               (* Feeding has stopped: adding a break here. *)
               Generator.add_break ~sync:`Drop generator ;
-              self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
+              self#log#severe "Feeding stopped: %s." (Printexc.to_string e) ;
               self#disconnect ~lock:true;
               if debug then raise e
   
@@ -183,7 +186,7 @@ struct
           Harbor.add_source ~port ~mountpoint ~icy (self:>Harbor.source) ;
         with
           | Harbor.Registered ->
-             raise (Lang.Invalid_value
+             raise (Lang_errors.Invalid_value
                       (List.assoc "" p,
                        (* TODO: raise two script values ? *)
                        let port = Lang.to_int (List.assoc "port" p) in
@@ -192,7 +195,7 @@ struct
                         mountpointpoint '%s' and port %i." mountpoint port))
       end ;
       (* Now we can create the log function *)
-      log_ref := fun (s) -> self#log#f 3 "%s" s
+      log_ref := fun (s) -> self#log#important "%s" s
   
     method private sleep =
       self#disconnect ~lock:true;
@@ -226,7 +229,7 @@ struct
             begin try
               dump <- Some (open_out_bin (Utils.home_unrelate f))
             with e ->
-              self#log#f 2 "Could not open dump file: %s" (Printexc.to_string e)
+              self#log#severe "Could not open dump file: %s" (Printexc.to_string e)
             end
         | None -> ()
       end ;
@@ -235,7 +238,7 @@ struct
             begin try
               logf <- Some (open_out_bin (Utils.home_unrelate f))
             with e ->
-              self#log#f 2 "Could not open log file: %s" (Printexc.to_string e)
+              self#log#severe "Could not open log file: %s" (Printexc.to_string e)
             end
         | None -> ()
       end ;
@@ -339,7 +342,7 @@ struct
              ["",Lang.string_t,None;"",Lang.string_t,None]
              (Lang.bool false)),
         Some "Authentication function. \
-              <code>f(login,password)</code> returns <code>true</code> \
+              `f(login,password)` returns `true` \
               if the user should be granted access for this login. \
               Override any other method if used.";
   
@@ -435,7 +438,7 @@ struct
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
          if bufferize >= max then
-           raise (Lang.Invalid_value
+           raise (Lang_errors.Invalid_value
                     (List.assoc "max" p,
                      "Maximum buffering inferior to pre-buffered data"));
          let on_connect l =
@@ -465,9 +468,9 @@ end
 module Unix_input =
 struct
   include Harbor
-  let init () = ()
   let source_name = "input.harbor"
-  let source_description = "Retrieves the given http stream from the harbor."
+  let source_description = "Create a source that receives a http/icecast stream \
+    and forwards it as a stream."
 end
 
 module Unix = Make(Unix_input)

@@ -1,7 +1,8 @@
-SUBDIRS= src examples doc gui scripts
-DISTFILES = CHANGES COPYING INSTALL README \
+SUBDIRS= src examples doc gui scripts libs
+DISTFILES = CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in \
-	Makefile Makefile.defs.in Makefile.rules install-sh
+	Makefile Makefile.defs.in Makefile.rules install-sh \
+        liquidsoap.opam
 DISTDIRS = m4
 
 top_srcdir=.
@@ -11,26 +12,24 @@ distclean: pre-distclean
 	rm -f Makefile.defs
 pre-distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
-	       src/configure.ml scripts/liquidsoap.initd \
-	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
-	       gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
+	       src/configure.ml scripts/liquidsoap.logrotate \
+	       gui/liguidsoap liquidsoap.config $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
 	$(MAKE) -C src/test test
-	$(MAKE) -C doc test
 	$(MAKE) -C scripts/tests test
 
 # Build liquidsoap as it will be used for building the doc
 doc-local: all
 
-.PHONY: system-install gentoo-install finish-configure
+.PHONY: finish-configure
 
 finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
-	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
-	@echo let bin_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
+	@echo let libs_dir = \"$(datadir)/liquidsoap/$(libs_dir_version)/libs\" >> src/configure.ml
+	@echo let bin_dir = \"$(datadir)/liquidsoap/$(libs_dir_version)/bin\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
@@ -70,30 +69,21 @@ api-doc-install:
 
 install-local: doc-install
 ifeq ($(INSTALL_DAEMON),yes)
-	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 \
-	  ${localstatedir}/log/liquidsoap
-	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 \
-	  ${localstatedir}/run/liquidsoap
+	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/log/liquidsoap
+	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/run/liquidsoap
 endif
 	$(INSTALL_DIRECTORY) $(bindir)
-	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
-	for l in externals.liq lastfm.liq utils.liq shoutcast.liq flows.liq video.liq \
-		       http.liq http_codes.liq pervasives.liq deprecations.liq protocols.liq gstreamer.liq ; \
-	do \
-	  $(INSTALL_DATA) scripts/$$l $(libdir)/liquidsoap/$(libs_dir_version) ; \
+	$(INSTALL_DIRECTORY) $(datadir)/liquidsoap/$(libs_dir_version)/bin
+	$(INSTALL_DIRECTORY) $(datadir)/liquidsoap/$(libs_dir_version)/libs
+	$(INSTALL_PROGRAM) scripts/extract-replaygain $(datadir)/liquidsoap/$(libs_dir_version)/bin
+	find libs | grep '\.liq$$' | while read l; do \
+	  $(INSTALL_DATA) $$l $(datadir)/liquidsoap/$(libs_dir_version)/libs ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
-	$(INSTALL_DATA) examples/radio.liq \
-	  ${sysconfdir}/liquidsoap/radio.liq.example
+	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example
 	$(INSTALL_DIRECTORY) ${sysconfdir}/logrotate.d
-	$(INSTALL_DATA) scripts/liquidsoap.logrotate \
-	  ${sysconfdir}/logrotate.d/liquidsoap
-
-gentoo-install:
-	$(INSTALL_PROGRAM) -D \
-		scripts/liquidsoap.gentoo.initd ${sysconfdir}/init.d/liquidsoap
-
-service-install:
-	$(INSTALL_PROGRAM) -D \
-		scripts/liquidsoap.initd ${sysconfdir}/init.d/liquidsoap
+	$(INSTALL_DATA) scripts/liquidsoap.logrotate ${sysconfdir}/logrotate.d/liquidsoap
+	$(INSTALL_DIRECTORY) ${bashcompdir}
+	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
+	$(INSTALL_DIRECTORY) ${emacsdir}
+	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/

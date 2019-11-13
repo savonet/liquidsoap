@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -24,11 +24,12 @@
 
 open External_encoder_format
 let encoder id ext =
-  let log = Dtools.Log.make [id] in
+  let log = Log.make [id] in
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in
-  let buf = Buffer.create 1024 in
+  let buf = Strings.Mutable.empty () in
+  let bytes = Bytes.create Utils.pagesize in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
 
@@ -45,20 +46,23 @@ let encoder id ext =
 
   let header =
     if ext.video then
-      Avi.header ~channels:ext.channels ~samplerate:ext.samplerate ()
+      Avi.header ~channels:ext.channels ~samplerate:(Lazy.force ext.samplerate) ()
     else if ext.header then
       Wav_aiff.wav_header ~channels:ext.channels
-          ~sample_rate:ext.samplerate
+          ~sample_rate:(Lazy.force ext.samplerate)
           ~sample_size:16 ()
     else ""
   in
 
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    let len = puller bytes 0 Utils.pagesize in
+    log#debug "stderr: %s"
+      (Bytes.unsafe_to_string
+        (Bytes.sub bytes 0 len));
     `Continue
   in
   let on_start pusher =
-    Process_handler.write (Bytes.of_string header) pusher;
+    Process_handler.really_write (Bytes.of_string header) pusher;
     `Continue
   in
   let on_stop = function
@@ -66,32 +70,27 @@ let encoder id ext =
       begin match s with
         | Unix.WEXITED 0 -> ()
         | Unix.WEXITED c ->
-            log#f 3 "Process exited with code %d" c
+            log#important "Process exited with code %d" c
         | Unix.WSIGNALED s ->
-            log#f 3 "Process was killed by signal %d" s
+            log#important "Process was killed by signal %d" s
         | Unix.WSTOPPED s ->
-            log#f 3 "Process was stopped by signal %d" s
+            log#important "Process was stopped by signal %d" s
       end;
       restart_decision ()
    | `Exception e ->
-      log#f 3 "Error: %s" (Printexc.to_string e);
+      log#important "Error: %s" (Printexc.to_string e);
       restart_decision ()
   in
-  let log = log#f 3 "%s" in
+  let log = log#important "%s" in
 
   let on_stdout = Tutils.mutexify mutex (fun puller ->
     begin
-      match Bytes.unsafe_to_string (Process_handler.read 1024 puller) with
-        | "" when !is_stop -> Condition.signal condition
-        | s -> Buffer.add_string buf s
+      let len = puller bytes 0 Utils.pagesize in
+      match len with
+        | 0 when !is_stop -> Condition.signal condition
+        | _ -> Strings.Mutable.add_subbytes buf bytes 0 len
     end;
     `Continue)
-  in
-
-  let flush_buffer = Tutils.mutexify mutex (fun () ->
-    let content = Buffer.contents buf in
-    Buffer.reset buf;
-    content)
   in
 
   let process =
@@ -99,17 +98,22 @@ let encoder id ext =
                         ~on_stderr ~log ext.process 
   in
 
-  let insert_metadata = Tutils.mutexify mutex (fun _ -> 
-    if ext.restart = Metadata then
-      is_metadata_restart := true;
-      Process_handler.stop process)
+  let insert_metadata =
+    Tutils.mutexify mutex
+      (fun _ ->
+        if ext.restart = Metadata then
+          (
+            is_metadata_restart := true;
+            Process_handler.stop process
+          )
+      )
   in
 
   let converter =
     Audio_converter.Samplerate.create ext.channels
   in
   let ratio =
-    (float ext.samplerate) /. (float (Frame.audio_of_seconds 1.))
+    (float (Lazy.force ext.samplerate)) /. (float (Frame.audio_of_seconds 1.))
   in
 
   let encode frame start len =
@@ -117,7 +121,7 @@ let encoder id ext =
     let sbuf =
       if ext.video then
         Avi_encoder.encode_frame
-          ~channels ~samplerate:ext.samplerate ~converter
+          ~channels ~samplerate:(Lazy.force ext.samplerate) ~converter
           frame start len
       else begin
           let start = Frame.audio_of_master start in
@@ -130,29 +134,33 @@ let encoder id ext =
             else
               let b =
                 Audio_converter.Samplerate.resample
-                  converter ratio b start len
+                  converter ratio (Audio.sub b start len)
               in
-              b,0,Array.length b.(0)
+              b,0,Audio.length b
           in
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
-          Audio.S16LE.of_audio b start sbuf 0 len;
-          Bytes.unsafe_to_string sbuf
+          Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
+          Strings.unsafe_of_bytes sbuf
        end
     in
     Tutils.mutexify mutex (fun () ->
       try
-        Process_handler.on_stdin process (Process_handler.write (Bytes.of_string sbuf));
+        Process_handler.on_stdin process
+          (fun push ->
+             Strings.iter
+               (fun s offset length ->
+                  Process_handler.really_write ~offset ~length (Bytes.unsafe_of_string s) push) sbuf);
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
-    flush_buffer ()
+    Strings.Mutable.flush buf
   in
 
   let stop = Tutils.mutexify mutex (fun () ->
     is_stop := true;
     Process_handler.stop process;
     Condition.wait condition mutex;
-    Buffer.contents buf)
+    Strings.Mutable.flush buf)
   in
   
   {
@@ -161,7 +169,7 @@ let encoder id ext =
      (* External encoders do not support 
       * headers for now. They will probably
       * never do.. *)
-     header = None;
+     header = Strings.empty;
      encode = encode;
      stop   = stop;
   }

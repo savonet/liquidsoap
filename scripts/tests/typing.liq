@@ -39,6 +39,13 @@ def id'(x)
   f2(x)
 end
 
+# Testing generalization of recursive functions
+def rec recid(x)
+  x
+end
+ignore(recid(3) == 3)
+ignore(recid("a") == "a")
+
 # More errors...
 # 0=="0"
 # [3,""]

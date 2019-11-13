@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,9 +16,10 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
+
 
 class drop_video ~kind source =
 object
@@ -29,6 +30,7 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame frame =
     let start = Frame.position frame in
@@ -41,9 +43,8 @@ object
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
             Audio.Mono.blit
-              src.Frame.audio.(i) !start
-              dst.Frame.audio.(i) !start
-              !len
+              (Audio.Mono.sub src.Frame.audio.(i) !start !len)
+              (Audio.Mono.sub dst.Frame.audio.(i) !start !len)
           done ;
           for i = 0 to Array.length src.Frame.midi - 1 do
             MIDI.blit
@@ -74,6 +75,7 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame frame =
     let start = Frame.position frame in
@@ -83,20 +85,20 @@ object
       if Array.length src.Frame.audio > 0 then
         let new_type = { (Frame.type_of_content src) with Frame.audio = 0 } in
         let dst = Frame.content_of_type frame start new_type in
-          for i = 0 to Array.length src.Frame.video - 1 do
-            let (!) = Frame.video_of_master in
-              for j = 0 to !len-1 do
-                Image.RGBA32.blit
-                  src.Frame.video.(i).(!start+j)
-                  dst.Frame.video.(i).(!start+j)
-              done
-          done ;
-          for i = 0 to Array.length src.Frame.midi - 1 do
-            MIDI.blit
-              src.Frame.midi.(i) start
-              dst.Frame.midi.(i) start
-              len
+        for i = 0 to Array.length src.Frame.video - 1 do
+          let (!) = Frame.video_of_master in
+          for j = 0 to !len-1 do
+            Video.Image.blit
+              (Video.get src.Frame.video.(i) (!start+j))
+              (Video.get dst.Frame.video.(i) (!start+j))
           done
+        done ;
+        for i = 0 to Array.length src.Frame.midi - 1 do
+          MIDI.blit
+            src.Frame.midi.(i) start
+            dst.Frame.midi.(i) start
+            len
+        done
 end
 
 let () =
@@ -120,6 +122,7 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame frame =
     let start = Frame.position frame in
@@ -132,16 +135,15 @@ object
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
               Audio.Mono.blit
-                src.Frame.audio.(i) !start
-                dst.Frame.audio.(i) !start
-                !len
+                (Audio.Mono.sub src.Frame.audio.(i) !start !len)
+                (Audio.Mono.sub dst.Frame.audio.(i) !start !len)
           done ;
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in
               for j = 0 to !len-1 do
-                Image.RGBA32.blit
-                  src.Frame.video.(i).(!start+j)
-                  dst.Frame.video.(i).(!start+j)
+                Video.Image.blit
+                  (Video.get src.Frame.video.(i) (!start+j))
+                  (Video.get dst.Frame.video.(i) (!start+j))
               done
           done
 end

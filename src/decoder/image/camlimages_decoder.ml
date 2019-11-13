@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,14 +16,14 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 module Img = Image.RGBA32
 module P = Image.Generic.Pixel
 
-let log = Dtools.Log.make ["decoder";"camlimages"]
+let log = Log.make ["decoder";"camlimages"]
 
 (* TODO: find something more efficient? *)
 let load_image filename =
@@ -49,10 +49,10 @@ let load_image filename =
       | OImages.Cmyk32 _ ->
         failwith "CMYK32 images are not supported for now."
   in
-  let img = Img.create width height in
+  let img = Video.Image.create width height in
   for j = 0 to height - 1 do
     for i = 0 to width - 1 do
-      Img.set_pixel img i j (p i j)
+      Video.Image.set_pixel_rgba img i j (p i j)
     done
   done;
   img

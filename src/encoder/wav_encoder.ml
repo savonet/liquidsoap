@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -26,7 +26,7 @@ open Wav_format
 
 let encoder wav =
   let channels = wav.channels in
-  let sample_rate = wav.samplerate in
+  let sample_rate = Lazy.force wav.samplerate in
   let sample_size = wav.samplesize in
   let ratio =
     (float sample_rate) /. (float (Lazy.force Frame.audio_rate))
@@ -54,35 +54,32 @@ let encoder wav =
       if ratio = 1. then
         b,start,len
       else
-        let b =
-          Audio_converter.Samplerate.resample
-                 converter ratio b start len
-        in
-        b,0,Array.length b.(0)
+        let b = Audio_converter.Samplerate.resample converter ratio (Audio.sub b start len) in
+        b,0,Audio.length b
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
       match sample_size with
-        | 32 -> Audio.S32LE.of_audio
-        | 24 -> Audio.S24LE.of_audio
+        | 32 -> fun buf s off -> Audio.S32LE.of_audio buf s off
+        | 24 -> fun buf s off -> Audio.S24LE.of_audio buf s off
         | 16 -> Audio.S16LE.of_audio
-        | 8 -> Audio.U8.of_audio
+        | 8 -> fun buf s off -> Audio.U8.of_audio buf s off
         | _ -> failwith "unsupported sample size"
     in
-    of_audio b start s 0 len;
+    of_audio (Audio.sub b start len) s 0;
     let s = Bytes.unsafe_to_string s in
     if !need_header then begin
-      need_header := false ;
-      header ^ s
+      need_header := false;
+      Strings.of_list [header; s]
     end else
-      s
+      Strings.of_string s
   in
     {
      Encoder.
       insert_metadata = (fun _ -> ()) ;
       encode = encode ;
-      header = Some header ;
-      stop = (fun () -> "")
+      header = Strings.of_string header ;
+      stop   = fun () -> Strings.empty
     }
 
 let () =

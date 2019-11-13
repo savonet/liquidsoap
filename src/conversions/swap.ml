@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -31,6 +31,7 @@ object
   method remaining = source#remaining
   method abort_track = source#abort_track
   method seek = source#seek
+  method self_sync = source#self_sync
 
   method private get_frame buf =
     let offset = AFrame.position buf in
@@ -41,9 +42,9 @@ object
           buffer.(2) <- tmp
       else
         for i = offset to AFrame.position buf -1 do
-          let tmp = buffer.(0).(i) in
-            buffer.(0).(i) <- buffer.(1).(i) ;
-            buffer.(1).(i) <- tmp
+          let tmp = buffer.(0).{i} in
+            buffer.(0).{i} <- buffer.(1).{i} ;
+            buffer.(1).{i} <- tmp
         done
 end
 

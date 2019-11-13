@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -58,7 +58,7 @@ type source_t = Fallible | Infallible
   *
   * Most clocks are passive, i.e. they don't run anything
   * directly, but may only tick when something happens to a source.
-  * The wallclock (formerly root.ml) is the default, active clock:
+  * The clock is the default, active clock:
   * when started, it launches a thread which keeps ticking regularly.
   *
   * A clock needs to know all the active sources under its control,
@@ -75,7 +75,7 @@ type source_t = Fallible | Infallible
   *
   * The idea is that when an output is created it assigns a clock to itself
   * according to its sources' clocks. Eventually, all remaining unknown clocks
-  * are forced to wallclock. *)
+  * are forced to clock. *)
 
 class type ['a,'b] proto_clock =
 object
@@ -107,7 +107,7 @@ end
   *   - a list of sub-clocks, used during unification's occurs-check
   *     to avoid cycles which would result in unsound behavior
   *     e.g. add([s,cross(f,s)]).
-  * Clock constants are objects of type proto_clock, but need to also
+  * Clock constants are objects of type [proto_clock], but need to also
   * maintain the information attached to variables.
   *
   * The unification algorithm can be described as follows, ignoring
@@ -130,12 +130,16 @@ end
   *      end up with two occurrences of the same subclock.
   *)
 
+(** Clock variables. *)
 type 'a var =
-  | Link of 'a link_t ref
-  | Known of ('a,'a var) proto_clock
+  | Link of 'a link_t ref (** a universal variable *)
+  | Known of ('a,'a var) proto_clock (** a constant variable *)
+(** Contents of a clock variable. *)
 and 'a link_t =
-  | Unknown of 'a list * 'a var list
-  | Same_as of 'a var
+  | Unknown of 'a list * 'a var list (** the clock variable is unknown but depends on other variables *)
+  | Same_as of 'a var (** the clock variable is subtituted by another *)
+
+let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG" <> None
 
 let create_known c =
   Known c
@@ -221,8 +225,6 @@ let rec forget var subclock =
 
 (** {1 Sources} *)
 
-open Dtools
-
 let source_log = Log.make ["source"]
 
 (** Has any output been created? This is used by Main to decide if
@@ -265,7 +267,8 @@ object (self)
     if log != source_log then self#create_log
 
   initializer
-    Gc.finalise (fun s -> source_log#f 4 "Garbage collected %s." s#id) self
+    if debug then
+      Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
 
   (** Is the source infallible, i.e. is it always guaranteed that there
     * will be always be a next track immediately available. *)
@@ -290,6 +293,8 @@ object (self)
   val clock : active_operator var = create_unknown ~sources:[] ~sub_clocks:[]
 
   method clock = clock
+
+  method virtual self_sync : bool
 
   method private set_clock =
     List.iter (fun s -> unify self#clock s#clock) sources
@@ -351,7 +356,7 @@ object (self)
            (fun l -> String.concat ":" (List.map (fun s -> s#id) l))
            activations)
     in
-    self#log#f 4
+    self#log#info
       "Activations changed: static=[%s], dynamic=[%s]."
       (string_of static_activations) (string_of dynamic_activations) ;
     match
@@ -370,11 +375,11 @@ object (self)
     with
       | None -> if caching then begin
           caching <- false ;
-          self#log#f 4 "Disabling caching mode."
+          self#log#info "Disabling caching mode."
         end
       | Some msg -> if not caching then begin
           caching <- true ;
-          self#log#f 4 "Enabling caching mode: %s." msg
+          self#log#info "Enabling caching mode: %s." msg
         end
 
   (* Ask for initialization.
@@ -384,7 +389,7 @@ object (self)
   method get_ready ?(dynamic=false) (activation:operator list) =
     if log == source_log then self#create_log ;
     if static_activations = [] && dynamic_activations = [] then begin
-      source_log#f 4 "Source %s gets up." id ;
+      source_log#info "Source %s gets up." id ;
       self#wake_up activation ;
       if commands <> [] then
        begin
@@ -410,7 +415,7 @@ object (self)
   method leave ?(dynamic=false) src =
     let rec remove acc = function
       | [] ->
-          self#log#f 1 "Got ill-balanced activations (from %s)!" src#id ;
+          self#log#critical "Got ill-balanced activations (from %s)!" src#id ;
           assert false
       | (s::_)::tl when s = src -> List.rev_append acc tl
       | h::tl -> remove (h::acc) tl
@@ -421,7 +426,7 @@ object (self)
         static_activations <- remove [] static_activations ;
       self#update_caching_mode ;
       if static_activations = [] && dynamic_activations = [] then begin
-        source_log#f 4 "Source %s gets down." id ;
+        source_log#info "Source %s gets down." id ;
         (Tutils.mutexify on_shutdown_m
            (fun () ->
              List.iter (fun fn -> try fn() with _ -> ()) on_shutdown;
@@ -443,7 +448,7 @@ object (self)
 
   (** Two methods called for initialization and shutdown of the source *)
   method private wake_up activation =
-    self#log#f 4
+    self#log#info
       "Content kind is %s."
       (Frame.string_of_content_kind content_kind) ;
     let activation = (self:>operator)::activation in
@@ -468,7 +473,7 @@ object (self)
    * returns the number of ticks actually skipped.
    * By default it always returns 0, refusing to seek at all. *)
   method seek (_:int) = 
-    self#log#f 3 "Seek not implemented!";
+    self#log#important "Seek not implemented!";
     0
 
   (* Is there some data available for the next [get]?
@@ -483,6 +488,7 @@ object (self)
 
   (* In caching mode, remember what has been given during the current tick *)
   val memo = Frame.create content_kind
+  method get_memo = memo
 
   (* [#get buf] completes the frame with the next data in the stream.
    * Depending on whether caching is enabled or not,
@@ -500,7 +506,7 @@ object (self)
      * - A starts streaming again, needs to receive an EOT before
      *   having to worry about availability.
      *
-     *   Another important example is smart_crossfade, if e.g. a transition
+     *   Another important example is crossfade, if e.g. a transition
      *   returns a failling source.
      *
      * So we add special cases where, instead of calling #get_frame, we
@@ -520,7 +526,7 @@ object (self)
       let b = Frame.breaks buf in
         self#get_frame buf ;
         if List.length b + 1 <> List.length (Frame.breaks buf) then begin
-          self#log#f 2 "#get_frame didn't add exactly one break!" ;
+          self#log#severe "#get_frame didn't add exactly one break!" ;
           assert false
         end
     end else begin
@@ -534,7 +540,7 @@ object (self)
           let p = Frame.position memo in
             self#get_frame memo ;
             if List.length b + 1 <> List.length (Frame.breaks memo) then begin
-              self#log#f 2 "#get_frame didn't add exactly one break!" ;
+              self#log#severe "#get_frame didn't add exactly one break!" ;
               assert false
             end else
               if p < Frame.position memo then self#get buf else

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -39,7 +39,12 @@ let some_or none = function
   | None   -> none
 
 (* Force locale to C *)
-external force_locale : unit -> unit = "liquidsoap_set_locale"
+external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]
+
+(** Get page size. *)
+external pagesize : unit -> int = "liquidsoao_get_pagesize" [@@noalloc]
+
+let pagesize = pagesize ()
 
 (** General configuration *)
 let conf = Dtools.Conf.void "Liquidsoap configuration"
@@ -97,19 +102,6 @@ let list_of_metadata m =
 let hashtbl_get : ('a,'b) Hashtbl.t -> 'a -> 'b option =
   fun h k ->
     try Some (Hashtbl.find h k) with Not_found -> None
-
-(* Backward-compatible API.. *)
-
-module LazyCompat =
-struct
-  let from_fun f = lazy (f ())
-  let from_val v = lazy v
-  (* Make compiler happy.. *)
-  let () =
-    ignore(from_fun (fun () -> ()));
-    ignore(from_val ())
-  include Lazy
-end
 
 (** Unescape a string. *)
 let unescape s =
@@ -198,28 +190,29 @@ let rec may_map f = function
  * different than its reported length.. *)
 let read_all filename =
   let channel = open_in filename in
-  let buflen = 1024 in
-  let tmp = Bytes.create 1024 in
-  let contents = Buffer.create buflen in
+  let tmp = Bytes.create pagesize in
+  let contents =
+    Strings.Mutable.empty ()
+  in
   let rec read () =
-    let ret = input channel tmp 0 1024 in
+    let ret = input channel tmp 0 pagesize in
     if ret > 0 then
-     begin
-      Buffer.add_subbytes contents tmp 0 ret ;
-      read ()
-     end
+      begin
+        Strings.Mutable.add_subbytes contents tmp 0 ret;
+        read ()
+      end
   in
   read () ;
   close_in channel ;
-  Buffer.contents contents
+  Strings.Mutable.to_string contents
 
 (* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
   assert (len <= size) ;
-  if len = size then Buffer.reset buffer else
+  if len = size then Buffer.clear buffer else
     let tmp = Buffer.sub buffer len (size-len) in
-      Buffer.reset buffer ;
+      Buffer.clear buffer ;
       Buffer.add_string buffer tmp
 
 let unix_translator = 
@@ -338,6 +331,27 @@ let escape_string escape s =
   Format.pp_print_flush f () ;
   Buffer.contents b
 
+(** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
+let unbreak_md md =
+  let must_break = function
+    | ""::_ -> true
+    | "```"::_ -> true
+    | line::_ when line.[0] = '-' (* itemize *)-> true
+    | _ -> false
+  in
+  let rec text = function
+    | [] -> ""
+    | [line] -> line
+    | "```"::lines -> "```\n" ^ verb lines
+    | line::lines when line = "" || must_break lines -> line ^ "\n" ^ text lines
+    | line::lines -> line ^ " " ^ text lines
+  and verb = function
+    | "```"::lines -> "```\n" ^ text lines
+    | line::lines -> line ^ "\n" ^ verb lines
+    | [] -> "```"
+  in
+  text (String.split_on_char '\n' md)
+
 (* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:
@@ -390,11 +404,17 @@ let which ~path s =
       true
     with _ -> false
   in
+  if s = "" then raise Not_found;
   if test s then s else
     List.find test (List.map (fun d -> Filename.concat d s) path)
 
+let which_opt ~path s =
+  try
+    Some (which ~path s)
+  with Not_found -> None
+
 (** Get current timezone. *)
-external timezone : unit -> int = "liquidsoap_get_timezone"
+external timezone : unit -> int = "liquidsoap_get_timezone" [@@noalloc]
 
 let string_of_timezone tz =
   (* TODO: not sure about why we need this... *)
@@ -463,7 +483,7 @@ let home_unrelate =
     unrel
 
 let get_tempdir () =
-  if Sys.os_type = "Win32" then
+  if Sys.win32 then
     getenv ~default:"C:\\temp" "TEMP"
   else
     getenv ~default:"/tmp" "TMPDIR"
@@ -655,10 +675,17 @@ let file_extension_len ~dir_sep name =
   in
   search_dot (String.length name - 1)
 
-let file_extension ?(dir_sep=Filename.dir_sep) name =
+let file_extension ?(leading_dot=true) ?(dir_sep=Filename.dir_sep) name =
   let dir_sep = dir_sep.[0] in
   let l = file_extension_len ~dir_sep name in
-  if l = 0 then "" else String.sub name (String.length name - l) l
+  let s =
+    if l = 0 then "" else
+      String.sub name (String.length name - l) l
+  in
+  try match leading_dot, s.[0] with
+    | false, '.' -> String.sub s 1 (String.length s - 1)
+    | _ -> s
+  with Invalid_argument _ -> s
 
 let quote s =
   let quote = '"' in
@@ -689,3 +716,40 @@ let environment () =
   in
   let l = Array.to_list l in
   List.map split l
+
+(** Size of an OCaml value (including referred elements) in bytes. *)
+let reachable_size x =
+  Obj.reachable_words (Obj.repr x) * Sys.word_size
+
+(** String representation of a size (in bytes). *)
+let string_of_size n =
+  if n < 1 lsl 10 then
+    Printf.sprintf "%d B" n
+  else if n < 1 lsl 20 then
+    Printf.sprintf "%.02f KiB" (float_of_int n /. float_of_int (1 lsl 10))
+  else if n < 1 lsl 30 then
+    Printf.sprintf "%.02f MiB" (float_of_int n /. float_of_int (1 lsl 20))
+  else
+    Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
+
+(** String representation of a matrix of strings. *)
+let string_of_matrix a =
+  let height = Array.length a in
+  let width = Array.fold_left (fun h a -> max h (Array.length a)) 0 a in
+  let len = Array.make width 0 in
+  for j = 0 to height - 1 do
+    for i = 0 to Array.length a.(j) - 1 do
+      len.(i) <- max len.(i) (String.length a.(j).(i))
+    done
+  done;
+  let ans = Strings.Mutable.empty () in
+  for j = 0 to height - 1 do
+    for i = 0 to Array.length a.(j) - 1 do
+      let s = a.(j).(i) in
+      if i <> 0 then Strings.Mutable.add ans " ";
+      Strings.Mutable.add ans s;
+      Strings.Mutable.add ans (String.make (len.(i) - String.length s) ' ')
+    done;
+    Strings.Mutable.add ans "\n";
+  done;
+  Strings.Mutable.to_string ans

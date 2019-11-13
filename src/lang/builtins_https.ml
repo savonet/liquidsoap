@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,29 +16,31 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
+open Builtins_http
+
 let () =
-  let add_http_request = Lang_builtins.add_http_request (module Https) in
+  let add_http_request = add_http_request (module Https) in
   add_http_request
     "https.get"
-    "Perform a full https GET request and return (status,headers),data."
-    Lang_builtins.Get;
+    "Perform a full https GET request and return (status,headers,data)."
+    Get;
   add_http_request
     "https.post"
-    "Perform a full https POST request and return (status,headers),data."
-    Lang_builtins.Post;
+    "Perform a full https POST request and return (status,headers,data)."
+    Post;
   add_http_request
     "https.put"
-    "Perform a full https PUT request and return (status,headers),data."
-    Lang_builtins.Put;
+    "Perform a full https PUT request and return (status,headers,data)."
+    Put;
   add_http_request
     "https.head"
-    "Perform a full https HEAD request and return (status,headers),data."
-    Lang_builtins.Head;
+    "Perform a full https HEAD request and return (status,headers,data)."
+    Head;
   add_http_request
     "https.delete"
-    "Perform a full https DELETE request and return (status,headers),data."
-    Lang_builtins.Delete
+    "Perform a full https DELETE request and return (status,headers,data)."
+    Delete

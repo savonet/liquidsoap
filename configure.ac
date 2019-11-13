@@ -1,25 +1,33 @@
-dnl BEFORE RELEASING
-dnl Make sure that you edit the version number on the next line
-dnl as well as the "version" variable below AND the "libs_dir_version",
-dnl which is used as the final component of the standard .liq libdir,
-dnl $libdir/liquidsoap/$libs_dir_version
+# Liquidsoap autoconf setup
 
-# Remove +scm and set scm_snapshot to false before releasing
-# Do not use $version below before the next line, since we grep
-# for the literal version there
-AC_INIT([liquidsoap],[1.3.4+scm])
-scm_snapshot=true
-version=1.3.4
-min_ocaml_version=4.03.0
+AC_INIT([liquidsoap],
+        m4_esyscmd([cat liquidsoap.opam | grep ^version | sed 's/version: "\([^"]*\)"/\1/' | tr -d '\r\n']),
+        [savonet-users@lists.sourceforge.net],
+        [liquidsoap],
+        [https://github.com/savonet/liquidsoap])
+git_snapshot=true
+version="$PACKAGE_VERSION"
+min_ocaml_version=m4_esyscmd([cat liquidsoap.opam | grep \"ocaml\" | sed 's/[ ]*"ocaml" {>= "\([^"]*\)"}/\1/' | tr -d '\r\n'])
+git_commit=`git rev-parse --short HEAD || true`
 
-if test $scm_snapshot != "false"; then
-  version="$version+scm"
-  libs_dir_version="scm"
+if test $git_snapshot != "false"; then
+  if test -n "$git_commit"; then
+    version="$version+git@$git_commit"
+    libs_dir_version="git/$git_commit"
+  else
+    version="$version+dev"
+    libs_dir_version="dev"
+  fi
 else
   libs_dir_version="$version"
 fi
+
 AC_SUBST(version)
+AC_SUBST(min_ocaml_version)
 AC_SUBST(libs_dir_version)
+
+ocaml_version_descr=">= ${min_ocaml_version}"
+AC_SUBST(ocaml_version_descr)
 
 AC_PREREQ(2.61)
 AC_CONFIG_SRCDIR([src/main.ml])
@@ -50,7 +58,8 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 
 cat > src/configure.ml << _BLAH_
 let version = "$version"
-let scm_snapshot = $scm_snapshot
+let git_commit = "$git_commit"
+let git_snapshot = $git_snapshot
 let conf = Utils.conf
 let var_script = ref "default"
 let substs = ref
@@ -127,6 +136,24 @@ if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
 
+AC_ARG_WITH([bash-completion-dir],
+   AC_HELP_STRING(
+      [--with-bash-completion-dir=path],
+      [path to directory used to install bash-completion files (autodetected by default)]))
+
+if test -n "${with_bash_completion_dir}" ; then
+  bashcompdir="${with_bash_completion_dir}"
+else
+  dnl The following does not correctly uses prefix
+  dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+  bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
+  AS_IF([test -z "$bashcompdir"], [bashcompdir='${sysconfdir}/bash_completion.d'])
+fi
+AC_SUBST(bashcompdir)
+
+emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
+AC_SUBST(emacsdir)
+
 # Check endianess
 AC_C_BIGENDIAN
 if test "x$ac_cv_c_bigendian" = "xyes"; then
@@ -150,10 +177,14 @@ AC_CHECK_OCAML_COMPILERS()
 OCAMLC_SYSTEM=`$OCAMLFIND ocamlc -config | grep system | cut -d' ' -f 2`
 if test "$OCAMLC_SYSTEM" = "mingw" -o "$OCAMLC_SYSTEM" = "mingw64"; then
   OS_TYPE="Win32"
+  WIN32_HOST="yes"
 else
   OS_TYPE="Unix"
+  UNIX_HOST="yes"
 fi
 AC_SUBST(OS_TYPE)
+AC_SUBST(WIN32_HOST)
+AC_SUBST(UNIX_HOST)
 
 # Add -fPIC to CFLAGS for compatibility with x86_64
 if test "$OS_TYPE" \!= "Win32" ; then
@@ -191,7 +222,7 @@ fi
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
-  liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+  liquidsoap_ocamlcflags="-g -annot -bin-annot $liquidsoap_ocamlcflags"
   liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
 fi
 # Disable nativecode if ocamlopt is not present
@@ -254,7 +285,7 @@ AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
 if test -z "${VERSION_OK}"; then
-  AC_MSG_ERROR([version 4.03.0 or more of the OCaml compiler is required to build liquidsoap])
+  AC_MSG_ERROR([version $min_ocaml_version or greater of the OCaml compiler is required to build liquidsoap])
 fi
 
 AC_SUBST(BYTE)
@@ -292,101 +323,113 @@ AC_SUBST(W_CUSTOM_PATH)
 # Graphics
 #
 
-AC_ARG_ENABLE([graphics],AS_HELP_STRING([--enable-graphics],[use the graphics library]))
-if test "x$enable_graphics" = "xyes" ; then
-  AC_CHECK_OCAML_BINDING([graphics])
-else
-   W_GRAPHICS=""
-   w_GRAPHICS="no"
-fi
+AC_CHECK_OCAML_BINDING([graphics])
 
 #
 # Bytes
 #
 
-AC_CHECK_OCAML_BINDING([bytes],[],[],[1])
+AC_CHECK_OCAML_BINDING([bytes],[],[1])
 
 #
 # PCRE
 #
 
-AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
+AC_CHECK_OCAML_BINDING([pcre],[],[1])
+
+#
+# SEDLEX
+#
+
+AC_CHECK_OCAML_BINDING([sedlex],[],[1],[sedlex sedlex.ppx],[1])
+
+#
+# MENHIR
+#
+
+AC_CHECK_OCAML_BINDING([menhirLib],[],[1],[],[1])
+
+MENHIR=`which menhir 2>/dev/null`
+if test -z "${MENHIR}" ; then
+  AC_MSG_ERROR(Cannot find menhir binary)
+fi
+AC_SUBST(MENHIR)
 
 #
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[],[1])
 
 #
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[],[1])
 
 #
 # Cry
 #
 
-AC_CHECK_OCAML_BINDING([cry],[0.6.0])
+AC_CHECK_OCAML_BINDING([cry])
 
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.4.0],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[],[1])
 
 #
 # xmlplaylist
 #
 
-AC_CHECK_OCAML_BINDING([xmlplaylist],[0.1.3])
+AC_CHECK_OCAML_BINDING([xmlplaylist])
 
 #
 # Lastfm
 #
 
-AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
+AC_CHECK_OCAML_BINDING([lastfm],[xmlplaylist])
 
 #
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
+AC_CHECK_OCAML_BINDING([ogg])
 
 #
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[ogg])
 
 #
 # Opus
 #
 
-AC_CHECK_OCAML_BINDING([opus],[0.1.1],[ogg])
+AC_CHECK_OCAML_BINDING([opus],[ogg])
 
 #
 # Speex
 #
 
-AC_CHECK_OCAML_BINDING([speex],[0.2.1],[ogg])
+AC_CHECK_OCAML_BINDING([speex],[ogg])
 
 #
 # Mad
 #
 
-AC_CHECK_OCAML_BINDING([mad],[0.4.4])
+AC_CHECK_OCAML_BINDING([mad])
 
 #
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.1.2])
+AC_CHECK_OCAML_BINDING([flac])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
-AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
+AC_CHECK_OCAML_BINDING([flac.ogg],[ogg flac],[],[],[flac])
 
 #
 # Dynlink
@@ -432,7 +475,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame],[0.3.2])
+AC_CHECK_OCAML_BINDING([lame])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -447,25 +490,25 @@ AC_SUBST(W_LAME_DYN)
 # Shine
 #
 
-AC_CHECK_OCAML_BINDING([shine],[0.2.0])
+AC_CHECK_OCAML_BINDING([shine])
 
 #
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer],[0.3.0])
+AC_CHECK_OCAML_BINDING([gstreamer])
 
 #
 # frei0r
 #
 
-AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
+AC_CHECK_OCAML_BINDING([frei0r])
 
 #
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.2.1])
+AC_CHECK_OCAML_BINDING([fdkaac])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -480,49 +523,49 @@ AC_SUBST(W_FDKAAC_DYN)
 # Theora
 #
 
-AC_CHECK_OCAML_BINDING([theora],[0.3.1],[ogg])
+AC_CHECK_OCAML_BINDING([theora],[ogg])
 
 #
 # Gavl
 #
 
-AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
+AC_CHECK_OCAML_BINDING([gavl])
 
 #
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.2.0])
+AC_CHECK_OCAML_BINDING([ffmpeg])
 
 #
 # Jack
 #
 
-AC_CHECK_OCAML_BINDING([bjack],[0.1.3])
+AC_CHECK_OCAML_BINDING([bjack])
 
 #
 # Alsa
 #
 
-AC_CHECK_OCAML_BINDING([alsa],[0.2.1])
+AC_CHECK_OCAML_BINDING([alsa])
 
 #
 # LibAO
 #
 
-AC_CHECK_OCAML_BINDING([ao],[0.2.0])
+AC_CHECK_OCAML_BINDING([ao])
 
 #
 # Samplerate
 #
 
-AC_CHECK_OCAML_BINDING([samplerate],[0.1.1])
+AC_CHECK_OCAML_BINDING([samplerate])
 
 #
 # Taglib
 #
 
-AC_CHECK_OCAML_BINDING([taglib],[0.3.0])
+AC_CHECK_OCAML_BINDING([taglib])
 
 #
 # OSS
@@ -545,7 +588,7 @@ AC_SUBST(W_OSS)
 # SSL
 #
 
-AC_CHECK_OCAML_BINDING([ssl],[0.5.2])
+AC_CHECK_OCAML_BINDING([ssl])
 
 if test "a$W_SSL" = "ayes"; then
     cat >> src/configure.ml <<EOCONF
@@ -601,7 +644,12 @@ fi
 AC_ARG_ENABLE([camomile],
   AS_HELP_STRING([--disable-camomile],[don't use camomile (no charset detection and conversion)]))
 
-AC_CHECK_OCAML_BINDING([camomile],[1.0.0])
+AC_CHECK_OCAML_BINDING([camomile])
+
+AC_ARG_WITH([camomile-data-dir],
+   AC_HELP_STRING(
+      [--with-camomile-data-dir=path],
+      [path to camomile data files (autodetected by default)]))
 
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
@@ -610,7 +658,18 @@ if test -z "$W_CAMOMILE" ; then
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi
 else
-    if test -n "$w_CUSTOM_PATH"; then
+    if test -n "${with_camomile_data_dir}" ; then
+      camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
+      cat >> src/configure.ml <<EOCONF
+module CamomileConfig =
+struct
+  let datadir = Filename.concat "${with_camomile_data_dir}" "database"
+  let localedir = Filename.concat "${with_camomile_data_dir}" "locales"
+  let charmapdir = Filename.concat "${with_camomile_data_dir}" "charmaps"
+  let unimapdir = Filename.concat "${with_camomile_data_dir}" "mappings"
+end
+EOCONF
+    elif test -n "$w_CUSTOM_PATH" ; then
       camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
       cat >> src/configure.ml <<EOCONF
 module CamomileConfig = 
@@ -653,7 +712,7 @@ let get_encoding () =
           custom_encoding := Some e ;
           e
 
-let camolog = Dtools.Log.make [["camomile"]]
+let camolog = Log.make [["camomile"]]
 
 exception Input_encoding of string
 exception Output_encoding of string
@@ -683,21 +742,21 @@ let recode_tag ?in_enc ?out_enc s =
           else
             C.name_of in_enc
         in
-        camolog#f 3 "Failed to convert %S from %s to %s (%s)!"
+        camolog#important "Failed to convert %S from %s to %s (%s)!"
           s in_enc (C.name_of out_enc) (Printexc.to_string e) ;
         s
   with
     | Unknown_encoding e ->
-          camolog#f 3 "Failed to convert %S: unknown encoding %s"
+          camolog#important "Failed to convert %S: unknown encoding %s"
               s e ; s
     | Input_encoding e -> 
-          camolog#f 3 "Failed to convert %S: unknown input encoding %s"
+          camolog#important "Failed to convert %S: unknown input encoding %s"
               s e ; s
     | Output_encoding e ->        
-          camolog#f 3 "Failed to convert %S: unknown output encoding %s"
+          camolog#important "Failed to convert %S: unknown output encoding %s"
               s e ; s
     | e ->
-          camolog#f 3 "Failed to convert %S: unknown error %s"
+          camolog#important "Failed to convert %S: unknown error %s"
               s (Printexc.to_string e) ; s
 
 let env_has key = try ignore (Sys.getenv key) ; true with Not_found -> false
@@ -712,7 +771,7 @@ fi
 
 # Inotify
 
-AC_CHECK_OCAML_BINDING([inotify],[1.5])
+AC_CHECK_OCAML_BINDING([inotify])
 
 cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch
@@ -728,26 +787,43 @@ module JSON = JSON
 __BLAH__
 else
 cat >> src/configure.ml <<__BLAH__
-module JSON = struct include Yojson.Basic let from_string s = from_string s end
+module JSON = struct include Yojson.Basic let from_string s = from_string s let to_string j = pretty_to_string j end
 __BLAH__
 fi
 
 # OCaml bindings
 
-AC_CHECK_OCAML_BINDING([faad],[0.4.0])
-AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
-AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
-AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])
-AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
-AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
-AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
-AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
-AC_CHECK_OCAML_BINDING([lo],[0.1.0])
+AC_CHECK_OCAML_BINDING([faad])
+AC_CHECK_OCAML_BINDING([soundtouch])
+AC_CHECK_OCAML_BINDING([portaudio])
+AC_CHECK_OCAML_BINDING([pulseaudio])
+AC_CHECK_OCAML_BINDING([ladspa])
+AC_CHECK_OCAML_BINDING([dssi])
+AC_CHECK_OCAML_BINDING([lilv])
+AC_CHECK_OCAML_BINDING([sdl],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
+AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
+
+# TODO: switch to dune all the way?
+with_srt_types_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/types"
+AC_CHECK_OCAML_BINDING([srt.types],[],[],[],[srt_types])
+
+with_srt_stubs_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs"
+AC_CHECK_OCAML_BINDING([srt.stubs],[srt.types],[],[],[srt_stubs])
+
+with_srt_stubs_locked_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs/locked"
+AC_CHECK_OCAML_BINDING([srt.stubs],[],[],[],[srt_stubs_locked])
+
+AC_CHECK_OCAML_BINDING([srt],[srt.types srt.stubs srt.stubs.locked])
+
+AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([gd])
 
 # Winsvc (to run as a service)
 
-AC_CHECK_OCAML_BINDING([winsvc],[0.0.1])
+AC_CHECK_OCAML_BINDING([winsvc])
 
 #
 # Tuning (See INSTALL to understand these features)
@@ -775,7 +851,7 @@ AC_ARG_WITH([default-font],
                            [sets the default TTF font for video.add_text()]))
 if test "$w_SDL" = "yes" -o "$w_GD" = "yes" ; then
   if test -z "$with_default_font" ; then
-    DEFAULT_FONT=/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf
+    DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
   else
     DEFAULT_FONT=$with_default_font
   fi
@@ -852,10 +928,10 @@ AC_SUBST(shared_flag)
 
 echo
 
+AC_CONFIG_FILES([doc/content/install.md])
+AC_CONFIG_FILES([doc/content/build.md])
+AC_CONFIG_FILES([doc/liquidsoap.1.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
-AC_CONFIG_FILES([scripts/liquidsoap.initd],[chmod a-w scripts/liquidsoap.initd])
-AC_CONFIG_FILES([scripts/liquidsoap.gentoo.initd],
-                [chmod a-w scripts/liquidsoap.gentoo.initd])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
 AC_OUTPUT
 $MAKE finish-configure
@@ -898,63 +974,72 @@ cat <<EOMSG
  logrotate conf : $sysconfdir/logrotate.d
  man page       : $mandir/man1
  doc            : $datadir/doc
+ bash completion: $bashcompdir
+ emacs mode     : $emacsdir
 
  -------------------------------------------------------------------- Features
 
+ * Liquidsoap
+   - version           : $version
+
  * Supported input formats
-   - Vorbis            : $w_VORBIS
-   - Theora            : $w_THEORA
-   - Speex             : $w_SPEEX
-   - Flac (native)     : $w_FLAC
-   - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - Avcodec (ffmpeg)  : $w_FFMPEG
-   - XML playlists     : $w_XMLPLAYLIST
+   - Ffmpeg            : $w_FFMPEG
+   - Flac (native)     : $w_FLAC
+   - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM
+   - Opus              : $w_OPUS
+   - Speex             : $w_SPEEX
+   - Theora            : $w_THEORA
+   - Vorbis            : $w_VORBIS
+   - XML playlists     : $w_XMLPLAYLIST
 
  * Supported output formats
-   - Vorbis            : $w_VORBIS
+   - FDK-AAC           : $w_FDKAAC
+   - Ffmpeg            : $w_FFMPEG
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
-   - FDK-AAC           : $w_FDKAAC
-   - SPEEX             : $w_SPEEX
    - Opus              : $w_OPUS
+   - SPEEX             : $w_SPEEX
    - Theora            : $w_THEORA
+   - Vorbis            : $w_VORBIS
 
  * Tags
+   - charset detection : $w_CAMOMILE
    - Taglib (ID3 tags) : $w_TAGLIB
    - Vorbis            : $w_VORBIS
-   - charset detection : $w_CAMOMILE
 
  * Input / output
-   - Icecast/Shoutcast : $w_CRY
-   - AO                : $w_AO
-   - OSS               : $w_OSS
    - ALSA              : $w_ALSA
+   - AO                : $w_AO
+   - Icecast/Shoutcast : $w_CRY
+   - GStreamer         : $w_GSTREAMER
+   - JACK              : $w_BJACK
+   - OSS               : $w_OSS
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
-   - JACK              : $w_BJACK
-   - GStreamer         : $w_GSTREAMER
+   - SRT               : $w_SRT
 
  * Audio manipulation
+   - LADSPA            : $w_LADSPA
+   - Lilv              : $w_LILV
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
-   - LADSPA            : $w_LADSPA
 
  * Video manipulation
-   - Gavl              : $w_GAVL
+   - camlimages        : $w_CAMLIMAGES
    - FFmpeg            : $w_FFMPEG
    - frei0r            : $w_FREI0R
-   - camlimages        : $w_CAMLIMAGES
+   - Gavl              : $w_GAVL
 
  * MIDI manipulation
    - DSSI              : $w_DSSI
 
  * Visualization
+   - GD                : $w_GD
    - Graphics          : $w_GRAPHICS
    - SDL               : $w_SDL
-   - GD                : $w_GD
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime
@@ -962,10 +1047,10 @@ cat <<EOMSG
    - inotify           : $w_INOTIFY
    - lo                : $w_LO
    - magic             : $w_MAGIC
-   - yojson            : $w_YOJSON
-   - ssl               : $w_SSL
    - SecureTransport   : $w_OSX_SECURE_TRANSPORT
+   - ssl               : $w_SSL
    - windows service   : $w_WINSVC
+   - yojson            : $w_YOJSON
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
@@ -1013,3 +1098,52 @@ if ! test -f $DEFAULT_FONT ; then
 </WARNING>
 EOMSG
 fi
+
+cat >| liquidsoap.config <<EOCFG
+opam-version: "2.0"
+variables {
+  vorbis-enabled: $b_VORBIS
+  theora-enabled: $b_THEORA
+  speex-enabled: $b_SPEEX
+  flac-enabled: $b_FLAC
+  ogg_flac-enabled: $b_FLAC_OGG
+  mad-enabled: $b_MAD
+  faad-enabled: $b_FAAD
+  ffmpeg-enabled: $b_FFMPEG
+  xmlplaylist-enabled: $b_XMLPLAYLIST
+  lastfm-enabled: $b_LASTFM
+  lame-enabled: $b_LAME
+  shine-enabled: $b_SHINE
+  fdkaac-enabled: $b_FDKAAC
+  opus-enabled: $b_OPUS
+  taglib-enabled: $b_TAGLIB
+  camomile-enabled: $b_CAMOMILE
+  cry-enabled: $b_CRY
+  ao-enabled: $b_AO
+  ogg-enabled: $b_OGG
+  alsa-enabled: $b_ALSA
+  portaudio-enabled: $b_PORTAUDIO
+  pulseaudio-enabled: $b_PULSEAUDIO
+  bjack-enabled: $b_BJACK
+  gstreamer-enabled: $b_GSTREAMER
+  samplerate-enabled: $b_SAMPLERATE
+  soundtouch-enabled: $b_SOUNDTOUCH
+  ladspa-enabled: $b_LADSPA
+  gavl-enabled: $b_GAVL
+  ffmpeg-enabled: $b_FFMPEG
+  frei0r-enabled: $b_FREI0R
+  camlimages-enabled: $b_CAMLIMAGES
+  dssi-enabled: $b_DSSI
+  graphics-enabled: $b_GRAPHICS
+  sdl-enabled: $b_SDL
+  gd-enabled: $b_GD
+  inotify-enabled: $b_INOTIFY
+  lo-enabled: $b_LO
+  magic-enabled: $b_MAGIC
+  yojson-enabled: $b_YOJSON
+  ssl-enabled: $b_SSL
+  secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  srt-enabled: $b_SRT
+  winscv-enabled: $b_WINSVC
+}
+EOCFG

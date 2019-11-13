@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -29,6 +29,8 @@ object (self)
 
   (* Hide our child: we'll treat it specially. *)
   inherit source ~name:"resample" kind as super
+
+  method self_sync = source#self_sync
 
   method stype = source#stype
 
@@ -120,17 +122,13 @@ object (self)
         match converter with
           | Some c -> c
           | None ->
-              let c =
-                Audio_converter.Samplerate.create (Array.length content)
-              in
-                converter <- Some c ;
-                c
+            let c = Audio_converter.Samplerate.create (Array.length content) in
+            converter <- Some c ;
+            c
       in
       let len = stop-start in
-      let pcm =
-        Audio_converter.Samplerate.resample converter ratio content start len
-      in
-        { Frame.audio = pcm ; video = [||] ; midi = [||] }
+      let pcm = Audio_converter.Samplerate.resample converter ratio (Audio.sub content start len) in
+      { Frame.audio = pcm ; video = [||] ; midi = [||] }
     in
     let convert x = int_of_float (float x *. ratio) in
     let metadata =

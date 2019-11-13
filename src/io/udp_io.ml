@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -58,8 +58,8 @@ object (self)
     (Utils.get_some encoder).Encoder.insert_metadata m
 
   method private send data =
-    let sent = (Utils.get_some socket_send) data 0 (String.length data) in
-      ignore sent
+    let socket_send = Utils.get_some socket_send in
+    Strings.iter (fun s o l -> ignore (socket_send s o l)) data
 
 end
 
@@ -86,7 +86,7 @@ object (self)
       ~on_start:ignore ~on_stop:ignore
       ~autostart:true
 
-  initializer log_ref := (fun s -> self#log#f 3 "%s" s)
+  initializer log_ref := (fun s -> self#log#important "%s" s)
 
   val mutable kill_feeding = None
   val mutable wait_feeding = None
@@ -129,11 +129,10 @@ object (self)
           if l = [] then wait ()
       in
       (* Read data from the network. *)
-      let read len =
+      let read buf ofs len =
         wait () ;
-        let msg = Bytes.create len in
-        let n,_ = Unix.recvfrom socket msg 0 len [] in
-          Bytes.unsafe_to_string msg,n
+        let n,_ = Unix.recvfrom socket buf ofs len [] in
+        n
       in
       let input =
         { Decoder.
@@ -158,9 +157,9 @@ object (self)
               Unix.close socket ;
               begin match e with
                 | Failure s ->
-                    self#log#f 2 "Feeding stopped: %s." s
+                    self#log#severe "Feeding stopped: %s." s
                 | e ->
-                    self#log#f 2 "Feeding stopped: %s."
+                    self#log#severe "Feeding stopped: %s."
                       (Printexc.to_string e)
               end ;
               if should_stop () then
@@ -201,7 +200,7 @@ let () =
            let fmt = Lang.assoc "" 1 p in
              try Encoder.get_factory (Lang.to_format fmt) with
                | Not_found ->
-                   raise (Lang.Invalid_value
+                   raise (Lang_errors.Invalid_value
                             (fmt,
                              "Cannot get a stream encoder for that format"))
          in
@@ -229,7 +228,7 @@ let () =
          let mime = Lang.to_string (Lang.assoc "" 1 p) in
            match Decoder.get_stream_decoder mime kind with
              | None ->
-                 raise (Lang.Invalid_value
+                 raise (Lang_errors.Invalid_value
                           ((Lang.assoc "" 1 p),
                            "Cannot get a stream decoder for this MIME"))
              | Some decoder_factory ->

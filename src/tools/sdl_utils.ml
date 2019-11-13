@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,10 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-module Img = Image.RGBA32
 module Gen = Image.Generic
 
 type event = 
@@ -68,13 +67,13 @@ let from_8 surface =
     (fun () ->
        let width,height,pitch = Sdlvideo.surface_dims surface in
        let image = Sdlvideo.pixel_data_8 surface in
-       let a = Img.create width height in
+       let a = Video.Image.create width height in
          for i = 0 to width-1 do
            for j = 0 to height-1 do
              let r,g,b =
                Sdlvideo.get_palette_color surface image.{i+j*pitch}
              in
-               Img.set_pixel a i j (r,g,b,0xff)
+               Video.Image.set_pixel_rgba a i j (r,g,b,0xff)
            done
          done ;
          a)
@@ -87,11 +86,11 @@ let to_16 rgb surface =
        let width,height,pitch = Sdlvideo.surface_dims surface in
        let pitch = pitch/2 in (* initial pitch was in bytes *)
        let fmt = Sdlvideo.surface_format surface in
-         assert (width = Img.width rgb && height = Img.height rgb) ;
+         assert (width = Video.Image.width rgb && height = Video.Image.height rgb) ;
          assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette) ;
          for i = 0 to width-1 do
            for j = 0 to height-1 do
-             let r,g,b,_ = Img.get_pixel rgb i j in
+             let r,g,b,_ = Video.Image.get_pixel_rgba rgb i j in
              let color =
                ((r lsr fmt.Sdlvideo.rloss) lsl fmt.Sdlvideo.rshift) lor
                ((g lsr fmt.Sdlvideo.gloss) lsl fmt.Sdlvideo.gshift) lor
@@ -113,7 +112,7 @@ let from_24 surface =
        let width,height,pitch = Sdlvideo.surface_dims surface in
        let fmt = Sdlvideo.surface_format surface in
        let rgb = Sdlvideo.pixel_data_24 surface in
-       let a = Img.create width height in
+       let a = Video.Image.create width height in
        let col = Array.make 3 0 in
          for i = 0 to width-1 do
            for j = 0 to height-1 do
@@ -121,7 +120,7 @@ let from_24 surface =
                let c' = if fmt.Sdlvideo.rshift = 0 then c else 2-c in
                  col.(c) <- rgb.{c'+i*3+j*pitch}
              done ;
-             Img.set_pixel a i j (col.(0),col.(1),col.(2),0xff)
+             Video.Image.set_pixel_rgba a i j (col.(0),col.(1),col.(2),0xff)
            done
          done ;
          a)
@@ -150,7 +149,7 @@ let from_24 surface =
 let to_32_bigarray rgb fmt width height pitch s =
   for i = 0 to width-1 do
     for j = 0 to height-1 do
-      let r,g,b,_ = Img.get_pixel rgb i j in
+      let r,g,b,_ = Video.Image.get_pixel_rgba rgb i j in
       let color =
         Int32.of_int
           ((r lsl fmt.Sdlvideo.rshift) lor
@@ -164,21 +163,23 @@ let to_32_bigarray rgb fmt width height pitch s =
 let to_32 rgb surface =
   keep_alive surface
     (fun () ->
-       let width,height,stride = Sdlvideo.surface_dims surface in
-       let pitch = stride/4 in
-       let fmt = Sdlvideo.surface_format surface in
-         assert (width = Img.width rgb && height = Img.height rgb);
-         assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
+      let width,height,stride = Sdlvideo.surface_dims surface in
+      let pitch = stride/4 in
+      let fmt = Sdlvideo.surface_format surface in
+      assert (width = Video.Image.width rgb && height = Video.Image.height rgb);
+      assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
+      (*
          if fmt.Sdlvideo.rshift = 16 && fmt.Sdlvideo.gshift = 8 &&
             fmt.Sdlvideo.bshift = 0 && not Configure.big_endian
          then
            let s = Sdlvideo.pixel_data surface in
            let pix = Gen.Pixel.BGR32 in
            let sdl = Gen.make_rgb pix ~stride width height s in
-             Gen.convert (Gen.of_RGBA32 rgb) sdl
+           Video.Image.to_generic rgb sdl
          else
-           to_32_bigarray rgb fmt width height pitch
-             (Sdlvideo.pixel_data_32 surface))
+       *)
+      to_32_bigarray rgb fmt width height pitch
+        (Sdlvideo.pixel_data_32 surface))
 
 let from_32 surface =
   keep_alive surface
@@ -188,7 +189,7 @@ let from_32 surface =
        let fmt = Sdlvideo.surface_format surface in
        (* pitch is in bytes, convert for int32 array *)
        let pitch = pitch/4 in
-       let f = Img.create width height in
+       let f = Video.Image.create width height in
          assert (fmt.Sdlvideo.rloss = 0 &&
                  fmt.Sdlvideo.gloss = 0 &&
                  fmt.Sdlvideo.bloss = 0) ;
@@ -213,7 +214,7 @@ let from_32 surface =
                  Int32.to_int
                    ((pixel && fmt.Sdlvideo.amask) >> fmt.Sdlvideo.ashift)
                in
-                 Img.set_pixel f i j (r,g,b,a)
+                 Video.Image.set_pixel_rgba f i j (r,g,b,a)
              done
            done ;
            f)

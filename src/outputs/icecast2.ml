@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2018 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -63,25 +63,25 @@ struct
             in
             { quality = quality ;
               bitrate = bitrate ;
-              samplerate = Some m.Mp3_format.samplerate ;
+              samplerate = Some (Lazy.force m.Mp3_format.samplerate) ;
               channels = Some (if m.Mp3_format.stereo then 2 else 1)
             }
         | Encoder.Shine m ->
             { quality = None ;
               bitrate = Some m.Shine_format.bitrate ;
-              samplerate = Some m.Shine_format.samplerate ;
+              samplerate = Some (Lazy.force m.Shine_format.samplerate) ;
               channels = Some m.Shine_format.channels
             }
         | Encoder.FdkAacEnc m ->
             { quality = None ;
               bitrate = Some m.Fdkaac_format.bitrate ;
-              samplerate = Some m.Fdkaac_format.samplerate ;
+              samplerate = Some (Lazy.force m.Fdkaac_format.samplerate) ;
               channels = Some m.Fdkaac_format.channels
             }
         | Encoder.External m ->
             { quality = None ;
               bitrate = None ;
-              samplerate = Some m.External_encoder_format.samplerate ;
+              samplerate = Some (Lazy.force m.External_encoder_format.samplerate) ;
               channels = Some m.External_encoder_format.channels
             }
         | Encoder.GStreamer m ->
@@ -93,19 +93,25 @@ struct
         | Encoder.Flac m ->
             { quality = Some (string_of_int m.Flac_format.compression) ;
               bitrate = None ;
-              samplerate = Some m.Flac_format.samplerate ;
+              samplerate = Some (Lazy.force m.Flac_format.samplerate) ;
               channels = Some m.Flac_format.channels
+            }
+        | Encoder.Ffmpeg m ->
+            { quality    = None ;
+              bitrate    = None ;
+              samplerate = Some (Lazy.force m.Ffmpeg_format.samplerate) ;
+              channels   = Some (m.Ffmpeg_format.channels)
             }
         | Encoder.WAV m ->
             { quality = None ;
               bitrate = None ;
-              samplerate = Some m.Wav_format.samplerate ;
+              samplerate = Some (Lazy.force m.Wav_format.samplerate) ;
               channels = Some m.Wav_format.channels
             }
         | Encoder.AVI m ->
             { quality = None ;
               bitrate = None ;
-              samplerate = Some m.Avi_format.samplerate ;
+              samplerate = Some (Lazy.force m.Avi_format.samplerate) ;
               channels = Some m.Avi_format.channels
             }
         | Encoder.Ogg o ->
@@ -117,7 +123,7 @@ struct
                 ->
                   { quality = Some (string_of_float q) ;
                     bitrate = None ;
-                    samplerate = Some s ;
+                    samplerate = Some (Lazy.force s) ;
                     channels = Some n }
               | [Ogg_format.Vorbis
                    {Vorbis_format.channels=n;
@@ -126,7 +132,7 @@ struct
                 ->
                   { quality = None ;
                     bitrate = b ;
-                    samplerate = Some s ;
+                    samplerate = Some (Lazy.force s) ;
                     channels = Some n }
               | [Ogg_format.Vorbis
                    {Vorbis_format.channels=n;
@@ -135,7 +141,7 @@ struct
                 ->
                   { quality = None ;
                     bitrate = Some b ;
-                    samplerate = Some s ;
+                    samplerate = Some (Lazy.force s) ;
                     channels = Some n }
               | _ ->
                   { quality = None ; bitrate = None ;
@@ -239,7 +245,7 @@ class output ~kind p =
         | "source" -> Cry.Source
         | "put"    -> Cry.Put
         | "post"   -> Cry.Post
-        | _ -> raise (Lang.Invalid_value
+        | _ -> raise (Lang_errors.Invalid_value
                    (v, "Valid values are: 'source' \
                        'put' or 'post'.")) 
     in  
@@ -249,7 +255,7 @@ class output ~kind p =
       | "https" -> Cry.Https verb
       | "icy" -> Cry.Icy
       | _ ->
-          raise (Lang.Invalid_value
+          raise (Lang_errors.Invalid_value
                    (v, "Valid values are 'http' (icecast) \
                         and 'icy' (shoutcast)"))
   in
@@ -261,7 +267,7 @@ class output ~kind p =
          | "true"  -> `True
          | "false" -> `False
          | _ ->
-               raise (Lang.Invalid_value
+               raise (Lang_errors.Invalid_value
                        (v, "Valid values are 'guess', \
                            'true' or 'false'"))
     in
@@ -276,7 +282,7 @@ class output ~kind p =
                        x = ogg_audio ||
                        x = ogg_video -> false
       | _, _ ->
-           raise (Lang.Invalid_value
+           raise (Lang_errors.Invalid_value
                     (List.assoc "icy_metadata" p,
                      "Could not guess icy_metadata for this format, \
                      please specify either 'true' or 'false'."))
@@ -304,7 +310,7 @@ class output ~kind p =
   let mount, name =
     match protocol, name, mount with
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
-        raise (Lang.Invalid_value
+        raise (Lang_errors.Invalid_value
                  (List.assoc "mount" p,
                   "Either name or mount must be defined for icecast sources."))
       | Cry.Icy, name, _ when name = no_name ->
@@ -397,7 +403,7 @@ object (self)
     match Cry.get_status connection, encoder with
       | Cry.Connected _, Some enc ->
          enc.Encoder.encode frame ofs len
-      | _ -> ""
+      | _ -> Strings.empty
 
   method insert_metadata m =
     (* Update metadata using ICY if told to.. *)
@@ -445,7 +451,7 @@ object (self)
           | Cry.Connected _ ->
               (try 
                  Cry.update_metadata ~charset:out_enc connection m 
-               with e -> self#log#f 3 "Metadata update may have failed with \
+               with e -> self#log#important "Metadata update may have failed with \
                                        error: %s" 
                              (Printexc.to_string e))
           | Cry.Disconnected -> ()
@@ -465,20 +471,21 @@ object (self)
           end
       | Cry.Connected _ ->
           begin try
-            Cry.send connection b;
+            Strings.iter (fun s offset length ->
+              Cry.send connection ~offset ~length s) b;
             match dump with
-              | Some s -> output_string s b
+              | Some s -> Strings.iter (output_substring s) b
               | None -> () 
           with
             | e ->
-                self#log#f 2 "Error while sending data: %s!" (Printexc.to_string e) ;
+                self#log#severe "Error while sending data: %s!" (Printexc.to_string e) ;
                 let delay = on_error e in
                 if delay >= 0. then
                  begin
                   (* Ask for a restart after [restart_time]. *)
                   self#icecast_stop ;
                   restart_time <- Unix.time () +. delay ;
-                  self#log#f 3
+                  self#log#important
                     "Will try to reconnect in %.02f seconds."
                     delay
                  end
@@ -513,7 +520,7 @@ object (self)
         | Cry.Icy_id id -> Printf.sprintf "sid#%d" id
         | Cry.Icecast_mount mount -> mount
     in
-    self#log#f 3 "Connecting mount %s for %s@%s..." display_mount user host ;
+    self#log#important "Connecting mount %s for %s@%s..." display_mount user host ;
     let audio_info = Hashtbl.create 10 in
     let f x y z =
       match x with
@@ -543,18 +550,18 @@ object (self)
 
       try
         Cry.connect connection source ;
-        self#log#f 3 "Connection setup was successful." ;
+        self#log#important "Connection setup was successful." ;
         (* Execute on_connect hook. *)
         on_connect () ;
       with
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
         | e ->
-            self#log#f 2 "Connection failed: %s" (Printexc.to_string e) ;
+            self#log#severe "Connection failed: %s" (Printexc.to_string e) ;
             let delay = on_error e in
             if delay >= 0. then
              begin
-              self#log#f 3
+              self#log#important
                 "Will try again in %.02f sec."
                 delay ;
               self#icecast_stop ;
@@ -573,7 +580,7 @@ object (self)
     begin match Cry.get_status connection with
       | Cry.Disconnected -> ()
       | Cry.Connected _ ->
-          self#log#f 3 "Closing connection..." ;
+          self#log#important "Closing connection..." ;
           Cry.close connection ;
           on_disconnect () ;
     end ;
