@@ -14,6 +14,11 @@ New:
 - Added `list.init`.
 - Added `list.ind`.
 - Added `request.id`.
+- Added a profiler for the language. It can be enabled with `profiler.enable` and
+  the results are obtained with `profiler.stats.string` (#1027).
+- Added `gtts` protocol to use Google TTS (#1034).
+- Added `liquidsoap.executable` to get the path of the currently running
+  Liquidsoap.
 
 Changed:
 
@@ -22,6 +27,7 @@ Changed:
   the default safe behavior. (#1012)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
+- Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).
 - Use system pagesize for buffer allocation (#915).
 - Use new Strings module in order to avoid concatenations (#984).
@@ -35,11 +41,14 @@ Changed:
   (#1019).
 - Changed the weights of `add` to float (#1022).
 - Switch from ocamlsdl to ocamlsdl2 (#1029).
+- Renamed `which` to `file.which`.
+- Change `blank()` duration semantics to mean forever only on negative values.
 
 Fixed:
 
 - Fix implementation of recursive functions (#934).
 - Fix opam install error with some bash-completion configuration (#980).
+- Make `blank()` source unavailable past is expected duration (#668).
 
 1.4.0 (29-09-2019)
 =====
