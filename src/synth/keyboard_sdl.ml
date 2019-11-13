@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Tsdl
+
 let knotes2 =
   [|'&'; 'a'; '\233'; 'z'; '"'; 'e'; 'r'; '('; 't';
     '-'; 'y'; '\232'; 'u'; 'i'; '\231'; 'o'; '\224'; 'p'|]
@@ -36,6 +38,11 @@ let array_index a x =
       | Some i -> i
       | None -> raise Not_found
 
+let char_of_key k =
+  let c = Sdl.get_key_name k in
+  if c = "" then raise Not_found;
+  c.[0]
+
 let note_of_char c =
   try
     array_index knotes2 c + 71
@@ -44,7 +51,7 @@ let note_of_char c =
         array_index knotes1 c + 59
 
 class keyboard ~kind velocity =
-  let () = Sdl_utils.init [`EVENTTHREAD; `VIDEO] in
+  let () = Sdl_utils.init [Sdl.Init.events; Sdl.Init.video] in
 object (self)
   inherit Source.active_source ~name:"input.keyboard.sdl" kind
 
@@ -55,12 +62,10 @@ object (self)
   method self_sync = false
   method output = if AFrame.is_partial memo then self#get_frame memo
 
+  val mutable window = None
+
   method output_get_ready =
-    Sdlevent.disable_events (Sdlevent.all_events_mask);
-    Sdlevent.enable_events
-      (Sdlevent.make_mask
-         [Sdlevent.KEYDOWN_EVENT; Sdlevent.KEYUP_EVENT; Sdlevent.QUIT_EVENT]);
-    ignore (Sdlvideo.set_video_mode ~w:640 ~h:480 ~bpp:16 [])
+    window <- Some (Sdl_utils.check (fun () -> Sdl.create_window "Liquidsoap" ~w:640 ~h:480 Sdl.Window.windowed) ());
 
   method private sleep = Sdl.quit ()
 
@@ -77,37 +82,41 @@ object (self)
     let m = m.Frame.midi in
     let t =
       let ans = MIDI.create (MFrame.size ()) in
-        Sdlevent.pump ();
-        while Sdlevent.has_event () do
-          try
-            match Sdlevent.poll () with
-              | Some (Sdlevent.KEYDOWN k) ->
-                  let c = Sdlkey.char_of_key k.Sdlevent.keysym in
-                    if c = '+' || c = '*' then
-                      velocity <- min 1. (velocity +. 0.1)
-                    else if c = '-' || c = '/' then
-                      velocity <- max 0. (velocity -. 0.1)
-                    else
-                      let n = note_of_char c in
-                        (* Printf.printf "Playing note %d.\n%!" n; *)
-                        MIDI.insert ans (0,MIDI.Note_on (n, velocity))
-              | Some (Sdlevent.KEYUP k) ->
-                  let c = Sdlkey.char_of_key k.Sdlevent.keysym in
-                  let n = note_of_char c in
-                    (* Printf.printf "Stopping note %d.\n%!" n; *)
-                    MIDI.insert ans (0,MIDI.Note_off (n, velocity))
-              | _ -> ()
-          with
-            | Not_found
-            | Invalid_argument _ -> ()
-        done;
-        ans
-    in
-      for c = 0 to Array.length m - 1 do
-        MIDI.clear_all m.(c);
-        MIDI.merge m.(c) t
+      Sdl.pump_events ();
+      while Sdl.has_event Sdl.Event.key_down || Sdl.has_event Sdl.Event.key_up do
+        try
+          let e = Sdl.Event.create () in
+          if Sdl.poll_event (Some e) then
+            match Sdl.Event.(enum (get e typ)) with
+            | `Key_down ->
+              let k = Sdl.Event.(get e keyboard_keycode) in
+              let c = char_of_key k in
+              if c = '+' || c = '*' then
+                velocity <- min 1. (velocity +. 0.1)
+              else if c = '-' || c = '/' then
+                velocity <- max 0. (velocity -. 0.1)
+              else
+                let n = note_of_char c in
+                (* Printf.printf "Playing note %d.\n%!" n; *)
+                MIDI.insert ans (0, MIDI.Note_on (n, velocity))
+            | `Key_up ->
+              let k = Sdl.Event.(get e keyboard_keycode) in
+              let c = char_of_key k in
+              let n = note_of_char c in
+              (* Printf.printf "Stopping note %d.\n%!" n; *)
+              MIDI.insert ans (0, MIDI.Note_off (n, velocity))
+            | _ -> ()
+        with
+        | Not_found
+        | Invalid_argument _ -> ()
       done;
-      MFrame.add_break frame (MFrame.size ())
+      ans
+    in
+    for c = 0 to Array.length m - 1 do
+      MIDI.clear_all m.(c);
+      MIDI.merge m.(c) t
+    done;
+    MFrame.add_break frame (MFrame.size ())
 end
 
 let () =
