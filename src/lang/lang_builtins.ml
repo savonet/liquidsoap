@@ -64,6 +64,14 @@ let () =
 
 let () =
   Lang.add_builtin_base
+    "liquidsoap.executable"
+    ~category:(string_of_category Liq)
+    ~descr:"Path to the Liquidsoap executable."
+    (Lang.String Sys.executable_name)
+    Lang.string_t
+
+let () =
+  Lang.add_builtin_base
     ~category:(string_of_category Sys)
     ~descr:"Type of OS running liquidsoap."
     "os.type"

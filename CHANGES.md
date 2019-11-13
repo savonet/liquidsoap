@@ -17,6 +17,8 @@ New:
 - Added a profiler for the language. It can be enabled with `profiler.enable` and
   the results are obtained with `profiler.stats.string` (#1027).
 - Added `gtts` protocol to use Google TTS (#1034).
+- Added `liquidsoap.executable` to get the path of the currently running
+  Liquidsoap.
 
 Changed:
 
