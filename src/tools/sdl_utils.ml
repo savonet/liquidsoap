@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Tsdl
+
 module Gen = Image.Generic
 
 type event = 
@@ -32,39 +34,40 @@ type event =
         | `TIMER
         | `VIDEO ]
 
-let options : event list option ref = ref None
+let options : Sdl.Init.t option ref = ref None
 let start_ttf = ref false
-let rec add_elems cur = 
-  function 
-      | x::l' when not (List.mem x cur) -> add_elems (x::cur) l'
-      | _::l' -> add_elems cur l'
-      | [] -> cur
+
+let check f x =
+  match f x with
+  | Error (`Msg err) -> failwith err
+  | Ok ans -> ans
 
 let init l =
-  match !options with
-      | None -> options := Some l
-      | Some l' -> options := Some (add_elems l l')
+  if !options = None then options := Some Sdl.Init.nothing;
+  List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l
 
 let ttf_init () = start_ttf := true
 
 let () = 
   ignore (Dtools.Init.at_start (fun () ->
-      if !start_ttf then
-        (
-          match Tsdl_ttf.Ttf.init () with
-          | Error (`Msg err) -> assert false
-          | Ok -> ()
-        );
+      if !start_ttf then check Tsdl_ttf.Ttf.init ();
       match !options with
-      | Some l -> Sdl.init l
-      | _ -> ()))
+      | Some o -> check Sdl.init o
+      | None -> ()
+    ))
 
-module Pool = Pool.Make(struct type t = Sdlvideo.surface end)
-let keep_alive s f =
-  let i,do_add = Pool.add () in
-    do_add s ;
-    Tutils.finalize f ~k:(fun () -> Pool.remove i)
+module Surface = struct
+  let to_img surface =
+    let fmt = Sdl.get_surface_format_enum surface in
+    match fmt with
+    (* let width, height = Sdl.get_surface_size surface in *)
+    | _ -> failwith ("img_of_surface: unhandled format " ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)))
 
+  let of_img surface img =
+    assert false
+end
+
+(*
 (** 8bit surfaces always use a palette *)
 let from_8 surface =
   keep_alive surface
@@ -222,3 +225,4 @@ let from_32 surface =
              done
            done ;
            f)
+*)
