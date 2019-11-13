@@ -64,7 +64,19 @@ module Surface = struct
     | _ -> failwith ("img_of_surface: unhandled format " ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)))
 
   let of_img surface img =
-    assert false
+    let width, height = Sdl.get_surface_size surface in
+    let pitch = Sdl.get_surface_pitch surface in
+    let fmt = Sdl.get_surface_format_enum surface in
+    match fmt with
+    | fmt when fmt = Sdl.Pixel.format_rgb888 ->
+      let pix = Sdl.get_surface_pixels surface Bigarray.Int32 in
+      for i = 0 to width-1 do
+        for j = 0 to height-1 do
+          let r,g,b,_ = Video.Image.get_pixel_rgba img i j in
+          pix.{i+j*width} <- Int32.of_int (0xff lsl 24 + r lsl 16 + g lsl 8 + b);
+        done
+      done
+    | _ -> failwith ("img_of_surface: unhandled format " ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)))
 end
 
 (*
