@@ -26,6 +26,7 @@
  * The values can be "strings", or directly integers, floats or identifiers. *)
 
 open Genlex
+
 exception Error
 
 let annotate s ~log _ =
@@ -35,45 +36,58 @@ let annotate s ~log _ =
     let s = Pcre.substitute ~pat:"=-" ~subst:(fun _ -> "= -") s in
     let l = String.length s in
     let pos = ref 0 in
-    let str = Stream.from (fun i -> pos := i; if i<l then Some s.[i] else None) in
-    let lexer = make_lexer [":";",";"="] str in
+    let str =
+      Stream.from (fun i ->
+          pos := i ;
+          if i < l then Some s.[i] else None)
+    in
+    let lexer = make_lexer [":"; ","; "="] str in
     let rec parse metadata =
       match Stream.next lexer with
-      | Kwd ":" ->
-        let uri = String.sub s !pos (l - !pos) in
-        (* Revert the above hack. *)
-        let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
-        metadata, uri
-      | Kwd "," -> parse metadata
-      | Ident key ->
-        if key<>"" && key.[0]=':' then
-          let uri = String.sub key 1 (String.length key - 1) ^ String.sub s !pos (l - !pos) in
-          (* Revert the above hack. *)
-          let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
-          metadata, uri
-        else
-          begin
-            match Stream.next lexer with
-            | Kwd "=" ->
-              begin
-                match Stream.next lexer with
-                | String s -> parse ((key,s)::metadata)
-                | Int i -> parse ((key,string_of_int i)::metadata)
-                | Float f -> parse ((key,string_of_float f)::metadata)
-                | Ident k -> parse ((key,k)::metadata)
-                | _ -> raise Error
-              end
-            | _ -> raise Error
-          end
-      | _ -> raise Error
+        | Kwd ":" ->
+            let uri = String.sub s !pos (l - !pos) in
+            (* Revert the above hack. *)
+            let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
+            (metadata, uri)
+        | Kwd "," ->
+            parse metadata
+        | Ident key ->
+            if key <> "" && key.[0] = ':' then (
+              let uri =
+                String.sub key 1 (String.length key - 1)
+                ^ String.sub s !pos (l - !pos)
+              in
+              (* Revert the above hack. *)
+              let uri =
+                Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri
+              in
+              (metadata, uri) )
+            else (
+              match Stream.next lexer with
+                | Kwd "=" -> (
+                  match Stream.next lexer with
+                    | String s ->
+                        parse ((key, s) :: metadata)
+                    | Int i ->
+                        parse ((key, string_of_int i) :: metadata)
+                    | Float f ->
+                        parse ((key, string_of_float f) :: metadata)
+                    | Ident k ->
+                        parse ((key, k) :: metadata)
+                    | _ ->
+                        raise Error )
+                | _ ->
+                    raise Error )
+        | _ ->
+            raise Error
     in
-    let metadata,uri = parse [] in
+    let metadata, uri = parse [] in
     [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
-  with
-  | Error
-  | Stream.Failure | Stream.Error _ -> log "annotate: syntax error" ; []
+  with Error | Stream.Failure | Stream.Error _ ->
+    log "annotate: syntax error" ;
+    []
 
 let () =
   Lang.add_protocol ~doc:"Add metadata to a request"
-    ~syntax:"annotate:key=\"val\",key2=\"val2\",...:uri"
-    ~static:false "annotate" annotate
+    ~syntax:"annotate:key=\"val\",key2=\"val2\",...:uri" ~static:false
+    "annotate" annotate

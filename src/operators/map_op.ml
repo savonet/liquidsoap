@@ -23,42 +23,45 @@
 open Source
 
 class map ~kind source f =
-object
-  inherit operator ~name:"audio.map" kind [source]
+  object
+    inherit operator ~name:"audio.map" kind [source]
 
-  method stype = source#stype
-  method remaining = source#remaining
-  method seek = source#seek
-  method self_sync = source#self_sync
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
+    method stype = source#stype
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
-      source#get buf;
+    method remaining = source#remaining
+
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    method is_ready = source#is_ready
+
+    method abort_track = source#abort_track
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      source#get buf ;
       let b = AFrame.content buf offset in
-        for i = offset to AFrame.position buf - 1 do
-          for c = 0 to Array.length b - 1 do
-            b.(c).{i} <- f b.(c).{i}
-          done
+      for i = offset to AFrame.position buf - 1 do
+        for c = 0 to Array.length b - 1 do
+          b.(c).{i} <- f b.(c).{i}
         done
-end
+      done
+  end
 
 let to_fun_float f x =
-  Lang.to_float (Lang.apply ~t:Lang.float_t f ["", Lang.float x])
+  Lang.to_float (Lang.apply ~t:Lang.float_t f [("", Lang.float x)])
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "audio.map"
-    [
-      "", Lang.fun_t [false,"",Lang.float_t] Lang.float_t, None, None;
-      "", Lang.source_t k, None, None
-    ]
+    [ ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k)
     ~descr:"Map a function to all audio samples. This is SLOW!"
     ~category:Lang.SoundProcessing
     ~flags:[Lang.Hidden] (* It works well but is probably useless. *)
     (fun p kind ->
-       let f = to_fun_float (Lang.assoc "" 1 p) in
-       let src = Lang.to_source (Lang.assoc "" 2 p) in
-         new map ~kind src f)
+      let f = to_fun_float (Lang.assoc "" 1 p) in
+      let src = Lang.to_source (Lang.assoc "" 2 p) in
+      new map ~kind src f)

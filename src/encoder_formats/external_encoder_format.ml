@@ -25,28 +25,27 @@ exception No_process
 type restart_condition = Delay of int | Metadata | No_condition
 
 type t = {
-  channels            : int ;
-  samplerate          : int Lazy.t ;
-  video               : bool ;
-  header              : bool ;
-  restart_on_crash    : bool ;
-  restart             : restart_condition ;
-  process             : string
+  channels: int;
+  samplerate: int Lazy.t;
+  video: bool;
+  header: bool;
+  restart_on_crash: bool;
+  restart: restart_condition;
+  process: string;
 }
 
 let to_string e =
   let string_of_restart_condition c =
     match c with
-      | Delay d         -> Printf.sprintf "restart_after_delay=%i" d
-      | Metadata        -> "restart_on_metadata"
-      | No_condition    -> ""
+      | Delay d ->
+          Printf.sprintf "restart_after_delay=%i" d
+      | Metadata ->
+          "restart_on_metadata"
+      | No_condition ->
+          ""
   in
-  Printf.sprintf "%%external(channels=%i,samplerate=%i,video=%b,header=%b,\
-                            restart_on_crash=%b,%s,process=%s)"
-    e.channels
-    (Lazy.force e.samplerate)
-    e.video
-    e.header
-    e.restart_on_crash
+  Printf.sprintf
+    "%%external(channels=%i,samplerate=%i,video=%b,header=%b,restart_on_crash=%b,%s,process=%s)"
+    e.channels (Lazy.force e.samplerate) e.video e.header e.restart_on_crash
     (string_of_restart_condition e.restart)
     e.process

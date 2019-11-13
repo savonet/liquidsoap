@@ -20,5 +20,4 @@
 
  *****************************************************************************)
 
-let () = Ogg_demuxer_flac_decoder.register () 
-
+let () = Ogg_demuxer_flac_decoder.register ()

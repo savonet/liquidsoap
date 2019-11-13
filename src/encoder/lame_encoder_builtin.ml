@@ -22,7 +22,6 @@
 
 (** Builtin Lame encoder *)
 
-module Register = Lame_encoder.Register(Lame)
+module Register = Lame_encoder.Register (Lame)
 
-let () =
- Register.register_encoder "MP3/liblame/builtin"
+let () = Register.register_encoder "MP3/liblame/builtin"

@@ -29,46 +29,47 @@ class virtual source ?name ~seek kind duration =
   let track_size =
     if duration <= 0. then None else Some (Frame.master_of_seconds duration)
   in
-object (self)
-  inherit Source.source ?name kind
+  object (self)
+    inherit Source.source ?name kind
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method seek x =
-    if seek then x else 0
-  method self_sync = false
+    method stype = Source.Infallible
 
-  val mutable remaining = track_size
-  method remaining =
-    match remaining with
-      | None -> -1
-      | Some remaining -> remaining
+    method is_ready = true
 
-  val mutable must_fail = false
-  method abort_track = must_fail <- true
+    method seek x = if seek then x else 0
 
-  method private virtual synthesize : Frame.t -> int -> int -> unit
+    method self_sync = false
 
-  method private get_frame frame =
-    if must_fail then begin
-      Frame.add_break frame (Frame.position frame) ;
-      remaining <- track_size ;
-      must_fail <- false
-    end else
-      let off = Frame.position frame in
-      let len =
-        match remaining with
-          | None -> Lazy.force Frame.size - off
-          | Some r ->
-              let len = min (Lazy.force Frame.size - off) r in
-                remaining <- Some (r-len) ;
+    val mutable remaining = track_size
+
+    method remaining =
+      match remaining with None -> -1 | Some remaining -> remaining
+
+    val mutable must_fail = false
+
+    method abort_track = must_fail <- true
+
+    method virtual private synthesize : Frame.t -> int -> int -> unit
+
+    method private get_frame frame =
+      if must_fail then (
+        Frame.add_break frame (Frame.position frame) ;
+        remaining <- track_size ;
+        must_fail <- false )
+      else (
+        let off = Frame.position frame in
+        let len =
+          match remaining with
+            | None ->
+                Lazy.force Frame.size - off
+            | Some r ->
+                let len = min (Lazy.force Frame.size - off) r in
+                remaining <- Some (r - len) ;
                 len
-      in
+        in
         self#synthesize frame off len ;
-        Frame.add_break frame (off+len) ;
-        if VFrame.is_partial frame then begin
+        Frame.add_break frame (off + len) ;
+        if VFrame.is_partial frame then (
           assert (remaining = Some 0) ;
-          remaining <- track_size
-        end
-
-end
+          remaining <- track_size ) )
+  end

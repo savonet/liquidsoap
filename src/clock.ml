@@ -93,10 +93,12 @@ let leave (s : active_source) =
   * One could think of several clocks for isolated parts of a script.
   * One can also think of alsa-clocks, etc. *)
 
-let conf = Dtools.Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
+let conf =
+  Dtools.Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
 
 let conf_max_latency =
-  Dtools.Conf.float ~p:(conf#plug "max_latency") ~d:60. "Maximum latency in seconds"
+  Dtools.Conf.float ~p:(conf#plug "max_latency") ~d:60.
+    "Maximum latency in seconds"
     ~comments:
       [ "If the latency gets higher than this value, the outputs will be reset,";
         "instead of trying to catch it up second by second.";
@@ -115,11 +117,14 @@ let usleep d =
   try Thread.delay d with Unix.Unix_error (Unix.EINTR, _, _) -> ()
 
 let sync_descr = function
-  | `Auto -> "auto-sync"
-  | `CPU -> "CPU sync"
-  | `None -> "no sync"
+  | `Auto ->
+      "auto-sync"
+  | `CPU ->
+      "CPU sync"
+  | `None ->
+      "no sync"
 
-class clock ?(sync=`Auto) id =
+class clock ?(sync = `Auto) id =
   object (self)
     initializer Clocks.add clocks (self :> Source.clock)
 
@@ -185,47 +190,48 @@ class clock ?(sync=`Auto) id =
       fun f -> Tutils.mutexify lock f ()
 
     val mutable self_sync = None
+
     val mutable t0 = time ()
+
     val mutable ticks = 0L
+
     method private self_sync =
       let new_val =
         match sync with
           | `Auto ->
-               List.exists (fun (state,s) ->
-                 state = `Active && s#self_sync) outputs
+              List.exists
+                (fun (state, s) -> state = `Active && s#self_sync)
+                outputs
           | `CPU ->
-               false
+              false
           | `None ->
-               true
+              true
       in
       begin
-       match self_sync, new_val with
-         | None, false
-         | Some true, false ->
-           log#important "Delegating synchronisation to CPU clock";
-           t0 <- time ();
-           ticks <- 0L;
-         | None, true
-         | Some false, true ->
-           log#important "Delegating synchronisation to active sources"
-         | _ -> ()
-      end;
-      self_sync <- Some new_val;
+        match (self_sync, new_val) with None, false | Some true, false ->
+            log#important "Delegating synchronisation to CPU clock" ;
+            t0 <- time () ;
+            ticks <- 0L
+        | None, true | Some false, true ->
+            log#important "Delegating synchronisation to active sources"
+        | _ -> ()
+      end ;
+      self_sync <- Some new_val ;
       new_val
 
     method private run =
       let acc = ref 0 in
       let max_latency = -.conf_max_latency#get in
       let last_latency_log = ref (time ()) in
-      t0 <- time ();
-      ticks <- 0L;
+      t0 <- time () ;
+      ticks <- 0L ;
       let frame_duration = Lazy.force Frame.duration in
       let delay () =
         t0
         +. (frame_duration *. Int64.to_float (Int64.add ticks 1L))
         -. time ()
       in
-      log#important "Streaming loop starts in %s mode" (sync_descr sync);
+      log#important "Streaming loop starts in %s mode" (sync_descr sync) ;
       let rec loop () =
         (* Stop running if there is no output. *)
         if outputs = [] then ()

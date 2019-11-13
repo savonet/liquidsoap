@@ -24,23 +24,14 @@ open Builtins_http
 
 let () =
   let add_http_request = add_http_request (module Https) in
-  add_http_request
-    "https.get"
-    "Perform a full https GET request and return (status,headers,data)."
-    Get;
-  add_http_request
-    "https.post"
-    "Perform a full https POST request and return (status,headers,data)."
-    Post;
-  add_http_request
-    "https.put"
-    "Perform a full https PUT request and return (status,headers,data)."
-    Put;
-  add_http_request
-    "https.head"
-    "Perform a full https HEAD request and return (status,headers,data)."
-    Head;
-  add_http_request
-    "https.delete"
+  add_http_request "https.get"
+    "Perform a full https GET request and return (status,headers,data)." Get ;
+  add_http_request "https.post"
+    "Perform a full https POST request and return (status,headers,data)." Post ;
+  add_http_request "https.put"
+    "Perform a full https PUT request and return (status,headers,data)." Put ;
+  add_http_request "https.head"
+    "Perform a full https HEAD request and return (status,headers,data)." Head ;
+  add_http_request "https.delete"
     "Perform a full https DELETE request and return (status,headers,data)."
     Delete

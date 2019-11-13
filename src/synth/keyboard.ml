@@ -21,97 +21,126 @@
  *****************************************************************************)
 
 let knotes =
-  [|'a'; '?'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '?';
-    'u'; 'i'; '?'; 'o'; '?'; 'p'|]
+  [| 'a';
+     '?';
+     'z';
+     '"';
+     'e';
+     'r';
+     '(';
+     't';
+     '-';
+     'y';
+     '?';
+     'u';
+     'i';
+     '?';
+     'o';
+     '?';
+     'p' |]
 
 let array_index x =
   let ans = ref None in
-    for i = 0 to Array.length knotes - 1 do
-      if knotes.(i) = x then ans := Some i
-    done;
-    match !ans with
-      | Some i -> i
-      | None -> raise Not_found
+  for i = 0 to Array.length knotes - 1 do
+    if knotes.(i) = x then ans := Some i
+  done ;
+  match !ans with Some i -> i | None -> raise Not_found
 
-let note_of_char c =
-  array_index c + 72
+let note_of_char c = array_index c + 72
 
 class keyboard ~kind =
-object (self)
-  inherit Source.active_source ~name:"input.keyboard" kind
+  object (self)
+    inherit Source.active_source ~name:"input.keyboard" kind
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method remaining = -1
-  method abort_track = ()
-  method self_sync = false
-  method output = if AFrame.is_partial memo then self#get_frame memo
+    method stype = Source.Infallible
 
-  val mutable ev = MIDI.create (MFrame.size ())
-  val ev_m = Mutex.create ()
+    method is_ready = true
 
-  method private add_event (t:int) (e:MIDI.event) =
-    Mutex.lock ev_m;
-    MIDI.insert ev (t,e);
-    Mutex.unlock ev_m
+    method remaining = -1
 
-  method private get_events =
-    Mutex.lock ev_m;
-    let e = MIDI.copy ev in
-      MIDI.clear_all ev;
-      Mutex.unlock ev_m;
-      e
+    method abort_track = ()
 
-  (* Unique ID for runs (a run is delimited by get_ready/sleep,
-   * used to manage the asynchronous task. *)
-  val mutable run_id = 0
-  val lock = Mutex.create ()
+    method self_sync = false
 
-  method private sleep =
-    Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
+    method output = if AFrame.is_partial memo then self#get_frame memo
 
-  method private output_get_ready =
-    let id = run_id in
+    val mutable ev = MIDI.create (MFrame.size ())
+
+    val ev_m = Mutex.create ()
+
+    method private add_event (t : int) (e : MIDI.event) =
+      Mutex.lock ev_m ;
+      MIDI.insert ev (t, e) ;
+      Mutex.unlock ev_m
+
+    method private get_events =
+      Mutex.lock ev_m ;
+      let e = MIDI.copy ev in
+      MIDI.clear_all ev ; Mutex.unlock ev_m ; e
+
+    (* Unique ID for runs (a run is delimited by get_ready/sleep,
+     * used to manage the asynchronous task. *)
+    val mutable run_id = 0
+
+    val lock = Mutex.create ()
+
+    method private sleep =
+      Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
+
+    method private output_get_ready =
+      let id = run_id in
       let rec task _ =
-        if run_id <> id then [] else
+        if run_id <> id then []
+        else (
           let c =
             let c = Bytes.create 1 in
-              ignore (Unix.read Unix.stdin c 0 1);
-              Bytes.get c 0
+            ignore (Unix.read Unix.stdin c 0 1) ;
+            Bytes.get c 0
           in
-            begin try
-              self#log#important "Playing note %d." (note_of_char c);
+          begin
+            try
+              (self#log)#important "Playing note %d." (note_of_char c) ;
               self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
-            with
-              | Not_found -> ()
-            end ;
-            [{ Duppy.Task. handler = task ; priority = Tutils.Non_blocking ;
-                 events = [`Read Unix.stdin] }]
+            with Not_found -> ()
+          end ;
+          [ {
+              Duppy.Task.handler= task;
+              priority= Tutils.Non_blocking;
+              events= [`Read Unix.stdin];
+            } ] )
       in
-        Duppy.Task.add Tutils.scheduler
-          { Duppy.Task. handler = task ; priority = Tutils.Non_blocking ;
-              events = [`Read Unix.stdin] }
+      Duppy.Task.add Tutils.scheduler
+        {
+          Duppy.Task.handler= task;
+          priority= Tutils.Non_blocking;
+          events= [`Read Unix.stdin];
+        }
 
-  method output_reset = ()
-  method is_active = true
+    method output_reset = ()
 
-  method private get_frame frame =
-    assert (0 = MFrame.position frame);
-    let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
-    let m = m.Frame.midi in
-    let t = self#get_events in
+    method is_active = true
+
+    method private get_frame frame =
+      assert (0 = MFrame.position frame) ;
+      let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
+      let m = m.Frame.midi in
+      let t = self#get_events in
       for c = 0 to Array.length m - 1 do
         MIDI.blit_all m.(c) t
-      done;
+      done ;
       MFrame.add_break frame (MFrame.size ())
-
-end
+  end
 
 let () =
-  Lang.add_operator "input.keyboard"
-    []
-    ~kind:(Lang.Constrained { Frame. audio = Lang.Any_fixed 0 ; video = Lang.Fixed 0 ; midi = Lang.Any_fixed 1 })
+  Lang.add_operator "input.keyboard" []
+    ~kind:
+      (Lang.Constrained
+         {
+           Frame.audio= Lang.Any_fixed 0;
+           video= Lang.Fixed 0;
+           midi= Lang.Any_fixed 1;
+         })
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Play notes from the keyboard."
-    (fun _ kind -> ((new keyboard ~kind):>Source.source))
+    (fun _ kind -> (new keyboard ~kind :> Source.source))

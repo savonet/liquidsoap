@@ -490,18 +490,28 @@ add_protocol("ffmpeg",ffmpeg_protocol,
              doc="Decode any file to wave using ffmpeg",
              syntax="ffmpeg:uri")
 
+# Register stereo protocol which converts a file to stereo (currently decodes as
+# wav).
+# @flag hidden
+def stereo_protocol(~rlog, ~maxtime, arg)
+  file = file.temp("liq-stereo", ".wav")
+  source.dump(%wav, file, audio_to_stereo(once(single(arg))))
+  [file]
+end
+add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
+
 register(name="Text2wave protocol settings","protocol.text2wave",())
 register(name="Text2wave path","protocol.text2wave.path","text2wave")
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
 def text2wave_protocol(~rlog,~maxtime,arg) =
-  binary = get(default="text2wave","protocol.text2wave.path")
-  [process_uri(extname="wav","echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
+  binary = get(default="text2wave", "protocol.text2wave.path")
+  [process_uri(extname="wav", "echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
-             syntax="text2wav2:Text to read")
+             syntax="text2wave:Text to read")
 
 register(name="gTTS protocol settings", "protocol.gtts",())
 register(name="gtts-cli binary path", "protocol.gtts.path", "gtts-cli")
@@ -516,19 +526,10 @@ add_protocol(static=true,"gtts",gtts_protocol,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
              syntax="gtts:Text to read")
 
-register(name="Say protocol settings","protocol.say",())
-register(name="Sox path","protocol.say.sox_path","sox")
-
 # Register the legacy say: protocol using text2wave and sox
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
-  sox = get(default="sox", "protocol.say.sox_path")
-  if file.which(get(default="", "protocol.text2wave.path")) != "" then
-    [process_uri(extname="wav",uri="text2wave:#{arg}","#{sox} $(input) -c 2 $(output)")]
-  else
-    log.info(label="say_protocol", "text2wave binary not found, trying gtts.")
-    [process_uri(extname="wav",uri="gtts:#{arg}","#{sox} $(input) -c 2 $(output)")]
-  end
+  ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",
@@ -619,3 +620,48 @@ add_protocol(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
                   Result might be mono, needs aws binary in the path.",
              syntax="polly:Text to read")
+
+# Protocol to synthesize audio.
+# @flag hidden
+def synth_protocol(~rlog,~maxtime,text) =
+  log.debug(label="synth", "Synthesizing request: #{text}")
+  args = string.split(separator=",", text)
+  args = list.map(string.split(separator="="), args)
+  if list.exists(fun(l)-> list.length(l) != 2, args) then
+    []
+  else
+    args = list.map(fun(l) -> (list.hd(default="",l), list.hd(default="",list.tl(l))), args)
+    shape = ref("sine")
+    duration = ref(10.)
+    frequency = ref(440.)
+    def set(p)
+      let (k,v) = p
+      if k == "duration" then duration := float_of_string(v)
+      elsif k == "frequency" then frequency := float_of_string(v)
+      elsif k == "shape" then shape := v
+      end
+    end
+    list.iter(set, args)
+    def synth(s)
+      file = file.temp("liq-synth",".wav")
+      log.info(label="synth", "Synthesizing #{!shape} in #{file}.")
+      source.dump(%wav, file, once(s))
+      [file]
+    end
+    if !shape == "sine" then
+      synth(sine(duration=!duration, !frequency))
+    elsif !shape == "saw" then
+      synth(saw(duration=!duration, !frequency))
+    elsif !shape == "square" then
+      synth(square(duration=!duration, !frequency))
+    elsif !shape == "blank" then
+      synth(blank(duration=!duration))
+    else
+      []
+    end
+  end
+end
+
+add_protocol(static=true, temporary=true, "synth", synth_protocol,
+doc="Syntesize audio. Parameters are optional.",
+syntax="synth:shape=sine,frequency=440.,duration=10.")

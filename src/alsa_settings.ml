@@ -20,50 +20,47 @@
 
  *****************************************************************************)
 
-  (** Alsa related settings *)
+(** Alsa related settings *)
 
 (** ALSA should be quiet *)
 let () = Alsa.no_stderr_report ()
 
 (** Error translator *)
 let error_translator e =
-   match e with
-     | Alsa.Buffer_xrun
-     | Alsa.Bad_state
-     | Alsa.Suspended
-     | Alsa.IO_error
-     | Alsa.Device_busy
-     | Alsa.Invalid_argument
-     | Alsa.Device_removed
-     | Alsa.Interrupted
-     | Alsa.Unknown_error _ ->
-         Some (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e))
-     | _ -> None
+  match e with
+    | Alsa.Buffer_xrun
+    | Alsa.Bad_state
+    | Alsa.Suspended
+    | Alsa.IO_error
+    | Alsa.Device_busy
+    | Alsa.Invalid_argument
+    | Alsa.Device_removed
+    | Alsa.Interrupted
+    | Alsa.Unknown_error _ ->
+        Some (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e))
+    | _ ->
+        None
 
 let () = Printexc.register_printer error_translator
 
 let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "alsa")
-    "ALSA configuration"
+  Dtools.Conf.void ~p:(Configure.conf#plug "alsa") "ALSA configuration"
+
 let conf_buffer_length =
-  Dtools.Conf.int ~p:(conf#plug "buffer_length") ~d:1
-    "Buffer size, in frames"
-    ~comments:[
-      "This is only used for buffered ALSA I/O, and affects latency."
-    ]
+  Dtools.Conf.int
+    ~p:(conf#plug "buffer_length")
+    ~d:1 "Buffer size, in frames"
+    ~comments:["This is only used for buffered ALSA I/O, and affects latency."]
+
 let periods =
-  Dtools.Conf.int ~p:(conf#plug "periods") ~d:0
-    "Number of periods"
-    ~comments:[
-      "Set to 0 to disable this setting and use ALSA's default."
-    ]
+  Dtools.Conf.int ~p:(conf#plug "periods") ~d:0 "Number of periods"
+    ~comments:["Set to 0 to disable this setting and use ALSA's default."]
+
 let alsa_buffer =
-  Dtools.Conf.int ~p:(conf#plug "alsa_buffer") ~d:0
-    "Alsa internal buffer size"
-    ~comments:[
-      "This setting is only used in buffered alsa I/O, and affects latency.";
-      "Set to 0 to disable this setting and use ALSA's default."
-    ]
+  Dtools.Conf.int ~p:(conf#plug "alsa_buffer") ~d:0 "Alsa internal buffer size"
+    ~comments:
+      [ "This setting is only used in buffered alsa I/O, and affects latency.";
+        "Set to 0 to disable this setting and use ALSA's default." ]
 
 (** A dedicated clock for all ALSA I/O operators, to make sure other
   * blocking I/O inteferes with them. In the future, we might even want

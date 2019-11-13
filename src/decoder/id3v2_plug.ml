@@ -20,37 +20,43 @@
 
  *****************************************************************************)
 
-let log = Log.make ["decoder";"id3v2"]
+let log = Log.make ["decoder"; "id3v2"]
 
 (** Configuration keys for id3v2. *)
 let mime_types =
-  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "id3v2")
+  Dtools.Conf.list
+    ~p:(Decoder.conf_mime_types#plug "id3v2")
     "Mime-types used for decoding metadata using native ID3v2 parser"
     ~d:["audio/mpeg"]
 
 let conf_id3v2 =
-  Dtools.Conf.void ~p:(Decoder.conf_decoder#plug "id3v2")
+  Dtools.Conf.void
+    ~p:(Decoder.conf_decoder#plug "id3v2")
     "Native ID3v2 parser settings"
 
 let file_extensions =
-  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "id3v2")
+  Dtools.Conf.list
+    ~p:(Decoder.conf_file_extensions#plug "id3v2")
     "File extensions used for decoding metadata using native ID3v2 parser"
     ~d:["mp3"]
 
 let get_tags fname =
   try
-    if not (Decoder.test_file ~mimes:mime_types#get 
-                              ~extensions:file_extensions#get 
-                              ~log fname) then
-      raise Id3v2.Invalid;
+    if
+      not
+        (Decoder.test_file ~mimes:mime_types#get
+           ~extensions:file_extensions#get ~log fname)
+    then raise Id3v2.Invalid ;
     let ic = open_in fname in
-    Tutils.finalize ~k:(fun () -> close_in ic)
+    Tutils.finalize
+      ~k:(fun () -> close_in ic)
       (fun () -> Id3v2.parse (input ic))
   with
- | Id3v2.Invalid -> []
-  | e ->
-    log#info "Error while decoding file tags: %s" (Printexc.to_string e);       
-    log#info "Backtrace:\n%s" (Printexc.get_backtrace());
-    raise Not_found
+    | Id3v2.Invalid ->
+        []
+    | e ->
+        log#info "Error while decoding file tags: %s" (Printexc.to_string e) ;
+        log#info "Backtrace:\n%s" (Printexc.get_backtrace ()) ;
+        raise Not_found
 
 let () = Request.mresolvers#register "ID3V2" get_tags

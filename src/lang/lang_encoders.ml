@@ -24,17 +24,16 @@ open Lang_values
 
 (** Errors *)
 
-exception Error of (term*string)
+exception Error of (term * string)
 
 let invalid t =
-  match t.term with
-    | Int _ | Bool _ | Float _ | String _ -> false
-    | _ -> true
+  match t.term with Int _ | Bool _ | Float _ | String _ -> false | _ -> true
 
 let generic_error t : exn =
-  if invalid t then
+  if invalid t then (
     match t.term with
-      | Var _ -> Error (t,"variables are forbidden in encoding formats")
-      | _ -> Error (t,"complex expressions are forbidden in encoding formats")
-  else
-    Error (t,"unknown parameter name or invalid parameter value")
+      | Var _ ->
+          Error (t, "variables are forbidden in encoding formats")
+      | _ ->
+          Error (t, "complex expressions are forbidden in encoding formats") )
+  else Error (t, "unknown parameter name or invalid parameter value")

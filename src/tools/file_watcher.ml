@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Event to watch. *)
-type event = [ `Modify ]
+type event = [`Modify]
 
 (** Type for unwatching function. *)
 type unwatch = unit -> unit

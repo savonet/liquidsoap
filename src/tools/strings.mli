@@ -19,7 +19,7 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
   
  *****************************************************************************)
-  
+
 (** String buffers where the main operation is to add strings at the end. *)
 
 (** A buffer of strings. *)
@@ -38,55 +38,56 @@ val of_bytes : bytes -> t
 
 (** Create a buffer from the given bytes which will not be copied (be careful). *)
 val unsafe_of_bytes : bytes -> t
-  
+
 (** Render a buffer into bytes/string. This operation can be costly (in terms of
     memory copies), avoid it. *)
 val to_string : t -> string
+
 val to_bytes : t -> bytes
-  
+
 val substring : t -> int -> int -> string
-  
+
 (** Concatenation of strings. *)
 val of_list : string list -> t
-  
+
 (** Add a string at the end of a buffer. *)
 val add : t -> string -> t
 
 (** Add bytes at the end of a buffer, bytes will be copied. *)
-  val add_bytes : t -> bytes -> t
+val add_bytes : t -> bytes -> t
 
 (** Add bytes at the end of a buffer, bytes will not be copied. *)
 val unsafe_add_bytes : t -> bytes -> t
-  
+
 val add_substring : t -> string -> int -> int -> t
-  
+
 (** Add subbytes at the end of a buffer. *)
 val add_subbytes : t -> bytes -> int -> int -> t
-  
+
 (** Add subbytes at the end of a buffer with copying them. *)
 val unsafe_add_subbytes : t -> bytes -> int -> int -> t
-  
+
 (** Add a string at the beginning of a buffer. *)
 val dda : string -> t -> t
-  
+
 (** Iterate a function on all the strings (with given offset and length)
     contained in the buffer. *)
 val iter : (string -> int -> int -> unit) -> t -> unit
-  
+
 val iter_view : (StringView.t -> unit) -> t -> unit
-  
+
 (** Fold a function over all the strings (with given offset and length)
     contained in the buffer. *)
 val fold : ('a -> string -> int -> int -> 'a) -> 'a -> t -> 'a
-  
+
 val fold_view : ('a -> StringView.t -> 'a) -> 'a -> t -> 'a
-  
+
 (** Map a function over all the strings (with given offset and length) contained
     in the buffer. *)
-val map : (string -> int -> int -> (string*int*int)) -> t -> t
-  
+val map : (string -> int -> int -> string * int * int) -> t -> t
+
 val map_view : (StringView.t -> StringView.t) -> t -> t
-  
+
 (** Drop the first given bytes. *)
 val drop : t -> int -> t
 
@@ -111,7 +112,7 @@ val append : t -> t -> t
 
 (** Concatenate a list of buffers. *)
 val concat : t list -> t
-  
+
 (** Mutable and thread-safe variant. *)
 module Mutable : sig
   type t
@@ -130,10 +131,11 @@ module Mutable : sig
   (** Create a buffer from the given bytes which will not be copied (be
       careful). *)
   val unsafe_of_bytes : bytes -> t
-  
+
   (** Render a buffer into a string/bytes. This operation can be costly (in terms of
       memory copies), avoid it. *)
   val to_string : t -> string
+
   val to_bytes : t -> bytes
 
   val to_strings : t -> buffer
@@ -153,7 +155,7 @@ module Mutable : sig
   val unsafe_add_bytes : t -> bytes -> unit
 
   val add_substring : t -> string -> int -> int -> unit
-  
+
   (** Add subbytes at the end of a buffer. *)
   val add_subbytes : t -> bytes -> int -> int -> unit
 
@@ -168,7 +170,7 @@ module Mutable : sig
   val iter : (string -> int -> int -> unit) -> t -> unit
 
   val iter_view : (StringView.t -> unit) -> t -> unit
-  
+
   (** Fold a function over all the strings (with given offset and length)
       contained in the buffer. *)
   val fold : ('a -> string -> int -> int -> 'a) -> 'a -> t -> 'a
@@ -177,10 +179,10 @@ module Mutable : sig
 
   (** Map a function over all the strings (with given offset and length)
      contained in the buffer. *)
-  val map : (string -> int -> int -> (string*int*int)) -> t -> t
+  val map : (string -> int -> int -> string * int * int) -> t -> t
 
   val map_view : (StringView.t -> StringView.t) -> t -> t
-  
+
   (** Drop the first given bytes. *)
   val drop : t -> int -> unit
 
@@ -207,4 +209,4 @@ module Mutable : sig
 
   (** Empty the buffer and return its content. *)
   val flush : t -> buffer
-end 
+end

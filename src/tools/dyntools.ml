@@ -22,20 +22,17 @@
 
 (* Dynamic loading. *)
 
-let dyn_log = Log.make ["dynamic";"loader"]
+let dyn_log = Log.make ["dynamic"; "loader"]
 
-let dynlink_suffix =
-  if Dynlink.is_native then
-    ".cmxs"
-  else
-    ".cma"
+let dynlink_suffix = if Dynlink.is_native then ".cmxs" else ".cma"
 
-type dynload =
-  { path : string list;
-    (* Files are registered *without*
-     * their extension. e.g.: foo.cmxs -> foo *)
-    files : string list;
-    load : unit -> unit }
+type dynload = {
+  path: string list;
+  (* Files are registered *without*
+   * their extension. e.g.: foo.cmxs -> foo *)
+  files: string list;
+  load: unit -> unit;
+}
 
 let dynlink_list = Hashtbl.create 2
 
@@ -45,36 +42,33 @@ exception Done of string
 let load_dynlinks () =
   let rec check_list f cur =
     match cur with
-      | x :: l -> 
-         if f x then
-           check_list f l
-         else false
-      | [] -> true
+      | x :: l ->
+          if f x then check_list f l else false
+      | [] ->
+          true
   in
   let load_library name dynload =
     try
-     List.iter (fun path ->
-      try
-       let get_file = 
-         (fun f -> Printf.sprintf "%s/%s%s" path f dynlink_suffix)
-       in
-       if check_list
-           (fun file -> Sys.file_exists (get_file file))
-           dynload.files then
-        begin
-         List.iter (fun file ->
-                       Dynlink.loadfile (get_file file))
-                   dynload.files;
-         raise (Done path)
-        end
-      with
-        | Dynlink.Error e ->
-            dyn_log#important "Error while loading dynamic %s at %s" name path;
-            dyn_log#important "%s" (Dynlink.error_message e)) dynload.path;
-     dyn_log#important "Could not find dynamic module for %s." name
-    with
-      | Done path ->
-          dyn_log#important "Loaded dynamic %s from %s" name path;
-          dynload.load ()
+      List.iter
+        (fun path ->
+          try
+            let get_file f = Printf.sprintf "%s/%s%s" path f dynlink_suffix in
+            if
+              check_list
+                (fun file -> Sys.file_exists (get_file file))
+                dynload.files
+            then (
+              List.iter
+                (fun file -> Dynlink.loadfile (get_file file))
+                dynload.files ;
+              raise (Done path) )
+          with Dynlink.Error e ->
+            dyn_log#important "Error while loading dynamic %s at %s" name path ;
+            dyn_log#important "%s" (Dynlink.error_message e))
+        dynload.path ;
+      dyn_log#important "Could not find dynamic module for %s." name
+    with Done path ->
+      dyn_log#important "Loaded dynamic %s from %s" name path ;
+      dynload.load ()
   in
   Hashtbl.iter load_library dynlink_list

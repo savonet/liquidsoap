@@ -24,43 +24,35 @@
 
 exception Found of string
 
-let render m = 
+let render m =
   let m = Meta_format.to_metadata m in
   let t = Taglib.Inline.Id3v2.init () in
-  let t = 
-    Taglib.Inline.Id3v2.attach_frame t "TSSE" 
-     (Printf.sprintf "Encoded by %s" Configure.vendor)
+  let t =
+    Taglib.Inline.Id3v2.attach_frame t "TSSE"
+      (Printf.sprintf "Encoded by %s" Configure.vendor)
   in
-  let f t (l,g) = 
+  let f t (l, g) =
     try
       Hashtbl.iter
         (fun k x ->
-          if (String.uppercase_ascii l) = (String.uppercase_ascii k) then
-           raise (Found x)) m ;
-     t
-    with
-      | Found x -> g t x
+          if String.uppercase_ascii l = String.uppercase_ascii k then
+            raise (Found x))
+        m ;
+      t
+    with Found x -> g t x
   in
-  let try_int f t x =
-    try
-      f t (int_of_string x)
-    with
-      | _ -> t
+  let try_int f t x = try f t (int_of_string x) with _ -> t in
+  let tags =
+    [ ("title", Taglib.Inline.Id3v2.tag_set_title);
+      ("album", Taglib.Inline.Id3v2.tag_set_album);
+      ("artist", Taglib.Inline.Id3v2.tag_set_artist);
+      ("genre", Taglib.Inline.Id3v2.tag_set_genre);
+      ("comment", Taglib.Inline.Id3v2.tag_set_comment);
+      ("year", try_int Taglib.Inline.Id3v2.tag_set_year);
+      ("tracknumber", try_int Taglib.Inline.Id3v2.tag_set_track);
+      ("track", try_int Taglib.Inline.Id3v2.tag_set_track) ]
   in
-  let tags = 
-    [("title", Taglib.Inline.Id3v2.tag_set_title);
-     ("album", Taglib.Inline.Id3v2.tag_set_album);
-     ("artist", Taglib.Inline.Id3v2.tag_set_artist);
-     ("genre", Taglib.Inline.Id3v2.tag_set_genre);
-     ("comment", Taglib.Inline.Id3v2.tag_set_comment);
-     ("year", try_int Taglib.Inline.Id3v2.tag_set_year);
-     ("tracknumber", try_int Taglib.Inline.Id3v2.tag_set_track);
-     ("track", try_int Taglib.Inline.Id3v2.tag_set_track)]
-  in
-  let t = 
-    List.fold_left f t tags
-  in 
+  let t = List.fold_left f t tags in
   Taglib.Inline.Id3v2.render t
 
-let () = 
-  Mp3_format.id3v2_export := Some render
+let () = Mp3_format.id3v2_export := Some render

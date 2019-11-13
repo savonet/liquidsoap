@@ -20,9 +20,7 @@
 
  *****************************************************************************)
 
-
 open Video_converter
-
 module Img = Image.Generic
 
 let formats = [Img.Pixel.RGB Img.Pixel.RGBA32; Img.Pixel.YUV Img.Pixel.YUVJ420]
@@ -31,4 +29,4 @@ let convert ~proportional src dst = Image.Generic.convert ~proportional src dst
 
 let create () = convert
 
-let () = video_converters#register "native" (formats,formats,create)
+let () = video_converters#register "native" (formats, formats, create)

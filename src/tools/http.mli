@@ -1,41 +1,38 @@
 (** {2 HTTP connections} *)
 
-module type Transport_t =
-sig
+module type Transport_t = sig
   type connection
-  type event = [
-    | `Write of connection
-    | `Read of connection
-    | `Both of connection
-  ]
+
+  type event =
+    [`Write of connection | `Read of connection | `Both of connection]
+
   val default_port : int
+
   val connect : ?bind_address:string -> string -> int -> connection
+
   val wait_for : ?log:(string -> unit) -> event -> float -> unit
-  val write: connection -> Bytes.t -> int -> int -> int
-  val read: connection -> Bytes.t -> int -> int -> int
-  val disconnect: connection -> unit
+
+  val write : connection -> Bytes.t -> int -> int -> int
+
+  val read : connection -> Bytes.t -> int -> int -> int
+
+  val disconnect : connection -> unit
 end
 
-module type Http_t =
-  sig
+module type Http_t = sig
   (** Error handling *)
   type error = Socket | Response | UrlDecoding
+
   exception Error of error
+
   val string_of_error : error -> string
 
   type connection
 
-  type event = [
-    | `Write of connection
-    | `Read of connection
-    | `Both of connection
-  ]
+  type event =
+    [`Write of connection | `Read of connection | `Both of connection]
 
-  type uri = {
-    host: string;
-    port: int option;
-    path: string
-  }
+  type uri = {host: string; port: int option; path: string}
 
   (** Default port. *)
   val default_port : int
@@ -81,68 +78,87 @@ module type Http_t =
   type status = string * int * string
 
   (** Type for headers data. *)
-  type headers = (string*string) list
+  type headers = (string * string) list
 
   (* An ugly code to read until we see [\r]?\n n times. *)
-  val read_crlf : ?log:(string -> unit) -> ?max:int -> ?count:int -> 
-                  timeout:float -> connection -> string
+  val read_crlf :
+    ?log:(string -> unit) ->
+    ?max:int ->
+    ?count:int ->
+    timeout:float ->
+    connection ->
+    string
 
   (* Read chunked data. *)
   val read_chunked : timeout:float -> connection -> string * int
 
-  val request : ?log:(string -> unit) ->
-                timeout:float ->
-                connection ->
-                string -> (string * int * string) * (string * string) list
+  val request :
+    ?log:(string -> unit) ->
+    timeout:float ->
+    connection ->
+    string ->
+    (string * int * string) * (string * string) list
 
   (** [get ?log ?headers ~timeout socket host port path] makes a GET request.
     * Returns the status and the headers. *)
-  val get : ?headers:(string * string) list ->
-            ?log:(string -> unit) ->
-            timeout:float ->
-            connection ->
-            uri -> (string * int * string) * (string * string) list
-
+  val get :
+    ?headers:(string * string) list ->
+    ?log:(string -> unit) ->
+    timeout:float ->
+    connection ->
+    uri ->
+    (string * int * string) * (string * string) list
 
   (** [post ?log ?headers ~timeout data socket host port path] makes a POST request.
     * Returns the status and the headers. *)
-  val post : ?headers:(string * string) list ->
-             ?log:(string -> unit) ->
-             timeout:float ->
-             string ->
-             connection ->
-             uri -> (string * int * string) * (string * string) list
+  val post :
+    ?headers:(string * string) list ->
+    ?log:(string -> unit) ->
+    timeout:float ->
+    string ->
+    connection ->
+    uri ->
+    (string * int * string) * (string * string) list
 
   (** [put ?log ?headers ~timeout data socket host port path] makes a PUT request.
     * Returns the status and the headers. *)
-  val put : ?headers:(string * string) list ->
-             ?log:(string -> unit) ->
-             timeout:float ->
-             string ->
-             connection ->
-             uri -> (string * int * string) * (string * string) list
+  val put :
+    ?headers:(string * string) list ->
+    ?log:(string -> unit) ->
+    timeout:float ->
+    string ->
+    connection ->
+    uri ->
+    (string * int * string) * (string * string) list
 
   (** [head ?log ?headers ~timeout socket host port path] makes a HEAD request.
     * Returns the status and the headers. *)
-  val head : ?headers:(string * string) list ->
-            ?log:(string -> unit) ->
-            timeout:float ->
-            connection ->
-            uri -> (string * int * string) * (string * string) list
+  val head :
+    ?headers:(string * string) list ->
+    ?log:(string -> unit) ->
+    timeout:float ->
+    connection ->
+    uri ->
+    (string * int * string) * (string * string) list
 
   (** [delete ?log ?headers ~timeout socket host port path] makes a DELETE request.
     * Returns the status and the headers. *)
-  val delete : ?headers:(string * string) list ->
-            ?log:(string -> unit) ->
-            timeout:float ->
-            connection ->
-            uri -> (string * int * string) * (string * string) list
+  val delete :
+    ?headers:(string * string) list ->
+    ?log:(string -> unit) ->
+    timeout:float ->
+    connection ->
+    uri ->
+    (string * int * string) * (string * string) list
 
   (** [read_with_timeout ?log ~timeout len] reads [len] bytes of data
     * or all available data if [len] is [None]. *)
   val read_with_timeout :
-             ?log:(string -> unit) ->
-             timeout:float -> connection -> int option -> string
+    ?log:(string -> unit) ->
+    timeout:float ->
+    connection ->
+    int option ->
+    string
 
   (** Type for full Http request. *)
   type request = Get | Post of string | Put of string | Head | Delete
@@ -150,14 +166,16 @@ module type Http_t =
   (** Perform a full Http request and return the response status,headers
     * and data. *)
   val full_request :
-             ?headers:(string * string) list ->
-             ?log:(string -> unit) ->
-             timeout:float ->
-             uri:uri ->
-             request:request ->
-             unit -> (string * int * string) * (string * string) list * string
+    ?headers:(string * string) list ->
+    ?log:(string -> unit) ->
+    timeout:float ->
+    uri:uri ->
+    request:request ->
+    unit ->
+    (string * int * string) * (string * string) list * string
 end
 
-module Make : functor (Transport : Transport_t) -> Http_t with type connection = Transport.connection
+module Make (Transport : Transport_t) :
+  Http_t with type connection = Transport.connection
 
 include Http_t with type connection = Unix.file_descr

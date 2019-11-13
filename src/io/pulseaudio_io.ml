@@ -27,25 +27,26 @@ let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "pulseaudio")
 
 (** Error translator *)
 let error_translator e =
-   match e with
-     | Pulseaudio.Error n ->
-        Some (Printf.sprintf
-                "Pulseaudio error: %s" (Pulseaudio.string_of_error n))
-     | _ -> None
+  match e with
+    | Pulseaudio.Error n ->
+        Some
+          (Printf.sprintf "Pulseaudio error: %s" (Pulseaudio.string_of_error n))
+    | _ ->
+        None
 
 let () = Printexc.register_printer error_translator
 
 class virtual base ~client ~device =
-  let device = 
-    if device = "" then None else Some device 
-  in
-object
-  val client_name = client
-  val dev = device
+  let device = if device = "" then None else Some device in
+  object
+    val client_name = client
 
-  method virtual log : Log.t
-  method self_sync = dev <> None
-end
+    val dev = device
+
+    method virtual log : Log.t
+
+    method self_sync = dev <> None
+  end
 
 class output ~infallible ~start ~on_start ~on_stop ~kind p =
   let client = Lang.to_string (List.assoc "client" p) in
@@ -55,68 +56,67 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-object (self)
+  object (self)
+    inherit base ~client ~device
 
-  inherit base ~client ~device
-  inherit
-    Output.output
-      ~infallible ~on_stop ~on_start ~content_kind:kind
-      ~name ~output_kind:"output.pulseaudio" val_source start
-    as super
+    inherit
+      Output.output
+        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
+          ~output_kind:"output.pulseaudio" val_source start as super
 
-  method private set_clock =
-    super#set_clock ;
-    if clock_safe then
-      Clock.unify self#clock
-        (Clock.create_known ((get_clock ()):>Clock.clock))
+    method private set_clock =
+      super#set_clock ;
+      if clock_safe then
+        Clock.unify self#clock
+          (Clock.create_known (get_clock () :> Clock.clock))
 
-  val mutable stream = None
+    val mutable stream = None
 
-  method open_device =
-    let ss =
-      {
-        sample_format = Sample_format_float32le;
-        sample_rate = samples_per_second;
-        sample_chans = channels;
-      }
-    in
+    method open_device =
+      let ss =
+        {
+          sample_format= Sample_format_float32le;
+          sample_rate= samples_per_second;
+          sample_chans= channels;
+        }
+      in
       stream <-
-        Some (Pulseaudio.Simple.create
-                ~client_name
-                ~stream_name:self#id
-                ?dev
-                ~dir:Dir_playback
-                ~sample:ss ());
+        Some
+          (Pulseaudio.Simple.create ~client_name ~stream_name:self#id ?dev
+             ~dir:Dir_playback ~sample:ss ())
 
-  method close_device =
-    match stream with
-      | None -> ()
-      | Some s ->
-           Pulseaudio.Simple.free s;
-           stream <- None
+    method close_device =
+      match stream with
+        | None ->
+            ()
+        | Some s ->
+            Pulseaudio.Simple.free s ;
+            stream <- None
 
-  method output_start = self#open_device
+    method output_start = self#open_device
 
-  method output_stop = self#close_device
+    method output_stop = self#close_device
 
-  method output_reset =
-    self#close_device ;
-    self#open_device 
- 
-  method output_send memo =
-    let stream = Utils.get_some stream in
-    let buf = AFrame.content memo 0 in
-    let chans = Array.length buf in
-    let len = Audio.length buf in
-    let buf' = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (chans*len) in
-    for c = 0 to chans - 1 do
-      let bufc = buf.(c) in
-      for i = 0 to len - 1 do
-        Bigarray.Array1.unsafe_set buf' (i * chans + c) (Bigarray.Array1.unsafe_get bufc i)
-      done
-    done;
-    Simple.write_ba stream buf'
-end
+    method output_reset = self#close_device ; self#open_device
+
+    method output_send memo =
+      let stream = Utils.get_some stream in
+      let buf = AFrame.content memo 0 in
+      let chans = Array.length buf in
+      let len = Audio.length buf in
+      let buf' =
+        Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (chans * len)
+      in
+      for c = 0 to chans - 1 do
+        let bufc = buf.(c) in
+        for i = 0 to len - 1 do
+          Bigarray.Array1.unsafe_set buf'
+            ((i * chans) + c)
+            (Bigarray.Array1.unsafe_get bufc i)
+        done
+      done ;
+      Simple.write_ba stream buf'
+  end
 
 class input ~kind p =
   let client = Lang.to_string (List.assoc "client" p) in
@@ -126,111 +126,105 @@ class input ~kind p =
   let fallible = Lang.to_bool (List.assoc "fallible" p) in
   let on_start =
     let f = List.assoc "on_start" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
-object (self)
+  object (self)
+    inherit
+      Start_stop.input
+        ~content_kind:kind ~source_kind:"pulse"
+        ~name:(Printf.sprintf "pulse_in(%s)" device)
+        ~on_start ~on_stop ~autostart:start ~fallible as super
 
-  inherit
-    Start_stop.input
-      ~content_kind:kind
-      ~source_kind:"pulse" ~name:(Printf.sprintf "pulse_in(%s)" device)
-      ~on_start ~on_stop
-      ~autostart:start ~fallible
-    as super
-  inherit base ~client ~device
+    inherit base ~client ~device
 
-  method private set_clock =
-    super#set_clock ;
-    if clock_safe then
-      Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
+    method private set_clock =
+      super#set_clock ;
+      if clock_safe then
+        Clock.unify self#clock
+          (Clock.create_known (get_clock () :> Clock.clock))
 
-  method private start = self#open_device
+    method private start = self#open_device
 
-  method private stop = self#close_device
+    method private stop = self#close_device
 
-  method output_reset =
-    self#close_device ;
-    self#open_device
+    method output_reset = self#close_device ; self#open_device
 
-  val mutable stream = None
+    val mutable stream = None
 
-  method private open_device =
-    let ss =
-      {
-        sample_format = Sample_format_float32le;
-        sample_rate = samples_per_second;
-        sample_chans = channels;
-      }
-    in
-      stream <- 
-          Some (Pulseaudio.Simple.create ~client_name
-                                         ~stream_name:self#id 
-                                         ~dir:Dir_record 
-                                         ?dev
-                                         ~sample:ss ());
+    method private open_device =
+      let ss =
+        {
+          sample_format= Sample_format_float32le;
+          sample_rate= samples_per_second;
+          sample_chans= channels;
+        }
+      in
+      stream <-
+        Some
+          (Pulseaudio.Simple.create ~client_name ~stream_name:self#id
+             ~dir:Dir_record ?dev ~sample:ss ())
 
-  method private close_device =
-    Pulseaudio.Simple.free (Utils.get_some stream) ;
-    stream <- None
+    method private close_device =
+      Pulseaudio.Simple.free (Utils.get_some stream) ;
+      stream <- None
 
-  method input frame =
-    assert (0 = AFrame.position frame) ;
-    let stream = Utils.get_some stream in
-    let len = AFrame.size () in
-    let ibuf = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout (channels*len) in
-    let buf = AFrame.content_of_type ~channels frame 0 in
-    Simple.read_ba stream ibuf;
-    for c = 0 to channels - 1 do
-      let bufc = buf.(c) in
-      for i = 0 to len - 1 do
-        bufc.{i} <- Bigarray.Array1.unsafe_get ibuf (i*channels+c)
-      done
-    done;
-    AFrame.add_break frame (AFrame.size ())
-
-end
+    method input frame =
+      assert (0 = AFrame.position frame) ;
+      let stream = Utils.get_some stream in
+      let len = AFrame.size () in
+      let ibuf =
+        Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
+          (channels * len)
+      in
+      let buf = AFrame.content_of_type ~channels frame 0 in
+      Simple.read_ba stream ibuf ;
+      for c = 0 to channels - 1 do
+        let bufc = buf.(c) in
+        for i = 0 to len - 1 do
+          bufc.{i} <- Bigarray.Array1.unsafe_get ibuf ((i * channels) + c)
+        done
+      done ;
+      AFrame.add_break frame (AFrame.size ())
+  end
 
 let () =
-  let k =
-    Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ())
-  in
+  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
   let proto =
-    ([ "client", Lang.string_t, 
-        Some (Lang.string "liquidsoap"), None ;
-      "device", Lang.string_t,
-        Some (Lang.string ""), 
-        Some "Device to use. Uses default if set to \"\"." ;
-      "clock_safe", Lang.bool_t,
+    [ ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
+      ( "device",
+        Lang.string_t,
+        Some (Lang.string ""),
+        Some "Device to use. Uses default if set to \"\"." );
+      ( "clock_safe",
+        Lang.bool_t,
         Some (Lang.bool true),
-        Some "Force the use of the dedicated Pulseaudio clock." ])
+        Some "Force the use of the dedicated Pulseaudio clock." ) ]
   in
   Lang.add_operator "output.pulseaudio" ~active:true
-    (Output.proto @ proto @ ["", Lang.source_t k, None, None])
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Output
+    (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
+    ~kind:(Lang.Unconstrained k) ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p kind ->
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let start = Lang.to_bool (List.assoc "start" p) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-         ((new output ~infallible ~on_start ~on_stop ~start 
-                      ~kind p):>Source.source)) ;
+      let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let start = Lang.to_bool (List.assoc "start" p) in
+      let on_start =
+        let f = List.assoc "on_start" p in
+        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      in
+      let on_stop =
+        let f = List.assoc "on_stop" p in
+        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      in
+      ( new output ~infallible ~on_start ~on_stop ~start ~kind p
+        :> Source.source )) ;
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Input
-    ~descr:"Stream from a portaudio input device."
-    (fun p kind -> ((new input ~kind p):>Source.source))
+    ~kind:(Lang.Unconstrained k) ~category:Lang.Input
+    ~descr:"Stream from a portaudio input device." (fun p kind ->
+      (new input ~kind p :> Source.source))

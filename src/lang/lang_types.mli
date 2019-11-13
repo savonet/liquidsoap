@@ -22,58 +22,85 @@
 
 val debug : bool ref
 
-type pos = (Lexing.position * Lexing.position)
+type pos = Lexing.position * Lexing.position
+
 val print_single_pos : Lexing.position -> string
+
 val print_pos : ?prefix:string -> pos -> string
 
 type variance = Covariant | Contravariant | Invariant
 
 type ground = Bool | Int | String | Float
+
 val print_ground : ground -> string
 
 type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
+
 type constraints = constr list
+
 val print_constr : constr -> string
 
-type t = { pos : pos option; mutable level : int; mutable descr : descr; }
-and constructed = { name : string ; params : (variance*t) list }
+type t = {pos: pos option; mutable level: int; mutable descr: descr}
+
+and constructed = {name: string; params: (variance * t) list}
+
 and descr =
   | Constr of constructed
   | Ground of ground
   | List of t
   | Tuple of t list
-  | Zero | Succ of t | Variable
+  | Zero
+  | Succ of t
+  | Variable
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t
+
 val unit : descr
+
 val make : ?pos:pos option -> ?level:int -> descr -> t
+
 val dummy : t
 
 val pp_type : Format.formatter -> t -> unit
-val pp_type_generalized :
-      ((int*constraints) list) -> Format.formatter -> t -> unit
-val print : ?generalized:((int*constraints) list) -> t -> string
-val doc_of_type : generalized:((int*constraints) list) -> t -> Doc.item
 
-exception Occur_check of t*t
+val pp_type_generalized :
+  (int * constraints) list -> Format.formatter -> t -> unit
+
+val print : ?generalized:(int * constraints) list -> t -> string
+
+val doc_of_type : generalized:(int * constraints) list -> t -> Doc.item
+
+exception Occur_check of t * t
+
 val occur_check : t -> t -> unit
 
-exception Unsatisfied_constraint of constr*t
+exception Unsatisfied_constraint of constr * t
+
 val bind : t -> t -> unit
+
 val deref : t -> t
-val filter_vars : (t -> bool) -> t -> (int*constraints) list
-val copy_with : ((int*constraints)*t) list -> t -> t
-val instantiate : level:int -> generalized:((int*constraints) list) -> t -> t
-val generalizable : level:int -> t -> (int*constraints) list
+
+val filter_vars : (t -> bool) -> t -> (int * constraints) list
+
+val copy_with : ((int * constraints) * t) list -> t -> t
+
+val instantiate : level:int -> generalized:(int * constraints) list -> t -> t
+
+val generalizable : level:int -> t -> (int * constraints) list
 
 type explanation
+
 exception Type_Error of explanation
+
 val print_type_error : (string -> unit) -> explanation -> unit
+
 val ( <: ) : t -> t -> unit
+
 val ( >: ) : t -> t -> unit
 
 val fresh : constraints:constraints -> level:int -> pos:pos option -> t
+
 val fresh_evar : level:int -> pos:pos option -> t
 
-val iter_constr : (bool -> constructed -> unit) -> t -> bool*bool
+val iter_constr : (bool -> constructed -> unit) -> t -> bool * bool

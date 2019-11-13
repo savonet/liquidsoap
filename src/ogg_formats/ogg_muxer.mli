@@ -20,13 +20,14 @@
 
  *****************************************************************************)
 
- (** Ogg Stream Encoder *)
+(** Ogg Stream Encoder *)
 
 val log : Log.t
 
- (** {2 Types} *)
+(** {2 Types} *)
 
 exception Invalid_data
+
 exception Invalid_usage
 
 (** Audio data type *)
@@ -36,24 +37,18 @@ type audio = float array array
 type video = Video.buffer
 
 (** A data unit *)
-type 'a data =
-  {
-    data   : 'a;
-    offset : int;
-    length : int
-  }
+type 'a data = {data: 'a; offset: int; length: int}
 
 (** A track data is a data unit of either audio or video. *)
-type track_data =
-  | Audio_data of audio data
-  | Video_data of video data
+type track_data = Audio_data of audio data | Video_data of video data
 
 (** A track encoder takes the track data,
   * the ogg logical stream, and fills the stream.
   * If the encoding process outputs ogg pages, then
   * the encoder should use the last argument to add its pages
   * to the stream. *)
-type 'a track_encoder = 'a data -> Ogg.Stream.stream -> (Ogg.Page.t -> unit) -> unit
+type 'a track_encoder =
+  'a data -> Ogg.Stream.stream -> (Ogg.Page.t -> unit) -> unit
 
 (** Returns the first page of the stream,
   * to be placed at the very beginning. *)
@@ -83,15 +78,14 @@ type data_encoder =
   | Video_encoder of video track_encoder
 
 (** The full stream encoder type. *)
-type stream_encoder =
-  {
-    header_encoder : header_encoder;
-    fisbone_packet : fisbone_packet;
-    stream_start   : stream_start;
-    data_encoder   : data_encoder;
-    end_of_page    : page_end_time;
-    end_of_stream  : end_of_stream
-  }
+type stream_encoder = {
+  header_encoder: header_encoder;
+  fisbone_packet: fisbone_packet;
+  stream_start: stream_start;
+  data_encoder: data_encoder;
+  end_of_page: page_end_time;
+  end_of_stream: end_of_stream;
+}
 
 (** Main type for the ogg encoder *)
 type t
@@ -100,9 +94,9 @@ type t
   * You can't register new track on state Streaming. *)
 type state = Eos | Streaming | Bos
 
- (** {2 API} *)
+(** {2 API} *)
 
- (** Usage:
+(** Usage:
    *
    * Encoding:
    *
@@ -168,7 +162,7 @@ val end_of_track : t -> nativeint -> unit
   * Set state to [Eos]. *)
 val end_of_stream : t -> unit
 
-  (** {2 Utils} *)
+(** {2 Utils} *)
 
 (** flush all availables pages from an ogg stream *)
 val flush_pages : Ogg.Stream.stream -> Ogg.Page.t list

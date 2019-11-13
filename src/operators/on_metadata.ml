@@ -21,44 +21,51 @@
  *****************************************************************************)
 
 class on_metadata ~kind f s =
-object (self)
-  inherit Source.operator ~name:"on_metadata" kind [s]
+  object (self)
+    inherit Source.operator ~name:"on_metadata" kind [s]
 
-  method stype = s#stype
-  method is_ready = s#is_ready
-  method abort_track = s#abort_track
-  method remaining = s#remaining
-  method seek n = s#seek n
-  method self_sync = s#self_sync
+    method stype = s#stype
 
-  method private get_frame ab =
-    let p = Frame.position ab in
+    method is_ready = s#is_ready
+
+    method abort_track = s#abort_track
+
+    method remaining = s#remaining
+
+    method seek n = s#seek n
+
+    method self_sync = s#self_sync
+
+    method private get_frame ab =
+      let p = Frame.position ab in
       s#get ab ;
       List.iter
-        (fun (i,m) ->
-           if i>=p then begin
-             self#log#debug "Got metadata at position %d: calling handler..." i ;
-             ignore (Lang.apply ~t:Lang.unit_t f ["",Lang.metadata m])
-           end)
+        (fun (i, m) ->
+          if i >= p then (
+            (self#log)#debug "Got metadata at position %d: calling handler..."
+              i ;
+            ignore (Lang.apply ~t:Lang.unit_t f [("", Lang.metadata m)]) ))
         (Frame.get_all_metadata ab)
-
-end
+  end
 
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "on_metadata"
-    [ "",
-      Lang.fun_t
-        [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
-        Lang.unit_t,
-      None,
-      Some "Function called on every metadata packet in the stream. \
-            It should be fast because it is executed in the main streaming thread." ;
-      "", Lang.source_t kind, None, None ]
+    [ ( "",
+        Lang.fun_t
+          [ ( false,
+              "",
+              Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) ) ]
+          Lang.unit_t,
+        None,
+        Some
+          "Function called on every metadata packet in the stream. It should \
+           be fast because it is executed in the main streaming thread." );
+      ("", Lang.source_t kind, None, None) ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on metadata packets."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let f = Lang.assoc "" 1 p in
-       let s = Lang.to_source (Lang.assoc "" 2 p) in
-         new on_metadata ~kind f s)
+      let f = Lang.assoc "" 1 p in
+      let s = Lang.to_source (Lang.assoc "" 2 p) in
+      new on_metadata ~kind f s)

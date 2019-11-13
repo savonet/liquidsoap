@@ -21,13 +21,13 @@
 
  *****************************************************************************)
 
-module SecureTransport_input =
-struct
+module SecureTransport_input = struct
   include Harbor_secure_transport
+
   let source_name = "input.harbor.secure_transport"
+
   let source_description = "Retrieves the given https stream from the harbor."
 end
 
-module SecureTransport = Harbor_input.Make(SecureTransport_input)
-
+module SecureTransport = Harbor_input.Make (SecureTransport_input)
 include SecureTransport

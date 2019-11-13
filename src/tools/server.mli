@@ -71,9 +71,9 @@ val unregister : namespace -> unit
 
 (** Specialized implementation of conditions to use in server commands. *)
 type condition = {
-  wait:      (unit -> string) -> unit;
-  signal:    unit -> unit;
-  broadcast: unit -> unit
+  wait: (unit -> string) -> unit;
+  signal: unit -> unit;
+  broadcast: unit -> unit;
 }
 
 (** [condition ()] instantiates a server command condition. *)
@@ -89,8 +89,13 @@ val read : after:(string -> string) -> Duppy.Io.marker -> unit
   * When the command is called, the function [f] is executed with the argument of
   * the command as parameter. The return value of [f] is then displayed. ~descr is
   * the command description. *)
-val add : ns:namespace -> ?usage:string -> descr:string ->
-          string -> (string -> string) -> unit
+val add :
+  ns:namespace ->
+  ?usage:string ->
+  descr:string ->
+  string ->
+  (string -> string) ->
+  unit
 
 (** Remove a command from the server. *)
 val remove : ns:namespace -> string -> unit

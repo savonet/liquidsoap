@@ -23,28 +23,23 @@
 (** Dynamic Lame encoder *)
 
 let path =
-  try
-    [Sys.getenv "LAME_DYN_PATH"]
-  with
-    | Not_found -> 
-       List.fold_left 
-         (fun l x -> (x ^ "/lame") :: l)
-         Configure.findlib_path Configure.findlib_path
+  try [Sys.getenv "LAME_DYN_PATH"]
+  with Not_found ->
+    List.fold_left
+      (fun l x -> (x ^ "/lame") :: l)
+      Configure.findlib_path Configure.findlib_path
 
 open Lame_dynlink
 
 let () =
-  let load () = 
+  let load () =
     match handler.lame_module with
       | Some m ->
           let module Lame = (val m : Lame_dynlink.Lame_t) in
-          let module Register = Lame_encoder.Register(Lame) in
+          let module Register = Lame_encoder.Register (Lame) in
           Register.register_encoder "MP3/liblame/dynlink"
-      | None   -> assert false
+      | None ->
+          assert false
   in
-  Hashtbl.add Dyntools.dynlink_list
-     "lame encoder"
-     { Dyntools.
-        path = path;
-        files = ["lame";"lame_loader"];
-        load = load }
+  Hashtbl.add Dyntools.dynlink_list "lame encoder"
+    {Dyntools.path; files= ["lame"; "lame_loader"]; load}

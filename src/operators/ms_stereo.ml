@@ -24,52 +24,61 @@ open Source
 
 type mode = Encode | Decode
 
-class msstereo ~kind (source:source) mode width =
-object
-  inherit operator ~name:"stereo.ms.encode" kind [source]
+class msstereo ~kind (source : source) mode width =
+  object
+    inherit operator ~name:"stereo.ms.encode" kind [source]
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method remaining = source#remaining
-  method seek = source#seek
-  method self_sync = source#self_sync
-  method abort_track = source#abort_track
+    method stype = source#stype
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
+    method is_ready = source#is_ready
+
+    method remaining = source#remaining
+
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    method abort_track = source#abort_track
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
       source#get buf ;
       let buffer = AFrame.content buf offset in
-        for i = offset to AFrame.position buf -1 do
-          match mode with
-            | Encode ->
+      for i = offset to AFrame.position buf - 1 do
+        match mode with
+          | Encode ->
               let left = buffer.(0).{i} and right = buffer.(1).{i} in
-                buffer.(0).{i} <- 0.5 *. (left +. right) ; (* mid *)
-                buffer.(1).{i} <- 0.5 *. (left -. right)   (* side *)
-            | Decode ->
+              buffer.(0).{i} <- 0.5 *. (left +. right) ;
+              (* mid *)
+              buffer.(1).{i} <- 0.5 *. (left -. right)
+              (* side *)
+          | Decode ->
               let mid = buffer.(0).{i} and side = buffer.(1).{i} in
-                buffer.(0).{i} <- mid +. side *. width ; (* left *)
-                buffer.(1).{i} <- mid -. side *. width   (* right *)
-        done
-end
+              buffer.(0).{i} <- mid +. (side *. width) ;
+              (* left *)
+              buffer.(1).{i} <- mid -. (side *. width)
+        (* right *)
+      done
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
   Lang.add_operator "stereo.ms.encode"
-    [ "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.SoundProcessing
+    [("", Lang.source_t k, None, None)]
+    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p kind ->
-       let s = Lang.to_source (Lang.assoc "" 1 p) in
-         new msstereo ~kind s Encode 0.);
+      let s = Lang.to_source (Lang.assoc "" 1 p) in
+      new msstereo ~kind s Encode 0.) ;
   Lang.add_operator "stereo.ms.decode"
-    [ "width", Lang.float_t,  Some (Lang.float 1.),
-      Some "Width of the stereo field." ;
-      "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.SoundProcessing
+    [ ( "width",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Width of the stereo field." );
+      ("", Lang.source_t k, None, None) ]
+    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
     (fun p kind ->
-       let s = Lang.to_source (Lang.assoc "" 1 p) in
-       let w = Lang.to_float (Lang.assoc "width" 1 p) in
-         new msstereo ~kind s Decode w)
+      let s = Lang.to_source (Lang.assoc "" 1 p) in
+      let w = Lang.to_float (Lang.assoc "width" 1 p) in
+      new msstereo ~kind s Decode w)

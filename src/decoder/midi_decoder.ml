@@ -27,49 +27,47 @@ exception Invalid_header
 
 exception Invalid_data
 
-let log = Log.make ["decoder";"midi"]
+let log = Log.make ["decoder"; "midi"]
 
 let decoder ~channels file =
-  log#info "Decoding %S..." file;
+  log#info "Decoding %S..." file ;
   let fd = new MIDI.IO.Reader.of_file file in
   let closed = ref false in
-
   let close () =
-    assert (not !closed);
-    closed := true;
+    assert (not !closed) ;
+    closed := true ;
     fd#close
   in
   let close_on_err f x =
-    try f x with e ->
-      log#info "Closing on error: %s." (Printexc.to_string e);
-      close (); raise e
+    try f x
+    with e ->
+      log#info "Closing on error: %s." (Printexc.to_string e) ;
+      close () ;
+      raise e
   in
-
   let fill buf =
     let m = MFrame.content_of_type ~channels buf 0 in
     let buflen = MFrame.size () in
-    let r = close_on_err (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 buflen) () in
-    MFrame.add_break buf r;
-    0
+    let r =
+      close_on_err
+        (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 buflen)
+        ()
+    in
+    MFrame.add_break buf r ; 0
   in
-  { Decoder.
-      fill = fill ; 
-      fseek = (fun _ -> 0);
-      close = close }
+  {Decoder.fill; fseek= (fun _ -> 0); close}
 
 let () =
-  Decoder.file_decoders#register "MIDI"
-    (fun ~metadata:_ filename kind ->
-       (* Any number of MIDI channel is acceptable as the decoder
-        * silently drops events on higher channels if needed.
-        * The number of MIDI channels is chosen at the beginning
-        * independently of the actual file contents.
-        * The kind should allow empty audio and video. *)
-       let content =
-         { (Frame.type_of_kind kind) with Frame.audio = 0 ; video = 0 }
-       in
-       let channels = content.Frame.midi in
-         if channels > 0 && Frame.type_has_kind content kind then
-             Some (fun () -> decoder ~channels filename)
-         else
-             None)
+  Decoder.file_decoders#register "MIDI" (fun ~metadata:_ filename kind ->
+      (* Any number of MIDI channel is acceptable as the decoder
+       * silently drops events on higher channels if needed.
+       * The number of MIDI channels is chosen at the beginning
+       * independently of the actual file contents.
+       * The kind should allow empty audio and video. *)
+      let content =
+        {(Frame.type_of_kind kind) with Frame.audio= 0; video= 0}
+      in
+      let channels = content.Frame.midi in
+      if channels > 0 && Frame.type_has_kind content kind then
+        Some (fun () -> decoder ~channels filename)
+      else None)
