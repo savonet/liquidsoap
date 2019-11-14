@@ -28,7 +28,7 @@ module P = Image.Generic.Pixel
 let log = Log.make ["decoder";"sdlimage"]
 
 let load_image filename =
-  let surface = Sdl_utils.check Sdl.load_bmp filename in
+  let surface = Sdl_utils.check Tsdl_image.Image.load filename in
   let img = Sdl_utils.Surface.to_img surface in
   Sdl.free_surface surface;
   img
