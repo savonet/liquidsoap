@@ -38,7 +38,10 @@ object (self)
   val mutable window = None
 
   method output_start =
-    window <- Some (Sdl_utils.check (fun () -> Sdl.create_window "Liquidsoap" ~w:video_width ~h:video_height Sdl.Window.windowed) ());
+    window <- Some (Sdl_utils.check (fun () ->
+      Sdl.create_window "Liquidsoap"
+        ~w:video_width
+        ~h:video_height Sdl.Window.windowed) ());
     self#log#info "Initialized SDL video surface."
 
   (** We don't care about latency. *)
