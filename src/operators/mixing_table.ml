@@ -135,7 +135,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "mix"
     [ "", Lang.list_t (Lang.source_t k), None, None ]
     ~kind:(Lang.Unconstrained k)

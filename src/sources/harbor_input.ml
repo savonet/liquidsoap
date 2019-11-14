@@ -278,7 +278,7 @@ struct
   
   let () =
     Lang.add_operator Harbor.source_name
-      ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+      ~kind:(Lang.Unconstrained (Lang.univ_t ()))
       ~category:Lang.Input
       ~descr:Harbor.source_description
       [

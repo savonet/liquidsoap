@@ -145,7 +145,7 @@ end
 (** Lang interface *)
 
 let kind =
-  Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ())
+  Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ())
 
 (* TODO: share more with fade.ml *)
 let proto =

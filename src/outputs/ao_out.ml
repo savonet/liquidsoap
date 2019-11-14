@@ -106,7 +106,7 @@ let () =
   let kind =
     Lang.any_fixed_with ~audio:1 ()
   in
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 kind in
+  let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao" ~active:true
    ( Output.proto @
     [ "clock_safe",

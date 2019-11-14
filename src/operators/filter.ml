@@ -80,17 +80,17 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter"
-    [ "freq", Lang.float_getter_t 1, None, None ;
-      "q", Lang.float_getter_t 2, Some (Lang.float 1.), None ;
+    [ "freq", Lang.float_getter_t (), None, None ;
+      "q", Lang.float_getter_t (), Some (Lang.float 1.), None ;
       "mode", Lang.string_t, None,
       Some "Available modes are \
                'low' (for low-pass filter), \
                'high' (for high-pass filter), \
                'band' (for band-pass filter) and \
                'notch' (for notch / band-stop / band-rejection filter)." ;
-      "wetness", Lang.float_getter_t 3, Some (Lang.float 1.),
+      "wetness", Lang.float_getter_t (), Some (Lang.float 1.),
       Some "How much of the original signal should be added \
             (1. means only filtered and 0. means only original signal).";
       "", Lang.source_t k, None, None ]

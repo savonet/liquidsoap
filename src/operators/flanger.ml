@@ -74,17 +74,17 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "flanger"
     [
       "delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.";
       "freq",
-         Lang.float_getter_t 1,
+         Lang.float_getter_t (),
          Some (Lang.float 0.5), Some "Frequency in Hz.";
       "feedback",
-         Lang.float_getter_t 2,
+         Lang.float_getter_t (),
          Some (Lang.float (0.)), Some "Feedback coefficient in dB.";
-      "phase", Lang.float_getter_t 3, Some (Lang.float 1.),
+      "phase", Lang.float_getter_t (), Some (Lang.float 1.),
          Some "Phase difference between channels in radians.";
       "", Lang.source_t k, None, None
     ]

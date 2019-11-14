@@ -140,7 +140,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
   Lang.add_operator "sequence"
     [ "merge", Lang.bool_t, Some (Lang.bool false),
       Some "Merge tracks when advancing from one source to the next one. \
@@ -157,7 +157,7 @@ let () =
          (Lang.to_source_list (List.assoc "" p)))
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
   Lang.add_operator "merge_tracks"
     [ "", Lang.source_t k, None, None ]
     ~category:Lang.TrackProcessing

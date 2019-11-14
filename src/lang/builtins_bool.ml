@@ -45,7 +45,7 @@ let compare_value a b =
     aux (a.Lang.value,b.Lang.value)
 
 let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Ord] 1 in
+  let t = Lang.univ_t ~constraints:[Lang_types.Ord] () in
   let register_op name op =
     add_builtin name ~cat:Bool ~descr:"Comparison of comparable values."
       ["",t,None,None;"",t,None,None] Lang.bool_t

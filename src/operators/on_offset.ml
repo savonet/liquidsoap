@@ -93,7 +93,7 @@ object(self)
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "on_offset"
     [ "offset", Lang.float_t,
       Some (Lang.float (-1.)),

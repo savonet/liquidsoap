@@ -63,7 +63,7 @@ let () =
     (( "", Lang.string_t, None, Some "URI where to find the file" )::
      ("fallible", Lang.bool_t, Some (Lang.bool false), Some "Enforce fallibility of the request.")::
      queued_proto)
-    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    ~kind:(Lang.Unconstrained (Lang.univ_t ()))
     (fun p kind ->
        let val_uri = List.assoc "" p in
        let fallible = Lang.to_bool (List.assoc "fallible" p) in
@@ -76,7 +76,7 @@ let () =
          ((new queued uri ~kind l d t c) :> source))
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
   Lang.add_operator "unsafe.single.infallible" ~category:Lang.Input
     ~flags:[Lang.Hidden]
     ~descr:"Loops on a request, which has to be ready and should be \
@@ -114,11 +114,11 @@ class dynamic ~kind ~available (f:Lang.value) length default_duration timeout co
 end
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
   Lang.add_operator "request.dynamic" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
     (( "", Lang.fun_t [] (Lang.request_t k), None, None)::
-     ( "available", Lang.bool_getter_t 2, Some (Lang.bool true),
+     ( "available", Lang.bool_getter_t (), Some (Lang.bool true),
        Some "Whether some new requests are available (when set to false, it \
              stops after current playing request).")
      ::queued_proto)

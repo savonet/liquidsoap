@@ -629,7 +629,7 @@ module Make (T : T) = struct
     end
 
   let () =
-    let k = Lang.univ_t 1 in
+    let k = Lang.univ_t () in
     Lang.add_operator ~category:Lang.Output ~active:true
       ~descr:T.source_description T.source_name (proto k)
       ~kind:(Lang.Unconstrained k) (fun p kind ->

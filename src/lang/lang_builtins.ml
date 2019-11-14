@@ -93,7 +93,7 @@ let log = Lang.log
 let add_getters name get_t type_t to_get to_val =
   add_builtin ~cat:Liq ("to_" ^ name ^ "_getter")
     ~descr:("Return a function from a " ^ name ^ " getter")
-    ["",get_t 1,None,None]
+    ["",get_t (),None,None]
     (Lang.fun_t [] type_t)
     (fun p ->
       let getter =
@@ -101,12 +101,13 @@ let add_getters name get_t type_t to_get to_val =
           (Lang.assoc "" 1 p)
       in
       Lang.val_fun [] ~ret_t:type_t (fun _ _ ->
-        to_val (getter ())));
+          to_val (getter ())));
+  let get_t = get_t () in
   add_builtin ~cat:Liq (name ^ "_getter")
     ~descr:("Identity function over " ^ name ^ " getters. " ^
             "This is useful to make types explicit.")
-    ["",get_t 1,None,None]
-    (get_t 1)
+    ["",get_t,None,None]
+    get_t
     (fun p -> List.assoc "" p)
 
 let () =
@@ -116,7 +117,7 @@ let () =
   add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter Lang.bool
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   add_builtin ~cat:Liq "encoder.content_type"
     ~descr:"Return the content-type (mime) of an encoder, if known."
     ["", Lang.format_t kind,None,None]
@@ -128,7 +129,7 @@ let () =
       with _ -> Lang.string "")
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   add_builtin ~cat:Liq "encoder.extension"
     ~descr:"Return the file extension of an encoder, if known."
     ["", Lang.format_t kind,None,None]
@@ -160,7 +161,7 @@ let () =
       ("sync", Lang.string_t, Some (Lang.string "auto"),
       Some "Synchronization mode. One of: `\"auto\"`, `\"cpu\"`, \
             or `\"none\"`.");
-      ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None,
+      ("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None,
        Some "List of sources to which the new clock will be assigned") ]
     Lang.unit_t
     (fun p ->
@@ -195,7 +196,7 @@ let () =
 let () =
   add_builtin "clock.unify" ~cat:Liq
     ~descr:"Enforce that a list of sources all belong to the same clock."
-    [ ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None, None) ]
+    [ ("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None, None) ]
     Lang.unit_t
     (fun p ->
       let l = List.assoc "" p in
@@ -327,15 +328,17 @@ let () =
 (** Operations on products. *)
 
 let () =
+  let t1 = Lang.univ_t () in
+  let t2 = Lang.univ_t () in
   add_builtin "fst" ~cat:Pair
     ~descr:"Get the first component of a pair."
-    ["",Lang.product_t (Lang.univ_t 1) (Lang.univ_t 2),None,None]
-    (Lang.univ_t 1)
+    ["",Lang.product_t t1 t2,None,None]
+    t1
     (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p))) ;
   add_builtin "snd" ~cat:Pair
     ~descr:"Get the second component of a pair."
-    ["",Lang.product_t (Lang.univ_t 1) (Lang.univ_t 2),None,None]
-    (Lang.univ_t 2)
+    ["",Lang.product_t t1 t2,None,None]
+    t2
     (fun p -> snd (Lang.to_product (Lang.assoc "" 1 p)))
 
 (** Misc control/system functions. *)
@@ -363,14 +366,15 @@ let () =
     ~cat ~descr params return_t execute
 
 let () =
+  let t = Lang.univ_t () in
   Lang.add_builtin "if"
     ~category:(string_of_category Control)
     ~descr:"The basic conditional."
     ~flags:[Lang.Hidden]
     [ "",Lang.bool_t,None,None ;
-      "then", Lang.fun_t [] (Lang.univ_t 1), None,None ;
-      "else", Lang.fun_t [] (Lang.univ_t 1), None,None ]
-    (Lang.univ_t 1)
+      "then", Lang.fun_t [] t, None,None ;
+      "else", Lang.fun_t [] t, None,None ]
+    t
     (fun p t ->
        let c = List.assoc "" p in
        let fy = List.assoc "then" p in
@@ -574,7 +578,7 @@ let () =
 let () =
   add_builtin "ignore" ~descr:"Convert anything to unit, preventing warnings."
     ~cat:Control
-    ["",Lang.univ_t 1,None,None] Lang.unit_t
+    ["",Lang.univ_t (),None,None] Lang.unit_t
     (fun _ -> Lang.unit)
 
 let () =
@@ -645,7 +649,7 @@ let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."
     ["newline",Lang.bool_t,Some (Lang.bool true),
      Some "If true, a newline is added after displaying the value." ;
-     "",Lang.univ_t 1,None,None]
+     "",Lang.univ_t (),None,None]
     Lang.unit_t
     (fun p ->
        let nl = Lang.to_bool (List.assoc "newline" p) in

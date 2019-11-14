@@ -348,7 +348,7 @@ object (self)
 end
   
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "input.srt"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Input
@@ -592,7 +592,7 @@ object (self)
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "output.srt" ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output

@@ -88,7 +88,7 @@ object
 end
 
 let declare mode suffix format fun_ret_t f_ans =
-  let k = Lang.kind_type_of_kind_format ~fresh:3 format in
+  let k = Lang.kind_type_of_kind_format format in
   let return_t =
     Lang.product_t
       (Lang.fun_t [] fun_ret_t)
@@ -107,7 +107,7 @@ let declare mode suffix format fun_ret_t f_ans =
             if misconfigured, inducing clipping in the output.")
     [
       "id", Lang.string_t,Some (Lang.string ""), Some "Force the value of the source ID.";
-      "duration", Lang.float_getter_t 2, Some (Lang.float 0.5), Some "Duration of the window (in seconds). A value <= 0, means that computation should not be performed.";
+      "duration", Lang.float_getter_t (), Some (Lang.float 0.5), Some "Duration of the window (in seconds). A value <= 0, means that computation should not be performed.";
       "", Lang.source_t k, None, None
     ]
     return_t

@@ -48,9 +48,10 @@ let () =
 let () =
   add_builtin ~cat:Sys "time" ~descr:"Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
     [] Lang.float_t (fun _ ->
-      Lang.float (Unix.gettimeofday ()));
+        Lang.float (Unix.gettimeofday ()));
+  let univ = Lang.univ_t () in
   let execute cb tm =
-    Lang.apply cb ~t:(Lang.univ_t 1)
+    Lang.apply cb ~t:univ
       ["sec",Lang.int tm.Unix.tm_sec;
        "min",Lang.int tm.Unix.tm_min;
        "hour",Lang.int tm.Unix.tm_hour;
@@ -61,7 +62,6 @@ let () =
        "yday",Lang.int tm.Unix.tm_yday;
        "isdst",Lang.bool tm.Unix.tm_isdst]
   in
-  let univ = Lang.univ_t 1 in
   let fn_t = Lang.fun_t
     [false,"sec",Lang.int_t;
      false,"min",Lang.int_t;
@@ -98,7 +98,7 @@ let () =
       let fn = Lang.assoc "" 2 p in
       execute fn tm);
   add_builtin ~cat:Liq "source.time" ~descr:"Get a source's time, based on its assigned clock"
-    ["",Lang.source_t (Lang.univ_t 1),None,None]
+    ["",Lang.source_t (Lang.univ_t ()),None,None]
     Lang.float_t (fun p ->
       let s =
         Lang.to_source

@@ -54,9 +54,9 @@ object(self)
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "on_end"
-    [ "delay", Lang.float_getter_t 1,
+    [ "delay", Lang.float_getter_t (),
       Some (Lang.float 5.),
       Some "Execute handler when remaining time is less or \
             equal to this value." ;

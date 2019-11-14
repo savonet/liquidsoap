@@ -62,7 +62,7 @@ let () =
            | _ -> assert false)
 
 let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
+  let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
     add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
       ["",t,None,None] t
       (function
@@ -71,7 +71,7 @@ let () =
          | _ -> assert false)
 
 let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
+  let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
     add_builtin "abs" ~cat:Math ~descr:"Absolute value."
       [ "",t,None,None ] t
       (fun p ->
@@ -81,7 +81,7 @@ let () =
            | _ -> assert false)
 
 let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
+  let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   let register_op doc name op_int op_float =
     add_builtin name ~cat:Math ~descr:(Printf.sprintf "%s of numbers." doc)
       ["",t,None,None;"",t,None,None] t

@@ -37,7 +37,7 @@ object
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "id"
     ["", Lang.source_t kind, None, None]
     ~category:Lang.Conversions

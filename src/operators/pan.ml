@@ -49,11 +49,11 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.audio_stereo in
+  let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
     Lang.add_operator "stereo.pan"
-      [ "pan", Lang.float_getter_t 1,  Some (Lang.float 0.),
+      [ "pan", Lang.float_getter_t (),  Some (Lang.float 0.),
         Some "Pan ranges between -1 and 1." ;
-        "field", Lang.float_getter_t 2,  Some (Lang.float 90.),
+        "field", Lang.float_getter_t (),  Some (Lang.float 90.),
         Some "Field width in degrees (between 0 and 90)." ;
         "", Lang.source_t k, None, None ]
       ~kind:(Lang.Unconstrained k)

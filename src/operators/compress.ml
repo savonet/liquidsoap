@@ -63,26 +63,26 @@ object
 end
 
 (* The five first variables ('a,'b...) are used for getters. *)
-let k = Lang.kind_type_of_kind_format ~fresh:6 Lang.any_fixed
+let k = Lang.kind_type_of_kind_format Lang.any_fixed
 
 let proto =
   [
-    "attack", Lang.float_getter_t 1, Some (Lang.float 100.),
+    "attack", Lang.float_getter_t (), Some (Lang.float 100.),
     Some "Attack time (ms).";
 
-    "release", Lang.float_getter_t 2, Some (Lang.float 400.),
+    "release", Lang.float_getter_t (), Some (Lang.float 400.),
     Some "Release time (ms).";
 
-    "threshold", Lang.float_getter_t 3, Some (Lang.float (-10.)),
+    "threshold", Lang.float_getter_t (), Some (Lang.float (-10.)),
     Some "Threshold level (dB).";
 
-    "knee", Lang.float_getter_t 4, Some (Lang.float 1.),
+    "knee", Lang.float_getter_t (), Some (Lang.float 1.),
     Some "Knee radius (dB).";
 
     "window", Lang.float_t, Some (Lang.float 0.1),
     Some "Window for computing RMS (in sec).";
 
-    "gain", Lang.float_getter_t 5, Some (Lang.float 0.),
+    "gain", Lang.float_getter_t (), Some (Lang.float 0.),
     Some "Additional gain (dB).";
 
     "", Lang.source_t k, None, None
@@ -112,7 +112,7 @@ let compress p kind =
 
 let () =
   Lang.add_operator "compress"
-    (("ratio", Lang.float_getter_t 6, Some (Lang.float 2.),
+    (("ratio", Lang.float_getter_t (), Some (Lang.float 2.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
     ~kind:(Lang.Unconstrained k)
@@ -120,7 +120,7 @@ let () =
     ~descr:"Compress the signal."
     compress;
   Lang.add_operator "limit"
-    (("ratio", Lang.float_getter_t 6, Some (Lang.float 20.),
+    (("ratio", Lang.float_getter_t (), Some (Lang.float 20.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
     ~kind:(Lang.Unconstrained k)

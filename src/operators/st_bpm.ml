@@ -56,7 +56,7 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "bpm"
     [
       "every", Lang.float_t, Some (Lang.float 1.), Some "Interval at which BPM is computed (in second).";

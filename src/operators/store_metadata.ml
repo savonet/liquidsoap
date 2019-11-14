@@ -61,7 +61,7 @@ object (self)
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "store_metadata"
     [ "size", Lang.int_t, Some (Lang.int 10), Some "Size of the history" ;
       "", Lang.source_t kind, None, None ]

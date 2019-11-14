@@ -133,7 +133,7 @@ struct
 end
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
     Lang.add_operator "buffer"
       (Output.proto @
        ["buffer", Lang.float_t, Some (Lang.float 1.),
@@ -349,7 +349,7 @@ struct
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "buffer.adaptative"
     (Output.proto @
        ["buffer", Lang.float_t, Some (Lang.float 1.),

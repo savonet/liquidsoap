@@ -574,7 +574,7 @@ struct
   
   let register protocol =
     Lang.add_operator ("input."^protocol)
-      ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+      ~kind:(Lang.Unconstrained (Lang.univ_t ()))
       ~category:Lang.Input
       ~descr:("Create a source that fetches a "^protocol^" stream.")
       [ "autostart", Lang.bool_t, Some (Lang.bool true),

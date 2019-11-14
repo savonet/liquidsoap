@@ -443,7 +443,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "cross"
     [ "duration", Lang.float_t, Some (Lang.float 5.),
       Some "Duration (in seconds) of buffered data from each \

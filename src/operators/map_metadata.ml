@@ -76,7 +76,7 @@ object (self)
 end
 
 let register =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "map_metadata"
     [ "", Lang.fun_t
             [false,"",

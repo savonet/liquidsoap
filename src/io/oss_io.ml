@@ -149,7 +149,7 @@ end
 
 let () =
   let k =
-    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
+    Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ())
   in
   Lang.add_operator "output.oss" ~active:true
     (Output.proto @ [
@@ -180,7 +180,7 @@ let () =
          ((new output ~start ~on_start ~on_stop ~infallible 
                       ~kind ~clock_safe device source):>Source.source)
     );
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "input.oss" ~active:true
     (Start_stop.input_proto @ [
       "clock_safe", Lang.bool_t, Some (Lang.bool true),

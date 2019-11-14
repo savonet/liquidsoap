@@ -619,7 +619,7 @@ let () =
           into a consuming loop and stop playing anything."
   in
 
-  let fmt = Lang.univ_t 1 in
+  let fmt = Lang.univ_t () in
 
     Lang.add_operator "playlist"
       ~category:Lang.Input
@@ -659,7 +659,7 @@ let () =
               and put only a few local files in a default safe_playlist \
               in order to ensure the liveness of the streamer."
       proto
-      ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+      ~kind:(Lang.Unconstrained (Lang.univ_t ()))
       (fun params kind ->
           let reload,random,mime,uri,prefix =
            let e v = List.assoc v params in

@@ -101,12 +101,12 @@ end
 
 let () =
   (* TODO: could we keep the video in some cases? *)
-  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "soundtouch"
     [
-      "rate", Lang.float_getter_t 1, Some (Lang.float 1.0), None;
-      "tempo", Lang.float_getter_t 2, Some (Lang.float 1.0), None;
-      "pitch", Lang.float_getter_t 3, Some (Lang.float 1.0), None;
+      "rate", Lang.float_getter_t (), Some (Lang.float 1.0), None;
+      "tempo", Lang.float_getter_t (), Some (Lang.float 1.0), None;
+      "pitch", Lang.float_getter_t (), Some (Lang.float 1.0), None;
       "", Lang.source_t k, None, None;
     ]
     ~category:Lang.SoundProcessing
