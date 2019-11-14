@@ -644,16 +644,7 @@ def synth_protocol(~rlog,~maxtime,text) =
     def synth(s)
       file = file.temp("liq-synth",".wav")
       log.info(label="synth", "Synthesizing #{!shape} in #{file}.")
-      done = ref(false)
-      def on_stop()
-        log.debug(label="synth", "Done?")
-        done := true
-      end
-      clock.assign_new(id="synth-proto", sync=false, [output.file(start=true, fallible=true, on_stop=on_stop, %wav, file, once(s))])
-      log.debug(label="synth", "Started...")
-      # This active wait could be improved with a dedicated operator.
-      while({not !done}, fun() -> sleep(1.))
-      log.debug(label="synth", "Done!")
+      source.dump(%wav, file, once(s))
       [file]
     end
     if !shape == "sine" then
