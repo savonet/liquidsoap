@@ -494,7 +494,6 @@ add_protocol("ffmpeg",ffmpeg_protocol,
 # wav).
 # @flag hidden
 def stereo_protocol(~rlog, ~maxtime, arg)
-  # [process_uri_to_stereo(arg)]
   file = file.temp("liq-stereo", ".wav")
   source.dump(%wav, file, audio_to_stereo(once(single(arg))))
   [file]
