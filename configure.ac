@@ -801,8 +801,8 @@ AC_CHECK_OCAML_BINDING([ladspa])
 AC_CHECK_OCAML_BINDING([dssi])
 AC_CHECK_OCAML_BINDING([lilv])
 AC_CHECK_OCAML_BINDING([tsdl])
-AC_CHECK_OCAML_BINDING([tsdl_ttf])
-AC_CHECK_OCAML_BINDING([tsdl_image])
+AC_CHECK_OCAML_BINDING([tsdl_ttf],[tsdl])
+AC_CHECK_OCAML_BINDING([tsdl_image],[tsdl])
 AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
 
 # TODO: switch to dune all the way?
