@@ -67,7 +67,9 @@ object (self)
           match k with
           | k when k = Sdl.K.f ->
             fullscreen <- not fullscreen;
-            Sdl_utils.check (fun () -> Sdl.set_window_fullscreen (Option.get window) (if fullscreen then Sdl.Window.fullscreen else Sdl.Window.windowed)) ()
+            Sdl_utils.check (fun () ->
+              Sdl.set_window_fullscreen (Option.get window)
+                (if fullscreen then Sdl.Window.fullscreen else Sdl.Window.windowed)) ()
           | k when k = Sdl.K.q ->
             let e = Sdl.Event.create () in
             Sdl.Event.(set e typ quit);
