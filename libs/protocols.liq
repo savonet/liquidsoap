@@ -503,14 +503,32 @@ add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
              syntax="text2wav2:Text to read")
 
+register(name="gTTS protocol settings", "protocol.gtts",())
+register(name="gtts-cli binary path", "protocol.gtts.path", "gtts-cli")
+
+# Register the gtts: protocol using gtts
+# @flag hidden
+def gtts_protocol(~rlog,~maxtime,arg) =
+  binary = get(default="gtts-cli","protocol.gtts.path")
+  [process_uri(extname="mp3","#{binary} -o $(output) #{string.quote(arg)}")]
+end
+add_protocol(static=true,"gtts",gtts_protocol,
+             doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
+             syntax="gtts:Text to read")
+
 register(name="Say protocol settings","protocol.say",())
 register(name="Sox path","protocol.say.sox_path","sox")
 
 # Register the legacy say: protocol using text2wave and sox
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
-  sox = get(default="sox","protocol.say.sox_path")
-  [process_uri(extname="wav",uri="text2wave:#{arg}","#{sox} $(input) -c 2 $(output)")]
+  sox = get(default="sox", "protocol.say.sox_path")
+  if file.which(get(default="", "protocol.text2wave.path")) != "" then
+    [process_uri(extname="wav",uri="text2wave:#{arg}","#{sox} $(input) -c 2 $(output)")]
+  else
+    log.info(label="say_protocol", "text2wave binary not found, trying gtts.")
+    [process_uri(extname="wav",uri="gtts:#{arg}","#{sox} $(input) -c 2 $(output)")]
+  end
 end
 add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",

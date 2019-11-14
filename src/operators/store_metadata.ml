@@ -29,6 +29,7 @@ object (self)
   method abort_track = s#abort_track
   method remaining = s#remaining
   method seek = s#seek
+  method self_sync = s#self_sync
 
   val metadata_q = Queue.create ()
 

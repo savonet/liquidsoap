@@ -1,7 +1,7 @@
 .PHONY: md doc upload all-subdirs
 
 SUBDIRS = content
-DISTFILES = liquidsoap.1.md.in Makefile template.html snippet.html
+DISTFILES = liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml
 DISTDIRS = orig
 LIQUIDSOAP = ../src/liquidsoap
 PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments

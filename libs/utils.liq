@@ -6,31 +6,6 @@ def mksafe(~id="mksafe",s)
   fallback(id=id,track_sensitive=false,[s,blank(id="safe_blank")])
 end
 
-# list.mem_assoc(key,l) returns true if l contains a pair
-# (key,value)
-# @category List
-# @param a Key to look for
-# @param l List of pairs (key,value)
-def list.mem_assoc(a,l)
-  def f(cur, el) =
-    if not cur then
-      fst(el) == a
-    else
-      cur
-    end
-  end
-  list.fold(f, false, l)
-end
-
-# list.filter_assoc(key,l) returns all the elements of the form
-# (key, value) from l.
-# @category List
-# @param k Key to look for
-# @param l List of pairs (key,value)
-def list.filter_assoc(k,l)
-  list.filter(fun (el) -> fst(el) == k, l)
-end
-
 # Add a skip function to a source when it does not have one by default.
 # @category Interaction
 # @param s The source to attach the command to.
@@ -162,17 +137,6 @@ def sky(s)
                  ratio = 6., gain = 6.7, knee = 0.3,
                  high(s))
       ])
-end
-
-# Append speech-synthesized tracks reading the metadata.
-# @category Source / Track Processing
-# @param ~pattern Pattern to use
-# @param s The source to use
-def say_metadata
-  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
-  fun (s,~pattern=p) ->
-    append(s,fun (m) -> request.queue(queue=[request.create(pattern % m)],
-                                      interactive=false))
 end
 
 %ifdef soundtouch
@@ -399,30 +363,12 @@ def at(pred,s)
   switch([(pred,s)])
 end
 
-# Execute a given action when a predicate is true. This will be run in
-# background.
-# @category System
-# @param ~freq Frequency for checking the predicate, in seconds.
-# @param ~pred Predicate indicating when to execute the function, \
-#              typically a time interval such as `{10h-10h30}`.
-# @param f Function to execute when the predicate is true.
-def exec_at(~freq=1.,~pred,f)
-  def check()
-    if pred() then
-      f()
-    end
-    freq
-  end
-  add_timeout(freq,check)
-end
-
 # Assign a new clock to the given source (and to other time-dependent sources)
 # and return the source. It is a conveniency wrapper around clock.assign_new(),
 # allowing more concise scripts in some cases.
 # @category Liquidsoap
-# @param ~sync When `false`, do not synchronize the clock on regular wallclock time, \
-#              but try to run as fast as possible (CPU burning mode).
-def clock(~sync=true,~id="",s)
+# @param ~sync Synchronization mode. One of: `"auto"`, `"cpu"`, or `"none"`. Defaults to `"auto"`, which synchronizes with the CPU clock if none of the active sources are attached to their own clock (e.g. ALSA input, etc). `"cpu"` always synchronizes with the CPU clock. `"none"` removes all synchronization control.
+def clock(~sync="auto",~id="",s)
   clock.assign_new(sync=sync,id=id,[s])
   s
 end
@@ -430,28 +376,25 @@ end
 # Create a log of clock times for all the clocks initially present. The log is
 # in a simple format which you can directly use with gnuplot.
 # @category Liquidsoap
-# @param ~interval Polling interval.
 # @param ~delay    Delay before setting up the clock logger. This should \
 #                  be used to ensure that the logger starts only after \
 #                  the clocks are created.
-# @param unlabeled Path of the log file.
-def clock.log(~delay=0.,~interval=1.,logfile)
+# @param ~every    Polling interval.
+# @param logfile   Path of the log file.
+def clock.log(~delay=0., ~every=1., logfile)
   # Get the current clocks
   clocks = list.map(fst,clock.status())
   # Column headers
-  system("echo \\# #{string.concat(separator=' ',clocks)} > #{(logfile:string)}")
+  ignore(file.write(data="# #{string.concat(separator=' ', clocks)}", logfile))
   def report()
     status = clock.status()
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
     status = list.map(fun (c) -> status[c], clocks)
-    system("echo #{string.concat(separator=' ',status)} >> #{logfile}")
-    interval
+    ignore(file.write(append=true, data="#{string.concat(separator=' ', status)}", logfile))
+    every
   end
-  if delay<=0. then
-    add_timeout(interval,report)
-  else
-    add_timeout(delay,{add_timeout(interval,report) (-1.)})
-  end
+  delay = if delay <= 0. then 0. else delay end
+  thread.run.recurrent(delay=delay, report)
 end
 
 # Skip track when detecting a blank.
@@ -511,6 +454,16 @@ end
 # @param s Source to extract from
 def stereo.right(s)
   mean(stereo.pan(pan=1., s))
+end
+
+# Append speech-synthesized tracks reading the metadata.
+# @category Source / Track Processing
+# @param ~pattern Pattern to use
+# @param s The source to use
+def say_metadata
+  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
+  fun (s,~pattern=p) ->
+    append(s, fun (m) -> once(single(pattern % m)))
 end
 
 # Rotate between overlapping sources. Next track starts according
@@ -661,7 +614,7 @@ def chop(~duration=float_getter(3.),~metadata=[],s) =
     insert(new_track=true, metadata)
     duration()
   end
-  add_timeout(duration(), f)
+  thread.run.recurrent(delay=duration(), f)
   s
 end
 

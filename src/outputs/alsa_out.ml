@@ -48,17 +48,9 @@ object (self)
       Clock.unify self#clock
         (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
-  method output_start =
-    ioring#output_start ;
-    if clock_safe then
-      (Alsa_settings.get_clock ())#register_blocking_source
-
-  method output_stop =
-    ioring#output_stop ;
-    if clock_safe then
-      (Alsa_settings.get_clock ())#unregister_blocking_source
-
   val mutable device = None
+
+  method self_sync = device <> None
 
   val mutable alsa_rate = samples_per_second
   val samplerate_converter = Audio_converter.Samplerate.create buffer_chans

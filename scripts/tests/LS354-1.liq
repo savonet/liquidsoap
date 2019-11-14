@@ -9,5 +9,5 @@ d = source.dynamic({ if !r then [s] else [] end })
 
 output.dummy(mksafe(d))
 
-add_timeout(2.,{r:=true;(-1.)})
-add_timeout(4.,{test.fail(); shutdown(); (-1.)})
+thread.run(delay=2., {r:=true})
+thread.run(delay=4., {test.fail(); shutdown()})

@@ -18,7 +18,7 @@
 # which is bit fragile for a test.
 
 flag = ref true
-add_timeout(1.,{ flag:=false ; (-1.) })
+thread.run(delay=1., { flag:=false })
 on = sine()
 off = fail()
 s = source.dynamic({ if !flag then [on] else [off] end })

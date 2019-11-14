@@ -31,7 +31,7 @@ let conf_scheduler =
       "such as request resolution (audio file downloading and checking)." ;
       "Finally, \"slow\" tasks are those that are always taking a long time," ;
       "like last.fm submission, or user-defined tasks register via" ;
-      "`add_timeout()`." ;
+      "`thread.run`." ;
       "The scheduler consists in a number of queues that process incoming" ;
       "tasks. Some queues might only process some kinds of tasks so that" ;
       "they are more responsive." ;
@@ -54,9 +54,9 @@ let fast_queues =
      ~comments:[
        "Number of queues that are dedicated to fast tasks." ;
        "It might be useful to create some if your request resolutions," ;
-       "or some user defined tasks (cf. `add_timeout()`), are" ;
+       "or some user defined tasks (cf `thread.run`), are" ;
        "delayed too much because of slow tasks blocking the generic queues," ;
-       "such as last.fm submissions or slow `add_timeout` handlers."
+       "such as last.fm submissions or slow `thread.run` handlers."
      ]
 let non_blocking_queues =
   Dtools.Conf.int ~p:(conf_scheduler#plug "non_blocking_queues") ~d:2

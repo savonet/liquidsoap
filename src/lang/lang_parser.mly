@@ -29,7 +29,7 @@
     let kind =
       T.fresh_evar ~level:(-1) ~pos:(Some pos)
     in
-      if Lang_values.debug then
+      if Lazy.force Lang_values.debug then
         Printf.eprintf "%s (%s): assigned type var %s\n"
           (T.print_pos (Utils.get_some kind.T.pos))
           (try Lang_values.print_term {t=kind;term=e} with _ -> "<?>")

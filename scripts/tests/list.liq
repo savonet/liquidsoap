@@ -39,5 +39,7 @@ test(list.for_all(fun (n) -> n > 0, [1,2,3]), true)
 test(list.for_all(fun (n) -> n > 0, [1,0,3]), false)
 test(list.exists(fun (n) -> n > 0, [0,2,0]), true)
 test(list.exists(fun (n) -> n > 0, [0,0,0]), false)
+test(list.fold(fun(x,y)->x+y,1,[2,3,4]), 10)
+test(list.fold_right(fun(x,y)->x+y,1,[2,3,4]), 10)
 
 if !success then test.pass() else test.fail() end

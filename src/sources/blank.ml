@@ -24,19 +24,21 @@ open Source
 
 class blank ~kind duration =
   let ticks =
-    if duration = 0. then -1 else Frame.master_of_seconds duration
+    if duration < 0. then -1 else Frame.master_of_seconds duration
   in
   (* The kind should not allow a variable number of channels,
    * so it can directly be seen as a type. *)
   let content_type = Frame.type_of_kind kind in
 object
   inherit source ~name:"blank" kind
-  method stype = Infallible
-  method is_ready = true
 
   (** Remaining time, -1 for infinity. *)
   val mutable remaining = ticks
   method remaining = remaining
+
+  method stype = Infallible
+  method is_ready = remaining <> 0
+  method self_sync = false
 
   method seek x = x
 
@@ -74,8 +76,8 @@ let () =
     ~category:Lang.Input
     ~descr:"Produce silence and blank images."
     ~kind:(Lang.Unconstrained (Lang.univ_t 1))
-    [ "duration", Lang.float_t, Some (Lang.float 0.),
-      Some "Duration of blank tracks in seconds, default means forever." ]
+    [ "duration", Lang.float_t, Some (Lang.float (-1.)),
+      Some "Duration of blank tracks in seconds, Negative value means forever." ]
     (fun p kind ->
        let d = Lang.to_float (List.assoc "duration" p) in
          ((new blank ~kind d):>source))
@@ -85,6 +87,7 @@ object
   inherit source ~name:"empty" kind
   method stype = Fallible
   method is_ready = false
+  method self_sync = false
   method remaining = 0
   method abort_track = ()
   method get_frame _ = assert false

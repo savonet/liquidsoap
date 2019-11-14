@@ -146,7 +146,7 @@ object(self)
     match clock with
       | Some c -> c
       | None ->
-         let c = new Clock.self_sync self#id in
+         let c = new Clock.clock "srt" in
          clock <- Some c;
          c
 
@@ -183,7 +183,7 @@ object(self)
 end
   
 class input ~kind ~bind_address ~max ~payload_size ~clock_safe
-            ~on_connect ~on_disconnect ~messageapi format =
+            ~on_connect ~on_disconnect ~messageapi ~dump format =
   let max_ticks = Frame.master_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -197,7 +197,9 @@ object (self)
 
   val input_mutex  = Mutex.create ()
   val mutable client_data = None
+  val mutable decoder_data = None
   val mutable should_stop = false
+  val mutable dump_chan = None
 
   method stype       = Source.Fallible
   method seek _      = 0
@@ -206,6 +208,8 @@ object (self)
   method is_ready    =
     Tutils.mutexify input_mutex (fun () ->
       not (should_stop || client_data = None)) ()
+
+  method self_sync = client_data <> None
 
   method private log_origin s =
     try
@@ -240,7 +244,10 @@ object (self)
        begin
         let input = Srt.recvmsg socket tmp payload_size in
         if input = 0 then raise End_of_file;
-        Buffer.add_subbytes buf tmp 0 input
+        Buffer.add_subbytes buf tmp 0 input;
+        match dump_chan with
+          | Some chan -> output chan tmp 0 input
+          | None -> ()
        end;
       let len = min len (Buffer.length buf) in
       Buffer.blit buf 0 bytes ofs len; 
@@ -257,14 +264,13 @@ object (self)
     if self#should_stop then raise Done;
     Srt.setsockflag socket Srt.sndsyn true;
     Srt.setsockflag socket Srt.rcvsyn true;
-    let decoder =
-      self#create_decoder socket
-    in
     Tutils.mutexify input_mutex (fun () ->
       Generator.set_mode generator `Undefined;
-      client_data <- Some (socket, decoder)) ();
-    if clock_safe then
-      self#get_clock#register_blocking_source ;
+      client_data <- Some socket;
+      match dump with
+        | Some fname ->
+            dump_chan <- Some (open_out_bin fname)
+        | None -> ()) ();
     on_connect ()
 
   method private close_client =
@@ -272,11 +278,15 @@ object (self)
     Tutils.mutexify input_mutex (fun () ->
       match client_data with
         | None -> ()
-        | Some (socket, _) ->
+        | Some socket ->
             Srt.close socket;
-            client_data <- None) ();
-    if clock_safe then
-      self#get_clock#unregister_blocking_source ;
+            decoder_data <- None;
+            client_data <- None;
+            match dump_chan with
+              | Some chan ->
+                  close_out_noerr chan;
+                  dump_chan <- None
+              | None -> ()) ();
     self#connect
 
   method private connect =
@@ -297,7 +307,17 @@ object (self)
 
   method private get_frame frame =
     let pos = Frame.position frame in
-    let (_, decoder) = Utils.get_some client_data in
+    let socket = Utils.get_some client_data in
+    let decoder =
+      match decoder_data with
+        | None ->
+           let decoder =
+             self#create_decoder socket
+           in
+           decoder_data <- Some decoder;
+           decoder
+       | Some d -> d
+    in
     try
      while Generator.length generator < Lazy.force Frame.size do
        decoder.Decoder.decode generator
@@ -364,6 +384,9 @@ let () =
       "messageapi", Lang.bool_t, Some (Lang.bool true),
       Some "Use message api" ;
 
+      "dump", Lang.string_t, Some (Lang.string ""),
+      Some "Dump received data to the given file for debugging. Unused is empty.";
+
       "content_type", Lang.string_t, Some (Lang.string "application/ffmpeg"),
       Some "Content-Type (mime type) used to find a decoder for the input stream." ]
       (fun p kind ->
@@ -379,6 +402,11 @@ let () =
          let port = Lang.to_int (List.assoc "port" p) in
          let bind_address =
            Unix.ADDR_INET (bind_address,port)
+         in
+         let dump =
+           match Lang.to_string (List.assoc "dump" p) with
+             | s when s = "" -> None
+             | s -> Some s
          in
          let max = Lang.to_float (List.assoc "max" p) in
          let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
@@ -403,7 +431,7 @@ let () =
           | _ -> ());
          ((new input ~kind ~bind_address ~payload_size ~clock_safe
                     ~on_connect ~on_disconnect ~messageapi ~max
-                    format):>Source.source))
+                    ~dump format):>Source.source))
 
 class output ~kind ~payload_size ~messageapi
   ~on_start ~on_stop ~infallible ~autostart
@@ -422,6 +450,8 @@ object (self)
   val mutable encoder = None
   val mutable connect_task = None
   val mutable state = `Idle
+
+  method self_sync = false
 
   method private is s =
     Tutils.mutexify output_mutex (fun () ->
@@ -531,8 +561,6 @@ object (self)
         (Clock.create_known (self#get_clock:>Clock.clock))
 
   method private output_start =
-    if clock_safe then
-      self#get_clock#register_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Started) ();
     self#start_connect_task
@@ -540,8 +568,6 @@ object (self)
   method private output_reset = self#output_start ; self#output_stop
 
   method private output_stop =
-    if clock_safe then
-      self#get_clock#unregister_blocking_source ;
     Tutils.mutexify output_mutex (fun () ->
       state <- `Stopped) ();
     self#stop_connect_task

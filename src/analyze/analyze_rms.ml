@@ -28,6 +28,7 @@ object
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = source#remaining
+  method self_sync = source#self_sync
 
   val window = Array.make window_length 0.
   val mutable pos = 0

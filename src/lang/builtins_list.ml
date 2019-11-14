@@ -51,7 +51,7 @@ let () =
     [
       "", (Lang.list_t a), None, Some "List to perform case analysis on.";
       "", b, None, Some "Result when the list is empty.";
-      "", Lang.fun_t [false, "", a; false, "", Lang.list_t a] b, None, Some "Result when the list it non-empty.";
+      "", Lang.fun_t [false, "", a; false, "", Lang.list_t a] b, None, Some "Result when the list is non-empty.";
     ]
     b
     (fun p b ->
@@ -64,6 +64,34 @@ let () =
       match Lang.to_list l with
       | [] -> e
       | x::l -> Lang.apply ~t:b f ["",x; "", Lang.list ~t:a l])
+
+let () =
+  let a = Lang.univ_t 1 in
+  let b = Lang.univ_t 2 in
+  Lang.add_builtin "list.ind"
+    ~category:(string_of_category List)
+    ~descr:"Define a function by induction on a list. This is slightly more \
+            efficient than defining a recursive function. The list is scanned \
+            from the right."
+    [
+      "", (Lang.list_t a), None, Some "List to perform induction on.";
+      "", b, None, Some "Result when the list is empty.";
+      "", Lang.fun_t [false, "", a; false, "", Lang.list_t a; false, "", b] b, None, Some "Result when the list is non-empty, given the current element, the tail and the result of the recursive call on the tail.";
+    ]
+    b
+    (fun p b ->
+      let l,e,f =
+        match p with
+        | ["",l; "",e; "",f] -> l,e,f
+        | _ -> assert false
+      in
+      let a = Lang.of_list_t l.Lang.t in
+      let rec aux k = function
+        | [] -> k e
+        | x::l -> aux (fun r -> k (Lang.apply ~t:b f ["",x; "", Lang.list ~t:a l; "", r])) l
+      in
+      aux (fun r -> r) (Lang.to_list l)
+    )
 
 let () =
   Lang.add_builtin "list.add"

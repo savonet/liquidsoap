@@ -12,6 +12,6 @@ d = source.dynamic({ if !r==1 then [s1]
 
 output.dummy(mksafe(d))
 
-add_timeout(2.,{r:=1; (-1.)})
-add_timeout(3.,{r:=2; (-1.)})
-add_timeout(5.,{test.fail(); shutdown(); (-1.)})
+thread.run(delay=2., {r:=1})
+thread.run(delay=3., {r:=2})
+thread.run(delay=5., {test.fail(); shutdown()})
