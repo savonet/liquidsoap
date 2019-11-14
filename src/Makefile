@@ -55,7 +55,7 @@ decoders = \
 	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
 	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
-	$(if $(W_SDL),decoder/image/sdlimage_decoder.ml) \
+	$(if $(W_SDL_IMAGE),decoder/image/sdlimage_decoder.ml) \
 	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
 
 playlists = \
@@ -69,7 +69,7 @@ protocols = \
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
-	sources/request_simple.ml sources/playlist.ml \
+	sources/request_simple.ml \
 	sources/generated.ml sources/http_source.ml \
 	$(if $(W_SSL),sources/https_source.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),sources/https_secure_transport_source.ml) \
@@ -107,7 +107,7 @@ operators = \
 	$(if $(W_LILV),operators/lilv_op.ml) \
 	$(if $(W_FREI0R),operators/frei0r_op.ml) \
 	$(if $(W_GD),operators/video_text_gd.ml) \
-	$(if $(W_SDL),operators/video_text_sdl.ml) \
+	$(if $(W_SDL_TTF),operators/video_text_sdl.ml) \
 	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
