@@ -61,15 +61,28 @@ module Surface = struct
     (
       match fmt with
       | fmt when fmt = Sdl.Pixel.format_rgb888 ->
-        let pitch = pitch / 4 in
-        let pix = Sdl.get_surface_pixels surface Bigarray.Int32 in
+        let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
         for j = 0 to height-1 do
           for i = 0 to width-1 do
-            let p = Int32.to_int pix.{i+j*pitch} in
-            let r = p lsr 16 land 0xff in
-            let g = p lsr 8  land 0xff in
-            let b = p        land 0xff in
-            let a = 0xff               in
+            let r, g, b, a =
+              pix.{j*pitch+4*i+2},
+              pix.{j*pitch+4*i+1},
+              pix.{j*pitch+4*i+0},
+              0xff
+            in
+            Video.Image.set_pixel_rgba img i j (r,g,b,a)
+          done
+        done
+      | fmt when fmt = Sdl.Pixel.format_rgb24 ->
+        let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
+        for j = 0 to height-1 do
+          for i = 0 to width-1 do
+            let r, g, b =
+              pix.{j*pitch+3*i+0},
+              pix.{j*pitch+3*i+1},
+              pix.{j*pitch+3*i+2}
+            in
+            let a = 0xff in
             Video.Image.set_pixel_rgba img i j (r,g,b,a)
           done
         done
@@ -88,14 +101,18 @@ module Surface = struct
 
   let of_img surface img =
     let width, height = Sdl.get_surface_size surface in
+    let pitch = Sdl.get_surface_pitch surface in
     let fmt = Sdl.get_surface_format_enum surface in
     match fmt with
     | fmt when fmt = Sdl.Pixel.format_rgb888 ->
-      let pix = Sdl.get_surface_pixels surface Bigarray.Int32 in
+      let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
       for i = 0 to width-1 do
         for j = 0 to height-1 do
           let r,g,b,_ = Video.Image.get_pixel_rgba img i j in
-          pix.{i+j*width} <- Int32.of_int (r lsl 16 + g lsl 8 + b);
+          pix.{j*pitch+4*i+0} <- b;
+          pix.{j*pitch+4*i+1} <- g;
+          pix.{j*pitch+4*i+2} <- r;
+          pix.{j*pitch+4*i+3} <- 0xff
         done
       done
     | _ -> failwith ("img_of_surface: unhandled format " ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)))
