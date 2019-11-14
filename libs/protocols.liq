@@ -496,9 +496,7 @@ add_protocol("ffmpeg",ffmpeg_protocol,
 def stereo_protocol(~rlog, ~maxtime, arg)
   # [process_uri_to_stereo(arg)]
   file = file.temp("liq-stereo", ".wav")
-  print("Decoding to stereo #{arg} to #{file}")
-  output.file(%wav, file, fallible=true, audio_to_stereo(once(single(arg))))
-  print("Decoded")
+  source.dump(%wav, file, audio_to_stereo(once(single(arg))))
   [file]
 end
 add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
@@ -532,7 +530,7 @@ add_protocol(static=true,"gtts",gtts_protocol,
 # Register the legacy say: protocol using text2wave and sox
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
-  ["stereo:text2wave:#{arg}", "stereo:gtts:#{arg}"]
+  ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",
