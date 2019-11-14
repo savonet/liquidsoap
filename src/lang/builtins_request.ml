@@ -24,10 +24,10 @@ open Lang_builtins
 
 let () =
   add_builtin "request.create.raw" ~cat:Liq
-    ~descr:"Create a raw request, i.e. for files that should not be decoded \
-            for streaming. Creation may fail if there is no available RID, \
-            which cannot be detected currently: in that case one will obtain \
-            a request that will fail to be resolved."
+    ~descr:"Create a raw request, for files that should not be decoded for \
+            streaming such as playlists. Creation may fail if there is no \
+            available RID, which cannot be detected currently: in that case one \
+            will obtain a request that will fail to be resolved."
     [("indicators",
       Lang.list_t Lang.string_t,
       Some (Lang.list ~t:Lang.string_t []),

@@ -6,7 +6,8 @@
 # @param old Old function name.
 # @param new New function name.
 def deprecated(old, new)
-  log.severe(label="lang.deprecated", "WARNING: \"#{old}\" is deprecated and will be removed in future version. Please use \"#{new}\" instead.")
+  new = if new == "" then "" else " Please use \"#{new}\" instead." end
+  log.severe(label="lang.deprecated", "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{new}")
 end
 
 # @flag hidden
@@ -35,6 +36,13 @@ end
 def quote(s) =
   deprecated("quote", "string.quote")
   string.quote(s)
+end
+
+# Deprecated: use mksafe and playlist instead.
+# @flag hidden
+def playlist.safe(~id, ~mime_type, ~mode, ~on_track, ~prefix, ~reload, ~reload_mode, uri)
+  deprecated("playlist.safe", "")
+  mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
 
 # Deprecated: this function has been replaced by thread.run.recurrent.
