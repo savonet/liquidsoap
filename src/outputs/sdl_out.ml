@@ -38,12 +38,6 @@ object (self)
   val mutable window = None
 
   method output_start =
-    (* Sdlevent.enable_events (Sdlevent.quit_mask lor Sdlevent.keydown_mask); *)
-    (* Try to get 32bpp because it's faster (twice as fast here),
-     * but accept other formats too. *)
-    (* ignore (Sdlvideo.set_video_mode *)
-              (* ~w:video_width ~h:video_height *)
-              (* ~bpp:32 [`ANYFORMAT;`DOUBLEBUF]) ; *)
     window <- Some (Sdl_utils.check (fun () -> Sdl.create_window "Liquidsoap" ~w:video_width ~h:video_height Sdl.Window.windowed) ());
     self#log#info "Initialized SDL video surface."
 
@@ -58,7 +52,7 @@ object (self)
     if Sdl.poll_event (Some e) then
       match Sdl.Event.(enum (get e typ)) with
       | `Quit ->
-        (* Avoid an immediate restart (which would happen with autostart).  But
+        (* Avoid an immediate restart (which would happen with autostart). But
            do not cancel autostart. We should perhaps have a method in the
            output class for that kind of thing, and try to get an uniform
            behavior. *)
