@@ -20,6 +20,7 @@ New:
 - Added `liquidsoap.executable` to get the path of the currently running
   Liquidsoap.
 - Added `source.dump`.
+- Added `synth` protocol (#1014).
 
 Changed:
 
