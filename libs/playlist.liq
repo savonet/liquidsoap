@@ -53,7 +53,7 @@ def playlist.reloadable(~id="", ~check_next=fun(_)->true, ~conservative=false, ~
     end
   end
   # Instanciate the source
-  source = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, next)
+  source = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
   # Get its id.
   id = source.id(source)
   # The load function
@@ -100,8 +100,8 @@ def playlist.reloadable(~id="", ~check_next=fun(_)->true, ~conservative=false, ~
       playlist_uri := uri
     end
     log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
-    has_stopped := false
     load_playlist()
+    has_stopped := false
   end
   # Load the playlist
   load_playlist()
