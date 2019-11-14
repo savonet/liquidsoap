@@ -94,10 +94,12 @@ def list.fold_right(f, x, l)
   list.ind(l, x, fun (e, l, r) -> f(e, r))
 end
 
-# Filter a list according to a filtering function.
+# Filter a list according to a predicate. The order in which elements are
+# handled is not specified (and is currently implemented from the right).
 # @category List
-def rec list.filter(p, l)
-  list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
+def list.filter(p, l)
+  # list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
+  list.ind(l, [], fun(x, _, l) -> if p(x) then list.cons(x, l) else l end)
 end
 
 # Remove the first occurrence of a value from a list.
