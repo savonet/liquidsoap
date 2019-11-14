@@ -76,7 +76,7 @@ let () =
     [
       "", (Lang.list_t a), None, Some "List to perform induction on.";
       "", b, None, Some "Result when the list is empty.";
-      "", Lang.fun_t [false, "", a; false, "", Lang.list_t a; false, "", b] b, None, Some "Result when the list is non-empty.";
+      "", Lang.fun_t [false, "", a; false, "", Lang.list_t a; false, "", b] b, None, Some "Result when the list is non-empty, given the current element, the tail and the result of the recursive call on the tail.";
     ]
     b
     (fun p b ->
