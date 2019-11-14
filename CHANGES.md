@@ -42,6 +42,7 @@ Changed:
 - Changed the weights of `add` to float (#1022).
 - Renamed `which` to `file.which`.
 - Change `blank()` duration semantics to mean forever only on negative values.
+- Get rid of numbering of universal variables (#1037).
 
 Fixed:
 
