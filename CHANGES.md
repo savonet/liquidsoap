@@ -19,6 +19,7 @@ New:
 - Added `gtts` protocol to use Google TTS (#1034).
 - Added `liquidsoap.executable` to get the path of the currently running
   Liquidsoap.
+- Added `source.dump`.
 
 Changed:
 
