@@ -83,7 +83,7 @@ let () =
   in
   add_builtin "source.init" ~cat:Liq
     ~descr:"Simultaneously initialize sources, \
-            return the sublist of sources that failed to initialized."
+            return the sublist of sources that failed to initialize."
     [ "", Lang.list_t s_t, None, None ] (Lang.list_t s_t)
     (fun p ->
        let l = Lang.to_list (List.assoc "" p) in
