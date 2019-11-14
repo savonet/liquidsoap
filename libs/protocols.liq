@@ -629,7 +629,6 @@ def synth_protocol(~rlog,~maxtime,text) =
   if list.exists(fun(l)-> list.length(l) != 2, args) then
     []
   else
-    log.debug(label="synth", "Parsed arguments.")
     args = list.map(fun(l) -> (list.hd(default="",l), list.hd(default="",list.tl(l))), args)
     shape = ref("sine")
     duration = ref(10.)
@@ -638,6 +637,7 @@ def synth_protocol(~rlog,~maxtime,text) =
       let (k,v) = p
       if k == "duration" then duration := float_of_string(v)
       elsif k == "frequency" then frequency := float_of_string(v)
+      elsif k == "shape" then shape := v
       end
     end
     list.iter(set, args)
@@ -648,7 +648,13 @@ def synth_protocol(~rlog,~maxtime,text) =
       [file]
     end
     if !shape == "sine" then
-      synth(sine(duration=!duration,!frequency))
+      synth(sine(duration=!duration, !frequency))
+    elsif !shape == "saw" then
+      synth(saw(duration=!duration, !frequency))
+    elsif !shape == "square" then
+      synth(square(duration=!duration, !frequency))
+    elsif !shape == "blank" then
+      synth(blank(duration=!duration))
     else
       []
     end
