@@ -35,7 +35,6 @@ type event =
         | `VIDEO ]
 
 let options : Sdl.Init.t option ref = ref None
-let start_ttf = ref false
 
 let check f x =
   match f x with
@@ -46,11 +45,8 @@ let init l =
   if !options = None then options := Some Sdl.Init.nothing;
   List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l
 
-let ttf_init () = start_ttf := true
-
 let () = 
   ignore (Dtools.Init.at_start (fun () ->
-      if !start_ttf then check Tsdl_ttf.Ttf.init ();
       match !options with
       | Some o -> check Sdl.init o
       | None -> ()

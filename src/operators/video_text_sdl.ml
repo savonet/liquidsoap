@@ -25,7 +25,7 @@ open Tsdl_ttf
 
 let init () =
   Sdl_utils.init [];
-  Sdl_utils.ttf_init ()
+  ignore (Dtools.Init.at_start (fun () -> Sdl_utils.check Tsdl_ttf.Ttf.init ()))
 
 let get_font font size =
   try
