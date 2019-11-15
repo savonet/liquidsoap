@@ -620,3 +620,48 @@ add_protocol(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
                   Result might be mono, needs aws binary in the path.",
              syntax="polly:Text to read")
+
+# Protocol to synthesize audio.
+# @flag hidden
+def synth_protocol(~rlog,~maxtime,text) =
+  log.debug(label="synth", "Synthesizing request: #{text}")
+  args = string.split(separator=",", text)
+  args = list.map(string.split(separator="="), args)
+  if list.exists(fun(l)-> list.length(l) != 2, args) then
+    []
+  else
+    args = list.map(fun(l) -> (list.hd(default="",l), list.hd(default="",list.tl(l))), args)
+    shape = ref("sine")
+    duration = ref(10.)
+    frequency = ref(440.)
+    def set(p)
+      let (k,v) = p
+      if k == "duration" then duration := float_of_string(v)
+      elsif k == "frequency" then frequency := float_of_string(v)
+      elsif k == "shape" then shape := v
+      end
+    end
+    list.iter(set, args)
+    def synth(s)
+      file = file.temp("liq-synth",".wav")
+      log.info(label="synth", "Synthesizing #{!shape} in #{file}.")
+      source.dump(%wav, file, once(s))
+      [file]
+    end
+    if !shape == "sine" then
+      synth(sine(duration=!duration, !frequency))
+    elsif !shape == "saw" then
+      synth(saw(duration=!duration, !frequency))
+    elsif !shape == "square" then
+      synth(square(duration=!duration, !frequency))
+    elsif !shape == "blank" then
+      synth(blank(duration=!duration))
+    else
+      []
+    end
+  end
+end
+
+add_protocol(static=true, temporary=true, "synth", synth_protocol,
+doc="Syntesize audio. Parameters are optional.",
+syntax="synth:shape=sine,frequency=440.,duration=10.")
