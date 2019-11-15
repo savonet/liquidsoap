@@ -1,4 +1,4 @@
-#!../../src/liquidsoap
+#!../../../src/liquidsoap ../../../libs/pervasives.liq
 
 %include "test.liq"
 
@@ -17,4 +17,4 @@ s = playlist(check_next=filter,mode="randomize",reload_mode="rounds","threesines
 
 s = test.check_non_repeating(nb_files=2,nb_rounds=10,s)
 
-clock.assign_new(sync=false,[output.dummy(fallible=true,s)])
+clock.assign_new(sync="none", [output.dummy(fallible=true,s)])
