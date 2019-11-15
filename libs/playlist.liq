@@ -16,7 +16,7 @@
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra information using annotate, or for resolution through a particular protocol, such as replaygain.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
-def playlist.reloadable(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_done={()}, ~prefix="", ~timeout=20., uri)
+def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_done={()}, ~prefix="", ~timeout=20., uri)
   mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
   # URI of the playlist
   playlist_uri = ref uri
@@ -43,10 +43,12 @@ def playlist.reloadable(~id="", ~check_next=fun(_)->true, ~conservative=false, ~
         # Playlist finished
         if not !has_stopped then
           has_stopped := true
+          log.info(label=id, "Playlist stopped.")
           on_done()
         end
         ""
       end
+    log.debug(label=id, "Next song will be \"#{file}\".")
     r = request.create(file)
     if check_next(r) then
       r
@@ -62,6 +64,7 @@ def playlist.reloadable(~id="", ~check_next=fun(_)->true, ~conservative=false, ~
   id = source.id(source)
   # The load function
   def load_playlist () =
+    log.info(label=id, "Reloading playlist.")
     files =
       if file.is_directory(!playlist_uri) then
         log.info(label=id,"Playlist is a directory.")
