@@ -101,7 +101,7 @@ let () =
       (fun a b -> int_of_float ((float_of_int a) ** float_of_int b)) ( ** )
 
 let () =
-  add_builtin "random.float" ~cat:Math ~descr:"Generate a random value."
+  add_builtin "random.float" ~cat:Math ~descr:"Generate a random value between `min` (included) and `max` (excluded)."
     (* TODO better default values *)
     ["min",Lang.float_t,Some (Lang.float (-1000000.)),None;
      "max",Lang.float_t,Some (Lang.float ( 1000000.)),None]
@@ -112,7 +112,7 @@ let () =
          Lang.float (Random.float (max -. min) +. min))
 
 let () =
-  add_builtin "random.int" ~cat:Math ~descr:"Generate a random value."
+  add_builtin "random.int" ~cat:Math ~descr:"Generate a random value between `min` (included) and `max` (excluded)."
     ["min",Lang.int_t,Some (Lang.int (1-(1 lsl 29))),None;
      "max",Lang.int_t,Some (Lang.int (1 lsl 29)),None]
     Lang.int_t
@@ -122,7 +122,7 @@ let () =
          Lang.int (Random.int (max - min) + min))
 
 let () =
-  add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random value."
+  add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random boolean."
     [] Lang.bool_t
     (fun _ -> Lang.bool (Random.bool ()))
 
