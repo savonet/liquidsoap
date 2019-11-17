@@ -77,6 +77,17 @@ object
   method remaining = -1
 end
 
+let instantiate d samplerate =
+  let ans = Descriptor.instantiate d samplerate in
+  (* Connect output control ports (which we don't use) to some dummy buffer in
+     order to avoid segfaults. *)
+  for i = 0 to Descriptor.port_count d - 1 do
+    if Descriptor.port_is_control d i && not (Descriptor.port_is_input d i) then
+      let c = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout 1 in
+      Descriptor.connect_port ans i c
+  done;
+  ans
+
 (* A plugin is created for each channel. *)
 class ladspa_mono ~kind (source:source) plugin descr input output params =
 object
@@ -86,10 +97,7 @@ object
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
     Array.init ((Frame.type_of_kind kind).Frame.audio)
-      (fun _ ->
-        Descriptor.instantiate
-          d
-          (Lazy.force Frame.audio_rate))
+      (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -119,9 +127,7 @@ object
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
-    Descriptor.instantiate
-      d
-      (Lazy.force Frame.audio_rate)
+    instantiate d (Lazy.force Frame.audio_rate)
 
   initializer
     Descriptor.activate inst
@@ -164,9 +170,7 @@ object
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
-    Descriptor.instantiate
-      d
-      (Lazy.force Frame.audio_rate)
+    instantiate d (Lazy.force Frame.audio_rate)
 
   initializer
     Descriptor.activate inst
