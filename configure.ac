@@ -1139,7 +1139,9 @@ variables {
   camlimages-enabled: $b_CAMLIMAGES
   dssi-enabled: $b_DSSI
   graphics-enabled: $b_GRAPHICS
-  sdl-enabled: $b_SDL
+  sdl-enabled: $b_TSDL
+  sdl-image-enabled: $b_TSDL_IMAGE
+  sdl-ttf-enabled: $b_TSDL_TTF
   gd-enabled: $b_GD
   inotify-enabled: $b_INOTIFY
   lo-enabled: $b_LO
