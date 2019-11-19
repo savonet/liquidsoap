@@ -24,10 +24,10 @@ open Lang_builtins
 
 let () =
   add_builtin "request.create.raw" ~cat:Liq
-    ~descr:"Create a raw request, i.e. for files that should not be decoded \
-            for streaming. Creation may fail if there is no available RID, \
-            which cannot be detected currently: in that case one will obtain \
-            a request that will fail to be resolved."
+    ~descr:"Create a raw request, for files that should not be decoded for \
+            streaming such as playlists. Creation may fail if there is no \
+            available RID, which cannot be detected currently: in that case one \
+            will obtain a request that will fail to be resolved."
     [("indicators",
       Lang.list_t Lang.string_t,
       Some (Lang.list ~t:Lang.string_t []),
@@ -138,7 +138,7 @@ let () =
 
 let () =
   add_builtin "request.uri" ~cat:Liq
-    ~descr:"Initial URI of a reuqest."
+    ~descr:"Initial URI of a request."
     [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
@@ -182,3 +182,12 @@ let () =
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.float (try Request.duration f with Not_found -> -1.))
+
+let () =
+  add_builtin "request.id" ~cat:Liq
+    ~descr:"Identifier of a request."
+    [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.int_t
+    (fun p ->
+       let r = Lang.to_request (List.assoc "" p) in
+       Lang.int (Request.get_id r)
+    )

@@ -228,9 +228,6 @@ set("frame.video.samplerate",12)
 
 # The video we want to stream.
 s = single("big_buck_bunny_720p_stereo.ogg")
-# This hack is necessary (for now) in order
-# to leave the synchronization to GStreamer.
-clock.assign_new(sync=false,[s])
 
 output.harbor(
   format="video/mpeg",

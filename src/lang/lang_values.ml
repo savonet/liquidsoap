@@ -43,11 +43,17 @@ let conf_debug_errors =
 
 (** Are we in debugging mode? *)
 let debug =
-  try
-    ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG");
-    true
-  with
-    | Not_found -> conf_debug#get
+  Lazy.from_fun
+    (fun () ->
+       try
+         ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG");
+         true
+       with
+       | Not_found -> conf_debug#get)
+
+(* We want to keep this a reference and not a dtools and not something more
+   complicated (e.g. dtools) in order not to impact performances. *)
+let profile = ref false
 
 (** {2 Kinds} *)
 
@@ -620,13 +626,13 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       List.fold_left
         (fun (p,env,level) -> function
            | lbl,var,kind,None   ->
-               if debug then
+               if Lazy.force debug then
                  Printf.eprintf "Assigning level %d to %s (%s).\n"
                    level var (T.print kind) ;
                kind.T.level <- level ;
                (false,lbl,kind)::p, (var,([],kind))::env, level+1
            | lbl,var,kind,Some v ->
-               if debug then
+               if Lazy.force debug then
                  Printf.eprintf "Assigning level %d to %s (%s).\n"
                    level var (T.print kind) ;
                kind.T.level <- level ;
@@ -658,7 +664,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
               e.t
             with
               | T.Type_Error _ ->
-                  if debug then
+                  if Lazy.force debug then
                     Printf.eprintf "Ignoring type error to compute \
                                     a sup of list element types.\n" ;
                   e.t <: sup;
@@ -749,7 +755,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
               end
       in
         e.t >: T.instantiate ~level ~generalized orig ;
-        if debug then
+        if Lazy.force debug then
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n"
             var (T.deref e.t).T.level (T.print orig) (T.print e.t)
   | Let ({pat=pat; def=def; body=body; _} as l) ->
@@ -867,14 +873,14 @@ let instantiate ~generalized def =
 let lookup (env:V.lazy_full_env) var ty =
   let generalized,def = Lazy.force (List.assoc var env) in
   let v = instantiate ~generalized def in
-    if debug then
+    if Lazy.force debug then
       Printf.eprintf
         "Runtime instantiation of %s: %s targets %s.\n"
         var
         (T.print ~generalized def.V.t)
         (T.print ty) ;
     v.V.t <: ty ;
-    if debug then
+    if Lazy.force debug then
       Printf.eprintf
         "Runtime instantiation of %s: %s becomes %s.\n"
         var
@@ -953,9 +959,18 @@ let rec eval ~env tm =
           ignore (eval ~env a) ;
           eval ~env b
       | App (f,l) ->
+        let ans () =
           apply ~t:tm.t
             (eval ~env f)
             (List.map (fun (l,t) -> l, eval ~env t) l)
+        in
+        if !profile then
+          (
+            match f.term with
+            | Var fname -> Profiler.time fname ans ()
+            | _ -> ans ()
+          )
+        else ans ()
 
 and apply ~t f l =
   let mk v = { V.t = t ; V.value = v } in
@@ -1075,7 +1090,7 @@ let rec eval_toplevel ?(interactive=false) t =
        let env = builtins#get_all in
        let def = eval ~env def in
        toplevel_add comment pat ~generalized def ;
-       if debug then
+       if Lazy.force debug then
          Printf.eprintf "Added toplevel %s : %s\n"
            (string_of_pat pat) (T.print ~generalized def.V.t) ;
        if interactive then

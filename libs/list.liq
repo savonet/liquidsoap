@@ -15,6 +15,19 @@ def list.tl(l)
   list.case(l, [], fun (_, l) -> l)
 end
 
+# Initialize a list.
+# @category List
+# @param n Number of elements in the list.
+# @param f Function such that `f i` is the `i`th element.
+def list.init(n, f)
+  def rec aux(i)
+    if i == n then [] else
+      list.add(f(i), aux(i+1))
+    end
+  end
+  aux(0)
+end
+
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
 # @category List
 def rec list.nth(~default, l, n)
@@ -29,8 +42,8 @@ end
 
 # Compute the length of a list, i.e., the number of its elements.
 # @category List
-def rec list.length(l)
-  list.case(l, 0, fun (_, l) -> list.length(l)+1)
+def list.length(l)
+  list.ind(l, 0, fun (_, _, r) -> r+1)
 end
 
 # Check whether an element belongs to a list.
@@ -71,10 +84,22 @@ def rec list.fold(f, x, l)
   list.case(l, x, fun (e, l) -> list.fold(f, f(x, e), l))
 end
 
-# Filter a list according to a filtering function.
+# Fold a function on every element of a list. Similar to `list.fold` but
+# iterates from the right of the list. It is slighly more efficient than
+# `list.fold`.
 # @category List
-def rec list.filter(p, l)
-  list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
+# @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.
+# @param x Initial value x1, to be updated by successive calls of `f(x,e)`.
+def list.fold_right(f, x, l)
+  list.ind(l, x, fun (e, l, r) -> f(e, r))
+end
+
+# Filter a list according to a predicate. The order in which elements are
+# handled is not specified (and is currently implemented from the right).
+# @category List
+def list.filter(p, l)
+  # list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
+  list.ind(l, [], fun(x, _, l) -> if p(x) then list.cons(x, l) else l end)
 end
 
 # Remove the first occurrence of a value from a list.
@@ -89,21 +114,21 @@ end
 
 # Concatenate two lists.
 # @category List
-def rec list.append(l, m)
-  list.case(l, m, fun (x, l) -> list.cons(x, list.append(l, m)))
+def list.append(l, m)
+  list.ind(l, m, fun (x, l, r) -> list.cons(x, r))
 end
 
 # Add a new last element to the list.
 # @category List
 # @flag hidden
-def rec list.snoc(y, l)
-  list.case(l, list.cons(y, []), fun (x, l) -> list.cons(x, list.snoc(y, l)))
+def list.snoc(y, l)
+  list.ind(l, list.cons(y, []), fun (x, l, r) -> list.cons(x, r))
 end
 
 # Revert list order.
 # @category List
-def rec list.rev(l)
-  list.case(l, [], fun (x, l) -> list.snoc(x, list.rev(l)))
+def list.rev(l)
+  list.ind(l, [], fun (x, l, r) -> list.snoc(x, r))
 end
 
 # Associate a value to a key in an association list.

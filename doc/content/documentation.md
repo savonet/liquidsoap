@@ -55,6 +55,7 @@ Specific tutorials
 * [Interaction with the server](server.html) interact with a running Liquidsoap instance using the telnet server.
 * [ICY metadata update](icy_metadata.html): manipulate and configure metadata update in Icecast.
 * [Normalization and replay gain](replay_gain.html): normalize audio data.
+* [Profiling](profiling.html): profiling your scripts.
 * [Requests-based sources](request_sources.html): create advanced sources using requests.
 * [Shoutcast output](shoutcast.html): output to shoutcast.
 * [Dynamic source creation](dynamic_sources.html): dynamically create sources using server requests.

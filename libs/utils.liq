@@ -363,30 +363,12 @@ def at(pred,s)
   switch([(pred,s)])
 end
 
-# Execute a given action when a predicate is true. This will be run in
-# background.
-# @category System
-# @param ~freq Frequency for checking the predicate, in seconds.
-# @param ~pred Predicate indicating when to execute the function, \
-#              typically a time interval such as `{10h-10h30}`.
-# @param f Function to execute when the predicate is true.
-def exec_at(~freq=1.,~pred,f)
-  def check()
-    if pred() then
-      f()
-    end
-    freq
-  end
-  add_timeout(freq,check)
-end
-
 # Assign a new clock to the given source (and to other time-dependent sources)
 # and return the source. It is a conveniency wrapper around clock.assign_new(),
 # allowing more concise scripts in some cases.
 # @category Liquidsoap
-# @param ~sync When `false`, do not synchronize the clock on regular wallclock time, \
-#              but try to run as fast as possible (CPU burning mode).
-def clock(~sync=true,~id="",s)
+# @param ~sync Synchronization mode. One of: `"auto"`, `"cpu"`, or `"none"`. Defaults to `"auto"`, which synchronizes with the CPU clock if none of the active sources are attached to their own clock (e.g. ALSA input, etc). `"cpu"` always synchronizes with the CPU clock. `"none"` removes all synchronization control.
+def clock(~sync="auto",~id="",s)
   clock.assign_new(sync=sync,id=id,[s])
   s
 end
@@ -394,28 +376,25 @@ end
 # Create a log of clock times for all the clocks initially present. The log is
 # in a simple format which you can directly use with gnuplot.
 # @category Liquidsoap
-# @param ~interval Polling interval.
 # @param ~delay    Delay before setting up the clock logger. This should \
 #                  be used to ensure that the logger starts only after \
 #                  the clocks are created.
-# @param unlabeled Path of the log file.
-def clock.log(~delay=0.,~interval=1.,logfile)
+# @param ~every    Polling interval.
+# @param logfile   Path of the log file.
+def clock.log(~delay=0., ~every=1., logfile)
   # Get the current clocks
   clocks = list.map(fst,clock.status())
   # Column headers
-  system("echo \\# #{string.concat(separator=' ',clocks)} > #{(logfile:string)}")
+  ignore(file.write(data="# #{string.concat(separator=' ', clocks)}", logfile))
   def report()
     status = clock.status()
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
     status = list.map(fun (c) -> status[c], clocks)
-    system("echo #{string.concat(separator=' ',status)} >> #{logfile}")
-    interval
+    ignore(file.write(append=true, data="#{string.concat(separator=' ', status)}", logfile))
+    every
   end
-  if delay<=0. then
-    add_timeout(interval,report)
-  else
-    add_timeout(delay,{add_timeout(interval,report) (-1.)})
-  end
+  delay = if delay <= 0. then 0. else delay end
+  thread.run.recurrent(delay=delay, report)
 end
 
 # Skip track when detecting a blank.
@@ -635,7 +614,7 @@ def chop(~duration=float_getter(3.),~metadata=[],s) =
     insert(new_track=true, metadata)
     duration()
   end
-  add_timeout(duration(), f)
+  thread.run.recurrent(delay=duration(), f)
   s
 end
 

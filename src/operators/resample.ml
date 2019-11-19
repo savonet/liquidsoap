@@ -30,6 +30,8 @@ object (self)
   (* Hide our child: we'll treat it specially. *)
   inherit source ~name:"resample" kind as super
 
+  method self_sync = source#self_sync
+
   method stype = source#stype
 
   method remaining =

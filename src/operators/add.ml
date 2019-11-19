@@ -26,20 +26,13 @@ open Source
 
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
-let get_again s buf =
-  s#get buf ;
-  Frame.set_breaks buf
-    (match Frame.breaks buf with
-       | pos::_::l -> pos::l
-       | _ -> assert false)
-
 (** Add/mix several sources together.
   * If [renorm], renormalize the PCM channels.
   * The [video_init] (resp. [video_loop]) parameter is used to pre-process
   * the first layer (resp. next layers) in the sum; this generalization
   * is used to add either as an overlay or as a tiling. *)
-class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
-object (self)
+class add ~kind ~renorm (sources: (float*source) list) video_init video_loop =
+object
   inherit operator ~name:"add" kind (List.map snd sources)
 
   (* We want the sources at the beginning of the list to
@@ -52,6 +45,9 @@ object (self)
       Infallible
     else
       Fallible
+
+  method self_sync =
+    List.exists (fun (_,s) -> s#self_sync) sources
 
   method remaining =
     List.fold_left max 0
@@ -89,10 +85,10 @@ object (self)
     (* Compute the list of ready sources, and their total weight *)
     let weight,sources =
       List.fold_left
-        (fun (t,l) (w,s) -> w+t,if s#is_ready then (w,s)::l else l)
-        (0,[]) sources
+        (fun (t,l) (w,s) -> w +. t,if s#is_ready then (w,s)::l else l)
+        (0.,[]) sources
     in
-    let weight = float weight in
+    let weight = weight in
 
     (* Our sources are not allowed to have variable stream kinds.
      * This is necessary, because then we might not be able to sum them
@@ -120,24 +116,9 @@ object (self)
                tmp
              end
            in
-           let c = (float w)/.weight in
-
-             if List.length sources = 1 then
-               s#get buffer
-             else begin
-               (* If there is more than one source we fill greedily. *)
-               s#get buffer ;
-               let get_count = ref 0 in
-               while Frame.is_partial buffer && s#is_ready do
-                 incr get_count ;
-                 if !get_count > Lazy.force Frame.size then
-                   self#log#severe
-                     "Warning: there may be an infinite sequence of empty tracks!" ;
-                 get_again s buffer
-               done
-             end ;
-
-             let already = Frame.position buffer in
+           s#get buffer;
+           let already = Frame.position buffer in
+           let c = w/.weight in
                if c<>1. && renorm then
                  Audio.amplify
                    c
@@ -196,7 +177,7 @@ let () =
            Only relay metadata from the first source that is effectively \
            summed."
     [ "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
+      "weights", Lang.list_t Lang.float_t, Some (Lang.list ~t:Lang.int_t []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "", Lang.list_t (Lang.source_t kind_t), None, None ]
@@ -204,11 +185,11 @@ let () =
     (fun p kind ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
-         List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
+         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
        in
        let weights =
          if weights = [] then
-           Utils.make_list (List.length sources) 1
+           Utils.make_list (List.length sources) 1.
          else
            weights
        in
@@ -245,7 +226,7 @@ let () =
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
       "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
+      "weights", Lang.list_t Lang.float_t, Some (Lang.list ~t:Lang.int_t []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "proportional", Lang.bool_t, Some (Lang.bool true),
@@ -256,11 +237,11 @@ let () =
     (fun p kind ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
-         List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
+         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
        in
        let weights =
          if weights = [] then
-           Utils.make_list (List.length sources) 1
+           Utils.make_list (List.length sources) 1.
          else
            weights
        in

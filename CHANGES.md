@@ -12,11 +12,25 @@ New:
   `file.mp3.parse_apic` and `file.cover` (#987).
 - Added `lists.exists` and `list.for_all`.
 - Use a pager to display long help results (#1017).
+- Added `list.init`.
+- Added `list.ind`.
+- Added `request.id`.
+- Added a profiler for the language. It can be enabled with `profiler.enable` and
+  the results are obtained with `profiler.stats.string` (#1027).
+- Added `gtts` protocol to use Google TTS (#1034).
+- Added `liquidsoap.executable` to get the path of the currently running
+  Liquidsoap.
+- Added `source.dump`.
+- Added `synth` protocol (#1014).
 
 Changed:
 
+- Implemented per-frame clock synchronization mechanism, should allow for more
+  advanced flexibility when working with source synchronization while keeping
+  the default safe behavior. (#1012)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
+- Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).
 - Use system pagesize for buffer allocation (#915).
 - Use new Strings module in order to avoid concatenations (#984).
@@ -25,11 +39,24 @@ Changed:
 - Changed `request.queue` into a Liquidsoap implementation (#1013).
 - Removed `request.equeue`, such a feature could be re-implemented in
   Liquidsoap, see `request.queue`.
+- The `playlist` operator is now fully implemented in Liquidsoap (#1015).
+- Removed `playlist.once`, its behavior can be achieved by passing `"once"` to
+  the `reload_mode` argument of `playlist.once` (#1015).
+- Removed `playlist.merged`: it is not that useful and can be achieved easily
+  with `merge_tracs` on a `playlist` (#1015).
+- Deprecated `playlist.safe` (#1015).
+- Renamed `add_timeout` to `thread.run.recurrent`, added `thread.run` variant,
+  renamed `exec_at` to `thread.when` and renamed `mutexify` to `thread.mutexify`
+  (#1019).
+- Changed the weights of `add` to float (#1022).
+- Renamed `which` to `file.which`.
+- Change `blank()` duration semantics to mean forever only on negative values.
 
 Fixed:
 
 - Fix implementation of recursive functions (#934).
 - Fix opam install error with some bash-completion configuration (#980).
+- Make `blank()` source unavailable past is expected duration (#668).
 
 1.4.0 (29-09-2019)
 =====

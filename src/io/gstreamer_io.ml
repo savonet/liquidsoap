@@ -26,7 +26,7 @@ open Gstreamer
 module GU = Gstreamer_utils
 
 let log = Log.make ["io";"gstreamer"]
-let gst_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "gstreamer")
+let gst_clock = Tutils.lazy_cell (fun () -> new Clock.clock "gstreamer")
 
 let string_of_state_change = function
   | Element.State_change_success    -> "success"
@@ -82,7 +82,7 @@ object (self)
     in
     if should_run then
       try
-        self#log#important "Restarting pipeline";
+        self#log#important "Restarting pipeline.";
         Tutils.mutexify element_m (fun () ->
           begin match element with
             | None -> ()
@@ -172,6 +172,9 @@ object (self)
     ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
   inherit [App_src.t,App_src.t] element_factory ~on_error
 
+  val mutable started = false
+  method self_sync = started
+
   method private set_clock =
     super#set_clock;
     if clock_safe then
@@ -180,16 +183,18 @@ object (self)
 
   method output_start =
     let el = self#get_element in
+    self#log#info "Playing.";
+    started <- true;
     ignore (Element.set_state el.bin Element.State_playing);
     (* Don't uncomment the following line, it locks the program. I guess that
        GStreamer is waiting for some data before answering that we are
        playing. *)
     (* ignore (Element.get_state el.bin); *)
-    self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
-    if clock_safe then (gst_clock ())#register_blocking_source
+    self#register_task ~priority:Tutils.Blocking Tutils.scheduler
 
   method output_stop =
     self#stop_task;
+    started <- false;
     let todo =
       Tutils.mutexify element_m (fun () ->
         match element with
@@ -205,8 +210,7 @@ object (self)
               ignore (Element.get_state el.bin);
               GU.flush ~log:self#log el.bin) ()
     in
-    todo ();
-    if clock_safe then (gst_clock ())#unregister_blocking_source
+    todo ()
 
   method private make_element =
     let pipeline =
@@ -227,7 +231,7 @@ object (self)
       else
         pipeline
     in
-    self#log#debug "GStreamer pipeline: %s" pipeline;
+    self#log#info "GStreamer pipeline: %s" pipeline;
     let bin = Pipeline.parse_launch pipeline in
     let audio_src =
       if has_audio then
@@ -488,6 +492,8 @@ object (self)
     | e ->
       log#info "Error when trying to check if ready: %s" (Printexc.to_string e);
       false
+
+  method self_sync = self#is_ready
 
   method abort_track = ()
 

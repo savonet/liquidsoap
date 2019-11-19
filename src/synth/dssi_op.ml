@@ -61,6 +61,8 @@ object
 
   method is_ready = source#is_ready
 
+  method self_sync = source#self_sync
+
   method abort_track = source#abort_track
 
   val di =

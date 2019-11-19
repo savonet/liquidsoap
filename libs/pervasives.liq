@@ -1,6 +1,7 @@
 %include "audio.liq"
 %include "ref.liq"
 %include "list.liq"
+%include "thread.liq"
 %include "utils.liq"
 %include "string.liq"
 %include "metadata.liq"
@@ -17,4 +18,5 @@
 %include "hls.liq"
 %include "video.liq"
 %include "gstreamer.liq"
+%include "profiler.liq"
 %include "deprecations.liq"

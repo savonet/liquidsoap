@@ -404,6 +404,7 @@ let which ~path s =
       true
     with _ -> false
   in
+  if s = "" then raise Not_found;
   if test s then s else
     List.find test (List.map (fun d -> Filename.concat d s) path)
 
@@ -778,3 +779,25 @@ let kprint_string ?(pager=false) f =
    let ans = Strings.Mutable.empty () in
    f (Strings.Mutable.add ans);
    print_strings ~pager (Strings.Mutable.to_strings ans)
+
+(** String representation of a matrix of strings. *)
+let string_of_matrix a =
+  let height = Array.length a in
+  let width = Array.fold_left (fun h a -> max h (Array.length a)) 0 a in
+  let len = Array.make width 0 in
+  for j = 0 to height - 1 do
+    for i = 0 to Array.length a.(j) - 1 do
+      len.(i) <- max len.(i) (String.length a.(j).(i))
+    done
+  done;
+  let ans = Strings.Mutable.empty () in
+  for j = 0 to height - 1 do
+    for i = 0 to Array.length a.(j) - 1 do
+      let s = a.(j).(i) in
+      if i <> 0 then Strings.Mutable.add ans " ";
+      Strings.Mutable.add ans s;
+      Strings.Mutable.add ans (String.make (len.(i) - String.length s) ' ')
+    done;
+    Strings.Mutable.add ans "\n";
+  done;
+  Strings.Mutable.to_string ans
