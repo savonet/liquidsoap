@@ -36,9 +36,7 @@ let () =
           f ~name ~descr ~final_key cur rem
       | [] -> cur
   in
-  let univ =
-    Lang.univ_t ~constraints:[Lang_types.Dtools] 1
-  in
+  let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] () in
   add_builtin ~cat:Liq "register" ~descr:"Register a new setting."
     ["name",Lang.string_t,None, Some "Settings name";
      "descr",Lang.string_t,Some (Lang.string ""), Some "Settings description";
@@ -103,7 +101,7 @@ let () =
               the command-line to get some information \
                                     about available settings."
       ["",Lang.string_t,None,None;
-       "",Lang.univ_t ~constraints:[Lang_types.Dtools] 1,None,None]
+       "",Lang.univ_t ~constraints:[Lang_types.Dtools] (),None,None]
       Lang.unit_t
       (fun p ->
          let s = Lang.assoc "" 1 p in
@@ -152,7 +150,7 @@ let () =
           log#severe "WARNING: there is no configuration key named %S!" path ;
           v
   in
-  let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] 1 in
+  let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] () in
     add_builtin "get" ~cat:Liq ~descr:"Get a setting's value."
       ["default",univ,None,None;
        "",Lang.string_t,None,None]

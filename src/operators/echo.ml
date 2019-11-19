@@ -55,12 +55,12 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "echo"
-    [ "delay", Lang.float_getter_t 1, Some (Lang.float 0.5), Some "Delay in seconds.";
+    [ "delay", Lang.float_getter_t (), Some (Lang.float 0.5), Some "Delay in seconds.";
 
       "feedback",
-      Lang.float_getter_t 2,
+      Lang.float_getter_t (),
       Some (Lang.float (-6.)), Some "Feedback coefficient in dB (negative).";
 
       "ping_pong",

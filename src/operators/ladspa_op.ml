@@ -218,16 +218,14 @@ let default_samplerate = 44100
 let params_of_descr d =
   let control_ports = get_control_ports d in
   let liq_params =
-    let univ = ref 0 in
       List.map
         (fun p ->
            let t = port_t d p in
-             incr univ;
              Utils.normalize_parameter_string (Descriptor.port_name d p),
              (match t with
-                | Float -> Lang.float_getter_t !univ
-                | Int -> Lang.int_getter_t !univ
-                | Bool -> Lang.bool_getter_t !univ
+                | Float -> Lang.float_getter_t ()
+                | Int -> Lang.int_getter_t ()
+                | Bool -> Lang.bool_getter_t ()
              ),
              (match
                 Descriptor.port_get_default d
@@ -314,7 +312,7 @@ let register_descr plugin_name descr_n d inputs outputs =
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
   let k =
-    Lang.kind_type_of_kind_format ~fresh:1
+    Lang.kind_type_of_kind_format
       (if mono then Lang.any_fixed else Lang.audio_n ni)
   in
   let liq_params =
@@ -330,7 +328,7 @@ let register_descr plugin_name descr_n d inputs outputs =
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
   let k = if mono then k else
       (* TODO: do we really need a fresh variable here? *)
-      Lang.kind_type_of_kind_format ~fresh:1 (Lang.audio_n no)
+      Lang.kind_type_of_kind_format (Lang.audio_n no)
   in
   Lang.add_operator
     ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d))

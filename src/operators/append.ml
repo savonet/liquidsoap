@@ -159,7 +159,7 @@ object (self)
 end
 
 let register =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
   Lang.add_operator "append"
     [ "merge",Lang.bool_t,Some (Lang.bool false),
       Some "Merge the track with its appended track." ;

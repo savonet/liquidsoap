@@ -145,7 +145,7 @@ let () =
     ~descr:"Convert a value to a json string."
      ["compact",Lang.bool_t,Some (Lang.bool false),
       Some "Output compact text.";
-      "",Lang.univ_t 1,None,None] Lang.string_t
+      "",Lang.univ_t (),None,None] Lang.string_t
     (fun p ->
       let compact = Lang.to_bool (List.assoc "compact" p) in
       let v = to_json ~compact (List.assoc "" p) in
@@ -215,7 +215,7 @@ let rec of_json t j =
     | _ -> raise Failed
 
 let () =
-  let t = Lang.univ_t 1 in
+  let t = Lang.univ_t () in
   Lang_builtins.add_builtin
    ~cat:Lang_builtins.String
    ~descr:"Parse a json string into a liquidsoap value. The value provided in \

@@ -81,7 +81,7 @@ object(self)
 end
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
   Lang.add_operator "max_duration"
     [ "override", Lang.string_t, Some (Lang.string "liq_remaining"),
       Some "Metadata field which, if present and containing a float, \

@@ -147,7 +147,7 @@ object (self)
 end
 
 let register =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "prepend"
     [ "merge",Lang.bool_t,Some (Lang.bool false),
       Some "Merge the track with its appended track." ;

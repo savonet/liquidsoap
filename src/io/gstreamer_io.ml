@@ -310,7 +310,7 @@ let () =
   let kind =
     Lang.any_fixed_with ~audio:1 ()
   in
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 kind in
+  let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio" ~active:true
     (output_proto ~kind ~pipeline:"autoaudiosink")
     ~category:Lang.Output
@@ -342,7 +342,7 @@ let () =
   let kind =
     Lang.any_fixed_with ~video:1 ()
   in
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 kind in
+  let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.video" ~active:true
     (output_proto ~kind ~pipeline:"videoconvert ! autovideosink")
     ~category:Lang.Output
@@ -374,7 +374,7 @@ let () =
   let kind =
     Lang.any_fixed_with ~audio:1 ~video:1 ()
   in
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 kind in
+  let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio_video" ~active:true
     ( output_proto ~kind ~pipeline:"" @
         [ "audio_pipeline",
@@ -652,7 +652,7 @@ let input_proto =
 
 let () =
   let k =
-    Lang.kind_type_of_kind_format ~fresh:1
+    Lang.kind_type_of_kind_format
       (Lang.Constrained
          { Frame.
            (* TODO: be more flexible on audio *)
@@ -662,11 +662,11 @@ let () =
   in
   let proto = input_proto @ 
     [
-      "pipeline", Lang.string_getter_t 1, Some (Lang.string ""),
+      "pipeline", Lang.string_getter_t (), Some (Lang.string ""),
       Some "Main GStreamer pipeline.";
-      "audio_pipeline", Lang.string_getter_t 2, Some (Lang.string "audiotestsrc"),
+      "audio_pipeline", Lang.string_getter_t (), Some (Lang.string "audiotestsrc"),
       Some "Audio pipeline to input from.";
-      "video_pipeline", Lang.string_getter_t 3, Some (Lang.string "videotestsrc"),
+      "video_pipeline", Lang.string_getter_t (), Some (Lang.string "videotestsrc"),
       Some "Video pipeline to input from.";
     ]
   in
@@ -682,10 +682,10 @@ let () =
       ((new audio_video_input p kind (pipeline,Some audio_pipeline,Some video_pipeline)):>Source.source))
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_any in
   let proto = input_proto @ 
     [
-      "pipeline", Lang.string_getter_t 1, Some (Lang.string "audiotestsrc"),
+      "pipeline", Lang.string_getter_t (), Some (Lang.string "audiotestsrc"),
       Some "GStreamer pipeline to input from.";
     ]
   in
@@ -699,10 +699,10 @@ let () =
       ((new audio_video_input p kind ((fun()->""),Some pipeline,None)):>Source.source))
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.video_n 1) in
+  let k = Lang.kind_type_of_kind_format (Lang.video_n 1) in
   let proto = input_proto @ 
     [
-      "pipeline", Lang.string_getter_t 1, Some (Lang.string "videotestsrc"),
+      "pipeline", Lang.string_getter_t (), Some (Lang.string "videotestsrc"),
       Some "GStreamer pipeline to input from.";
     ]
   in

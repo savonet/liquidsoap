@@ -98,7 +98,7 @@ end
 let log = Log.make ["input"; "external"; "video"]
   
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_video_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_video_any in
   let kind = Lang.Unconstrained k in
   Lang.add_operator "input.external.avi"
     ~category:Lang.Input
@@ -211,7 +211,7 @@ let () =
 (***** raw video *****)
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.video_only in
+  let k = Lang.kind_type_of_kind_format Lang.video_only in
   let kind = Lang.Unconstrained k in
   Lang.add_operator "input.external.rawvideo"
     ~category:Lang.Input

@@ -57,7 +57,7 @@ object (self)
 end
 
 let register obj name descr =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:1 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ~midi:1 ()) in
   Lang.add_operator ("synth." ^ name)
     [
       "channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.";
@@ -90,7 +90,7 @@ let register obj name descr =
        in
        let src = Lang.to_source (f "") in
          new synth ~kind (obj adsr) src chan volume);
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:16 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ~midi:16 ()) in
   Lang.add_operator ("synth.all." ^ name)
     [
       "envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.";

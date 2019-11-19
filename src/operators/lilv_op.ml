@@ -216,15 +216,13 @@ let port_type _ = `Float
 let params_of_plugin plugin =
   let control_ports = get_control_ports plugin in
   let liq_params =
-    let univ = ref 0 in
     List.map
       (fun p ->
         let p = Plugin.port_by_index plugin p in
         let t = port_type p in
-        incr univ;
         Port.symbol p,
         (match t with
-         | `Float -> Lang.float_getter_t !univ
+         | `Float -> Lang.float_getter_t ()
         ),
         (match Port.default_float p with
          | Some f ->
@@ -295,7 +293,7 @@ let register_plugin plugin =
   let no = Array.length outputs in
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_plugin plugin in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (if mono then Lang.any_fixed else Lang.audio_n ni) in
+  let k = Lang.kind_type_of_kind_format (if mono then Lang.any_fixed else Lang.audio_n ni) in
   let liq_params =
     liq_params@(
       if ni = 0 then
@@ -314,7 +312,7 @@ let register_plugin plugin =
   let k =
     if mono then k else
       (* TODO: do we really need a fresh variable here? *)
-      Lang.kind_type_of_kind_format ~fresh:1 (Lang.audio_n no)
+      Lang.kind_type_of_kind_format (Lang.audio_n no)
   in
   Lang.add_operator
     ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))

@@ -42,7 +42,7 @@ let pipe_proto kind arg_doc =
        Some "Encoding format." ;
 
        "",
-       Lang.string_getter_t 1,
+       Lang.string_getter_t (),
        None,
        Some (arg_doc ^
              " Some strftime conversion specifiers are available: \
@@ -296,7 +296,7 @@ let file_proto kind =
 
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "output.file" (file_proto kind) ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output
@@ -340,7 +340,7 @@ let pipe_proto kind descr = (
     (chan_proto kind descr)
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "output.external" ~active:true
     (pipe_proto kind "Process to pipe data to.")
     ~kind:(Lang.Unconstrained kind)

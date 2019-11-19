@@ -450,7 +450,7 @@ let () =
 let () =
   add_builtin "string_of" ~cat:String
     ~descr:"Return the representation of a value."
-    ["",Lang.univ_t 1,None,None] Lang.string_t
+    ["",Lang.univ_t (),None,None] Lang.string_t
     (fun p ->
        match List.assoc "" p with
          | {Lang.value=Lang.String s;_} -> Lang.string s

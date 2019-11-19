@@ -155,7 +155,7 @@ val midi_only : lang_kind_formats
 
 val audio_video_any : lang_kind_formats
 
-val kind_type_of_kind_format : fresh:int -> lang_kind_formats -> t
+val kind_type_of_kind_format : lang_kind_formats -> t
 
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
@@ -238,19 +238,19 @@ val kind_type_of_frame_kind : Frame.content_kind -> t
   * the argument is optional, [l] is the label of the argument ([""] means no
   * label) and [t] is the type of the argument. *)
 val fun_t      : (bool * string * t) list -> t -> t
-val univ_t     : ?constraints:Lang_types.constraints -> int -> t
+val univ_t     : ?constraints:Lang_types.constraints -> unit -> t
 
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
 
 (** A string getter. The argument is the number of the universal type parameter
   * (should be >= 1). *)
-val string_getter_t : int -> t
+val string_getter_t : unit -> t
 (** A float getter. The argument is the number of the universal type parameter
   * (should be >= 1). *)
-val float_getter_t : int -> t
-val int_getter_t : int -> t
-val bool_getter_t : int -> t
+val float_getter_t : unit -> t
+val int_getter_t : unit -> t
+val bool_getter_t : unit -> t
 
 val unit : value
 val int : int -> value

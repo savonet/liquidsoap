@@ -51,7 +51,7 @@ end
 
 let () =
   let k =
-    Lang.frame_kind_t ~audio:(Lang.univ_t 1) ~video:(Lang.univ_t 2) ~midi:Lang.zero_t
+    Lang.frame_kind_t ~audio:(Lang.univ_t ()) ~video:(Lang.univ_t ()) ~midi:Lang.zero_t
   in
     Lang.add_operator "noise"
       ~category:Lang.Input

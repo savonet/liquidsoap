@@ -198,7 +198,7 @@ end
 
 let () =
   let k =
-    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
+    Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ())
   in
   let proto =
     ([ "client", Lang.string_t, 

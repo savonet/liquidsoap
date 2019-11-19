@@ -164,7 +164,7 @@ let () =
   let k = Lang.audio_any in
   Lang.add_operator "stretch" (* TODO better name *)
     [
-      "ratio", Lang.float_getter_t 1, None,
+      "ratio", Lang.float_getter_t (), None,
         Some "A value higher than 1 means slowing down.";
       "active", Lang.bool_t, Some (Lang.bool true),
         Some "The active behavior is to keep ticking the child's clock \
@@ -172,7 +172,7 @@ let () =
               is strictly based on what is streamed off the child source, \
               which results in time-dependent active sources to be frozen \
               when that source is stopped." ;
-      "", Lang.source_t (Lang.kind_type_of_kind_format ~fresh:2 k), None, None
+      "", Lang.source_t (Lang.kind_type_of_kind_format k), None, None
     ]
     ~kind:k
     ~category:Lang.SoundProcessing

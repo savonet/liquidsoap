@@ -591,7 +591,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
   Lang.add_operator "output.icecast" ~active:true
     ~category:Lang.Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."

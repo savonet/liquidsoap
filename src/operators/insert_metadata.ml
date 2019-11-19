@@ -71,7 +71,7 @@ object (self)
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   let return_t =
     Lang.product_t
       (Lang.fun_t [true,"new_track",Lang.bool_t;

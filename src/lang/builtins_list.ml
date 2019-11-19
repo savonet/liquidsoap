@@ -43,8 +43,8 @@ let () =
       Lang.string (try List.assoc k l with _ -> ""))
 
 let () =
-  let a = Lang.univ_t 1 in
-  let b = Lang.univ_t 2 in
+  let a = Lang.univ_t () in
+  let b = Lang.univ_t () in
   Lang.add_builtin "list.case"
     ~category:(string_of_category List)
     ~descr:"Define a function by case analysis, depending on whether a list is empty or not."
@@ -66,8 +66,8 @@ let () =
       | x::l -> Lang.apply ~t:b f ["",x; "", Lang.list ~t:a l])
 
 let () =
-  let a = Lang.univ_t 1 in
-  let b = Lang.univ_t 2 in
+  let a = Lang.univ_t () in
+  let b = Lang.univ_t () in
   Lang.add_builtin "list.ind"
     ~category:(string_of_category List)
     ~descr:"Define a function by induction on a list. This is slightly more \
@@ -94,12 +94,13 @@ let () =
     )
 
 let () =
+  let a = Lang.univ_t () in
   Lang.add_builtin "list.add"
     ~category:(string_of_category List)
     ~descr:"Add an element at the top of a list."
-    ["",Lang.univ_t 1,None,None;
-     "",Lang.list_t (Lang.univ_t 1),None,None]
-    (Lang.list_t (Lang.univ_t 1))
+    ["",a,None,None;
+     "",Lang.list_t a,None,None]
+    (Lang.list_t a)
     (fun p t ->
       let t = Lang.of_list_t t in
       let x,l =
@@ -111,7 +112,7 @@ let () =
       Lang.list ~t (x::l))
 
 let () =
-  let t = Lang.list_t (Lang.univ_t 1) in
+  let t = Lang.list_t (Lang.univ_t ()) in
   Lang.add_builtin "list.randomize"
     ~category:(string_of_category List)
     ~descr:"Shuffle the content of a list."
@@ -123,12 +124,13 @@ let () =
        Lang.list ~t (Array.to_list l))
 
 let () =
+  let a = Lang.univ_t () in
   add_builtin "list.sort" ~cat:List
     ~descr:"Sort a list according to a comparison function."
     ["",
-     Lang.fun_t [false,"",Lang.univ_t 1;false,"",Lang.univ_t 1] Lang.int_t,
+     Lang.fun_t [false,"",a;false,"",a] Lang.int_t,
      None, None ;
-     "",Lang.list_t (Lang.univ_t 1),None,None] (Lang.list_t (Lang.univ_t 1))
+     "",Lang.list_t a,None,None] (Lang.list_t a)
     (fun p ->
        let f = Lang.assoc "" 1 p in
        let sort x y =

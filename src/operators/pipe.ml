@@ -321,7 +321,7 @@ let proto =
     "restart_on_error", Lang.bool_t, Some (Lang.bool true),
     Some "Restart process when exited with error.";
 
-    "", Lang.source_t (Lang.kind_type_of_kind_format ~fresh:2 k), None, None
+    "", Lang.source_t (Lang.kind_type_of_kind_format k), None, None
     ]
 
 let pipe p kind =

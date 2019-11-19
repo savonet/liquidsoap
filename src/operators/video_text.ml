@@ -113,7 +113,7 @@ object (self)
 end
 
 let register name init render_text =
-  let k = Lang.kind_type_of_kind_format ~fresh:2 (Lang.any_fixed_with ~video:1 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ()) in
   let add_operator op =
     Lang.add_operator op
       [
@@ -127,9 +127,9 @@ let register name init render_text =
         "color", Lang.int_t, Some (Lang.int 0xffffff),
         Some "Text color (in 0xRRGGBB format).";
 
-        "x", Lang.int_getter_t 1, Some (Lang.int 10),
+        "x", Lang.int_getter_t (), Some (Lang.int 10),
         Some "x offset.";
-        "y", Lang.int_getter_t 2, Some (Lang.int 10),
+        "y", Lang.int_getter_t (), Some (Lang.int 10),
         Some "y offset.";
 
         "speed", Lang.int_t, Some (Lang.int 70),
@@ -141,7 +141,7 @@ let register name init render_text =
         Some "Change text on a particular metadata \
               (empty string means disabled).";
 
-        "", Lang.string_getter_t 1, None, Some "Text to display.";
+        "", Lang.string_getter_t (), None, Some "Text to display.";
         "", Lang.source_t k, None, None
       ]
       ~kind:(Lang.Unconstrained k)

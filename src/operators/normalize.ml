@@ -122,25 +122,25 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:7 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "normalize"
     [
-      "target", Lang.float_getter_t 1, Some (Lang.float (-13.)),
+      "target", Lang.float_getter_t (), Some (Lang.float (-13.)),
       Some "Desired RMS (dB).";
       "window", Lang.float_t, Some (Lang.float 0.1),
       Some "Duration of the window used to compute \
             the current RMS power (second).";
-      "k_up", Lang.float_getter_t 2, Some (Lang.float 0.005),
+      "k_up", Lang.float_getter_t (), Some (Lang.float 0.005),
       Some "Coefficient when the power must go up \
             (between 0 and 1, slowest to fastest).";
-      "k_down", Lang.float_getter_t 3, Some (Lang.float 0.1),
+      "k_down", Lang.float_getter_t (), Some (Lang.float 0.1),
       Some "Coefficient when the power must go down \
             (between 0 and 1, slowest to fastest).";
-      "threshold", Lang.float_getter_t 4, Some (Lang.float (-40.)),
+      "threshold", Lang.float_getter_t (), Some (Lang.float (-40.)),
       Some "Minimal RMS for activaing gain control (dB).";
-      "gain_min", Lang.float_getter_t 5, Some (Lang.float (-6.)),
+      "gain_min", Lang.float_getter_t (), Some (Lang.float (-6.)),
       Some "Minimal gain value (dB).";
-      "gain_max", Lang.float_getter_t 6, Some (Lang.float 6.),
+      "gain_max", Lang.float_getter_t (), Some (Lang.float 6.),
       Some "Maximal gain value (dB).";
       "", Lang.source_t k, None, None
     ]

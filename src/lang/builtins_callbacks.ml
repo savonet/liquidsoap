@@ -47,7 +47,7 @@ let () =
 
 let () =
   add_builtin "source.on_shutdown" ~cat:Sys
-    [ "", Lang.source_t (Lang.univ_t 1), None, None;
+    [ "", Lang.source_t (Lang.univ_t ()), None, None;
       "", Lang.fun_t [] Lang.unit_t, None, None ]
     Lang.unit_t
     ~descr:"Register a function to be called when source shuts down."
@@ -62,7 +62,7 @@ let () =
 
 let () =
   add_builtin "source.is_up" ~cat:Sys
-    [ "", Lang.source_t (Lang.univ_t 1), None, None ]
+    [ "", Lang.source_t (Lang.univ_t ()), None, None ]
     Lang.bool_t
     ~descr:"Check whether a source is up."
     (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)

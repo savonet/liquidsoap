@@ -98,7 +98,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
     Lang.add_operator "source.dynamic"
       [ "", Lang.fun_t [] (Lang.list_t (Lang.source_t k)), None, None ]
       ~kind:(Lang.Unconstrained k)

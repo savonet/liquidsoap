@@ -187,7 +187,6 @@ end
 let params plugin info =
   (* This is only to get default parameters... *)
   let instance = Frei0r.create plugin 8 8 in
-  let utv = ref 0 in
   let liq_params =
     List.init
       info.Frei0r.num_params
@@ -200,7 +199,7 @@ let params plugin info =
             | Frei0r.Bool ->
               Lang.bool_t, Some (Lang.bool (Frei0r.get_param_bool instance i))
             | Frei0r.Double ->
-              Lang.float_getter_t (incr utv; !utv),
+              Lang.float_getter_t (),
               Some (Lang.float (Frei0r.get_param_float instance i))
             | Frei0r.Color ->
               let r,g,b = Frei0r.get_param_color instance i in
@@ -311,7 +310,7 @@ let register_plugin fname =
     else
       Lang.any_fixed_with ~video:1 ()
   in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 k in
+  let k = Lang.kind_type_of_kind_format k in
   let liq_params, params = params plugin info in
   let liq_params =
     let inputs = List.init inputs (fun _ -> "", Lang.source_t k, None, None) in

@@ -261,7 +261,7 @@ end
 (** Common tools for Lang bindings of switch operators *)
 
 let common kind = [
-  "track_sensitive", Lang.bool_getter_t 0, Some (Lang.bool true),
+  "track_sensitive", Lang.bool_getter_t (), Some (Lang.bool true),
   Some "Re-select only on end of tracks." ;
 
   "transition_length", Lang.float_t, Some (Lang.float 5.),
@@ -363,7 +363,7 @@ object
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   let proto =
     [ "single", Lang.list_t Lang.bool_t, Some (Lang.list ~t:Lang.bool_t []),
@@ -432,7 +432,7 @@ object
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   let proto =
     [ "",
       Lang.list_t (Lang.source_t kind),
@@ -494,10 +494,11 @@ end
 
 let () =
   let add name strict descr weight_descr =
-    let kind = Lang.univ_t 1 in
+    let kind = Lang.univ_t () in
+    let weight_t = Lang.int_getter_t () in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
       (common kind @
-       [ "weights", Lang.list_t (Lang.int_getter_t 2), Some (Lang.list ~t:(Lang.int_getter_t 2) []),
+       [ "weights", Lang.list_t weight_t, Some (Lang.list ~t:weight_t []),
          Some weight_descr ;
          "", Lang.list_t (Lang.source_t kind), None, None ])
       ~kind:(Lang.Unconstrained kind)

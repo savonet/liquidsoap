@@ -61,7 +61,7 @@ end
 
 let () =
   let format = Lang.any_fixed_with ~audio:1 () in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 format in
+  let k = Lang.kind_type_of_kind_format format in
   Lang.add_operator "vumeter"
     [ "scroll", Lang.bool_t, Some (Lang.bool false), Some "Scroll.";
       "", Lang.source_t k, None, None ]

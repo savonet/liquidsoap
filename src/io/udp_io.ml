@@ -170,7 +170,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
     Lang.add_operator "output.udp" ~active:true
       ~descr:"Output encoded data to UDP, without any control whatsoever."
       ~category:Lang.Output
@@ -209,7 +209,7 @@ let () =
                ~hostname ~port ~encoder_factory:fmt source):>Source.source))
 
 let () =
-  let k = Lang.univ_t 1 in
+  let k = Lang.univ_t () in
     Lang.add_operator "input.udp" ~active:true
       ~descr:"Input encoded data from UDP, without any control whatsoever."
       ~category:Lang.Input

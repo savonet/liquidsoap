@@ -53,7 +53,7 @@ object (self)
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "delay"
     [ "initial", Lang.bool_t, Some (Lang.bool false),
       Some "Start in unavailable state, as if a track had just finished." ;

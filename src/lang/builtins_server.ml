@@ -95,7 +95,7 @@ let () =
     Lang.fun_t [false,"",resume_t] Lang.string_t
   in
   let condition_t =
-    Lang.product_t wait_t (Lang.univ_t 1)
+    Lang.product_t wait_t (Lang.univ_t ())
   in
   add_builtin "server.wait" ~cat:Interaction
     ~descr:"Wait on a server condition. Used to write interactive \

@@ -75,7 +75,7 @@ let () =
     "blank"
     ~category:Lang.Input
     ~descr:"Produce silence and blank images."
-    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    ~kind:(Lang.Unconstrained (Lang.univ_t ()))
     [ "duration", Lang.float_t, Some (Lang.float (-1.)),
       Some "Duration of blank tracks in seconds, Negative value means forever." ]
     (fun p kind ->
@@ -96,9 +96,9 @@ end
 let empty kind = ((new empty ~kind):>source)
 
 let () =
-  let audio = Lang.univ_t 1 in
-  let video = Lang.univ_t 2 in
-  let midi  = Lang.univ_t 3 in
+  let audio = Lang.univ_t () in
+  let video = Lang.univ_t () in
+  let midi  = Lang.univ_t () in
   Lang.add_operator
     "empty"
     ~category:Lang.Input

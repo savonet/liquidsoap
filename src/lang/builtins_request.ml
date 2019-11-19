@@ -67,7 +67,7 @@ let () =
       None);
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
-    (Lang.request_t (Lang.univ_t 1))
+    (Lang.request_t (Lang.univ_t ()))
     (fun p t ->
        let indicators = List.assoc "indicators" p in
        let persistent = Lang.to_bool (List.assoc "persistent" p) in
@@ -97,7 +97,7 @@ let () =
   add_builtin "request.resolve" ~cat:Liq
     ["timeout",Lang.float_t,Some (Lang.float 30.),
      Some "Limit in seconds to the duration of the resolving." ;
-     "",Lang.request_t (Lang.univ_t 1),None,None]
+     "",Lang.request_t (Lang.univ_t ()),None,None]
     Lang.bool_t
     ~descr:"Resolve a request, i.e. attempt to get a valid local file. \
             The operation can take some time. Return true if the resolving \
@@ -111,7 +111,7 @@ let () =
 
 let () =
   add_builtin "request.metadata" ~cat:Liq
-    ["",Lang.request_t (Lang.univ_t 1),None,None] Lang.metadata_t
+    ["",Lang.request_t (Lang.univ_t ()),None,None] Lang.metadata_t
     ~descr:"Get the metadata associated to a request."
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
@@ -119,7 +119,7 @@ let () =
 
 let () =
   add_builtin "request.log" ~cat:Liq
-    ["",Lang.request_t (Lang.univ_t 1),None,None] Lang.string_t
+    ["",Lang.request_t (Lang.univ_t ()),None,None] Lang.string_t
     ~descr:"Get log data associated to a request."
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
@@ -131,7 +131,7 @@ let () =
     ~descr:"Check if a request is ready, i.e. is associated to a valid \
             local file. Unless the initial URI was such a file, a request \
             has to be resolved before being ready."
-    ["", Lang.request_t (Lang.univ_t 1),None,None] Lang.bool_t
+    ["", Lang.request_t (Lang.univ_t ()),None,None] Lang.bool_t
     (fun p ->
        let e = Lang.to_request (List.assoc "" p) in
          Lang.bool (Request.is_ready e))
@@ -139,7 +139,7 @@ let () =
 let () =
   add_builtin "request.uri" ~cat:Liq
     ~descr:"Initial URI of a request."
-    [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
+    [ "",Lang.request_t (Lang.univ_t ()),None,None ] Lang.string_t
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
        Lang.string (Request.initial_uri r)
@@ -149,7 +149,7 @@ let () =
   add_builtin "request.filename" ~cat:Liq
     ~descr:"Return a valid local filename if the request is ready, \
             and the empty string otherwise."
-    [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
+    [ "",Lang.request_t (Lang.univ_t ()),None,None ] Lang.string_t
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
          Lang.string
@@ -164,7 +164,7 @@ let () =
             to destroying, unless forced."
     ["force",Lang.bool_t,Some (Lang.bool false),
      Some "Destroy the request even if it is persistent." ;
-     "",Lang.request_t (Lang.univ_t 1),None,None ]
+     "",Lang.request_t (Lang.univ_t ()),None,None ]
     Lang.unit_t
     (fun p ->
        let force = Lang.to_bool (List.assoc "force" p) in
@@ -186,7 +186,7 @@ let () =
 let () =
   add_builtin "request.id" ~cat:Liq
     ~descr:"Identifier of a request."
-    [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.int_t
+    [ "",Lang.request_t (Lang.univ_t ()),None,None ] Lang.int_t
     (fun p ->
        let r = Lang.to_request (List.assoc "" p) in
        Lang.int (Request.get_id r)

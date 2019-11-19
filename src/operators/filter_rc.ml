@@ -77,15 +77,15 @@ object
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.rc"
     [
-      "rc", Lang.float_getter_t 1, None, Some "Time constant (in seconds).";
+      "rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).";
       "mode", Lang.string_t, None,
       Some "Available modes are \
                'low' (for low-pass filter), \
                'high' (for high-pass filter).";
-      "wetness", Lang.float_getter_t 2, Some (Lang.float 1.),
+      "wetness", Lang.float_getter_t (), Some (Lang.float 1.),
       Some "How much of the original signal should be added \
             (1. means only filtered and 0. means only original signal).";
       "", Lang.source_t k, None, None ]

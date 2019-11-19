@@ -79,7 +79,7 @@ object (self)
 end
 
 let () =
-  let in_kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let in_kind = Lang.kind_type_of_kind_format Lang.any_fixed in
   let out_kind =
     let { Frame.audio=_;video=v;midi=m } = Lang.of_frame_kind_t in_kind in
       Lang.frame_kind_t ~audio:(Lang.succ_t Lang.zero_t) ~video:v ~midi:m

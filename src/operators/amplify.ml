@@ -71,10 +71,10 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "amplify"
     [
-      "", Lang.float_getter_t 1,  None, Some "Multiplicative factor." ;
+      "", Lang.float_getter_t (),  None, Some "Multiplicative factor." ;
       "override", Lang.string_t, Some (Lang.string "liq_amplify"),
       Some "Specify the name of a metadata field that, when present and \
             well-formed, overrides the amplification factor for the current \

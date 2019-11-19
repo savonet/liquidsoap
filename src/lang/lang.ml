@@ -63,30 +63,11 @@ let variable_t = Term.variable_t
 let add_t = Term.add_t
 let type_of_int = Term.type_of_int
 
-(** In order to keep the old way of declaring the type of builtins,
-  * we have to do a little work. Keeping the same style avoids rewriting
-  * everything, and it's also a fairly reasonable style.
-  *
-  * The problem now is that there is no such thing as an universal
-  * variable. Instead all variables of a builtin type
-  * are implicitly quantified universally.
-  *
-  * We cannot create new variables for each call to univ_t,
-  * because that would break the required sharing. So we memorize
-  * the results of earlier calls. Sharing the same varible for 'a
-  * (or e.g. 'b where 'b is a num type) is OK. *)
-
-let uv = Hashtbl.create 20
-let univ_t ?(constraints=[]) i =
-  try Hashtbl.find uv (constraints,i) with
-    | Not_found ->
-        let v = T.fresh ~level:0 ~constraints ~pos:None in
-          Hashtbl.add uv (constraints,i) v ;
-          v
-let string_getter_t n = univ_t ~constraints:[T.Getter T.String] n
-let float_getter_t n = univ_t ~constraints:[T.Getter T.Float] n
-let int_getter_t n = univ_t ~constraints:[T.Getter T.Int] n
-let bool_getter_t n = univ_t ~constraints:[T.Getter T.Bool] n
+let univ_t ?(constraints=[]) () = T.fresh ~level:0 ~constraints ~pos:None
+let string_getter_t () = univ_t ~constraints:[T.Getter T.String] ()
+let float_getter_t () = univ_t ~constraints:[T.Getter T.Float] ()
+let int_getter_t () = univ_t ~constraints:[T.Getter T.Int] ()
+let bool_getter_t () = univ_t ~constraints:[T.Getter T.Bool] ()
 
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
@@ -203,22 +184,18 @@ let midi_n n =
 let midi_only =
   midi_n 1
 
-let kind_type_of_kind_format ~fresh fmt =
+let kind_type_of_kind_format fmt =
   match fmt with
     | Unconstrained t -> t
     | Constrained fields ->
-        let aux fresh = function
-          | Fixed i ->
-              fresh, type_of_int i
-          | Any_fixed i ->
-              fresh+1,
-              Term.add_t i (univ_t ~constraints:[T.Arity_fixed] fresh)
-          | Variable i ->
-              fresh, Term.add_t i variable_t
+      let aux = function
+          | Fixed i -> type_of_int i
+          | Any_fixed i -> Term.add_t i (univ_t ~constraints:[T.Arity_fixed] ())
+          | Variable i -> Term.add_t i variable_t
         in
-        let fresh,audio = aux fresh fields.Frame.audio in
-        let fresh,video = aux fresh fields.Frame.video in
-        let _,midi  = aux fresh fields.Frame.midi in
+        let audio = aux fields.Frame.audio in
+        let video = aux fields.Frame.video in
+        let midi  = aux fields.Frame.midi in
           frame_kind_t ~audio ~video ~midi
 
 (** Value construction *)
@@ -427,8 +404,7 @@ let add_operator
       | Source.Clock_loop (a,b) ->
           raise (Lang_errors.Clock_loop (t.T.pos,a,b))
   in
-  let fresh = (* TODO *) 1 in
-  let kind_type = kind_type_of_kind_format ~fresh kind in
+  let kind_type = kind_type_of_kind_format kind in
   let return_t = Term.source_t ~active kind_type in
   let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f

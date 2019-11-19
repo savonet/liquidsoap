@@ -581,7 +581,7 @@ class hls_output p =
   end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "output.file.hls" (hls_proto kind) ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output

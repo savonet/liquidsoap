@@ -214,7 +214,7 @@ object (self)
 
 end
 
-let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed
+let kind = Lang.kind_type_of_kind_format Lang.any_fixed
 let proto =
   [ "threshold", Lang.float_t, Some (Lang.float (-40.)),
     Some "Power in decibels under which the stream is considered silent." ;

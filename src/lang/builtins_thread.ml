@@ -63,7 +63,7 @@ let () =
        Lang.unit)
 
 let () =
-  let t = Lang.univ_t 1 in
+  let t = Lang.univ_t () in
   add_builtin "thread.mutexify" ~cat:Liq
     ~descr:"Protect functions with a mutex in order to avoid concurrent \
             calls. It returns the original value when the argument is not a \

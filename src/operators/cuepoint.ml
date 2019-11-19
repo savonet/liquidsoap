@@ -261,7 +261,7 @@ object (self)
 end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let kind = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "cue_cut"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing

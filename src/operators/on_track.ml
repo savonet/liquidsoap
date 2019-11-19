@@ -51,7 +51,7 @@ object
 end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   Lang.add_operator "on_track"
     [ "",
       Lang.fun_t

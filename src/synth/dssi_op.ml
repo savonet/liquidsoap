@@ -136,7 +136,7 @@ let register_descr plugin_name descr_n descr outputs =
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
   let chans = Array.length outputs in
   let k =
-    Lang.kind_type_of_kind_format ~fresh:1
+    Lang.kind_type_of_kind_format
       (Lang.Constrained {Frame. audio = Lang.Fixed chans;
                                 video = Lang.Any_fixed 0;
                                 midi = Lang.Fixed 1})
@@ -157,7 +157,7 @@ let register_descr plugin_name descr_n descr outputs =
            new dssi ~kind plugin_name descr_n outputs params ~chan source
       );
   let k =
-    Lang.kind_type_of_kind_format ~fresh:1
+    Lang.kind_type_of_kind_format
       (Lang.Constrained {Frame. audio = Lang.Fixed chans;
                                 video = Lang.Any_fixed 0;
                                 midi = Lang.Fixed all_chans})

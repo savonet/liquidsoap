@@ -69,7 +69,7 @@ end
 
 let () =
   let input_kind =
-    Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_variable
+    Lang.kind_type_of_kind_format Lang.audio_variable
   in
   Lang.add_operator "audio_to_stereo"
     ~category:Lang.Conversions

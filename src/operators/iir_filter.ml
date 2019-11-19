@@ -438,7 +438,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.butterworth.high"
     [
       "frequency", Lang.float_t, None, Some "Corner frequency" ;
