@@ -170,40 +170,6 @@ let process_request s =
             end ;
             Request.destroy req
 
-let print_strings ?(pager=false) s =
-  let default s = Strings.iter (output_substring stdout) s in
-  if not pager then default s
-  else
-    let pager =
-      if Sys.command "less --help 2>&1 > /dev/null" = 0 then Some "less"
-      else None
-    in
-    try
-      let pager = Option.get pager in
-      let fname, oc = Filename.open_temp_file "liquidsoap" ".txt" in
-      try
-        Strings.iter (output_substring oc) s;
-        flush oc;
-        if Sys.command (Printf.sprintf "%s %s" pager fname) <> 0 then default s;
-        raise Exit
-      with
-      | _ ->
-        close_out oc;
-        Unix.unlink fname
-    with
-    | _ -> default s
-
-let print_string ?(pager=false) s =
-  if not pager then print_string s
-  else print_strings ~pager (Strings.of_string s)
-
-let kprint_string ?(pager=false) f =
-  if not pager then f (print_string ~pager)
-  else
-    let ans = Strings.Mutable.empty () in
-    f (Strings.Mutable.add ans);
-    print_strings ~pager (Strings.Mutable.to_strings ans)
-
 module LiqConf =
 struct
   (** Contains clones of Dtools.Conf.(descr|dump) but with a liq syntax. *)
@@ -308,7 +274,7 @@ struct
   let descr_key t p =
     try
       load_libs () ;
-      print_string (descr ~prefix:(Dtools.Conf.path_of_string p) t);
+      Utils.print_string (descr ~prefix:(Dtools.Conf.path_of_string p) t);
       exit 0
     with
       | Dtools.Conf.Unbound _ ->
@@ -325,22 +291,22 @@ struct
       ["--conf-descr"],
       Arg.Unit (fun () ->
         load_libs () ;
-        print_string ~pager:true (descr t); exit 0),
+        Utils.print_string ~pager:true (descr t); exit 0),
       "Display a described table of the configuration keys.";
       ["--conf-descr-md"],
       Arg.Unit (fun () ->
         load_libs () ;
-        print_string ~pager:true (descr ~md:true t); exit 0),
+        Utils.print_string ~pager:true (descr ~md:true t); exit 0),
       "Display configuration keys in markdown format.";
       ["--conf-dump"],
       Arg.Unit (fun () ->
         load_libs () ;
-        print_string ~pager:true (dump t); exit 0),
+        Utils.print_string ~pager:true (dump t); exit 0),
       "Dump the configuration state";
       ["--list-conf-keys"],
       Arg.Unit (fun () ->
           load_libs();
-          print_string ~pager:true (list_conf_keys t); exit 0),
+          Utils.print_string ~pager:true (list_conf_keys t); exit 0),
       "List configuration keys.";
     ]
 
@@ -463,7 +429,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                kprint_string ~pager:true (Doc.print_xml (Plug.plugs:Doc.item))),
+                Utils.kprint_string ~pager:true (Doc.print_xml (Plug.plugs:Doc.item))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols), \
@@ -473,7 +439,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                kprint_string ~pager:true (Doc.print_json (Plug.plugs:Doc.item))),
+                Utils.kprint_string ~pager:true (Doc.print_json (Plug.plugs:Doc.item))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols), \
@@ -483,7 +449,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                (kprint_string ~pager:true (Doc.print (Plug.plugs:Doc.item)))),
+                (Utils.kprint_string ~pager:true (Doc.print (Plug.plugs:Doc.item)))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols)." ;
@@ -492,14 +458,14 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                kprint_string ~pager:true (Doc.print_functions (Plug.plugs:Doc.item))),
+                Utils.kprint_string ~pager:true (Doc.print_functions (Plug.plugs:Doc.item))),
     Printf.sprintf "List all functions." ;
 
     ["--list-functions-md"],
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                kprint_string ~pager:true (Doc.print_functions_md (Plug.plugs:Doc.item))),
+                Utils.kprint_string ~pager:true (Doc.print_functions_md (Plug.plugs:Doc.item))),
     Printf.sprintf
       "Documentation of all functions in markdown." ;
 
@@ -507,7 +473,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                kprint_string ~pager:true (Doc.print_protocols_md (Plug.plugs:Doc.item))),
+                Utils.kprint_string ~pager:true (Doc.print_protocols_md (Plug.plugs:Doc.item))),
     Printf.sprintf
       "Documentation of all protocols in markdown." ;
 
@@ -592,7 +558,7 @@ struct
       Arg.parse_argv argv l f msg ;
     with
       | Arg.Bad msg -> Printf.eprintf "%s" msg ; exit 2
-      | Arg.Help msg -> Printf.printf "%s" msg ; exit 0
+      | Arg.Help msg -> Utils.print_string ~pager:true msg ; exit 0
 
   let absolute s =
     if String.length s > 0 && s.[0] <> '/' then

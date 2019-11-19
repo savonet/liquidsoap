@@ -187,43 +187,47 @@ let print (doc : item) print_string =
   print 0 doc
 
 let print_lang (i:item) =
+  let b = Buffer.create 1024 in
+  let ff = Format.formatter_of_buffer b in
   let print_string_split f s =
     String.iter
       (fun c ->
          if c = ' ' then Format.pp_print_space f () else Format.pp_print_char f c)
       s
   in
-  Format.printf "@.@[%a@]@." print_string_split (Utils.unbreak_md i#get_doc);
+  Format.fprintf ff "@.@[%a@]@." print_string_split (Utils.unbreak_md i#get_doc);
   let sub = i#get_subsections in
   let sub =
-    Format.printf "@.Type: %s@." (i#get_subsection "_type")#get_doc ;
+    Format.fprintf ff "@.Type: %s@." (i#get_subsection "_type")#get_doc ;
     List.remove_assoc "_type" sub
   in
   let sub =
     try
-      Format.printf "@.Category: %s@." (List.assoc "_category" sub)#get_doc ;
+      Format.fprintf ff "@.Category: %s@." (List.assoc "_category" sub)#get_doc ;
       List.remove_assoc "_category" sub
     with
       | Not_found -> sub
   in
   let rec print_flags sub =
     try
-      Format.printf "Flag: %s@." (List.assoc "_flag" sub)#get_doc ;
+      Format.fprintf ff "Flag: %s@." (List.assoc "_flag" sub)#get_doc ;
       print_flags (List.remove_assoc "_flag" sub)
     with
       | Not_found -> sub
   in
   let sub = print_flags sub in
     if sub<>[] then begin
-      Format.printf "@.Parameters:@." ;
+      Format.fprintf ff "@.Parameters:@." ;
       List.iter
         (fun (lbl,i) ->
-           Format.printf "@. * %s : %s (default: %s)@."
+           Format.fprintf ff "@. * %s : %s (default: %s)@."
              lbl
              (i#get_subsection "type")#get_doc
              (i#get_subsection "default")#get_doc ;
            if i#get_doc <> "(no doc)" then
-             Format.printf "@[<5>     %a@]@." print_string_split i#get_doc)
+             Format.fprintf ff "@[<5>     %a@]@." print_string_split i#get_doc)
         sub
     end ;
-    Format.printf "@."
+    Format.fprintf ff "@.";
+    Format.pp_print_flush ff ();
+    Utils.print_string ~pager:true (Buffer.contents b)
