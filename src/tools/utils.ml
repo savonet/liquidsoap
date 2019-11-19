@@ -731,7 +731,7 @@ let string_of_size n =
   else
     Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
 
-(* From opam. *)
+(* From dbuenzli/cmdliner *)
 let find_cmd cmds =
   let test, null =
   match Sys.os_type with
