@@ -732,6 +732,54 @@ let string_of_size n =
   else
     Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
 
+(* From dbuenzli/cmdliner *)
+let find_cmd cmds =
+  let test, null =
+  match Sys.os_type with
+    | "Win32" -> "where", " NUL"
+    | _ -> "type", "/dev/null"
+  in
+  let cmd c =
+    Sys.command (Printf.sprintf "%s %s 1>%s 2>%s" test c null null) = 0
+  in
+  try Some (List.find cmd cmds) with Not_found -> None
+
+let print_strings ?(pager=false) s =
+  let default s =
+    Strings.iter (output_substring stdout) s
+  in
+  let cmd =
+    let cmds = ["less"; "more"] in
+    let cmds = try (Sys.getenv "PAGER") :: cmds with Not_found -> cmds in
+    let cmds = try (Sys.getenv "MANPAGER") :: cmds with Not_found -> cmds in
+    find_cmd cmds
+  in
+  match pager, cmd with
+    | false, _
+    | _, None -> default s
+    | true, Some pager ->
+       let fname, oc = Filename.open_temp_file "liquidsoap" ".txt" in
+       try
+         Strings.iter (output_substring oc) s;
+         flush oc;
+         if Sys.command (Printf.sprintf "%s %s" pager fname) <> 0 then default s;
+         raise Exit
+       with
+        | _ ->
+          close_out oc;
+          Unix.unlink fname
+
+let print_string ?(pager=false) s =
+  if not pager then print_string s
+  else print_strings ~pager (Strings.of_string s)
+
+let kprint_string ?(pager=false) f =
+ if not pager then f (print_string ~pager)
+ else
+   let ans = Strings.Mutable.empty () in
+   f (Strings.Mutable.add ans);
+   print_strings ~pager (Strings.Mutable.to_strings ans)
+
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
   let height = Array.length a in

@@ -274,7 +274,7 @@ struct
   let descr_key t p =
     try
       load_libs () ;
-      print_string (descr ~prefix:(Dtools.Conf.path_of_string p) t);
+      Utils.print_string (descr ~prefix:(Dtools.Conf.path_of_string p) t);
       exit 0
     with
       | Dtools.Conf.Unbound _ ->
@@ -291,22 +291,22 @@ struct
       ["--conf-descr"],
       Arg.Unit (fun () ->
         load_libs () ;
-        print_string (descr t); exit 0),
+        Utils.print_string ~pager:true (descr t); exit 0),
       "Display a described table of the configuration keys.";
       ["--conf-descr-md"],
       Arg.Unit (fun () ->
         load_libs () ;
-        print_string (descr ~md:true t); exit 0),
+        Utils.print_string ~pager:true (descr ~md:true t); exit 0),
       "Display configuration keys in markdown format.";
       ["--conf-dump"],
       Arg.Unit (fun () ->
         load_libs () ;
-        print_string (dump t); exit 0),
+        Utils.print_string ~pager:true (dump t); exit 0),
       "Dump the configuration state";
       ["--list-conf-keys"],
       Arg.Unit (fun () ->
           load_libs();
-          print_string (list_conf_keys t); exit 0),
+          Utils.print_string ~pager:true (list_conf_keys t); exit 0),
       "List configuration keys.";
     ]
 
@@ -433,7 +433,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_xml (Plug.plugs:Doc.item)),
+                Utils.kprint_string ~pager:true (Doc.print_xml (Plug.plugs:Doc.item))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols), \
@@ -443,7 +443,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_json (Plug.plugs:Doc.item)),
+                Utils.kprint_string ~pager:true (Doc.print_json (Plug.plugs:Doc.item))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols), \
@@ -453,7 +453,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print (Plug.plugs:Doc.item)),
+                (Utils.kprint_string ~pager:true (Doc.print (Plug.plugs:Doc.item)))),
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols)." ;
@@ -462,14 +462,14 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_functions (Plug.plugs:Doc.item)),
+                Utils.kprint_string ~pager:true (Doc.print_functions (Plug.plugs:Doc.item))),
     Printf.sprintf "List all functions." ;
 
     ["--list-functions-md"],
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_functions_md (Plug.plugs:Doc.item)),
+                Utils.kprint_string ~pager:true (Doc.print_functions_md (Plug.plugs:Doc.item))),
     Printf.sprintf
       "Documentation of all functions in markdown." ;
 
@@ -477,7 +477,7 @@ let options = [
     Arg.Unit (fun () ->
                 secondary_task := true ;
                 load_libs () ;
-                Doc.print_protocols_md (Plug.plugs:Doc.item)),
+                Utils.kprint_string ~pager:true (Doc.print_protocols_md (Plug.plugs:Doc.item))),
     Printf.sprintf
       "Documentation of all protocols in markdown." ;
 
@@ -562,7 +562,7 @@ struct
       Arg.parse_argv argv l f msg ;
     with
       | Arg.Bad msg -> Printf.eprintf "%s" msg ; exit 2
-      | Arg.Help msg -> Printf.printf "%s" msg ; exit 0
+      | Arg.Help msg -> Utils.print_string ~pager:true msg ; exit 0
 
   let absolute s =
     if String.length s > 0 && s.[0] <> '/' then
