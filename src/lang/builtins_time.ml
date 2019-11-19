@@ -49,9 +49,9 @@ let () =
   add_builtin ~cat:Sys "time" ~descr:"Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
     [] Lang.float_t (fun _ ->
         Lang.float (Unix.gettimeofday ()));
-  let univ = Lang.univ_t () in
+  let t = Lang.univ_t () in
   let execute cb tm =
-    Lang.apply cb ~t:univ
+    Lang.apply cb ~t
       ["sec",Lang.int tm.Unix.tm_sec;
        "min",Lang.int tm.Unix.tm_min;
        "hour",Lang.int tm.Unix.tm_hour;
