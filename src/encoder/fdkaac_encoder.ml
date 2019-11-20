@@ -96,7 +96,28 @@ struct
           | `Variable vbr -> [`Bitrate_mode (`Variable vbr)]
           | `Constant     -> [`Bitrate (params.Fdkaac_format.bitrate*1000)])
     in
-    List.iter (Fdkaac.Encoder.set encoder) params;
+    let string_of_param = function
+      | `Aot _ -> "aot"
+      | `Afterburner _ -> "afterburner"
+      | `Bandwidth _ -> "bandwidth"
+      | `Bitrate _ -> "bitrate"
+      | `Bitrate_mode _ -> "bitrate mode"
+      | `Granule_length _ -> "granule length"
+      | `Samplerate _ -> "samplerate"
+      | `Sbr_mode _ -> "sbr mode"
+      | `Transmux _ -> "transmux"
+    in
+    let set p =
+      try
+        Fdkaac.Encoder.set encoder p
+      with
+      | Fdkaac.Encoder.Invalid_config ->
+        failwith ("Invalid configuration: " ^ string_of_param p)
+      | Fdkaac.Encoder.Unsupported_parameter ->
+        failwith ("Unsupported parameter: " ^ string_of_param p)
+      | e -> raise e
+    in
+    List.iter set params;
     encoder
   
   let encoder aac =
