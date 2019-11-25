@@ -1,17 +1,18 @@
 #!/bin/sh
+
 set -e
 
-FFMPEG=`which ffmpeg`
+FFMPEG=`which ffmpeg || echo ""`
 
 if test -z "$FFMPEG"; then
-	echo "ffmpeg must be installed"
-	exit 1
+  echo "ffmpeg must be installed"
+  exit 1
 fi
 
-SED=`which gsed`
+SED=`which gsed || echo ""`
 
 if test -z "$SED"; then
-  SED=`which sed`
+  SED=`which sed || echo ""`
 fi
 
 if test -z "$SED"; then
