@@ -41,7 +41,7 @@ end
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
 # @param input ffmpeg options specifying the input
-def input.external.ffmpeg(~id="", ~show_command=false, 
+def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
                           ~restart=true,~restart_on_error=false,
                           ~buffer=0.2,~max=10.,input)
   input = (input : string)
@@ -53,7 +53,7 @@ def input.external.ffmpeg(~id="", ~show_command=false,
          -c:v rawvideo -vf format=yuv420p -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
          -ar #{audio.samplerate()} pipe:1"
 
-  if show_command then log.important("command: #{cmd}") end
+  if show_command then log.important(label=id, "command: #{cmd}") end
 
   (input.external.avi(id=id,restart=restart,
                       restart_on_error=restart_on_error,
@@ -66,7 +66,7 @@ end
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
 # @category Source / Video Processing
-def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,~buffer=0.2,~max=10.,~framerate=0)
+def video.external.testsrc(~id="video.external.testsrc",~restart=true,~restart_on_error=false,~buffer=0.2,~max=10.,~framerate=0)
   framerate = if framerate <= 0 then video.frame.rate() else framerate end
   cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{framerate} \
          -f lavfi -i sine=frequency=440:beep_factor=2:sample_rate=#{audio.samplerate()}"
