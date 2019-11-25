@@ -66,15 +66,14 @@ end
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
 # @category Source / Video Processing
-def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,
-                          ~buffer=0.2,~max=10.)
-  cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:\
-                     rate=#{video.frame.rate()} \
-         -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}"
+def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,~buffer=0.2,~max=10.,~framerate=0)
+  framerate = if framerate <= 0 then video.frame.rate() else framerate end
+  cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{framerate} \
+         -f lavfi -i sine=frequency=440:beep_factor=2:sample_rate=#{audio.samplerate()}"
 
   input.external.ffmpeg(id=id,restart=restart,
                         restart_on_error=restart_on_error,
-                        buffer=buffer,max=max,cmd)
+                        buffer=buffer,max=max,show_command=true,cmd)
 end
 
 # Output to ffmpeg.
