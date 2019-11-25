@@ -21,4 +21,3 @@ if test -z "$SED"; then
 fi
 
 $FFMPEG -i "$1" -vn -filter replaygain -f null /dev/null 2>&1 | $SED -n -r 's/.* track_gain = ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'
-
