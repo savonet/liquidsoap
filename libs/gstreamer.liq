@@ -119,4 +119,12 @@ def output.youtube.live(~id="",
   output.gstreamer.audio_video(id=id,video_pipeline=video_pipeline,
     audio_pipeline=audio_pipeline,pipeline=pipeline,source)
 end
+
+# Test audio-video source using GStreamer.
+# @category Source / Input
+def video.testsrc.gstreamer(~id="")
+  video_pipeline="videotestsrc"
+  audio_pipeline="audiotestsrc"
+  input.gstreamer.audio_video(id=id,video_pipeline=video_pipeline, audio_pipeline=audio_pipeline)
+end
 %endif
