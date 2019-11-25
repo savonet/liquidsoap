@@ -49,8 +49,9 @@ def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
   cmd = "#{ffmpeg} #{input} -f avi \
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
-               #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\" \
-         -c:v rawvideo -vf format=yuv420p -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
+               #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\",\
+               format=yuv420p,fps=fps=25 \
+         -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
          -ar #{audio.samplerate()} pipe:1"
 
   if show_command then log.important(label=id, "command: #{cmd}") end
