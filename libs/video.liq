@@ -50,7 +50,7 @@ def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
                #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\",\
-               format=yuv420p,fps=fps=25 \
+               format=yuv420p,fps=fps=#{video.frame.rate()} \
          -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
          -ar #{audio.samplerate()} pipe:1"
 
