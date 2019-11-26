@@ -236,10 +236,15 @@ let rec forget var subclock =
 
 type metadata = (int*(string, string) Hashtbl.t) list
 
+type clock_sync_mode = [
+  | sync
+  | `Unknown
+]
+
 type watcher = {
   get_ready : stype:source_t -> is_output:bool -> id:string ->
               content_kind:Frame.content_kind ->
-              clock_id:string -> clock_sync_mode:sync -> unit;
+              clock_id:string -> clock_sync_mode:clock_sync_mode -> unit;
   leave : unit -> unit;
   get_frame : start_time:float -> end_time:float ->
               start_position:int -> end_position:int ->
@@ -435,15 +440,15 @@ object (self)
     else
       static_activations <- activation::static_activations ;
     self#update_caching_mode;
-    let clock = 
+    let clock_id, clock_sync_mode = 
       match deref self#clock with
-        | Known c -> c
-        | _ -> assert false
+        | Known c -> c#id, (c#sync_mode:>clock_sync_mode)
+        | _ -> "unknown", `Unknown
     in
     self#iter_watchers (fun w ->
       w.get_ready ~stype:self#stype ~is_output:self#is_output
                   ~id:self#id ~content_kind:self#kind
-                  ~clock_id:clock#id ~clock_sync_mode:clock#sync_mode)
+                  ~clock_id ~clock_sync_mode)
 
   (* Release the source, which will shutdown if possible.
    * The current implementation makes it dangerous to call #leave from
