@@ -307,18 +307,18 @@ object (self)
 
   method private get_frame frame =
     let pos = Frame.position frame in
-    let socket = Utils.get_some client_data in
-    let decoder =
-      match decoder_data with
-        | None ->
-           let decoder =
-             self#create_decoder socket
-           in
-           decoder_data <- Some decoder;
-           decoder
-       | Some d -> d
-    in
     try
+     let socket = Utils.get_some client_data in
+     let decoder =
+       match decoder_data with
+         | None ->
+            let decoder =
+              self#create_decoder socket
+            in
+            decoder_data <- Some decoder;
+            decoder
+        | Some d -> d
+     in
      while Generator.length generator < Lazy.force Frame.size do
        decoder.Decoder.decode generator
      done;
