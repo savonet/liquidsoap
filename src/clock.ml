@@ -199,6 +199,8 @@ class clock ?(sync=`Auto) id =
       fun f -> Tutils.mutexify lock f ()
 
     val mutable self_sync = None
+    val mutable t0 = time ()
+    val mutable ticks = 0L
     method private self_sync =
       let new_val =
         match sync with
@@ -214,7 +216,9 @@ class clock ?(sync=`Auto) id =
        match self_sync, new_val with
          | None, false
          | Some true, false ->
-           log#important "Delegating synchronisation to CPU clock"
+           log#important "Delegating synchronisation to CPU clock";
+           t0 <- time ();
+           ticks <- 0L;
          | None, true
          | Some false, true ->
            log#important "Delegating synchronisation to active sources"
@@ -227,12 +231,12 @@ class clock ?(sync=`Auto) id =
       let acc = ref 0 in
       let max_latency = -.conf_max_latency#get in
       let last_latency_log = ref (time ()) in
-      let t0 = ref (time ()) in
-      let ticks = ref 0L in
+      t0 <- time ();
+      ticks <- 0L;
       let frame_duration = Lazy.force Frame.duration in
       let delay () =
-        !t0
-        +. (frame_duration *. Int64.to_float (Int64.add !ticks 1L))
+        t0
+        +. (frame_duration *. Int64.to_float (Int64.add ticks 1L))
         -. time ()
       in
       log#important "Streaming loop starts in %s mode" (sync_descr sync);
@@ -254,8 +258,8 @@ class clock ?(sync=`Auto) id =
                 (function
                   | `Active, s when s#is_active -> s#output_reset | _ -> ())
                 outputs ;
-              t0 := time () ;
-              ticks := 0L ;
+              t0 <- time () ;
+              ticks <- 0L ;
               acc := 0 )
             else if
               (rem <= -1. || !acc >= 100) && !last_latency_log +. 1. < time ()
@@ -265,7 +269,7 @@ class clock ?(sync=`Auto) id =
                 ( if !acc <= 100 then ""
                 else " (we've been late for 100 rounds)" ) ;
               acc := 0 ) ) ;
-          ticks := Int64.add !ticks 1L ;
+          ticks <- Int64.add ticks 1L ;
           (* This is where the streaming actually happens: *)
           self#end_tick ;
           loop () )
