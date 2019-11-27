@@ -37,7 +37,7 @@ object
   method remaining = remaining
 
   method stype = Infallible
-  method is_ready = remaining <> 0
+  method is_ready = true
   method self_sync = false
 
   method seek x = x
