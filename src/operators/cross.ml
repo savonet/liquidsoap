@@ -116,8 +116,6 @@ object (self)
       transition ;
     self#cleanup_transition_source
 
-  (** See cross.ml for the details of clock management. *)
-
   method private set_clock =
     let slave_clock = Clock.create_known (new Clock.clock self#id) in
     (* Our external clock should stricly contain the slave clock. *)
@@ -227,7 +225,7 @@ object (self)
           self#slave_tick ;
           self#create_transition ;
           (* Check if the new source is ready *)
-          if source#is_ready then
+          if (Utils.get_some transition_source)#is_ready then
             self#get_frame frame
           else
             (* If not, finish this track, which requires our callers
@@ -415,24 +413,17 @@ object (self)
       self#reset_analysis
 
   method remaining =
-    let with_buf buf =
-      let rem = source#remaining in
-      if rem<0 then -1 else
-        source#remaining +
-          Generator.length buf
-    in
     match status with
+      | `Before
       | `Idle -> source#remaining
       | `Limit -> -1
-      | `After -> with_buf gen_after
-      | `Before -> with_buf gen_before
+      | `After -> (Utils.get_some transition_source)#remaining 
 
-  (** Contrary to cross.ml, the transition is only created (and stored in
-    * the source instance variable) after that status has moved from `Limit to
-    * `After. If is_ready becomes false at this point, source.ml will end the
-    * track before the transition (or bare end of track) gets a chance
-    * to be played. *)
-  method is_ready = source#is_ready || List.mem status [`Limit;`After]
+  method is_ready =
+    match status with
+      | `Idle | `Before -> source#is_ready
+      | `Limit -> true
+      | `After -> (Utils.get_some transition_source)#is_ready
 
   method abort_track =
     if status = `After && (Utils.get_some transition_source)#is_ready then
