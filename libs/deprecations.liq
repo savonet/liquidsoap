@@ -40,7 +40,7 @@ end
 
 # Deprecated: use mksafe and playlist instead.
 # @flag hidden
-def playlist.safe(~id, ~mime_type, ~mode, ~on_track, ~prefix, ~reload, ~reload_mode, uri)
+def playlist.safe(~id="", ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
   deprecated("playlist.safe", "")
   mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
