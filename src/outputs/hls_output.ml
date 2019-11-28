@@ -328,7 +328,7 @@ class hls_output p =
       Output.encoded
         ~infallible ~on_start ~on_stop ~autostart
         ~output_kind:"output.file" ~name
-        ~content_kind:kind source as output
+        ~content_kind:kind source
 
     (** Current segment ID *)
     val mutable current_segment =
@@ -512,13 +512,40 @@ class hls_output p =
       self#unlink (directory^^playlist)
 
     method output_start =
-      self#toggle_state `Start;
-      self#new_segment
+      let start () =
+        self#toggle_state `Start;
+        self#new_segment
+      in
+      if persist && Sys.file_exists persist_at then
+       try
+        begin
+         self#log#info "Resuming from saved state";
+         self#read_state;
+         self#toggle_state `Resumed;
+         try Unix.unlink persist_at with _ -> ()
+        end
+       with exn ->
+         self#log#info "Failed to resume from saved state: %s"
+           (Printexc.to_string exn);
+         start ()
+      else
+        start ()
 
     method output_stop =
       self#toggle_state `Stop;
       let data = List.map (fun s -> s.hls_encoder.Encoder.stop ()) streams in
-      self#send data
+      self#send data;
+      if persist then
+       begin
+        self#log#info "Saving state to %S.." persist_at;
+        self#push_current_segment;
+        self#write_state
+       end
+      else
+       begin
+        self#cleanup_segments;
+        self#cleanup_playlists;
+       end
 
     method output_reset =
       self#toggle_state `Restart
@@ -535,30 +562,6 @@ class hls_output p =
       close_in fd;
       current_segment <- c;
       segments <- s
-
-   method wake_up activation =
-     output#wake_up activation;
-     if persist && Sys.file_exists persist_at then
-      begin
-       self#log#info "Resuming from saved state";
-       self#toggle_state `Resumed;
-       self#read_state;
-       try Unix.unlink persist_at with _ -> ()
-      end
-
-    method sleep =
-      if persist then
-       begin
-        self#log#info "Saving state to %S.." persist_at;
-        self#push_current_segment;
-        self#write_state
-       end
-      else
-       begin
-        self#cleanup_segments;
-        self#cleanup_playlists;
-       end;
-      output#sleep
 
     method encode frame ofs len =
       if current_segment.len + len > segment_master_duration then
