@@ -423,7 +423,12 @@ let rec fold_types f gen x tm =
 (** Values are untyped normal forms of terms. *)
 module V =
 struct
-  type value =
+  (* We need to keep positions in order to indicate errors at runtime such as clock errors. *)
+  type value = { pos : T.pos option ; value : in_value }
+  and env = (string * value) list
+  (* Some values have to be lazy in the environment because of recursive functions. *)
+  and lazy_env = (string * value Lazy.t) list
+  and in_value =
     | Bool    of bool
     | Int     of int
     | String  of string
@@ -438,18 +443,14 @@ struct
         function. Next parameters will be inserted between that and the second
         env which is part of the closure. *)
     | Fun     of (string * string * value option) list *
-                 full_env * lazy_full_env * term
+                 env * lazy_env * term
     (** For a foreign function only the arguments are visible, the closure
-        doesn't capture anything in the environment. *)
+        doesn't capture anything in the environment. The function receives the
+        position of the value, which is mostly useful for errors. *)
     | FFI     of (string * string * value option) list *
-                   full_env * (full_env -> value)
-  and full_env = (string * value) list
-  (* Some values have to be lazy in the environment because of recursive functions. *)
-  and lazy_full_env = (string * value Lazy.t) list
+                 env * (?pos:T.pos -> env -> value)
 
-  let unit : value = Tuple []
-
-  type env = (string*value) list
+  let unit : in_value = Tuple []
 
   let string_of_float f =
     let s = string_of_float f in
@@ -458,7 +459,7 @@ struct
     else
       s
 
-  let rec print_value (v : value) = match v with
+  let rec print_value v = match v.value with
     | Bool i   -> string_of_bool i
     | Int i    -> string_of_int i
     | Float f  -> string_of_float f
@@ -487,18 +488,11 @@ struct
         Printf.sprintf "fun (%s) -> %s" (String.concat "," args) (print_term x)
     | Fun _ | FFI _ -> "<fun>"
 
-  let map_env f (env:full_env) =
+  let map_env f (env : env) =
     List.map (fun (s,v) -> s, f v) env
 
-  let map_lazy_env f (env:lazy_full_env) =
-    List.map
-      (fun (s,v) ->
-         s,
-         Lazy.from_fun
-           (fun () ->
-              let v = Lazy.force v in
-              f v)
-      ) env
+  let map_lazy_env f (env : lazy_env) =
+    List.map (fun (s,v) -> s, Lazy.from_fun (fun () -> f Lazy.force v)) env
 end
 
 (** {2 Built-in values and toplevel definitions} *)
@@ -768,7 +762,7 @@ exception F of string
 let get_name f =
   try
     builtins#iter
-      (fun name (_,v) -> match v with
+      (fun name (_,v) -> match v.V.value with
          | V.FFI (_,_,ff) when f == ff -> raise (F name)
          | _ -> ()) ;
     "<ff>"
@@ -788,25 +782,24 @@ let remove_first filter =
            aux (hd::acc) tl
   in aux []
 
-let lookup (env:V.lazy_full_env) var =
+let lookup (env : V.lazy_env) var =
   Lazy.force (List.assoc var env)
 
 let eval_pat pat v =
   let rec aux env pat v =
     match pat, v with
     | PVar x, v -> (x,v)::env
-    | PTuple pl, V.Tuple l -> List.fold_left2 aux env pl l
+    | PTuple pl, { V.value = V.Tuple l } -> List.fold_left2 aux env pl l
     | _ -> assert false
   in
   aux [] pat v
 
 let rec eval ~env tm =
-  let env = (env : V.lazy_full_env) in
+  let env = (env : V.lazy_env) in
   let prepare_fun fv p env =
-    (* Unlike OCaml we always evaluate default values,
-     * and we do that early.
-     * I think the only reason is homogeneity with FFI,
-     * which are declared with values as defaults. *)
+    (* Unlike OCaml we always evaluate default values, and we do that early. I
+       think the only reason is homogeneity with FFI, which are declared with
+       values as defaults. *)
     let p =
       List.map
         (function
@@ -817,39 +810,43 @@ let rec eval ~env tm =
     let env = List.filter (fun (x,_) -> Vars.mem x fv) env in
     (p,env)
   in
+  let mk v = { V.pos = tm.t.T.pos ; value = v } in
     match tm.term with
-      | Bool    x -> V.Bool x
-      | Int     x -> V.Int x
-      | String  x -> V.String x
-      | Float   x -> V.Float x
-      | Encoder x -> V.Encoder x
-      | List l -> V.List (List.map (eval ~env) l)
-      | Tuple l -> V.Tuple (List.map (fun a -> eval ~env a) l)
-      | Ref v -> V.Ref (ref (eval ~env v))
+      | Bool    x -> mk (V.Bool x)
+      | Int     x -> mk (V.Int x)
+      | String  x -> mk (V.String x)
+      | Float   x -> mk (V.Float x)
+      | Encoder x -> mk (V.Encoder x)
+      | List l -> mk (V.List (List.map (eval ~env) l))
+      | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
+      | Ref v -> mk (V.Ref (ref (eval ~env v)))
       | Get r ->
-          begin match eval ~env r with
+          begin match (eval ~env r).V.value with
             | V.Ref r -> !r
             | _ -> assert false
           end
       | Set (r,v) ->
-          begin match eval ~env r with
+          begin match (eval ~env r).V.value with
             | V.Ref r ->
                 r := eval ~env v ;
-                V.unit
+                mk V.unit
             | _ -> assert false
           end
       | Let {pat;def=v;body=b;_} ->
+         (* It should be the case that generalizable variables don't get
+            instantiated in any way when evaluating the definition. But we don't
+            double-check it. *)
          let v = eval ~env v in
          let env = (List.map (fun (x,v) -> x, Lazy.from_val v) (eval_pat pat v))@env in
          eval ~env b
       | Fun (fv,p,body) ->
           let (p,env) = prepare_fun fv p env in
-            V.Fun (p,[],env,body)
+            mk (V.Fun (p,[],env,body))
       | RFun (x,fv,p,body) ->
           let (p,env) = prepare_fun fv p env in
           let rec v () =
             let env = (x,Lazy.from_fun (fun () -> v ()))::env in
-            V.Fun (p,[],env,body)
+            { V.pos = tm.t.T.pos ; value = V.Fun (p,[],env,body) }
           in
           v ()
       | Var var ->
@@ -872,21 +869,37 @@ let rec eval ~env tm =
         else ans ()
 
 and apply f l =
-  (* Extract the components of the function, whether it's explicit
-   * or foreign, together with a rewrapping function for creating
-   * a closure in case of partial application. *)
+  let rec pos = function
+    | [_, v] ->
+      (
+        match f.V.pos, v.V.pos with
+        | Some (p, _), Some (_, q) -> Some (p, q)
+        | Some pos, None -> Some pos
+        | None, Some pos -> Some pos
+        | None, None -> None
+      )
+    | _::l -> pos l
+    | [] -> f.V.pos
+  in
+  (* Position of the whole application. *)
+  let pos = pos l in
+  let pos_f = f.V.pos in
+  let mk ~pos v = { pos ; V.value = v } in
+  (* Extract the components of the function, whether it's explicit or foreign,
+     together with a rewrapping function for creating a closure in case of
+     partial application. *)
   let p,pe,f,rewrap =
-    match f with
+    match f.V.value with
       | V.Fun (p,pe,e,body) ->
           p,pe,
           (fun pe ->
              let pe = List.map (fun (x,gv) -> x, Lazy.from_val gv) pe in
              eval ~env:(List.rev_append pe e) body),
-          (fun p pe -> V.Fun (p,pe,e,body))
+          (fun p pe -> mk ~pos:pos_f (V.Fun (p,pe,e,body)))
       | V.FFI (p,pe,f) ->
           p,pe,
-          (fun pe -> f (List.rev pe)),
-          (fun p pe -> V.FFI (p,pe,f))
+          (fun pe -> f ?pos (List.rev pe)),
+          (fun p pe -> mk ~pos:pos_f (V.FFI (p,pe,f)))
       | _ -> assert false
   in
   let pe,p =
@@ -902,15 +915,27 @@ and apply f l =
       (* Partial application. *)
       rewrap p pe
     else
-      (* XXX Contrary to older implementation of eval, we do not assign
+      (* Contrarily to older implementation of eval, we do not assign
          location-based IDs to sources (e.g. add@L13C4). *)
       let pe =
         List.fold_left
           (fun pe (_,var,v) ->
-             (var, Utils.get_some v)::pe)
+             (var,
+              (* Set the position information on FFI's default values.
+                 Cf. r5008: if an Invalid_value is raised on a default value,
+                 which happens with the mount/name params of output.icecast.*,
+                 the printing of the error should succeed at getting a position
+                 information. *)
+              let v = Utils.get_some v in
+              { v with V.pos })::pe)
           pe p
       in
-      f pe
+      let v = f pe in
+      (* Similarly here, the result of an FFI call should have some position
+         information. For example, if we build a fallible source and pass it to
+         an operator that expects an infallible one, an error is issued about
+         that FFI-made value and a position is needed. *)
+        { v with V.pos }
 
 let eval ~env tm =
   let env = List.map (fun (x,gv) -> x, Lazy.from_val gv) env in
@@ -920,14 +945,14 @@ let eval ~env tm =
     evaluation of the next scripts. Also try to generate a structured
     documentation from the source code. *)
 let toplevel_add (doc,params) pat ~t v =
-  let generalized,t = t in
+  let generalized, t = t in
   let ptypes =
     match (T.deref t).T.descr with
       | T.Arrow (p,_) -> p
       | _ -> []
   in
   let pvalues =
-    match v with
+    match v.V.value with
       | V.Fun (p,_,_,_) -> List.map (fun (l,_,o) -> l,o) p
       | _ -> []
   in
@@ -976,7 +1001,7 @@ let rec eval_toplevel ?(interactive=false) t =
        let env = List.map (fun (x,(_,v)) -> x,v) env in
        let def_t = def.t in
        let def = eval ~env def in
-       toplevel_add comment pat ~t:(generalized,def_t) def ;
+       toplevel_add comment pat ~t:(generalized,def_t) def;
        if Lazy.force debug then
          Printf.eprintf "Added toplevel %s : %s\n"
            (string_of_pat pat) (T.print ~generalized def_t) ;
@@ -987,7 +1012,9 @@ let rec eval_toplevel ?(interactive=false) t =
            (V.print_value def) ;
        eval_toplevel ~interactive body
     | Seq (a,b) ->
-        ignore (eval_toplevel a);
+        ignore
+          (let v = eval_toplevel a in
+           if v.V.pos = None then { v with V.pos = a.t.T.pos } else v) ;
         eval_toplevel ~interactive b
     | _ ->
         let env = builtins#get_all in

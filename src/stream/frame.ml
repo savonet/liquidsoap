@@ -216,10 +216,10 @@ type multiplicity = Variable | Zero | Succ of multiplicity
   * This controls a changing content type.
   * Currently there is no fine-grained control of the audio and
   * video sample rates and sizes, they are global. *)
-type content_kind = (multiplicity,multiplicity,multiplicity) fields
+type content_kind = (multiplicity, multiplicity, multiplicity) fields
 
 (** Precise description of the channel types for the current track. *)
-type content_type = (int,int,int) fields
+type content_type = (int, int, int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer

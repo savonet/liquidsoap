@@ -58,5 +58,5 @@ let () =
       ~descr:"Generate (audio and/or video) white noise."
       [ "duration", Lang.float_t, Some (Lang.float 0.), None ]
       ~kind:(Lang.Unconstrained k)
-      (fun p kind ->
+      (fun ?pos p ->
          new noise ~kind (Lang.to_float (List.assoc "duration" p)))

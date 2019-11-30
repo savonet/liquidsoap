@@ -27,10 +27,15 @@ val log : Log.t
 (** The type of a value. *)
 type t = Lang_types.t
 
+type pos = Lang_types.pos
+
 (** {2 Values} *)
 
 (** A typed value. *)
-type value = Lang_values.V.value =
+type value = Lang_values.V.value = { pos : pos option ; value : in_value }
+and env = (string * value) list
+and lazy_env = (string * value Lazy.t) list
+and in_value = Lang_values.V.in_value =
   | Bool    of bool
   | Int     of int
   | String  of string
@@ -42,17 +47,12 @@ type value = Lang_values.V.value =
   | Tuple    of value list
   | Ref     of value ref
   | Fun     of (string * string * value option) list *
-               full_env * lazy_full_env * Lang_values.term
+               env * lazy_env * Lang_values.term
   (** A function with given arguments (argument label, argument variable,
       default value), parameters already passed to the function, closure and
       value. *)
   | FFI     of (string * string * value option) list *
-               full_env *
-               (full_env -> value)
-and full_env = (string * value) list
-and lazy_full_env = (string * value Lazy.t) list
-
-type env = (string * value) list
+               env * (?pos:pos -> env -> value)
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -91,7 +91,7 @@ val add_builtin :
   descr:string ->
   ?flags:doc_flag list ->
   string ->
-  proto -> t -> (env -> t -> value) ->
+  proto -> t -> (?pos:pos -> env -> value) ->
   unit
 
 (** Add an builtin to the language, more rudimentary version. *)
@@ -99,7 +99,7 @@ val add_builtin_base :
   category:string ->
   descr:string ->
   ?flags:doc_flag list ->
-  string -> value -> t -> unit
+  string -> in_value -> t -> unit
 
 (** Category of an operator. *)
 type category =
@@ -165,7 +165,7 @@ val add_operator :
   string ->
   proto ->
   kind:lang_kind_formats ->
-  (env -> Frame.content_kind -> Source.source) ->
+  (?pos:pos -> env -> Source.source) ->
   unit
 
 (** {2 Manipulation of values} *)
@@ -265,12 +265,12 @@ val tuple : value list -> value
 (** Build a function from an OCaml function.
   * Items in the prototype indicate the label, type and optional
   * values. *)
-val val_fun : (string * string * t * value option) list -> (env -> value) -> value
+val val_fun : (string * string * t * value option) list -> (?pos:pos -> env -> value) -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure
   * when the constant is ground. *)
-val val_cst_fun : (string * t * value option) list -> value -> value
+val val_cst_fun : (string * value option) list -> value -> value
 
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
