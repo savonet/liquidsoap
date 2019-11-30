@@ -120,7 +120,7 @@ let declare mode suffix format fun_ret_t f_ans =
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new window ~kind mode duration src in
       if id <> "" then s#set_id id;
-      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun _ _ -> f_ans s#value) in
+      let f = Lang.val_fun [] (fun _ -> f_ans s#value) in
       Lang.product f (Lang.source (s :> Source.source)))
 
 let () =

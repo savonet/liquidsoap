@@ -323,16 +323,16 @@ let () =
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
-        Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg])
+        Lang.to_float (Lang.apply on_error ["", Lang.string msg])
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       (new output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start ("",Some pipeline,None) :> Source.source)
@@ -355,16 +355,16 @@ let () =
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
-        Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg])
+        Lang.to_float (Lang.apply on_error ["", Lang.string msg])
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       (new output ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start ("",None,Some pipeline) :> Source.source)
@@ -399,17 +399,17 @@ let () =
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
-        Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg])
+        Lang.to_float (Lang.apply on_error ["", Lang.string msg])
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let blocking = Lang.to_bool (List.assoc "blocking" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       (new output ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking source start (pipeline,Some audio_pipeline,Some video_pipeline) :> Source.source)
@@ -432,7 +432,7 @@ class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
   let on_error = List.assoc "on_error" p in
   let on_error error =
     let msg = Printexc.to_string error in
-    Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg])
+    Lang.to_float (Lang.apply on_error ["", Lang.string msg])
   in
   let restart = Lang.to_bool (List.assoc "restart" p) in
   let content,has_audio,has_video =

@@ -42,8 +42,8 @@ object(self)
     let rem = Frame.seconds_of_master s#remaining in
     if (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab) then
     begin
-      ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.float rem;
-                                          "",Lang.metadata latest_metadata]) ;
+      ignore(Lang.apply f ["",Lang.float rem;
+                           "",Lang.metadata latest_metadata]) ;
       executed <- true
     end ;
     if Frame.is_partial ab then

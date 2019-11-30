@@ -365,9 +365,7 @@ struct
              Printf.sprintf "/%s" mountpoint
          in
          let trivially_false = function
-           | { Lang.value =
-                 Lang.Fun (_,_,_,
-                           { Lang_values.term = Lang_values.Bool false; _}); _}
+           | Lang.Fun (_,_,_, { Lang_values.term = Lang_values.Bool false; _})
                -> true
            | _ -> false
          in
@@ -417,7 +415,7 @@ struct
            in
            if not (trivially_false auth_function) then
              Lang.to_bool
-                 (Lang.apply ~t:Lang.bool_t
+                 (Lang.apply
                     auth_function
                     ["",Lang.string user;
                      "",Lang.string password])
@@ -447,15 +445,13 @@ struct
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
               l
            in
-           let arg =
-             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
-           in
+           let arg = Lang.list l in
            ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
+             (Lang.apply (List.assoc "on_connect" p) ["",arg])
          in
          let on_disconnect () =
            ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+             (Lang.apply (List.assoc "on_disconnect" p) [])
          in
          (new http_input_server ~kind ~timeout
                    ~bufferize ~max ~login ~mountpoint

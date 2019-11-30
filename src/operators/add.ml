@@ -177,7 +177,7 @@ let () =
            Only relay metadata from the first source that is effectively \
            summed."
     [ "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.float_t, Some (Lang.list ~t:Lang.int_t []),
+      "weights", Lang.list_t Lang.float_t, Some (Lang.list []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "", Lang.list_t (Lang.source_t kind_t), None, None ]
@@ -226,7 +226,7 @@ let () =
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
       "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.float_t, Some (Lang.list ~t:Lang.int_t []),
+      "weights", Lang.list_t Lang.float_t, Some (Lang.list []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "proportional", Lang.bool_t, Some (Lang.bool true),

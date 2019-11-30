@@ -141,7 +141,7 @@ module Make (T : T) = struct
           Some "Callback executed when connection stops." );
         ( "headers",
           Lang.metadata_t,
-          Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []),
+          Some (Lang.list []),
           Some "Additional headers." );
         ( "dumpfile",
           Lang.string_t,
@@ -295,14 +295,14 @@ module Make (T : T) = struct
     let on_disconnect = List.assoc "on_disconnect" p in
     let on_connect ~headers ~protocol ~uri s =
       ignore
-        (Lang.apply ~t:Lang.unit_t on_connect
+        (Lang.apply on_connect
            [ ("headers", Lang.metadata headers);
              ("uri", Lang.string uri);
              ("protocol", Lang.string protocol);
              ("", Lang.string s) ])
     in
     let on_disconnect s =
-      ignore (Lang.apply ~t:Lang.unit_t on_disconnect [("", Lang.string s)])
+      ignore (Lang.apply on_disconnect [("", Lang.string s)])
     in
     let metaint = Lang.to_int (List.assoc "metaint" p) in
     let data = encoder_data p in
@@ -351,11 +351,11 @@ module Make (T : T) = struct
     let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
     let on_start =
       let f = List.assoc "on_start" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      fun () -> ignore (Lang.apply f [])
     in
     let on_stop =
       let f = List.assoc "on_stop" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      fun () -> ignore (Lang.apply f [])
     in
     let url = match s "url" with "" -> None | x -> Some x in
     let port = e Lang.to_int "port" in
@@ -363,9 +363,7 @@ module Make (T : T) = struct
     let default_password = s "password" in
     (* Cf sources/harbor_input.ml *)
     let trivially_false = function
-      | { Lang.value=
-            Lang.Fun (_, _, _, {Lang_values.term= Lang_values.Bool false; _});
-          _ } ->
+      | Lang.Fun (_, _, _, {Lang_values.term= Lang_values.Bool false; _}) ->
           true
       | _ ->
           false
@@ -379,7 +377,7 @@ module Make (T : T) = struct
       let default_login = user = default_user && password = default_password in
       if not (trivially_false auth_function) then
         Lang.to_bool
-          (Lang.apply ~t:Lang.bool_t auth_function
+          (Lang.apply auth_function
              [("", Lang.string user); ("", Lang.string password)])
       else default_login
     in

@@ -386,8 +386,7 @@ object (self)
                  "", Lang.source a ;
                  "", Lang.source b ]
              in
-             let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-               Lang.to_source (Lang.apply ~t transition params)
+               Lang.to_source (Lang.apply transition params)
            in
            let compound =
              self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"

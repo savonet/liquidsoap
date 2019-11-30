@@ -38,7 +38,7 @@ object (self)
         (fun (i,m) ->
            if i>=p then begin
              self#log#debug "Got metadata at position %d: calling handler..." i ;
-             ignore (Lang.apply ~t:Lang.unit_t f ["",Lang.metadata m])
+             ignore (Lang.apply f ["",Lang.metadata m])
            end)
         (Frame.get_all_metadata ab)
 

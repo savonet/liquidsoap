@@ -43,12 +43,9 @@ object (self)
               with
                 | Some m when
                   Utils.hashtbl_get m "liq_append" <> Some "false" ->
-                    let t =
-                      Lang.source_t (Lang.kind_type_of_frame_kind kind)
-                    in
                     let append =
                       Lang.to_source
-                        (Lang.apply ~t f ["",Lang.metadata m])
+                        (Lang.apply f ["",Lang.metadata m])
                     in
                       self#register append ;
                       if finished then

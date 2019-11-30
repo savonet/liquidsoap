@@ -211,7 +211,7 @@ let proto kind =
           this amount of time (in seconds)." ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
-     Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
+     Some (Lang.list [user_agent]),
      Some "Additional headers.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
      Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
@@ -227,11 +227,11 @@ class output ~kind p =
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
   let on_error = List.assoc "on_error" p in
-  let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
-  let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
+  let on_connect () = ignore (Lang.apply on_connect []) in
+  let on_disconnect () = ignore (Lang.apply on_disconnect []) in
   let on_error error =
     let msg = Printexc.to_string error in
-    Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg]) 
+    Lang.to_float (Lang.apply on_error ["", Lang.string msg]) 
   in
 
   let data = encoder_data p in
@@ -327,11 +327,11 @@ class output ~kind p =
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      fun () -> ignore (Lang.apply f [])
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      fun () -> ignore (Lang.apply f [])
   in
 
   let host = s "host" in

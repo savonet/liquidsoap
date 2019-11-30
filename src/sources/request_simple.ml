@@ -101,8 +101,7 @@ class dynamic ~kind ~available (f:Lang.value) length default_duration timeout co
   method get_next_request =
     try
       if available () then
-        let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
-        let req = Lang.to_request (Lang.apply ~t f []) in
+        let req = Lang.to_request (Lang.apply f []) in
         Request.set_root_metadata req "source" self#id ;
         Some req
       else

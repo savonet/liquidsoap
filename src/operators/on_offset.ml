@@ -49,7 +49,7 @@ object(self)
     let pos =
       (Int64.to_float elapsed) /. (float (Lazy.force Frame.master_rate))
     in
-    ignore(Lang.apply ~t:Lang.unit_t f [
+    ignore(Lang.apply f [
       "",Lang.float pos;
       "",Lang.metadata latest_metadata]);
     executed <- true

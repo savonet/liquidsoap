@@ -107,9 +107,9 @@ object (self)
       let is_blank = self#check_blank ab p0 ; self#in_blank in
         match was_blank,is_blank with
           | true, false ->
-              ignore (Lang.apply ~t:Lang.unit_t on_noise [])
+              ignore (Lang.apply on_noise [])
           | false, true ->
-              ignore (Lang.apply ~t:Lang.unit_t on_blank [])
+              ignore (Lang.apply on_blank [])
           | _ -> ()
 
 end

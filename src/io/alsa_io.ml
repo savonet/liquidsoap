@@ -341,11 +341,11 @@ let () =
        let start = Lang.to_bool (List.assoc "start" p) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
          if bufferize then
            ((new Alsa_out.output ~kind ~clock_safe ~start ~on_start ~on_stop 
@@ -379,11 +379,11 @@ let () =
        let fallible = Lang.to_bool (List.assoc "fallible" p) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
          if bufferize then
            ((new Alsa_in.mic ~kind ~clock_safe device):>Source.source)

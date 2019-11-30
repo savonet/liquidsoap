@@ -45,7 +45,7 @@ object
 end
 
 let to_fun_float f x =
-  Lang.to_float (Lang.apply ~t:Lang.float_t f ["", Lang.float x])
+  Lang.to_float (Lang.apply f ["", Lang.float x])
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in

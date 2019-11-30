@@ -690,15 +690,13 @@ struct
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
               l
            in
-           let arg =
-             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
-           in
+           let arg = Lang.list l in
            ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
+             (Lang.apply (List.assoc "on_connect" p) ["",arg])
          in
          let on_disconnect () =
            ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+             (Lang.apply (List.assoc "on_disconnect" p) [])
          in
          let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
            ((new http ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta

@@ -34,7 +34,7 @@ object (self)
   method self_sync = source#self_sync
 
   method private rewrite m =
-    let m' = Lang.apply ~t:Lang.metadata_t rewrite_f ["",Lang.metadata m] in
+    let m' = Lang.apply rewrite_f ["",Lang.metadata m] in
     let replace_val v =
       let (x,y) = Lang.to_product v in
       let x = Lang.to_string x and y = Lang.to_string y in

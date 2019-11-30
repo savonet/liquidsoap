@@ -70,6 +70,6 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let every = Lang.to_float (f "every") in
-       let cb = Lang.to_fun (Lang.assoc "" 1 p) ~t:Lang.unit_t in
+       let cb = Lang.to_fun (Lang.assoc "" 1 p) in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
          new bpm ~kind s cb every)

@@ -58,11 +58,11 @@ class virtual piped_output p =
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let reload_predicate = List.assoc "reopen_when" p in
   let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
@@ -168,7 +168,7 @@ object (self)
     if not reopening then
       if need_reset || 
          (Unix.gettimeofday () > reload_delay +. open_date &&
-            (Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []))) then
+            (Lang.to_bool (Lang.apply reload_predicate []))) then
         self#reopen
 
   method insert_metadata m =
@@ -229,7 +229,7 @@ class file_output p =
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   let on_close = List.assoc "on_close" p in
   let on_close s =
-    Lang.to_unit (Lang.apply ~t:Lang.unit_t on_close ["",Lang.string s])
+    Lang.to_unit (Lang.apply on_close ["",Lang.string s])
   in
 object (self)
   inherit piped_output p 

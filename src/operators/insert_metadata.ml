@@ -99,8 +99,8 @@ let () =
       if id <> "" then s#set_id id ;
       let f =
         Lang.val_fun ["new_track","new_track",Lang.bool_t, Some (Lang.bool false);
-                      "","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
-          (fun p _ ->
+                      "","",Lang.metadata_t,None]
+          (fun p ->
             let m = Lang.to_metadata (List.assoc "" p) in
             let new_track =
                Lang.to_bool (List.assoc "new_track" p)

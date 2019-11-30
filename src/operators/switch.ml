@@ -173,9 +173,8 @@ object (self)
                       | _ -> c.source
                   in
                   let s =
-                    let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
                     Lang.to_source
-                      (Lang.apply ~t
+                      (Lang.apply
                          c.transition
                          [ "",Lang.source old_source ;
                            "",Lang.source new_source ])
@@ -283,7 +282,7 @@ let common kind = [
   in
   "transitions",
   Lang.list_t transition_t,
-  Some (Lang.list ~t:transition_t []),
+  Some (Lang.list []),
   Some "Transition functions, \
         padded with `fun (x,y) -> y` functions."
 ]
@@ -291,8 +290,8 @@ let common kind = [
 let default_transition k =
   let t = Lang.source_t (Lang.kind_type_of_frame_kind k) in
     Lang.val_fun
-      [ "","x",t,None ; "","y",t,None ] ~ret_t:t
-      (fun e _ -> List.assoc "y" e)
+      [ "","x",t,None ; "","y",t,None ]
+      (fun e -> List.assoc "y" e)
 
 let extract_common ~kind p l =
   let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
@@ -319,10 +318,9 @@ let extract_common ~kind p l =
 
 (** Switch: switch according to user-defined predicates. *)
 
-let satisfied f = Lang.to_bool (Lang.apply ~t:Lang.bool_t f [])
+let satisfied f = Lang.to_bool (Lang.apply f [])
 let trivially_true = function
-  | { Lang.value =
-        Lang.Fun (_,_,_,{ Lang_values.term = Lang_values.Bool true; _}); _} -> true
+  | Lang.Fun (_,_,_,{ Lang_values.term = Lang_values.Bool true; _}) -> true
   | _ -> false
 
 let third (_,_,s) = s
@@ -366,7 +364,7 @@ let () =
   let kind = Lang.univ_t () in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   let proto =
-    [ "single", Lang.list_t Lang.bool_t, Some (Lang.list ~t:Lang.bool_t []),
+    [ "single", Lang.list_t Lang.bool_t, Some (Lang.list []),
       Some "Forbid the selection of a branch for two tracks in a row. \
             The empty list stands for `[false,...,false]`." ;
       "", Lang.list_t (Lang.product_t pred_t (Lang.source_t kind)), None,
@@ -498,7 +496,7 @@ let () =
     let weight_t = Lang.int_getter_t () in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
       (common kind @
-       [ "weights", Lang.list_t weight_t, Some (Lang.list ~t:weight_t []),
+       [ "weights", Lang.list_t weight_t, Some (Lang.list []),
          Some weight_descr ;
          "", Lang.list_t (Lang.source_t kind), None, None ])
       ~kind:(Lang.Unconstrained kind)

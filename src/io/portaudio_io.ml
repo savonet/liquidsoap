@@ -208,11 +208,11 @@ let () =
        let start = Lang.to_bool (List.assoc "start" p) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
        let source = List.assoc "" p in
        let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -237,11 +237,11 @@ let () =
        let fallible = Lang.to_bool (List.assoc "fallible" p) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+           fun () -> ignore (Lang.apply f [])
        in
          ((new input ~kind ~clock_safe
              ~start ~on_start ~on_stop ~fallible buflen):>Source.source))

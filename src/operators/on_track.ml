@@ -41,10 +41,10 @@ object
         let m =
           match Frame.get_metadata ab p with
           | None ->
-             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
+             Lang.list []
           | Some m -> Lang.metadata m
         in
-        ignore (Lang.apply ~t:Lang.unit_t f ["",m]) ;
+        ignore (Lang.apply f ["",m]) ;
         called <- true
       end ;
     if Frame.is_partial ab then called <- false

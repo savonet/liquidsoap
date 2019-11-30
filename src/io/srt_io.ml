@@ -416,11 +416,11 @@ let () =
          in
          let on_connect () =
            ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) [])
+             (Lang.apply (List.assoc "on_connect" p) [])
          in
          let on_disconnect () =
            ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+             (Lang.apply (List.assoc "on_disconnect" p) [])
          in
          let format = Lang.to_string (List.assoc "content_type" p) in
          (match
@@ -633,11 +633,11 @@ let () =
          let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
          let on_start =
            let f = List.assoc "on_start" p in
-             fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+             fun () -> ignore (Lang.apply f [])
          in
          let on_stop =
            let f = List.assoc "on_stop" p in
-             fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+             fun () -> ignore (Lang.apply f [])
          in
          let encoder_factory =
            let fmt = Lang.assoc "" 1 p in

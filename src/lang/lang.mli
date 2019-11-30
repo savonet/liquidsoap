@@ -30,10 +30,7 @@ type t = Lang_types.t
 (** {2 Values} *)
 
 (** A typed value. *)
-type value = Lang_values.V.value = { mutable t : t ; value : in_value }
-and full_env = (string * ((int*Lang_types.constraints) list * value)) list
-and lazy_full_env = (string * ((int*Lang_types.constraints) list * value) Lazy.t) list
-and in_value = Lang_values.V.in_value =
+type value = Lang_values.V.value =
   | Bool    of bool
   | Int     of int
   | String  of string
@@ -51,9 +48,11 @@ and in_value = Lang_values.V.in_value =
       value. *)
   | FFI     of (string * string * value option) list *
                full_env *
-               (full_env -> t -> value)
+               (full_env -> value)
+and full_env = (string * value) list
+and lazy_full_env = (string * value Lazy.t) list
 
-type env = (string*value) list
+type env = (string * value) list
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -67,7 +66,7 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
-val apply : value -> env -> t:t -> value
+val apply : value -> env -> value
 
 (** {3 Helpers for registering protocols} *)
 
@@ -100,7 +99,7 @@ val add_builtin_base :
   category:string ->
   descr:string ->
   ?flags:doc_flag list ->
-  string -> in_value -> t -> unit
+  string -> value -> t -> unit
 
 (** Category of an operator. *)
 type category =
@@ -191,7 +190,7 @@ val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
-val to_fun : t:t -> value -> (string * value) list -> value
+val to_fun : value -> (string * value) list -> value
 
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
@@ -257,7 +256,7 @@ val int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
-val list : t:t -> value list -> value
+val list : value list -> value
 val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value
@@ -266,8 +265,7 @@ val tuple : value list -> value
 (** Build a function from an OCaml function.
   * Items in the prototype indicate the label, type and optional
   * values. *)
-val val_fun : (string * string * t * value option) list -> ret_t:t ->
-              (env -> t -> value) -> value
+val val_fun : (string * string * t * value option) list -> (env -> value) -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure

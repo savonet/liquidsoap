@@ -55,8 +55,7 @@ object (self)
     Clock.collect_after
       (Tutils.mutexify source_lock
          (fun () ->
-            let kind = Lang.kind_type_of_frame_kind kind in
-            let l = Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [] in
+            let l = Lang.apply f [] in
             let l = Lang.to_source_list l in
               match l with
                 | [] -> ()

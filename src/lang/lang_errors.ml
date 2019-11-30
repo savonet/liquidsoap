@@ -24,7 +24,7 @@ module Term = Lang_values
 module T = Lang_types
 
 (** Runtime error, should eventually disappear. *)
-exception Invalid_value of Term.V.value*string
+exception Invalid_value of Term.V.value * string
 
 exception Clock_conflict of (T.pos option * string * string)
 exception Clock_loop of (T.pos option * string * string)
@@ -123,8 +123,7 @@ let report lexbuf f =
                  Format.sprintf "argument labeled %S" lbl) ;
           raise Error
       | Invalid_value (v,msg) ->
-          error_header 7 (T.print_pos (Utils.get_some v.Term.V.t.T.pos));
-          Format.printf "Invalid value:@ %s@]@." msg;
+          print_error 7 (Format.sprintf "Invalid value@ %s:@ %s@]@." (Term.V.print_value v) msg);
           raise Error
       | Lang_encoders.Error (v,s) ->
           error_header 8 (T.print_pos (Utils.get_some v.Lang_values.t.T.pos));

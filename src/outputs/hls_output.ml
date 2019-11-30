@@ -36,7 +36,7 @@ let hls_proto kind =
     "position", "position", Lang.int_t, None;
     "extname", "extname", Lang.string_t, None;
     "", "", Lang.string_t, None
-  ] ~ret_t:Lang.string_t (fun p _ ->
+  ] (fun p ->
     let position = Lang.to_int (List.assoc "position" p) in
     let extname = Lang.to_string (List.assoc "extname" p) in
     let sname = Lang.to_string (List.assoc "" p) in
@@ -99,7 +99,7 @@ let hls_proto kind =
 
      "streams_info",
      Lang.list_t (stream_info_t),
-     Some (Lang.list ~t:stream_info_t []),
+     Some (Lang.list []),
      Some "Additional information about the streams. Should be a list of the form: \
        `[(stream_name, (bandwidth, codec, extname)]`. See RFC 6381 for info about \
        codec. Stream info are required when they cannot be inferred from the encoder.";
@@ -166,20 +166,20 @@ let string_of_file_state = function
 class hls_output p =
   let on_start =
     let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let encode_metadata =
     Lang.to_bool (List.assoc "encode_metadata" p)
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let on_file_change =
     let f = List.assoc "on_file_change" p in
     fun ~state fname ->
-      ignore (Lang.apply ~t:Lang.unit_t f ["state",Lang.string (string_of_file_state state);
-                                           "",Lang.string fname])
+      ignore (Lang.apply f ["state",Lang.string (string_of_file_state state);
+                            "",Lang.string fname])
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -297,7 +297,7 @@ class hls_output p =
     Frame.seconds_of_master segment_master_duration
   in
   let segment_name =
-    Lang.to_fun ~t:Lang.string_t (List.assoc "segment_name" p)
+    Lang.to_fun (List.assoc "segment_name" p)
   in
   let segment_name ~position ~extname sname =
     Lang.to_string (segment_name [
