@@ -246,14 +246,22 @@ module Kind = struct
       | Some m -> unvar m
       | None -> m
 
+    let rec occurs x m =
+      match unvar m with
+      | Succ m -> occurs x m
+      | Zero -> false
+      | Var y -> x == y
+
     (** Unify kinds. *)
     let rec unify m n =
       match unvar m, unvar n with
       | Succ m, Succ n -> unify m n
       | Zero, Zero -> ()
       | Var x, Var y when x == y -> ()
-      | Var x, n -> x := Some n
-      | m, Var y -> y := Some m
+      | Var x, n ->
+        if occurs x n then raise Conflict;
+        x := Some n
+      | m, (Var _ as n) -> unify n m
       | _, _ -> raise Conflict
 
     let rec make = function
