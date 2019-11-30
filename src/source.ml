@@ -223,6 +223,70 @@ let rec forget var subclock =
     | Link ({contents=Unknown (sources,clocks)} as r) ->
         r := Unknown (sources, List.filter ((<>) subclock) clocks)
 
+(** Kind with variables in order to unify kinds. *)
+module Kind = struct
+  exception Conflict
+
+  (** Multiplicities with variables. *)
+  module Multiplicity = struct
+    (** Multiplicity variable. *)
+    type 'a var = 'a option ref
+
+    (** Multiplicity with variables. *)
+    type t = Var of t var | Zero | Succ of t
+
+    let fresh_var () = Var (ref None)
+
+    (* Remove variable pointers. *)
+    let rec unvar = function
+    | Succ m -> unvar m
+    | Zero -> Zero
+    | Var v as m ->
+      match !v with
+      | Some m -> unvar m
+      | None -> m
+
+    (** Unify kinds. *)
+    let rec unify m n =
+      match unvar m, unvar n with
+      | Succ m, Succ n -> unify m n
+      | Zero, Zero -> ()
+      | Var x, Var y when x == y -> ()
+      | Var x, n -> x := Some n
+      | m, Var y -> y := Some m
+      | _, _ -> raise Conflict
+
+    let rec make = function
+      | Frame.Succ m -> Succ (make m)
+      | Frame.Zero -> Zero
+      | Frame.Variable -> fresh_var ()
+
+    (** Compute a multiplicity from a multiplicity with variables. *)
+    let rec get m =
+      match unvar m with
+      | Succ m -> Frame.Succ (get m)
+      | Zero -> Frame.Zero
+      | Var _ -> Frame.Variable
+  end
+
+  type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
+
+  let map_kind f kind =
+    { Frame.audio = f kind.Frame.audio; video = f kind.Frame.video; midi = f kind.Frame.midi }
+
+  let make (kind : Frame.content_kind) : t =
+    map_kind Multiplicity.make kind
+
+  (** Compute a multiplicity from a multiplicity with variables. *)
+  let get (kind : t) : Frame.content_kind =
+    map_kind Multiplicity.get kind
+
+  let unify k k' =
+    Multiplicity.unify k.Frame.audio k'.Frame.audio;
+    Multiplicity.unify k.Frame.video k'.Frame.video;
+    Multiplicity.unify k.Frame.midi k'.Frame.midi
+end
+
 (** {1 Sources} *)
 
 let source_log = Log.make ["source"]
@@ -300,6 +364,20 @@ object (self)
     List.iter (fun s -> unify self#clock s#clock) sources
 
   initializer self#set_clock
+
+  (* Kinds now use the same mechanism as clocks: we unify with the children
+     sources by default. *)
+
+  val kind_var = Kind.make content_kind
+
+  method kind_var = kind_var
+
+  method kind = Kind.get self#kind_var
+
+  method private set_kind =
+    List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources
+
+  initializer self#set_kind
 
   (** Startup/shutdown.
     *
@@ -462,8 +540,6 @@ object (self)
       sources
 
   (** Streaming *)
-
-  method kind = content_kind
 
   (* Number of frames left in the current track:
    * -1 means Infinity, time unit is the frame. *)

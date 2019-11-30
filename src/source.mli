@@ -27,6 +27,14 @@ type clock_variable
   * A Infallible source never fails; it is always ready. *)
 type source_t = Fallible | Infallible
 
+module Kind : sig
+  type t
+
+  exception Conflict
+
+  val unify : t -> t -> unit
+end
+
 (** The [source] use is to send music frames through the [get] method. *)
 class virtual source : ?name:string -> Frame.content_kind ->
 object
@@ -90,6 +98,11 @@ object
   method is_up : bool
 
   (** {1 Streaming} *)
+
+  method kind_var : Kind.t
+
+  (** Choose your clock by adjusting to your children sources or whatever. *)
+  method private set_kind : unit
 
   (** What kind of content does this source produce. *)
   method kind : Frame.content_kind
