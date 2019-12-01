@@ -28,6 +28,13 @@ type clock_variable
 type source_t = Fallible | Infallible
 
 module Kind : sig
+  type format =
+    | Fixed of int
+    | Any_fixed of int
+    | Variable of int
+
+  type formats = (format, format, format) Frame.fields
+
   type t
 
   exception Conflict
@@ -36,7 +43,7 @@ module Kind : sig
 end
 
 (** The [source] use is to send music frames through the [get] method. *)
-class virtual source : ?name:string -> Frame.content_kind ->
+class virtual source : ?name:string -> Kind.formats ->
 object
 
   (** {1 Naming} *)
@@ -107,8 +114,9 @@ object
   (** What kind of content does this source produce. *)
   method kind : Frame.content_kind
 
+  method content_type : Frame.content_type
+
   (** Frame currently being filled. *)
-  val memo : Frame.t
   method get_memo : Frame.t
 
   (** Number of frames left in the current track. Defaults to -1=infinity. *)
@@ -159,7 +167,7 @@ object
 end
 
 (* Entry-points sources, which need to actively perform some task. *)
-and virtual active_source : ?name:string -> Frame.content_kind ->
+and virtual active_source : ?name:string -> Kind.formats ->
 object
   inherit source
 
@@ -183,7 +191,7 @@ object
 end
 
 (* This is for defining a source which has children *)
-class virtual operator : ?name:string -> Frame.content_kind -> source list ->
+class virtual operator : ?name:string -> Kind.formats -> source list ->
 object
   inherit source
 end
@@ -191,7 +199,7 @@ end
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
 class virtual active_operator :
-  ?name:string -> Frame.content_kind -> source list ->
+  ?name:string -> Kind.formats -> source list ->
 object
   inherit active_source
 end

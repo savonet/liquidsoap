@@ -26,10 +26,7 @@ class blank ~kind duration =
   let ticks =
     if duration < 0. then -1 else Frame.master_of_seconds duration
   in
-  (* The kind should not allow a variable number of channels,
-   * so it can directly be seen as a type. *)
-  let content_type = Frame.type_of_kind kind in
-object
+object (self)
   inherit source ~name:"blank" kind
 
   (** Remaining time, -1 for infinity. *)
@@ -52,7 +49,7 @@ object
       else
         min remaining (Lazy.force Frame.size - position)
     in
-    let content = Frame.content_of_type ab position content_type in
+    let content = Frame.content_of_type ab position self#content_type in
     let video_pos = Frame.video_of_master position in
       (* Audio *)
     Audio.clear
@@ -71,16 +68,18 @@ object
 end
 
 let () =
+  let kind_fmt = Lang.any_fixed in
+  let kind = Lang.kind_type_of_kind_format kind_fmt in
   Lang.add_operator
     "blank"
     ~category:Lang.Input
     ~descr:"Produce silence and blank images."
-    ~kind:(Lang.Unconstrained (Lang.univ_t ()))
+    ~kind
     [ "duration", Lang.float_t, Some (Lang.float (-1.)),
       Some "Duration of blank tracks in seconds, Negative value means forever." ]
-    (fun p kind ->
+    (fun ?pos:_ p ->
        let d = Lang.to_float (List.assoc "duration" p) in
-         ((new blank ~kind d):>source))
+         ((new blank ~kind:kind_fmt d):>source))
 
 class empty ~kind =
 object
@@ -96,14 +95,12 @@ end
 let empty kind = ((new empty ~kind):>source)
 
 let () =
-  let audio = Lang.univ_t () in
-  let video = Lang.univ_t () in
-  let midi  = Lang.univ_t () in
+  let kind = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator
     "empty"
     ~category:Lang.Input
     ~descr:"A source that does not produce anything. \
             No silence, no track at all."
-    ~kind:(Lang.Unconstrained (Lang.frame_kind_t ~audio ~video ~midi))
+    ~kind
     []
-    (fun _ kind -> ((new empty ~kind):>source))
+    (fun ?pos:_ _ -> ((new empty ~kind:(Lang.kind_var_of_kind_type kind)):>source))

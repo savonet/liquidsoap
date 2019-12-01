@@ -225,6 +225,13 @@ let rec forget var subclock =
 
 (** Kind with variables in order to unify kinds. *)
 module Kind = struct
+  type format =
+    | Fixed of int
+    | Any_fixed of int
+    | Variable of int
+
+  type formats = (format, format, format) Frame.fields
+
   exception Conflict
 
   (** Multiplicities with variables. *)
@@ -239,12 +246,12 @@ module Kind = struct
 
     (* Remove variable pointers. *)
     let rec unvar = function
-    | Succ m -> unvar m
-    | Zero -> Zero
-    | Var v as m ->
-      match !v with
-      | Some m -> unvar m
-      | None -> m
+      | Succ m -> unvar m
+      | Zero -> Zero
+      | Var v as m ->
+        match !v with
+        | Some m -> unvar m
+        | None -> m
 
     let rec occurs x m =
       match unvar m with
@@ -264,11 +271,22 @@ module Kind = struct
       | m, (Var _ as n) -> unify n m
       | _, _ -> raise Conflict
 
+    (*
     let rec make = function
       | Frame.Succ m -> Succ (make m)
       | Frame.Zero -> Zero
       | Frame.Variable -> fresh_var ()
+    *)
 
+    let rec of_format = function
+      | Fixed 0 -> Zero
+      | Fixed n -> Succ (of_format (Fixed (n-1)))
+      | Any_fixed 0 -> fresh_var ()
+      | Any_fixed n -> Succ (of_format (Any_fixed (n-1)))
+      | Variable 0 -> fresh_var ()
+      | Variable n -> Succ (of_format (Variable (n-1)))
+
+    (* TODO: as in Lang.mul-of_type: ensure default values *)
     (** Compute a multiplicity from a multiplicity with variables. *)
     let rec get m =
       match unvar m with
@@ -282,8 +300,13 @@ module Kind = struct
   let map_kind f kind =
     { Frame.audio = f kind.Frame.audio; video = f kind.Frame.video; midi = f kind.Frame.midi }
 
+  (*
   let make (kind : Frame.content_kind) : t =
     map_kind Multiplicity.make kind
+  *)
+
+  let of_formats kind =
+    map_kind Multiplicity.of_format kind
 
   (** Compute a multiplicity from a multiplicity with variables. *)
   let get (kind : t) : Frame.content_kind =
@@ -312,7 +335,7 @@ let add_new_output, iterate_new_outputs =
     Tutils.mutexify lock
       (fun f -> List.iter f !l ; l := [])
 
-class virtual operator ?(name="src") content_kind sources =
+class virtual operator ?(name="src") kind sources =
 object (self)
 
   (** Logging and identification *)
@@ -376,9 +399,7 @@ object (self)
   (* Kinds now use the same mechanism as clocks: we unify with the children
      sources by default. *)
 
-  val kind_var = Kind.make content_kind
-
-  method kind_var = kind_var
+  method kind_var = Kind.of_formats kind
 
   method kind = Kind.get self#kind_var
 
@@ -386,6 +407,8 @@ object (self)
     List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources
 
   initializer self#set_kind
+
+  method content_type = Frame.type_of_kind self#kind
 
   (** Startup/shutdown.
     *
@@ -536,7 +559,7 @@ object (self)
   method private wake_up activation =
     self#log#info
       "Content kind is %s."
-      (Frame.string_of_content_kind content_kind) ;
+      (Frame.string_of_content_kind self#kind) ;
     let activation = (self:>operator)::activation in
       List.iter
         (fun s ->
@@ -571,8 +594,14 @@ object (self)
   method virtual abort_track : unit
 
   (* In caching mode, remember what has been given during the current tick *)
-  val memo = Frame.create content_kind
-  method get_memo = memo
+  val mutable memo = None
+  method get_memo =
+    match memo with
+    | Some memo -> memo
+    | None ->
+      let m = Frame.create self#kind in
+      memo <- Some m;
+      m
 
   (* [#get buf] completes the frame with the next data in the stream.
    * Depending on whether caching is enabled or not,
@@ -614,6 +643,7 @@ object (self)
           assert false
         end
     end else begin
+      let memo = self#get_memo in
       try
         Frame.get_chunk buf memo
       with
@@ -649,7 +679,7 @@ object (self)
 
   (* Reset the cache frame *)
   method advance =
-    Frame.advance memo
+    Frame.advance self#get_memo
 
   (** Utils. *)
 
@@ -657,7 +687,7 @@ object (self)
     * in the metadatas of the request. *)
   method private create_request ?(metadata=[]) =
     let metadata = ("source",self#id)::metadata in
-      Request.create ~metadata ~kind:content_kind
+      Request.create ~metadata ~kind:self#kind
 
 end
 

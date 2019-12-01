@@ -23,15 +23,13 @@
 (** Generate a white noise *)
 
 class noise ~kind duration =
-  let ctype = Frame.type_of_kind kind in
-  let () = assert (ctype.Frame.midi = 0) in
-object
+object (self)
 
   inherit Synthesized.source ~seek:true
                              ~name:"noise" kind duration
 
   method private synthesize frame off len =
-    let content = Frame.content_of_type frame off ctype in
+    let content = Frame.content_of_type frame off self#content_type in
     begin
       let off = Frame.audio_of_master off in
       let len = Frame.audio_of_master len in
@@ -50,13 +48,12 @@ object
 end
 
 let () =
-  let k =
-    Lang.frame_kind_t ~audio:(Lang.univ_t ()) ~video:(Lang.univ_t ()) ~midi:Lang.zero_t
-  in
+  let kind_fmt = Lang.any in
+  let kind = Lang.kind_type_of_kind_format kind_fmt in
     Lang.add_operator "noise"
       ~category:Lang.Input
       ~descr:"Generate (audio and/or video) white noise."
       [ "duration", Lang.float_t, Some (Lang.float 0.), None ]
-      ~kind:(Lang.Unconstrained k)
-      (fun ?pos p ->
-         new noise ~kind (Lang.to_float (List.assoc "duration" p)))
+      ~kind
+      (fun ?pos:_ p ->
+         new noise ~kind:kind_fmt (Lang.to_float (List.assoc "duration" p)))

@@ -114,91 +114,76 @@ let frame_kind_of_kind_type t =
         video = mul_of_type (Lazy.force Frame.video_channels) k.Frame.video ;
         midi  = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi }
 
-(** Description of how many of a channel type does an operator want.
-  * [Fixed n] means exactly [n] channels.
-  * [Any_fixed n] means any fixed numbers of channels that is [>=n].
-  * [Variable n] means any (possibly variable) number of channels that
-  *   is [>=n]. *)
-type lang_kind_format =
-  | Fixed of int | Any_fixed of int | Variable of int
-type lang_kind_formats =
-  | Unconstrained of t
-  | Constrained of
-      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+(** Description of how many of a channel type does an operator want. *)
+type lang_kind_format = Source.Kind.format =
+  | Fixed of int (** [Fixed n] means exactly [n] channels. *)
+  | Any_fixed of int (** [Any_fixed n] means any fixed numbers of channels that is [>=n]. *)
+  | Variable of int (** [Variable n] means any (possibly variable) number of channels that is [>=n]. *)
+
+type lang_kind_formats = Source.Kind.formats
+
+let any =
+  { Frame. audio = Variable 0 ; video = Variable 0 ; midi = Variable 0 }
 
 let any_fixed =
-  Constrained
-    { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Any_fixed 0 }
+  { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Any_fixed 0 }
 
 let empty =
-  Constrained
-    { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed 0 }
+  { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed 0 }
 
 let any_fixed_with ?(audio=0) ?(video=0) ?(midi=0) () =
-  Constrained
-    { Frame.
-        audio = Any_fixed audio ;
-        video = Any_fixed video ;
-        midi  = Any_fixed midi }
+  { Frame.
+    audio = Any_fixed audio ;
+    video = Any_fixed video ;
+    midi  = Any_fixed midi }
 
 let audio_variable =
-  Constrained
-    { Frame.
-        audio = Variable 1 ;
-        video = Fixed 0 ;
-        midi = Fixed 0 }
+  { Frame.
+    audio = Variable 1 ;
+    video = Fixed 0 ;
+    midi = Fixed 0 }
 
 let audio_any =
-  Constrained
-    { Frame.
-        audio = Any_fixed 1 ;
-        video = Fixed 0 ;
-        midi = Fixed 0 }
+  { Frame.
+    audio = Any_fixed 1 ;
+    video = Fixed 0 ;
+    midi = Fixed 0 }
 
 let audio_n n =
-  Constrained
-    { Frame. audio = Fixed n ; video = Fixed 0 ; midi = Fixed 0 }
+  { Frame. audio = Fixed n ; video = Fixed 0 ; midi = Fixed 0 }
 
 let audio_mono = audio_n 1
 
 let audio_stereo = audio_n 2
 
 let video_only =
-  Constrained
-    { Frame. audio = Fixed 0 ; video = Fixed 1 ; midi = Fixed 0 }
+  { Frame. audio = Fixed 0 ; video = Fixed 1 ; midi = Fixed 0 }
 
 let video =
-  Constrained
-    { Frame. audio = Any_fixed 0 ; video = Fixed 1 ; midi = Any_fixed 0 }
+  { Frame. audio = Any_fixed 0 ; video = Fixed 1 ; midi = Any_fixed 0 }
 
 let audio_video_any =
-  Constrained
-    { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Fixed 0 }
+  { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Fixed 0 }
 
 let video_n n =
-  Constrained
-    { Frame. audio = Fixed 0 ; video = Fixed n ; midi = Fixed 0 }
+  { Frame. audio = Fixed 0 ; video = Fixed n ; midi = Fixed 0 }
 
 let midi_n n =
-  Constrained
-    { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed n }
+  { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed n }
 
 let midi_only =
   midi_n 1
 
-let kind_type_of_kind_format fmt =
-  match fmt with
-    | Unconstrained t -> t
-    | Constrained fields ->
-      let aux = function
-          | Fixed i -> type_of_int i
-          | Any_fixed i -> Term.add_t i (univ_t ~constraints:[T.Arity_fixed] ())
-          | Variable i -> Term.add_t i variable_t
-        in
-        let audio = aux fields.Frame.audio in
-        let video = aux fields.Frame.video in
-        let midi  = aux fields.Frame.midi in
-          frame_kind_t ~audio ~video ~midi
+let kind_type_of_kind_format fields =
+  let aux = function
+    | Fixed i -> type_of_int i
+    | Any_fixed i -> Term.add_t i (univ_t ~constraints:[T.Arity_fixed] ())
+    | Variable i -> Term.add_t i variable_t
+  in
+  let audio = aux fields.Frame.audio in
+  let video = aux fields.Frame.video in
+  let midi  = aux fields.Frame.midi in
+  frame_kind_t ~audio ~video ~midi
 
 (** Value construction *)
 
@@ -232,7 +217,7 @@ let val_cst_fun p c =
       | Bool i -> f (mkg T.Bool) (Term.Bool i)
       | Float i -> f (mkg T.Float) (Term.Float i)
       | String i -> f (mkg T.String) (Term.String i)
-      | _ -> mk (FFI (p',[],fun ?pos _ -> c))
+      | _ -> mk (FFI (p',[],fun ?pos:_ _ -> c))
 
 let metadata m =
   list
@@ -388,8 +373,7 @@ let add_operator
       | Source.Clock_loop (a,b) ->
           raise (Lang_errors.Clock_loop (pos,a,b))
   in
-  let kind_type = kind_type_of_kind_format kind in
-  let return_t = Term.source_t ~active kind_type in
+  let return_t = Term.source_t ~active kind in
   let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f
 

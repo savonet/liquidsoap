@@ -178,6 +178,7 @@ object (self)
 
   method private output =
     self#may_start ;
+    let memo = self#get_memo in
     if is_started && AFrame.is_partial memo then self#get_frame memo ;
     if fallible then self#may_stop
 
