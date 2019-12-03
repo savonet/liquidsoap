@@ -32,7 +32,7 @@ let conf_srt =
   Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
 
 let conf_log =
-  Dtools.Conf.void ~p:(conf_srt#plug "log") "Log configuration"
+  Dtools.Conf.bool ~p:(conf_srt#plug "log") ~d:true "Route srt logs through liquidsoap's logs"
 
 let conf_level =
   Dtools.Conf.int ~p:(conf_log#plug "level") ~d:5 "Level"
@@ -129,7 +129,9 @@ end
 
 let () =
   Srt.startup ();
-  Srt.Log.set_handler log_handler;
+  ignore(Dtools.Init.at_start (fun () ->
+    if conf_log#get then
+      Srt.Log.set_handler log_handler));
   ignore (Dtools.Init.at_stop Srt.cleanup);
   ignore (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom] (fun () ->
     Srt.Poll.release Poll.t.Poll.p))
