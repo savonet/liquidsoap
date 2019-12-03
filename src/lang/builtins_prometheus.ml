@@ -101,7 +101,7 @@ let () =
 
 let latencies = Hashtbl.create 10
 
-let get_latencies ~label_names mode =
+let get_latencies ~prefix ~label_names mode =
   let key =
     String.concat "" (mode::label_names)
   in
@@ -111,17 +111,17 @@ let get_latencies ~label_names mode =
         let latency =
           Gauge.v_labels ~label_names
             ~help:(Printf.sprintf "Mean %s latency over the chosen window" mode)
-           (Printf.sprintf "%s_latency" mode)
+           (Printf.sprintf "%s%s_latency_seconds" prefix mode)
         in
         let peak_latency =
           Prometheus.Gauge.v_labels ~label_names
             ~help:(Printf.sprintf "Peak %s latency over the chosen window" mode)
-           (Printf.sprintf "%s_peak_latency" mode)
+           (Printf.sprintf "%s%s_peak_latency_seconds" prefix mode)
         in
         let max_latency =
           Prometheus.Gauge.v_labels ~label_names
             ~help:(Printf.sprintf "Max %s latency since start" mode)
-           (Printf.sprintf "%s_max_latency"mode)
+           (Printf.sprintf "%s%s_max_latency_seconds" prefix mode)
         in
         Hashtbl.add latencies key (latency,peak_latency,max_latency);
         (latency,peak_latency,max_latency)
@@ -134,13 +134,13 @@ let get_last_data ~label_names =
     | None ->
       let m =
         Gauge.v_labels ~label_names
-          ~help:"Last time source produced some data since start"
-          "time_of_last_data"
+          ~help:"Last time source produced some data."
+          "liquidsoap_time_of_last_data_timestamp"
       in
       last_data := Some m;
       m
 
-let source_monitor ~label_names ~labels ~window s =
+let source_monitor ~prefix ~label_names ~labels ~window s =
   let mean l =
     let n = Hashtbl.length l in
     if n = 0 then 0. else
@@ -152,7 +152,7 @@ let source_monitor ~label_names ~labels ~window s =
   in
   let track_latency mode =
     let latency, peak_latency, max_latency =
-      get_latencies ~label_names mode
+      get_latencies ~prefix ~label_names mode
     in
     let latency =
       Prometheus.Gauge.labels latency labels
@@ -189,7 +189,6 @@ let source_monitor ~label_names ~labels ~window s =
   let add_overall_latency = track_latency "overall" in
   let last_start_time = ref 0. in
   let last_end_time = ref 0. in
-  let start = Unix.gettimeofday () in
   let last_data =
     Gauge.labels (get_last_data ~label_names) labels
   in
@@ -203,7 +202,7 @@ let source_monitor ~label_names ~labels ~window s =
                 ~is_partial:_ ~metadata:_ =
     last_start_time := start_time;
     last_end_time := end_time;
-    Prometheus.Gauge.set last_data (end_time-.start);
+    Prometheus.Gauge.set last_data end_time;
     let encoded_time =
       Frame.seconds_of_master (end_position-start_position)
     in
@@ -227,15 +226,18 @@ let () =
       false,"",Lang.source_t (Lang.univ_t ())
     ] Lang.unit_t
   in
-  Lang_builtins.add_builtin "prometheus.monitor"
+  Lang_builtins.add_builtin "prometheus.latency"
     [ "window", Lang.float_t, Some (Lang.float 5.),
       Some "Window over which mean and peak metrics are reported.";
+      "prefix", Lang.string_t, Some (Lang.string "liquidsoap_"),
+      Some "Prefix for the metric's name";
       "labels",Lang.list_t Lang.string_t,None,Some "labels for the metric"]
     source_monitor_register_t
     ~cat:Lang_builtins.Liq
-    ~descr:"Monitor a source's internals on Prometheus"
+    ~descr:"Monitor a source's internal latencies on Prometheus"
     (fun p ->
       let window = Lang.to_float (List.assoc "window" p) in
+      let prefix = Lang.to_string (List.assoc "prefix" p) in
       let label_names =
         List.map Lang.to_string
           (Lang.to_list (List.assoc "labels" p))
@@ -250,5 +252,5 @@ let () =
           in
           if List.length labels <> List.length label_names then
             raise (Lang_errors.Invalid_value (labels_v,"Not enough labels provided!"));
-          source_monitor ~label_names ~labels ~window s;
+          source_monitor ~label_names ~labels ~window ~prefix s;
           Lang.unit))
