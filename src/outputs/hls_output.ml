@@ -515,10 +515,6 @@ class hls_output p =
       self#unlink (directory^^playlist)
 
     method output_start =
-      let start () =
-        self#toggle_state `Start;
-        self#new_segment
-      in
       if persist && Sys.file_exists persist_at then
        try
         begin
@@ -530,9 +526,10 @@ class hls_output p =
        with exn ->
          self#log#info "Failed to resume from saved state: %s"
            (Printexc.to_string exn);
-         start ()
+         self#toggle_state `Start
       else
-        start ()
+        self#toggle_state `Start;
+      self#new_segment
 
     method output_stop =
       self#toggle_state `Stop;
