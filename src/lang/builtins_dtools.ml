@@ -96,11 +96,7 @@ let () =
 
 let () =
   let set cast path v =
-    try
-      (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
-    with
-      | Dtools.Conf.Unbound (_, _) ->
-          log#severe "WARNING: there is no configuration key named %S!" path
+    (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
   in
     add_builtin ~cat:Liq "set"
       ~descr:"Change some setting. \
@@ -112,51 +108,70 @@ let () =
        "",Lang.univ_t ~constraints:[Lang_types.Dtools] (),None,None]
       Lang.unit_t
       (fun p ->
-        let s = Lang.assoc "" 1 p in
-        let path = Lang.to_string s in
-        try begin match (Lang.assoc "" 2 p).Lang.value with
-            | Lang.Tuple []  -> set Dtools.Conf.as_unit   path ()
-            | Lang.String s -> set Dtools.Conf.as_string path s
-            | Lang.Int    s -> set Dtools.Conf.as_int    path s
-            | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
-            | Lang.Float  s -> set Dtools.Conf.as_float  path s
+        let path = Lang.assoc "" 1 p in
+        let path_s = Lang.to_string path in
+        let value = Lang.assoc "" 2 p in
+        let get_error e =
+          match e with
+            | Dtools.Conf.Mismatch _ ->
+              let t =
+                Configure.conf#path
+                  (Dtools.Conf.path_of_string path_s)
+              in
+              let kind =
+                match t#kind with
+                  | Some "unit" -> "of type unit"
+                  | Some "int" -> "of type int"
+                  | Some "float" -> "of type float"
+                  | Some "bool" -> "of type bool"
+                  | Some "string" -> "of type string"
+                  | Some "list" -> "of type [string]"
+                  | _ -> "untyped"
+              in
+              let msg =
+                Printf.sprintf
+                  "key %S is %s, thus cannot be set to %s"
+                  path_s kind (Lang.print_value value)
+              in
+              Lang_errors.Invalid_value (value, msg)
+            | Dtools.Conf.Invalid_Value _ ->
+              let msg =
+                Printf.sprintf
+                  "invalid value %s for key %S" (Lang.print_value value) path_s
+              in
+              Lang_errors.Invalid_value (value, msg)
+            | Dtools.Conf.Unbound (_, _) ->
+              let msg =
+                Printf.sprintf "there is no configuration key named %S!" path_s
+              in
+              Lang_errors.Invalid_value (path, msg)
+            | _ -> e
+        in
+        try begin match value.Lang.value with
+            | Lang.Tuple []  -> set Dtools.Conf.as_unit   path_s ()
+            | Lang.String s -> set Dtools.Conf.as_string path_s s
+            | Lang.Int    s -> set Dtools.Conf.as_int    path_s s
+            | Lang.Bool   s -> set Dtools.Conf.as_bool   path_s s
+            | Lang.Float  s -> set Dtools.Conf.as_float  path_s s
             | Lang.List   l ->
               let l = List.map Lang.to_string l in
-              set Dtools.Conf.as_list path l
+              set Dtools.Conf.as_list path_s l
             | _ -> assert false
           end ;
           Lang.unit
         with
-          | Dtools.Conf.Mismatch _ ->
-            let t =
-              Configure.conf#path
-                (Dtools.Conf.path_of_string path)
-            in
-            let kind =
-              match t#kind with
-                | Some "unit" -> "of type unit"
-                | Some "int" -> "of type int"
-                | Some "float" -> "of type float"
-                | Some "bool" -> "of type bool"
-                | Some "string" -> "of type string"
-                | Some "list" -> "of type [string]"
-                | _ -> "untyped"
-            in
-            let msg =
-              Printf.sprintf
-                "key %S is %s, thus cannot be set to %s"
-                (Lang.to_string s)
-                kind (Lang.print_value (Lang.assoc "" 2 p))
-            in
-            raise (Lang_errors.Invalid_value (s,msg))
-          | Dtools.Conf.Invalid_Value _ ->
-            let msg =
-              Printf.sprintf
-                "invalid value %s for key %S"
-                (Lang.print_value (Lang.assoc "" 2 p))
-                (Lang.to_string s)
-            in
-            raise (Lang_errors.Invalid_value (s,msg))
+          | e ->
+            let e = get_error e in
+            if Tutils.has_started () then begin
+              let m =
+                match e with
+                  | Lang_errors.Invalid_value (_, m) -> m
+                  | _ -> Printexc.to_string e
+              in
+              log#severe "WARNING: %s" m;
+              Lang.unit
+            end else
+              raise e
       )
 
 let () =
