@@ -43,6 +43,10 @@ let conf_poll =
 let conf_timeout =
   Dtools.Conf.int ~p:(conf_poll#plug "timeout") ~d:100 "Timeout for polling loop, in ms"
 
+let conf_enforced_encryption =
+  Dtools.Conf.bool ~p:(conf_srt#plug "enforced_encryption") ~d:true
+    "Enforce consistent encryption settings on both end of any connection."
+
 let log = Log.make ["srt"]
 
 let log_handler {Srt.Log.message} =
@@ -171,6 +175,7 @@ object(self)
             Srt.setsockflag s Srt.payloadsize payload_size;
             Srt.setsockflag s Srt.transtype `Live;
             Srt.setsockflag s Srt.messageapi messageapi;
+            Srt.setsockflag s Srt.enforced_encryption conf_enforced_encryption#get;
             self#prepare_socket s;
             socket <- Some s;
             s) ()
