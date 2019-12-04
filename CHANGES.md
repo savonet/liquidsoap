@@ -22,6 +22,7 @@ New:
   Liquidsoap.
 - Added `source.dump`.
 - Added `synth` protocol (#1014).
+- Added support for `srt.enforced_encryption` setting.
 
 Changed:
 

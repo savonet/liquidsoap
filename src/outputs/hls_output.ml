@@ -453,8 +453,11 @@ class hls_output p =
       Queue.iter self#unlink_segment segments;
       Queue.clear segments;
       List.iter (fun s ->
-          self#close_out (Utils.get_some s.hls_oc);
-          s.hls_oc <- None
+          match s.hls_oc with
+            | None -> ()
+            | Some segment ->
+                self#close_out segment;
+                s.hls_oc <- None
         ) streams
 
     method private playlist_name s =

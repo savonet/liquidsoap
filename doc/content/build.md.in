@@ -87,6 +87,7 @@ Libraries not developed by Savonet are:
 | ocaml-shine         | @shine_version_descr@                | Fixed-point MP3 encoding                      |
 | ocaml-soundtouch    | @soundtouch_version_descr@           | Libsoundtouch's audio effects                 |
 | ocaml-speex         | @speex_version_descr@                | Ogg/Speex codec                               |
+| ocaml-srt           | @srt_version_descr@                  | SRT I/O                                       |
 | ocaml-ssl           | @ssl_version_descr@                  | SSL/https support                             |
 | ocaml-taglib        | @taglib_version_descr@               | MP3ID3 metadata access                        |
 | ocaml-theora        | @theora_version_descr@               | Ogg/Theora codec                              |
