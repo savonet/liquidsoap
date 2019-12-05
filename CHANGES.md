@@ -23,6 +23,8 @@ New:
 - Added `source.dump`.
 - Added `synth` protocol (#1014).
 - Added support for `srt.enforced_encryption` setting.
+- Add `validate` parameter to `register`, which allows to validate a value
+  before setting it (#1046, @CyberDomovoy)
 
 Changed:
 
@@ -53,8 +55,6 @@ Changed:
 - Renamed `which` to `file.which`.
 - Change `blank()` duration semantics to mean forever only on negative values.
 - Get rid of numbering of universal variables (#1037).
-- Add `validate` parameter to `register`, which allows to validate a value
-  before setting it.
 
 Fixed:
 
