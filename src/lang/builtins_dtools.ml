@@ -126,7 +126,7 @@ let () =
                   | Some "bool" -> "of type bool"
                   | Some "string" -> "of type string"
                   | Some "list" -> "of type [string]"
-                  | _ -> "untyped"
+                  | _ -> assert false
               in
               let msg =
                 Printf.sprintf
