@@ -34,10 +34,13 @@ let log = Log.make ["request"]
 
 (** File utilities. *)
 
-let remove_file_proto s =
-  Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s
+let home_unrelate s = Utils.home_unrelate s
 
-let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
+(** URI
+  * Tried to put it its own module (tools/URI.ml(i))
+  * But when i add it to tools in src/Makefile i get an error
+  * How do we add new modules to be compiled?
+  *)
 
 module URI : sig
 
@@ -119,6 +122,7 @@ let create uri =
       let query = try Some (Str.matched_group 12 uri) with Not_found -> None in
       let fragment =
         try Some (Str.matched_group 14 uri) with Not_found -> None in
+      let path = if scheme = "file" then home_unrelate path else path in
       {
         value = uri;
         scheme = scheme;
@@ -218,7 +222,7 @@ let string_of_log log =
   *)
 
 type indicator = {
-  string : string ;
+  uri : URI.t ;
   temporary : bool ;
   metadata : metadata
 }
@@ -253,11 +257,14 @@ let kind x = x.kind
 
 let initial_uri x = x.initial_uri
 
-let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
-  string = home_unrelate s ;
-  temporary = temporary = Some true ;
-  metadata = metadata
-}
+let indicator ?(metadata=Hashtbl.create 10) ?temporary s =
+  try
+    {
+      uri = URI.create s ;
+      temporary = temporary = Some true ;
+      metadata = metadata
+    }
+  with e -> log#important "Malformed URI: %S" s; raise e
 
 (** Length *)
 let dresolvers_doc =
@@ -356,12 +363,15 @@ let rec pop_indicator t =
       | [] -> raise No_indicator
   in
     if i.temporary then
-      begin try
-        Unix.unlink i.string
-      with
-        | e ->
+      (* Fallback to old file indicator *)
+      let open URI in
+      if i.uri.scheme = "file" then
+        begin try
+          Unix.unlink i.uri.path
+        with
+          | e ->
             log#severe "Unlink failed: %S" (Printexc.to_string e)
-      end ;
+        end ;
     t.decoder <- None ;
     if repop then pop_indicator t
 
@@ -421,9 +431,12 @@ let file_is_readable name =
 
 let local_check t =
   let check_decodable kind = try
-    while t.decoder = None && file_exists (peek_indicator t).string do
-      let indicator = peek_indicator t in
-      let name = indicator.string in
+    let indicator = peek_indicator t in
+    let open URI in
+    while t.decoder = None && indicator.uri.scheme = "file" &&
+      file_exists indicator.uri.path
+    do
+      let name = indicator.uri.path in
       let metadata = get_all_metadata t in
         if not (file_is_readable name) then begin
           log#important "Read permission denied for %S!" name ;
@@ -466,7 +479,8 @@ let local_check t =
 let push_indicators t l =
   if l <> [] then
     let hd = List.hd l in
-      add_log t (Printf.sprintf "Pushed [%S;...]." hd.string) ;
+    let open URI in
+      add_log t (Printf.sprintf "Pushed [%S;...]." hd.uri.value) ;
       t.indicators <- l::t.indicators ;
       t.decoder <- None ;
       (* Performing a local check is quite fast and allows the request
@@ -477,16 +491,21 @@ let push_indicators t l =
       local_check t
 
 let is_ready t =
-  t.indicators <> [] &&
-  Sys.file_exists (peek_indicator t).string &&
-  ( t.decoder <> None || t.kind = None )
+  if t.indicators <> [] then
+    let top_i = peek_indicator t in
+    let open URI in
+    top_i.uri.scheme = "file" && Sys.file_exists top_i.uri.path &&
+    ( t.decoder <> None || t.kind = None )
+  else
+    false
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
   * [None] otherwise. *)
 let get_filename t =
+  let open URI in
   if is_ready t then
-    Some (List.hd (List.hd t.indicators)).string
+    Some (List.hd (List.hd t.indicators)).uri.value
   else
     None
 
@@ -647,17 +666,18 @@ let protocols_doc =
 let protocols = Plug.create ~doc:protocols_doc ~insensitive:true "protocols"
 
 let is_static s =
-  if Sys.file_exists (home_unrelate s) then
-    true
-  else
-    try
-      let uri = URI.create s in
-      let open URI in
-      begin match protocols#get uri.scheme with
-        | Some handler -> handler.static
-        | None -> false
-      end
-    with _ -> false
+  try
+    let uri = URI.create s in
+    let open URI in
+    begin match protocols#get uri.scheme with
+      | Some handler -> handler.static
+      | None ->
+        if uri.scheme ="file" then
+          Sys.file_exists uri.path
+        else
+          false
+    end
+  with _ -> false
 
 (** Resolving engine. *)
 
@@ -675,50 +695,49 @@ let resolve t timeout =
   let uri_arg uri =
     let open URI in
     let start = ((String.length uri.scheme) + 1) in
-    let arg = String.sub uri.value start ((String.length uri.value) - start) in
-    begin
-      log#important "ARG: %S" arg;
-      arg
-    end
+    String.sub uri.value start ((String.length uri.value) - start)
   in
   let resolve_step () =
     let i = peek_indicator t in
     (* If the file is local we only need to check that it's valid,
      * we'll actually do that in a single local_check for all local indicators
      * on the top of the stack. *)
-    if file_exists i.string then local_check t else
-      try
-        let uri = URI.create i.string in
-        let open URI in
-        begin match protocols#get uri.scheme with
-          | Some handler ->
-              add_log t
-                (Printf.sprintf
-                   "Resolving %S (timeout %.0fs)..."
-                   uri.value timeout) ;
-              let arg = (uri_arg uri) in
-              let production =
-                handler.resolve ~log:(add_log t) arg maxtime
-              in
-                if production = [] then begin
-                  log#info
-                    "Failed to resolve %S! \
-                     For more info, see server command 'trace %d'."
-                    uri.value t.id ;
-                  ignore (pop_indicator t)
-                end else
-                  push_indicators t production
-          | None ->
-              log#important "Unknown protocol %S in URI %S!"
-                uri.scheme uri.value ;
-              add_log t "Unknown protocol!" ;
-              pop_indicator t
-        end
-      with _ ->
-        let log_level = if i.string = "" then 4 else 3 in
-        log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
-        add_log t "Nonexistent file or ill-formed URI!" ;
-        pop_indicator t
+    let open URI in
+    try
+      let uri = i.uri in
+      begin match protocols#get uri.scheme with
+        | Some handler ->
+            add_log t
+              (Printf.sprintf
+                 "Resolving %S (timeout %.0fs)..."
+                 uri.value timeout) ;
+            let arg = (uri_arg uri) in
+            let production =
+              handler.resolve ~log:(add_log t) arg maxtime
+            in
+              if production = [] then begin
+                log#info
+                  "Failed to resolve %S! \
+                   For more info, see server command 'trace %d'."
+                  uri.value t.id ;
+                ignore (pop_indicator t)
+              end else
+                push_indicators t production
+        | None ->
+          if uri.scheme = "file" && file_exists uri.path
+          then local_check t
+          else begin
+            log#important "Unknown protocol %S in URI %S!"
+              uri.scheme uri.value ;
+            add_log t "Unknown protocol!" ;
+            pop_indicator t
+          end
+      end
+    with _ ->
+      let log_level = 3 in
+      log#f log_level "Nonexistent file or ill-formed URI %S!" i.uri.value ;
+      add_log t "Nonexistent file or ill-formed URI!" ;
+      pop_indicator t
   in
   let result =
     try
@@ -743,4 +762,4 @@ let resolve t timeout =
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
-let peek_indicator t = (peek_indicator t).string
+let peek_indicator t = let open URI in (peek_indicator t).uri.value

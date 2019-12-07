@@ -142,7 +142,9 @@ let () =
                           "maxtime",Lang.float timeout;
                           "",Lang.string arg]
              in
-             List.map (fun s ->
-               Request.indicator ~temporary (Lang.to_string s))
+             List.filter_map (fun s ->
+              try Some (Request.indicator ~temporary (Lang.to_string s))
+              with _ -> None
+             )
              (Lang.to_list l)) ;
          Lang.unit)
