@@ -39,66 +39,91 @@ let remove_file_proto s =
 
 let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
 
-(* This should be a class *)
-(* https://en.wikipedia.org/wiki/Uniform_Resource_Identifier *)
-type uri = {
-  full : string;
+module URI : sig
+
+exception Malformed
+
+type t = {
+  value : string;
   scheme : string;
-  authority: string option;
-  userinfo: string option;
-  host: string option;
-  port: int option;
-  path: string;
+  authority : string option;
+  userinfo : string option;
+  host : string option;
+  port : int option;
+  path : string;
   query : string option;
   fragment : string option;
 }
-let parse_uri uri =
+
+val create : string -> t
+
+end =
+struct
+
+exception Malformed
+
+let allowed_chars = "%a-zA-Z0-9\\._~-"
+let allowed_chars_ext = "!\\$&'()\\*\\+,;="^allowed_chars
+let allowed_chars_ext_ext = ":@"^allowed_chars_ext
+let allowed_chars_ext_ext_ext = "\\?/"^allowed_chars_ext_ext
+let r_scheme = "\\([a-zA-Z][a-zA-Z0-9+.-]*\\):"
+let r_userinfo =
+    "\\(["^allowed_chars_ext^"]+\\(:["^allowed_chars_ext^"]+\\)?\\)@"
+let r_hostname = "["^allowed_chars_ext^"]+"
+let ip4_num = "[0-2]?[0-9]?[0-9]"
+let r_ip4 = ip4_num^"\\."^ip4_num^"\\."^ip4_num^"\\."^ip4_num
+let r_ip6 = "\\[[0-9A-Fa-f:]+\\]"
+let r_host = r_hostname^"\\|"^r_ip4^"\\|"^r_ip6
+let r_port = ":\\([0-9]+\\)"
+let r_authority =
+    "\\(//\\(\\("^r_userinfo^"\\)?\\("^r_host^"\\)\\("^r_port^"\\)?\\)\\)?"
+let r_path = "\\([/"^allowed_chars_ext_ext^"]*\\)"
+let r_query = "\\(\\?\\(["^allowed_chars_ext_ext_ext^"]+\\)\\)?"
+let r_fragment = "\\(#\\(["^allowed_chars_ext_ext_ext^"]+\\)\\)?"
+let scheme_regexp = Str.regexp ("^"^r_scheme)
+let uri_regexp =
+    Str.regexp ("^"^r_scheme^r_authority^r_path^r_query^r_fragment^"$")
+
+type t = {
+  value : string;
+  scheme : string;
+  authority : string option;
+  userinfo : string option;
+  host : string option;
+  port : int option;
+  path : string;
+  query : string option;
+  fragment : string option;
+}
+
+let create uri =
+  let uri =
+    (* We _must_ have a scheme *)
+    if Str.string_match scheme_regexp uri 0 then
+      uri
+    else
+      "file:"^uri
+  in
   try
-    let allowed_chars = "%a-zA-Z0-9\\._~-" in
-    let allowed_chars_ext = "!\\$&'()\\*\\+,;="^allowed_chars in
-    let allowed_chars_ext_ext = ":@"^allowed_chars_ext in
-    let allowed_chars_ext_ext_ext = "\\?/"^allowed_chars_ext_ext in
-    let r_scheme = "\\([a-zA-Z][a-zA-Z0-9+.-]*\\):" in
-    let r_userinfo =
-      "\\(["^allowed_chars_ext^"]+\\(:["^allowed_chars_ext^"]+\\)?\\)@" in
-    let r_hostname = "["^allowed_chars_ext^"]+" in
-    let ip4_num = "[0-2]?[0-9]?[0-9]" in
-    let r_ip4 = ip4_num^"\\."^ip4_num^"\\."^ip4_num^"\\."^ip4_num in
-    let r_ip6 = "\\[[0-9A-Fa-f:]+\\]" in
-    let r_host = r_hostname^"\\|"^r_ip4^"\\|"^r_ip6 in
-    let r_port = ":\\([0-9]+\\)" in
-    let r_authority =
-      "\\(//\\(\\("^r_userinfo^"\\)?\\("^r_host^"\\)\\("^r_port^"\\)?\\)\\)?" in
-    let r_path = "\\([/"^allowed_chars_ext_ext^"]*\\)" in
-    let r_query = "\\(\\?\\(["^allowed_chars_ext_ext_ext^"]+\\)\\)?" in
-    let r_fragment = "\\(#\\(["^allowed_chars_ext_ext_ext^"]+\\)\\)?" in
-    let uri =
-      (* We _must_ have a scheme *)
-      let r = Str.regexp ("^"^r_scheme) in
-      if Str.string_match r uri 0 then
-        uri
-      else
-        "file:"^uri
-    in
-    let r_uri = "^"^r_scheme^r_authority^r_path^r_query^r_fragment^"$" in
-    let r = Str.regexp r_uri in
-    if Str.string_match r uri 0 then
+    if Str.string_match uri_regexp uri 0 then
       let scheme = Str.matched_group 1 uri in
-      let authority = try Some (Str.matched_group 3 uri) with Not_found -> None
-      in
-      let user = try Some (Str.matched_group 5 uri) with Not_found -> None in
+      let authority =
+        try Some (Str.matched_group 3 uri) with Not_found -> None in
+      let userinfo =
+        try Some (Str.matched_group 5 uri) with Not_found -> None in
       let host = try Some (Str.matched_group 7 uri) with Not_found -> None in
-      let port = try Str.matched_group 9 uri with Not_found -> "" in
-      let port = if port = "" then None else Some (int_of_string port) in
+      let port = try
+        Some (int_of_string (Str.matched_group 9 uri))
+        with Not_found -> None in
       let path = try Str.matched_group 10 uri with Not_found -> "" in
       let query = try Some (Str.matched_group 12 uri) with Not_found -> None in
-      let fragment = try Some (Str.matched_group 14 uri) with Not_found -> None
-      in
-      Some {
-        full = uri;
+      let fragment =
+        try Some (Str.matched_group 14 uri) with Not_found -> None in
+      {
+        value = uri;
         scheme = scheme;
         authority = authority;
-        userinfo = user;
+        userinfo = userinfo;
         host = host;
         port = port;
         path = path;
@@ -106,9 +131,10 @@ let parse_uri uri =
         fragment = fragment;
       }
     else
-      None
-  with
-    | _ -> None
+      raise Malformed
+  with _ -> raise Malformed
+
+end
 
 let cleanup =
   let re1 = Str.regexp "^[\t ]*" in
@@ -624,13 +650,14 @@ let is_static s =
   if Sys.file_exists (home_unrelate s) then
     true
   else
-    match parse_uri s with
-      | Some uri ->
-          begin match protocols#get uri.scheme with
-            | Some handler -> handler.static
-            | None -> false
-          end
-      | None -> false
+    try
+      let uri = URI.create s in
+      let open URI in
+      begin match protocols#get uri.scheme with
+        | Some handler -> handler.static
+        | None -> false
+      end
+    with _ -> false
 
 (** Resolving engine. *)
 
@@ -646,8 +673,9 @@ let resolve t timeout =
   t.status <- Resolving ;
   let maxtime = (Unix.time ()) +. timeout in
   let uri_arg uri =
+    let open URI in
     let start = ((String.length uri.scheme) + 1) in
-    let arg = String.sub uri.full start ((String.length uri.full) - start) in
+    let arg = String.sub uri.value start ((String.length uri.value) - start) in
     begin
       log#important "ARG: %S" arg;
       arg
@@ -659,36 +687,38 @@ let resolve t timeout =
      * we'll actually do that in a single local_check for all local indicators
      * on the top of the stack. *)
     if file_exists i.string then local_check t else
-      match parse_uri i.string with
-        | Some uri ->
-            begin match protocols#get uri.scheme with
-              | Some handler ->
-                  add_log t
-                    (Printf.sprintf
-                       "Resolving %S (timeout %.0fs)..."
-                       uri.full timeout) ;
-                  let arg = (uri_arg uri) in
-                  let production =
-                    handler.resolve ~log:(add_log t) arg maxtime
-                  in
-                    if production = [] then begin
-                      log#info
-                        "Failed to resolve %S! \
-                         For more info, see server command 'trace %d'."
-                        uri.full t.id ;
-                      ignore (pop_indicator t)
-                    end else
-                      push_indicators t production
-              | None ->
-                  log#important "Unknown protocol %S in URI %S!" uri.scheme uri.full ;
-                  add_log t "Unknown protocol!" ;
-                  pop_indicator t
-            end
-        | None ->
-            let log_level = if i.string = "" then 4 else 3 in
-            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
-            add_log t "Nonexistent file or ill-formed URI!" ;
-            pop_indicator t
+      try
+        let uri = URI.create i.string in
+        let open URI in
+        begin match protocols#get uri.scheme with
+          | Some handler ->
+              add_log t
+                (Printf.sprintf
+                   "Resolving %S (timeout %.0fs)..."
+                   uri.value timeout) ;
+              let arg = (uri_arg uri) in
+              let production =
+                handler.resolve ~log:(add_log t) arg maxtime
+              in
+                if production = [] then begin
+                  log#info
+                    "Failed to resolve %S! \
+                     For more info, see server command 'trace %d'."
+                    uri.value t.id ;
+                  ignore (pop_indicator t)
+                end else
+                  push_indicators t production
+          | None ->
+              log#important "Unknown protocol %S in URI %S!"
+                uri.scheme uri.value ;
+              add_log t "Unknown protocol!" ;
+              pop_indicator t
+        end
+      with _ ->
+        let log_level = if i.string = "" then 4 else 3 in
+        log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
+        add_log t "Nonexistent file or ill-formed URI!" ;
+        pop_indicator t
   in
   let result =
     try
