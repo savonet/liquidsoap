@@ -52,7 +52,11 @@ let () =
          List.map Lang.to_string (Lang.to_list indicators)
        in
        let indicators =
-         List.map (fun x -> Request.indicator x) indicators
+        List.filter_map (fun s ->
+          try Some (Request.indicator s)
+          with _ -> None
+        )
+        indicators
        in
          Lang.request (Request.create_raw ~persistent ~indicators initial))
 
@@ -84,7 +88,11 @@ let () =
          List.map Lang.to_string (Lang.to_list indicators)
        in
        let indicators =
-         List.map (fun x -> Request.indicator x) indicators
+        List.filter_map (fun s ->
+          try Some (Request.indicator s)
+          with _ -> None
+        )
+        indicators
        in
        let kind =
          let k_t = Lang.of_request_t t in
