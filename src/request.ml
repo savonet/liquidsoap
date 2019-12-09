@@ -140,11 +140,6 @@ let create uri =
 
 end
 
-let cleanup =
-  let re1 = Str.regexp "^[\t ]*" in
-  let re2 = Str.regexp "[\t ]*$" in
-    fun s -> Str.global_replace re1 "" (Str.global_replace re2 "" s)
-
 (** Metadata *)
 
 type metadata = (string,string) Hashtbl.t
@@ -196,25 +191,27 @@ let string_of_log log =
                      Printf.sprintf "\n[%s] %s" (pretty_date date) msg)) "" log
 
 (** Requests.
-  * The purpose of a request is to get a valid file. The file can contain media
+  * The purpose of a request is to get a valid URI. The URI target can contain media
   * in which case validity implies finding a working decoder, or can be
   * something arbitrary, like a playlist.
-  * This file is fetched using protocols. For example the fetching can involve
-  * querying a mysql database, receiving a list of new URIS, using http to
-  * download the first URI, check it, fail, using smb to download the second,
-  * success, have the file played, finish the request, erase the temporary
+  * This URI is checked using protocols. For example the fetching can involve
+  * querying a mysql database, receiving a list of new URIs, using http to
+  * stream the first URI, fail (temporary), using smb to download the second,
+  * fail, using ftp to download the third, have the file played,
+  * finish the request, erase the temporary
   * downloaded file.
   * This process involve a tree of URIs, represented by a list of lists.
   * Metadata is attached to every file in the tree, and the view of the
   * metadata from outside is the merging of all the metadata on the path
   * from the current active URI to the root.
   * At the end of the previous example, the tree looks like:
-  * [ [ "/tmp/localfile_from_smb" ] ;
+  * [ [ "file:/tmp/localfile_from_ftp" ] ;
+  *   [ "http://something" ];
+  *   (* Put there because decoder told us the failure was temporary *)];
   *   [
-  *     (* Some http://something was there but was removed without producing
+  *     (* Some smb://something was there but was removed without producing
   *      * anything. *)
-  *     "smb://something" ; (* The successfully downloaded URI *)
-  *     "ftp://another/uri" ;
+  *     "ftp://another/uri" ; (* The successfully downloaded URI *)
   *     (* maybe some more URIs are here, ready in case of more failures *)
   *   ] ;
   *   [ "mydb://myrequest" ] (* And this is the initial URI *)
@@ -250,6 +247,9 @@ type t = {
   log : log ;
   mutable root_metadata : metadata ;
   mutable indicators : indicator list list ;
+(*
+  mutable decoder : (unit -> Decoder.unified_decoder) option ;
+*)
   mutable decoder : (unit -> Decoder.file_decoder) option ;
 }
 
@@ -363,11 +363,9 @@ let rec pop_indicator t =
       | [] -> raise No_indicator
   in
     if i.temporary then
-      (* Fallback to old file indicator *)
-      let open URI in
-      if i.uri.scheme = "file" then
+      if i.uri.URI.scheme = "file" then
         begin try
-          Unix.unlink i.uri.path
+          Unix.unlink i.uri.URI.path
         with
           | e ->
             log#severe "Unlink failed: %S" (Printexc.to_string e)
@@ -420,92 +418,29 @@ let conf_duration =
   * We do not use them everywhere in this file, but only when splitting
   * existence and readability checks yields better logs. *)
 
-let file_exists name =
-  try Unix.access name [Unix.F_OK] ; true with
-    | Unix.Unix_error (Unix.EACCES,_,_) -> true
-    | Unix.Unix_error _ -> false
-
 let file_is_readable name =
   try Unix.access name [Unix.R_OK] ; true with
     | Unix.Unix_error _ -> false
 
-let local_check t =
-  let check_decodable kind = try
-    let indicator = peek_indicator t in
-    let open URI in
-    while t.decoder = None && indicator.uri.scheme = "file" &&
-      file_exists indicator.uri.path
-    do
-      let name = indicator.uri.path in
-      let metadata = get_all_metadata t in
-        if not (file_is_readable name) then begin
-          log#important "Read permission denied for %S!" name ;
-          add_log t "Read permission denied!" ;
-          pop_indicator t
-        end else
-        match Decoder.get_file_decoder ~metadata name kind with
-          | Some (decoder_name,f) ->
-              t.decoder <- Some f ;
-              set_root_metadata t "decoder" decoder_name ;
-              List.iter
-                (fun (_,resolver) ->
-                   try
-                     let ans = resolver name in
-                       List.iter
-                         (fun (k,v) ->
-                           let k = String.lowercase_ascii k in
-                           if conf_override_metadata#get || get_metadata t k = None then
-                             Hashtbl.replace indicator.metadata
-                              k (cleanup v))
-                         ans;
-                     if conf_duration#get && get_metadata t "duration" = None then
-                       (
-                         try
-                           Hashtbl.replace indicator.metadata "duration" (string_of_float (duration name))
-                         with
-                         | Not_found -> ()
-                       )
-                   with
-                     | _ -> ()) (get_decoders conf_metadata_decoders
-                                     mresolvers) ;
-              t.status <- Ready
-          | None -> pop_indicator t
-      done
-  with
-    | No_indicator -> ()
-  in
-    match t.kind with None -> () | Some k -> check_decodable k
-
 let push_indicators t l =
   if l <> [] then
     let hd = List.hd l in
-    let open URI in
-      add_log t (Printf.sprintf "Pushed [%S;...]." hd.uri.value) ;
+      add_log t (Printf.sprintf "Pushed [%S;...]." hd.uri.URI.value) ;
       t.indicators <- l::t.indicators ;
-      t.decoder <- None ;
-      (* Performing a local check is quite fast and allows the request
-       * to be instantly available if it is only made of valid local files,
-       * without any need for a resolution process. *)
-      (* TODO sometimes it's not that fast actually, and it'd be nice
-       * to be able to disable this check in some cases, like playlist.safe. *)
-      local_check t
+      t.decoder <- None
+      (** Do _not_ perform any check now
+        * we do that only when we have resolved _all_ the indicators
+        *)
 
 let is_ready t =
-  if t.indicators <> [] then
-    let top_i = peek_indicator t in
-    let open URI in
-    top_i.uri.scheme = "file" && Sys.file_exists top_i.uri.path &&
-    ( t.decoder <> None || t.kind = None )
-  else
-    false
+  t.status = Ready
 
 (** [get_filename request] returns
-  * [Some f] if the request successfully lead to a local file [f],
+  * [Some f] if the request successfully lead to a URI [f],
   * [None] otherwise. *)
 let get_filename t =
-  let open URI in
   if is_ready t then
-    Some (List.hd (List.hd t.indicators)).uri.value
+    Some (List.hd (List.hd t.indicators)).uri.URI.value
   else
     None
 
@@ -668,14 +603,9 @@ let protocols = Plug.create ~doc:protocols_doc ~insensitive:true "protocols"
 let is_static s =
   try
     let uri = URI.create s in
-    let open URI in
-    begin match protocols#get uri.scheme with
+    begin match protocols#get uri.URI.scheme with
       | Some handler -> handler.static
-      | None ->
-        if uri.scheme ="file" then
-          Sys.file_exists uri.path
-        else
-          false
+      | None -> false
     end
   with _ -> false
 
@@ -688,54 +618,137 @@ type resolve_flag =
 
 exception ExnTimeout
 
+(** How do we handle raw requests?
+  * Must they resolve to a local file?
+  * If not, how do we know the resolving is successfull?
+  * Let it be a local file for now
+  *)
+(** How to resolve:
+  * _ try_again = []
+  * _ request_ready = false
+  * _ While [indicators] and (request_ready = false):
+  *   _ Peek indicator:
+  *     _ If indicator has handler:
+  *       _ If handler returns [indicators]:
+  *         _ pop indicator; push [indicators]
+  *       _ Else:
+  *         _ If kind = none (raw request):
+  *           _ If uri.scheme = "file" and is_file uri.path:
+  *             _ request_ready = true
+  *           _ Else:
+  *             _ pop indicator
+  *         _ Else:
+  *           _ find a decoder for indicator:
+  *           _ If Success:
+  *             _ request_ready = true
+  *           _ Else:
+  *             _ If Temporary_Failure:
+  *               _ push indicator on try_again
+  *             _ pop indicator
+  *     _ Else:
+  *       _ pop indicator
+  * _ push try_again
+  * _ If request_ready:
+  *   _ Resolved
+  * _ Else:
+  *   _ If [indicators]:
+  *     _ Temporary_Failure
+  *   _ Else:
+  *     _ Failure
+  *)
 let resolve t timeout =
   t.resolving <- Some (Unix.time ()) ;
   t.status <- Resolving ;
   let maxtime = (Unix.time ()) +. timeout in
+  let try_again = ref [] in
   let uri_arg uri =
-    let open URI in
-    let start = ((String.length uri.scheme) + 1) in
-    String.sub uri.value start ((String.length uri.value) - start)
+    let start = ((String.length uri.URI.scheme) + 1) in
+    String.sub uri.URI.value start ((String.length uri.URI.value) - start)
+  in
+  let resolve_metadata indicator =
+    let uri = indicator.uri in
+    List.iter
+      (fun (_,resolver) ->
+        try
+          let ans = resolver uri.URI.value in
+          List.iter
+            (fun (k,v) ->
+              let k = String.lowercase_ascii k in
+              if conf_override_metadata#get || get_metadata t k = None then
+                Hashtbl.replace indicator.metadata
+                  k (String.trim v)
+            )
+            ans;
+          if conf_duration#get && get_metadata t "duration" = None then
+            try
+              Hashtbl.replace indicator.metadata "duration"
+                (string_of_float (duration uri.URI.value))
+            with Not_found -> ()
+        with
+          | _ -> ()
+      )
+      (get_decoders conf_metadata_decoders mresolvers)
+  in
+  let try_decoder indicator kind =
+    let uri = indicator.uri in
+    let metadata = get_all_metadata t in
+    (* try *)
+      match Decoder.get_file_decoder ~metadata uri.URI.value kind with
+        | Some (decoder_name,f) ->
+          log#info
+            "Decoder %S handles %S" decoder_name uri.URI.value;
+          t.decoder <- Some f ;
+          set_root_metadata t "decoder" decoder_name ;
+          resolve_metadata indicator;
+          t.status <- Ready
+        | None ->
+          log#info
+            "Failed to find a decoder for %S" uri.URI.value;
+          ignore (pop_indicator t)
+(*  with Temporary_Failure ->
+      try_again := List.append [indicator] !try_again;
+      ignore (pop_indicator t) *)
+  in
+  let try_protocol indicator handler =
+    let uri = indicator.uri in
+    let arg = (uri_arg uri) in
+    let production =
+      handler.resolve ~log:(add_log t) arg maxtime
+    in
+    if production = [] then begin
+      match t.kind with
+        | Some kind ->
+          try_decoder indicator kind
+        | None ->
+          if uri.URI.scheme = "file" && file_is_readable uri.URI.path then
+            t.status <- Ready
+          else
+            ignore (pop_indicator t)
+    end else begin
+      ignore (pop_indicator t);
+      push_indicators t production
+    end
   in
   let resolve_step () =
     let i = peek_indicator t in
-    (* If the file is local we only need to check that it's valid,
-     * we'll actually do that in a single local_check for all local indicators
-     * on the top of the stack. *)
-    let open URI in
+    let uri = i.uri in
     try
-      let uri = i.uri in
-      begin match protocols#get uri.scheme with
+      begin match protocols#get uri.URI.scheme with
         | Some handler ->
-            add_log t
-              (Printf.sprintf
-                 "Resolving %S (timeout %.0fs)..."
-                 uri.value timeout) ;
-            let arg = (uri_arg uri) in
-            let production =
-              handler.resolve ~log:(add_log t) arg maxtime
-            in
-              if production = [] then begin
-                log#info
-                  "Failed to resolve %S! \
-                   For more info, see server command 'trace %d'."
-                  uri.value t.id ;
-                ignore (pop_indicator t)
-              end else
-                push_indicators t production
+          add_log t
+            (Printf.sprintf
+            "Resolving %S (timeout %.0fs)..."
+            uri.URI.value timeout)
+          ;
+          try_protocol i handler
         | None ->
-          if uri.scheme = "file" && file_exists uri.path
-          then local_check t
-          else begin
-            log#important "Unknown protocol %S in URI %S!"
-              uri.scheme uri.value ;
-            add_log t "Unknown protocol!" ;
-            pop_indicator t
-          end
+          log#important "Unknown protocol %S in URI %S!"
+            uri.URI.scheme uri.URI.value ;
+          add_log t "Unknown protocol!" ;
+          pop_indicator t
       end
     with _ ->
-      let log_level = 3 in
-      log#f log_level "Nonexistent file or ill-formed URI %S!" i.uri.value ;
+      log#f 3 "Nonexistent file or ill-formed URI %S!" uri.URI.value ;
       add_log t "Nonexistent file or ill-formed URI!" ;
       pop_indicator t
   in
@@ -751,15 +764,18 @@ let resolve t timeout =
       Resolved
     with
       | ExnTimeout -> Timeout
-      | No_indicator -> add_log t "Every possibility failed!" ; Failed
+      | No_indicator ->
+        add_log t "Every possibility failed!" ;
+        Failed
   in
   let excess = (Unix.time ()) -. maxtime in
     if excess > 0. then
       log#severe "Time limit exceeded by %.2f secs!" excess ;
     t.resolving <- None ;
     if result <> Resolved then t.status <- Idle else t.status <- Ready ;
+    push_indicators t !try_again;
     result
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
-let peek_indicator t = let open URI in (peek_indicator t).uri.value
+let peek_indicator t = (peek_indicator t).uri.URI.value
