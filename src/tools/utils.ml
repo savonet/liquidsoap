@@ -749,7 +749,7 @@ let print_strings ?(pager=false) s =
     Strings.iter (output_substring stdout) s
   in
   let cmd =
-    let cmds = ["less"; "more"] in
+    let cmds = ["more"; "less"] in
     let cmds = try (Sys.getenv "PAGER") :: cmds with Not_found -> cmds in
     let cmds = try (Sys.getenv "MANPAGER") :: cmds with Not_found -> cmds in
     find_cmd cmds
