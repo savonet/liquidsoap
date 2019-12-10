@@ -23,6 +23,7 @@ New:
 - Added `source.dump`.
 - Added `synth` protocol (#1014).
 - Added support for `srt.enforced_encryption` setting.
+- Added support for prometheus reporting (#1000)
 
 Changed:
 
