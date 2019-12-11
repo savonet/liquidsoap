@@ -739,19 +739,23 @@ let find_cmd cmds =
     | "Win32" -> "where", " NUL"
     | _ -> "type", "/dev/null"
   in
-  let cmd c =
-    Sys.command (Printf.sprintf "%s %s 1>%s 2>%s" test c null null) = 0
+  let rec cmd = function
+    |  (c, args) :: l ->
+      if Sys.command (Printf.sprintf "%s %s 1>%s 2>%s" test c null null) = 0 then
+        Some (if args = "" then c else c ^ " " ^ args)
+      else cmd l
+    | [] -> None
   in
-  try Some (List.find cmd cmds) with Not_found -> None
+  cmd cmds
 
 let print_strings ?(pager=false) s =
   let default s =
     Strings.iter (output_substring stdout) s
   in
   let cmd =
-    let cmds = ["less"; "more"] in
-    let cmds = try (Sys.getenv "PAGER") :: cmds with Not_found -> cmds in
-    let cmds = try (Sys.getenv "MANPAGER") :: cmds with Not_found -> cmds in
+    let cmds = ["less", "-F -X"; "more", ""] in
+    let cmds = try (Sys.getenv "PAGER", "") :: cmds with Not_found -> cmds in
+    let cmds = try (Sys.getenv "MANPAGER", "") :: cmds with Not_found -> cmds in
     find_cmd cmds
   in
   match pager, cmd with
