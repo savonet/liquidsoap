@@ -778,7 +778,11 @@ let resolve t timeout =
 let peek_indicator t = (peek_indicator t).uri.URI.value
 
 (* The file protocol *)
-let resolve_file arg ~log maxtime = []
+let resolve_file arg ~log maxtime =
+  ignore arg;
+  ignore log;
+  ignore maxtime;
+  []
 
 let () =
   protocols#register "file" {
