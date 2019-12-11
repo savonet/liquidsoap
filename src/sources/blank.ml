@@ -23,87 +23,90 @@
 open Source
 
 class blank ~kind duration =
-  let ticks =
-    if duration < 0. then -1 else Frame.master_of_seconds duration
-  in
+  let ticks = if duration < 0. then -1 else Frame.master_of_seconds duration in
   (* The kind should not allow a variable number of channels,
    * so it can directly be seen as a type. *)
   let content_type = Frame.type_of_kind kind in
-object
-  inherit source ~name:"blank" kind
+  object
+    inherit source ~name:"blank" kind
 
-  (** Remaining time, -1 for infinity. *)
-  val mutable remaining = ticks
-  method remaining = remaining
+    (** Remaining time, -1 for infinity. *)
+    val mutable remaining = ticks
 
-  method stype = Infallible
-  method is_ready = true
-  method self_sync = false
+    method remaining = remaining
 
-  method seek x = x
+    method stype = Infallible
 
-  method abort_track = remaining <- 0
+    method is_ready = true
 
-  method get_frame ab =
-    let position = Frame.position ab in
-    let length =
-      if remaining < 0 then
-        Lazy.force Frame.size - position
-      else
-        min remaining (Lazy.force Frame.size - position)
-    in
-    let content = Frame.content_of_type ab position content_type in
-    let video_pos = Frame.video_of_master position in
+    method self_sync = false
+
+    method seek x = x
+
+    method abort_track = remaining <- 0
+
+    method get_frame ab =
+      let position = Frame.position ab in
+      let length =
+        if remaining < 0 then Lazy.force Frame.size - position
+        else min remaining (Lazy.force Frame.size - position)
+      in
+      let content = Frame.content_of_type ab position content_type in
+      let video_pos = Frame.video_of_master position in
       (* Audio *)
-    Audio.clear
-      (Audio.sub content.Frame.audio
-         (Frame.audio_of_master position)
-         (Frame.audio_of_master length));
+      Audio.clear
+        (Audio.sub content.Frame.audio
+           (Frame.audio_of_master position)
+           (Frame.audio_of_master length)) ;
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))
-        content.Frame.video;
-      Frame.add_break ab (position+length) ;
-      if Frame.is_partial ab then
-        remaining <- ticks
-      else if remaining > 0 then
-        remaining <- remaining - length
-end
+        content.Frame.video ;
+      Frame.add_break ab (position + length) ;
+      if Frame.is_partial ab then remaining <- ticks
+      else if remaining > 0 then remaining <- remaining - length
+  end
 
 let () =
-  Lang.add_operator
-    "blank"
-    ~category:Lang.Input
+  Lang.add_operator "blank" ~category:Lang.Input
     ~descr:"Produce silence and blank images."
     ~kind:(Lang.Unconstrained (Lang.univ_t ()))
-    [ "duration", Lang.float_t, Some (Lang.float (-1.)),
-      Some "Duration of blank tracks in seconds, Negative value means forever." ]
+    [ ( "duration",
+        Lang.float_t,
+        Some (Lang.float (-1.)),
+        Some
+          "Duration of blank tracks in seconds, Negative value means forever."
+      ) ]
     (fun p kind ->
-       let d = Lang.to_float (List.assoc "duration" p) in
-         ((new blank ~kind d):>source))
+      let d = Lang.to_float (List.assoc "duration" p) in
+      (new blank ~kind d :> source))
 
 class empty ~kind =
-object
-  inherit source ~name:"empty" kind
-  method stype = Fallible
-  method is_ready = false
-  method self_sync = false
-  method remaining = 0
-  method abort_track = ()
-  method get_frame _ = assert false
-end
+  object
+    inherit source ~name:"empty" kind
 
-let empty kind = ((new empty ~kind):>source)
+    method stype = Fallible
+
+    method is_ready = false
+
+    method self_sync = false
+
+    method remaining = 0
+
+    method abort_track = ()
+
+    method get_frame _ = assert false
+  end
+
+let empty kind = (new empty ~kind :> source)
 
 let () =
   let audio = Lang.univ_t () in
   let video = Lang.univ_t () in
-  let midi  = Lang.univ_t () in
-  Lang.add_operator
-    "empty"
-    ~category:Lang.Input
-    ~descr:"A source that does not produce anything. \
-            No silence, no track at all."
+  let midi = Lang.univ_t () in
+  Lang.add_operator "empty" ~category:Lang.Input
+    ~descr:
+      "A source that does not produce anything. No silence, no track at all."
     ~kind:(Lang.Unconstrained (Lang.frame_kind_t ~audio ~video ~midi))
     []
-    (fun _ kind -> ((new empty ~kind):>source))
+    (fun _ kind -> (new empty ~kind :> source))

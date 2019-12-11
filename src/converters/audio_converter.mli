@@ -27,8 +27,7 @@ val audio_conf : Dtools.Conf.ut
 
 val converter_conf : Dtools.Conf.ut
 
-module Samplerate :
-sig
+module Samplerate : sig
   exception Invalid_data
 
   type converter = float -> Frame.audio_t -> Frame.audio_t
@@ -49,4 +48,3 @@ sig
       passed at [create]. *)
   val resample : t -> float -> Frame.audio_t array -> Frame.audio_t array
 end
-

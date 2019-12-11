@@ -26,22 +26,13 @@ open Shine_format
 module G = Generator.Generator
 
 let create_encoder ~samplerate ~bitrate ~channels =
-  Shine.create
-    { Shine.
-       channels   = channels; 
-       samplerate = samplerate;
-       bitrate    = bitrate }
+  Shine.create {Shine.channels; samplerate; bitrate}
 
 let encoder shine =
   let channels = shine.channels in
   let samplerate = Lazy.force shine.samplerate in
-  let enc = create_encoder ~samplerate
-                           ~bitrate:shine.bitrate 
-                           ~channels 
-  in
-  let samplerate_converter =
-    Audio_converter.Samplerate.create channels
-  in
+  let enc = create_encoder ~samplerate ~bitrate:shine.bitrate ~channels in
+  let samplerate_converter = Audio_converter.Samplerate.create channels in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   (* Shine accepts data of a fixed length.. *)
@@ -53,35 +44,33 @@ let encoder shine =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
-    let b,start,len =
-      if src_freq <> dst_freq then
-        let b = Audio_converter.Samplerate.resample
-          samplerate_converter (dst_freq /. src_freq)
-          (Audio.sub b start len)
+    let b, start, len =
+      if src_freq <> dst_freq then (
+        let b =
+          Audio_converter.Samplerate.resample samplerate_converter
+            (dst_freq /. src_freq) (Audio.sub b start len)
         in
-        b,0,Audio.length b
-      else
-        Audio.copy b,start,len
+        (b, 0, Audio.length b) )
+      else (Audio.copy b, start, len)
     in
     G.put buf b start len ;
-    while (G.length buf > samples) do
+    while G.length buf > samples do
       let l = G.get buf samples in
-      let f (b,o,o',l) = 
+      let f (b, o, o', l) =
         Audio.blit (Audio.sub b o l) (Audio.sub data o' l)
       in
       List.iter f l ;
-      Strings.Mutable.add encoded (Shine.encode_buffer enc (Audio.to_array data))
+      Strings.Mutable.add encoded
+        (Shine.encode_buffer enc (Audio.to_array data))
     done ;
     Strings.Mutable.flush encoded
   in
   let stop () = Strings.of_string (Shine.flush enc) in
-  { Encoder.
-     insert_metadata = (fun _ -> ()) ;
-     header = Strings.empty ;
-     encode = encode ;
-     stop = stop }
+  {Encoder.insert_metadata= (fun _ -> ()); header= Strings.empty; encode; stop}
 
-let () = Encoder.plug#register "SHINE"
-  (function
-     | Encoder.Shine m -> Some (fun _ _ -> encoder m)
-     | _ -> None)
+let () =
+  Encoder.plug#register "SHINE" (function
+    | Encoder.Shine m ->
+        Some (fun _ _ -> encoder m)
+    | _ ->
+        None)

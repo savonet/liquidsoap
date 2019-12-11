@@ -21,14 +21,28 @@
  *****************************************************************************)
 
 type export_metadata = Frame.metadata
+
 let export_metadata m =
   let ret = Hashtbl.create 10 in
   let l = Encoder_formats.conf_export_metadata#get in
-  Hashtbl.iter (fun x y -> if List.mem (String.lowercase_ascii x) l then
-                           Hashtbl.add ret x y) m;
+  Hashtbl.iter
+    (fun x y ->
+      if List.mem (String.lowercase_ascii x) l then Hashtbl.add ret x y)
+    m ;
   ret
+
 let to_metadata m = m
+
 let empty_metadata = Hashtbl.create 0
+
 let is_empty m = Hashtbl.length m == 0
+
 let to_string m =
-  "{ " ^ Hashtbl.fold (fun k v s -> Printf.sprintf "%s\"%s\": \"%s\"" (if s = "" then "" else s ^ " , ") k v) m "" ^ " }"
+  "{ "
+  ^ Hashtbl.fold
+      (fun k v s ->
+        Printf.sprintf "%s\"%s\": \"%s\""
+          (if s = "" then "" else s ^ " , ")
+          k v)
+      m ""
+  ^ " }"

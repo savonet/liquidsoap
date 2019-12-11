@@ -22,39 +22,43 @@
 
 open Source
 
-class swap ~kind (source:source) =
-object
-  inherit operator kind [source] ~name:"swap"
+class swap ~kind (source : source) =
+  object
+    inherit operator kind [source] ~name:"swap"
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method remaining = source#remaining
-  method abort_track = source#abort_track
-  method seek = source#seek
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
-    let buffer = source#get buf ; AFrame.content buf offset in
-      if offset = 0 then
+    method is_ready = source#is_ready
+
+    method remaining = source#remaining
+
+    method abort_track = source#abort_track
+
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      let buffer = source#get buf ; AFrame.content buf offset in
+      if offset = 0 then (
         let tmp = buffer.(1) in
-          buffer.(1) <- buffer.(2) ;
-          buffer.(2) <- tmp
+        buffer.(1) <- buffer.(2) ;
+        buffer.(2) <- tmp )
       else
-        for i = offset to AFrame.position buf -1 do
+        for i = offset to AFrame.position buf - 1 do
           let tmp = buffer.(0).{i} in
-            buffer.(0).{i} <- buffer.(1).{i} ;
-            buffer.(1).{i} <- tmp
+          buffer.(0).{i} <- buffer.(1).{i} ;
+          buffer.(1).{i} <- tmp
         done
-end
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
   Lang.add_operator "swap"
-    [ "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Conversions
+    [("", Lang.source_t k, None, None)]
+    ~kind:(Lang.Unconstrained k) ~category:Lang.Conversions
     ~descr:"Swap two channels of a stereo source."
     (fun p kind ->
-       let s = Lang.to_source (Lang.assoc "" 1 p) in
-         new swap ~kind s)
+      let s = Lang.to_source (Lang.assoc "" 1 p) in
+      new swap ~kind s)

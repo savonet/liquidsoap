@@ -24,7 +24,8 @@
 
 (** TODO: video ! :-) *)
 
-type audio_converter = ?audio_src_rate:float -> Frame.audio_t array -> Frame.audio_t array
+type audio_converter =
+  ?audio_src_rate:float -> Frame.audio_t array -> Frame.audio_t array
 
 val create_audio : unit -> audio_converter
 
@@ -33,5 +34,5 @@ type wav_converter = audio_src_rate:float -> string -> Frame.audio_t array
 (** samplesize is in bits.
       Formats: unsigned 8 bit (u8) or
                signed 16 bit little endian (s16le) *)
-val create_from_iff : format:Wav_aiff.format -> channels:int -> samplesize:int -> wav_converter
-
+val create_from_iff :
+  format:Wav_aiff.format -> channels:int -> samplesize:int -> wav_converter

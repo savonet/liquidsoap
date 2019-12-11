@@ -29,26 +29,25 @@ let () =
 let log = Log.log ~label:"log" 3
 
 let stop = ref false
+
 let lock = Tutils.Mutex.create "foo"
 
 let p s () =
-  log (s^" runs") ;
+  log (s ^ " runs") ;
   if s = "2" then Mutex.unlock lock ;
   while not !stop do
     Thread.delay 1.
   done ;
-  log (s^" quits")
+  log (s ^ " quits")
 
 let main () =
   log "Hi!" ;
   ignore (Tutils.create (p "1") () "boule") ;
   ignore (Tutils.create (p "2") () "bill") ;
   Mutex.lock lock ;
-  Thread.delay 1.
-  stop := true ;
+  Thread.delay 1. stop := true ;
   log "Waiting..." ;
   Tutils.join_all_no_timeout () ;
   log "Finished"
 
-let () =
-  Init.init main
+let () = Init.init main

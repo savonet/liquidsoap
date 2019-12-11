@@ -24,25 +24,33 @@ open Source
 
 type mode = Low_pass | High_pass | Band_pass | Notch
 
-class filter ~kind (source:source) freq q wet mode =
+class filter ~kind (source : source) freq q wet mode =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Lazy.force Frame.audio_rate) in
-object  
-  inherit operator ~name:"filter" kind [source]
+  object
+    inherit operator ~name:"filter" kind [source]
 
-  method stype = source#stype
-  method remaining = source#remaining
-  method seek = source#seek
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  val mutable low = Array.make channels 0.
-  val mutable high = Array.make channels 0.
-  val mutable band = Array.make channels 0.
-  val mutable notch = Array.make channels 0.
+    method remaining = source#remaining
 
-  (* State vartiable filter, see
+    method seek = source#seek
+
+    method is_ready = source#is_ready
+
+    method abort_track = source#abort_track
+
+    method self_sync = source#self_sync
+
+    val mutable low = Array.make channels 0.
+
+    val mutable high = Array.make channels 0.
+
+    val mutable band = Array.make channels 0.
+
+    val mutable notch = Array.make channels 0.
+
+    (* State vartiable filter, see
      http://www.musicdsp.org/archive.php?classid=3#23
 
      TODO: the problem with this filter is that it only handles freq <= rate/4,
@@ -51,68 +59,82 @@ object
 
      Maybe should we implement Chamberlin's version instead, which handles freq
      <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
-  method private get_frame buf =
-    let offset = AFrame.position buf in
-    source#get buf ;
-    let b = AFrame.content buf offset in
-    let position = AFrame.position buf in
-    let freq = freq () in
-    let q = q () in
-    let wet = wet () in
-    let f = 2. *. sin (Utils.pi *. freq /. rate) in
-    for c = 0 to Array.length b - 1 do
-      let b_c = b.(c) in
-      for i = offset to position - 1 do
-        low.(c) <- low.(c) +. f *. band.(c);
-        high.(c) <- q *. b_c.{i} -. low.(c) -. q *. band.(c);
-        band.(c) <- f *. high.(c) +. band.(c);
-        notch.(c) <- high.(c) +. low.(c);
-        b_c.{i} <-
-          wet *.
-          (match mode with
-            | Low_pass -> low.(c)
-            | High_pass -> high.(c)
-            | Band_pass -> band.(c)
-            | Notch -> notch.(c)
-          ) +. (1. -. wet) *. b_c.{i}
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      source#get buf ;
+      let b = AFrame.content buf offset in
+      let position = AFrame.position buf in
+      let freq = freq () in
+      let q = q () in
+      let wet = wet () in
+      let f = 2. *. sin (Utils.pi *. freq /. rate) in
+      for c = 0 to Array.length b - 1 do
+        let b_c = b.(c) in
+        for i = offset to position - 1 do
+          low.(c) <- low.(c) +. (f *. band.(c)) ;
+          high.(c) <- (q *. b_c.{i}) -. low.(c) -. (q *. band.(c)) ;
+          band.(c) <- (f *. high.(c)) +. band.(c) ;
+          notch.(c) <- high.(c) +. low.(c) ;
+          b_c.{i} <-
+            ( wet
+            *.
+            match mode with
+              | Low_pass ->
+                  low.(c)
+              | High_pass ->
+                  high.(c)
+              | Band_pass ->
+                  band.(c)
+              | Notch ->
+                  notch.(c) )
+            +. ((1. -. wet) *. b_c.{i})
+        done
       done
-    done
-end
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter"
-    [ "freq", Lang.float_getter_t (), None, None ;
-      "q", Lang.float_getter_t (), Some (Lang.float 1.), None ;
-      "mode", Lang.string_t, None,
-      Some "Available modes are \
-               'low' (for low-pass filter), \
-               'high' (for high-pass filter), \
-               'band' (for band-pass filter) and \
-               'notch' (for notch / band-stop / band-rejection filter)." ;
-      "wetness", Lang.float_getter_t (), Some (Lang.float 1.),
-      Some "How much of the original signal should be added \
-            (1. means only filtered and 0. means only original signal).";
-      "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.SoundProcessing
+    [ ("freq", Lang.float_getter_t (), None, None);
+      ("q", Lang.float_getter_t (), Some (Lang.float 1.), None);
+      ( "mode",
+        Lang.string_t,
+        None,
+        Some
+          "Available modes are 'low' (for low-pass filter), 'high' (for \
+           high-pass filter), 'band' (for band-pass filter) and 'notch' (for \
+           notch / band-stop / band-rejection filter)." );
+      ( "wetness",
+        Lang.float_getter_t (),
+        Some (Lang.float 1.),
+        Some
+          "How much of the original signal should be added (1. means only \
+           filtered and 0. means only original signal)." );
+      ("", Lang.source_t k, None, None) ]
+    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Perform several kinds of filtering on the signal"
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, q, wet, mode, src =
-        Lang.to_float_getter (f "freq"),
-        Lang.to_float_getter (f "q"),
-        Lang.to_float_getter (f "wetness"),
-        f "mode",
-        Lang.to_source (f "") in
+        ( Lang.to_float_getter (f "freq"),
+          Lang.to_float_getter (f "q"),
+          Lang.to_float_getter (f "wetness"),
+          f "mode",
+          Lang.to_source (f "") )
+      in
       let mode =
         match Lang.to_string mode with
-          | "low" -> Low_pass
-          | "high" -> High_pass
-          | "band" -> Band_pass
-          | "notch" -> Notch
-          | _ -> raise (Lang_errors.Invalid_value
-                          (mode,
-                           "valid values are low|high|band|notch"))
+          | "low" ->
+              Low_pass
+          | "high" ->
+              High_pass
+          | "band" ->
+              Band_pass
+          | "notch" ->
+              Notch
+          | _ ->
+              raise
+                (Lang_errors.Invalid_value
+                   (mode, "valid values are low|high|band|notch"))
       in
       new filter ~kind src freq q wet mode)

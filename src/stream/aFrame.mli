@@ -16,16 +16,16 @@ val duration : unit -> float
   * Everything below is in samples. *)
 
 (** Size of an audio frame. *)
-val size       : unit -> int
+val size : unit -> int
 
 (** Current position in frame. *)
-val position   : t -> int
+val position : t -> int
 
 (** Breaks in frame. *)
-val breaks     : t -> int list
+val breaks : t -> int list
 
 (** Add a break. *)
-val add_break  : t -> int -> unit
+val add_break : t -> int -> unit
 
 (** Change all the breaks. *)
 val set_breaks : t -> int list -> unit
@@ -43,18 +43,24 @@ val advance : t -> unit
 
 exception No_metadata
 
-type metadata = (string,string) Hashtbl.t
+type metadata = (string, string) Hashtbl.t
 
-val free_metadata    : t -> int -> unit
-val set_metadata     : t -> int -> metadata -> unit
-val get_metadata     : t -> int -> metadata option
-val free_all_metadata: t -> unit
-val get_all_metadata : t -> (int*metadata) list
-val set_all_metadata : t -> (int*metadata) list -> unit
+val free_metadata : t -> int -> unit
+
+val set_metadata : t -> int -> metadata -> unit
+
+val get_metadata : t -> int -> metadata option
+
+val free_all_metadata : t -> unit
+
+val get_all_metadata : t -> (int * metadata) list
+
+val set_all_metadata : t -> (int * metadata) list -> unit
 
 (** {2 Chunks} *)
 
 exception No_chunk
+
 val get_chunk : t -> t -> unit
 
 (** {2 Helpers} *)

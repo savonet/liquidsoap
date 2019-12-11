@@ -23,6 +23,7 @@
 type event = [`Modify]
 
 let fd = ref (None : Unix.file_descr option)
+
 let handlers = ref []
 
 let m = Mutex.create ()
@@ -31,45 +32,41 @@ let rec watchdog () =
   let fd = Utils.get_some !fd in
   let handler =
     Tutils.mutexify m (fun _ ->
-      let events = Inotify.read fd in
-      List.iter
-        (fun (wd,_,_,_) ->
-          let f = List.assoc wd !handlers in
-          f ()
-        ) events;
-      [ watchdog () ])
+        let events = Inotify.read fd in
+        List.iter
+          (fun (wd, _, _, _) ->
+            let f = List.assoc wd !handlers in
+            f ())
+          events ;
+        [watchdog ()])
   in
-  { Duppy.Task.
-    priority = Tutils.Maybe_blocking;
-    events = [ `Read fd ];
-    handler;
-  }
+  {Duppy.Task.priority= Tutils.Maybe_blocking; events= [`Read fd]; handler}
 
-let watch : File_watcher.watch = fun e file f ->
-  Tutils.mutexify m (fun () ->
-    if !fd = None then
-      begin
-        fd := Some (Inotify.create ());
-        Duppy.Task.add Tutils.scheduler (watchdog ())
-      end;
-    let fd = Utils.get_some !fd in
-    let event_conv = function
-      | `Modify ->
-          [Inotify.S_Modify; Inotify.S_Moved_to; Inotify.S_Moved_from;
-           Inotify.S_Delete; Inotify.S_Create]
-    in
-    let e =
-      List.flatten
-        (List.map event_conv e)
-    in
-    let wd = Inotify.add_watch fd file e in
-    handlers := (wd,f) :: !handlers;
-    let unwatch =
-      Tutils.mutexify m (fun () ->
-        Inotify.rm_watch fd wd;
-        handlers := List.remove_assoc wd !handlers)
-    in
-    unwatch) ()
+let watch : File_watcher.watch =
+ fun e file f ->
+  Tutils.mutexify m
+    (fun () ->
+      if !fd = None then (
+        fd := Some (Inotify.create ()) ;
+        Duppy.Task.add Tutils.scheduler (watchdog ()) ) ;
+      let fd = Utils.get_some !fd in
+      let event_conv = function
+        | `Modify ->
+            [ Inotify.S_Modify;
+              Inotify.S_Moved_to;
+              Inotify.S_Moved_from;
+              Inotify.S_Delete;
+              Inotify.S_Create ]
+      in
+      let e = List.flatten (List.map event_conv e) in
+      let wd = Inotify.add_watch fd file e in
+      handlers := (wd, f) :: !handlers ;
+      let unwatch =
+        Tutils.mutexify m (fun () ->
+            Inotify.rm_watch fd wd ;
+            handlers := List.remove_assoc wd !handlers)
+      in
+      unwatch)
+    ()
 
-let () =
-  Configure.file_watcher := watch
+let () = Configure.file_watcher := watch

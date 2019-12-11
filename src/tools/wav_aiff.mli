@@ -24,56 +24,63 @@
 
 type 'a t
 
-type format = [ `Aiff | `Wav ]
+type format = [`Aiff | `Wav]
 
 val format_of_handler : 'a t -> format
 
 exception Not_a_iff_file of string
 
-type 'a read_ops =
-  {
-    really_input : 'a -> Bytes.t -> int -> int -> unit ;
-    input_byte   : 'a -> int ;
-    input        : 'a -> Bytes.t -> int -> int -> int ;
-    (* Seek bytes from the _current_ stream position. *)
-    seek         : 'a -> int -> unit;
-    close        : 'a -> unit
-  }
+type 'a read_ops = {
+  really_input: 'a -> Bytes.t -> int -> int -> unit;
+  input_byte: 'a -> int;
+  input: 'a -> Bytes.t -> int -> int -> int;
+  (* Seek bytes from the _current_ stream position. *)
+  seek: 'a -> int -> unit;
+  close: 'a -> unit;
+}
 
-val in_chan_ops :  in_channel read_ops
+val in_chan_ops : in_channel read_ops
 
 (* buffer ofs len *)
 type callback = Bytes.t -> int -> int -> int
 
 val callback_ops : callback read_ops
 
-val fopen : string -> in_channel t
 (** Open the named file for reading, and return a new wav descriptor.
    Raise [Sys_error] if the file could not be opened and [Not_a_iff_file]
    if it hasn't the right format. *)
+val fopen : string -> in_channel t
 
-val read_header : 'a read_ops -> 'a -> 'a t
 (** Generic opener. *)
+val read_header : 'a read_ops -> 'a -> 'a t
 
-val in_chan_read_header : in_channel -> in_channel t
 (** Read data from an input channel. *)
+val in_chan_read_header : in_channel -> in_channel t
 
-val info : 'a t -> string
 (** [info w] returns a string containing some informations on wav [w] *)
+val info : 'a t -> string
 
 (** Parameters of the output PCM format. *)
 val channels : 'a t -> int
+
 val sample_rate : 'a t -> int
+
 val sample_size : 'a t -> int
+
 val data_length : 'a t -> int
 
-val close : 'a t -> unit
 (** [close w] close the wav descriptor [w] *)
+val close : 'a t -> unit
 
 (** Returns the WAV header that declares the given format.
   * The lengths of file and data are set to their maximum possible value. *)
-val wav_header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
-                  unit -> string
+val wav_header :
+  ?len:int ->
+  channels:int ->
+  sample_rate:int ->
+  sample_size:int ->
+  unit ->
+  string
 
 (** Returns the duration of the data.
     Warning: value may not be accurate for streams. *)

@@ -22,28 +22,33 @@
 
 open Source
 
-class id ~kind ?(name="id") (source:source) =
-object
-  inherit operator ~name kind [source]
+class id ~kind ?(name = "id") (source : source) =
+  object
+    inherit operator ~name kind [source]
 
-  method stype = source#stype
-  method remaining = source#remaining
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method seek = source#seek
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  method private get_frame buf = source#get buf
-end
+    method remaining = source#remaining
+
+    method is_ready = source#is_ready
+
+    method abort_track = source#abort_track
+
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    method private get_frame buf = source#get buf
+  end
 
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "id"
-    ["", Lang.source_t kind, None, None]
+    [("", Lang.source_t kind, None, None)]
     ~category:Lang.Conversions
     ~descr:"Does not do anything, simply forwards its input stream."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new id ~kind src)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      new id ~kind src)

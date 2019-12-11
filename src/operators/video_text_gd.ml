@@ -23,14 +23,18 @@
 let init () = ()
 
 let render_text ~font ~size text =
-  let bounds = Gd.ft_bbox ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:0 text in
-  let x1, y1 = bounds.(6), bounds.(7) in
-  let x2, y2 = bounds.(2), bounds.(3) in
-  let w, h = x2 - x1, y2 - y1 in
+  let bounds =
+    Gd.ft_bbox ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:0 text
+  in
+  let x1, y1 = (bounds.(6), bounds.(7)) in
+  let x2, y2 = (bounds.(2), bounds.(3)) in
+  let w, h = (x2 - x1, y2 - y1) in
   let img = Gd.create ~x:w ~y:h in
   let ca = img#colors in
-  img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w-1) ~y2:(h-1) ca#black;
-  ignore (img#string_ft ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:h ~fg:ca#white text);
+  img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w - 1) ~y2:(h - 1) ca#black ;
+  ignore
+    (img#string_ft ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:h
+       ~fg:ca#white text) ;
   let get_pixel x y =
     let c = img#get_pixel ~x ~y in
     if c = ca#white then 0xff else 0
@@ -48,7 +52,6 @@ let render_text ~font ~size text =
       + get_pixel x y) / 5
   in
   *)
-  w, h, get_pixel
+  (w, h, get_pixel)
 
-let () =
-  Video_text.register "gd" init render_text
+let () = Video_text.register "gd" init render_text
