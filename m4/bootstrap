@@ -15,3 +15,7 @@ if [ -d examples ]; then
     autoreconf -f -i
   fi
 fi
+
+if [ -e '.git' ]; then
+  git config core.hooksPath .githooks
+fi
