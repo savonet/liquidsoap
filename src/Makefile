@@ -40,6 +40,7 @@ video_converters = \
 	$(if $(W_FFMPEG),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
+	decoder/file_uri.ml \
 	decoder/metadata_decoder.ml \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
