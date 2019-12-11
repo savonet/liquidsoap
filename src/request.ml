@@ -651,10 +651,7 @@ exception ExnTimeout
   * _ If request_ready:
   *   _ Resolved
   * _ Else:
-  *   _ If [indicators]:
-  *     _ Temporary_Failure
-  *   _ Else:
-  *     _ Failure
+  *   _ Failed
   *)
 let resolve t timeout =
   t.resolving <- Some (Unix.time ()) ;
@@ -779,3 +776,12 @@ let resolve t timeout =
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
 let peek_indicator t = (peek_indicator t).uri.URI.value
+
+(* The file protocol *)
+let resolve_file arg ~log maxtime = []
+
+let () =
+  protocols#register "file" {
+    static = true;
+    resolve = resolve_file;
+  }
