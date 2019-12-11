@@ -24,6 +24,7 @@ val log : Log.t
 
 type file = string
 type stream = string
+type uri = URI.t
 
 type input =
   { read : bytes -> int -> int -> int;
@@ -45,6 +46,7 @@ type file_decoder =
   { fill : Frame.t -> int;
     fseek : int -> int;
     close : unit -> unit; }
+type uri_decoder = file_decoder
 
 val file_decoders :
   (metadata:Frame.metadata -> file -> Frame.content_kind ->
@@ -53,6 +55,10 @@ val file_decoders :
 val image_file_decoders : (file -> Video.Image.t option) Plug.plug
 val stream_decoders :
   (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
+val uri_decoders :
+  (metadata:Frame.metadata -> uri -> Frame.content_kind ->
+     (unit -> uri_decoder) option)
+  Plug.plug
 
 val conf_decoder         : Dtools.Conf.ut
 val conf_mime_types      : Dtools.Conf.ut
@@ -70,6 +76,9 @@ val get_file_decoder :
 val get_image_file_decoder : file -> Video.Image.t option
 val get_stream_decoder :
   file -> Frame.content_kind -> stream_decoder option
+val get_uri_decoder :
+  metadata:Frame.metadata -> uri -> Frame.content_kind ->
+  (string * (unit -> uri_decoder)) option
 
 module Buffered :
   functor (Generator : Generator.S) ->

@@ -66,15 +66,18 @@ type file = string
 (** A stream is identified by a MIME type. *)
 type stream = string
 
-type 'a decoder = 
+(** Uri type *)
+type uri = URI.t
+
+type 'a decoder =
   { decode : 'a -> unit;
     (* [seek x]: Skip [x] master ticks.
      * Returns the number of ticks atcually skiped. *)
     seek : int -> int }
 
-type input = 
+type input =
   { read : bytes -> int -> int -> int;
-    (* Seek to an absolute position in bytes. 
+    (* Seek to an absolute position in bytes.
      * Returns the current position after seeking. *)
     lseek : (int -> int) option ;
     tell  : (unit -> int) option ;
@@ -96,6 +99,8 @@ type file_decoder = {
   close : unit -> unit ;
 }
 
+type uri_decoder = file_decoder
+
 (** Plugins might define various decoders. In order to be accessed,
   * they should also register methods for choosing decoders. *)
 
@@ -103,8 +108,8 @@ let conf_decoder =
   Dtools.Conf.void ~p:(Configure.conf#plug "decoder")
     "Decoder settings"
 
-let conf_file_decoders = 
-  Dtools.Conf.list 
+let conf_file_decoders =
+  Dtools.Conf.list
     ~p:(conf_decoder#plug "file_decoders") ~d:[]
     "Decoders and order used to decode files."
 
@@ -114,11 +119,16 @@ let conf_image_file_decoders =
     "Decoders and order used to decode image files."
 
 let conf_stream_decoders =
-  Dtools.Conf.list 
+  Dtools.Conf.list
     ~p:(conf_decoder#plug "stream_decoders") ~d:[]
     "Decoders and order used to decode streams."
 
-let f c v = 
+let conf_uri_decoders =
+  Dtools.Conf.list
+    ~p:(conf_decoder#plug "uri_decoders") ~d:[]
+    "Decoders and order used to decode URIs."
+
+let f c v =
   match c#get_d with
     | None -> c#set_d (Some [v])
     | Some d -> c#set_d (Some (d@[v]))
@@ -139,7 +149,7 @@ let file_decoders :
       (metadata:Frame.metadata -> file -> Frame.content_kind ->
          (unit -> file_decoder) option)
       Plug.plug =
-  Plug.create 
+  Plug.create
     ~register_hook:(fun (name,_) -> f conf_file_decoders name)
     ~doc:"File decoding methods." ~insensitive:true "file decoding"
 
@@ -153,6 +163,14 @@ let stream_decoders :
   Plug.create
     ~register_hook:(fun (name,_) -> f conf_stream_decoders name)
     ~doc:"Stream decoding methods." ~insensitive:true "stream decoding"
+
+let uri_decoders :
+      (metadata:Frame.metadata -> uri -> Frame.content_kind ->
+         (unit -> uri_decoder) option)
+      Plug.plug =
+  Plug.create
+    ~register_hook:(fun (name,_) -> f conf_uri_decoders name)
+    ~doc:"URI decoding methods." ~insensitive:true "uri decoding"
 
 let conf_debug =
   Dtools.Conf.bool ~p:(conf_decoder#plug "debug") ~d:false
@@ -183,7 +201,7 @@ let test_file ?(log=log) ~mimes ~extensions fname =
   if not (Sys.file_exists fname) then begin
     log#info "File %S does not exist!" fname ;
     false
-  end else 
+  end else
     let ext_ok =
       try
         List.mem (Utils.get_ext fname) extensions
@@ -235,7 +253,7 @@ let get_file_decoder ~metadata filename kind =
            | Some f ->
                log#important "Method %S accepted %S." name filename ;
                raise (Exit (name,f))
-           | None -> ()) (get_decoders conf_file_decoders 
+           | None -> ()) (get_decoders conf_file_decoders
                                        file_decoders) ;
     log#important
       "Unable to decode %S as %s!"
@@ -294,6 +312,41 @@ let get_stream_decoder mime kind =
   with
     | Exit_decoder f -> Some f
 
+let get_uri_decoder ~metadata uri kind =
+  try
+    List.iter
+      (fun (name,decoder) ->
+        log#info "Trying method %S for %S..." name uri.URI.value ;
+        match
+          try decoder ~metadata uri kind with
+            | e ->
+              log#info
+                "Decoder %S failed on %S: %s!"
+                name uri.URI.value (Printexc.to_string e) ;
+              None
+        with
+          | Some f ->
+            log#important "Method %S accepted %S." name uri.URI.value ;
+            raise (Exit (name,f))
+          | None -> ()
+      )
+      (get_decoders conf_uri_decoders uri_decoders)
+    ;
+    log#important
+      "Unable to decode %S as %s!"
+      uri.URI.value (Frame.string_of_content_kind kind) ;
+    None
+  with
+    | Exit (name,f) ->
+      Some (name,
+        fun () ->
+          try f () with exn ->
+            log#severe "Decoder %S betrayed us on %S! Error: %s\n%s"
+              name uri.URI.value (Printexc.to_string exn)
+              (Printexc.get_backtrace ());
+            dummy
+      )
+
 (** {1 Helpers for defining decoders} *)
 
 module Buffered(Generator:Generator.S) =
@@ -327,7 +380,7 @@ struct
        * will be executed iff there was no exception
        * raised before. If a decoder wants to recover
        * on an exception, it should catch it and deal
-       * with it on its own. 
+       * with it on its own.
        * Hence, the current policy for decoding is:
        * decoding stops at the first exception raised. *)
       if (not !decoding_done) then
@@ -394,7 +447,7 @@ struct
             decoding_done := true;
             0
     in
-    let fseek len = 
+    let fseek len =
       let gen_len = Generator.length gen in
       if len < 0 || len > gen_len then
         begin
@@ -412,7 +465,7 @@ struct
         fseek = fseek;
         close = close }
 
-  let file_decoder filename kind create_decoder gen = 
+  let file_decoder filename kind create_decoder gen =
     let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
     let file_size = (Unix.stat filename).Unix.st_size in
     let proc_bytes = ref 0 in
