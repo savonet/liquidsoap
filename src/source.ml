@@ -77,10 +77,17 @@ type source_t = Fallible | Infallible
   * according to its sources' clocks. Eventually, all remaining unknown clocks
   * are forced to clock. *)
 
+type sync = [
+  | `Auto
+  | `CPU
+  | `None
+]
+
 class type ['a,'b] proto_clock =
 object
 
   method id : string
+  method sync_mode : sync
 
   (** Attach an active source, detach active sources by filter. *)
 
@@ -225,6 +232,26 @@ let rec forget var subclock =
 
 (** {1 Sources} *)
 
+(** Instrumentation. *)
+
+type metadata = (int*(string, string) Hashtbl.t) list
+
+type clock_sync_mode = [
+  | sync
+  | `Unknown
+]
+
+type watcher = {
+  get_ready : stype:source_t -> is_output:bool -> id:string ->
+              content_kind:Frame.content_kind ->
+              clock_id:string -> clock_sync_mode:clock_sync_mode -> unit;
+  leave : unit -> unit;
+  get_frame : start_time:float -> end_time:float ->
+              start_position:int -> end_position:int ->
+              is_partial:bool -> metadata:metadata -> unit;
+  after_output : unit -> unit
+}
+
 let source_log = Log.make ["source"]
 
 (** Has any output been created? This is used by Main to decide if
@@ -242,6 +269,12 @@ let add_new_output, iterate_new_outputs =
 
 class virtual operator ?(name="src") content_kind sources =
 object (self)
+  (** Monitoring *)
+  val mutable watchers = []
+  method add_watcher w =
+    watchers <- w::watchers
+  method private iter_watchers fn =
+    List.iter fn watchers
 
   (** Logging and identification *)
 
@@ -406,7 +439,16 @@ object (self)
       dynamic_activations <- activation::dynamic_activations
     else
       static_activations <- activation::static_activations ;
-    self#update_caching_mode
+    self#update_caching_mode;
+    let clock_id, clock_sync_mode = 
+      match deref self#clock with
+        | Known c -> c#id, (c#sync_mode:>clock_sync_mode)
+        | _ -> "unknown", `Unknown
+    in
+    self#iter_watchers (fun w ->
+      w.get_ready ~stype:self#stype ~is_output:self#is_output
+                  ~id:self#id ~content_kind:self#kind
+                  ~clock_id ~clock_sync_mode)
 
   (* Release the source, which will shutdown if possible.
    * The current implementation makes it dangerous to call #leave from
@@ -442,7 +484,8 @@ object (self)
           Server.unregister ns ;
           ns <- []
         end
-      end
+      end;
+      self#iter_watchers (fun w -> w.leave ())
 
   method is_up = static_activations <> [] || dynamic_activations <> []
 
@@ -490,6 +533,36 @@ object (self)
   val memo = Frame.create content_kind
   method get_memo = memo
 
+  method private instrumented_get_frame buf =
+    if watchers = [] then self#get_frame buf else
+     begin
+      let start_time =
+        Unix.gettimeofday ()
+      in
+      let start_position =
+        Frame.position buf
+      in
+      self#get_frame buf ;
+      let end_time =
+        Unix.gettimeofday ()
+      in
+      let end_position =
+        Frame.position buf
+      in
+      let is_partial =
+        Frame.is_partial buf
+      in
+      let metadata =
+        List.filter (fun (pos,_) ->
+          start_position <= pos) (Frame.get_all_metadata buf)
+      in
+      self#iter_watchers (fun w ->
+        w.get_frame
+          ~start_time ~start_position
+          ~end_time ~end_position ~is_partial ~metadata)
+     end
+    
+
   (* [#get buf] completes the frame with the next data in the stream.
    * Depending on whether caching is enabled or not,
    * it calls [#get_frame] directly or tries to get data from the cache frame,
@@ -524,11 +597,11 @@ object (self)
     if not caching then begin
       if not self#is_ready then silent_end_track () else
       let b = Frame.breaks buf in
-        self#get_frame buf ;
-        if List.length b + 1 <> List.length (Frame.breaks buf) then begin
-          self#log#severe "#get_frame didn't add exactly one break!" ;
-          assert false
-        end
+      self#instrumented_get_frame buf;
+      if List.length b + 1 <> List.length (Frame.breaks buf) then begin
+        self#log#severe "#get_frame didn't add exactly one break!" ;
+        assert false
+      end;
     end else begin
       try
         Frame.get_chunk buf memo
@@ -538,7 +611,7 @@ object (self)
           (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
           let b = Frame.breaks memo in
           let p = Frame.position memo in
-            self#get_frame memo ;
+            self#instrumented_get_frame memo ;
             if List.length b + 1 <> List.length (Frame.breaks memo) then begin
               self#log#severe "#get_frame didn't add exactly one break!" ;
               assert false
@@ -561,7 +634,9 @@ object (self)
    * can freeze its state in an unwanted way. *)
   method after_output =
     List.iter (fun s -> s#after_output) sources ;
-    self#advance
+    self#advance;
+    self#iter_watchers (fun w ->
+      w.after_output ())
 
   (* Reset the cache frame *)
   method advance =
@@ -625,6 +700,7 @@ type clock_variable = active_source var
 class type clock =
 object
   method id : string
+  method sync_mode : sync
   method attach : active_source -> unit
   method detach : (active_source -> bool) -> unit
   method attach_clock : clock_variable -> unit

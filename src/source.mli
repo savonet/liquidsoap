@@ -22,12 +22,48 @@
 
 type clock_variable
 
+(** In [`CPU] mode, synchronization is governed by the CPU clock.
+  * In [`None] mode, there is no synchronization control. Latency in
+  * is governed by the time it takes for the sources to produce and
+  * output data.
+  * In [`Auto] mode, synchronization is governed by the CPU unless at
+  * least one active source is declared [self_sync] in which case latency
+  * is delegated to this source. A typical example being a source linked
+  * to a sound card, in which case the source latency is governed
+  * by the sound card's clock. Another case is synchronous network
+  * protocol such as [input.srt]. *)
+type sync = [
+  | `Auto
+  | `CPU
+  | `None
+]
+
 (** The liveness type of a source indicates whether or not it can
   * fail to broadcast.
   * A Infallible source never fails; it is always ready. *)
 type source_t = Fallible | Infallible
 
-(** The [source] use is to send music frames through the [get] method. *)
+(** Instrumentation. *)
+
+type metadata = (int*(string, string) Hashtbl.t) list
+
+type clock_sync_mode = [
+  | sync
+  | `Unknown
+]
+
+type watcher = {
+  get_ready : stype:source_t -> is_output:bool -> id:string ->
+              content_kind:Frame.content_kind ->
+              clock_id:string -> clock_sync_mode:clock_sync_mode -> unit;
+  leave : unit -> unit;
+  get_frame : start_time:float -> end_time:float ->
+              start_position:int -> end_position:int ->
+              is_partial:bool -> metadata:metadata -> unit;
+  after_output : unit -> unit
+}
+
+(** The [source] use is to send data frames through the [get] method. *)
 class virtual source : ?name:string -> Frame.content_kind ->
 object
 
@@ -79,7 +115,8 @@ object
   method get_ready : ?dynamic:bool -> source list -> unit
 
   (** Called when the source must be ready and had no active operator,
-    * means that the source has to initialize. *)
+    * means that the source has to initialize. This method is called by
+    * [get_ready] and not called externally. *)
   method private wake_up : source list -> unit
 
   (** Opposite of [get_ready] : the operator no longer needs the source. *)
@@ -143,6 +180,7 @@ object
 
   method private log : Log.t
 
+  method add_watcher : watcher -> unit
 end
 
 (* Entry-points sources, which need to actively perform some task. *)
@@ -196,6 +234,8 @@ class type clock =
 object
   (** Identifier of the clock. *)
   method id : string
+
+  method sync_mode : sync
 
   (** Attach an active source to the clock. *)
   method attach : active_source -> unit
