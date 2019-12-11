@@ -63,6 +63,7 @@ depends: [
   "ocamlfind" {build}
   "pcre"
   "sedlex" {>= "2.0"}
+  "uri" {>= "3.1"}
 ]
 depopts: [
   "alsa"
@@ -105,7 +106,7 @@ depopts: [
   "tsdl-ttf"
   "vorbis"
   "xmlplaylist"
-  "yojson" 
+  "yojson"
 ]
 conflicts: [
   "alsa" {< "0.2.4"}

@@ -24,7 +24,7 @@ val log : Log.t
 
 type file = string
 type stream = string
-type uri = URI.t
+type uri = Uri.t
 
 type input =
   { read : bytes -> int -> int -> int;

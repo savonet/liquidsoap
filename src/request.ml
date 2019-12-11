@@ -110,8 +110,31 @@ let string_of_log log =
   * ]
   *)
 
+let default_scheme =
+  Dtools.Conf.string ~p:(conf#plug "default_scheme") ~d:"file"
+    "Default scheme used for URIs without one."
+
+let path_prefix =
+  Dtools.Conf.string ~p:(conf#plug "path_prefix") ~d:(Sys.getcwd())
+    "Path prefix used to resolve relative paths in URIs."
+
+let parse_uri s =
+  let uri = Uri.of_string s in
+  let scheme = match Uri.scheme uri with
+    | None -> default_scheme#get
+    | Some s -> s
+  in
+  let uri = match scheme with
+    | "file" ->
+      let path = Utils.home_unrelate (Uri.path uri) in
+      Uri.with_uri ~path:(Some path) uri
+    | _ -> uri
+  in
+  let base_uri = Uri.make ~scheme:scheme ~path:(path_prefix#get) () in
+  Uri.resolve scheme base_uri uri
+
 type indicator = {
-  uri : URI.t ;
+  uri : Uri.t ;
   temporary : bool ;
   metadata : metadata
 }
@@ -120,7 +143,7 @@ type status = Idle | Resolving | Ready | Playing | Destroyed
 
 type t = {
   id : int ;
-  initial_uri : string ;
+  initial_uri : Uri.t ;
   kind : Frame.content_kind option ; (* No kind for raw requests *)
   persistent : bool ;
 
@@ -144,16 +167,14 @@ type t = {
 
 let kind x = x.kind
 
-let initial_uri x = x.initial_uri
+let initial_uri x = Uri.pct_decode (Uri.to_string x.initial_uri)
 
 let indicator ?(metadata=Hashtbl.create 10) ?temporary s =
-  try
-    {
-      uri = URI.create s ;
-      temporary = temporary = Some true ;
-      metadata = metadata
-    }
-  with e -> log#important "Malformed URI: %S" s; raise e
+  {
+    uri = parse_uri s ;
+    temporary = temporary = Some true ;
+    metadata = metadata
+  }
 
 (** Length *)
 let dresolvers_doc =
@@ -252,9 +273,9 @@ let rec pop_indicator t =
       | [] -> raise No_indicator
   in
     if i.temporary then
-      if i.uri.URI.scheme = "file" then
+      if Uri.scheme i.uri = Some "file" then
         begin try
-          Unix.unlink i.uri.URI.path
+          Unix.unlink (Uri.path i.uri)
         with
           | e ->
             log#severe "Unlink failed: %S" (Printexc.to_string e)
@@ -314,7 +335,7 @@ let file_is_readable name =
 let push_indicators t l =
   if l <> [] then
     let hd = List.hd l in
-      add_log t (Printf.sprintf "Pushed [%S;...]." hd.uri.URI.value) ;
+      add_log t (Printf.sprintf "Pushed [%S;...]." (Uri.to_string hd.uri)) ;
       t.indicators <- l::t.indicators ;
       t.decoder <- None
       (** Do _not_ perform any check now
@@ -329,14 +350,15 @@ let is_ready t =
   * [None] otherwise. *)
 let get_filename t =
   if is_ready t then
-    Some (List.hd (List.hd t.indicators)).uri.URI.value
+    let i = (List.hd (List.hd t.indicators)) in
+    Some (Uri.to_string i.uri)
   else
     None
 
 let update_metadata t =
   let replace = Hashtbl.replace t.root_metadata in
     replace "rid" (string_of_int t.id) ;
-    replace "initial_uri" t.initial_uri ;
+    replace "initial_uri" (initial_uri t) ;
     (* TOP INDICATOR *)
     replace "temporary"
       (match t.indicators with
@@ -425,7 +447,7 @@ let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
   let rid,register = Pool.add () in
   let t = {
     id = rid ;
-    initial_uri = u ;
+    initial_uri = parse_uri u ;
     kind = kind ;
     persistent = persistent ;
 
@@ -491,11 +513,14 @@ let protocols = Plug.create ~doc:protocols_doc ~insensitive:true "protocols"
 
 let is_static s =
   try
-    let uri = URI.create s in
-    begin match protocols#get uri.URI.scheme with
-      | Some handler -> handler.static
-      | None -> false
-    end
+    let uri = parse_uri s in
+    match Uri.scheme uri with
+      | Some scheme ->
+        begin match protocols#get scheme with
+        | Some handler -> handler.static
+        | None -> false
+        end
+      | None -> assert false
   with _ -> false
 
 (** Resolving engine. *)
@@ -548,15 +573,20 @@ let resolve t timeout =
   let maxtime = (Unix.time ()) +. timeout in
   let try_again = ref [] in
   let uri_arg uri =
-    let start = ((String.length uri.URI.scheme) + 1) in
-    String.sub uri.URI.value start ((String.length uri.URI.value) - start)
+    let scheme = match Uri.scheme uri with
+      | Some s -> s
+      | None -> assert false
+    in
+    let uri = Uri.to_string uri in
+    let start = ((String.length scheme) + 1) in
+    String.sub uri start ((String.length uri) - start)
   in
   let resolve_metadata indicator =
-    let uri = indicator.uri in
+    let uri = Uri.to_string indicator.uri in
     List.iter
       (fun (_,resolver) ->
         try
-          let ans = resolver uri.URI.value in
+          let ans = resolver uri in
           List.iter
             (fun (k,v) ->
               let k = String.lowercase_ascii k in
@@ -568,7 +598,7 @@ let resolve t timeout =
           if conf_duration#get && get_metadata t "duration" = None then
             try
               Hashtbl.replace indicator.metadata "duration"
-                (string_of_float (duration uri.URI.value))
+                (string_of_float (duration uri))
             with Not_found -> ()
         with
           | _ -> ()
@@ -577,19 +607,20 @@ let resolve t timeout =
   in
   let try_decoder indicator kind =
     let uri = indicator.uri in
+    let uri_s = Uri.to_string uri in
     let metadata = get_all_metadata t in
     (* try *)
       match Decoder.get_uri_decoder ~metadata uri kind with
         | Some (decoder_name,f) ->
           log#info
-            "Decoder %S handles %S" decoder_name uri.URI.value;
+            "Decoder %S handles %S" decoder_name uri_s;
           t.decoder <- Some f ;
           set_root_metadata t "decoder" decoder_name ;
           resolve_metadata indicator;
           t.status <- Ready
         | None ->
           log#info
-            "Failed to find a decoder for %S" uri.URI.value;
+            "Failed to find a decoder for %S" uri_s;
           ignore (pop_indicator t)
 (*  with Temporary_Failure ->
       try_again := List.append [indicator] !try_again;
@@ -606,10 +637,13 @@ let resolve t timeout =
         | Some kind ->
           try_decoder indicator kind
         | None ->
-          if uri.URI.scheme = "file" && file_is_readable uri.URI.path then
-            t.status <- Ready
-          else
-            ignore (pop_indicator t)
+          match Uri.scheme uri with
+            | Some "file" ->
+              if file_is_readable (Uri.path uri) then
+                t.status <- Ready
+              else
+                ignore (pop_indicator t)
+            | _ -> ignore (pop_indicator t)
     end else begin
       ignore (pop_indicator t);
       push_indicators t production
@@ -618,23 +652,28 @@ let resolve t timeout =
   let resolve_step () =
     let i = peek_indicator t in
     let uri = i.uri in
+    let scheme = match Uri.scheme uri with
+      | Some s -> s
+      | None -> assert false
+    in
+    let uri_s = Uri.to_string uri in
     try
-      begin match protocols#get uri.URI.scheme with
+      begin match protocols#get scheme with
         | Some handler ->
           add_log t
             (Printf.sprintf
             "Resolving %S (timeout %.0fs)..."
-            uri.URI.value timeout)
+            uri_s timeout)
           ;
           try_protocol i handler
         | None ->
           log#important "Unknown protocol %S in URI %S!"
-            uri.URI.scheme uri.URI.value ;
+            scheme uri_s ;
           add_log t "Unknown protocol!" ;
           pop_indicator t
       end
     with _ ->
-      log#f 3 "Nonexistent file or ill-formed URI %S!" uri.URI.value ;
+      log#f 3 "Nonexistent file or ill-formed URI %S!" uri_s ;
       add_log t "Nonexistent file or ill-formed URI!" ;
       pop_indicator t
   in
@@ -664,7 +703,7 @@ let resolve t timeout =
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
-let peek_indicator t = (peek_indicator t).uri.URI.value
+let peek_indicator t = Uri.to_string (peek_indicator t).uri
 
 (* The file protocol *)
 let resolve_file arg ~log maxtime =

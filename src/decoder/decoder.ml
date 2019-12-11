@@ -67,7 +67,7 @@ type file = string
 type stream = string
 
 (** Uri type *)
-type uri = URI.t
+type uri = Uri.t
 
 type 'a decoder =
   { decode : 'a -> unit;
@@ -313,20 +313,21 @@ let get_stream_decoder mime kind =
     | Exit_decoder f -> Some f
 
 let get_uri_decoder ~metadata uri kind =
+  let uri_s = Uri.to_string uri in
   try
     List.iter
       (fun (name,decoder) ->
-        log#info "Trying method %S for %S..." name uri.URI.value ;
+        log#info "Trying method %S for %S..." name uri_s ;
         match
           try decoder ~metadata uri kind with
             | e ->
               log#info
                 "Decoder %S failed on %S: %s!"
-                name uri.URI.value (Printexc.to_string e) ;
+                name uri_s (Printexc.to_string e) ;
               None
         with
           | Some f ->
-            log#important "Method %S accepted %S." name uri.URI.value ;
+            log#important "Method %S accepted %S." name uri_s ;
             raise (Exit (name,f))
           | None -> ()
       )
@@ -334,7 +335,7 @@ let get_uri_decoder ~metadata uri kind =
     ;
     log#important
       "Unable to decode %S as %s!"
-      uri.URI.value (Frame.string_of_content_kind kind) ;
+      uri_s (Frame.string_of_content_kind kind) ;
     None
   with
     | Exit (name,f) ->
@@ -342,7 +343,7 @@ let get_uri_decoder ~metadata uri kind =
         fun () ->
           try f () with exn ->
             log#severe "Decoder %S betrayed us on %S! Error: %s\n%s"
-              name uri.URI.value (Printexc.to_string exn)
+              name uri_s (Printexc.to_string exn)
               (Printexc.get_backtrace ());
             dummy
       )
