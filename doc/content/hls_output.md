@@ -10,10 +10,7 @@ aac_lofi = %ffmpeg(format="mpegts",
                    codec="libfdk_aac",
                    channels=2,
                    ar=44100,
-                   # Bitrate is define per channel in ffmpeg,
-                   # so for 2 channels, 16k per channel gives
-                   # an overall bitrate of 32k
-                   b="16k",
+                   b="32k",
                    afterburner=1,
                    profile="aac_he_v2")
 
@@ -21,7 +18,7 @@ aac_midfi = %ffmpeg(format="mpegts",
                    codec="libfdk_aac",
                    channels=2,
                    ar=44100,
-                   b="48k",
+                   b="96k",
                    afterburner=1,
                    profile="aac_low")
 
@@ -29,7 +26,7 @@ aac_hifi = %ffmpeg(format="mpegts",
                    codec="libfdk_aac",
                    channels=2,
                    ar=44100,
-                   b="96k",
+                   b="192k",
                    afterburner=1,
                    profile="aac_low")
 
