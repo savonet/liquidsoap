@@ -2,7 +2,7 @@
 
 echo "--> Formatting ML files.. "
 
-FILES=`git status -s | cut -d' ' -f3 | grep -E '\.ml$|\.mli$'`
+FILES=`git status -s | grep -v '^D' | cut -d' ' -f3 | grep -E '\.ml$|\.mli$'`
 
 OCAMLFORMAT=`which ocamlformat`
 
