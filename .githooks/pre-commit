@@ -1,0 +1,29 @@
+#!/bin/sh
+
+echo "--> Formatting ML files.. "
+
+FILES=`git status -s | cut -d' ' -f3 | grep -E '\.ml$|\.mli$'`
+
+OCAMLFORMAT=`which ocamlformat`
+
+if [ -z "${FILES}" ]; then
+  echo "No ML files in this commit!";
+  exit 0
+fi
+
+OCAMLFORMAT=`which ocamlformat`
+
+if [ ! -x "${OCAMLFORMAT}" ]; then
+  echo "git pre-commit hook failed.. Please install ocamlformat!";
+  exit 1;
+fi
+
+set -e
+
+${OCAMLFORMAT} -i -n 3 ${FILES}
+
+git add ${FILES}
+
+echo ""
+echo "Done!"
+echo ""
