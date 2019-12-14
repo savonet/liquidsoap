@@ -25,9 +25,11 @@ open Lang_builtins
 let () =
   add_builtin "file.mime" ~cat:Liq (* TODO bad category *)
     ~descr:"Get the MIME type of a file, according to libmagic."
-    [ "",Lang.string_t,None,None ] Lang.string_t
-    (fun p ->
-       let file = Lang.to_string (Lang.assoc "" 1 p) in
-         match Configure.file_mime with
-           | Some s -> Lang.string (s file)
-           | None -> assert false (* TODO is that really impossible ? *))
+    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+      (* TODO is that really impossible ? *)
+      let file = Lang.to_string (Lang.assoc "" 1 p) in
+      match Configure.file_mime with
+        | Some s ->
+            Lang.string (s file)
+        | None ->
+            assert false)

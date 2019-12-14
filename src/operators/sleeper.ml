@@ -24,39 +24,52 @@ open Source
 
 class map ~kind source delay random freeze =
   let dt = AFrame.duration () in
-object
-  inherit operator kind [source]
+  object
+    inherit operator kind [source]
 
-  val mutable lived = 0.
+    val mutable lived = 0.
 
-  method stype = source#stype
-  method remaining = source#remaining
-  method seek = source#seek
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  method private get_frame buf =
-    source#get buf;
-    let delay = delay +. Random.float random in
-    Thread.delay delay;
-    lived <- lived +. max dt delay;
-    if freeze >= 0. && lived >= freeze then
-      while true do Thread.delay 60. done
-end
+    method remaining = source#remaining
+
+    method seek = source#seek
+
+    method is_ready = source#is_ready
+
+    method abort_track = source#abort_track
+
+    method self_sync = source#self_sync
+
+    method private get_frame buf =
+      source#get buf ;
+      let delay = delay +. Random.float random in
+      Thread.delay delay ;
+      lived <- lived +. max dt delay ;
+      if freeze >= 0. && lived >= freeze then
+        while true do
+          Thread.delay 60.
+        done
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "sleeper"
-    [
-      "delay", Lang.float_t, Some (Lang.float 1.),
-      Some "Amount of time to sleep at each frame, the unit being the frame length.";
-      "random", Lang.float_t, Some (Lang.float 0.),
-      Some "Maximal random amount of time added (unit is frame length).";
-      "freeze", Lang.float_t, Some (Lang.float (-1.)),
-      Some "Freeze after given amount of time (don't freeze if negative).";
-      "", Lang.source_t k, None, None
-    ]
+    [ ( "delay",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "Amount of time to sleep at each frame, the unit being the frame \
+           length." );
+      ( "random",
+        Lang.float_t,
+        Some (Lang.float 0.),
+        Some "Maximal random amount of time added (unit is frame length)." );
+      ( "freeze",
+        Lang.float_t,
+        Some (Lang.float (-1.)),
+        Some "Freeze after given amount of time (don't freeze if negative)." );
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k)
     ~descr:"Sleep at each frame. Useful for emulating network delays, etc."
     ~category:Lang.SoundProcessing

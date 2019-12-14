@@ -22,40 +22,43 @@
 
 (** Samplerate converter using libsamplerate *)
 
-let log = Log.make ["audio";"converter";"libsamplerate"]
+let log = Log.make ["audio"; "converter"; "libsamplerate"]
 
-let samplerate_conf = 
-  Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate") 
-    "Libsamplerate conversion settings" 
+let samplerate_conf =
+  Dtools.Conf.void
+    ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate")
+    "Libsamplerate conversion settings"
     ~comments:["Options related to libsamplerate conversion."]
 
-let quality_conf = 
-  Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
+let quality_conf =
+  Dtools.Conf.string
+    ~p:(samplerate_conf#plug "quality")
     "Resampling quality" ~d:"fast"
-    ~comments:["Resampling quality, one of: \
-                `\"best\"`, \
-                `\"medium\"`, \
-                `\"fast\"`, \
-                `\"zero_order\"` or \
-                `\"linear\"`. Refer to ocaml-samplerate for details."]
+    ~comments:
+      [ "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
+         `\"zero_order\"` or `\"linear\"`. Refer to ocaml-samplerate for \
+         details." ]
 
-let quality_of_string v = 
+let quality_of_string v =
   match v with
-    | "best" -> Samplerate.Conv_sinc_best_quality
-    | "medium" -> Samplerate.Conv_sinc_medium_quality
-    | "fast" -> Samplerate.Conv_fastest
-    | "zero_order" -> Samplerate.Conv_zero_order_hold
-    | "linear" -> Samplerate.Conv_linear
-    | _ -> raise (Lang_errors.Invalid_value 
-                    (Lang.string v,
-                      "libsamplerate quality must be one of: \
-                       \"best\", \
-                       \"medium\", \
-                       \"fast\", \
-                       \"zero_order\", \
-                       \"linear\"."))
+    | "best" ->
+        Samplerate.Conv_sinc_best_quality
+    | "medium" ->
+        Samplerate.Conv_sinc_medium_quality
+    | "fast" ->
+        Samplerate.Conv_fastest
+    | "zero_order" ->
+        Samplerate.Conv_zero_order_hold
+    | "linear" ->
+        Samplerate.Conv_linear
+    | _ ->
+        raise
+          (Lang_errors.Invalid_value
+             ( Lang.string v,
+               "libsamplerate quality must be one of: \"best\", \"medium\", \
+                \"fast\", \"zero_order\", \"linear\"." ))
 
-let samplerate_converter () = 
+let samplerate_converter () =
   let quality = quality_of_string quality_conf#get in
   let converter = Samplerate.create quality 1 in
   let convert ratio b =
@@ -63,13 +66,17 @@ let samplerate_converter () =
     let outlen = int_of_float (float inlen *. ratio) in
     let buf = Audio.Mono.create outlen in
     let i, o = Samplerate.process_ba converter ratio b buf in
-    if i < inlen then log#debug "Could not convert all the input buffer (%d instead of %d)." i inlen;
-    if o < outlen then log#debug "Unexpected output length (%d instead of %d)." o outlen;
+    if i < inlen then
+      log#debug "Could not convert all the input buffer (%d instead of %d)." i
+        inlen ;
+    if o < outlen then
+      log#debug "Unexpected output length (%d instead of %d)." o outlen ;
     (* TODO: the following would solve the issue but apparently messes up buffers *)
     (* Audio.Mono.sub buf 0 o *)
     buf
   in
   convert
 
-let () = 
-  Audio_converter.Samplerate.converters#register "libsamplerate" samplerate_converter
+let () =
+  Audio_converter.Samplerate.converters#register "libsamplerate"
+    samplerate_converter

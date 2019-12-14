@@ -22,46 +22,59 @@
 
 (** General classes for streaming files. *)
 
-class virtual unqueued : kind:Frame.content_kind -> name:string ->
-object
-  (** [get_next_file] is the only thing you've got to define,
+class virtual unqueued :
+  kind:Frame.content_kind
+  -> name:string
+  -> object
+       (** [get_next_file] is the only thing you've got to define,
     * it's supposed to return "quickly" as it is run in the Root thread. *)
-  method virtual get_next_file : Request.t option
+       method virtual get_next_file : Request.t option
 
-  inherit Source.source
-  method is_ready : bool
-  method private get_frame : Frame.t -> unit
-  method abort_track : unit
-  method copy_queue : Request.t list
-  method remaining : int
-  method self_sync : bool
-end
+       inherit Source.source
 
-class virtual queued : kind:Frame.content_kind -> name:string ->
-  ?length:float -> ?default_duration:float -> ?conservative:bool ->
-  ?timeout:float -> unit ->
-object
-  method copy_queue : Request.t list
+       method is_ready : bool
 
-  method stype : Source.source_t
+       method private get_frame : Frame.t -> unit
 
-  (** You should only define this. *)
-  method virtual get_next_request : Request.t option
+       method abort_track : unit
 
-  (** This method should be called whenever the feeding task gets
+       method copy_queue : Request.t list
+
+       method remaining : int
+
+       method self_sync : bool
+     end
+
+class virtual queued :
+  kind:Frame.content_kind
+  -> name:string
+  -> ?length:float
+  -> ?default_duration:float
+  -> ?conservative:bool
+  -> ?timeout:float
+  -> unit
+  -> object
+       method copy_queue : Request.t list
+
+       method stype : Source.source_t
+
+       (** You should only define this. *)
+       method virtual get_next_request : Request.t option
+
+       (** This method should be called whenever the feeding task gets
     * a new opportunity to add more data into the queue. *)
-  method private notify_new_request : unit
+       method private notify_new_request : unit
 
-  inherit unqueued
+       inherit unqueued
 
-  (** Everything you need is defined. Dont touch. *)
-  method private get_next_file : Request.t option
+       (** Everything you need is defined. Dont touch. *)
+       method private get_next_file : Request.t option
 
-  (** [#expire f] marks queued requests [r] such that [f r] as expired,
+       (** [#expire f] marks queued requests [r] such that [f r] as expired,
     * which will trigger their removal from the queue as soon as possible .*)
-  method private expire : (Request.t -> bool) -> unit
-
-end
+       method private expire : (Request.t -> bool) -> unit
+     end
 
 val queued_proto : Lang.proto
-val extract_queued_params : Lang.env -> float*float*float*bool
+
+val extract_queued_params : Lang.env -> float * float * float * bool

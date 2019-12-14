@@ -21,7 +21,9 @@
  *****************************************************************************)
 
 let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "encoder") "Encoder settings"
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "encoder")
+    "Encoder settings"
     ~comments:["Settings for the encoder"]
 
 let conf_meta =
@@ -31,9 +33,18 @@ let conf_meta =
 (** The list of metadata fields that should be exported when encoding. *)
 let conf_export_metadata =
   Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
-    ~d:["artist";"title";"album";"genre";"date";"tracknumber";
-    "comment";"track";"year";"dj";"next"]
+    ~d:
+      [ "artist";
+        "title";
+        "album";
+        "genre";
+        "date";
+        "tracknumber";
+        "comment";
+        "track";
+        "year";
+        "dj";
+        "next" ]
     ~comments:["The list of labels of exported metadata."]
 
-let string_of_stereo s =
-  if s then "stereo" else "mono"
+let string_of_stereo s = if s then "stereo" else "mono"

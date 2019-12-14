@@ -23,28 +23,23 @@
 (** Dynamic Fdkaac encoder *)
 
 let path =
-  try
-    [Sys.getenv "FDKAAC_DYN_PATH"]
-  with
-    | Not_found -> 
-       List.fold_left 
-         (fun l x -> (x ^ "/fdkaac") :: l)
-         Configure.findlib_path Configure.findlib_path
+  try [Sys.getenv "FDKAAC_DYN_PATH"]
+  with Not_found ->
+    List.fold_left
+      (fun l x -> (x ^ "/fdkaac") :: l)
+      Configure.findlib_path Configure.findlib_path
 
 open Fdkaac_dynlink
 
 let () =
-  let load () = 
+  let load () =
     match handler.fdkaac_module with
       | Some m ->
           let module Fdkaac = (val m : Fdkaac_dynlink.Fdkaac_t) in
-          let module Register = Fdkaac_encoder.Register(Fdkaac) in
+          let module Register = Fdkaac_encoder.Register (Fdkaac) in
           Register.register_encoder "AAC/fdkaac/dynlink"
-      | None   -> assert false
+      | None ->
+          assert false
   in
-  Hashtbl.add Dyntools.dynlink_list
-     "fdkaac encoder"
-     { Dyntools.
-        path = path;
-        files = ["fdkaac";"fdkaac_loader"];
-        load = load }
+  Hashtbl.add Dyntools.dynlink_list "fdkaac encoder"
+    {Dyntools.path; files= ["fdkaac"; "fdkaac_loader"]; load}

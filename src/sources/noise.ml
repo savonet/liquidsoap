@@ -25,38 +25,32 @@
 class noise ~kind duration =
   let ctype = Frame.type_of_kind kind in
   let () = assert (ctype.Frame.midi = 0) in
-object
+  object
+    inherit Synthesized.source ~seek:true ~name:"noise" kind duration
 
-  inherit Synthesized.source ~seek:true
-                             ~name:"noise" kind duration
-
-  method private synthesize frame off len =
-    let content = Frame.content_of_type frame off ctype in
-    begin
-      let off = Frame.audio_of_master off in
-      let len = Frame.audio_of_master len in
-      let b = content.Frame.audio in
-      Audio.Generator.white_noise (Audio.sub b off len)
-    end ;
-    begin
+    method private synthesize frame off len =
+      let content = Frame.content_of_type frame off ctype in
+      begin
+        let off = Frame.audio_of_master off in
+        let len = Frame.audio_of_master len in
+        let b = content.Frame.audio in
+        Audio.Generator.white_noise (Audio.sub b off len)
+      end ;
       let off = Frame.video_of_master off in
       let len = Frame.video_of_master len in
       let b = content.Frame.video in
       for c = 0 to Array.length b - 1 do
         Video.iter Video.Image.randomize b.(c) off len
       done
-    end
-
-end
+  end
 
 let () =
   let k =
-    Lang.frame_kind_t ~audio:(Lang.univ_t ()) ~video:(Lang.univ_t ()) ~midi:Lang.zero_t
+    Lang.frame_kind_t ~audio:(Lang.univ_t ()) ~video:(Lang.univ_t ())
+      ~midi:Lang.zero_t
   in
-    Lang.add_operator "noise"
-      ~category:Lang.Input
-      ~descr:"Generate (audio and/or video) white noise."
-      [ "duration", Lang.float_t, Some (Lang.float 0.), None ]
-      ~kind:(Lang.Unconstrained k)
-      (fun p kind ->
-         new noise ~kind (Lang.to_float (List.assoc "duration" p)))
+  Lang.add_operator "noise" ~category:Lang.Input
+    ~descr:"Generate (audio and/or video) white noise."
+    [("duration", Lang.float_t, Some (Lang.float 0.), None)]
+    ~kind:(Lang.Unconstrained k)
+    (fun p kind -> new noise ~kind (Lang.to_float (List.assoc "duration" p)))

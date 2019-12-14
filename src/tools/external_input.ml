@@ -24,54 +24,59 @@ open Extralib
 
 (* {1 External Input handling} *)
 
-class virtual base ~name ~kind ~restart ~restart_on_error
-                   ~on_data ?read_header command =
-  let header_read, read_header = match read_header with
-    | None   -> true, fun _ -> assert false
-    | Some f -> false, f
+class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
+  command =
+  let header_read, read_header =
+    match read_header with
+      | None ->
+          (true, fun _ -> assert false)
+      | Some f ->
+          (false, f)
   in
-object (self)
-  inherit Source.source ~name kind
+  object (self)
+    inherit Source.source ~name kind
 
-  val mutable process = None
-  val mutable header_read = header_read
+    val mutable process = None
 
-  method stype = Source.Fallible
+    val mutable header_read = header_read
 
-  method wake_up _ =
-    let on_stdout reader =
-      if not header_read then
-        begin
+    method stype = Source.Fallible
+
+    method wake_up _ =
+      let on_stdout reader =
+        if not header_read then (
           let ret = read_header reader in
-          self#log#info "Header read!";
-          header_read <- true;
-          ret
-        end
-      else on_data reader
-    in
-    let on_stderr =
-      let buf = Bytes.create Utils.pagesize in
-      fun puller ->
-        let len = puller buf 0 Utils.pagesize in
-        self#log#info "%s"
-          (Bytes.unsafe_to_string
-            (Bytes.sub buf 0 len));
-        `Continue
-    in
-    let on_stop status =
-      header_read <- false;
-      match status with
-        | `Status (Unix.WEXITED 0) -> restart
-        | _ -> restart_on_error
-    in
-    let log = self#log#important "%s" in
-    process <- Some (Process_handler.run ~priority:Tutils.Blocking ~on_stop 
-                                         ~on_stdout ~on_stderr ~log command)
+          (self#log)#info "Header read!" ;
+          header_read <- true ;
+          ret )
+        else on_data reader
+      in
+      let on_stderr =
+        let buf = Bytes.create Utils.pagesize in
+        fun puller ->
+          let len = puller buf 0 Utils.pagesize in
+          (self#log)#info "%s" (Bytes.unsafe_to_string (Bytes.sub buf 0 len)) ;
+          `Continue
+      in
+      let on_stop status =
+        header_read <- false ;
+        match status with
+          | `Status (Unix.WEXITED 0) ->
+              restart
+          | _ ->
+              restart_on_error
+      in
+      let log = (self#log)#important "%s" in
+      process <-
+        Some
+          (Process_handler.run ~priority:Tutils.Blocking ~on_stop ~on_stdout
+             ~on_stderr ~log command)
 
-  method sleep =
-    match process with
-      | Some h ->
-          Process_handler.kill h;
-          process <- None
-      | None -> ()
-end
+    method sleep =
+      match process with
+        | Some h ->
+            Process_handler.kill h ;
+            process <- None
+        | None ->
+            ()
+  end

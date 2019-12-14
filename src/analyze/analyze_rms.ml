@@ -21,34 +21,41 @@
  *****************************************************************************)
 
 class rms ~kind ~window_length ~update source =
-object
-  inherit Source.operator ~name:"rms" kind [source]
+  object
+    inherit Source.operator ~name:"rms" kind [source]
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method remaining = source#remaining
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  val window = Array.make window_length 0.
-  val mutable pos = 0
-  val mutable rms = 0.
+    method is_ready = source#is_ready
 
-  method get_frame ab =
-    let p0 = AFrame.position ab in
-    let p1 = source#get ab ; AFrame.position ab in
-    let buf = AFrame.content ab p0 in
-      for i = p0 to p1-1 do
+    method abort_track = source#abort_track
+
+    method remaining = source#remaining
+
+    method self_sync = source#self_sync
+
+    val window = Array.make window_length 0.
+
+    val mutable pos = 0
+
+    val mutable rms = 0.
+
+    method get_frame ab =
+      let p0 = AFrame.position ab in
+      let p1 = source#get ab ; AFrame.position ab in
+      let buf = AFrame.content ab p0 in
+      for i = p0 to p1 - 1 do
         let m =
           Array.fold_left
-            (fun m channel -> let x = channel.{i} in m +. x *. x)
-            0.
-            buf
+            (fun m channel ->
+              let x = channel.{i} in
+              m +. (x *. x))
+            0. buf
         in
         let m = m /. float (Array.length buf) in
-          rms <- rms -. window.(pos) +. m ;
-          window.(pos) <- m ;
-          pos <- pos + 1 mod window_length
+        rms <- rms -. window.(pos) +. m ;
+        window.(pos) <- m ;
+        pos <- pos + (1 mod window_length)
       done ;
       update (sqrt (rms /. float window_length))
-end
+  end

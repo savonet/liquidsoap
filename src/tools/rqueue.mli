@@ -20,39 +20,46 @@
 
  *****************************************************************************)
 type 'a cell
+
 type 'a t
+
 exception Not_found
 
+(** [create ()] return an empty queue *)
 val create : unit -> 'a t
-    (** [create ()] return an empty queue *)
 
+(** [length q] return the number of cells in [q] *)
 val length : 'a t -> int
-    (** [length q] return the number of cells in [q] *)
 
+(** [is_empty q] return [true] if [q] has no cell *)
 val is_empty : 'a t -> bool
-    (** [is_empty q] return [true] if [q] has no cell *)
 
+(** [to_list q] return a list containing all the cells of [q] *)
 val to_list : 'a t -> 'a list
-    (** [to_list q] return a list containing all the cells of [q] *)
 
+(** [top q] return the cell at the top of the queue *)
 val top : 'a t -> 'a
-    (** [top q] return the cell at the top of the queue *)
 
+(** [push q c] add the cell [c] at the top of the queue [q] *)
 val push : 'a t -> 'a -> unit
-    (** [push q c] add the cell [c] at the top of the queue [q] *)
 
+(** [unshift q c] add the cell [c] at the end of the queue [q] *)
 val unshift : 'a t -> 'a -> unit
-    (** [unshift q c] add the cell [c] at the end of the queue [q] *)
 
+(** [shift q] remove the first cell from [q] and return it *)
 val shift : 'a t -> 'a
-    (** [shift q] remove the first cell from [q] and return it *)
 
+(** [pop q] remove the last cell from [q] and return it *)
 val pop : 'a t -> 'a
-    (** [pop q] remove the last cell from [q] and return it *)
 
 val fold : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
+
 val insert_pred : ?top:bool -> 'a t -> (int -> 'a -> bool) -> 'a -> unit
-val remove_pred_index : 'a t -> (int -> 'a -> bool) -> 'a*int
+
+val remove_pred_index : 'a t -> (int -> 'a -> bool) -> 'a * int
+
 val remove_pred : 'a t -> (int -> 'a -> bool) -> 'a
+
 val insert : 'a t -> int -> 'a -> unit
+
 val remove : 'a t -> int -> 'a

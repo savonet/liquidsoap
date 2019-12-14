@@ -26,42 +26,37 @@ let watched = ref []
 
 let m = Mutex.create ()
 
-let file_mtime file =
-  (Unix.stat file).Unix.st_mtime
+let file_mtime file = (Unix.stat file).Unix.st_mtime
 
 let rec watchdog () =
   let handler =
     Tutils.mutexify m (fun _ ->
-      watched :=
-        List.map
-        (fun (file,mtime,f) ->
-          let mtime' = try file_mtime file with _ -> mtime in
-          if mtime' <> mtime then f ();
-          file,mtime',f
-        ) !watched;
-       [ watchdog () ])
+        watched :=
+          List.map
+            (fun (file, mtime, f) ->
+              let mtime' = try file_mtime file with _ -> mtime in
+              if mtime' <> mtime then f () ;
+              (file, mtime', f))
+            !watched ;
+        [watchdog ()])
   in
-  { Duppy.Task.
-    priority = Tutils.Maybe_blocking;
-    events = [ `Delay 1. ];
-    handler = handler;
-  }
+  {Duppy.Task.priority= Tutils.Maybe_blocking; events= [`Delay 1.]; handler}
 
-let watch : File_watcher.watch = fun e file f ->
+let watch : File_watcher.watch =
+ fun e file f ->
   if List.mem `Modify e then
-    Tutils.mutexify m (fun () ->
-      if not !launched then
-        begin
-          launched := true;
-          Duppy.Task.add Tutils.scheduler (watchdog ())
-        end;
-      let mtime = try file_mtime file with _ -> 0. in
-      watched := (file,mtime,f) :: !watched;
-      let unwatch =
-        Tutils.mutexify m (fun () ->
-          watched := List.filter (fun (fname,_,_) -> fname <> file) !watched
-        )
-      in
-      unwatch) ()
-  else
-    fun () -> ()
+    Tutils.mutexify m
+      (fun () ->
+        if not !launched then (
+          launched := true ;
+          Duppy.Task.add Tutils.scheduler (watchdog ()) ) ;
+        let mtime = try file_mtime file with _ -> 0. in
+        watched := (file, mtime, f) :: !watched ;
+        let unwatch =
+          Tutils.mutexify m (fun () ->
+              watched :=
+                List.filter (fun (fname, _, _) -> fname <> file) !watched)
+        in
+        unwatch)
+      ()
+  else fun () -> ()

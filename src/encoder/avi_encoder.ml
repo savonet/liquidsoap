@@ -28,26 +28,24 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let content =
     Frame.content_of_type frame start
-      { Frame.
-        audio = channels;
-        video = 1;
-        midi = 0;
-      }
+      {Frame.audio= channels; video= 1; midi= 0}
   in
   let audio =
     let astart = Frame.audio_of_master start in
     let alen = Frame.audio_of_master len in
     let pcm = content.Frame.audio in
     (* Resample if needed. *)
-    let pcm,astart,alen =
-      if ratio = 1. then
-        pcm, astart, alen
-      else
-        let pcm = Audio_converter.Samplerate.resample converter ratio (Audio.sub pcm astart alen) in
-        pcm, 0, Audio.length pcm
+    let pcm, astart, alen =
+      if ratio = 1. then (pcm, astart, alen)
+      else (
+        let pcm =
+          Audio_converter.Samplerate.resample converter ratio
+            (Audio.sub pcm astart alen)
+        in
+        (pcm, 0, Audio.length pcm) )
     in
-    let data = Bytes.create (2*channels*alen) in
-    Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
+    let data = Bytes.create (2 * channels * alen) in
+    Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0 ;
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
@@ -56,17 +54,17 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     let vstart = Frame.video_of_master start in
     let vlen = Frame.video_of_master len in
     let data = Strings.Mutable.empty () in
-    for i = vstart to vstart+vlen-1 do
+    for i = vstart to vstart + vlen - 1 do
       let img = Video.get vbuf i in
       (* TODO: change stride otherwise *)
       let width = Image.YUV420.width img in
-      assert (Image.YUV420.y_stride img = width);
-      assert (Image.YUV420.uv_stride img = width/2);
-      let y,u,v = Image.YUV420.data img in
-      Strings.Mutable.add data (Image.Data.to_string y);
-      Strings.Mutable.add data (Image.Data.to_string u);
+      assert (Image.YUV420.y_stride img = width) ;
+      assert (Image.YUV420.uv_stride img = width / 2) ;
+      let y, u, v = Image.YUV420.data img in
+      Strings.Mutable.add data (Image.Data.to_string y) ;
+      Strings.Mutable.add data (Image.Data.to_string u) ;
       Strings.Mutable.add data (Image.Data.to_string v)
-    done;
+    done ;
     Avi.video_chunk_strings data
   in
   Strings.add video audio
@@ -76,30 +74,25 @@ let encoder avi =
   let samplerate = Lazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
   (* TODO: use duration *)
-  let header =
-    Avi.header ~channels ~samplerate ()
-  in
+  let header = Avi.header ~channels ~samplerate () in
   let need_header = ref true in
   let encode frame start len =
     let ans = encode_frame ~channels ~samplerate ~converter frame start len in
-    if !need_header then
-     begin
-        need_header := false;
-        Strings.dda header ans
-     end
-    else
-      ans
+    if !need_header then (
+      need_header := false ;
+      Strings.dda header ans )
+    else ans
   in
   {
-    Encoder.
-    insert_metadata = (fun _ -> ());
-    encode = encode;
-    header = Strings.of_string header;
-    stop = fun () -> Strings.empty
+    Encoder.insert_metadata= (fun _ -> ());
+    encode;
+    header= Strings.of_string header;
+    stop= (fun () -> Strings.empty);
   }
 
 let () =
-  Encoder.plug#register "AVI"
-    (function
-       | Encoder.AVI avi -> Some (fun _ _ -> encoder avi)
-       | _ -> None)
+  Encoder.plug#register "AVI" (function
+    | Encoder.AVI avi ->
+        Some (fun _ _ -> encoder avi)
+    | _ ->
+        None)

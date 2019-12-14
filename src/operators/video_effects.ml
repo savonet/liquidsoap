@@ -22,64 +22,62 @@
 
 open Source
 
-class effect ~kind effect (source:source) =
-object
-  inherit operator ~name:"video.effect" kind [source]
+class effect ~kind effect (source : source) =
+  object
+    inherit operator ~name:"video.effect" kind [source]
 
-  method stype = source#stype
+    method stype = source#stype
 
-  method remaining = source#remaining
+    method remaining = source#remaining
 
-  method seek = source#seek
+    method seek = source#seek
 
-  method self_sync = source#self_sync
+    method self_sync = source#self_sync
 
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
+    method is_ready = source#is_ready
 
-  method private get_frame buf =
-    match VFrame.get_content buf source with
-      | None -> ()
-      | Some (rgb,offset,length) ->
-         let rgb = rgb.(0) in
-         Video.iter effect rgb offset length
-end
+    method abort_track = source#abort_track
 
-let kind =
-  Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ())
+    method private get_frame buf =
+      match VFrame.get_content buf source with
+        | None ->
+            ()
+        | Some (rgb, offset, length) ->
+            let rgb = rgb.(0) in
+            Video.iter effect rgb offset length
+  end
+
+let kind = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ())
 
 let () =
   Lang.add_operator "video.greyscale"
-    [ "", Lang.source_t kind, None, None ]
-    ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.VideoProcessing
+    [("", Lang.source_t kind, None, None)]
+    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
     ~descr:"Convert video to greyscale."
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new effect ~kind Video.Image.Effect.greyscale src)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      new effect ~kind Video.Image.Effect.greyscale src)
 
 let () =
   Lang.add_operator "video.sepia"
-    [ "", Lang.source_t kind, None, None ]
-    ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.VideoProcessing
+    [("", Lang.source_t kind, None, None)]
+    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
     ~descr:"Convert video to sepia."
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new effect ~kind Video.Image.Effect.sepia src)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      new effect ~kind Video.Image.Effect.sepia src)
 
 let () =
   Lang.add_operator "video.invert"
-    [ "", Lang.source_t kind, None, None ]
-    ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.VideoProcessing
+    [("", Lang.source_t kind, None, None)]
+    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
     ~descr:"Invert video."
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new effect ~kind Video.Image.Effect.invert src)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      new effect ~kind Video.Image.Effect.invert src)
 
 (*
 let () =

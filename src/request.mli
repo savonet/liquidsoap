@@ -23,7 +23,7 @@
 (** The request is actually the file abstraction in liquidsoap, used
   * whenever possible. *)
 
-type metadata = (string,string) Hashtbl.t
+type metadata = (string, string) Hashtbl.t
 
 (** An indicator is a resource location (URI),
   * when meaningful, it can be declared as temporary if liquidsoap
@@ -41,14 +41,17 @@ type t
   * into a stream of the expected kind. *)
 val create :
   kind:Frame.content_kind ->
-  ?metadata:((string*string) list) ->
+  ?metadata:(string * string) list ->
   ?persistent:bool ->
-  ?indicators:(indicator list) -> string ->
+  ?indicators:indicator list ->
+  string ->
   t
+
 val create_raw :
-  ?metadata:((string*string) list) ->
+  ?metadata:(string * string) list ->
   ?persistent:bool ->
-  ?indicators:(indicator list) -> string ->
+  ?indicators:indicator list ->
+  string ->
   t
 
 (** Return the kind of a media request, None for raw requests. *)
@@ -71,18 +74,21 @@ val destroy : ?force:bool -> t -> unit
   * and destroying all the requests, even persistent ones. *)
 val clean : unit -> unit
 
-
 (** Every request has an ID, and you can find a request from its ID. *)
 
 val get_id : t -> int
+
 val from_id : int -> t option
 
 (** Get the list of requests that are currently
   * alive/on air/being resolved. *)
 
 val all_requests : unit -> int list
+
 val alive_requests : unit -> int list
+
 val on_air_requests : unit -> int list
+
 val resolving_requests : unit -> int list
 
 (** {1 Resolving}
@@ -95,12 +101,9 @@ val resolving_requests : unit -> int list
   * At each step [protocol.resolve first_uri timeout] is called,
   * and the function is expected to push the new URIs in the request. *)
 
-type resolver = string -> log:(string->unit) -> float -> indicator list
+type resolver = string -> log:(string -> unit) -> float -> indicator list
 
-type protocol = {
-  resolve : resolver ;
-  static : bool
-}
+type protocol = {resolve: resolver; static: bool}
 
 (** A static request [r] is such that every resolving leads to the same file.
   * Sometimes, it allows removing useless destroy/create/resolve. *)
@@ -139,19 +142,28 @@ val push_indicators : t -> indicator list -> unit
 (** {1 Metadatas} *)
 
 val string_of_metadata : metadata -> string
+
 val short_string_of_metadata : metadata -> string
+
 val set_metadata : t -> string -> string -> unit
+
 val get_metadata : t -> string -> string option
+
 val set_root_metadata : t -> string -> string -> unit
+
 val get_root_metadata : t -> string -> string option
+
 val get_all_metadata : t -> metadata
 
 (** {1 Logging}
   * Every request has a separate log in which its history can be written. *)
 
-type log = (Unix.tm*string) Queue.t
+type log = (Unix.tm * string) Queue.t
+
 val string_of_log : log -> string
+
 val add_log : t -> string -> unit
+
 val get_log : t -> log
 
 (** {1 Media operations}
@@ -181,5 +193,7 @@ val get_decoder : t -> Decoder.file_decoder option
   * occur immediately after request resolution. *)
 
 val dresolvers : (string -> float) Plug.plug
-val mresolvers : (string -> (string*string) list) Plug.plug
+
+val mresolvers : (string -> (string * string) list) Plug.plug
+
 val protocols : protocol Plug.plug

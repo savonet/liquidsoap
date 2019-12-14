@@ -28,18 +28,17 @@ let encoder wav =
   let channels = wav.channels in
   let sample_rate = Lazy.force wav.samplerate in
   let sample_size = wav.samplesize in
-  let ratio =
-    (float sample_rate) /. (float (Lazy.force Frame.audio_rate))
-  in
+  let ratio = float sample_rate /. float (Lazy.force Frame.audio_rate) in
   let converter = Audio_converter.Samplerate.create channels in
-  let len = 
+  let len =
     match wav.duration with
-      | None -> None
-      | Some d -> 
-          Some (
-            int_of_float (d *. (float channels) *. 
-                               (float sample_rate) *.
-                               (float sample_size) /. 8.))
+      | None ->
+          None
+      | Some d ->
+          Some
+            (int_of_float
+               ( d *. float channels *. float sample_rate *. float sample_size
+               /. 8. ))
   in
   let header =
     Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
@@ -50,40 +49,46 @@ let encoder wav =
     let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
     (* Resample if needed. *)
-    let b,start,len =
-      if ratio = 1. then
-        b,start,len
-      else
-        let b = Audio_converter.Samplerate.resample converter ratio (Audio.sub b start len) in
-        b,0,Audio.length b
+    let b, start, len =
+      if ratio = 1. then (b, start, len)
+      else (
+        let b =
+          Audio_converter.Samplerate.resample converter ratio
+            (Audio.sub b start len)
+        in
+        (b, 0, Audio.length b) )
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
       match sample_size with
-        | 32 -> fun buf s off -> Audio.S32LE.of_audio buf s off
-        | 24 -> fun buf s off -> Audio.S24LE.of_audio buf s off
-        | 16 -> Audio.S16LE.of_audio
-        | 8 -> fun buf s off -> Audio.U8.of_audio buf s off
-        | _ -> failwith "unsupported sample size"
+        | 32 ->
+            fun buf s off -> Audio.S32LE.of_audio buf s off
+        | 24 ->
+            fun buf s off -> Audio.S24LE.of_audio buf s off
+        | 16 ->
+            Audio.S16LE.of_audio
+        | 8 ->
+            fun buf s off -> Audio.U8.of_audio buf s off
+        | _ ->
+            failwith "unsupported sample size"
     in
-    of_audio (Audio.sub b start len) s 0;
+    of_audio (Audio.sub b start len) s 0 ;
     let s = Bytes.unsafe_to_string s in
-    if !need_header then begin
-      need_header := false;
-      Strings.of_list [header; s]
-    end else
-      Strings.of_string s
+    if !need_header then (
+      need_header := false ;
+      Strings.of_list [header; s] )
+    else Strings.of_string s
   in
-    {
-     Encoder.
-      insert_metadata = (fun _ -> ()) ;
-      encode = encode ;
-      header = Strings.of_string header ;
-      stop   = fun () -> Strings.empty
-    }
+  {
+    Encoder.insert_metadata= (fun _ -> ());
+    encode;
+    header= Strings.of_string header;
+    stop= (fun () -> Strings.empty);
+  }
 
 let () =
-  Encoder.plug#register "WAV"
-    (function
-       | Encoder.WAV w -> Some (fun _ _ -> encoder w)
-       | _ -> None)
+  Encoder.plug#register "WAV" (function
+    | Encoder.WAV w ->
+        Some (fun _ _ -> encoder w)
+    | _ ->
+        None)

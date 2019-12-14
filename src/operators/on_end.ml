@@ -21,60 +21,70 @@
  *****************************************************************************)
 
 class on_end ~kind ~delay f s =
-object(self)
-  inherit Source.operator ~name:"on_end" kind [s]
-  inherit Latest_metadata.source
+  object (self)
+    inherit Source.operator ~name:"on_end" kind [s]
 
-  val mutable executed = false
+    inherit Latest_metadata.source
 
-  method stype = s#stype
-  method is_ready = s#is_ready
-  method remaining = s#remaining
-  method abort_track = s#abort_track
-  method seek n = s#seek n
-  method self_sync = s#self_sync
+    val mutable executed = false
 
-  method private on_new_metadata = ()
+    method stype = s#stype
 
-  method private get_frame ab =
-    s#get ab ;
-    self#save_latest_metadata ab ;
-    let rem = Frame.seconds_of_master s#remaining in
-    if (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab) then
-    begin
-      ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.float rem;
-                                          "",Lang.metadata latest_metadata]) ;
-      executed <- true
-    end ;
-    if Frame.is_partial ab then
-     begin
-      self#clear_latest_metadata ;
-      executed <- false
-     end
-end
+    method is_ready = s#is_ready
+
+    method remaining = s#remaining
+
+    method abort_track = s#abort_track
+
+    method seek n = s#seek n
+
+    method self_sync = s#self_sync
+
+    method private on_new_metadata = ()
+
+    method private get_frame ab =
+      s#get ab ;
+      self#save_latest_metadata ab ;
+      let rem = Frame.seconds_of_master s#remaining in
+      if
+        (not executed)
+        && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab)
+      then (
+        ignore
+          (Lang.apply ~t:Lang.unit_t f
+             [("", Lang.float rem); ("", Lang.metadata latest_metadata)]) ;
+        executed <- true ) ;
+      if Frame.is_partial ab then (
+        self#clear_latest_metadata ;
+        executed <- false )
+  end
 
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "on_end"
-    [ "delay", Lang.float_getter_t (),
-      Some (Lang.float 5.),
-      Some "Execute handler when remaining time is less or \
-            equal to this value." ;
-      "",
-      Lang.fun_t
-        [(false,"",Lang.float_t);(false,"",Lang.metadata_t)]
-        Lang.unit_t,
-      None,
-      Some "Function to execute. First argument is the remaining time, \
-            second is the latest metadata. That function should be fast \
-            because it is executed in the main streaming thread." ;
-      "", Lang.source_t kind, None, None ]
+    [ ( "delay",
+        Lang.float_getter_t (),
+        Some (Lang.float 5.),
+        Some
+          "Execute handler when remaining time is less or equal to this value."
+      );
+      ( "",
+        Lang.fun_t
+          [(false, "", Lang.float_t); (false, "", Lang.metadata_t)]
+          Lang.unit_t,
+        None,
+        Some
+          "Function to execute. First argument is the remaining time, second \
+           is the latest metadata. That function should be fast because it is \
+           executed in the main streaming thread." );
+      ("", Lang.source_t kind, None, None) ]
     ~category:Lang.TrackProcessing
-    ~descr:"Call a given handler when there is less than \
-            a given amount of time remaining before then end of track."
+    ~descr:
+      "Call a given handler when there is less than a given amount of time \
+       remaining before then end of track."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let delay = Lang.to_float_getter (List.assoc "delay" p) in
-       let f = Lang.assoc "" 1 p in
-       let s = Lang.to_source (Lang.assoc "" 2 p) in
-         new on_end ~kind ~delay f s)
+      let delay = Lang.to_float_getter (List.assoc "delay" p) in
+      let f = Lang.assoc "" 1 p in
+      let s = Lang.to_source (Lang.assoc "" 2 p) in
+      new on_end ~kind ~delay f s)

@@ -21,44 +21,34 @@
  *****************************************************************************)
 
 type t = {
-  channels  : int;
-  audio     : string option;
-  has_video : bool;
-  video     : string option;
-  muxer     : string option;
-  metadata  : string;
-  pipeline  : string option;
-  log       : int
+  channels: int;
+  audio: string option;
+  has_video: bool;
+  video: string option;
+  muxer: string option;
+  metadata: string;
+  pipeline: string option;
+  log: int;
 }
 
-let audio_channels m =
-  if m.audio = None then
-    0
-  else
-    m.channels
+let audio_channels m = if m.audio = None then 0 else m.channels
 
-let video_channels m =
-  if m.video = None || not m.has_video then
-    0
-  else
-    1
+let video_channels m = if m.video = None || not m.has_video then 0 else 1
 
 let to_string m =
   let pipeline l name value =
     Utils.some_or l
-      (Utils.maybe
-        (fun value -> (Printf.sprintf "%s=%S" name value)::l)
-          value)
+      (Utils.maybe (fun value -> Printf.sprintf "%s=%S" name value :: l) value)
   in
   Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%slog=%d)"
     (String.concat ","
-      (pipeline
        (pipeline
-         (pipeline [Printf.sprintf "channels=%d" m.channels]
-           "audio" m.audio)
-           "video" m.video)
-           "muxer" m.muxer))
-    m.metadata
-    m.has_video
+          (pipeline
+             (pipeline
+                [Printf.sprintf "channels=%d" m.channels]
+                "audio" m.audio)
+             "video" m.video)
+          "muxer" m.muxer))
+    m.metadata m.has_video
     (Utils.some_or "" (Utils.maybe (Printf.sprintf "pipeline=%S,") m.pipeline))
     m.log

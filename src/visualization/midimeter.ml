@@ -23,47 +23,51 @@
 open Source
 
 class midimeter ~kind source =
-object
-  inherit operator ~name:"midimeter" kind [source]
+  object
+    inherit operator ~name:"midimeter" kind [source]
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method remaining = source#remaining
-  method abort_track = source#abort_track
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  method get_frame buf =
-    let offset = MFrame.position buf in
-    source#get buf;
-    let m = MFrame.content buf offset in
-    (* Printf.printf "len: %d\n%!" (List.length (MIDI.data m.(0))); *)
+    method is_ready = source#is_ready
+
+    method remaining = source#remaining
+
+    method abort_track = source#abort_track
+
+    method self_sync = source#self_sync
+
+    method get_frame buf =
+      let offset = MFrame.position buf in
+      source#get buf ;
+      let m = MFrame.content buf offset in
+      (* Printf.printf "len: %d\n%!" (List.length (MIDI.data m.(0))); *)
       for c = 0 to Array.length m - 1 do
         List.iter
-          (fun (_,e) ->
-             let s =
-               match e with
-                 | MIDI.Note_on (n, v) ->
-                     Printf.sprintf "Note %d on at %.02f" n v
-                 | MIDI.Note_off (n, v) ->
-                     Printf.sprintf "Note %d off at %.02f" n v
-                 | MIDI.Control_change (c, v) ->
-                     Printf.sprintf "Control %x at %d" c v
-                 | _ -> "???"
-             in
-               Printf.printf "%d: %s.\n%!" c s
-          ) (MIDI.data m.(c))
+          (fun (_, e) ->
+            let s =
+              match e with
+                | MIDI.Note_on (n, v) ->
+                    Printf.sprintf "Note %d on at %.02f" n v
+                | MIDI.Note_off (n, v) ->
+                    Printf.sprintf "Note %d off at %.02f" n v
+                | MIDI.Control_change (c, v) ->
+                    Printf.sprintf "Control %x at %d" c v
+                | _ ->
+                    "???"
+            in
+            Printf.printf "%d: %s.\n%!" c s)
+          (MIDI.data m.(c))
       done
-end
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "midimeter"
-    [ "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Visualization
+    [("", Lang.source_t k, None, None)]
+    ~kind:(Lang.Unconstrained k) ~category:Lang.Visualization
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Display midi events."
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         ((new midimeter ~kind src):>Source.source))
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      (new midimeter ~kind src :> Source.source))

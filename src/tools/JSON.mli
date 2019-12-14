@@ -5,8 +5,7 @@ type t =
   | `Int of int
   | `List of t list
   | `Null
-  | `String of string
-  ]
+  | `String of string ]
 
 val from_string : string -> t
 

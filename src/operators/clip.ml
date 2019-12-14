@@ -22,33 +22,39 @@
 
 open Source
 
-class clip ~kind (source:source) =
-object
-  inherit operator ~name:"clip" kind [source]
+class clip ~kind (source : source) =
+  object
+    inherit operator ~name:"clip" kind [source]
 
-  method stype = source#stype
-  method remaining = source#remaining
-  method seek = source#seek
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
+    method remaining = source#remaining
+
+    method seek = source#seek
+
+    method is_ready = source#is_ready
+
+    method abort_track = source#abort_track
+
+    method self_sync = source#self_sync
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
       source#get buf ;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       Audio.clip (Audio.sub b offset (position - offset))
-end
+  end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "clip"
-  [ "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.SoundProcessing
-    ~descr:"Clip samples, i.e. ensure that all values are between -1 and 1: values lower than -1 become -1 and values higher than 1 become 1."
+    [("", Lang.source_t k, None, None)]
+    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
+    ~descr:
+      "Clip samples, i.e. ensure that all values are between -1 and 1: values \
+       lower than -1 become -1 and values higher than 1 become 1."
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new clip ~kind src)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      new clip ~kind src)

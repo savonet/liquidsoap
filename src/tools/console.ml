@@ -25,30 +25,31 @@
 let log = Log.make ["console"]
 
 let conf_console =
-  Dtools.Conf.void ~p:(Configure.conf#plug "console")
-    "Console configuration"
+  Dtools.Conf.void ~p:(Configure.conf#plug "console") "Console configuration"
 
 let conf_colorize =
-  Dtools.Conf.string ~p:(conf_console#plug "colorize") ~d:"auto"
-    "Use color in console output when available. One of: \"allways\", \"never\" or \"auto\"."
+  Dtools.Conf.string
+    ~p:(conf_console#plug "colorize")
+    ~d:"auto"
+    "Use color in console output when available. One of: \"allways\", \
+     \"never\" or \"auto\"."
 
-let dumb_term = lazy (
-  try
-    Sys.getenv "TERM" = "dumb"
-  with Not_found -> Sys.win32
-)
+let dumb_term =
+  lazy (try Sys.getenv "TERM" = "dumb" with Not_found -> Sys.win32)
 
 let color =
-  let auto = lazy (
-    Unix.isatty Unix.stdout && not (Lazy.force dumb_term)
-  ) in
-  fun () -> match conf_colorize#get with
-    | "always" -> true
-    | "never" -> false
-    | "auto" -> Lazy.force auto
-    | _ ->
-        log#important "Invalid color configuration, using default \"auto\"";
-        Lazy.force auto
+  let auto = lazy (Unix.isatty Unix.stdout && not (Lazy.force dumb_term)) in
+  fun () ->
+    match conf_colorize#get with
+      | "always" ->
+          true
+      | "never" ->
+          false
+      | "auto" ->
+          Lazy.force auto
+      | _ ->
+          log#important "Invalid color configuration, using default \"auto\"" ;
+          Lazy.force auto
 
 type text_style =
   [ `bold
@@ -63,21 +64,34 @@ type text_style =
   | `cyan
   | `white ]
 
-let style_code (c: text_style) = match c with
-  | `bold      -> "01"
-  | `underline -> "04"
-  | `crossed   -> "09"
-  | `black     -> "30"
-  | `red       -> "31"
-  | `green     -> "32"
-  | `yellow    -> "33"
-  | `blue      -> "1;34" (* most terminals make blue unreadable unless bold *)
-  | `magenta   -> "35"
-  | `cyan      -> "36"
-  | `white     -> "37"
+let style_code (c : text_style) =
+  match c with
+    | `bold ->
+        "01"
+    | `underline ->
+        "04"
+    | `crossed ->
+        "09"
+    | `black ->
+        "30"
+    | `red ->
+        "31"
+    | `green ->
+        "32"
+    | `yellow ->
+        "33"
+    | `blue ->
+        "1;34" (* most terminals make blue unreadable unless bold *)
+    | `magenta ->
+        "35"
+    | `cyan ->
+        "36"
+    | `white ->
+        "37"
 
 let colorize styles s =
-  if not (color ()) then s else
+  if not (color ()) then s
+  else
     Printf.sprintf "\027[%sm%s\027[0m"
       (String.concat ";" (List.map style_code styles))
-      s 
+      s

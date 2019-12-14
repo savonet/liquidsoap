@@ -21,33 +21,36 @@
  *****************************************************************************)
 
 open Cohttp_lwt_unix
-
-module Prometheus_server = Prometheus_app.Cohttp(Server)
-
+module Prometheus_server = Prometheus_app.Cohttp (Server)
 open Prometheus_server
 
-let log = Log.make ["prometheus";"server"]
+let log = Log.make ["prometheus"; "server"]
 
 let conf_prometheus =
-  Dtools.Conf.void ~p:(Configure.conf#plug "prometheus")
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "prometheus")
     "Metric reporting using prometheus."
 
 let conf_server =
-  Dtools.Conf.bool ~p:(conf_prometheus#plug "server") ~d:false
-    "Enable the prometheus server."
+  Dtools.Conf.bool
+    ~p:(conf_prometheus#plug "server")
+    ~d:false "Enable the prometheus server."
 
 let conf_port =
   Dtools.Conf.int ~p:(conf_server#plug "port") ~d:9090
     "Port to run the server on."
 
 let server () =
-  Server.create ~mode:(`TCP (`Port conf_port#get))
-    (Server.make ~callback ())
+  Server.create ~mode:(`TCP (`Port conf_port#get)) (Server.make ~callback ())
 
-let _ = 
+let _ =
   Dtools.Init.at_start (fun () ->
-    if conf_server#get then
-      ignore(Thread.create (fun () ->
-        log#important "Starting prometheus server on port %d" conf_port#get;
-        Lwt_main.run (server ());
-        log#important "Prometheus server shutdown!") ()))
+      if conf_server#get then
+        ignore
+          (Thread.create
+             (fun () ->
+               log#important "Starting prometheus server on port %d"
+                 conf_port#get ;
+               Lwt_main.run (server ()) ;
+               log#important "Prometheus server shutdown!")
+             ()))
