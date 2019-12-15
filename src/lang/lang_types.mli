@@ -40,9 +40,9 @@ type constraints = constr list
 
 val print_constr : constr -> string
 
-type t = {pos: pos option; mutable level: int; mutable descr: descr}
+type t = { pos : pos option; mutable level : int; mutable descr : descr }
 
-and constructed = {name: string; params: (variance * t) list}
+and constructed = { name : string; params : (variance * t) list }
 
 and descr =
   | Constr of constructed
