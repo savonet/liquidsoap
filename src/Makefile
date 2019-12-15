@@ -188,8 +188,7 @@ tools = tools/extralib.ml tools/JSON.ml \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
-	tools/pool.ml tools/sha1.ml tools/websocket.ml \
-	tools/id3v2.ml \
+	tools/pool.ml tools/sha1.ml tools/websocket.ml tools/id3v2.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
 	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 
