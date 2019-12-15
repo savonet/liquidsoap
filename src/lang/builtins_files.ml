@@ -312,28 +312,6 @@ let () =
           Lang.string apic.Id3v2.data ])
 
 let () =
-  add_builtin "file.metadata" ~cat:Sys
-    [ ( "",
-        Lang.string_t,
-        None,
-        Some "URI of the file for which the metadata should be read." ) ]
-    (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t))
-    ~descr:"Read metadata from a file."
-    (fun p ->
-       let f = Lang.to_string (List.assoc "" p) in
-       let r = Request.create_raw f in
-       let m =
-         if Request.resolve r 10. <> Request.Resolved then []
-         else
-           let m = Request.get_all_metadata r in
-           List.of_seq (Hashtbl.to_seq m)
-       in
-       Lang.list
-         ~t:(Lang.product_t Lang.string_t Lang.string_t)
-         (List.map (fun (l, v) -> Lang.product (Lang.string l) (Lang.string v)) m)
-    )
-
-let () =
   add_builtin "file.which" ~cat:Sys
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \

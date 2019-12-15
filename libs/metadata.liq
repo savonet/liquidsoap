@@ -33,12 +33,25 @@ def metadata.float_getter(init, metadata, s)
   metadata.getter(init, float_of_string, metadata, s)
 end
 
+# Read metadata from a file.
+# @category System
+# @param URI of the file for which the metadata should be read.
+def file.metadata(file)
+  r = request.create(file)
+  if request.resolve(r) then
+    request.metadata(r)
+  else
+    []
+  end
+end
+
 # Obtain cover-art for a file. An empty string is returned in case there is no
 # such information.
 # @category System
 # @param file File from which the cover should be obtained
 def file.cover(file)
   m = file.metadata(file)
+  print("**meta: #{m}")
   m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
   if list.exists(fun (lv) -> fst(lv) == "coverart", m) then
     # We are likely to have an ogg/vorbis file
