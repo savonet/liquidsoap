@@ -75,7 +75,7 @@ let print_pos ?(prefix = "at ") (start, stop) =
 type ground = Abstract of string | Bool | Int | String | Float
 
 let print_ground = function
-  | Abstract n -> n
+  | Abstract n -> "<" ^ n ^ ">"
   | String -> "string"
   | Bool -> "bool"
   | Int -> "int"
@@ -262,26 +262,29 @@ let print_repr f t =
                   List.fold_left
                     (fun (first, has_ellipsis, vars) (lbl, t) ->
                       if t = `Ellipsis then (false, true, vars)
-                      else (
+                      else begin
                         if not first then Format.fprintf f ",@ ";
                         Format.fprintf f "%s=" lbl;
                         let vars = print ~par:false vars t in
-                        (false, has_ellipsis, vars) ))
+                        (false, has_ellipsis, vars)
+                      end)
                     (true, false, vars)
                     [("audio", a); ("video", v); ("midi", m)]
                 in
                 if not has_ellipsis then vars
-                else (
+                else begin
                   if not first then Format.fprintf f ",@,";
-                  print ~par:false vars `Range_Ellipsis )
+                  print ~par:false vars `Range_Ellipsis
+                end
             | _ -> assert false )
-        else (
+        else begin
           Format.open_box (1 + String.length name);
           Format.fprintf f "%s(" name;
           let vars = print_list vars params in
           Format.fprintf f ")";
           Format.close_box ();
-          vars )
+          vars
+        end
     | `Ground g ->
         Format.fprintf f "%s" (print_ground g);
         vars
@@ -316,9 +319,10 @@ let print_repr f t =
               Format.fprintf f "%d" n;
               vars
           | t ->
-              if t = `Ellipsis then (
+              if t = `Ellipsis then begin
                 Format.fprintf f "%d+" n;
-                print ~par vars t )
+                print ~par vars t
+              end
               else (
                 let vars = print ~par vars t in
                 Format.fprintf f "+%d" n;
@@ -465,7 +469,7 @@ let rec bind a0 b =
   let a = deref a0 in
   let b = deref b in
   if b == a then ()
-  else (
+  else begin
     occur_check a b;
     begin
       match a.descr with
@@ -559,7 +563,8 @@ let rec bind a0 b =
      * that variable occurrence to the position of the inferred type. *)
     if b.pos = None && match b.descr with EVar _ -> false | _ -> true then
       a.descr <- Link { a0 with descr = b.descr }
-    else a.descr <- Link b )
+    else a.descr <- Link b
+  end
 
 (* {1 Subtype checking/inference} *)
 
@@ -658,10 +663,11 @@ let rec ( <: ) a b =
     | List t1, List t2 -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`List a, `List b)) )
     | Tuple l, Tuple m ->
-        if List.length l <> List.length m then (
+        if List.length l <> List.length m then begin
           let l = List.map (fun _ -> `Ellipsis) l in
           let m = List.map (fun _ -> `Ellipsis) m in
-          raise (Error (`Tuple l, `Tuple m)) );
+          raise (Error (`Tuple l, `Tuple m))
+        end;
         let n = ref 0 in
         List.iter2
           (fun a b ->
@@ -722,15 +728,17 @@ let rec ( <: ) a b =
             ([], l12) l
         in
         let l1 = List.rev l1 in
-        if List.for_all (fun (o, _, _) -> o) l2 then (
+        if List.for_all (fun (o, _, _) -> o) l2 then begin
           try t <: t'
           with Error (t, t') ->
-            raise (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t'))) )
-        else (
+            raise (Error (`Arrow ([ellipsis], t), `Arrow ([ellipsis], t')))
+        end
+        else begin
           try { a with descr = Arrow (l2, t) } <: t' with
             | Error (`Arrow (p, t), t') ->
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
-            | Error _ -> assert false )
+            | Error _ -> assert false
+        end
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
     (* The EVar cases doing bind are abusive because of subtyping.
      * In general we would need subtyping constraints, but that's
