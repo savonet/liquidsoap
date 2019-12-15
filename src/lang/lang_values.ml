@@ -618,9 +618,9 @@ let rec check ?(print_toplevel = false) ~level ~env e =
   assert (e.t.T.level = -1);
   e.t.T.level <- level;
   (* The toplevel position of the (un-dereferenced) type
-    * is the actual parsing position of the value.
-    * When we synthesize a type against which the type of the term is unified,
-    * we have to set the position information in order not to loose it. *)
+   * is the actual parsing position of the value.
+   * When we synthesize a type against which the type of the term is unified,
+   * we have to set the position information in order not to loose it. *)
   let pos = e.t.T.pos in
   let mk t = T.make ~level ~pos t in
   let mkg t = mk (T.Ground t) in
