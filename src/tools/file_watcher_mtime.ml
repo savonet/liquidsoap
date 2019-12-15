@@ -21,11 +21,8 @@
  *****************************************************************************)
 
 let launched = ref false
-
 let watched = ref []
-
 let m = Mutex.create ()
-
 let file_mtime file = (Unix.stat file).Unix.st_mtime
 
 let rec watchdog () =

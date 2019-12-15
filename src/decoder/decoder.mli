@@ -23,7 +23,6 @@
 val log : Log.t
 
 type file = string
-
 type stream = string
 
 type input = {
@@ -65,9 +64,7 @@ val stream_decoders :
   (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
 
 val conf_decoder : Dtools.Conf.ut
-
 val conf_mime_types : Dtools.Conf.ut
-
 val conf_file_extensions : Dtools.Conf.ut
 
 (** Test file extension and mime if available *)
@@ -81,7 +78,6 @@ val get_file_decoder :
   (string * (unit -> file_decoder)) option
 
 val get_image_file_decoder : file -> Video.Image.t option
-
 val get_stream_decoder : file -> Frame.content_kind -> stream_decoder option
 
 module Buffered (Generator : Generator.S) : sig

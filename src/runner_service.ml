@@ -23,13 +23,9 @@
 (** Windows service runner. *)
 
 let name = ref "Liquidsoap"
-
 let display = ref "Liquidsoap Streaming Service"
-
 let text = ref "Powerful streaming service using Liquidsoap"
-
 let action = ref `None
-
 let split s = Str.split (Str.regexp " ") s
 
 module Runner : Main.Runner_t = struct
@@ -64,13 +60,9 @@ let () =
   in
   let module S = struct
     let name = !name
-
     let display = !display
-
     let text = !text
-
     let arguments = args
-
     let stop = Tutils.shutdown
   end in
   let module Svc = Service.Make (S) in

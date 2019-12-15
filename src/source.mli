@@ -42,7 +42,6 @@ type source_t = Fallible | Infallible
 (** Instrumentation. *)
 
 type metadata = (int * (string, string) Hashtbl.t) list
-
 type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
@@ -241,7 +240,6 @@ class virtual active_operator :
      end
 
 val has_outputs : unit -> bool
-
 val iterate_new_outputs : (active_source -> unit) -> unit
 
 (** {1 Clocks}
@@ -281,7 +279,6 @@ class type clock =
   end
 
 exception Clock_conflict of string * string
-
 exception Clock_loop of string * string
 
 module Clock_variables : sig
@@ -293,12 +290,8 @@ module Clock_variables : sig
     clock_variable
 
   val create_known : clock -> clock_variable
-
   val unify : clock_variable -> clock_variable -> unit
-
   val forget : clock_variable -> clock_variable -> unit
-
   val get : clock_variable -> clock
-
   val is_known : clock_variable -> bool
 end

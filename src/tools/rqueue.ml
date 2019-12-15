@@ -47,7 +47,6 @@ let top q =
 (* No need to lock here, length is always valid and we don't need coherence
  * for reading anything -- unlike q.top.content in [top]. *)
 let length q = q.length
-
 let is_empty q = 0 = q.length
 
 let to_list q =
@@ -130,11 +129,8 @@ let insert q pos x =
   insert_pred q ~top:(pos = 0) (fun i _ -> (i - p) mod q.length = 0) x
 
 let unshift q x = insert q 0 x
-
 let push q x = insert q (-1) x
-
 let shift q = remove q 0
-
 let pop q = remove q (-1)
 
 let fold f x q =

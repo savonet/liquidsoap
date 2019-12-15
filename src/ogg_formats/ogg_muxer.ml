@@ -25,30 +25,21 @@
 let log = Log.make ["ogg.muxer"]
 
 exception Invalid_data
-
 exception Invalid_usage
 
 type audio = float array array
-
 type video = Video.buffer
-
 type 'a data = { data : 'a; offset : int; length : int }
-
 type track_data = Audio_data of audio data | Video_data of video data
-
 type position = Unknown | Time of float
 
 type 'a track_encoder =
   'a data -> Ogg.Stream.stream -> (Ogg.Page.t -> unit) -> unit
 
 type page_end_time = Ogg.Page.t -> position
-
 type header_encoder = Ogg.Stream.stream -> Ogg.Page.t
-
 type fisbone_packet = Ogg.Stream.stream -> Ogg.Stream.packet option
-
 type stream_start = Ogg.Stream.stream -> Ogg.Page.t list
-
 type end_of_stream = Ogg.Stream.stream -> unit
 
 type 'a stream = {

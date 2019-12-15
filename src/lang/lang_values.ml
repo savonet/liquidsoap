@@ -64,13 +64,9 @@ let ref_t ?pos ?level t =
     (T.Constr { T.name = "ref"; T.params = [(T.Invariant, t)] })
 
 let zero_t = T.make T.Zero
-
 let succ_t t = T.make (T.Succ t)
-
 let variable_t = T.make T.Variable
-
 let rec add_t n m = if n = 0 then m else succ_t (add_t (n - 1) m)
-
 let type_of_int n = add_t n zero_t
 
 (** A frame kind type is a purely abstract type representing a frame kind.
@@ -552,7 +548,6 @@ let builtins : ((int * T.constraints) list * V.value) Plug.plug =
 (* {2 Type checking/inference} *)
 
 let ( <: ) = T.( <: )
-
 let ( >: ) = T.( >: )
 
 let rec value_restriction t =
@@ -564,7 +559,6 @@ let rec value_restriction t =
     | _ -> false
 
 exception Unbound of T.pos option * string
-
 exception Ignored of term
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be

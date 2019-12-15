@@ -25,7 +25,6 @@ open Gstreamer
 module GU = Gstreamer_utils
 
 let log = Log.make ["io"; "gstreamer"]
-
 let gst_clock = Tutils.lazy_cell (fun () -> new Clock.clock "gstreamer")
 
 let string_of_state_change = function

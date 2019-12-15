@@ -76,5 +76,4 @@ class virtual queued :
      end
 
 val queued_proto : Lang.proto
-
 val extract_queued_params : Lang.env -> float * float * float * bool

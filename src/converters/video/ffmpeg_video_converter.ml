@@ -73,7 +73,6 @@ module HT = struct
   type t = (bool * fmt * fmt) * conv option
 
   let equal (fmt, _) (fmt', _) = fmt = fmt'
-
   let hash (fmt, _) = Hashtbl.hash fmt
 end
 
@@ -82,7 +81,6 @@ module WH = struct
 
   (* Number of converters to always keep in memory. *)
   let n = 2
-
   let keep = Array.make n None
 
   let add h fmt conv =
@@ -98,7 +96,6 @@ end
 
 (* Weak hashtable containing converters already created. *)
 let converters = WH.create 5
-
 let is_rgb = function P.RGB _ -> true | _ -> false
 
 let create () =

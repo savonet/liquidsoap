@@ -70,7 +70,6 @@ open Lastfm_generic
 open Audioscrobbler
 
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
-
 type submission = NowPlaying | Played
 
 type task = {

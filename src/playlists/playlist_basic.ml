@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 let log = Log.make ["playlist"; "basic"]
-
 let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
 
 let test_text s =

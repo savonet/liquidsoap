@@ -27,7 +27,6 @@ val log : Log.t
 (** {2 Types} *)
 
 exception Invalid_data
-
 exception Invalid_usage
 
 (** Audio data type *)

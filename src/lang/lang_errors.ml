@@ -27,13 +27,10 @@ module T = Lang_types
 exception Invalid_value of Term.V.value * string
 
 exception Clock_conflict of (T.pos option * string * string)
-
 exception Clock_loop of (T.pos option * string * string)
 
 let error = Console.colorize [`red; `bold] "Error"
-
 let warning = Console.colorize [`magenta; `bold] "Warning"
-
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 
 let error_header idx pos =

@@ -31,19 +31,12 @@ let log = Log.make ["lang"]
 (** Type construction *)
 
 let ground_t x = T.make (T.Ground x)
-
 let int_t = ground_t T.Int
-
 let unit_t = T.make T.unit
-
 let float_t = ground_t T.Float
-
 let bool_t = ground_t T.Bool
-
 let string_t = ground_t T.String
-
 let tuple_t l = T.make (T.Tuple l)
-
 let product_t a b = tuple_t [a; b]
 
 let of_tuple_t t =
@@ -53,46 +46,28 @@ let of_product_t t =
   match of_tuple_t t with [a; b] -> (a, b) | _ -> assert false
 
 let fun_t p b = T.make (T.Arrow (p, b))
-
 let list_t t = T.make (T.List t)
 
 let of_list_t t =
   match (T.deref t).T.descr with T.List t -> t | _ -> assert false
 
 let metadata_t = list_t (product_t string_t string_t)
-
 let zero_t = Term.zero_t
-
 let succ_t t = Term.succ_t t
-
 let variable_t = Term.variable_t
-
 let add_t = Term.add_t
-
 let type_of_int = Term.type_of_int
-
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
-
 let string_getter_t () = univ_t ~constraints:[T.Getter T.String] ()
-
 let float_getter_t () = univ_t ~constraints:[T.Getter T.Float] ()
-
 let int_getter_t () = univ_t ~constraints:[T.Getter T.Int] ()
-
 let bool_getter_t () = univ_t ~constraints:[T.Getter T.Bool] ()
-
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
-
 let of_frame_kind_t t = Term.of_frame_kind_t t
-
 let source_t t = Term.source_t t
-
 let of_source_t t = Term.of_source_t t
-
 let format_t t = Term.format_t t
-
 let request_t t = Term.request_t t
-
 let of_request_t t = Term.of_request_t t
 
 let rec t_of_mul = function
@@ -166,7 +141,6 @@ let audio_n n =
   Constrained { Frame.audio = Fixed n; video = Fixed 0; midi = Fixed 0 }
 
 let audio_mono = audio_n 1
-
 let audio_stereo = audio_n 2
 
 let video_only =
@@ -203,23 +177,14 @@ let kind_type_of_kind_format fmt =
 (** Value construction *)
 
 let mk ~t v = { t; value = v }
-
 let unit = mk ~t:unit_t unit
-
 let int i = mk ~t:int_t (Int i)
-
 let bool i = mk ~t:bool_t (Bool i)
-
 let float i = mk ~t:float_t (Float i)
-
 let string i = mk ~t:string_t (String i)
-
 let tuple l = mk ~t:(tuple_t (List.map (fun a -> a.t) l)) (Tuple l)
-
 let product a b = tuple [a; b]
-
 let list ~t l = mk ~t:(list_t t) (List l)
-
 let source s = mk ~t:(source_t (kind_type_of_frame_kind s#kind)) (Source s)
 
 let request r =
@@ -532,7 +497,6 @@ let apply f p ~t = Clock.collect_after (fun () -> Term.apply f p ~t)
 (** {1 High-level manipulation of values} *)
 
 let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-
 let to_bool t = match t.value with Bool b -> b | _ -> assert false
 
 let to_bool_getter t =
@@ -575,11 +539,8 @@ let to_float_getter t =
     | _ -> assert false
 
 let to_source t = match t.value with Source s -> s | _ -> assert false
-
 let to_format t = match t.value with Encoder f -> f | _ -> assert false
-
 let to_request t = match t.value with Request x -> x | _ -> assert false
-
 let to_int t = match t.value with Int s -> s | _ -> assert false
 
 let to_int_getter t =
@@ -593,7 +554,6 @@ let to_int_getter t =
     | _ -> assert false
 
 let to_list t = match t.value with List l -> l | _ -> assert false
-
 let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
 
 let to_product t =
@@ -613,9 +573,7 @@ let to_metadata t =
   metas
 
 let to_string_list l = List.map to_string (to_list l)
-
 let to_int_list l = List.map to_int (to_list l)
-
 let to_source_list l = List.map to_source (to_list l)
 
 (** [assoc lbl n l] returns the [n]th element in [l]

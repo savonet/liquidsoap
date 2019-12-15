@@ -17,9 +17,7 @@ val add_break : t -> int -> unit
 type metadata = (string, string) Hashtbl.t
 
 val set_metadata : t -> int -> metadata -> unit
-
 val get_metadata : t -> int -> metadata option
-
 val get_all_metadata : t -> (int * metadata) list
 
 (** Get the MIDI tracks at a given position, assuming that the frame

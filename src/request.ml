@@ -37,7 +37,6 @@ let log = Log.make ["request"]
 (** File utilities. *)
 
 let remove_file_proto s = Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s
-
 let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
 
 let parse_uri uri =
@@ -124,7 +123,6 @@ let string_of_log log =
   *)
 
 type indicator = { string : string; temporary : bool; metadata : metadata }
-
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
 type t = {
@@ -151,7 +149,6 @@ type t = {
 }
 
 let kind x = x.kind
-
 let initial_uri x = x.initial_uri
 
 let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
@@ -193,7 +190,6 @@ let iter_metadata t f =
   f t.root_metadata
 
 let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
-
 let set_root_metadata t k v = Hashtbl.replace t.root_metadata k v
 
 exception Found of string
@@ -220,7 +216,6 @@ let get_all_metadata t =
 (** Logging *)
 
 let add_log t i = Queue.add (Unix.localtime (Unix.time ()), i) t.log
-
 let get_log t = t.log
 
 (* Indicator tree management *)
@@ -438,14 +433,11 @@ let get_root_metadata t =
 
 module Pool = Pool.Make (struct
   type req = t
-
   type t = req
 end)
 
 let get_id t = t.id
-
 let from_id id = Pool.find id
-
 let all_requests () = Pool.fold (fun k _ l -> k :: l) []
 
 let alive_requests () =
@@ -501,7 +493,6 @@ let create ~kind ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
   t
 
 let create_raw = create ~kind:None
-
 let create ~kind = create ~kind:(Some kind)
 
 let on_air t =

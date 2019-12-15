@@ -29,13 +29,9 @@ module type Lame_t = sig
   type encoder
 
   val create_encoder : unit -> encoder
-
   val set_in_samplerate : encoder -> int -> unit
-
   val set_num_channels : encoder -> int -> unit
-
   val set_out_samplerate : encoder -> int -> unit
-
   val set_quality : encoder -> int -> unit
 
   type vbr_mode =
@@ -48,15 +44,10 @@ module type Lame_t = sig
   (* don't use this (it's for sanity checks) *)
 
   val set_vbr_mode : encoder -> vbr_mode -> unit
-
   val set_vbr_quality : encoder -> int -> unit
-
   val set_vbr_mean_bitrate : encoder -> int -> unit
-
   val set_vbr_min_bitrate : encoder -> int -> unit
-
   val set_vbr_max_bitrate : encoder -> int -> unit
-
   val set_vbr_hard_min : encoder -> bool -> unit
 
   type mode =
@@ -66,29 +57,20 @@ module type Lame_t = sig
     | Mono  (** mono *)
 
   val set_mode : encoder -> mode -> unit
-
   val set_brate : encoder -> int -> unit
-
   val set_private : encoder -> bool -> unit
-
   val get_private : encoder -> bool
-
   val set_original : encoder -> bool -> unit
-
   val get_original : encoder -> bool
-
   val set_copyright : encoder -> bool -> unit
 
   exception Init_params_failed
 
   val init_params : encoder -> unit
-
   val init_bitstream : encoder -> unit
 
   exception Init_params_not_called
-
   exception Psychoacoustic_problem
-
   exception Unknown_error of int
 
   val encode_buffer_float_ba :

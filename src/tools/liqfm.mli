@@ -23,9 +23,7 @@
 module Audioscrobbler : Lastfm_generic.Audioscrobbler_t
 
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
-
 type submission = NowPlaying | Played
-
 type task
 
 (** [init (host,port)]: Create a new task. *)

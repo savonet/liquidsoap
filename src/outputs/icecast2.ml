@@ -178,7 +178,6 @@ module M = Icecast_utils.Icecast_v (Icecast)
 open M
 
 let no_mount = "Use [name]"
-
 let no_name = "Use [mount]"
 
 let user_agent =

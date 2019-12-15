@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 type bitrate_control = Quality of int | Vbr of int | Abr of int
-
 type mode = Narrowband | Wideband | Ultra_wideband
 
 type t = {

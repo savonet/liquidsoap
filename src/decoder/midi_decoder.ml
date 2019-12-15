@@ -24,7 +24,6 @@
   * The metadata support is TODO. *)
 
 exception Invalid_header
-
 exception Invalid_data
 
 let log = Log.make ["decoder"; "midi"]

@@ -227,7 +227,6 @@ module From_audio_video : sig
   val fill : t -> Frame.t -> unit
 
   val remove : t -> int -> unit
-
   val clear : t -> unit
 end
 
@@ -238,23 +237,15 @@ module type S_Asio = sig
   val length : t -> int (* ticks *)
 
   val audio_length : t -> int
-
   val video_length : t -> int
-
   val remaining : t -> int (* ticks *)
 
   val clear : t -> unit
-
   val fill : t -> Frame.t -> unit
-
   val add_metadata : t -> Frame.metadata -> unit
-
   val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
-
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
-
   val put_video : t -> Frame.video_t array -> int -> int -> unit
-
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
@@ -279,27 +270,16 @@ module From_audio_video_plus : sig
     t
 
   val mode : t -> From_audio_video.mode
-
   val set_mode : t -> From_audio_video.mode -> unit
-
   val audio_length : t -> int
-
   val video_length : t -> int
-
   val length : t -> int
-
   val remaining : t -> int
-
   val audio_size : t -> int
-
   val video_size : t -> int
-
   val size : t -> int
-
   val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
-
   val add_metadata : t -> Frame.metadata -> unit
-
   val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
 
   (* [put_audio buffer data offset length]:
@@ -309,10 +289,7 @@ module From_audio_video_plus : sig
   (* [put_video buffer data offset length]:
    * offset and length are in video samples! *)
   val put_video : t -> Frame.video_t array -> int -> int -> unit
-
   val fill : t -> Frame.t -> unit
-
   val remove : t -> int -> unit
-
   val clear : t -> unit
 end

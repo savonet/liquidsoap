@@ -56,9 +56,7 @@ module Websocket_transport = struct
   type socket = secure_transport_socket
 
   let read { ctx } buf ofs len = SecureTransport.read ctx buf ofs len
-
   let read_retry fd = Extralib.read_retry (read fd)
-
   let write { ctx } buf ofs len = SecureTransport.write ctx buf ofs len
 end
 
@@ -70,11 +68,8 @@ module Duppy_transport :
     (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   let sock { sock } = sock
-
   let read { ctx } buf ofs len = SecureTransport.read ctx buf ofs len
-
   let write { ctx } buf ofs len = SecureTransport.write ctx buf ofs len
-
   let ba_write _ _ _ _ = failwith "Not implemented!"
 end
 
@@ -82,9 +77,7 @@ module Transport = struct
   type socket = secure_transport_socket
 
   let name = "secure_transport"
-
   let file_descr_of_socket { sock } = sock
-
   let read { ctx } buf ofs len = SecureTransport.read ctx buf ofs len
 
   let accept sock =
@@ -109,7 +102,6 @@ module Transport = struct
 
     module Monad = struct
       module Io = Duppy.Monad.MakeIo (Io)
-
       include (Monad : Monad_t)
     end
   end

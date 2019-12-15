@@ -27,9 +27,7 @@ let () =
   Conf.set_bool "log.stdout" true
 
 let log = Log.log ~label:"log" 3
-
 let stop = ref false
-
 let lock = Tutils.Mutex.create "foo"
 
 let p s () =

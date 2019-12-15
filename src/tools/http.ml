@@ -5,15 +5,10 @@ module type Transport_t = sig
     [ `Write of connection | `Read of connection | `Both of connection ]
 
   val default_port : int
-
   val connect : ?bind_address:string -> string -> int -> connection
-
   val wait_for : ?log:(string -> unit) -> event -> float -> unit
-
   val write : connection -> Bytes.t -> int -> int -> int
-
   val read : connection -> Bytes.t -> int -> int -> int
-
   val disconnect : connection -> unit
 end
 
@@ -46,13 +41,9 @@ struct
       raise Socket
 
   let default_port = 80
-
   let wait_for = Tutils.wait_for
-
   let write = Unix.write
-
   let read = Unix.read
-
   let disconnect socket = try Unix.close socket with _ -> ()
 end
 
@@ -72,33 +63,20 @@ module type Http_t = sig
   type uri = { host : string; port : int option; path : string }
 
   val default_port : int
-
   val user_agent : string
-
   val url_decode : ?plus:bool -> string -> string
-
   val url_encode : ?plus:bool -> string -> string
-
   val parse_url : string -> uri
-
   val is_url : string -> bool
-
   val dirname : string -> string
-
   val args_split : string -> (string, string) Hashtbl.t
-
   val connect : ?bind_address:string -> string -> int -> connection
-
   val disconnect : connection -> unit
-
   val read : connection -> Bytes.t -> int -> int -> int
-
   val write : connection -> Bytes.t -> int -> int -> int
-
   val wait_for : ?log:(string -> unit) -> event -> float -> unit
 
   type status = string * int * string
-
   type headers = (string * string) list
 
   val read_crlf :
@@ -202,11 +180,8 @@ module Make (Transport : Transport_t) = struct
   type uri = { host : string; port : int option; path : string }
 
   let () = Printexc.register_printer error_translator
-
   let raise e = raise (Error e)
-
   let default_port = Transport.default_port
-
   let user_agent = Configure.vendor
 
   (* URL encoding/decoding according to RFC 1738, RFC 1630.
@@ -285,13 +260,9 @@ module Make (Transport : Transport_t) = struct
     args
 
   let connect = Transport.connect
-
   let disconnect = Transport.disconnect
-
   let read = Transport.read
-
   let write = Transport.write
-
   let wait_for = Transport.wait_for
 
   (* exception Invalid_url *)
@@ -343,7 +314,6 @@ module Make (Transport : Transport_t) = struct
           !ans
 
   type status = string * int * string
-
   type headers = (string * string) list
 
   (* An ugly code to read until we see [\r]?\n n times. *)

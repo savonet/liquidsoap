@@ -83,7 +83,6 @@ let print_ground = function
 (** Type constraints *)
 
 type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
-
 type constraints = constr list
 
 let print_symconstr = function
@@ -143,7 +142,6 @@ type repr =
   | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *) ]
 
 let make ?(pos = None) ?(level = -1) d = { pos; level; descr = d }
-
 let dummy = make ~pos:None (EVar (-1, []))
 
 (** Dereferencing gives you the meaning of a term,
@@ -574,7 +572,6 @@ type explanation = bool * t * t * repr * repr
 exception Type_Error of explanation
 
 let pp_type f t = print_repr f (repr t)
-
 let pp_type_generalized generalized f t = print_repr f (repr ~generalized t)
 
 let print ?generalized t : string =

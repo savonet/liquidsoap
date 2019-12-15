@@ -32,13 +32,9 @@ let vot ?round x =
     | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate - 1)
 
 let size _ = vot (Lazy.force size)
-
 let next_sample_position t = vot ~round:`Up (Frame.position t)
-
 let add_break t i = add_break t (tov i)
-
 let is_partial t = is_partial t
-
 let position t = vot (position t)
 
 let get_content frame source =

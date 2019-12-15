@@ -23,9 +23,7 @@
 type tokenizer = unit -> Lang_parser.token * (Lexing.position * Lexing.position)
 
 let fst3 (x, _, _) = x
-
 let snd3 (_, y, _) = y
-
 let trd3 (_, _, z) = z
 
 let mk_tokenizer ?(fname = "") lexbuf =

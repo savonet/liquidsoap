@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 exception Internal
-
 exception Invalid_settings of string
 
 let create speex ~metadata () =

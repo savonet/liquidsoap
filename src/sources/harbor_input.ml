@@ -27,7 +27,6 @@ module type T = sig
   include Harbor.T
 
   val source_name : string
-
   val source_description : string
 end
 

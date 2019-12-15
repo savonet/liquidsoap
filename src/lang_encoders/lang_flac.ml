@@ -56,5 +56,4 @@ let flac_gen params =
     defaults params
 
 let make_ogg params = Ogg_format.Flac (flac_gen params)
-
 let make params = Encoder.Flac (flac_gen params)

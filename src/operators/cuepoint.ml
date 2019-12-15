@@ -38,7 +38,6 @@ open Source
  * We introduce a few notations to make this comfortable. *)
 
 let ( -- ) = Int64.sub
-
 let ( ++ ) = Int64.add
 
 class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =

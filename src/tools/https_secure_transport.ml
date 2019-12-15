@@ -56,7 +56,6 @@ module SecureTransport_transport :
     Tutils.wait_for ?log event timeout
 
   let read { ctx } buf ofs len = SecureTransport.read ctx buf ofs len
-
   let write { ctx } buf ofs len = SecureTransport.write ctx buf ofs len
 end
 

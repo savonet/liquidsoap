@@ -21,9 +21,7 @@
  *****************************************************************************)
 
 type application = [ `Voip | `Audio | `Restricted_lowdelay ]
-
 type bitrate = [ `Auto | `Bitrate_max | `Bitrate of int ]
-
 type mode = VBR of bool (* Variable bitrate, constrained or not. *) | CBR
 
 (* Constant bitrate. *)

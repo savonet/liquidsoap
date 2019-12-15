@@ -40,7 +40,6 @@ let parse_time t =
     [g 1; g 2; Some (int_of_string (Pcre.get_substring sub 3)); None]
 
 let skipped = [%sedlex.regexp? Sub (white_space, '\n') | '\r' | '\t']
-
 let decimal_digit = [%sedlex.regexp? '0' .. '9']
 
 let decimal_literal =
@@ -64,7 +63,6 @@ let int_literal =
   [%sedlex.regexp? decimal_literal | hex_literal | oct_literal | bin_literal]
 
 let var_char = [%sedlex.regexp? alphabetic | other_alphabetic]
-
 let var_underscore = [%sedlex.regexp? '_', Plus '_']
 
 let var_lit =

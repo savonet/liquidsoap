@@ -157,15 +157,10 @@ val any_fixed_with :
   ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_formats
 
 val empty : lang_kind_formats
-
 val audio_any : lang_kind_formats
-
 val audio_mono : lang_kind_formats
-
 val audio_stereo : lang_kind_formats
-
 val audio_n : int -> lang_kind_formats
-
 val audio_variable : lang_kind_formats
 
 (** One video channel only. *)
@@ -178,11 +173,8 @@ val video_n : int -> lang_kind_formats
 val video : lang_kind_formats
 
 val midi_n : int -> lang_kind_formats
-
 val midi_only : lang_kind_formats
-
 val audio_video_any : lang_kind_formats
-
 val kind_type_of_kind_format : lang_kind_formats -> t
 
 (** Add an operator to the language and to the documentation. *)
@@ -200,45 +192,25 @@ val add_operator :
 (** {2 Manipulation of values} *)
 
 val to_unit : value -> unit
-
 val to_bool : value -> bool
-
 val to_bool_getter : value -> unit -> bool
-
 val to_string : value -> string
-
 val to_string_getter : value -> unit -> string
-
 val to_float : value -> float
-
 val to_float_getter : value -> unit -> float
-
 val to_source : value -> Source.source
-
 val to_format : value -> Encoder.format
-
 val to_request : value -> Request.t
-
 val to_int : value -> int
-
 val to_int_getter : value -> unit -> int
-
 val to_list : value -> value list
-
 val to_product : value -> value * value
-
 val to_tuple : value -> value list
-
 val to_metadata_list : value -> (string * string) list
-
 val to_metadata : value -> Frame.metadata
-
 val to_string_list : value -> string list
-
 val to_int_list : value -> int list
-
 val to_source_list : value -> Source.source list
-
 val to_fun : t:t -> value -> (string * value) list -> value
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
@@ -246,53 +218,29 @@ val to_fun : t:t -> value -> (string * value) list -> value
 val assoc : 'a -> int -> ('a * 'b) list -> 'b
 
 val int_t : t
-
 val unit_t : t
-
 val float_t : t
-
 val bool_t : t
-
 val string_t : t
-
 val product_t : t -> t -> t
-
 val of_product_t : t -> t * t
-
 val tuple_t : t list -> t
-
 val of_tuple_t : t -> t list
-
 val list_t : t -> t
-
 val of_list_t : t -> t
-
 val zero_t : t
-
 val variable_t : t
-
 val succ_t : t -> t
-
 val add_t : int -> t -> t
-
 val type_of_int : int -> t
-
 val request_t : t -> t
-
 val of_request_t : t -> t
-
 val source_t : t -> t
-
 val of_source_t : t -> t
-
 val format_t : t -> t
-
 val frame_kind_t : audio:t -> video:t -> midi:t -> t
-
 val of_frame_kind_t : t -> (t, t, t) Frame.fields
-
 val frame_kind_of_kind_type : t -> Frame.content_kind
-
 val kind_type_of_frame_kind : Frame.content_kind -> t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
@@ -316,27 +264,16 @@ val string_getter_t : unit -> t
 val float_getter_t : unit -> t
 
 val int_getter_t : unit -> t
-
 val bool_getter_t : unit -> t
-
 val unit : value
-
 val int : int -> value
-
 val bool : bool -> value
-
 val float : float -> value
-
 val string : string -> value
-
 val list : t:t -> value list -> value
-
 val source : Source.source -> value
-
 val request : Request.t -> value
-
 val product : value -> value -> value
-
 val tuple : value list -> value
 
 (** Build a function from an OCaml function.

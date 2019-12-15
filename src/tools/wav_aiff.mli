@@ -23,7 +23,6 @@
 (** Encode/decode IFF files, that is AIFF and WAV. *)
 
 type 'a t
-
 type format = [ `Aiff | `Wav ]
 
 val format_of_handler : 'a t -> format
@@ -64,9 +63,7 @@ val info : 'a t -> string
 val channels : 'a t -> int
 
 val sample_rate : 'a t -> int
-
 val sample_size : 'a t -> int
-
 val data_length : 'a t -> int
 
 (** [close w] close the wav descriptor [w] *)
