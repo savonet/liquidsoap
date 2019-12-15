@@ -33,17 +33,30 @@ def metadata.float_getter(init, metadata, s)
   metadata.getter(init, float_of_string, metadata, s)
 end
 
-# Obtain cover-art for a file. Only MP3 files are supported for now, athough
-# more should be in the future. An empty string is return in case there is no
-# such information.
+# Obtain cover-art for a file. Only MP3 and OGG files are supported for now,
+# athough more should be in the future. An empty string is return in case there
+# is no such information.
+# @category System
 # @param file File from which the cover should be obtained
 def file.cover(file)
   m = file.mp3.tags(file)
-  m = list.filter(fun (lv) -> fst(lv) == "APIC", m)
-  m = list.map(snd, m)
-  if m == [] then "" else
-    # TODO: we could use file type in order to select cover if there are many
-    let (_,_,_,data) = file.mp3.parse_apic(list.hd(default="", m))
-    data
+  if m != [] then
+    m = list.filter(fun (lv) -> fst(lv) == "APIC", m)
+    m = list.map(snd, m)
+    if m == [] then "" else
+      # TODO: we could use file type in order to select cover if there are many
+      let (_,_,_,data) = file.mp3.parse_apic(list.hd(default="", m))
+      data
+    end
+  else
+    m = file.ogg.tags(file)
+    if m != [] then
+      m = list.filter(fun (lv) -> fst(lv) == "COVERART" or fst(lv) == "coverart", m)
+      m = list.map(snd, m)
+      m = list.hd(default="", m)
+      if m == "" then "" else base64.decode(m) end
+    else
+      ""
+    end
   end
 end
