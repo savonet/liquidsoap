@@ -338,7 +338,7 @@ let () =
        Lang.string (Pcre.substitute ~rex ~subst string))
 
 let () =
-  add_builtin "base64.decode" ~cat:String
+  add_builtin "string.base64.decode" ~cat:String
     ~descr:"Decode a Base64 encoded string."
     [ "", Lang.string_t, None, None ]
     Lang.string_t
@@ -347,7 +347,7 @@ let () =
        Lang.string (Utils.decode64 string))
 
 let () =
-  add_builtin "base64.encode" ~cat:String
+  add_builtin "string.base64.encode" ~cat:String
     ~descr:"Encode a string in Base64."
     [ "", Lang.string_t, None, None ]
     Lang.string_t

@@ -27,6 +27,8 @@ New:
 - Add `validate` parameter to `register`, which allows to validate a value
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
+- Renamed `base64.decode`/`base64.encode` to
+  `string.base64.decode`/`string.base64.encode`.
 
 Changed:
 

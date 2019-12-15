@@ -72,3 +72,17 @@ def which(f)
   deprecated("which", "file.which")
   file.which(f)
 end
+
+# Deprecated: this function has been replaced by string.base64.decode.
+# @flag hidden
+def base64.decode(s)
+  deprecated("base64.decode", "string.base64.decode")
+  string.base64.decode(s)
+end
+
+# Deprecated: this function has been replaced by string.base64.encode.
+# @flag hidden
+def base64.encode(s)
+  deprecated("base64.encode", "string.base64.encode")
+  string.base64.encode(s)
+end
