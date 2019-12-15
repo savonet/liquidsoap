@@ -71,22 +71,14 @@ let parse f =
         if id.[0] = 'T' then (
           let id =
             match id with
-              | "COMM" ->
-                  "comment"
-              | "TPE1" ->
-                  "artist"
-              | "TIT2" ->
-                  "title"
-              | "TALB" ->
-                  "album"
-              | "TYER" ->
-                  "year"
-              | "TRCK" ->
-                  "track"
-              | "TBPM" ->
-                  "bpm"
-              | _ ->
-                  id
+            | "COMM" -> "comment"
+            | "TPE1" -> "artist"
+            | "TIT2" -> "title"
+            | "TALB" -> "album"
+            | "TYER" -> "year"
+            | "TRCK" -> "track"
+            | "TBPM" -> "tempo"
+            | _ -> id
           in
           let encoding = int_of_char data.[0] in
           let z =

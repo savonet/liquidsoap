@@ -312,6 +312,29 @@ let () =
           Lang.string apic.Id3v2.data ])
 
 let () =
+  add_builtin "file.ogg.tags" ~cat:Sys
+    [ ( "",
+        Lang.string_t,
+        None,
+        Some "ogg file of which the metadata should be read." ) ]
+    (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t))
+    ~descr:"Read the tags from an ogg file using the builtin functions."
+    (fun p ->
+      let f = Lang.to_string (List.assoc "" p) in
+      let ic = open_in f in
+      let ans =
+        try
+          let ans = VorbisComment.parse (input ic) in
+          close_in ic ; ans
+        with _ -> close_in ic ; []
+      in
+      Lang.list
+        ~t:(Lang.product_t Lang.string_t Lang.string_t)
+        (List.map
+           (fun (l, v) -> Lang.product (Lang.string l) (Lang.string v))
+           ans))
+
+let () =
   add_builtin "file.which" ~cat:Sys
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
