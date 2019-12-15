@@ -58,7 +58,7 @@ def file.cover(file)
     m = list.filter(fun (lv) -> fst(lv) == "coverart", m)
     m = list.map(snd, m)
     m = list.hd(default="", m)
-    if m == "" then "" else base64.decode(m) end
+    if m == "" then "" else string.base64.decode(m) end
   else
     # Assume we have an mp3 file
     m =
