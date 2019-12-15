@@ -75,7 +75,7 @@ let print_pos ?(prefix = "at ") (start, stop) =
 type ground = Abstract of string | Bool | Int | String | Float
 
 let print_ground = function
-  | Abstract n -> "<" ^ n ^ ">"
+  | Abstract n -> n
   | String -> "string"
   | Bool -> "bool"
   | Int -> "int"
