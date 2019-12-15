@@ -270,7 +270,7 @@ let () =
 (************** MP3 ********************)
 
 let () =
-  add_builtin "file.mp3.tags" ~cat:Sys
+  add_builtin "file.mp3.metadata" ~cat:Sys
     [ ( "",
         Lang.string_t,
         None,
@@ -312,27 +312,26 @@ let () =
           Lang.string apic.Id3v2.data ])
 
 let () =
-  add_builtin "file.ogg.tags" ~cat:Sys
+  add_builtin "file.metadata" ~cat:Sys
     [ ( "",
         Lang.string_t,
         None,
-        Some "ogg file of which the metadata should be read." ) ]
+        Some "URI of the file for which the metadata should be read." ) ]
     (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t))
-    ~descr:"Read the tags from an ogg file using the builtin functions."
+    ~descr:"Read metadata from a file."
     (fun p ->
-      let f = Lang.to_string (List.assoc "" p) in
-      let ic = open_in f in
-      let ans =
-        try
-          let ans = VorbisComment.parse (input ic) in
-          close_in ic ; ans
-        with _ -> close_in ic ; []
-      in
-      Lang.list
-        ~t:(Lang.product_t Lang.string_t Lang.string_t)
-        (List.map
-           (fun (l, v) -> Lang.product (Lang.string l) (Lang.string v))
-           ans))
+       let f = Lang.to_string (List.assoc "" p) in
+       let r = Request.create_raw f in
+       let m =
+         if Request.resolve r 10. <> Request.Resolved then []
+         else
+           let m = Request.get_all_metadata r in
+           List.of_seq (Hashtbl.to_seq m)
+       in
+       Lang.list
+         ~t:(Lang.product_t Lang.string_t Lang.string_t)
+         (List.map (fun (l, v) -> Lang.product (Lang.string l) (Lang.string v)) m)
+    )
 
 let () =
   add_builtin "file.which" ~cat:Sys

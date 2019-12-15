@@ -33,30 +33,37 @@ def metadata.float_getter(init, metadata, s)
   metadata.getter(init, float_of_string, metadata, s)
 end
 
-# Obtain cover-art for a file. Only MP3 and OGG files are supported for now,
-# athough more should be in the future. An empty string is return in case there
-# is no such information.
+# Obtain cover-art for a file. An empty string is returned in case there is no
+# such information.
 # @category System
 # @param file File from which the cover should be obtained
 def file.cover(file)
-  m = file.mp3.tags(file)
-  if m != [] then
-    m = list.filter(fun (lv) -> fst(lv) == "APIC", m)
+  m = file.metadata(file)
+  m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
+  if list.exists(fun (lv) -> fst(lv) == "coverart", m) then
+    # We are likely to have an ogg/vorbis file
+    m = list.filter(fun (lv) -> fst(lv) == "coverart", m)
     m = list.map(snd, m)
-    if m == [] then "" else
+    m = list.hd(default="", m)
+    if m == "" then "" else base64.decode(m) end
+  else
+    # Assume we have an mp3 file
+    m =
+      if list.exists(fun (lv) -> fst(lv) == "apic", m) then
+        m
+      else
+        # Try the builting tag reader because APIC tags are not read by default,
+        # e.g. with taglib
+        file.mp3.metadata(file)
+      end
+    m = list.filter(fun (lv) -> fst(lv) == "apic", m)
+    m = list.map(snd, m)
+    if m == [] then
+      ""
+    else
       # TODO: we could use file type in order to select cover if there are many
       let (_,_,_,data) = file.mp3.parse_apic(list.hd(default="", m))
       data
-    end
-  else
-    m = file.ogg.tags(file)
-    if m != [] then
-      m = list.filter(fun (lv) -> fst(lv) == "COVERART" or fst(lv) == "coverart", m)
-      m = list.map(snd, m)
-      m = list.hd(default="", m)
-      if m == "" then "" else base64.decode(m) end
-    else
-      ""
     end
   end
 end
