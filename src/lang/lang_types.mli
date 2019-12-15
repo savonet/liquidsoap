@@ -30,7 +30,7 @@ val print_pos : ?prefix:string -> pos -> string
 
 type variance = Covariant | Contravariant | Invariant
 
-type ground = Bool | Int | String | Float
+type ground = Abstract of string | Bool | Int | String | Float
 
 val print_ground : ground -> string
 
@@ -40,9 +40,9 @@ type constraints = constr list
 
 val print_constr : constr -> string
 
-type t = {pos: pos option; mutable level: int; mutable descr: descr}
+type t = { pos : pos option; mutable level : int; mutable descr : descr }
 
-and constructed = {name: string; params: (variance * t) list}
+and constructed = { name : string; params : (variance * t) list }
 
 and descr =
   | Constr of constructed
