@@ -21,11 +21,11 @@
  *****************************************************************************)
 
 type t = {
-  channels: int;
-  bits_per_sample: int;
-  samplerate: int Lazy.t;
-  compression: int;
-  fill: int option;
+  channels : int;
+  bits_per_sample : int;
+  samplerate : int Lazy.t;
+  compression : int;
+  fill : int option;
 }
 
 let to_string m =

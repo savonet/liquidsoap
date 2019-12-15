@@ -61,22 +61,21 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
 
     method private get_frame buf =
       match VFrame.get_content buf source with
-        | None ->
-            ()
+        | None -> ()
         | Some (rgb, offset, length) ->
-            params () ;
+            params ();
             let rgb = rgb.(0) in
             for i = offset to offset + length - 1 do
               (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
               let img = Video.get rgb i in
               let img = Image.YUV420.to_RGBA32 img in
-              if bgra then Image.RGBA32.swap_rb img ;
+              if bgra then Image.RGBA32.swap_rb img;
               let src = Image.RGBA32.data (Image.RGBA32.copy img) in
               let dst = Image.RGBA32.data img in
-              Frei0r.update1 instance t src dst ;
-              if bgra then Image.RGBA32.swap_rb img ;
+              Frei0r.update1 instance t src dst;
+              if bgra then Image.RGBA32.swap_rb img;
               let img = Image.YUV420.of_RGBA32 img in
-              Video.set rgb i img ;
+              Video.set rgb i img;
               t <- t +. dt
             done
   end
@@ -89,23 +88,21 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
 
     method stype =
       match (source#stype, source2#stype) with
-        | Infallible, Infallible ->
-            Infallible
-        | _ ->
-            Fallible
+        | Infallible, Infallible -> Infallible
+        | _ -> Fallible
 
     method remaining =
       match (source#remaining, source2#remaining) with
-        | -1, x | x, -1 ->
-            x
-        | x, y ->
-            min x y
+        | -1, x | x, -1 -> x
+        | x, y -> min x y
 
     method is_ready = source#is_ready && source2#is_ready
 
     method self_sync = source#self_sync || source2#self_sync
 
-    method abort_track = source#abort_track ; source2#abort_track
+    method abort_track =
+      source#abort_track;
+      source2#abort_track
 
     val mutable t = 0.
 
@@ -114,20 +111,20 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
     method private get_frame buf =
       (* Prepare buffer for the second source
        * at the same position as final buffer. *)
-      Frame.clear tmp ;
-      Frame.set_breaks tmp [Frame.position buf] ;
+      Frame.clear tmp;
+      Frame.set_breaks tmp [Frame.position buf];
       (* Get content in respective buffers *)
       let c = VFrame.get_content buf source in
       let c2 = VFrame.get_content tmp source2 in
       match (c, c2) with
         | Some (rgb, offset, length), Some (rgb', offset', length') ->
-            params () ;
+            params ();
             (* Mix content where the two streams are available.
              * We could cut one stream when the other is too short,
              * and/or attempt to get some more data in the buffers...
              * each solution has its downsides and it'll rarely matter
              * because there's usually only one image per video frame. *)
-            assert (offset = offset') ;
+            assert (offset = offset');
             let length = min length length' in
             let rgb = rgb.(0) in
             let rgb' = rgb'.(0) in
@@ -137,19 +134,18 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
               let img = Image.YUV420.to_RGBA32 img in
               let img' = Video.get rgb' i in
               let img' = Image.YUV420.to_RGBA32 img' in
-              if bgra then Image.RGBA32.swap_rb img ;
-              if bgra then Image.RGBA32.swap_rb img' ;
+              if bgra then Image.RGBA32.swap_rb img;
+              if bgra then Image.RGBA32.swap_rb img';
               let src = Image.RGBA32.data (Image.RGBA32.copy img) in
               let src' = Image.RGBA32.data img' in
               let dst = Image.RGBA32.data img in
-              Frei0r.update2 instance t src src' dst ;
-              if bgra then Image.RGBA32.swap_rb img ;
+              Frei0r.update2 instance t src src' dst;
+              if bgra then Image.RGBA32.swap_rb img;
               let img = Image.YUV420.of_RGBA32 img in
-              Video.set rgb i img ;
+              Video.set rgb i img;
               t <- t +. dt
             done
-        | _ ->
-            ()
+        | _ -> ()
   end
 
 class frei0r_source ~kind ~name bgra instance params =
@@ -174,10 +170,10 @@ class frei0r_source ~kind ~name bgra instance params =
 
     method private get_frame frame =
       if must_fail then (
-        must_fail <- false ;
+        must_fail <- false;
         VFrame.add_break frame (VFrame.position frame) )
       else (
-        params () ;
+        params ();
         let start = VFrame.position frame in
         let stop = VFrame.size () in
         let rgb = VFrame.content_of_type frame ~channels:1 in
@@ -186,12 +182,12 @@ class frei0r_source ~kind ~name bgra instance params =
           let img = Video.get rgb i in
           let img = Image.YUV420.to_RGBA32 img in
           let dst = Image.RGBA32.data img in
-          Frei0r.update0 instance t dst ;
-          if bgra then Image.RGBA32.swap_rb img ;
+          Frei0r.update0 instance t dst;
+          if bgra then Image.RGBA32.swap_rb img;
           let img = Image.YUV420.of_RGBA32 img in
-          Video.set rgb i img ;
+          Video.set rgb i img;
           t <- t +. dt
-        done ;
+        done;
         VFrame.add_break frame stop )
   end
 
@@ -239,7 +235,7 @@ let params plugin info =
     let on_changed x0 =
       let x0 = ref x0 in
       fun f x ->
-        if x <> !x0 then f x ;
+        if x <> !x0 then f x;
         x0 := x
     in
     let f v = List.assoc v p in
@@ -253,14 +249,14 @@ let params plugin info =
             let v = f name in
             match info.Frei0r.param_type with
               | Frei0r.Bool ->
-                  Frei0r.set_param_bool instance i (Lang.to_bool v) ;
+                  Frei0r.set_param_bool instance i (Lang.to_bool v);
                   None
               | Frei0r.Double ->
                   let x = Lang.to_float_getter v in
                   let x0 = x () in
                   let f x = Frei0r.set_param_float instance i x in
                   let oc = on_changed x0 in
-                  f x0 ;
+                  f x0;
                   Some (fun () -> oc f (x ()))
               | Frei0r.Color ->
                   let c = Lang.to_int v in
@@ -270,16 +266,16 @@ let params plugin info =
                   let r = float r /. 255. in
                   let g = float g /. 255. in
                   let b = float b /. 255. in
-                  Frei0r.set_param_color instance i (r, g, b) ;
+                  Frei0r.set_param_color instance i (r, g, b);
                   None
               | Frei0r.Position ->
                   let x, y = Lang.to_product v in
                   let x = Lang.to_float x in
                   let y = Lang.to_float y in
-                  Frei0r.set_param_position instance i (x, y) ;
+                  Frei0r.set_param_position instance i (x, y);
                   None
               | Frei0r.String ->
-                  Frei0r.set_param_string instance i (Lang.to_string v) ;
+                  Frei0r.set_param_string instance i (Lang.to_string v);
                   None
           with Not_found -> None)
     in
@@ -299,20 +295,16 @@ let register_plugin fname =
   if
     List.mem name
       ["curves"; (* Bad characters in doc. *) "keyspillm0pup" (* idem *)]
-  then raise Blacklisted ;
+  then raise Blacklisted;
   let bgra = info.Frei0r.color_model = Frei0r.BGRA8888 in
   let inputs, _ =
     match info.Frei0r.plugin_type with
-      | Frei0r.Filter ->
-          (1, 1)
-      | Frei0r.Source ->
-          (0, 1)
-      | Frei0r.Mixer2 ->
-          (2, 1)
-      | Frei0r.Mixer3 ->
-          (3, 1)
+      | Frei0r.Filter -> (1, 1)
+      | Frei0r.Source -> (0, 1)
+      | Frei0r.Mixer2 -> (2, 1)
+      | Frei0r.Mixer3 -> (3, 1)
   in
-  if inputs > 2 then raise Unhandled_number_of_inputs ;
+  if inputs > 2 then raise Unhandled_number_of_inputs;
   let k =
     if inputs = 0 then Lang.video_only else Lang.any_fixed_with ~video:1 ()
   in
@@ -340,8 +332,8 @@ let register_plugin fname =
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
   Lang.add_operator ("video.frei0r." ^ name) liq_params
-    ~kind:(Lang.Unconstrained k) ~category:Lang.VideoProcessing ~flags:[]
-    ~descr (fun p kind ->
+    ~kind:(Lang.Unconstrained k) ~category:Lang.VideoProcessing ~flags:[] ~descr
+    (fun p kind ->
       let instance =
         let width = Lazy.force Frame.video_width in
         let height = Lazy.force Frame.video_height in
@@ -356,16 +348,13 @@ let register_plugin fname =
         let source = Lang.to_source (f "") in
         let source' = Lang.to_source (Lang.assoc "" 2 p) in
         new frei0r_mixer ~kind ~name bgra instance params source source' )
-      else if inputs = 0 then
-        new frei0r_source ~kind ~name bgra instance params
+      else if inputs = 0 then new frei0r_source ~kind ~name bgra instance params
       else assert false)
 
 let register_plugin plugin =
   try register_plugin plugin with
-    | Unhandled_number_of_inputs ->
-        ()
-    | Blacklisted ->
-        ()
+    | Unhandled_number_of_inputs -> ()
+    | Blacklisted -> ()
     | e ->
         Printf.eprintf "Failed to register plugin %s: %s\n%!" plugin
           (Printexc.to_string e)
@@ -386,5 +375,4 @@ let register_plugins () =
   in
   List.iter add plugin_dirs
 
-let () =
-  Configure.at_init (fun () -> if frei0r_enable then register_plugins ())
+let () = Configure.at_init (fun () -> if frei0r_enable then register_plugins ())

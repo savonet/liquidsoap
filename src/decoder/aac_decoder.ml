@@ -25,8 +25,7 @@
 let error_translator = function
   | Faad.Error x ->
       Some (Printf.sprintf "Faad error: %s" (Faad.error_message x))
-  | _ ->
-      None
+  | _ -> None
 
 let () = Printexc.register_printer error_translator
 
@@ -37,23 +36,20 @@ let buffered_input input =
   let buffer = Strings.Mutable.empty () in
   let pos = ref 0 in
   let drop len =
-    pos := !pos + len ;
+    pos := !pos + len;
     Strings.Mutable.drop buffer len
   in
   let tell =
     match input.Decoder.tell with
-      | None ->
-          None
-      | Some f ->
-          Some (fun () -> Strings.Mutable.length buffer + f ())
+      | None -> None
+      | Some f -> Some (fun () -> Strings.Mutable.length buffer + f ())
   in
   let lseek =
     match input.Decoder.lseek with
-      | None ->
-          None
+      | None -> None
       | Some f ->
           let lseek len =
-            ignore (Strings.Mutable.flush buffer) ;
+            ignore (Strings.Mutable.flush buffer);
             f len
           in
           Some lseek
@@ -69,14 +65,14 @@ let buffered_input input =
       else (
         let read = min tmplen len in
         let read = input.Decoder.read tmp 0 read in
-        if read = 0 then raise End_of_stream ;
-        Strings.Mutable.add_subbytes buffer tmp 0 read ;
+        if read = 0 then raise End_of_stream;
+        Strings.Mutable.add_subbytes buffer tmp 0 read;
         min len (size + read) )
     in
-    Strings.Mutable.blit buffer 0 buf ofs len ;
+    Strings.Mutable.blit buffer 0 buf ofs len;
     len
   in
-  ({Decoder.read; tell; lseek; length= None}, drop, pos)
+  ({ Decoder.read; tell; lseek; length = None }, drop, pos)
 
 let log = Log.make ["decoder"; "aac"]
 
@@ -91,8 +87,8 @@ module Make (Generator : Generator.S_Asio) = struct
       let len = input.Decoder.read initbuf 0 initbuflen in
       Faad.init dec initbuf 0 len
     in
-    drop offset ;
-    pos := 0 ;
+    drop offset;
+    pos := 0;
     let processed = ref 0 in
     let aacbuflen = Faad.min_bytes_per_channel * chans in
     let aacbuf = Bytes.create aacbuflen in
@@ -111,14 +107,14 @@ module Make (Generator : Generator.S_Asio) = struct
         try
           ignore
             ((Utils.get_some input.Decoder.lseek)
-               ((Utils.get_some input.Decoder.tell) () + bytes)) ;
-          Faad.post_sync_reset dec ;
+               ((Utils.get_some input.Decoder.tell) () + bytes));
+          Faad.post_sync_reset dec;
           ticks
         with _ -> 0 )
     in
     {
       Decoder.seek;
-      decode=
+      decode =
         (fun gen ->
           let len = input.Decoder.read aacbuf 0 aacbuflen in
           if len = aacbuflen then (
@@ -126,11 +122,11 @@ module Make (Generator : Generator.S_Asio) = struct
             let data = Audio.of_array data in
             begin
               try processed := !processed + Audio.length data with _ -> ()
-            end ;
-            drop pos ;
+            end;
+            drop pos;
             let content = resampler ~audio_src_rate:(float sample_freq) data in
             (* TODO assert (Array.length content.(0) = length) ? *)
-            Generator.set_mode gen `Audio ;
+            Generator.set_mode gen `Audio;
             Generator.put_audio gen content 0 (Audio.length content) ));
     }
 end
@@ -168,8 +164,8 @@ let get_type filename =
         Faad.init dec aacbuf 0 n
       in
       log#info "Libfaad recognizes %S as AAC (%dHz,%d channels)." filename rate
-        channels ;
-      {Frame.audio= channels; video= 0; midi= 0})
+        channels;
+      { Frame.audio = channels; video = 0; midi = 0 })
 
 let () =
   Decoder.file_decoders#register "AAC"
@@ -239,15 +235,15 @@ module Make_mp4 (Generator : Generator.S_Asio) = struct
     let pos = ref 0 in
     let ended = ref false in
     let decode gen =
-      if !ended || !sample >= nb_samples || !sample < 0 then raise End_of_track ;
+      if !ended || !sample >= nb_samples || !sample < 0 then raise End_of_track;
       let data = Faad.Mp4.decode mp4 track !sample dec in
       let data = Audio.of_array data in
-      incr sample ;
+      incr sample;
       begin
         try pos := !pos + Audio.length data with _ -> ()
-      end ;
+      end;
       let content = resampler ~audio_src_rate:(float sample_freq) data in
-      Generator.set_mode gen `Audio ;
+      Generator.set_mode gen `Audio;
       Generator.put_audio gen content 0 (Audio.length content)
     in
     let seek ticks =
@@ -256,15 +252,15 @@ module Make_mp4 (Generator : Generator.S_Asio) = struct
         let audio_ticks = int_of_float (time *. float sample_freq) in
         let offset = max (!pos + audio_ticks) 0 in
         let new_sample, _ = Faad.Mp4.seek mp4 track offset in
-        sample := new_sample ;
+        sample := new_sample;
         let time = float (offset - !pos) /. float sample_freq in
-        pos := offset ;
+        pos := offset;
         Frame.master_of_seconds time
       with _ ->
-        ended := true ;
+        ended := true;
         0
     in
-    {Decoder.decode; seek}
+    { Decoder.decode; seek }
 end
 
 (* Get the number of channels of audio in an MP4 file. *)
@@ -278,8 +274,8 @@ let get_type filename =
       let track = Faad.Mp4.find_aac_track mp4 in
       let rate, channels = Faad.Mp4.init mp4 dec track in
       log#info "Libfaad recognizes %S as MP4 (%dHz,%d channels)." filename rate
-        channels ;
-      {Frame.audio= channels; video= 0; midi= 0})
+        channels;
+      { Frame.audio = channels; video = 0; midi = 0 })
 
 let mp4_mime_types =
   Dtools.Conf.list
@@ -332,7 +328,7 @@ let get_tags file =
     not
       (Decoder.test_file ~mimes:mp4_mime_types#get
          ~extensions:mp4_file_extensions#get ~log file)
-  then raise Not_found ;
+  then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)

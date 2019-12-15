@@ -28,19 +28,14 @@ let create speex ~metadata () =
   let frames_per_packet = speex.Speex_format.frames_per_packet in
   let mode =
     match speex.Speex_format.mode with
-      | Speex_format.Narrowband ->
-          Speex.Narrowband
-      | Speex_format.Wideband ->
-          Speex.Wideband
-      | Speex_format.Ultra_wideband ->
-          Speex.Ultra_wideband
+      | Speex_format.Narrowband -> Speex.Narrowband
+      | Speex_format.Wideband -> Speex.Wideband
+      | Speex_format.Ultra_wideband -> Speex.Ultra_wideband
   in
   let vbr =
     match speex.Speex_format.bitrate_control with
-      | Speex_format.Vbr _ ->
-          true
-      | _ ->
-          false
+      | Speex_format.Vbr _ -> true
+      | _ -> false
   in
   let channels = if speex.Speex_format.stereo then 2 else 1 in
   let rate = Lazy.force speex.Speex_format.samplerate in
@@ -50,26 +45,28 @@ let create speex ~metadata () =
   in
   let enc = Speex.Encoder.init mode frames_per_packet in
   begin
-    match speex.Speex_format.bitrate_control with Speex_format.Vbr x ->
-        Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1 ;
+    match speex.Speex_format.bitrate_control with
+    | Speex_format.Vbr x ->
+        Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
         Speex.Encoder.set enc Speex.SPEEX_SET_VBR_QUALITY x
     | Speex_format.Abr x ->
-        Speex.Encoder.set enc Speex.SPEEX_SET_ABR 1 ;
+        Speex.Encoder.set enc Speex.SPEEX_SET_ABR 1;
         Speex.Encoder.set enc Speex.SPEEX_SET_BITRATE x
     | Speex_format.Quality x -> Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY x
-  end ;
+  end;
   begin
-    match speex.Speex_format.complexity with Some complexity ->
+    match speex.Speex_format.complexity with
+    | Some complexity ->
         Speex.Encoder.set enc Speex.SPEEX_SET_COMPLEXITY complexity
     | _ -> ()
-  end ;
-  if speex.Speex_format.dtx then Speex.Encoder.set enc Speex.SPEEX_SET_DTX 1 ;
-  if speex.Speex_format.vad then Speex.Encoder.set enc Speex.SPEEX_SET_VAD 1 ;
-  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate ;
+  end;
+  if speex.Speex_format.dtx then Speex.Encoder.set enc Speex.SPEEX_SET_DTX 1;
+  if speex.Speex_format.vad then Speex.Encoder.set enc Speex.SPEEX_SET_VAD 1;
+  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate;
   let frame_size = Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE in
   let p1, p2 = Speex.Header.encode_header_packetout header metadata in
   let header_encoder os =
-    Ogg.Stream.put_packet os p1 ;
+    Ogg.Stream.put_packet os p1;
     Ogg.Stream.flush_page os
   in
   let fisbone_packet os =
@@ -77,10 +74,10 @@ let create speex ~metadata () =
     Some (Speex.Skeleton.fisbone ~header ~serialno ())
   in
   let stream_start os =
-    Ogg.Stream.put_packet os p2 ;
+    Ogg.Stream.put_packet os p2;
     Ogg_muxer.flush_pages os
   in
-  let remaining_init = if channels > 1 then [|[||]; [||]|] else [|[||]|] in
+  let remaining_init = if channels > 1 then [| [||]; [||] |] else [| [||] |] in
   let remaining = ref remaining_init in
   let data_encoder data os add_page =
     let b, ofs, len =
@@ -89,16 +86,18 @@ let create speex ~metadata () =
     let buf = Array.map (fun x -> Array.sub x ofs len) b in
     let buf =
       if channels > 1 then
-        [| Array.append !remaining.(0) buf.(0);
-           Array.append !remaining.(1) buf.(1) |]
-      else [|Array.append !remaining.(0) buf.(0)|]
+        [|
+          Array.append !remaining.(0) buf.(0);
+          Array.append !remaining.(1) buf.(1);
+        |]
+      else [| Array.append !remaining.(0) buf.(0) |]
     in
     let len = Array.length buf.(0) in
     let status = ref 0 in
     let feed () =
       let n = !status in
       if (frame_size * n) + frame_size < len then (
-        status := n + 1 ;
+        status := n + 1;
         (* Speex float API are values in - 32768. <= x <= 32767. ..
            I don't really trust this, it must be a bug,
            so using the int API. *)
@@ -108,9 +107,11 @@ let create speex ~metadata () =
         in
         let f x = Array.map (fun x -> f (32767. *. x)) x in
         if channels > 1 then
-          [| f (Array.sub buf.(0) (frame_size * n) frame_size);
-             f (Array.sub buf.(1) (frame_size * n) frame_size) |]
-        else [|f (Array.sub buf.(0) (frame_size * n) frame_size)|] )
+          [|
+            f (Array.sub buf.(0) (frame_size * n) frame_size);
+            f (Array.sub buf.(1) (frame_size * n) frame_size);
+          |]
+        else [| f (Array.sub buf.(0) (frame_size * n) frame_size) |] )
       else raise Internal
     in
     try
@@ -131,9 +132,11 @@ let create speex ~metadata () =
       remaining :=
         if frame_size * n < len then
           if channels > 1 then
-            [| Array.sub buf.(0) (frame_size * n) (len - (frame_size * n));
-               Array.sub buf.(1) (frame_size * n) (len - (frame_size * n)) |]
-          else [|Array.sub buf.(0) (frame_size * n) (len - (frame_size * n))|]
+            [|
+              Array.sub buf.(0) (frame_size * n) (len - (frame_size * n));
+              Array.sub buf.(1) (frame_size * n) (len - (frame_size * n));
+            |]
+          else [| Array.sub buf.(0) (frame_size * n) (len - (frame_size * n)) |]
         else remaining_init
   in
   let end_of_page p =
@@ -146,7 +149,7 @@ let create speex ~metadata () =
     Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
-    data_encoder= Ogg_muxer.Audio_encoder data_encoder;
+    data_encoder = Ogg_muxer.Audio_encoder data_encoder;
     end_of_page;
     end_of_stream;
   }
@@ -173,8 +176,7 @@ let create_speex = function
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float (Lazy.force speex.Speex_format.samplerate) in
       let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      {Ogg_encoder.reset; encode; id= None}
-  | _ ->
-      assert false
+      { Ogg_encoder.reset; encode; id = None }
+  | _ -> assert false
 
 let () = Hashtbl.add Ogg_encoder.encoders "speex" create_speex

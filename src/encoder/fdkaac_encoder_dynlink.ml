@@ -38,8 +38,7 @@ let () =
           let module Fdkaac = (val m : Fdkaac_dynlink.Fdkaac_t) in
           let module Register = Fdkaac_encoder.Register (Fdkaac) in
           Register.register_encoder "AAC/fdkaac/dynlink"
-      | None ->
-          assert false
+      | None -> assert false
   in
   Hashtbl.add Dyntools.dynlink_list "fdkaac encoder"
-    {Dyntools.path; files= ["fdkaac"; "fdkaac_loader"]; load}
+    { Dyntools.path; files = ["fdkaac"; "fdkaac_loader"]; load }

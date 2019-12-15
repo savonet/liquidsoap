@@ -56,26 +56,26 @@ let connect () =
     let ans = ref "" in
     let n = ref buflen in
     while !n = buflen do
-      n := Unix.recv socket buf 0 buflen [] ;
+      n := Unix.recv socket buf 0 buflen [];
       ans := !ans ^ Bytes.sub_string buf 0 !n
-    done ;
-    if conf_debug#get then Printf.printf "R: %s%!" !ans ;
+    done;
+    if conf_debug#get then Printf.printf "R: %s%!" !ans;
     !ans
   in
   let write s =
     let len = String.length s in
-    if conf_debug#get then Printf.printf "W: %s%!" s ;
+    if conf_debug#get then Printf.printf "W: %s%!" s;
     let l = Unix.send socket (Bytes.of_string s) 0 len [] in
     assert (l = len)
   in
-  Unix.connect socket sockaddr ;
+  Unix.connect socket sockaddr;
   (socket, read, write)
 
 let re_newline = Str.regexp "[\r\n]+"
 
 let cmd read write name args =
   let args = List.map (fun s -> "\"" ^ s ^ "\"") args in
-  write (name ^ " " ^ String.concat " " args ^ "\n") ;
+  write (name ^ " " ^ String.concat " " args ^ "\n");
   let ans = read () in
   let ans = Str.split re_newline ans in
   let ans = List.rev ans in
@@ -90,7 +90,7 @@ let valid_metadata = ["artist"; "title"; "album"; "genre"; "date"; "track"]
 let search read write field v =
   let l =
     let ret, l = cmd read write "search" [field; v] in
-    assert (ret = "OK") ;
+    assert (ret = "OK");
     l
   in
   let ans = ref [] in
@@ -108,8 +108,8 @@ let search read write field v =
         let f = Str.matched_group 1 s in
         let prefix = conf_path_prefix#get in
         let f = prefix ^ "/" ^ f in
-        if conf_debug#get then Printf.printf "Found: %s\n%!" f ;
-        add () ;
+        if conf_debug#get then Printf.printf "Found: %s\n%!" f;
+        add ();
         file := f )
       else if Str.string_match re_metadata s 0 then (
         let field = Str.matched_group 1 s in
@@ -117,11 +117,12 @@ let search read write field v =
         let value = Str.matched_group 2 s in
         if List.mem field valid_metadata then
           metadata := (field, value) :: !metadata ))
-    l ;
-  add () ;
+    l;
+  add ();
   if conf_randomize#get then (
     let ans = Array.of_list !ans in
-    Utils.randomize ans ; Array.to_list ans )
+    Utils.randomize ans;
+    Array.to_list ans )
   else List.rev !ans
 
 let re_request = Str.regexp "^\\([^=]+\\)=\\(.*\\)$"
@@ -129,7 +130,7 @@ let re_request = Str.regexp "^\\([^=]+\\)=\\(.*\\)$"
 let re_version = Str.regexp "OK MPD \\([0-9\\.]+\\)"
 
 let mpd s ~log _ =
-  if not (Str.string_match re_request s 0) then raise (Error "Invalid request") ;
+  if not (Str.string_match re_request s 0) then raise (Error "Invalid request");
   let field = Str.matched_group 1 s in
   let value = Str.matched_group 2 s in
   let value =
@@ -145,9 +146,10 @@ let mpd s ~log _ =
     if Str.string_match re_version v 0 then Str.matched_group 1 v
     else raise (Error "Not an MPD server")
   in
-  log (Printf.sprintf "Connected to MPD version %s\n" version) ;
+  log (Printf.sprintf "Connected to MPD version %s\n" version);
   let files = search field value in
-  write "close\n" ; files
+  write "close\n";
+  files
 
 let () =
   Lang.add_protocol

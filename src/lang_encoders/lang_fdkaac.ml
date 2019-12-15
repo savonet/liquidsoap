@@ -25,7 +25,8 @@ open Lang_encoders
 
 let make params =
   let valid_samplerates =
-    [ 8000;
+    [
+      8000;
       11025;
       12000;
       16000;
@@ -36,7 +37,8 @@ let make params =
       48000;
       64000;
       88200;
-      96000 ]
+      96000;
+    ]
   in
   let check_samplerate ?t i =
     lazy
@@ -46,70 +48,74 @@ let make params =
            Printf.sprintf "invalid samplerate value. Possible values: %s"
              (String.concat ", " (List.map string_of_int valid_samplerates))
          in
-         match t with Some t -> raise (Error (t, err)) | None -> failwith err ) ;
+         match t with Some t -> raise (Error (t, err)) | None -> failwith err );
        i)
   in
   let defaults =
     {
-      Fdkaac_format.afterburner= false;
-      aot= `Mpeg_4 `HE_AAC_v2;
-      bandwidth= `Auto;
-      bitrate= 64;
-      bitrate_mode= `Constant;
+      Fdkaac_format.afterburner = false;
+      aot = `Mpeg_4 `HE_AAC_v2;
+      bandwidth = `Auto;
+      bitrate = 64;
+      bitrate_mode = `Constant;
       (* We use a hardcoded value in order not to force the evaluation of the
            number of channels too early, see #933. *)
-      channels= 2;
-      samplerate= check_samplerate Frame.audio_rate;
-      sbr_mode= false;
-      transmux= `Adts;
+      channels = 2;
+      samplerate = check_samplerate Frame.audio_rate;
+      sbr_mode = false;
+      transmux = `Adts;
     }
   in
   let valid_vbr = [1; 2; 3; 4; 5] in
   let fdkaac =
     List.fold_left
-      (fun f -> function "afterburner", {term= Bool b; _} ->
-            {f with Fdkaac_format.afterburner= b}
-        | "aot", ({term= String s; _} as t) ->
+      (fun f -> function
+        | "afterburner", { term = Bool b; _ } ->
+            { f with Fdkaac_format.afterburner = b }
+        | "aot", ({ term = String s; _ } as t) ->
             let aot =
               try Fdkaac_format.aot_of_string s
               with Not_found -> raise (Error (t, "invalid aot value"))
             in
-            {f with Fdkaac_format.aot} | "vbr", ({term= Int i; _} as t) ->
+            { f with Fdkaac_format.aot }
+        | "vbr", ({ term = Int i; _ } as t) ->
             if not (List.mem i valid_vbr) then (
               let err =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
                   (String.concat ", " (List.map string_of_int valid_vbr))
               in
-              raise (Error (t, err)) ) ;
-            {f with Fdkaac_format.bitrate_mode= `Variable i}
-        | "bandwidth", {term= Int i; _} ->
-            {f with Fdkaac_format.bandwidth= `Fixed i}
-        | "bandwidth", {term= String s; _}
+              raise (Error (t, err)) );
+            { f with Fdkaac_format.bitrate_mode = `Variable i }
+        | "bandwidth", { term = Int i; _ } ->
+            { f with Fdkaac_format.bandwidth = `Fixed i }
+        | "bandwidth", { term = String s; _ }
           when String.lowercase_ascii s = "auto" ->
-            {f with Fdkaac_format.bandwidth= `Auto}
-        | "bitrate", {term= Int i; _} -> {f with Fdkaac_format.bitrate= i}
-        | "channels", {term= Int i; _} -> {f with Fdkaac_format.channels= i}
-        | "samplerate", ({term= Int i; _} as t) ->
+            { f with Fdkaac_format.bandwidth = `Auto }
+        | "bitrate", { term = Int i; _ } -> { f with Fdkaac_format.bitrate = i }
+        | "channels", { term = Int i; _ } ->
+            { f with Fdkaac_format.channels = i }
+        | "samplerate", ({ term = Int i; _ } as t) ->
             {
               f with
-              Fdkaac_format.samplerate= check_samplerate ~t (Lazy.from_val i);
-            } | "sbr_mode", {term= Bool b; _} ->
-            {f with Fdkaac_format.sbr_mode= b}
-        | "transmux", ({term= String s; _} as t) ->
+              Fdkaac_format.samplerate = check_samplerate ~t (Lazy.from_val i);
+            }
+        | "sbr_mode", { term = Bool b; _ } ->
+            { f with Fdkaac_format.sbr_mode = b }
+        | "transmux", ({ term = String s; _ } as t) ->
             let transmux =
               try Fdkaac_format.transmux_of_string s
               with Not_found -> raise (Error (t, "invalid transmux value"))
             in
-            {f with Fdkaac_format.transmux}
-        | "", {term= Var s; _} when String.lowercase_ascii s = "mono" ->
-            {f with Fdkaac_format.channels= 1}
-        | "", {term= Var s; _} when String.lowercase_ascii s = "stereo" ->
-            {f with Fdkaac_format.channels= 2} | _, t ->
-            raise (generic_error t))
+            { f with Fdkaac_format.transmux }
+        | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+            { f with Fdkaac_format.channels = 1 }
+        | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+            { f with Fdkaac_format.channels = 2 }
+        | _, t -> raise (generic_error t))
       defaults params
   in
   let aot = fdkaac.Fdkaac_format.aot in
   if aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2 then
     if fdkaac.Fdkaac_format.channels <> 2 then
-      failwith "HE-AAC v2 is only available with 2 channels." ;
+      failwith "HE-AAC v2 is only available with 2 channels.";
   Encoder.FdkAacEnc fdkaac

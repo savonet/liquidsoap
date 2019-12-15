@@ -44,10 +44,8 @@ let get_setenv () =
   List.fold_left
     (fun cur s ->
       match Pcre.split ~pat:"=" s with
-        | [] ->
-            cur
-        | lbl :: l ->
-            (lbl, String.concat "=" l) :: cur)
+        | [] -> cur
+        | lbl :: l -> (lbl, String.concat "=" l) :: cur)
     [] conf_setenv#get
 
 let conf_unsetenv =
@@ -98,65 +96,63 @@ let () =
     (Dtools.Init.at_start (fun () ->
          if Lazy.force is_docker then (
            log#important
-             "Running inside a docker container, disabling sandboxing.." ;
+             "Running inside a docker container, disabling sandboxing..";
            conf_sandbox#set "disabled" )
          else if not (Lazy.force has_binary) then (
            log#important "Could not find binary %s, disabling sandboxing.."
-             conf_binary#get ;
+             conf_binary#get;
            conf_sandbox#set "disabled" )
          else if conf_sandbox#get = "disabled" then
            log#important "Sandboxing disabled"
          else (
            log#important "Sandboxing external processes using bubblewrap at %s"
-             (Utils.which ~path:Configure.path conf_binary#get) ;
+             (Utils.which ~path:Configure.path conf_binary#get);
            log#important "Set environment variables: %s"
              (String.concat ", "
                 (List.map
                    (fun (lbl, v) -> Printf.sprintf "%s=%S" lbl v)
-                   (get_setenv ()))) ;
+                   (get_setenv ())));
            log#important "Unset environment variables: %s"
-             (String.concat ", " conf_unsetenv#get) ;
-           log#important "Network allowed: %b" conf_network#get ;
+             (String.concat ", " conf_unsetenv#get);
+           log#important "Network allowed: %b" conf_network#get;
            log#important "Read-only directories: %s"
-             (String.concat ", " conf_ro#get) ;
+             (String.concat ", " conf_ro#get);
            log#important "Read/write directories: %s"
              (String.concat ", " conf_rw#get) )))
 
 type t = string
 
 type sandboxer = {
-  init: network:bool -> t;
-  mount: t -> flag:[`Rw | `Ro] -> string -> t;
-  setenv: t -> string -> string -> t;
-  unsetenv: t -> string -> t;
-  cmd: t -> string -> string;
+  init : network:bool -> t;
+  mount : t -> flag:[ `Rw | `Ro ] -> string -> t;
+  setenv : t -> string -> string -> t;
+  unsetenv : t -> string -> t;
+  cmd : t -> string -> string;
 }
 
 let disabled =
   {
-    init= (fun ~network:_ -> "");
-    mount= (fun t ~flag:_ _ -> t);
-    setenv= (fun t _ _ -> t);
-    unsetenv= (fun t _ -> t);
-    cmd= (fun _ cmd -> cmd);
+    init = (fun ~network:_ -> "");
+    mount = (fun t ~flag:_ _ -> t);
+    setenv = (fun t _ _ -> t);
+    unsetenv = (fun t _ -> t);
+    cmd = (fun _ cmd -> cmd);
   }
 
 let bwrap =
   {
-    init=
+    init =
       (fun ~network ->
         Printf.sprintf "--new-session %s"
           (if network then "" else "--unshare-net"));
-    mount=
+    mount =
       (fun t ~flag path ->
         match flag with
-          | `Ro ->
-              Printf.sprintf "%s --ro-bind %S %S" t path path
-          | `Rw ->
-              Printf.sprintf "%s --bind %S %S" t path path);
-    setenv= Printf.sprintf "%s --setenv %S %S";
-    unsetenv= Printf.sprintf "%s --unsetenv %S";
-    cmd=
+          | `Ro -> Printf.sprintf "%s --ro-bind %S %S" t path path
+          | `Rw -> Printf.sprintf "%s --bind %S %S" t path path);
+    setenv = Printf.sprintf "%s --setenv %S %S";
+    unsetenv = Printf.sprintf "%s --unsetenv %S";
+    cmd =
       (fun opts cmd ->
         let binary = Utils.which ~path:Configure.path conf_binary#get in
         let cmd =
@@ -172,12 +168,9 @@ let cmd ?rw ?ro ?network cmd =
     (* This is intended to be extendable with more tools in the
        future.. *)
     match conf_sandbox#get with
-      | "disabled" ->
-          disabled
-      | _ when Lazy.force has_binary ->
-          bwrap
-      | _ ->
-          disabled
+      | "disabled" -> disabled
+      | _ when Lazy.force has_binary -> bwrap
+      | _ -> disabled
   in
   let f d v = match v with None -> d | Some v -> v in
   let rw = f conf_rw#get rw in
@@ -197,5 +190,5 @@ let cmd ?rw ?ro ?network cmd =
     List.fold_left (fun t path -> sandboxer.mount t ~flag:`Rw path) t rw
   in
   let cmd = sandboxer.cmd t cmd in
-  log#debug "Command: %s" cmd ;
+  log#debug "Command: %s" cmd;
   cmd

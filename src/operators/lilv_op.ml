@@ -65,7 +65,7 @@ class virtual base_nosource ~kind =
 
 let constant_data len x =
   let data = Bigarray.Array1.create Bigarray.Float32 Bigarray.c_layout len in
-  Bigarray.Array1.fill data x ;
+  Bigarray.Array1.fill data x;
   data
 
 (** A mono LV2 plugin: a plugin is created for each channel. *)
@@ -77,28 +77,27 @@ class lilv_mono ~kind (source : source) plugin input output params =
 
     val inst =
       Array.init (Frame.type_of_kind kind).Frame.audio (fun _ ->
-          Plugin.instantiate plugin
-            (float_of_int (Lazy.force Frame.audio_rate)))
+          Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate)))
 
     initializer Array.iter Plugin.Instance.activate inst
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let chans = Array.length b in
       let position = AFrame.position buf in
       let len = position - offset in
       for c = 0 to chans - 1 do
         Plugin.Instance.connect_port_float inst.(c) input
-          (Audio.Mono.sub b.(c) offset len) ;
+          (Audio.Mono.sub b.(c) offset len);
         Plugin.Instance.connect_port_float inst.(c) output
-          (Audio.Mono.sub b.(c) offset len) ;
+          (Audio.Mono.sub b.(c) offset len);
         List.iter
           (fun (p, v) ->
             Plugin.Instance.connect_port_float inst.(c) p
               (constant_data len (v ())))
-          params ;
+          params;
         Plugin.Instance.run inst.(c) len
       done
   end
@@ -117,7 +116,7 @@ class lilv ~kind (source : source) plugin inputs outputs params =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let len = position - offset in
@@ -126,18 +125,18 @@ class lilv ~kind (source : source) plugin inputs outputs params =
           let data =
             Bigarray.Array1.create Bigarray.Float32 Bigarray.c_layout len
           in
-          Bigarray.Array1.fill data (v ()) ;
+          Bigarray.Array1.fill data (v ());
           Plugin.Instance.connect_port_float inst p data)
-        params ;
+        params;
       if Array.length inputs = Array.length outputs then (
         let chans = Array.length b in
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to chans - 1 do
           Plugin.Instance.connect_port_float inst inputs.(c)
-            (Audio.Mono.sub b.(c) offset len) ;
+            (Audio.Mono.sub b.(c) offset len);
           Plugin.Instance.connect_port_float inst outputs.(c)
             (Audio.Mono.sub b.(c) offset len)
-        done ;
+        done;
         Plugin.Instance.run inst len )
       else (
         (* We have to change channels. *)
@@ -145,12 +144,12 @@ class lilv ~kind (source : source) plugin inputs outputs params =
         for c = 0 to Array.length b - 1 do
           Plugin.Instance.connect_port_float inst inputs.(c)
             (Audio.Mono.sub b.(c) offset len)
-        done ;
+        done;
         let output_chans = Array.length d in
         for c = 0 to output_chans - 1 do
           Plugin.Instance.connect_port_float inst outputs.(c)
             (Audio.Mono.sub b.(c) offset len)
-        done ;
+        done;
         Plugin.Instance.run inst len )
   end
 
@@ -168,7 +167,7 @@ class lilv_nosource ~kind plugin outputs params =
 
     method private get_frame buf =
       if must_fail then (
-        AFrame.add_break buf (AFrame.position buf) ;
+        AFrame.add_break buf (AFrame.position buf);
         must_fail <- false )
       else (
         let offset = AFrame.position buf in
@@ -178,14 +177,13 @@ class lilv_nosource ~kind plugin outputs params =
         let len = position - offset in
         List.iter
           (fun (p, v) ->
-            Plugin.Instance.connect_port_float inst p
-              (constant_data len (v ())))
-          params ;
+            Plugin.Instance.connect_port_float inst p (constant_data len (v ())))
+          params;
         for c = 0 to chans - 1 do
           Plugin.Instance.connect_port_float inst outputs.(c)
             (Audio.Mono.sub b.(c) offset len)
-        done ;
-        Plugin.Instance.run inst len ;
+        done;
+        Plugin.Instance.run inst len;
         AFrame.add_break buf position )
   end
 
@@ -209,11 +207,11 @@ class lilv_noout ~kind source plugin inputs params =
       List.iter
         (fun (p, v) ->
           Plugin.Instance.connect_port_float inst p (constant_data len (v ())))
-        params ;
+        params;
       for c = 0 to chans - 1 do
         Plugin.Instance.connect_port_float inst inputs.(c)
           (Audio.Mono.sub b.(c) offset len)
-      done ;
+      done;
       Plugin.Instance.run inst len
   end
 
@@ -224,7 +222,7 @@ let get_control_ports p =
   for i = 0 to ports - 1 do
     let port = Plugin.port_by_index p i in
     if Port.is_control port && Port.is_input port then ans := i :: !ans
-  done ;
+  done;
   List.rev !ans
 
 (* TODO: handle types *)
@@ -242,10 +240,8 @@ let params_of_plugin plugin =
         ( Port.symbol p,
           (match t with `Float -> Lang.float_getter_t ()),
           ( match Port.default_float p with
-            | Some f ->
-                Some (match t with `Float -> Lang.float f)
-            | None ->
-                None ),
+            | Some f -> Some (match t with `Float -> Lang.float f)
+            | None -> None ),
           let bounds =
             let min = Port.min_float p in
             let max = Port.max_float p in
@@ -253,20 +249,22 @@ let params_of_plugin plugin =
             else (
               let bounds = ref " (" in
               begin
-                match min with Some f -> (
-                  match t with
-                    | `Float ->
-                        bounds := Printf.sprintf "%s%.6g <= " !bounds f )
+                match min with
+                | Some f -> (
+                    match t with
+                      | `Float ->
+                          bounds := Printf.sprintf "%s%.6g <= " !bounds f )
                 | None -> ()
-              end ;
-              bounds := !bounds ^ "`" ^ Port.symbol p ^ "`" ;
+              end;
+              bounds := !bounds ^ "`" ^ Port.symbol p ^ "`";
               begin
-                match max with Some f -> (
-                  match t with
-                    | `Float ->
-                        bounds := Printf.sprintf "%s <= %.6g" !bounds f )
+                match max with
+                | Some f -> (
+                    match t with
+                      | `Float ->
+                          bounds := Printf.sprintf "%s <= %.6g" !bounds f )
                 | None -> ()
-              end ;
+              end;
               !bounds ^ ")" )
           in
           Some (Port.name p ^ bounds ^ ".") ))
@@ -292,7 +290,7 @@ let get_audio_ports p =
     let port = Plugin.port_by_index p n in
     if Port.is_audio port then
       if Port.is_input port then i := n :: !i else o := n :: !o
-  done ;
+  done;
   (Array.of_list (List.rev !i), Array.of_list (List.rev !o))
 
 let register_plugin plugin =
@@ -346,7 +344,7 @@ let register_plugin plugin =
 
 let register_plugins () =
   let world = World.create () in
-  World.load_all world ;
+  World.load_all world;
   Plugins.iter register_plugin (World.plugins world)
 
 let () =

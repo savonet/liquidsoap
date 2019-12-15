@@ -36,7 +36,8 @@ let add_http_request http name descr request =
   in
   let params =
     params
-    @ [ ( "headers",
+    @ [
+        ( "headers",
           headers_t,
           Some (Lang.list ~t:header_t []),
           Some "Additional headers." );
@@ -47,8 +48,8 @@ let add_http_request http name descr request =
         ( "",
           Lang.string_t,
           None,
-          Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"."
-        ) ]
+          Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"." );
+      ]
   in
   let (module Http : Http.Http_t) = http in
   add_builtin name ~cat:Interaction ~descr params request_return_t (fun p ->
@@ -65,18 +66,15 @@ let add_http_request http name descr request =
           let uri = Http.parse_url url in
           let request =
             match request with
-              | Get ->
-                  Http.Get
+              | Get -> Http.Get
               | Post ->
                   let data = Lang.to_string (List.assoc "data" p) in
                   Http.Post data
               | Put ->
                   let data = Lang.to_string (List.assoc "data" p) in
                   Http.Put data
-              | Head ->
-                  Http.Head
-              | Delete ->
-                  Http.Delete
+              | Head -> Http.Head
+              | Delete -> Http.Delete
           in
           let log s = log#info "%s" s in
           Http.full_request ~log ~timeout ~headers ~uri ~request ()
@@ -99,13 +97,13 @@ let add_http_request http name descr request =
 let () =
   let add_http_request = add_http_request (module Http) in
   add_http_request "http.get"
-    "Perform a full Http GET request and return `(status,headers,data)`." Get ;
+    "Perform a full Http GET request and return `(status,headers,data)`." Get;
   add_http_request "http.post"
-    "Perform a full Http POST request and return `(status,headers,data)`." Post ;
+    "Perform a full Http POST request and return `(status,headers,data)`." Post;
   add_http_request "http.put"
-    "Perform a full Http PUT request and return `(status,headers,data)`." Put ;
+    "Perform a full Http PUT request and return `(status,headers,data)`." Put;
   add_http_request "http.head"
-    "Perform a full Http HEAD request and return `(status,headers,data)`." Head ;
+    "Perform a full Http HEAD request and return `(status,headers,data)`." Head;
   add_http_request "http.delete"
     "Perform a full Http DELETE request and return `(status,headers,data)`."
     Delete

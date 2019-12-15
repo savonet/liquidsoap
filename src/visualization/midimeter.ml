@@ -38,7 +38,7 @@ class midimeter ~kind source =
 
     method get_frame buf =
       let offset = MFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let m = MFrame.content buf offset in
       (* Printf.printf "len: %d\n%!" (List.length (MIDI.data m.(0))); *)
       for c = 0 to Array.length m - 1 do
@@ -52,8 +52,7 @@ class midimeter ~kind source =
                     Printf.sprintf "Note %d off at %.02f" n v
                 | MIDI.Control_change (c, v) ->
                     Printf.sprintf "Control %x at %d" c v
-                | _ ->
-                    "???"
+                | _ -> "???"
             in
             Printf.printf "%d: %s.\n%!" c s)
           (MIDI.data m.(c))

@@ -28,9 +28,9 @@ module GU = Gstreamer_utils
 let log = Log.make ["decoder"; "gstreamer"]
 
 type gst = {
-  bin: Gstreamer.Element.t;
-  audio_sink: Gstreamer.App_sink.t option;
-  video_sink: Gstreamer.App_sink.t option;
+  bin : Gstreamer.Element.t;
+  audio_sink : Gstreamer.App_sink.t option;
+  video_sink : Gstreamer.App_sink.t option;
 }
 
 (* TODO: we should share some code with Ogg_decoder... *)
@@ -40,8 +40,8 @@ module Make (Generator : Generator.S_Asio) = struct
   let create_decoder ?(merge_tracks = false) _ ~channels mode fname =
     let decode_audio = mode = `Both || mode = `Audio in
     let decode_video = mode = `Both || mode = `Video in
-    log#info "Using %s." (Gstreamer.version_string ()) ;
-    log#debug "Decode A/V: %B/%B." decode_audio decode_video ;
+    log#info "Using %s." (Gstreamer.version_string ());
+    log#debug "Decode A/V: %B/%B." decode_audio decode_video;
     let gst_max_buffers = GU.max_buffers () in
     let gst =
       let audio_pipeline =
@@ -62,7 +62,7 @@ module Make (Generator : Generator.S_Asio) = struct
         Printf.sprintf "filesrc location=%S ! decodebin name=d%s%s" fname
           audio_pipeline video_pipeline
       in
-      log#debug "Gstreamer pipeline: %s." pipeline ;
+      log#debug "Gstreamer pipeline: %s." pipeline;
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
       let audio_sink =
         if decode_audio then (
@@ -70,7 +70,7 @@ module Make (Generator : Generator.S_Asio) = struct
             Gstreamer.App_sink.of_element
               (Gstreamer.Bin.get_by_name bin "audio_sink")
           in
-          Gstreamer.App_sink.set_max_buffers sink gst_max_buffers ;
+          Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
           Some sink )
         else None
       in
@@ -80,11 +80,11 @@ module Make (Generator : Generator.S_Asio) = struct
             Gstreamer.App_sink.of_element
               (Gstreamer.Bin.get_by_name bin "video_sink")
           in
-          Gstreamer.App_sink.set_max_buffers sink gst_max_buffers ;
+          Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
           Some sink )
         else None
       in
-      {bin; audio_sink; video_sink}
+      { bin; audio_sink; video_sink }
     in
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
@@ -93,15 +93,15 @@ module Make (Generator : Generator.S_Asio) = struct
       if reset then
         (* We enforce that all contents end together, otherwise there will
          * be a lag between different content types in the next track. *)
-        if not merge_tracks then Generator.add_break ~sync:`Drop buffer ;
-      Generator.set_mode buffer mode ;
+        if not merge_tracks then Generator.add_break ~sync:`Drop buffer;
+      Generator.set_mode buffer mode;
       ignore
         (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_playing)
     in
     let decode buffer =
       if not !started then (
-        init ~reset:false buffer ;
-        started := true ) ;
+        init ~reset:false buffer;
+        started := true );
       let decode_audio, decode_video =
         if decode_audio && decode_video then
           if Generator.audio_length buffer < Generator.video_length buffer then
@@ -112,18 +112,18 @@ module Make (Generator : Generator.S_Asio) = struct
       if decode_audio then (
         let _, state, _ = Gstreamer.Element.get_state gst.bin in
         if state <> Gstreamer.Element.State_playing then
-          failwith "Not in playing state!" ;
+          failwith "Not in playing state!";
         let b =
           Gstreamer.App_sink.pull_buffer_string (Utils.get_some gst.audio_sink)
         in
         let len = String.length b / (2 * channels) in
         let buf = Audio.create channels len in
-        Audio.S16LE.to_audio b 0 buf ;
-        Generator.put_audio buffer buf 0 len ) ;
+        Audio.S16LE.to_audio b 0 buf;
+        Generator.put_audio buffer buf 0 len );
       if decode_video then (
         let _, state, _ = Gstreamer.Element.get_state gst.bin in
         if state <> Gstreamer.Element.State_playing then
-          failwith "Not in playing state!" ;
+          failwith "Not in playing state!";
         let buf =
           Gstreamer.App_sink.pull_buffer (Utils.get_some gst.video_sink)
         in
@@ -135,7 +135,7 @@ module Make (Generator : Generator.S_Asio) = struct
         let uv_stride = round4 (width / 2) in
         let img = Image.YUV420.make_data width height buf y_stride uv_stride in
         let stream = Video.single img in
-        Generator.put_video buffer [|stream|] 0 (Video.length stream) ) ;
+        Generator.put_video buffer [| stream |] 0 (Video.length stream) );
       GU.flush ~log gst.bin
     in
     let seek off =
@@ -144,25 +144,27 @@ module Make (Generator : Generator.S_Asio) = struct
         let pos = Gstreamer.Element.position gst.bin Gstreamer.Format.Time in
         let new_pos =
           Gstreamer.Element.seek_simple gst.bin Gstreamer.Format.Time
-            [ Gstreamer.Event.Seek_flag_flush;
+            [
+              Gstreamer.Event.Seek_flag_flush;
               Gstreamer.Event.Seek_flag_key_unit;
-              Gstreamer.Event.Seek_flag_skip ]
-            (Int64.add pos off) ;
-          ignore (Gstreamer.Element.get_state gst.bin) ;
+              Gstreamer.Event.Seek_flag_skip;
+            ]
+            (Int64.add pos off);
+          ignore (Gstreamer.Element.get_state gst.bin);
           Gstreamer.Element.position gst.bin Gstreamer.Format.Time
         in
-        GU.flush ~log gst.bin ;
+        GU.flush ~log gst.bin;
         Gstreamer_utils.master_of_time (Int64.sub new_pos pos)
       with exn ->
-        log#important "Seek failed: %s" (Printexc.to_string exn) ;
-        log#info "Backtrace:\n%s" (Printexc.get_backtrace ()) ;
+        log#important "Seek failed: %s" (Printexc.to_string exn);
+        log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
         0
     in
     let close () =
-      ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null) ;
+      ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
       GU.flush ~log gst.bin
     in
-    ({Decoder.decode; seek}, close, gst.bin)
+    ({ Decoder.decode; seek }, close, gst.bin)
 end
 
 module G = Generator.From_audio_video
@@ -174,14 +176,16 @@ let mime_types =
     ~p:(Decoder.conf_mime_types#plug "gstreamer")
     "Mime-types used for guessing format handled by GStreamer"
     ~d:
-      [ "video/x-ms-asf";
+      [
+        "video/x-ms-asf";
         "video/x-msvideo";
         "video/mp4";
         "video/3gpp";
         "video/webm";
         "video/x-matroska";
         "video/mp2t";
-        "video/MP2T" ]
+        "video/MP2T";
+      ]
 
 let file_extensions =
   Dtools.Conf.list
@@ -192,12 +196,9 @@ let file_extensions =
 let create_file_decoder filename content_type kind =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
-      | 0, _ ->
-          `Audio
-      | _, 0 ->
-          `Video
-      | _, _ ->
-          `Both
+      | 0, _ -> `Audio
+      | _, 0 -> `Video
+      | _, _ -> `Both
   in
   let channels = content_type.Frame.audio in
   let generator = G.create mode in
@@ -215,8 +216,7 @@ let create_file_decoder filename content_type kind =
     in
     duration - pos + G.length generator + Frame.position frame - offset
   in
-  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder
-    generator
+  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator
 
 (** Get the type of a file's content. For now it is a bit imprecise:
   * we always pretend that audio content has the expected number of
@@ -228,13 +228,13 @@ let get_type ~channels filename =
       Printf.sprintf "%s ! %s ! fakesink" filesrc (GU.Pipeline.decode_audio ())
     in
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused) ;
-    GU.flush ~log bin ;
+    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
+    GU.flush ~log bin;
     let _, state, _ = Gstreamer.Element.get_state bin in
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null) ;
-    GU.flush ~log bin ;
+    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
+    GU.flush ~log bin;
     if state = Gstreamer.Element.State_paused then (
-      log#debug "File %s has audio." filename ;
+      log#debug "File %s has audio." filename;
       channels )
     else 0
   in
@@ -245,16 +245,16 @@ let get_type ~channels filename =
           (GU.Pipeline.decode_video ())
       in
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
-      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused) ;
+      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
       let _, state, _ = Gstreamer.Element.get_state bin in
-      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null) ;
+      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
       if state = Gstreamer.Element.State_paused then (
-        log#debug "File %s has video." filename ;
+        log#debug "File %s has video." filename;
         1 )
       else 0
     with Gstreamer.Failed -> 0
   in
-  {Frame.video; audio; midi= 0}
+  { Frame.video; audio; midi = 0 }
 
 let () =
   Decoder.file_decoders#register "GSTREAMER"
@@ -275,9 +275,9 @@ let () =
            * have any: it will be dropped anyway. A more fine-grained approach
            * might or might not be possible, based on the number of channels. *)
           if kind.Frame.video = Frame.Zero then
-            {content_type with Frame.video= 0}
+            { content_type with Frame.video = 0 }
           else if kind.Frame.audio = Frame.Zero then
-            {content_type with Frame.audio= 0}
+            { content_type with Frame.audio = 0 }
           else content_type
         in
         if Frame.type_has_kind content_type kind then
@@ -317,17 +317,17 @@ let get_tags file =
     not
       (Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
          ~log file)
-  then raise Not_found ;
+  then raise Not_found;
   let pipeline =
     Printf.sprintf "filesrc location=\"%s\" ! decodebin ! fakesink" file
   in
   let bin = Gstreamer.Pipeline.parse_launch pipeline in
   let bus = Gstreamer.Bus.of_element bin in
   (* Go in paused state. *)
-  ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused) ;
-  GU.flush ~log bin ;
+  ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
+  GU.flush ~log bin;
   (* Wait for the state to complete. *)
-  ignore (Gstreamer.Element.get_state bin) ;
+  ignore (Gstreamer.Element.get_state bin);
   let ans = ref [] in
   try
     while true do
@@ -335,20 +335,19 @@ let get_tags file =
       let msg = match msg with Some msg -> msg | None -> raise Exit in
       match msg.Gstreamer.Bus.payload with
         | `Error _ ->
-            GU.handler ~log ~on_error:(fun _ -> ()) msg ;
+            GU.handler ~log ~on_error:(fun _ -> ()) msg;
             raise Exit
         | `Tag tags ->
             List.iter
               (fun (l, v) ->
                 match v with [v] -> ans := (l, v) :: !ans | _ -> ())
               tags
-        | _ ->
-            assert false
-    done ;
+        | _ -> assert false
+    done;
     assert false
   with Exit ->
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null) ;
-    GU.flush ~log bin ;
+    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
+    GU.flush ~log bin;
     List.rev !ans
 
 let () = Request.mresolvers#register "GSTREAMER" get_tags

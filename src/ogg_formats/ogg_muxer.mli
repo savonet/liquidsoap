@@ -37,7 +37,7 @@ type audio = float array array
 type video = Video.buffer
 
 (** A data unit *)
-type 'a data = {data: 'a; offset: int; length: int}
+type 'a data = { data : 'a; offset : int; length : int }
 
 (** A track data is a data unit of either audio or video. *)
 type track_data = Audio_data of audio data | Video_data of video data
@@ -79,12 +79,12 @@ type data_encoder =
 
 (** The full stream encoder type. *)
 type stream_encoder = {
-  header_encoder: header_encoder;
-  fisbone_packet: fisbone_packet;
-  stream_start: stream_start;
-  data_encoder: data_encoder;
-  end_of_page: page_end_time;
-  end_of_stream: end_of_stream;
+  header_encoder : header_encoder;
+  fisbone_packet : fisbone_packet;
+  stream_start : stream_start;
+  data_encoder : data_encoder;
+  end_of_page : page_end_time;
+  end_of_stream : end_of_stream;
 }
 
 (** Main type for the ogg encoder *)

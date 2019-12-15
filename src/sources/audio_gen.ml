@@ -41,7 +41,8 @@ let add name g =
   Lang.add_operator name ~category:Lang.Input
     ~descr:("Generate a " ^ name ^ " wave.")
     ~kind:Lang.audio_any
-    [ ( "duration",
+    [
+      ( "duration",
         Lang.float_t,
         Some (Lang.float 0.),
         Some "Duration in seconds (0. means infinite)." );
@@ -52,7 +53,8 @@ let add name g =
       ( "",
         Lang.float_t,
         Some (Lang.float 440.),
-        Some ("Frequency of the " ^ name ^ ".") ) ]
+        Some ("Frequency of the " ^ name ^ ".") );
+    ]
     (fun p kind ->
       ( new gen
           ~seek:true ~kind name g
@@ -73,4 +75,7 @@ let saw f volume =
   new Audio.Generator.of_mono
     (new Audio.Mono.Generator.saw (Lazy.force Frame.audio_rate) ~volume f)
 
-let () = add "sine" sine ; add "square" square ; add "saw" saw
+let () =
+  add "sine" sine;
+  add "square" square;
+  add "saw" saw

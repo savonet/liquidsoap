@@ -40,7 +40,7 @@ class map ~kind source f =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       for i = offset to AFrame.position buf - 1 do
         for c = 0 to Array.length b - 1 do
@@ -55,8 +55,10 @@ let to_fun_float f x =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "audio.map"
-    [ ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
-      ("", Lang.source_t k, None, None) ]
+    [
+      ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k)
     ~descr:"Map a function to all audio samples. This is SLOW!"
     ~category:Lang.SoundProcessing

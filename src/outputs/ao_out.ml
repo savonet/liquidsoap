@@ -28,8 +28,8 @@ open Ao
   * per driver... but it might also depend on driver options. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "ao")
 
-class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start
-  ~on_stop ~options ?channels_matrix source start =
+class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
+  ~options ?channels_matrix source start =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -46,7 +46,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start
     inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
@@ -57,31 +57,29 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start
 
     method get_device =
       match device with
-        | Some d ->
-            d
+        | Some d -> d
         | None ->
             (* Wait for things to settle... TODO I don't need that! *)
-            Thread.delay (5. *. Lazy.force Frame.duration) ;
+            Thread.delay (5. *. Lazy.force Frame.duration);
             let driver =
               if driver = "" then get_default_driver () else find_driver driver
             in
             let dev =
-              (self#log)#important "Opening %s (%d channels)..." driver.Ao.name
-                channels ;
+              self#log#important "Opening %s (%d channels)..." driver.Ao.name
+                channels;
               open_live ~driver ~options ?channels_matrix
                 ~rate:samples_per_second ~bits:(bytes_per_sample * 8) ~channels
                 ()
             in
-            device <- Some dev ;
+            device <- Some dev;
             dev
 
     method close =
       match device with
         | Some d ->
-            Ao.close d ;
+            Ao.close d;
             device <- None
-        | None ->
-            ()
+        | None -> ()
 
     method push_block data =
       let dev = self#get_device in
@@ -91,7 +89,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start
       if not (Frame.is_partial wav) then (
         let push data =
           let pcm = AFrame.content wav 0 in
-          assert (Array.length pcm = channels) ;
+          assert (Array.length pcm = channels);
           Audio.S16LE.of_audio pcm data 0
         in
         ioring#put_block push )
@@ -104,7 +102,8 @@ let () =
   let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao" ~active:true
     ( Output.proto
-    @ [ ( "clock_safe",
+    @ [
+        ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Use the dedicated AO clock." );
@@ -124,7 +123,8 @@ let () =
           Lang.metadata_t,
           Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []),
           Some "List of parameters, depends on the driver." );
-        ("", Lang.source_t kind, None, None) ] )
+        ("", Lang.source_t kind, None, None);
+      ] )
     ~category:Lang.Output
     ~descr:"Output stream to local sound card using libao."
     ~kind:(Lang.Unconstrained kind)

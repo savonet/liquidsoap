@@ -77,7 +77,10 @@ class dssi ~kind ?chan plugin descr outputs params source =
     method private get_frame buf =
       let descr, inst = di in
       let offset = Frame.position buf in
-      let position = source#get buf ; Frame.position buf in
+      let position =
+        source#get buf;
+        Frame.position buf
+      in
       let _, content = Frame.content buf offset in
       let b = content.Frame.audio in
       let evs = content.Frame.midi in
@@ -93,13 +96,12 @@ class dssi ~kind ?chan plugin descr outputs params source =
                 Some (t, Dssi.Event_note_on (0, n, int_of_float (v *. 127.)))
             | MIDI.Note_off (n, v) ->
                 Some (t, Dssi.Event_note_off (0, n, int_of_float (v *. 127.)))
-            | _ ->
-                None
+            | _ -> None
         in
         match chan with
           | Some chan ->
               let evs = MIDI.data evs.(chan) in
-              [|Array.of_list (Utils.may_map dssi_of_midi evs)|]
+              [| Array.of_list (Utils.may_map dssi_of_midi evs) |]
           | None ->
               Array.init all_chans (fun chan ->
                   Array.of_list
@@ -109,13 +111,13 @@ class dssi ~kind ?chan plugin descr outputs params source =
         (fun inst ->
           List.iter
             (fun (p, v) -> Ladspa.Descriptor.set_control_port inst p (v ()))
-            params ;
+            params;
           for c = 0 to Array.length outputs - 1 do
             Ladspa.Descriptor.connect_port inst outputs.(c)
               (Audio.Mono.sub b.(c) offset len)
           done)
-        inst ;
-      assert (Array.length outputs = Array.length b) ;
+        inst;
+      assert (Array.length outputs = Array.length b);
       try Descriptor.run_multiple_synths descr ~adding:true inst len evs
       with Descriptor.Not_implemented ->
         for i = 0 to (if chan = None then all_chans else 1) - 1 do
@@ -131,20 +133,21 @@ let register_descr plugin_name descr_n descr outputs =
     Lang.kind_type_of_kind_format
       (Lang.Constrained
          {
-           Frame.audio= Lang.Fixed chans;
-           video= Lang.Any_fixed 0;
-           midi= Lang.Fixed 1;
+           Frame.audio = Lang.Fixed chans;
+           video = Lang.Any_fixed 0;
+           midi = Lang.Fixed 1;
          })
   in
   let liq_params = liq_params in
   Lang.add_operator
     ( "synth.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr)
-    )
-    ( [ ( "channel",
+    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
+    ( [
+        ( "channel",
           Lang.int_t,
           Some (Lang.int 0),
-          Some "MIDI channel to handle." ) ]
+          Some "MIDI channel to handle." );
+      ]
     @ liq_params
     @ [("", Lang.source_t k, None, None)] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~flags:[]
@@ -154,20 +157,19 @@ let register_descr plugin_name descr_n descr outputs =
       let chan = Lang.to_int (f "channel") in
       let source = Lang.to_source (f "") in
       let params = params p in
-      new dssi ~kind plugin_name descr_n outputs params ~chan source) ;
+      new dssi ~kind plugin_name descr_n outputs params ~chan source);
   let k =
     Lang.kind_type_of_kind_format
       (Lang.Constrained
          {
-           Frame.audio= Lang.Fixed chans;
-           video= Lang.Any_fixed 0;
-           midi= Lang.Fixed all_chans;
+           Frame.audio = Lang.Fixed chans;
+           video = Lang.Any_fixed 0;
+           midi = Lang.Fixed all_chans;
          })
   in
   Lang.add_operator
     ( "synth.all.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr)
-    )
+    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
     (liq_params @ [("", Lang.source_t k, None, None)])
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
@@ -187,7 +189,7 @@ let register_plugin ?(log_errors = false) pname =
         let i, o = Ladspa_op.get_audio_ports ladspa_descr in
         (* TODO: we should handle inputs too someday *)
         if Array.length i = 0 then (
-          register_descr pname n d o ;
+          register_descr pname n d o;
           if log_errors then
             log#important "Registered DSSI plugin: %s."
               (Ladspa.Descriptor.label ladspa_descr) )
@@ -210,15 +212,15 @@ let register_plugins () =
         try
           while true do
             let f = Unix.readdir dir in
-            if f <> "." && f <> ".." then
-              ans := (plugins_dir ^ "/" ^ f) :: !ans
+            if f <> "." && f <> ".." then ans := (plugins_dir ^ "/" ^ f) :: !ans
           done
         with End_of_file -> Unix.closedir dir
       with Unix.Unix_error (e, _, _) ->
         log#info "Error while loading directory %s: %s" plugins_dir
           (Unix.error_message e)
     in
-    List.iter add plugin_dirs ; List.rev !ans
+    List.iter add plugin_dirs;
+    List.rev !ans
   in
   List.iter (register_plugin ~log_errors:false) plugins
 
@@ -227,11 +229,13 @@ let dssi_init =
   fun () ->
     if !inited then ()
     else (
-      Dssi.init () ;
+      Dssi.init ();
       inited := true )
 
 let () =
-  if dssi_enable then (dssi_init () ; register_plugins ()) ;
+  if dssi_enable then (
+    dssi_init ();
+    register_plugins () );
   List.iter (register_plugin ~log_errors:true) dssi_load
 
 let () =
@@ -240,7 +244,7 @@ let () =
     ~descr:"Resgister a DSSI plugin."
     [("", Lang.string_t, None, Some "Path of the DSSI plugin file.")]
     Lang.unit_t (fun p _ ->
-      dssi_init () ;
+      dssi_init ();
       let fname = Lang.to_string (List.assoc "" p) in
-      register_plugin ~log_errors:true fname ;
+      register_plugin ~log_errors:true fname;
       Lang.unit)

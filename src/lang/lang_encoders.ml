@@ -32,8 +32,7 @@ let invalid t =
 let generic_error t : exn =
   if invalid t then (
     match t.term with
-      | Var _ ->
-          Error (t, "variables are forbidden in encoding formats")
-      | _ ->
-          Error (t, "complex expressions are forbidden in encoding formats") )
+      | Var _ -> Error (t, "variables are forbidden in encoding formats")
+      | _ -> Error (t, "complex expressions are forbidden in encoding formats")
+    )
   else Error (t, "unknown parameter name or invalid parameter value")

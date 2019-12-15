@@ -51,17 +51,17 @@ class compress ~kind (source : source) attack release threshold ratio knee
 
     method private get_frame buf =
       let ofs = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf ofs in
       let pos = AFrame.position buf in
       let len = pos - ofs in
-      effect#set_gain (gain ()) ;
-      effect#set_attack (attack ()) ;
-      effect#set_release (release ()) ;
-      effect#set_threshold (threshold ()) ;
-      effect#set_ratio (ratio ()) ;
-      effect#set_knee (knee ()) ;
-      effect#process (Audio.sub b ofs len) ;
+      effect#set_gain (gain ());
+      effect#set_attack (attack ());
+      effect#set_release (release ());
+      effect#set_threshold (threshold ());
+      effect#set_ratio (ratio ());
+      effect#set_knee (knee ());
+      effect#process (Audio.sub b ofs len);
       (* Reset values if it is the end of the track. *)
       if AFrame.is_partial buf then effect#reset
   end
@@ -70,7 +70,8 @@ class compress ~kind (source : source) attack release threshold ratio knee
 let k = Lang.kind_type_of_kind_format Lang.any_fixed
 
 let proto =
-  [ ( "attack",
+  [
+    ( "attack",
       Lang.float_getter_t (),
       Some (Lang.float 100.),
       Some "Attack time (ms)." );
@@ -94,7 +95,8 @@ let proto =
       Lang.float_getter_t (),
       Some (Lang.float 0.),
       Some "Additional gain (dB)." );
-    ("", Lang.source_t k, None, None) ]
+    ("", Lang.source_t k, None, None);
+  ]
 
 let compress p kind =
   let f v = List.assoc v p in
@@ -123,7 +125,7 @@ let () =
         Some "Gain reduction ratio (n:1)." )
     :: proto )
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Compress the signal." compress ;
+    ~descr:"Compress the signal." compress;
   Lang.add_operator "limit"
     ( ( "ratio",
         Lang.float_getter_t (),

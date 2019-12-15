@@ -25,7 +25,7 @@
 (** {2 Frame definitions} *)
 
 (** A frame contains fields which hold audio, video and MIDI data. *)
-type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c; }
+type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
 
 (** Multiplicity of a field, used in types to impose constraints on channels
     (empty, variable, at least k, etc.). *)
@@ -39,9 +39,15 @@ type content_type = (int, int, int) fields
 
 (** Actual content of a frame. *)
 type content = (audio_t array, video_t array, midi_t array) fields
-and audio_t = Audio.Mono.buffer (** Audio data. *)
-and video_t = Video.t (** Video data. *)
-and midi_t = MIDI.buffer (** MIDI data. *)
+
+(** Audio data. *)
+and audio_t = Audio.Mono.buffer
+
+(** Video data. *)
+and video_t = Video.t
+
+(** MIDI data. *)
+and midi_t = MIDI.buffer
 
 (** [blit_content c1 o1 c2 o2 l] copies [l] data from [c1] starting at offset
     [o1] into [c2] starting at offset [o2]. All numerical values are in
@@ -56,12 +62,15 @@ type metadata = (string, string) Hashtbl.t
 
 (** A frame. *)
 type t = {
-  mutable breaks : int list; (** End of track markers. A break at the end of the
+  mutable breaks : int list;
+      (** End of track markers. A break at the end of the
                                  buffer is not an end of track (if needed, the
                                  end-of-track needs to be put at the beginning
                                  of the next frame). *)
-  mutable metadata : (int * metadata) list; (** Metadata along with the time they occur. *)
-  mutable contents : (int * content) list; (** The actual content can represent
+  mutable metadata : (int * metadata) list;
+      (** Metadata along with the time they occur. *)
+  mutable contents : (int * content) list;
+      (** The actual content can represent
                                                several tracks in one content
                                                chunk, for efficiency, but may
                                                also be split in several chunks
@@ -147,13 +156,17 @@ val get_past_metadata : t -> metadata option
 (** {2 Content operations} *)
 
 val content : t -> int -> int * content
+
 val content_of_type : ?force:content -> t -> int -> content_type -> content
 
-val hide_contents : t -> (unit -> unit)
-type content_layer = { content : content ; start : int ; length : int }
+val hide_contents : t -> unit -> unit
+
+type content_layer = { content : content; start : int; length : int }
+
 val get_content_layers : t -> content_layer list
 
 exception No_chunk
+
 val get_chunk : t -> t -> unit
 
 (** {2 Compatibilities between content values, types and kinds} *)
@@ -162,18 +175,27 @@ val get_chunk : t -> t -> unit
     when [b] is more permissive than [a]. *)
 
 val mul_sub_mul : multiplicity -> multiplicity -> bool
+
 val int_sub_mul : int -> multiplicity -> bool
-val mul_eq_int  : multiplicity -> int -> bool
+
+val mul_eq_int : multiplicity -> int -> bool
+
 val kind_sub_kind : content_kind -> content_kind -> bool
+
 val type_has_kind : content_type -> content_kind -> bool
+
 val content_has_type : content -> content_type -> bool
+
 val type_of_content : content -> content_type
+
 val type_of_kind : content_kind -> content_type
 
 val mul_of_int : int -> multiplicity
+
 val add_mul : multiplicity -> multiplicity -> multiplicity
 
 val string_of_content_kind : content_kind -> string
+
 val string_of_content_type : content_type -> string
 
 (** {2 Format settings} *)
@@ -224,16 +246,25 @@ val duration : float Lazy.t
 
 (** Duration of given number of samples in ticks. *)
 val audio_of_master : int -> int
+
 val video_of_master : int -> int
+
 val midi_of_master : int -> int
+
 val master_of_audio : int -> int
+
 val master_of_video : int -> int
+
 val master_of_midi : int -> int
 
 val master_of_seconds : float -> int
+
 val audio_of_seconds : float -> int
+
 val video_of_seconds : float -> int
 
 val seconds_of_master : int -> float
+
 val seconds_of_audio : int -> float
+
 val seconds_of_video : int -> float

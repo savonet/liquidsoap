@@ -28,17 +28,18 @@ let make params =
     {
       Avi_format.channels
       (* We use a hardcoded value in order not to force the evaluation of the
-         number of channels too early, see #933. *)=
+         number of channels too early, see #933. *) =
         2;
-      samplerate= Frame.audio_rate;
+      samplerate = Frame.audio_rate;
     }
   in
   let avi =
     List.fold_left
-      (fun f -> function "channels", {term= Int c; _} ->
-            {f with Avi_format.channels= c} | "samplerate", {term= Int i; _} ->
-            {f with Avi_format.samplerate= Lazy.from_val i} | _, t ->
-            raise (generic_error t))
+      (fun f -> function
+        | "channels", { term = Int c; _ } -> { f with Avi_format.channels = c }
+        | "samplerate", { term = Int i; _ } ->
+            { f with Avi_format.samplerate = Lazy.from_val i }
+        | _, t -> raise (generic_error t))
       defaults params
   in
   Encoder.AVI avi

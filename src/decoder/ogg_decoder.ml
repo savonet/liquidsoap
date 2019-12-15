@@ -35,21 +35,17 @@ let converter () =
   fun format ->
     let format =
       match format with
-        | Ogg_demuxer.Yuvj_422 ->
-            P.YUVJ422
-        | Ogg_demuxer.Yuvj_420 ->
-            P.YUVJ420
-        | Ogg_demuxer.Yuvj_444 ->
-            P.YUVJ444
+        | Ogg_demuxer.Yuvj_422 -> P.YUVJ422
+        | Ogg_demuxer.Yuvj_420 -> P.YUVJ420
+        | Ogg_demuxer.Yuvj_444 -> P.YUVJ444
     in
     match !current_format with
-      | Some x when fst x = format ->
-          snd x
+      | Some x when fst x = format -> snd x
       | _ ->
           let converter =
             Video_converter.find_converter (P.YUV format) (P.YUV P.YUVJ420)
           in
-          current_format := Some (format, converter) ;
+          current_format := Some (format, converter);
           converter
 
 (** Convert a video frame to YUV *)
@@ -66,7 +62,8 @@ let video_convert scale =
           buf.Ogg_demuxer.uv_stride
       in
       let img2 = Video.Image.create width height in
-      scale img img2 ; img2 )
+      scale img img2;
+      img2 )
     else (
       let converter = converter buf.Ogg_demuxer.format in
       let yuv = Video.Image.create width height in
@@ -77,7 +74,7 @@ let video_convert scale =
           buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
           buf.Ogg_demuxer.uv_stride
       in
-      converter (Image.Generic.of_YUV420 sframe) frame ;
+      converter (Image.Generic.of_YUV420 sframe) frame;
       yuv )
 
 (** Stupid nearest neighbour resampling.
@@ -106,7 +103,7 @@ let resample ~in_freq ~out_freq =
     let already_out_len = !in_pos * out_freq / in_freq in
     let needed_out_len = new_in_pos * out_freq / in_freq in
     let out_len = needed_out_len - already_out_len in
-    in_pos := new_in_pos mod in_freq ;
+    in_pos := new_in_pos mod in_freq;
     Array.init out_len (fun i -> input.(off + (i * in_freq / out_freq)))
 
 let video_resample () =
@@ -116,8 +113,8 @@ let video_resample () =
     if !in_out = Some (in_freq, out_freq) then
       (Utils.get_some !resampler) buf off len
     else (
-      in_out := Some (in_freq, out_freq) ;
-      resampler := Some (resample ~in_freq ~out_freq) ;
+      in_out := Some (in_freq, out_freq);
+      resampler := Some (resample ~in_freq ~out_freq);
       (Utils.get_some !resampler) buf off len )
 
 let demuxer_log x = log#debug "%s" x
@@ -135,9 +132,9 @@ module Make (Generator : Generator.S_Asio) = struct
     let decoder =
       let callbacks =
         {
-          Ogg_demuxer.read= input.Decoder.read;
-          seek= input.Decoder.lseek;
-          tell= input.Decoder.tell;
+          Ogg_demuxer.read = input.Decoder.read;
+          seek = input.Decoder.lseek;
+          tell = input.Decoder.tell;
         }
       in
       Ogg_demuxer.init ~log:demuxer_log callbacks
@@ -152,12 +149,12 @@ module Make (Generator : Generator.S_Asio) = struct
     let first_meta = ref true in
     let init ~reset buffer =
       if reset then (
-        Ogg_demuxer.reset decoder ;
-        Ogg_demuxer.update_standard_tracks decoder tracks ;
+        Ogg_demuxer.reset decoder;
+        Ogg_demuxer.update_standard_tracks decoder tracks;
         (* We enforce that all contents end together, otherwise there will
          * be a lag between different content types in the next track. *)
-        if not merge_tracks then Generator.add_break ~sync:`Drop buffer ) ;
-      Generator.set_mode buffer mode ;
+        if not merge_tracks then Generator.add_break ~sync:`Drop buffer );
+      Generator.set_mode buffer mode;
       let add_meta f t =
         (* Initial metadata in files is handled separately. *)
         if source = `Stream || (merge_tracks && not !first_meta) then (
@@ -165,9 +162,9 @@ module Make (Generator : Generator.S_Asio) = struct
           let metas = Hashtbl.create 10 in
           List.iter
             (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
-            m ;
-          Hashtbl.add metas "vendor" v ;
-          Generator.add_metadata buffer metas ) ;
+            m;
+          Hashtbl.add metas "vendor" v;
+          Generator.add_metadata buffer metas );
         first_meta := false
       in
       let drop_track d t =
@@ -180,25 +177,24 @@ module Make (Generator : Generator.S_Asio) = struct
         (tracks.Ogg_demuxer.audio_track, tracks.Ogg_demuxer.video_track, mode)
       with
         | Some audio, Some video, `Both ->
-            add_meta Ogg_demuxer.audio_info audio ;
+            add_meta Ogg_demuxer.audio_info audio;
             add_meta Ogg_demuxer.video_info video
         | Some audio, video, `Audio ->
-            drop_track decoder video ;
+            drop_track decoder video;
             add_meta Ogg_demuxer.audio_info audio
         | audio, Some video, `Video ->
-            drop_track decoder audio ;
+            drop_track decoder audio;
             add_meta Ogg_demuxer.video_info video
-        | _ ->
-            failwith "Ogg stream does not contain required data"
+        | _ -> failwith "Ogg stream does not contain required data"
     in
     let decode buffer =
       try
         if not !started then (
-          init ~reset:false buffer ;
-          started := true ) ;
+          init ~reset:false buffer;
+          started := true );
         if Ogg_demuxer.eos decoder then
           if merge_tracks || source = `Stream then init ~reset:true buffer
-          else raise Ogg_demuxer.End_of_stream ;
+          else raise Ogg_demuxer.End_of_stream;
         let audio_feed track buf =
           let info, _ = Ogg_demuxer.audio_info decoder track in
           let content =
@@ -219,7 +215,7 @@ module Make (Generator : Generator.S_Asio) = struct
           let stream =
             video_resample ~in_freq ~out_freq (Video.single rgb) 0 1
           in
-          Generator.put_video buffer [|stream|] 0 (Video.length stream)
+          Generator.put_video buffer [| stream |] 0 (Video.length stream)
         in
         let decode_audio, decode_video =
           if decode_audio && decode_video then
@@ -233,7 +229,7 @@ module Make (Generator : Generator.S_Asio) = struct
         if decode_audio then (
           let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
           Ogg_demuxer.decode_audio decoder track (fun buf ->
-              audio_feed track (Audio.of_array buf)) ) ;
+              audio_feed track (Audio.of_array buf)) );
         if decode_video then (
           let track = Utils.get_some tracks.Ogg_demuxer.video_track in
           Ogg_demuxer.decode_video decoder track (video_feed track) )
@@ -255,8 +251,7 @@ module Make (Generator : Generator.S_Asio) = struct
              * which implies that the stream has already been
              * parsed as ogg. Indeed, Ogg.Out_of_sync when
              * parsing ogg means that the stream is not ogg... *)
-        | Ogg.Out_of_sync when source = `Stream ->
-            ()
+        | Ogg.Out_of_sync when source = `Stream -> ()
     in
     let seek offset =
       try
@@ -264,10 +259,10 @@ module Make (Generator : Generator.S_Asio) = struct
         let new_time = Ogg_demuxer.seek ~relative:true decoder time_offset in
         Frame.master_of_seconds new_time
       with Ogg_demuxer.End_of_stream | Ogg.End_of_stream ->
-        log#info "End of track reached while seeking!" ;
+        log#info "End of track reached while seeking!";
         0
     in
-    {Decoder.decode; seek}
+    { Decoder.decode; seek }
 end
 
 (** File decoder *)
@@ -279,12 +274,9 @@ module D = Make (G)
 let create_file_decoder filename content_type kind =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
-      | 0, _ ->
-          `Audio
-      | _, 0 ->
-          `Video
-      | _, _ ->
-          `Both
+      | 0, _ -> `Audio
+      | _, 0 -> `Video
+      | _, _ -> `Both
   in
   let generator = G.create mode in
   Buffered.file_decoder filename kind
@@ -299,25 +291,26 @@ let get_type filename =
     (fun () ->
       let audio =
         match tracks.Ogg_demuxer.audio_track with
-          | None ->
-              0
+          | None -> 0
           | Some t ->
               let info, _ = Ogg_demuxer.audio_info decoder t in
               info.Ogg_demuxer.channels
       in
       let video = if tracks.Ogg_demuxer.video_track <> None then 1 else 0 in
-      log#info "File %S recognized as audio=%d video=%d." filename audio video ;
-      {Frame.audio; video; midi= 0})
+      log#info "File %S recognized as audio=%d video=%d." filename audio video;
+      { Frame.audio; video; midi = 0 })
 
 let mime_types =
   Dtools.Conf.list
     ~p:(Decoder.conf_mime_types#plug "ogg")
     ~d:
-      [ "application/ogg";
+      [
+        "application/ogg";
         "application/x-ogg";
         "audio/x-ogg";
         "audio/ogg";
-        "video/ogg" ]
+        "video/ogg";
+      ]
     "Mime-types used for guessing OGG format."
 
 let file_extensions =
@@ -343,9 +336,9 @@ let () =
            * A more fine-grained approach might or might not
            * be possible, based on the number of channels. *)
           if kind.Frame.video = Frame.Zero then
-            {content_type with Frame.video= 0}
+            { content_type with Frame.video = 0 }
           else if kind.Frame.audio = Frame.Zero then
-            {content_type with Frame.audio= 0}
+            { content_type with Frame.audio = 0 }
           else content_type
         in
         if Frame.type_has_kind content_type kind then
@@ -365,12 +358,9 @@ let () =
         let mode =
           let content_type = Frame.type_of_kind kind in
           match (content_type.Frame.video, content_type.Frame.audio) with
-            | 0, _ ->
-                `Audio
-            | _, 0 ->
-                `Video
-            | _, _ ->
-                `Both
+            | 0, _ -> `Audio
+            | _, 0 -> `Video
+            | _, _ -> `Both
         in
         Some (D_stream.create_decoder `Stream mode) )
       else None)
@@ -382,7 +372,7 @@ let get_tags file =
     not
       (Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
          ~log file)
-  then raise Not_found ;
+  then raise Not_found;
   let decoder, fd = Ogg_demuxer.init_from_file ~log:demuxer_log file in
   let tracks = Ogg_demuxer.get_standard_tracks decoder in
   Tutils.finalize
@@ -393,8 +383,7 @@ let get_tags file =
           | Some t ->
               let _, (_, m) = f decoder t in
               m
-          | _ ->
-              []
+          | _ -> []
       in
       get Ogg_demuxer.audio_info tracks.Ogg_demuxer.audio_track
       @ get Ogg_demuxer.video_info tracks.Ogg_demuxer.video_track)

@@ -103,7 +103,7 @@ val resolving_requests : unit -> int list
 
 type resolver = string -> log:(string -> unit) -> float -> indicator list
 
-type protocol = {resolve: resolver; static: bool}
+type protocol = { resolve : resolver; static : bool }
 
 (** A static request [r] is such that every resolving leads to the same file.
   * Sometimes, it allows removing useless destroy/create/resolve. *)

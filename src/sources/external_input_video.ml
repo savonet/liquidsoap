@@ -44,19 +44,19 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data
   let vadiff = 10. in
   let last_vadiff_warning = ref 0. in
   let on_data reader =
-    on_data abg reader ;
+    on_data abg reader;
     (* Check that audio and video roughly get filled as the same speed. *)
     let lv = Frame.seconds_of_master (Generator.video_length abg) in
     let la = Frame.seconds_of_master (Generator.audio_length abg) in
     let d = abs_float (lv -. la) in
     if d > vadiff && d -. !last_vadiff_warning >= vadiff then (
-      last_vadiff_warning := d ;
+      last_vadiff_warning := d;
       let v, a = if lv >= la then ("video", "audio") else ("audio", "video") in
       !log_error
         (Printf.sprintf
            "Got %f seconds more of %s than of %s. Are you sure that you are \
             producing the correct kind of data?"
-           d v a) ) ;
+           d v a) );
     let buffered = Generator.length abg in
     if abg_max_len < buffered then
       `Delay (Frame.seconds_of_audio (buffered - (3 * abg_max_len / 4)))
@@ -78,7 +78,7 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data
            total buffer length: %.02f s"
           (Frame.seconds_of_master (Generator.audio_length abg))
           (Frame.seconds_of_master (Generator.video_length abg))
-          (Frame.seconds_of_master (Generator.length abg))) ;
+          (Frame.seconds_of_master (Generator.length abg)));
     self#register_command "buffer_size" ~descr:"Show internal buffer size."
       (fun _ ->
         Printf.sprintf
@@ -89,16 +89,13 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data
 
     method wake_up x =
       (* Now we can create the log function *)
-      log_ref := (self#log)#info "%s" ;
-      log_error := (self#log)#severe "%s" ;
-      (self#log)#debug "Generator mode: %s."
+      log_ref := self#log#info "%s";
+      log_error := self#log#severe "%s";
+      self#log#debug "Generator mode: %s."
         ( match Generator.mode abg with
-          | `Video ->
-              "video"
-          | `Both ->
-              "both"
-          | _ ->
-              "???" ) ;
+          | `Video -> "video"
+          | `Both -> "both"
+          | _ -> "???" );
       base#wake_up x
   end
 
@@ -112,7 +109,8 @@ let () =
   Lang.add_operator "input.external.avi" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
-    [ ( "buffer",
+    [
+      ( "buffer",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Duration of the pre-buffered data." );
@@ -128,7 +126,8 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.") ]
+      ("", Lang.string_t, None, Some "Command to execute.");
+    ]
     ~kind
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
@@ -140,34 +139,33 @@ let () =
       let video_scaler = Video_converter.scaler () in
       let read_header read =
         (* Reset the state. *)
-        video_format := None ;
-        width := None ;
-        height := None ;
-        audio_converter := None ;
-        video_converter := None ;
+        video_format := None;
+        width := None;
+        height := None;
+        audio_converter := None;
+        video_converter := None;
         let h, _ = Avi.Read.headers_simple read in
         let check = function
           | `Video (fmt, w, h, fps) ->
               (* if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width); *)
               (* if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height); *)
               log#info "Format: %s."
-                (match fmt with `RGB24 -> "RGB24" | `I420 -> "I420") ;
-              video_format := Some fmt ;
-              width := Some w ;
-              height := Some h ;
+                (match fmt with `RGB24 -> "RGB24" | `I420 -> "I420");
+              video_format := Some fmt;
+              width := Some w;
+              height := Some h;
               if fps <> float (Lazy.force Frame.video_rate) then
                 failwith
                   (Printf.sprintf
                      "Wrong video rate (%f instead of %d). Support for \
                       timestretching should be added some day in the future."
                      fps
-                     (Lazy.force Frame.video_rate)) ;
+                     (Lazy.force Frame.video_rate));
               let converter data =
                 let video_format = Option.get !video_format in
                 let of_string s =
                   match video_format with
-                    | `RGB24 ->
-                        Image.YUV420.of_RGB24_string s w
+                    | `RGB24 -> Image.YUV420.of_RGB24_string s w
                     | `I420 ->
                         (* TODO: can there be stride in avi videos? *)
                         let h = String.length s * 4 / 6 / w in
@@ -184,24 +182,25 @@ let () =
                 then src
                 else (
                   let dst = Video.Image.create out_width out_height in
-                  video_scaler src dst ; dst )
+                  video_scaler src dst;
+                  dst )
               in
               video_converter := Some converter
           | `Audio (channels, audio_src_rate) ->
               let audio_src_rate = float audio_src_rate in
               if !audio_converter <> None then
-                failwith "Only one audio track is supported for now." ;
+                failwith "Only one audio track is supported for now.";
               audio_converter :=
                 Some
                   (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
                      ~audio_src_rate)
         in
-        List.iter check h ; `Continue
+        List.iter check h;
+        `Continue
       in
       let on_data abg reader =
         match Avi.Read.chunk reader with
-          | `Frame (_, _, data) when String.length data = 0 ->
-              ()
+          | `Frame (_, _, data) when String.length data = 0 -> ()
           | `Frame (`Video, _, data) ->
               let width = Option.get !width in
               let height = Option.get !height in
@@ -215,9 +214,9 @@ let () =
                 failwith
                   (Printf.sprintf "Wrong video frame size (%d instead of %d)"
                      (String.length data)
-                     (width * height * 3)) ;
+                     (width * height * 3));
               let data = (Option.get !video_converter) data in
-              Generator.put_video abg [|Video.single data|] 0 1
+              Generator.put_video abg [| Video.single data |] 0 1
           | `Frame (`Audio, _, data) ->
               let converter = Utils.get_some !audio_converter in
               let data = converter data in
@@ -226,16 +225,15 @@ let () =
                   "Received audio data whereas the type indicates that there \
                    are no audio channels, ingoring it."
               else Generator.put_audio abg data 0 (Audio.length data)
-          | _ ->
-              failwith "Invalid chunk."
+          | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       ( new video
-          ~name:"input.external.avi" ~kind ~restart ~bufferize
-          ~restart_on_error ~max ~read_header ~on_data command
+          ~name:"input.external.avi" ~kind ~restart ~bufferize ~restart_on_error
+          ~max ~read_header ~on_data command
         :> Source.source ))
 
 (***** raw video *****)
@@ -246,7 +244,8 @@ let () =
   Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
-    [ ( "buffer",
+    [
+      ( "buffer",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Duration of the pre-buffered data." );
@@ -262,7 +261,8 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.") ]
+      ("", Lang.string_t, None, Some "Command to execute.");
+    ]
     ~kind
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
@@ -279,7 +279,7 @@ let () =
         in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
-        Generator.put_video abg [|Video.single data|] 0 1
+        Generator.put_video abg [| Video.single data |] 0 1
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in

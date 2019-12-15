@@ -82,11 +82,10 @@ let instantiate d samplerate =
   (* Connect output control ports (which we don't use) to some dummy buffer in
      order to avoid segfaults. *)
   for i = 0 to Descriptor.port_count d - 1 do
-    if Descriptor.port_is_control d i && not (Descriptor.port_is_input d i)
-    then (
+    if Descriptor.port_is_control d i && not (Descriptor.port_is_input d i) then (
       let c = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout 1 in
       Descriptor.connect_port ans i c )
-  done ;
+  done;
   ans
 
 (* A plugin is created for each channel. *)
@@ -104,17 +103,17 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let len = position - offset in
       for c = 0 to Array.length b - 1 do
         let buf = Audio.Mono.sub b.(c) offset len in
-        Descriptor.connect_port inst.(c) input buf ;
-        Descriptor.connect_port inst.(c) output buf ;
+        Descriptor.connect_port inst.(c) input buf;
+        Descriptor.connect_port inst.(c) output buf;
         List.iter
           (fun (p, v) -> Descriptor.set_control_port inst.(c) p (v ()))
-          params ;
+          params;
         Descriptor.run inst.(c) len
       done
   end
@@ -133,20 +132,18 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let len = position - offset in
-      List.iter
-        (fun (p, v) -> Descriptor.set_control_port inst p (v ()))
-        params ;
+      List.iter (fun (p, v) -> Descriptor.set_control_port inst p (v ())) params;
       if Array.length inputs = Array.length outputs then (
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to Array.length b - 1 do
           let buf = Audio.Mono.sub b.(c) offset len in
-          Descriptor.connect_port inst inputs.(c) buf ;
+          Descriptor.connect_port inst inputs.(c) buf;
           Descriptor.connect_port inst outputs.(c) buf
-        done ;
+        done;
         Descriptor.run inst len )
       else (
         (* We have to change channels. *)
@@ -154,11 +151,11 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
         for c = 0 to Array.length b - 1 do
           Descriptor.connect_port inst inputs.(c)
             (Audio.Mono.sub b.(c) offset len)
-        done ;
+        done;
         for c = 0 to Array.length d - 1 do
           Descriptor.connect_port inst outputs.(c)
             (Audio.Mono.sub d.(c) offset len)
-        done ;
+        done;
         Descriptor.run inst len )
   end
 
@@ -175,7 +172,7 @@ class ladspa_nosource ~kind plugin descr outputs params =
 
     method private get_frame buf =
       if must_fail then (
-        AFrame.add_break buf (AFrame.position buf) ;
+        AFrame.add_break buf (AFrame.position buf);
         must_fail <- false )
       else (
         let offset = AFrame.position buf in
@@ -184,12 +181,12 @@ class ladspa_nosource ~kind plugin descr outputs params =
         let len = position - offset in
         List.iter
           (fun (p, v) -> Descriptor.set_control_port inst p (v ()))
-          params ;
+          params;
         for c = 0 to Array.length b - 1 do
           Descriptor.connect_port inst outputs.(c)
             (Audio.Mono.sub b.(c) offset len)
-        done ;
-        Descriptor.run inst len ;
+        done;
+        Descriptor.run inst len;
         AFrame.add_break buf position )
   end
 
@@ -200,7 +197,7 @@ let get_control_ports d =
   for i = 0 to ports - 1 do
     if Descriptor.port_is_control d i && Descriptor.port_is_input d i then
       ans := i :: !ans
-  done ;
+  done;
   List.rev !ans
 
 (** When creating operator for LADSPA plugins, we don't know yet at which
@@ -220,26 +217,19 @@ let params_of_descr d =
         let t = port_t d p in
         ( Utils.normalize_parameter_string (Descriptor.port_name d p),
           ( match t with
-            | Float ->
-                Lang.float_getter_t ()
-            | Int ->
-                Lang.int_getter_t ()
-            | Bool ->
-                Lang.bool_getter_t () ),
+            | Float -> Lang.float_getter_t ()
+            | Int -> Lang.int_getter_t ()
+            | Bool -> Lang.bool_getter_t () ),
           ( match
               Descriptor.port_get_default d ~samplerate:default_samplerate p
             with
             | Some f ->
                 Some
                   ( match t with
-                    | Float ->
-                        Lang.float f
-                    | Int ->
-                        Lang.int (int_of_float f)
-                    | Bool ->
-                        Lang.bool (f > 0.) )
-            | None ->
-                None ),
+                    | Float -> Lang.float f
+                    | Int -> Lang.int (int_of_float f)
+                    | Bool -> Lang.bool (f > 0.) )
+            | None -> None ),
           let bounds =
             let min =
               Descriptor.port_get_min d ~samplerate:default_samplerate p
@@ -251,34 +241,32 @@ let params_of_descr d =
             else (
               let bounds = ref " (" in
               begin
-                match min with Some f -> (
-                  match t with
-                    | Float ->
-                        bounds := Printf.sprintf "%s%.6g <= " !bounds f
-                    | Int ->
-                        bounds :=
-                          Printf.sprintf "%s%d <= " !bounds
-                            (int_of_float (ceil f))
-                    | Bool ->
-                        () )
+                match min with
+                | Some f -> (
+                    match t with
+                      | Float -> bounds := Printf.sprintf "%s%.6g <= " !bounds f
+                      | Int ->
+                          bounds :=
+                            Printf.sprintf "%s%d <= " !bounds
+                              (int_of_float (ceil f))
+                      | Bool -> () )
                 | None -> ()
-              end ;
+              end;
               bounds :=
                 !bounds ^ "`"
                 ^ Utils.normalize_parameter_string (Descriptor.port_name d p)
-                ^ "`" ;
+                ^ "`";
               begin
-                match max with Some f -> (
-                  match t with
-                    | Float ->
-                        bounds := Printf.sprintf "%s <= %.6g" !bounds f
-                    | Int ->
-                        bounds :=
-                          Printf.sprintf "%s <= %d" !bounds (int_of_float f)
-                    | Bool ->
-                        () )
+                match max with
+                | Some f -> (
+                    match t with
+                      | Float -> bounds := Printf.sprintf "%s <= %.6g" !bounds f
+                      | Int ->
+                          bounds :=
+                            Printf.sprintf "%s <= %d" !bounds (int_of_float f)
+                      | Bool -> () )
                 | None -> ()
-              end ;
+              end;
               !bounds ^ ")" )
           in
           Some (Descriptor.port_name d p ^ bounds ^ ".") ))
@@ -293,8 +281,7 @@ let params_of_descr d =
             f (Utils.normalize_parameter_string (Descriptor.port_name d p))
           in
           match port_t d p with
-            | Float ->
-                Lang.to_float_getter v
+            | Float -> Lang.to_float_getter v
             | Int ->
                 let f = Lang.to_int_getter v in
                 fun () -> float_of_int (f ())
@@ -357,7 +344,7 @@ let get_audio_ports d =
   for n = 0 to ports - 1 do
     if Descriptor.port_is_audio d n then
       if Descriptor.port_is_input d n then i := n :: !i else o := n :: !o
-  done ;
+  done;
   (Array.of_list (List.rev !i), Array.of_list (List.rev !o))
 
 let register_plugin pname =

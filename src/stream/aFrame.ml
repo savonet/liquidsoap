@@ -31,18 +31,18 @@ let tos = master_of_audio
 
 let content b pos =
   let stop, content = content b (tos pos) in
-  assert (stop = Lazy.force size) ;
+  assert (stop = Lazy.force size);
   content.audio
 
 let content_of_type ~channels b pos =
-  let ctype = {audio= channels; video= 0; midi= 0} in
+  let ctype = { audio = channels; video = 0; midi = 0 } in
   let content = content_of_type b (tos pos) ctype in
   content.audio
 
 let to_s16le b =
   (* TODO: generalize this *)
   let fpcm = content b 0 in
-  assert (Audio.channels fpcm = 2) ;
+  assert (Audio.channels fpcm = 2);
   (*
   let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
   let s = Bytes.create slen in

@@ -36,14 +36,11 @@ let encoder id ext =
     Tutils.mutexify mutex (fun () ->
         let decision =
           match (!is_metadata_restart, !is_stop) with
-            | _, true ->
-                false
-            | true, false ->
-                true
-            | false, false ->
-                ext.restart_on_crash
+            | _, true -> false
+            | true, false -> true
+            | false, false -> ext.restart_on_crash
         in
-        is_metadata_restart := false ;
+        is_metadata_restart := false;
         decision)
   in
   let header =
@@ -59,26 +56,27 @@ let encoder id ext =
   in
   let on_stderr puller =
     let len = puller bytes 0 Utils.pagesize in
-    log#debug "stderr: %s" (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) ;
+    log#debug "stderr: %s" (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
     `Continue
   in
   let on_start pusher =
-    Process_handler.really_write (Bytes.of_string header) pusher ;
+    Process_handler.really_write (Bytes.of_string header) pusher;
     `Continue
   in
   let on_stop = function
     | `Status s ->
         begin
-          match s with Unix.WEXITED 0 -> () | Unix.WEXITED c ->
-              log#important "Process exited with code %d" c
+          match s with
+          | Unix.WEXITED 0 -> ()
+          | Unix.WEXITED c -> log#important "Process exited with code %d" c
           | Unix.WSIGNALED s ->
               log#important "Process was killed by signal %d" s
           | Unix.WSTOPPED s ->
               log#important "Process was stopped by signal %d" s
-        end ;
+        end;
         restart_decision ()
     | `Exception e ->
-        log#important "Error: %s" (Printexc.to_string e) ;
+        log#important "Error: %s" (Printexc.to_string e);
         restart_decision ()
   in
   let log = log#important "%s" in
@@ -87,11 +85,9 @@ let encoder id ext =
         begin
           let len = puller bytes 0 Utils.pagesize in
           match len with
-            | 0 when !is_stop ->
-                Condition.signal condition
-            | _ ->
-                Strings.Mutable.add_subbytes buf bytes 0 len
-        end ;
+            | 0 when !is_stop -> Condition.signal condition
+            | _ -> Strings.Mutable.add_subbytes buf bytes 0 len
+        end;
         `Continue)
   in
   let process =
@@ -101,7 +97,7 @@ let encoder id ext =
   let insert_metadata =
     Tutils.mutexify mutex (fun _ ->
         if ext.restart = Metadata then (
-          is_metadata_restart := true ;
+          is_metadata_restart := true;
           Process_handler.stop process ))
   in
   let converter = Audio_converter.Samplerate.create ext.channels in
@@ -131,7 +127,7 @@ let encoder id ext =
         in
         let slen = 2 * len * Array.length b in
         let sbuf = Bytes.create slen in
-        Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0 ;
+        Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
         Strings.unsafe_of_bytes sbuf )
     in
     Tutils.mutexify mutex
@@ -148,14 +144,14 @@ let encoder id ext =
         when ext.restart_on_crash || !is_metadata_restart
         ->
           ())
-      () ;
+      ();
     Strings.Mutable.flush buf
   in
   let stop =
     Tutils.mutexify mutex (fun () ->
-        is_stop := true ;
-        Process_handler.stop process ;
-        Condition.wait condition mutex ;
+        is_stop := true;
+        Process_handler.stop process;
+        Condition.wait condition mutex;
         Strings.Mutable.flush buf)
   in
   {
@@ -163,14 +159,12 @@ let encoder id ext =
     (* External encoders do not support 
      * headers for now. They will probably
      * never do.. *)
-    header= Strings.empty;
+    header = Strings.empty;
     encode;
     stop;
   }
 
 let () =
   Encoder.plug#register "EXTERNAL" (function
-    | Encoder.External m ->
-        Some (fun s _ -> encoder s m)
-    | _ ->
-        None)
+    | Encoder.External m -> Some (fun s _ -> encoder s m)
+    | _ -> None)

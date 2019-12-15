@@ -36,8 +36,7 @@ let log = Log.make ["request"]
 
 (** File utilities. *)
 
-let remove_file_proto s =
-  Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s
+let remove_file_proto s = Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s
 
 let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
 
@@ -65,11 +64,11 @@ let string_of_metadata metadata =
   Hashtbl.iter
     (fun k v ->
       if !first then (
-        first := false ;
+        first := false;
         try Format.fprintf f "%s=%a" k escape v with _ -> () )
       else (try Format.fprintf f "\n%s=%a" k escape v with _ -> ()))
-    metadata ;
-  Format.pp_print_flush f () ;
+    metadata;
+  Format.pp_print_flush f ();
   Buffer.contents b
 
 let short_string_of_metadata m =
@@ -124,16 +123,16 @@ let string_of_log log =
   * ]
   *)
 
-type indicator = {string: string; temporary: bool; metadata: metadata}
+type indicator = { string : string; temporary : bool; metadata : metadata }
 
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
 type t = {
-  id: int;
-  initial_uri: string;
-  kind: Frame.content_kind option;
+  id : int;
+  initial_uri : string;
+  kind : Frame.content_kind option;
   (* No kind for raw requests *)
-  persistent: bool;
+  persistent : bool;
   (* The status of a request gives partial information of what's being done
    * with the request. The info is only partial because things can happen
    * in parallel. For example you can resolve a request in order to get
@@ -142,13 +141,13 @@ type t = {
    * not necessarily need to be part of the status information.
    * Actually this need is quite rare, and I'm not sure this is a good
    * choice. I'm wondering, so I keep the current design. *)
-  mutable status: status;
-  mutable resolving: float option;
-  mutable on_air: float option;
-  log: log;
-  mutable root_metadata: metadata;
-  mutable indicators: indicator list list;
-  mutable decoder: (unit -> Decoder.file_decoder) option;
+  mutable status : status;
+  mutable resolving : float option;
+  mutable on_air : float option;
+  log : log;
+  mutable root_metadata : metadata;
+  mutable indicators : indicator list list;
+  mutable decoder : (unit -> Decoder.file_decoder) option;
 }
 
 let kind x = x.kind
@@ -156,7 +155,7 @@ let kind x = x.kind
 let initial_uri x = x.initial_uri
 
 let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
-  {string= home_unrelate s; temporary= temporary = Some true; metadata}
+  { string = home_unrelate s; temporary = temporary = Some true; metadata }
 
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
@@ -174,10 +173,8 @@ let duration file =
           let ans = resolver file in
           raise (Duration ans)
         with
-          | Duration e ->
-              raise (Duration e)
-          | _ ->
-              ()) ;
+          | Duration e -> raise (Duration e)
+          | _ -> ());
     raise Not_found
   with Duration d -> d
 
@@ -185,17 +182,14 @@ let duration file =
 
 let toplevel_metadata t =
   match t.indicators with
-    | [] ->
-        t.root_metadata
-    | [] :: _ ->
-        assert false
-    | (h :: _) :: _ ->
-        h.metadata
+    | [] -> t.root_metadata
+    | [] :: _ -> assert false
+    | (h :: _) :: _ -> h.metadata
 
 let iter_metadata t f =
   List.iter
     (function [] -> assert false | h :: _ -> f h.metadata)
-    t.indicators ;
+    t.indicators;
   f t.root_metadata
 
 let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
@@ -207,22 +201,20 @@ exception Found of string
 let get_metadata t k =
   try
     iter_metadata t (fun h ->
-        try raise (Found (Hashtbl.find h k)) with Not_found -> ()) ;
-    (try raise (Found (Hashtbl.find t.root_metadata k)) with Not_found -> ()) ;
+        try raise (Found (Hashtbl.find h k)) with Not_found -> ());
+    (try raise (Found (Hashtbl.find t.root_metadata k)) with Not_found -> ());
     None
   with Found s -> Some s
 
 let get_root_metadata t k =
   try raise (Found (Hashtbl.find t.root_metadata k)) with
-    | Not_found ->
-        None
-    | Found x ->
-        Some x
+    | Not_found -> None
+    | Found x -> Some x
 
 let get_all_metadata t =
   let h = Hashtbl.create 20 in
   iter_metadata t
-    (Hashtbl.iter (fun k v -> if not (Hashtbl.mem h k) then Hashtbl.add h k v)) ;
+    (Hashtbl.iter (fun k v -> if not (Hashtbl.mem h k) then Hashtbl.add h k v));
   h
 
 (** Logging *)
@@ -237,35 +229,28 @@ exception No_indicator
 
 let () =
   Printexc.register_printer (function
-    | No_indicator ->
-        Some "All options exhausted while processing request"
-    | _ ->
-        None)
+    | No_indicator -> Some "All options exhausted while processing request"
+    | _ -> None)
 
 let peek_indicator t =
   match t.indicators with
-    | (h :: _) :: _ ->
-        h
-    | [] :: _ ->
-        assert false
-    | [] ->
-        raise No_indicator
+    | (h :: _) :: _ -> h
+    | [] :: _ -> assert false
+    | [] -> raise No_indicator
 
 let rec pop_indicator t =
   let i, repop =
     match t.indicators with
       | (h :: l) :: ll ->
-          t.indicators <- (if l = [] then ll else l :: ll) ;
+          t.indicators <- (if l = [] then ll else l :: ll);
           (h, l = [] && ll <> [])
-      | [] :: _ ->
-          assert false
-      | [] ->
-          raise No_indicator
+      | [] :: _ -> assert false
+      | [] -> raise No_indicator
   in
   if i.temporary then (
     try Unix.unlink i.string
-    with e -> log#severe "Unlink failed: %S" (Printexc.to_string e) ) ;
-  t.decoder <- None ;
+    with e -> log#severe "Unlink failed: %S" (Printexc.to_string e) );
+  t.decoder <- None;
   if repop then pop_indicator t
 
 let conf_metadata_decoders =
@@ -275,18 +260,15 @@ let conf_metadata_decoders =
 
 let f c v =
   match c#get_d with
-    | None ->
-        c#set_d (Some [v])
-    | Some d ->
-        c#set_d (Some (d @ [v]))
+    | None -> c#set_d (Some [v])
+    | Some d -> c#set_d (Some (d @ [v]))
 
 let get_decoders conf decoders =
   let f cur name =
     match decoders#get name with
-      | Some p ->
-          (name, p) :: cur
+      | Some p -> (name, p) :: cur
       | None ->
-          log#severe "Cannot find decoder %s" name ;
+          log#severe "Cannot find decoder %s" name;
           cur
   in
   List.fold_left f [] (List.rev conf#get)
@@ -323,17 +305,15 @@ let conf_duration =
 
 let file_exists name =
   try
-    Unix.access name [Unix.F_OK] ;
+    Unix.access name [Unix.F_OK];
     true
   with
-    | Unix.Unix_error (Unix.EACCES, _, _) ->
-        true
-    | Unix.Unix_error _ ->
-        false
+    | Unix.Unix_error (Unix.EACCES, _, _) -> true
+    | Unix.Unix_error _ -> false
 
 let file_is_readable name =
   try
-    Unix.access name [Unix.R_OK] ;
+    Unix.access name [Unix.R_OK];
     true
   with Unix.Unix_error _ -> false
 
@@ -345,14 +325,14 @@ let local_check t =
         let name = indicator.string in
         let metadata = get_all_metadata t in
         if not (file_is_readable name) then (
-          log#important "Read permission denied for %S!" name ;
-          add_log t "Read permission denied!" ;
+          log#important "Read permission denied for %S!" name;
+          add_log t "Read permission denied!";
           pop_indicator t )
         else (
           match Decoder.get_file_decoder ~metadata name kind with
             | Some (decoder_name, f) ->
-                t.decoder <- Some f ;
-                set_root_metadata t "decoder" decoder_name ;
+                t.decoder <- Some f;
+                set_root_metadata t "decoder" decoder_name;
                 List.iter
                   (fun (_, resolver) ->
                     try
@@ -364,7 +344,7 @@ let local_check t =
                             conf_override_metadata#get
                             || get_metadata t k = None
                           then Hashtbl.replace indicator.metadata k (cleanup v))
-                        ans ;
+                        ans;
                       if conf_duration#get && get_metadata t "duration" = None
                       then (
                         try
@@ -372,10 +352,9 @@ let local_check t =
                             (string_of_float (duration name))
                         with Not_found -> () )
                     with _ -> ())
-                  (get_decoders conf_metadata_decoders mresolvers) ;
+                  (get_decoders conf_metadata_decoders mresolvers);
                 t.status <- Ready
-            | None ->
-                pop_indicator t )
+            | None -> pop_indicator t )
       done
     with No_indicator -> ()
   in
@@ -384,9 +363,9 @@ let local_check t =
 let push_indicators t l =
   if l <> [] then (
     let hd = List.hd l in
-    add_log t (Printf.sprintf "Pushed [%S;...]." hd.string) ;
-    t.indicators <- l :: t.indicators ;
-    t.decoder <- None ;
+    add_log t (Printf.sprintf "Pushed [%S;...]." hd.string);
+    t.indicators <- l :: t.indicators;
+    t.decoder <- None;
     (* Performing a local check is quite fast and allows the request
      * to be instantly available if it is only made of valid local files,
      * without any need for a resolution process. *)
@@ -407,51 +386,53 @@ let get_filename t =
 
 let update_metadata t =
   let replace = Hashtbl.replace t.root_metadata in
-  replace "rid" (string_of_int t.id) ;
-  replace "initial_uri" t.initial_uri ;
+  replace "rid" (string_of_int t.id);
+  replace "initial_uri" t.initial_uri;
   (* TOP INDICATOR *)
   replace "temporary"
     ( match t.indicators with
-      | (h :: _) :: _ ->
-          if h.temporary then "true" else "false"
-      | _ ->
-          "false" ) ;
+      | (h :: _) :: _ -> if h.temporary then "true" else "false"
+      | _ -> "false" );
   begin
-    match get_filename t with Some f -> replace "filename" f | None -> ()
-  end ;
+    match get_filename t with
+    | Some f -> replace "filename" f
+    | None -> ()
+  end;
   (* STATUS *)
   begin
-    match t.resolving with Some d ->
-        replace "resolving" (pretty_date (Unix.localtime d))
+    match t.resolving with
+    | Some d -> replace "resolving" (pretty_date (Unix.localtime d))
     | None -> ()
-  end ;
+  end;
   begin
-    match t.on_air with Some d ->
-        replace "on_air" (pretty_date (Unix.localtime d))
+    match t.on_air with
+    | Some d -> replace "on_air" (pretty_date (Unix.localtime d))
     | None -> ()
-  end ;
+  end;
   begin
-    match t.kind with None -> () | Some k ->
-        replace "kind" (Frame.string_of_content_kind k)
-  end ;
+    match t.kind with
+    | None -> ()
+    | Some k -> replace "kind" (Frame.string_of_content_kind k)
+  end;
   replace "status"
     ( match t.status with
-      | Idle ->
-          "idle"
-      | Resolving ->
-          "resolving"
-      | Ready ->
-          "ready"
-      | Playing ->
-          "playing"
-      | Destroyed ->
-          "destroyed" )
+      | Idle -> "idle"
+      | Resolving -> "resolving"
+      | Ready -> "ready"
+      | Playing -> "playing"
+      | Destroyed -> "destroyed" )
 
-let get_metadata t k = update_metadata t ; get_metadata t k
+let get_metadata t k =
+  update_metadata t;
+  get_metadata t k
 
-let get_all_metadata t = update_metadata t ; get_all_metadata t
+let get_all_metadata t =
+  update_metadata t;
+  get_all_metadata t
 
-let get_root_metadata t = update_metadata t ; get_root_metadata t
+let get_root_metadata t =
+  update_metadata t;
+  get_root_metadata t
 
 (** Global management *)
 
@@ -492,31 +473,31 @@ let create ~kind ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
     let n = Pool.size () in
     if n > 0 && n mod leak_warning#get = 0 then
       log#severe
-        "There are currently %d RIDs, possible request leak! Please check \
-         that you don't have a loop on empty/unavailable requests, or \
-         creating requests without destroying them. Decreasing \
-         request.grace_time can also help."
+        "There are currently %d RIDs, possible request leak! Please check that \
+         you don't have a loop on empty/unavailable requests, or creating \
+         requests without destroying them. Decreasing request.grace_time can \
+         also help."
         n
   in
   let rid, register = Pool.add () in
   let t =
     {
-      id= rid;
-      initial_uri= u;
+      id = rid;
+      initial_uri = u;
       kind;
       persistent;
-      on_air= None;
-      resolving= None;
-      status= Idle;
-      decoder= None;
-      log= Queue.create ();
-      root_metadata= Hashtbl.create 10;
-      indicators= [];
+      on_air = None;
+      resolving = None;
+      status = Idle;
+      decoder = None;
+      log = Queue.create ();
+      root_metadata = Hashtbl.create 10;
+      indicators = [];
     }
   in
-  register t ;
-  List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata ;
-  push_indicators t (if indicators = [] then [indicator u] else indicators) ;
+  register t;
+  List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata;
+  push_indicators t (if indicators = [] then [indicator u] else indicators);
   t
 
 let create_raw = create ~kind:None
@@ -524,24 +505,24 @@ let create_raw = create ~kind:None
 let create ~kind = create ~kind:(Some kind)
 
 let on_air t =
-  t.on_air <- Some (Unix.time ()) ;
-  t.status <- Playing ;
+  t.on_air <- Some (Unix.time ());
+  t.status <- Playing;
   add_log t "Currently on air."
 
 let destroy ?force t =
-  assert (t.status <> Destroyed) ;
-  t.on_air <- None ;
-  if t.status = Playing then t.status <- Ready ;
+  assert (t.status <> Destroyed);
+  t.on_air <- None;
+  if t.status = Playing then t.status <- Ready;
   if force = Some true || not t.persistent then (
-    t.status <- Idle ;
+    t.status <- Idle;
     (* Freeze the metadata *)
-    t.root_metadata <- get_all_metadata t ;
+    t.root_metadata <- get_all_metadata t;
     (* Remove the URIs, unlink temporary files *)
     while t.indicators <> [] do
       pop_indicator t
-    done ;
-    t.status <- Destroyed ;
-    add_log t "Request finished." ;
+    done;
+    t.status <- Destroyed;
+    add_log t "Request finished.";
     Pool.kill t.id grace_time#get )
 
 let clean () =
@@ -554,8 +535,8 @@ let get_decoder r = match r.decoder with None -> None | Some d -> Some (d ())
 type resolver = string -> log:(string -> unit) -> float -> indicator list
 
 type protocol = {
-  resolve: string -> log:(string -> unit) -> float -> indicator list;
-  static: bool;
+  resolve : string -> log:(string -> unit) -> float -> indicator list;
+  static : bool;
 }
 
 let protocols_doc =
@@ -568,13 +549,10 @@ let is_static s =
   else (
     match parse_uri s with
       | Some (proto, _) -> (
-        match protocols#get proto with
-          | Some handler ->
-              handler.static
-          | None ->
-              false )
-      | None ->
-          false )
+          match protocols#get proto with
+            | Some handler -> handler.static
+            | None -> false )
+      | None -> false )
 
 (** Resolving engine. *)
 
@@ -583,8 +561,8 @@ type resolve_flag = Resolved | Failed | Timeout
 exception ExnTimeout
 
 let resolve t timeout =
-  t.resolving <- Some (Unix.time ()) ;
-  t.status <- Resolving ;
+  t.resolving <- Some (Unix.time ());
+  t.status <- Resolving;
   let maxtime = Unix.time () +. timeout in
   let resolve_step () =
     let i = peek_indicator t in
@@ -595,29 +573,29 @@ let resolve t timeout =
     else (
       match parse_uri i.string with
         | Some (proto, arg) -> (
-          match protocols#get proto with
-            | Some handler ->
-                add_log t
-                  (Printf.sprintf "Resolving %S (timeout %.0fs)..." i.string
-                     timeout) ;
-                let production =
-                  handler.resolve ~log:(add_log t) arg maxtime
-                in
-                if production = [] then (
-                  log#info
-                    "Failed to resolve %S! For more info, see server command \
-                     'trace %d'."
-                    i.string t.id ;
-                  ignore (pop_indicator t) )
-                else push_indicators t production
-            | None ->
-                log#important "Unknown protocol %S in URI %S!" proto i.string ;
-                add_log t "Unknown protocol!" ;
-                pop_indicator t )
+            match protocols#get proto with
+              | Some handler ->
+                  add_log t
+                    (Printf.sprintf "Resolving %S (timeout %.0fs)..." i.string
+                       timeout);
+                  let production =
+                    handler.resolve ~log:(add_log t) arg maxtime
+                  in
+                  if production = [] then (
+                    log#info
+                      "Failed to resolve %S! For more info, see server command \
+                       'trace %d'."
+                      i.string t.id;
+                    ignore (pop_indicator t) )
+                  else push_indicators t production
+              | None ->
+                  log#important "Unknown protocol %S in URI %S!" proto i.string;
+                  add_log t "Unknown protocol!";
+                  pop_indicator t )
         | None ->
             let log_level = if i.string = "" then 4 else 3 in
-            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
-            add_log t "Nonexistent file or ill-formed URI!" ;
+            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string;
+            add_log t "Nonexistent file or ill-formed URI!";
             pop_indicator t )
   in
   let result =
@@ -626,21 +604,20 @@ let resolve t timeout =
         let timeleft = maxtime -. Unix.time () in
         if timeleft > 0. then resolve_step ()
         else (
-          add_log t "Global timeout." ;
+          add_log t "Global timeout.";
           raise ExnTimeout )
-      done ;
+      done;
       Resolved
     with
-      | ExnTimeout ->
-          Timeout
+      | ExnTimeout -> Timeout
       | No_indicator ->
-          add_log t "Every possibility failed!" ;
+          add_log t "Every possibility failed!";
           Failed
   in
   let excess = Unix.time () -. maxtime in
-  if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess ;
-  t.resolving <- None ;
-  if result <> Resolved then t.status <- Idle else t.status <- Ready ;
+  if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
+  t.resolving <- None;
+  if result <> Resolved then t.status <- Idle else t.status <- Ready;
   result
 
 (* Make a few functions more user-friendly, internal stuff is over. *)

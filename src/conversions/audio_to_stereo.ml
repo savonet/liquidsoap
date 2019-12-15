@@ -31,50 +31,52 @@
 
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
 class basic ~kind source =
-object
-  inherit Source.operator kind [source] ~name:"audio_to_stereo"
+  object
+    inherit Source.operator kind [source] ~name:"audio_to_stereo"
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method remaining = source#remaining
-  method seek = source#seek
-  method self_sync = source#self_sync
+    method stype = source#stype
 
-  val stereo = { Frame. audio=2 ; video = 0 ; midi = 0 }
+    method is_ready = source#is_ready
 
-  method private get_frame frame =
-    let start = Frame.position frame in
-    let layers = source#get frame ; Frame.get_content_layers frame in
-    (** Install the final stereo layer, and copy everything to it *)
-    let dst = Frame.content_of_type frame start stereo in
-    let aux { Frame. content = src ; start = pos ; length = l } =
-      if pos >= start then begin
-        assert (src.Frame.video = [||] && src.Frame.midi = [||]) ;
-        match src.Frame.audio with
-          | [||] -> assert false
-          | [|chan|] ->
-              let content = { src with Frame.audio = [|chan;chan|] } in
+    method abort_track = source#abort_track
+
+    method remaining = source#remaining
+
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    val stereo = { Frame.audio = 2; video = 0; midi = 0 }
+
+    method private get_frame frame =
+      let start = Frame.position frame in
+      let layers =
+        source#get frame;
+        Frame.get_content_layers frame
+      in
+      (* Install the final stereo layer, and copy everything to it *)
+      let dst = Frame.content_of_type frame start stereo in
+      let aux { Frame.content = src; start = pos; length = l } =
+        if pos >= start then begin
+          assert (src.Frame.video = [||] && src.Frame.midi = [||]);
+          match src.Frame.audio with
+            | [||] -> assert false
+            | [| chan |] ->
+                let content = { src with Frame.audio = [| chan; chan |] } in
                 Frame.blit_content content pos dst pos l
-          | [|_;_|] ->
-              Frame.blit_content src pos dst pos l
-          | audio ->
-              let content = { src with Frame.audio = Array.sub audio 0 2 } in
+            | [| _; _ |] -> Frame.blit_content src pos dst pos l
+            | audio ->
+                let content = { src with Frame.audio = Array.sub audio 0 2 } in
                 Frame.blit_content content pos dst pos l
-      end
-    in
+        end
+      in
       List.iter aux layers
-
-end
+  end
 
 let () =
-  let input_kind =
-    Lang.kind_type_of_kind_format Lang.audio_variable
-  in
-  Lang.add_operator "audio_to_stereo"
-    ~category:Lang.Conversions
+  let input_kind = Lang.kind_type_of_kind_format Lang.audio_variable in
+  Lang.add_operator "audio_to_stereo" ~category:Lang.Conversions
     ~descr:"Convert any kind of audio source into a stereo source."
     ~kind:Lang.audio_stereo
-    [ "", Lang.source_t input_kind, None, None ]
-    (fun p kind ->
-       new basic ~kind (Lang.to_source (List.assoc "" p)))
+    [("", Lang.source_t input_kind, None, None)]
+    (fun p kind -> new basic ~kind (Lang.to_source (List.assoc "" p)))

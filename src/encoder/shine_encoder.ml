@@ -26,7 +26,7 @@ open Shine_format
 module G = Generator.Generator
 
 let create_encoder ~samplerate ~bitrate ~channels =
-  Shine.create {Shine.channels; samplerate; bitrate}
+  Shine.create { Shine.channels; samplerate; bitrate }
 
 let encoder shine =
   let channels = shine.channels in
@@ -53,24 +53,27 @@ let encoder shine =
         (b, 0, Audio.length b) )
       else (Audio.copy b, start, len)
     in
-    G.put buf b start len ;
+    G.put buf b start len;
     while G.length buf > samples do
       let l = G.get buf samples in
       let f (b, o, o', l) =
         Audio.blit (Audio.sub b o l) (Audio.sub data o' l)
       in
-      List.iter f l ;
+      List.iter f l;
       Strings.Mutable.add encoded
         (Shine.encode_buffer enc (Audio.to_array data))
-    done ;
+    done;
     Strings.Mutable.flush encoded
   in
   let stop () = Strings.of_string (Shine.flush enc) in
-  {Encoder.insert_metadata= (fun _ -> ()); header= Strings.empty; encode; stop}
+  {
+    Encoder.insert_metadata = (fun _ -> ());
+    header = Strings.empty;
+    encode;
+    stop;
+  }
 
 let () =
   Encoder.plug#register "SHINE" (function
-    | Encoder.Shine m ->
-        Some (fun _ _ -> encoder m)
-    | _ ->
-        None)
+    | Encoder.Shine m -> Some (fun _ _ -> encoder m)
+    | _ -> None)

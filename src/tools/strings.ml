@@ -40,10 +40,8 @@ let unsafe_of_bytes b = of_string (Bytes.unsafe_to_string b)
 
 let of_list l =
   let rec aux acc = function
-    | [] ->
-        acc
-    | x :: l ->
-        aux (S.of_string x :: acc) l
+    | [] -> acc
+    | x :: l -> aux (S.of_string x :: acc) l
   in
   aux [] l
 
@@ -65,7 +63,11 @@ let unsafe_add_bytes t b = unsafe_add_subbytes t b 0 (Bytes.length b)
 
 let is_empty l = List.for_all S.is_empty l
 
-let rec iter_view f = function [] -> () | x :: l -> iter_view f l ; f x
+let rec iter_view f = function
+  | [] -> ()
+  | x :: l ->
+      iter_view f l;
+      f x
 
 let iter f b =
   iter_view
@@ -103,8 +105,7 @@ let concat ll = List.concat (List.rev ll)
 
 let drop l len =
   let rec aux len = function
-    | [] ->
-        (len, [])
+    | [] -> (len, [])
     | x :: l ->
         let len, l = aux len l in
         if len = 0 then (0, x :: l)
@@ -114,7 +115,7 @@ let drop l len =
           )
   in
   let r, l = aux len l in
-  assert (r = 0) ;
+  assert (r = 0);
   l
 
 let keep l len =
@@ -122,7 +123,7 @@ let keep l len =
   if cur_len <= len then [] else drop l (cur_len - len)
 
 let sub l o len =
-  assert (o + len <= length l) ;
+  assert (o + len <= length l);
   let o = ref o in
   let len = ref len in
   let ans = ref empty in
@@ -135,35 +136,36 @@ let sub l o len =
         else (
           let r = min (ls - !o) !len in
           let s = S.sub s !o r in
-          ans := add_view !ans s ;
-          o := 0 ;
+          ans := add_view !ans s;
+          o := 0;
           len := !len - r ) ))
-    l ;
-  assert (!len = 0) ;
+    l;
+  assert (!len = 0);
   !ans
 
 let blit l b o =
   let len = length l in
-  assert (o + len <= Bytes.length b) ;
+  assert (o + len <= Bytes.length b);
   let o = ref o in
   iter_view
     (fun s ->
-      S.blit s b !o ;
+      S.blit s b !o;
       o := !o + S.length s)
     l
 
 let to_bytes l =
   let ans = Bytes.create (length l) in
-  blit l ans 0 ; ans
+  blit l ans 0;
+  ans
 
 let to_string l = Bytes.unsafe_to_string (to_bytes l)
 
 let substring l o len = to_string (sub l o len)
 
 module Mutable = struct
-  type nonrec t = {mutable strings: t; mutex: Mutex.t}
+  type nonrec t = { mutable strings : t; mutex : Mutex.t }
 
-  let of_strings strings = {strings; mutex= Mutex.create ()}
+  let of_strings strings = { strings; mutex = Mutex.create () }
 
   let of_list l = of_strings (of_list l)
 
@@ -175,15 +177,18 @@ module Mutable = struct
 
   let empty () = of_strings []
 
-  let to_strings {strings} = strings
+  let to_strings { strings } = strings
 
   (* Copied from tutils.ml to avoid circular references. *)
   let mutexify lock f x =
-    Mutex.lock lock ;
+    Mutex.lock lock;
     try
       let ans = f x in
-      Mutex.unlock lock ; ans
-    with e -> Mutex.unlock lock ; raise e
+      Mutex.unlock lock;
+      ans
+    with e ->
+      Mutex.unlock lock;
+      raise e
 
   let add m s = mutexify m.mutex (fun () -> m.strings <- add m.strings s) ()
 
@@ -243,7 +248,7 @@ module Mutable = struct
     mutexify m.mutex
       (fun () ->
         let content = m.strings in
-        m.strings <- [] ;
+        m.strings <- [];
         content)
       ()
 

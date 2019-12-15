@@ -33,10 +33,10 @@ exception End_of_stream
 (* TODO: some code should be shared with wav decoder, and possibly others. *)
 
 type format = {
-  format: [`S8 | `S16LE | `F32LE];
-  channels: int;
-  interleaved: bool;
-  samplerate: float;
+  format : [ `S8 | `S16LE | `F32LE ];
+  channels : int;
+  interleaved : bool;
+  samplerate : float;
 }
 
 (** Bytes per sample. *)
@@ -46,7 +46,7 @@ let sample_size fmt =
 module Make (Generator : Generator.S_Asio) = struct
   let create ~format input =
     (* TODO: can we handle interleaved with generators? I don't think so... *)
-    assert (format.interleaved = true) ;
+    assert (format.interleaved = true);
     let sample_size = sample_size format in
     let channels = format.channels in
     let bytes_to_get = sample_size * channels * Utils.pagesize in
@@ -64,7 +64,7 @@ module Make (Generator : Generator.S_Asio) = struct
                 fun () ->
                   let ans = int_of_char src.[!pos] in
                   let ans = if ans > 128 then ans - 256 else ans in
-                  incr pos ;
+                  incr pos;
                   float ans /. 128.
             | `S16LE ->
                 fun () ->
@@ -72,25 +72,25 @@ module Make (Generator : Generator.S_Asio) = struct
                     int_of_char src.[!pos] + (int_of_char src.[!pos + 1] lsl 8)
                   in
                   let ans = if ans > 32768 then ans - 65536 else ans in
-                  pos := !pos + 2 ;
+                  pos := !pos + 2;
                   float ans /. 32768.
             | `F32LE ->
                 (* TODO: handle endianness *)
                 fun () ->
                  let ans = ref Int32.zero in
                  for i = 3 downto 0 do
-                   ans := Int32.shift_left !ans 8 ;
+                   ans := Int32.shift_left !ans 8;
                    ans :=
                      Int32.add !ans (Int32.of_int (int_of_char src.[!pos + i]))
-                 done ;
-                 pos := !pos + sample_size ;
+                 done;
+                 pos := !pos + sample_size;
                  Int32.float_of_bits !ans
         in
         for i = 0 to len - 1 do
           for c = 0 to channels - 1 do
             dst.(c).{i} <- sample ()
           done
-        done ;
+        done;
         let dst =
           Audio_converter.Samplerate.resample samplerate_converter ratio dst
         in
@@ -100,14 +100,14 @@ module Make (Generator : Generator.S_Asio) = struct
     let buf = Bytes.create bytes_to_get in
     let decoder gen =
       let bytes = input.Decoder.read buf 0 bytes_to_get in
-      if bytes = 0 then raise End_of_stream ;
+      if bytes = 0 then raise End_of_stream;
       let content, length = converter (Bytes.sub_string buf 0 bytes) in
-      Generator.set_mode gen `Audio ;
+      Generator.set_mode gen `Audio;
       Generator.put_audio gen content 0 length
     in
     (* TODO *)
     let seek _ = 0 in
-    {Decoder.decode= decoder; seek}
+    { Decoder.decode = decoder; seek }
 end
 
 module Generator_plus = Generator.From_audio_video_plus
@@ -124,11 +124,12 @@ module D_stream = Make (Generator_plus)
 (* TODO: proper parser? *)
 let parse_mime m =
   let ans =
-    ref {format= `F32LE; channels= 2; interleaved= true; samplerate= 44100.}
+    ref
+      { format = `F32LE; channels = 2; interleaved = true; samplerate = 44100. }
   in
   try
     let m = String.split_char ',' m in
-    if m = [] || List.hd m <> "audio/x-raw" then raise Exit ;
+    if m = [] || List.hd m <> "audio/x-raw" then raise Exit;
     let m = List.tl m in
     let m =
       List.map
@@ -144,23 +145,22 @@ let parse_mime m =
               let format =
                 List.assoc v [("S8", `S8); ("S16LE", `S16LE); ("F32LE", `F32LE)]
               in
-              ans := {!ans with format}
+              ans := { !ans with format }
           | "channels" ->
               let channels = int_of_string v in
-              ans := {!ans with channels}
+              ans := { !ans with channels }
           | "layout" ->
               let interleaved =
                 if v = "interleaved" then true
                 else if v = "non-interleaved" then false
                 else raise Exit
               in
-              ans := {!ans with interleaved}
+              ans := { !ans with interleaved }
           | "rate" | "samplerate" ->
               let samplerate = float_of_string v in
-              ans := {!ans with samplerate}
-          | _ ->
-              failwith ("Unknown property: " ^ l))
-      m ;
+              ans := { !ans with samplerate }
+          | _ -> failwith ("Unknown property: " ^ l))
+      m;
     Some !ans
   with _ -> None
 
@@ -175,5 +175,4 @@ let () =
                && Frame.Zero <: kind.Frame.midi
                && Frame.mul_of_int format.channels <: kind.Frame.audio ->
             Some (D_stream.create ~format)
-        | _ ->
-            None)
+        | _ -> None)

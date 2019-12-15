@@ -6,9 +6,9 @@ module Int32 = struct
   let of_string_be s off =
     let n = ref Int32.zero in
     for k = 0 to 3 do
-      n := shift_left !n 8 ;
+      n := shift_left !n 8;
       n := add !n (Int32.of_int (int_of_char s.[off + k]))
-    done ;
+    done;
     !n
 
   let to_string_be n =
@@ -16,9 +16,9 @@ module Int32 = struct
     let n = ref n in
     for i = 3 downto 0 do
       let c = Int32.to_int (logand !n 0xffl) in
-      Bytes.set ans i (char_of_int c) ;
+      Bytes.set ans i (char_of_int c);
       n := Int32.shift_right !n 8
-    done ;
+    done;
     Bytes.unsafe_to_string ans
 
   let bit n k =
@@ -33,14 +33,14 @@ module Int32 = struct
         let n = to_int n in
         let n = n land 0xff in
         ans := Printf.sprintf "%s%02x" !ans n
-      done ;
+      done;
       !ans
 
     let binary n =
       let ans = ref "" in
       for i = 31 downto 0 do
         ans := !ans ^ if bit n i then "1" else "0"
-      done ;
+      done;
       !ans
   end
 
@@ -63,9 +63,9 @@ let digest s =
     let ans = Bytes.create 8 in
     let len = ref (8 * len) in
     for i = 7 downto 0 do
-      Bytes.set ans i (char_of_int (!len land 0xff)) ;
+      Bytes.set ans i (char_of_int (!len land 0xff));
       len := !len lsr 8
-    done ;
+    done;
     Bytes.unsafe_to_string ans
   in
   let s = s ^ pad ^ slen in
@@ -76,7 +76,7 @@ let digest s =
   let ( ++ ) = Int32.add in
   (* Main loop. *)
   let len = String.length s in
-  assert (len mod 64 = 0) ;
+  assert (len mod 64 = 0);
   let h0 = ref 0x67452301l in
   let h1 = ref 0xEFCDAB89l in
   let h2 = ref 0x98BADCFEl in
@@ -88,13 +88,13 @@ let digest s =
     for i = 0 to 15 do
       let off = (64 * chunk) + (4 * i) in
       w.(i) <- Int32.of_string_be s off
-    done ;
+    done;
     for i = 16 to 79 do
       w.(i) <-
         Int32.leftrotate
           (w.(i - 3) lxor w.(i - 8) lxor w.(i - 14) lxor w.(i - 16))
           1
-    done ;
+    done;
     (* Main loop. *)
     let a = ref !h0 in
     let b = ref !h1 in
@@ -115,18 +115,18 @@ let digest s =
         else 0xCA62C1D6l
       in
       let temp = Int32.leftrotate !a 5 ++ f ++ !e ++ k ++ w.(i) in
-      e := !d ;
-      d := !c ;
-      c := Int32.leftrotate !b 30 ;
-      b := !a ;
+      e := !d;
+      d := !c;
+      c := Int32.leftrotate !b 30;
+      b := !a;
       a := temp
-    done ;
-    h0 := Int32.add !h0 !a ;
-    h1 := Int32.add !h1 !b ;
-    h2 := Int32.add !h2 !c ;
-    h3 := Int32.add !h3 !d ;
+    done;
+    h0 := Int32.add !h0 !a;
+    h1 := Int32.add !h1 !b;
+    h2 := Int32.add !h2 !c;
+    h3 := Int32.add !h3 !d;
     h4 := Int32.add !h4 !e
-  done ;
+  done;
   (* Printf.sprintf "%s %s %s %s %s" (Int32.String.hexadecimal !h0) (Int32.String.hexadecimal !h1) (Int32.String.hexadecimal !h2) (Int32.String.hexadecimal !h3) (Int32.String.hexadecimal !h4) *)
   Int32.to_string_be !h0 ^ Int32.to_string_be !h1 ^ Int32.to_string_be !h2
   ^ Int32.to_string_be !h3 ^ Int32.to_string_be !h4

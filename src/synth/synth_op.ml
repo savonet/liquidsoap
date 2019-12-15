@@ -42,13 +42,13 @@ class synth ~kind (synth : Synth.synth) (source : source) chan volume =
       let offset = AFrame.position buf in
       let midi = MFrame.content buf (MFrame.position buf) in
       if chan >= Array.length midi then (
-        (self#log)#important
+        self#log#important
           "Cannot read MIDI channel %d, stream only has %d channels." chan
-          (Array.length midi) ;
+          (Array.length midi);
         source#get buf )
       else (
         let evs = midi.(chan) in
-        source#get buf ;
+        source#get buf;
         let b = AFrame.content buf offset in
         let position = AFrame.position buf in
         let len = position - offset in
@@ -60,7 +60,8 @@ let register obj name descr =
     Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ~midi:1 ())
   in
   Lang.add_operator ("synth." ^ name)
-    [ ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
+    [
+      ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
       ("volume", Lang.float_t, Some (Lang.float 0.3), Some "Initial volume.");
       ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
       ( "attack",
@@ -79,7 +80,8 @@ let register obj name descr =
         Lang.float_t,
         Some (Lang.float 0.05),
         Some "Envelope release (in seconds)." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~descr
     (fun p kind ->
       let f v = List.assoc v p in
@@ -97,12 +99,13 @@ let register obj name descr =
         else None
       in
       let src = Lang.to_source (f "") in
-      new synth ~kind (obj adsr) src chan volume) ;
+      new synth ~kind (obj adsr) src chan volume);
   let k =
     Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ~midi:16 ())
   in
   Lang.add_operator ("synth.all." ^ name)
-    [ ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
+    [
+      ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
       ( "attack",
         Lang.float_t,
         Some (Lang.float 0.02),
@@ -119,7 +122,8 @@ let register obj name descr =
         Lang.float_t,
         Some (Lang.float 0.01),
         Some "Envelope release (in seconds)." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis
     ~descr:(descr ^ " It creates one synthesizer for each channel.")
     (fun p kind ->

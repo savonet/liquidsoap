@@ -166,6 +166,6 @@ module type Lame_t = sig
   val get_nb_frames : encoder -> int
 end
 
-type handler = {mutable lame_module: (module Lame_t) option}
+type handler = { mutable lame_module : (module Lame_t) option }
 
-let handler = {lame_module= None}
+let handler = { lame_module = None }

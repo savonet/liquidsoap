@@ -30,10 +30,8 @@ module Liq_http = struct
   exception Http of string
 
   let exc_of_exc = function
-    | Http s ->
-        Http s
-    | e ->
-        Http (Printexc.to_string e)
+    | Http s -> Http s
+    | e -> Http (Printexc.to_string e)
 
   (* This in unused for now.. *)
   let default_timeout = ref 5.
@@ -47,12 +45,12 @@ module Liq_http = struct
       let request =
         match request with Get -> Http.Get | Post s -> Http.Post s
       in
-      let uri = {Http.host; port; path= url} in
+      let uri = { Http.host; port; path = url } in
       let (x, code, y), _, data =
         Http.full_request ?headers ~log ~timeout ~uri ~request ()
       in
       if code <> 200 then
-        raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y)) ;
+        raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y));
       data
     with e -> raise (exc_of_exc e)
 end
@@ -64,8 +62,7 @@ let error_translator = function
       Some
         (Printf.sprintf "Audioscrobbler error: %s"
            (Audioscrobbler.string_of_error x))
-  | _ ->
-      None
+  | _ -> None
 
 let () = Printexc.register_printer error_translator
 
@@ -77,9 +74,9 @@ type source = User | Lastfm | Broadcast | Recommendation | Unknown
 type submission = NowPlaying | Played
 
 type task = {
-  task: Duppy.Async.t;
-  submit_m: Mutex.t;
-  submissions:
+  task : Duppy.Async.t;
+  submit_m : Mutex.t;
+  submissions :
     (string * string * source * submission * bool * (string, string) Hashtbl.t)
     Queue.t;
 }
@@ -88,7 +85,7 @@ let log = Log.make ["audioscrobbler"]
 
 exception Duration
 
-let client = {client= "lsp"; version= "0.1"}
+let client = { client = "lsp"; version = "0.1" }
 
 let init host =
   (* The list of waiting submitions *)
@@ -101,48 +98,39 @@ let init host =
     try
       (* This function checks that the submission is valid *)
       let song songs (user, password, (source : source), stype, length, m) =
-        let login = {user; password} in
+        let login = { user; password } in
         let f x = try Hashtbl.find m x with Not_found -> "" in
         let artist, track = (f "artist", f "title") in
         let s =
           match stype with Played -> "submit" | NowPlaying -> "nowplaying"
         in
         let h, p = host in
-        log#info "Submiting %s -- %s with mode: %s to %s:%i" artist track s h p ;
+        log#info "Submiting %s -- %s with mode: %s to %s:%i" artist track s h p;
         try
           let duration () =
             try
               match float_of_string_opt (Hashtbl.find m "duration") with
-                | Some d ->
-                    d
-                | None ->
-                    raise Not_found
+                | Some d -> d
+                | None -> raise Not_found
             with Not_found -> (
               let exception Bad_rid in
               try
                 let rid =
                   match int_of_string_opt (Hashtbl.find m "rid") with
-                    | Some rid ->
-                        rid
-                    | None ->
-                        raise Bad_rid
+                    | Some rid -> rid
+                    | None -> raise Bad_rid
                 in
                 let request = Request.from_id rid in
                 match request with
                   | Some s -> (
-                    match Request.get_filename s with
-                      | Some file ->
-                          Request.duration file
-                      | None ->
-                          raise Not_found )
-                  | None ->
-                      raise Not_found
+                      match Request.get_filename s with
+                        | Some file -> Request.duration file
+                        | None -> raise Not_found )
+                  | None -> raise Not_found
               with
-                | Not_found ->
-                    raise Duration
+                | Not_found -> raise Duration
                 | Bad_rid ->
-                    log#severe
-                      "Metadata 'rid' is not associated to an integer!" ;
+                    log#severe "Metadata 'rid' is not associated to an integer!";
                     raise Duration )
           in
           let duration =
@@ -156,58 +144,51 @@ let init host =
           let trackauth =
             (* Only when source is lasftm *)
             match source with
-              | Lastfm ->
-                  Some (f "lastfm:trackauth")
-              | _ ->
-                  None
+              | Lastfm -> Some (f "lastfm:trackauth")
+              | _ -> None
           in
           let source =
             match source with
-              | User ->
-                  Audioscrobbler.User
-              | Lastfm ->
-                  Audioscrobbler.Lastfm
-              | Broadcast ->
-                  Audioscrobbler.Broadcast
-              | Recommendation ->
-                  Audioscrobbler.Recommendation
-              | Unknown ->
-                  Audioscrobbler.Unknown
+              | User -> Audioscrobbler.User
+              | Lastfm -> Audioscrobbler.Lastfm
+              | Broadcast -> Audioscrobbler.Broadcast
+              | Recommendation -> Audioscrobbler.Recommendation
+              | Unknown -> Audioscrobbler.Unknown
           in
           let song =
             {
               artist;
               track;
-              time= Some time;
-              source= Some source;
-              rating= None;
-              length= duration;
-              album= Some (f "album");
-              tracknumber= None;
-              musicbrainzid= None;
+              time = Some time;
+              source = Some source;
+              rating = None;
+              length = duration;
+              album = Some (f "album");
+              tracknumber = None;
+              musicbrainzid = None;
               trackauth;
             }
           in
-          check_song song Submit ;
+          check_song song Submit;
           (login, stype, song) :: songs
         with
           | Duration ->
               log#info "could not submit track %s -- %s, no duration available"
-                artist track ;
+                artist track;
               songs
           | Error e ->
               log#info "could not submit track %s -- %s, %s" artist track
-                (string_of_error e) ;
+                (string_of_error e);
               songs
           | e ->
               log#info "could not submit track %s -- %s: unknown error %s"
-                artist track (Printexc.to_string e) ;
+                artist track (Printexc.to_string e);
               songs
       in
-      Mutex.lock submit_m ;
+      Mutex.lock submit_m;
       let songs = Queue.fold song [] submissions in
-      Queue.clear submissions ;
-      Mutex.unlock submit_m ;
+      Queue.clear submissions;
+      Mutex.unlock submit_m;
       let submit = Hashtbl.create 10 in
       let filter (c, t, m) =
         try
@@ -215,7 +196,7 @@ let init host =
           Hashtbl.replace submit (c, t) (m :: v)
         with Not_found -> Hashtbl.add submit (c, t) [m]
       in
-      List.iter filter songs ;
+      List.iter filter songs;
       let f (login, (stype : submission)) songs =
         try
           match stype with
@@ -228,21 +209,22 @@ let init host =
         with Audioscrobbler.Error e ->
           reason (Audioscrobbler.string_of_error e)
       in
-      Hashtbl.iter f submit ; -1.
+      Hashtbl.iter f submit;
+      -1.
     with e ->
-      reason (Printexc.to_string e) ;
+      reason (Printexc.to_string e);
       -1.
   in
   let task =
     Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler do_submit
   in
-  {task; submit_m; submissions}
+  { task; submit_m; submissions }
 
 let submit (user, password) task length source stype songs =
   let songs =
     List.map (fun x -> (user, password, source, stype, length, x)) songs
   in
-  Mutex.lock task.submit_m ;
-  List.iter (fun x -> Queue.add x task.submissions) songs ;
-  Mutex.unlock task.submit_m ;
+  Mutex.lock task.submit_m;
+  List.iter (fun x -> Queue.add x task.submissions) songs;
+  Mutex.unlock task.submit_m;
   Duppy.Async.wake_up task.task

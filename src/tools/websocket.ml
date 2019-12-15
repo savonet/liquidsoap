@@ -41,8 +41,7 @@ module type Websocket_t = sig
   val upgrade : (string * string) list -> string
 end
 
-module Make (T : Transport_t) : Websocket_t with type socket = T.socket =
-struct
+module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
   type socket = T.socket
 
   type msg =
@@ -61,7 +60,7 @@ struct
 
   (** Handle an upgrade to websocket request. *)
   let upgrade headers =
-    assert (List.assoc "Upgrade" headers = "websocket") ;
+    assert (List.assoc "Upgrade" headers = "websocket");
     let origin =
       try Printf.sprintf "Origin: %s\r\n" (List.assoc "Origin" headers)
       with _ -> ""
@@ -87,12 +86,12 @@ struct
   module Frame = struct
     (** A websocket frame. *)
     type t = {
-      fin: bool;
-      rsv1: bool;
-      rsv2: bool;
-      rsv3: bool;
-      opcode: int;
-      data: string;
+      fin : bool;
+      rsv1 : bool;
+      rsv2 : bool;
+      rsv3 : bool;
+      opcode : int;
+      data : string;
     }
 
     (** Forge a frame. *)
@@ -111,17 +110,17 @@ struct
         if len <= 125 then String.make 1 (char_of_int len)
         else if len <= 0xffff then (
           let ans = Bytes.create 3 in
-          Bytes.set ans 0 '\126' ;
-          Bytes.set ans 1 (char_of_int (len lsr 8)) ;
-          Bytes.set ans 2 (char_of_int (len land 0xff)) ;
+          Bytes.set ans 0 '\126';
+          Bytes.set ans 1 (char_of_int (len lsr 8));
+          Bytes.set ans 2 (char_of_int (len land 0xff));
           Bytes.unsafe_to_string ans )
         else (
           let ans = Bytes.create 5 in
-          Bytes.set ans 0 '\127' ;
-          Bytes.set ans 1 (char_of_int ((len lsr 24) land 0xff)) ;
-          Bytes.set ans 2 (char_of_int ((len lsr 16) land 0xff)) ;
-          Bytes.set ans 3 (char_of_int ((len lsr 8) land 0xff)) ;
-          Bytes.set ans 4 (char_of_int (len land 0xff)) ;
+          Bytes.set ans 0 '\127';
+          Bytes.set ans 1 (char_of_int ((len lsr 24) land 0xff));
+          Bytes.set ans 2 (char_of_int ((len lsr 16) land 0xff));
+          Bytes.set ans 3 (char_of_int ((len lsr 8) land 0xff));
+          Bytes.set ans 4 (char_of_int (len land 0xff));
           Bytes.unsafe_to_string ans )
       in
       b0 ^ blen ^ f.data
@@ -131,7 +130,7 @@ struct
       let read_char () =
         let c = Bytes.create 1 in
         let n = T.read s c 0 1 in
-        assert (n = 1) ;
+        assert (n = 1);
         Bytes.get c 0
       in
       let read_byte () = int_of_char (read_char ()) in
@@ -166,7 +165,7 @@ struct
           let key = Bytes.create 4 in
           for i = 0 to 3 do
             Bytes.set key i (read_char ())
-          done ;
+          done;
           Bytes.unsafe_to_string key )
         else ""
       in
@@ -182,10 +181,10 @@ struct
       in
       let data = Bytes.create length in
       let n = T.read_retry s data 0 length in
-      assert (n = length) ;
-      unmask masking_key data ;
+      assert (n = length);
+      unmask masking_key data;
       let data = Bytes.unsafe_to_string data in
-      {fin; rsv1; rsv2; rsv3; opcode; data}
+      { fin; rsv1; rsv2; rsv3; opcode; data }
   end
 
   let rec read s =
@@ -193,63 +192,52 @@ struct
     let data = frame.Frame.data in
     (* TODO: handle continuation frames. There is a problem with our model though:
        control frames can be inserted in the middle of a fragmented packet. *)
-    assert (frame.Frame.fin = true) ;
+    assert (frame.Frame.fin = true);
     match frame.Frame.opcode with
-      | 0x1 ->
-          `Text data
-      | 0x2 ->
-          `Binary data
+      | 0x1 -> `Text data
+      | 0x2 -> `Binary data
       | 0x8 ->
           let reason =
             if data = "" then None
             else (
-              assert (String.length data >= 2) ;
+              assert (String.length data >= 2);
               let code = (int_of_char data.[0] lsl 8) + int_of_char data.[1] in
               Some (code, String.sub data 2 (String.length data - 2)) )
           in
           `Close reason
-      | 0x9 ->
-          `Ping data
-      | 0xa ->
-          `Pong data
-      | _ ->
-          read s
+      | 0x9 -> `Ping data
+      | 0xa -> `Pong data
+      | _ -> read s
 
   let to_string data =
     let frame =
       {
-        Frame.fin= true;
-        rsv1= false;
-        rsv2= false;
-        rsv3= false;
-        opcode= 0;
-        data= "";
+        Frame.fin = true;
+        rsv1 = false;
+        rsv2 = false;
+        rsv3 = false;
+        opcode = 0;
+        data = "";
       }
     in
     let frame =
       match data with
-        | `Text s ->
-            {frame with Frame.opcode= 0x1; data= s}
-        | `Binary data ->
-            {frame with Frame.opcode= 0x2; data}
+        | `Text s -> { frame with Frame.opcode = 0x1; data = s }
+        | `Binary data -> { frame with Frame.opcode = 0x2; data }
         | `Close r ->
             let data =
               match r with
-                | None ->
-                    ""
+                | None -> ""
                 | Some (n, msg) ->
                     let nn = Bytes.create 2 in
-                    Bytes.set nn 0 (char_of_int (n lsr 8)) ;
-                    Bytes.set nn 1 (char_of_int (n land 0xff)) ;
+                    Bytes.set nn 0 (char_of_int (n lsr 8));
+                    Bytes.set nn 1 (char_of_int (n land 0xff));
                     Bytes.unsafe_to_string nn ^ msg
             in
-            {frame with Frame.opcode= 0x8; data}
-        | `Ping data ->
-            {frame with Frame.opcode= 0x9; data}
-        | `Pong data ->
-            {frame with Frame.opcode= 0xa; data}
-        | _ ->
-            assert false
+            { frame with Frame.opcode = 0x8; data }
+        | `Ping data -> { frame with Frame.opcode = 0x9; data }
+        | `Pong data -> { frame with Frame.opcode = 0xa; data }
+        | _ -> assert false
     in
     Frame.to_string frame
 

@@ -26,16 +26,16 @@ let () =
   in
   add_http_request "https.get"
     "Perform a full https GET request and return (status,headers,data)."
-    Builtins_http.Get ;
+    Builtins_http.Get;
   add_http_request "https.post"
     "Perform a full https POST request and return (status,headers,data)."
-    Builtins_http.Post ;
+    Builtins_http.Post;
   add_http_request "https.put"
     "Perform a full https PUT request and return (status,headers,data)."
-    Builtins_http.Put ;
+    Builtins_http.Put;
   add_http_request "https.head"
     "Perform a full https HEAD request and return (status,headers,data)."
-    Builtins_http.Head ;
+    Builtins_http.Head;
   add_http_request "https.delete"
     "Perform a full https DELETE request and return (status,headers,data)."
     Builtins_http.Delete

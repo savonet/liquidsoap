@@ -41,7 +41,7 @@ class mic ~kind ~clock_safe device =
     inherit [Frame.audio_t array] IoRing.input ~nb_blocks ~blank as ioring
 
     method private set_clock =
-      active_source#set_clock ;
+      active_source#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
@@ -50,7 +50,9 @@ class mic ~kind ~clock_safe device =
 
     method private wake_up l = active_source#wake_up l
 
-    method private sleep = active_source#sleep ; ioring#sleep
+    method private sleep =
+      active_source#sleep;
+      ioring#sleep
 
     method stype = Infallible
 
@@ -72,47 +74,45 @@ class mic ~kind ~clock_safe device =
     method close =
       match device with
         | Some d ->
-            Pcm.close d ;
+            Pcm.close d;
             device <- None
-        | None ->
-            ()
+        | None -> ()
 
     method get_device =
       match device with
-        | Some d ->
-            d
+        | Some d -> d
         | None ->
-            (self#log)#info "Using ALSA %s." (Alsa.get_version ()) ;
+            self#log#info "Using ALSA %s." (Alsa.get_version ());
             let dev = Pcm.open_pcm alsa_device [Pcm.Capture] [] in
             let params = Pcm.get_params dev in
             begin
               try
-                Pcm.set_access dev params Pcm.Access_rw_noninterleaved ;
+                Pcm.set_access dev params Pcm.Access_rw_noninterleaved;
                 Pcm.set_format dev params Pcm.Format_float
               with _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
-                (self#log)#severe "Falling back on interleaved S16LE" ;
-                Pcm.set_access dev params Pcm.Access_rw_interleaved ;
-                Pcm.set_format dev params Pcm.Format_s16_le ;
+                self#log#severe "Falling back on interleaved S16LE";
+                Pcm.set_access dev params Pcm.Access_rw_interleaved;
+                Pcm.set_format dev params Pcm.Format_s16_le;
                 read_fun <-
                   (fun pcm buf ofs len ->
                     let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
                     let r = Pcm.readi pcm sbuf 0 len in
-                    Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r) ;
+                    Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r);
                     r)
-            end ;
-            sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq ;
+            end;
+            sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq;
             (* TODO: resample *)
             if sample_freq <> Lazy.force Frame.audio_rate then
-              (self#log)#important
-                "Got a sampling frequency of %d instead of %d (TODO: should \
-                 be resampled in the future)."
+              self#log#important
+                "Got a sampling frequency of %d instead of %d (TODO: should be \
+                 resampled in the future)."
                 sample_freq
-                (Lazy.force Frame.audio_rate) ;
-            Pcm.set_channels dev params buffer_chans ;
-            Pcm.set_params dev params ;
-            Pcm.prepare dev ;
-            device <- Some dev ;
+                (Lazy.force Frame.audio_rate);
+            Pcm.set_channels dev params buffer_chans;
+            Pcm.set_params dev params;
+            Pcm.prepare dev;
+            device <- Some dev;
             dev
 
     method pull_block block =
@@ -122,28 +122,29 @@ class mic ~kind ~clock_safe device =
         while !pos < buffer_length do
           let len = buffer_length - !pos in
           let ret = read_fun dev block !pos len in
-          assert (ret <= len) ;
+          assert (ret <= len);
           pos := !pos + ret
         done
       with e ->
         begin
-          match e with Buffer_xrun -> (self#log)#important "Overrun!" | _ ->
-              (self#log)#severe "Alsa error: %s" (string_of_error e)
-        end ;
+          match e with
+          | Buffer_xrun -> self#log#important "Overrun!"
+          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+        end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
-          (self#log)#severe "Trying to recover.." ;
+          self#log#severe "Trying to recover..";
           Pcm.recover dev e )
         else raise e
 
     method get_frame buf =
-      assert (0 = AFrame.position buf) ;
+      assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
       let fbuf = AFrame.content_of_type ~channels:buffer_chans buf 0 in
       for c = 0 to Array.length fbuf - 1 do
         Audio.Mono.blit
           (Audio.Mono.sub buffer.(c) 0 buffer_length)
           (Audio.Mono.sub fbuf.(c) 0 buffer_length)
-      done ;
+      done;
       AFrame.add_break buf buffer_length
 
     method output = if AFrame.is_partial memo then self#get_frame memo

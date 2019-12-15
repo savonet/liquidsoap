@@ -4,7 +4,7 @@ module type Transport_t = sig
   type connection
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
   val default_port : int
 
@@ -30,9 +30,9 @@ module type Http_t = sig
   type connection
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
-  type uri = {host: string; port: int option; path: string}
+  type uri = { host : string; port : int option; path : string }
 
   (** Default port. *)
   val default_port : int
@@ -154,11 +154,7 @@ module type Http_t = sig
   (** [read_with_timeout ?log ~timeout len] reads [len] bytes of data
     * or all available data if [len] is [None]. *)
   val read_with_timeout :
-    ?log:(string -> unit) ->
-    timeout:float ->
-    connection ->
-    int option ->
-    string
+    ?log:(string -> unit) -> timeout:float -> connection -> int option -> string
 
   (** Type for full Http request. *)
   type request = Get | Post of string | Put of string | Head | Delete

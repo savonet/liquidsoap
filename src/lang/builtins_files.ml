@@ -27,7 +27,8 @@ let log = Log.make ["lang.file"]
 
 let () =
   add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
-    [ ( "dir_sep",
+    [
+      ( "dir_sep",
         Lang.string_t,
         Some (Lang.string Filename.dir_sep),
         Some "Directory separator." );
@@ -35,7 +36,8 @@ let () =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Return extension with a leading dot, e.g. `.foo`." );
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let dir_sep = Lang.to_string (List.assoc "dir_sep" p) in
@@ -48,7 +50,7 @@ let () =
   add_builtin "file.unlink" ~cat:Sys ~descr:"Remove a file."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
-        Unix.unlink (Lang.to_string (List.assoc "" p)) ;
+        Unix.unlink (Lang.to_string (List.assoc "" p));
         Lang.unit
       with _ -> Lang.unit)
 
@@ -58,26 +60,27 @@ let () =
       try
         let ic = open_in_bin (Lang.to_string (List.assoc "" p)) in
         let ret = in_channel_length ic in
-        close_in ic ; Lang.int ret
+        close_in ic;
+        Lang.int ret
       with _ -> Lang.int 0)
 
 let () =
-  add_builtin "file.rmdir" ~cat:Sys
-    ~descr:"Remove a directory and its content."
+  add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
-        Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p)) ;
+        Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
         Lang.unit
       with _ -> Lang.unit)
 
 let () =
   add_builtin "file.temp" ~cat:Sys
     ~descr:
-      "Return a fresh temporary filename. The temporary file is created \
-       empty, with permissions 0o600 (readable and writable only by the file \
-       owner)."
-    [ ("", Lang.string_t, None, Some "File prefix");
-      ("", Lang.string_t, None, Some "File suffix") ] Lang.string_t (fun p ->
+      "Return a fresh temporary filename. The temporary file is created empty, \
+       with permissions 0o600 (readable and writable only by the file owner)."
+    [
+      ("", Lang.string_t, None, Some "File prefix");
+      ("", Lang.string_t, None, Some "File suffix");
+    ] Lang.string_t (fun p ->
       Lang.string
         (Filename.temp_file
            (Lang.to_string (Lang.assoc "" 1 p))
@@ -89,9 +92,10 @@ let () =
       "Return a fresh temporary directory name. The temporary directory is \
        created empty, with permissions 0o700 (readable, writable and listable \
        only by the file owner)."
-    [ ("", Lang.string_t, None, Some "Directory prefix");
-      ("", Lang.string_t, None, Some "Directory suffix") ] Lang.string_t
-    (fun p ->
+    [
+      ("", Lang.string_t, None, Some "Directory prefix");
+      ("", Lang.string_t, None, Some "Directory suffix");
+    ] Lang.string_t (fun p ->
       Lang.string
         (Extralib.Filename.mk_temp_dir
            (Lang.to_string (Lang.assoc "" 1 p))
@@ -99,8 +103,7 @@ let () =
 
 let () =
   add_builtin "file.exists" ~cat:Sys [("", Lang.string_t, None, None)]
-    Lang.bool_t ~descr:"Returns true if the file or directory exists."
-    (fun p ->
+    Lang.bool_t ~descr:"Returns true if the file or directory exists." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       let f = Utils.home_unrelate f in
       Lang.bool (Sys.file_exists f))
@@ -133,21 +136,20 @@ let () =
             | Some c ->
                 let n = input c buf 0 buflen in
                 if n = 0 then (
-                  close_in c ;
-                  ic := None ) ;
+                  close_in c;
+                  ic := None );
                 Bytes.sub_string buf 0 n
-            | None ->
-                ""
+            | None -> ""
         in
         mk_fn fn
       with e ->
-        log#important "Error while reading file %S: %s" f
-          (Printexc.to_string e) ;
+        log#important "Error while reading file %S: %s" f (Printexc.to_string e);
         mk_fn (fun () -> ""))
 
 let () =
   add_builtin "file.write" ~cat:Sys
-    [ ("data", Lang.string_t, None, Some "Data to write");
+    [
+      ("data", Lang.string_t, None, Some "Data to write");
       ( "append",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -156,7 +158,8 @@ let () =
         Lang.int_t,
         Some (Lang.int 0o644),
         Some "Default file rights if created" );
-      ("", Lang.string_t, None, Some "Path to write to") ]
+      ("", Lang.string_t, None, Some "Path to write to");
+    ]
     Lang.bool_t ~descr:"Write data to a file. Returns `true` if successful."
     (fun p ->
       let data = Lang.to_string (List.assoc "data" p) in
@@ -167,16 +170,19 @@ let () =
       let flags = [flag; Open_wronly; Open_creat; Open_binary] in
       try
         let oc = open_out_gen flags perms f in
-        output_string oc data ; close_out oc ; Lang.bool true
+        output_string oc data;
+        close_out oc;
+        Lang.bool true
       with e ->
-        log#important "Error while writing file %S: %s" f
-          (Printexc.to_string e) ;
+        log#important "Error while writing file %S: %s" f (Printexc.to_string e);
         Lang.bool false)
 
 let () =
   add_builtin "file.watch" ~cat:Sys
-    [ ("", Lang.string_t, None, Some "File to watch.");
-      ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.") ]
+    [
+      ("", Lang.string_t, None, Some "File to watch.");
+      ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.");
+    ]
     (Lang.fun_t [] Lang.unit_t)
     ~descr:"Call a function when a file is modified. Returns unwatch function."
     (fun p ->
@@ -186,11 +192,14 @@ let () =
       let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
       let watch = !Configure.file_watcher in
       let unwatch = watch [`Modify] fname f in
-      Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ -> unwatch () ; Lang.unit))
+      Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
+          unwatch ();
+          Lang.unit))
 
 let () =
   add_builtin "file.ls" ~cat:Sys
-    [ ( "absolute",
+    [
+      ( "absolute",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Whether to return absolute paths." );
@@ -198,7 +207,8 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Whether to look recursively in subdirectories." );
-      ("", Lang.string_t, None, Some "Directory to look in.") ]
+      ("", Lang.string_t, None, Some "Directory to look in.");
+    ]
     (Lang.list_t Lang.string_t)
     ~descr:"List all the files in a directory."
     (fun p ->
@@ -225,8 +235,7 @@ let () =
                   in
                   aux subdir (aux f acc (readdir df)) l )
                 else aux subdir (concat subdir f :: acc) l
-            | [] ->
-                acc
+            | [] -> acc
           in
           aux Filename.current_dir_name [] [Filename.current_dir_name] )
       in
@@ -261,8 +270,7 @@ let () =
       Lang.string (Filename.concat f s))
 
 let () =
-  add_builtin "path.remove_extension" ~cat:Sys
-    [("", Lang.string_t, None, None)]
+  add_builtin "path.remove_extension" ~cat:Sys [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Remove the file extension from a path." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.remove_extension f))
@@ -271,10 +279,12 @@ let () =
 
 let () =
   add_builtin "file.mp3.tags" ~cat:Sys
-    [ ( "",
+    [
+      ( "",
         Lang.string_t,
         None,
-        Some "MP3 file of which the metadata should be read." ) ]
+        Some "MP3 file of which the metadata should be read." );
+    ]
     (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t))
     ~descr:
       "Read the tags from an MP3 file using the builtin functions. Only ID3v2 \
@@ -285,8 +295,11 @@ let () =
       let ans =
         try
           let ans = Id3v2.parse (input ic) in
-          close_in ic ; ans
-        with _ -> close_in ic ; []
+          close_in ic;
+          ans
+        with _ ->
+          close_in ic;
+          []
       in
       Lang.list
         ~t:(Lang.product_t Lang.string_t Lang.string_t)
@@ -306,10 +319,12 @@ let () =
       let apic = Lang.to_string (List.assoc "" p) in
       let apic = Id3v2.parse_apic apic in
       Lang.tuple
-        [ Lang.string apic.Id3v2.mime;
+        [
+          Lang.string apic.Id3v2.mime;
           Lang.int apic.Id3v2.picture_type;
           Lang.string apic.Id3v2.description;
-          Lang.string apic.Id3v2.data ])
+          Lang.string apic.Id3v2.data;
+        ])
 
 let () =
   add_builtin "file.which" ~cat:Sys

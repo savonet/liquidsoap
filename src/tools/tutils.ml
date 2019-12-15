@@ -25,7 +25,8 @@ let conf_scheduler =
     ~p:(Utils.conf#plug "scheduler")
     "Internal scheduler"
     ~comments:
-      [ "The scheduler is used to process various tasks in liquidsoap.";
+      [
+        "The scheduler is used to process various tasks in liquidsoap.";
         "There are three kinds of tasks:";
         "\"Non-blocking\" ones are instantaneous to process, these are only";
         "internal processes of liquidsoap like its server.";
@@ -38,17 +39,19 @@ let conf_scheduler =
         "tasks. Some queues might only process some kinds of tasks so that";
         "they are more responsive.";
         "Having more queues often do not make the program faster in average,";
-        "but affect mostly the order in which tasks are processed." ]
+        "but affect mostly the order in which tasks are processed.";
+      ]
 
 let generic_queues =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "generic_queues")
     ~d:2 "Generic queues"
     ~comments:
-      [ "Number of event queues accepting any kind of task.";
+      [
+        "Number of event queues accepting any kind of task.";
         "There should at least be one. Having more can be useful to avoid that";
         "trivial request resolutions (local files) are not delayed because of";
-        "a stalled download. But N stalled download can block N queues anyway."
+        "a stalled download. But N stalled download can block N queues anyway.";
       ]
 
 let fast_queues =
@@ -56,20 +59,24 @@ let fast_queues =
     ~p:(conf_scheduler#plug "fast_queues")
     ~d:0 "Fast queues"
     ~comments:
-      [ "Number of queues that are dedicated to fast tasks.";
+      [
+        "Number of queues that are dedicated to fast tasks.";
         "It might be useful to create some if your request resolutions,";
         "or some user defined tasks (cf `thread.run`), are";
         "delayed too much because of slow tasks blocking the generic queues,";
-        "such as last.fm submissions or slow `thread.run` handlers." ]
+        "such as last.fm submissions or slow `thread.run` handlers.";
+      ]
 
 let non_blocking_queues =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "non_blocking_queues")
     ~d:2 "Non-blocking queues"
     ~comments:
-      [ "Number of queues dedicated to internal non-blocking tasks.";
+      [
+        "Number of queues dedicated to internal non-blocking tasks.";
         "These are only started if such tasks are needed.";
-        "There should be at least one." ]
+        "There should be at least one.";
+      ]
 
 let scheduler_log =
   Dtools.Conf.bool
@@ -77,21 +84,31 @@ let scheduler_log =
     ~d:false "Log scheduler messages"
 
 let mutexify lock f x =
-  Mutex.lock lock ;
+  Mutex.lock lock;
   try
     let ans = f x in
-    Mutex.unlock lock ; ans
-  with e -> Mutex.unlock lock ; raise e
+    Mutex.unlock lock;
+    ans
+  with e ->
+    Mutex.unlock lock;
+    raise e
 
 let finalize ~k f =
   try
     let x = f () in
-    k () ; x
-  with e -> k () ; raise e
+    k ();
+    x
+  with e ->
+    k ();
+    raise e
 
 let seems_locked =
   if Sys.win32 then fun _ -> true
-  else fun m -> if Mutex.try_lock m then (Mutex.unlock m ; false) else true
+  else fun m ->
+    if Mutex.try_lock m then (
+      Mutex.unlock m;
+      false )
+    else true
 
 let log = Log.make ["threads"]
 
@@ -118,9 +135,9 @@ let join_all ~set () =
       mutexify lock
         (fun () ->
           let name, c = Set.choose !set in
-          log#info "Waiting for thread %s to shutdown" name ;
+          log#info "Waiting for thread %s to shutdown" name;
           Condition.wait c lock)
-        () ;
+        ();
       f ()
     with Not_found -> ()
   in
@@ -139,37 +156,39 @@ let create ~queue f x s =
         Thread.create
           (fun x ->
             try
-              f x ;
+              f x;
               mutexify lock
                 (fun () ->
-                  set := Set.remove (s, c) !set ;
+                  set := Set.remove (s, c) !set;
                   log#info "Thread %S terminated (%d remaining)." s
-                    (Set.cardinal !set) ;
+                    (Set.cardinal !set);
                   Condition.signal c)
                 ()
             with e ->
               let backtrace = Printexc.get_backtrace () in
               begin
-                match e with Exit -> log#info "Thread %S exited." s
-                | Failure e -> log#important "Thread %S failed: %s!" s e | e ->
+                match e with
+                | Exit -> log#info "Thread %S exited." s
+                | Failure e -> log#important "Thread %S failed: %s!" s e
+                | e ->
                     log#important "Thread %S aborts with exception %s!" s
                       (Printexc.to_string e)
-              end ;
+              end;
               if e <> Exit then (
                 let l = Pcre.split ~pat:"\n" backtrace in
-                List.iter (log#info "%s") l ) ;
+                List.iter (log#info "%s") l );
               mutexify lock
                 (fun () ->
-                  set := Set.remove (s, c) !set ;
-                  uncaught := Some e ;
-                  Condition.signal no_problem ;
+                  set := Set.remove (s, c) !set;
+                  uncaught := Some e;
+                  Condition.signal no_problem;
                   Condition.signal c)
-                () ;
+                ();
               if e <> Exit then raise e)
           x
       in
-      set := Set.add (s, c) !set ;
-      log#info "Created thread %S (%d total)." s (Set.cardinal !set) ;
+      set := Set.add (s, c) !set;
+      log#info "Created thread %S (%d total)." s (Set.cardinal !set);
       id)
     ()
 
@@ -188,11 +207,11 @@ let has_started = mutexify started_m (fun () -> !started)
 
 let scheduler_shutdown_atom =
   Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
-      log#important "Shutting down scheduler..." ;
-      Duppy.stop scheduler ;
-      log#important "Scheduler shut down." ;
-      log#important "Waiting for queue threads to terminate..." ;
-      join_all ~set:queues () ;
+      log#important "Shutting down scheduler...";
+      Duppy.stop scheduler;
+      log#important "Scheduler shut down.";
+      log#important "Waiting for queue threads to terminate...";
+      join_all ~set:queues ();
       log#important "Queues shut down")
 
 let scheduler_log n =
@@ -206,17 +225,15 @@ let new_queue ?priorities ~name () =
   let queue () =
     try
       match priorities with
-        | None ->
-            Duppy.queue scheduler ~log:qlog name
-        | Some priorities ->
-            Duppy.queue scheduler ~log:qlog ~priorities name
+        | None -> Duppy.queue scheduler ~log:qlog name
+        | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
     with e ->
       log#severe "Queue %s crashed with exception %s\n%s" name
         (Printexc.to_string e)
-        (Printexc.get_backtrace ()) ;
+        (Printexc.get_backtrace ());
       log#critical
         "PANIC: Liquidsoap has crashed, exiting.,\n\
-         Please report at: savonet-users@lists.sf.net" ;
+         Please report at: savonet-users@lists.sf.net";
       exit 1
   in
   ignore (create ~queue:true queue () name)
@@ -234,15 +251,15 @@ let () =
          for i = 1 to generic_queues#get do
            let name = Printf.sprintf "generic queue #%d" i in
            new_queue ~name ()
-         done ;
+         done;
          for i = 1 to fast_queues#get do
            let name = Printf.sprintf "fast queue #%d" i in
            new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
-         done ;
+         done;
          for i = 1 to non_blocking_queues#get do
            let name = Printf.sprintf "non-blocking queue #%d" i in
            new_queue ~priorities:(fun x -> x = Non_blocking) ~name ()
-         done ;
+         done;
          mutexify started_m (fun () -> started := true) ()))
 
 (** Replace stdout/err by a pipe, and install a Duppy task that pulls data
@@ -251,7 +268,10 @@ let () =
 let start_forwarding () =
   let reopen fd =
     let i, o = Unix.pipe () in
-    Unix.dup2 o fd ; Unix.close o ; Unix.set_close_on_exec i ; i
+    Unix.dup2 o fd;
+    Unix.close o;
+    Unix.set_close_on_exec i;
+    i
   in
   let in_stdout = reopen Unix.stdout in
   let in_stderr = reopen Unix.stderr in
@@ -266,7 +286,7 @@ let start_forwarding () =
   in
   let forward fd log =
     let task ~priority f =
-      {Duppy.Task.priority; events= [`Read fd]; handler= f}
+      { Duppy.Task.priority; events = [`Read fd]; handler = f }
     in
     let len = Utils.pagesize in
     let buffer = Bytes.create len in
@@ -285,23 +305,22 @@ let start_forwarding () =
                   acc
               in
               (* This _could_ be blocking! *)
-              log line ;
+              log line;
               split [] (j + 1)
-          | _ ->
-              String.sub buffer i (n - i) :: acc
+          | _ -> String.sub buffer i (n - i) :: acc
       in
       [task ~priority:Non_blocking (f (split acc 0))]
     in
     Duppy.Task.add scheduler (task ~priority:Maybe_blocking (f []))
   in
-  forward in_stdout log_stdout ;
+  forward in_stdout log_stdout;
   forward in_stderr log_stderr
 
 let () =
   ignore
     (Dtools.Init.at_start (fun () ->
          if Dtools.Init.conf_daemon#get then (
-           Dtools.Log.conf_stdout#set false ;
+           Dtools.Log.conf_stdout#set false;
            start_forwarding () )))
 
 (** Waits for [f()] to become true on condition [c]. *)
@@ -318,8 +337,7 @@ exception Timeout of float
 let error_translator = function
   | Timeout f ->
       Some (Printf.sprintf "Timed out after waiting for %.02f sec." f)
-  | _ ->
-      None
+  | _ -> None
 
 let () = Printexc.register_printer error_translator
 
@@ -336,19 +354,16 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   let max_time = start_time +. timeout in
   let r, w =
     match event with
-      | `Read socket ->
-          ([socket], [])
-      | `Write socket ->
-          ([], [socket])
-      | `Both socket ->
-          ([socket], [socket])
+      | `Read socket -> ([socket], [])
+      | `Write socket -> ([], [socket])
+      | `Both socket -> ([socket], [socket])
   in
   let rec wait t =
     let l, l', _ = Unix.select r w [] t in
     if l = [] && l' = [] then (
       let current_time = Unix.gettimeofday () in
       if current_time >= max_time then (
-        log "Timeout reached!" ;
+        log "Timeout reached!";
         raise (Timeout (current_time -. start_time)) )
       else wait (min 1. (max_time -. current_time)) )
   in
@@ -360,7 +375,7 @@ let run = ref true
 let main () = wait no_problem lock (fun () -> not (!run && !uncaught = None))
 
 let shutdown () =
-  run := false ;
+  run := false;
   Condition.signal no_problem
 
 (** Thread-safe lazy cell. *)
@@ -369,11 +384,10 @@ let lazy_cell f =
   let c = ref None in
   mutexify lock (fun () ->
       match !c with
-        | Some v ->
-            v
+        | Some v -> v
         | None ->
             let v = f () in
-            c := Some v ;
+            c := Some v;
             v)
 
 (* Thread with preemptive kill/wait mechanism, see mli for details. *)
@@ -387,7 +401,7 @@ let stoppable_thread f name =
   let should_stop = mutexify lock (fun () -> !should_stop) in
   let has_stopped =
     mutexify lock (fun () ->
-        has_stopped := true ;
+        has_stopped := true;
         Condition.signal cond)
   in
   let _ = create f (should_stop, has_stopped) name in

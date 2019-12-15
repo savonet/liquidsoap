@@ -26,14 +26,16 @@ let conf_xml =
   Dtools.Conf.list
     ~p:(Playlist_parser.conf_mime_types#plug "xml")
     ~d:
-      [ "video/x-ms-asf";
+      [
+        "video/x-ms-asf";
         "audio/x-ms-asx";
         "text/xml";
         "application/xml";
         "application/smil";
         "application/smil+xml";
         "application/xspf+xml";
-        "application/rss+xml" ]
+        "application/rss+xml";
+      ]
     "Mime types associated to XML-based playlist formats"
 
 let tracks ?pwd s =
@@ -46,12 +48,12 @@ let tracks ?pwd s =
       (fun (a, b) -> (recode_metas a, Playlist_parser.get_file ?pwd b))
       (Xmlplaylist.tracks s)
   with Xmlplaylist.Error e ->
-    log#debug "Parsing failed: %s" (Xmlplaylist.string_of_error e) ;
+    log#debug "Parsing failed: %s" (Xmlplaylist.string_of_error e);
     raise (Xmlplaylist.Error e)
 
 let register mimetype =
   Playlist_parser.parsers#register mimetype
-    {Playlist_parser.strict= true; Playlist_parser.parser= tracks}
+    { Playlist_parser.strict = true; Playlist_parser.parser = tracks }
 
 let () =
   ignore (Dtools.Init.at_start (fun () -> List.iter register conf_xml#get))

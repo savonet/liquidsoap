@@ -20,13 +20,13 @@
 
  *****************************************************************************)
 
-type t = {string: string; offset: int; length: int}
+type t = { string : string; offset : int; length : int }
 
-let of_string s = {string= s; offset= 0; length= String.length s}
+let of_string s = { string = s; offset = 0; length = String.length s }
 
 let of_substring s o l =
-  assert (0 <= o && 0 <= l && o + l <= String.length s) ;
-  {string= s; offset= o; length= l}
+  assert (0 <= o && 0 <= l && o + l <= String.length s);
+  { string = s; offset = o; length = l }
 
 let to_string s = String.sub s.string s.offset s.length
 

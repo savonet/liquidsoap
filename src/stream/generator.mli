@@ -171,7 +171,7 @@ module From_audio_video : sig
       the generator, asynchronously, and they exit the buffer synchronously.
       [`Undefined] forbids any feeding, it's useful to make sure a meaningful
       mode is assigned before any use. *)
-  type mode = [`Audio | `Video | `Both | `Undefined]
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
 
   (** Create a generator with given mode. *)
   val create : mode -> t
@@ -210,7 +210,7 @@ module From_audio_video : sig
   val add_metadata : t -> Frame.metadata -> unit
 
   (** Add a track limit. Audio and video length should be equal. *)
-  val add_break : ?sync:[`Strict | `Ignore | `Drop] -> t -> unit
+  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
 
   (* [put_audio buffer data offset length]: offset and length
    * are in samples ! *)
@@ -249,13 +249,13 @@ module type S_Asio = sig
 
   val add_metadata : t -> Frame.metadata -> unit
 
-  val add_break : ?sync:[`Strict | `Ignore | `Drop] -> t -> unit
+  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
 
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
 
   val put_video : t -> Frame.video_t array -> int -> int -> unit
 
-  val set_mode : t -> [`Audio | `Video | `Both | `Undefined] -> unit
+  val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
 (** Same as [From_audio_video] but with two extra features useful for streaming
@@ -264,11 +264,11 @@ module From_audio_video_plus : sig
   type t
 
   (** Same as [From_audio_video]. *)
-  type mode = [`Audio | `Video | `Both | `Undefined]
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
 
   (** How to handle overfull buffers:
     * drop old data, keeping at most [len] ticks. *)
-  type overfull = [`Drop_old of int]
+  type overfull = [ `Drop_old of int ]
 
   val create :
     ?lock:Mutex.t ->
@@ -300,7 +300,7 @@ module From_audio_video_plus : sig
 
   val add_metadata : t -> Frame.metadata -> unit
 
-  val add_break : ?sync:[`Strict | `Ignore | `Drop] -> t -> unit
+  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
 
   (* [put_audio buffer data offset length]:
    * offset and length are in audio samples! *)

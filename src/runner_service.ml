@@ -34,7 +34,8 @@ let split s = Str.split (Str.regexp " ") s
 
 module Runner : Main.Runner_t = struct
   let options =
-    [ ( ["--install-service"],
+    [
+      ( ["--install-service"],
         Arg.Unit (fun _ -> action := `Install),
         "Install windows service running." );
       (["--service-name"], Arg.Set_string name, "Service name.");
@@ -47,14 +48,15 @@ module Runner : Main.Runner_t = struct
         "Remove windows service." );
       ( ["--run-service"],
         Arg.Unit (fun _ -> action := `Run),
-        "Run windows service (only used by windows service manager)." ) ]
+        "Run windows service (only used by windows service manager)." );
+    ]
     @ Main.options
 end
 
 let () =
   let options = Main.expand_options Runner.options in
-  Arg.parse options (fun _ -> ()) Main.usage ;
-  Arg.current := 0 ;
+  Arg.parse options (fun _ -> ()) Main.usage;
+  Arg.current := 0;
   let args =
     List.map
       (fun s -> if s <> "--install-service" then s else "--run-service")
@@ -78,18 +80,17 @@ let () =
   in
   match !action with
     | `Install ->
-        Svc.install () ;
+        Svc.install ();
         Printf.printf "Installed %s service with arguments %s\n" S.name
           (String.concat " " args)
     | `Remove ->
-        Svc.remove () ;
+        Svc.remove ();
         Printf.printf "Removed %s service\n" S.name
     | `Run -> (
-        Dtools.Log.conf_stdout#set false ;
-        Dtools.Log.conf_file#set true ;
+        Dtools.Log.conf_stdout#set false;
+        Dtools.Log.conf_file#set true;
         try Svc.run main
         with e ->
           Main.log#severe "Error while running service: %s"
             (Printexc.to_string e) )
-    | `None ->
-        main ()
+    | `None -> main ()

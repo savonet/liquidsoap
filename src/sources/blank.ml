@@ -57,12 +57,12 @@ class blank ~kind duration =
       Audio.clear
         (Audio.sub content.Frame.audio
            (Frame.audio_of_master position)
-           (Frame.audio_of_master length)) ;
+           (Frame.audio_of_master length));
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))
-        content.Frame.video ;
-      Frame.add_break ab (position + length) ;
+        content.Frame.video;
+      Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks
       else if remaining > 0 then remaining <- remaining - length
   end
@@ -71,12 +71,14 @@ let () =
   Lang.add_operator "blank" ~category:Lang.Input
     ~descr:"Produce silence and blank images."
     ~kind:(Lang.Unconstrained (Lang.univ_t ()))
-    [ ( "duration",
+    [
+      ( "duration",
         Lang.float_t,
         Some (Lang.float (-1.)),
         Some
           "Duration of blank tracks in seconds, Negative value means forever."
-      ) ]
+      );
+    ]
     (fun p kind ->
       let d = Lang.to_float (List.assoc "duration" p) in
       (new blank ~kind d :> source))

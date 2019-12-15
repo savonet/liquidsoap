@@ -38,7 +38,8 @@ let () =
        `(\"killed\",\"<signal number>\")`, `(\"stopped\",\"<signal \
        number>\")`, `(\"exception\",\"<exception description>\")`, \
        `(\"timeout\",\"<run time>\")`."
-    [ ( "env",
+    [
+      ( "env",
         Lang.list_t env_t,
         Some (Lang.list ~t:env_t []),
         Some "Process environment" );
@@ -72,7 +73,8 @@ let () =
         Some (Lang.float (-1.)),
         Some "Cancel process after `timeout` has elapsed. Ignored if negative."
       );
-      ("", Lang.string_t, None, Some "Command to run") ]
+      ("", Lang.string_t, None, Some "Command to run");
+    ]
     ret_t
     (fun p ->
       let env = Lang.to_list (List.assoc "env" p) in
@@ -104,21 +106,16 @@ let () =
       let sandbox_network =
         let v = List.assoc "network" p in
         match Lang.to_string v with
-          | "default" ->
-              Sandbox.conf_network#get
-          | "true" ->
-              true
-          | "false" ->
-              false
+          | "default" -> Sandbox.conf_network#get
+          | "true" -> true
+          | "false" -> false
           | _ ->
               raise
                 (Lang_errors.Invalid_value
                    (v, "should be one of: \"default\", \"true\" or \"false\""))
       in
       let inherit_env = Lang.to_bool (List.assoc "inherit_env" p) in
-      let env =
-        if env = [] && inherit_env then Utils.environment () else env
-      in
+      let env = if env = [] && inherit_env then Utils.environment () else env in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let env = List.map (fun (k, v) -> Printf.sprintf "%s=%s" k v) env in
       let env = Array.of_list env in
@@ -134,68 +131,64 @@ let () =
         let stderr = Buffer.contents err_buf in
         let status, arg =
           match (timed_out, status) with
-            | f, _ when 0. <= f ->
-                ("timeout", string_of_float f)
-            | _, Some (`Exception e) ->
-                ("exception", Printexc.to_string e)
+            | f, _ when 0. <= f -> ("timeout", string_of_float f)
+            | _, Some (`Exception e) -> ("exception", Printexc.to_string e)
             | _, Some (`Status s) -> (
-              match s with
-                | Unix.WEXITED c ->
-                    ("exit", string_of_int c)
-                | Unix.WSIGNALED s ->
-                    ("killed", string_of_int s)
-                | Unix.WSTOPPED s ->
-                    ("stopped", string_of_int s) )
-            | _ ->
-                assert false
+                match s with
+                  | Unix.WEXITED c -> ("exit", string_of_int c)
+                  | Unix.WSIGNALED s -> ("killed", string_of_int s)
+                  | Unix.WSTOPPED s -> ("stopped", string_of_int s) )
+            | _ -> assert false
         in
         Lang.tuple
-          [ Lang.string stdout;
+          [
+            Lang.string stdout;
             Lang.string stderr;
-            Lang.product (Lang.string status) (Lang.string arg) ]
+            Lang.product (Lang.string status) (Lang.string arg);
+          ]
       in
       let synchronous () =
         let ((in_chan, out_ch, err_chan) as p) =
           Unix.open_process_full cmd env
         in
-        close_out out_ch ;
+        close_out out_ch;
         let pull buf ch =
           let tmp = Bytes.create Utils.pagesize in
           let rec aux () =
             let n = input ch tmp 0 Utils.pagesize in
             if n = 0 then ()
             else (
-              Buffer.add_subbytes buf tmp 0 n ;
+              Buffer.add_subbytes buf tmp 0 n;
               aux () )
           in
           aux ()
         in
-        pull out_buf in_chan ;
-        pull err_buf err_chan ;
+        pull out_buf in_chan;
+        pull err_buf err_chan;
         (-1., Some (`Status (Unix.close_process_full p)))
       in
       let asynchronous () =
         let out_pipe, in_pipe = Unix.pipe () in
         Tutils.finalize
           ~k:(fun () ->
-            ignore (Unix.close in_pipe) ;
+            ignore (Unix.close in_pipe);
             ignore (Unix.close out_pipe))
           (fun () ->
             let pull buf fn =
               let bytes = Bytes.create buflen in
               let ret = fn bytes 0 buflen in
-              Buffer.add_subbytes buf bytes 0 ret ;
+              Buffer.add_subbytes buf bytes 0 ret;
               `Continue
             in
             let on_stdout = pull out_buf in
             let on_stderr = pull err_buf in
             let status = ref None in
             let on_stop s =
-              status := Some s ;
+              status := Some s;
               begin
                 try ignore (Unix.write in_pipe (Bytes.of_string " ") 0 1)
                 with _ -> ()
-              end ;
+              end;
               false
             in
             let on_start _ = `Stop in
@@ -206,9 +199,11 @@ let () =
             in
             let timed_out =
               try
-                Tutils.wait_for (`Read out_pipe) timeout ;
+                Tutils.wait_for (`Read out_pipe) timeout;
                 -1.
-              with Tutils.Timeout f -> Process_handler.kill p ; f
+              with Tutils.Timeout f ->
+                Process_handler.kill p;
+                f
             in
             (timed_out, !status))
       in

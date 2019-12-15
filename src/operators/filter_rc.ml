@@ -45,16 +45,14 @@ class filter ~kind (source : source) rc wet mode =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let rc = rc () in
       let alpha =
         match mode with
-          | Low_pass ->
-              dt /. (rc +. dt)
-          | High_pass ->
-              rc /. (rc +. dt)
+          | Low_pass -> dt /. (rc +. dt)
+          | High_pass -> rc /. (rc +. dt)
       in
       let alpha' = 1. -. alpha in
       let wet = wet () in
@@ -67,7 +65,7 @@ class filter ~kind (source : source) rc wet mode =
             for c = 0 to Array.length b - 1 do
               let b_c = b.(c) in
               for i = offset to position - 1 do
-                prev.(c) <- (alpha *. b_c.{i}) +. (alpha' *. prev.(c)) ;
+                prev.(c) <- (alpha *. b_c.{i}) +. (alpha' *. prev.(c));
                 b_c.{i} <- (wet *. prev.(c)) +. (wet' *. b_c.{i})
               done
             done
@@ -76,8 +74,8 @@ class filter ~kind (source : source) rc wet mode =
             for c = 0 to Array.length b - 1 do
               let b_c = b.(c) in
               for i = offset to position - 1 do
-                prev.(c) <- alpha *. (prev.(c) +. b_c.{i} -. prev_in.(c)) ;
-                prev_in.(c) <- b_c.{i} ;
+                prev.(c) <- alpha *. (prev.(c) +. b_c.{i} -. prev_in.(c));
+                prev_in.(c) <- b_c.{i};
                 b_c.{i} <- (wet *. prev.(c)) +. (wet' *. b_c.{i})
               done
             done
@@ -86,7 +84,8 @@ class filter ~kind (source : source) rc wet mode =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.rc"
-    [ ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");
+    [
+      ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");
       ( "mode",
         Lang.string_t,
         None,
@@ -99,7 +98,8 @@ let () =
         Some
           "How much of the original signal should be added (1. means only \
            filtered and 0. means only original signal)." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"First-order filter (RC filter)."
     (fun p kind ->
@@ -112,10 +112,8 @@ let () =
       in
       let mode =
         match Lang.to_string mode with
-          | "low" ->
-              Low_pass
-          | "high" ->
-              High_pass
+          | "low" -> Low_pass
+          | "high" -> High_pass
           | _ ->
               raise
                 (Lang_errors.Invalid_value (mode, "valid values are low|high"))

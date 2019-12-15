@@ -32,10 +32,10 @@ let encoder flac meta =
   let p =
     {
       Flac.Encoder.channels;
-      bits_per_sample= flac.Flac_format.bits_per_sample;
-      sample_rate= samplerate;
-      compression_level= Some flac.Flac_format.compression;
-      total_samples= None;
+      bits_per_sample = flac.Flac_format.bits_per_sample;
+      sample_rate = samplerate;
+      compression_level = Some flac.Flac_format.compression;
+      total_samples = None;
     }
   in
   let buf = Strings.Mutable.empty () in
@@ -58,25 +58,23 @@ let encoder flac meta =
     in
     let b = Audio.sub b start len in
     let b = Audio.to_array b in
-    Flac.Encoder.process !enc cb b ;
+    Flac.Encoder.process !enc cb b;
     Strings.Mutable.flush buf
   in
   let stop () =
-    Flac.Encoder.finish !enc cb ;
+    Flac.Encoder.finish !enc cb;
     Strings.Mutable.flush buf
   in
   {
-    Encoder.insert_metadata= (fun _ -> ());
+    Encoder.insert_metadata = (fun _ -> ());
     (* Flac encoder do not support header
      * for now. It will probably never do.. *)
-    header= Strings.empty;
+    header = Strings.empty;
     encode;
     stop;
   }
 
 let () =
   Encoder.plug#register "FLAC" (function
-    | Encoder.Flac m ->
-        Some (fun _ -> encoder m)
-    | _ ->
-        None)
+    | Encoder.Flac m -> Some (fun _ -> encoder m)
+    | _ -> None)

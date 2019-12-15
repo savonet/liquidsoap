@@ -24,10 +24,12 @@ let () =
       in
       Gstreamer.init
         ~argv:
-          [| "Liquidsoap";
-             "--gst-debug-spew";
-             Printf.sprintf "--gst-debug-level=%d" debug |]
-        () ;
+          [|
+            "Liquidsoap";
+            "--gst-debug-spew";
+            Printf.sprintf "--gst-debug-level=%d" debug;
+          |]
+        ();
       let major, minor, micro, nano = Gstreamer.version () in
       let log = Log.make ["gstreamer"; "loader"] in
       log#important "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
@@ -45,8 +47,8 @@ module Pipeline = struct
   let audio_format channels =
     let rate = Lazy.force Frame.audio_rate in
     Printf.sprintf
-      "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d"
-      channels rate
+      "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d" channels
+      rate
 
   let audio_src ~channels ?(maxBytes = 10 * Utils.pagesize) ?(block = true)
       ?(format = Gstreamer.Format.Time) name =
@@ -89,8 +91,8 @@ module Pipeline = struct
       match max_buffers with None -> conf_max_buffers#get | Some m -> m
     in
     Printf.sprintf
-      "appsink name=\"%s\" drop=%B sync=%B max-buffers=%d caps=\"%s\"" name
-      drop sync max_buffers (video_format ())
+      "appsink name=\"%s\" drop=%B sync=%B max-buffers=%d caps=\"%s\"" name drop
+      sync max_buffers (video_format ())
 
   let decode_video () = Printf.sprintf "decodebin ! %s" (convert_video ())
 end
@@ -108,14 +110,14 @@ let render_image pipeline =
   let sink =
     Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink")
   in
-  ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_playing) ;
-  ignore (Gstreamer.Element.get_state bin) ;
+  ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_playing);
+  ignore (Gstreamer.Element.get_state bin);
   let buf = Gstreamer.App_sink.pull_buffer_data sink in
   let img =
     Image.YUV420.make_data width height buf (Image.Data.round 4 width)
       (Image.Data.round 4 (width / 2))
   in
-  ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null) ;
+  ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
   img
 
 let master_of_time time =
@@ -134,26 +136,21 @@ let handler ~(log : Log.t) ~on_error msg =
   let source = msg.Gstreamer.Bus.source in
   match msg.Gstreamer.Bus.payload with
     | `Error err ->
-        log#severe "[%s] Error: %s" source err ;
+        log#severe "[%s] Error: %s" source err;
         on_error err
-    | `Warning err ->
-        log#important "[%s] Warning: %s" source err
-    | `Info err ->
-        log#info "[%s] Info: %s" source err
+    | `Warning err -> log#important "[%s] Warning: %s" source err
+    | `Info err -> log#info "[%s] Info: %s" source err
     | `State_changed (o, n, p) ->
         let f = Gstreamer.Element.string_of_state in
         let o = f o in
         let n = f n in
         let p =
           match p with
-            | Gstreamer.Element.State_void_pending ->
-                ""
-            | _ ->
-                Printf.sprintf " (pending: %s)" (f p)
+            | Gstreamer.Element.State_void_pending -> ""
+            | _ -> Printf.sprintf " (pending: %s)" (f p)
         in
         log#debug "[%s] State change: %s -> %s%s" source o n p
-    | _ ->
-        assert false
+    | _ -> assert false
 
 let flush ~log ?(types = [`Error; `Warning; `Info; `State_changed])
     ?(on_error = fun _ -> ()) bin =
@@ -161,9 +158,9 @@ let flush ~log ?(types = [`Error; `Warning; `Info; `State_changed])
   let rec f () =
     match Gstreamer.Bus.pop_filtered bus types with
       | Some msg ->
-          handler ~log ~on_error msg ; f ()
-      | None ->
-          ()
+          handler ~log ~on_error msg;
+          f ()
+      | None -> ()
   in
   f ()
 
@@ -172,5 +169,5 @@ let () =
   let main () = Gstreamer.Loop.run loop in
   ignore
     (Dtools.Init.at_start (fun () ->
-         ignore (Tutils.create main () "gstreamer_main_loop"))) ;
+         ignore (Tutils.create main () "gstreamer_main_loop")));
   ignore (Dtools.Init.at_stop (fun () -> Gstreamer.Loop.quit loop))

@@ -32,8 +32,7 @@ let encoder wav =
   let converter = Audio_converter.Samplerate.create channels in
   let len =
     match wav.duration with
-      | None ->
-          None
+      | None -> None
       | Some d ->
           Some
             (int_of_float
@@ -61,34 +60,27 @@ let encoder wav =
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
       match sample_size with
-        | 32 ->
-            fun buf s off -> Audio.S32LE.of_audio buf s off
-        | 24 ->
-            fun buf s off -> Audio.S24LE.of_audio buf s off
-        | 16 ->
-            Audio.S16LE.of_audio
-        | 8 ->
-            fun buf s off -> Audio.U8.of_audio buf s off
-        | _ ->
-            failwith "unsupported sample size"
+        | 32 -> fun buf s off -> Audio.S32LE.of_audio buf s off
+        | 24 -> fun buf s off -> Audio.S24LE.of_audio buf s off
+        | 16 -> Audio.S16LE.of_audio
+        | 8 -> fun buf s off -> Audio.U8.of_audio buf s off
+        | _ -> failwith "unsupported sample size"
     in
-    of_audio (Audio.sub b start len) s 0 ;
+    of_audio (Audio.sub b start len) s 0;
     let s = Bytes.unsafe_to_string s in
     if !need_header then (
-      need_header := false ;
+      need_header := false;
       Strings.of_list [header; s] )
     else Strings.of_string s
   in
   {
-    Encoder.insert_metadata= (fun _ -> ());
+    Encoder.insert_metadata = (fun _ -> ());
     encode;
-    header= Strings.of_string header;
-    stop= (fun () -> Strings.empty);
+    header = Strings.of_string header;
+    stop = (fun () -> Strings.empty);
   }
 
 let () =
   Encoder.plug#register "WAV" (function
-    | Encoder.WAV w ->
-        Some (fun _ _ -> encoder w)
-    | _ ->
-        None)
+    | Encoder.WAV w -> Some (fun _ _ -> encoder w)
+    | _ -> None)

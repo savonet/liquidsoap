@@ -29,7 +29,5 @@ let () =
       (* TODO is that really impossible ? *)
       let file = Lang.to_string (Lang.assoc "" 1 p) in
       match Configure.file_mime with
-        | Some s ->
-            Lang.string (s file)
-        | None ->
-            assert false)
+        | Some s -> Lang.string (s file)
+        | None -> assert false)

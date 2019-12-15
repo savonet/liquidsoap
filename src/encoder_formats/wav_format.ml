@@ -21,20 +21,18 @@
  *****************************************************************************)
 
 type t = {
-  samplerate: int Lazy.t;
-  samplesize: int;
-  channels: int;
-  duration: float option;
-  header: bool;
+  samplerate : int Lazy.t;
+  samplesize : int;
+  channels : int;
+  duration : float option;
+  header : bool;
 }
 
 let to_string w =
   let duration =
     match w.duration with
-      | None ->
-          ""
-      | Some d ->
-          Printf.sprintf ",duration=%f" d
+      | None -> ""
+      | Some d -> Printf.sprintf ",duration=%f" d
   in
   Printf.sprintf "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b%s)"
     (Lazy.force w.samplerate) w.channels w.samplesize w.header duration

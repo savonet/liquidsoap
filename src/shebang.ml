@@ -41,9 +41,9 @@ let argv =
           * When liquidsoap is invoked through gdb, env[_] is "../gdb".
           * For a real #! invokation, env[_] (the script name) should be
           * found on the command-line, either at position 1 or 2. *)
-         not
-           ( (Array.length Sys.argv > 1 && Sys.getenv "_" === Sys.argv.(1))
-           || (Array.length Sys.argv > 2 && Sys.getenv "_" === Sys.argv.(2)) )
+      not
+        ( (Array.length Sys.argv > 1 && Sys.getenv "_" === Sys.argv.(1))
+        || (Array.length Sys.argv > 2 && Sys.getenv "_" === Sys.argv.(2)) )
     with Not_found ->
       (* In case ENV[_] is not defined, for compatibility: *)
       true
@@ -60,11 +60,11 @@ let argv =
     let opts, script, more =
       if Sys.argv.(1) === Sys.getenv "_" then
         ( [||],
-          [|Sys.argv.(1)|],
+          [| Sys.argv.(1) |],
           Array.sub Sys.argv 2 (Array.length Sys.argv - 2) )
       else
         ( Array.of_list (Pcre.split ~pat:"\\s+" Sys.argv.(1)),
-          [|Sys.argv.(2)|],
+          [| Sys.argv.(2) |],
           Array.sub Sys.argv 3 (Array.length Sys.argv - 3) )
     in
-    Array.concat [[|Sys.argv.(0)|]; opts; script; [|"--"|]; more] )
+    Array.concat [[| Sys.argv.(0) |]; opts; script; [| "--" |]; more] )

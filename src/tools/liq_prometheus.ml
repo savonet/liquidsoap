@@ -50,7 +50,7 @@ let _ =
           (Thread.create
              (fun () ->
                log#important "Starting prometheus server on port %d"
-                 conf_port#get ;
-               Lwt_main.run (server ()) ;
+                 conf_port#get;
+               Lwt_main.run (server ());
                log#important "Prometheus server shutdown!")
              ()))

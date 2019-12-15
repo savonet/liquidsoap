@@ -26,8 +26,8 @@ let load_image fname =
   let ic = open_in_bin fname in
   let len = in_channel_length ic in
   let data = Bytes.create len in
-  really_input ic data 0 len ;
-  close_in ic ;
+  really_input ic data 0 len;
+  close_in ic;
   Image.YUV420.of_PPM (Bytes.unsafe_to_string data)
 
 let () =

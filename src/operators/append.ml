@@ -32,93 +32,83 @@ class append ~kind ~insert_missing ~merge source f =
       match state with
         | `Idle -> (
             let start = Frame.position buf in
-            source#get buf ;
+            source#get buf;
             let finished = Frame.is_partial buf in
             match
               let m = Frame.get_metadata buf start in
-              if insert_missing && m = None then Some (Hashtbl.create 10)
-              else m
+              if insert_missing && m = None then Some (Hashtbl.create 10) else m
             with
               | Some m when Utils.hashtbl_get m "liq_append" <> Some "false" ->
                   let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
                   let append =
                     Lang.to_source (Lang.apply ~t f [("", Lang.metadata m)])
                   in
-                  self#register append ;
+                  self#register append;
                   if finished then
                     if append#is_ready then (
-                      state <- `Append append ;
+                      state <- `Append append;
                       if merge then (
                         let pos = Frame.position buf in
-                        self#get_frame buf ;
+                        self#get_frame buf;
                         Frame.set_breaks buf
                           (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) )
                     else (
-                      (self#log)#important
+                      self#log#important
                         "Track ends and append source is not ready: won't \
-                         append." ;
-                      self#unregister append ;
+                         append.";
+                      self#unregister append;
                       state <- `Idle )
                   else state <- `Replay (Some append)
               | _ ->
-                  (self#log)#important
-                    "No metadata at beginning of track: won't append." ;
+                  self#log#important
+                    "No metadata at beginning of track: won't append.";
                   state <- (if finished then `Idle else `Replay None) )
         | `Replay None ->
-            source#get buf ;
+            source#get buf;
             if Frame.is_partial buf then state <- `Idle
         | `Replay (Some a) ->
-            source#get buf ;
+            source#get buf;
             if Frame.is_partial buf then
               if a#is_ready then (
-                state <- `Append a ;
+                state <- `Append a;
                 if merge then (
                   let pos = Frame.position buf in
-                  self#get_frame buf ;
+                  self#get_frame buf;
                   Frame.set_breaks buf
                     (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) )
               else (
-                (self#log)#important
-                  "Track ends and append source is not ready: won't append." ;
-                state <- `Idle ;
+                self#log#important
+                  "Track ends and append source is not ready: won't append.";
+                state <- `Idle;
                 self#unregister a )
         | `Append a ->
-            a#get buf ;
+            a#get buf;
             if Frame.is_partial buf then (
-              state <- `Idle ;
+              state <- `Idle;
               self#unregister a )
 
     method stype = source#stype
 
     method is_ready =
       match state with
-        | `Idle | `Replay None ->
-            source#is_ready
-        | `Append s | `Replay (Some s) ->
-            source#is_ready || s#is_ready
+        | `Idle | `Replay None -> source#is_ready
+        | `Append s | `Replay (Some s) -> source#is_ready || s#is_ready
 
     method remaining =
       match state with
-        | `Idle | `Replay None ->
-            source#remaining
+        | `Idle | `Replay None -> source#remaining
         | `Replay (Some s) when s#is_ready && merge ->
             let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
             source#remaining + s#remaining
-        | `Replay (Some _) ->
-            source#remaining
-        | `Append s ->
-            s#remaining
+        | `Replay (Some _) -> source#remaining
+        | `Append s -> s#remaining
 
     method seek n =
       match state with
-        | `Idle | `Replay None ->
-            source#seek n
-        | `Replay (Some s) when s#is_ready && merge ->
-            0
-        | `Replay (Some _) ->
-            source#seek n
-        | `Append s ->
-            s#seek n
+        | `Idle | `Replay None -> source#seek n
+        | `Replay (Some s) when s#is_ready && merge -> 0
+        | `Replay (Some _) -> source#seek n
+        | `Append s -> s#seek n
 
     method self_sync =
       match state with `Append s -> s#self_sync | _ -> source#self_sync
@@ -131,18 +121,19 @@ class append ~kind ~insert_missing ~merge source f =
     val mutable activation = []
 
     method private wake_up activator =
-      assert (state = `Idle) ;
-      activation <- (self :> source) :: activator ;
-      source#get_ready activation ;
+      assert (state = `Idle);
+      activation <- (self :> source) :: activator;
+      source#get_ready activation;
       Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
 
     method private sleep =
-      source#leave (self :> source) ;
-      Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f ;
+      source#leave (self :> source);
+      Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin
-        match state with `Replay (Some a) | `Append a -> self#unregister a
+        match state with
+        | `Replay (Some a) | `Append a -> self#unregister a
         | _ -> ()
-      end ;
+      end;
       state <- `Idle
 
     method private register a = a#get_ready activation
@@ -153,7 +144,8 @@ class append ~kind ~insert_missing ~merge source f =
 let register =
   let k = Lang.univ_t () in
   Lang.add_operator "append"
-    [ ( "merge",
+    [
+      ( "merge",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Merge the track with its appended track." );
@@ -166,9 +158,10 @@ let register =
         Lang.fun_t [(false, "", Lang.metadata_t)] (Lang.source_t k),
         None,
         Some
-          "Given the metadata, build the source producing the track to \
-           append. This source is allowed to fail (produce nothing) if no \
-           relevant track is to be appended." ) ]
+          "Given the metadata, build the source producing the track to append. \
+           This source is allowed to fail (produce nothing) if no relevant \
+           track is to be appended." );
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.TrackProcessing
     ~descr:
       "Append an extra track to every track. Set the metadata 'liq_append' to \

@@ -48,7 +48,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
           ~output_kind:"output.oss" val_source start as super
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
@@ -59,31 +59,32 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY] 0o200 in
-      fd <- Some descr ;
-      force set_format descr 16 ;
-      force set_channels descr channels ;
+      fd <- Some descr;
+      force set_format descr 16;
+      force set_channels descr channels;
       force set_rate descr samples_per_second
 
     method close_device =
       match fd with
-        | None ->
-            ()
+        | None -> ()
         | Some x ->
-            Unix.close x ;
+            Unix.close x;
             fd <- None
 
     method output_start = self#open_device
 
     method output_stop = self#close_device
 
-    method output_reset = self#close_device ; self#open_device
+    method output_reset =
+      self#close_device;
+      self#open_device
 
     method output_send memo =
       let fd = Utils.get_some fd in
       let buf = AFrame.content memo 0 in
       let r = Audio.S16LE.size (Audio.channels buf) (Audio.length buf) in
       let s = Bytes.create r in
-      Audio.S16LE.of_audio buf s 0 ;
+      Audio.S16LE.of_audio buf s 0;
       let w = Unix.write fd s 0 r in
       assert (w = r)
   end
@@ -99,7 +100,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         ~on_start ~on_stop ~fallible ~autostart:start as super
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
@@ -112,29 +113,31 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
     method private open_device =
       let descr = Unix.openfile dev [Unix.O_RDONLY] 0o400 in
-      fd <- Some descr ;
-      force set_format descr 16 ;
-      force set_channels descr channels ;
+      fd <- Some descr;
+      force set_format descr 16;
+      force set_channels descr channels;
       force set_rate descr samples_per_second
 
     method private stop = self#close_device
 
     method private close_device =
-      Unix.close (Utils.get_some fd) ;
+      Unix.close (Utils.get_some fd);
       fd <- None
 
-    method output_reset = self#close_device ; self#open_device
+    method output_reset =
+      self#close_device;
+      self#open_device
 
     method input frame =
-      assert (0 = AFrame.position frame) ;
+      assert (0 = AFrame.position frame);
       let fd = Utils.get_some fd in
       let buf = AFrame.content_of_type ~channels frame 0 in
       let len = 2 * Array.length buf * Audio.Mono.length buf.(0) in
       let s = Bytes.create len in
       let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
-      assert (len = r) ;
-      Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf ;
+      assert (len = r);
+      Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf;
       AFrame.add_break frame (AFrame.size ())
   end
 
@@ -142,7 +145,8 @@ let () =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
   Lang.add_operator "output.oss" ~active:true
     ( Output.proto
-    @ [ ( "clock_safe",
+    @ [
+        ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated OSS clock." );
@@ -150,7 +154,8 @@ let () =
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
-        ("", Lang.source_t k, None, None) ] )
+        ("", Lang.source_t k, None, None);
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
     (fun p kind ->
@@ -170,18 +175,20 @@ let () =
       let source = List.assoc "" p in
       ( new output
           ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
-        :> Source.source )) ;
+        :> Source.source ));
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "input.oss" ~active:true
     ( Start_stop.input_proto
-    @ [ ( "clock_safe",
+    @ [
+        ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated OSS clock." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
-          Some "OSS device to use." ) ] )
+          Some "OSS device to use." );
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input
     ~descr:"Stream from an OSS input device."
     (fun p kind ->

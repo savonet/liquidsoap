@@ -46,7 +46,7 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let pos = AFrame.position buf in
       let len = pos - offset in
@@ -56,12 +56,14 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.lowshelf"
-    [ ("frequency", Lang.float_t, None, Some "Corner frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Corner frequency");
       ( "slope",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Shelf slope (dB/octave)" );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Low shelf biquad filter."
     (fun p kind ->
@@ -76,12 +78,14 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.highshelf"
-    [ ("frequency", Lang.float_t, None, Some "Center frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Center frequency");
       ( "slope",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Shelf slope (in dB/octave)" );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"High shelf biquad filter."
     (fun p kind ->
@@ -96,9 +100,11 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.low"
-    [ ("frequency", Lang.float_t, None, Some "Corner frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Low pass biquad filter."
     (fun p kind ->
@@ -113,9 +119,11 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.high"
-    [ ("frequency", Lang.float_t, None, Some "Corner frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Corner frequency");
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"High pass biquad filter."
     (fun p kind ->
@@ -130,9 +138,11 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.bandpass"
-    [ ("frequency", Lang.float_t, None, Some "Center frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Center frequency");
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Band pass biquad filter."
     (fun p kind ->
@@ -147,12 +157,14 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.allpass"
-    [ ("frequency", Lang.float_t, None, Some "Center frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Center frequency");
       ( "bandwidth",
         Lang.float_t,
         Some (Lang.float (1. /. 3.)),
         Some "Bandwidth (in octaves)" );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"All pass biquad filter."
     (fun p kind ->
@@ -167,9 +179,11 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.notch"
-    [ ("frequency", Lang.float_t, None, Some "Center frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Center frequency");
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Band pass biquad filter."
     (fun p kind ->
@@ -184,10 +198,12 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.iir.eq.peak"
-    [ ("frequency", Lang.float_t, None, Some "Center frequency");
+    [
+      ("frequency", Lang.float_t, None, Some "Center frequency");
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
       ("gain", Lang.float_t, Some (Lang.float 1.), Some "Gain (in dB)");
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Peak EQ biquad filter."
     (fun p kind ->

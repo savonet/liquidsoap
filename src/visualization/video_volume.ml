@@ -61,19 +61,19 @@ class visu ~kind source =
     method private add_vol v =
       for c = 0 to channels - 1 do
         cur_rms.(c) <- cur_rms.(c) +. v.(c)
-      done ;
-      group <- (group + 1) mod group_size ;
+      done;
+      group <- (group + 1) mod group_size;
       if group = 0 then (
         for c = 0 to channels - 1 do
-          vol.(c).(pos) <- sqrt (cur_rms.(c) /. f_group_size) ;
+          vol.(c).(pos) <- sqrt (cur_rms.(c) /. f_group_size);
           cur_rms.(c) <- 0.
-        done ;
+        done;
         pos <- (pos + 1) mod backpoints )
 
     method private get_frame frame =
       let offset = Frame.position frame in
       let len =
-        source#get frame ;
+        source#get frame;
         Frame.position frame - offset
       in
       (* If the data has duration=0 don't do anything as there might
@@ -82,7 +82,7 @@ class visu ~kind source =
         (* Add a video channel to the frame contents. *)
         let _, src = Frame.content frame offset in
         let src_type = Frame.type_of_content src in
-        let dst_type = {src_type with Frame.video= 1} in
+        let dst_type = { src_type with Frame.video = 1 } in
         let dst = Frame.content_of_type frame offset dst_type in
         (* Reproduce audio data in the new contents. *)
         Audio.blit
@@ -91,7 +91,7 @@ class visu ~kind source =
              (Frame.audio_of_master len))
           (Audio.sub dst.Frame.audio
              (Frame.audio_of_master offset)
-             (Frame.audio_of_master len)) ;
+             (Frame.audio_of_master len));
         (* Feed the volume buffer. *)
         let acontent = AFrame.content frame (Frame.audio_of_master offset) in
         for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
@@ -101,7 +101,7 @@ class visu ~kind source =
                  let x = c.{i} in
                  x *. x)
                acontent)
-        done ;
+        done;
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float channels in
@@ -121,10 +121,10 @@ class visu ~kind source =
         in
         for f = start to stop - 1 do
           let buf = Video.get buf f in
-          Video.Image.blank buf ;
+          Video.Image.blank buf;
           for i = 0 to channels - 1 do
             let y = int_of_float (volheight *. float i) in
-            line buf (90, 90, 90, 0xff) (0, y) (width - 1, y) ;
+            line buf (90, 90, 90, 0xff) (0, y) (width - 1, y);
             for chan = 0 to channels - 1 do
               let vol = vol.(chan) in
               let chan_height = int_of_float (volheight *. float chan) in
@@ -144,7 +144,7 @@ class visu ~kind source =
                           (volheight *. vol.((i + pos) mod backpoints)) )
                     - 1 )
                 in
-                line buf (0, 0xff, 0, 0xff) !pt0 pt1 ;
+                line buf (0, 0xff, 0, 0xff) !pt0 pt1;
                 pt0 := pt1
               done
             done
@@ -155,7 +155,11 @@ class visu ~kind source =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   let fmt =
-    {Frame.audio= Lang.Any_fixed 1; video= Lang.Fixed 1; midi= Lang.Fixed 0}
+    {
+      Frame.audio = Lang.Any_fixed 1;
+      video = Lang.Fixed 1;
+      midi = Lang.Fixed 0;
+    }
   in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]

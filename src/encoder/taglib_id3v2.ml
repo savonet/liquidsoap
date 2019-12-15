@@ -37,20 +37,22 @@ let render m =
         (fun k x ->
           if String.uppercase_ascii l = String.uppercase_ascii k then
             raise (Found x))
-        m ;
+        m;
       t
     with Found x -> g t x
   in
   let try_int f t x = try f t (int_of_string x) with _ -> t in
   let tags =
-    [ ("title", Taglib.Inline.Id3v2.tag_set_title);
+    [
+      ("title", Taglib.Inline.Id3v2.tag_set_title);
       ("album", Taglib.Inline.Id3v2.tag_set_album);
       ("artist", Taglib.Inline.Id3v2.tag_set_artist);
       ("genre", Taglib.Inline.Id3v2.tag_set_genre);
       ("comment", Taglib.Inline.Id3v2.tag_set_comment);
       ("year", try_int Taglib.Inline.Id3v2.tag_set_year);
       ("tracknumber", try_int Taglib.Inline.Id3v2.tag_set_track);
-      ("track", try_int Taglib.Inline.Id3v2.tag_set_track) ]
+      ("track", try_int Taglib.Inline.Id3v2.tag_set_track);
+    ]
   in
   let t = List.fold_left f t tags in
   Taglib.Inline.Id3v2.render t

@@ -38,7 +38,7 @@ let annotate s ~log _ =
     let pos = ref 0 in
     let str =
       Stream.from (fun i ->
-          pos := i ;
+          pos := i;
           if i < l then Some s.[i] else None)
     in
     let lexer = make_lexer [":"; ","; "="] str in
@@ -49,8 +49,7 @@ let annotate s ~log _ =
             (* Revert the above hack. *)
             let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
             (metadata, uri)
-        | Kwd "," ->
-            parse metadata
+        | Kwd "," -> parse metadata
         | Ident key ->
             if key <> "" && key.[0] = ':' then (
               let uri =
@@ -58,33 +57,24 @@ let annotate s ~log _ =
                 ^ String.sub s !pos (l - !pos)
               in
               (* Revert the above hack. *)
-              let uri =
-                Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri
-              in
+              let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
               (metadata, uri) )
             else (
               match Stream.next lexer with
                 | Kwd "=" -> (
-                  match Stream.next lexer with
-                    | String s ->
-                        parse ((key, s) :: metadata)
-                    | Int i ->
-                        parse ((key, string_of_int i) :: metadata)
-                    | Float f ->
-                        parse ((key, string_of_float f) :: metadata)
-                    | Ident k ->
-                        parse ((key, k) :: metadata)
-                    | _ ->
-                        raise Error )
-                | _ ->
-                    raise Error )
-        | _ ->
-            raise Error
+                    match Stream.next lexer with
+                      | String s -> parse ((key, s) :: metadata)
+                      | Int i -> parse ((key, string_of_int i) :: metadata)
+                      | Float f -> parse ((key, string_of_float f) :: metadata)
+                      | Ident k -> parse ((key, k) :: metadata)
+                      | _ -> raise Error )
+                | _ -> raise Error )
+        | _ -> raise Error
     in
     let metadata, uri = parse [] in
     [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
   with Error | Stream.Failure | Stream.Error _ ->
-    log "annotate: syntax error" ;
+    log "annotate: syntax error";
     []
 
 let () =

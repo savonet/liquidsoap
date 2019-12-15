@@ -48,16 +48,16 @@ class comb ~kind (source : source) delay feedback =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let feedback = feedback () in
       for i = offset to position - 1 do
         for c = 0 to Array.length b - 1 do
           let oldin = b.(c).{i} in
-          b.(c).{i} <- b.(c).{i} +. (past.(c).{past_pos} *. feedback) ;
+          b.(c).{i} <- b.(c).{i} +. (past.(c).{past_pos} *. feedback);
           past.(c).{past_pos} <- oldin
-        done ;
+        done;
         past_pos <- (past_pos + 1) mod past_len
       done
   end
@@ -65,12 +65,14 @@ class comb ~kind (source : source) delay feedback =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "comb"
-    [ ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
+    [
+      ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
       ( "feedback",
         Lang.float_getter_t (),
         Some (Lang.float (-6.)),
         Some "Feedback coefficient in dB." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Comb filter."
     (fun p kind ->

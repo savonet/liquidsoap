@@ -21,11 +21,11 @@
  *****************************************************************************)
 
 type 'a read_ops = {
-  really_input: 'a -> Bytes.t -> int -> int -> unit;
-  input_byte: 'a -> int;
-  input: 'a -> Bytes.t -> int -> int -> int;
-  seek: 'a -> int -> unit;
-  close: 'a -> unit;
+  really_input : 'a -> Bytes.t -> int -> int -> unit;
+  input_byte : 'a -> int;
+  input : 'a -> Bytes.t -> int -> int -> int;
+  seek : 'a -> int -> unit;
+  close : 'a -> unit;
 }
 
 let in_chan_ops =
@@ -33,8 +33,8 @@ let in_chan_ops =
     really_input;
     input_byte;
     input;
-    seek= (fun ic len -> seek_in ic (pos_in ic + len));
-    close= close_in;
+    seek = (fun ic len -> seek_in ic (pos_in ic + len));
+    close = close_in;
   }
 
 (* buffer ofs len *)
@@ -48,30 +48,30 @@ let callback_ops =
   let input read = read in
   let _read read len =
     let buf = Bytes.create len in
-    really_input read buf 0 len ;
+    really_input read buf 0 len;
     buf
   in
   let input_byte read = Char.code (Bytes.get (_read read 1) 0) in
   let seek read n = ignore (_read read n) in
   let close _ = () in
-  {really_input; input_byte; input; seek; close}
+  { really_input; input_byte; input; seek; close }
 
-type format = [`Aiff | `Wav]
+type format = [ `Aiff | `Wav ]
 
 type 'a t = {
-  ic: 'a;
-  read_ops: 'a read_ops;
-  format: format;
-  channels_number: int;
+  ic : 'a;
+  read_ops : 'a read_ops;
+  format : format;
+  channels_number : int;
   (* 1 = mono ; 2 = stereo *)
-  sample_rate: int;
+  sample_rate : int;
   (* in Hz *)
-  bytes_per_second: int;
-  bytes_per_sample: int;
+  bytes_per_second : int;
+  bytes_per_sample : int;
   (* 1=8 bit Mono, 2=8 bit Stereo *)
   (* or 16 bit Mono, 4=16 bit Stereo *)
-  bits_per_sample: int;
-  length_of_data_to_follow: int; (* ?? *)
+  bits_per_sample : int;
+  length_of_data_to_follow : int; (* ?? *)
 }
 
 let format_of_handler x = x.format
@@ -79,10 +79,8 @@ let format_of_handler x = x.format
 exception Not_a_iff_file of string
 
 let error_translator = function
-  | Not_a_iff_file x ->
-      Some (Printf.sprintf "IFF File error: %s" x)
-  | _ ->
-      None
+  | Not_a_iff_file x -> Some (Printf.sprintf "IFF File error: %s" x)
+  | _ -> None
 
 let () = Printexc.register_printer error_translator
 
@@ -95,22 +93,19 @@ let read_header read_ops ic =
   let really_input = read_ops.really_input in
   let read_string ic n =
     let ans = Bytes.create n in
-    really_input ic ans 0 n ; Bytes.unsafe_to_string ans
+    really_input ic ans 0 n;
+    Bytes.unsafe_to_string ans
   in
   let format =
     match read_string ic 4 with
-      | "RIFF" ->
-          `Wav
-      | "FORM" ->
-          `Aiff
-      | _ ->
-          raise (Not_a_iff_file "Unknown file format.")
+      | "RIFF" -> `Wav
+      | "FORM" -> `Aiff
+      | _ -> raise (Not_a_iff_file "Unknown file format.")
   in
   let input_byte = read_ops.input_byte in
   let read_int_num_bytes ic total =
     let rec aux cur = function
-      | 0 ->
-          cur
+      | 0 -> cur
       | n ->
           let b = input_byte ic in
           let cur =
@@ -123,55 +118,57 @@ let read_header read_ops ic =
   in
   let read_int ic = read_int_num_bytes ic 4 in
   let read_short ic = read_int_num_bytes ic 2 in
-  ignore (read_int ic) ;
+  ignore (read_int ic);
   (* size of the file *)
   begin
-    match read_string ic 4 with "WAVE" when format = `Wav -> ()
-    | "AIFF" when format = `Aiff -> () | _ ->
-        raise (Not_a_iff_file "Bad header")
-  end ;
+    match read_string ic 4 with
+    | "WAVE" when format = `Wav -> ()
+    | "AIFF" when format = `Aiff -> ()
+    | _ -> raise (Not_a_iff_file "Bad header")
+  end;
   let format_chunk = if format = `Wav then "fmt " else "COMM" in
   let seek_chunk ic name =
     let rec seek () =
       if read_string ic 4 <> name then (
         let n = even_ceil (read_int ic) in
-        read_ops.seek ic n ; seek () )
+        read_ops.seek ic n;
+        seek () )
     in
     seek ()
   in
-  seek_chunk ic format_chunk ;
+  seek_chunk ic format_chunk;
   let fmt_len = read_int ic in
   if format = `Wav then (
     if fmt_len < 0x10 then
-      raise (Not_a_iff_file "Bad header: invalid \"fmt \" length") ;
+      raise (Not_a_iff_file "Bad header: invalid \"fmt \" length");
     if read_short ic <> 1 then
-      raise (Not_a_iff_file "Bad header: unhandled codec") ;
+      raise (Not_a_iff_file "Bad header: unhandled codec");
     let chan_num = read_short ic in
     let samp_hz = read_int ic in
     let byt_per_sec = read_int ic in
     let byt_per_samp = read_short ic in
     let bit_per_samp = read_short ic in
     (* The fmt header can be padded *)
-    if fmt_len > 0x10 then read_ops.seek ic (fmt_len - 0x10) ;
+    if fmt_len > 0x10 then read_ops.seek ic (fmt_len - 0x10);
     (* Skip unhandled chunks. *)
-    seek_chunk ic "data" ;
+    seek_chunk ic "data";
     let len_dat = read_int ic in
     {
       ic;
       format;
       read_ops;
-      channels_number= chan_num;
-      sample_rate= samp_hz;
-      bytes_per_second= byt_per_sec;
-      bytes_per_sample= byt_per_samp;
-      bits_per_sample= bit_per_samp;
-      length_of_data_to_follow= len_dat;
+      channels_number = chan_num;
+      sample_rate = samp_hz;
+      bytes_per_second = byt_per_sec;
+      bytes_per_sample = byt_per_samp;
+      bits_per_sample = bit_per_samp;
+      length_of_data_to_follow = len_dat;
     } )
   else if format = `Aiff then (
     if fmt_len < 0x12 then
-      raise (Not_a_iff_file "Bad header: invalid \"COMM\" length") ;
+      raise (Not_a_iff_file "Bad header: invalid \"COMM\" length");
     let chan_num = read_short ic in
-    read_ops.seek ic 4 ;
+    read_ops.seek ic 4;
     let bit_per_samp = read_short ic in
     let byt_per_samp = bit_per_samp / 8 in
     let samp_hz =
@@ -181,25 +178,23 @@ let read_header read_ops ic =
     (* Test for AIFC header, reject other than PCM. *)
     if fmt_len > 0x12 then (
       match read_string ic 4 with
-        | "NONE" ->
-            read_ops.seek ic (even_ceil (fmt_len - 0x16))
-        | _ ->
-            raise (Not_a_iff_file "Compressed AIFC data not supported") ) ;
+        | "NONE" -> read_ops.seek ic (even_ceil (fmt_len - 0x16))
+        | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported") );
     (* Skip unhandled chunks. *)
-    seek_chunk ic "SSND" ;
+    seek_chunk ic "SSND";
     let len_dat = read_int ic in
     let offset = read_int ic in
-    read_ops.seek ic (4 + offset) ;
+    read_ops.seek ic (4 + offset);
     {
       ic;
       format;
       read_ops;
-      channels_number= chan_num;
-      sample_rate= samp_hz;
-      bytes_per_second= byt_per_sec;
-      bytes_per_sample= byt_per_samp;
-      bits_per_sample= bit_per_samp;
-      length_of_data_to_follow= len_dat - (8 + offset);
+      channels_number = chan_num;
+      sample_rate = samp_hz;
+      bytes_per_second = byt_per_sec;
+      bytes_per_sample = byt_per_samp;
+      bits_per_sample = bit_per_samp;
+      length_of_data_to_follow = len_dat - (8 + offset);
     } )
   else assert false
 
@@ -209,10 +204,11 @@ let fopen file =
   let ic = open_in_bin file in
   try in_chan_read_header ic with
     | End_of_file ->
-        close_in ic ;
+        close_in ic;
         raise (Not_a_iff_file "End of file unexpected")
     | e ->
-        close_in ic ; raise e
+        close_in ic;
+        raise e
 
 let info w =
   Printf.sprintf
@@ -221,9 +217,9 @@ let info w =
      bytes_per_second = %d \n\
      bytes_per_sample = %d \n\
      bits_per_sample = %d \n\
-     length_of_data_to_follow = %d"
-    w.channels_number w.sample_rate w.bytes_per_second w.bytes_per_sample
-    w.bits_per_sample w.length_of_data_to_follow
+     length_of_data_to_follow = %d" w.channels_number w.sample_rate
+    w.bytes_per_second w.bytes_per_sample w.bits_per_sample
+    w.length_of_data_to_follow
 
 let channels w = w.channels_number
 
@@ -247,20 +243,18 @@ let short_string i =
 
 let int_string n =
   let s = Bytes.create 4 in
-  Bytes.set s 0 (char_of_int (n land 0xff)) ;
-  Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8)) ;
-  Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16)) ;
-  Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24)) ;
+  Bytes.set s 0 (char_of_int (n land 0xff));
+  Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8));
+  Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16));
+  Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24));
   Bytes.unsafe_to_string s
 
 let wav_header ?len ~channels ~sample_rate ~sample_size () =
   (* The data lengths are set to their maximum possible values. *)
   let header_len, data_len =
     match len with
-      | None ->
-          ("\255\255\255\239", "\219\255\255\239")
-      | Some v ->
-          (int_string (v + 36), int_string v)
+      | None -> ("\255\255\255\239", "\219\255\255\239")
+      | Some v -> (int_string (v + 36), int_string v)
   in
   "RIFF" ^ header_len ^ "WAVEfmt " ^ int_string 16 ^ short_string 1
   ^ short_string channels ^ int_string sample_rate

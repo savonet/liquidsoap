@@ -25,34 +25,28 @@ type bitrate_control = Quality of int | Vbr of int | Abr of int
 type mode = Narrowband | Wideband | Ultra_wideband
 
 type t = {
-  bitrate_control: bitrate_control;
-  samplerate: int Lazy.t;
-  stereo: bool;
-  mode: mode;
-  frames_per_packet: int;
-  complexity: int option;
-  fill: int option;
-  dtx: bool;
-  vad: bool;
+  bitrate_control : bitrate_control;
+  samplerate : int Lazy.t;
+  stereo : bool;
+  mode : mode;
+  frames_per_packet : int;
+  complexity : int option;
+  fill : int option;
+  dtx : bool;
+  vad : bool;
 }
 
 let string_of_br_ctl x =
   match x with
-    | Vbr x ->
-        Printf.sprintf "vbr,quality=%d" x
-    | Abr x ->
-        Printf.sprintf "abr,bitrate=%d" x
-    | Quality x ->
-        Printf.sprintf "quality=%d" x
+    | Vbr x -> Printf.sprintf "vbr,quality=%d" x
+    | Abr x -> Printf.sprintf "abr,bitrate=%d" x
+    | Quality x -> Printf.sprintf "quality=%d" x
 
 let string_of_mode x =
   match x with
-    | Narrowband ->
-        "narrowband"
-    | Wideband ->
-        "widebande"
-    | Ultra_wideband ->
-        "ultra-wideband"
+    | Narrowband -> "narrowband"
+    | Wideband -> "widebande"
+    | Ultra_wideband -> "ultra-wideband"
 
 let string_of_complexity x =
   match x with None -> "" | Some x -> Printf.sprintf ",complexity=%d" x
