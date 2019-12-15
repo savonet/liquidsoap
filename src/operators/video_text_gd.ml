@@ -31,10 +31,10 @@ let render_text ~font ~size text =
   let w, h = (x2 - x1, y2 - y1) in
   let img = Gd.create ~x:w ~y:h in
   let ca = img#colors in
-  img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w - 1) ~y2:(h - 1) ca#black ;
+  img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w - 1) ~y2:(h - 1) ca#black;
   ignore
     (img#string_ft ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:h
-       ~fg:ca#white text) ;
+       ~fg:ca#white text);
   let get_pixel x y =
     let c = img#get_pixel ~x ~y in
     if c = ca#white then 0xff else 0

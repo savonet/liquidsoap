@@ -43,7 +43,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
     inherit [Frame.audio_t array] IoRing.output ~nb_blocks ~blank as ioring
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
@@ -61,29 +61,28 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
 
     method get_device =
       match device with
-        | Some d ->
-            d
+        | Some d -> d
         | None ->
-            (self#log)#important "Using ALSA %s." (Alsa.get_version ()) ;
+            self#log#important "Using ALSA %s." (Alsa.get_version ());
             let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
             let params = Pcm.get_params dev in
             let bufsize, periods =
               ( try
-                  Pcm.set_access dev params Pcm.Access_rw_noninterleaved ;
+                  Pcm.set_access dev params Pcm.Access_rw_noninterleaved;
                   Pcm.set_format dev params Pcm.Format_float
                 with _ ->
                   (* If we can't get floats we fallback on interleaved s16le *)
-                  (self#log)#severe "Falling back on interleaved S16LE" ;
-                  Pcm.set_access dev params Pcm.Access_rw_interleaved ;
-                  Pcm.set_format dev params Pcm.Format_s16_le ;
+                  self#log#severe "Falling back on interleaved S16LE";
+                  Pcm.set_access dev params Pcm.Access_rw_interleaved;
+                  Pcm.set_format dev params Pcm.Format_s16_le;
                   alsa_write <-
                     (fun pcm buf ofs len ->
                       let sbuf = Bytes.create (2 * len * Array.length buf) in
-                      Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0 ;
-                      Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len) ) ;
-              Pcm.set_channels dev params buffer_chans ;
+                      Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
+                      Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len) );
+              Pcm.set_channels dev params buffer_chans;
               alsa_rate <-
-                Pcm.set_rate_near dev params samples_per_second Dir_eq ;
+                Pcm.set_rate_near dev params samples_per_second Dir_eq;
               (* Size in frames, must be set after the samplerate.
                * This setting is critical as a too small bufsize will easily result in
                * underruns when the thread isn't fast enough.
@@ -93,25 +92,24 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
                   Pcm.set_buffer_size_near dev params alsa_buffer
                 else Pcm.get_buffer_size_max params
               in
-              if periods > 0 then Pcm.set_periods dev params periods Dir_eq ;
+              if periods > 0 then Pcm.set_periods dev params periods Dir_eq;
               (bufsize, fst (Pcm.get_periods_max params))
             in
-            (self#log)#important
+            self#log#important
               "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d" alsa_rate
               bufsize
               (Pcm.get_frame_size params)
-              periods ;
-            Pcm.set_params dev params ;
-            device <- Some dev ;
+              periods;
+            Pcm.set_params dev params;
+            device <- Some dev;
             dev
 
     method close =
       match device with
         | Some d ->
-            Pcm.close d ;
+            Pcm.close d;
             device <- None
-        | None ->
-            ()
+        | None -> ()
 
     method push_block data =
       let dev = self#get_device in
@@ -125,11 +123,12 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         f 0
       with e ->
         begin
-          match e with Buffer_xrun -> (self#log)#severe "Underrun!" | _ ->
-              (self#log)#severe "Alsa error: %s" (string_of_error e)
-        end ;
+          match e with
+          | Buffer_xrun -> self#log#severe "Underrun!"
+          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+        end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
-          (self#log)#severe "Trying to recover.." ;
+          self#log#severe "Trying to recover..";
           Pcm.recover dev e )
         else raise e
 
@@ -142,7 +141,9 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
       let f data = Audio.blit buf data in
       ioring#put_block f
 
-    method output_reset = self#close ; ignore self#get_device
+    method output_reset =
+      self#close;
+      ignore self#get_device
   end
 
 (* It is registered in Alsa_io. *)

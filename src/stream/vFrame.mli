@@ -55,8 +55,7 @@ val add_break : t -> int -> unit
   * and returns the produced chunk of video content.
   * It is possible that a successful filling produced audio samples
   * but no video sample. *)
-val get_content :
-  Frame.t -> Source.source -> (Video.t array * int * int) option
+val get_content : Frame.t -> Source.source -> (Video.t array * int * int) option
 
 (** Create a new video-only content layer for [channels] video channels,
   * at the current position in the frame, i.e., suitable for the next

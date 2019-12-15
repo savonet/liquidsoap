@@ -28,23 +28,15 @@ let () = Alsa.no_stderr_report ()
 (** Error translator *)
 let error_translator e =
   match e with
-    | Alsa.Buffer_xrun
-    | Alsa.Bad_state
-    | Alsa.Suspended
-    | Alsa.IO_error
-    | Alsa.Device_busy
-    | Alsa.Invalid_argument
-    | Alsa.Device_removed
-    | Alsa.Interrupted
-    | Alsa.Unknown_error _ ->
+    | Alsa.Buffer_xrun | Alsa.Bad_state | Alsa.Suspended | Alsa.IO_error
+    | Alsa.Device_busy | Alsa.Invalid_argument | Alsa.Device_removed
+    | Alsa.Interrupted | Alsa.Unknown_error _ ->
         Some (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e))
-    | _ ->
-        None
+    | _ -> None
 
 let () = Printexc.register_printer error_translator
 
-let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "alsa") "ALSA configuration"
+let conf = Dtools.Conf.void ~p:(Configure.conf#plug "alsa") "ALSA configuration"
 
 let conf_buffer_length =
   Dtools.Conf.int
@@ -59,8 +51,10 @@ let periods =
 let alsa_buffer =
   Dtools.Conf.int ~p:(conf#plug "alsa_buffer") ~d:0 "Alsa internal buffer size"
     ~comments:
-      [ "This setting is only used in buffered alsa I/O, and affects latency.";
-        "Set to 0 to disable this setting and use ALSA's default." ]
+      [
+        "This setting is only used in buffered alsa I/O, and affects latency.";
+        "Set to 0 to disable this setting and use ALSA's default.";
+      ]
 
 (** A dedicated clock for all ALSA I/O operators, to make sure other
   * blocking I/O inteferes with them. In the future, we might even want

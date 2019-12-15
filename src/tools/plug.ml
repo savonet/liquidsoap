@@ -37,27 +37,22 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
       in
       let doc =
         match (doc, sdoc) with
-          | Some d, _ ->
-              d
-          | _, None ->
-              Doc.trivial "(no doc)"
-          | _, Some s ->
-              Doc.trivial s
+          | Some d, _ -> d
+          | _, None -> Doc.trivial "(no doc)"
+          | _, Some s -> Doc.trivial s
       in
       if duplicates then (
-        subsections <- (plugin, doc) :: subsections ;
+        subsections <- (plugin, doc) :: subsections;
         plugins <- (plugin, v) :: plugins )
       else (
         subsections <-
-          (plugin, doc) :: List.filter (fun (k, _) -> k <> plugin) subsections ;
+          (plugin, doc) :: List.filter (fun (k, _) -> k <> plugin) subsections;
         plugins <-
-          (plugin, v) :: List.filter (fun (k, _) -> k <> plugin) plugins ) ;
-      register_hook (plugin, v) ;
+          (plugin, v) :: List.filter (fun (k, _) -> k <> plugin) plugins );
+      register_hook (plugin, v);
       match plugin_aliases with
-        | Some l ->
-            aliases <- List.map (fun alias -> (alias, v)) l @ aliases
-        | None ->
-            ()
+        | Some l -> aliases <- List.map (fun alias -> (alias, v)) l @ aliases
+        | None -> ()
 
     method is_registered a = List.mem_assoc a plugins
 
@@ -86,7 +81,7 @@ let create ?(duplicates = true) ?register_hook ?insensitive ?doc plugname =
   let insensitive = match insensitive with Some true -> true | _ -> false in
   let doc = match doc with None -> "(no doc)" | Some d -> d in
   let plug = new plug ?register_hook doc insensitive duplicates in
-  plugs#add_subsection plugname (plug :> Doc.item) ;
+  plugs#add_subsection plugname (plug :> Doc.item);
   plug
 
 let list () = plugs#list_subsections

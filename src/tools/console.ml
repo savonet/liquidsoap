@@ -41,14 +41,11 @@ let color =
   let auto = lazy (Unix.isatty Unix.stdout && not (Lazy.force dumb_term)) in
   fun () ->
     match conf_colorize#get with
-      | "always" ->
-          true
-      | "never" ->
-          false
-      | "auto" ->
-          Lazy.force auto
+      | "always" -> true
+      | "never" -> false
+      | "auto" -> Lazy.force auto
       | _ ->
-          log#important "Invalid color configuration, using default \"auto\"" ;
+          log#important "Invalid color configuration, using default \"auto\"";
           Lazy.force auto
 
 type text_style =
@@ -66,28 +63,17 @@ type text_style =
 
 let style_code (c : text_style) =
   match c with
-    | `bold ->
-        "01"
-    | `underline ->
-        "04"
-    | `crossed ->
-        "09"
-    | `black ->
-        "30"
-    | `red ->
-        "31"
-    | `green ->
-        "32"
-    | `yellow ->
-        "33"
-    | `blue ->
-        "1;34" (* most terminals make blue unreadable unless bold *)
-    | `magenta ->
-        "35"
-    | `cyan ->
-        "36"
-    | `white ->
-        "37"
+    | `bold -> "01"
+    | `underline -> "04"
+    | `crossed -> "09"
+    | `black -> "30"
+    | `red -> "31"
+    | `green -> "32"
+    | `yellow -> "33"
+    | `blue -> "1;34" (* most terminals make blue unreadable unless bold *)
+    | `magenta -> "35"
+    | `cyan -> "36"
+    | `white -> "37"
 
 let colorize styles s =
   if not (color ()) then s

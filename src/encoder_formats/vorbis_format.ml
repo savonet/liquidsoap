@@ -31,7 +31,12 @@ type mode =
 
 (* Average: min,avg,max. *)
 
-type t = {channels: int; mode: mode; samplerate: int Lazy.t; fill: int option}
+type t = {
+  channels : int;
+  mode : mode;
+  samplerate : int Lazy.t;
+  fill : int option;
+}
 
 let string_of_mode = function
   | ABR (min, avg, max) ->
@@ -40,11 +45,9 @@ let string_of_mode = function
       in
       Printf.sprintf ".abr(%s%s%s" (f "min_bitrate" min) (f "bitrate" avg)
         (f "max_bitrate" max)
-  | CBR bitrate ->
-      Printf.sprintf ".cbr(bitrate=%d" bitrate
-  | VBR q ->
-      Printf.sprintf "(quality=%.2f" q
+  | CBR bitrate -> Printf.sprintf ".cbr(bitrate=%d" bitrate
+  | VBR q -> Printf.sprintf "(quality=%.2f" q
 
 let to_string v =
-  Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)"
-    (string_of_mode v.mode) v.channels (Lazy.force v.samplerate)
+  Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)" (string_of_mode v.mode)
+    v.channels (Lazy.force v.samplerate)

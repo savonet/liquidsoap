@@ -20,26 +20,23 @@
 
  *****************************************************************************)
 
-type opt_val = [`String of string | `Int of int | `Float of float]
+type opt_val = [ `String of string | `Int of int | `Float of float ]
 
 type opts = (string, opt_val) Hashtbl.t
 
 type t = {
-  format: string;
-  codec: string;
-  channels: int;
-  samplerate: int Lazy.t;
-  options: opts;
+  format : string;
+  codec : string;
+  channels : int;
+  samplerate : int Lazy.t;
+  options : opts;
 }
 
 let string_of_options options =
   let _v = function
-    | `String s ->
-        Printf.sprintf "%S" s
-    | `Int i ->
-        string_of_int i
-    | `Float f ->
-        string_of_float f
+    | `String s -> Printf.sprintf "%S" s
+    | `Int i -> string_of_int i
+    | `Float f -> string_of_float f
   in
   String.concat ","
     (Hashtbl.fold

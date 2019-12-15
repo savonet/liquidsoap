@@ -42,10 +42,10 @@ class map ~kind source delay random freeze =
     method self_sync = source#self_sync
 
     method private get_frame buf =
-      source#get buf ;
+      source#get buf;
       let delay = delay +. Random.float random in
-      Thread.delay delay ;
-      lived <- lived +. max dt delay ;
+      Thread.delay delay;
+      lived <- lived +. max dt delay;
       if freeze >= 0. && lived >= freeze then
         while true do
           Thread.delay 60.
@@ -55,7 +55,8 @@ class map ~kind source delay random freeze =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "sleeper"
-    [ ( "delay",
+    [
+      ( "delay",
         Lang.float_t,
         Some (Lang.float 1.),
         Some
@@ -69,7 +70,8 @@ let () =
         Lang.float_t,
         Some (Lang.float (-1.)),
         Some "Freeze after given amount of time (don't freeze if negative)." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k)
     ~descr:"Sleep at each frame. Useful for emulating network delays, etc."
     ~category:Lang.SoundProcessing

@@ -70,37 +70,34 @@ class sequence ~kind ?(merge = false) sources =
     method abort_track =
       if merge then (
         match List.rev seq_sources with
-          | [] ->
-              assert false
-          | hd :: _ ->
-              seq_sources <- [hd] ) ;
+          | [] -> assert false
+          | hd :: _ -> seq_sources <- [hd] );
       match seq_sources with hd :: _ -> hd#abort_track | _ -> ()
 
     method private get_frame buf =
       if head_ready then (
         let hd = List.hd seq_sources in
-        hd#get buf ;
+        hd#get buf;
         if Frame.is_partial buf then (
-          head_ready <- false ;
+          head_ready <- false;
           if List.length seq_sources > 1 then (
-            seq_sources <- List.tl seq_sources ;
+            seq_sources <- List.tl seq_sources;
             if merge && self#is_ready then (
               let pos = Frame.position buf in
-              self#get_frame buf ;
+              self#get_frame buf;
               Frame.set_breaks buf
                 (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) ) ) )
       else (
         match seq_sources with
           | a :: (_ :: _ as tl) ->
-              if a#is_ready then head_ready <- true else seq_sources <- tl ;
+              if a#is_ready then head_ready <- true else seq_sources <- tl;
               self#get_frame buf
           | [a] ->
-              assert a#is_ready ;
+              assert a#is_ready;
               (* Our #is_ready ensures that. *)
-              head_ready <- true ;
+              head_ready <- true;
               self#get_frame buf
-          | [] ->
-              assert false )
+          | [] -> assert false )
   end
 
 class merge_tracks ~kind source =
@@ -118,33 +115,33 @@ class merge_tracks ~kind source =
     method self_sync = source#self_sync
 
     method private get_frame buf =
-      source#get buf ;
+      source#get buf;
       if Frame.is_partial buf && source#is_ready then (
-        (self#log)#info "End of track: merging." ;
-        self#get_frame buf ;
+        self#log#info "End of track: merging.";
+        self#get_frame buf;
         Frame.set_breaks buf
           ( match Frame.breaks buf with
-            | b :: _ :: l ->
-                b :: l
-            | _ ->
-                assert false ) )
+            | b :: _ :: l -> b :: l
+            | _ -> assert false ) )
   end
 
 let () =
   let k = Lang.univ_t () in
   Lang.add_operator "sequence"
-    [ ( "merge",
+    [
+      ( "merge",
         Lang.bool_t,
         Some (Lang.bool false),
         Some
           "Merge tracks when advancing from one source to the next one. This \
            will NOT merge consecutive tracks from the last source; see \
            merge_tracks() if you need that too." );
-      ("", Lang.list_t (Lang.source_t k), None, None) ]
+      ("", Lang.list_t (Lang.source_t k), None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:
-      "Play only one track of every successive source, except for the last \
-       one which is played as much as available."
+      "Play only one track of every successive source, except for the last one \
+       which is played as much as available."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
       new sequence
@@ -158,8 +155,7 @@ let () =
     [("", Lang.source_t k, None, None)]
     ~category:Lang.TrackProcessing
     ~descr:
-      "Merge consecutive tracks from the input source. They will be \
-       considered as one big track, so `on_track()` will not trigger for \
-       example."
+      "Merge consecutive tracks from the input source. They will be considered \
+       as one big track, so `on_track()` will not trigger for example."
     ~kind:(Lang.Unconstrained k)
     (fun p kind -> new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))

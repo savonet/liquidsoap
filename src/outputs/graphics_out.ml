@@ -33,15 +33,15 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
     method output_stop = sleep <- true
 
     method output_start =
-      Graphics.open_graph "" ;
-      Graphics.set_window_title "Liquidsoap" ;
-      Graphics.resize_window video_width video_height ;
+      Graphics.open_graph "";
+      Graphics.set_window_title "Liquidsoap";
+      Graphics.resize_window video_width video_height;
       sleep <- false
 
     method output_send buf =
       let rgb =
         let stop, c = Frame.content buf 0 in
-        assert (stop = Lazy.force Frame.size) ;
+        assert (stop = Lazy.force Frame.size);
         c.Frame.video.(0)
       in
       for frame = 0 to 0 do

@@ -26,14 +26,18 @@ let () =
   add_builtin "source.skip" ~cat:Liq ~descr:"Skip to the next track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.unit_t
-    (fun p -> (Lang.to_source (List.assoc "" p))#abort_track ; Lang.unit)
+    (fun p ->
+      (Lang.to_source (List.assoc "" p))#abort_track;
+      Lang.unit)
 
 let () =
   add_builtin "source.seek" ~cat:Liq
     ~descr:
       "Seek forward, in seconds. Returns the amount of time effectively seeked."
-    [ ("", Lang.source_t (Lang.univ_t ()), None, None);
-      ("", Lang.float_t, None, None) ]
+    [
+      ("", Lang.source_t (Lang.univ_t ()), None, None);
+      ("", Lang.float_t, None, None);
+    ]
     Lang.float_t
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
@@ -80,7 +84,7 @@ let () =
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
       (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-          (s' :> Source.source) = s) ;
+          (s' :> Source.source) = s);
       Lang.unit)
 
 let () =

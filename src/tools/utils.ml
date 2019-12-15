@@ -61,16 +61,13 @@ let rec make_list n v = if n = 0 then [] else v :: make_list (n - 1) v
 
 let rec prefix p l =
   match (p, l) with
-    | [], _ ->
-        true
-    | _, [] ->
-        false
-    | hp :: tp, hl :: tl ->
-        hp = hl && prefix tp tl
+    | [], _ -> true
+    | _, [] -> false
+    | hp :: tp, hl :: tl -> hp = hl && prefix tp tl
 
 let hashtbl_of_list l =
   let h = Hashtbl.create (List.length l) in
-  List.iter (fun (k, v) -> Hashtbl.add h k v) l ;
+  List.iter (fun (k, v) -> Hashtbl.add h k v) l;
   h
 
 let list_of_metadata m =
@@ -92,14 +89,10 @@ let unescape_char c s =
       let d = s.[pos] in
       let pos = pos + 1 in
       match d with
-        | '\\' when not escaped ->
-            f ~escaped:true cur pos
-        | x when x = c ->
-            f ~escaped:false (Printf.sprintf "%s%c" cur c) pos
-        | x when escaped ->
-            f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
-        | x ->
-            f ~escaped:false (Printf.sprintf "%s%c" cur x) pos )
+        | '\\' when not escaped -> f ~escaped:true cur pos
+        | x when x = c -> f ~escaped:false (Printf.sprintf "%s%c" cur c) pos
+        | x when escaped -> f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
+        | x -> f ~escaped:false (Printf.sprintf "%s%c" cur x) pos )
   in
   f ~escaped:false "" 0
 
@@ -113,20 +106,15 @@ let split ~sep s =
       if pos == len then pos
       else (
         match s.[pos] with
-          | '\\' when not escaped ->
-              get_index true (pos + 1)
-          | x when x == sep && not escaped ->
-              pos
-          | _ ->
-              get_index false (pos + 1) )
+          | '\\' when not escaped -> get_index true (pos + 1)
+          | x when x == sep && not escaped -> pos
+          | _ -> get_index false (pos + 1) )
     in
     let pos = get_index false 0 in
     if pos == len then s :: cur
     else if pos == len - 1 then String.sub s 0 pos :: cur
     else
-      split
-        (String.sub s 0 pos :: cur)
-        (String.sub s (pos + 1) (len - pos - 1))
+      split (String.sub s 0 pos :: cur) (String.sub s (pos + 1) (len - pos - 1))
   in
   List.map (unescape_char sep) (List.rev (split [] s))
 
@@ -139,18 +127,15 @@ let trim s =
   * if none is found. *)
 let remove_one f l =
   let rec aux acc = function
-    | [] ->
-        raise Not_found
-    | x :: l ->
-        if f x then List.rev_append acc l else aux (x :: acc) l
+    | [] -> raise Not_found
+    | x :: l -> if f x then List.rev_append acc l else aux (x :: acc) l
   in
   aux [] l
 
 let rec may_map f = function
   | h :: t -> (
-    match f h with Some h -> h :: may_map f t | None -> may_map f t )
-  | [] ->
-      []
+      match f h with Some h -> h :: may_map f t | None -> may_map f t )
+  | [] -> []
 
 (* Read all data from a given filename.
  * We cannot use really_input with the 
@@ -167,28 +152,27 @@ let read_all filename =
   let rec read () =
     let ret = input channel tmp 0 pagesize in
     if ret > 0 then (
-      Strings.Mutable.add_subbytes contents tmp 0 ret ;
+      Strings.Mutable.add_subbytes contents tmp 0 ret;
       read () )
   in
-  read () ;
-  close_in channel ;
+  read ();
+  close_in channel;
   Strings.Mutable.to_string contents
 
 (* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
-  assert (len <= size) ;
+  assert (len <= size);
   if len = size then Buffer.clear buffer
   else (
     let tmp = Buffer.sub buffer len (size - len) in
-    Buffer.clear buffer ;
+    Buffer.clear buffer;
     Buffer.add_string buffer tmp )
 
 let unix_translator = function
   | Unix.Unix_error (code, name, param) ->
       Some (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) name param)
-  | _ ->
-      None
+  | _ -> None
 
 let () = Printexc.register_printer unix_translator
 
@@ -197,7 +181,7 @@ let () = Printexc.register_printer unix_translator
 let randomize a =
   let permute i j =
     let tmp = a.(i) in
-    a.(i) <- a.(j) ;
+    a.(i) <- a.(j);
     a.(j) <- tmp
   in
   let l = Array.length a in
@@ -207,7 +191,7 @@ let randomize a =
     done
 
 let array_iter2 a b f =
-  assert (Array.length a = Array.length b) ;
+  assert (Array.length a = Array.length b);
   for i = 0 to Array.length a - 1 do
     f a.(i) b.(i)
   done
@@ -220,8 +204,7 @@ let special_char = function
   (* Control chars *)
   | '\x00' .. '\x1F' ->
       true
-  | _ ->
-      false
+  | _ -> false
 
 let escape_char c = if c <> '"' then Char.escaped c else "\\\""
 
@@ -233,15 +216,15 @@ let escape ?(special_char = special_char) ?(next = fun _ i -> i + 1)
   let len = String.length s in
   let rec f pos =
     let c = String.unsafe_get s pos in
-    if special_char c then outs (escape_char c) else out c ;
+    if special_char c then outs (escape_char c) else out c;
     let new_pos = next s pos in
     for i = pos + 1 to min (new_pos - 1) (len - 1) do
       out (String.unsafe_get s i)
-    done ;
+    done;
     if new_pos < len then f new_pos
   in
-  out '"' ;
-  if len > 0 then f 0 ;
+  out '"';
+  if len > 0 then f 0;
   out '"'
 
 (* These two functions are taken from Extlib's module UTF8
@@ -266,24 +249,15 @@ let utf8_next s i =
 (* End of Extlib code *)
 
 let escape_utf8_char = function
-  | '"' ->
-      "\\\""
-  | '\t' ->
-      "\\t"
-  | '\r' ->
-      "\\r"
-  | '\b' ->
-      "\\b"
-  | '\n' ->
-      "\\n"
-  | '\012' ->
-      "\\f"
-  | '\\' ->
-      "\\\\"
-  | '/' ->
-      "\\/"
-  | c ->
-      Printf.sprintf "\\u%04X" (int_of_char c)
+  | '"' -> "\\\""
+  | '\t' -> "\\t"
+  | '\r' -> "\\r"
+  | '\b' -> "\\b"
+  | '\n' -> "\\n"
+  | '\012' -> "\\f"
+  | '\\' -> "\\\\"
+  | '/' -> "\\/"
+  | c -> Printf.sprintf "\\u%04X" (int_of_char c)
 
 let escape_utf8 ?special_char ?(escape_char = escape_utf8_char) =
   escape ?special_char ~escape_char ~next:utf8_next
@@ -291,38 +265,29 @@ let escape_utf8 ?special_char ?(escape_char = escape_utf8_char) =
 let escape_string escape s =
   let b = Buffer.create (String.length s) in
   let f = Format.formatter_of_buffer b in
-  escape f s ; Format.pp_print_flush f () ; Buffer.contents b
+  escape f s;
+  Format.pp_print_flush f ();
+  Buffer.contents b
 
 (** Remove line breaks from markdown text. This is useful for reflowing markdown such as when printing doc. *)
 let unbreak_md md =
   let must_break = function
-    | "" :: _ ->
-        true
-    | "```" :: _ ->
-        true
-    | line :: _ when line.[0] = '-' (* itemize *) ->
-        true
-    | _ ->
-        false
+    | "" :: _ -> true
+    | "```" :: _ -> true
+    | line :: _ when line.[0] = '-' (* itemize *) -> true
+    | _ -> false
   in
   let rec text = function
-    | [] ->
-        ""
-    | [line] ->
-        line
-    | "```" :: lines ->
-        "```\n" ^ verb lines
+    | [] -> ""
+    | [line] -> line
+    | "```" :: lines -> "```\n" ^ verb lines
     | line :: lines when line = "" || must_break lines ->
         line ^ "\n" ^ text lines
-    | line :: lines ->
-        line ^ " " ^ text lines
+    | line :: lines -> line ^ " " ^ text lines
   and verb = function
-    | "```" :: lines ->
-        "```\n" ^ text lines
-    | line :: lines ->
-        line ^ "\n" ^ verb lines
-    | [] ->
-        "```"
+    | "```" :: lines -> "```\n" ^ text lines
+    | line :: lines -> line ^ "\n" ^ verb lines
+    | [] -> "```"
   in
   text (String.split_on_char '\n' md)
 
@@ -351,17 +316,17 @@ let interpolate =
       let s = ref s in
       let changed = ref true in
       while !changed do
-        changed := false ;
+        changed := false;
         s :=
           Str.substitute_first re_if
             (fun s ->
-              changed := true ;
+              changed := true;
               let v = find (Str.matched_group 1 s) in
               let then_ = Str.matched_group 2 s in
               let else_ = try Str.matched_group 6 s with _ -> "" in
               unescape (if v = "" then else_ else then_))
             !s
-      done ;
+      done;
       !s
     in
     let interpolate =
@@ -378,11 +343,11 @@ let interpolate =
 let which ~path s =
   let test fname =
     try
-      Unix.access fname [Unix.X_OK] ;
+      Unix.access fname [Unix.X_OK];
       true
     with _ -> false
   in
-  if s = "" then raise Not_found ;
+  if s = "" then raise Not_found;
   if test s then s
   else List.find test (List.map (fun d -> Filename.concat d s) path)
 
@@ -401,7 +366,8 @@ let string_of_timezone tz =
 let strftime str : string =
   let t = Unix.localtime (Unix.gettimeofday ()) in
   let assoc =
-    [ ("S", Printf.sprintf "%02d" t.Unix.tm_sec);
+    [
+      ("S", Printf.sprintf "%02d" t.Unix.tm_sec);
       ("M", Printf.sprintf "%02d" t.Unix.tm_min);
       ("H", Printf.sprintf "%02d" t.Unix.tm_hour);
       ("d", Printf.sprintf "%02d" t.Unix.tm_mday);
@@ -409,7 +375,8 @@ let strftime str : string =
       ("Y", string_of_int (t.Unix.tm_year + 1900));
       ("w", string_of_int t.Unix.tm_wday);
       ("z", string_of_timezone (timezone ()));
-      ("%", "%") ]
+      ("%", "%");
+    ]
   in
   let subst sub =
     let key = Pcre.get_substring sub 1 in
@@ -420,7 +387,7 @@ let strftime str : string =
 (** Check if a directory exists. *)
 let is_dir d =
   try
-    ignore (Sys.readdir d) ;
+    ignore (Sys.readdir d);
     true
   with _ -> false
 
@@ -434,7 +401,7 @@ let rec mkdir ~perm dir =
     else raise (Unix.Unix_error (Unix.ENOTDIR, "Utils.mkdir", dir))
   else (
     let up = Filename.dirname dir in
-    if up = "." then () else mkdir ~perm up ;
+    if up = "." then () else mkdir ~perm up;
     Unix.mkdir dir perm )
 
 (** Expand ~ notation in filenames. *)
@@ -456,8 +423,7 @@ let home_unrelate =
               let home = (Unix.getpwnam user).Unix.pw_dir in
               Filename.concat home (String.sub s index (len - index))
             with Not_found -> s )
-        | _ ->
-            s )
+        | _ -> s )
   in
   unrel
 
@@ -470,20 +436,15 @@ let decode64 s =
   let padding = ref 0 in
   let to_int c =
     match c with
-      | 'A' .. 'Z' ->
-          int_of_char c - int_of_char 'A'
-      | 'a' .. 'z' ->
-          int_of_char c - int_of_char 'a' + 26
-      | '0' .. '9' ->
-          int_of_char c - int_of_char '0' + 52
-      | '+' ->
-          62
-      | '/' ->
-          63
+      | 'A' .. 'Z' -> int_of_char c - int_of_char 'A'
+      | 'a' .. 'z' -> int_of_char c - int_of_char 'a' + 26
+      | '0' .. '9' -> int_of_char c - int_of_char '0' + 52
+      | '+' -> 62
+      | '/' -> 63
       | '=' ->
-          incr padding ; 0
-      | _ ->
-          failwith "decode64: invalid encoding"
+          incr padding;
+          0
+      | _ -> failwith "decode64: invalid encoding"
   in
   let result = ref [] in
   let add x = result := char_of_int x :: !result in
@@ -491,25 +452,26 @@ let decode64 s =
     (* Read 4 64-digits, i.e. 3 bytes. *)
     let c n = to_int s.[(i * 4) + n] in
     let i = c 3 + (c 2 lsl 6) + (c 1 lsl 12) + (c 0 lsl 18) in
-    add ((i land 0xff0000) lsr 16) ;
-    add ((i land 0x00ff00) lsr 8) ;
+    add ((i land 0xff0000) lsr 16);
+    add ((i land 0x00ff00) lsr 8);
     add (i land 0x0000ff)
-  done ;
+  done;
   let result =
     (* Remove up to two bytes depending on the padding. *)
     match !padding with
-      | 0 ->
-          !result
-      | 1 ->
-          List.tl !result
-      | 2 ->
-          List.tl (List.tl !result)
-      | _ ->
-          failwith "decode64: invalid encoding"
+      | 0 -> !result
+      | 1 -> List.tl !result
+      | 2 -> List.tl (List.tl !result)
+      | _ -> failwith "decode64: invalid encoding"
   in
   let len = List.length result in
   let s = Bytes.make len ' ' in
-  ignore (List.fold_left (fun i c -> Bytes.set s i c ; i - 1) (len - 1) result) ;
+  ignore
+    (List.fold_left
+       (fun i c ->
+         Bytes.set s i c;
+         i - 1)
+       (len - 1) result);
   Bytes.unsafe_to_string s
 
 (** Base 64 encoding. *)
@@ -525,15 +487,15 @@ let encode64 s =
     let ( := ) j v = Bytes.set dst ((i * 4) + j) digit.[v] in
     let c j = int_of_char s.[(i * 3) + j] in
     let c0 = c 0 and c1 = c 1 and c2 = c 2 in
-    0 := c0 lsr 2 ;
-    1 := (c0 lsl 4) land 63 lor (c1 lsr 4) ;
-    2 := (c1 lsl 2) land 63 lor (c2 lsr 6) ;
+    0 := c0 lsr 2;
+    1 := (c0 lsl 4) land 63 lor (c1 lsr 4);
+    2 := (c1 lsl 2) land 63 lor (c2 lsr 6);
     3 := c2 land 63
-  done ;
+  done;
   if extra = 1 then (
-    Bytes.set dst ((4 * (n / 3)) - 2) '=' ;
+    Bytes.set dst ((4 * (n / 3)) - 2) '=';
     Bytes.set dst ((4 * (n / 3)) - 1) '=' )
-  else if extra = 2 then Bytes.set dst ((4 * (n / 3)) - 1) '=' ;
+  else if extra = 2 then Bytes.set dst ((4 * (n / 3)) - 1) '=';
   Bytes.unsafe_to_string dst
 
 (* This is not garanteed to work 100% but should
@@ -550,12 +512,11 @@ let get_ext s =
 
 let name_of_sockaddr ?(rev_dns = false) ?(show_port = false) a =
   match a with
-    | Unix.ADDR_UNIX s ->
-        Printf.sprintf "unix socket %S" s
+    | Unix.ADDR_UNIX s -> Printf.sprintf "unix socket %S" s
     | Unix.ADDR_INET (x, p) ->
         let host =
           try
-            if not rev_dns then raise Not_found ;
+            if not rev_dns then raise Not_found;
             (Unix.gethostbyaddr x).Unix.h_name
           with Not_found -> Unix.string_of_inet_addr x
         in
@@ -588,16 +549,18 @@ let normalize_parameter_string s =
   *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
   *)
 let reopen_out outchan filename =
-  flush outchan ;
+  flush outchan;
   let fd1 = Unix.descr_of_out_channel outchan in
   let fd2 = Unix.openfile filename [Unix.O_WRONLY] 0o666 in
-  Unix.dup2 fd2 fd1 ; Unix.close fd2
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
 
 (** The same for inchan *)
 let reopen_in inchan filename =
   let fd1 = Unix.descr_of_in_channel inchan in
   let fd2 = Unix.openfile filename [Unix.O_RDONLY] 0o666 in
-  Unix.dup2 fd2 fd1 ; Unix.close fd2
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
 
 (* See: http://www.onicos.com/staff/iz/formats/ieee.c *)
 let float_of_extended_float bytes =
@@ -653,10 +616,8 @@ let file_extension ?(leading_dot = true) ?(dir_sep = Filename.dir_sep) name =
   let s = if l = 0 then "" else String.sub name (String.length name - l) l in
   try
     match (leading_dot, s.[0]) with
-      | false, '.' ->
-          String.sub s 1 (String.length s - 1)
-      | _ ->
-          s
+      | false, '.' -> String.sub s 1 (String.length s - 1)
+      | _ -> s
   with Invalid_argument _ -> s
 
 let quote s =
@@ -666,17 +627,14 @@ let quote s =
   let quoteescp = "\\\\" in
   let l = String.length s in
   let b = Buffer.create (l + 20) in
-  Buffer.add_char b quote ;
+  Buffer.add_char b quote;
   for i = 0 to l - 1 do
     match s.[i] with
-      | c when c = quote ->
-          Buffer.add_string b quotequote
-      | c when c = escp ->
-          Buffer.add_string b quoteescp
-      | c ->
-          Buffer.add_char b c
-  done ;
-  Buffer.add_char b quote ;
+      | c when c = quote -> Buffer.add_string b quotequote
+      | c when c = escp -> Buffer.add_string b quoteescp
+      | c -> Buffer.add_char b c
+  done;
+  Buffer.add_char b quote;
   Buffer.contents b
 
 let environment () =
@@ -708,18 +666,15 @@ let string_of_size n =
 let find_cmd cmds =
   let test, null =
     match Sys.os_type with
-      | "Win32" ->
-          ("where", " NUL")
-      | _ ->
-          ("type", "/dev/null")
+      | "Win32" -> ("where", " NUL")
+      | _ -> ("type", "/dev/null")
   in
   let rec cmd = function
     | (c, args) :: l ->
         if Sys.command (Printf.sprintf "%s %s 1>%s 2>%s" test c null null) = 0
         then Some (if args = "" then c else c ^ " " ^ args)
         else cmd l
-    | [] ->
-        None
+    | [] -> None
   in
   cmd cmds
 
@@ -734,17 +689,18 @@ let print_strings ?(pager = false) s =
     find_cmd cmds
   in
   match (pager, cmd) with
-    | false, _ | _, None ->
-        default s
+    | false, _ | _, None -> default s
     | true, Some pager -> (
         let fname, oc = Filename.open_temp_file "liquidsoap" ".txt" in
         try
-          Strings.iter (output_substring oc) s ;
-          flush oc ;
+          Strings.iter (output_substring oc) s;
+          flush oc;
           if Sys.command (Printf.sprintf "%s %s" pager fname) <> 0 then
-            default s ;
+            default s;
           raise Exit
-        with _ -> close_out oc ; Unix.unlink fname )
+        with _ ->
+          close_out oc;
+          Unix.unlink fname )
 
 let print_string ?(pager = false) s =
   if not pager then print_string s
@@ -754,7 +710,7 @@ let kprint_string ?(pager = false) f =
   if not pager then f (print_string ~pager)
   else (
     let ans = Strings.Mutable.empty () in
-    f (Strings.Mutable.add ans) ;
+    f (Strings.Mutable.add ans);
     print_strings ~pager (Strings.Mutable.to_strings ans) )
 
 (** String representation of a matrix of strings. *)
@@ -766,15 +722,15 @@ let string_of_matrix a =
     for i = 0 to Array.length a.(j) - 1 do
       len.(i) <- max len.(i) (String.length a.(j).(i))
     done
-  done ;
+  done;
   let ans = Strings.Mutable.empty () in
   for j = 0 to height - 1 do
     for i = 0 to Array.length a.(j) - 1 do
       let s = a.(j).(i) in
-      if i <> 0 then Strings.Mutable.add ans " " ;
-      Strings.Mutable.add ans s ;
+      if i <> 0 then Strings.Mutable.add ans " ";
+      Strings.Mutable.add ans s;
       Strings.Mutable.add ans (String.make (len.(i) - String.length s) ' ')
-    done ;
+    done;
     Strings.Mutable.add ans "\n"
-  done ;
+  done;
   Strings.Mutable.to_string ans

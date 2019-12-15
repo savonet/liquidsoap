@@ -62,7 +62,7 @@ type pull = Bytes.t -> int -> int -> int
 (** Function for writing data. *)
 type push = Bytes.t -> int -> int -> int
 
-type status = [`Exception of exn | `Status of Unix.process_status]
+type status = [ `Exception of exn | `Status of Unix.process_status ]
 
 (** Trying to performed an operation on a stopped process. *)
 exception Finished

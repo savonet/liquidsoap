@@ -57,7 +57,7 @@ module Make (Generator : Generator.S) = struct
           Tutils.mutexify generator_lock
             (fun () ->
               let len = min len (Generator.remaining generator) in
-              Generator.remove generator len ;
+              Generator.remove generator len;
               len)
             ()
 
@@ -71,19 +71,17 @@ module Make (Generator : Generator.S) = struct
         let r = self#length in
         if buffering then (
           (* We have some data, but not enough for safely starting to play it. *)
-          if bufferize > 0 && r <= bufferize && r <> last_buffering_warning
-          then (
-            last_buffering_warning <- r ;
-            (self#log)#debug "Not ready: need more buffering (%i/%i)." r
-              bufferize ) ;
+          if bufferize > 0 && r <= bufferize && r <> last_buffering_warning then (
+            last_buffering_warning <- r;
+            self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize
+            );
           r > bufferize )
         else (
           (* This only happens if the end of track has not been played yet,
            * after which the buffering phase will start again. Does not mean
            * that we're not accumulating data, but it means that we don't know
            * yet that we'll stop playing it until the buffer is full enough. *)
-          if r = 0 then
-            (self#log)#info "Not ready for a new track: empty buffer." ;
+          if r = 0 then self#log#info "Not ready for a new track: empty buffer.";
           r > 0 )
 
       method remaining =
@@ -97,44 +95,39 @@ module Make (Generator : Generator.S) = struct
           match
             List.fold_left
               (function
-                | None ->
-                    fun (p, m) -> Some (p, m)
+                | None -> fun (p, m) -> Some (p, m)
                 | Some (curp, curm) ->
                     fun (p, m) ->
                       Some (if p >= curp then (p, m) else (curp, curm)))
               (match cur_meta with None -> None | Some m -> Some (-1, m))
               (Frame.get_all_metadata frame)
           with
-            | None ->
-                None
-            | Some (_, m) ->
-                Some m
+            | None -> None
+            | Some (_, m) -> Some m
         in
         if cur_meta = new_meta then true
         else (
-          cur_meta <- new_meta ;
+          cur_meta <- new_meta;
           false )
 
       method private replay_metadata pos frame =
         match cur_meta with
-          | None ->
-              ()
-          | Some m ->
-              Frame.set_metadata frame pos m
+          | None -> ()
+          | Some m -> Frame.set_metadata frame pos m
 
       method private get_frame ab =
         Tutils.mutexify generator_lock
           (fun () ->
             let was_buffering = buffering in
             let pos = Frame.position ab in
-            buffering <- false ;
+            buffering <- false;
             if should_fail then (
-              (self#log)#info "Performing skip." ;
-              should_fail <- false ;
-              if empty_on_abort then Generator.clear generator ;
+              self#log#info "Performing skip.";
+              should_fail <- false;
+              if empty_on_abort then Generator.clear generator;
               Frame.add_break ab (Frame.position ab) )
             else (
-              Generator.fill generator ab ;
+              Generator.fill generator ab;
               (* Currently, we don't enter the buffering phase between tracks
                * even when there's not enough data in the buffer. This is mostly
                * historical because there was initially no breaks in generators.
@@ -142,10 +135,10 @@ module Make (Generator : Generator.S) = struct
                * the new track) but not always (a total disconnection should cause
                * the start of a new track anyway, since the content after it
                * has nothing to do with the content before the connection). *)
-              if Frame.is_partial ab then (self#log)#info "End of track." ;
+              if Frame.is_partial ab then self#log#info "End of track.";
               if Generator.length generator = 0 then (
-                (self#log)#info "Buffer emptied, buffering needed." ;
-                buffering <- true ) ;
+                self#log#info "Buffer emptied, buffering needed.";
+                buffering <- true );
               if self#save_metadata ab && was_buffering && replay_meta then
                 self#replay_metadata pos ab ))
           ()

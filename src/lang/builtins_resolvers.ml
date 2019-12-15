@@ -26,14 +26,15 @@ let () =
   let resolver_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.metadata_t in
   add_builtin "add_metadata_resolver" ~cat:Liq
     ~descr:"Register an external file metadata decoder."
-    [ ("", Lang.string_t, None, Some "Format/resolver's name.");
+    [
+      ("", Lang.string_t, None, Some "Format/resolver's name.");
       ( "",
         resolver_t,
         None,
         Some
           "Process to start. The function takes the format and filename as \
-           argument and returns a list of (name,value) fields." ) ] Lang.unit_t
-    (fun p ->
+           argument and returns a list of (name,value) fields." );
+    ] Lang.unit_t (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let resolver name =
@@ -45,13 +46,11 @@ let () =
         in
         ret
       in
-      Request.mresolvers#register format resolver ;
+      Request.mresolvers#register format resolver;
       Lang.unit)
 
 let () =
-  let playlist_t =
-    Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t)
-  in
+  let playlist_t = Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t) in
   let parser_t =
     Lang.fun_t
       [(true, "pwd", Lang.string_t); (false, "", Lang.string_t)]
@@ -61,7 +60,8 @@ let () =
     ~descr:
       "Register a new playlist parser. An empty playlist is considered as a \
        failure to resolve."
-    [ ( "format",
+    [
+      ( "format",
         Lang.string_t,
         None,
         Some "Playlist format. If possible, a mime-type." );
@@ -69,7 +69,8 @@ let () =
         Lang.bool_t,
         None,
         Some "True if playlist format can be detected unambiguously." );
-      ("", parser_t, None, Some "Playlist parser") ] Lang.unit_t (fun p ->
+      ("", parser_t, None, Some "Playlist parser");
+    ] Lang.unit_t (fun p ->
       let format = Lang.to_string (List.assoc "format" p) in
       let strict = Lang.to_bool (List.assoc "strict" p) in
       let fn = List.assoc "" p in
@@ -77,13 +78,11 @@ let () =
         let args = [("", Lang.string uri)] in
         let args =
           match pwd with
-            | Some pwd ->
-                ("pwd", Lang.string pwd) :: args
-            | None ->
-                args
+            | Some pwd -> ("pwd", Lang.string pwd) :: args
+            | None -> args
         in
         let ret = Lang.to_list (Lang.apply ~t:playlist_t fn args) in
-        if ret = [] then raise Not_found ;
+        if ret = [] then raise Not_found;
         List.map
           (fun el ->
             let m, s = Lang.to_product el in
@@ -91,7 +90,7 @@ let () =
           ret
       in
       Playlist_parser.parsers#register format
-        {Playlist_parser.strict; Playlist_parser.parser= fn} ;
+        { Playlist_parser.strict; Playlist_parser.parser = fn };
       Lang.unit)
 
 let () =
@@ -99,13 +98,16 @@ let () =
   let log_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t in
   let protocol_t =
     Lang.fun_t
-      [ (false, "rlog", log_t);
+      [
+        (false, "rlog", log_t);
         (false, "maxtime", Lang.float_t);
-        (false, "", Lang.string_t) ]
+        (false, "", Lang.string_t);
+      ]
       (Lang.list_t Lang.string_t)
   in
   add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
-    [ ( "temporary",
+    [
+      ( "temporary",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "if true, file is removed when it is finished." );
@@ -113,9 +115,8 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some
-          "if true, then requests can be resolved once and for all. \
-           Typically, static protocols can be used to create infallible \
-           sources." );
+          "if true, then requests can be resolved once and for all. Typically, \
+           static protocols can be used to create infallible sources." );
       ( "syntax",
         Lang.string_t,
         Some (Lang.string "Undocumented"),
@@ -136,7 +137,8 @@ let () =
         Some
           "Protocol resolver. Receives a function to log protocol resolution, \
            the `<arg>` in `<protocol name>:<arg>` and the max delay that \
-           resolution should take." ) ]
+           resolution should take." );
+    ]
     Lang.unit_t
     (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
@@ -149,18 +151,20 @@ let () =
           let log =
             Lang.val_fun log_p ~ret_t:Lang.unit_t (fun p _ ->
                 let v = List.assoc "" p in
-                log (Lang.to_string v) ;
+                log (Lang.to_string v);
                 Lang.unit)
           in
           let l =
             Lang.apply
               ~t:(Lang.list_t Lang.string_t)
               f
-              [ ("rlog", log);
+              [
+                ("rlog", log);
                 ("maxtime", Lang.float timeout);
-                ("", Lang.string arg) ]
+                ("", Lang.string arg);
+              ]
           in
           List.map
             (fun s -> Request.indicator ~temporary (Lang.to_string s))
-            (Lang.to_list l)) ;
+            (Lang.to_list l));
       Lang.unit)

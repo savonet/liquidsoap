@@ -32,24 +32,18 @@ module Make (Generator : Generator.S_Asio) = struct
     let read = input.Decoder.read in
     let seek =
       match input.Decoder.lseek with
-        | Some f ->
-            Some (fun len -> ignore (f (Int64.to_int len)))
-        | None ->
-            None
+        | Some f -> Some (fun len -> ignore (f (Int64.to_int len)))
+        | None -> None
     in
     let tell =
       match input.Decoder.tell with
-        | Some f ->
-            Some (fun () -> Int64.of_int (f ()))
-        | None ->
-            None
+        | Some f -> Some (fun () -> Int64.of_int (f ()))
+        | None -> None
     in
     let length =
       match input.Decoder.length with
-        | Some f ->
-            Some (fun () -> Int64.of_int (f ()))
-        | None ->
-            None
+        | Some f -> Some (fun () -> Int64.of_int (f ()))
+        | None -> None
     in
     let dummy_c =
       Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun _ -> ())
@@ -61,7 +55,7 @@ module Make (Generator : Generator.S_Asio) = struct
     in
     let processed = ref Int64.zero in
     {
-      Decoder.seek=
+      Decoder.seek =
         (fun ticks ->
           let duration = Frame.seconds_of_master ticks in
           let samples = Int64.of_float (duration *. float sample_freq) in
@@ -71,7 +65,7 @@ module Make (Generator : Generator.S_Asio) = struct
           in
           let ret = Flac.Decoder.seek decoder c pos in
           if ret = true then (
-            processed := pos ;
+            processed := pos;
             ticks )
           else (
             match Flac.Decoder.state decoder c with
@@ -80,29 +74,25 @@ module Make (Generator : Generator.S_Asio) = struct
                   else
                     (* Flushing failed, we are in an unknown state.. *)
                     raise End_of_stream
-              | _ ->
-                  0 ));
-      decode=
+              | _ -> 0 ));
+      decode =
         (fun gen ->
           let c =
             Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun data ->
                 let data = Audio.of_array data in
                 let len = try Audio.length data with _ -> 0 in
-                processed := Int64.add !processed (Int64.of_int len) ;
+                processed := Int64.add !processed (Int64.of_int len);
                 let content =
                   resampler ~audio_src_rate:(float sample_freq) data
                 in
-                Generator.set_mode gen `Audio ;
+                Generator.set_mode gen `Audio;
                 Generator.put_audio gen content 0 (Audio.length content))
           in
           match Flac.Decoder.state decoder c with
-            | `Search_for_metadata
-            | `Read_metadata
-            | `Search_for_frame_sync
+            | `Search_for_metadata | `Read_metadata | `Search_for_frame_sync
             | `Read_frame ->
                 Flac.Decoder.process decoder c
-            | _ ->
-                raise End_of_stream);
+            | _ -> raise End_of_stream);
     }
 end
 
@@ -139,9 +129,9 @@ let get_type filename =
       let rate, channels =
         (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
       in
-      log#info "Libflac recognizes %S as FLAC (%dHz,%d channels)." filename
-        rate channels ;
-      {Frame.audio= channels; video= 0; midi= 0})
+      log#info "Libflac recognizes %S as FLAC (%dHz,%d channels)." filename rate
+        channels;
+      { Frame.audio = channels; video = 0; midi = 0 })
 
 let () =
   Decoder.file_decoders#register "FLAC"
@@ -161,7 +151,7 @@ let () =
         if Frame.type_has_kind (get_type filename) kind then true
         else (
           log#important "File %S has an incompatible number of channels."
-            filename ;
+            filename;
           false )
       then Some (fun () -> create_file_decoder filename kind)
       else None)
@@ -197,7 +187,7 @@ let get_tags file =
     not
       (Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
          ~log file)
-  then raise Not_found ;
+  then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o640 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
@@ -210,16 +200,15 @@ let () = Request.mresolvers#register "FLAC" get_tags
 
 let check filename =
   match Configure.file_mime with
-    | Some f ->
-        List.mem (f filename) mime_types#get
+    | Some f -> List.mem (f filename) mime_types#get
     | None -> (
-      try
-        ignore (get_type filename) ;
-        true
-      with _ -> false )
+        try
+          ignore (get_type filename);
+          true
+        with _ -> false )
 
 let duration file =
-  if not (check file) then raise Not_found ;
+  if not (check file) then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o640 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
@@ -228,9 +217,7 @@ let duration file =
       let h = Flac.Decoder.File.create_from_fd write fd in
       let info = h.Flac.Decoder.File.info in
       match info.Flac.Decoder.total_samples with
-        | x when x = Int64.zero ->
-            raise Not_found
-        | x ->
-            Int64.to_float x /. float info.Flac.Decoder.sample_rate)
+        | x when x = Int64.zero -> raise Not_found
+        | x -> Int64.to_float x /. float info.Flac.Decoder.sample_rate)
 
 let () = Request.dresolvers#register "FLAC" duration

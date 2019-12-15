@@ -48,18 +48,19 @@ class echo ~kind (source : source) delay feedback ping_pong =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
-      effect#set_delay (delay ()) ;
-      effect#set_feedback (feedback ()) ;
+      effect#set_delay (delay ());
+      effect#set_feedback (feedback ());
       effect#process (Audio.sub b offset (position - offset))
   end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "echo"
-    [ ( "delay",
+    [
+      ( "delay",
         Lang.float_getter_t (),
         Some (Lang.float 0.5),
         Some "Delay in seconds." );
@@ -71,7 +72,8 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Use ping-pong delay." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Add echo."
     (fun p kind ->
@@ -87,7 +89,7 @@ let () =
         if feedback () > 0. then
           raise
             (Lang_errors.Invalid_value
-               (f "feedback", "feedback should be negative")) ;
+               (f "feedback", "feedback should be negative"));
         fun () -> Audio.lin_of_dB (feedback ())
       in
       new echo ~kind src duration feedback pp)

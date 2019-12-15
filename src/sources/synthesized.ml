@@ -53,23 +53,22 @@ class virtual source ?name ~seek kind duration =
 
     method private get_frame frame =
       if must_fail then (
-        Frame.add_break frame (Frame.position frame) ;
-        remaining <- track_size ;
+        Frame.add_break frame (Frame.position frame);
+        remaining <- track_size;
         must_fail <- false )
       else (
         let off = Frame.position frame in
         let len =
           match remaining with
-            | None ->
-                Lazy.force Frame.size - off
+            | None -> Lazy.force Frame.size - off
             | Some r ->
                 let len = min (Lazy.force Frame.size - off) r in
-                remaining <- Some (r - len) ;
+                remaining <- Some (r - len);
                 len
         in
-        self#synthesize frame off len ;
-        Frame.add_break frame (off + len) ;
+        self#synthesize frame off len;
+        Frame.add_break frame (off + len);
         if VFrame.is_partial frame then (
-          assert (remaining = Some 0) ;
+          assert (remaining = Some 0);
           remaining <- track_size ) )
   end

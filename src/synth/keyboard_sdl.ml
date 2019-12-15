@@ -23,55 +23,59 @@
 open Tsdl
 
 let knotes2 =
-  [| '&';
-     'a';
-     '\233';
-     'z';
-     '"';
-     'e';
-     'r';
-     '(';
-     't';
-     '-';
-     'y';
-     '\232';
-     'u';
-     'i';
-     '\231';
-     'o';
-     '\224';
-     'p' |]
+  [|
+    '&';
+    'a';
+    '\233';
+    'z';
+    '"';
+    'e';
+    'r';
+    '(';
+    't';
+    '-';
+    'y';
+    '\232';
+    'u';
+    'i';
+    '\231';
+    'o';
+    '\224';
+    'p';
+  |]
 
 let knotes1 =
-  [| 'q';
-     'w';
-     's';
-     'x';
-     'd';
-     'c';
-     'v';
-     'g';
-     'b';
-     'h';
-     'n';
-     'j';
-     ',';
-     ';';
-     'l';
-     ':';
-     'm';
-     '!' |]
+  [|
+    'q';
+    'w';
+    's';
+    'x';
+    'd';
+    'c';
+    'v';
+    'g';
+    'b';
+    'h';
+    'n';
+    'j';
+    ',';
+    ';';
+    'l';
+    ':';
+    'm';
+    '!';
+  |]
 
 let array_index a x =
   let ans = ref None in
   for i = 0 to Array.length a - 1 do
     if a.(i) = x then ans := Some i
-  done ;
+  done;
   match !ans with Some i -> i | None -> raise Not_found
 
 let char_of_key k =
   let c = Sdl.get_key_name k in
-  if c = "" then raise Not_found ;
+  if c = "" then raise Not_found;
   c.[0]
 
 let note_of_char c =
@@ -115,12 +119,12 @@ class keyboard ~kind velocity =
     method is_active = true
 
     method get_frame frame =
-      assert (0 = MFrame.position frame) ;
+      assert (0 = MFrame.position frame);
       let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
       let m = m.Frame.midi in
       let t =
         let ans = MIDI.create (MFrame.size ()) in
-        Sdl.pump_events () ;
+        Sdl.pump_events ();
         while
           Sdl.has_event Sdl.Event.key_down || Sdl.has_event Sdl.Event.key_up
         do
@@ -145,31 +149,32 @@ class keyboard ~kind velocity =
                     let n = note_of_char c in
                     (* Printf.printf "Stopping note %d.\n%!" n; *)
                     MIDI.insert ans (0, MIDI.Note_off (n, velocity))
-                | _ ->
-                    () )
+                | _ -> () )
           with Not_found | Invalid_argument _ -> ()
-        done ;
+        done;
         ans
       in
       for c = 0 to Array.length m - 1 do
-        MIDI.clear_all m.(c) ;
+        MIDI.clear_all m.(c);
         MIDI.merge m.(c) t
-      done ;
+      done;
       MFrame.add_break frame (MFrame.size ())
   end
 
 let () =
   Lang.add_operator "input.keyboard.sdl"
-    [ ( "velocity",
+    [
+      ( "velocity",
         Lang.float_t,
         Some (Lang.float 0.8),
-        Some "Velocity of notes." ) ]
+        Some "Velocity of notes." );
+    ]
     ~kind:
       (Lang.Constrained
          {
-           Frame.audio= Lang.Any_fixed 0;
-           video= Lang.Fixed 0;
-           midi= Lang.Any_fixed 1;
+           Frame.audio = Lang.Any_fixed 0;
+           video = Lang.Fixed 0;
+           midi = Lang.Any_fixed 1;
          })
     ~category:Lang.Input ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."

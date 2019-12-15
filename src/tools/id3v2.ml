@@ -5,7 +5,7 @@ exception Invalid
 let read f n =
   let s = Bytes.create n in
   let k = read_retry f s 0 n in
-  if k <> n then raise Invalid ;
+  if k <> n then raise Invalid;
   Bytes.unsafe_to_string s
 
 let read_byte f = int_of_char (read f 1).[0]
@@ -17,7 +17,7 @@ let read_size ?(synch_safe = true) f =
   let s2 = int_of_char s.[2] in
   let s3 = int_of_char s.[3] in
   if synch_safe then (
-    if s0 lor s1 lor s2 lor s3 land 0b10000000 <> 0 then raise Invalid ;
+    if s0 lor s1 lor s2 lor s3 land 0b10000000 <> 0 then raise Invalid;
     (s0 lsl 21) + (s1 lsl 14) + (s2 lsl 7) + s3 )
   else (s0 lsl 24) + (s1 lsl 16) + (s2 lsl 8) + s3
 
@@ -29,15 +29,15 @@ let recode enc s =
 
 let parse f =
   let id = read f 3 in
-  if id <> "ID3" then raise Invalid ;
+  if id <> "ID3" then raise Invalid;
   let version =
     let v1 = read_byte f in
     let v2 = read_byte f in
-    [|2; v1; v2|]
+    [| 2; v1; v2 |]
   in
   (* Printf.printf "version: %s\n" (String.concat "." (List.map string_of_int (Array.to_list version))); *)
   let v = version.(1) in
-  if v <> 3 && v <> 4 then raise Invalid ;
+  if v <> 3 && v <> 4 then raise Invalid;
   let flags = read_byte f in
   (* let unsynchronization = flags land 0b10000000 <> 0 in *)
   (* Printf.printf "unsynchronization: %b\n%!" unsynchronization; *)
@@ -49,7 +49,7 @@ let parse f =
     let size = read_size ~synch_safe:(v > 3) f in
     (* size *)
     let size = if v = 3 then size else size - 4 in
-    ignore (read f size) ) ;
+    ignore (read f size) );
   let len = ref size in
   let tags = ref [] in
   while !len > 0 do
@@ -64,29 +64,21 @@ let parse f =
         let flags = read f 2 in
         let data = read f size in
         (* if id <> "APIC" then Printf.printf "data: %S\n%!" data; *)
-        len := !len - (size + 10) ;
+        len := !len - (size + 10);
         let compressed = int_of_char flags.[1] land 0b10000000 <> 0 in
         let encrypted = int_of_char flags.[1] land 0b01000000 <> 0 in
-        if compressed || encrypted then raise Exit ;
+        if compressed || encrypted then raise Exit;
         if id.[0] = 'T' then (
           let id =
             match id with
-              | "COMM" ->
-                  "comment"
-              | "TPE1" ->
-                  "artist"
-              | "TIT2" ->
-                  "title"
-              | "TALB" ->
-                  "album"
-              | "TYER" ->
-                  "year"
-              | "TRCK" ->
-                  "track"
-              | "TBPM" ->
-                  "bpm"
-              | _ ->
-                  id
+              | "COMM" -> "comment"
+              | "TPE1" -> "artist"
+              | "TIT2" -> "title"
+              | "TALB" -> "album"
+              | "TYER" -> "year"
+              | "TRCK" -> "track"
+              | "TBPM" -> "bpm"
+              | _ -> id
           in
           let encoding = int_of_char data.[0] in
           let z =
@@ -101,14 +93,14 @@ let parse f =
           tags := (id, text) :: !tags )
         else tags := (id, data) :: !tags )
     with Exit -> ()
-  done ;
+  done;
   !tags
 
 type apic = {
-  mime: string;
-  picture_type: int;
-  description: string;
-  data: string;
+  mime : string;
+  picture_type : int;
+  description : string;
+  data : string;
 }
 
 let parse_apic apic =
@@ -123,4 +115,4 @@ let parse_apic apic =
   let description = recode (String.sub apic n (n' - n)) in
   let n = n' + 1 in
   let data = String.sub apic n (String.length apic - n) in
-  {mime; picture_type; description; data}
+  { mime; picture_type; description; data }

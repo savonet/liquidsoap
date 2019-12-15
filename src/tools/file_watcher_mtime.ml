@@ -35,12 +35,12 @@ let rec watchdog () =
           List.map
             (fun (file, mtime, f) ->
               let mtime' = try file_mtime file with _ -> mtime in
-              if mtime' <> mtime then f () ;
+              if mtime' <> mtime then f ();
               (file, mtime', f))
-            !watched ;
+            !watched;
         [watchdog ()])
   in
-  {Duppy.Task.priority= Tutils.Maybe_blocking; events= [`Delay 1.]; handler}
+  { Duppy.Task.priority = Tutils.Maybe_blocking; events = [`Delay 1.]; handler }
 
 let watch : File_watcher.watch =
  fun e file f ->
@@ -48,10 +48,10 @@ let watch : File_watcher.watch =
     Tutils.mutexify m
       (fun () ->
         if not !launched then (
-          launched := true ;
-          Duppy.Task.add Tutils.scheduler (watchdog ()) ) ;
+          launched := true;
+          Duppy.Task.add Tutils.scheduler (watchdog ()) );
         let mtime = try file_mtime file with _ -> 0. in
-        watched := (file, mtime, f) :: !watched ;
+        watched := (file, mtime, f) :: !watched;
         let unwatch =
           Tutils.mutexify m (fun () ->
               watched :=

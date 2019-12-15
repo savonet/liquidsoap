@@ -34,14 +34,9 @@ let to_string l =
     (String.concat ","
        (List.map
           (function
-            | Vorbis v ->
-                Vorbis_format.to_string v
-            | Flac v ->
-                Flac_format.to_string v
-            | Theora t ->
-                Theora_format.to_string t
-            | Speex s ->
-                Speex_format.to_string s
-            | Opus o ->
-                Opus_format.to_string o)
+            | Vorbis v -> Vorbis_format.to_string v
+            | Flac v -> Flac_format.to_string v
+            | Theora t -> Theora_format.to_string t
+            | Speex s -> Speex_format.to_string s
+            | Opus o -> Opus_format.to_string o)
           l))

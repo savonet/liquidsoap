@@ -28,7 +28,7 @@ let export_metadata m =
   Hashtbl.iter
     (fun x y ->
       if List.mem (String.lowercase_ascii x) l then Hashtbl.add ret x y)
-    m ;
+    m;
   ret
 
 let to_metadata m = m
@@ -41,8 +41,6 @@ let to_string m =
   "{ "
   ^ Hashtbl.fold
       (fun k v s ->
-        Printf.sprintf "%s\"%s\": \"%s\""
-          (if s = "" then "" else s ^ " , ")
-          k v)
+        Printf.sprintf "%s\"%s\": \"%s\"" (if s = "" then "" else s ^ " , ") k v)
       m ""
   ^ " }"

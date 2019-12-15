@@ -23,10 +23,10 @@
 open Source
 
 type handler = {
-  req: Request.t;
-  fill: Frame.t -> unit;
-  seek: int -> int;
-  close: unit -> unit;
+  req : Request.t;
+  fill : Frame.t -> unit;
+  seek : int -> int;
+  close : unit -> unit;
 }
 
 (** Class [unqueued] plays the file given by method [get_next_file] as a request
@@ -56,77 +56,79 @@ class virtual unqueued ~kind ~name =
 
     (** How to unload a request. *)
     method private end_track forced =
-      Mutex.lock plock ;
+      Mutex.lock plock;
       begin
-        match current with None -> () | Some cur ->
+        match current with
+        | None -> ()
+        | Some cur ->
             begin
-              match Request.get_filename cur.req with None ->
-                  (self#log)#severe
+              match Request.get_filename cur.req with
+              | None ->
+                  self#log#severe
                     "Finished with a non-existent file?! Something may have \
                      been moved or destroyed during decoding. It is VERY \
                      dangerous, avoid it!"
-              | Some f -> (self#log)#info "Finished with %S." f
-            end ;
-            cur.close () ;
-            Request.destroy cur.req ;
+              | Some f -> self#log#info "Finished with %S." f
+            end;
+            cur.close ();
+            Request.destroy cur.req;
             must_fail <- forced
-      end ;
-      current <- None ;
-      remaining <- 0 ;
+      end;
+      current <- None;
+      remaining <- 0;
       Mutex.unlock plock
 
     (** Load a request. Should be called within critical section, when there is no
       ready request. *)
     method private begin_track =
-      assert (Tutils.seems_locked plock) ;
-      assert (current = None) ;
+      assert (Tutils.seems_locked plock);
+      assert (current = None);
       match self#get_next_file with
         | None ->
-            (self#log)#debug "Failed to prepare track: no file." ;
+            self#log#debug "Failed to prepare track: no file.";
             false
         | Some req when Request.is_ready req ->
-            assert (
-              Frame.kind_sub_kind (Utils.get_some (Request.kind req)) kind ) ;
+            assert (Frame.kind_sub_kind (Utils.get_some (Request.kind req)) kind);
             (* [Request.is_ready] ensures that we can get a filename from the request,
          and it can be decoded. *)
             let file = Utils.get_some (Request.get_filename req) in
             let decoder = Utils.get_some (Request.get_decoder req) in
-            (self#log)#important "Prepared %S (RID %d)." file
-              (Request.get_id req) ;
+            self#log#important "Prepared %S (RID %d)." file (Request.get_id req);
             (* We use this mutex to avoid seeking and filling at the same time.. *)
             let m = Mutex.create () in
             current <-
               Some
                 {
                   req;
-                  fill=
+                  fill =
                     Tutils.mutexify m (fun buf ->
                         remaining <- decoder.Decoder.fill buf);
-                  seek=
+                  seek =
                     Tutils.mutexify m (fun len -> decoder.Decoder.fseek len);
-                  close= decoder.Decoder.close;
-                } ;
-            remaining <- -1 ;
-            send_metadata <- true ;
+                  close = decoder.Decoder.close;
+                };
+            remaining <- -1;
+            send_metadata <- true;
             true
         | Some req ->
             (* We got an unresolved request.. this shoudn't actually happen *)
-            (self#log)#critical "Failed to prepare track: request not ready." ;
-            Request.destroy req ;
+            self#log#critical "Failed to prepare track: request not ready.";
+            Request.destroy req;
             false
 
     (** Now we can write the source's methods. *)
 
     method is_ready =
-      Mutex.lock plock ;
+      Mutex.lock plock;
       let ans = current <> None || must_fail || self#begin_track in
-      Mutex.unlock plock ; ans
+      Mutex.unlock plock;
+      ans
 
     method remaining = remaining
 
     method private get_frame buf =
       if must_fail then (
-        must_fail <- false ;
+        must_fail <- false;
         Frame.add_break buf (Frame.position buf) )
       else (
         let try_get () =
@@ -136,13 +138,13 @@ class virtual unqueued ~kind ~name =
                 assert false
             | Some cur ->
                 if send_metadata then (
-                  Request.on_air cur.req ;
+                  Request.on_air cur.req;
                   let m = Request.get_all_metadata cur.req in
-                  Frame.set_metadata buf (Frame.position buf) m ;
-                  send_metadata <- false ) ;
+                  Frame.set_metadata buf (Frame.position buf) m;
+                  send_metadata <- false );
                 cur.fill buf
         in
-        Tutils.mutexify plock try_get () ;
+        Tutils.mutexify plock try_get ();
         if Frame.is_partial buf then self#end_track false )
 
     method seek x = match current with None -> 0 | Some cur -> cur.seek x
@@ -155,10 +157,10 @@ class virtual unqueued ~kind ~name =
   end
 
 type queue_item = {
-  request: Request.t;
-  duration: float;
+  request : Request.t;
+  duration : float;
   (* in seconds *)
-  mutable expired: bool;
+  mutable expired : bool;
 }
 
 (* Private types for request resolutions *)
@@ -227,14 +229,14 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
 
     method private wake_up activation =
       (* Not for unqueued#wake_up but source#wake_up performs some logging. *)
-      super#wake_up activation ;
-      assert (task = None) ;
+      super#wake_up activation;
+      assert (task = None);
       Tutils.mutexify state_lock
         (fun () ->
-          assert (state = `Sleeping) ;
+          assert (state = `Sleeping);
           let t = Duppy.Async.add Tutils.scheduler ~priority self#feed_queue in
-          Duppy.Async.wake_up t ;
-          task <- Some t ;
+          Duppy.Async.wake_up t;
+          task <- Some t;
           state <- `Running)
         ()
 
@@ -247,26 +249,26 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
        acknowledge it by setting it to `Sleeping. *)
       Tutils.mutexify state_lock
         (fun () ->
-          assert (state = `Running) ;
+          assert (state = `Running);
           state <- `Tired)
-        () ;
+        ();
       (* Make sure the task is awake so that it can see our signal. *)
-      Duppy.Async.wake_up (Utils.get_some task) ;
-      (self#log)#info "Waiting for feeding task to stop..." ;
-      Tutils.wait state_cond state_lock (fun () -> state = `Sleeping) ;
-      Duppy.Async.stop (Utils.get_some task) ;
-      task <- None ;
+      Duppy.Async.wake_up (Utils.get_some task);
+      self#log#info "Waiting for feeding task to stop...";
+      Tutils.wait state_cond state_lock (fun () -> state = `Sleeping);
+      Duppy.Async.stop (Utils.get_some task);
+      task <- None;
       (* No more feeding task, we can go to sleep. *)
-      super#sleep ;
-      (self#log)#info "Cleaning up request queue..." ;
+      super#sleep;
+      self#log#info "Cleaning up request queue...";
       try
-        Mutex.lock qlock ;
+        Mutex.lock qlock;
         while true do
-          let {request= req; _} = Queue.take retrieved in
+          let { request = req; _ } = Queue.take retrieved in
           Request.destroy req
         done
       with e ->
-        Mutex.unlock qlock ;
+        Mutex.unlock qlock;
         if e <> Queue.Empty then raise e
 
     (** This method should be called whenever the feeding task has a new
@@ -291,8 +293,8 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
       let max = 3 in
       let next () =
         let now = Unix.gettimeofday () in
-        if now -. !last < delay then incr excess else excess := 0 ;
-        last := now ;
+        if now -. !last < delay then incr excess else excess := 0;
+        last := now;
         if !excess >= max then delay else 0.
       in
       next
@@ -305,11 +307,10 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         Tutils.mutexify state_lock
           (fun () ->
             match state with
-              | `Running ->
-                  true
+              | `Running -> true
               | `Tired ->
-                  state <- `Sleeping ;
-                  Condition.signal state_cond ;
+                  state <- `Sleeping;
+                  Condition.signal state_cond;
                   false
               | `Sleeping ->
                   (* Because many calls to wake_up result in waking up
@@ -334,12 +335,9 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         && self#available_length < min_queue_length
       then (
         match self#prefetch with
-          | Finished ->
-              0.
-          | Retry ->
-              adaptative_delay ()
-          | Empty ->
-              -1. )
+          | Finished -> 0.
+          | Retry -> adaptative_delay ()
+          | Empty -> -1. )
       else -1.
 
     (** Try to feed the queue with a new request. Return a resolution status:
@@ -348,64 +346,62 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
       Finished if all went OK. *)
     method private prefetch =
       match self#get_next_request with
-        | None ->
-            Empty
+        | None -> Empty
         | Some req -> (
-            resolving <- Some req ;
+            resolving <- Some req;
             match Request.resolve req timeout with
               | Request.Resolved ->
                   let len =
                     match Request.get_metadata req "duration" with
                       | Some f -> (
-                        try float_of_string f with _ -> default_duration )
-                      | None ->
-                          default_duration
+                          try float_of_string f with _ -> default_duration )
+                      | None -> default_duration
                   in
                   let rec remove_expired n =
                     if n = 0 then ()
                     else (
                       let r = Queue.take retrieved in
                       if r.expired then (
-                        (self#log)#info "Dropping expired request." ;
+                        self#log#info "Dropping expired request.";
                         Request.destroy r.request )
-                      else Queue.add r retrieved ;
+                      else Queue.add r retrieved;
                       remove_expired (n - 1) )
                   in
-                  Mutex.lock qlock ;
-                  remove_expired (Queue.length retrieved) ;
+                  Mutex.lock qlock;
+                  remove_expired (Queue.length retrieved);
                   Queue.add
-                    {request= req; duration= len; expired= false}
-                    retrieved ;
-                  (self#log)#info
+                    { request = req; duration = len; expired = false }
+                    retrieved;
+                  self#log#info
                     "Remaining: %.1fs, queued: %.1fs, adding: %.1fs (RID %d)"
                     (Frame.seconds_of_master self#remaining)
-                    queue_length len (Request.get_id req) ;
-                  queue_length <- queue_length +. len ;
-                  Mutex.unlock qlock ;
-                  resolving <- None ;
+                    queue_length len (Request.get_id req);
+                  queue_length <- queue_length +. len;
+                  Mutex.unlock qlock;
+                  resolving <- None;
                   Finished
               | Request.Failed (* Failure of resolving or decoding *)
               | Request.Timeout ->
-                  resolving <- None ;
-                  Request.destroy req ;
+                  resolving <- None;
+                  Request.destroy req;
                   Retry )
 
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
-      Mutex.lock qlock ;
+      Mutex.lock qlock;
       let ans =
         try
           let r = Queue.take retrieved in
-          (self#log)#info "Remaining: %.1fs, queued: %.1fs, taking: %.1fs"
+          self#log#info "Remaining: %.1fs, queued: %.1fs, taking: %.1fs"
             (Frame.seconds_of_master self#remaining)
-            queue_length r.duration ;
-          if not r.expired then queue_length <- queue_length -. r.duration ;
+            queue_length r.duration;
+          if not r.expired then queue_length <- queue_length -. r.duration;
           Some r.request
         with Queue.Empty ->
-          (self#log)#debug "Queue is empty!" ;
+          self#log#debug "Queue is empty!";
           None
       in
-      Mutex.unlock qlock ;
+      Mutex.unlock qlock;
       (* A request has been taken off the queue, there is a chance that the
        queue should be refilled: awaken the feeding task. However, we can wait
        that this file is played, and this need will be noticed in #get_frame.
@@ -417,36 +413,38 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
 
     method private expire test =
       let already_short = self#available_length < min_queue_length in
-      Mutex.lock qlock ;
+      Mutex.lock qlock;
       Queue.iter
         (fun r ->
           if test r.request && not r.expired then (
-            r.expired <- true ;
+            r.expired <- true;
             queue_length <- queue_length -. r.duration ))
-        retrieved ;
-      Mutex.unlock qlock ;
+        retrieved;
+      Mutex.unlock qlock;
       if self#available_length < min_queue_length then (
         if not already_short then
-          (self#log)#info "Expirations made the queue too short, feeding..." ;
+          self#log#info "Expirations made the queue too short, feeding...";
         (* Notify in any case, notifying twice never hurts. *)
         self#notify_new_request )
 
     method private get_frame ab =
-      super#get_frame ab ;
+      super#get_frame ab;
       (* At an end of track, we always have unqueued#remaining=0, so there's
        nothing special to do. *)
       if self#available_length < min_queue_length then self#notify_new_request
 
     method copy_queue =
-      Mutex.lock qlock ;
+      Mutex.lock qlock;
       let q = match current with None -> [] | Some cur -> [cur.req] in
       let q = match resolving with None -> q | Some r -> r :: q in
       let q = Queue.fold (fun l r -> r.request :: l) q retrieved in
-      Mutex.unlock qlock ; q
+      Mutex.unlock qlock;
+      q
   end
 
 let queued_proto =
-  [ ( "length",
+  [
+    ( "length",
       Lang.float_t,
       Some (Lang.float 40.),
       Some "How much audio (in sec.) should be queued in advance." );
@@ -463,7 +461,8 @@ let queued_proto =
     ( "timeout",
       Lang.float_t,
       Some (Lang.float 20.),
-      Some "Timeout (in sec.) for a single download." ) ]
+      Some "Timeout (in sec.) for a single download." );
+  ]
 
 let extract_queued_params p =
   let l = Lang.to_float (List.assoc "length" p) in

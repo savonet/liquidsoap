@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type t = {channels: int; samplerate: int Lazy.t; bitrate: int}
+type t = { channels : int; samplerate : int Lazy.t; bitrate : int }
 
 let to_string m =
   Printf.sprintf "%%shine(channels=%d,samplerate=%d,bitrate=%d)" m.channels

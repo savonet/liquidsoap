@@ -39,7 +39,7 @@ class store ~kind n s =
     val metadata_q = Queue.create ()
 
     initializer
-    ns_kind <- "store_metadata" ;
+    ns_kind <- "store_metadata";
     self#register_command "get" ~descr:"Print the stored metadata." (fun _ ->
         let q = metadata_q in
         fst
@@ -56,12 +56,12 @@ class store ~kind n s =
              q))
 
     method private add_metadata m =
-      Queue.add m metadata_q ;
+      Queue.add m metadata_q;
       if Queue.length metadata_q > n then ignore (Queue.take metadata_q)
 
     method private get_frame ab =
       let p = Frame.position ab in
-      s#get ab ;
+      s#get ab;
       List.iter
         (fun (i, m) -> if i >= p then self#add_metadata (Hashtbl.copy m))
         (Frame.get_all_metadata ab)
@@ -70,8 +70,10 @@ class store ~kind n s =
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "store_metadata"
-    [ ("size", Lang.int_t, Some (Lang.int 10), Some "Size of the history");
-      ("", Lang.source_t kind, None, None) ]
+    [
+      ("size", Lang.int_t, Some (Lang.int 10), Some "Size of the history");
+      ("", Lang.source_t kind, None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Keep track of the last N metadata packets in the stream, and make the \

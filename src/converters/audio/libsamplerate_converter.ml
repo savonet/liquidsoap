@@ -35,22 +35,19 @@ let quality_conf =
     ~p:(samplerate_conf#plug "quality")
     "Resampling quality" ~d:"fast"
     ~comments:
-      [ "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
+      [
+        "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
          `\"zero_order\"` or `\"linear\"`. Refer to ocaml-samplerate for \
-         details." ]
+         details.";
+      ]
 
 let quality_of_string v =
   match v with
-    | "best" ->
-        Samplerate.Conv_sinc_best_quality
-    | "medium" ->
-        Samplerate.Conv_sinc_medium_quality
-    | "fast" ->
-        Samplerate.Conv_fastest
-    | "zero_order" ->
-        Samplerate.Conv_zero_order_hold
-    | "linear" ->
-        Samplerate.Conv_linear
+    | "best" -> Samplerate.Conv_sinc_best_quality
+    | "medium" -> Samplerate.Conv_sinc_medium_quality
+    | "fast" -> Samplerate.Conv_fastest
+    | "zero_order" -> Samplerate.Conv_zero_order_hold
+    | "linear" -> Samplerate.Conv_linear
     | _ ->
         raise
           (Lang_errors.Invalid_value
@@ -68,9 +65,9 @@ let samplerate_converter () =
     let i, o = Samplerate.process_ba converter ratio b buf in
     if i < inlen then
       log#debug "Could not convert all the input buffer (%d instead of %d)." i
-        inlen ;
+        inlen;
     if o < outlen then
-      log#debug "Unexpected output length (%d instead of %d)." o outlen ;
+      log#debug "Unexpected output length (%d instead of %d)." o outlen;
     (* TODO: the following would solve the issue but apparently messes up buffers *)
     (* Audio.Mono.sub buf 0 o *)
     buf

@@ -40,7 +40,7 @@ class pan ~kind (source : source) phi phi_0 =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let buffer = AFrame.content_of_type buf ~channels:2 offset in
       (* Degrees to radians + half field. *)
       let phi_0 = phi_0 () *. Utils.pi /. 360. in
@@ -49,14 +49,15 @@ class pan ~kind (source : source) phi phi_0 =
       let gain_left = (tan phi_0 +. tan phi) /. 2. in
       let gain_right = (tan phi_0 -. tan phi) /. 2. in
       let len = AFrame.position buf - offset in
-      Audio.Mono.amplify gain_left (Audio.Mono.sub buffer.(0) offset len) ;
+      Audio.Mono.amplify gain_left (Audio.Mono.sub buffer.(0) offset len);
       Audio.Mono.amplify gain_right (Audio.Mono.sub buffer.(1) offset len)
   end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
   Lang.add_operator "stereo.pan"
-    [ ( "pan",
+    [
+      ( "pan",
         Lang.float_getter_t (),
         Some (Lang.float 0.),
         Some "Pan ranges between -1 and 1." );
@@ -64,7 +65,8 @@ let () =
         Lang.float_getter_t (),
         Some (Lang.float 90.),
         Some "Field width in degrees (between 0 and 90)." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Pan a stereo sound."
     (fun p kind ->

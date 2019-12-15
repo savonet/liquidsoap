@@ -38,8 +38,7 @@ let () =
           let module Lame = (val m : Lame_dynlink.Lame_t) in
           let module Register = Lame_encoder.Register (Lame) in
           Register.register_encoder "MP3/liblame/dynlink"
-      | None ->
-          assert false
+      | None -> assert false
   in
   Hashtbl.add Dyntools.dynlink_list "lame encoder"
-    {Dyntools.path; files= ["lame"; "lame_loader"]; load}
+    { Dyntools.path; files = ["lame"; "lame_loader"]; load }

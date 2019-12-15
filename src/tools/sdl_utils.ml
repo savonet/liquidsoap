@@ -39,7 +39,7 @@ let check f x =
   match f x with Error (`Msg err) -> failwith err | Ok ans -> ans
 
 let init l =
-  if !options = None then options := Some Sdl.Init.nothing ;
+  if !options = None then options := Some Sdl.Init.nothing;
   List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l
 
 let () =
@@ -92,7 +92,7 @@ module Surface = struct
       | _ ->
           failwith
             ( "img_of_surface: unhandled format "
-            ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)) ) ) ;
+            ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt)) ) );
     img
 
   let of_img surface img =
@@ -105,9 +105,9 @@ module Surface = struct
           for i = 0 to width - 1 do
             for j = 0 to height - 1 do
               let r, g, b, _ = Video.Image.get_pixel_rgba img i j in
-              pix.{(j * pitch) + (4 * i) + 0} <- b ;
-              pix.{(j * pitch) + (4 * i) + 1} <- g ;
-              pix.{(j * pitch) + (4 * i) + 2} <- r ;
+              pix.{(j * pitch) + (4 * i) + 0} <- b;
+              pix.{(j * pitch) + (4 * i) + 1} <- g;
+              pix.{(j * pitch) + (4 * i) + 2} <- r;
               pix.{(j * pitch) + (4 * i) + 3} <- 0xff
             done
           done

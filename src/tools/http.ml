@@ -2,7 +2,7 @@ module type Transport_t = sig
   type connection
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
   val default_port : int
 
@@ -22,24 +22,28 @@ struct
   type connection = Unix.file_descr
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
   exception Socket
 
   let connect ?bind_address host port =
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     begin
-      match bind_address with None -> () | Some s ->
+      match bind_address with
+      | None -> ()
+      | Some s ->
           let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
           (* Seems like you need to bind on port 0 *)
           let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
           Unix.bind socket bind_addr
-    end ;
+    end;
     try
       Unix.connect socket
-        (Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port)) ;
+        (Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port));
       socket
-    with _ -> Unix.close socket ; raise Socket
+    with _ ->
+      Unix.close socket;
+      raise Socket
 
   let default_port = 80
 
@@ -63,9 +67,9 @@ module type Http_t = sig
   type connection
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
-  type uri = {host: string; port: int option; path: string}
+  type uri = { host : string; port : int option; path : string }
 
   val default_port : int
 
@@ -157,11 +161,7 @@ module type Http_t = sig
     (string * int * string) * (string * string) list
 
   val read_with_timeout :
-    ?log:(string -> unit) ->
-    timeout:float ->
-    connection ->
-    int option ->
-    string
+    ?log:(string -> unit) -> timeout:float -> connection -> int option -> string
 
   type request = Get | Post of string | Put of string | Head | Delete
 
@@ -186,12 +186,9 @@ module Make (Transport : Transport_t) = struct
 
   let string_of_error e =
     match e with
-      | Socket ->
-          "Http: error while communicating to socket"
-      | Response ->
-          "Http: invalid answer to request"
-      | UrlDecoding ->
-          "Http: URL decoding failed"
+      | Socket -> "Http: error while communicating to socket"
+      | Response -> "Http: invalid answer to request"
+      | UrlDecoding -> "Http: URL decoding failed"
 
   (** Error translator *)
   let error_translator (e : exn) =
@@ -200,9 +197,9 @@ module Make (Transport : Transport_t) = struct
   type connection = Transport.connection
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
-  type uri = {host: string; port: int option; path: string}
+  type uri = { host : string; port : int option; path : string }
 
   let () = Printexc.register_printer error_translator
 
@@ -218,27 +215,29 @@ module Make (Transport : Transport_t) = struct
   (** Converts k to a 2-digit hexadecimal string. *)
   let to_hex2 =
     let hex_digits =
-      [| '0';
-         '1';
-         '2';
-         '3';
-         '4';
-         '5';
-         '6';
-         '7';
-         '8';
-         '9';
-         'A';
-         'B';
-         'C';
-         'D';
-         'E';
-         'F' |]
+      [|
+        '0';
+        '1';
+        '2';
+        '3';
+        '4';
+        '5';
+        '6';
+        '7';
+        '8';
+        '9';
+        'A';
+        'B';
+        'C';
+        'D';
+        'E';
+        'F';
+      |]
     in
     fun k ->
       let s = Bytes.create 2 in
-      Bytes.set s 0 hex_digits.((k lsr 4) land 15) ;
-      Bytes.set s 1 hex_digits.(k land 15) ;
+      Bytes.set s 0 hex_digits.((k lsr 4) land 15);
+      Bytes.set s 1 hex_digits.(k land 15);
       Bytes.unsafe_to_string s
 
   let url_encode ?(plus = true) s =
@@ -252,14 +251,10 @@ module Make (Transport : Transport_t) = struct
 
   let of_hex1 c =
     match c with
-      | '0' .. '9' ->
-          Char.code c - Char.code '0'
-      | 'A' .. 'F' ->
-          Char.code c - Char.code 'A' + 10
-      | 'a' .. 'f' ->
-          Char.code c - Char.code 'a' + 10
-      | _ ->
-          raise UrlDecoding
+      | '0' .. '9' -> Char.code c - Char.code '0'
+      | 'A' .. 'F' -> Char.code c - Char.code 'A' + 10
+      | 'a' .. 'f' -> Char.code c - Char.code 'a' + 10
+      | _ -> raise UrlDecoding
 
   let url_decode ?(plus = true) s =
     Pcre.substitute
@@ -270,7 +265,7 @@ module Make (Transport : Transport_t) = struct
         if s = "+" then if plus then " " else "+"
         else (
           (* Assertion: s.[0] = '%' *)
-          if String.length s < 3 then raise UrlDecoding ;
+          if String.length s < 3 then raise UrlDecoding;
           let k1 = of_hex1 s.[1] in
           let k2 = of_hex1 s.[2] in
           String.make 1 (Char.chr ((k1 lsl 4) lor k2)) ))
@@ -284,10 +279,9 @@ module Make (Transport : Transport_t) = struct
         | e :: l ->
             (* There should be only arg=value *)
             List.iter (Hashtbl.replace args e) l
-        | [] ->
-            ()
+        | [] -> ()
     in
-    List.iter fill_arg (Pcre.split ~pat:"&" s) ;
+    List.iter fill_arg (Pcre.split ~pat:"&" s);
     args
 
   let connect = Transport.connect
@@ -321,7 +315,7 @@ module Make (Transport : Transport_t) = struct
       with Not_found -> None
     in
     let path = try Pcre.get_substring sub 3 with Not_found -> "/" in
-    {host; port; path}
+    { host; port; path }
 
   let is_url path = Pcre.pmatch ~pat:"^[Hh][Tt][Tt][Pp][sS]?://.+" path
 
@@ -331,7 +325,7 @@ module Make (Transport : Transport_t) = struct
     Pcre.get_substring s 1
 
   let read_with_timeout ?(log = fun _ -> ()) ~timeout socket buflen =
-    Transport.wait_for ~log (`Read socket) timeout ;
+    Transport.wait_for ~log (`Read socket) timeout;
     match buflen with
       | Some buflen ->
           let buf = Bytes.create buflen in
@@ -343,9 +337,9 @@ module Make (Transport : Transport_t) = struct
           let ans = ref "" in
           let n = ref buflen in
           while !n <> 0 do
-            n := Transport.read socket buf 0 buflen ;
+            n := Transport.read socket buf 0 buflen;
             ans := !ans ^ Bytes.sub_string buf 0 !n
-          done ;
+          done;
           !ans
 
   type status = string * int * string
@@ -371,15 +365,15 @@ module Make (Transport : Transport_t) = struct
       (* This is quite ridiculous but we have 
        * no way to know how much data is available
        * in the socket.. *)
-      Transport.wait_for ~log (`Read socket) timeout ;
+      Transport.wait_for ~log (`Read socket) timeout;
       let h = Transport.read socket c 0 1 in
       if h < 1 then stop := true
       else (
         let c = Bytes.get c 0 in
-        Buffer.add_char ans c ;
-        if c = '\n' then incr count_n else if c <> '\r' then count_n := 0 ) ;
+        Buffer.add_char ans c;
+        if c = '\n' then incr count_n else if c <> '\r' then count_n := 0 );
       incr n
-    done ;
+    done;
     Buffer.contents ans
 
   (* Read chunked transfer. *)
@@ -391,22 +385,22 @@ module Make (Transport : Transport_t) = struct
     let buf = Buffer.create len in
     let rec f () =
       let rem = len - Buffer.length buf in
-      assert (0 < rem) ;
+      assert (0 < rem);
       let s = Bytes.create rem in
       let n = Transport.read socket s 0 rem in
-      Buffer.add_subbytes buf s 0 n ;
+      Buffer.add_subbytes buf s 0 n;
       if Buffer.length buf = len then Buffer.contents buf else f ()
     in
     let s = f () in
-    ignore (read_crlf ~count:1 ~timeout socket) ;
+    ignore (read_crlf ~count:1 ~timeout socket);
     (s, len)
 
   let request ?(log = fun _ -> ()) ~timeout socket request =
     if
       let len = String.length request in
-      Transport.wait_for ~log (`Write socket) timeout ;
+      Transport.wait_for ~log (`Write socket) timeout;
       Transport.write socket (Bytes.of_string request) 0 len < len
-    then raise Socket ;
+    then raise Socket;
     let header = read_crlf ~log ~timeout socket in
     let header = Pcre.split ~pat:"[\r]?\n" header in
     let response, header =
@@ -434,16 +428,11 @@ module Make (Transport : Transport_t) = struct
   type request = Get | Post of string | Put of string | Head | Delete
 
   let method_of_request = function
-    | Get ->
-        "GET"
-    | Post _ ->
-        "POST"
-    | Put _ ->
-        "PUT"
-    | Head ->
-        "HEAD"
-    | Delete ->
-        "DELETE"
+    | Get -> "GET"
+    | Post _ -> "POST"
+    | Put _ -> "PUT"
+    | Head -> "HEAD"
+    | Delete -> "DELETE"
 
   let data_of_request = function Post d | Put d -> d | _ -> assert false
 
@@ -453,10 +442,8 @@ module Make (Transport : Transport_t) = struct
     in
     let req =
       match uri.port with
-        | None ->
-            Printf.sprintf "%sHost: %s\r\n" req uri.host
-        | Some port ->
-            Printf.sprintf "%sHost: %s:%d\r\n" req uri.host port
+        | None -> Printf.sprintf "%sHost: %s\r\n" req uri.host
+        | Some port -> Printf.sprintf "%sHost: %s:%d\r\n" req uri.host port
     in
     let req =
       if not (List.mem_assoc "User-Agent" headers) then
@@ -494,9 +481,7 @@ module Make (Transport : Transport_t) = struct
     execute ?headers ?log ~timeout socket (Put data) uri
 
   let full_request ?headers ?(log = fun _ -> ()) ~timeout ~uri ~request () =
-    let port =
-      match uri.port with Some port -> port | None -> default_port
-    in
+    let port = match uri.port with Some port -> port | None -> default_port in
     let connection = Transport.connect uri.host port in
     Tutils.finalize
       ~k:(fun () -> Transport.disconnect connection)

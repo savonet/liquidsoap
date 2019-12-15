@@ -39,12 +39,9 @@ let wh iw ih w h =
             (w, h) )
         in
         (w, h)
-    | Some w, None ->
-        (w, ih * w / iw)
-    | None, Some h ->
-        (iw * h / ih, h)
-    | Some w, Some h ->
-        (w, h)
+    | Some w, None -> (w, ih * w / iw)
+    | None, Some h -> (iw * h / ih, h)
+    | Some w, Some h -> (w, h)
 
 let wh_string iw ih w h =
   let frame_w = Lazy.force Frame.video_width in
@@ -97,7 +94,8 @@ let create_decoder metadata img =
       if (width, height) = (img_w, img_h) then img
       else (
         let img' = Video.Image.create width height in
-        scale img img' ; img' )
+        scale img img';
+        img' )
     in
     let img =
       let img' =
@@ -105,9 +103,9 @@ let create_decoder metadata img =
           (Lazy.force Frame.video_width)
           (Lazy.force Frame.video_height)
       in
-      Video.Image.blank img' ;
-      Image.YUV420.fill_alpha img' 0 ;
-      Video.Image.add img img' ~x:off_x ~y:off_y ;
+      Video.Image.blank img';
+      Image.YUV420.fill_alpha img' 0;
+      Video.Image.add img img' ~x:off_x ~y:off_y;
       img'
     in
     img
@@ -127,7 +125,7 @@ let create_decoder metadata img =
       if !duration = -1 then VFrame.size frame
       else min (VFrame.size frame) (start + !duration)
     in
-    VFrame.add_break frame stop ;
+    VFrame.add_break frame stop;
     for i = start to stop - 1 do
       (* TODO: One could think of avoiding the creation of a blank video layer
        * that will be overwritten immediately. However, in most cases an old
@@ -135,26 +133,24 @@ let create_decoder metadata img =
        * blankify because our image might be transparent and the current frame
        * might contain random stuff. *)
       Video.Image.blit img (Video.get video i)
-    done ;
+    done;
     if !duration = -1 then -1
     else (
-      duration := !duration - (stop - start) ;
+      duration := !duration - (stop - start);
       Frame.master_of_video !duration )
   in
-  {Decoder.fill; fseek= (fun _ -> 0); close}
+  { Decoder.fill; fseek = (fun _ -> 0); close }
 
 let () =
   Decoder.file_decoders#register "Image" ~sdoc:"Decoder for static images."
     (fun ~metadata filename kind ->
-      let ctype = {Frame.video= 1; audio= 0; midi= 0} in
+      let ctype = { Frame.video = 1; audio = 0; midi = 0 } in
       try
-        if not (Frame.type_has_kind ctype kind) then raise Exit ;
+        if not (Frame.type_has_kind ctype kind) then raise Exit;
         let img =
           match Decoder.get_image_file_decoder filename with
-            | Some img ->
-                img
-            | None ->
-                failwith "Could not decode image file."
+            | Some img -> img
+            | None -> failwith "Could not decode image file."
         in
         Some (fun () -> create_decoder metadata img)
       with _ -> None)

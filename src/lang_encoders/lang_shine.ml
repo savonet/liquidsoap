@@ -28,24 +28,25 @@ let make params =
     {
       Shine_format.channels
       (* We use a hardcoded value in order not to force the evaluation of the
-           number of channels too early, see #933. *)=
+           number of channels too early, see #933. *) =
         2;
-      samplerate= Frame.audio_rate;
-      bitrate= 128;
+      samplerate = Frame.audio_rate;
+      bitrate = 128;
     }
   in
   let shine =
     List.fold_left
-      (fun f -> function "channels", {term= Int i; _} ->
-            {f with Shine_format.channels= i}
-        | "samplerate", {term= Int i; _} ->
-            {f with Shine_format.samplerate= Lazy.from_val i}
-        | "bitrate", {term= Int i; _} -> {f with Shine_format.bitrate= i}
-        | "", {term= Var s; _} when String.lowercase_ascii s = "mono" ->
-            {f with Shine_format.channels= 1}
-        | "", {term= Var s; _} when String.lowercase_ascii s = "stereo" ->
-            {f with Shine_format.channels= 2} | _, t ->
-            raise (generic_error t))
+      (fun f -> function
+        | "channels", { term = Int i; _ } ->
+            { f with Shine_format.channels = i }
+        | "samplerate", { term = Int i; _ } ->
+            { f with Shine_format.samplerate = Lazy.from_val i }
+        | "bitrate", { term = Int i; _ } -> { f with Shine_format.bitrate = i }
+        | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+            { f with Shine_format.channels = 1 }
+        | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+            { f with Shine_format.channels = 2 }
+        | _, t -> raise (generic_error t))
       defaults params
   in
   Encoder.Shine shine

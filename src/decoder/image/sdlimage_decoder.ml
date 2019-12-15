@@ -29,7 +29,8 @@ let log = Log.make ["decoder"; "sdlimage"]
 let load_image filename =
   let surface = Sdl_utils.check Tsdl_image.Image.load filename in
   let img = Sdl_utils.Surface.to_img surface in
-  Sdl.free_surface surface ; img
+  Sdl.free_surface surface;
+  img
 
 let () =
   Decoder.image_file_decoders#register "SDL/image"

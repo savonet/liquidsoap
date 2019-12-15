@@ -26,12 +26,11 @@ let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
 
 let test_text s =
   match Configure.data_mime with
-    | None ->
-        ()
+    | None -> ()
     | Some get_mime ->
         let mime = get_mime s in
         if not (Pcre.pmatch ~pat:"text/.*" mime) then (
-          log#important "Wrong mime type %s for playlist!" mime ;
+          log#important "Wrong mime type %s for playlist!" mime;
           (* TODO this shouldn't be an assert false, it can happen *)
           assert false )
 
@@ -44,16 +43,17 @@ let parse_extinf s =
     let lines = Pcre.split ~pat:" - " song in
     match lines with
       | [artist; title] ->
-          [ ("extinf_duration", duration);
+          [
+            ("extinf_duration", duration);
             ("artist", Utils.trim artist);
-            ("title", Utils.trim title) ]
-      | _ ->
-          [("extinf_duration", duration); ("song", Utils.trim song)]
+            ("title", Utils.trim title);
+          ]
+      | _ -> [("extinf_duration", duration); ("song", Utils.trim song)]
   with Not_found -> []
 
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
-  test_text string ;
+  test_text string;
   let lines = List.filter (fun x -> x <> "") (split_lines string) in
   let is_info line = Pcre.pmatch ~pat:"^#EXTINF" line in
   let skip_line line = line.[0] == '#' in
@@ -64,20 +64,18 @@ let parse_mpegurl ?pwd string =
           get_urls ((metadata, Playlist_parser.get_file ?pwd y) :: cur) lines
       | x :: lines when not (skip_line x) ->
           get_urls (([], Playlist_parser.get_file ?pwd x) :: cur) lines
-      | _ :: lines ->
-          get_urls cur lines
-      | [] ->
-          List.rev cur
+      | _ :: lines -> get_urls cur lines
+      | [] -> List.rev cur
   in
   get_urls [] lines
 
 let parse_scpls ?pwd string =
-  test_text string ;
+  test_text string;
   let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
   (* Format check, raise Not_found if invalid *)
   ignore
     (Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]"
-       (String.lowercase_ascii string)) ;
+       (String.lowercase_ascii string));
   let lines = split_lines string in
   let urls =
     List.map
@@ -95,17 +93,17 @@ let parse_scpls ?pwd string =
   List.map (fun t -> ([], Playlist_parser.get_file ?pwd t)) urls
 
 type cue_track = {
-  number: int;
-  track_performer: string option;
-  track_title: string option;
-  indexes: (int, float) Hashtbl.t;
+  number : int;
+  track_performer : string option;
+  track_title : string option;
+  indexes : (int, float) Hashtbl.t;
 }
 
 type cue_sheet = {
-  file: string;
-  performer: string option;
-  title: string option;
-  tracks: cue_track list;
+  file : string;
+  performer : string option;
+  title : string option;
+  tracks : cue_track list;
 }
 
 let parse_optional parser f =
@@ -153,10 +151,9 @@ let find_file l =
   let rec find cur rem =
     match rem with
       | x :: rem -> (
-        try parse_file x (fun title -> (title, cur, rem))
-        with Not_found -> find (x :: cur) rem )
-      | [] ->
-          raise Not_found
+          try parse_file x (fun title -> (title, cur, rem))
+          with Not_found -> find (x :: cur) rem )
+      | [] -> raise Not_found
   in
   let title, cur, rem = find [] l in
   (List.rev cur @ rem, title)
@@ -164,51 +161,50 @@ let find_file l =
 let parse_tracks index lines =
   let rec parse tracks track rem =
     match rem with
-      | [] ->
-          List.rev (track :: tracks)
+      | [] -> List.rev (track :: tracks)
       | x :: rem -> (
-        try
-          parse_track x (fun index ->
-              let tracks = track :: tracks in
-              let track =
-                {
-                  number= index;
-                  track_title= None;
-                  track_performer= None;
-                  indexes= Hashtbl.create 1;
-                }
-              in
-              parse tracks track rem)
-        with _ ->
-          let track =
-            parse_title x (fun title ->
-                if title <> None then {track with track_title= title}
-                else track)
-          in
-          let track =
-            parse_performer x (fun performer ->
-                if performer <> None then
-                  {track with track_performer= performer}
-                else track)
-          in
-          begin
-            try parse_index x (Hashtbl.add track.indexes)
-            with Not_found -> ()
-          end ;
-          parse tracks track rem )
+          try
+            parse_track x (fun index ->
+                let tracks = track :: tracks in
+                let track =
+                  {
+                    number = index;
+                    track_title = None;
+                    track_performer = None;
+                    indexes = Hashtbl.create 1;
+                  }
+                in
+                parse tracks track rem)
+          with _ ->
+            let track =
+              parse_title x (fun title ->
+                  if title <> None then { track with track_title = title }
+                  else track)
+            in
+            let track =
+              parse_performer x (fun performer ->
+                  if performer <> None then
+                    { track with track_performer = performer }
+                  else track)
+            in
+            begin
+              try parse_index x (Hashtbl.add track.indexes)
+              with Not_found -> ()
+            end;
+            parse tracks track rem )
   in
   let track =
     {
-      number= index;
-      track_title= None;
-      track_performer= None;
-      indexes= Hashtbl.create 1;
+      number = index;
+      track_title = None;
+      track_performer = None;
+      indexes = Hashtbl.create 1;
     }
   in
   parse [] track lines
 
 let parse_cue ?pwd string =
-  test_text string ;
+  test_text string;
   let strings = split_lines string in
   let strings =
     List.map
@@ -219,32 +215,29 @@ let parse_cue ?pwd string =
   let strings, file = find_file strings in
   let rec parse sheet rem =
     match rem with
-      | [] ->
-          sheet
+      | [] -> sheet
       | x :: rem -> (
           let sheet =
             parse_title x (fun title ->
-                if title <> None then {sheet with title} else sheet)
+                if title <> None then { sheet with title } else sheet)
           in
           let sheet =
             parse_performer x (fun performer ->
-                if performer <> None then {sheet with performer} else sheet)
+                if performer <> None then { sheet with performer } else sheet)
           in
           try
             parse_track x (fun index ->
-                {sheet with tracks= parse_tracks index rem})
+                { sheet with tracks = parse_tracks index rem })
           with Not_found -> parse sheet rem )
   in
-  let sheet = {file; performer= None; title= None; tracks= []} in
+  let sheet = { file; performer = None; title = None; tracks = [] } in
   let sheet = parse sheet strings in
   let export_track ?cue_out track =
     let metadata = [("track", string_of_int track.number)] in
     let maybe label value metadata =
       match value with
-        | Some value ->
-            (label, value) :: metadata
-        | None ->
-            metadata
+        | Some value -> (label, value) :: metadata
+        | None -> metadata
     in
     let metadata = maybe "artist" sheet.performer metadata in
     let metadata = maybe "album" sheet.title metadata in
@@ -262,10 +255,9 @@ let parse_cue ?pwd string =
   let rec export_tracks cur tracks =
     match tracks with
       | [] ->
-          assert (cur == []) ;
+          assert (cur == []);
           []
-      | [track] ->
-          List.rev (export_track track :: cur)
+      | [track] -> List.rev (export_track track :: cur)
       | track :: track' :: tracks ->
           let cue_out =
             try Some (string_of_float (Hashtbl.find track'.indexes 0))
@@ -279,12 +271,12 @@ let parse_cue ?pwd string =
 
 let () =
   Playlist_parser.parsers#register "audio/x-scpls"
-    {Playlist_parser.strict= true; Playlist_parser.parser= parse_scpls} ;
+    { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls };
   Playlist_parser.parsers#register "application/x-cue"
-    {Playlist_parser.strict= true; Playlist_parser.parser= parse_cue} ;
+    { Playlist_parser.strict = true; Playlist_parser.parser = parse_cue };
   Playlist_parser.parsers#register "audio/x-mpegurl"
-    {Playlist_parser.strict= false; Playlist_parser.parser= parse_mpegurl} ;
+    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
   Playlist_parser.parsers#register "audio/mpegurl"
-    {Playlist_parser.strict= false; Playlist_parser.parser= parse_mpegurl} ;
+    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
   Playlist_parser.parsers#register "application/x-mpegURL"
-    {Playlist_parser.strict= false; Playlist_parser.parser= parse_mpegurl}
+    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }

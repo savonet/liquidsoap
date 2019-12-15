@@ -35,14 +35,16 @@ let conf_quality =
     ~comments:["Quality setting for gavl video conversion. Range from 1 to 5"]
 
 let scale_modes =
-  [ ("auto", Gavl.Video.Auto);
+  [
+    ("auto", Gavl.Video.Auto);
     ("nearest", Gavl.Video.Nearest);
     ("bilinear", Gavl.Video.Bilinear);
     ("quadratic", Gavl.Video.Quadratic);
     ("cubic_bspline", Gavl.Video.Cubic_bspline);
     ("cubic_mitchell", Gavl.Video.Cubic_mitchell);
     ("cubic_catmull", Gavl.Video.Cubic_catmull);
-    ("scale_sinc_lanczos", Gavl.Video.Scale_sinc_lanczos) ]
+    ("scale_sinc_lanczos", Gavl.Video.Scale_sinc_lanczos);
+  ]
 
 let scale_args =
   String.concat ", "
@@ -53,7 +55,7 @@ exception Internal of Gavl.Video.scale_mode
 let scale_mode_of_arg x =
   try
     let f (n, m) = if x = n then raise (Internal m) in
-    List.iter f scale_modes ;
+    List.iter f scale_modes;
     raise
       (Lang_errors.Invalid_value
          (Lang.string x, "gavl scale mode must be one of: " ^ scale_args))
@@ -68,7 +70,8 @@ let conf_scale_mode =
       :: List.map (fun (x, _) -> Printf.sprintf "\"%s\"" x) scale_modes )
 
 let formats =
-  [ P.RGB P.RGB24;
+  [
+    P.RGB P.RGB24;
     P.RGB P.BGR24;
     P.RGB P.RGB32;
     P.RGB P.BGR32;
@@ -79,56 +82,45 @@ let formats =
     P.YUV P.YUV410;
     P.YUV P.YUVJ420;
     P.YUV P.YUVJ422;
-    P.YUV P.YUVJ444 ]
+    P.YUV P.YUVJ444;
+  ]
 
 let gavl_format_of x =
   match x with
     | P.RGB x -> (
-      match x with
-        | P.RGB24 ->
-            Gavl.Video.Rgb_24
-        | P.BGR24 ->
-            Gavl.Video.Bgr_24
-        | P.RGB32 ->
-            Gavl.Video.Rgb_32
-        | P.BGR32 ->
-            Gavl.Video.Bgr_32
-        | P.RGBA32 ->
-            Gavl.Video.Rgba_32 )
+        match x with
+          | P.RGB24 -> Gavl.Video.Rgb_24
+          | P.BGR24 -> Gavl.Video.Bgr_24
+          | P.RGB32 -> Gavl.Video.Rgb_32
+          | P.BGR32 -> Gavl.Video.Bgr_32
+          | P.RGBA32 -> Gavl.Video.Rgba_32 )
     | P.YUV x -> (
-      match x with
-        | P.YUV422 ->
-            Gavl.Video.Yuv_422_p
-        | P.YUV444 ->
-            Gavl.Video.Yuv_444_p
-        | P.YUV411 ->
-            Gavl.Video.Yuv_411_p
-        | P.YUV410 ->
-            Gavl.Video.Yuv_410_p
-        | P.YUVJ420 ->
-            Gavl.Video.Yuvj_420_p
-        | P.YUVJ422 ->
-            Gavl.Video.Yuvj_422_p
-        | P.YUVJ444 ->
-            Gavl.Video.Yuvj_444_p )
+        match x with
+          | P.YUV422 -> Gavl.Video.Yuv_422_p
+          | P.YUV444 -> Gavl.Video.Yuv_444_p
+          | P.YUV411 -> Gavl.Video.Yuv_411_p
+          | P.YUV410 -> Gavl.Video.Yuv_410_p
+          | P.YUVJ420 -> Gavl.Video.Yuvj_420_p
+          | P.YUVJ422 -> Gavl.Video.Yuvj_422_p
+          | P.YUVJ444 -> Gavl.Video.Yuvj_444_p )
 
 let video_format_of_frame f =
   let pf = gavl_format_of (Img.pixel_format f) in
   let w = Img.width f in
   let h = Img.height f in
   {
-    Gavl.Video.frame_width= w;
-    frame_height= h;
-    image_width= w;
-    image_height= h;
-    pixel_width= 1;
-    pixel_height= 1;
-    pixelformat= pf;
-    frame_duration= 0;
-    timescale= 0;
-    framerate_mode= Gavl.Video.Still;
-    chroma_placement= Gavl.Video.Default;
-    interlace_mode= Gavl.Video.No_interlace;
+    Gavl.Video.frame_width = w;
+    frame_height = h;
+    image_width = w;
+    image_height = h;
+    pixel_width = 1;
+    pixel_height = 1;
+    pixelformat = pf;
+    frame_duration = 0;
+    timescale = 0;
+    framerate_mode = Gavl.Video.Still;
+    chroma_placement = Gavl.Video.Default;
+    interlace_mode = Gavl.Video.No_interlace;
   }
 
 let gavl_frame_of img =
@@ -136,18 +128,19 @@ let gavl_frame_of img =
     | P.RGB _ ->
         let data, stride = Img.rgb_data img in
         {
-          Gavl.Video.planes= [|(data, stride)|];
-          timestamp= Int64.zero;
-          duration= Int64.zero;
-          frame_interlace_mode= Gavl.Video.No_interlace;
+          Gavl.Video.planes = [| (data, stride) |];
+          timestamp = Int64.zero;
+          duration = Int64.zero;
+          frame_interlace_mode = Gavl.Video.No_interlace;
         }
     | P.YUV _ ->
         let (y, y_stride), (u, v, uv_stride) = Img.yuv_data img in
         {
-          Gavl.Video.planes= [|(y, y_stride); (u, uv_stride); (v, uv_stride)|];
-          timestamp= Int64.zero;
-          duration= Int64.zero;
-          frame_interlace_mode= Gavl.Video.No_interlace;
+          Gavl.Video.planes =
+            [| (y, y_stride); (u, uv_stride); (v, uv_stride) |];
+          timestamp = Int64.zero;
+          duration = Int64.zero;
+          frame_interlace_mode = Gavl.Video.No_interlace;
         }
 
 module HT = struct
@@ -170,8 +163,8 @@ module WH = struct
     let conv = (fmt, Some conv) in
     for i = 1 to n - 1 do
       keep.(i - 1) <- keep.(i)
-    done ;
-    keep.(n - 1) <- Some conv ;
+    done;
+    keep.(n - 1) <- Some conv;
     add h conv
 
   let find h fmt = Utils.get_some (snd (find h (fmt, None)))
@@ -202,14 +195,14 @@ let create () =
               let oy = (dst_h - (src_h * dst_w / src_w)) / 2 in
               (0, oy, dst_w, dst_h - (2 * oy)) )
           in
-          Gavl.Video.set_rect conv (0., 0., float src_w, float src_h) dst_rect ;
-          Gavl.Video.reinit conv ) ;
-        WH.add converters (proportional, src_f, dst_f) conv ;
+          Gavl.Video.set_rect conv (0., 0., float src_w, float src_h) dst_rect;
+          Gavl.Video.reinit conv );
+        WH.add converters (proportional, src_f, dst_f) conv;
         conv
     in
     (* We need to blank because we get garbage otherwise. *)
     if not (Img.width src = Img.width dst && Img.height src = Img.height dst)
-    then Img.blank dst ;
+    then Img.blank dst;
     (* Now we convert *)
     Gavl.Video.convert conv (gavl_frame_of src) (gavl_frame_of dst)
   in

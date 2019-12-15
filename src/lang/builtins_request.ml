@@ -26,15 +26,17 @@ let () =
   add_builtin "request.create.raw" ~cat:Liq
     ~descr:
       "Create a raw request, for files that should not be decoded for \
-       streaming such as playlists. Creation may fail if there is no \
-       available RID, which cannot be detected currently: in that case one \
-       will obtain a request that will fail to be resolved."
-    [ ( "indicators",
+       streaming such as playlists. Creation may fail if there is no available \
+       RID, which cannot be detected currently: in that case one will obtain a \
+       request that will fail to be resolved."
+    [
+      ( "indicators",
         Lang.list_t Lang.string_t,
         Some (Lang.list ~t:Lang.string_t []),
         None );
       ("persistent", Lang.bool_t, Some (Lang.bool false), None);
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     (Lang.request_t
        (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t
           ~midi:Lang.zero_t))
@@ -55,15 +57,17 @@ let () =
 let () =
   Lang.add_builtin "request.create" ~category:(string_of_category Liq)
     ~descr:
-      "Create a request. Creation may fail if there is no available RID, \
-       which cannot be detected currently: in that case one will obtain a \
-       request that will fail to be resolved."
-    [ ( "indicators",
+      "Create a request. Creation may fail if there is no available RID, which \
+       cannot be detected currently: in that case one will obtain a request \
+       that will fail to be resolved."
+    [
+      ( "indicators",
         Lang.list_t Lang.string_t,
         Some (Lang.list ~t:Lang.string_t []),
         None );
       ("persistent", Lang.bool_t, Some (Lang.bool false), None);
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     (Lang.request_t (Lang.univ_t ()))
     (fun p t ->
       let indicators = List.assoc "indicators" p in
@@ -85,11 +89,13 @@ let () =
 
 let () =
   add_builtin "request.resolve" ~cat:Liq
-    [ ( "timeout",
+    [
+      ( "timeout",
         Lang.float_t,
         Some (Lang.float 30.),
         Some "Limit in seconds to the duration of the resolving." );
-      ("", Lang.request_t (Lang.univ_t ()), None, None) ]
+      ("", Lang.request_t (Lang.univ_t ()), None, None);
+    ]
     Lang.bool_t
     ~descr:
       "Resolve a request, i.e. attempt to get a valid local file. The \
@@ -154,16 +160,19 @@ let () =
       "Destroying a request causes any temporary associated file to be \
        deleted, and releases its RID. Persistent requests resist to \
        destroying, unless forced."
-    [ ( "force",
+    [
+      ( "force",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Destroy the request even if it is persistent." );
-      ("", Lang.request_t (Lang.univ_t ()), None, None) ]
+      ("", Lang.request_t (Lang.univ_t ()), None, None);
+    ]
     Lang.unit_t
     (fun p ->
       let force = Lang.to_bool (List.assoc "force" p) in
       let e = Lang.to_request (List.assoc "" p) in
-      Request.destroy ~force e ; Lang.unit)
+      Request.destroy ~force e;
+      Lang.unit)
 
 let () =
   add_builtin "request.duration" ~cat:Liq [("", Lang.string_t, None, None)]

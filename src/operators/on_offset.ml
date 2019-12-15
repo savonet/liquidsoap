@@ -54,13 +54,13 @@ class on_offset ~kind ~force ~offset ~override f s =
     val mutable executed = false
 
     method private execute =
-      (self#log)#info "Executing on_offset callback." ;
+      self#log#info "Executing on_offset callback.";
       let pos =
         Int64.to_float elapsed /. float (Lazy.force Frame.master_rate)
       in
       ignore
         (Lang.apply ~t:Lang.unit_t f
-           [("", Lang.float pos); ("", Lang.metadata latest_metadata)]) ;
+           [("", Lang.float pos); ("", Lang.metadata latest_metadata)]);
       executed <- true
 
     method private on_new_metadata =
@@ -71,32 +71,32 @@ class on_offset ~kind ~force ~offset ~override f s =
           with Failure _ -> raise (Invalid_override pos)
         in
         let ticks = ticks_of_offset pos in
-        (self#log)#info "Setting new offset to %.02fs (%Li ticks)" pos ticks ;
+        self#log#info "Setting new offset to %.02fs (%Li ticks)" pos ticks;
         offset <- ticks
       with
-        | Failure _ | Not_found ->
-            ()
+        | Failure _ | Not_found -> ()
         | Invalid_override pos ->
-            (self#log)#important "Invalid value for override metadata: %s" pos
+            self#log#important "Invalid value for override metadata: %s" pos
 
     method private get_frame ab =
       let pos = Int64.of_int (Frame.position ab) in
-      s#get ab ;
-      self#save_latest_metadata ab ;
+      s#get ab;
+      self#save_latest_metadata ab;
       let new_pos = Int64.of_int (Frame.position ab) in
-      elapsed <- elapsed ++ new_pos -- pos ;
-      if (not executed) && offset <= elapsed then self#execute ;
+      elapsed <- elapsed ++ new_pos -- pos;
+      if (not executed) && offset <= elapsed then self#execute;
       if Frame.is_partial ab then (
-        if force && not executed then self#execute ;
-        executed <- false ;
-        self#clear_latest_metadata ;
+        if force && not executed then self#execute;
+        executed <- false;
+        self#clear_latest_metadata;
         elapsed <- 0L )
   end
 
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "on_offset"
-    [ ( "offset",
+    [
+      ( "offset",
         Lang.float_t,
         Some (Lang.float (-1.)),
         Some
@@ -124,7 +124,8 @@ let () =
            the current track, second is the latest metadata. That function \
            should be fast because it is executed in the main streaming thread."
       );
-      ("", Lang.source_t kind, None, None) ]
+      ("", Lang.source_t kind, None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Call a given handler when position in track is equal or more than a \

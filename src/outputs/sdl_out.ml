@@ -45,8 +45,8 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
              (fun () ->
                Sdl.create_window "Liquidsoap" ~w:video_width ~h:video_height
                  Sdl.Window.windowed)
-             ()) ;
-      (self#log)#info "Initialized SDL video surface."
+             ());
+      self#log#info "Initialized SDL video surface."
 
     (** We don't care about latency. *)
     method output_reset = ()
@@ -63,13 +63,13 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
            do not cancel autostart. We should perhaps have a method in the
            output class for that kind of thing, and try to get an uniform
            behavior. *)
-              request_start <- false ;
+              request_start <- false;
               request_stop <- true
           | `Key_down ->
               (let k = Sdl.Event.(get e keyboard_keycode) in
                match k with
                  | k when k = Sdl.K.f ->
-                     fullscreen <- not fullscreen ;
+                     fullscreen <- not fullscreen;
                      Sdl_utils.check
                        (fun () ->
                          Sdl.set_window_fullscreen (Option.get window)
@@ -78,25 +78,23 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                        ()
                  | k when k = Sdl.K.q ->
                      let e = Sdl.Event.create () in
-                     Sdl.Event.(set e typ quit) ;
+                     Sdl.Event.(set e typ quit);
                      assert (Sdl_utils.check Sdl.push_event e)
-                 | _ ->
-                     ()) ;
+                 | _ -> ());
               self#process_events
-          | _ ->
-              self#process_events )
+          | _ -> self#process_events )
 
     method output_send buf =
-      self#process_events ;
+      self#process_events;
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in
       (* We only display the first image of each frame *)
       let rgb =
         let stop, c = Frame.content buf 0 in
-        assert (stop = Lazy.force Frame.size) ;
+        assert (stop = Lazy.force Frame.size);
         Video.get c.Frame.video.(0) 0
       in
-      Sdl_utils.Surface.of_img surface rgb ;
+      Sdl_utils.Surface.of_img surface rgb;
       Sdl_utils.check Sdl.update_window_surface window
   end
 

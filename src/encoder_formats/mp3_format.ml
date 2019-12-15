@@ -23,10 +23,10 @@
 type stereo_mode = Default | Stereo | Joint_stereo
 
 type abr = {
-  min_bitrate: int option;
-  mean_bitrate: int;
-  max_bitrate: int option;
-  hard_min: bool;
+  min_bitrate : int option;
+  mean_bitrate : int;
+  max_bitrate : int option;
+  hard_min : bool;
 }
 
 let string_of_abr x =
@@ -41,24 +41,21 @@ let string_of_abr x =
 type bitrate_control = ABR of abr | VBR of int | CBR of int
 
 let string_of_bitrate_control = function
-  | ABR abr ->
-      string_of_abr abr
-  | VBR q ->
-      Printf.sprintf "quality=%d" q
-  | CBR br ->
-      Printf.sprintf "bitrate=%d" br
+  | ABR abr -> string_of_abr abr
+  | VBR q -> Printf.sprintf "quality=%d" q
+  | CBR br -> Printf.sprintf "bitrate=%d" br
 
 type id3v2_export = Meta_format.export_metadata -> string
 
 type t = {
-  stereo: bool;
-  stereo_mode: stereo_mode;
-  bitrate_control: bitrate_control;
-  internal_quality: int;
-  samplerate: int Lazy.t;
-  id3v2: id3v2_export option;
-  msg_interval: float;
-  msg: string;
+  stereo : bool;
+  stereo_mode : stereo_mode;
+  bitrate_control : bitrate_control;
+  internal_quality : int;
+  samplerate : int Lazy.t;
+  id3v2 : id3v2_export option;
+  msg_interval : float;
+  msg : string;
 }
 
 let id3v2_export : id3v2_export option ref = ref None
@@ -66,12 +63,9 @@ let id3v2_export : id3v2_export option ref = ref None
 let to_string m =
   let name =
     match m.bitrate_control with
-      | VBR _ ->
-          "%mp3.vbr"
-      | ABR _ ->
-          "%mp3.abr"
-      | CBR _ ->
-          "%mp3"
+      | VBR _ -> "%mp3.vbr"
+      | ABR _ -> "%mp3.abr"
+      | CBR _ -> "%mp3"
   in
   Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%b)" name
     (Encoder_formats.string_of_stereo m.stereo)
@@ -80,9 +74,6 @@ let to_string m =
 
 let bitrate m =
   match m.bitrate_control with
-    | VBR _ ->
-        raise Not_found
-    | CBR n ->
-        n * 1000
-    | ABR abr ->
-        abr.mean_bitrate * 1000
+    | VBR _ -> raise Not_found
+    | CBR n -> n * 1000
+    | ABR abr -> abr.mean_bitrate * 1000

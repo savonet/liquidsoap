@@ -37,13 +37,15 @@ let aac_mime = "audio/aac"
 let flac_mime = "audio/x-flac"
 
 let base_proto kind =
-  [ ( "format",
+  [
+    ( "format",
       Lang.string_t,
       Some (Lang.string ""),
       Some
         "Format, e.g. \"audio/ogg\". When empty, the encoder is used to guess."
     );
-    ("", Lang.format_t kind, None, Some "Encoding format.") ]
+    ("", Lang.format_t kind, None, Some "Encoding format.");
+  ]
 
 module type Icecast_t = sig
   type content
@@ -57,9 +59,9 @@ end
 
 module Icecast_v (M : Icecast_t) = struct
   type encoder_data = {
-    factory: string -> Meta_format.export_metadata -> Encoder.encoder;
-    format: M.content;
-    info: M.info;
+    factory : string -> Meta_format.export_metadata -> Encoder.encoder;
+    format : M.content;
+    info : M.info;
   }
 
   let mpeg = M.format_of_content mpeg_mime
@@ -81,26 +83,16 @@ module Icecast_v (M : Icecast_t) = struct
   let flac = M.format_of_content flac_mime
 
   let format_of_encoder = function
-    | Encoder.MP3 _ ->
-        Some mpeg
-    | Encoder.Shine _ ->
-        Some mpeg
-    | Encoder.Ffmpeg _ ->
-        None
-    | Encoder.FdkAacEnc _ ->
-        Some aac
-    | Encoder.External _ ->
-        None
-    | Encoder.GStreamer _ ->
-        None
-    | Encoder.Flac _ ->
-        Some flac
-    | Encoder.WAV _ ->
-        Some wav
-    | Encoder.AVI _ ->
-        Some avi
-    | Encoder.Ogg _ ->
-        Some ogg
+    | Encoder.MP3 _ -> Some mpeg
+    | Encoder.Shine _ -> Some mpeg
+    | Encoder.Ffmpeg _ -> None
+    | Encoder.FdkAacEnc _ -> Some aac
+    | Encoder.External _ -> None
+    | Encoder.GStreamer _ -> None
+    | Encoder.Flac _ -> Some flac
+    | Encoder.WAV _ -> Some wav
+    | Encoder.AVI _ -> Some avi
+    | Encoder.Ogg _ -> Some ogg
 
   let encoder_data p =
     let v = Lang.assoc "" 1 p in
@@ -117,13 +109,12 @@ module Icecast_v (M : Icecast_t) = struct
       if f <> "" then M.format_of_content f
       else (
         match format with
-          | Some x ->
-              x
+          | Some x -> x
           | None ->
               raise
                 (Lang_errors.Invalid_value
                    ( Lang.assoc "" 1 p,
                      "No format (mime) found, please specify one." )) )
     in
-    {factory= encoder_factory; format; info}
+    { factory = encoder_factory; format; info }
 end

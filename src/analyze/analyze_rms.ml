@@ -42,7 +42,10 @@ class rms ~kind ~window_length ~update source =
 
     method get_frame ab =
       let p0 = AFrame.position ab in
-      let p1 = source#get ab ; AFrame.position ab in
+      let p1 =
+        source#get ab;
+        AFrame.position ab
+      in
       let buf = AFrame.content ab p0 in
       for i = p0 to p1 - 1 do
         let m =
@@ -53,9 +56,9 @@ class rms ~kind ~window_length ~update source =
             0. buf
         in
         let m = m /. float (Array.length buf) in
-        rms <- rms -. window.(pos) +. m ;
-        window.(pos) <- m ;
+        rms <- rms -. window.(pos) +. m;
+        window.(pos) <- m;
         pos <- pos + (1 mod window_length)
-      done ;
+      done;
       update (sqrt (rms /. float window_length))
   end

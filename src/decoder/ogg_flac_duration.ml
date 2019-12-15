@@ -23,53 +23,43 @@
 (** Read duration of ogg/flac files. *)
 
 let duration file =
-  let sync,fd = Ogg.Sync.create_from_file file in
-  Tutils.finalize ~k:(fun () -> Unix.close fd)
-    (fun _ -> 
+  let sync, fd = Ogg.Sync.create_from_file file in
+  Tutils.finalize
+    ~k:(fun () -> Unix.close fd)
+    (fun _ ->
       let test_flac () =
-        (** Get First page *)
+        (* Get First page *)
         let page = Ogg.Sync.read sync in
-        (** Check wether this is a b_o_s *)
-        if not (Ogg.Page.bos page) then raise Flac.Decoder.Not_flac ;
-        (** Create a stream with this ID *)
+        (* Check wether this is a b_o_s *)
+        if not (Ogg.Page.bos page) then raise Flac.Decoder.Not_flac;
+        (* Create a stream with this ID *)
         let serial = Ogg.Page.serialno page in
         let os = Ogg.Stream.create ~serial () in
-        Ogg.Stream.put_page os page ;
+        Ogg.Stream.put_page os page;
         let packet = Ogg.Stream.get_packet os in
-        (** Test header. Do not catch anything, first page should be sufficient *)
-        if not (Ogg_flac.Decoder.check_packet packet) then
-          raise Not_found;
+        (* Test header. Do not catch anything, first page should be sufficient *)
+        if not (Ogg_flac.Decoder.check_packet packet) then raise Not_found;
         let fill () =
           let page = Ogg.Sync.read sync in
-          if Ogg.Page.serialno page = serial then
-            Ogg.Stream.put_page os page
+          if Ogg.Page.serialno page = serial then Ogg.Stream.put_page os page
         in
         let callbacks = Ogg_flac.Decoder.get_callbacks (fun _ -> ()) in
         let dec = Ogg_flac.Decoder.create packet os in
         let rec info () =
-         try
-          Flac.Decoder.init dec callbacks
-         with
-          | Ogg.Not_enough_data -> fill (); info ()
+          try Flac.Decoder.init dec callbacks
+          with Ogg.Not_enough_data ->
+            fill ();
+            info ()
         in
         info ()
       in
-     (** Now find a flac stream *)
-     let rec init () =
-       try
-         test_flac ()
-       with
-         | Not_found -> init ()
-     in
-     let _,info,_ = init () in
-     let samples = 
-       Int64.to_float info.Flac.Decoder.total_samples 
-     in
-     (* If we have no sample, we play it safe and raise
-      * Not_found *)
-     if samples <= 0. then 
-       raise Not_found ;
-     samples /. (float info.Flac.Decoder.sample_rate))
+      (* Now find a flac stream *)
+      let rec init () = try test_flac () with Not_found -> init () in
+      let _, info, _ = init () in
+      let samples = Int64.to_float info.Flac.Decoder.total_samples in
+      (* If we have no sample, we play it safe and raise
+       * Not_found *)
+      if samples <= 0. then raise Not_found;
+      samples /. float info.Flac.Decoder.sample_rate)
 
 let () = Request.dresolvers#register "OGG/FLAC" duration
-

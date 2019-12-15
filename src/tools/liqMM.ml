@@ -1,9 +1,12 @@
 let ts m f =
   try
-    Mutex.lock m ;
+    Mutex.lock m;
     let ans = f () in
-    Mutex.unlock m ; ans
-  with e -> Mutex.unlock m ; raise e
+    Mutex.unlock m;
+    ans
+  with e ->
+    Mutex.unlock m;
+    raise e
 
 module RingbufferTS = struct
   open Audio.Ringbuffer

@@ -31,11 +31,11 @@ class unqueued ~kind r =
     inherit Request_source.unqueued ~name:"single" ~kind as super
 
     method wake_up x =
-      (self#log)#important "%S is static, resolving once for all..."
-        (Request.initial_uri r) ;
-      if Request.Resolved <> Request.resolve r 60. then raise Invalid_URI ;
+      self#log#important "%S is static, resolving once for all..."
+        (Request.initial_uri r);
+      if Request.Resolved <> Request.resolve r 60. then raise Invalid_URI;
       let filename = Utils.get_some (Request.get_filename r) in
-      if String.length filename < 15 then self#set_id filename ;
+      if String.length filename < 15 then self#set_id filename;
       super#wake_up x
 
     method stype = Infallible
@@ -47,11 +47,10 @@ class queued ~kind uri length default_duration timeout conservative =
   object (self)
     inherit
       Request_source.queued
-        ~name:"single" ~kind ~length ~default_duration ~conservative ~timeout
-          () as super
+        ~name:"single" ~kind ~length ~default_duration ~conservative ~timeout () as super
 
     method wake_up x =
-      if String.length uri < 15 then self#set_id uri ;
+      if String.length uri < 15 then self#set_id uri;
       super#wake_up x
 
     method get_next_request = Some (self#create_request uri)
@@ -105,7 +104,7 @@ class dynamic ~kind ~available (f : Lang.value) length default_duration timeout
 
     method is_ready =
       let ready = super#is_ready in
-      if (not ready) && available () then super#notify_new_request ;
+      if (not ready) && available () then super#notify_new_request;
       ready
 
     method get_next_request =
@@ -113,11 +112,11 @@ class dynamic ~kind ~available (f : Lang.value) length default_duration timeout
         if available () then (
           let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
           let req = Lang.to_request (Lang.apply ~t f []) in
-          Request.set_root_metadata req "source" self#id ;
+          Request.set_root_metadata req "source" self#id;
           Some req )
         else None
       with e ->
-        log#severe "Failed to obtain a media request!" ;
+        log#severe "Failed to obtain a media request!";
         raise e
   end
 

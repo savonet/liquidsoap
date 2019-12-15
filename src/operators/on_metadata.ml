@@ -38,12 +38,11 @@ class on_metadata ~kind f s =
 
     method private get_frame ab =
       let p = Frame.position ab in
-      s#get ab ;
+      s#get ab;
       List.iter
         (fun (i, m) ->
           if i >= p then (
-            (self#log)#debug "Got metadata at position %d: calling handler..."
-              i ;
+            self#log#debug "Got metadata at position %d: calling handler..." i;
             ignore (Lang.apply ~t:Lang.unit_t f [("", Lang.metadata m)]) ))
         (Frame.get_all_metadata ab)
   end
@@ -51,17 +50,19 @@ class on_metadata ~kind f s =
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "on_metadata"
-    [ ( "",
+    [
+      ( "",
         Lang.fun_t
-          [ ( false,
-              "",
-              Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) ) ]
+          [
+            (false, "", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+          ]
           Lang.unit_t,
         None,
         Some
           "Function called on every metadata packet in the stream. It should \
            be fast because it is executed in the main streaming thread." );
-      ("", Lang.source_t kind, None, None) ]
+      ("", Lang.source_t kind, None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on metadata packets."
     ~kind:(Lang.Unconstrained kind)

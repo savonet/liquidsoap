@@ -47,27 +47,28 @@ class mixing ~kind source =
 
     initializer
     (* Server commands *)
-    ns_kind <- "mixer" ;
+    ns_kind <- "mixer";
     self#register_command "skip"
       ~descr:"Skip current track on all enabled sources." (fun a ->
-        (source.(int_of_string a))#abort_track ; "OK") ;
+        source.(int_of_string a)#abort_track;
+        "OK");
     self#register_command "volume" ~descr:"Set volume for a given source."
       ~usage:"volume <source nb> <vol%>" (fun a ->
         if Str.string_match (Str.regexp "\\([0-9]+\\) \\([0-9]+\\)") a 0 then (
           let i = int_of_string (Str.matched_group 1 a) in
           let v = int_of_string (Str.matched_group 2 a) in
-          vol.(i) <- float v /. 100. ;
+          vol.(i) <- float v /. 100.;
           self#status i )
-        else "Usage: volume <source nb> <vol%>") ;
+        else "Usage: volume <source nb> <vol%>");
     self#register_command "select" ~descr:"Enable/disable a source."
       ~usage:"select <source nb> <true|false>" (fun a ->
         if Str.string_match (Str.regexp "\\([0-9]+\\) \\(true\\|false\\)") a 0
         then (
           let i = int_of_string (Str.matched_group 1 a) in
           let v = Str.matched_group 2 a in
-          sel.(i) <- v = "true" ;
+          sel.(i) <- v = "true";
           self#status i )
-        else "Usage: select <source nb> <true|false>") ;
+        else "Usage: select <source nb> <true|false>");
     self#register_command "single"
       ~descr:"Enable/disable automatic stop at the end of track."
       ~usage:"single <source nb> <true|false>" (fun a ->
@@ -75,47 +76,47 @@ class mixing ~kind source =
         then (
           let i = int_of_string (Str.matched_group 1 a) in
           let v = Str.matched_group 2 a in
-          single.(i) <- v = "true" ;
+          single.(i) <- v = "true";
           self#status i )
-        else "Usage: single <source nb> <true|false>") ;
+        else "Usage: single <source nb> <true|false>");
     self#register_command "status" ~descr:"Display current status." (fun a ->
-        self#status (int_of_string a)) ;
+        self#status (int_of_string a));
     self#register_command "inputs" ~descr:"Print the list of input sources."
       (fun _ -> Array.fold_left (fun e s -> e ^ " " ^ s#id) "" source)
 
     method private get_frame buf =
       let p = AFrame.position buf in
       let r = AFrame.size () - p in
-      AFrame.blankify buf p r ;
+      AFrame.blankify buf p r;
       for i = 0 to n - 1 do
-        if sel.(i) && (source.(i))#is_ready then (
-          AFrame.clear tmp ;
-          AFrame.set_breaks tmp [p] ;
+        if sel.(i) && source.(i)#is_ready then (
+          AFrame.clear tmp;
+          AFrame.set_breaks tmp [p];
           if single.(i) then (
-            (source.(i))#get tmp ;
+            source.(i)#get tmp;
             if AFrame.is_partial tmp then sel.(i) <- false )
           else
-            while AFrame.is_partial tmp && (source.(i))#is_ready do
-              (source.(i))#get tmp
-            done ;
+            while AFrame.is_partial tmp && source.(i)#is_ready do
+              source.(i)#get tmp
+            done;
           List.iter
             (fun (t, m) -> AFrame.set_metadata buf t m)
-            (AFrame.get_all_metadata tmp) ;
-          AFrame.multiply tmp p r vol.(i) ;
+            (AFrame.get_all_metadata tmp);
+          AFrame.multiply tmp p r vol.(i);
           AFrame.add buf p tmp p r )
-      done ;
+      done;
       AFrame.add_break buf (AFrame.size ())
 
     method abort_track =
       for i = 0 to n - 1 do
-        if sel.(i) then (source.(i))#abort_track
+        if sel.(i) then source.(i)#abort_track
       done
 
     method private status i =
       Printf.sprintf "ready=%b selected=%b single=%b volume=%d%% remaining=%s"
-        (source.(i))#is_ready sel.(i) single.(i)
+        source.(i)#is_ready sel.(i) single.(i)
         (int_of_float (vol.(i) *. 100.))
-        (let r = (source.(i))#remaining in
+        (let r = source.(i)#remaining in
          if r = -1 then "(undef)"
          else Printf.sprintf "%.2f" (Frame.seconds_of_master r))
   end

@@ -37,10 +37,10 @@ module Buffer = struct
 
   (* The kind of value shared by a producer and a consumer. *)
   type control = {
-    lock: Mutex.t;
-    generator: Generator.t;
-    mutable buffering: bool;
-    mutable abort: bool;
+    lock : Mutex.t;
+    generator : Generator.t;
+    mutable buffering : bool;
+    mutable abort : bool;
   }
 
   let proceed control f = Tutils.mutexify control.lock f ()
@@ -60,10 +60,10 @@ module Buffer = struct
 
       method private get_frame frame =
         proceed c (fun () ->
-            assert (not c.buffering) ;
-            Generator.fill c.generator frame ;
+            assert (not c.buffering);
+            Generator.fill c.generator frame;
             if Frame.is_partial frame && Generator.length c.generator = 0 then (
-              (self#log)#important "Buffer emptied, start buffering..." ;
+              self#log#important "Buffer emptied, start buffering...";
               c.buffering <- true ))
 
       method abort_track = proceed c (fun () -> c.abort <- true)
@@ -90,11 +90,11 @@ module Buffer = struct
       method output_send frame =
         proceed c (fun () ->
             if c.abort then (
-              c.abort <- false ;
-              source#abort_track ) ;
-            Generator.feed_from_frame c.generator frame ;
+              c.abort <- false;
+              source#abort_track );
+            Generator.feed_from_frame c.generator frame;
             if Generator.length c.generator > prebuf then (
-              c.buffering <- false ;
+              c.buffering <- false;
               if Generator.length c.generator > maxbuf then
                 Generator.remove c.generator
                   (Generator.length c.generator - maxbuf) ))
@@ -104,10 +104,10 @@ module Buffer = struct
       ~kind source_val =
     let control =
       {
-        generator= Generator.create ();
-        lock= Mutex.create ();
-        buffering= true;
-        abort= false;
+        generator = Generator.create ();
+        lock = Mutex.create ();
+        buffering = true;
+        abort = false;
       }
     in
     let _ =
@@ -122,7 +122,8 @@ let () =
   let k = Lang.univ_t () in
   Lang.add_operator "buffer"
     ( Output.proto
-    @ [ ( "buffer",
+    @ [
+        ( "buffer",
           Lang.float_t,
           Some (Lang.float 1.),
           Some "Amount of data to pre-buffer, in seconds." );
@@ -130,7 +131,8 @@ let () =
           Lang.float_t,
           Some (Lang.float 10.),
           Some "Maximum amount of buffered data, in seconds." );
-        ("", Lang.source_t k, None, None) ] )
+        ("", Lang.source_t k, None, None);
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Liquidsoap
     ~descr:"Create a buffer between two different clocks."
     (fun p kind ->
@@ -154,13 +156,13 @@ module AdaptativeBuffer = struct
   (* The kind of value shared by a producer and a consumer. *)
   (* TODO: also have breaks and metadata as in generators. *)
   type control = {
-    lock: Mutex.t;
-    rb: RB.t;
-    mutable rb_length: float;
+    lock : Mutex.t;
+    rb : RB.t;
+    mutable rb_length : float;
     (* average length of the ringbuffer in samples *)
-    mg: MG.t;
-    mutable buffering: bool;
-    mutable abort: bool;
+    mg : MG.t;
+    mutable buffering : bool;
+    mutable abort : bool;
   }
 
   let proceed control f = Tutils.mutexify control.lock f ()
@@ -184,7 +186,7 @@ module AdaptativeBuffer = struct
 
       method private get_frame frame =
         proceed c (fun () ->
-            assert (not c.buffering) ;
+            assert (not c.buffering);
             (* Update the average length of the ringbuffer (with a damping
              coefficient in order not to be too sensitive to quick local
              variations). *)
@@ -202,10 +204,10 @@ module AdaptativeBuffer = struct
           *)
             c.rb_length <-
               ((1. -. alpha) *. c.rb_length)
-              +. (alpha *. float (RB.read_space c.rb)) ;
+              +. (alpha *. float (RB.read_space c.rb));
             (* Limit estimation *)
-            c.rb_length <- min c.rb_length (prebuf *. limit) ;
-            c.rb_length <- max c.rb_length (prebuf /. limit) ;
+            c.rb_length <- min c.rb_length (prebuf *. limit);
+            c.rb_length <- max c.rb_length (prebuf /. limit);
             (* Fill dlen samples of dst using slen samples of the ringbuffer. *)
             let fill dst dofs dlen slen =
               (* TODO: when the RB is low on space we'd better not fill the whole
@@ -213,7 +215,7 @@ module AdaptativeBuffer = struct
               let slen = min slen (RB.read_space c.rb) in
               if slen > 0 then (
                 let src = Audio.create channels slen in
-                RB.read c.rb src ;
+                RB.read c.rb src;
                 if slen = dlen then
                   Audio.blit (Audio.sub src 0 slen) (Audio.sub dst dofs slen)
                 else
@@ -240,21 +242,21 @@ module AdaptativeBuffer = struct
             let alen = Frame.audio_of_master len in
             let buf = AFrame.content_of_type ~channels frame aofs in
             let salen = scale alen in
-            fill buf aofs alen salen ;
-            Frame.add_break frame (ofs + len) ;
+            fill buf aofs alen salen;
+            Frame.add_break frame (ofs + len);
+
             (* self#log#debug "filled %d from %d (x %f)" len ofs scaling; *)
 
             (* Fill in metadata *)
             let md = MG.metadata c.mg (scale len) in
-            List.iter (fun (t, m) -> Frame.set_metadata frame (unscale t) m) md ;
-            MG.advance c.mg
-              (min (Frame.master_of_audio salen) (MG.length c.mg)) ;
-            if Frame.is_partial frame then MG.drop_initial_break c.mg ;
+            List.iter (fun (t, m) -> Frame.set_metadata frame (unscale t) m) md;
+            MG.advance c.mg (min (Frame.master_of_audio salen) (MG.length c.mg));
+            if Frame.is_partial frame then MG.drop_initial_break c.mg;
             (* If there is no data left, we should buffer again. *)
             if RB.read_space c.rb = 0 then (
-              (self#log)#important "Buffer emptied, start buffering..." ;
-              (self#log)#debug "Current scaling factor is x%f." scaling ;
-              MG.advance c.mg (MG.length c.mg) ;
+              self#log#important "Buffer emptied, start buffering...";
+              self#log#debug "Current scaling factor is x%f." scaling;
+              MG.advance c.mg (MG.length c.mg);
               (* sync just in case *)
               c.buffering <- true ))
 
@@ -282,20 +284,20 @@ module AdaptativeBuffer = struct
       method output_send frame =
         proceed c (fun () ->
             if c.abort then (
-              c.abort <- false ;
-              source#abort_track ) ;
+              c.abort <- false;
+              source#abort_track );
             let len = AFrame.position frame in
             (* TODO: is this ok to start from 0? *)
             let buf = AFrame.content_of_type ~channels frame 0 in
             if RB.write_space c.rb < len then (
               (* Not enough write space, let's drop some data. *)
               let n = len - RB.write_space c.rb in
-              RB.read_advance c.rb n ;
-              MG.advance c.mg (Frame.master_of_audio n) ) ;
-            RB.write c.rb (Audio.sub buf 0 len) ;
-            MG.feed_from_frame c.mg frame ;
+              RB.read_advance c.rb n;
+              MG.advance c.mg (Frame.master_of_audio n) );
+            RB.write c.rb (Audio.sub buf 0 len);
+            MG.feed_from_frame c.mg frame;
             if RB.read_space c.rb > prebuf then (
-              c.buffering <- false ;
+              c.buffering <- false;
               if reset then
                 c.rb_length <- float (Frame.audio_of_seconds pre_buffer) ))
     end
@@ -305,12 +307,12 @@ module AdaptativeBuffer = struct
     let channels = (Frame.type_of_kind kind).Frame.audio in
     let control =
       {
-        lock= Mutex.create ();
-        rb= RB.create channels (Frame.audio_of_seconds max_buffer);
-        rb_length= float (Frame.audio_of_seconds pre_buffer);
-        mg= MG.create ();
-        buffering= true;
-        abort= false;
+        lock = Mutex.create ();
+        rb = RB.create channels (Frame.audio_of_seconds max_buffer);
+        rb_length = float (Frame.audio_of_seconds pre_buffer);
+        mg = MG.create ();
+        buffering = true;
+        abort = false;
       }
     in
     let _ =
@@ -325,7 +327,8 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "buffer.adaptative"
     ( Output.proto
-    @ [ ( "buffer",
+    @ [
+        ( "buffer",
           Lang.float_t,
           Some (Lang.float 1.),
           Some "Amount of data to pre-buffer, in seconds." );
@@ -347,13 +350,13 @@ let () =
           Some
             "Reset speed estimation to 1. when the source becomes available \
              again." );
-        ("", Lang.source_t k, None, None) ] )
+        ("", Lang.source_t k, None, None);
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \
-       is adapted so that no buffer underrun or overrun occurs. This \
-       wonderful behavior has a cost: the pitch of the sound might be changed \
-       a little."
+       is adapted so that no buffer underrun or overrun occurs. This wonderful \
+       behavior has a cost: the pitch of the sound might be changed a little."
     ~flags:[Lang.Experimental]
     (fun p kind ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

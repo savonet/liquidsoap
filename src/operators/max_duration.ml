@@ -50,12 +50,9 @@ class max_duration ~kind ~override_meta ~duration source =
 
     method remaining =
       match (remaining, s#remaining) with
-        | 0, _ ->
-            0
-        | _, -1 ->
-            -1
-        | rem, rem' ->
-            min rem rem'
+        | 0, _ -> 0
+        | _, -1 -> -1
+        | rem, rem' -> min rem rem'
 
     method private check_for_override ~offset buf =
       List.iter
@@ -66,36 +63,38 @@ class max_duration ~kind ~override_meta ~duration source =
                 if lbl = override_meta then (
                   try
                     let v = float_of_string v in
-                    remaining <- Frame.master_of_seconds v ;
-                    (self#log)#info "Overriding remaining value: %.02f." v
+                    remaining <- Frame.master_of_seconds v;
+                    self#log#info "Overriding remaining value: %.02f." v
                   with _ ->
-                    (self#log)#important
-                      "Invalid remaining override value: %s." v ))
+                    self#log#important "Invalid remaining override value: %s." v
+                  ))
               m)
         (Frame.get_all_metadata buf)
 
     method private get_frame buf =
       let offset = Frame.position buf in
-      s#get buf ;
-      self#check_for_override ~offset buf ;
-      remaining <- remaining - Frame.position buf + offset ;
+      s#get buf;
+      self#check_for_override ~offset buf;
+      remaining <- remaining - Frame.position buf + offset;
       if remaining <= 0 then (
-        s#leave (self :> Source.source) ;
-        s <- (new Blank.empty ~kind :> Source.source) ;
+        s#leave (self :> Source.source);
+        s <- (new Blank.empty ~kind :> Source.source);
         s#get_ready [(self :> Source.source)] )
   end
 
 let () =
   let k = Lang.univ_t () in
   Lang.add_operator "max_duration"
-    [ ( "override",
+    [
+      ( "override",
         Lang.string_t,
         Some (Lang.string "liq_remaining"),
         Some
           "Metadata field which, if present and containing a float, overrides \
            the remaining play time." );
       ("", Lang.float_t, None, Some "Maximum duration");
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~category:Lang.TrackProcessing ~descr:"Limit source duration"
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->

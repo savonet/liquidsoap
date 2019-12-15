@@ -36,8 +36,8 @@ class prepend ~kind ~merge source f =
             (* TODO how does that play with caching ? *)
             let peek = Frame.create kind in
             let peekpos = AFrame.size () - 1 in
-            AFrame.add_break peek peekpos ;
-            source#get peek ;
+            AFrame.add_break peek peekpos;
+            source#get peek;
             if AFrame.is_partial peek then
               AFrame.add_break buf (AFrame.position buf)
             else (
@@ -53,23 +53,20 @@ class prepend ~kind ~merge source f =
                           [] )
               in
               if inhibit then (
-                (self#log)#info
+                self#log#info
                   "Prepending disabled from metadata \
-                   (\"liq_prepend\"=\"false\")." ;
-                state <- `Buffer peek ;
+                   (\"liq_prepend\"=\"false\").";
+                state <- `Buffer peek;
                 self#get_frame buf )
               else (
                 let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-                let prepend =
-                  Lang.to_source (Lang.apply ~t f [("", lang_m)])
-                in
-                self#register prepend ;
+                let prepend = Lang.to_source (Lang.apply ~t f [("", lang_m)]) in
+                self#register prepend;
                 if not prepend#is_ready then (
-                  (self#log)#important
-                    "Candidate to prepending not ready. Abort!" ;
-                  state <- `Buffer peek ;
+                  self#log#important "Candidate to prepending not ready. Abort!";
+                  state <- `Buffer peek;
                   self#unregister prepend )
-                else state <- `Prepend (prepend, peek) ;
+                else state <- `Prepend (prepend, peek);
                 self#get_frame buf ) )
         | `Buffer peek ->
             let p = AFrame.position buf in
@@ -78,28 +75,28 @@ class prepend ~kind ~merge source f =
             let peekpos = AFrame.size () - 1 in
             for i = 0 to Array.length pcm - 1 do
               pcm.(i).{p} <- peek_pcm.(i).{peekpos}
-            done ;
+            done;
             begin
-              match AFrame.get_metadata peek peekpos with Some m ->
-                  AFrame.set_metadata buf p m
+              match AFrame.get_metadata peek peekpos with
+              | Some m -> AFrame.set_metadata buf p m
               | None -> ()
-            end ;
-            state <- `Replay ;
-            AFrame.add_break buf (p + 1) ;
-            self#get_frame buf ;
+            end;
+            state <- `Replay;
+            AFrame.add_break buf (p + 1);
+            self#get_frame buf;
             AFrame.set_breaks buf
               (List.filter (( <> ) (p + 1)) (AFrame.breaks buf))
         | `Replay ->
-            source#get buf ;
+            source#get buf;
             if AFrame.is_partial buf then state <- `Idle
         | `Prepend (prepend, peek) ->
-            prepend#get buf ;
+            prepend#get buf;
             if AFrame.is_partial buf then (
-              self#unregister prepend ;
-              state <- `Buffer peek ;
+              self#unregister prepend;
+              state <- `Buffer peek;
               if merge then (
                 let pos = AFrame.position buf in
-                self#get_frame buf ;
+                self#get_frame buf;
                 AFrame.set_breaks buf
                   (Utils.remove_one (( = ) pos) (AFrame.breaks buf)) ) )
 
@@ -107,15 +104,12 @@ class prepend ~kind ~merge source f =
 
     method is_ready =
       match state with
-        | `Idle | `Replay | `Buffer _ ->
-            source#is_ready
-        | `Prepend (s, _) ->
-            s#is_ready || source#is_ready
+        | `Idle | `Replay | `Buffer _ -> source#is_ready
+        | `Prepend (s, _) -> s#is_ready || source#is_ready
 
     method remaining =
       match state with
-        | `Idle | `Replay | `Buffer _ ->
-            source#remaining
+        | `Idle | `Replay | `Buffer _ -> source#remaining
         | `Prepend (s, _) ->
             let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
             if merge then s#remaining + source#remaining else s#remaining
@@ -131,17 +125,19 @@ class prepend ~kind ~merge source f =
     val mutable activation = []
 
     method private wake_up activator =
-      assert (state = `Idle) ;
-      activation <- (self :> source) :: activator ;
-      source#get_ready activation ;
+      assert (state = `Idle);
+      activation <- (self :> source) :: activator;
+      source#get_ready activation;
       Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
 
     method private sleep =
-      source#leave (self :> source) ;
-      Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f ;
+      source#leave (self :> source);
+      Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin
-        match state with `Prepend (p, _) -> self#unregister p | _ -> ()
-      end ;
+        match state with
+        | `Prepend (p, _) -> self#unregister p
+        | _ -> ()
+      end;
       state <- `Idle
 
     method private register a = a#get_ready activation
@@ -152,7 +148,8 @@ class prepend ~kind ~merge source f =
 let register =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "prepend"
-    [ ( "merge",
+    [
+      ( "merge",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Merge the track with its appended track." );
@@ -164,7 +161,8 @@ let register =
           "Given the metadata, build the source producing the track to \
            prepend. This source is allowed to fail (produce nothing) if no \
            relevant track is to be appended. However, success must be \
-           immediate or it will not be taken into account." ) ]
+           immediate or it will not be taken into account." );
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.TrackProcessing
     ~descr:
       ( "Prepend an extra track before every track. "

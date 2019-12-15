@@ -41,10 +41,10 @@ let vol n v =
   in
   for i = 0 to barlen - 1 do
     ans := !ans ^ "="
-  done ;
+  done;
   for i = 0 to barwidth - barlen - 1 do
     ans := !ans ^ "."
-  done ;
+  done;
   Printf.sprintf "% 5.1f %s" v !ans
 
 class vumeter ~kind source scroll =
@@ -63,7 +63,7 @@ class vumeter ~kind source scroll =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let rms = AFrame.rms buf offset (AFrame.position buf - offset) in
       let channels = Array.length rms in
       let vol = Array.map (vol channels) rms in
@@ -76,8 +76,10 @@ let () =
   let format = Lang.any_fixed_with ~audio:1 () in
   let k = Lang.kind_type_of_kind_format format in
   Lang.add_operator "vumeter"
-    [ ("scroll", Lang.bool_t, Some (Lang.bool false), Some "Scroll.");
-      ("", Lang.source_t k, None, None) ]
+    [
+      ("scroll", Lang.bool_t, Some (Lang.bool false), Some "Scroll.");
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.Visualization
     ~descr:"VU meter (display the audio volume)."
     (fun p kind ->

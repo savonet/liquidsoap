@@ -41,7 +41,7 @@ let input fn = fn
 let input_byte input =
   let buf = Bytes.create 1 in
   let i = input buf 0 1 in
-  if i = 0 then raise End_of_stream ;
+  if i = 0 then raise End_of_stream;
   int_of_char (Bytes.get buf 0)
 
 let seek input len =
@@ -49,7 +49,7 @@ let seek input len =
   ignore (really_input input s 0 len)
 
 let input_ops =
-  {Wav_aiff.really_input; input_byte; input; seek; close= (fun _ -> ())}
+  { Wav_aiff.really_input; input_byte; input; seek; close = (fun _ -> ()) }
 
 module Make (Generator : Generator.S_Asio) = struct
   (* It might be more efficient to write our code for an input
@@ -68,10 +68,10 @@ module Make (Generator : Generator.S_Asio) = struct
           if !remaining = -1 then bytes_to_get else min !remaining bytes_to_get
         in
         let bytes = input.Decoder.read buf 0 bytes_to_get in
-        if !remaining <> -1 then remaining := !remaining - bytes ;
-        if bytes = 0 then raise End_of_stream ;
+        if !remaining <> -1 then remaining := !remaining - bytes;
+        if bytes = 0 then raise End_of_stream;
         let content = converter (Bytes.sub_string buf 0 bytes) in
-        Generator.set_mode gen `Audio ;
+        Generator.set_mode gen `Audio;
         Generator.put_audio gen content 0 (Audio.Mono.length content.(0))
     in
     let read_header () =
@@ -87,21 +87,20 @@ module Make (Generator : Generator.S_Asio) = struct
           ~audio_src_rate:(float samplerate)
       in
       let format_descr = match format with `Wav -> "WAV" | `Aiff -> "AIFF" in
-      log#info
-        "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
-        format_descr samplerate samplesize datalen ;
-      header := Some (format, samplesize, channels, float samplerate, datalen) ;
+      log#info "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
+        format_descr samplerate samplesize datalen;
+      header := Some (format, samplesize, channels, float samplerate, datalen);
       decoder := main_decoder datalen converter
     in
     begin
-      match !header with None -> decoder := fun _ -> read_header ()
+      match !header with
+      | None -> decoder := fun _ -> read_header ()
       | Some (format, samplesize, channels, audio_src_rate, datalen) ->
           let converter =
-            Rutils.create_from_iff ~format ~samplesize ~channels
-              ~audio_src_rate
+            Rutils.create_from_iff ~format ~samplesize ~channels ~audio_src_rate
           in
           decoder := main_decoder datalen converter
-    end ;
+    end;
     let seek ticks =
       match (input.Decoder.lseek, input.Decoder.tell, !header) with
         | Some seek, Some tell, Some (_, samplesize, channels, samplerate, _)
@@ -117,10 +116,9 @@ module Make (Generator : Generator.S_Asio) = struct
               let duration = float samples /. samplerate in
               Frame.master_of_seconds duration
             with _ -> 0 )
-        | _, _, _ ->
-            0
+        | _, _, _ -> 0
     in
-    {Decoder.decode= (fun gen -> !decoder gen); seek}
+    { Decoder.decode = (fun gen -> !decoder gen); seek }
 end
 
 module Generator_plus = Generator.From_audio_video_plus
@@ -140,25 +138,29 @@ let get_type filename =
         let channels = Wav_aiff.channels header in
         let sample_rate = Wav_aiff.sample_rate header in
         let ok_message s =
-          log#info "%S recognized as WAV file (%s,%dHz,%d channels)." filename
-            s sample_rate channels
+          log#info "%S recognized as WAV file (%s,%dHz,%d channels)." filename s
+            sample_rate channels
         in
         match Wav_aiff.sample_size header with
           | 8 ->
-              ok_message "u8" ; channels
+              ok_message "u8";
+              channels
           | 16 ->
-              ok_message "s16le" ; channels
+              ok_message "s16le";
+              channels
           | 24 ->
-              ok_message "s24le" ; channels
+              ok_message "s24le";
+              channels
           | 32 ->
-              ok_message "s32le" ; channels
+              ok_message "s32le";
+              channels
           | _ ->
               log#info
                 "Only 8, 16, 24 and 32 bit WAV files are supported at the \
-                 moment.." ;
+                 moment..";
               0
       in
-      {Frame.video= 0; midi= 0; audio= channels})
+      { Frame.video = 0; midi = 0; audio = channels })
 
 let create_file_decoder filename kind =
   let generator = Generator.create `Audio in
@@ -194,7 +196,7 @@ let () =
           log#important "WAV file %S has content type %s but %s was expected."
             filename
             (Frame.string_of_content_type file_type)
-            (Frame.string_of_content_kind kind) ;
+            (Frame.string_of_content_kind kind);
           None ) ))
 
 let aiff_mime_types =
@@ -227,14 +229,15 @@ let () =
           log#important "AIFF file %S has content type %s but %s was expected."
             filename
             (Frame.string_of_content_type file_type)
-            (Frame.string_of_content_kind kind) ;
+            (Frame.string_of_content_kind kind);
           None ) ))
 
 let () =
   let duration file =
     let w = Wav_aiff.fopen file in
     let ret = Wav_aiff.duration w in
-    Wav_aiff.close w ; ret
+    Wav_aiff.close w;
+    ret
   in
   Request.dresolvers#register "WAV/AIFF" duration
 
@@ -244,8 +247,7 @@ module D_stream = Make (Generator_plus)
 
 let () =
   Decoder.stream_decoders#register "WAV"
-    ~sdoc:"Decode a WAV stream with an appropriate MIME type."
-    (fun mime kind ->
+    ~sdoc:"Decode a WAV stream with an appropriate MIME type." (fun mime kind ->
       let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime wav_mime_types#get

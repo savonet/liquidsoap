@@ -51,7 +51,7 @@ class flanger ~kind (source : source) delay freq feedback phase =
     method private get_frame buf =
       let feedback = feedback () in
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let d_omega = 2. *. pi *. freq () /. float (Frame.audio_of_seconds 1.) in
@@ -60,18 +60,17 @@ class flanger ~kind (source : source) delay freq feedback phase =
           let delay =
             ( past_pos + past_len
             + Frame.audio_of_seconds
-                (delay *. (1. -. cos (omega +. (float c *. phase ()))) /. 2.)
-            )
+                (delay *. (1. -. cos (omega +. (float c *. phase ()))) /. 2.) )
             mod past_len
           in
-          past.(c).{past_pos} <- b.(c).{i} ;
+          past.(c).{past_pos} <- b.(c).{i};
           b.(c).{i} <-
             (b.(c).{i} +. (past.(c).{delay} *. feedback)) /. (1. +. feedback)
-        done ;
-        omega <- omega +. d_omega ;
+        done;
+        omega <- omega +. d_omega;
         while omega > 2. *. pi do
           omega <- omega -. (2. *. pi)
-        done ;
+        done;
         past_pos <- (past_pos + 1) mod past_len
       done
   end
@@ -79,7 +78,8 @@ class flanger ~kind (source : source) delay freq feedback phase =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "flanger"
-    [ ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
+    [
+      ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
       ( "freq",
         Lang.float_getter_t (),
         Some (Lang.float 0.5),
@@ -92,7 +92,8 @@ let () =
         Lang.float_getter_t (),
         Some (Lang.float 1.),
         Some "Phase difference between channels in radians." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Flanger effect."
     (fun p kind ->

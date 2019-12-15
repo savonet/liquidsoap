@@ -42,10 +42,9 @@ class dyn ~kind f =
       let unregister () =
         match source with
           | Some s ->
-              s#leave (self :> Source.source) ;
+              s#leave (self :> Source.source);
               source <- None
-          | None ->
-              ()
+          | None -> ()
       in
       if already_locked then unregister ()
       else Tutils.mutexify source_lock unregister ()
@@ -58,38 +57,37 @@ class dyn ~kind f =
              let l = Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [] in
              let l = Lang.to_source_list l in
              match l with
-               | [] ->
-                   ()
+               | [] -> ()
                | [s] ->
-                   Clock.unify s#clock self#clock ;
-                   s#get_ready activation ;
-                   self#unregister_source ~already_locked:true ;
+                   Clock.unify s#clock self#clock;
+                   s#get_ready activation;
+                   self#unregister_source ~already_locked:true;
                    source <- Some s
-               | _ ->
-                   assert false))
+               | _ -> assert false))
 
     (* Source methods: attempt to #select as soon as it could be useful
      * for the selection function to change the source. *)
     method private wake_up ancestors =
-      activation <- (self :> Source.source) :: ancestors ;
-      Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f ;
+      activation <- (self :> Source.source) :: ancestors;
+      Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f;
       self#select
 
     method private sleep =
       Lang.iter_sources
         (fun s -> s#leave ~dynamic:true (self :> Source.source))
-        f ;
+        f;
       self#unregister_source ~already_locked:false
 
     method is_ready =
-      self#select ;
+      self#select;
       match source with Some s when s#is_ready -> true | _ -> false
 
     method private get_frame frame =
       begin
-        match source with Some s -> s#get frame | None ->
-            Frame.add_break frame (Frame.position frame)
-      end ;
+        match source with
+        | Some s -> s#get frame
+        | None -> Frame.add_break frame (Frame.position frame)
+      end;
       self#select
 
     method remaining = match source with Some s -> s#remaining | None -> -1
@@ -99,8 +97,7 @@ class dyn ~kind f =
 
     method seek n = match source with Some s -> s#seek n | None -> 0
 
-    method self_sync =
-      match source with Some s -> s#self_sync | None -> false
+    method self_sync = match source with Some s -> s#self_sync | None -> false
   end
 
 let () =

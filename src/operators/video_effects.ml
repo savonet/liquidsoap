@@ -40,8 +40,7 @@ class effect ~kind effect (source : source) =
 
     method private get_frame buf =
       match VFrame.get_content buf source with
-        | None ->
-            ()
+        | None -> ()
         | Some (rgb, offset, length) ->
             let rgb = rgb.(0) in
             Video.iter effect rgb offset length

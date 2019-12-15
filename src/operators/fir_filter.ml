@@ -47,73 +47,73 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     val mutable circle = [||]
 
-    val mutable temp = Array.make 2048 {re= 0.; im= 0.}
+    val mutable temp = Array.make 2048 { re = 0.; im = 0. }
 
     initializer
-    (self#log)#info
+    self#log#info
       "Init: alpha=%+.013f beta=%+.013f F1=%+.013f F2=%+.013f tau=%+.013f \
        zeros=%d."
       (freq /. float_of_int (Frame.audio_of_seconds 1.))
-      beta f1 f2 tau nzeros ;
+      beta f1 f2 tau nzeros;
     (* Init circle *)
     let circle =
       let rec mkcircle n =
         if n < 0 then [||]
         else (
           let theta = Utils.pi *. float_of_int n /. 1024. in
-          Array.append (mkcircle (n - 1)) [|{re= cos theta; im= sin theta}|] )
+          Array.append
+            (mkcircle (n - 1))
+            [| { re = cos theta; im = sin theta } |] )
       in
       mkcircle 1024
     in
     (* Compute vec *)
-    let vec = Array.make 2048 {re= 0.; im= 0.} in
+    let vec = Array.make 2048 { re = 0.; im = 0. } in
     let c n =
       let f = float_of_int n /. 2048. in
       match (f <= f1, f <= f2) with
-        | true, _ ->
-            1.
+        | true, _ -> 1.
         | false, true ->
             0.5 *. (1. +. cos (Utils.pi *. tau /. beta *. (f -. f1)))
-        | false, false ->
-            0.
+        | false, false -> 0.
     in
     for i = 0 to 1024 do
-      vec.(i) <- {re= c i *. tau; im= 0.}
-    done ;
+      vec.(i) <- { re = c i *. tau; im = 0. }
+    done;
     for i = 1 to 1024 do
       vec.(2048 - i) <- vec.(i)
-    done ;
+    done;
     (* FFT *)
     let ( +~ ), ( -~ ), ( *~ ) = (Complex.add, Complex.sub, Complex.mul) in
     let rec fft t d s n =
       if n > 1 then (
         let h = n / 2 in
         for i = 0 to h - 1 do
-          !t.(s + i) <- !d.(s + (2 * i)) ;
+          !t.(s + i) <- !d.(s + (2 * i));
           (* even *)
           !t.(s + h + i) <- !d.(s + (2 * i) + 1) (* odd  *)
-        done ;
-        fft d t s h ;
-        fft d t (s + h) h ;
+        done;
+        fft d t s h;
+        fft d t (s + h) h;
         let a = 2048 / n in
         for i = 0 to h - 1 do
           let wkt = circle.(i * a) *~ !t.(s + h + i) in
-          !d.(s + i) <- !t.(s + i) +~ wkt ;
+          !d.(s + i) <- !t.(s + i) +~ wkt;
           !d.(s + h + i) <- !t.(s + i) -~ wkt
         done )
     in
-    fft (ref temp) (ref vec) 0 2048 ;
+    fft (ref temp) (ref vec) 0 2048;
     (* inverse fft *)
     let h = (numcoeffs - 1) / 2 in
     xcoeffs <-
-      Array.mapi (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.) xcoeffs ;
-    (self#log)#info "Xcoeffs: %s"
+      Array.mapi (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.) xcoeffs;
+    self#log#info "Xcoeffs: %s"
       (String.concat "\n"
          (Array.to_list
-            (Array.mapi (fun i a -> Printf.sprintf "%d: %+.013f." i a) xcoeffs))) ;
-    gain <- Array.fold_left ( +. ) 0. xcoeffs ;
-    (self#log)#info "Gain: %+.013f." gain ;
-    (self#log)#info "Init done."
+            (Array.mapi (fun i a -> Printf.sprintf "%d: %+.013f." i a) xcoeffs)));
+    gain <- Array.fold_left ( +. ) 0. xcoeffs;
+    self#log#info "Gain: %+.013f." gain;
+    self#log#info "Init done."
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
     method stype = source#stype
@@ -130,7 +130,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let shift a =
         for i = 0 to Array.length a - 2 do
@@ -142,14 +142,14 @@ class fir ~kind (source : source) freq beta numcoeffs =
         let result = ref init in
         for i = 0 to l - 1 do
           result := f !result a1.(i) a2.(i)
-        done ;
+        done;
         !result
       in
       let addtimes a b c = a +. (b *. c) in
       for c = 0 to 1 do
         for i = offset to AFrame.position buf - 1 do
-          shift xv.(c) ;
-          xv.(c).(nzeros) <- b.(c).{i} /. gain ;
+          shift xv.(c);
+          xv.(c).(nzeros) <- b.(c).{i} /. gain;
           b.(c).{i} <- fold_left2 addtimes 0. xcoeffs xv.(c)
         done
       done
@@ -158,7 +158,8 @@ class fir ~kind (source : source) freq beta numcoeffs =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.fir"
-    [ ( "frequency",
+    [
+      ( "frequency",
         Lang.float_t,
         None,
         Some
@@ -166,7 +167,8 @@ let () =
            that is -6 dB)." );
       ("beta", Lang.float_t, None, Some "Beta should range between 0 and 1.");
       ("coeffs", Lang.int_t, Some (Lang.int 255), Some "Number of coefficients");
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Low-pass FIR filter."
     (fun p kind ->

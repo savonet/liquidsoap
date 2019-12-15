@@ -26,35 +26,42 @@ open Lang_encoders
 let ffmpeg_gen params =
   let defaults =
     {
-      Ffmpeg_format.format= "mp3";
-      codec= "libmp3lame";
-      channels= 2;
-      samplerate= Frame.audio_rate;
-      options= Hashtbl.create 0;
+      Ffmpeg_format.format = "mp3";
+      codec = "libmp3lame";
+      channels = 2;
+      samplerate = Frame.audio_rate;
+      options = Hashtbl.create 0;
     }
   in
   List.fold_left
-    (fun f -> function "format", {term= String fmt; _} ->
-          {f with Ffmpeg_format.format= fmt} | "codec", {term= String c; _} ->
-          {f with Ffmpeg_format.codec= c}
-      | "channels", {term= Int i; _} | "ac", {term= Int i; _} ->
-          {f with Ffmpeg_format.channels= i}
-      | "samplerate", {term= Int i; _} | "ar", {term= Int i; _} ->
-          {f with Ffmpeg_format.samplerate= Lazy.from_val i}
-      | "sample_fmt", {term= String fmt; _} ->
-          Hashtbl.add f.Ffmpeg_format.options "sample_fmt" (`String fmt) ;
-          f | "channel_layout", {term= String layout; _} ->
-          Hashtbl.add f.Ffmpeg_format.options "channel_layout" (`String layout) ;
-          f | k, {term= String s; _} ->
-          Hashtbl.add f.Ffmpeg_format.options k (`String s) ;
-          f | k, {term= Int i; _} ->
-          Hashtbl.add f.Ffmpeg_format.options k (`Int i) ;
-          f | k, {term= Float i; _} ->
-          Hashtbl.add f.Ffmpeg_format.options k (`Float i) ;
-          f | "", {term= Var s; _} when String.lowercase_ascii s = "mono" ->
-          {f with Ffmpeg_format.channels= 1}
-      | "", {term= Var s; _} when String.lowercase_ascii s = "stereo" ->
-          {f with Ffmpeg_format.channels= 2} | _, t -> raise (generic_error t))
+    (fun f -> function
+      | "format", { term = String fmt; _ } ->
+          { f with Ffmpeg_format.format = fmt }
+      | "codec", { term = String c; _ } -> { f with Ffmpeg_format.codec = c }
+      | "channels", { term = Int i; _ } | "ac", { term = Int i; _ } ->
+          { f with Ffmpeg_format.channels = i }
+      | "samplerate", { term = Int i; _ } | "ar", { term = Int i; _ } ->
+          { f with Ffmpeg_format.samplerate = Lazy.from_val i }
+      | "sample_fmt", { term = String fmt; _ } ->
+          Hashtbl.add f.Ffmpeg_format.options "sample_fmt" (`String fmt);
+          f
+      | "channel_layout", { term = String layout; _ } ->
+          Hashtbl.add f.Ffmpeg_format.options "channel_layout" (`String layout);
+          f
+      | k, { term = String s; _ } ->
+          Hashtbl.add f.Ffmpeg_format.options k (`String s);
+          f
+      | k, { term = Int i; _ } ->
+          Hashtbl.add f.Ffmpeg_format.options k (`Int i);
+          f
+      | k, { term = Float i; _ } ->
+          Hashtbl.add f.Ffmpeg_format.options k (`Float i);
+          f
+      | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
+          { f with Ffmpeg_format.channels = 1 }
+      | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
+          { f with Ffmpeg_format.channels = 2 }
+      | _, t -> raise (generic_error t))
     defaults params
 
 let make params = Encoder.Ffmpeg (ffmpeg_gen params)
