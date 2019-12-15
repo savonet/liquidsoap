@@ -44,7 +44,7 @@ decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
-	decoder/id3v2_plug.ml decoder/vorbiscomment_plug.ml \
+	decoder/id3v2_plug.ml \
 	$(if $(W_FFMPEG),decoder/ffmpeg_decoder.ml) \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
@@ -189,7 +189,7 @@ tools = tools/extralib.ml tools/JSON.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
 	tools/pool.ml tools/sha1.ml tools/websocket.ml \
-	tools/id3v2.ml tools/vorbisComment.ml \
+	tools/id3v2.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
 	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 
