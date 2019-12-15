@@ -30,7 +30,6 @@ module Make (Config : Config_t) = struct
   open Config
 
   exception Internal
-
   exception Read_error
 
   (** Error translator *)
@@ -150,7 +149,6 @@ module Make (Config : Config_t) = struct
   (** HTTP input *)
 
   let host_expr = Str.regexp "^\\([^:]+\\):\\([0-9]+\\)$"
-
   let auth_split_expr = Str.regexp "^\\([^@]+\\)@\\(.+\\)$"
 
   let parse_url url =

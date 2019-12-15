@@ -25,7 +25,6 @@ module type T = sig
   include Harbor.Transport_t
 
   val source_name : string
-
   val source_description : string
 end
 
@@ -34,7 +33,6 @@ module Make (T : T) = struct
     type priority = Tutils.priority
 
     let scheduler = Tutils.scheduler
-
     let priority = Tutils.Non_blocking
   end
 
@@ -68,7 +66,6 @@ module Make (T : T) = struct
    * * max title length = 3852
    * * max url length = 200 *)
   let max_title = 3852
-
   let max_url = 200
 
   let proto kind =

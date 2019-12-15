@@ -54,11 +54,8 @@ type continuation =
   | `Reschedule of Tutils.priority ]
 
 type 'a callback = 'a -> continuation
-
 type pull = Bytes.t -> int -> int -> int
-
 type push = Bytes.t -> int -> int -> int
-
 type status = [ `Exception of exn | `Status of Unix.process_status ]
 
 exception Finished

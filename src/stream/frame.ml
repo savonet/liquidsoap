@@ -99,9 +99,7 @@ let conf_midi_channels =
 (* This variable prevents forcing the value of a lazy configuration
  * item before the user gets a chance to override the default. *)
 let lazy_config_eval = ref false
-
 let allow_lazy_config_eval () = lazy_config_eval := true
-
 let delayed f = lazy (f ())
 
 let delayed_conf x =
@@ -116,17 +114,11 @@ let ( !! ) = Lazy.force
   * I'm currently unsure how much they are really useful. *)
 
 let audio_channels = delayed_conf conf_audio_channels
-
 let video_channels = delayed_conf conf_video_channels
-
 let midi_channels = delayed_conf conf_midi_channels
-
 let video_width = delayed_conf conf_video_width
-
 let video_height = delayed_conf conf_video_height
-
 let audio_rate = delayed_conf conf_audio_samplerate
-
 let video_rate = delayed_conf conf_video_samplerate
 
 (* TODO: midi rate is assumed to be the same as audio,
@@ -156,33 +148,22 @@ let master_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
 let m_o_a = delayed (fun () -> !!master_rate / !!audio_rate)
 
 let m_o_v = delayed (fun () -> !!master_rate / !!video_rate)
-
 let master_of_audio a = a * !!m_o_a
-
 let master_of_video v = v * !!m_o_v
 
 (* TODO: for now MIDI rate is the same as audio rate. *)
 let master_of_midi = master_of_audio
-
 let audio_of_master m = m / !!m_o_a
-
 let video_of_master m = m / !!m_o_v
 
 (* TODO: for now MIDI rate is the same as audio rate. *)
 let midi_of_master = audio_of_master
-
 let master_of_seconds d = int_of_float (d *. float !!master_rate)
-
 let audio_of_seconds d = int_of_float (d *. float !!audio_rate)
-
 let video_of_seconds d = int_of_float (d *. float !!video_rate)
-
 let seconds_of_master d = float d /. float !!master_rate
-
 let seconds_of_audio d = float d /. float !!audio_rate
-
 let seconds_of_video d = float d /. float !!video_rate
-
 let log = Log.make ["frame"]
 
 (** The frame size (in master ticks) should allow for an integer
@@ -229,7 +210,6 @@ let duration = delayed (fun () -> float !!size /. float !!master_rate)
 (** Data types *)
 
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
-
 type multiplicity = Variable | Zero | Succ of multiplicity
 
 (** High-level, abstract and imprecise stream content type.
@@ -271,9 +251,7 @@ let rec mul_eq_int = function
   | _ -> false
 
 let mul_sub_mul a b = mul_sub_mul (a, b)
-
 let int_sub_mul a b = int_sub_mul (a, b)
-
 let mul_eq_int a b = mul_eq_int (a, b)
 
 let kind_sub_kind a b =
@@ -388,15 +366,10 @@ let create kind =
 (** Content independent *)
 
 let position b = match b.breaks with [] -> 0 | a :: _ -> a
-
 let is_partial b = position b < !!size
-
 let breaks b = b.breaks
-
 let set_breaks b breaks = b.breaks <- breaks
-
 let add_break b br = b.breaks <- br :: b.breaks
-
 let rec last = function [] -> assert false | [x] -> x | _ :: l -> last l
 
 (* When clearing a buffer, only the last content chunk is kept

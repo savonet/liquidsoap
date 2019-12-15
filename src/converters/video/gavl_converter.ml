@@ -147,7 +147,6 @@ module HT = struct
   type t = (bool * Gavl.Video.format * Gavl.Video.format) * Gavl.Video.t option
 
   let equal (fmt, _) (fmt', _) = fmt = fmt'
-
   let hash (fmt, _) = Hashtbl.hash fmt
 end
 
@@ -156,7 +155,6 @@ module WH = struct
 
   (* Number of converters to always keep in memory. *)
   let n = 2
-
   let keep = Array.make n None
 
   let add h fmt conv =

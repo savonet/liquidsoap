@@ -29,13 +29,9 @@ module type Transport_t = sig
   type socket
 
   val name : string
-
   val file_descr_of_socket : socket -> Unix.file_descr
-
   val read : socket -> bytes -> int -> int -> int
-
   val accept : Unix.file_descr -> socket * Unix.sockaddr
-
   val close : socket -> unit
 
   module Duppy : sig
@@ -50,7 +46,6 @@ module type Transport_t = sig
   end
 
   module Http : Http.Http_t with type connection = socket
-
   module Websocket : Websocket.Websocket_t with type socket = socket
 end
 
@@ -58,13 +53,9 @@ module Unix_transport = struct
   type socket = Unix.file_descr
 
   let name = "unix"
-
   let file_descr_of_socket socket = socket
-
   let read = Unix.read
-
   let accept fd = Unix.accept fd
-
   let close = Unix.close
 
   module Duppy = Duppy
@@ -76,31 +67,22 @@ module type T = sig
   type socket
 
   exception Retry
-
   exception Assoc of string
-
   exception Not_authenticated
-
   exception Unknown_codec
-
   exception Mount_taken
-
   exception Registered
-
   exception Websocket_closed
 
   (* Generic *)
 
   val file_descr_of_socket : socket -> Unix.file_descr
-
   val read : socket -> bytes -> int -> int -> int
-
   val close : socket -> unit
 
   (* Http Server *)
 
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-
   type reply = Close of (unit -> string) | Relay of string * (unit -> unit)
 
   type http_handler =
@@ -112,11 +94,8 @@ module type T = sig
     (reply, reply) Duppy.Monad.t
 
   val verb_of_string : string -> http_verb
-
   val mk_simple : string -> unit -> string
-
   val simple_reply : string -> ('a, reply) Duppy.Monad.t
-
   val reply : (unit -> string) -> ('a, reply) Duppy.Monad.t
 
   val add_http_handler :
@@ -157,9 +136,7 @@ module type T = sig
     (unit, reply) Duppy.Monad.t
 
   val relayed : string -> (unit -> unit) -> ('a, reply) Duppy.Monad.t
-
   val add_source : port:int -> mountpoint:string -> icy:bool -> source -> unit
-
   val remove_source : port:int -> mountpoint:string -> unit -> unit
 end
 
@@ -172,9 +149,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   type socket = T.socket
 
   let file_descr_of_socket = T.file_descr_of_socket
-
   let read = T.read
-
   let close = T.close
 
   let protocol_name =
@@ -212,9 +187,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     end
 
   type sources = (string, source) Hashtbl.t
-
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-
   type source_type = [ `Put | `Post | `Source | `Xaudiocast | `Shout ]
 
   type verb =
@@ -270,9 +243,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       r
 
   let simple_reply s = Duppy.Monad.raise (Close (mk_simple s))
-
   let reply s = Duppy.Monad.raise (Close s)
-
   let relayed s f = Duppy.Monad.raise (Relay (s, f))
 
   type http_handler =
@@ -284,13 +255,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     (reply, reply) Duppy.Monad.t
 
   type http_handlers = (http_verb * string, http_handler) Hashtbl.t
-
   type handler = { sources : sources; http : http_handlers }
-
   type open_port = handler * Unix.file_descr list
 
   let opened_ports : (int, open_port) Hashtbl.t = Hashtbl.create 1
-
   let find_handler = Hashtbl.find opened_ports
 
   let find_source mount port =
@@ -308,11 +276,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     with Assoc s -> s
 
   exception Not_authenticated
-
   exception Unknown_codec
-
   exception Mount_taken
-
   exception Registered
 
   let http_error_page code status msg =

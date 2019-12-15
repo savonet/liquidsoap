@@ -149,7 +149,6 @@ and 'a link_t =
   | Same_as of 'a var  (** the clock variable is subtituted by another *)
 
 let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG" <> None
-
 let create_known c = Known c
 
 let create_unknown ~sources ~sub_clocks =
@@ -177,7 +176,6 @@ let var_eq a b =
     | _, _ -> false
 
 exception Clock_conflict of string * string
-
 exception Clock_loop of string * string
 
 let rec sub_clocks = function
@@ -233,7 +231,6 @@ let rec forget var subclock =
 (** Instrumentation. *)
 
 type metadata = (int * (string, string) Hashtbl.t) list
-
 type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
@@ -712,17 +709,11 @@ class type clock =
 
 module Clock_variables = struct
   let to_string = variable_to_string
-
   let create_unknown = create_unknown
-
   let create_known = create_known
-
   let unify = unify
-
   let forget = forget
-
   let get v = match deref v with Known c -> c | _ -> assert false
-
   let is_known v = match deref v with Known _ -> true | _ -> false
 end
 

@@ -32,7 +32,6 @@ type t = {
 }
 
 let audio_channels m = if m.audio = None then 0 else m.channels
-
 let video_channels m = if m.video = None || not m.has_video then 0 else 1
 
 let to_string m =

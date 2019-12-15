@@ -32,9 +32,7 @@ let export_metadata m =
   ret
 
 let to_metadata m = m
-
 let empty_metadata = Hashtbl.create 0
-
 let is_empty m = Hashtbl.length m == 0
 
 let to_string m =

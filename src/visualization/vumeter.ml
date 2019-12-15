@@ -25,9 +25,7 @@
 open Source
 
 let screen_width = 80
-
 let rms_max = -5.
-
 let rms_min = -25.
 
 let vol n v =

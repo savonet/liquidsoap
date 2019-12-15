@@ -63,9 +63,7 @@ module Websocket_transport = struct
   type socket = Ssl.socket
 
   let read = Ssl.read
-
   let read_retry fd = Extralib.read_retry (Ssl.read fd)
-
   let write = Ssl.write
 end
 
@@ -76,16 +74,12 @@ module Duppy_transport : Duppy.Transport_t with type t = Ssl.socket = struct
     (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   let sock = Ssl.file_descr_of_socket
-
   let read = Ssl.read
-
   let write = Ssl.write
-
   let ba_write _ _ _ _ = failwith "Not implemented!"
 end
 
 let m = Mutex.create ()
-
 let ctx = ref None
 
 let get_ctx =
@@ -112,9 +106,7 @@ module Transport = struct
   type socket = Ssl.socket
 
   let name = "ssl"
-
   let file_descr_of_socket = Ssl.file_descr_of_socket
-
   let read = Ssl.read
 
   let accept sock =
@@ -134,7 +126,6 @@ module Transport = struct
 
     module Monad = struct
       module Io = Duppy.Monad.MakeIo (Io)
-
       include (Monad : Monad_t)
     end
   end

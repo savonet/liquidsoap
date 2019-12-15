@@ -23,9 +23,7 @@
 type event = [ `Modify ]
 
 let fd = ref (None : Unix.file_descr option)
-
 let handlers = ref []
-
 let m = Mutex.create ()
 
 let rec watchdog () =

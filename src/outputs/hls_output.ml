@@ -23,7 +23,6 @@
 (** HLS output. *)
 
 let log = Log.make ["hls"; "output"]
-
 let x_version = 3
 
 let hls_proto kind =

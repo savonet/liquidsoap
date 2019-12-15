@@ -24,7 +24,6 @@ open Source
 open Complex
 
 type filter_type = Band_stop | Band_pass | High_pass | Low_pass | All_pass
-
 type filter_family = Butterworth | Resonator
 
 class iir ~kind (source : source) filter_family filter_type order freq1 freq2

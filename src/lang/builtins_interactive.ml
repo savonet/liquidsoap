@@ -34,7 +34,6 @@ module Var = struct
   }
 
   let variables = ref []
-
   let ns = Server.register ["var"] "interactive variables"
 
   let () =

@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 type 'a cell
-
 type 'a t
 
 exception Not_found
@@ -53,13 +52,8 @@ val shift : 'a t -> 'a
 val pop : 'a t -> 'a
 
 val fold : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
-
 val insert_pred : ?top:bool -> 'a t -> (int -> 'a -> bool) -> 'a -> unit
-
 val remove_pred_index : 'a t -> (int -> 'a -> bool) -> 'a * int
-
 val remove_pred : 'a t -> (int -> 'a -> bool) -> 'a
-
 val insert : 'a t -> int -> 'a -> unit
-
 val remove : 'a t -> int -> 'a

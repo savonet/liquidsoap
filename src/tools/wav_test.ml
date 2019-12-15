@@ -27,17 +27,11 @@ let file =
     exit (-1)
 
 let fd = Wav.fopen file
-
 let format = Wav.format fd
-
 let abg = Mixer.Generator.create ()
-
 let ab = Mixer.Buffer.create ()
-
 let buflen = Mixer.Buffer.size
-
 let buf = Bytes.make buflen 'x'
-
 let running = ref true
 
 let () =

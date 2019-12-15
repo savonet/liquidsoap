@@ -124,7 +124,6 @@ exception Duppy of Duppy.Io.failure
 type namespace = string list
 
 let lock = Mutex.create ()
-
 let namespaces = Hashtbl.create 10
 
 let commands : (string, (string -> string) * string * string) Hashtbl.t =
@@ -148,7 +147,6 @@ let register ns kind =
     ()
 
 let to_string = String.concat "."
-
 let prefix_ns cmd ns = to_string (ns @ [cmd])
 
 (* Then add your commands to that namespace *)
@@ -181,7 +179,6 @@ module Mutex_control = struct
   type priority = Tutils.priority
 
   let scheduler = Tutils.scheduler
-
   let priority = Tutils.Non_blocking
 end
 
@@ -215,7 +212,6 @@ let condition () =
   { wait; signal; broadcast }
 
 type ('a, 'b) interruption = { payload : 'a; after : 'b -> string }
-
 type write = (string, unit) interruption
 
 exception Write of write

@@ -6,9 +6,7 @@ module type Transport_t = sig
   type socket
 
   val read : socket unix_opt
-
   val read_retry : socket unix_opt
-
   val write : socket unix_opt
 end
 
@@ -16,9 +14,7 @@ module Unix_transport = struct
   type socket = Unix.file_descr
 
   let read = Unix.read
-
   let read_retry = Extralib.Unix.read_retry
-
   let write = Unix.write
 end
 
@@ -33,11 +29,8 @@ module type Websocket_t = sig
     | `Text of string ]
 
   val to_string : msg -> string
-
   val read : socket -> msg
-
   val write : socket -> msg -> unit
-
   val upgrade : (string * string) list -> string
 end
 

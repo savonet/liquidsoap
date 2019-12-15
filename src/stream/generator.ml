@@ -30,11 +30,8 @@ module type S = sig
   val remaining : t -> int (* ticks *)
 
   val clear : t -> unit
-
   val fill : t -> Frame.t -> unit
-
   val remove : t -> int -> unit
-
   val add_metadata : t -> Frame.metadata -> unit
 end
 
@@ -44,23 +41,15 @@ module type S_Asio = sig
   val length : t -> int (* ticks *)
 
   val audio_length : t -> int
-
   val video_length : t -> int
-
   val remaining : t -> int (* ticks *)
 
   val clear : t -> unit
-
   val fill : t -> Frame.t -> unit
-
   val add_metadata : t -> Frame.metadata -> unit
-
   val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
-
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
-
   val put_video : t -> Frame.video_t array -> int -> int -> unit
-
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
@@ -198,9 +187,7 @@ module Metadata = struct
     assert (g.length >= 0)
 
   let length g = g.length
-
   let remaining g = match g.breaks with a :: _ -> a | _ -> -1
-
   let metadata g len = List.filter (fun (t, _) -> t < len) g.metadata
 
   let feed_from_frame g frame =
@@ -272,7 +259,6 @@ module From_frames = struct
   let remaining fg = match fg.breaks with a :: _ -> a | _ -> -1
 
   let add_metadata fg m = fg.metadata <- fg.metadata @ [(length fg, m)]
-
   let add_break fg = fg.breaks <- fg.breaks @ [length fg]
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -623,30 +609,20 @@ module From_audio_video_plus = struct
     }
 
   let mode t = Tutils.mutexify t.lock Super.mode t.gen
-
   let set_mode t mode = Tutils.mutexify t.lock (Super.set_mode t.gen) mode
-
   let audio_length t = Tutils.mutexify t.lock Super.audio_length t.gen
-
   let video_length t = Tutils.mutexify t.lock Super.video_length t.gen
-
   let length t = Tutils.mutexify t.lock Super.length t.gen
-
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
-
   let audio_size t = Tutils.mutexify t.lock Super.audio_size t.gen
-
   let video_size t = Tutils.mutexify t.lock Super.video_size t.gen
-
   let size t = Tutils.mutexify t.lock Super.size t.gen
-
   let set_rewrite_metadata t f = t.map_meta <- f
 
   let add_metadata t m =
     Tutils.mutexify t.lock (fun m -> Super.add_metadata t.gen (t.map_meta m)) m
 
   let add_break ?sync t = Tutils.mutexify t.lock (Super.add_break ?sync) t.gen
-
   let clear t = Tutils.mutexify t.lock Super.clear t.gen
 
   let fill t frame =

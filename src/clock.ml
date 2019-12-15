@@ -21,15 +21,12 @@
  *****************************************************************************)
 
 type clock_variable = Source.clock_variable
-
 type source = Source.source
-
 type active_source = Source.active_source
 
 include Source.Clock_variables
 
 let create_known s = create_known (s :> Source.clock)
-
 let log = Log.make ["clock"]
 
 let conf_clock =
@@ -54,7 +51,6 @@ module H = struct
   type t = Source.clock
 
   let equal a b = a = b
-
   let hash a = Oo.id a
 end
 

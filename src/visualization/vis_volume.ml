@@ -25,9 +25,7 @@
 open Source
 
 let backpoints = 200
-
 let group_size = 1764
-
 let f_group_size = float group_size
 
 class vumeter ~kind source =

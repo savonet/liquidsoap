@@ -285,7 +285,6 @@ let params plugin info =
   (liq_params, params)
 
 exception Unhandled_number_of_inputs
-
 exception Blacklisted
 
 let register_plugin fname =

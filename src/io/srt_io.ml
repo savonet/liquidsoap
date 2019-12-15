@@ -36,7 +36,6 @@ let conf_log =
     "Route srt logs through liquidsoap's logs"
 
 let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") ~d:5 "Level"
-
 let conf_poll = Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
 
 let conf_timeout =

@@ -177,7 +177,6 @@ module LiqConf = struct
   (** Contains clones of Dtools.Conf.(descr|dump) but with a liq syntax. *)
 
   let format_string = Printf.sprintf "%S"
-
   let format_list l = "[" ^ String.concat "," (List.map format_string l) ^ "]"
 
   let get_string t =

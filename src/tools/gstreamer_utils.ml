@@ -36,7 +36,6 @@ let () =
 
 module Pipeline = struct
   let convert_audio () = "audioconvert ! audioresample"
-
   let decode_audio () = Printf.sprintf "decodebin ! %s" (convert_audio ())
 
   let convert_video () =

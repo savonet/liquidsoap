@@ -57,9 +57,7 @@ let chunk_strings id data =
   if n mod 2 <> 0 then Strings.add ans "\000" else ans
 
 let audio_chunk_strings b = chunk_strings "01wb" b
-
 let video_chunk_strings b = chunk_strings "00db" b
-
 let list = chunk "LIST"
 
 let header ~channels ~samplerate () =

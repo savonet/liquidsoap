@@ -156,9 +156,7 @@ val get_past_metadata : t -> metadata option
 (** {2 Content operations} *)
 
 val content : t -> int -> int * content
-
 val content_of_type : ?force:content -> t -> int -> content_type -> content
-
 val hide_contents : t -> unit -> unit
 
 type content_layer = { content : content; start : int; length : int }
@@ -175,27 +173,16 @@ val get_chunk : t -> t -> unit
     when [b] is more permissive than [a]. *)
 
 val mul_sub_mul : multiplicity -> multiplicity -> bool
-
 val int_sub_mul : int -> multiplicity -> bool
-
 val mul_eq_int : multiplicity -> int -> bool
-
 val kind_sub_kind : content_kind -> content_kind -> bool
-
 val type_has_kind : content_type -> content_kind -> bool
-
 val content_has_type : content -> content_type -> bool
-
 val type_of_content : content -> content_type
-
 val type_of_kind : content_kind -> content_type
-
 val mul_of_int : int -> multiplicity
-
 val add_mul : multiplicity -> multiplicity -> multiplicity
-
 val string_of_content_kind : content_kind -> string
-
 val string_of_content_type : content_type -> string
 
 (** {2 Format settings} *)
@@ -248,23 +235,13 @@ val duration : float Lazy.t
 val audio_of_master : int -> int
 
 val video_of_master : int -> int
-
 val midi_of_master : int -> int
-
 val master_of_audio : int -> int
-
 val master_of_video : int -> int
-
 val master_of_midi : int -> int
-
 val master_of_seconds : float -> int
-
 val audio_of_seconds : float -> int
-
 val video_of_seconds : float -> int
-
 val seconds_of_master : int -> float
-
 val seconds_of_audio : int -> float
-
 val seconds_of_video : int -> float

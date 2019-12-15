@@ -26,7 +26,6 @@ let conf =
   Conf.void ~p:(Configure.conf#plug "mpd") "Parameters for the mpd protocol."
 
 let conf_host = Conf.string ~p:(conf#plug "host") ~d:"127.0.0.1" "MPD host."
-
 let conf_port = Conf.int ~p:(conf#plug "port") ~d:6600 "MPD port."
 
 let conf_path_prefix =
@@ -82,9 +81,7 @@ let cmd read write name args =
   (List.hd ans, List.rev (List.tl ans))
 
 let re_file = Str.regexp "^file: \\(.*\\)$"
-
 let re_metadata = Str.regexp "^\\([^:]+\\): \\(.*\\)$"
-
 let valid_metadata = ["artist"; "title"; "album"; "genre"; "date"; "track"]
 
 let search read write field v =
@@ -126,7 +123,6 @@ let search read write field v =
   else List.rev !ans
 
 let re_request = Str.regexp "^\\([^=]+\\)=\\(.*\\)$"
-
 let re_version = Str.regexp "OK MPD \\([0-9\\.]+\\)"
 
 let mpd s ~log _ =

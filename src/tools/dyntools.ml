@@ -23,7 +23,6 @@
 (* Dynamic loading. *)
 
 let dyn_log = Log.make ["dynamic"; "loader"]
-
 let dynlink_suffix = if Dynlink.is_native then ".cmxs" else ".cma"
 
 type dynload = {

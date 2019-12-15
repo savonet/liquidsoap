@@ -45,7 +45,6 @@ module Samplerate = struct
   type converter = float -> Frame.audio_t -> Frame.audio_t
 
   type converter_plug = unit -> converter
-
   type t = converter array
 
   let samplerate_conf =

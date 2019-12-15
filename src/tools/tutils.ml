@@ -116,7 +116,6 @@ let log = Log.make ["threads"]
   * i.e. not by raising an exception. *)
 
 let lock = Mutex.create ()
-
 let uncaught = ref None
 
 module Set = Set.Make (struct
@@ -126,7 +125,6 @@ module Set = Set.Make (struct
 end)
 
 let all = ref Set.empty
-
 let queues = ref Set.empty
 
 let join_all ~set () =
@@ -198,11 +196,8 @@ type priority =
   | Non_blocking  (** Non-blocking tasks like the server. *)
 
 let scheduler = Duppy.create ()
-
 let started = ref false
-
 let started_m = Mutex.create ()
-
 let has_started = mutexify started_m (fun () -> !started)
 
 let scheduler_shutdown_atom =
@@ -239,7 +234,6 @@ let new_queue ?priorities ~name () =
   ignore (create ~queue:true queue () name)
 
 let create f x name = create ~queue:false f x name
-
 let join_all () = join_all ~set:all ()
 
 let () =

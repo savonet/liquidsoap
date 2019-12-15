@@ -33,7 +33,6 @@ let conf_port =
 
 (* (path,type),handler *)
 let handlers = ref []
-
 let add_handler path t f = handlers := ((path, t), f) :: !handlers
 
 let handler path (data : LO.Message.data array) =

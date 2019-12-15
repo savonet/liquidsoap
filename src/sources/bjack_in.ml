@@ -23,7 +23,6 @@
 open Source
 
 let log = Log.make ["input"; "jack"]
-
 let bjack_clock = Tutils.lazy_cell (fun () -> new Clock.clock "bjack")
 
 class jack_in ~kind ~clock_safe ~nb_blocks ~server =

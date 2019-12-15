@@ -42,7 +42,6 @@ struct
     Tutils.wait_for ?log event timeout
 
   let read = Ssl.read
-
   let write = Ssl.write
 end
 

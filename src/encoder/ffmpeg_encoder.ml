@@ -23,6 +23,7 @@
 (** FFMPEG encoder *)
 
 open FFmpeg
+
 module Resampler =
   Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
 
