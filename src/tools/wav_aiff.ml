@@ -20,21 +20,20 @@
 
  *****************************************************************************)
 
-type 'a read_ops = {
-  really_input : 'a -> Bytes.t -> int -> int -> unit;
-  input_byte : 'a -> int;
-  input : 'a -> Bytes.t -> int -> int -> int;
-  seek : 'a -> int -> unit;
-  close : 'a -> unit;
-}
+type 'a read_ops =
+  { really_input : 'a -> Bytes.t -> int -> int -> unit;
+    input_byte : 'a -> int;
+    input : 'a -> Bytes.t -> int -> int -> int;
+    seek : 'a -> int -> unit;
+    close : 'a -> unit
+  }
 
 let in_chan_ops =
-  {
-    really_input;
+  { really_input;
     input_byte;
     input;
     seek = (fun ic len -> seek_in ic (pos_in ic + len));
-    close = close_in;
+    close = close_in
   }
 
 (* buffer ofs len *)
@@ -58,21 +57,21 @@ let callback_ops =
 
 type format = [ `Aiff | `Wav ]
 
-type 'a t = {
-  ic : 'a;
-  read_ops : 'a read_ops;
-  format : format;
-  channels_number : int;
-  (* 1 = mono ; 2 = stereo *)
-  sample_rate : int;
-  (* in Hz *)
-  bytes_per_second : int;
-  bytes_per_sample : int;
-  (* 1=8 bit Mono, 2=8 bit Stereo *)
-  (* or 16 bit Mono, 4=16 bit Stereo *)
-  bits_per_sample : int;
-  length_of_data_to_follow : int; (* ?? *)
-}
+type 'a t =
+  { ic : 'a;
+    read_ops : 'a read_ops;
+    format : format;
+    channels_number : int;
+    (* 1 = mono ; 2 = stereo *)
+    sample_rate : int;
+    (* in Hz *)
+    bytes_per_second : int;
+    bytes_per_sample : int;
+    (* 1=8 bit Mono, 2=8 bit Stereo *)
+    (* or 16 bit Mono, 4=16 bit Stereo *)
+    bits_per_sample : int;
+    length_of_data_to_follow : int (* ?? *)
+  }
 
 let format_of_handler x = x.format
 
@@ -119,10 +118,10 @@ let read_header read_ops ic =
   let read_int ic = read_int_num_bytes ic 4 in
   let read_short ic = read_int_num_bytes ic 2 in
   ignore (read_int ic);
+
   (* size of the file *)
   begin
-    match read_string ic 4 with
-    | "WAVE" when format = `Wav -> ()
+    match read_string ic 4 with "WAVE" when format = `Wav -> ()
     | "AIFF" when format = `Aiff -> ()
     | _ -> raise (Not_a_iff_file "Bad header")
   end;
@@ -150,11 +149,11 @@ let read_header read_ops ic =
     let bit_per_samp = read_short ic in
     (* The fmt header can be padded *)
     if fmt_len > 0x10 then read_ops.seek ic (fmt_len - 0x10);
+
     (* Skip unhandled chunks. *)
     seek_chunk ic "data";
     let len_dat = read_int ic in
-    {
-      ic;
+    { ic;
       format;
       read_ops;
       channels_number = chan_num;
@@ -162,7 +161,7 @@ let read_header read_ops ic =
       bytes_per_second = byt_per_sec;
       bytes_per_sample = byt_per_samp;
       bits_per_sample = bit_per_samp;
-      length_of_data_to_follow = len_dat;
+      length_of_data_to_follow = len_dat
     } )
   else if format = `Aiff then (
     if fmt_len < 0x12 then
@@ -180,13 +179,13 @@ let read_header read_ops ic =
       match read_string ic 4 with
         | "NONE" -> read_ops.seek ic (even_ceil (fmt_len - 0x16))
         | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported") );
+
     (* Skip unhandled chunks. *)
     seek_chunk ic "SSND";
     let len_dat = read_int ic in
     let offset = read_int ic in
     read_ops.seek ic (4 + offset);
-    {
-      ic;
+    { ic;
       format;
       read_ops;
       channels_number = chan_num;
@@ -194,7 +193,7 @@ let read_header read_ops ic =
       bytes_per_second = byt_per_sec;
       bytes_per_sample = byt_per_samp;
       bits_per_sample = bit_per_samp;
-      length_of_data_to_follow = len_dat - (8 + offset);
+      length_of_data_to_follow = len_dat - (8 + offset)
     } )
   else assert false
 
@@ -217,9 +216,9 @@ let info w =
      bytes_per_second = %d \n\
      bytes_per_sample = %d \n\
      bits_per_sample = %d \n\
-     length_of_data_to_follow = %d" w.channels_number w.sample_rate
-    w.bytes_per_second w.bytes_per_sample w.bits_per_sample
-    w.length_of_data_to_follow
+     length_of_data_to_follow = %d"
+    w.channels_number w.sample_rate w.bytes_per_second w.bytes_per_sample
+    w.bits_per_sample w.length_of_data_to_follow
 
 let channels w = w.channels_number
 let sample_rate w = w.sample_rate

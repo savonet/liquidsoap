@@ -64,11 +64,8 @@ module Generator = struct
   type 'a buffer = 'a chunk Queue.t
 
   (** All positions and lengths are in ticks. *)
-  type 'a t = {
-    mutable length : int;
-    mutable offset : int;
-    mutable buffers : 'a buffer;
-  }
+  type 'a t =
+    { mutable length : int; mutable offset : int; mutable buffers : 'a buffer }
 
   let create () = { length = 0; offset = 0; buffers = Queue.create () }
 
@@ -156,6 +153,7 @@ module Generator = struct
       else (
         g.length <- g.length - needed;
         g.offset <- g.offset + needed );
+
       (* Add more data by recursing on the next block, or finish. *)
       if block_len < needed then aux chunks (offset + block_len)
       else List.rev chunks
@@ -165,11 +163,11 @@ end
 
 (* TODO: use this in the following modules instead of copying the code... *)
 module Metadata = struct
-  type t = {
-    mutable metadata : (int * Frame.metadata) list;
-    mutable breaks : int list;
-    mutable length : int;
-  }
+  type t =
+    { mutable metadata : (int * Frame.metadata) list;
+      mutable breaks : int list;
+      mutable length : int
+    }
 
   let create () = { metadata = []; breaks = []; length = 0 }
 
@@ -224,9 +222,11 @@ module Metadata = struct
       min (size - offset) remaining
     in
     List.iter
-      (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
+      (fun (p, m) ->
+        if p < needed then Frame.set_metadata frame (offset + p) m)
       g.metadata;
     advance g needed;
+
     (* Mark the end of this filling. If the frame is partial it must be because
      * of a break in the generator, or because the generator is emptying.
      * Conversely, each break in the generator must cause a partial frame, so
@@ -238,11 +238,11 @@ end
 (** Generate a stream, including metadata and breaks.
   * The API is based on feeding from frames, and filling frames. *)
 module From_frames = struct
-  type t = {
-    mutable metadata : (int * Frame.metadata) list;
-    mutable breaks : int list;
-    generator : Frame.content Generator.t;
-  }
+  type t =
+    { mutable metadata : (int * Frame.metadata) list;
+      mutable breaks : int list;
+      generator : Frame.content Generator.t
+    }
 
   let create () =
     { metadata = []; breaks = []; generator = Generator.create () }
@@ -301,6 +301,7 @@ module From_frames = struct
           (* Filter out the last break, which only marks the end
            * of frame, not a track limit (doesn't mean is_partial). *)
           (List.filter (fun x -> x < size) (Frame.breaks frame));
+
     (* Feed all content layers into the generator. *)
     let rec feed_all ofs = function
       | (cstop, content) :: contents ->
@@ -327,9 +328,11 @@ module From_frames = struct
         Frame.blit_content block o dst (offset + o') size)
       blocks;
     List.iter
-      (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
+      (fun (p, m) ->
+        if p < needed then Frame.set_metadata frame (offset + p) m)
       fg.metadata;
     advance fg needed;
+
     (* Mark the end of this filling.
      * If the frame is partial it must be because of a break in the
      * generator, or because the generator is emptying.
@@ -346,21 +349,20 @@ end
 module From_audio_video = struct
   type mode = [ `Audio | `Video | `Both | `Undefined ]
 
-  type t = {
-    mutable mode : mode;
-    audio : Frame.audio_t array Generator.t;
-    video : Frame.video_t array Generator.t;
-    mutable metadata : (int * Frame.metadata) list;
-    mutable breaks : int list;
-  }
+  type t =
+    { mutable mode : mode;
+      audio : Frame.audio_t array Generator.t;
+      video : Frame.video_t array Generator.t;
+      mutable metadata : (int * Frame.metadata) list;
+      mutable breaks : int list
+    }
 
   let create m =
-    {
-      mode = m;
+    { mode = m;
       audio = Generator.create ();
       video = Generator.create ();
       metadata = [];
-      breaks = [];
+      breaks = []
     }
 
   (** Audio length, in ticks. *)
@@ -401,8 +403,7 @@ module From_audio_video = struct
   (** Add a track limit. Audio and video length should be equal. *)
   let add_break ?(sync = `Strict) t =
     begin
-      match sync with
-      | `Strict -> assert (audio_length t = video_length t)
+      match sync with `Strict -> assert (audio_length t = video_length t)
       | `Ignore -> ()
       | `Drop ->
           let alen = audio_length t in
@@ -466,6 +467,7 @@ module From_audio_video = struct
           (* Filter out the last break, which only marks the end
            * of frame, not a track limit (doesn't mean is_partial). *)
           (List.filter (fun x -> x < size) (Frame.breaks frame));
+
     (* Feed all content layers into the generator. *)
     let rec feed_all ofs = function
       | (cstop, content) :: contents ->
@@ -521,10 +523,9 @@ module From_audio_video = struct
             assert (apos' = vpos');
             let fpos = fpos + apos' in
             let ctype =
-              {
-                Frame.audio = Array.length ablk;
+              { Frame.audio = Array.length ablk;
                 video = Array.length vblk;
-                midi = 0;
+                midi = 0
               }
             in
             let dst = Frame.content_of_type frame fpos ctype in
@@ -555,6 +556,7 @@ module From_audio_video = struct
       (fun (p, m) -> if p < l then Frame.set_metadata frame (fpos + p) m)
       t.metadata;
     advance t l;
+
     (* If the frame is partial it must be because of a break in the
      * generator, or because the generator is emptying.
      * Conversely, each break in the generator must cause a partial frame,
@@ -581,31 +583,30 @@ module From_audio_video_plus = struct
     * generally don't not go faster than stream-time. *)
   type overfull = [ `Drop_old of int ]
 
-  type t = {
-    lock : Mutex.t;
-    (* The generator knows what content kind it is expected to produce
-     * Because of the async put_audio/video calls, we only detect the
-     * error upon [fill]. When an error is detected, the error flag is
-     * set, which makes put_audio/video fail and hence kills the feeding
-     * process. *)
-    kind : Frame.content_kind;
-    mutable error : bool;
-    overfull : overfull option;
-    gen : Super.t;
-    log : string -> unit;
-    (* Metadata rewriting, in place modification allowed *)
-    mutable map_meta : Frame.metadata -> Frame.metadata;
-  }
+  type t =
+    { lock : Mutex.t;
+      (* The generator knows what content kind it is expected to produce
+       * Because of the async put_audio/video calls, we only detect the
+       * error upon [fill]. When an error is detected, the error flag is
+       * set, which makes put_audio/video fail and hence kills the feeding
+       * process. *)
+      kind : Frame.content_kind;
+      mutable error : bool;
+      overfull : overfull option;
+      gen : Super.t;
+      log : string -> unit;
+      (* Metadata rewriting, in place modification allowed *)
+      mutable map_meta : Frame.metadata -> Frame.metadata
+    }
 
   let create ?(lock = Mutex.create ()) ?overfull ~kind ~log mode =
-    {
-      lock;
+    { lock;
       kind;
       error = false;
       overfull;
       log;
       gen = Super.create mode;
-      map_meta = (fun x -> x);
+      map_meta = (fun x -> x)
     }
 
   let mode t = Tutils.mutexify t.lock Super.mode t.gen

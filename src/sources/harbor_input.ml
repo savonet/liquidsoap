@@ -45,7 +45,8 @@ module Make (Harbor : T) = struct
     object (self)
       inherit Source.source ~name:Harbor.source_name kind as super
 
-      inherit Generated.source abg ~empty_on_abort:false ~replay_meta ~bufferize
+      inherit
+        Generated.source abg ~empty_on_abort:false ~replay_meta ~bufferize
 
       val mutable relay_socket = None
 
@@ -100,7 +101,7 @@ module Make (Harbor : T) = struct
          * as the "title" field if "title" is not provided. *)
         if not (Hashtbl.mem m "title") then (
           try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> () );
-        self#log#important "New metadata chunk %s -- %s."
+        (self#log)#important "New metadata chunk %s -- %s."
           (try Hashtbl.find m "artist" with _ -> "?")
           (try Hashtbl.find m "title" with _ -> "?");
         Generator.add_metadata generator m
@@ -108,7 +109,7 @@ module Make (Harbor : T) = struct
       method get_mime_type = mime_type
 
       method feed =
-        self#log#important "Decoding...";
+        (self#log)#important "Decoding...";
         let t0 = Unix.gettimeofday () in
         let read buf ofs len =
           let input =
@@ -125,13 +126,14 @@ module Make (Harbor : T) = struct
                           let fd = Harbor.file_descr_of_socket socket in
                           (* Wait for `Read event on socket. *)
                           Tutils.wait_for ~log (`Read fd) timeout;
+
                           (* Now read. *)
                           relay_read socket buf ofs len
                         with Harbor.Retry -> f ()
                       in
                       f ()
                     with e ->
-                      self#log#severe "Error while reading from client: %s"
+                      (self#log)#severe "Error while reading from client: %s"
                         (Printexc.to_string e);
                       self#disconnect ~lock:false;
                       0 ))
@@ -166,7 +168,7 @@ module Make (Harbor : T) = struct
         with e ->
           (* Feeding has stopped: adding a break here. *)
           Generator.add_break ~sync:`Drop generator;
-          self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
+          (self#log)#severe "Feeding stopped: %s." (Printexc.to_string e);
           self#disconnect ~lock:true;
           if debug then raise e
 
@@ -185,8 +187,9 @@ module Make (Harbor : T) = struct
                       '%s' and port %i."
                      mountpoint port ))
         end;
+
         (* Now we can create the log function *)
-        log_ref := fun s -> self#log#important "%s" s
+        log_ref := fun s -> (self#log)#important "%s" s
 
       method private sleep =
         self#disconnect ~lock:true;
@@ -221,7 +224,7 @@ module Make (Harbor : T) = struct
           | Some f -> (
               try dump <- Some (open_out_bin (Utils.home_unrelate f))
               with e ->
-                self#log#severe "Could not open dump file: %s"
+                (self#log)#severe "Could not open dump file: %s"
                   (Printexc.to_string e) )
           | None -> ()
         end;
@@ -230,7 +233,7 @@ module Make (Harbor : T) = struct
           | Some f -> (
               try logf <- Some (open_out_bin (Utils.home_unrelate f))
               with e ->
-                self#log#severe "Could not open log file: %s"
+                (self#log)#severe "Could not open log file: %s"
                   (Printexc.to_string e) )
           | None -> ()
         end;
@@ -269,8 +272,7 @@ module Make (Harbor : T) = struct
     Lang.add_operator Harbor.source_name
       ~kind:(Lang.Unconstrained (Lang.univ_t ()))
       ~category:Lang.Input ~descr:Harbor.source_description
-      [
-        ( "buffer",
+      [ ( "buffer",
           Lang.float_t,
           Some (Lang.float 2.),
           Some "Duration of the pre-buffered data." );
@@ -293,7 +295,10 @@ module Make (Harbor : T) = struct
           Lang.fun_t [] Lang.unit_t,
           Some (Lang.val_cst_fun [] Lang.unit),
           Some "Functions to excecute when a source is disconnected" );
-        ("user", Lang.string_t, Some (Lang.string "source"), Some "Source user.");
+        ( "user",
+          Lang.string_t,
+          Some (Lang.string "source"),
+          Some "Source user." );
         ( "password",
           Lang.string_t,
           Some (Lang.string "hackme"),
@@ -354,8 +359,7 @@ module Make (Harbor : T) = struct
           Lang.bool_t,
           Some (Lang.bool false),
           Some "Run in debugging mode by not catching some exceptions." );
-        ("", Lang.string_t, None, Some "Mountpoint to look for.");
-      ]
+        ("", Lang.string_t, None, Some "Mountpoint to look for.") ]
       (fun p kind ->
         let mountpoint = Lang.to_string (List.assoc "" p) in
         let mountpoint =
@@ -363,11 +367,10 @@ module Make (Harbor : T) = struct
           else Printf.sprintf "/%s" mountpoint
         in
         let trivially_false = function
-          | {
-              Lang.value =
+          | { Lang.value =
                 Lang.Fun
                   (_, _, _, { Lang_values.term = Lang_values.Bool false; _ });
-              _;
+              _
             } ->
               true
           | _ -> false
@@ -451,9 +454,9 @@ module Make (Harbor : T) = struct
           ignore (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
         in
         ( new http_input_server
-            ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
-            ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-            ~on_disconnect ~debug p
+            ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
+            ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta
+            ~on_connect ~on_disconnect ~debug p
           :> Source.source ))
 end
 

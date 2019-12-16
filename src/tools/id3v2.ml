@@ -77,7 +77,7 @@ let parse f =
               | "TALB" -> "album"
               | "TYER" -> "year"
               | "TRCK" -> "track"
-              | "TBPM" -> "bpm"
+              | "TBPM" -> "tempo"
               | _ -> id
           in
           let encoding = int_of_char data.[0] in
@@ -96,12 +96,8 @@ let parse f =
   done;
   !tags
 
-type apic = {
-  mime : string;
-  picture_type : int;
-  description : string;
-  data : string;
-}
+type apic =
+  { mime : string; picture_type : int; description : string; data : string }
 
 let parse_apic apic =
   let text_encoding = int_of_char apic.[0] in

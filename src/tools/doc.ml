@@ -86,7 +86,8 @@ let rec to_json (doc : item) =
     let ss = List.map (fun (k, v) -> (k, to_json v)) ss in
     let info = doc#get_doc in
     let ss =
-      if info = "(no doc)" then ss else ("_info", `String (sanitize info)) :: ss
+      if info = "(no doc)" then ss
+      else ("_info", `String (sanitize info)) :: ss
     in
     `Assoc ss )
 
@@ -164,8 +165,8 @@ let print_functions_md (doc : item) print_string =
                   if d = "None" then "" else ", which defaults to `" ^ d ^ "`"
                 in
                 let s = if s = "" then "" else ": " ^ s in
-                Printf.ksprintf print_string "- `%s` (of type `%s`%s)%s\n" n t d
-                  s)
+                Printf.ksprintf print_string "- `%s` (of type `%s`%s)%s\n" n t
+                  d s)
               args;
             if List.mem "experimental" flags then
               print_string "\nThis function is experimental.\n";
@@ -188,8 +189,8 @@ let print_protocols_md (doc : item) print_string =
       let static =
         if static = "true" then " This protocol is static." else ""
       in
-      Printf.ksprintf print_string "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p
-        info syntax static)
+      Printf.ksprintf print_string "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n"
+        p info syntax static)
     doc
 
 let print (doc : item) print_string =
@@ -210,10 +211,12 @@ let print_lang (i : item) =
   let print_string_split f s =
     String.iter
       (fun c ->
-        if c = ' ' then Format.pp_print_space f () else Format.pp_print_char f c)
+        if c = ' ' then Format.pp_print_space f ()
+        else Format.pp_print_char f c)
       s
   in
-  Format.fprintf ff "@.@[%a@]@." print_string_split (Utils.unbreak_md i#get_doc);
+  Format.fprintf ff "@.@[%a@]@." print_string_split
+    (Utils.unbreak_md i#get_doc);
   let sub = i#get_subsections in
   let sub =
     Format.fprintf ff "@.Type: %s@." (i#get_subsection "_type")#get_doc;
@@ -237,7 +240,8 @@ let print_lang (i : item) =
     List.iter
       (fun (lbl, i) ->
         Format.fprintf ff "@. * %s : %s (default: %s)@." lbl
-          (i#get_subsection "type")#get_doc (i#get_subsection "default")#get_doc;
+          (i#get_subsection "type")#get_doc
+          (i#get_subsection "default")#get_doc;
         if i#get_doc <> "(no doc)" then
           Format.fprintf ff "@[<5>     %a@]@." print_string_split i#get_doc)
       sub );

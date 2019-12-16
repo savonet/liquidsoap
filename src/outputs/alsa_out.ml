@@ -63,7 +63,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
       match device with
         | Some d -> d
         | None ->
-            self#log#important "Using ALSA %s." (Alsa.get_version ());
+            (self#log)#important "Using ALSA %s." (Alsa.get_version ());
             let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
             let params = Pcm.get_params dev in
             let bufsize, periods =
@@ -72,7 +72,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
                   Pcm.set_format dev params Pcm.Format_float
                 with _ ->
                   (* If we can't get floats we fallback on interleaved s16le *)
-                  self#log#severe "Falling back on interleaved S16LE";
+                  (self#log)#severe "Falling back on interleaved S16LE";
                   Pcm.set_access dev params Pcm.Access_rw_interleaved;
                   Pcm.set_format dev params Pcm.Format_s16_le;
                   alsa_write <-
@@ -83,6 +83,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
               Pcm.set_channels dev params buffer_chans;
               alsa_rate <-
                 Pcm.set_rate_near dev params samples_per_second Dir_eq;
+
               (* Size in frames, must be set after the samplerate.
                * This setting is critical as a too small bufsize will easily result in
                * underruns when the thread isn't fast enough.
@@ -95,7 +96,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
               if periods > 0 then Pcm.set_periods dev params periods Dir_eq;
               (bufsize, fst (Pcm.get_periods_max params))
             in
-            self#log#important
+            (self#log)#important
               "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d" alsa_rate
               bufsize
               (Pcm.get_frame_size params)
@@ -123,12 +124,11 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         f 0
       with e ->
         begin
-          match e with
-          | Buffer_xrun -> self#log#severe "Underrun!"
-          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+          match e with Buffer_xrun -> (self#log)#severe "Underrun!"
+          | _ -> (self#log)#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
-          self#log#severe "Trying to recover..";
+          (self#log)#severe "Trying to recover..";
           Pcm.recover dev e )
         else raise e
 

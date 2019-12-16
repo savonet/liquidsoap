@@ -45,7 +45,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       begin
         match (state, s) with
         | `Blank _, `Noise _ | `Noise _, `Blank _ ->
-            self#log#info "Setting state to %s" (self#string_of_state s)
+            (self#log)#info "Setting state to %s" (self#string_of_state s)
         | _ -> ()
       end;
       state <- s
@@ -71,7 +71,8 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
               if noise then (if blank_len <> 0 then self#set_state (`Noise 0))
               else (
                 let blank_len = blank_len + len in
-                if blank_len <= max_blank then self#set_state (`Noise blank_len)
+                if blank_len <= max_blank then
+                  self#set_state (`Noise blank_len)
                 else self#set_state (`Blank 0) )
           | `Blank noise_len ->
               if noise then (
@@ -114,8 +115,8 @@ class on_blank ~kind ~start_blank ~max_blank ~min_noise ~threshold
         | _ -> ()
   end
 
-class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
-  source =
+class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold
+  ~track_sensitive source =
   object (self)
     (* Stripping is easy:
      *  - declare yourself as unavailable when the source is silent
@@ -147,6 +148,7 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       let b0 = AFrame.breaks ab in
       source#get ab;
       self#check_blank ab p0;
+
       (* It's useless to strip metadata, because [ab] is [memo]
        * and metadata will not be copied from it outside of the track. *)
       if self#in_blank then AFrame.set_breaks ab (p0 :: b0)
@@ -229,8 +231,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
 let kind = Lang.kind_type_of_kind_format Lang.any_fixed
 
 let proto =
-  [
-    ( "threshold",
+  [ ( "threshold",
       Lang.float_t,
       Some (Lang.float (-40.)),
       Some "Power in decibels under which the stream is considered silent." );
@@ -250,8 +251,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool true),
       Some "Reset blank counter at each track." );
-    ("", Lang.source_t kind, None, None);
-  ]
+    ("", Lang.source_t kind, None, None) ]
 
 let extract p =
   let f v = List.assoc v p in
@@ -306,13 +306,14 @@ let () =
         extract p
       in
       ( new strip
-          ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s
+          ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
+          s
         :> Source.source ));
   Lang.add_operator "eat_blank" ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:
-      "Eat blanks, i.e., drop the contents of the stream until it is not blank \
-       anymore."
+      "Eat blanks, i.e., drop the contents of the stream until it is not \
+       blank anymore."
     ( ( "at_beginning",
         Lang.bool_t,
         Some (Lang.bool false),

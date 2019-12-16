@@ -65,14 +65,12 @@ class comb ~kind (source : source) delay feedback =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "comb"
-    [
-      ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
+    [ ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
       ( "feedback",
         Lang.float_getter_t (),
         Some (Lang.float (-6.)),
         Some "Feedback coefficient in dB." );
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Comb filter."
     (fun p kind ->

@@ -23,12 +23,11 @@
 let create_encoder ~flac ~comments () =
   let samplerate = Lazy.force flac.Flac_format.samplerate in
   let p =
-    {
-      Flac.Encoder.channels = flac.Flac_format.channels;
+    { Flac.Encoder.channels = flac.Flac_format.channels;
       bits_per_sample = flac.Flac_format.bits_per_sample;
       sample_rate = samplerate;
       compression_level = Some flac.Flac_format.compression;
-      total_samples = None;
+      total_samples = None
     }
   in
   let enc = ref None in
@@ -83,13 +82,12 @@ let create_encoder ~flac ~comments () =
     Flac.Encoder.finish enc cb;
     Ogg_flac.Encoder.finish enc
   in
-  {
-    Ogg_muxer.header_encoder;
+  { Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
     data_encoder = Ogg_muxer.Audio_encoder data_encoder;
     end_of_page;
-    end_of_stream;
+    end_of_stream
   }
 
 let create_flac = function

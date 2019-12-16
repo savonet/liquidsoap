@@ -30,8 +30,7 @@ let split s = Str.split (Str.regexp " ") s
 
 module Runner : Main.Runner_t = struct
   let options =
-    [
-      ( ["--install-service"],
+    [ ( ["--install-service"],
         Arg.Unit (fun _ -> action := `Install),
         "Install windows service running." );
       (["--service-name"], Arg.Set_string name, "Service name.");
@@ -44,8 +43,7 @@ module Runner : Main.Runner_t = struct
         "Remove windows service." );
       ( ["--run-service"],
         Arg.Unit (fun _ -> action := `Run),
-        "Run windows service (only used by windows service manager)." );
-    ]
+        "Run windows service (only used by windows service manager)." ) ]
     @ Main.options
 end
 

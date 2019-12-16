@@ -24,10 +24,9 @@ let () =
       in
       Gstreamer.init
         ~argv:
-          [|
-            "Liquidsoap";
-            "--gst-debug-spew";
-            Printf.sprintf "--gst-debug-level=%d" debug;
+          [| "Liquidsoap";
+             "--gst-debug-spew";
+             Printf.sprintf "--gst-debug-level=%d" debug
           |]
         ();
       let major, minor, micro, nano = Gstreamer.version () in
@@ -46,8 +45,8 @@ module Pipeline = struct
   let audio_format channels =
     let rate = Lazy.force Frame.audio_rate in
     Printf.sprintf
-      "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d" channels
-      rate
+      "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d"
+      channels rate
 
   let audio_src ~channels ?(maxBytes = 10 * Utils.pagesize) ?(block = true)
       ?(format = Gstreamer.Format.Time) name =
@@ -90,8 +89,8 @@ module Pipeline = struct
       match max_buffers with None -> conf_max_buffers#get | Some m -> m
     in
     Printf.sprintf
-      "appsink name=\"%s\" drop=%B sync=%B max-buffers=%d caps=\"%s\"" name drop
-      sync max_buffers (video_format ())
+      "appsink name=\"%s\" drop=%B sync=%B max-buffers=%d caps=\"%s\"" name
+      drop sync max_buffers (video_format ())
 
   let decode_video () = Printf.sprintf "decodebin ! %s" (convert_video ())
 end

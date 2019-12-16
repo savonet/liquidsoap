@@ -31,7 +31,7 @@ class unqueued ~kind r =
     inherit Request_source.unqueued ~name:"single" ~kind as super
 
     method wake_up x =
-      self#log#important "%S is static, resolving once for all..."
+      (self#log)#important "%S is static, resolving once for all..."
         (Request.initial_uri r);
       if Request.Resolved <> Request.resolve r 60. then raise Invalid_URI;
       let filename = Utils.get_some (Request.get_filename r) in
@@ -47,7 +47,8 @@ class queued ~kind uri length default_duration timeout conservative =
   object (self)
     inherit
       Request_source.queued
-        ~name:"single" ~kind ~length ~default_duration ~conservative ~timeout () as super
+        ~name:"single" ~kind ~length ~default_duration ~conservative ~timeout
+          () as super
 
     method wake_up x =
       if String.length uri < 15 then self#set_id uri;

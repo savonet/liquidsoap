@@ -59,10 +59,8 @@ module Samplerate = struct
       "Preferred samplerate converters"
       ~d:["ffmpeg"; "libsamplerate"; "native"]
       ~comments:
-        [
-          "Preferred samplerate converter. The native converter is always \
-           available.";
-        ]
+        [ "Preferred samplerate converter. The native converter is always \
+           available." ]
 
   let converters : converter_plug Plug.plug =
     Plug.create "samplerate converters"

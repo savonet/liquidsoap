@@ -20,16 +20,16 @@
 
  *****************************************************************************)
 
-type t = {
-  channels : int;
-  audio : string option;
-  has_video : bool;
-  video : string option;
-  muxer : string option;
-  metadata : string;
-  pipeline : string option;
-  log : int;
-}
+type t =
+  { channels : int;
+    audio : string option;
+    has_video : bool;
+    video : string option;
+    muxer : string option;
+    metadata : string;
+    pipeline : string option;
+    log : int
+  }
 
 let audio_channels m = if m.audio = None then 0 else m.channels
 let video_channels m = if m.video = None || not m.has_video then 0 else 1

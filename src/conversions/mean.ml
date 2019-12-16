@@ -65,7 +65,7 @@ class mean ~kind source =
         assert (layer_end = Lazy.force Frame.size);
         restore ();
         if src != content then
-          self#log#info "Copy-avoiding optimization isn't working!";
+          (self#log)#info "Copy-avoiding optimization isn't working!";
         src
       in
       let len = Frame.position frame - start in
@@ -73,8 +73,10 @@ class mean ~kind source =
       (* Compute the mean of audio channels *)
       for i = !start to !(start + len) - 1 do
         dst.Frame.audio.(0).{i} <-
-          Array.fold_left (fun m b -> m +. b.{i}) 0. src.Frame.audio /. channels
+          Array.fold_left (fun m b -> m +. b.{i}) 0. src.Frame.audio
+          /. channels
       done;
+
       (* Finally, blit in case src_mono.Frame.midi/video is not already
        * the same as dst.Frame.midi/video. *)
       Frame.blit_content

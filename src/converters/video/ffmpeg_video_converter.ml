@@ -26,8 +26,7 @@ module Img = Image.Generic
 module P = Img.Pixel
 
 let formats =
-  [
-    P.RGB P.RGB24;
+  [ P.RGB P.RGB24;
     P.RGB P.BGR24;
     P.RGB P.RGB32;
     P.RGB P.BGR32;
@@ -38,8 +37,7 @@ let formats =
     P.YUV P.YUV410;
     P.YUV P.YUVJ420;
     P.YUV P.YUVJ422;
-    P.YUV P.YUVJ444;
-  ]
+    P.YUV P.YUVJ444 ]
 
 let format_of frame =
   let fmt = Img.pixel_format frame in
@@ -63,10 +61,8 @@ let format_of frame =
 
 type fmt = Avutil.Pixel_format.t * int * int
 
-type conv = {
-  conv : Swscale.t;
-  dst_off : [ `Pixel of int | `Line of int | `Zero ];
-}
+type conv =
+  { conv : Swscale.t; dst_off : [ `Pixel of int | `Line of int | `Zero ] }
 
 (* TODO: share this with Gavl. *)
 module HT = struct

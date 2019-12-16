@@ -50,11 +50,12 @@ class fir ~kind (source : source) freq beta numcoeffs =
     val mutable temp = Array.make 2048 { re = 0.; im = 0. }
 
     initializer
-    self#log#info
+    (self#log)#info
       "Init: alpha=%+.013f beta=%+.013f F1=%+.013f F2=%+.013f tau=%+.013f \
        zeros=%d."
       (freq /. float_of_int (Frame.audio_of_seconds 1.))
       beta f1 f2 tau nzeros;
+
     (* Init circle *)
     let circle =
       let rec mkcircle n =
@@ -83,6 +84,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
     for i = 1 to 1024 do
       vec.(2048 - i) <- vec.(i)
     done;
+
     (* FFT *)
     let ( +~ ), ( -~ ), ( *~ ) = (Complex.add, Complex.sub, Complex.mul) in
     let rec fft t d s n =
@@ -90,6 +92,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
         let h = n / 2 in
         for i = 0 to h - 1 do
           !t.(s + i) <- !d.(s + (2 * i));
+
           (* even *)
           !t.(s + h + i) <- !d.(s + (2 * i) + 1) (* odd  *)
         done;
@@ -103,17 +106,18 @@ class fir ~kind (source : source) freq beta numcoeffs =
         done )
     in
     fft (ref temp) (ref vec) 0 2048;
+
     (* inverse fft *)
     let h = (numcoeffs - 1) / 2 in
     xcoeffs <-
       Array.mapi (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.) xcoeffs;
-    self#log#info "Xcoeffs: %s"
+    (self#log)#info "Xcoeffs: %s"
       (String.concat "\n"
          (Array.to_list
             (Array.mapi (fun i a -> Printf.sprintf "%d: %+.013f." i a) xcoeffs)));
     gain <- Array.fold_left ( +. ) 0. xcoeffs;
-    self#log#info "Gain: %+.013f." gain;
-    self#log#info "Init done."
+    (self#log)#info "Gain: %+.013f." gain;
+    (self#log)#info "Init done."
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
     method stype = source#stype
@@ -158,8 +162,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.fir"
-    [
-      ( "frequency",
+    [ ( "frequency",
         Lang.float_t,
         None,
         Some
@@ -167,8 +170,7 @@ let () =
            that is -6 dB)." );
       ("beta", Lang.float_t, None, Some "Beta should range between 0 and 1.");
       ("coeffs", Lang.int_t, Some (Lang.int 255), Some "Number of coefficients");
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Low-pass FIR filter."
     (fun p kind ->

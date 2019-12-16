@@ -54,8 +54,7 @@ module Make (Generator : Generator.S_Asio) = struct
       (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
     in
     let processed = ref Int64.zero in
-    {
-      Decoder.seek =
+    { Decoder.seek =
         (fun ticks ->
           let duration = Frame.seconds_of_master ticks in
           let samples = Int64.of_float (duration *. float sample_freq) in
@@ -92,7 +91,7 @@ module Make (Generator : Generator.S_Asio) = struct
             | `Search_for_metadata | `Read_metadata | `Search_for_frame_sync
             | `Read_frame ->
                 Flac.Decoder.process decoder c
-            | _ -> raise End_of_stream);
+            | _ -> raise End_of_stream)
     }
 end
 
@@ -129,8 +128,8 @@ let get_type filename =
       let rate, channels =
         (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
       in
-      log#info "Libflac recognizes %S as FLAC (%dHz,%d channels)." filename rate
-        channels;
+      log#info "Libflac recognizes %S as FLAC (%dHz,%d channels)." filename
+        rate channels;
       { Frame.audio = channels; video = 0; midi = 0 })
 
 let () =

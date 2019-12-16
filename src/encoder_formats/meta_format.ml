@@ -39,6 +39,8 @@ let to_string m =
   "{ "
   ^ Hashtbl.fold
       (fun k v s ->
-        Printf.sprintf "%s\"%s\": \"%s\"" (if s = "" then "" else s ^ " , ") k v)
+        Printf.sprintf "%s\"%s\": \"%s\""
+          (if s = "" then "" else s ^ " , ")
+          k v)
       m ""
   ^ " }"

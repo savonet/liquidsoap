@@ -8,8 +8,8 @@ New:
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
 - Added `file.ls` (#1011).
-- Added native id3v2 tag parser, as well as associated function `file.mp3.tags`,
-  `file.mp3.parse_apic` and `file.cover` (#987).
+- Added native id3v2 tag parser, as well as associated function
+  `file.mp3.metadata`, `file.mp3.parse_apic` and `file.cover` (#987).
 - Added `lists.exists` and `list.for_all`.
 - Use a pager to display long help results (#1017).
 - Added `list.init`.
@@ -27,8 +27,7 @@ New:
 - Add `validate` parameter to `register`, which allows to validate a value
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
-- Renamed `base64.decode`/`base64.encode` to
-  `string.base64.decode`/`string.base64.encode`.
+- Add `file.metadata` (#1058).
 
 Changed:
 
@@ -59,6 +58,8 @@ Changed:
 - Renamed `which` to `file.which`.
 - Change `blank()` duration semantics to mean forever only on negative values.
 - Get rid of numbering of universal variables (#1037).
+- Renamed `base64.decode`/`base64.encode` to
+  `string.base64.decode`/`string.base64.encode`.
 
 Fixed:
 

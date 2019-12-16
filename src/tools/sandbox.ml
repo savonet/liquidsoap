@@ -122,26 +122,24 @@ let () =
 
 type t = string
 
-type sandboxer = {
-  init : network:bool -> t;
-  mount : t -> flag:[ `Rw | `Ro ] -> string -> t;
-  setenv : t -> string -> string -> t;
-  unsetenv : t -> string -> t;
-  cmd : t -> string -> string;
-}
+type sandboxer =
+  { init : network:bool -> t;
+    mount : t -> flag:[ `Rw | `Ro ] -> string -> t;
+    setenv : t -> string -> string -> t;
+    unsetenv : t -> string -> t;
+    cmd : t -> string -> string
+  }
 
 let disabled =
-  {
-    init = (fun ~network:_ -> "");
+  { init = (fun ~network:_ -> "");
     mount = (fun t ~flag:_ _ -> t);
     setenv = (fun t _ _ -> t);
     unsetenv = (fun t _ -> t);
-    cmd = (fun _ cmd -> cmd);
+    cmd = (fun _ cmd -> cmd)
   }
 
 let bwrap =
-  {
-    init =
+  { init =
       (fun ~network ->
         Printf.sprintf "--new-session %s"
           (if network then "" else "--unshare-net"));
@@ -160,7 +158,7 @@ let bwrap =
             Printf.sprintf "%s -c %S" conf_shell_path#get cmd
           else cmd
         in
-        Printf.sprintf "%s %s --proc /proc --dev /dev %s" binary opts cmd);
+        Printf.sprintf "%s %s --proc /proc --dev /dev %s" binary opts cmd)
   }
 
 let cmd ?rw ?ro ?network cmd =

@@ -23,13 +23,13 @@
 type opt_val = [ `String of string | `Int of int | `Float of float ]
 type opts = (string, opt_val) Hashtbl.t
 
-type t = {
-  format : string;
-  codec : string;
-  channels : int;
-  samplerate : int Lazy.t;
-  options : opts;
-}
+type t =
+  { format : string;
+    codec : string;
+    channels : int;
+    samplerate : int Lazy.t;
+    options : opts
+  }
 
 let string_of_options options =
   let _v = function

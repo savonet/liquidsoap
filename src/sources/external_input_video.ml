@@ -45,6 +45,7 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data
   let last_vadiff_warning = ref 0. in
   let on_data reader =
     on_data abg reader;
+
     (* Check that audio and video roughly get filled as the same speed. *)
     let lv = Frame.seconds_of_master (Generator.video_length abg) in
     let la = Frame.seconds_of_master (Generator.audio_length abg) in
@@ -89,9 +90,9 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data
 
     method wake_up x =
       (* Now we can create the log function *)
-      log_ref := self#log#info "%s";
-      log_error := self#log#severe "%s";
-      self#log#debug "Generator mode: %s."
+      log_ref := (self#log)#info "%s";
+      log_error := (self#log)#severe "%s";
+      (self#log)#debug "Generator mode: %s."
         ( match Generator.mode abg with
           | `Video -> "video"
           | `Both -> "both"
@@ -109,8 +110,7 @@ let () =
   Lang.add_operator "input.external.avi" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
-    [
-      ( "buffer",
+    [ ( "buffer",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Duration of the pre-buffered data." );
@@ -126,8 +126,7 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.");
-    ]
+      ("", Lang.string_t, None, Some "Command to execute.") ]
     ~kind
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
@@ -232,8 +231,8 @@ let () =
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       ( new video
-          ~name:"input.external.avi" ~kind ~restart ~bufferize ~restart_on_error
-          ~max ~read_header ~on_data command
+          ~name:"input.external.avi" ~kind ~restart ~bufferize
+          ~restart_on_error ~max ~read_header ~on_data command
         :> Source.source ))
 
 (***** raw video *****)
@@ -244,8 +243,7 @@ let () =
   Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
-    [
-      ( "buffer",
+    [ ( "buffer",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Duration of the pre-buffered data." );
@@ -261,8 +259,7 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.");
-    ]
+      ("", Lang.string_t, None, Some "Command to execute.") ]
     ~kind
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in

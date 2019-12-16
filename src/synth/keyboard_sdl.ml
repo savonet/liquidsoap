@@ -23,47 +23,45 @@
 open Tsdl
 
 let knotes2 =
-  [|
-    '&';
-    'a';
-    '\233';
-    'z';
-    '"';
-    'e';
-    'r';
-    '(';
-    't';
-    '-';
-    'y';
-    '\232';
-    'u';
-    'i';
-    '\231';
-    'o';
-    '\224';
-    'p';
+  [| '&';
+     'a';
+     '\233';
+     'z';
+     '"';
+     'e';
+     'r';
+     '(';
+     't';
+     '-';
+     'y';
+     '\232';
+     'u';
+     'i';
+     '\231';
+     'o';
+     '\224';
+     'p'
   |]
 
 let knotes1 =
-  [|
-    'q';
-    'w';
-    's';
-    'x';
-    'd';
-    'c';
-    'v';
-    'g';
-    'b';
-    'h';
-    'n';
-    'j';
-    ',';
-    ';';
-    'l';
-    ':';
-    'm';
-    '!';
+  [| 'q';
+     'w';
+     's';
+     'x';
+     'd';
+     'c';
+     'v';
+     'g';
+     'b';
+     'h';
+     'n';
+     'j';
+     ',';
+     ';';
+     'l';
+     ':';
+     'm';
+     '!'
   |]
 
 let array_index a x =
@@ -163,18 +161,15 @@ class keyboard ~kind velocity =
 
 let () =
   Lang.add_operator "input.keyboard.sdl"
-    [
-      ( "velocity",
+    [ ( "velocity",
         Lang.float_t,
         Some (Lang.float 0.8),
-        Some "Velocity of notes." );
-    ]
+        Some "Velocity of notes." ) ]
     ~kind:
       (Lang.Constrained
-         {
-           Frame.audio = Lang.Any_fixed 0;
+         { Frame.audio = Lang.Any_fixed 0;
            video = Lang.Fixed 0;
-           midi = Lang.Any_fixed 1;
+           midi = Lang.Any_fixed 1
          })
     ~category:Lang.Input ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."

@@ -32,12 +32,13 @@ let () =
   add "request.alive"
     ~descr:"Get the identifiers of requests that are still in use." (fun _ ->
       String.concat " " (List.map string_of_int (Request.alive_requests ())));
-  add "request.on_air" ~descr:"Get the identifiers of requests that are on air."
-    (fun _ ->
+  add "request.on_air"
+    ~descr:"Get the identifiers of requests that are on air." (fun _ ->
       String.concat " " (List.map string_of_int (Request.on_air_requests ())));
   add "request.resolving"
     ~descr:"Get the identifiers of requests that are being prepared." (fun _ ->
-      String.concat " " (List.map string_of_int (Request.resolving_requests ())));
+      String.concat " "
+        (List.map string_of_int (Request.resolving_requests ())));
   add "request.trace" ~usage:"request.trace <rid>"
     ~descr:"Print the log associated to a request." (fun args ->
       let id = int_of_string args in

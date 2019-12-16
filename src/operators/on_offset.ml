@@ -53,7 +53,7 @@ class on_offset ~kind ~force ~offset ~override f s =
     val mutable executed = false
 
     method private execute =
-      self#log#info "Executing on_offset callback.";
+      (self#log)#info "Executing on_offset callback.";
       let pos =
         Int64.to_float elapsed /. float (Lazy.force Frame.master_rate)
       in
@@ -70,12 +70,12 @@ class on_offset ~kind ~force ~offset ~override f s =
           with Failure _ -> raise (Invalid_override pos)
         in
         let ticks = ticks_of_offset pos in
-        self#log#info "Setting new offset to %.02fs (%Li ticks)" pos ticks;
+        (self#log)#info "Setting new offset to %.02fs (%Li ticks)" pos ticks;
         offset <- ticks
       with
         | Failure _ | Not_found -> ()
         | Invalid_override pos ->
-            self#log#important "Invalid value for override metadata: %s" pos
+            (self#log)#important "Invalid value for override metadata: %s" pos
 
     method private get_frame ab =
       let pos = Int64.of_int (Frame.position ab) in
@@ -94,8 +94,7 @@ class on_offset ~kind ~force ~offset ~override f s =
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "on_offset"
-    [
-      ( "offset",
+    [ ( "offset",
         Lang.float_t,
         Some (Lang.float (-1.)),
         Some
@@ -123,8 +122,7 @@ let () =
            the current track, second is the latest metadata. That function \
            should be fast because it is executed in the main streaming thread."
       );
-      ("", Lang.source_t kind, None, None);
-    ]
+      ("", Lang.source_t kind, None, None) ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Call a given handler when position in track is equal or more than a \

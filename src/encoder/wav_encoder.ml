@@ -73,11 +73,10 @@ let encoder wav =
       Strings.of_list [header; s] )
     else Strings.of_string s
   in
-  {
-    Encoder.insert_metadata = (fun _ -> ());
+  { Encoder.insert_metadata = (fun _ -> ());
     encode;
     header = Strings.of_string header;
-    stop = (fun () -> Strings.empty);
+    stop = (fun () -> Strings.empty)
   }
 
 let () =

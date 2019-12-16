@@ -92,17 +92,16 @@ let () =
   Lang.add_builtin "insert_metadata"
     ~category:(Lang.string_of_category Lang.TrackProcessing)
     ~descr:
-      "Dynamically insert metadata in a stream. Returns a pair `(f,s)` where s \
-       is a new source and `f` is a function of type \
-       `(?new_track,metadata)->unit`, used to insert metadata in `s`. `f` also \
-       inserts a new track with the given metadata if passed `new_track=true`."
-    [
-      ( "id",
+      "Dynamically insert metadata in a stream. Returns a pair `(f,s)` where \
+       s is a new source and `f` is a function of type \
+       `(?new_track,metadata)->unit`, used to insert metadata in `s`. `f` \
+       also inserts a new track with the given metadata if passed \
+       `new_track=true`."
+    [ ( "id",
         Lang.string_t,
         Some (Lang.string ""),
         Some "Force the value of the source ID." );
-      ("", Lang.source_t kind, None, None);
-    ]
+      ("", Lang.source_t kind, None, None) ]
     return_t
     (fun p t ->
       let s = Lang.to_source (List.assoc "" p) in
@@ -113,10 +112,8 @@ let () =
       if id <> "" then s#set_id id;
       let f =
         Lang.val_fun
-          [
-            ("new_track", "new_track", Lang.bool_t, Some (Lang.bool false));
-            ("", "", Lang.metadata_t, None);
-          ]
+          [ ("new_track", "new_track", Lang.bool_t, Some (Lang.bool false));
+            ("", "", Lang.metadata_t, None) ]
           ~ret_t:Lang.unit_t
           (fun p _ ->
             let m = Lang.to_metadata (List.assoc "" p) in

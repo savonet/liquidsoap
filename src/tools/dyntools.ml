@@ -25,13 +25,13 @@
 let dyn_log = Log.make ["dynamic"; "loader"]
 let dynlink_suffix = if Dynlink.is_native then ".cmxs" else ".cma"
 
-type dynload = {
-  path : string list;
-  (* Files are registered *without*
-   * their extension. e.g.: foo.cmxs -> foo *)
-  files : string list;
-  load : unit -> unit;
-}
+type dynload =
+  { path : string list;
+    (* Files are registered *without*
+     * their extension. e.g.: foo.cmxs -> foo *)
+    files : string list;
+    load : unit -> unit
+  }
 
 let dynlink_list = Hashtbl.create 2
 

@@ -20,7 +20,8 @@
 
  *****************************************************************************)
 
-type process = { stdin : out_channel; stdout : in_channel; stderr : in_channel }
+type process =
+  { stdin : out_channel; stdout : in_channel; stderr : in_channel }
 
 let open_process cmd env =
   let stdout, stdin, stderr = Unix.open_process_full cmd env in
@@ -35,14 +36,14 @@ let wait { stdout; stdin; stderr } =
   try Unix.waitpid [] pid
   with Unix.Unix_error (Unix.ECHILD, _, _) -> (pid, Unix.WEXITED 0)
 
-type _t = {
-  in_pipe : Unix.file_descr;
-  out_pipe : Unix.file_descr;
-  p : process;
-  mutable priority : Tutils.priority;
-  mutable status : Unix.process_status option;
-  mutable stopped : bool;
-}
+type _t =
+  { in_pipe : Unix.file_descr;
+    out_pipe : Unix.file_descr;
+    p : process;
+    mutable priority : Tutils.priority;
+    mutable status : Unix.process_status option;
+    mutable stopped : bool
+  }
 
 type t = { mutex : Mutex.t; mutable process : _t option }
 
@@ -106,11 +107,9 @@ let _kill = function
   | Some { p; in_pipe; out_pipe } ->
       let silent f = try f () with _ -> () in
       List.iter silent
-        [
-          (fun () -> Unix.close in_pipe);
+        [ (fun () -> Unix.close in_pipe);
           (fun () -> Unix.close out_pipe);
-          (fun () -> ignore (close_process p));
-        ]
+          (fun () -> ignore (close_process p)) ]
   | None -> ()
 
 let cleanup ~log t =
@@ -278,7 +277,8 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           in
           let descr =
             match status with
-              | Unix.WEXITED c -> Printf.sprintf "Process exited with code %d" c
+              | Unix.WEXITED c ->
+                  Printf.sprintf "Process exited with code %d" c
               | Unix.WSIGNALED s ->
                   Printf.sprintf "Process was killed by signal %d" s
               | Unix.WSTOPPED s ->
@@ -310,7 +310,9 @@ let really_write ?(offset = 0) ?length data push =
   let length =
     match length with Some length -> length | None -> Bytes.length data
   in
-  let rec f pos = if pos < length then f (pos + push data pos (length - pos)) in
+  let rec f pos =
+    if pos < length then f (pos + push data pos (length - pos))
+  in
   f offset
 
 let on_stdout t fn =

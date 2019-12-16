@@ -40,8 +40,7 @@ let () =
   in
   let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] () in
   add_builtin ~cat:Liq "register" ~descr:"Register a new setting."
-    [
-      ("name", Lang.string_t, None, Some "Settings name");
+    [ ("name", Lang.string_t, None, Some "Settings name");
       ( "descr",
         Lang.string_t,
         Some (Lang.string ""),
@@ -55,8 +54,7 @@ let () =
         Some (Lang.val_cst_fun [("", univ, None)] (Lang.bool true)),
         Some "Callback executed to validate a new value." );
       ("", Lang.string_t, None, Some "Setting key");
-      ("", univ, None, Some "Setting initial value");
-    ]
+      ("", univ, None, Some "Setting initial value") ]
     Lang.unit_t
     (fun p ->
       let name = Lang.to_string (List.assoc "name" p) in
@@ -99,12 +97,10 @@ let () =
   add_builtin ~cat:Liq "set"
     ~descr:
       "Change some setting. Use `liquidsoap --conf-descr` and `liquidsoap \
-       --conf-descr-key KEY` on the command-line to get some information about \
-       available settings."
-    [
-      ("", Lang.string_t, None, None);
-      ("", Lang.univ_t ~constraints:[Lang_types.Dtools] (), None, None);
-    ]
+       --conf-descr-key KEY` on the command-line to get some information \
+       about available settings."
+    [ ("", Lang.string_t, None, None);
+      ("", Lang.univ_t ~constraints:[Lang_types.Dtools] (), None, None) ]
     Lang.unit_t
     (fun p ->
       let path = Lang.assoc "" 1 p in
@@ -113,7 +109,9 @@ let () =
       let get_error e =
         match e with
           | Dtools.Conf.Mismatch _ ->
-              let t = Configure.conf#path (Dtools.Conf.path_of_string path_s) in
+              let t =
+                Configure.conf#path (Dtools.Conf.path_of_string path_s)
+              in
               let kind =
                 match t#kind with
                   | Some "unit" -> "of type unit"

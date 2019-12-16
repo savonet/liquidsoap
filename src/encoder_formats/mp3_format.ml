@@ -22,12 +22,12 @@
 
 type stereo_mode = Default | Stereo | Joint_stereo
 
-type abr = {
-  min_bitrate : int option;
-  mean_bitrate : int;
-  max_bitrate : int option;
-  hard_min : bool;
-}
+type abr =
+  { min_bitrate : int option;
+    mean_bitrate : int;
+    max_bitrate : int option;
+    hard_min : bool
+  }
 
 let string_of_abr x =
   let f v x =
@@ -47,16 +47,16 @@ let string_of_bitrate_control = function
 
 type id3v2_export = Meta_format.export_metadata -> string
 
-type t = {
-  stereo : bool;
-  stereo_mode : stereo_mode;
-  bitrate_control : bitrate_control;
-  internal_quality : int;
-  samplerate : int Lazy.t;
-  id3v2 : id3v2_export option;
-  msg_interval : float;
-  msg : string;
-}
+type t =
+  { stereo : bool;
+    stereo_mode : stereo_mode;
+    bitrate_control : bitrate_control;
+    internal_quality : int;
+    samplerate : int Lazy.t;
+    id3v2 : id3v2_export option;
+    msg_interval : float;
+    msg : string
+  }
 
 let id3v2_export : id3v2_export option ref = ref None
 

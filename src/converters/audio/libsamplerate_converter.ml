@@ -35,11 +35,9 @@ let quality_conf =
     ~p:(samplerate_conf#plug "quality")
     "Resampling quality" ~d:"fast"
     ~comments:
-      [
-        "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
+      [ "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
          `\"zero_order\"` or `\"linear\"`. Refer to ocaml-samplerate for \
-         details.";
-      ]
+         details." ]
 
 let quality_of_string v =
   match v with
@@ -68,6 +66,7 @@ let samplerate_converter () =
         inlen;
     if o < outlen then
       log#debug "Unexpected output length (%d instead of %d)." o outlen;
+
     (* TODO: the following would solve the issue but apparently messes up buffers *)
     (* Audio.Mono.sub buf 0 o *)
     buf

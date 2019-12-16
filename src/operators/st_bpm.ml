@@ -62,8 +62,7 @@ class bpm ~kind (source : source) cb every =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "bpm"
-    [
-      ( "every",
+    [ ( "every",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Interval at which BPM is computed (in second)." );
@@ -71,8 +70,7 @@ let () =
         Lang.fun_t [(false, "", Lang.float_t)] Lang.unit_t,
         None,
         Some "Callback function." );
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Detect the BPM." ~flags:[]
     (fun p kind ->

@@ -51,7 +51,9 @@ let conf_enforced_encryption =
 let log = Log.make ["srt"]
 
 let log_handler { Srt.Log.message } =
-  let message = Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "") message in
+  let message =
+    Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "") message
+  in
   log#f conf_level#get "%s" message
 
 (** Common polling task for all srt input/output.
@@ -61,13 +63,13 @@ let log_handler { Srt.Log.message } =
 module Poll = struct
   exception Empty
 
-  type t = {
-    p : Srt.Poll.t;
-    m : Mutex.t;
-    mutable max_read : int;
-    mutable max_write : int;
-    handlers : (Srt.socket, Srt.socket -> unit) Hashtbl.t;
-  }
+  type t =
+    { p : Srt.Poll.t;
+      m : Mutex.t;
+      mutable max_read : int;
+      mutable max_write : int;
+      handlers : (Srt.socket, Srt.socket -> unit) Hashtbl.t
+    }
 
   let t =
     let p = Srt.Poll.create () in
@@ -235,9 +237,9 @@ class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
     method self_sync = client_data <> None
 
     method private log_origin s =
-      try self#log#info "New connection from %s" (self#string_of_address s)
+      try (self#log)#info "New connection from %s" (self#string_of_address s)
       with exn ->
-        self#log#important "Error while fetching connection source: %s"
+        (self#log)#important "Error while fetching connection source: %s"
           (Printexc.to_string exn)
 
     method private should_stop =
@@ -246,7 +248,7 @@ class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
     method private prepare_socket s =
       Srt.bind s bind_address;
       Srt.listen s 1;
-      self#log#info "Setting up socket to listen at %s"
+      (self#log)#info "Setting up socket to listen at %s"
         (self#string_of_address bind_address)
 
     method private create_decoder socket =
@@ -312,7 +314,7 @@ class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
           self#log_origin origin;
           self#handle_client client
         with exn ->
-          self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
+          (self#log)#debug "Failed to connect: %s." (Printexc.to_string exn);
           self#connect
       in
       if not self#should_stop then (
@@ -336,7 +338,7 @@ class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
         done;
         Generator.fill generator frame
       with exn ->
-        self#log#important "Feeding failed: %s" (Printexc.to_string exn);
+        (self#log)#important "Feeding failed: %s" (Printexc.to_string exn);
         self#close_client;
         Frame.add_break frame pos
 
@@ -362,8 +364,7 @@ let () =
   Lang.add_operator "input.srt" ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Input
     ~descr:"Start a SRT agent in listener mode to receive and decode a stream."
-    [
-      ( "bind_address",
+    [ ( "bind_address",
         Lang.string_t,
         Some (Lang.string "0.0.0.0"),
         Some "Address to bind on the local machine." );
@@ -405,8 +406,7 @@ let () =
         Some (Lang.string "application/ffmpeg"),
         Some
           "Content-Type (mime type) used to find a decoder for the input \
-           stream." );
-    ]
+           stream." ) ]
     (fun p kind ->
       let bind_address = Lang.to_string (List.assoc "bind_address" p) in
       let bind_address =
@@ -498,7 +498,7 @@ class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
         in
         f 0
       with exn ->
-        self#log#important "Error while send client data: %s"
+        (self#log)#important "Error while send client data: %s"
           (Printexc.to_string exn);
         self#clear_encoder;
         self#close_socket;
@@ -536,13 +536,13 @@ class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
       try
         let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
         let sockaddr = Unix.ADDR_INET (ipaddr, port) in
-        self#log#important "Connecting to srt://%s:%d.." hostname port;
+        (self#log)#important "Connecting to srt://%s:%d.." hostname port;
         Srt.connect socket sockaddr;
         Tutils.mutexify output_mutex (fun () -> state <- `Connected) ();
-        self#log#important "Output connected!";
+        (self#log)#important "Output connected!";
         -1.
       with Srt.Error (_, _) as exn ->
-        self#log#important "Connect failed: %s" (Printexc.to_string exn);
+        (self#log)#important "Connect failed: %s" (Printexc.to_string exn);
         self#clear_encoder;
         self#close_socket;
         if not (self#is `Stopped) then 0. else -1.
@@ -603,8 +603,7 @@ let () =
   Lang.add_operator "output.srt" ~active:true ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output ~descr:"Send a SRT stream to a distant host."
     ( Output.proto
-    @ [
-        ( "host",
+    @ [ ( "host",
           Lang.string_t,
           Some (Lang.string "localhost"),
           Some "Address to connect to." );
@@ -612,10 +611,10 @@ let () =
           Lang.int_t,
           Some (Lang.int 8000),
           Some
-            "Port to bind on the local machine. The term `port` as used in SRT \
-             is occasionally identical to the term `UDP port`. However SRT \
-             offers more flexibility than UDP because it manages ports as its \
-             own resources. For example, one port may be shared between \
+            "Port to bind on the local machine. The term `port` as used in \
+             SRT is occasionally identical to the term `UDP port`. However \
+             SRT offers more flexibility than UDP because it manages ports as \
+             its own resources. For example, one port may be shared between \
              various services." );
         ( "clock_safe",
           Lang.bool_t,
@@ -627,8 +626,7 @@ let () =
           Some (Lang.bool true),
           Some "Use message api" );
         ("", Lang.format_t kind, None, Some "Encoding format.");
-        ("", Lang.source_t kind, None, None);
-      ] )
+        ("", Lang.source_t kind, None, None) ] )
     (fun p kind ->
       let hostname = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in

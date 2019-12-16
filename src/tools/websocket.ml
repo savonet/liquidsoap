@@ -34,7 +34,8 @@ module type Websocket_t = sig
   val upgrade : (string * string) list -> string
 end
 
-module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
+module Make (T : Transport_t) : Websocket_t with type socket = T.socket =
+struct
   type socket = T.socket
 
   type msg =
@@ -78,14 +79,14 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
   (** Websocket frames. *)
   module Frame = struct
     (** A websocket frame. *)
-    type t = {
-      fin : bool;
-      rsv1 : bool;
-      rsv2 : bool;
-      rsv3 : bool;
-      opcode : int;
-      data : string;
-    }
+    type t =
+      { fin : bool;
+        rsv1 : bool;
+        rsv2 : bool;
+        rsv3 : bool;
+        opcode : int;
+        data : string
+      }
 
     (** Forge a frame. *)
     let to_string f =
@@ -204,13 +205,12 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
 
   let to_string data =
     let frame =
-      {
-        Frame.fin = true;
+      { Frame.fin = true;
         rsv1 = false;
         rsv2 = false;
         rsv3 = false;
         opcode = 0;
-        data = "";
+        data = ""
       }
     in
     let frame =

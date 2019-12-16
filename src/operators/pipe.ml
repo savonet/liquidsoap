@@ -31,12 +31,8 @@ type next_stop =
   | `Sleep
   | `Nothing ]
 
-type chunk = {
-  sbuf : Bytes.t;
-  next : next_stop;
-  mutable ofs : int;
-  mutable len : int;
-}
+type chunk =
+  { sbuf : Bytes.t; next : next_stop; mutable ofs : int; mutable len : int }
 
 class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   ~restart_on_error (source : source) =
@@ -114,14 +110,12 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
           ()
       in
       begin
-        match to_replay with
-        | -1, _ -> ()
+        match to_replay with -1, _ -> ()
         | _, `Break_and_metadata m ->
             Generator.add_metadata abg m;
             Generator.add_break abg
         | _, `Metadata m -> Generator.add_metadata abg m
-        | _, `Break -> Generator.add_break abg
-        | _ -> ()
+        | _, `Break -> Generator.add_break abg | _ -> ()
       end;
       if abg_max_len < buffered + len then
         `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
@@ -195,7 +189,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
               let pos = slen_of_len pos in
               let len = pos - ofs in
               let next =
-                if pos = slen && Frame.is_partial tmp then `Break_and_metadata m
+                if pos = slen && Frame.is_partial tmp then
+                  `Break_and_metadata m
                 else `Metadata m
               in
               Queue.push { sbuf; next; ofs; len } to_write;
@@ -247,9 +242,10 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     method wake_up _ =
       source#get_ready [(self :> source)];
+
       (* Now we can create the log function *)
-      log_ref := self#log#info "%s";
-      log_error := self#log#debug "%s";
+      log_ref := (self#log)#info "%s";
+      log_error := (self#log)#debug "%s";
       handler <-
         Some
           (Process_handler.run ~on_stop ~on_start ~on_stdout
@@ -273,8 +269,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 let k = Lang.audio_any
 
 let proto =
-  [
-    ("process", Lang.string_t, None, Some "Process used to pipe data to.");
+  [ ("process", Lang.string_t, None, Some "Process used to pipe data to.");
     ( "replay_delay",
       Lang.float_t,
       Some (Lang.float (-1.)),
@@ -287,10 +282,10 @@ let proto =
       Some (Lang.int (-1)),
       Some
         "Length passed in the WAV data chunk. Data is streamed so no the \
-         consuming program should process it as it comes. Some program operate \
-         better when this value is set to `0`, some other when it is set to \
-         the maximum length allowed by the WAV specs. Use any negative value \
-         to set to maximum length." );
+         consuming program should process it as it comes. Some program \
+         operate better when this value is set to `0`, some other when it is \
+         set to the maximum length allowed by the WAV specs. Use any negative \
+         value to set to maximum length." );
     ( "buffer",
       Lang.float_t,
       Some (Lang.float 1.),
@@ -307,8 +302,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool true),
       Some "Restart process when exited with error." );
-    ("", Lang.source_t (Lang.kind_type_of_kind_format k), None, None);
-  ]
+    ("", Lang.source_t (Lang.kind_type_of_kind_format k), None, None) ]
 
 let pipe p kind =
   let f v = List.assoc v p in

@@ -60,10 +60,8 @@ let allow_root =
     ~p:(Dtools.Init.conf#plug "allow_root")
     ~d:false "Allow liquidsoap to run as root"
     ~comments:
-      [
-        "This should be reserved for advanced dynamic uses of liquidsoap ";
-        "such as running inside an isolated environment like docker.";
-      ]
+      [ "This should be reserved for advanced dynamic uses of liquidsoap ";
+        "such as running inside an isolated environment like docker." ]
 
 (* Do not run, don't even check the scripts. *)
 let parse_only = ref false
@@ -144,10 +142,9 @@ let process_request s =
   load_libs ();
   secondary_task := true;
   let kind =
-    {
-      Frame.audio = Frame.Variable;
+    { Frame.audio = Frame.Variable;
       Frame.video = Frame.Variable;
-      Frame.midi = Frame.Variable;
+      Frame.midi = Frame.Variable
     }
   in
   let req = Request.create ~kind s in
@@ -242,8 +239,7 @@ module LiqConf = struct
       in
       let title n s = Printf.sprintf "%s %s\n\n" (String.make n '#') s in
       begin
-        match (t#kind, get_string t) with
-        | None, None -> title level t#descr
+        match (t#kind, get_string t) with None, None -> title level t#descr
         | Some _, Some p ->
             let comments =
               match t#comments with
@@ -278,8 +274,7 @@ module LiqConf = struct
       exit 1
 
   let args t =
-    [
-      ( ["--conf-descr-key"],
+    [ ( ["--conf-descr-key"],
         Arg.String (descr_key t),
         "Describe a configuration key." );
       ( ["--conf-descr"],
@@ -309,8 +304,7 @@ module LiqConf = struct
             load_libs ();
             Utils.print_string ~pager:true (list_conf_keys t);
             exit 0),
-        "List configuration keys." );
-    ]
+        "List configuration keys." ) ]
 end
 
 let format_doc s =
@@ -336,8 +330,9 @@ let format_doc s =
 let log = Log.make ["main"]
 
 let options =
-  [
-    (["-"], Arg.Unit (fun () -> eval `StdIn), "Read script from standard input.");
+  [ ( ["-"],
+      Arg.Unit (fun () -> eval `StdIn),
+      "Read script from standard input." );
     (["-r"], Arg.String process_request, "Process a request.");
     ( ["-h"],
       Arg.String lang_doc,
@@ -391,18 +386,14 @@ let options =
       Arg.Set Lang_errors.strict,
       "Execute script code in strict mode, issuing fatal errors instead of \
        warnings in some cases. Currently: unused variables and ignored \
-       expressions. " );
-  ]
+       expressions. " ) ]
   (* Unix.fork is not implemented in Win32. *)
   @ ( if not Sys.win32 then
-      [
-        ( ["-d"; "--daemon"],
+      [ ( ["-d"; "--daemon"],
           Arg.Unit (fun _ -> Dtools.Init.conf_daemon#set true),
-          "Run in daemon mode." );
-      ]
+          "Run in daemon mode." ) ]
     else [] )
-  @ [
-      ( ["-t"; "--enable-telnet"],
+  @ [ ( ["-t"; "--enable-telnet"],
         Arg.Unit (fun _ -> Server.conf_telnet#set true),
         "Enable the telnet server." );
       ( ["-T"; "--disable-telnet"],
@@ -491,8 +482,7 @@ let options =
       ( ["--"],
         Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
         "Stop parsing the command-line and pass subsequent items to the script."
-      );
-    ]
+      ) ]
   @ LiqConf.args Configure.conf
 
 let expand_options options =
@@ -514,8 +504,7 @@ module Make (Runner : Runner_t) = struct
     log#important "Using:%s" Configure.libs_versions;
     if Configure.git_snapshot then
       List.iter (log#important "%s")
-        [
-          "";
+        [ "";
           "DISCLAIMER: This version of Liquidsoap has been";
           "compiled from a snapshot of the development code.";
           "As such, it should not be used in production";
@@ -534,8 +523,7 @@ module Make (Runner : Runner_t) = struct
           "at <https://github.com/savonet/liquidsoap/issues>.";
           "";
           "We hope you enjoy this snapshot build of Liquidsoap!";
-          "";
-        ]
+          "" ]
 
   (** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
   let parse argv l f msg =
@@ -555,13 +543,17 @@ module Make (Runner : Runner_t) = struct
   (* Startup *)
   let startup () =
     Random.self_init ();
+
     (* Set the default values. *)
     Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
     Dtools.Init.conf_daemon_pidfile#set_d (Some true);
-    Dtools.Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid");
+    Dtools.Init.conf_daemon_pidfile_path#set_d
+      (Some "<sysrundir>/<script>.pid");
+
     (* We only allow evaluation of
      * lazy configuration keys now. *)
     Frame.allow_lazy_config_eval ();
+
     (* Parse command-line, and notably load scripts. *)
     parse Shebang.argv
       (expand_options Runner.options)
@@ -628,11 +620,13 @@ module Make (Runner : Runner_t) = struct
       if not Sys.win32 then (
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]) );
+
       (* On Windows we need to initiate shutdown ourselves by catching INT
        * since dtools doesn't do it. *)
       if Sys.win32 then
         Sys.set_signal Sys.sigint
           (Sys.Signal_handle (fun _ -> Tutils.shutdown ()));
+
       (* TODO if start fails (e.g. invalid password or mountpoint) it
        *   raises an exception and dtools catches it so we don't get
        *   a backtrace (by default at least). *)

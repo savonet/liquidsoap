@@ -72,6 +72,7 @@ class virtual ['a] base ~nb_blocks ~blank =
             Mutex.lock wait_m;
             state <- `Tired;
             Mutex.unlock wait_m;
+
             (* One signal is enough since there is only one half of
              * the process waiting for us, the other half cannot be
              * called concurrently with this method. *)
@@ -111,8 +112,10 @@ class virtual ['a] input ~nb_blocks ~blank =
             && write mod nb_blocks = read mod nb_blocks
           then Condition.wait wait_c wait_m;
           Mutex.unlock wait_m;
+
           (* Exit or... *)
           if state = `Tired then raise Exit;
+
           (* ...write a block. *)
           self#pull_block buffer.(write mod nb_blocks);
           Mutex.lock wait_m;
@@ -128,6 +131,7 @@ class virtual ['a] input ~nb_blocks ~blank =
              * which is performed outside of critical section, so there's
              * not need to unlock. *)
             self#close;
+
             (* It is possible that the reader is waiting for us,
              * hence blocking the streaming thread, and consequently
              * the possibility of going to sleep peacefully.
@@ -144,6 +148,7 @@ class virtual ['a] input ~nb_blocks ~blank =
      * and won't be called before #get_block returns. *)
     method private get_block =
       assert (match state with `Running _ | `Crashed -> true | _ -> false);
+
       (* Check that the writer still has an advance. *)
       Mutex.lock wait_m;
       if write = read && state <> `Crashed then Condition.wait wait_c wait_m;
@@ -179,8 +184,10 @@ class virtual ['a] output ~nb_blocks ~blank =
           Mutex.lock wait_m;
           if state <> `Tired && read = write then Condition.wait wait_c wait_m;
           Mutex.unlock wait_m;
+
           (* Exit or... *)
           if state = `Tired then raise Exit;
+
           (* ...read a block. *)
           self#push_block buffer.(read mod nb_blocks);
           Mutex.lock wait_m;
@@ -196,6 +203,7 @@ class virtual ['a] output ~nb_blocks ~blank =
              * which is performed outside of critical section, so there's
              * not need to unlock. *)
             self#close;
+
             (* It is possible that the reader is waiting for us,
              * hence blocking the streaming thread, and consequently
              * the possibility of going to sleep peacefully.

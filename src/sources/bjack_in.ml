@@ -29,7 +29,9 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
-  let seconds_per_frame = float samples_per_frame /. float samples_per_second in
+  let seconds_per_frame =
+    float samples_per_frame /. float samples_per_second
+  in
   let bytes_per_sample = 2 in
   let blank () =
     Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
@@ -78,8 +80,9 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
             let server_name = match server with "" -> None | s -> Some s in
             let dev =
               Bjack.open_t ~rate:samples_per_second
-                ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:channels
-                ~output_channels:0 ~flags:[] ?server_name
+                ~bits_per_sample:(bytes_per_sample * 8)
+                ~input_channels:channels ~output_channels:0 ~flags:[]
+                ?server_name
                 ~ringbuffer_size:
                   (nb_blocks * samples_per_frame * bytes_per_sample)
                 ~client_name:self#id ()
@@ -121,8 +124,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "input.jack"
-    [
-      ( "clock_safe",
+    [ ( "clock_safe",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Force the use of the dedicated bjack clock." );
@@ -133,8 +135,7 @@ let () =
       ( "server",
         Lang.string_t,
         Some (Lang.string ""),
-        Some "Jack server to connect to." );
-    ]
+        Some "Jack server to connect to." ) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input
     ~descr:"Get stream from jack."
     (fun p kind ->

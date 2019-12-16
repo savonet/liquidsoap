@@ -30,6 +30,7 @@ let test_text s =
         let mime = get_mime s in
         if not (Pcre.pmatch ~pat:"text/.*" mime) then (
           log#important "Wrong mime type %s for playlist!" mime;
+
           (* TODO this shouldn't be an assert false, it can happen *)
           assert false )
 
@@ -42,11 +43,9 @@ let parse_extinf s =
     let lines = Pcre.split ~pat:" - " song in
     match lines with
       | [artist; title] ->
-          [
-            ("extinf_duration", duration);
+          [ ("extinf_duration", duration);
             ("artist", Utils.trim artist);
-            ("title", Utils.trim title);
-          ]
+            ("title", Utils.trim title) ]
       | _ -> [("extinf_duration", duration); ("song", Utils.trim song)]
   with Not_found -> []
 
@@ -91,19 +90,19 @@ let parse_scpls ?pwd string =
   let urls = List.filter (fun s -> s <> "") urls in
   List.map (fun t -> ([], Playlist_parser.get_file ?pwd t)) urls
 
-type cue_track = {
-  number : int;
-  track_performer : string option;
-  track_title : string option;
-  indexes : (int, float) Hashtbl.t;
-}
+type cue_track =
+  { number : int;
+    track_performer : string option;
+    track_title : string option;
+    indexes : (int, float) Hashtbl.t
+  }
 
-type cue_sheet = {
-  file : string;
-  performer : string option;
-  title : string option;
-  tracks : cue_track list;
-}
+type cue_sheet =
+  { file : string;
+    performer : string option;
+    title : string option;
+    tracks : cue_track list
+  }
 
 let parse_optional parser f =
   try parser (fun x -> f (Some x)) with _ -> f None
@@ -166,11 +165,10 @@ let parse_tracks index lines =
             parse_track x (fun index ->
                 let tracks = track :: tracks in
                 let track =
-                  {
-                    number = index;
+                  { number = index;
                     track_title = None;
                     track_performer = None;
-                    indexes = Hashtbl.create 1;
+                    indexes = Hashtbl.create 1
                   }
                 in
                 parse tracks track rem)
@@ -193,11 +191,10 @@ let parse_tracks index lines =
             parse tracks track rem )
   in
   let track =
-    {
-      number = index;
+    { number = index;
       track_title = None;
       track_performer = None;
-      indexes = Hashtbl.create 1;
+      indexes = Hashtbl.create 1
     }
   in
   parse [] track lines

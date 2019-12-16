@@ -20,13 +20,13 @@
 
  *****************************************************************************)
 
-type t = {
-  samplerate : int Lazy.t;
-  samplesize : int;
-  channels : int;
-  duration : float option;
-  header : bool;
-}
+type t =
+  { samplerate : int Lazy.t;
+    samplesize : int;
+    channels : int;
+    duration : float option;
+    header : bool
+  }
 
 let to_string w =
   let duration =

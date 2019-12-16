@@ -21,24 +21,23 @@
  *****************************************************************************)
 
 let knotes =
-  [|
-    'a';
-    '?';
-    'z';
-    '"';
-    'e';
-    'r';
-    '(';
-    't';
-    '-';
-    'y';
-    '?';
-    'u';
-    'i';
-    '?';
-    'o';
-    '?';
-    'p';
+  [| 'a';
+     '?';
+     'z';
+     '"';
+     'e';
+     'r';
+     '(';
+     't';
+     '-';
+     'y';
+     '?';
+     'u';
+     'i';
+     '?';
+     'o';
+     '?';
+     'p'
   |]
 
 let array_index x =
@@ -103,23 +102,19 @@ class keyboard ~kind =
           in
           begin
             try
-              self#log#important "Playing note %d." (note_of_char c);
+              (self#log)#important "Playing note %d." (note_of_char c);
               self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
             with Not_found -> ()
           end;
-          [
-            {
-              Duppy.Task.handler = task;
+          [ { Duppy.Task.handler = task;
               priority = Tutils.Non_blocking;
-              events = [`Read Unix.stdin];
-            };
-          ] )
+              events = [`Read Unix.stdin]
+            } ] )
       in
       Duppy.Task.add Tutils.scheduler
-        {
-          Duppy.Task.handler = task;
+        { Duppy.Task.handler = task;
           priority = Tutils.Non_blocking;
-          events = [`Read Unix.stdin];
+          events = [`Read Unix.stdin]
         }
 
     method output_reset = ()
@@ -141,10 +136,9 @@ let () =
   Lang.add_operator "input.keyboard" []
     ~kind:
       (Lang.Constrained
-         {
-           Frame.audio = Lang.Any_fixed 0;
+         { Frame.audio = Lang.Any_fixed 0;
            video = Lang.Fixed 0;
-           midi = Lang.Any_fixed 1;
+           midi = Lang.Any_fixed 1
          })
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]

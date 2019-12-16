@@ -29,23 +29,19 @@ let conf =
     ~p:(Configure.conf#plug "frame")
     "Frame format"
     ~comments:
-      [
-        "Settings for the data representation in frames, which are the";
-        "elementary packets of which streams are made.";
-      ]
+      [ "Settings for the data representation in frames, which are the";
+        "elementary packets of which streams are made." ]
 
 let conf_duration =
   Conf.float ~p:(conf#plug "duration") ~d:0.04
     "Tentative frame duration in seconds"
     ~comments:
-      [
-        "Audio and video samplerates constrain the possible frame durations.";
+      [ "Audio and video samplerates constrain the possible frame durations.";
         "This setting is used as a hint for the duration, when \
          'frame.audio.size'";
         "is not provided.";
         "Tweaking frame duration is tricky but needed when dealing with latency";
-        "or getting soundcard I/O correctly synchronized with liquidsoap.";
-      ]
+        "or getting soundcard I/O correctly synchronized with liquidsoap." ]
 
 (* Audio *)
 let conf_audio = Conf.void ~p:(conf#plug "audio") "Audio (PCM) format"
@@ -60,13 +56,11 @@ let conf_audio_size =
   Conf.int ~p:(conf_audio#plug "size")
     "Tentative frame duration in audio samples"
     ~comments:
-      [
-        "Audio and video samplerates constrain the possible frame durations.";
+      [ "Audio and video samplerates constrain the possible frame durations.";
         "This setting is used as a hint for the duration, overriding";
         "'frame.duration'.";
         "Tweaking frame duration is tricky but needed when dealing with latency";
-        "or getting soundcard I/O correctly synchronized with liquidsoap.";
-      ]
+        "or getting soundcard I/O correctly synchronized with liquidsoap." ]
 
 (* Video *)
 let conf_video = Conf.void ~p:(conf#plug "video") "Video format"
@@ -270,10 +264,9 @@ let content_has_type c t =
   && Array.length c.midi = t.midi
 
 let type_of_content c =
-  {
-    audio = Array.length c.audio;
+  { audio = Array.length c.audio;
     video = Array.length c.video;
-    midi = Array.length c.midi;
+    midi = Array.length c.midi
   }
 
 let type_of_kind k =
@@ -282,10 +275,9 @@ let type_of_kind k =
     | Zero -> 0
     | Succ m -> 1 + aux (def - 1) m
   in
-  {
-    audio = aux !!audio_channels k.audio;
+  { audio = aux !!audio_channels k.audio;
     video = aux !!video_channels k.video;
-    midi = aux !!midi_channels k.midi;
+    midi = aux !!midi_channels k.midi
   }
 
 let rec mul_of_int x = if x <= 0 then Zero else Succ (mul_of_int (x - 1))
@@ -316,36 +308,35 @@ let string_of_content_type k =
   * It might be a good idea to straighten that up in the future. *)
 type metadata = (string, string) Hashtbl.t
 
-type t = {
-  (* End of track markers.
-   * A break at the end of the buffer is not an end of track.
-   * So maybe we should rather call that an end-of-fill marker,
-   * and notice that end-of-fills in the middle of a buffer are
-   * end-of-tracks.
-   * If needed, the end-of-track needs to be put at the beginning of
-   * the next frame. *)
-  mutable breaks : int list;
-  (* Metadata can be put anywhere in the stream. *)
-  mutable metadata : (int * metadata) list;
-  (* The actual content can represent several tracks in one content
-   * chunk, for efficiency, but may also be split in several chunks
-   * of different content_type. Each chunk has an end position, after
-   * which data should be considered as undefined.
-   * Chunks can be seen as layers: they all have the same (full) size,
-   * and data goes from one to the other. For example: [5,A;7,B;10,C] is
-   * A = 0 1 2 3 4 . . . . .
-   * B = . . . . . 5 6 . . .
-   * C = . . . . . . . 7 8 9 where "." is an undefined sample.
-   * This representation is slightly costly in memory (but several
-   * chunks shouldn't happen too often) but is very convenient to
-   * handle; notably, there's no need to pass offsets around. *)
-  mutable contents : (int * content) list;
-}
+type t =
+  { (* End of track markers.
+     * A break at the end of the buffer is not an end of track.
+     * So maybe we should rather call that an end-of-fill marker,
+     * and notice that end-of-fills in the middle of a buffer are
+     * end-of-tracks.
+     * If needed, the end-of-track needs to be put at the beginning of
+     * the next frame. *)
+    mutable breaks : int list;
+    (* Metadata can be put anywhere in the stream. *)
+    mutable metadata : (int * metadata) list;
+    (* The actual content can represent several tracks in one content
+     * chunk, for efficiency, but may also be split in several chunks
+     * of different content_type. Each chunk has an end position, after
+     * which data should be considered as undefined.
+     * Chunks can be seen as layers: they all have the same (full) size,
+     * and data goes from one to the other. For example: [5,A;7,B;10,C] is
+     * A = 0 1 2 3 4 . . . . .
+     * B = . . . . . 5 6 . . .
+     * C = . . . . . . . 7 8 9 where "." is an undefined sample.
+     * This representation is slightly costly in memory (but several
+     * chunks shouldn't happen too often) but is very convenient to
+     * handle; notably, there's no need to pass offsets around. *)
+    mutable contents : (int * content) list
+  }
 
 (** Create a content chunk. All chunks have the same size. *)
 let create_content content_type =
-  {
-    audio =
+  { audio =
       Array.init content_type.audio (fun _ ->
           Audio.Mono.create (audio_of_master !!size));
     video =
@@ -353,14 +344,13 @@ let create_content content_type =
           Video.make (video_of_master !!size) !!video_width !!video_height);
     midi =
       Array.init content_type.midi (fun _ ->
-          MIDI.create (midi_of_master !!size));
+          MIDI.create (midi_of_master !!size))
   }
 
 let create kind =
-  {
-    breaks = [];
+  { breaks = [];
     metadata = [];
-    contents = [(!!size, create_content (type_of_kind kind))];
+    contents = [(!!size, create_content (type_of_kind kind))]
   }
 
 (** Content independent *)
@@ -492,7 +482,9 @@ let content_of_type ?force (frame : t) pos content_type =
         else (
           let acc = (pos, content) :: acc in
           let content =
-            match force with None -> create_content content_type | Some c -> c
+            match force with
+              | None -> create_content content_type
+              | Some c -> c
           in
           frame.contents <- List.rev ((!!size, content) :: acc);
           content )
@@ -509,11 +501,11 @@ let hide_contents (frame : t) =
   fun () -> frame.contents <- save
 
 (** A content layer representation (see [t.contents]). *)
-type content_layer = {
-  content : content;  (** Actual content. *)
-  start : int;  (** Begining position. *)
-  length : int;  (** End position. *)
-}
+type content_layer =
+  { content : content;  (** Actual content. *)
+    start : int;  (** Begining position. *)
+    length : int  (** End position. *)
+  }
 
 (** Retrieve all content layers in a frame. *)
 let get_content_layers (frame : t) =
@@ -548,6 +540,7 @@ let blit src src_pos dst dst_pos len =
   let end_pos, src = content src src_pos in
   (* We want the data in one chunk. *)
   assert (src_pos + len <= end_pos);
+
   (* Get a compatible chunk in [dst]. *)
   let dst = content_of_type dst dst_pos (type_of_content src) in
   blit_content src src_pos dst dst_pos len
@@ -565,6 +558,7 @@ let get_chunk ab from =
   let copy_chunk i =
     add_break ab i;
     blit from p ab p (i - p);
+
     (* If the last metadata before [p] differ in [from] and [ab],
      * copy the one from [from] to [p] in [ab].
      * Note: equality probably does not make much sense for hash tables,
@@ -584,6 +578,7 @@ let get_chunk ab from =
         | Some b, a -> if a <> Some b then set_metadata ab p b
         | None, _ -> ()
     end;
+
     (* Copy new metadata blocks for this chunk.
      * We exclude blocks at the end of chunk, leaving them to be copied
      * during the next get_chunk. *)
@@ -610,8 +605,7 @@ let get_chunk ab from =
   aux 0 (List.rev from.breaks)
 
 let copy content =
-  {
-    audio = Array.map Audio.Mono.copy content.audio;
+  { audio = Array.map Audio.Mono.copy content.audio;
     video = Array.map Video.copy content.video;
-    midi = Array.map MIDI.copy content.midi;
+    midi = Array.map MIDI.copy content.midi
   }

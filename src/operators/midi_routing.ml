@@ -67,10 +67,8 @@ class remove ~kind (source : source) t =
 let () =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~midi:1 ()) in
   Lang.add_operator "midi.merge_all"
-    [
-      ("track_out", Lang.int_t, Some (Lang.int 0), Some "Destination track.");
-      ("", Lang.source_t k, None, None);
-    ]
+    [ ("track_out", Lang.int_t, Some (Lang.int 0), Some "Destination track.");
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.MIDIProcessing
     ~descr:"Merge all MIDI tracks in one."
     (fun p kind ->
@@ -82,10 +80,8 @@ let () =
 let () =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~midi:1 ()) in
   Lang.add_operator "midi.remove"
-    [
-      ("", Lang.list_t Lang.int_t, None, Some "Tracks to remove.");
-      ("", Lang.source_t k, None, None);
-    ]
+    [ ("", Lang.list_t Lang.int_t, None, Some "Tracks to remove.");
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.MIDIProcessing
     ~descr:"Remove MIDI tracks."
     (fun p kind ->

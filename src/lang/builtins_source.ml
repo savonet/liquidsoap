@@ -34,10 +34,8 @@ let () =
   add_builtin "source.seek" ~cat:Liq
     ~descr:
       "Seek forward, in seconds. Returns the amount of time effectively seeked."
-    [
-      ("", Lang.source_t (Lang.univ_t ()), None, None);
-      ("", Lang.float_t, None, None);
-    ]
+    [ ("", Lang.source_t (Lang.univ_t ()), None, None);
+      ("", Lang.float_t, None, None) ]
     Lang.float_t
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in

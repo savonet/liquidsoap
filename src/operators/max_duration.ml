@@ -64,10 +64,10 @@ class max_duration ~kind ~override_meta ~duration source =
                   try
                     let v = float_of_string v in
                     remaining <- Frame.master_of_seconds v;
-                    self#log#info "Overriding remaining value: %.02f." v
+                    (self#log)#info "Overriding remaining value: %.02f." v
                   with _ ->
-                    self#log#important "Invalid remaining override value: %s." v
-                  ))
+                    (self#log)#important
+                      "Invalid remaining override value: %s." v ))
               m)
         (Frame.get_all_metadata buf)
 
@@ -85,16 +85,14 @@ class max_duration ~kind ~override_meta ~duration source =
 let () =
   let k = Lang.univ_t () in
   Lang.add_operator "max_duration"
-    [
-      ( "override",
+    [ ( "override",
         Lang.string_t,
         Some (Lang.string "liq_remaining"),
         Some
           "Metadata field which, if present and containing a float, overrides \
            the remaining play time." );
       ("", Lang.float_t, None, Some "Maximum duration");
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~category:Lang.TrackProcessing ~descr:"Limit source duration"
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->

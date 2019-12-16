@@ -98,10 +98,9 @@ let rec mul_of_type default t =
 
 let frame_kind_of_kind_type t =
   let k = Term.of_frame_kind_t t in
-  {
-    Frame.audio = mul_of_type (Lazy.force Frame.audio_channels) k.Frame.audio;
+  { Frame.audio = mul_of_type (Lazy.force Frame.audio_channels) k.Frame.audio;
     video = mul_of_type (Lazy.force Frame.video_channels) k.Frame.video;
-    midi = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi;
+    midi = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi
   }
 
 (** Description of how many of a channel type does an operator want.
@@ -125,10 +124,9 @@ let empty =
 
 let any_fixed_with ?(audio = 0) ?(video = 0) ?(midi = 0) () =
   Constrained
-    {
-      Frame.audio = Any_fixed audio;
+    { Frame.audio = Any_fixed audio;
       video = Any_fixed video;
-      midi = Any_fixed midi;
+      midi = Any_fixed midi
     }
 
 let audio_variable =
@@ -147,10 +145,12 @@ let video_only =
   Constrained { Frame.audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
 
 let video =
-  Constrained { Frame.audio = Any_fixed 0; video = Fixed 1; midi = Any_fixed 0 }
+  Constrained
+    { Frame.audio = Any_fixed 0; video = Fixed 1; midi = Any_fixed 0 }
 
 let audio_video_any =
-  Constrained { Frame.audio = Any_fixed 0; video = Any_fixed 0; midi = Fixed 0 }
+  Constrained
+    { Frame.audio = Any_fixed 0; video = Any_fixed 0; midi = Fixed 0 }
 
 let video_n n =
   Constrained { Frame.audio = Fixed 0; video = Fixed n; midi = Fixed 0 }
@@ -166,7 +166,8 @@ let kind_type_of_kind_format fmt =
     | Constrained fields ->
         let aux = function
           | Fixed i -> type_of_int i
-          | Any_fixed i -> Term.add_t i (univ_t ~constraints:[T.Arity_fixed] ())
+          | Any_fixed i ->
+              Term.add_t i (univ_t ~constraints:[T.Arity_fixed] ())
           | Variable i -> Term.add_t i variable_t
         in
         let audio = aux fields.Frame.audio in
@@ -297,10 +298,9 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
       t
   in
   let value =
-    {
-      t;
+    { t;
       value =
-        FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
+        FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f)
     }
   in
   let generalized = T.filter_vars (fun _ -> true) t in
@@ -383,7 +383,9 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
     let k = frame_kind_of_kind_type kind_t in
     let src : Source.source = f env k in
     let id =
-      match (List.assoc "id" env).value with String s -> s | _ -> assert false
+      match (List.assoc "id" env).value with
+        | String s -> s
+        | _ -> assert false
     in
     if id <> "" then src#set_id id;
     { t; value = Source src }
@@ -408,8 +410,8 @@ let static_analysis_failed = ref []
 let iter_sources f v =
   let rec iter_term env v =
     match v.Term.term with
-      | Term.Bool _ | Term.String _ | Term.Int _ | Term.Float _ | Term.Encoder _
-        ->
+      | Term.Bool _ | Term.String _ | Term.Int _ | Term.Float _
+      | Term.Encoder _ ->
           ()
       | Term.List l -> List.iter (iter_term env) l
       | Term.Ref a | Term.Get a -> iter_term env a
@@ -590,6 +592,7 @@ let type_and_run ~lib ast =
   Clock.collect_after (fun () ->
       (* Type checking *)
       Term.check ~ignored:true ast;
+
       (* Check for unused variables, relies on types *)
       Term.check_unused ~lib ast;
       ignore (Term.eval_toplevel ast))
@@ -607,9 +610,7 @@ let from_in_channel ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
     in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
   begin
-    match ns with
-    | Some ns -> Sedlexing.set_filename lexbuf ns
-    | None -> ()
+    match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
   end;
   try
     Lang_errors.report lexbuf (fun () ->
@@ -678,6 +679,7 @@ let interactive () =
             gen ()
         | len, c when len = c ->
             position := -1;
+
             (* This means that the last read was a full chunk. Safe to try a new
             one right away. *)
             if len = chunk_size then gen () else None

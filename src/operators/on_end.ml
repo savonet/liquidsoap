@@ -47,7 +47,8 @@ class on_end ~kind ~delay f s =
       self#save_latest_metadata ab;
       let rem = Frame.seconds_of_master s#remaining in
       if
-        (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab)
+        (not executed)
+        && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab)
       then (
         ignore
           (Lang.apply ~t:Lang.unit_t f
@@ -61,8 +62,7 @@ class on_end ~kind ~delay f s =
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "on_end"
-    [
-      ( "delay",
+    [ ( "delay",
         Lang.float_getter_t (),
         Some (Lang.float 5.),
         Some
@@ -77,8 +77,7 @@ let () =
           "Function to execute. First argument is the remaining time, second \
            is the latest metadata. That function should be fast because it is \
            executed in the main streaming thread." );
-      ("", Lang.source_t kind, None, None);
-    ]
+      ("", Lang.source_t kind, None, None) ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Call a given handler when there is less than a given amount of time \

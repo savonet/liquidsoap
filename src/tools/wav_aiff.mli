@@ -29,14 +29,14 @@ val format_of_handler : 'a t -> format
 
 exception Not_a_iff_file of string
 
-type 'a read_ops = {
-  really_input : 'a -> Bytes.t -> int -> int -> unit;
-  input_byte : 'a -> int;
-  input : 'a -> Bytes.t -> int -> int -> int;
-  (* Seek bytes from the _current_ stream position. *)
-  seek : 'a -> int -> unit;
-  close : 'a -> unit;
-}
+type 'a read_ops =
+  { really_input : 'a -> Bytes.t -> int -> int -> unit;
+    input_byte : 'a -> int;
+    input : 'a -> Bytes.t -> int -> int -> int;
+    (* Seek bytes from the _current_ stream position. *)
+    seek : 'a -> int -> unit;
+    close : 'a -> unit
+  }
 
 val in_chan_ops : in_channel read_ops
 

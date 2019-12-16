@@ -79,7 +79,8 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
       (* Compute the list of ready sources, and their total weight *)
       let weight, sources =
         List.fold_left
-          (fun (t, l) (w, s) -> (w +. t, if s#is_ready then (w, s) :: l else l))
+          (fun (t, l) (w, s) ->
+            (w +. t, if s#is_ready then (w, s) :: l else l))
           (0., []) sources
       in
       let weight = weight in
@@ -124,6 +125,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                   (Audio.sub (fixed_content buf already).Frame.audio
                      (Frame.audio_of_master end_offset)
                      (Frame.audio_of_master (already - end_offset)));
+
               (* Add to the main buffer. *)
               Audio.add
                 (Audio.sub (fixed_content buf offset).Frame.audio offset
@@ -161,10 +163,9 @@ let () =
   (* TODO: add on midi chans also. *)
   let kind =
     Lang.Constrained
-      {
-        Frame.audio = Lang.Any_fixed 0;
+      { Frame.audio = Lang.Any_fixed 0;
         video = Lang.Any_fixed 0;
-        midi = Lang.Fixed 0;
+        midi = Lang.Fixed 0
       }
   in
   let kind_t = Lang.kind_type_of_kind_format kind in
@@ -172,16 +173,14 @@ let () =
     ~descr:
       "Mix sources, with optional normalization. Only relay metadata from the \
        first source that is effectively summed."
-    [
-      ("normalize", Lang.bool_t, Some (Lang.bool true), None);
+    [ ("normalize", Lang.bool_t, Some (Lang.bool true), None);
       ( "weights",
         Lang.list_t Lang.float_t,
         Some (Lang.list ~t:Lang.int_t []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
            for the homogeneous distribution." );
-      ("", Lang.list_t (Lang.source_t kind_t), None, None);
-    ]
+      ("", Lang.list_t (Lang.source_t kind_t), None, None) ]
     ~kind
     (fun p kind ->
       let sources = Lang.to_source_list (List.assoc "" p) in
@@ -226,8 +225,7 @@ let () =
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.tile" ~category:Lang.VideoProcessing
     ~descr:"Tile sources (same as add but produces tiles of videos)."
-    [
-      ("normalize", Lang.bool_t, Some (Lang.bool true), None);
+    [ ("normalize", Lang.bool_t, Some (Lang.bool true), None);
       ( "weights",
         Lang.list_t Lang.float_t,
         Some (Lang.list ~t:Lang.int_t []),
@@ -238,8 +236,7 @@ let () =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Scale preserving the proportions." );
-      ("", Lang.list_t (Lang.source_t kind_t), None, None);
-    ]
+      ("", Lang.list_t (Lang.source_t kind_t), None, None) ]
     ~kind
     (fun p kind ->
       let sources = Lang.to_source_list (List.assoc "" p) in

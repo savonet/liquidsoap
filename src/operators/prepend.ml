@@ -53,17 +53,20 @@ class prepend ~kind ~merge source f =
                           [] )
               in
               if inhibit then (
-                self#log#info
+                (self#log)#info
                   "Prepending disabled from metadata \
                    (\"liq_prepend\"=\"false\").";
                 state <- `Buffer peek;
                 self#get_frame buf )
               else (
                 let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-                let prepend = Lang.to_source (Lang.apply ~t f [("", lang_m)]) in
+                let prepend =
+                  Lang.to_source (Lang.apply ~t f [("", lang_m)])
+                in
                 self#register prepend;
                 if not prepend#is_ready then (
-                  self#log#important "Candidate to prepending not ready. Abort!";
+                  (self#log)#important
+                    "Candidate to prepending not ready. Abort!";
                   state <- `Buffer peek;
                   self#unregister prepend )
                 else state <- `Prepend (prepend, peek);
@@ -78,8 +81,7 @@ class prepend ~kind ~merge source f =
             done;
             begin
               match AFrame.get_metadata peek peekpos with
-              | Some m -> AFrame.set_metadata buf p m
-              | None -> ()
+              | Some m -> AFrame.set_metadata buf p m | None -> ()
             end;
             state <- `Replay;
             AFrame.add_break buf (p + 1);
@@ -134,9 +136,7 @@ class prepend ~kind ~merge source f =
       source#leave (self :> source);
       Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin
-        match state with
-        | `Prepend (p, _) -> self#unregister p
-        | _ -> ()
+        match state with `Prepend (p, _) -> self#unregister p | _ -> ()
       end;
       state <- `Idle
 
@@ -148,8 +148,7 @@ class prepend ~kind ~merge source f =
 let register =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "prepend"
-    [
-      ( "merge",
+    [ ( "merge",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Merge the track with its appended track." );
@@ -161,8 +160,7 @@ let register =
           "Given the metadata, build the source producing the track to \
            prepend. This source is allowed to fail (produce nothing) if no \
            relevant track is to be appended. However, success must be \
-           immediate or it will not be taken into account." );
-    ]
+           immediate or it will not be taken into account." ) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.TrackProcessing
     ~descr:
       ( "Prepend an extra track before every track. "

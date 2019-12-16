@@ -25,8 +25,7 @@ open Lang_encoders
 
 let make params =
   let valid_samplerates =
-    [
-      8000;
+    [ 8000;
       11025;
       12000;
       16000;
@@ -37,8 +36,7 @@ let make params =
       48000;
       64000;
       88200;
-      96000;
-    ]
+      96000 ]
   in
   let check_samplerate ?t i =
     lazy
@@ -52,8 +50,7 @@ let make params =
        i)
   in
   let defaults =
-    {
-      Fdkaac_format.afterburner = false;
+    { Fdkaac_format.afterburner = false;
       aot = `Mpeg_4 `HE_AAC_v2;
       bandwidth = `Auto;
       bitrate = 64;
@@ -63,7 +60,7 @@ let make params =
       channels = 2;
       samplerate = check_samplerate Frame.audio_rate;
       sbr_mode = false;
-      transmux = `Adts;
+      transmux = `Adts
     }
   in
   let valid_vbr = [1; 2; 3; 4; 5] in
@@ -91,13 +88,13 @@ let make params =
         | "bandwidth", { term = String s; _ }
           when String.lowercase_ascii s = "auto" ->
             { f with Fdkaac_format.bandwidth = `Auto }
-        | "bitrate", { term = Int i; _ } -> { f with Fdkaac_format.bitrate = i }
+        | "bitrate", { term = Int i; _ } ->
+            { f with Fdkaac_format.bitrate = i }
         | "channels", { term = Int i; _ } ->
             { f with Fdkaac_format.channels = i }
         | "samplerate", ({ term = Int i; _ } as t) ->
-            {
-              f with
-              Fdkaac_format.samplerate = check_samplerate ~t (Lazy.from_val i);
+            { f with
+              Fdkaac_format.samplerate = check_samplerate ~t (Lazy.from_val i)
             }
         | "sbr_mode", { term = Bool b; _ } ->
             { f with Fdkaac_format.sbr_mode = b }

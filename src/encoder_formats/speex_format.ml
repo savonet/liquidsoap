@@ -23,17 +23,17 @@
 type bitrate_control = Quality of int | Vbr of int | Abr of int
 type mode = Narrowband | Wideband | Ultra_wideband
 
-type t = {
-  bitrate_control : bitrate_control;
-  samplerate : int Lazy.t;
-  stereo : bool;
-  mode : mode;
-  frames_per_packet : int;
-  complexity : int option;
-  fill : int option;
-  dtx : bool;
-  vad : bool;
-}
+type t =
+  { bitrate_control : bitrate_control;
+    samplerate : int Lazy.t;
+    stereo : bool;
+    mode : mode;
+    frames_per_packet : int;
+    complexity : int option;
+    fill : int option;
+    dtx : bool;
+    vad : bool
+  }
 
 let string_of_br_ctl x =
   match x with

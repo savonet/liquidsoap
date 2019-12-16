@@ -21,10 +21,8 @@
 
  *****************************************************************************)
 
-type secure_transport_socket = Https_secure_transport.socket = {
-  ctx : SecureTransport.t;
-  sock : Unix.file_descr;
-}
+type secure_transport_socket = Https_secure_transport.socket =
+  { ctx : SecureTransport.t; sock : Unix.file_descr }
 
 open Dtools
 

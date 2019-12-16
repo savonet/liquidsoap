@@ -25,13 +25,12 @@ open Lang_encoders
 
 let make params =
   let defaults =
-    {
-      Shine_format.channels
+    { Shine_format.channels
       (* We use a hardcoded value in order not to force the evaluation of the
            number of channels too early, see #933. *) =
         2;
       samplerate = Frame.audio_rate;
-      bitrate = 128;
+      bitrate = 128
     }
   in
   let shine =

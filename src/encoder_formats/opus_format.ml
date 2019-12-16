@@ -31,20 +31,20 @@ type max_bandwidth =
 
 type signal = [ `Auto | `Voice | `Music ]
 
-type t = {
-  application : application option;
-  bitrate : bitrate;
-  complexity : int option;
-  channels : int;
-  frame_size : float;
-  max_bandwidth : max_bandwidth option;
-  mode : mode;
-  samplerate : int;
-  signal : signal option;
-  fill : int option;
-  dtx : bool;
-  phase_inversion : bool;
-}
+type t =
+  { application : application option;
+    bitrate : bitrate;
+    complexity : int option;
+    channels : int;
+    frame_size : float;
+    max_bandwidth : max_bandwidth option;
+    mode : mode;
+    samplerate : int;
+    signal : signal option;
+    fill : int option;
+    dtx : bool;
+    phase_inversion : bool
+  }
 
 let string_of_bitrate = function
   | `Auto -> "birate=\"auto\","

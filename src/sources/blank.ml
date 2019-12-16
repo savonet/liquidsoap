@@ -58,6 +58,7 @@ class blank ~kind duration =
         (Audio.sub content.Frame.audio
            (Frame.audio_of_master position)
            (Frame.audio_of_master length));
+
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))
@@ -71,14 +72,12 @@ let () =
   Lang.add_operator "blank" ~category:Lang.Input
     ~descr:"Produce silence and blank images."
     ~kind:(Lang.Unconstrained (Lang.univ_t ()))
-    [
-      ( "duration",
+    [ ( "duration",
         Lang.float_t,
         Some (Lang.float (-1.)),
         Some
           "Duration of blank tracks in seconds, Negative value means forever."
-      );
-    ]
+      ) ]
     (fun p kind ->
       let d = Lang.to_float (List.assoc "duration" p) in
       (new blank ~kind d :> source))

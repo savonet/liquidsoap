@@ -95,6 +95,7 @@ let digest s =
           (w.(i - 3) lxor w.(i - 8) lxor w.(i - 14) lxor w.(i - 16))
           1
     done;
+
     (* Main loop. *)
     let a = ref !h0 in
     let b = ref !h1 in
@@ -127,6 +128,7 @@ let digest s =
     h3 := Int32.add !h3 !d;
     h4 := Int32.add !h4 !e
   done;
+
   (* Printf.sprintf "%s %s %s %s %s" (Int32.String.hexadecimal !h0) (Int32.String.hexadecimal !h1) (Int32.String.hexadecimal !h2) (Int32.String.hexadecimal !h3) (Int32.String.hexadecimal !h4) *)
   Int32.to_string_be !h0 ^ Int32.to_string_be !h1 ^ Int32.to_string_be !h2
   ^ Int32.to_string_be !h3 ^ Int32.to_string_be !h4

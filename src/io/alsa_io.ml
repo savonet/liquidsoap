@@ -55,7 +55,7 @@ class virtual base ~kind dev mode =
     method self_sync = pcm <> None
 
     method open_device =
-      self#log#important "Using ALSA %s." (Alsa.get_version ());
+      (self#log)#important "Using ALSA %s." (Alsa.get_version ());
       try
         let dev =
           match pcm with
@@ -70,7 +70,7 @@ class virtual base ~kind dev mode =
             handle "format" (Pcm.set_format dev params) Pcm.Format_float
           with _ -> (
             (* If we can't get floats we fallback on interleaved s16le *)
-            self#log#important "Falling back on interleaved S16LE";
+            (self#log)#important "Falling back on interleaved S16LE";
             handle "format" (Pcm.set_format dev params) Pcm.Format_s16_le;
             try
               Pcm.set_access dev params Pcm.Access_rw_interleaved;
@@ -86,7 +86,7 @@ class virtual base ~kind dev mode =
                   Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r);
                   r)
             with Alsa.Invalid_argument ->
-              self#log#important "Falling back on non-interleaved S16LE";
+              (self#log)#important "Falling back on non-interleaved S16LE";
               handle "access"
                 (Pcm.set_access dev params)
                 Pcm.Access_rw_noninterleaved;
@@ -117,7 +117,9 @@ class virtual base ~kind dev mode =
                   r) ) );
         handle "channels" (Pcm.set_channels dev params) channels;
         let rate =
-          handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
+          handle "rate"
+            (Pcm.set_rate_near dev params samples_per_second)
+            Dir_eq
         in
         let bufsize =
           handle "buffer size"
@@ -132,20 +134,21 @@ class virtual base ~kind dev mode =
         in
         alsa_rate <- rate;
         if rate <> samples_per_second then
-          self#log#important
+          (self#log)#important
             "Could not set sample rate to 'frequency' (%d Hz), got %d."
             samples_per_second rate;
         if bufsize <> samples_per_frame then
-          self#log#important
+          (self#log)#important
             "Could not set buffer size to 'frame.size' (%d samples), got %d."
             samples_per_frame bufsize;
-        self#log#important "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
-          alsa_rate bufsize
+        (self#log)#important
+          "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d" alsa_rate
+          bufsize
           (Pcm.get_frame_size params)
           periods;
         ( try Pcm.set_params dev params
           with Alsa.Invalid_argument as e ->
-            self#log#critical
+            (self#log)#critical
               "Setting alsa parameters failed (invalid argument)!";
             raise e );
         handle "non-blocking" (Pcm.set_nonblock dev) false;
@@ -203,9 +206,9 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
         let r = ref 0 in
         while !r < Audio.Mono.length buf.(0) do
           if !r <> 0 then
-            self#log#info
-              "Partial write (%d instead of %d)! Selecting another buffer size \
-               or device can help."
+            (self#log)#info
+              "Partial write (%d instead of %d)! Selecting another buffer \
+               size or device can help."
               !r
               (Audio.Mono.length buf.(0));
           r := !r + write pcm buf !r (Audio.Mono.length buf.(0) - !r)
@@ -214,12 +217,12 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
         begin
           match e with
           | Buffer_xrun ->
-              self#log#severe
+              (self#log)#severe
                 "Underrun! You may minimize them by increasing the buffer size."
-          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+          | _ -> (self#log)#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
-          self#log#severe "Trying to recover..";
+          (self#log)#severe "Trying to recover..";
           Pcm.recover pcm e;
           self#output )
         else raise e
@@ -255,7 +258,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         let r = ref 0 in
         while !r < samples_per_frame do
           if !r <> 0 then
-            self#log#info
+            (self#log)#info
               "Partial read (%d instead of %d)! Selecting another buffer size \
                or device can help."
               !r (Audio.length buf);
@@ -266,12 +269,12 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         begin
           match e with
           | Buffer_xrun ->
-              self#log#severe
+              (self#log)#severe
                 "Overrun! You may minimize them by increasing the buffer size."
-          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+          | _ -> (self#log)#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
-          self#log#severe "Trying to recover..";
+          (self#log)#severe "Trying to recover..";
           Pcm.recover pcm e;
           self#output )
         else raise e
@@ -281,8 +284,7 @@ let () =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
   Lang.add_operator "output.alsa" ~active:true
     ( Output.proto
-    @ [
-        ( "bufferize",
+    @ [ ( "bufferize",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Bufferize output" );
@@ -294,8 +296,7 @@ let () =
           Lang.string_t,
           Some (Lang.string "default"),
           Some "Alsa device to use" );
-        ("", Lang.source_t k, None, None);
-      ] )
+        ("", Lang.source_t k, None, None) ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p kind ->
@@ -329,8 +330,10 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "input.alsa" ~active:true
     ( Start_stop.input_proto
-    @ [
-        ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");
+    @ [ ( "bufferize",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Bufferize input" );
         ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
@@ -338,8 +341,7 @@ let () =
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
-          Some "Alsa device to use" );
-      ] )
+          Some "Alsa device to use" ) ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input
     ~descr:"Stream from an ALSA input device."
     (fun p kind ->

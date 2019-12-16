@@ -36,8 +36,7 @@ let add_http_request http name descr request =
   in
   let params =
     params
-    @ [
-        ( "headers",
+    @ [ ( "headers",
           headers_t,
           Some (Lang.list ~t:header_t []),
           Some "Additional headers." );
@@ -48,8 +47,8 @@ let add_http_request http name descr request =
         ( "",
           Lang.string_t,
           None,
-          Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"." );
-      ]
+          Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"."
+        ) ]
   in
   let (module Http : Http.Http_t) = http in
   add_builtin name ~cat:Interaction ~descr params request_return_t (fun p ->

@@ -131,10 +131,9 @@ module Make (Generator : Generator.S_Asio) = struct
   let create_decoder ?(merge_tracks = false) source mode input =
     let decoder =
       let callbacks =
-        {
-          Ogg_demuxer.read = input.Decoder.read;
+        { Ogg_demuxer.read = input.Decoder.read;
           seek = input.Decoder.lseek;
-          tell = input.Decoder.tell;
+          tell = input.Decoder.tell
         }
       in
       Ogg_demuxer.init ~log:demuxer_log callbacks
@@ -151,6 +150,7 @@ module Make (Generator : Generator.S_Asio) = struct
       if reset then (
         Ogg_demuxer.reset decoder;
         Ogg_demuxer.update_standard_tracks decoder tracks;
+
         (* We enforce that all contents end together, otherwise there will
          * be a lag between different content types in the next track. *)
         if not merge_tracks then Generator.add_break ~sync:`Drop buffer );
@@ -304,13 +304,11 @@ let mime_types =
   Dtools.Conf.list
     ~p:(Decoder.conf_mime_types#plug "ogg")
     ~d:
-      [
-        "application/ogg";
+      [ "application/ogg";
         "application/x-ogg";
         "audio/x-ogg";
         "audio/ogg";
-        "video/ogg";
-      ]
+        "video/ogg" ]
     "Mime-types used for guessing OGG format."
 
 let file_extensions =

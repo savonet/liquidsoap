@@ -62,6 +62,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
       effect#set_ratio (ratio ());
       effect#set_knee (knee ());
       effect#process (Audio.sub b ofs len);
+
       (* Reset values if it is the end of the track. *)
       if AFrame.is_partial buf then effect#reset
   end
@@ -70,8 +71,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
 let k = Lang.kind_type_of_kind_format Lang.any_fixed
 
 let proto =
-  [
-    ( "attack",
+  [ ( "attack",
       Lang.float_getter_t (),
       Some (Lang.float 100.),
       Some "Attack time (ms)." );
@@ -95,8 +95,7 @@ let proto =
       Lang.float_getter_t (),
       Some (Lang.float 0.),
       Some "Additional gain (dB)." );
-    ("", Lang.source_t k, None, None);
-  ]
+    ("", Lang.source_t k, None, None) ]
 
 let compress p kind =
   let f v = List.assoc v p in

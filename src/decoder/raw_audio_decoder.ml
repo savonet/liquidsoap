@@ -32,12 +32,12 @@ exception End_of_stream
 
 (* TODO: some code should be shared with wav decoder, and possibly others. *)
 
-type format = {
-  format : [ `S8 | `S16LE | `F32LE ];
-  channels : int;
-  interleaved : bool;
-  samplerate : float;
-}
+type format =
+  { format : [ `S8 | `S16LE | `F32LE ];
+    channels : int;
+    interleaved : bool;
+    samplerate : float
+  }
 
 (** Bytes per sample. *)
 let sample_size fmt =
@@ -125,7 +125,11 @@ module D_stream = Make (Generator_plus)
 let parse_mime m =
   let ans =
     ref
-      { format = `F32LE; channels = 2; interleaved = true; samplerate = 44100. }
+      { format = `F32LE;
+        channels = 2;
+        interleaved = true;
+        samplerate = 44100.
+      }
   in
   try
     let m = String.split_char ',' m in

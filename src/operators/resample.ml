@@ -50,6 +50,7 @@ class resample ~kind ~active ~ratio (source : source) =
       let c = Clock.create_known (new Clock.clock self#id) in
       Clock.unify self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]);
       Clock.unify source#clock c;
+
       (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
       Gc.finalise (fun self -> Clock.forget self#clock c) self
 
@@ -163,8 +164,7 @@ class resample ~kind ~active ~ratio (source : source) =
 let () =
   let k = Lang.audio_any in
   Lang.add_operator "stretch" (* TODO better name *)
-    [
-      ( "ratio",
+    [ ( "ratio",
         Lang.float_getter_t (),
         None,
         Some "A value higher than 1 means slowing down." );
@@ -177,12 +177,11 @@ let () =
            based on what is streamed off the child source, which results in \
            time-dependent active sources to be frozen when that source is \
            stopped." );
-      ("", Lang.source_t (Lang.kind_type_of_kind_format k), None, None);
-    ]
+      ("", Lang.source_t (Lang.kind_type_of_kind_format k), None, None) ]
     ~kind:k ~category:Lang.SoundProcessing
     ~descr:
-      "Slow down or accelerate an audio stream by stretching (sounds lower) or \
-       squeezing it (sounds higher)."
+      "Slow down or accelerate an audio stream by stretching (sounds lower) \
+       or squeezing it (sounds higher)."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in

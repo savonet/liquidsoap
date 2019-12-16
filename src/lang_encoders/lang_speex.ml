@@ -25,8 +25,7 @@ open Lang_encoders
 
 let make params =
   let defaults =
-    {
-      Speex_format.stereo = true;
+    { Speex_format.stereo = true;
       fill = None;
       samplerate = Frame.audio_rate;
       bitrate_control = Speex_format.Quality 7;
@@ -34,14 +33,15 @@ let make params =
       frames_per_packet = 1;
       complexity = None;
       dtx = false;
-      vad = false;
+      vad = false
     }
   in
   let speex =
     List.fold_left
       (fun f -> function
         | "stereo", { term = Bool b; _ } -> { f with Speex_format.stereo = b }
-        | "mono", { term = Bool b; _ } -> { f with Speex_format.stereo = not b }
+        | "mono", { term = Bool b; _ } ->
+            { f with Speex_format.stereo = not b }
         | "samplerate", { term = Int i; _ } ->
             { f with Speex_format.samplerate = Lazy.from_val i }
         | "abr", { term = Int i; _ } ->
@@ -53,8 +53,8 @@ let make params =
             { f with Speex_format.bitrate_control = Speex_format.Quality q }
         | "vbr", { term = Int q; _ } ->
             { f with Speex_format.bitrate_control = Speex_format.Vbr q }
-        | "mode", { term = Var s; _ } when String.lowercase_ascii s = "wideband"
-          ->
+        | "mode", { term = Var s; _ }
+          when String.lowercase_ascii s = "wideband" ->
             { f with Speex_format.mode = Speex_format.Wideband }
         | "mode", { term = Var s; _ }
           when String.lowercase_ascii s = "narrowband" ->

@@ -22,8 +22,8 @@
 
 open Source
 
-class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
-  (source : source) =
+class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta
+  text (source : source) =
   let () = init () in
   (* let video_height = Lazy.force Frame.video_height in *)
   let video_width = Lazy.force Frame.video_width in
@@ -111,8 +111,7 @@ let register name init render_text =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ()) in
   let add_operator op =
     Lang.add_operator op
-      [
-        ( "font",
+      [ ( "font",
           Lang.string_t,
           Some (Lang.string Configure.default_font),
           Some "Path to ttf font file." );
@@ -141,8 +140,7 @@ let register name init render_text =
             "Change text on a particular metadata (empty string means \
              disabled)." );
         ("", Lang.string_getter_t (), None, Some "Text to display.");
-        ("", Lang.source_t k, None, None);
-      ]
+        ("", Lang.source_t k, None, None) ]
       ~kind:(Lang.Unconstrained k) ~category:Lang.VideoProcessing
       ~descr:"Display a text."
       (fun p kind ->

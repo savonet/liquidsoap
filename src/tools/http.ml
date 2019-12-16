@@ -24,8 +24,7 @@ struct
   let connect ?bind_address host port =
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     begin
-      match bind_address with
-      | None -> ()
+      match bind_address with None -> ()
       | Some s ->
           let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
           (* Seems like you need to bind on port 0 *)
@@ -139,7 +138,11 @@ module type Http_t = sig
     (string * int * string) * (string * string) list
 
   val read_with_timeout :
-    ?log:(string -> unit) -> timeout:float -> connection -> int option -> string
+    ?log:(string -> unit) ->
+    timeout:float ->
+    connection ->
+    int option ->
+    string
 
   type request = Get | Post of string | Put of string | Head | Delete
 
@@ -190,23 +193,22 @@ module Make (Transport : Transport_t) = struct
   (** Converts k to a 2-digit hexadecimal string. *)
   let to_hex2 =
     let hex_digits =
-      [|
-        '0';
-        '1';
-        '2';
-        '3';
-        '4';
-        '5';
-        '6';
-        '7';
-        '8';
-        '9';
-        'A';
-        'B';
-        'C';
-        'D';
-        'E';
-        'F';
+      [| '0';
+         '1';
+         '2';
+         '3';
+         '4';
+         '5';
+         '6';
+         '7';
+         '8';
+         '9';
+         'A';
+         'B';
+         'C';
+         'D';
+         'E';
+         'F'
       |]
     in
     fun k ->
@@ -451,7 +453,9 @@ module Make (Transport : Transport_t) = struct
     execute ?headers ?log ~timeout socket (Put data) uri
 
   let full_request ?headers ?(log = fun _ -> ()) ~timeout ~uri ~request () =
-    let port = match uri.port with Some port -> port | None -> default_port in
+    let port =
+      match uri.port with Some port -> port | None -> default_port
+    in
     let connection = Transport.connect uri.host port in
     Tutils.finalize
       ~k:(fun () -> Transport.disconnect connection)

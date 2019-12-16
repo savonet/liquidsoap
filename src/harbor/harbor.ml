@@ -370,7 +370,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let http_reply s =
       simple_reply
         (http_error_page 401
-           "Unauthorized\r\nWWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
+           "Unauthorized\r\n\
+            WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
            s)
     in
     let valid_user, auth_f = login in
@@ -426,7 +427,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
         Duppy.Monad.bind
           ( if (* ICY and Xaudiocast auth check was done before.. *)
-               not auth then exec_http_auth_check ~login:s#login h headers
+               not auth
+          then exec_http_auth_check ~login:s#login h headers
           else Duppy.Monad.return () )
           (fun () ->
             try
@@ -518,7 +520,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           | _ -> raise Not_found
       in
       let data =
-        match List.assoc "data" json with `Assoc data -> Some data | _ -> None
+        match List.assoc "data" json with
+          | `Assoc data -> Some data
+          | _ -> None
       in
       (packet_type, data)
     in
@@ -566,7 +570,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   try auth_check ~auth_f user password
                   with Not_authenticated ->
                     log#info "Authentication failed!";
-                    simple_reply (websocket_error 1011 "Authentication failed.")
+                    simple_reply
+                      (websocket_error 1011 "Authentication failed.")
                 in
                 Duppy.Monad.bind __pa_duppy_0 (fun () ->
                     let binary_data = Buffer.create Utils.pagesize in
@@ -707,7 +712,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                               (Printf.sprintf
                                  "HTTP/1.0 200 OK\r\n\
                                   \r\n\
-                                  Updated metadatas for mount %s" mount))))
+                                  Updated metadatas for mount %s"
+                                 mount))))
             | _ -> ans_500 ())
     in
     let rex = Pcre.regexp "^(.+)\\?(.+)$" in
@@ -735,6 +741,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         log_args )
     in
     Hashtbl.iter (log#info "%s Arg: %s, value: %s." protocol_name) log_args;
+
     (* First, try with a registered handler. *)
     let handler, _ = find_handler port in
     let f (verb, reg_uri) handler =
@@ -746,6 +753,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     try
       Hashtbl.iter f handler.http;
+
       (* Otherwise, try with a standard handler. *)
       match base_uri with
         (* Icecast *)
@@ -790,7 +798,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   && assoc_uppercase "UPGRADE" headers <> "websocket"
                 then raise Exit
                 else ();
-                if assoc_uppercase "SEC-WEBSOCKET-PROTOCOL" headers <> "webcast"
+                if
+                  assoc_uppercase "SEC-WEBSOCKET-PROTOCOL" headers <> "webcast"
                 then raise Exit
                 else ();
                 `Websocket
@@ -844,7 +853,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | (`Get | `Post | `Put | `Delete | `Options | `Head) when not icy
                 ->
                   let len =
-                    try int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
+                    try
+                      int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
                     with _ -> 0
                   in
                   let __pa_duppy_0 =
@@ -855,8 +865,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                     else Duppy.Monad.return ""
                   in
                   Duppy.Monad.bind __pa_duppy_0 (fun data ->
-                      handle_http_request ~hmethod ~hprotocol ~data ~port h huri
-                        headers)
+                      handle_http_request ~hmethod ~hprotocol ~data ~port h
+                        huri headers)
               | `Shout when icy ->
                   Duppy.Monad.bind
                     (Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)
@@ -874,8 +884,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                             Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s
                           in
                           let headers = parse_headers lines in
-                          handle_source_request ~port ~auth:true ~smethod:`Shout
-                            hprotocol h huri headers))
+                          handle_source_request ~port ~auth:true
+                            ~smethod:`Shout hprotocol h huri headers))
               | _ ->
                   log#info "Returned 501: not implemented";
                   simple_reply
@@ -902,6 +912,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             | Duppy.Io.Unix (c, p, m) ->
                 log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
             | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e) );
+
           (* Sending an HTTP response in case of timeout
            * even though ICY connections are not HTTP.. *)
           if e = Duppy.Io.Timeout then
@@ -912,11 +923,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           else Close (mk_simple "")
         in
         let h =
-          {
-            Duppy.Monad.Io.scheduler = Tutils.scheduler;
+          { Duppy.Monad.Io.scheduler = Tutils.scheduler;
             socket;
             data = "";
-            on_error;
+            on_error
           }
         in
         let rec reply r =
@@ -935,8 +945,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             ignore (on_error e);
             close ()
           in
-          Duppy.Io.write ~timeout:conf_timeout#get ~priority:Tutils.Non_blocking
-            ~on_error ~string:(Bytes.of_string s) ~exec Tutils.scheduler socket
+          Duppy.Io.write ~timeout:conf_timeout#get
+            ~priority:Tutils.Non_blocking ~on_error ~string:(Bytes.of_string s)
+            ~exec Tutils.scheduler socket
         in
         Duppy.Monad.run ~return:reply ~raise:reply (handle_client ~port ~icy h)
       with e ->
@@ -953,13 +964,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       else (
         let get_sock = function `Read sock -> sock | _ -> assert false in
         List.iter process_client (List.map get_sock e);
-        [
-          {
-            Task.priority = Tutils.Non_blocking;
+        [ { Task.priority = Tutils.Non_blocking;
             events;
-            handler = incoming ~port ~icy events out_s;
-          };
-        ] )
+            handler = incoming ~port ~icy events out_s
+          } ] )
     in
     let open_socket port bind_addr =
       let bind_addr_inet = Unix.inet_addr_of_string bind_addr in
@@ -975,16 +983,16 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     let bind_addrs =
       List.fold_left
-        (fun cur bind_addr -> if bind_addr <> "" then bind_addr :: cur else cur)
+        (fun cur bind_addr ->
+          if bind_addr <> "" then bind_addr :: cur else cur)
         [] conf_harbor_bind_addrs#get
     in
     let in_s, out_s = Unix.pipe () in
     let events = `Read in_s :: List.map (open_socket port) bind_addrs in
     Task.add Tutils.scheduler
-      {
-        Task.priority = Tutils.Non_blocking;
+      { Task.priority = Tutils.Non_blocking;
         events;
-        handler = incoming ~port ~icy events in_s;
+        handler = incoming ~port ~icy events in_s
       };
     out_s
 

@@ -25,7 +25,8 @@ open Tsdl_ttf
 
 let init () =
   Sdl_utils.init [];
-  ignore (Dtools.Init.at_start (fun () -> Sdl_utils.check Tsdl_ttf.Ttf.init ()))
+  ignore
+    (Dtools.Init.at_start (fun () -> Sdl_utils.check Tsdl_ttf.Ttf.init ()))
 
 let get_font font size =
   try Sdl_utils.check (Ttf.open_font font) size
@@ -44,6 +45,7 @@ let render_text ~font ~size text =
   let w = Video.Image.width img in
   let h = Video.Image.height img in
   Sdl.free_surface ts;
+
   (* TODO: improve performance *)
   let get_pixel x y =
     assert (0 <= x && x < w);

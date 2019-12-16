@@ -56,13 +56,12 @@ class external_input ~name ~kind ~restart ~bufferize ~restart_on_error ~max
 
     method wake_up x =
       (* Now we can create the log function *)
-      log_ref := self#log#important "%s";
+      log_ref := (self#log)#important "%s";
       base#wake_up x
   end
 
 let proto =
-  [
-    ( "buffer",
+  [ ( "buffer",
       Lang.float_t,
       Some (Lang.float 2.),
       Some "Duration of the pre-buffered data." );
@@ -78,16 +77,14 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool false),
       Some "Restart process when exited with error." );
-    ("", Lang.string_t, None, Some "Command to execute.");
-  ]
+    ("", Lang.string_t, None, Some "Command to execute.") ]
 
 let () =
   Lang.add_operator "input.external.rawaudio" ~category:Lang.Input
     ~descr:"Stream raw PCM data from an external application."
     ( proto
-    @ [
-        ("channels", Lang.int_t, Some (Lang.int 2), Some "Number of channels.");
-        ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.");
+    @ [ ("channels", Lang.int_t, Some (Lang.int 2), Some "Number of channels.");
+        ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.")
       ] )
     ~kind:Lang.audio_any
     (fun p kind ->

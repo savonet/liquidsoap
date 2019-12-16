@@ -25,8 +25,7 @@ let conf_scheduler =
     ~p:(Utils.conf#plug "scheduler")
     "Internal scheduler"
     ~comments:
-      [
-        "The scheduler is used to process various tasks in liquidsoap.";
+      [ "The scheduler is used to process various tasks in liquidsoap.";
         "There are three kinds of tasks:";
         "\"Non-blocking\" ones are instantaneous to process, these are only";
         "internal processes of liquidsoap like its server.";
@@ -39,19 +38,17 @@ let conf_scheduler =
         "tasks. Some queues might only process some kinds of tasks so that";
         "they are more responsive.";
         "Having more queues often do not make the program faster in average,";
-        "but affect mostly the order in which tasks are processed.";
-      ]
+        "but affect mostly the order in which tasks are processed." ]
 
 let generic_queues =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "generic_queues")
     ~d:2 "Generic queues"
     ~comments:
-      [
-        "Number of event queues accepting any kind of task.";
+      [ "Number of event queues accepting any kind of task.";
         "There should at least be one. Having more can be useful to avoid that";
         "trivial request resolutions (local files) are not delayed because of";
-        "a stalled download. But N stalled download can block N queues anyway.";
+        "a stalled download. But N stalled download can block N queues anyway."
       ]
 
 let fast_queues =
@@ -59,24 +56,20 @@ let fast_queues =
     ~p:(conf_scheduler#plug "fast_queues")
     ~d:0 "Fast queues"
     ~comments:
-      [
-        "Number of queues that are dedicated to fast tasks.";
+      [ "Number of queues that are dedicated to fast tasks.";
         "It might be useful to create some if your request resolutions,";
         "or some user defined tasks (cf `thread.run`), are";
         "delayed too much because of slow tasks blocking the generic queues,";
-        "such as last.fm submissions or slow `thread.run` handlers.";
-      ]
+        "such as last.fm submissions or slow `thread.run` handlers." ]
 
 let non_blocking_queues =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "non_blocking_queues")
     ~d:2 "Non-blocking queues"
     ~comments:
-      [
-        "Number of queues dedicated to internal non-blocking tasks.";
+      [ "Number of queues dedicated to internal non-blocking tasks.";
         "These are only started if such tasks are needed.";
-        "There should be at least one.";
-      ]
+        "There should be at least one." ]
 
 let scheduler_log =
   Dtools.Conf.bool
@@ -165,8 +158,7 @@ let create ~queue f x s =
             with e ->
               let backtrace = Printexc.get_backtrace () in
               begin
-                match e with
-                | Exit -> log#info "Thread %S exited." s
+                match e with Exit -> log#info "Thread %S exited." s
                 | Failure e -> log#important "Thread %S failed: %s!" s e
                 | e ->
                     log#important "Thread %S aborts with exception %s!" s

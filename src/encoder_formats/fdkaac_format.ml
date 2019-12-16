@@ -27,17 +27,17 @@ type bandwidth = [ `Auto | `Fixed of int ]
 type bitrate_mode = [ `Constant | `Variable of int ]
 type transmux = [ `Raw | `Adif | `Adts | `Latm | `Latm_out_of_band | `Loas ]
 
-type t = {
-  afterburner : bool;
-  aot : aot;
-  bandwidth : bandwidth;
-  bitrate_mode : bitrate_mode;
-  bitrate : int;
-  channels : int;
-  samplerate : int Lazy.t;
-  sbr_mode : bool;
-  transmux : transmux;
-}
+type t =
+  { afterburner : bool;
+    aot : aot;
+    bandwidth : bandwidth;
+    bitrate_mode : bitrate_mode;
+    bitrate : int;
+    channels : int;
+    samplerate : int Lazy.t;
+    sbr_mode : bool;
+    transmux : transmux
+  }
 
 let string_of_aot = function
   | `Mpeg_4 `AAC_LC -> "mpeg4_aac_lc"

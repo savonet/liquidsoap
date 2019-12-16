@@ -24,8 +24,8 @@
 
 let bytes_per_sample = 2
 
-class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
-  source =
+class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks
+  ~server source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
@@ -100,8 +100,7 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "output.jack" ~active:true
     ( Output.proto
-    @ [
-        ( "clock_safe",
+    @ [ ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated bjack clock." );
@@ -113,8 +112,7 @@ let () =
           Lang.string_t,
           Some (Lang.string ""),
           Some "Jack server to connect to." );
-        ("", Lang.source_t k, None, None);
-      ] )
+        ("", Lang.source_t k, None, None) ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Output
     ~descr:"Output stream to jack."
     (fun p kind ->

@@ -119,7 +119,8 @@ let create_file_decoder filename kind =
     let remaining = remaining () in
     remaining + G.length generator + Frame.position frame - offset
   in
-  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator
+  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder
+    generator
 
 (* Get the number of channels of audio in a file. *)
 let get_type filename =
@@ -203,7 +204,9 @@ module Make (Generator : Generator.S_Asio) = struct
       try FFmpeg.Av.read_frame stream
       with FFmpeg.Avutil.Error `Invalid_data -> read_frame ()
     in
-    let in_sample_format = ref (FFmpeg.Avcodec.Audio.get_sample_format codec) in
+    let in_sample_format =
+      ref (FFmpeg.Avcodec.Audio.get_sample_format codec)
+    in
     let mk_converter () =
       Converter.create channel_layout ~in_sample_format:!in_sample_format
         sample_freq channel_layout target_sample_rate
@@ -233,7 +236,8 @@ module D_stream = Make (Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register "FFMPEG"
-    ~sdoc:"Use ffmpeg/libav to decode any stream with an appropriate MIME type."
+    ~sdoc:
+      "Use ffmpeg/libav to decode any stream with an appropriate MIME type."
     (fun mime kind ->
       let ( <: ) a b = Frame.mul_sub_mul a b in
       if

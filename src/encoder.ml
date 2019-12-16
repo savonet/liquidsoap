@@ -40,26 +40,26 @@ let kind_of_format = function
   | AVI a ->
       { Frame.audio = a.Avi_format.channels; Frame.video = 1; Frame.midi = 0 }
   | MP3 m ->
-      {
-        Frame.audio = (if m.Mp3_format.stereo then 2 else 1);
+      { Frame.audio = (if m.Mp3_format.stereo then 2 else 1);
         Frame.video = 0;
-        Frame.midi = 0;
+        Frame.midi = 0
       }
   | Shine m ->
-      { Frame.audio = m.Shine_format.channels; Frame.video = 0; Frame.midi = 0 }
+      { Frame.audio = m.Shine_format.channels;
+        Frame.video = 0;
+        Frame.midi = 0
+      }
   | Flac m ->
       { Frame.audio = m.Flac_format.channels; Frame.video = 0; Frame.midi = 0 }
   | Ffmpeg m ->
-      {
-        Frame.audio = m.Ffmpeg_format.channels;
+      { Frame.audio = m.Ffmpeg_format.channels;
         Frame.video = 0;
-        Frame.midi = 0;
+        Frame.midi = 0
       }
   | FdkAacEnc m ->
-      {
-        Frame.audio = m.Fdkaac_format.channels;
+      { Frame.audio = m.Fdkaac_format.channels;
         Frame.video = 0;
-        Frame.midi = 0;
+        Frame.midi = 0
       }
   | Ogg l ->
       List.fold_left
@@ -77,24 +77,21 @@ let kind_of_format = function
         { Frame.audio = 0; Frame.video = 0; Frame.midi = 0 }
         l
   | External e ->
-      {
-        Frame.audio = e.External_encoder_format.channels;
+      { Frame.audio = e.External_encoder_format.channels;
         Frame.video = (if e.External_encoder_format.video then 1 else 0);
-        Frame.midi = 0;
+        Frame.midi = 0
       }
   | GStreamer e ->
-      {
-        Frame.audio = Gstreamer_format.audio_channels e;
+      { Frame.audio = Gstreamer_format.audio_channels e;
         Frame.video = Gstreamer_format.video_channels e;
-        Frame.midi = 0;
+        Frame.midi = 0
       }
 
 let kind_of_format f =
   let k = kind_of_format f in
-  {
-    Frame.audio = Frame.mul_of_int k.Frame.audio;
+  { Frame.audio = Frame.mul_of_int k.Frame.audio;
     Frame.video = Frame.mul_of_int k.Frame.video;
-    Frame.midi = Frame.mul_of_int k.Frame.midi;
+    Frame.midi = Frame.mul_of_int k.Frame.midi
   }
 
 let string_of_format = function
@@ -171,15 +168,15 @@ let bitrate = function
   * is meant to be sequentialized but not the mp3 format. 
   * header contains data that should be sent first to streaming 
   * client. *)
-type encoder = {
-  insert_metadata : Meta_format.export_metadata -> unit;
-  (* Encoder are all called from the main 
-   * thread so there's no need to protect this
-   * value with a mutex so far.. *)
-  mutable header : Strings.t;
-  encode : Frame.t -> int -> int -> Strings.t;
-  stop : unit -> Strings.t;
-}
+type encoder =
+  { insert_metadata : Meta_format.export_metadata -> unit;
+    (* Encoder are all called from the main 
+     * thread so there's no need to protect this
+     * value with a mutex so far.. *)
+    mutable header : Strings.t;
+    encode : Frame.t -> int -> int -> Strings.t;
+    stop : unit -> Strings.t
+  }
 
 type factory = string -> Meta_format.export_metadata -> encoder
 

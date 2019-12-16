@@ -55,7 +55,7 @@ class amplify ~kind (source : source) override_field coeff =
                       try Scanf.sscanf s " %f dB" Audio.lin_of_dB
                       with _ -> float_of_string s
                     in
-                    self#log#info "Overriding amplification: %f." k;
+                    (self#log)#info "Overriding amplification: %f." k;
                     override <- Some k
                   with _ -> () ))
               (AFrame.get_all_metadata buf)
@@ -69,15 +69,14 @@ class amplify ~kind (source : source) override_field coeff =
              offset
              (AFrame.position buf - offset));
       if AFrame.is_partial buf && override <> None then (
-        self#log#info "End of the current overriding.";
+        (self#log)#info "End of the current overriding.";
         override <- None )
   end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "amplify"
-    [
-      ("", Lang.float_getter_t (), None, Some "Multiplicative factor.");
+    [ ("", Lang.float_getter_t (), None, Some "Multiplicative factor.");
       ( "override",
         Lang.string_t,
         Some (Lang.string "liq_amplify"),
@@ -89,8 +88,7 @@ let () =
            values can be passed in decibels with the suffix `dB` (e.g. `-8.2 \
            dB`, but the spaces do not matter). Set to empty string `\"\"` to \
            disable." );
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Multiply the amplitude of the signal."
     (fun p kind ->

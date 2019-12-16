@@ -30,15 +30,15 @@ open Source
 (* A transition is a value of type (source,source) -> source *)
 type transition = Lang.value
 
-type child = {
-  source : source;
-  transition : transition;
-  (* Also remind the current metadata in order to be able to restore it
-   * when switching back in the middle of a track. This is an expected
-   * behaviour, but notice that it makes extra assumptions about the nature of
-   * metadata, tying them to the notion of track. *)
-  mutable cur_meta : Request.metadata option;
-}
+type child =
+  { source : source;
+    transition : transition;
+    (* Also remind the current metadata in order to be able to restore it
+     * when switching back in the middle of a track. This is an expected
+     * behaviour, but notice that it makes extra assumptions about the nature of
+     * metadata, tying them to the notion of track. *)
+    mutable cur_meta : Request.metadata option
+  }
 
 (** The switch can either happen at any time in the stream (insensitive)
   * or only at track limits (sensitive). *)
@@ -83,18 +83,18 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
     method after_output =
       (* Advance the memo frame. *)
       self#advance;
+
       (* Propagate to all sub-sources, i.e. our children and the transitions
        * wrapping them:
        *  - current transition is [selected],
        *  - old one in [to_finish]. *)
-      List.iter (fun s -> s.source#after_output) cases;
+      List.iter (fun s -> (s.source)#after_output) cases;
       begin
-        match selected with
-        | None -> ()
-        | Some (_, s) -> s#after_output
+        match selected with None -> () | Some (_, s) -> s#after_output
       end;
       List.iter (fun s -> s#after_output) to_finish;
       to_finish <- [];
+
       (* Selection may have been triggered by a call to #is_ready, without
        * any call to #get_ready (in particular if #select returned None).
        * It is cleared here in order to get a chance to be re-computed later. *)
@@ -122,7 +122,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
         cases;
       match selected with None -> () | Some (_, s) -> s#leave (self :> source)
 
-    method is_ready = need_eot || selected <> None || self#cached_select <> None
+    method is_ready =
+      need_eot || selected <> None || self#cached_select <> None
 
     method self_sync =
       match selected with
@@ -147,15 +148,16 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
           | Some c -> (
               match selected with
                 | None ->
-                    self#log#important "Switch to %s." c.source#id;
+                    (self#log)#important "Switch to %s." (c.source)#id;
+
                     (* The source is already ready, this call is only there for
                      * allowing an uniform treatment of switches, triggering
                      * a #leave call. *)
-                    c.source#get_ready activation;
+                    (c.source)#get_ready activation;
                     selected <- Some (c, c.source)
                 | Some (old_c, old_s) when old_c != c ->
-                    self#log#important "Switch to %s with%s transition."
-                      c.source#id
+                    (self#log)#important "Switch to %s with%s transition."
+                      (c.source)#id
                       (if forget then " forgetful" else "");
                     old_s#leave (self :> source);
                     to_finish <- old_s :: to_finish;
@@ -182,10 +184,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                           in
                           Lang.to_source
                             (Lang.apply ~t c.transition
-                               [
-                                 ("", Lang.source old_source);
-                                 ("", Lang.source new_source);
-                               ])
+                               [ ("", Lang.source old_source);
+                                 ("", Lang.source new_source) ])
                         in
                         let s =
                           new Max_duration.max_duration
@@ -220,6 +220,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
         match selected with
           | None ->
               reselect ~forget:true ();
+
               (* Our #is_ready, and caching, ensure the following. *)
               assert (selected <> None);
               self#get_frame ab
@@ -257,8 +258,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 (** Common tools for Lang bindings of switch operators *)
 
 let common kind =
-  [
-    ( "track_sensitive",
+  [ ( "track_sensitive",
       Lang.bool_getter_t (),
       Some (Lang.bool true),
       Some "Re-select only on end of tracks." );
@@ -286,7 +286,7 @@ let common kind =
      ( "transitions",
        Lang.list_t transition_t,
        Some (Lang.list ~t:transition_t []),
-       Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
+       Some "Transition functions, padded with `fun (x,y) -> y` functions." ))
   ]
 
 let default_transition k =
@@ -318,10 +318,9 @@ let extract_common ~kind p l =
 let satisfied f = Lang.to_bool (Lang.apply ~t:Lang.bool_t f [])
 
 let trivially_true = function
-  | {
-      Lang.value =
+  | { Lang.value =
         Lang.Fun (_, _, _, { Lang_values.term = Lang_values.Bool true; _ });
-      _;
+      _
     } ->
       true
   | _ -> false
@@ -349,7 +348,7 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
                 (fun (d, single, s) ->
                   (* Check single constraints *)
                   (if selected s then not single else true)
-                  && satisfied d && s.source#is_ready)
+                  && satisfied d && (s.source)#is_ready)
                 children))
       with Not_found -> None
 
@@ -357,7 +356,7 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
       if
         List.exists
           (fun (d, single, s) ->
-            s.source#stype = Infallible && (not single) && trivially_true d)
+            (s.source)#stype = Infallible && (not single) && trivially_true d)
           children
       then Infallible
       else Fallible
@@ -367,23 +366,21 @@ let () =
   let kind = Lang.univ_t () in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   let proto =
-    [
-      ( "single",
+    [ ( "single",
         Lang.list_t Lang.bool_t,
         Some (Lang.list ~t:Lang.bool_t []),
         Some
-          "Forbid the selection of a branch for two tracks in a row. The empty \
-           list stands for `[false,...,false]`." );
+          "Forbid the selection of a branch for two tracks in a row. The \
+           empty list stands for `[false,...,false]`." );
       ( "",
         Lang.list_t (Lang.product_t pred_t (Lang.source_t kind)),
         None,
-        Some "Sources with the predicate telling when they can be played." );
-    ]
+        Some "Sources with the predicate telling when they can be played." ) ]
   in
   Lang.add_operator "switch" ~category:Lang.TrackProcessing
     ~descr:
-      "At the beginning of a track, select the first source whose predicate is \
-       true."
+      "At the beginning of a track, select the first source whose predicate \
+       is true."
     (common kind @ proto)
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
@@ -406,7 +403,8 @@ let () =
       in
       let children =
         List.map2
-          (fun t (f, s) -> (f, { source = s; cur_meta = None; transition = t }))
+          (fun t (f, s) ->
+            (f, { source = s; cur_meta = None; transition = t }))
           tr children
       in
       let children =
@@ -430,11 +428,11 @@ class fallback ~kind ~override_meta ~transition_length ?replay_meta mode
           ?replay_meta children
 
     method private select =
-      try Some (List.find (fun s -> s.source#is_ready) children)
+      try Some (List.find (fun s -> (s.source)#is_ready) children)
       with Not_found -> None
 
     method stype =
-      if List.exists (fun s -> s.source#stype = Infallible) children then
+      if List.exists (fun s -> (s.source)#stype = Infallible) children then
         Infallible
       else Fallible
   end
@@ -442,12 +440,10 @@ class fallback ~kind ~override_meta ~transition_length ?replay_meta mode
 let () =
   let kind = Lang.univ_t () in
   let proto =
-    [
-      ( "",
+    [ ( "",
         Lang.list_t (Lang.source_t kind),
         None,
-        Some "Select the first ready source in this list." );
-    ]
+        Some "Select the first ready source in this list." ) ]
   in
   Lang.add_operator "fallback" ~category:Lang.TrackProcessing
     ~descr:"At the beginning of each track, select the first ready child."
@@ -488,7 +484,7 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
         List.fold_left
           (fun (l, k) (w, s) ->
             let w = w () in
-            if s.source#is_ready then ((s, w) :: l, k + w) else (l, k))
+            if (s.source)#is_ready then ((s, w) :: l, k + w) else (l, k))
           ([], 0) children
       in
       if n = 0 then None
@@ -504,8 +500,8 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
         with Found s -> Some s )
 
     method stype =
-      if List.exists (fun (_, s) -> s.source#stype = Infallible) children then
-        Infallible
+      if List.exists (fun (_, s) -> (s.source)#stype = Infallible) children
+      then Infallible
       else Fallible
   end
 
@@ -515,13 +511,11 @@ let () =
     let weight_t = Lang.int_getter_t () in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
       ( common kind
-      @ [
-          ( "weights",
+      @ [ ( "weights",
             Lang.list_t weight_t,
             Some (Lang.list ~t:weight_t []),
             Some weight_descr );
-          ("", Lang.list_t (Lang.source_t kind), None, None);
-        ] )
+          ("", Lang.list_t (Lang.source_t kind), None, None) ] )
       ~kind:(Lang.Unconstrained kind)
       (fun p kind ->
         let children = Lang.to_source_list (List.assoc "" p) in
@@ -557,5 +551,6 @@ let () =
     "Weights of the children (padded with 1), defining for each child the \
      probability that it is selected.";
   add "rotate" true "Rotate between the sources."
-    "Weights of the children (padded with 1), defining for each child how many \
-     tracks are played from it per round, if that many are actually available."
+    "Weights of the children (padded with 1), defining for each child how \
+     many tracks are played from it per round, if that many are actually \
+     available."

@@ -153,7 +153,8 @@ class virtual input ~name ~source_kind ~content_kind ~(on_start : unit -> unit)
 
     method stype = if fallible then Source.Fallible else Source.Infallible
 
-    method output_get_ready = if fallible then self#may_start else self#do_start
+    method output_get_ready =
+      if fallible then self#may_start else self#do_start
 
     method private wake_up activation =
       super#wake_up activation;
@@ -188,8 +189,7 @@ class virtual input ~name ~source_kind ~content_kind ~(on_start : unit -> unit)
   end
 
 let input_proto =
-  [
-    ( "fallible",
+  [ ( "fallible",
       Lang.bool_t,
       Some (Lang.bool false),
       Some
@@ -207,6 +207,5 @@ let input_proto =
       Lang.bool_t,
       Some (Lang.bool true),
       Some
-        "Start input as soon as it is created. Disabling it is only taken into \
-         account for a fallible input." );
-  ]
+        "Start input as soon as it is created. Disabling it is only taken \
+         into account for a fallible input." ) ]

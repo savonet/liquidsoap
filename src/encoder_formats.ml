@@ -34,8 +34,7 @@ let conf_meta =
 let conf_export_metadata =
   Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
     ~d:
-      [
-        "artist";
+      [ "artist";
         "title";
         "album";
         "genre";
@@ -45,8 +44,7 @@ let conf_export_metadata =
         "track";
         "year";
         "dj";
-        "next";
-      ]
+        "next" ]
     ~comments:["The list of labels of exported metadata."]
 
 let string_of_stereo s = if s then "stereo" else "mono"

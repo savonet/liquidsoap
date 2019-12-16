@@ -66,8 +66,7 @@ let encoder id ext =
   let on_stop = function
     | `Status s ->
         begin
-          match s with
-          | Unix.WEXITED 0 -> ()
+          match s with Unix.WEXITED 0 -> ()
           | Unix.WEXITED c -> log#important "Process exited with code %d" c
           | Unix.WSIGNALED s ->
               log#important "Process was killed by signal %d" s
@@ -154,14 +153,13 @@ let encoder id ext =
         Condition.wait condition mutex;
         Strings.Mutable.flush buf)
   in
-  {
-    Encoder.insert_metadata;
+  { Encoder.insert_metadata;
     (* External encoders do not support 
      * headers for now. They will probably
      * never do.. *)
     header = Strings.empty;
     encode;
-    stop;
+    stop
   }
 
 let () =

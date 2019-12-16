@@ -85,9 +85,8 @@ let create speex ~metadata () =
     let buf = Array.map (fun x -> Array.sub x ofs len) b in
     let buf =
       if channels > 1 then
-        [|
-          Array.append !remaining.(0) buf.(0);
-          Array.append !remaining.(1) buf.(1);
+        [| Array.append !remaining.(0) buf.(0);
+           Array.append !remaining.(1) buf.(1)
         |]
       else [| Array.append !remaining.(0) buf.(0) |]
     in
@@ -97,6 +96,7 @@ let create speex ~metadata () =
       let n = !status in
       if (frame_size * n) + frame_size < len then (
         status := n + 1;
+
         (* Speex float API are values in - 32768. <= x <= 32767. ..
            I don't really trust this, it must be a bug,
            so using the int API. *)
@@ -106,9 +106,8 @@ let create speex ~metadata () =
         in
         let f x = Array.map (fun x -> f (32767. *. x)) x in
         if channels > 1 then
-          [|
-            f (Array.sub buf.(0) (frame_size * n) frame_size);
-            f (Array.sub buf.(1) (frame_size * n) frame_size);
+          [| f (Array.sub buf.(0) (frame_size * n) frame_size);
+             f (Array.sub buf.(1) (frame_size * n) frame_size)
           |]
         else [| f (Array.sub buf.(0) (frame_size * n) frame_size) |] )
       else raise Internal
@@ -131,11 +130,11 @@ let create speex ~metadata () =
       remaining :=
         if frame_size * n < len then
           if channels > 1 then
-            [|
-              Array.sub buf.(0) (frame_size * n) (len - (frame_size * n));
-              Array.sub buf.(1) (frame_size * n) (len - (frame_size * n));
+            [| Array.sub buf.(0) (frame_size * n) (len - (frame_size * n));
+               Array.sub buf.(1) (frame_size * n) (len - (frame_size * n))
             |]
-          else [| Array.sub buf.(0) (frame_size * n) (len - (frame_size * n)) |]
+          else
+            [| Array.sub buf.(0) (frame_size * n) (len - (frame_size * n)) |]
         else remaining_init
   in
   let end_of_page p =
@@ -144,13 +143,12 @@ let create speex ~metadata () =
     else Ogg_muxer.Time (Int64.to_float granulepos /. float rate)
   in
   let end_of_stream os = Speex.Encoder.eos enc os in
-  {
-    Ogg_muxer.header_encoder;
+  { Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
     data_encoder = Ogg_muxer.Audio_encoder data_encoder;
     end_of_page;
-    end_of_stream;
+    end_of_stream
   }
 
 let create_speex = function

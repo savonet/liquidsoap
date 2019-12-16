@@ -25,15 +25,14 @@ open Lang_encoders
 
 let make ?pos params =
   let defaults =
-    {
-      Gstreamer_format.channels = 2;
+    { Gstreamer_format.channels = 2;
       audio = Some "lamemp3enc";
       has_video = true;
       video = Some "x264enc";
       muxer = Some "mpegtsmux";
       metadata = "metadata";
       log = 5;
-      pipeline = None;
+      pipeline = None
     }
   in
   let gstreamer =
@@ -59,9 +58,8 @@ let make ?pos params =
       defaults params
   in
   let dummy =
-    {
-      Lang_values.t = T.fresh_evar ~level:(-1) ~pos;
-      term = Encoder (Encoder.GStreamer gstreamer);
+    { Lang_values.t = T.fresh_evar ~level:(-1) ~pos;
+      term = Encoder (Encoder.GStreamer gstreamer)
     }
   in
   if

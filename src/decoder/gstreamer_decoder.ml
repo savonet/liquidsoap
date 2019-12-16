@@ -27,11 +27,11 @@ module GU = Gstreamer_utils
 
 let log = Log.make ["decoder"; "gstreamer"]
 
-type gst = {
-  bin : Gstreamer.Element.t;
-  audio_sink : Gstreamer.App_sink.t option;
-  video_sink : Gstreamer.App_sink.t option;
-}
+type gst =
+  { bin : Gstreamer.Element.t;
+    audio_sink : Gstreamer.App_sink.t option;
+    video_sink : Gstreamer.App_sink.t option
+  }
 
 (* TODO: we should share some code with Ogg_decoder... *)
 
@@ -144,11 +144,9 @@ module Make (Generator : Generator.S_Asio) = struct
         let pos = Gstreamer.Element.position gst.bin Gstreamer.Format.Time in
         let new_pos =
           Gstreamer.Element.seek_simple gst.bin Gstreamer.Format.Time
-            [
-              Gstreamer.Event.Seek_flag_flush;
+            [ Gstreamer.Event.Seek_flag_flush;
               Gstreamer.Event.Seek_flag_key_unit;
-              Gstreamer.Event.Seek_flag_skip;
-            ]
+              Gstreamer.Event.Seek_flag_skip ]
             (Int64.add pos off);
           ignore (Gstreamer.Element.get_state gst.bin);
           Gstreamer.Element.position gst.bin Gstreamer.Format.Time
@@ -176,16 +174,14 @@ let mime_types =
     ~p:(Decoder.conf_mime_types#plug "gstreamer")
     "Mime-types used for guessing format handled by GStreamer"
     ~d:
-      [
-        "video/x-ms-asf";
+      [ "video/x-ms-asf";
         "video/x-msvideo";
         "video/mp4";
         "video/3gpp";
         "video/webm";
         "video/x-matroska";
         "video/mp2t";
-        "video/MP2T";
-      ]
+        "video/MP2T" ]
 
 let file_extensions =
   Dtools.Conf.list
@@ -216,7 +212,8 @@ let create_file_decoder filename content_type kind =
     in
     duration - pos + G.length generator + Frame.position frame - offset
   in
-  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator
+  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder
+    generator
 
 (** Get the type of a file's content. For now it is a bit imprecise:
   * we always pretend that audio content has the expected number of
@@ -326,6 +323,7 @@ let get_tags file =
   (* Go in paused state. *)
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
   GU.flush ~log bin;
+
   (* Wait for the state to complete. *)
   ignore (Gstreamer.Element.get_state bin);
   let ans = ref [] in

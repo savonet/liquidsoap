@@ -91,8 +91,7 @@ class filter ~kind (source : source) freq q wet mode =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter"
-    [
-      ("freq", Lang.float_getter_t (), None, None);
+    [ ("freq", Lang.float_getter_t (), None, None);
       ("q", Lang.float_getter_t (), Some (Lang.float 1.), None);
       ( "mode",
         Lang.string_t,
@@ -107,8 +106,7 @@ let () =
         Some
           "How much of the original signal should be added (1. means only \
            filtered and 0. means only original signal)." );
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Perform several kinds of filtering on the signal"
     (fun p kind ->

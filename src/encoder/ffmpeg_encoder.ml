@@ -29,12 +29,12 @@ module Resampler =
 
 let log = Ffmpeg_config.log
 
-type handler = {
-  output : Avutil.output Avutil.container;
-  stream : (Avutil.output, Avutil.audio) Av.stream;
-  converter :
-    (Swresample.FltPlanarBigArray.t, Swresample.Frame.t) Swresample.ctx;
-}
+type handler =
+  { output : Avutil.output Avutil.container;
+    stream : (Avutil.output, Avutil.audio) Av.stream;
+    converter :
+      (Swresample.FltPlanarBigArray.t, Swresample.Frame.t) Swresample.ctx
+  }
 
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
@@ -47,7 +47,8 @@ let convert_options opts =
     | `String fmt -> `Int FFmpeg.Avutil.Sample_format.(get_id (find fmt))
     | _ -> assert false);
   convert "channel_layout" (function
-    | `String layout -> `Int FFmpeg.Avutil.Channel_layout.(get_id (find layout))
+    | `String layout ->
+        `Int FFmpeg.Avutil.Channel_layout.(get_id (find layout))
     | _ -> assert false)
 
 let encoder ffmpeg meta =
@@ -66,7 +67,8 @@ let encoder ffmpeg meta =
       | 1 -> `Mono
       | 2 -> `Stereo
       | _ ->
-          failwith "%ffmpeg encoder only supports mono or stereo audio for now!"
+          failwith
+            "%ffmpeg encoder only supports mono or stereo audio for now!"
   in
   let dst_freq = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
   let dst_channels =
@@ -74,7 +76,8 @@ let encoder ffmpeg meta =
       | 1 -> `Mono
       | 2 -> `Stereo
       | _ ->
-          failwith "%ffmpeg encoder only supports mono or stereo audio for now!"
+          failwith
+            "%ffmpeg encoder only supports mono or stereo audio for now!"
   in
   let buf = Strings.Mutable.empty () in
   let options = Hashtbl.copy ffmpeg.Ffmpeg_format.options in
@@ -117,7 +120,10 @@ let encoder ffmpeg meta =
     Av.close !h.output;
     h := make ();
     let m =
-      Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
+      Hashtbl.fold
+        (fun lbl v l -> (lbl, v) :: l)
+        (Meta_format.to_metadata m)
+        []
     in
     Av.set_metadata !h.stream m
   in

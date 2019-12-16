@@ -25,8 +25,7 @@ open Lang_encoders
 
 let make params =
   let defaults =
-    {
-      Opus_format.application = None;
+    { Opus_format.application = None;
       complexity = None;
       max_bandwidth = None;
       mode = Opus_format.VBR true;
@@ -37,7 +36,7 @@ let make params =
       signal = None;
       frame_size = 20.;
       dtx = false;
-      phase_inversion = true;
+      phase_inversion = true
     }
   in
   let opus =

@@ -77,14 +77,14 @@ type data_encoder =
   | Video_encoder of video track_encoder
 
 (** The full stream encoder type. *)
-type stream_encoder = {
-  header_encoder : header_encoder;
-  fisbone_packet : fisbone_packet;
-  stream_start : stream_start;
-  data_encoder : data_encoder;
-  end_of_page : page_end_time;
-  end_of_stream : end_of_stream;
-}
+type stream_encoder =
+  { header_encoder : header_encoder;
+    fisbone_packet : fisbone_packet;
+    stream_start : stream_start;
+    data_encoder : data_encoder;
+    end_of_page : page_end_time;
+    end_of_stream : end_of_stream
+  }
 
 (** Main type for the ogg encoder *)
 type t

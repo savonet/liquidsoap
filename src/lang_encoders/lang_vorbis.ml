@@ -25,13 +25,12 @@ open Lang_encoders
 
 let make_cbr params =
   let defaults =
-    {
-      Vorbis_format.mode = Vorbis_format.CBR 128;
+    { Vorbis_format.mode = Vorbis_format.CBR 128;
       fill = None;
       (* We use a hardcoded value in order not to force the evaluation of the
            number of channels too early, see #933. *)
       channels = 2;
-      samplerate = Frame.audio_rate;
+      samplerate = Frame.audio_rate
     }
   in
   let vorbis =
@@ -56,11 +55,10 @@ let make_cbr params =
 
 let make_abr params =
   let defaults =
-    {
-      Vorbis_format.mode = Vorbis_format.ABR (None, None, None);
+    { Vorbis_format.mode = Vorbis_format.ABR (None, None, None);
       channels = 2;
       fill = None;
-      samplerate = Frame.audio_rate;
+      samplerate = Frame.audio_rate
     }
   in
   let get_rates x =
@@ -97,11 +95,10 @@ let make_abr params =
 
 let make params =
   let defaults =
-    {
-      Vorbis_format.mode = Vorbis_format.VBR 0.3;
+    { Vorbis_format.mode = Vorbis_format.VBR 0.3;
       channels = 2;
       fill = None;
-      samplerate = Frame.audio_rate;
+      samplerate = Frame.audio_rate
     }
   in
   let vorbis =

@@ -84,8 +84,7 @@ class filter ~kind (source : source) rc wet mode =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "filter.rc"
-    [
-      ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");
+    [ ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");
       ( "mode",
         Lang.string_t,
         None,
@@ -98,8 +97,7 @@ let () =
         Some
           "How much of the original signal should be added (1. means only \
            filtered and 0. means only original signal)." );
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"First-order filter (RC filter)."
     (fun p kind ->

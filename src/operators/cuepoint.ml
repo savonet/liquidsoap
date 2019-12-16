@@ -88,9 +88,11 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
       (* Our external clock should stricly contain the slave clock. *)
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
+
       (* The source must belong to our clock, since we need occasional
        * control on its flow (to seek at the beginning of a track). *)
       Clock.unify slave_clock source#clock;
+
       (* When this source disappears the slave clock becomes useless.
        * To allow for its collection, remove references to it as a subclock
        * of the master clock. *)
@@ -120,7 +122,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
                        ( float_of_string content
                        *. float (Lazy.force Frame.master_rate) ))
                 with _ ->
-                  self#log#severe "Ill-formed metadata %s=%S!" key content;
+                  (self#log)#severe "Ill-formed metadata %s=%S!" key content;
                   None
               with Not_found -> None
             in
@@ -134,30 +136,32 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
               match cue_in with
                 | Some i when i <= 0L ->
                     if i < 0L then
-                      self#log#severe "Ignoring negative cue-in point.";
+                      (self#log)#severe "Ignoring negative cue-in point.";
                     None
                 | i -> i
             in
             let cue_out =
               match (cue_in, cue_out) with
                 | Some i, Some o when o < i ->
-                    self#log#severe
-                      "Ignoring cue-out point before cue-in. Note that cue-out \
-                       should be given relative to the beginning of the file.";
+                    (self#log)#severe
+                      "Ignoring cue-out point before cue-in. Note that \
+                       cue-out should be given relative to the beginning of \
+                       the file.";
                     None
                 | None, Some o when o < 0L ->
-                    self#log#severe "Ignoring negative cue-out point.";
+                    (self#log)#severe "Ignoring negative cue-out point.";
                     None
                 | _, cue_out -> cue_out
             in
             (cue_in, cue_out)
 
     method private cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos seek_time =
-      self#log#important "Cueing in...";
+      (self#log)#important "Cueing in...";
       let seek_pos = Int64.to_int seek_time - delta_pos in
       let seeked_pos = source#seek seek_pos in
       (* Set back original breaks. *)
       Frame.set_breaks buf breaks;
+
       (* Before pulling new data to fill-in the frame,
        * we need to tick the slave clock otherwise we might get
        * the same old (cached) data. *)
@@ -170,25 +174,27 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
           let position = Int64.of_int (delta_pos + seeked_pos) in
           match out_pos with
             | Some o when position > o ->
-                self#log#important
+                (self#log)#important
                   "Initial seek reached %i ticks past cue-out point!"
                   (Int64.to_int (position -- o));
                 Some position
             | _ ->
                 if seeked_pos = 0 then
-                  self#log#severe "Could not seek to cue point!";
-                self#log#info "Seeked %i ticks instead of %i." seeked_pos
+                  (self#log)#severe "Could not seek to cue point!";
+                (self#log)#info "Seeked %i ticks instead of %i." seeked_pos
                   seek_pos;
                 out_pos ) )
 
     method private cue_out ~buf ~elapsed ~pos out_pos =
-      self#log#important "Cueing out...";
+      (self#log)#important "Cueing out...";
+
       (* If not already an end of track, notify the source to end the track
        * and do one more #get to consume any remaining data. *)
       if not (Frame.is_partial buf) then (
         source#abort_track;
         self#slave_tick;
         source#get (Frame.create kind) );
+
       (* Quantify in the previous #get
        * - the amount of [extra] data past the cue point, to be dropped;
        * - the amount of [remaining] data, that should be left. *)
@@ -210,7 +216,8 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
        * on the careful checks done on cue_in, out_pos, and the
        * correction of out_pos after abusive cue_in. *)
       assert (remaining >= 0);
-      Frame.set_breaks buf (Utils.remove_one (( = ) new_pos) (Frame.breaks buf));
+      Frame.set_breaks buf
+        (Utils.remove_one (( = ) new_pos) (Frame.breaks buf));
       Frame.add_break buf (pos + remaining);
       track_state <- None
 
@@ -236,10 +243,12 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
                       self#cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos
                         seek_time
               in
-              match out_pos with None -> None | Some pos -> Some (elapsed, pos)
-              )
+              match out_pos with
+                | None -> None
+                | Some pos -> Some (elapsed, pos) )
       in
       track_state <- Some in_track_state;
+
       (* Perform cue-out if needed *)
       match in_track_state with
         | Some (elapsed, out_pos) when elapsed > out_pos ->
@@ -247,7 +256,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
         | _ ->
             if Frame.is_partial buf then (
               if in_track_state <> None then
-                self#log#important "End of track before cue-out point.";
+                (self#log)#important "End of track before cue-out point.";
               track_state <- None )
   end
 
@@ -258,8 +267,7 @@ let () =
     ~descr:
       "Start track after a cue in point and stop it at cue out point. The cue \
        points are given as metadata, in seconds from the begining of tracks."
-    [
-      ( "cue_in_metadata",
+    [ ( "cue_in_metadata",
         Lang.string_t,
         Some (Lang.string "liq_cue_in"),
         Some "Metadata for cue in points." );
@@ -267,8 +275,7 @@ let () =
         Lang.string_t,
         Some (Lang.string "liq_cue_out"),
         Some "Metadata for cue out points." );
-      ("", Lang.source_t kind, None, None);
-    ]
+      ("", Lang.source_t kind, None, None) ]
     (fun p kind ->
       let m_cue_in = Lang.to_string (Lang.assoc "cue_in_metadata" 1 p) in
       let m_cue_out = Lang.to_string (Lang.assoc "cue_out_metadata" 1 p) in

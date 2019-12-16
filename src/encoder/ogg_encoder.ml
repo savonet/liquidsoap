@@ -22,11 +22,11 @@
 
 (** OGG encoder *)
 
-type track = {
-  encode : Ogg_muxer.t -> nativeint -> Frame.content -> int -> int -> unit;
-  reset : Ogg_muxer.t -> Meta_format.export_metadata -> nativeint;
-  mutable id : nativeint option;
-}
+type track =
+  { encode : Ogg_muxer.t -> nativeint -> Frame.content -> int -> int -> unit;
+    reset : Ogg_muxer.t -> Meta_format.export_metadata -> nativeint;
+    mutable id : nativeint option
+  }
 
 let encoders = Hashtbl.create 3
 

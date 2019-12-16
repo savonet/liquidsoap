@@ -42,6 +42,7 @@ let to_s16le b =
   (* TODO: generalize this *)
   let fpcm = content b 0 in
   assert (Audio.channels fpcm = 2);
+
   (*
   let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
   let s = Bytes.create slen in

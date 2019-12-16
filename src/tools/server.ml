@@ -36,10 +36,8 @@ let conf =
     ~p:(Configure.conf#plug "server")
     "Server configuration"
     ~comments:
-      [
-        "The server is an abstract text-command-based communication protocol, ";
-        "which can be used through several interfaces.";
-      ]
+      [ "The server is an abstract text-command-based communication protocol, ";
+        "which can be used through several interfaces." ]
 
 let conf_timeout =
   Dtools.Conf.float ~p:(conf#plug "timeout") ~d:30.
@@ -54,21 +52,18 @@ let conf_socket =
   Dtools.Conf.bool ~p:(conf#plug "socket") ~d:false
     "Support for communication via a UNIX domain socket interface"
     ~comments:
-      [
-        "The main advantage of this method is that you can set very precisely";
+      [ "The main advantage of this method is that you can set very precisely";
         "the access permissions for the socket, just like for any other file.";
         "A useful command to use this interface is: \"socat stdin \
-         unix:<path>\".";
-      ]
+         unix:<path>\"." ]
 
 let conf_socket_path =
-  Dtools.Conf.string ~p:(conf_socket#plug "path") ~d:"<sysrundir>/<script>.sock"
-    "Path of the UNIX domain socket"
+  Dtools.Conf.string ~p:(conf_socket#plug "path")
+    ~d:"<sysrundir>/<script>.sock" "Path of the UNIX domain socket"
     ~comments:
-      [
-        "In this filename, <pid>, <script> and <sysrundir> are replaced by ";
+      [ "In this filename, <pid>, <script> and <sysrundir> are replaced by ";
         "their respective values: PID of the instance of liquidsoap,";
-        "base name of the .liq script (if any), default runtime data directory.";
+        "base name of the .liq script (if any), default runtime data directory."
       ]
 
 let conf_socket_perms =
@@ -76,26 +71,22 @@ let conf_socket_perms =
     ~p:(conf_socket#plug "permissions")
     ~d:0o600 "Socket permissions, up to umask"
     ~comments:
-      [
-        "This parameter is better written in octal notation. Although you can ";
+      [ "This parameter is better written in octal notation. Although you can ";
         "write octal numbers like 0o660, they are not displayed back in octal. ";
-        "For example, the default value 384 is the decimal for 0o600.";
-      ]
+        "For example, the default value 384 is the decimal for 0o600." ]
 
 let conf_telnet =
   Dtools.Conf.bool ~p:(conf#plug "telnet") ~d:false
     "Support for communication via a telnet interface"
     ~comments:
-      [
-        "This allows you to communicate with the server via a telnet interface,";
+      [ "This allows you to communicate with the server via a telnet interface,";
         "i.e., a simple text-based communication over TCP.";
         "The standard \"telnet\" command will allow you to communicate through";
         "that interface, as well as the telnet libraries available in most";
         "script languages.";
         "Since there is currently no authentication, you should be careful";
         "about who can access this interface: either restrict it to connections";
-        "from localhost (using the bind_addr param) or set up a firewall.";
-      ]
+        "from localhost (using the bind_addr param) or set up a firewall." ]
 
 let conf_telnet_bind_addr =
   Dtools.Conf.string
@@ -166,14 +157,16 @@ let add ~ns ?usage ~descr cmd handler =
 
 (* ... maybe remove them *)
 let remove ~ns cmd =
-  Tutils.mutexify lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns)) ()
+  Tutils.mutexify lock
+    (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
+    ()
 
 (* That's if you want to have your command wait. *)
-type condition = {
-  wait : (unit -> string) -> unit;
-  signal : unit -> unit;
-  broadcast : unit -> unit;
-}
+type condition =
+  { wait : (unit -> string) -> unit;
+    signal : unit -> unit;
+    broadcast : unit -> unit
+  }
 
 module Mutex_control = struct
   type priority = Tutils.priority
@@ -185,11 +178,11 @@ end
 module Duppy_m = Duppy.Monad.Mutex.Factory (Mutex_control)
 module Duppy_c = Duppy.Monad.Condition.Factory (Duppy_m)
 
-type server_condition = {
-  condition : Duppy_c.condition;
-  mutex : Duppy_m.mutex;
-  resume : unit -> string;
-}
+type server_condition =
+  { condition : Duppy_c.condition;
+    mutex : Duppy_m.mutex;
+    resume : unit -> string
+  }
 
 exception Server_wait of server_condition
 
@@ -269,7 +262,8 @@ let () =
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
         ^ "Available commands:" ^ usage () ^ "\r\n\r\n"
         ^ "Type \"help <command>\" for more information.");
-  add "list" ~descr:"Get the list of available operators with their interfaces."
+  add "list"
+    ~descr:"Get the list of available operators with their interfaces."
     (fun _ ->
       Tutils.mutexify lock
         (fun () ->
@@ -310,7 +304,11 @@ let handle_client socket ip =
     Duppy e
   in
   let h =
-    { Duppy.Monad.Io.scheduler = Tutils.scheduler; socket; data = ""; on_error }
+    { Duppy.Monad.Io.scheduler = Tutils.scheduler;
+      socket;
+      data = "";
+      on_error
+    }
   in
   (* Read and process lines *)
   let process =
@@ -382,9 +380,9 @@ let handle_client socket ip =
             log#important "Client %s disconnected." ip;
             close ()
           in
-          Duppy.Io.write ~timeout:(get_timeout ()) ~priority:Tutils.Non_blocking
-            ~on_error ~exec Tutils.scheduler ~string:(Bytes.of_string msg)
-            socket
+          Duppy.Io.write ~timeout:(get_timeout ())
+            ~priority:Tutils.Non_blocking ~on_error ~exec Tutils.scheduler
+            ~string:(Bytes.of_string msg) socket
       | _ ->
           log#important "Client %s disconnected without saying goodbye..!" ip;
           close ()
@@ -412,13 +410,10 @@ let start_socket () =
         handle_client socket ip
       with e ->
         log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
-    [
-      {
-        Duppy.Task.priority = Tutils.Non_blocking;
+    [ { Duppy.Task.priority = Tutils.Non_blocking;
         events = [`Read sock];
-        handler = incoming;
-      };
-    ]
+        handler = incoming
+      } ]
   in
   (* Try to close the socket if exists.. *)
   Unix.setsockopt sock Unix.SO_REUSEADDR true;
@@ -437,10 +432,9 @@ let start_socket () =
          Unix.unlink socket_path));
   Unix.chmod socket_path rights;
   Duppy.Task.add Tutils.scheduler
-    {
-      Duppy.Task.priority = Tutils.Non_blocking;
+    { Duppy.Task.priority = Tutils.Non_blocking;
       events = [`Read sock];
-      handler = incoming;
+      handler = incoming
     }
 
 let start_telnet () =
@@ -470,13 +464,10 @@ let start_telnet () =
         handle_client socket ip
       with e ->
         log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
-    [
-      {
-        Duppy.Task.priority = Tutils.Non_blocking;
+    [ { Duppy.Task.priority = Tutils.Non_blocking;
         events = [`Read sock];
-        handler = incoming;
-      };
-    ]
+        handler = incoming
+      } ]
   in
   Unix.setsockopt sock Unix.SO_REUSEADDR true;
   begin
@@ -485,10 +476,9 @@ let start_telnet () =
   end;
   Unix.listen sock max_conn;
   Duppy.Task.add Tutils.scheduler
-    {
-      Duppy.Task.priority = Tutils.Non_blocking;
+    { Duppy.Task.priority = Tutils.Non_blocking;
       events = [`Read sock];
-      handler = incoming;
+      handler = incoming
     }
 
 let start () =

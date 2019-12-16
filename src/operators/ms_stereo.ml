@@ -49,12 +49,14 @@ class msstereo ~kind (source : source) mode width =
           | Encode ->
               let left = buffer.(0).{i} and right = buffer.(1).{i} in
               buffer.(0).{i} <- 0.5 *. (left +. right);
+
               (* mid *)
               buffer.(1).{i} <- 0.5 *. (left -. right)
               (* side *)
           | Decode ->
               let mid = buffer.(0).{i} and side = buffer.(1).{i} in
               buffer.(0).{i} <- mid +. (side *. width);
+
               (* left *)
               buffer.(1).{i} <- mid -. (side *. width)
         (* right *)
@@ -71,13 +73,11 @@ let () =
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       new msstereo ~kind s Encode 0.);
   Lang.add_operator "stereo.ms.decode"
-    [
-      ( "width",
+    [ ( "width",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Width of the stereo field." );
-      ("", Lang.source_t k, None, None);
-    ]
+      ("", Lang.source_t k, None, None) ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
     (fun p kind ->
