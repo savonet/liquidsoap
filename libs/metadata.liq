@@ -52,7 +52,7 @@ end
 def file.cover(file)
   m = file.metadata(file)
   m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
-  if list.exists(fun (lv) -> fst(lv) == "coverart", m) then
+  if list.mem_assoc("coverart", m) then
     # We are likely to have an ogg/vorbis file
     m = list.filter(fun (lv) -> fst(lv) == "coverart", m)
     m = list.map(snd, m)
