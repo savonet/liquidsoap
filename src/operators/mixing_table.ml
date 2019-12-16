@@ -50,7 +50,7 @@ class mixing ~kind source =
     ns_kind <- "mixer";
     self#register_command "skip"
       ~descr:"Skip current track on all enabled sources." (fun a ->
-        (source.(int_of_string a))#abort_track;
+        source.(int_of_string a)#abort_track;
         "OK");
     self#register_command "volume" ~descr:"Set volume for a given source."
       ~usage:"volume <source nb> <vol%>" (fun a ->
@@ -89,15 +89,15 @@ class mixing ~kind source =
       let r = AFrame.size () - p in
       AFrame.blankify buf p r;
       for i = 0 to n - 1 do
-        if sel.(i) && (source.(i))#is_ready then (
+        if sel.(i) && source.(i)#is_ready then (
           AFrame.clear tmp;
           AFrame.set_breaks tmp [p];
           if single.(i) then (
-            (source.(i))#get tmp;
+            source.(i)#get tmp;
             if AFrame.is_partial tmp then sel.(i) <- false )
           else
-            while AFrame.is_partial tmp && (source.(i))#is_ready do
-              (source.(i))#get tmp
+            while AFrame.is_partial tmp && source.(i)#is_ready do
+              source.(i)#get tmp
             done;
           List.iter
             (fun (t, m) -> AFrame.set_metadata buf t m)
@@ -109,14 +109,14 @@ class mixing ~kind source =
 
     method abort_track =
       for i = 0 to n - 1 do
-        if sel.(i) then (source.(i))#abort_track
+        if sel.(i) then source.(i)#abort_track
       done
 
     method private status i =
       Printf.sprintf "ready=%b selected=%b single=%b volume=%d%% remaining=%s"
-        (source.(i))#is_ready sel.(i) single.(i)
+        source.(i)#is_ready sel.(i) single.(i)
         (int_of_float (vol.(i) *. 100.))
-        (let r = (source.(i))#remaining in
+        (let r = source.(i)#remaining in
          if r = -1 then "(undef)"
          else Printf.sprintf "%.2f" (Frame.seconds_of_master r))
   end

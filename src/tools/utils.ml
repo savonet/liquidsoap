@@ -87,8 +87,7 @@ let unescape_char c s =
       match d with
         | '\\' when not escaped -> f ~escaped:true cur pos
         | x when x = c -> f ~escaped:false (Printf.sprintf "%s%c" cur c) pos
-        | x when escaped ->
-            f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
+        | x when escaped -> f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
         | x -> f ~escaped:false (Printf.sprintf "%s%c" cur x) pos )
   in
   f ~escaped:false "" 0
@@ -111,9 +110,7 @@ let split ~sep s =
     if pos == len then s :: cur
     else if pos == len - 1 then String.sub s 0 pos :: cur
     else
-      split
-        (String.sub s 0 pos :: cur)
-        (String.sub s (pos + 1) (len - pos - 1))
+      split (String.sub s 0 pos :: cur) (String.sub s (pos + 1) (len - pos - 1))
   in
   List.map (unescape_char sep) (List.rev (split [] s))
 
@@ -365,7 +362,8 @@ let string_of_timezone tz =
 let strftime str : string =
   let t = Unix.localtime (Unix.gettimeofday ()) in
   let assoc =
-    [ ("S", Printf.sprintf "%02d" t.Unix.tm_sec);
+    [
+      ("S", Printf.sprintf "%02d" t.Unix.tm_sec);
       ("M", Printf.sprintf "%02d" t.Unix.tm_min);
       ("H", Printf.sprintf "%02d" t.Unix.tm_hour);
       ("d", Printf.sprintf "%02d" t.Unix.tm_mday);
@@ -373,7 +371,8 @@ let strftime str : string =
       ("Y", string_of_int (t.Unix.tm_year + 1900));
       ("w", string_of_int t.Unix.tm_wday);
       ("z", string_of_timezone (timezone ()));
-      ("%", "%") ]
+      ("%", "%");
+    ]
   in
   let subst sub =
     let key = Pcre.get_substring sub 1 in

@@ -594,16 +594,14 @@ let print_type_error error_header (flipped, ta, tb, a, b) =
     ( match tb.pos with
       | None -> ""
       | Some p ->
-          Printf.sprintf " the type of the value at %s"
-            (print_pos ~prefix:"" p) )
+          Printf.sprintf " the type of the value at %s" (print_pos ~prefix:"" p)
+      )
     print_repr b (inferred_pos tb)
 
 let doc_of_type ~generalized t =
   let margin = Format.pp_get_margin Format.str_formatter () in
   Format.pp_set_margin Format.str_formatter 58;
-  Format.fprintf Format.str_formatter "%a@?"
-    (pp_type_generalized generalized)
-    t;
+  Format.fprintf Format.str_formatter "%a@?" (pp_type_generalized generalized) t;
   Format.pp_set_margin Format.str_formatter margin;
   Doc.trivial (Format.flush_str_formatter ())
 
@@ -746,16 +744,14 @@ let rec ( <: ) a b =
           try bind a (make ~pos:a.pos (Succ a'))
           with Unsatisfied_constraint _ -> raise (Error (repr a, repr b))
         end;
-        try a' <: b'
-        with Error (a', b') -> raise (Error (`Succ a', `Succ b')) )
+        try a' <: b' with Error (a', b') -> raise (Error (`Succ a', `Succ b')) )
     | Succ a', EVar (_, _) -> (
         let b' = fresh_evar ~level:b.level ~constraints:[] ~pos:None in
         begin
           try bind b (make ~pos:b.pos (Succ b'))
           with Unsatisfied_constraint _ -> raise (Error (repr a, repr b))
         end;
-        try a' <: b'
-        with Error (a', b') -> raise (Error (`Succ a', `Succ b')) )
+        try a' <: b' with Error (a', b') -> raise (Error (`Succ a', `Succ b')) )
     | EVar _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->

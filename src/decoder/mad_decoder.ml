@@ -97,14 +97,15 @@ module Make (Generator : Generator.S_Asio) = struct
   let create_decoder input =
     let resampler = Rutils.create_audio () in
     let get_info, get_data, seek = init input in
-    { Decoder.seek;
+    {
+      Decoder.seek;
       decode =
         (fun gen ->
           let data = get_data () in
           let sample_freq, _, _ = get_info () in
           let content = resampler ~audio_src_rate:(float sample_freq) data in
           Generator.set_mode gen `Audio;
-          Generator.put_audio gen content 0 (Audio.length content))
+          Generator.put_audio gen content 0 (Audio.length content));
     }
 end
 

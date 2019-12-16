@@ -72,12 +72,14 @@ let () =
   Lang.add_operator "blank" ~category:Lang.Input
     ~descr:"Produce silence and blank images."
     ~kind:(Lang.Unconstrained (Lang.univ_t ()))
-    [ ( "duration",
+    [
+      ( "duration",
         Lang.float_t,
         Some (Lang.float (-1.)),
         Some
           "Duration of blank tracks in seconds, Negative value means forever."
-      ) ]
+      );
+    ]
     (fun p kind ->
       let d = Lang.to_float (List.assoc "duration" p) in
       (new blank ~kind d :> source))

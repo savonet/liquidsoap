@@ -32,52 +32,58 @@ let conf_mime_types =
     ~p:(conf_playlists#plug "mime_types")
     "Mime-types used for guessing playlist formats."
     ~comments:
-      [ "When a mime-type is available (e.g. with input.http), it can be used";
+      [
+        "When a mime-type is available (e.g. with input.http), it can be used";
         "to guess which playlist format to use.";
         "This section contains the listings used for that detection, which you";
         "might want to tweak if you encounter a new mime-type.";
         "If you feel that new mime-types should be permanently added, please";
-        "contact the developpers." ]
+        "contact the developpers.";
+      ]
 
 let conf_cue_in_metadata =
   Dtools.Conf.string
     ~p:(conf_playlists#plug "cue_in_metadata")
     ~d:"liq_cue_in" "Cue in metadata for playlists with track index."
     ~comments:
-      [ "Some playlists format, such as CUE files specify index points to start";
+      [
+        "Some playlists format, such as CUE files specify index points to start";
         "tracks playback. In this case, tracks are resolved to a annotate: \
          request with";
         "a cue-in metadata containing the index. If you want to make use of \
          this index,";
-        "you should specify here what label you want for this metadata and \
-         use the cue_cut";
-        "operator on the resulting source" ]
+        "you should specify here what label you want for this metadata and use \
+         the cue_cut";
+        "operator on the resulting source";
+      ]
 
 let conf_cue_out_metadata =
   Dtools.Conf.string
     ~p:(conf_playlists#plug "cue_out_metadata")
     ~d:"liq_cue_out" "Cue out metadata for playlists with track index."
     ~comments:
-      [ "Some playlists format, such as CUE files specify index points to start";
+      [
+        "Some playlists format, such as CUE files specify index points to start";
         "tracks playback. In this case, tracks are resolved to a annotate: \
          request with";
         "a cue-in metadata containing the index. If you want to make use of \
          this index,";
-        "you should specify here what label you want for this metadata and \
-         use the cue_cut";
-        "operator on the resulting source" ]
+        "you should specify here what label you want for this metadata and use \
+         the cue_cut";
+        "operator on the resulting source";
+      ]
 
 (** A playlist is list of metadatas,uri *)
 type playlist = ((string * string) list * string) list
 
 (** A plugin is a boolean and a parsing function *)
-type plugin =
-  { strict : bool;
-    (* true is the format can be detected *)
-    parser : ?pwd:string -> string -> playlist
-        (* The parser is expected to respect the order
+type plugin = {
+  strict : bool;
+  (* true is the format can be detected *)
+  parser : ?pwd:string -> string -> playlist;
+      (* The parser is expected to respect the order
        of the files in the playlist. *)
-  }
+}
 
 (** Parsers are given a string and return a list of metadatas,uri, if possible. *)
 let parsers : plugin Plug.plug =

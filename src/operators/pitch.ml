@@ -104,26 +104,25 @@ class pitch ~kind every length freq_min freq_max (source : source) =
         done;
         let f = samples_per_second /. float !wl_opt in
         let f = if f > freq_max then 0. else f in
-        (self#log)#important "Found frequency: %.02f (%s)\n%!" f
+        self#log#important "Found frequency: %.02f (%s)\n%!" f
           (string_of_note (note_of_freq f)) )
   end
 
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "pitch"
-    [ ( "length",
+    [
+      ( "length",
         Lang.float_t,
         Some (Lang.float 0.1),
         Some "Length in seconds of the analysis window" );
-      ( "freq_min",
-        Lang.float_t,
-        Some (Lang.float 40.),
-        Some "Minimal frequency" );
+      ("freq_min", Lang.float_t, Some (Lang.float 40.), Some "Minimal frequency");
       ( "freq_max",
         Lang.float_t,
         Some (Lang.float 10000.),
         Some "Maximal frequency" );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Compute the pitch of a sound."
     ~flags:[Lang.Hidden; Lang.Experimental]

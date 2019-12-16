@@ -70,8 +70,10 @@ class store ~kind n s =
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "store_metadata"
-    [ ("size", Lang.int_t, Some (Lang.int 10), Some "Size of the history");
-      ("", Lang.source_t kind, None, None) ]
+    [
+      ("size", Lang.int_t, Some (Lang.int 10), Some "Size of the history");
+      ("", Lang.source_t kind, None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Keep track of the last N metadata packets in the stream, and make the \

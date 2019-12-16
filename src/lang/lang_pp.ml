@@ -263,9 +263,7 @@ let parse_comments tokenizer =
                       | [] -> raise Not_found
                       | line :: lines ->
                           let line =
-                            Pcre.substitute ~pat:"^ *"
-                              ~subst:(fun _ -> "")
-                              line
+                            Pcre.substitute ~pat:"^ *" ~subst:(fun _ -> "") line
                           in
                           let n = String.length line - 1 in
                           if line.[n] = '\\' then (

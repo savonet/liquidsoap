@@ -196,7 +196,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
               | Some v -> (
                   try
                     let l = float_of_string v in
-                    (self#log)#info "Setting crossfade duration to %.2fs" l;
+                    self#log#info "Setting crossfade duration to %.2fs" l;
                     cross_length <- Frame.master_of_seconds l
                   with _ -> () ) ))
         (Frame.get_all_metadata frame)
@@ -212,7 +212,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
               self#update_cross_length frame p;
               needs_tick <- true )
             else (
-              (self#log)#info "Buffering end of track...";
+              self#log#info "Buffering end of track...";
               status <- `Before;
               Frame.set_breaks buf_frame [Frame.position frame];
               Frame.set_all_metadata buf_frame
@@ -221,7 +221,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                   | None -> [] );
               self#buffering cross_length;
               if status <> `Limit then
-                (self#log)#info "More buffering will be needed.";
+                self#log#info "More buffering will be needed.";
               self#get_frame frame )
         | `Before ->
             (* We started buffering but the track didn't end.
@@ -246,8 +246,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
         | `After ->
             (Utils.get_some transition_source)#get frame;
             needs_tick <- true;
-            if Generator.length pending_after = 0 && Frame.is_partial frame
-            then (
+            if Generator.length pending_after = 0 && Frame.is_partial frame then (
               status <- `Idle;
               self#cleanup_transition_source;
 
@@ -374,18 +373,20 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             in
             let f a b =
               let params =
-                [ ("", Lang.float db_before);
+                [
+                  ("", Lang.float db_before);
                   ("", Lang.float db_after);
                   ("", Lang.metadata before_metadata);
                   ("", Lang.metadata after_metadata);
                   ("", Lang.source a);
-                  ("", Lang.source b) ]
+                  ("", Lang.source b);
+                ]
               in
               let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
               Lang.to_source (Lang.apply ~t transition params)
             in
             let compound =
-              (self#log)#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
+              self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
                 db_before db_after
                 (Frame.seconds_of_master (Generator.length gen_before))
                 (Frame.seconds_of_master (Generator.length gen_after));
@@ -394,7 +395,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                 < Generator.length gen_after
               then f before after
               else (
-                (self#log)#important "Not enough data for crossing.";
+                self#log#important "Not enough data for crossing.";
                 (new Sequence.sequence ~kind [before; after] :> source) )
             in
             Clock.unify compound#clock s#clock;
@@ -428,12 +429,13 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "cross"
-    [ ( "duration",
+    [
+      ( "duration",
         Lang.float_t,
         Some (Lang.float 5.),
         Some
-          "Duration (in seconds) of buffered data from each track that is \
-           used to compute the transision between tracks." );
+          "Duration (in seconds) of buffered data from each track that is used \
+           to compute the transision between tracks." );
       ( "override_duration",
         Lang.string_t,
         Some (Lang.string "liq_cross_duration"),
@@ -445,9 +447,9 @@ let () =
         Some (Lang.float (-1.)),
         Some
           "Minimum duration (in sec.) for a cross: If the track ends without \
-           any warning (e.g. in case of skip) there may not be enough data \
-           for a decent composition. Set to 0. to avoid having transitions \
-           after skips, or more to avoid transitions on short tracks. With a \
+           any warning (e.g. in case of skip) there may not be enough data for \
+           a decent composition. Set to 0. to avoid having transitions after \
+           skips, or more to avoid transitions on short tracks. With a \
            negative default, transitions always occur." );
       ( "width",
         Lang.float_t,
@@ -471,25 +473,28 @@ let () =
            stopped." );
       ( "",
         Lang.fun_t
-          [ (false, "", Lang.float_t);
+          [
+            (false, "", Lang.float_t);
             (false, "", Lang.float_t);
             (false, "", Lang.metadata_t);
             (false, "", Lang.metadata_t);
             (false, "", Lang.source_t k);
-            (false, "", Lang.source_t k) ]
+            (false, "", Lang.source_t k);
+          ]
           (Lang.source_t k),
         None,
         Some
-          "Transition function, composing from the end of a track and the \
-           next track. It also takes the power of the signal before and after \
-           the transition, and the metadata." );
-      ("", Lang.source_t k, None, None) ]
+          "Transition function, composing from the end of a track and the next \
+           track. It also takes the power of the signal before and after the \
+           transition, and the metadata." );
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:
       "Cross operator, allowing the composition of the N last seconds of a \
-       track with the beginning of the next track, using a transition \
-       function depending on the relative power of the signal before and \
-       after the end of track."
+       track with the beginning of the next track, using a transition function \
+       depending on the relative power of the signal before and after the end \
+       of track."
     (fun p kind ->
       let duration = Lang.to_float (List.assoc "duration" p) in
       let override_duration =
@@ -506,7 +511,7 @@ let () =
       let source = Lang.to_source (Lang.assoc "" 2 p) in
       let c =
         new cross
-          ~kind source transition ~conservative ~active ~cross_length
-          ~rms_width ~minimum_length ~override_duration
+          ~kind source transition ~conservative ~active ~cross_length ~rms_width
+          ~minimum_length ~override_duration
       in
       (c :> source))

@@ -231,8 +231,8 @@ module Make (Config : Config_t) = struct
           "Done");
       self#register_command "url" ~usage:"url [url]"
         ~descr:
-          "Get or set the stream's HTTP URL. Setting a new URL will not \
-           affect an ongoing connection." (fun u ->
+          "Get or set the stream's HTTP URL. Setting a new URL will not affect \
+           an ongoing connection." (fun u ->
           if u = "" then url
           else (
             try
@@ -263,7 +263,7 @@ module Make (Config : Config_t) = struct
 
       (* Insert metadata *)
       method insert_metadata m =
-        (self#log)#important "New metadata chunk: %s -- %s."
+        self#log#important "New metadata chunk: %s -- %s."
           (try Hashtbl.find m "artist" with _ -> "?")
           (try Hashtbl.find m "title" with _ -> "?");
         Generator.add_metadata generator m;
@@ -271,7 +271,7 @@ module Make (Config : Config_t) = struct
 
       method feeding should_stop create_decoder =
         let read =
-          let log s = (self#log)#info "%s" s in
+          let log s = self#log#info "%s" s in
           (* Socket can't be closed while waiting on it. *)
           fun buf ofs len ->
             let socket = Tutils.mutexify socket_m (fun () -> socket) () in
@@ -282,7 +282,7 @@ module Make (Config : Config_t) = struct
                     Http.wait_for ~log (`Read socket) timeout;
                     read buf ofs len
                   with e ->
-                    (self#log)#severe "Error while reading from socket: %s"
+                    self#log#severe "Error while reading from socket: %s"
                       (Printexc.to_string e);
                     self#disconnect_no_lock;
                     0 )
@@ -315,17 +315,15 @@ module Make (Config : Config_t) = struct
           Generator.add_break ~sync:`Drop generator;
           begin
             match e with
-            | Failure s -> (self#log)#severe "Feeding stopped: %s" s
+            | Failure s -> self#log#severe "Feeding stopped: %s" s
             | G.Incorrect_stream_type ->
-                (self#log)#severe
+                self#log#severe
                   "Feeding stopped: the decoded stream was not of the right \
                    type. The typical situation is when you expect a stereo \
                    stream whereas the stream is mono (in this case the \
-                   situation can easily be solved by using the \
-                   audio_to_stereo operator to convert the stream to a stereo \
-                   one)."
-            | e ->
-                (self#log)#severe "Feeding stopped: %s" (Printexc.to_string e)
+                   situation can easily be solved by using the audio_to_stereo \
+                   operator to convert the stream to a stereo one)."
+            | e -> self#log#severe "Feeding stopped: %s" (Printexc.to_string e)
           end;
           begin
             match logf with
@@ -370,10 +368,10 @@ module Make (Config : Config_t) = struct
               (fun () ->
                 if socket <> None then
                   failwith "Cannot connect while already connected..";
-                (self#log)#info "Connecting to <%s://%s:%d%s>..." protocol host
+                self#log#info "Connecting to <%s://%s:%d%s>..." protocol host
                   port mount;
                 let s = Http.connect ?bind_address host port in
-                let log s = (self#log)#info "%s" s in
+                let log s = self#log#info "%s" s in
                 let ((_, fields) as ret) =
                   Http.request ~log ~timeout s request
                 in
@@ -385,12 +383,10 @@ module Make (Config : Config_t) = struct
                   try List.assoc "transfer-encoding" fields = "chunked"
                   with _ -> false
                 in
-                if chunked then (self#log)#info "Chunked HTTP/1.1 transfer";
+                if chunked then self#log#info "Chunked HTTP/1.1 transfer";
 
                 (* read_stream has a state, so we must create it here.. *)
-                let read =
-                  read_stream s chunked metaint self#insert_metadata
-                in
+                let read = read_stream s chunked metaint self#insert_metadata in
                 socket <- Some (s, read, url);
                 ret)
               ()
@@ -409,7 +405,7 @@ module Make (Config : Config_t) = struct
                     Pcre.get_substring sub 1
                   with Not_found -> content_type )
           in
-          (self#log)#info "Content-type %S." content_type;
+          self#log#info "Content-type %S." content_type;
           if status = 301 || status = 302 || status = 303 || status = 307 then (
             let location =
               try List.assoc "location" fields
@@ -420,10 +416,10 @@ module Make (Config : Config_t) = struct
                 Printf.sprintf "%s://%s:%d%s" protocol host port location
               else location
             in
-            (self#log)#info "Redirected to %s" location;
+            self#log#info "Redirected to %s" location;
             raise (Redirection location) );
           if status <> 200 then (
-            (self#log)#info "Could not get file: %s" status_msg;
+            self#log#info "Could not get file: %s" status_msg;
             raise Internal );
           on_connect fields;
           let play_track (m, uri) =
@@ -465,7 +461,7 @@ module Make (Config : Config_t) = struct
             playlist_process playlist
           in
           try
-            (self#log)#info "Trying playlist parser for mime %s" content_type;
+            self#log#info "Trying playlist parser for mime %s" content_type;
             match Playlist_parser.parsers#get content_type with
               | None -> raise Not_found
               | Some plugin ->
@@ -477,8 +473,7 @@ module Make (Config : Config_t) = struct
             if content_type = "text/plain" then (
               try
                 test_playlist (fun x ->
-                    snd
-                      (Playlist_parser.search_valid ~pwd:(Http.dirname url) x))
+                    snd (Playlist_parser.search_valid ~pwd:(Http.dirname url) x))
               with Not_found -> () )
             else (
               Generator.set_mode generator `Undefined;
@@ -492,11 +487,11 @@ module Make (Config : Config_t) = struct
                 | Some f -> (
                     try logf <- Some (open_out_bin (Utils.home_unrelate f))
                     with e ->
-                      (self#log)#severe "Could not open log file: %s"
+                      self#log#severe "Could not open log file: %s"
                         (Printexc.to_string e) )
                 | None -> ()
               end;
-              (self#log)#important "Decoding...";
+              self#log#important "Decoding...";
               Generator.set_rewrite_metadata generator (fun m ->
                   Hashtbl.add m "source_url" url;
                   m);
@@ -507,11 +502,11 @@ module Make (Config : Config_t) = struct
               self#connect poll_should_stop location
           | Http.Error e ->
               self#disconnect;
-              (self#log)#info "Connection failed: %s!" (Http.string_of_error e);
+              self#log#info "Connection failed: %s!" (Http.string_of_error e);
               if debug then raise (Http.Error e)
           | e ->
               self#disconnect;
-              (self#log)#info "Connection failed: %s" (Printexc.to_string e);
+              self#log#info "Connection failed: %s" (Printexc.to_string e);
               if debug then raise e
 
       (* Take care of (re)starting the decoding *)
@@ -527,12 +522,13 @@ module Make (Config : Config_t) = struct
         super#wake_up act;
 
         (* Now we can create the log function *)
-        (log_ref := fun s -> (self#log)#important "%s" s);
+        (log_ref := fun s -> self#log#important "%s" s);
 
         (* Wait for the old polling thread to return, then create a new one. *)
         assert (kill_polling = None);
         begin
-          match wait_polling with None -> ()
+          match wait_polling with
+          | None -> ()
           | Some f ->
               f ();
               wait_polling <- None
@@ -553,7 +549,8 @@ module Make (Config : Config_t) = struct
       ~kind:(Lang.Unconstrained (Lang.univ_t ()))
       ~category:Lang.Input
       ~descr:("Create a source that fetches a " ^ protocol ^ " stream.")
-      [ ( "autostart",
+      [
+        ( "autostart",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Initially start relaying or not." );
@@ -624,7 +621,8 @@ module Make (Config : Config_t) = struct
         ( "",
           Lang.string_t,
           None,
-          Some ("URL of an " ^ protocol ^ " stream (default port is 80).") ) ]
+          Some ("URL of an " ^ protocol ^ " stream (default port is 80).") );
+      ]
       (fun p kind ->
         let playlist_mode =
           let s = List.assoc "playlist_mode" p in
@@ -659,9 +657,7 @@ module Make (Config : Config_t) = struct
             | "" -> None
             | s -> Some s
         in
-        let bind_address =
-          match bind_address with "" -> None | s -> Some s
-        in
+        let bind_address = match bind_address with "" -> None | s -> Some s in
         let force_mime =
           match Lang.to_string (List.assoc "force_mime" p) with
             | "" -> None
@@ -691,9 +687,9 @@ module Make (Config : Config_t) = struct
         in
         let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
         ( new http
-            ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta
-            ~force_mime ~bind_address ~poll_delay ~timeout ~on_connect
-            ~on_disconnect ~bufferize ~max ~debug ~logfile ~user_agent url
+            ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta ~force_mime
+            ~bind_address ~poll_delay ~timeout ~on_connect ~on_disconnect
+            ~bufferize ~max ~debug ~logfile ~user_agent url
           :> Source.source ))
 end
 

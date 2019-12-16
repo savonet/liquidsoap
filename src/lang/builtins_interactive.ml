@@ -25,13 +25,13 @@ open Lang_builtins
 module Var = struct
   exception Invalid_value of string
 
-  type variable =
-    { name : string;
-      t : Lang.t;
-      get : unit -> string;
-      set : string -> unit;
-      validate : string -> unit
-    }
+  type variable = {
+    name : string;
+    t : Lang.t;
+    get : unit -> string;
+    set : string -> unit;
+    validate : string -> unit;
+  }
 
   let variables = ref []
   let ns = Server.register ["var"] "interactive variables"
@@ -81,9 +81,10 @@ end
 let () =
   add_builtin "interactive.string" ~cat:Interaction
     ~descr:"Read a string from an interactive input."
-    [ ("", Lang.string_t, None, Some "Name of the variable.");
-      ("", Lang.string_t, None, Some "Initial value.") ]
-    (Lang.fun_t [] Lang.string_t) (fun p ->
+    [
+      ("", Lang.string_t, None, Some "Name of the variable.");
+      ("", Lang.string_t, None, Some "Initial value.");
+    ] (Lang.fun_t [] Lang.string_t) (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_string (Lang.assoc "" 2 p) in
       let v = ref v in
@@ -98,9 +99,10 @@ let () =
 let () =
   add_builtin "interactive.float" ~cat:Interaction
     ~descr:"Read a float from an interactive input."
-    [ ("", Lang.string_t, None, Some "Name of the variable.");
-      ("", Lang.float_t, None, Some "Initial value.") ]
-    (Lang.fun_t [] Lang.float_t) (fun p ->
+    [
+      ("", Lang.string_t, None, Some "Name of the variable.");
+      ("", Lang.float_t, None, Some "Initial value.");
+    ] (Lang.fun_t [] Lang.float_t) (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_float (Lang.assoc "" 2 p) in
       let v = ref v in
@@ -115,9 +117,10 @@ let () =
 let () =
   add_builtin "interactive.bool" ~cat:Interaction
     ~descr:"Read a boolean from an interactive input."
-    [ ("", Lang.string_t, None, Some "Name of the variable.");
-      ("", Lang.bool_t, None, Some "Initial value.") ]
-    (Lang.fun_t [] Lang.bool_t) (fun p ->
+    [
+      ("", Lang.string_t, None, Some "Name of the variable.");
+      ("", Lang.bool_t, None, Some "Initial value.");
+    ] (Lang.fun_t [] Lang.bool_t) (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_bool (Lang.assoc "" 2 p) in
       let v = ref v in

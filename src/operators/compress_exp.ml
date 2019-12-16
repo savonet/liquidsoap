@@ -56,11 +56,13 @@ let () =
   let kind = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "compress.exponential" ~category:Lang.SoundProcessing
     ~descr:"Exponential compressor."
-    [ ( "mu",
+    [
+      ( "mu",
         Lang.float_t,
         Some (Lang.float 2.),
         Some "Exponential compression factor, typically greater than 1." );
-      ("", Lang.source_t kind, None, None) ]
+      ("", Lang.source_t kind, None, None);
+    ]
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
       let f v = List.assoc v p in

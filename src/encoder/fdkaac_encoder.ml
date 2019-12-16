@@ -79,11 +79,13 @@ module Register (Fdkaac : Fdkaac_t) = struct
       match params.Fdkaac_format.bandwidth with `Auto -> 0 | `Fixed b -> b
     in
     let params =
-      [ `Aot params.Fdkaac_format.aot;
+      [
+        `Aot params.Fdkaac_format.aot;
         `Bandwidth bandwidth;
         `Samplerate (Lazy.force params.Fdkaac_format.samplerate);
         `Transmux params.Fdkaac_format.transmux;
-        `Afterburner params.Fdkaac_format.afterburner ]
+        `Afterburner params.Fdkaac_format.afterburner;
+      ]
       @ ( if params.Fdkaac_format.aot = `Mpeg_4 `AAC_ELD then
           [`Sbr_mode params.Fdkaac_format.sbr_mode]
         else [] )
@@ -158,10 +160,11 @@ module Register (Fdkaac : Fdkaac_t) = struct
       Strings.Mutable.add rem (Fdkaac.Encoder.flush enc);
       Strings.Mutable.to_strings rem
     in
-    { Encoder.insert_metadata = (fun _ -> ());
+    {
+      Encoder.insert_metadata = (fun _ -> ());
       header = Strings.empty;
       encode;
-      stop
+      stop;
     }
 
   let register_encoder name =

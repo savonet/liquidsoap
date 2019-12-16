@@ -66,10 +66,11 @@ let encoder shine =
     Strings.Mutable.flush encoded
   in
   let stop () = Strings.of_string (Shine.flush enc) in
-  { Encoder.insert_metadata = (fun _ -> ());
+  {
+    Encoder.insert_metadata = (fun _ -> ());
     header = Strings.empty;
     encode;
-    stop
+    stop;
   }
 
 let () =

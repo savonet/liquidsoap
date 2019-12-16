@@ -26,7 +26,8 @@ module SecureTransport_transport :
         raise exn
     end;
     begin
-      match bind_address with None -> ()
+      match bind_address with
+      | None -> ()
       | Some s ->
           let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
           (* Seems like you need to bind on port 0 *)

@@ -73,9 +73,10 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     method open_device =
       let ss =
-        { sample_format = Sample_format_float32le;
+        {
+          sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = channels
+          sample_chans = channels;
         }
       in
       stream <-
@@ -160,9 +161,10 @@ class input ~kind p =
 
     method private open_device =
       let ss =
-        { sample_format = Sample_format_float32le;
+        {
+          sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = channels
+          sample_chans = channels;
         }
       in
       stream <-
@@ -196,7 +198,8 @@ class input ~kind p =
 let () =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
   let proto =
-    [ ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
+    [
+      ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
       ( "device",
         Lang.string_t,
         Some (Lang.string ""),
@@ -204,7 +207,8 @@ let () =
       ( "clock_safe",
         Lang.bool_t,
         Some (Lang.bool true),
-        Some "Force the use of the dedicated Pulseaudio clock." ) ]
+        Some "Force the use of the dedicated Pulseaudio clock." );
+    ]
   in
   Lang.add_operator "output.pulseaudio" ~active:true
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
@@ -221,8 +225,7 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
       in
-      ( new output ~infallible ~on_start ~on_stop ~start ~kind p
-        :> Source.source ));
+      (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Source.source));
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input

@@ -143,7 +143,8 @@ let () =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
   Lang.add_operator "output.oss" ~active:true
     ( Output.proto
-    @ [ ( "clock_safe",
+    @ [
+        ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated OSS clock." );
@@ -151,7 +152,8 @@ let () =
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
-        ("", Lang.source_t k, None, None) ] )
+        ("", Lang.source_t k, None, None);
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
     (fun p kind ->
@@ -175,14 +177,16 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "input.oss" ~active:true
     ( Start_stop.input_proto
-    @ [ ( "clock_safe",
+    @ [
+        ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated OSS clock." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
-          Some "OSS device to use." ) ] )
+          Some "OSS device to use." );
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input
     ~descr:"Stream from an OSS input device."
     (fun p kind ->

@@ -27,7 +27,8 @@ let log = Log.make ["lastfm"; "submit"]
 let () =
   let f name stype descr =
     let proto =
-      [ ("user", Lang.string_t, None, None);
+      [
+        ("user", Lang.string_t, None, None);
         ("password", Lang.string_t, None, None);
         ( "host",
           Lang.string_t,
@@ -44,7 +45,8 @@ let () =
             "Try to submit length information. This operation can be CPU \
              intensive. Value forced to true when used with the \"user\" \
              source type." );
-        ("", Lang.metadata_t, None, None) ]
+        ("", Lang.metadata_t, None, None);
+      ]
     in
     let proto =
       if stype = Liqfm.Played then
@@ -86,8 +88,8 @@ let () =
         let length =
           if length = false && mode = Liqfm.User then (
             log#severe
-              "length information is required for \"user\" sources, setting \
-               to true.";
+              "length information is required for \"user\" sources, setting to \
+               true.";
             true )
           else length
         in

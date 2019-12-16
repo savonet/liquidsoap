@@ -81,9 +81,10 @@ let create process kind filename =
   in
   let generator = Generator.create `Audio in
   let dec = Buffered.file_decoder filename kind create generator in
-  { dec with
+  {
+    dec with
     Decoder.close =
-      (fun () -> Tutils.finalize ~k:(fun () -> dec.Decoder.close ()) !close)
+      (fun () -> Tutils.finalize ~k:(fun () -> dec.Decoder.close ()) !close);
   }
 
 let create_stream process input =
@@ -102,10 +103,11 @@ let test_kind f filename =
   if ret = 0 then None
   else
     Some
-      { Frame.video = Frame.Zero;
+      {
+        Frame.video = Frame.Zero;
         midi = Frame.Zero;
         audio =
-          (if ret < 0 then Frame.Succ Frame.Variable else Frame.mul_of_int ret)
+          (if ret < 0 then Frame.Succ Frame.Variable else Frame.mul_of_int ret);
       }
 
 let register_stdin name sdoc mimes test process =
@@ -119,9 +121,7 @@ let register_stdin name sdoc mimes test process =
               Some (fun () -> create process out_kind filename)
             else None);
   let duration filename =
-    let process =
-      Printf.sprintf "cat %s | %s" (Utils.quote filename) process
-    in
+    let process = Printf.sprintf "cat %s | %s" (Utils.quote filename) process in
     duration process
   in
   Request.dresolvers#register name duration;
@@ -178,8 +178,7 @@ let external_input_oblivious process filename prebuf =
     begin
       try
         while
-          Generator.length gen < prebuf
-          && not (Process_handler.stopped process)
+          Generator.length gen < prebuf && not (Process_handler.stopped process)
         do
           decoder.Decoder.decode gen
         done

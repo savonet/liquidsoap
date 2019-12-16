@@ -364,8 +364,7 @@ module Read = struct
                         | 0x30323449 -> `I420
                         | _ -> assert false
                     in
-                    streams := `Video (fourcc, width, height, fps) :: !streams
-                    )
+                    streams := `Video (fourcc, width, height, fps) :: !streams )
                   else if stream_type = "auds" then (
                     let codec = word 0 in
                     must "Wrong audio codec." (codec = 1 || codec = 255);

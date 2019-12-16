@@ -25,7 +25,8 @@ open Lang_encoders
 
 let make params =
   let defaults =
-    { External_encoder_format.channels
+    {
+      External_encoder_format.channels
       (* We use a hardcoded value in order not to force the evaluation of the
            number of channels too early, see #933. *) =
         2;
@@ -34,7 +35,7 @@ let make params =
       header = true;
       restart_on_crash = false;
       restart = External_encoder_format.No_condition;
-      process = ""
+      process = "";
     }
   in
   let ext =
@@ -52,13 +53,14 @@ let make params =
             { f with External_encoder_format.restart_on_crash = h }
         | "", { term = Var s; _ }
           when String.lowercase_ascii s = "restart_on_metadata" ->
-            { f with
-              External_encoder_format.restart =
-                External_encoder_format.Metadata
+            {
+              f with
+              External_encoder_format.restart = External_encoder_format.Metadata;
             }
         | "restart_after_delay", { term = Int i; _ } ->
-            { f with
-              External_encoder_format.restart = External_encoder_format.Delay i
+            {
+              f with
+              External_encoder_format.restart = External_encoder_format.Delay i;
             }
         | "process", { term = String s; _ } ->
             { f with External_encoder_format.process = s }

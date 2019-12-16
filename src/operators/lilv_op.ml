@@ -77,8 +77,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
 
     val inst =
       Array.init (Frame.type_of_kind kind).Frame.audio (fun _ ->
-          Plugin.instantiate plugin
-            (float_of_int (Lazy.force Frame.audio_rate)))
+          Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate)))
 
     initializer Array.iter Plugin.Instance.activate inst
 
@@ -178,8 +177,7 @@ class lilv_nosource ~kind plugin outputs params =
         let len = position - offset in
         List.iter
           (fun (p, v) ->
-            Plugin.Instance.connect_port_float inst p
-              (constant_data len (v ())))
+            Plugin.Instance.connect_port_float inst p (constant_data len (v ())))
           params;
         for c = 0 to chans - 1 do
           Plugin.Instance.connect_port_float inst outputs.(c)

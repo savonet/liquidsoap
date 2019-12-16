@@ -48,12 +48,14 @@ let () =
     ~descr:
       "Define a function by case analysis, depending on whether a list is \
        empty or not."
-    [ ("", Lang.list_t a, None, Some "List to perform case analysis on.");
+    [
+      ("", Lang.list_t a, None, Some "List to perform case analysis on.");
       ("", b, None, Some "Result when the list is empty.");
       ( "",
         Lang.fun_t [(false, "", a); (false, "", Lang.list_t a)] b,
         None,
-        Some "Result when the list is non-empty." ) ]
+        Some "Result when the list is non-empty." );
+    ]
     b
     (fun p b ->
       let l, e, f =
@@ -74,7 +76,8 @@ let () =
       "Define a function by induction on a list. This is slightly more \
        efficient than defining a recursive function. The list is scanned from \
        the right."
-    [ ("", Lang.list_t a, None, Some "List to perform induction on.");
+    [
+      ("", Lang.list_t a, None, Some "List to perform induction on.");
       ("", b, None, Some "Result when the list is empty.");
       ( "",
         Lang.fun_t
@@ -83,7 +86,8 @@ let () =
         None,
         Some
           "Result when the list is non-empty, given the current element, the \
-           tail and the result of the recursive call on the tail." ) ]
+           tail and the result of the recursive call on the tail." );
+    ]
     b
     (fun p b ->
       let l, e, f =
@@ -97,8 +101,7 @@ let () =
         | x :: l ->
             aux
               (fun r ->
-                k
-                  (Lang.apply ~t:b f [("", x); ("", Lang.list ~t:a l); ("", r)]))
+                k (Lang.apply ~t:b f [("", x); ("", Lang.list ~t:a l); ("", r)]))
               l
       in
       aux (fun r -> r) (Lang.to_list l))
@@ -130,8 +133,10 @@ let () =
   let a = Lang.univ_t () in
   add_builtin "list.sort" ~cat:List
     ~descr:"Sort a list according to a comparison function."
-    [ ("", Lang.fun_t [(false, "", a); (false, "", a)] Lang.int_t, None, None);
-      ("", Lang.list_t a, None, None) ]
+    [
+      ("", Lang.fun_t [(false, "", a); (false, "", a)] Lang.int_t, None, None);
+      ("", Lang.list_t a, None, None);
+    ]
     (Lang.list_t a)
     (fun p ->
       let f = Lang.assoc "" 1 p in

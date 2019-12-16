@@ -47,8 +47,10 @@ let () =
 
 let () =
   add_builtin "source.on_shutdown" ~cat:Sys
-    [ ("", Lang.source_t (Lang.univ_t ()), None, None);
-      ("", Lang.fun_t [] Lang.unit_t, None, None) ]
+    [
+      ("", Lang.source_t (Lang.univ_t ()), None, None);
+      ("", Lang.fun_t [] Lang.unit_t, None, None);
+    ]
     Lang.unit_t
     ~descr:"Register a function to be called when source shuts down."
     (fun p ->

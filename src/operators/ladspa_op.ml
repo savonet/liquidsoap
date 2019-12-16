@@ -82,8 +82,7 @@ let instantiate d samplerate =
   (* Connect output control ports (which we don't use) to some dummy buffer in
      order to avoid segfaults. *)
   for i = 0 to Descriptor.port_count d - 1 do
-    if Descriptor.port_is_control d i && not (Descriptor.port_is_input d i)
-    then (
+    if Descriptor.port_is_control d i && not (Descriptor.port_is_input d i) then (
       let c = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout 1 in
       Descriptor.connect_port ans i c )
   done;
@@ -137,9 +136,7 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let len = position - offset in
-      List.iter
-        (fun (p, v) -> Descriptor.set_control_port inst p (v ()))
-        params;
+      List.iter (fun (p, v) -> Descriptor.set_control_port inst p (v ())) params;
       if Array.length inputs = Array.length outputs then (
         (* The simple case: number of channels does not get changed. *)
         for c = 0 to Array.length b - 1 do
@@ -247,8 +244,7 @@ let params_of_descr d =
                 match min with
                 | Some f -> (
                     match t with
-                      | Float ->
-                          bounds := Printf.sprintf "%s%.6g <= " !bounds f
+                      | Float -> bounds := Printf.sprintf "%s%.6g <= " !bounds f
                       | Int ->
                           bounds :=
                             Printf.sprintf "%s%d <= " !bounds
@@ -264,8 +260,7 @@ let params_of_descr d =
                 match max with
                 | Some f -> (
                     match t with
-                      | Float ->
-                          bounds := Printf.sprintf "%s <= %.6g" !bounds f
+                      | Float -> bounds := Printf.sprintf "%s <= %.6g" !bounds f
                       | Int ->
                           bounds :=
                             Printf.sprintf "%s <= %d" !bounds (int_of_float f)

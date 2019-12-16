@@ -25,7 +25,8 @@ open Lang_encoders
 
 let make params =
   let defaults =
-    { Theora_format.bitrate_control = Theora_format.Quality 40;
+    {
+      Theora_format.bitrate_control = Theora_format.Quality 40;
       fill = None;
       width = Frame.video_width;
       height = Frame.video_height;
@@ -39,7 +40,7 @@ let make params =
       vp3_compatible = None;
       soft_target = false;
       buffer_delay = None;
-      speed = None
+      speed = None;
     }
   in
   let theora =
@@ -65,9 +66,7 @@ let make params =
             if i mod 16 <> 0 || i >= 1048576 then
               raise
                 (Error
-                   ( t,
-                     "invalid frame height value (should be a multiple of 16)"
-                   ));
+                   (t, "invalid frame height value (should be a multiple of 16)"));
             { f with Theora_format.height = lazy i; picture_height = lazy i }
         | "picture_width", ({ term = Int i; _ } as t) ->
             (* According to the doc: must not be larger than width. *)
@@ -77,8 +76,7 @@ let make params =
         | "picture_height", ({ term = Int i; _ } as t) ->
             (* According to the doc: must not be larger than height. *)
             if i > Lazy.force f.Theora_format.height then
-              raise
-                (Error (t, "picture height must not be larger than height"));
+              raise (Error (t, "picture height must not be larger than height"));
             { f with Theora_format.picture_height = lazy i }
         | "picture_x", ({ term = Int i; _ } as t) ->
             (* According to the doc: must be no larger than width-picture_width

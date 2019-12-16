@@ -56,20 +56,21 @@ class on_track ~kind f s =
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "on_track"
-    [ ( "",
+    [
+      ( "",
         Lang.fun_t
-          [ ( false,
-              "",
-              Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) ) ]
+          [
+            (false, "", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+          ]
           Lang.unit_t,
         None,
         Some
-          "Function called on every beginning of track in the stream, with \
-           the corresponding metadata as argument. If there is no metadata at \
-           the beginning of track, the empty list is passed. That function \
-           should be fast because it is executed in the main streaming thread."
-      );
-      ("", Lang.source_t kind, None, None) ]
+          "Function called on every beginning of track in the stream, with the \
+           corresponding metadata as argument. If there is no metadata at the \
+           beginning of track, the empty list is passed. That function should \
+           be fast because it is executed in the main streaming thread." );
+      ("", Lang.source_t kind, None, None);
+    ]
     ~category:Lang.TrackProcessing ~descr:"Call a given handler on new tracks."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->

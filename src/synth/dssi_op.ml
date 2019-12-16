@@ -132,20 +132,22 @@ let register_descr plugin_name descr_n descr outputs =
   let k =
     Lang.kind_type_of_kind_format
       (Lang.Constrained
-         { Frame.audio = Lang.Fixed chans;
+         {
+           Frame.audio = Lang.Fixed chans;
            video = Lang.Any_fixed 0;
-           midi = Lang.Fixed 1
+           midi = Lang.Fixed 1;
          })
   in
   let liq_params = liq_params in
   Lang.add_operator
     ( "synth.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr)
-    )
-    ( [ ( "channel",
+    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
+    ( [
+        ( "channel",
           Lang.int_t,
           Some (Lang.int 0),
-          Some "MIDI channel to handle." ) ]
+          Some "MIDI channel to handle." );
+      ]
     @ liq_params
     @ [("", Lang.source_t k, None, None)] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~flags:[]
@@ -159,15 +161,15 @@ let register_descr plugin_name descr_n descr outputs =
   let k =
     Lang.kind_type_of_kind_format
       (Lang.Constrained
-         { Frame.audio = Lang.Fixed chans;
+         {
+           Frame.audio = Lang.Fixed chans;
            video = Lang.Any_fixed 0;
-           midi = Lang.Fixed all_chans
+           midi = Lang.Fixed all_chans;
          })
   in
   Lang.add_operator
     ( "synth.all.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr)
-    )
+    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
     (liq_params @ [("", Lang.source_t k, None, None)])
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
@@ -210,8 +212,7 @@ let register_plugins () =
         try
           while true do
             let f = Unix.readdir dir in
-            if f <> "." && f <> ".." then
-              ans := (plugins_dir ^ "/" ^ f) :: !ans
+            if f <> "." && f <> ".." then ans := (plugins_dir ^ "/" ^ f) :: !ans
           done
         with End_of_file -> Unix.closedir dir
       with Unix.Unix_error (e, _, _) ->

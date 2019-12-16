@@ -233,26 +233,26 @@ let rec forget var subclock =
 type metadata = (int * (string, string) Hashtbl.t) list
 type clock_sync_mode = [ sync | `Unknown ]
 
-type watcher =
-  { get_ready :
-      stype:source_t ->
-      is_output:bool ->
-      id:string ->
-      content_kind:Frame.content_kind ->
-      clock_id:string ->
-      clock_sync_mode:clock_sync_mode ->
-      unit;
-    leave : unit -> unit;
-    get_frame :
-      start_time:float ->
-      end_time:float ->
-      start_position:int ->
-      end_position:int ->
-      is_partial:bool ->
-      metadata:metadata ->
-      unit;
-    after_output : unit -> unit
-  }
+type watcher = {
+  get_ready :
+    stype:source_t ->
+    is_output:bool ->
+    id:string ->
+    content_kind:Frame.content_kind ->
+    clock_id:string ->
+    clock_sync_mode:clock_sync_mode ->
+    unit;
+  leave : unit -> unit;
+  get_frame :
+    start_time:float ->
+    end_time:float ->
+    start_position:int ->
+    end_position:int ->
+    is_partial:bool ->
+    metadata:metadata ->
+    unit;
+  after_output : unit -> unit;
+}
 
 let source_log = Log.make ["source"]
 
@@ -406,7 +406,7 @@ class virtual operator ?(name = "src") content_kind sources =
              (fun l -> String.concat ":" (List.map (fun s -> s#id) l))
              activations)
       in
-      (self#log)#info "Activations changed: static=[%s], dynamic=[%s]."
+      self#log#info "Activations changed: static=[%s], dynamic=[%s]."
         (string_of static_activations)
         (string_of dynamic_activations);
 
@@ -428,11 +428,11 @@ class virtual operator ?(name = "src") content_kind sources =
         | None ->
             if caching then (
               caching <- false;
-              (self#log)#info "Disabling caching mode." )
+              self#log#info "Disabling caching mode." )
         | Some msg ->
             if not caching then (
               caching <- true;
-              (self#log)#info "Enabling caching mode: %s." msg )
+              self#log#info "Enabling caching mode: %s." msg )
 
     (* Ask for initialization.
      * The current implementation makes it dangerous to call #get_ready from
@@ -448,8 +448,7 @@ class virtual operator ?(name = "src") content_kind sources =
           ns <- Server.register [self#id] ns_kind;
           self#set_id (Server.to_string ns);
           List.iter
-            (fun (descr, usage, name, f) ->
-              Server.add ~ns ~descr ?usage name f)
+            (fun (descr, usage, name, f) -> Server.add ~ns ~descr ?usage name f)
             commands ) );
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
@@ -470,8 +469,7 @@ class virtual operator ?(name = "src") content_kind sources =
     method leave ?(dynamic = false) src =
       let rec remove acc = function
         | [] ->
-            (self#log)#critical "Got ill-balanced activations (from %s)!"
-              src#id;
+            self#log#critical "Got ill-balanced activations (from %s)!" src#id;
             assert false
         | (s :: _) :: tl when s = src -> List.rev_append acc tl
         | h :: tl -> remove (h :: acc) tl
@@ -496,7 +494,7 @@ class virtual operator ?(name = "src") content_kind sources =
 
     (** Two methods called for initialization and shutdown of the source *)
     method private wake_up activation =
-      (self#log)#info "Content kind is %s."
+      self#log#info "Content kind is %s."
         (Frame.string_of_content_kind content_kind);
       let activation = (self :> operator) :: activation in
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
@@ -516,7 +514,7 @@ class virtual operator ?(name = "src") content_kind sources =
      * returns the number of ticks actually skipped.
      * By default it always returns 0, refusing to seek at all. *)
     method seek (_ : int) =
-      (self#log)#important "Seek not implemented!";
+      self#log#important "Seek not implemented!";
       0
 
     (* Is there some data available for the next [get]?
@@ -588,7 +586,7 @@ class virtual operator ?(name = "src") content_kind sources =
           let b = Frame.breaks buf in
           self#instrumented_get_frame buf;
           if List.length b + 1 <> List.length (Frame.breaks buf) then (
-            (self#log)#severe "#get_frame didn't add exactly one break!";
+            self#log#severe "#get_frame didn't add exactly one break!";
             assert false ) )
       else (
         try Frame.get_chunk buf memo
@@ -600,7 +598,7 @@ class virtual operator ?(name = "src") content_kind sources =
             let p = Frame.position memo in
             self#instrumented_get_frame memo;
             if List.length b + 1 <> List.length (Frame.breaks memo) then (
-              (self#log)#severe "#get_frame didn't add exactly one break!";
+              self#log#severe "#get_frame didn't add exactly one break!";
               assert false )
             else if p < Frame.position memo then self#get buf
             else Frame.add_break buf (Frame.position buf) ) )
@@ -695,8 +693,7 @@ class type clock =
 
     method sub_clocks : clock_variable list
 
-    method start_outputs :
-      (active_source -> bool) -> unit -> active_source list
+    method start_outputs : (active_source -> bool) -> unit -> active_source list
 
     method get_tick : int
 

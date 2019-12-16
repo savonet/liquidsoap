@@ -51,13 +51,15 @@ let conf_icy_metadata =
   Dtools.Conf.list
     ~p:(conf_harbor#plug "icy_formats")
     ~d:
-      [ "audio/mpeg";
+      [
+        "audio/mpeg";
         "audio/aacp";
         "audio/aac";
         "audio/x-aac";
         "audio/wav";
         "audio/wave";
-        "audio/x-flac" ]
+        "audio/x-flac";
+      ]
     "Content-type (mime) of formats which allow shout metadata update."
 
 (* 300 sec timeout is the default value in Apache.. *)

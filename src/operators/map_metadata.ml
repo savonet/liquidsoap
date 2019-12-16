@@ -61,7 +61,7 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
         in_track <- true;
         match Frame.get_metadata buf p with
           | None ->
-              (self#log)#important "Inserting missing metadata.";
+              self#log#important "Inserting missing metadata.";
               let h = Hashtbl.create 10 in
               Frame.set_metadata buf p h
           | Some _ -> () );
@@ -77,11 +77,12 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
 let register =
   let kind = Lang.univ_t () in
   Lang.add_operator "map_metadata"
-    [ ( "",
+    [
+      ( "",
         Lang.fun_t
-          [ ( false,
-              "",
-              Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) ) ]
+          [
+            (false, "", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+          ]
           (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)),
         None,
         Some "A function that returns new metadata." );
@@ -95,8 +96,8 @@ let register =
         Lang.bool_t,
         Some (Lang.bool false),
         Some
-          "Completely remove empty metadata. Operates on both empty values \
-           and empty metadata chunk." );
+          "Completely remove empty metadata. Operates on both empty values and \
+           empty metadata chunk." );
       ( "insert_missing",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -104,7 +105,8 @@ let register =
           "Treat track beginnings without metadata as having empty ones. The \
            operational order is: create empty if needed, map and strip if \
            enabled." );
-      ("", Lang.source_t kind, None, None) ]
+      ("", Lang.source_t kind, None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:"Rewrite metadata on the fly using a function."
     ~kind:(Lang.Unconstrained kind)

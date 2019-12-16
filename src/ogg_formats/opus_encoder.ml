@@ -86,8 +86,7 @@ let create_encoder ~opus ~comments () =
     in
     let ret =
       try
-        Opus.Encoder.encode_float ~frame_size enc data 0
-          (Array.length data.(0))
+        Opus.Encoder.encode_float ~frame_size enc data 0 (Array.length data.(0))
       with Opus.Buffer_too_small -> Array.length data.(0)
     in
     if ret > 0 then
@@ -97,9 +96,10 @@ let create_encoder ~opus ~comments () =
           data
   in
   let empty_data () =
-    { Ogg_muxer.offset = 0;
+    {
+      Ogg_muxer.offset = 0;
       length = 1;
-      data = Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.)
+      data = Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.);
     }
   in
   let end_of_page p =
@@ -113,12 +113,13 @@ let create_encoder ~opus ~comments () =
     if not !started then data_encoder (empty_data ()) os ();
     Opus.Encoder.eos enc
   in
-  { Ogg_muxer.header_encoder;
+  {
+    Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
     data_encoder = Ogg_muxer.Audio_encoder data_encoder;
     end_of_page;
-    end_of_stream
+    end_of_stream;
   }
 
 let create_opus = function

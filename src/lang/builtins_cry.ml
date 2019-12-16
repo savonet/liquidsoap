@@ -30,7 +30,8 @@ let () =
   in
   add_builtin "icy.update_metadata" ~cat:Interaction
     ~descr:"Update metata on an icecast mountpoint using the ICY protocol."
-    [ ("host", Lang.string_t, Some (Lang.string "localhost"), None);
+    [
+      ("host", Lang.string_t, Some (Lang.string "localhost"), None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
       ("user", Lang.string_t, Some (Lang.string "source"), None);
       ("password", Lang.string_t, Some (Lang.string "hackme"), None);
@@ -54,7 +55,8 @@ let () =
         Lang.metadata_t,
         Some (Lang.list ~t:Lang.metadata_t [user_agent]),
         Some "Additional headers." );
-      ("", Lang.metadata_t, None, None) ]
+      ("", Lang.metadata_t, None, None);
+    ]
     Lang.unit_t
     (fun p ->
       let user = Lang.to_string (List.assoc "user" p) in

@@ -49,8 +49,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       Frame.advance databuf
 
     initializer
-    (self#log)#important "Using soundtouch %s."
-      (Soundtouch.get_version_string st)
+    self#log#important "Using soundtouch %s." (Soundtouch.get_version_string st)
 
     method stype = source#stype
 
@@ -103,10 +102,12 @@ let () =
   (* TODO: could we keep the video in some cases? *)
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "soundtouch"
-    [ ("rate", Lang.float_getter_t (), Some (Lang.float 1.0), None);
+    [
+      ("rate", Lang.float_getter_t (), Some (Lang.float 1.0), None);
       ("tempo", Lang.float_getter_t (), Some (Lang.float 1.0), None);
       ("pitch", Lang.float_getter_t (), Some (Lang.float 1.0), None);
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~category:Lang.SoundProcessing ~kind:(Lang.Unconstrained k)
     ~descr:"Change the rate, the tempo or the pitch of the sound."
     ~flags:[Lang.Experimental]

@@ -152,7 +152,8 @@ let kind = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ())
 
 (* TODO: share more with fade.ml *)
 let proto =
-  [ ( "duration",
+  [
+    ( "duration",
       Lang.float_t,
       Some (Lang.float 3.),
       Some
@@ -163,15 +164,15 @@ let proto =
       Some (Lang.string "fade"),
       Some
         "Kind of transition \
-         (fade|slide_left|slide_right|slide_up|slide_down|grow|disc|random)."
-    );
+         (fade|slide_left|slide_right|slide_up|slide_down|grow|disc|random)." );
     ( "type",
       Lang.string_t,
       Some (Lang.string "lin"),
       Some
         "Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or \
          exponential." );
-    ("", Lang.source_t kind, None, None) ]
+    ("", Lang.source_t kind, None, None);
+  ]
 
 let rec transition_of_string p transition =
   let translate img x y =
@@ -216,13 +217,14 @@ let rec transition_of_string p transition =
           Image.YUV420.disk_alpha buf (w / 2) (h / 2) (ifm r_max t)
     | "random" ->
         let trans =
-          [| "slide_left";
-             "slide_right";
-             "slide_up";
-             "slide_down";
-             "fade";
-             "grow";
-             "disc"
+          [|
+            "slide_left";
+            "slide_right";
+            "slide_up";
+            "slide_down";
+            "fade";
+            "grow";
+            "disc";
           |]
         in
         fun () ->

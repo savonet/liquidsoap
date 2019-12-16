@@ -75,16 +75,18 @@ let type_of_int n = add_t n zero_t
 let frame_kind_t ?pos ?level audio video midi =
   T.make ?pos ?level
     (T.Constr
-       { T.name = "stream_kind";
+       {
+         T.name = "stream_kind";
          T.params =
-           [(T.Covariant, audio); (T.Covariant, video); (T.Covariant, midi)]
+           [(T.Covariant, audio); (T.Covariant, video); (T.Covariant, midi)];
        })
 
 let of_frame_kind_t t =
   match (T.deref t).T.descr with
     | T.Constr
-        { T.name = "stream_kind";
-          T.params = [(_, audio); (_, video); (_, midi)]
+        {
+          T.name = "stream_kind";
+          T.params = [(_, audio); (_, video); (_, midi)];
         } ->
         { Frame.audio; video; midi }
     | T.EVar (_, _) ->
@@ -150,13 +152,13 @@ module Vars = Set.Make (String)
 
 type term = { mutable t : T.t; term : in_term }
 
-and let_t =
-  { doc : Doc.item * (string * string) list;
-    pat : pattern;
-    mutable gen : (int * T.constraints) list;
-    def : term;
-    body : term
-  }
+and let_t = {
+  doc : Doc.item * (string * string) list;
+  pat : pattern;
+  mutable gen : (int * T.constraints) list;
+  def : term;
+  body : term;
+}
 
 and in_term =
   | Bool of bool
@@ -350,35 +352,38 @@ let rec map_types f (gen : 'a list) tm =
         { tm with t = f gen tm.t }
     | Ref r -> { t = f gen tm.t; term = Ref (map_types f gen r) }
     | Get r -> { t = f gen tm.t; term = Get (map_types f gen r) }
-    | Tuple l ->
-        { t = f gen tm.t; term = Tuple (List.map (map_types f gen) l) }
+    | Tuple l -> { t = f gen tm.t; term = Tuple (List.map (map_types f gen) l) }
     | Seq (a, b) ->
         { t = f gen tm.t; term = Seq (map_types f gen a, map_types f gen b) }
     | Set (a, b) ->
         { t = f gen tm.t; term = Set (map_types f gen a, map_types f gen b) }
     | List l -> { t = f gen tm.t; term = List (List.map (map_types f gen) l) }
     | App (hd, l) ->
-        { t = f gen tm.t;
+        {
+          t = f gen tm.t;
           term =
             App
               ( map_types f gen hd,
-                List.map (fun (lbl, v) -> (lbl, map_types f gen v)) l )
+                List.map (fun (lbl, v) -> (lbl, map_types f gen v)) l );
         }
     | Fun (fv, p, v) ->
         { t = f gen tm.t; term = Fun (fv, List.map aux p, map_types f gen v) }
     | RFun (x, fv, p, v) ->
-        { t = f gen tm.t;
-          term = RFun (x, fv, List.map aux p, map_types f gen v)
+        {
+          t = f gen tm.t;
+          term = RFun (x, fv, List.map aux p, map_types f gen v);
         }
     | Let l ->
         let gen' = l.gen @ gen in
-        { t = f gen tm.t;
+        {
+          t = f gen tm.t;
           term =
             Let
-              { l with
+              {
+                l with
                 def = map_types f gen' l.def;
-                body = map_types f gen l.body
-              }
+                body = map_types f gen l.body;
+              };
         }
 
 (** Folds [f] over almost all types occurring in a term,
@@ -495,28 +500,29 @@ module V = struct
           { v with t = f gen v.t }
       | Tuple l ->
           { t = f gen v.t; value = Tuple (List.map (map_types f gen) l) }
-      | List l ->
-          { t = f gen v.t; value = List (List.map (map_types f gen) l) }
+      | List l -> { t = f gen v.t; value = List (List.map (map_types f gen) l) }
       | Fun (p, applied, env, tm) ->
           let aux = function
             | lbl, var, None -> (lbl, var, None)
             | lbl, var, Some v -> (lbl, var, Some (map_types f gen v))
           in
-          { t = f gen v.t;
+          {
+            t = f gen v.t;
             value =
               Fun
                 ( List.map aux p,
                   map_env (map_types f gen) applied,
                   map_lazy_env (map_types f gen) env,
-                  tm_map_types f gen tm )
+                  tm_map_types f gen tm );
           }
       | FFI (p, applied, ffi) ->
           let aux = function
             | lbl, var, None -> (lbl, var, None)
             | lbl, var, Some v -> (lbl, var, Some (map_types f gen v))
           in
-          { t = f gen v.t;
-            value = FFI (List.map aux p, map_env (map_types f gen) applied, ffi)
+          {
+            t = f gen v.t;
+            value = FFI (List.map aux p, map_env (map_types f gen) applied, ffi);
           }
       (* In the case on instantiate (currently the only use of map_types)
        * no type instantiation should occur in the following cases (f should
@@ -653,8 +659,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
               with T.Type_Error _ ->
                 if Lazy.force debug then
                   Printf.eprintf
-                    "Ignoring type error to compute a sup of list element \
-                     types.\n";
+                    "Ignoring type error to compute a sup of list element types.\n";
                 e.t <: sup;
                 sup)
             (T.fresh_evar ~level ~pos) l
@@ -1033,8 +1038,7 @@ let toplevel_add (doc, params) pat ~generalized v =
   in
   List.iter
     (fun (s, _) ->
-      Printf.eprintf "WARNING: Unused @param %S for %s!\n" s
-        (string_of_pat pat))
+      Printf.eprintf "WARNING: Unused @param %S for %s!\n" s (string_of_pat pat))
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized v.V.t);
   List.iter

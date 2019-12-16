@@ -60,7 +60,8 @@ class delay ~kind ~initial (source : source) delay =
 let () =
   let kind = Lang.univ_t () in
   Lang.add_operator "delay"
-    [ ( "initial",
+    [
+      ( "initial",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Start in unavailable state, as if a track had just finished." );
@@ -70,7 +71,8 @@ let () =
         Some
           "The source won't be ready less than this amount of seconds after \
            any end of track" );
-      ("", Lang.source_t kind, None, None) ]
+      ("", Lang.source_t kind, None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Prevents the child from being ready again too fast after a end of track"

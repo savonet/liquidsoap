@@ -66,21 +66,21 @@ type file = string
 (** A stream is identified by a MIME type. *)
 type stream = string
 
-type 'a decoder =
-  { decode : 'a -> unit;
-    (* [seek x]: Skip [x] master ticks.
-     * Returns the number of ticks atcually skiped. *)
-    seek : int -> int
-  }
+type 'a decoder = {
+  decode : 'a -> unit;
+  (* [seek x]: Skip [x] master ticks.
+   * Returns the number of ticks atcually skiped. *)
+  seek : int -> int;
+}
 
-type input =
-  { read : bytes -> int -> int -> int;
-    (* Seek to an absolute position in bytes. 
-     * Returns the current position after seeking. *)
-    lseek : (int -> int) option;
-    tell : (unit -> int) option;
-    length : (unit -> int) option
-  }
+type input = {
+  read : bytes -> int -> int -> int;
+  (* Seek to an absolute position in bytes. 
+   * Returns the current position after seeking. *)
+  lseek : (int -> int) option;
+  tell : (unit -> int) option;
+  length : (unit -> int) option;
+}
 
 (** A stream decoder does not "own" any file descriptor,
   * and is generally assumed to not allocate resources (in the sense
@@ -92,13 +92,13 @@ type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
   * called at least when filling fails, i.e. the frame is partial.
   * The closing function can be called earlier e.g. if the user skips.
   * In most cases, file decoders are wrapped stream decoders. *)
-type file_decoder =
-  { fill : Frame.t -> int;
-    (* Return remaining ticks. *)
-    fseek : int -> int;
-    (* There is a record name clash here.. *)
-    close : unit -> unit
-  }
+type file_decoder = {
+  fill : Frame.t -> int;
+  (* Return remaining ticks. *)
+  fseek : int -> int;
+  (* There is a record name clash here.. *)
+  close : unit -> unit;
+}
 
 (** Plugins might define various decoders. In order to be accessed,
   * they should also register methods for choosing decoders. *)
@@ -165,22 +165,26 @@ let conf_debug =
     ~p:(conf_decoder#plug "debug")
     ~d:false "Maximum debugging information (dev only)"
     ~comments:
-      [ "WARNING: Do not enable unless a developer instructed you to do so!";
+      [
+        "WARNING: Do not enable unless a developer instructed you to do so!";
         "The debugging mode makes it easier to understand why decoding fails,";
         "but as a side effect it will crash liquidsoap at the end of every";
-        "track." ]
+        "track.";
+      ]
 
 let conf_mime_types =
   Dtools.Conf.void
     ~p:(conf_decoder#plug "mime_types")
     "Mime-types used for guessing audio formats"
     ~comments:
-      [ "When a mime-type is available (e.g. with input.http), it can be used";
+      [
+        "When a mime-type is available (e.g. with input.http), it can be used";
         "to guess which audio stream format is used.";
         "This section contains the listings used for that detection, which you";
         "might want to tweak if you encounter a new mime-type.";
         "If you feel that new mime-types should be permanently added, please";
-        "contact the developpers." ]
+        "contact the developpers.";
+      ]
 
 let conf_file_extensions =
   Dtools.Conf.void
@@ -212,12 +216,13 @@ let test_file ?(log = log) ~mimes ~extensions fname =
       false ) )
 
 let dummy =
-  { fill =
+  {
+    fill =
       (fun b ->
         Frame.add_break b (Frame.position b);
         0);
     fseek = (fun _ -> 0);
-    close = (fun _ -> ())
+    close = (fun _ -> ());
   }
 
 exception Exit of (string * (unit -> file_decoder))
@@ -356,8 +361,8 @@ module Buffered (Generator : Generator.S) = struct
             (Frame.string_of_content_kind kind)
         else
           log#severe
-            "Decoder of %S produced non-uniform data: %s at %d, %s at %d! \
-             (End at %d)."
+            "Decoder of %S produced non-uniform data: %s at %d, %s at %d! (End \
+             at %d)."
             filename
             (Frame.string_of_content_type c_type)
             offset

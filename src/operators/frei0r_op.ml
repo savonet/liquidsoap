@@ -333,8 +333,8 @@ let register_plugin fname =
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
   Lang.add_operator ("video.frei0r." ^ name) liq_params
-    ~kind:(Lang.Unconstrained k) ~category:Lang.VideoProcessing ~flags:[]
-    ~descr (fun p kind ->
+    ~kind:(Lang.Unconstrained k) ~category:Lang.VideoProcessing ~flags:[] ~descr
+    (fun p kind ->
       let instance =
         let width = Lazy.force Frame.video_width in
         let height = Lazy.force Frame.video_height in
@@ -349,8 +349,7 @@ let register_plugin fname =
         let source = Lang.to_source (f "") in
         let source' = Lang.to_source (Lang.assoc "" 2 p) in
         new frei0r_mixer ~kind ~name bgra instance params source source' )
-      else if inputs = 0 then
-        new frei0r_source ~kind ~name bgra instance params
+      else if inputs = 0 then new frei0r_source ~kind ~name bgra instance params
       else assert false)
 
 let register_plugin plugin =
@@ -377,5 +376,4 @@ let register_plugins () =
   in
   List.iter add plugin_dirs
 
-let () =
-  Configure.at_init (fun () -> if frei0r_enable then register_plugins ())
+let () = Configure.at_init (fun () -> if frei0r_enable then register_plugins ())

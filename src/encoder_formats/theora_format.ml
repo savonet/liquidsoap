@@ -22,24 +22,24 @@
 
 type bitrate_control = Quality of int | Bitrate of int
 
-type t =
-  { (* TODO: framerate ! *)
-    bitrate_control : bitrate_control;
-    width : int Lazy.t;
-    height : int Lazy.t;
-    picture_width : int Lazy.t;
-    picture_height : int Lazy.t;
-    picture_x : int;
-    picture_y : int;
-    aspect_numerator : int;
-    aspect_denominator : int;
-    keyframe_frequency : int;
-    vp3_compatible : bool option;
-    soft_target : bool;
-    buffer_delay : int option;
-    speed : int option;
-    fill : int option
-  }
+type t = {
+  (* TODO: framerate ! *)
+  bitrate_control : bitrate_control;
+  width : int Lazy.t;
+  height : int Lazy.t;
+  picture_width : int Lazy.t;
+  picture_height : int Lazy.t;
+  picture_x : int;
+  picture_y : int;
+  aspect_numerator : int;
+  aspect_denominator : int;
+  keyframe_frequency : int;
+  vp3_compatible : bool option;
+  soft_target : bool;
+  buffer_delay : int option;
+  speed : int option;
+  fill : int option;
+}
 
 let bit_ctl_to_string bit_ctl =
   match bit_ctl with

@@ -59,11 +59,13 @@ let () =
       Lang.add_builtin_base ~category:(string_of_category Liq)
         ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
         ("configure." ^ name) (Lang.String str) Lang.string_t)
-    [ ("libdir", "library directory", Configure.libs_dir);
+    [
+      ("libdir", "library directory", Configure.libs_dir);
       ("bindir", "Internal script directory", Configure.bin_dir);
       ("rundir", "PID file directory", Configure.rundir);
       ("logdir", "logging directory", Configure.logdir);
-      ("default_font", "default font file", Configure.default_font) ]
+      ("default_font", "default font file", Configure.default_font);
+    ]
 
 let () =
   Lang.add_builtin_base "liquidsoap.executable"
@@ -144,7 +146,8 @@ let () =
 let () =
   add_builtin "clock.assign_new" ~cat:Liq
     ~descr:"Create a new clock and assign it to a list of sources."
-    [ ( "id",
+    [
+      ( "id",
         Lang.string_t,
         Some (Lang.string ""),
         Some
@@ -159,7 +162,8 @@ let () =
       ( "",
         Lang.list_t (Lang.source_t (Lang.univ_t ())),
         None,
-        Some "List of sources to which the new clock will be assigned" ) ]
+        Some "List of sources to which the new clock will be assigned" );
+    ]
     Lang.unit_t
     (fun p ->
       match Lang.to_list (List.assoc "" p) with
@@ -258,7 +262,8 @@ let () =
       "Register an external decoder. The encoder should output in WAV format \
        to his standard output (stdout) and read data from its standard input \
        (stdin)."
-    [ ("name", Lang.string_t, None, Some "Format/decoder's name.");
+    [
+      ("name", Lang.string_t, None, Some "Format/decoder's name.");
       ("description", Lang.string_t, None, Some "Description of the decoder.");
       ( "mimes",
         Lang.list_t Lang.string_t,
@@ -267,7 +272,8 @@ let () =
           "List of mime types supported by this decoder for decoding streams."
       );
       test_arg;
-      ("", Lang.string_t, None, Some "Process to start.") ]
+      ("", Lang.string_t, None, Some "Process to start.");
+    ]
     Lang.unit_t
     (fun p ->
       let process = Lang.to_string (Lang.assoc "" 1 p) in
@@ -286,9 +292,10 @@ let () =
       "Register an external file decoder. The encoder should output in WAV \
        format to his standard output (stdout) and read data from the file it \
        receives. The estimated remaining duration for this decoder will be \
-       unknown until the `buffer` last seconds of the file. If possible, it \
-       is recommended to decode from stdin and use `add_decoder`."
-    [ ("name", Lang.string_t, None, Some "Format/decoder's name.");
+       unknown until the `buffer` last seconds of the file. If possible, it is \
+       recommended to decode from stdin and use `add_decoder`."
+    [
+      ("name", Lang.string_t, None, Some "Format/decoder's name.");
       ("description", Lang.string_t, None, Some "Description of the decoder.");
       test_arg;
       ("buffer", Lang.float_t, Some (Lang.float 5.), None);
@@ -297,7 +304,8 @@ let () =
         None,
         Some
           "Process to start. The function takes the filename as argument and \
-           returns the process to start." ) ]
+           returns the process to start." );
+    ]
     Lang.unit_t
     (fun p ->
       let f = Lang.assoc "" 1 p in
@@ -339,8 +347,10 @@ let () =
   let descr = "Execute a liquidsoap server command." in
   let cat = Liq in
   let params =
-    [ ("", Lang.string_t, None, None);
-      ("", Lang.string_t, Some (Lang.string ""), None) ]
+    [
+      ("", Lang.string_t, None, None);
+      ("", Lang.string_t, Some (Lang.string ""), None);
+    ]
   in
   let return_t = Lang.list_t Lang.string_t in
   let execute p =
@@ -357,9 +367,11 @@ let () =
   Lang.add_builtin "if"
     ~category:(string_of_category Control)
     ~descr:"The basic conditional." ~flags:[Lang.Hidden]
-    [ ("", Lang.bool_t, None, None);
+    [
+      ("", Lang.bool_t, None, None);
       ("then", Lang.fun_t [] t, None, None);
-      ("else", Lang.fun_t [] t, None, None) ]
+      ("else", Lang.fun_t [] t, None, None);
+    ]
     t
     (fun p t ->
       let c = List.assoc "" p in
@@ -440,8 +452,8 @@ let () =
 let () =
   let ss = Lang.product_t Lang.string_t Lang.string_t in
   let ret_t = Lang.list_t ss in
-  add_builtin "environment" ~cat:Sys ~descr:"Return the process environment."
-    [] ret_t (fun _ ->
+  add_builtin "environment" ~cat:Sys ~descr:"Return the process environment." []
+    ret_t (fun _ ->
       let l = Utils.environment () in
       let l = List.map (fun (x, y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x, y) -> Lang.product x y) l in
@@ -450,8 +462,10 @@ let () =
 let () =
   add_builtin "setenv" ~cat:Sys
     ~descr:"Set the value associated to a variable in the process environment."
-    [ ("", Lang.string_t, None, Some "Variable to be set.");
-      ("", Lang.string_t, None, Some "Value to set.") ] Lang.unit_t (fun p ->
+    [
+      ("", Lang.string_t, None, Some "Variable to be set.");
+      ("", Lang.string_t, None, Some "Value to set.");
+    ] Lang.unit_t (fun p ->
       let label = Lang.to_string (Lang.assoc "" 1 p) in
       let value = Lang.to_string (Lang.assoc "" 2 p) in
       Unix.putenv label value;
@@ -459,9 +473,11 @@ let () =
 
 let () =
   add_builtin "log" ~cat:Liq ~descr:"Log a message."
-    [ ("label", Lang.string_t, Some (Lang.string "lang"), None);
+    [
+      ("label", Lang.string_t, Some (Lang.string "lang"), None);
       ("level", Lang.int_t, Some (Lang.int 3), None);
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     Lang.unit_t
     (fun p ->
       let msg = Lang.to_string (List.assoc "" p) in
@@ -486,8 +502,10 @@ let () =
     ref (Array.to_list (Array.sub argv offset (Array.length argv - offset)))
   in
   add_builtin "getopt" ~cat:Sys
-    [ ("default", Lang.string_t, Some (Lang.string ""), None);
-      ("", Lang.string_t, None, None) ]
+    [
+      ("default", Lang.string_t, Some (Lang.string ""), None);
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     ~descr:
       "Parse command line options:\n\
@@ -522,8 +540,10 @@ let () =
     ~descr:
       "Get command-line parameters. The parameters are numbered starting from \
        1, the zeroth parameter being the script name."
-    [ ("default", Lang.string_t, Some (Lang.string ""), None);
-      ("", Lang.int_t, None, None) ]
+    [
+      ("default", Lang.string_t, Some (Lang.string ""), None);
+      ("", Lang.int_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let default = Lang.to_string (List.assoc "default" p) in
@@ -546,7 +566,8 @@ let () =
 
 let () =
   add_builtin "playlist.parse" ~cat:Liq
-    [ ( "path",
+    [
+      ( "path",
         Lang.string_t,
         Some (Lang.string ""),
         Some "Default path for files." );
@@ -554,7 +575,8 @@ let () =
         Lang.string_t,
         Some (Lang.string ""),
         Some "Mime type for the playlist" );
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     (Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t))
     ~descr:
       "Try to parse a local playlist. Return a list of (metadata,URI) items, \
@@ -574,8 +596,7 @@ let () =
           if mime = "" then Playlist_parser.search_valid ~pwd content
           else (
             match Playlist_parser.parsers#get mime with
-              | Some plugin ->
-                  (mime, plugin.Playlist_parser.parser ~pwd content)
+              | Some plugin -> (mime, plugin.Playlist_parser.parser ~pwd content)
               | None ->
                   log#important "Unknown mime type, trying autodetection.";
                   Playlist_parser.search_valid ~pwd content )
@@ -610,11 +631,13 @@ let () =
 
 let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."
-    [ ( "newline",
+    [
+      ( "newline",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "If true, a newline is added after displaying the value." );
-      ("", Lang.univ_t (), None, None) ]
+      ("", Lang.univ_t (), None, None);
+    ]
     Lang.unit_t
     (fun p ->
       let nl = Lang.to_bool (List.assoc "newline" p) in

@@ -46,7 +46,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                Sdl.create_window "Liquidsoap" ~w:video_width ~h:video_height
                  Sdl.Window.windowed)
              ());
-      (self#log)#info "Initialized SDL video surface."
+      self#log#info "Initialized SDL video surface."
 
     (** We don't care about latency. *)
     method output_reset = ()

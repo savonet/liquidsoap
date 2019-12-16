@@ -44,7 +44,8 @@ let create_encoder ~theora ~metadata () =
   let buffer_delay = theora.Theora_format.buffer_delay in
   let speed = theora.Theora_format.speed in
   let info =
-    { Theora.frame_width = width;
+    {
+      Theora.frame_width = width;
       frame_height = height;
       picture_width;
       picture_height;
@@ -61,15 +62,16 @@ let create_encoder ~theora ~metadata () =
       version_major;
       version_minor;
       version_subminor;
-      pixel_fmt = Theora.PF_420
+      pixel_fmt = Theora.PF_420;
     }
   in
   let params =
-    { Theora.Encoder.keyframe_frequency;
+    {
+      Theora.Encoder.keyframe_frequency;
       vp3_compatible;
       soft_target;
       buffer_delay;
-      speed
+      speed;
     }
   in
   let enc =
@@ -96,7 +98,8 @@ let create_encoder ~theora ~metadata () =
     for i = ofs to ofs + len - 1 do
       let img = Video.get b i in
       let theora_yuv =
-        { Theora.y_width = width;
+        {
+          Theora.y_width = width;
           Theora.y_height = height;
           Theora.y_stride = Image.YUV420.y_stride img;
           Theora.u_width = width / 2;
@@ -107,7 +110,7 @@ let create_encoder ~theora ~metadata () =
           Theora.v_stride = Image.YUV420.uv_stride img;
           Theora.y = Image.YUV420.y img;
           Theora.u = Image.YUV420.u img;
-          Theora.v = Image.YUV420.v img
+          Theora.v = Image.YUV420.v img;
         }
       in
       Theora.Encoder.encode_buffer enc os theora_yuv
@@ -127,7 +130,8 @@ let create_encoder ~theora ~metadata () =
     (* Encode at least some data.. *)
     if not !started then (
       let theora_yuv =
-        { Theora.y_width = width;
+        {
+          Theora.y_width = width;
           Theora.y_height = height;
           Theora.y_stride = width;
           Theora.u_width = width / 2;
@@ -138,19 +142,20 @@ let create_encoder ~theora ~metadata () =
           Theora.v_stride = width / 2;
           Theora.y = Image.Data.alloc width;
           Theora.u = Image.Data.alloc (width / 2);
-          Theora.v = Image.Data.alloc (width / 2)
+          Theora.v = Image.Data.alloc (width / 2);
         }
       in
       Image.YUV420.blank_all yuv;
       Theora.Encoder.encode_buffer enc os theora_yuv );
     Theora.Encoder.eos enc os
   in
-  { Ogg_muxer.header_encoder;
+  {
+    Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
     data_encoder = Ogg_muxer.Video_encoder data_encoder;
     end_of_page;
-    end_of_stream
+    end_of_stream;
   }
 
 let create_theora = function

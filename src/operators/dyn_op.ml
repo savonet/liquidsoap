@@ -84,7 +84,8 @@ class dyn ~kind f =
 
     method private get_frame frame =
       begin
-        match source with Some s -> s#get frame
+        match source with
+        | Some s -> s#get frame
         | None -> Frame.add_break frame (Frame.position frame)
       end;
       self#select
@@ -96,8 +97,7 @@ class dyn ~kind f =
 
     method seek n = match source with Some s -> s#seek n | None -> 0
 
-    method self_sync =
-      match source with Some s -> s#self_sync | None -> false
+    method self_sync = match source with Some s -> s#self_sync | None -> false
   end
 
 let () =

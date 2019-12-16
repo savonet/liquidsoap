@@ -24,9 +24,9 @@ open Source
 
 class normalize ~kind (source : source) (* RMS target. *) rmst
   (* Number of samples for computing rms. *)
-  window (* Spring coefficient when the sound is going louder. *) kup
+    window (* Spring coefficient when the sound is going louder. *) kup
   (* Spring coefficient when the sound is going less loud. *)
-  kdown threshold gmin gmax =
+    kdown threshold gmin gmax =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rmsi = Frame.audio_of_seconds window in
   object
@@ -121,7 +121,8 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "normalize"
-    [ ( "target",
+    [
+      ( "target",
         Lang.float_getter_t (),
         Some (Lang.float (-13.)),
         Some "Desired RMS (dB)." );
@@ -155,15 +156,16 @@ let () =
         Lang.float_getter_t (),
         Some (Lang.float 6.),
         Some "Maximal gain value (dB)." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:
       "Normalize the signal. Dynamic normalization of the signal is sometimes \
        the only option, and can make a listening experience much nicer. \
        However, its dynamic aspect implies some limitations which can go as \
-       far as creating saturation in some extreme cases. If possible, \
-       consider using some track-based normalization techniques such as those \
-       based on replay gain. See the documentation for more details."
+       far as creating saturation in some extreme cases. If possible, consider \
+       using some track-based normalization techniques such as those based on \
+       replay gain. See the documentation for more details."
     (fun p kind ->
       let f v = List.assoc v p in
       let target, window, kup, kdown, threshold, gmin, gmax, src =

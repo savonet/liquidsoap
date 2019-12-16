@@ -96,8 +96,12 @@ let parse f =
   done;
   !tags
 
-type apic =
-  { mime : string; picture_type : int; description : string; data : string }
+type apic = {
+  mime : string;
+  picture_type : int;
+  description : string;
+  data : string;
+}
 
 let parse_apic apic =
   let text_encoding = int_of_char apic.[0] in

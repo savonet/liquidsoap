@@ -57,9 +57,7 @@ let annotate s ~log _ =
                 ^ String.sub s !pos (l - !pos)
               in
               (* Revert the above hack. *)
-              let uri =
-                Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri
-              in
+              let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
               (metadata, uri) )
             else (
               match Stream.next lexer with

@@ -37,8 +37,11 @@ exception Flushing_error of string
 let () =
   Printexc.register_printer (function Flushing_error s -> Some s | _ -> None)
 
-type ('a, 'b) element =
-  { bin : Gstreamer.Element.t; audio : 'a option; video : 'b option }
+type ('a, 'b) element = {
+  bin : Gstreamer.Element.t;
+  audio : 'a option;
+  video : 'b option;
+}
 
 class virtual ['a, 'b] element_factory ~on_error =
   object (self)
@@ -83,11 +86,12 @@ class virtual ['a, 'b] element_factory ~on_error =
       in
       if should_run then (
         try
-          (self#log)#important "Restarting pipeline.";
+          self#log#important "Restarting pipeline.";
           Tutils.mutexify element_m
             (fun () ->
               begin
-                match element with None -> ()
+                match element with
+                | None -> ()
                 | Some el ->
                     ignore (Element.set_state el.bin Element.State_null);
                     ignore (Element.get_state el.bin)
@@ -98,23 +102,22 @@ class virtual ['a, 'b] element_factory ~on_error =
               ignore (Element.get_state el.bin);
               retry_in <- -1.;
               GU.flush ~log:self#log
-                ~on_error:(fun err ->
-                  retry_in <- on_error (Flushing_error err))
+                ~on_error:(fun err -> retry_in <- on_error (Flushing_error err))
                 el.bin)
             ();
           Tutils.mutexify restart_m (fun () -> restarting <- false) ();
           if retry_in >= 0. then
-            (self#log)#info
+            self#log#info
               "An error occured while restarting pipeline, will retry in %.02f"
               retry_in
-          else (self#log)#info "Done restarting pipeline";
+          else self#log#info "Done restarting pipeline";
           retry_in
         with exn ->
-          (self#log)#important "Error while restarting pipeline: %s"
+          self#log#important "Error while restarting pipeline: %s"
             (Printexc.to_string exn);
-          (self#log)#info "Backtrace: %s" (Printexc.get_backtrace ());
+          self#log#info "Backtrace: %s" (Printexc.get_backtrace ());
           retry_in <- on_error exn;
-          (self#log)#important "Will retry again in %.02f" retry_in;
+          self#log#important "Will retry again in %.02f" retry_in;
           Tutils.mutexify restart_m (fun () -> restarting <- false) ();
           retry_in )
       else -1.
@@ -124,8 +127,7 @@ class virtual ['a, 'b] element_factory ~on_error =
         (fun () ->
           task <-
             Some
-              (Duppy.Async.add ~priority scheduler (fun () ->
-                   self#restart_task)))
+              (Duppy.Async.add ~priority scheduler (fun () -> self#restart_task)))
         ()
 
     method private stop_task =
@@ -148,12 +150,13 @@ class virtual ['a, 'b] element_factory ~on_error =
       let delay = on_error exn in
       if delay >= 0. then
         Duppy.Task.add Tutils.scheduler
-          { Duppy.Task.priority = Tutils.Non_blocking;
+          {
+            Duppy.Task.priority = Tutils.Non_blocking;
             events = [`Delay delay];
             handler =
               (fun _ ->
                 self#restart;
-                [])
+                []);
           }
       else raise exn
   end
@@ -195,7 +198,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
     method output_start =
       let el = self#get_element in
-      (self#log)#info "Playing.";
+      self#log#info "Playing.";
       started <- true;
       ignore (Element.set_state el.bin Element.State_playing);
 
@@ -242,7 +245,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             video_pipeline pipeline
         else pipeline
       in
-      (self#log)#info "GStreamer pipeline: %s" pipeline;
+      self#log#info "GStreamer pipeline: %s" pipeline;
       let bin = Pipeline.parse_launch pipeline in
       let audio_src =
         if has_audio then (
@@ -297,9 +300,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             ~on_error:(fun err -> raise (Flushing_error err))
             el.bin )
       with e ->
-        (self#log)#important "Error while processing output data: %s"
+        self#log#important "Error while processing output data: %s"
           (Printexc.to_string e);
-        (self#log)#info "Stacktrace: %s" (Printexc.get_backtrace ());
+        self#log#info "Stacktrace: %s" (Printexc.get_backtrace ());
         self#on_error e
 
     method output_reset = ()
@@ -307,7 +310,8 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
 let output_proto ~kind ~pipeline =
   Output.proto
-  @ [ ( "clock_safe",
+  @ [
+      ( "clock_safe",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Use the dedicated GStreamer clock." );
@@ -323,7 +327,8 @@ let output_proto ~kind ~pipeline =
         Lang.string_t,
         Some (Lang.string pipeline),
         Some "GStreamer pipeline for sink." );
-      ("", Lang.source_t kind, None, None) ]
+      ("", Lang.source_t kind, None, None);
+    ]
 
 let () =
   let kind = Lang.any_fixed_with ~audio:1 () in
@@ -392,7 +397,8 @@ let () =
   let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio_video" ~active:true
     ( output_proto ~kind ~pipeline:""
-    @ [ ( "audio_pipeline",
+    @ [
+        ( "audio_pipeline",
           Lang.string_t,
           Some (Lang.string "autoaudiosink"),
           Some "GStreamer pipeline for audio sink." );
@@ -403,7 +409,8 @@ let () =
         ( "blocking",
           Lang.bool_t,
           Some (Lang.bool true),
-          Some "Pushing buffers is blocking." ) ] )
+          Some "Pushing buffers is blocking." );
+      ] )
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
@@ -471,14 +478,13 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
     inherit [string sink, Gstreamer.data sink] element_factory ~on_error
 
     initializer
-    (rlog := fun s -> (self#log)#important "%s" s);
+    (rlog := fun s -> self#log#important "%s" s);
     let change_state s _ =
       try
         Printf.sprintf "Done. State change returned: %s"
           (string_of_state_change (Element.set_state self#get_element.bin s))
       with e ->
-        Printf.sprintf "Error while changing state: %s\n"
-          (Printexc.to_string e)
+        Printf.sprintf "Error while changing state: %s\n" (Printexc.to_string e)
     in
     self#register_command "pause"
       ~descr:"Set gstreamer pipeline state to paused"
@@ -524,7 +530,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         ignore (Element.set_state self#get_element.bin Element.State_playing);
         ignore (Element.get_state self#get_element.bin)
       with exn ->
-        (self#log)#info "Error setting state to playing: %s"
+        self#log#info "Error setting state to playing: %s"
           (Printexc.to_string exn);
         self#on_error exn
 
@@ -569,8 +575,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         let m = Mutex.create () in
         let counter = ref 0 in
         App_sink.emit_signals sink;
-        App_sink.on_new_sample sink
-          (Tutils.mutexify m (fun () -> incr counter));
+        App_sink.on_new_sample sink (Tutils.mutexify m (fun () -> incr counter));
         let pending = Tutils.mutexify m (fun () -> !counter) in
         let pull =
           Tutils.mutexify m (fun () ->
@@ -633,20 +638,21 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
           el.bin
       with
         | Gstreamer.End_of_stream ->
-            (self#log)#info "End of stream.";
+            self#log#info "End of stream.";
             ready <- false;
             if restart then (
-              (self#log)#info "Restarting.";
+              self#log#info "Restarting.";
               self#restart )
         | exn ->
-            (self#log)#important "Error while processing input data: %s"
+            self#log#important "Error while processing input data: %s"
               (Printexc.to_string exn);
-            (self#log)#info "Stacktrace: %s" (Printexc.get_backtrace ());
+            self#log#info "Stacktrace: %s" (Printexc.get_backtrace ());
             self#on_error exn
   end
 
 let input_proto =
-  [ ( "on_error",
+  [
+    ( "on_error",
       Lang.fun_t [(false, "", Lang.string_t)] Lang.float_t,
       Some (Lang.val_cst_fun [("", Lang.string_t, None)] (Lang.float 3.)),
       Some
@@ -661,20 +667,23 @@ let input_proto =
     ( "max",
       Lang.float_t,
       Some (Lang.float 10.),
-      Some "Maximum duration of the buffered data." ) ]
+      Some "Maximum duration of the buffered data." );
+  ]
 
 let () =
   let k =
     Lang.kind_type_of_kind_format
       (Lang.Constrained
-         { Frame.audio (* TODO: be more flexible on audio *) = Lang.Fixed 2;
+         {
+           Frame.audio (* TODO: be more flexible on audio *) = Lang.Fixed 2;
            video = Lang.Fixed 1;
-           midi = Lang.Fixed 0
+           midi = Lang.Fixed 0;
          })
   in
   let proto =
     input_proto
-    @ [ ( "pipeline",
+    @ [
+        ( "pipeline",
           Lang.string_getter_t (),
           Some (Lang.string ""),
           Some "Main GStreamer pipeline." );
@@ -685,7 +694,8 @@ let () =
         ( "video_pipeline",
           Lang.string_getter_t (),
           Some (Lang.string "videotestsrc"),
-          Some "Video pipeline to input from." ) ]
+          Some "Video pipeline to input from." );
+      ]
   in
   Lang.add_operator "input.gstreamer.audio_video" proto
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input ~flags:[]
@@ -706,10 +716,12 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   let proto =
     input_proto
-    @ [ ( "pipeline",
+    @ [
+        ( "pipeline",
           Lang.string_getter_t (),
           Some (Lang.string "audiotestsrc"),
-          Some "GStreamer pipeline to input from." ) ]
+          Some "GStreamer pipeline to input from." );
+      ]
   in
   Lang.add_operator "input.gstreamer.audio" proto ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input ~flags:[]
@@ -722,10 +734,12 @@ let () =
   let k = Lang.kind_type_of_kind_format (Lang.video_n 1) in
   let proto =
     input_proto
-    @ [ ( "pipeline",
+    @ [
+        ( "pipeline",
           Lang.string_getter_t (),
           Some (Lang.string "videotestsrc"),
-          Some "GStreamer pipeline to input from." ) ]
+          Some "GStreamer pipeline to input from." );
+      ]
   in
   Lang.add_operator "input.gstreamer.video" proto ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input ~flags:[]

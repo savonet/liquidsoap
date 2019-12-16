@@ -112,7 +112,8 @@ module Make (Generator : Generator.S_Asio) = struct
           ticks
         with _ -> 0 )
     in
-    { Decoder.seek;
+    {
+      Decoder.seek;
       decode =
         (fun gen ->
           let len = input.Decoder.read aacbuf 0 aacbuflen in
@@ -126,7 +127,7 @@ module Make (Generator : Generator.S_Asio) = struct
             let content = resampler ~audio_src_rate:(float sample_freq) data in
             (* TODO assert (Array.length content.(0) = length) ? *)
             Generator.set_mode gen `Audio;
-            Generator.put_audio gen content 0 (Audio.length content) ))
+            Generator.put_audio gen content 0 (Audio.length content) ));
     }
 end
 

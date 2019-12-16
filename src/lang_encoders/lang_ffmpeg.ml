@@ -25,11 +25,12 @@ open Lang_encoders
 
 let ffmpeg_gen params =
   let defaults =
-    { Ffmpeg_format.format = "mp3";
+    {
+      Ffmpeg_format.format = "mp3";
       codec = "libmp3lame";
       channels = 2;
       samplerate = Frame.audio_rate;
-      options = Hashtbl.create 0
+      options = Hashtbl.create 0;
     }
   in
   List.fold_left

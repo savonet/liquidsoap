@@ -30,13 +30,15 @@ let aac_mime = "audio/aac"
 let flac_mime = "audio/x-flac"
 
 let base_proto kind =
-  [ ( "format",
+  [
+    ( "format",
       Lang.string_t,
       Some (Lang.string ""),
       Some
         "Format, e.g. \"audio/ogg\". When empty, the encoder is used to guess."
     );
-    ("", Lang.format_t kind, None, Some "Encoding format.") ]
+    ("", Lang.format_t kind, None, Some "Encoding format.");
+  ]
 
 module type Icecast_t = sig
   type content
@@ -49,11 +51,11 @@ module type Icecast_t = sig
 end
 
 module Icecast_v (M : Icecast_t) = struct
-  type encoder_data =
-    { factory : string -> Meta_format.export_metadata -> Encoder.encoder;
-      format : M.content;
-      info : M.info
-    }
+  type encoder_data = {
+    factory : string -> Meta_format.export_metadata -> Encoder.encoder;
+    format : M.content;
+    info : M.info;
+  }
 
   let mpeg = M.format_of_content mpeg_mime
   let ogg_application = M.format_of_content ogg_application_mime

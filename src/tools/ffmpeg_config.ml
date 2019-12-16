@@ -10,8 +10,10 @@ let conf_verbosity =
     ~p:(conf_log#plug "verbosity")
     "Verbosity" ~d:"quiet"
     ~comments:
-      [ "Set FFMPEG log level, one of: \"quiet\", \"panic\", \"fatal\"";
-        "\"error\", \"warning\", \"info\", \"verbose\" or \"debug\"" ]
+      [
+        "Set FFMPEG log level, one of: \"quiet\", \"panic\", \"fatal\"";
+        "\"error\", \"warning\", \"info\", \"verbose\" or \"debug\"";
+      ]
 
 let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
 

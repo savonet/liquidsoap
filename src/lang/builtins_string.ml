@@ -32,8 +32,10 @@ let () =
 
 let () =
   add_builtin "string.concat" ~cat:String ~descr:"Concatenate strings."
-    [ ("separator", Lang.string_t, Some (Lang.string ""), None);
-      ("", Lang.list_t Lang.string_t, None, None) ]
+    [
+      ("separator", Lang.string_t, Some (Lang.string ""), None);
+      ("", Lang.list_t Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let sep = Lang.to_string (List.assoc "separator" p) in
@@ -44,9 +46,10 @@ let () =
 let () =
   add_builtin "string.nth" ~cat:String
     ~descr:"Retrieve a character in a string."
-    [ ("", Lang.string_t, None, Some "String to look into.");
-      ("", Lang.int_t, None, Some "Index of the character.") ] Lang.int_t
-    (fun p ->
+    [
+      ("", Lang.string_t, None, Some "String to look into.");
+      ("", Lang.int_t, None, Some "Index of the character.");
+    ] Lang.int_t (fun p ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
       let n = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (int_of_char s.[n]))
@@ -83,7 +86,8 @@ let register_escape_fun ~name ~descr ~escape ~escape_char =
       ~ret_t:Lang.string_t escape_char
   in
   add_builtin name ~cat:String ~descr
-    [ ( "special_chars",
+    [
+      ( "special_chars",
         Lang.list_t Lang.string_t,
         Some special_chars,
         Some
@@ -93,7 +97,8 @@ let register_escape_fun ~name ~descr ~escape ~escape_char =
         Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t,
         Some escape_char,
         Some "Function used to escape a character." );
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
@@ -138,8 +143,7 @@ let () =
       let sep = Lang.to_string (List.assoc "separator" p) in
       let string = Lang.to_string (List.assoc "" p) in
       let rex = Pcre.regexp sep in
-      Lang.list ~t:Lang.string_t
-        (List.map Lang.string (Pcre.split ~rex string)))
+      Lang.list ~t:Lang.string_t (List.map Lang.string (Pcre.split ~rex string)))
 
 let () =
   add_builtin "string.extract" ~cat:String
@@ -161,9 +165,7 @@ let () =
         let rec extract l i =
           if i < n then (
             try
-              extract
-                (l @ [(string_of_int i, Pcre.get_substring sub i)])
-                (i + 1)
+              extract (l @ [(string_of_int i, Pcre.get_substring sub i)]) (i + 1)
             with Not_found -> extract l (i + 1) )
           else l
         in
@@ -191,7 +193,8 @@ let () =
 let () =
   add_builtin "string.recode" ~cat:String
     ~descr:"Convert a string. Effective only if Camomile is enabled."
-    [ ( "in_enc",
+    [
+      ( "in_enc",
         Lang.string_t,
         Some (Lang.string ""),
         Some "Input encoding. Autodetected if empty." );
@@ -199,7 +202,8 @@ let () =
         Lang.string_t,
         Some (Lang.string "UTF-8"),
         Some "Output encoding." );
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let in_enc =
@@ -221,7 +225,8 @@ let () =
   add_builtin "string.sub" ~cat:String
     ~descr:
       "Get a substring of a string. Returns \"\" if no such substring exists."
-    [ ("", Lang.string_t, None, None);
+    [
+      ("", Lang.string_t, None, None);
       ( "start",
         Lang.int_t,
         None,
@@ -231,8 +236,8 @@ let () =
       ( "length",
         Lang.int_t,
         None,
-        Some "Return a sub string of `length` characters." ) ] Lang.string_t
-    (fun p ->
+        Some "Return a sub string of `length` characters." );
+    ] Lang.string_t (fun p ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
       let string = Lang.to_string (List.assoc "" p) in
@@ -242,11 +247,13 @@ let () =
 let () =
   add_builtin "string.case" ~cat:String
     ~descr:"Convert a string to lower or upper case."
-    [ ( "lower",
+    [
+      ( "lower",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Convert to lower case if true and uppercase otherwise." );
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let lower = Lang.to_bool (List.assoc "lower" p) in
@@ -266,7 +273,8 @@ let () =
     ~descr:
       "Return a string with the first character set to upper case \
        (capitalize), or to lower case (uncapitalize)."
-    [ ( "capitalize",
+    [
+      ( "capitalize",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Capitalize if true, uncapitalize otherwise" );
@@ -274,7 +282,8 @@ let () =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Capitalize each space separated sub-string." );
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let cap = Lang.to_bool (List.assoc "capitalize" p) in
@@ -296,9 +305,11 @@ let () =
       "Replace substrings in a string. \n\
        Will replace all substrings matched in the pattern by the string \
        returned by the replace function."
-    [ ("pattern", Lang.string_t, None, None);
+    [
+      ("pattern", Lang.string_t, None, None);
       ("", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t, None, None);
-      ("", Lang.string_t, None, None) ]
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let pattern = Lang.to_string (List.assoc "pattern" p) in
@@ -328,8 +339,10 @@ let () =
 let () =
   add_builtin "url.decode" ~cat:String
     ~descr:"Decode an encoded url (e.g. \"%20\" becomes \" \")."
-    [ ("plus", Lang.bool_t, Some (Lang.bool true), None);
-      ("", Lang.string_t, None, None) ]
+    [
+      ("plus", Lang.bool_t, Some (Lang.bool true), None);
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let plus = Lang.to_bool (List.assoc "plus" p) in
@@ -339,8 +352,10 @@ let () =
 let () =
   add_builtin "url.encode" ~cat:String
     ~descr:"Encode an url (e.g. \" \" becomes \"%20\")."
-    [ ("plus", Lang.bool_t, Some (Lang.bool true), None);
-      ("", Lang.string_t, None, None) ]
+    [
+      ("plus", Lang.bool_t, Some (Lang.bool true), None);
+      ("", Lang.string_t, None, None);
+    ]
     Lang.string_t
     (fun p ->
       let plus = Lang.to_bool (List.assoc "plus" p) in
@@ -352,8 +367,8 @@ let () =
     ~descr:
       "`pattern % [...,(k,v),...]` changes in the pattern occurences of:\n\n\
        - `$(k)` into `v`\n\
-       - `$(if $(k2),\"a\",\"b\") into \"a\" if k2 is found in the list, \
-       \"b\" otherwise."
+       - `$(if $(k2),\"a\",\"b\") into \"a\" if k2 is found in the list, \"b\" \
+       otherwise."
     [("", Lang.string_t, None, None); ("", Lang.metadata_t, None, None)]
     Lang.string_t (fun p ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
@@ -378,8 +393,8 @@ let () =
   (* Register as [name] the function which composes [in_value],[func] and
    * [out_value], and returns [default] in exceptional cases -- which MUST not
    * occur when default is not supplied. *)
-  let register_tt doc name cat func ?default in_type in_value out_value
-      out_type =
+  let register_tt doc name cat func ?default in_type in_value out_value out_type
+      =
     add_builtin name ~cat
       ~descr:("Convert " ^ doc ^ ".")
       (let p = [("", in_type, None, None)] in

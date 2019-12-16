@@ -35,14 +35,16 @@ let conf_quality =
     ~comments:["Quality setting for gavl video conversion. Range from 1 to 5"]
 
 let scale_modes =
-  [ ("auto", Gavl.Video.Auto);
+  [
+    ("auto", Gavl.Video.Auto);
     ("nearest", Gavl.Video.Nearest);
     ("bilinear", Gavl.Video.Bilinear);
     ("quadratic", Gavl.Video.Quadratic);
     ("cubic_bspline", Gavl.Video.Cubic_bspline);
     ("cubic_mitchell", Gavl.Video.Cubic_mitchell);
     ("cubic_catmull", Gavl.Video.Cubic_catmull);
-    ("scale_sinc_lanczos", Gavl.Video.Scale_sinc_lanczos) ]
+    ("scale_sinc_lanczos", Gavl.Video.Scale_sinc_lanczos);
+  ]
 
 let scale_args =
   String.concat ", "
@@ -68,7 +70,8 @@ let conf_scale_mode =
       :: List.map (fun (x, _) -> Printf.sprintf "\"%s\"" x) scale_modes )
 
 let formats =
-  [ P.RGB P.RGB24;
+  [
+    P.RGB P.RGB24;
     P.RGB P.BGR24;
     P.RGB P.RGB32;
     P.RGB P.BGR32;
@@ -79,7 +82,8 @@ let formats =
     P.YUV P.YUV410;
     P.YUV P.YUVJ420;
     P.YUV P.YUVJ422;
-    P.YUV P.YUVJ444 ]
+    P.YUV P.YUVJ444;
+  ]
 
 let gavl_format_of x =
   match x with
@@ -104,7 +108,8 @@ let video_format_of_frame f =
   let pf = gavl_format_of (Img.pixel_format f) in
   let w = Img.width f in
   let h = Img.height f in
-  { Gavl.Video.frame_width = w;
+  {
+    Gavl.Video.frame_width = w;
     frame_height = h;
     image_width = w;
     image_height = h;
@@ -115,25 +120,27 @@ let video_format_of_frame f =
     timescale = 0;
     framerate_mode = Gavl.Video.Still;
     chroma_placement = Gavl.Video.Default;
-    interlace_mode = Gavl.Video.No_interlace
+    interlace_mode = Gavl.Video.No_interlace;
   }
 
 let gavl_frame_of img =
   match Img.pixel_format img with
     | P.RGB _ ->
         let data, stride = Img.rgb_data img in
-        { Gavl.Video.planes = [| (data, stride) |];
+        {
+          Gavl.Video.planes = [| (data, stride) |];
           timestamp = Int64.zero;
           duration = Int64.zero;
-          frame_interlace_mode = Gavl.Video.No_interlace
+          frame_interlace_mode = Gavl.Video.No_interlace;
         }
     | P.YUV _ ->
         let (y, y_stride), (u, v, uv_stride) = Img.yuv_data img in
-        { Gavl.Video.planes =
+        {
+          Gavl.Video.planes =
             [| (y, y_stride); (u, uv_stride); (v, uv_stride) |];
           timestamp = Int64.zero;
           duration = Int64.zero;
-          frame_interlace_mode = Gavl.Video.No_interlace
+          frame_interlace_mode = Gavl.Video.No_interlace;
         }
 
 module HT = struct

@@ -52,10 +52,9 @@ let rec to_json_compact v =
           in
           Printf.sprintf "{%s}" (String.concat "," l)
         with _ ->
-          Printf.sprintf "[%s]"
-            (String.concat "," (List.map to_json_compact l)) )
-    | Lang.Tuple l ->
-        "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
+          Printf.sprintf "[%s]" (String.concat "," (List.map to_json_compact l))
+        )
+    | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
@@ -123,11 +122,13 @@ let to_json ~compact v = if compact then to_json_compact v else to_json_pp v
 let () =
   Lang_builtins.add_builtin "json_of" ~cat:Lang_builtins.String
     ~descr:"Convert a value to a json string."
-    [ ( "compact",
+    [
+      ( "compact",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Output compact text." );
-      ("", Lang.univ_t (), None, None) ]
+      ("", Lang.univ_t (), None, None);
+    ]
     Lang.string_t
     (fun p ->
       let compact = Lang.to_bool (List.assoc "compact" p) in
@@ -213,8 +214,10 @@ let () =
        `[(\"b\",5)]`: the pair `(\"a\",\"test\")` is not kept because it is \
        not of type `string * int`."
     "of_json"
-    [ ("default", t, None, Some "Default value if string cannot be parsed.");
-      ("", Lang.string_t, None, None) ] t (fun p ->
+    [
+      ("default", t, None, Some "Default value if string cannot be parsed.");
+      ("", Lang.string_t, None, None);
+    ] t (fun p ->
       let default = List.assoc "default" p in
       let s = Lang.to_string (List.assoc "" p) in
       try

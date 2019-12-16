@@ -56,7 +56,8 @@ class pan ~kind (source : source) phi phi_0 =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
   Lang.add_operator "stereo.pan"
-    [ ( "pan",
+    [
+      ( "pan",
         Lang.float_getter_t (),
         Some (Lang.float 0.),
         Some "Pan ranges between -1 and 1." );
@@ -64,7 +65,8 @@ let () =
         Lang.float_getter_t (),
         Some (Lang.float 90.),
         Some "Field width in degrees (between 0 and 90)." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Pan a stereo sound."
     (fun p kind ->

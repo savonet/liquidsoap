@@ -26,7 +26,8 @@ open Prometheus
 let log = Log.make ["prometheus"]
 
 let metric_proto =
-  [ ("help", Lang.string_t, None, Some "Help of the metric");
+  [
+    ("help", Lang.string_t, None, Some "Help of the metric");
     ( "namespace",
       Lang.string_t,
       Some (Lang.string ""),
@@ -36,7 +37,8 @@ let metric_proto =
       Some (Lang.string ""),
       Some "subsystem of the metric" );
     ("labels", Lang.list_t Lang.string_t, None, Some "labels for the metric");
-    ("", Lang.string_t, None, Some "Name of the metric") ]
+    ("", Lang.string_t, None, Some "Name of the metric");
+  ]
 
 let set_t = Lang.fun_t [(false, "", Lang.float_t)] Lang.unit_t
 
@@ -93,14 +95,12 @@ let get_latencies ~prefix ~label_names mode =
     | None ->
         let latency =
           Gauge.v_labels ~label_names
-            ~help:
-              (Printf.sprintf "Mean %s latency over the chosen window" mode)
+            ~help:(Printf.sprintf "Mean %s latency over the chosen window" mode)
             (Printf.sprintf "%s%s_latency_seconds" prefix mode)
         in
         let peak_latency =
           Prometheus.Gauge.v_labels ~label_names
-            ~help:
-              (Printf.sprintf "Peak %s latency over the chosen window" mode)
+            ~help:(Printf.sprintf "Peak %s latency over the chosen window" mode)
             (Printf.sprintf "%s%s_peak_latency_seconds" prefix mode)
         in
         let max_latency =
@@ -192,12 +192,15 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
 let () =
   let source_monitor_register_t =
     Lang.fun_t
-      [ (false, "label_values", Lang.list_t Lang.string_t);
-        (false, "", Lang.source_t (Lang.univ_t ())) ]
+      [
+        (false, "label_values", Lang.list_t Lang.string_t);
+        (false, "", Lang.source_t (Lang.univ_t ()));
+      ]
       Lang.unit_t
   in
   Lang_builtins.add_builtin "prometheus.latency"
-    [ ( "window",
+    [
+      ( "window",
         Lang.float_t,
         Some (Lang.float 5.),
         Some "Window over which mean and peak metrics are reported." );
@@ -205,7 +208,7 @@ let () =
         Lang.string_t,
         Some (Lang.string "liquidsoap_"),
         Some "Prefix for the metric's name" );
-      ("labels", Lang.list_t Lang.string_t, None, Some "labels for the metric")
+      ("labels", Lang.list_t Lang.string_t, None, Some "labels for the metric");
     ]
     source_monitor_register_t ~cat:Lang_builtins.Liq
     ~descr:"Monitor a source's internal latencies on Prometheus"
@@ -216,8 +219,10 @@ let () =
         List.map Lang.to_string (Lang.to_list (List.assoc "labels" p))
       in
       Lang.val_fun
-        [ ("label_values", "label_values", Lang.list_t Lang.string_t, None);
-          ("", "", Lang.source_t (Lang.univ_t ()), None) ]
+        [
+          ("label_values", "label_values", Lang.list_t Lang.string_t, None);
+          ("", "", Lang.source_t (Lang.univ_t ()), None);
+        ]
         ~ret_t:Lang.unit_t
         (fun p _ ->
           let s = Lang.to_source (List.assoc "" p) in

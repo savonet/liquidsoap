@@ -24,15 +24,15 @@ exception No_process
 
 type restart_condition = Delay of int | Metadata | No_condition
 
-type t =
-  { channels : int;
-    samplerate : int Lazy.t;
-    video : bool;
-    header : bool;
-    restart_on_crash : bool;
-    restart : restart_condition;
-    process : string
-  }
+type t = {
+  channels : int;
+  samplerate : int Lazy.t;
+  video : bool;
+  header : bool;
+  restart_on_crash : bool;
+  restart : restart_condition;
+  process : string;
+}
 
 let to_string e =
   let string_of_restart_condition c =

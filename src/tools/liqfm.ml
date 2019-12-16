@@ -72,18 +72,13 @@ open Audioscrobbler
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
 type submission = NowPlaying | Played
 
-type task =
-  { task : Duppy.Async.t;
-    submit_m : Mutex.t;
-    submissions :
-      ( string
-      * string
-      * source
-      * submission
-      * bool
-      * (string, string) Hashtbl.t )
-      Queue.t
-  }
+type task = {
+  task : Duppy.Async.t;
+  submit_m : Mutex.t;
+  submissions :
+    (string * string * source * submission * bool * (string, string) Hashtbl.t)
+    Queue.t;
+}
 
 let log = Log.make ["audioscrobbler"]
 
@@ -134,8 +129,7 @@ let init host =
               with
                 | Not_found -> raise Duration
                 | Bad_rid ->
-                    log#severe
-                      "Metadata 'rid' is not associated to an integer!";
+                    log#severe "Metadata 'rid' is not associated to an integer!";
                     raise Duration )
           in
           let duration =
@@ -161,7 +155,8 @@ let init host =
               | Unknown -> Audioscrobbler.Unknown
           in
           let song =
-            { artist;
+            {
+              artist;
               track;
               time = Some time;
               source = Some source;
@@ -170,7 +165,7 @@ let init host =
               album = Some (f "album");
               tracknumber = None;
               musicbrainzid = None;
-              trackauth
+              trackauth;
             }
           in
           check_song song Submit;

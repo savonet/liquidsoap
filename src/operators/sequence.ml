@@ -118,7 +118,7 @@ class merge_tracks ~kind source =
     method private get_frame buf =
       source#get buf;
       if Frame.is_partial buf && source#is_ready then (
-        (self#log)#info "End of track: merging.";
+        self#log#info "End of track: merging.";
         self#get_frame buf;
         Frame.set_breaks buf
           ( match Frame.breaks buf with
@@ -129,18 +129,20 @@ class merge_tracks ~kind source =
 let () =
   let k = Lang.univ_t () in
   Lang.add_operator "sequence"
-    [ ( "merge",
+    [
+      ( "merge",
         Lang.bool_t,
         Some (Lang.bool false),
         Some
           "Merge tracks when advancing from one source to the next one. This \
            will NOT merge consecutive tracks from the last source; see \
            merge_tracks() if you need that too." );
-      ("", Lang.list_t (Lang.source_t k), None, None) ]
+      ("", Lang.list_t (Lang.source_t k), None, None);
+    ]
     ~category:Lang.TrackProcessing
     ~descr:
-      "Play only one track of every successive source, except for the last \
-       one which is played as much as available."
+      "Play only one track of every successive source, except for the last one \
+       which is played as much as available."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
       new sequence
@@ -154,8 +156,7 @@ let () =
     [("", Lang.source_t k, None, None)]
     ~category:Lang.TrackProcessing
     ~descr:
-      "Merge consecutive tracks from the input source. They will be \
-       considered as one big track, so `on_track()` will not trigger for \
-       example."
+      "Merge consecutive tracks from the input source. They will be considered \
+       as one big track, so `on_track()` will not trigger for example."
     ~kind:(Lang.Unconstrained k)
     (fun p kind -> new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))

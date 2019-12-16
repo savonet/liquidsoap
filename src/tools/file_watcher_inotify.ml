@@ -50,11 +50,13 @@ let watch : File_watcher.watch =
       let fd = Utils.get_some !fd in
       let event_conv = function
         | `Modify ->
-            [ Inotify.S_Modify;
+            [
+              Inotify.S_Modify;
               Inotify.S_Moved_to;
               Inotify.S_Moved_from;
               Inotify.S_Delete;
-              Inotify.S_Create ]
+              Inotify.S_Create;
+            ]
       in
       let e = List.flatten (List.map event_conv e) in
       let wd = Inotify.add_watch fd file e in

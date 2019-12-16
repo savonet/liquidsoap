@@ -44,10 +44,10 @@ class virtual base =
         | Portaudio.Unanticipated_host_error ->
             let n, s = Portaudio.get_last_host_error () in
             if n = 0 then
-              (self#log)#important "Unanticipated host error in %s. (ignoring)"
+              self#log#important "Unanticipated host error in %s. (ignoring)"
                 lbl
             else
-              (self#log)#important
+              self#log#important
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
   end
 
@@ -183,7 +183,8 @@ let () =
   let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
   Lang.add_operator "output.portaudio" ~active:true
     ( Output.proto
-    @ [ ( "clock_safe",
+    @ [
+        ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated Portaudio clock." );
@@ -191,7 +192,8 @@ let () =
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
-        ("", Lang.source_t k, None, None) ] )
+        ("", Lang.source_t k, None, None);
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p kind ->
@@ -214,14 +216,16 @@ let () =
         :> Source.source ));
   Lang.add_operator "input.portaudio"
     ( Start_stop.input_proto
-    @ [ ( "clock_safe",
+    @ [
+        ( "clock_safe",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated Portaudio clock." );
         ( "buflen",
           Lang.int_t,
           Some (Lang.int 256),
-          Some "Length of a buffer in samples." ) ] )
+          Some "Length of a buffer in samples." );
+      ] )
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
     (fun p kind ->

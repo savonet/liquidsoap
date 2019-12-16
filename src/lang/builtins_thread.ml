@@ -24,16 +24,17 @@ open Lang_builtins
 
 let () =
   add_builtin "thread.run.recurrent" ~cat:Control
-    [ ( "fast",
+    [
+      ( "fast",
         Lang.bool_t,
         Some (Lang.bool true),
         Some
-          "Whether the thread is supposed to return quickly or not. \
-           Typically, blocking tasks (e.g. fetching data over the internet) \
-           should not be considered to be fast. When set to `false` its \
-           priority will be lowered below that of request resolutions and \
-           fast timeouts. This is only effective if you set a dedicated queue \
-           for fast tasks, see the \"scheduler\" settings for more details." );
+          "Whether the thread is supposed to return quickly or not. Typically, \
+           blocking tasks (e.g. fetching data over the internet) should not be \
+           considered to be fast. When set to `false` its priority will be \
+           lowered below that of request resolutions and fast timeouts. This \
+           is only effective if you set a dedicated queue for fast tasks, see \
+           the \"scheduler\" settings for more details." );
       ( "delay",
         Lang.float_t,
         Some (Lang.float 0.),
@@ -44,7 +45,8 @@ let () =
         Some
           "Function to execute recurrently. The returned value is the delay \
            (in sec.) in which the function should be run again (it won't be \
-           run if the value is strictly negative)." ) ]
+           run if the value is strictly negative)." );
+    ]
     Lang.unit_t ~descr:"Run a recurrent function in a separate thread."
     (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
@@ -54,12 +56,13 @@ let () =
         else Tutils.Blocking
       in
       let rec task delay =
-        { Duppy.Task.priority;
+        {
+          Duppy.Task.priority;
           events = [`Delay delay];
           handler =
             (fun _ ->
               let delay = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
-              if delay >= 0. then [task delay] else [])
+              if delay >= 0. then [task delay] else []);
         }
       in
       Duppy.Task.add Tutils.scheduler (task delay);

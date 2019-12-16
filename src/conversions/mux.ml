@@ -108,7 +108,7 @@ class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
         let _, c = Frame.content frame pos in
         let end_pos = Frame.position frame in
         if inicon != c then
-          (self#log)#debug "Copy-avoiding optimization isn't working!";
+          self#log#debug "Copy-avoiding optimization isn't working!";
         Frame.set_breaks frame breaks;
         (c, end_pos)
       in
@@ -153,9 +153,7 @@ class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
               (* The opposite *)
               let aux, end_aux = get `Once aux_layer aux in
               let (_ : unit -> unit) = Frame.hide_contents frame in
-              let master, end_master =
-                get (`Pos end_aux) master_layer master
-              in
+              let master, end_master = get (`Pos end_aux) master_layer master in
               let end_pos = min end_master end_aux in
               let new_content = mux_content master aux in
               (new_content, end_pos)
@@ -172,9 +170,11 @@ let () =
   let aux_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi:Lang.zero_t in
   Lang.add_operator "mux_video" ~category:Lang.Conversions
     ~descr:"Add video channnels to a stream." ~kind:(Lang.Unconstrained out_t)
-    [ ("mode", Lang.string_t, Some (Lang.string "master"), Some mode_help);
+    [
+      ("mode", Lang.string_t, Some (Lang.string "master"), Some mode_help);
       ("video", Lang.source_t aux_t, None, None);
-      ("", Lang.source_t master_t, None, None) ]
+      ("", Lang.source_t master_t, None, None);
+    ]
     (fun p kind ->
       let master = Lang.to_source (List.assoc "" p) in
       let master_layer c = { c with Frame.video = [||] } in
@@ -194,9 +194,11 @@ let () =
   Lang.add_operator "mux_audio" ~category:Lang.Conversions
     ~descr:"Mux an audio stream into an audio-free stream."
     ~kind:(Lang.Unconstrained out_t)
-    [ ("mode", Lang.string_t, Some (Lang.string "master"), Some mode_help);
+    [
+      ("mode", Lang.string_t, Some (Lang.string "master"), Some mode_help);
       ("audio", Lang.source_t aux_t, None, None);
-      ("", Lang.source_t master_t, None, None) ]
+      ("", Lang.source_t master_t, None, None);
+    ]
     (fun p kind ->
       let master = Lang.to_source (List.assoc "" p) in
       let master_layer c = { c with Frame.audio = [||] } in
@@ -221,23 +223,23 @@ let add_audio_mux label n =
   Lang.add_operator ("mux_" ^ label) ~category:Lang.Conversions
     ~descr:("Mux a " ^ label ^ " audio stream into another stream.")
     ~kind:(Lang.Unconstrained out_t)
-    [ ("mode", Lang.string_t, Some (Lang.string "master"), Some mode_help);
+    [
+      ("mode", Lang.string_t, Some (Lang.string "master"), Some mode_help);
       (label, Lang.source_t aux_t, None, None);
-      ("", Lang.source_t master_t, None, None) ]
+      ("", Lang.source_t master_t, None, None);
+    ]
     (fun p kind ->
       let master = Lang.to_source (List.assoc "" p) in
       let aux = Lang.to_source (List.assoc label p) in
       let master_layer c =
-        { c with
+        {
+          c with
           Frame.audio =
-            Array.sub c.Frame.audio n (Array.length c.Frame.audio - n)
+            Array.sub c.Frame.audio n (Array.length c.Frame.audio - n);
         }
       in
       let aux_layer c =
-        { Frame.audio = Array.sub c.Frame.audio 0 n;
-          video = [||];
-          midi = [||]
-        }
+        { Frame.audio = Array.sub c.Frame.audio 0 n; video = [||]; midi = [||] }
       in
       let mux_content master aux =
         let audio =

@@ -28,14 +28,15 @@ let () =
     ~descr:
       "Register a command. You can then execute this function through the \
        server, either telnet or socket."
-    [ ("namespace", Lang.string_t, Some (Lang.string ""), None);
+    [
+      ("namespace", Lang.string_t, Some (Lang.string ""), None);
       ( "description",
         Lang.string_t,
         Some (Lang.string "No documentation available."),
         Some "A description of your command." );
       ("usage", Lang.string_t, Some (Lang.string ""), None);
       ("", Lang.string_t, None, None);
-      ("", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t, None, None)
+      ("", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t, None, None);
     ]
     Lang.unit_t
     (fun p ->
@@ -60,8 +61,8 @@ let () =
     ~descr:
       "Create a pair of functions `(wait,(signal,broadcast))` used to suspend \
        and resume server command execution. Used to write interactive server \
-       commands through `server.wait`, `server.signal`, `server.broadcast` \
-       and `server.write`."
+       commands through `server.wait`, `server.signal`, `server.broadcast` and \
+       `server.write`."
     []
     (Lang.product_t wait_t (Lang.product_t resume_t resume_t))
     (fun _ ->
@@ -91,9 +92,10 @@ let () =
       "Wait on a server condition. Used to write interactive server command. \
        Should be used via the syntactic sugar: `server.wait <condition> then \
        <after> end`"
-    [ ("", condition_t, None, Some "condition");
-      ("", resume_t, None, Some "code to execute when resuming") ]
-    Lang.string_t (fun p ->
+    [
+      ("", condition_t, None, Some "condition");
+      ("", resume_t, None, Some "code to execute when resuming");
+    ] Lang.string_t (fun p ->
       let cond = Lang.assoc "" 1 p in
       let wait, _ = Lang.to_product cond in
       let wait = Lang.to_fun ~t:Lang.string_t wait in
@@ -106,9 +108,10 @@ let () =
     ~descr:
       "Execute a partial write while executing a server command. Should be \
        used via the syntactic sugar: `server.write <string> then <after> end`"
-    [ ("", after_t, None, Some "function to run after write");
-      ("", Lang.string_t, None, Some "string to write") ] Lang.string_t
-    (fun p ->
+    [
+      ("", after_t, None, Some "function to run after write");
+      ("", Lang.string_t, None, Some "string to write");
+    ] Lang.string_t (fun p ->
       let after = Lang.to_fun ~t:Lang.string_t (Lang.assoc "" 1 p) in
       let data = Lang.to_string (Lang.assoc "" 2 p) in
       Server.write ~after:(fun () -> Lang.to_string (after [])) data;
@@ -139,9 +142,9 @@ let () =
     ~args:[("", Lang.int_t, None, Some "Number of characters to read")]
     ~mk_marker:(fun p -> Duppy.Io.Length (Lang.to_int (Lang.assoc "" 2 p)))
     ~descr:
-      "Read a string of fixed length from the client up-to a marker. Should \
-       be used via the syntactic sugar: `server.readchars <len> : <varname> \
-       then <after> end`"
+      "Read a string of fixed length from the client up-to a marker. Should be \
+       used via the syntactic sugar: `server.readchars <len> : <varname> then \
+       <after> end`"
     "server.readchars";
   read ~args:[]
     ~mk_marker:(fun _ -> Duppy.Io.Split "[\r\n]+")

@@ -75,8 +75,7 @@ let () =
            | None ->
                log#important "Couldn't find preferred video converter: %s."
                  preferred
-           | _ ->
-               log#important "Using preferred video converter: %s." preferred))
+           | _ -> log#important "Using preferred video converter: %s." preferred))
 
 let find_converter src dst =
   try
@@ -97,8 +96,7 @@ let find_converter src dst =
         log#info "Trying %s video converter..." name;
         if List.mem src sf && List.mem dst df then raise (Exit (f ())) else ())
       video_converters#get_all;
-    log#important
-      "Couldn't find a video converter from format %s to format %s."
+    log#important "Couldn't find a video converter from format %s to format %s."
       (Img.Pixel.string_of_format src)
       (Img.Pixel.string_of_format dst);
     raise Not_found

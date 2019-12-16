@@ -36,14 +36,15 @@ let check_samplerate ?t i =
      i)
 
 let mp3_base_defaults () =
-  { Mp3_format.stereo = true;
+  {
+    Mp3_format.stereo = true;
     stereo_mode = Mp3_format.Joint_stereo;
     samplerate = check_samplerate Frame.audio_rate;
     bitrate_control = Mp3_format.CBR 128;
     internal_quality = 2;
     id3v2 = None;
     msg_interval = 0.1;
-    msg = ""
+    msg = "";
   }
 
 let mp3_base f = function
@@ -81,8 +82,9 @@ let mp3_base f = function
 
 let make_cbr params =
   let defaults =
-    { (mp3_base_defaults ()) with
-      Mp3_format.bitrate_control = Mp3_format.CBR 128
+    {
+      (mp3_base_defaults ()) with
+      Mp3_format.bitrate_control = Mp3_format.CBR 128;
     }
   in
   let set_bitrate f b =
@@ -96,7 +98,8 @@ let make_cbr params =
       (fun f -> function
         | "bitrate", ({ term = Int i; _ } as t) ->
             let allowed =
-              [ 8;
+              [
+                8;
                 16;
                 24;
                 32;
@@ -113,7 +116,8 @@ let make_cbr params =
                 192;
                 224;
                 256;
-                320 ]
+                320;
+              ]
             in
             if not (List.mem i allowed) then
               raise (Error (t, "invalid bitrate value"));
@@ -124,40 +128,45 @@ let make_cbr params =
 
 let make_abr params =
   let defaults =
-    { (mp3_base_defaults ()) with
+    {
+      (mp3_base_defaults ()) with
       Mp3_format.bitrate_control =
         Mp3_format.ABR
-          { Mp3_format.min_bitrate = None;
+          {
+            Mp3_format.min_bitrate = None;
             mean_bitrate = 128;
             max_bitrate = None;
-            hard_min = false
-          }
+            hard_min = false;
+          };
     }
   in
   let set_min_bitrate f b =
     match f.Mp3_format.bitrate_control with
       | Mp3_format.ABR abr ->
-          { f with
+          {
+            f with
             Mp3_format.bitrate_control =
-              Mp3_format.ABR { abr with Mp3_format.min_bitrate = Some b }
+              Mp3_format.ABR { abr with Mp3_format.min_bitrate = Some b };
           }
       | _ -> assert false
   in
   let set_max_bitrate f b =
     match f.Mp3_format.bitrate_control with
       | Mp3_format.ABR abr ->
-          { f with
+          {
+            f with
             Mp3_format.bitrate_control =
-              Mp3_format.ABR { abr with Mp3_format.max_bitrate = Some b }
+              Mp3_format.ABR { abr with Mp3_format.max_bitrate = Some b };
           }
       | _ -> assert false
   in
   let set_mean_bitrate f b =
     match f.Mp3_format.bitrate_control with
       | Mp3_format.ABR abr ->
-          { f with
+          {
+            f with
             Mp3_format.bitrate_control =
-              Mp3_format.ABR { abr with Mp3_format.mean_bitrate = b }
+              Mp3_format.ABR { abr with Mp3_format.mean_bitrate = b };
           }
       | _ -> assert false
   in
@@ -166,7 +175,8 @@ let make_abr params =
       (fun f -> function
         | "bitrate", ({ term = Int i; _ } as t) ->
             let allowed =
-              [ 8;
+              [
+                8;
                 16;
                 24;
                 32;
@@ -183,14 +193,16 @@ let make_abr params =
                 192;
                 224;
                 256;
-                320 ]
+                320;
+              ]
             in
             if not (List.mem i allowed) then
               raise (Error (t, "invalid bitrate value"));
             set_mean_bitrate f i
         | "min_bitrate", ({ term = Int i; _ } as t) ->
             let allowed =
-              [ 8;
+              [
+                8;
                 16;
                 24;
                 32;
@@ -207,14 +219,16 @@ let make_abr params =
                 192;
                 224;
                 256;
-                320 ]
+                320;
+              ]
             in
             if not (List.mem i allowed) then
               raise (Error (t, "invalid bitrate value"));
             set_min_bitrate f i
         | "max_bitrate", ({ term = Int i; _ } as t) ->
             let allowed =
-              [ 8;
+              [
+                8;
                 16;
                 24;
                 32;
@@ -231,7 +245,8 @@ let make_abr params =
                 192;
                 224;
                 256;
-                320 ]
+                320;
+              ]
             in
             if not (List.mem i allowed) then
               raise (Error (t, "invalid bitrate value"));
@@ -242,8 +257,9 @@ let make_abr params =
 
 let make_vbr params =
   let defaults =
-    { (mp3_base_defaults ()) with
-      Mp3_format.bitrate_control = Mp3_format.VBR 4
+    {
+      (mp3_base_defaults ()) with
+      Mp3_format.bitrate_control = Mp3_format.VBR 4;
     }
   in
   let mp3 =

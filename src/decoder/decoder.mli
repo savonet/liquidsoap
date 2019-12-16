@@ -25,28 +25,31 @@ val log : Log.t
 type file = string
 type stream = string
 
-type input =
-  { read : bytes -> int -> int -> int;
-    (* Seek to an absolute position in bytes.
-     * Returns the current position after seeking
-     * or raises [No_seek] if no seek operation
-     * is available. *)
-    lseek : (int -> int) option;
-    tell : (unit -> int) option;
-    length : (unit -> int) option
-  }
+type input = {
+  read : bytes -> int -> int -> int;
+  (* Seek to an absolute position in bytes.
+   * Returns the current position after seeking
+   * or raises [No_seek] if no seek operation
+   * is available. *)
+  lseek : (int -> int) option;
+  tell : (unit -> int) option;
+  length : (unit -> int) option;
+}
 
-type 'a decoder =
-  { decode : 'a -> unit;
-    (* [seek x]: Skip [x] master ticks.
-     * Returns the number of ticks atcually skiped. *)
-    seek : int -> int
-  }
+type 'a decoder = {
+  decode : 'a -> unit;
+  (* [seek x]: Skip [x] master ticks.
+   * Returns the number of ticks atcually skiped. *)
+  seek : int -> int;
+}
 
 type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
 
-type file_decoder =
-  { fill : Frame.t -> int; fseek : int -> int; close : unit -> unit }
+type file_decoder = {
+  fill : Frame.t -> int;
+  fseek : int -> int;
+  close : unit -> unit;
+}
 
 val file_decoders :
   (metadata:Frame.metadata ->

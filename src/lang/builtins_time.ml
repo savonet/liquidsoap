@@ -44,12 +44,13 @@ let () =
 let () =
   add_builtin ~cat:Sys "time"
     ~descr:
-      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
-    [] Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()));
+      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
+    Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()));
   let t = Lang.univ_t () in
   let execute cb tm =
     Lang.apply cb ~t
-      [ ("sec", Lang.int tm.Unix.tm_sec);
+      [
+        ("sec", Lang.int tm.Unix.tm_sec);
         ("min", Lang.int tm.Unix.tm_min);
         ("hour", Lang.int tm.Unix.tm_hour);
         ("mday", Lang.int tm.Unix.tm_mday);
@@ -57,11 +58,13 @@ let () =
         ("year", Lang.int tm.Unix.tm_year);
         ("wday", Lang.int tm.Unix.tm_wday);
         ("yday", Lang.int tm.Unix.tm_yday);
-        ("isdst", Lang.bool tm.Unix.tm_isdst) ]
+        ("isdst", Lang.bool tm.Unix.tm_isdst);
+      ]
   in
   let fn_t =
     Lang.fun_t
-      [ (false, "sec", Lang.int_t);
+      [
+        (false, "sec", Lang.int_t);
         (false, "min", Lang.int_t);
         (false, "hour", Lang.int_t);
         (false, "mday", Lang.int_t);
@@ -69,16 +72,16 @@ let () =
         (false, "year", Lang.int_t);
         (false, "wday", Lang.int_t);
         (false, "yday", Lang.int_t);
-        (false, "isdst", Lang.bool_t) ]
+        (false, "isdst", Lang.bool_t);
+      ]
       t
   in
   add_builtin ~cat:Sys "localtime"
     ~descr:
       "Convert a time in seconds into a date in the local time zone and \
-       execute passed callback with the result. Fields meaning same as \
-       POSIX's `tm struct`. Warning: \"year\" is: year - 1900, i.e. 117 for \
-       2017!" [("", Lang.float_t, None, None); ("", fn_t, None, None)] t
-    (fun p ->
+       execute passed callback with the result. Fields meaning same as POSIX's \
+       `tm struct`. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
+    [("", Lang.float_t, None, None); ("", fn_t, None, None)] t (fun p ->
       let tm = Unix.localtime (Lang.to_float (Lang.assoc "" 1 p)) in
       let fn = Lang.assoc "" 2 p in
       execute fn tm);

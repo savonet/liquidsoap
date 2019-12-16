@@ -38,7 +38,8 @@ let () =
        `(\"killed\",\"<signal number>\")`, `(\"stopped\",\"<signal \
        number>\")`, `(\"exception\",\"<exception description>\")`, \
        `(\"timeout\",\"<run time>\")`."
-    [ ( "env",
+    [
+      ( "env",
         Lang.list_t env_t,
         Some (Lang.list ~t:env_t []),
         Some "Process environment" );
@@ -72,7 +73,8 @@ let () =
         Some (Lang.float (-1.)),
         Some "Cancel process after `timeout` has elapsed. Ignored if negative."
       );
-      ("", Lang.string_t, None, Some "Command to run") ]
+      ("", Lang.string_t, None, Some "Command to run");
+    ]
     ret_t
     (fun p ->
       let env = Lang.to_list (List.assoc "env" p) in
@@ -113,9 +115,7 @@ let () =
                    (v, "should be one of: \"default\", \"true\" or \"false\""))
       in
       let inherit_env = Lang.to_bool (List.assoc "inherit_env" p) in
-      let env =
-        if env = [] && inherit_env then Utils.environment () else env
-      in
+      let env = if env = [] && inherit_env then Utils.environment () else env in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let env = List.map (fun (k, v) -> Printf.sprintf "%s=%s" k v) env in
       let env = Array.of_list env in
@@ -141,9 +141,11 @@ let () =
             | _ -> assert false
         in
         Lang.tuple
-          [ Lang.string stdout;
+          [
+            Lang.string stdout;
             Lang.string stderr;
-            Lang.product (Lang.string status) (Lang.string arg) ]
+            Lang.product (Lang.string status) (Lang.string arg);
+          ]
       in
       let synchronous () =
         let ((in_chan, out_ch, err_chan) as p) =

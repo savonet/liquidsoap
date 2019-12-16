@@ -88,9 +88,10 @@ let register name osc_t liq_t =
       | _ -> assert false
   in
   Lang.add_builtin ("osc." ^ name) ~category:"Interaction"
-    [ ("", Lang.string_t, None, Some "OSC path.");
-      ("", liq_t, None, Some "Initial value.") ]
-    (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path." (fun p _ ->
+    [
+      ("", Lang.string_t, None, Some "OSC path.");
+      ("", liq_t, None, Some "Initial value.");
+    ] (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path." (fun p _ ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
       let v = ref v in
@@ -99,11 +100,13 @@ let register name osc_t liq_t =
       start_server ();
       Lang.val_fun [] ~ret_t:liq_t (fun _ _ -> !v));
   Lang.add_builtin ("osc.on_" ^ name) ~category:"Interaction"
-    [ ("", Lang.string_t, None, Some "OSC path.");
+    [
+      ("", Lang.string_t, None, Some "OSC path.");
       ( "",
         Lang.fun_t [(false, "", liq_t)] Lang.unit_t,
         None,
-        Some "Callback function." ) ]
+        Some "Callback function." );
+    ]
     Lang.unit_t ~descr:"Register a callback on OSC messages."
     (fun p _ ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
@@ -116,11 +119,12 @@ let register name osc_t liq_t =
       start_server ();
       Lang.unit);
   Lang.add_builtin ("osc.send_" ^ name) ~category:"Interaction"
-    [ ("host", Lang.string_t, None, Some "OSC client address.");
+    [
+      ("host", Lang.string_t, None, Some "OSC client address.");
       ("port", Lang.int_t, None, Some "OSC client port.");
       ("", Lang.string_t, None, Some "OSC path.");
-      ("", liq_t, None, Some "Value to send.") ]
-    Lang.unit_t ~descr:"Send a value to an OSC client." (fun p _ ->
+      ("", liq_t, None, Some "Value to send.");
+    ] Lang.unit_t ~descr:"Send a value to an OSC client." (fun p _ ->
       let host = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
       let path = Lang.to_string (Lang.assoc "" 1 p) in

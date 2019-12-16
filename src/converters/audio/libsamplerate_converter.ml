@@ -35,9 +35,11 @@ let quality_conf =
     ~p:(samplerate_conf#plug "quality")
     "Resampling quality" ~d:"fast"
     ~comments:
-      [ "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
+      [
+        "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
          `\"zero_order\"` or `\"linear\"`. Refer to ocaml-samplerate for \
-         details." ]
+         details.";
+      ]
 
 let quality_of_string v =
   match v with

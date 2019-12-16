@@ -36,9 +36,7 @@ let log = Log.make ["request"]
 
 (** File utilities. *)
 
-let remove_file_proto s =
-  Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s
-
+let remove_file_proto s = Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s
 let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
 
 let parse_uri uri =
@@ -127,28 +125,28 @@ let string_of_log log =
 type indicator = { string : string; temporary : bool; metadata : metadata }
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
-type t =
-  { id : int;
-    initial_uri : string;
-    kind : Frame.content_kind option;
-    (* No kind for raw requests *)
-    persistent : bool;
-    (* The status of a request gives partial information of what's being done
-     * with the request. The info is only partial because things can happen
-     * in parallel. For example you can resolve a request in order to get
-     * a new file from it while it is being played. For this reason, the separate
-     * resolving and on_air information is not completely redundant, and do
-     * not necessarily need to be part of the status information.
-     * Actually this need is quite rare, and I'm not sure this is a good
-     * choice. I'm wondering, so I keep the current design. *)
-    mutable status : status;
-    mutable resolving : float option;
-    mutable on_air : float option;
-    log : log;
-    mutable root_metadata : metadata;
-    mutable indicators : indicator list list;
-    mutable decoder : (unit -> Decoder.file_decoder) option
-  }
+type t = {
+  id : int;
+  initial_uri : string;
+  kind : Frame.content_kind option;
+  (* No kind for raw requests *)
+  persistent : bool;
+  (* The status of a request gives partial information of what's being done
+   * with the request. The info is only partial because things can happen
+   * in parallel. For example you can resolve a request in order to get
+   * a new file from it while it is being played. For this reason, the separate
+   * resolving and on_air information is not completely redundant, and do
+   * not necessarily need to be part of the status information.
+   * Actually this need is quite rare, and I'm not sure this is a good
+   * choice. I'm wondering, so I keep the current design. *)
+  mutable status : status;
+  mutable resolving : float option;
+  mutable on_air : float option;
+  log : log;
+  mutable root_metadata : metadata;
+  mutable indicators : indicator list list;
+  mutable decoder : (unit -> Decoder.file_decoder) option;
+}
 
 let kind x = x.kind
 let initial_uri x = x.initial_uri
@@ -393,7 +391,9 @@ let update_metadata t =
       | (h :: _) :: _ -> if h.temporary then "true" else "false"
       | _ -> "false" );
   begin
-    match get_filename t with Some f -> replace "filename" f | None -> ()
+    match get_filename t with
+    | Some f -> replace "filename" f
+    | None -> ()
   end;
 
   (* STATUS *)
@@ -404,10 +404,12 @@ let update_metadata t =
   end;
   begin
     match t.on_air with
-    | Some d -> replace "on_air" (pretty_date (Unix.localtime d)) | None -> ()
+    | Some d -> replace "on_air" (pretty_date (Unix.localtime d))
+    | None -> ()
   end;
   begin
-    match t.kind with None -> ()
+    match t.kind with
+    | None -> ()
     | Some k -> replace "kind" (Frame.string_of_content_kind k)
   end;
   replace "status"
@@ -466,15 +468,16 @@ let create ~kind ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
     let n = Pool.size () in
     if n > 0 && n mod leak_warning#get = 0 then
       log#severe
-        "There are currently %d RIDs, possible request leak! Please check \
-         that you don't have a loop on empty/unavailable requests, or \
-         creating requests without destroying them. Decreasing \
-         request.grace_time can also help."
+        "There are currently %d RIDs, possible request leak! Please check that \
+         you don't have a loop on empty/unavailable requests, or creating \
+         requests without destroying them. Decreasing request.grace_time can \
+         also help."
         n
   in
   let rid, register = Pool.add () in
   let t =
-    { id = rid;
+    {
+      id = rid;
       initial_uri = u;
       kind;
       persistent;
@@ -484,7 +487,7 @@ let create ~kind ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
       decoder = None;
       log = Queue.create ();
       root_metadata = Hashtbl.create 10;
-      indicators = []
+      indicators = [];
     }
   in
   register t;
@@ -527,10 +530,10 @@ let get_decoder r = match r.decoder with None -> None | Some d -> Some (d ())
 
 type resolver = string -> log:(string -> unit) -> float -> indicator list
 
-type protocol =
-  { resolve : string -> log:(string -> unit) -> float -> indicator list;
-    static : bool
-  }
+type protocol = {
+  resolve : string -> log:(string -> unit) -> float -> indicator list;
+  static : bool;
+}
 
 let protocols_doc =
   "Methods to get a file. They are the first part of URIs: 'protocol:args'."
@@ -576,8 +579,8 @@ let resolve t timeout =
                   in
                   if production = [] then (
                     log#info
-                      "Failed to resolve %S! For more info, see server \
-                       command 'trace %d'."
+                      "Failed to resolve %S! For more info, see server command \
+                       'trace %d'."
                       i.string t.id;
                     ignore (pop_indicator t) )
                   else push_indicators t production

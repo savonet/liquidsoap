@@ -84,7 +84,7 @@ class chord ~kind metadata_name (source : source) =
                   let m = Pcre.get_substring sub 2 in
                   ans := (t, n, m) :: !ans
                 with Not_found ->
-                  (self#log)#important "Could not parse chord '%s'." c)
+                  self#log#important "Could not parse chord '%s'." c)
               (Hashtbl.find_all m metadata_name))
           meta;
         List.rev !ans
@@ -117,7 +117,7 @@ class chord ~kind metadata_name (source : source) =
               | "M7" -> play t [c; c + 4; c + 7; c + 11]
               | "m7" -> play t [c; c + 3; c + 7; c + 10]
               | "dim" -> play t [c; c + 3; c + 6]
-              | m -> (self#log)#debug "Unknown mode: %s\n%!" m ))
+              | m -> self#log#debug "Unknown mode: %s\n%!" m ))
         chords
   end
 
@@ -126,11 +126,13 @@ let () =
   let in_k = Lang.kind_type_of_kind_format Lang.any_fixed in
   let out_k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~midi:1 ()) in
   Lang.add_operator "midi.chord"
-    [ ( "metadata",
+    [
+      ( "metadata",
         Lang.string_t,
         Some (Lang.string "chord"),
         Some "Name of the metadata containing the chords." );
-      ("", Lang.source_t in_k, None, None) ]
+      ("", Lang.source_t in_k, None, None);
+    ]
     ~kind:(Lang.Unconstrained out_k) ~category:Lang.MIDIProcessing
     ~descr:"Generate a chord."
     (fun p kind ->

@@ -44,7 +44,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
       let on_stdout reader =
         if not header_read then (
           let ret = read_header reader in
-          (self#log)#info "Header read!";
+          self#log#info "Header read!";
           header_read <- true;
           ret )
         else on_data reader
@@ -53,7 +53,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
         let buf = Bytes.create Utils.pagesize in
         fun puller ->
           let len = puller buf 0 Utils.pagesize in
-          (self#log)#info "%s" (Bytes.unsafe_to_string (Bytes.sub buf 0 len));
+          self#log#info "%s" (Bytes.unsafe_to_string (Bytes.sub buf 0 len));
           `Continue
       in
       let on_stop status =
@@ -62,7 +62,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
           | `Status (Unix.WEXITED 0) -> restart
           | _ -> restart_on_error
       in
-      let log = (self#log)#important "%s" in
+      let log = self#log#important "%s" in
       process <-
         Some
           (Process_handler.run ~priority:Tutils.Blocking ~on_stop ~on_stdout

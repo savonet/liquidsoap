@@ -68,13 +68,15 @@ let allow_streaming_errors =
     ~p:(conf_clock#plug "allow_streaming_errors")
     ~d:false "Handling of streaming errors"
     ~comments:
-      [ "Control the behaviour of clocks when an error occurs during streaming.";
+      [
+        "Control the behaviour of clocks when an error occurs during streaming.";
         "This has no effect on errors occurring during source initializations.";
         "By default, any error will cause liquidsoap to shutdown. If errors";
         "are allowed, faulty sources are simply removed and clocks keep \
          running.";
         "Allowing errors can result in complex surprising situations;";
-        "use at your own risk!" ]
+        "use at your own risk!";
+      ]
 
 (** Leave a source, ignoring errors *)
 
@@ -96,9 +98,11 @@ let conf_max_latency =
   Dtools.Conf.float ~p:(conf#plug "max_latency") ~d:60.
     "Maximum latency in seconds"
     ~comments:
-      [ "If the latency gets higher than this value, the outputs will be reset,";
+      [
+        "If the latency gets higher than this value, the outputs will be reset,";
         "instead of trying to catch it up second by second.";
-        "The reset is typically only useful to reconnect icecast mounts." ]
+        "The reset is typically only useful to reconnect icecast mounts.";
+      ]
 
 (** Timing stuff, make sure the frame rate is correct. *)
 
@@ -215,9 +219,7 @@ class clock ?(sync = `Auto) id =
       ticks <- 0L;
       let frame_duration = Lazy.force Frame.duration in
       let delay () =
-        t0
-        +. (frame_duration *. Int64.to_float (Int64.add ticks 1L))
-        -. time ()
+        t0 +. (frame_duration *. Int64.to_float (Int64.add ticks 1L)) -. time ()
       in
       log#important "Streaming loop starts in %s mode" (sync_descr sync);
       let rec loop () =
@@ -246,8 +248,7 @@ class clock ?(sync = `Auto) id =
             then (
               last_latency_log := time ();
               log#severe "We must catchup %.2f seconds%s!" (-.rem)
-                ( if !acc <= 100 then ""
-                else " (we've been late for 100 rounds)" );
+                (if !acc <= 100 then "" else " (we've been late for 100 rounds)");
               acc := 0 ) );
           ticks <- Int64.add ticks 1L;
 
@@ -383,8 +384,7 @@ class clock ?(sync = `Auto) id =
                   (fun (outputs, leaving, errors) (flag, s) ->
                     if List.mem (`Started s) to_start then (
                       match flag with
-                        | `Starting ->
-                            ((`Active, s) :: outputs, leaving, errors)
+                        | `Starting -> ((`Active, s) :: outputs, leaving, errors)
                         | `Aborted -> (outputs, s :: leaving, errors)
                         | `New | `Active | `Old -> assert false )
                     else if List.mem (`Error s) to_start then (
@@ -403,8 +403,7 @@ class clock ?(sync = `Auto) id =
         if leaving <> [] then (
           log#info "Stopping %d sources..." (List.length leaving);
           List.iter (fun (s : active_source) -> leave s) leaving );
-        if List.exists (function `Active, _ -> true | _ -> false) outputs
-        then
+        if List.exists (function `Active, _ -> true | _ -> false) outputs then
           do_running (fun () ->
               if not running then (
                 running <- true;

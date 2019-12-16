@@ -27,12 +27,12 @@ module GU = Gstreamer_utils
 
 let log = Log.make ["encoder"; "gstreamer"]
 
-type gst =
-  { bin : Gstreamer.Pipeline.t;
-    audio_src : Gstreamer.App_src.t option;
-    video_src : Gstreamer.App_src.t option;
-    sink : Gstreamer.App_sink.t
-  }
+type gst = {
+  bin : Gstreamer.Pipeline.t;
+  audio_src : Gstreamer.App_src.t option;
+  video_src : Gstreamer.App_src.t option;
+  sink : Gstreamer.App_sink.t;
+}
 
 let encoder ext =
   let channels = Gstreamer_format.audio_channels ext in
@@ -168,8 +168,7 @@ let encoder ext =
       for i = vstart to vstart + vlen - 1 do
         let img = Video.get vbuf i in
         (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
-        assert (
-          Image.YUV420.y_stride img = (Image.YUV420.width img + 3) / 4 * 4 );
+        assert (Image.YUV420.y_stride img = (Image.YUV420.width img + 3) / 4 * 4);
         assert (
           Image.YUV420.uv_stride img
           = ((Image.YUV420.width img / 2) + 3) / 4 * 4 );

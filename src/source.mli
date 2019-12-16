@@ -44,26 +44,26 @@ type source_t = Fallible | Infallible
 type metadata = (int * (string, string) Hashtbl.t) list
 type clock_sync_mode = [ sync | `Unknown ]
 
-type watcher =
-  { get_ready :
-      stype:source_t ->
-      is_output:bool ->
-      id:string ->
-      content_kind:Frame.content_kind ->
-      clock_id:string ->
-      clock_sync_mode:clock_sync_mode ->
-      unit;
-    leave : unit -> unit;
-    get_frame :
-      start_time:float ->
-      end_time:float ->
-      start_position:int ->
-      end_position:int ->
-      is_partial:bool ->
-      metadata:metadata ->
-      unit;
-    after_output : unit -> unit
-  }
+type watcher = {
+  get_ready :
+    stype:source_t ->
+    is_output:bool ->
+    id:string ->
+    content_kind:Frame.content_kind ->
+    clock_id:string ->
+    clock_sync_mode:clock_sync_mode ->
+    unit;
+  leave : unit -> unit;
+  get_frame :
+    start_time:float ->
+    end_time:float ->
+    start_position:int ->
+    end_position:int ->
+    is_partial:bool ->
+    metadata:metadata ->
+    unit;
+  after_output : unit -> unit;
+}
 
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
@@ -271,8 +271,7 @@ class type clock =
 
     (** Streaming *)
 
-    method start_outputs :
-      (active_source -> bool) -> unit -> active_source list
+    method start_outputs : (active_source -> bool) -> unit -> active_source list
 
     method get_tick : int
 

@@ -71,7 +71,8 @@ class compress ~kind (source : source) attack release threshold ratio knee
 let k = Lang.kind_type_of_kind_format Lang.any_fixed
 
 let proto =
-  [ ( "attack",
+  [
+    ( "attack",
       Lang.float_getter_t (),
       Some (Lang.float 100.),
       Some "Attack time (ms)." );
@@ -95,7 +96,8 @@ let proto =
       Lang.float_getter_t (),
       Some (Lang.float 0.),
       Some "Additional gain (dB)." );
-    ("", Lang.source_t k, None, None) ]
+    ("", Lang.source_t k, None, None);
+  ]
 
 let compress p kind =
   let f v = List.assoc v p in

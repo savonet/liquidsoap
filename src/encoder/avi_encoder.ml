@@ -83,10 +83,11 @@ let encoder avi =
       Strings.dda header ans )
     else ans
   in
-  { Encoder.insert_metadata = (fun _ -> ());
+  {
+    Encoder.insert_metadata = (fun _ -> ());
     encode;
     header = Strings.of_string header;
-    stop = (fun () -> Strings.empty)
+    stop = (fun () -> Strings.empty);
   }
 
 let () =

@@ -89,7 +89,7 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         ~on_start:ignore ~on_stop:ignore ~autostart:true
 
-    initializer log_ref := fun s -> (self#log)#important "%s" s
+    initializer log_ref := fun s -> self#log#important "%s" s
 
     val mutable kill_feeding = None
 
@@ -97,7 +97,8 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
 
     method private start =
       begin
-        match wait_feeding with None -> ()
+        match wait_feeding with
+        | None -> ()
         | Some f ->
             f ();
             wait_feeding <- None
@@ -156,9 +157,8 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
         Unix.close socket;
         begin
           match e with
-          | Failure s -> (self#log)#severe "Feeding stopped: %s." s
-          | e ->
-              (self#log)#severe "Feeding stopped: %s." (Printexc.to_string e)
+          | Failure s -> self#log#severe "Feeding stopped: %s." s
+          | e -> self#log#severe "Feeding stopped: %s." (Printexc.to_string e)
         end;
         if should_stop () then has_stopped ()
         else self#feed (should_stop, has_stopped)
@@ -170,10 +170,12 @@ let () =
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:Lang.Output ~flags:[Lang.Experimental]
     ( Output.proto
-    @ [ ("port", Lang.int_t, None, None);
+    @ [
+        ("port", Lang.int_t, None, None);
         ("host", Lang.string_t, None, None);
         ("", Lang.format_t k, None, Some "Encoding format.");
-        ("", Lang.source_t k, None, None) ] )
+        ("", Lang.source_t k, None, None);
+      ] )
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
       (* Generic output parameters *)
@@ -209,13 +211,15 @@ let () =
   Lang.add_operator "input.udp" ~active:true
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:Lang.Input ~flags:[Lang.Experimental]
-    [ ("port", Lang.int_t, None, None);
+    [
+      ("port", Lang.int_t, None, None);
       ("host", Lang.string_t, None, None);
       ( "buffer",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Duration of buffered data before starting playout." );
-      ("", Lang.string_t, None, Some "Mime type.") ]
+      ("", Lang.string_t, None, Some "Mime type.");
+    ]
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
       (* Specific UDP parameters *)
@@ -227,8 +231,7 @@ let () =
         | None ->
             raise
               (Lang_errors.Invalid_value
-                 ( Lang.assoc "" 1 p,
-                   "Cannot get a stream decoder for this MIME" ))
+                 (Lang.assoc "" 1 p, "Cannot get a stream decoder for this MIME"))
         | Some decoder_factory ->
             ( new input ~kind ~hostname ~port ~bufferize ~decoder_factory
               :> Source.source ))

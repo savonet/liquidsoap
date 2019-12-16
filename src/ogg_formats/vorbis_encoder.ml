@@ -60,18 +60,19 @@ let create_gen enc freq m =
       Vorbis.Encoder.encode_buffer_float enc os b 0 (Array.length b.(0)) );
     Vorbis.Encoder.end_of_stream enc os
   in
-  { Ogg_muxer.header_encoder;
+  {
+    Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
     data_encoder = Ogg_muxer.Audio_encoder data_encoder;
     end_of_page;
-    end_of_stream
+    end_of_stream;
   }
 
 (** Rates are given in bits per seconds,
   * i.e. 128000 instead of 128.. *)
-let create_abr ~channels ~samplerate ~min_rate ~max_rate ~average_rate
-    ~metadata () =
+let create_abr ~channels ~samplerate ~min_rate ~max_rate ~average_rate ~metadata
+    () =
   let min_rate, max_rate, average_rate =
     (1000 * min_rate, 1000 * max_rate, 1000 * average_rate)
   in

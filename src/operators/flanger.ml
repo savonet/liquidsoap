@@ -60,8 +60,7 @@ class flanger ~kind (source : source) delay freq feedback phase =
           let delay =
             ( past_pos + past_len
             + Frame.audio_of_seconds
-                (delay *. (1. -. cos (omega +. (float c *. phase ()))) /. 2.)
-            )
+                (delay *. (1. -. cos (omega +. (float c *. phase ()))) /. 2.) )
             mod past_len
           in
           past.(c).{past_pos} <- b.(c).{i};
@@ -79,7 +78,8 @@ class flanger ~kind (source : source) delay freq feedback phase =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any_fixed in
   Lang.add_operator "flanger"
-    [ ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
+    [
+      ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
       ( "freq",
         Lang.float_getter_t (),
         Some (Lang.float 0.5),
@@ -92,7 +92,8 @@ let () =
         Lang.float_getter_t (),
         Some (Lang.float 1.),
         Some "Phase difference between channels in radians." );
-      ("", Lang.source_t k, None, None) ]
+      ("", Lang.source_t k, None, None);
+    ]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
     ~descr:"Flanger effect."
     (fun p kind ->

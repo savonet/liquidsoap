@@ -71,7 +71,8 @@ module Make (T : T) = struct
   let proto kind =
     Output.proto
     @ Icecast_utils.base_proto kind
-    @ [ ("mount", Lang.string_t, None, None);
+    @ [
+        ("mount", Lang.string_t, None, None);
         ("port", Lang.int_t, Some (Lang.int 8000), None);
         ( "user",
           Lang.string_t,
@@ -119,17 +120,21 @@ module Make (T : T) = struct
           Some "Send data to clients using chunks of at least this length." );
         ( "on_connect",
           Lang.fun_t
-            [ (false, "headers", Lang.metadata_t);
+            [
+              (false, "headers", Lang.metadata_t);
               (false, "uri", Lang.string_t);
               (false, "protocol", Lang.string_t);
-              (false, "", Lang.string_t) ]
+              (false, "", Lang.string_t);
+            ]
             Lang.unit_t,
           Some
             (Lang.val_cst_fun
-               [ ("headers", Lang.metadata_t, None);
+               [
+                 ("headers", Lang.metadata_t, None);
                  ("uri", Lang.string_t, None);
                  ("protocol", Lang.string_t, None);
-                 ("", Lang.string_t, None) ]
+                 ("", Lang.string_t, None);
+               ]
                Lang.unit),
           Some "Callback executed when connection is established." );
         ( "on_disconnect",
@@ -145,29 +150,32 @@ module Make (T : T) = struct
           Some (Lang.string ""),
           Some "Dump stream to file, for debugging purpose. Disabled if empty."
         );
-        ("", Lang.source_t kind, None, None) ]
+        ("", Lang.source_t kind, None, None);
+      ]
 
   type client_state = Hello | Sending | Done
 
-  type metadata =
-    { mutable metadata : Frame.metadata option; metadata_m : Mutex.t }
+  type metadata = {
+    mutable metadata : Frame.metadata option;
+    metadata_m : Mutex.t;
+  }
 
-  type client =
-    { buffer : Strings.Mutable.t;
-      condition : Duppy_c.condition;
-      condition_m : Duppy_m.mutex;
-      mutex : Mutex.t;
-      meta : metadata;
-      mutable latest_meta : string;
-      metaint : int;
-      timeout : float;
-      url : string option;
-      mutable metapos : int;
-      chunk : int;
-      mutable state : client_state;
-      close : unit -> unit;
-      handler : (Tutils.priority, Harbor.reply) Duppy.Monad.Io.handler
-    }
+  type client = {
+    buffer : Strings.Mutable.t;
+    condition : Duppy_c.condition;
+    condition_m : Duppy_m.mutex;
+    mutex : Mutex.t;
+    meta : metadata;
+    mutable latest_meta : string;
+    metaint : int;
+    timeout : float;
+    url : string option;
+    mutable metapos : int;
+    chunk : int;
+    mutable state : client_state;
+    close : unit -> unit;
+    handler : (Tutils.priority, Harbor.reply) Duppy.Monad.Io.handler;
+  }
 
   let add_meta c data =
     let mk_icy_meta meta =
@@ -255,8 +263,7 @@ module Make (T : T) = struct
                   (fun () -> Duppy_m.unlock c.condition_m))
           else
             Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-              ~priority:Tutils.Non_blocking c.handler (Strings.to_bytes data)
-          )
+              ~priority:Tutils.Non_blocking c.handler (Strings.to_bytes data) )
           (fun () ->
             let __pa_duppy_0 =
               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
@@ -284,10 +291,12 @@ module Make (T : T) = struct
     let on_connect ~headers ~protocol ~uri s =
       ignore
         (Lang.apply ~t:Lang.unit_t on_connect
-           [ ("headers", Lang.metadata headers);
+           [
+             ("headers", Lang.metadata headers);
              ("uri", Lang.string uri);
              ("protocol", Lang.string protocol);
-             ("", Lang.string s) ])
+             ("", Lang.string s);
+           ])
     in
     let on_disconnect s =
       ignore (Lang.apply ~t:Lang.unit_t on_disconnect [("", Lang.string s)])
@@ -327,9 +336,7 @@ module Make (T : T) = struct
     let source = Lang.assoc "" 2 p in
     let mount = s "mount" in
     let uri =
-      match mount.[0] with
-        | '/' -> mount
-        | _ -> Printf.sprintf "%c%s" '/' mount
+      match mount.[0] with '/' -> mount | _ -> Printf.sprintf "%c%s" '/' mount
     in
     let autostart = Lang.to_bool (List.assoc "start" p) in
     let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -347,9 +354,10 @@ module Make (T : T) = struct
     let default_password = s "password" in
     (* Cf sources/harbor_input.ml *)
     let trivially_false = function
-      | { Lang.value =
+      | {
+          Lang.value =
             Lang.Fun (_, _, _, { Lang_values.term = Lang_values.Bool false; _ });
-          _
+          _;
         } ->
           true
       | _ -> false
@@ -439,7 +447,8 @@ module Make (T : T) = struct
         in
         let close () = try Harbor.close s with _ -> () in
         let rec client =
-          { buffer;
+          {
+            buffer;
             condition = duppy_c;
             condition_m = duppy_m;
             metaint;
@@ -452,35 +461,35 @@ module Make (T : T) = struct
             state = Hello;
             chunk;
             close;
-            handler
+            handler;
           }
         and handler =
-          { Duppy.Monad.Io.scheduler = Tutils.scheduler;
+          {
+            Duppy.Monad.Io.scheduler = Tutils.scheduler;
             socket = s;
             data = "";
             on_error =
               (fun e ->
                 ( match e with
-                  | Duppy.Io.Timeout ->
-                      (self#log)#info "Timeout error for %s" ip
-                  | Duppy.Io.Io_error -> (self#log)#info "I/O error for %s" ip
+                  | Duppy.Io.Timeout -> self#log#info "Timeout error for %s" ip
+                  | Duppy.Io.Io_error -> self#log#info "I/O error for %s" ip
                   | Duppy.Io.Unix (c, p, m) ->
-                      (self#log)#info "Unix error for %s: %s" ip
+                      self#log#info "Unix error for %s: %s" ip
                         (Printexc.to_string (Unix.Unix_error (c, p, m)))
                   | Duppy.Io.Unknown e ->
-                      (self#log)#debug "%s" (Printexc.to_string e) );
-                (self#log)#debug "%s" (Printexc.get_backtrace ());
-                (self#log)#info "Client %s disconnected" ip;
+                      self#log#debug "%s" (Printexc.to_string e) );
+                self#log#debug "%s" (Printexc.get_backtrace ());
+                self#log#info "Client %s disconnected" ip;
                 Tutils.mutexify client.mutex
                   (fun () ->
                     client.state <- Done;
                     ignore (Strings.Mutable.flush client.buffer))
                   ();
                 on_disconnect ip;
-                Harbor.Close (Harbor.mk_simple ""))
+                Harbor.Close (Harbor.mk_simple ""));
           }
         in
-        (self#log)#info "Serving client %s." ip;
+        self#log#info "Serving client %s." ip;
         Duppy.Monad.bind
           (Duppy.Monad.catch
              ( if default_user <> "" || not (trivially_false auth_function) then
@@ -491,13 +500,13 @@ module Make (T : T) = struct
              (function
                | Harbor.Relay _ -> assert false
                | Harbor.Close s ->
-                   (self#log)#info "Client %s failed to authenticate!" ip;
+                   self#log#info "Client %s failed to authenticate!" ip;
                    client.state <- Done;
                    Harbor.reply s))
           (fun () ->
             Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
               (Harbor.relayed reply (fun () ->
-                   (self#log)#info "Client %s connected" ip;
+                   self#log#info "Client %s connected" ip;
                    Tutils.mutexify clients_m
                      (fun () -> Queue.push client clients)
                      ();

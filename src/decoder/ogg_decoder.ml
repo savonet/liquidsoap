@@ -131,9 +131,10 @@ module Make (Generator : Generator.S_Asio) = struct
   let create_decoder ?(merge_tracks = false) source mode input =
     let decoder =
       let callbacks =
-        { Ogg_demuxer.read = input.Decoder.read;
+        {
+          Ogg_demuxer.read = input.Decoder.read;
           seek = input.Decoder.lseek;
-          tell = input.Decoder.tell
+          tell = input.Decoder.tell;
         }
       in
       Ogg_demuxer.init ~log:demuxer_log callbacks
@@ -304,11 +305,13 @@ let mime_types =
   Dtools.Conf.list
     ~p:(Decoder.conf_mime_types#plug "ogg")
     ~d:
-      [ "application/ogg";
+      [
+        "application/ogg";
         "application/x-ogg";
         "audio/x-ogg";
         "audio/ogg";
-        "video/ogg" ]
+        "video/ogg";
+      ]
     "Mime-types used for guessing OGG format."
 
 let file_extensions =

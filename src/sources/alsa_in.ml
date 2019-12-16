@@ -82,7 +82,7 @@ class mic ~kind ~clock_safe device =
       match device with
         | Some d -> d
         | None ->
-            (self#log)#info "Using ALSA %s." (Alsa.get_version ());
+            self#log#info "Using ALSA %s." (Alsa.get_version ());
             let dev = Pcm.open_pcm alsa_device [Pcm.Capture] [] in
             let params = Pcm.get_params dev in
             begin
@@ -91,7 +91,7 @@ class mic ~kind ~clock_safe device =
                 Pcm.set_format dev params Pcm.Format_float
               with _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
-                (self#log)#severe "Falling back on interleaved S16LE";
+                self#log#severe "Falling back on interleaved S16LE";
                 Pcm.set_access dev params Pcm.Access_rw_interleaved;
                 Pcm.set_format dev params Pcm.Format_s16_le;
                 read_fun <-
@@ -105,9 +105,9 @@ class mic ~kind ~clock_safe device =
 
             (* TODO: resample *)
             if sample_freq <> Lazy.force Frame.audio_rate then
-              (self#log)#important
-                "Got a sampling frequency of %d instead of %d (TODO: should \
-                 be resampled in the future)."
+              self#log#important
+                "Got a sampling frequency of %d instead of %d (TODO: should be \
+                 resampled in the future)."
                 sample_freq
                 (Lazy.force Frame.audio_rate);
             Pcm.set_channels dev params buffer_chans;
@@ -128,11 +128,12 @@ class mic ~kind ~clock_safe device =
         done
       with e ->
         begin
-          match e with Buffer_xrun -> (self#log)#important "Overrun!"
-          | _ -> (self#log)#severe "Alsa error: %s" (string_of_error e)
+          match e with
+          | Buffer_xrun -> self#log#important "Overrun!"
+          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
-          (self#log)#severe "Trying to recover..";
+          self#log#severe "Trying to recover..";
           Pcm.recover dev e )
         else raise e
 

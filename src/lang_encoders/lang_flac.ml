@@ -25,13 +25,14 @@ open Lang_encoders
 
 let flac_gen params =
   let defaults =
-    { Flac_format.fill = None;
+    {
+      Flac_format.fill = None;
       (* We use a hardcoded value in order not to force the evaluation of the
            number of channels too early, see #933. *)
       channels = 2;
       samplerate = Frame.audio_rate;
       bits_per_sample = 16;
-      compression = 5
+      compression = 5;
     }
   in
   List.fold_left
@@ -51,8 +52,7 @@ let flac_gen params =
       | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
           { f with Flac_format.channels = 1 }
       | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
-          { f with Flac_format.channels = 2 }
-      | _, t -> raise (generic_error t))
+          { f with Flac_format.channels = 2 } | _, t -> raise (generic_error t))
     defaults params
 
 let make_ogg params = Ogg_format.Flac (flac_gen params)

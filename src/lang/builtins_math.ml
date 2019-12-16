@@ -57,8 +57,10 @@ let () =
        abs(x mod y) <= abs(y)-1." [("", t, None, None); ("", t, None, None)] t
     (fun p ->
       match p with
-        | [ ("", { Lang.value = Lang.Int a; _ });
-            ("", { Lang.value = Lang.Int b; _ }) ] ->
+        | [
+         ("", { Lang.value = Lang.Int a; _ });
+         ("", { Lang.value = Lang.Int b; _ });
+        ] ->
             Lang.int (a mod b)
         | _ -> assert false)
 
@@ -85,11 +87,15 @@ let () =
     add_builtin name ~cat:Math ~descr:(Printf.sprintf "%s of numbers." doc)
       [("", t, None, None); ("", t, None, None)] t (fun p ->
         match p with
-          | [ ("", { Lang.value = Lang.Int a; _ });
-              ("", { Lang.value = Lang.Int b; _ }) ] ->
+          | [
+           ("", { Lang.value = Lang.Int a; _ });
+           ("", { Lang.value = Lang.Int b; _ });
+          ] ->
               Lang.int (op_int a b)
-          | [ ("", { Lang.value = Lang.Float a; _ });
-              ("", { Lang.value = Lang.Float b; _ }) ] ->
+          | [
+           ("", { Lang.value = Lang.Float a; _ });
+           ("", { Lang.value = Lang.Float b; _ });
+          ] ->
               Lang.float (op_float a b)
           | _ -> assert false)
   in
@@ -106,8 +112,10 @@ let () =
     ~descr:
       "Generate a random value between `min` (included) and `max` (excluded)."
     (* TODO better default values *)
-    [ ("min", Lang.float_t, Some (Lang.float (-1000000.)), None);
-      ("max", Lang.float_t, Some (Lang.float 1000000.), None) ]
+    [
+      ("min", Lang.float_t, Some (Lang.float (-1000000.)), None);
+      ("max", Lang.float_t, Some (Lang.float 1000000.), None);
+    ]
     Lang.float_t
     (fun p ->
       let min = Lang.to_float (List.assoc "min" p) in
@@ -118,8 +126,10 @@ let () =
   add_builtin "random.int" ~cat:Math
     ~descr:
       "Generate a random value between `min` (included) and `max` (excluded)."
-    [ ("min", Lang.int_t, Some (Lang.int (1 - (1 lsl 29))), None);
-      ("max", Lang.int_t, Some (Lang.int (1 lsl 29)), None) ]
+    [
+      ("min", Lang.int_t, Some (Lang.int (1 - (1 lsl 29))), None);
+      ("max", Lang.int_t, Some (Lang.int (1 lsl 29)), None);
+    ]
     Lang.int_t
     (fun p ->
       let min = Lang.to_int (List.assoc "min" p) in
@@ -140,18 +150,20 @@ let () =
 
 let () =
   add_builtin "lsl" ~cat:Math ~descr:"Logical shift left."
-    [ ("", Lang.int_t, None, Some "Number to shift.");
-      ("", Lang.int_t, None, Some "Number of bits to shift.") ] Lang.int_t
-    (fun p ->
+    [
+      ("", Lang.int_t, None, Some "Number to shift.");
+      ("", Lang.int_t, None, Some "Number of bits to shift.");
+    ] Lang.int_t (fun p ->
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsl b))
 
 let () =
   add_builtin "lsr" ~cat:Math ~descr:"Logical shift right."
-    [ ("", Lang.int_t, None, Some "Number to shift.");
-      ("", Lang.int_t, None, Some "Number of bits to shift.") ] Lang.int_t
-    (fun p ->
+    [
+      ("", Lang.int_t, None, Some "Number to shift.");
+      ("", Lang.int_t, None, Some "Number of bits to shift.");
+    ] Lang.int_t (fun p ->
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsr b))

@@ -64,9 +64,7 @@ let to_string (j : t) =
     | `String s -> "\"" ^ escape_string s ^ "\""
     | `Null -> "null"
     | `List l ->
-        let l =
-          List.map (fun j -> blank (indent + 1) ^ aux (indent + 1) j) l
-        in
+        let l = List.map (fun j -> blank (indent + 1) ^ aux (indent + 1) j) l in
         let l = String.concat ",\n" l in
         "[\n" ^ l ^ "\n" ^ blank indent ^ "]"
     | `Assoc l ->

@@ -229,7 +229,7 @@ module Register (Lame : Lame_t) = struct
         match mp3.id3v2 with
           | Some f -> (
               fun (* Only insert metadata at the beginning.. *)
-                  m ->
+                    m ->
                 match !id3v2 with
                   | Waiting ->
                       if not (Meta_format.is_empty m) then

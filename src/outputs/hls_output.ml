@@ -28,16 +28,20 @@ let x_version = 3
 let hls_proto kind =
   let segment_name_t =
     Lang.fun_t
-      [ (false, "position", Lang.int_t);
+      [
+        (false, "position", Lang.int_t);
         (false, "extname", Lang.string_t);
-        (false, "", Lang.string_t) ]
+        (false, "", Lang.string_t);
+      ]
       Lang.string_t
   in
   let default_name =
     Lang.val_fun
-      [ ("position", "position", Lang.int_t, None);
+      [
+        ("position", "position", Lang.int_t, None);
         ("extname", "extname", Lang.string_t, None);
-        ("", "", Lang.string_t, None) ] ~ret_t:Lang.string_t (fun p _ ->
+        ("", "", Lang.string_t, None);
+      ] ~ret_t:Lang.string_t (fun p _ ->
         let position = Lang.to_int (List.assoc "position" p) in
         let extname = Lang.to_string (List.assoc "extname" p) in
         let sname = Lang.to_string (List.assoc "" p) in
@@ -48,7 +52,8 @@ let hls_proto kind =
       (Lang.tuple_t [Lang.int_t; Lang.string_t; Lang.string_t])
   in
   Output.proto
-  @ [ ( "playlist",
+  @ [
+      ( "playlist",
         Lang.string_t,
         Some (Lang.string "stream.m3u8"),
         Some "Playlist name (m3u8 extension is recommended)." );
@@ -119,34 +124,34 @@ let hls_proto kind =
         Some (Lang.string "state.config"),
         Some
           "Location of the configuration file used to restart the output when \
-           `persist=true`. Relative paths are assumed to be with regard to \
-           the directory for generated file." );
+           `persist=true`. Relative paths are assumed to be with regard to the \
+           directory for generated file." );
       ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
         Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t kind)),
         None,
         Some "List of specifications for each stream: (name, format)." );
-      ("", Lang.source_t kind, None, None) ]
+      ("", Lang.source_t kind, None, None);
+    ]
 
-type segment =
-  { id : int;
-    discontinuous : bool;
-    discontinuity_count : int;
-    files : (string * string) List.t;
-    mutable len : int
-  }
+type segment = {
+  id : int;
+  discontinuous : bool;
+  discontinuity_count : int;
+  files : (string * string) List.t;
+  mutable len : int;
+}
 
 (** A stream in the HLS (which typically contains many, with different qualities). *)
-type hls_stream_desc =
-  { hls_name : string;  (** name of the stream *)
-    hls_format : Encoder.format;
-    hls_encoder : Encoder.encoder;
-    hls_bandwidth : int;
-    hls_codec : string;  (** codec (see RFC 6381) *)
-    hls_extname : string;
-    mutable hls_oc : (string * out_channel) option
-        (** currently encoded file *)
-  }
+type hls_stream_desc = {
+  hls_name : string;  (** name of the stream *)
+  hls_format : Encoder.format;
+  hls_encoder : Encoder.encoder;
+  hls_bandwidth : int;
+  hls_codec : string;  (** codec (see RFC 6381) *)
+  hls_extname : string;
+  mutable hls_oc : (string * out_channel) option;  (** currently encoded file *)
+}
 
 open Extralib
 
@@ -174,8 +179,10 @@ class hls_output p =
     fun ~state fname ->
       ignore
         (Lang.apply ~t:Lang.unit_t f
-           [ ("state", Lang.string (string_of_file_state state));
-             ("", Lang.string fname) ])
+           [
+             ("state", Lang.string (string_of_file_state state));
+             ("", Lang.string fname);
+           ])
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -274,13 +281,14 @@ class hls_output p =
           in
           (hls_bandwidth, hls_codec, hls_extname)
       in
-      { hls_name;
+      {
+        hls_name;
         hls_format;
         hls_encoder;
         hls_bandwidth;
         hls_codec;
         hls_extname;
-        hls_oc = None
+        hls_oc = None;
       }
     in
     let streams = List.map f streams in
@@ -302,9 +310,11 @@ class hls_output p =
   let segment_name ~position ~extname sname =
     Lang.to_string
       (segment_name
-         [ ("position", Lang.int position);
+         [
+           ("position", Lang.int position);
            ("extname", Lang.string extname);
-           ("", Lang.string sname) ])
+           ("", Lang.string sname);
+         ])
   in
   let segment_names id =
     List.map
@@ -327,11 +337,12 @@ class hls_output p =
 
     (** Current segment ID *)
     val mutable current_segment =
-      { id = 0;
+      {
+        id = 0;
         files = segment_names 0;
         discontinuous = false;
         discontinuity_count = 0;
-        len = 0
+        len = 0;
       }
 
     (** Available segments *)
@@ -368,11 +379,11 @@ class hls_output p =
       on_file_change ~state:`Deleted fname;
       try Unix.unlink fname
       with Unix.Unix_error (e, _, _) ->
-        (self#log)#important "Could not remove file %s: %s" fname
+        self#log#important "Could not remove file %s: %s" fname
           (Unix.error_message e)
 
     method private unlink_segment segment =
-      (self#log)#debug "Cleaning up segment %d.." segment.id;
+      self#log#debug "Cleaning up segment %d.." segment.id;
       List.iter (fun s -> self#unlink (self#segment_name ~segment s)) streams
 
     method private close_out (fname, oc) =
@@ -426,7 +437,7 @@ class hls_output p =
         { current_segment with discontinuous = state = `Restarted };
       self#toggle_state `Streaming;
       open_tick <- self#current_tick;
-      (self#log)#debug "Opening segment %d." current_segment.id;
+      self#log#debug "Opening segment %d." current_segment.id;
       List.iter (fun s -> self#open_segment s) streams
 
     method private current_tick =
@@ -514,12 +525,12 @@ class hls_output p =
     method output_start =
       if persist && Sys.file_exists persist_at then (
         try
-          (self#log)#info "Resuming from saved state";
+          self#log#info "Resuming from saved state";
           self#read_state;
           self#toggle_state `Resumed;
           try Unix.unlink persist_at with _ -> ()
         with exn ->
-          (self#log)#info "Failed to resume from saved state: %s"
+          self#log#info "Failed to resume from saved state: %s"
             (Printexc.to_string exn);
           self#toggle_state `Start )
       else self#toggle_state `Start;
@@ -530,7 +541,7 @@ class hls_output p =
       let data = List.map (fun s -> s.hls_encoder.Encoder.stop ()) streams in
       self#send data;
       if persist then (
-        (self#log)#info "Saving state to %S.." persist_at;
+        self#log#info "Saving state to %S.." persist_at;
         self#push_current_segment;
         self#write_state )
       else (
@@ -540,7 +551,7 @@ class hls_output p =
     method output_reset = self#toggle_state `Restart
 
     method private write_state =
-      (self#log)#info "Reading state file at %S.." persist_at;
+      self#log#info "Reading state file at %S.." persist_at;
       let fd = open_out_bin persist_at in
       Marshal.to_channel fd (current_segment, segments) [];
       close_out fd

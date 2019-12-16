@@ -61,16 +61,16 @@ val copy : content -> content
 type metadata = (string, string) Hashtbl.t
 
 (** A frame. *)
-type t =
-  { mutable breaks : int list;
-        (** End of track markers. A break at the end of the
+type t = {
+  mutable breaks : int list;
+      (** End of track markers. A break at the end of the
                                  buffer is not an end of track (if needed, the
                                  end-of-track needs to be put at the beginning
                                  of the next frame). *)
-    mutable metadata : (int * metadata) list;
-        (** Metadata along with the time they occur. *)
-    mutable contents : (int * content) list
-        (** The actual content can represent
+  mutable metadata : (int * metadata) list;
+      (** Metadata along with the time they occur. *)
+  mutable contents : (int * content) list;
+      (** The actual content can represent
                                                several tracks in one content
                                                chunk, for efficiency, but may
                                                also be split in several chunks
@@ -91,7 +91,7 @@ type t =
                                                often) but is very convenient to
                                                handle; notably, there's no need
                                                to pass offsets around. *)
-  }
+}
 
 (** {2 Content-independent frame operations} *)
 

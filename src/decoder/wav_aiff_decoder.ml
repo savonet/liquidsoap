@@ -87,18 +87,17 @@ module Make (Generator : Generator.S_Asio) = struct
           ~audio_src_rate:(float samplerate)
       in
       let format_descr = match format with `Wav -> "WAV" | `Aiff -> "AIFF" in
-      log#info
-        "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
+      log#info "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
         format_descr samplerate samplesize datalen;
       header := Some (format, samplesize, channels, float samplerate, datalen);
       decoder := main_decoder datalen converter
     in
     begin
-      match !header with None -> decoder := fun _ -> read_header ()
+      match !header with
+      | None -> decoder := fun _ -> read_header ()
       | Some (format, samplesize, channels, audio_src_rate, datalen) ->
           let converter =
-            Rutils.create_from_iff ~format ~samplesize ~channels
-              ~audio_src_rate
+            Rutils.create_from_iff ~format ~samplesize ~channels ~audio_src_rate
           in
           decoder := main_decoder datalen converter
     end;
@@ -139,8 +138,8 @@ let get_type filename =
         let channels = Wav_aiff.channels header in
         let sample_rate = Wav_aiff.sample_rate header in
         let ok_message s =
-          log#info "%S recognized as WAV file (%s,%dHz,%d channels)." filename
-            s sample_rate channels
+          log#info "%S recognized as WAV file (%s,%dHz,%d channels)." filename s
+            sample_rate channels
         in
         match Wav_aiff.sample_size header with
           | 8 ->
@@ -248,8 +247,7 @@ module D_stream = Make (Generator_plus)
 
 let () =
   Decoder.stream_decoders#register "WAV"
-    ~sdoc:"Decode a WAV stream with an appropriate MIME type."
-    (fun mime kind ->
+    ~sdoc:"Decode a WAV stream with an appropriate MIME type." (fun mime kind ->
       let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime wav_mime_types#get
