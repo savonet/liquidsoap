@@ -48,7 +48,7 @@ let () =
   add_builtin "file.unlink" ~cat:Sys ~descr:"Remove a file."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
-        Unix.unlink (Lang.to_string (List.assoc "" p)) ;
+        Unix.unlink (Lang.to_string (List.assoc "" p));
         Lang.unit
       with _ -> Lang.unit)
 
@@ -58,7 +58,8 @@ let () =
       try
         let ic = open_in_bin (Lang.to_string (List.assoc "" p)) in
         let ret = in_channel_length ic in
-        close_in ic ; Lang.int ret
+        close_in ic;
+        Lang.int ret
       with _ -> Lang.int 0)
 
 let () =
@@ -66,7 +67,7 @@ let () =
     ~descr:"Remove a directory and its content."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
-        Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p)) ;
+        Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
         Lang.unit
       with _ -> Lang.unit)
 
@@ -133,16 +134,15 @@ let () =
             | Some c ->
                 let n = input c buf 0 buflen in
                 if n = 0 then (
-                  close_in c ;
-                  ic := None ) ;
+                  close_in c;
+                  ic := None );
                 Bytes.sub_string buf 0 n
-            | None ->
-                ""
+            | None -> ""
         in
         mk_fn fn
       with e ->
         log#important "Error while reading file %S: %s" f
-          (Printexc.to_string e) ;
+          (Printexc.to_string e);
         mk_fn (fun () -> ""))
 
 let () =
@@ -167,10 +167,12 @@ let () =
       let flags = [flag; Open_wronly; Open_creat; Open_binary] in
       try
         let oc = open_out_gen flags perms f in
-        output_string oc data ; close_out oc ; Lang.bool true
+        output_string oc data;
+        close_out oc;
+        Lang.bool true
       with e ->
         log#important "Error while writing file %S: %s" f
-          (Printexc.to_string e) ;
+          (Printexc.to_string e);
         Lang.bool false)
 
 let () =
@@ -186,7 +188,9 @@ let () =
       let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
       let watch = !Configure.file_watcher in
       let unwatch = watch [`Modify] fname f in
-      Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ -> unwatch () ; Lang.unit))
+      Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
+          unwatch ();
+          Lang.unit))
 
 let () =
   add_builtin "file.ls" ~cat:Sys
@@ -225,8 +229,7 @@ let () =
                   in
                   aux subdir (aux f acc (readdir df)) l )
                 else aux subdir (concat subdir f :: acc) l
-            | [] ->
-                acc
+            | [] -> acc
           in
           aux Filename.current_dir_name [] [Filename.current_dir_name] )
       in
@@ -285,8 +288,11 @@ let () =
       let ans =
         try
           let ans = Id3v2.parse (input ic) in
-          close_in ic ; ans
-        with _ -> close_in ic ; []
+          close_in ic;
+          ans
+        with _ ->
+          close_in ic;
+          []
       in
       Lang.list
         ~t:(Lang.product_t Lang.string_t Lang.string_t)

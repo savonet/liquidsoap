@@ -43,8 +43,8 @@ class on_end ~kind ~delay f s =
     method private on_new_metadata = ()
 
     method private get_frame ab =
-      s#get ab ;
-      self#save_latest_metadata ab ;
+      s#get ab;
+      self#save_latest_metadata ab;
       let rem = Frame.seconds_of_master s#remaining in
       if
         (not executed)
@@ -52,10 +52,10 @@ class on_end ~kind ~delay f s =
       then (
         ignore
           (Lang.apply ~t:Lang.unit_t f
-             [("", Lang.float rem); ("", Lang.metadata latest_metadata)]) ;
-        executed <- true ) ;
+             [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
+        executed <- true );
       if Frame.is_partial ab then (
-        self#clear_latest_metadata ;
+        self#clear_latest_metadata;
         executed <- false )
   end
 

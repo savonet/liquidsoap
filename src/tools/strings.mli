@@ -44,7 +44,6 @@ val unsafe_of_bytes : bytes -> t
 val to_string : t -> string
 
 val to_bytes : t -> bytes
-
 val substring : t -> int -> int -> string
 
 (** Concatenation of strings. *)
@@ -137,9 +136,7 @@ module Mutable : sig
   val to_string : t -> string
 
   val to_bytes : t -> bytes
-
   val to_strings : t -> buffer
-
   val substring : t -> int -> int -> string
 
   (** Concatenation of strings. *)

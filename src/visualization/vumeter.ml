@@ -25,9 +25,7 @@
 open Source
 
 let screen_width = 80
-
 let rms_max = -5.
-
 let rms_min = -25.
 
 let vol n v =
@@ -41,10 +39,10 @@ let vol n v =
   in
   for i = 0 to barlen - 1 do
     ans := !ans ^ "="
-  done ;
+  done;
   for i = 0 to barwidth - barlen - 1 do
     ans := !ans ^ "."
-  done ;
+  done;
   Printf.sprintf "% 5.1f %s" v !ans
 
 class vumeter ~kind source scroll =
@@ -63,7 +61,7 @@ class vumeter ~kind source scroll =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let rms = AFrame.rms buf offset (AFrame.position buf - offset) in
       let channels = Array.length rms in
       let vol = Array.map (vol channels) rms in

@@ -20,12 +20,10 @@
 
  *****************************************************************************)
 
-type event = [`Modify]
+type event = [ `Modify ]
 
 let fd = ref (None : Unix.file_descr option)
-
 let handlers = ref []
-
 let m = Mutex.create ()
 
 let rec watchdog () =
@@ -37,18 +35,18 @@ let rec watchdog () =
           (fun (wd, _, _, _) ->
             let f = List.assoc wd !handlers in
             f ())
-          events ;
+          events;
         [watchdog ()])
   in
-  {Duppy.Task.priority= Tutils.Maybe_blocking; events= [`Read fd]; handler}
+  { Duppy.Task.priority = Tutils.Maybe_blocking; events = [`Read fd]; handler }
 
 let watch : File_watcher.watch =
  fun e file f ->
   Tutils.mutexify m
     (fun () ->
       if !fd = None then (
-        fd := Some (Inotify.create ()) ;
-        Duppy.Task.add Tutils.scheduler (watchdog ()) ) ;
+        fd := Some (Inotify.create ());
+        Duppy.Task.add Tutils.scheduler (watchdog ()) );
       let fd = Utils.get_some !fd in
       let event_conv = function
         | `Modify ->
@@ -60,10 +58,10 @@ let watch : File_watcher.watch =
       in
       let e = List.flatten (List.map event_conv e) in
       let wd = Inotify.add_watch fd file e in
-      handlers := (wd, f) :: !handlers ;
+      handlers := (wd, f) :: !handlers;
       let unwatch =
         Tutils.mutexify m (fun () ->
-            Inotify.rm_watch fd wd ;
+            Inotify.rm_watch fd wd;
             handlers := List.remove_assoc wd !handlers)
       in
       unwatch)

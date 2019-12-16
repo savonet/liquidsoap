@@ -24,14 +24,10 @@ open Lang_builtins
 
 let compare_value a b =
   let rec aux = function
-    | Lang.Float a, Lang.Float b ->
-        compare a b
-    | Lang.Int a, Lang.Int b ->
-        compare a b
-    | Lang.String a, Lang.String b ->
-        compare a b
-    | Lang.Bool a, Lang.Bool b ->
-        compare a b
+    | Lang.Float a, Lang.Float b -> compare a b
+    | Lang.Int a, Lang.Int b -> compare a b
+    | Lang.String a, Lang.String b -> compare a b
+    | Lang.Bool a, Lang.Bool b -> compare a b
     | Lang.Tuple l, Lang.Tuple m ->
         List.fold_left2
           (fun cmp a b ->
@@ -39,19 +35,15 @@ let compare_value a b =
           0 l m
     | Lang.List l1, Lang.List l2 ->
         let rec cmp = function
-          | [], [] ->
-              0
-          | [], _ ->
-              -1
-          | _, [] ->
-              1
+          | [], [] -> 0
+          | [], _ -> -1
+          | _, [] -> 1
           | h1 :: l1, h2 :: l2 ->
               let c = aux (h1.Lang.value, h2.Lang.value) in
               if c = 0 then cmp (l1, l2) else c
         in
         cmp (l1, l2)
-    | _ ->
-        assert false
+    | _ -> assert false
   in
   aux (a.Lang.value, b.Lang.value)
 
@@ -60,16 +52,14 @@ let () =
   let register_op name op =
     add_builtin name ~cat:Bool ~descr:"Comparison of comparable values."
       [("", t, None, None); ("", t, None, None)] Lang.bool_t (function
-      | [("", a); ("", b)] ->
-          Lang.bool (op (compare_value a b))
-      | _ ->
-          assert false)
+      | [("", a); ("", b)] -> Lang.bool (op (compare_value a b))
+      | _ -> assert false)
   in
-  register_op "==" (fun c -> c = 0) ;
-  register_op "!=" (fun c -> c <> 0) ;
-  register_op "<" (fun c -> c = -1) ;
-  register_op "<=" (fun c -> c <> 1) ;
-  register_op ">=" (fun c -> c <> -1) ;
+  register_op "==" (fun c -> c = 0);
+  register_op "!=" (fun c -> c <> 0);
+  register_op "<" (fun c -> c = -1);
+  register_op "<=" (fun c -> c <> 1);
+  register_op ">=" (fun c -> c <> -1);
   register_op ">" (fun c -> c = 1)
 
 let () =
@@ -77,18 +67,14 @@ let () =
     [("", Lang.bool_t, None, None); ("", Lang.bool_t, None, None)] Lang.bool_t
     (fun p ->
       match List.map (fun (_, x) -> Lang.to_bool x) p with
-        | [a; b] ->
-            Lang.bool (a && b)
-        | _ ->
-            assert false) ;
+        | [a; b] -> Lang.bool (a && b)
+        | _ -> assert false);
   add_builtin "or" ~cat:Bool ~descr:"Return the disjunction of its arguments"
     [("", Lang.bool_t, None, None); ("", Lang.bool_t, None, None)] Lang.bool_t
     (fun p ->
       match List.map (fun (_, x) -> Lang.to_bool x) p with
-        | [a; b] ->
-            Lang.bool (a || b)
-        | _ ->
-            assert false)
+        | [a; b] -> Lang.bool (a || b)
+        | _ -> assert false)
 
 let () =
   add_builtin "not" ~cat:Bool ~descr:"Returns the negation of its argument."

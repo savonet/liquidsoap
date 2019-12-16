@@ -29,27 +29,19 @@ exception Error
   * Int can be Float, and there can be more than hours. *)
 let parse_item stream =
   let rec ts_of_list d = function
-    | hd :: tl ->
-        (hd *. d) +. ts_of_list (d *. 60.) tl
-    | [] ->
-        0.
+    | hd :: tl -> (hd *. d) +. ts_of_list (d *. 60.) tl
+    | [] -> 0.
   in
   let rec read_meta timestamp =
     match Stream.next stream with
-      | Genlex.Kwd ":" ->
-          read_meta timestamp
-      | Genlex.Int i ->
-          read_meta (float i :: timestamp)
-      | Genlex.Float f ->
-          read_meta (f :: timestamp)
+      | Genlex.Kwd ":" -> read_meta timestamp
+      | Genlex.Int i -> read_meta (float i :: timestamp)
+      | Genlex.Float f -> read_meta (f :: timestamp)
       | Genlex.String key -> (
-        match Stream.next stream with
-          | Genlex.String value ->
-              (ts_of_list 1. timestamp, key, value)
-          | _ ->
-              raise Error )
-      | _ ->
-          raise Error
+          match Stream.next stream with
+            | Genlex.String value -> (ts_of_list 1. timestamp, key, value)
+            | _ -> raise Error )
+      | _ -> raise Error
   in
   read_meta []
 
@@ -58,15 +50,14 @@ let parse_file filename =
   let lexer = Genlex.make_lexer [":"] (Stream.of_channel input) in
   let rec parse acc =
     match try Some (parse_item lexer) with Stream.Failure -> None with
-      | Some i ->
-          parse (i :: acc)
-      | None ->
-          List.rev acc
+      | Some i -> parse (i :: acc)
+      | None -> List.rev acc
   in
   let data = parse [] in
-  close_in input ; data
+  close_in input;
+  data
 
-let empty = {Frame.audio= 0; video= 0; midi= 0}
+let empty = { Frame.audio = 0; video = 0; midi = 0 }
 
 let file_deco filename =
   let events = ref (parse_file filename) in
@@ -81,25 +72,24 @@ let file_deco filename =
             if ts < !t +. duration then (
               let pos = Frame.master_of_seconds (ts -. !t) in
               let meta = Hashtbl.create 1 in
-              Hashtbl.add meta k v ;
-              Frame.set_metadata frame pos meta ;
-              events := tl ;
+              Hashtbl.add meta k v;
+              Frame.set_metadata frame pos meta;
+              events := tl;
               aux () )
             else Frame.add_break frame size
-        | [] ->
-            Frame.add_break frame pos
+        | [] -> Frame.add_break frame pos
     in
-    ignore (Frame.content_of_type frame pos empty) ;
-    aux () ;
-    t := !t +. Frame.seconds_of_master (Frame.position frame - pos) ;
+    ignore (Frame.content_of_type frame pos empty);
+    aux ();
+    t := !t +. Frame.seconds_of_master (Frame.position frame - pos);
     -1
     (* TODO remaining time *)
   in
-  {Decoder.fill; fseek= (fun _ -> 0); close= ignore}
+  { Decoder.fill; fseek = (fun _ -> 0); close = ignore }
 
 let () =
   Decoder.file_decoders#register "META" (fun ~metadata:_ filename kind ->
       if Frame.type_has_kind empty kind then (
-        ignore (parse_file filename) ;
+        ignore (parse_file filename);
         Some (fun () -> file_deco filename) )
       else None)

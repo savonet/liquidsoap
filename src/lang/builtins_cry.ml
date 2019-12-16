@@ -64,16 +64,14 @@ let () =
       let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
       let out_enc =
         match Lang.to_string (List.assoc "encoding" p) with
-          | "" ->
-              None
-          | s ->
-              Some s
+          | "" -> None
+          | s -> Some s
       in
       let metas =
         let ret = Hashtbl.create (Hashtbl.length metas) in
         Hashtbl.iter
           (fun x y -> Hashtbl.add ret x (Configure.recode_tag ?out_enc y))
-          metas ;
+          metas;
         ret
       in
       let host = Lang.to_string (List.assoc "host" p) in
@@ -87,18 +85,15 @@ let () =
       in
       let headers =
         let h = Hashtbl.create 10 in
-        List.iter (fun (x, y) -> Hashtbl.add h x y) headers ;
+        List.iter (fun (x, y) -> Hashtbl.add h x y) headers;
         h
       in
       let protocol =
         let v = List.assoc "protocol" p in
         match Lang.to_string v with
-          | "icy" ->
-              Cry.Icy
-          | "http" ->
-              Cry.Http Cry.Source (* Verb doesn't matter here. *)
-          | "https" ->
-              Cry.Https Cry.Source
+          | "icy" -> Cry.Icy
+          | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
+          | "https" -> Cry.Https Cry.Source
           | _ ->
               raise
                 (Lang_errors.Invalid_value
@@ -106,10 +101,8 @@ let () =
       in
       let mount =
         match protocol with
-          | Cry.Icy ->
-              Cry.Icy_id icy_id
-          | _ ->
-              Cry.Icecast_mount mount
+          | Cry.Icy -> Cry.Icy_id icy_id
+          | _ -> Cry.Icecast_mount mount
       in
       begin
         try
@@ -117,5 +110,5 @@ let () =
             ~mount ~headers metas
         with e ->
           log#severe "Manual metadata update failed: %s" (Printexc.to_string e)
-      end ;
+      end;
       Lang.unit)

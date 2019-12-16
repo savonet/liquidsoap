@@ -43,44 +43,32 @@ let format_of frame =
   let fmt = Img.pixel_format frame in
   match fmt with
     | P.RGB fmt -> (
-      match fmt with
-        | P.RGB24 ->
-            `Rgb24
-        | P.BGR24 ->
-            `Bgr24
-        | P.RGB32 ->
-            `Rgba
-        | P.BGR32 ->
-            `Bgra
-        | P.RGBA32 ->
-            `Rgba )
+        match fmt with
+          | P.RGB24 -> `Rgb24
+          | P.BGR24 -> `Bgr24
+          | P.RGB32 -> `Rgba
+          | P.BGR32 -> `Bgra
+          | P.RGBA32 -> `Rgba )
     | P.YUV fmt -> (
-      match fmt with
-        | P.YUV422 ->
-            `Yuv422p
-        | P.YUV444 ->
-            `Yuv444p
-        | P.YUV411 ->
-            `Yuv411p
-        | P.YUV410 ->
-            `Yuv410p
-        | P.YUVJ420 ->
-            `Yuv420p
-        | P.YUVJ422 ->
-            `Yuvj422p
-        | P.YUVJ444 ->
-            `Yuvj444p )
+        match fmt with
+          | P.YUV422 -> `Yuv422p
+          | P.YUV444 -> `Yuv444p
+          | P.YUV411 -> `Yuv411p
+          | P.YUV410 -> `Yuv410p
+          | P.YUVJ420 -> `Yuv420p
+          | P.YUVJ422 -> `Yuvj422p
+          | P.YUVJ444 -> `Yuvj444p )
 
 type fmt = Avutil.Pixel_format.t * int * int
 
-type conv = {conv: Swscale.t; dst_off: [`Pixel of int | `Line of int | `Zero]}
+type conv =
+  { conv : Swscale.t; dst_off : [ `Pixel of int | `Line of int | `Zero ] }
 
 (* TODO: share this with Gavl. *)
 module HT = struct
   type t = (bool * fmt * fmt) * conv option
 
   let equal (fmt, _) (fmt', _) = fmt = fmt'
-
   let hash (fmt, _) = Hashtbl.hash fmt
 end
 
@@ -89,15 +77,14 @@ module WH = struct
 
   (* Number of converters to always keep in memory. *)
   let n = 2
-
   let keep = Array.make n None
 
   let add h fmt conv =
     let conv = (fmt, Some conv) in
     for i = 1 to n - 1 do
       keep.(i - 1) <- keep.(i)
-    done ;
-    keep.(n - 1) <- Some conv ;
+    done;
+    keep.(n - 1) <- Some conv;
     add h conv
 
   let assoc h fmt = Utils.get_some (snd (find h (fmt, None)))
@@ -105,7 +92,6 @@ end
 
 (* Weak hashtable containing converters already created. *)
 let converters = WH.create 5
-
 let is_rgb = function P.RGB _ -> true | _ -> false
 
 let create () =
@@ -136,21 +122,21 @@ let create () =
             [Swscale.Bilinear; Swscale.Print_info]
             src_w src_h src_f dst_w dst_h dst_f
         in
-        let conv = {conv; dst_off} in
+        let conv = { conv; dst_off } in
         WH.add converters
           (proportional, (src_f, src_w, src_h), (dst_f, dst_w, dst_h))
-          conv ;
+          conv;
         conv
     in
     let data f =
       match Img.pixel_format f with
         | P.RGB _ ->
             let buf, stride = Img.rgb_data f in
-            if conv.dst_off <> `Zero then Bigarray.Array1.fill buf 0 ;
-            [|(buf, stride)|]
+            if conv.dst_off <> `Zero then Bigarray.Array1.fill buf 0;
+            [| (buf, stride) |]
         | P.YUV _ ->
             let (y, sy), (u, v, s) = Img.yuv_data f in
-            [|(y, sy); (u, s); (v, s)|]
+            [| (y, sy); (u, s); (v, s) |]
     in
     let src_d = data src in
     let dst_d = data dst in
@@ -158,13 +144,12 @@ let create () =
       (* Since swscale does not know how to scale keeping aspect ratio, we have
          to play a bit with offsets... *)
       match conv.dst_off with
-        | `Zero ->
-            0
+        | `Zero -> 0
         | `Line n ->
-            assert (n = 0 || Array.length dst_d = 1) ;
+            assert (n = 0 || Array.length dst_d = 1);
             n * snd dst_d.(0)
         | `Pixel n ->
-            assert (n = 0 || Array.length dst_d = 1) ;
+            assert (n = 0 || Array.length dst_d = 1);
             n * Avutil.Pixel_format.bits dst_f
     in
     Swscale.scale conv.conv src_d 0 src_h dst_d dst_off

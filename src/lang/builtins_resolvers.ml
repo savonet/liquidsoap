@@ -45,7 +45,7 @@ let () =
         in
         ret
       in
-      Request.mresolvers#register format resolver ;
+      Request.mresolvers#register format resolver;
       Lang.unit)
 
 let () =
@@ -77,13 +77,11 @@ let () =
         let args = [("", Lang.string uri)] in
         let args =
           match pwd with
-            | Some pwd ->
-                ("pwd", Lang.string pwd) :: args
-            | None ->
-                args
+            | Some pwd -> ("pwd", Lang.string pwd) :: args
+            | None -> args
         in
         let ret = Lang.to_list (Lang.apply ~t:playlist_t fn args) in
-        if ret = [] then raise Not_found ;
+        if ret = [] then raise Not_found;
         List.map
           (fun el ->
             let m, s = Lang.to_product el in
@@ -91,7 +89,7 @@ let () =
           ret
       in
       Playlist_parser.parsers#register format
-        {Playlist_parser.strict; Playlist_parser.parser= fn} ;
+        { Playlist_parser.strict; Playlist_parser.parser = fn };
       Lang.unit)
 
 let () =
@@ -149,7 +147,7 @@ let () =
           let log =
             Lang.val_fun log_p ~ret_t:Lang.unit_t (fun p _ ->
                 let v = List.assoc "" p in
-                log (Lang.to_string v) ;
+                log (Lang.to_string v);
                 Lang.unit)
           in
           let l =
@@ -162,5 +160,5 @@ let () =
           in
           List.map
             (fun s -> Request.indicator ~temporary (Lang.to_string s))
-            (Lang.to_list l)) ;
+            (Lang.to_list l));
       Lang.unit)

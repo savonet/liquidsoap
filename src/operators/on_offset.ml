@@ -23,7 +23,6 @@
 exception Invalid_override of string
 
 let ( -- ) = Int64.sub
-
 let ( ++ ) = Int64.add
 
 let ticks_of_offset offset =
@@ -54,13 +53,13 @@ class on_offset ~kind ~force ~offset ~override f s =
     val mutable executed = false
 
     method private execute =
-      (self#log)#info "Executing on_offset callback." ;
+      (self#log)#info "Executing on_offset callback.";
       let pos =
         Int64.to_float elapsed /. float (Lazy.force Frame.master_rate)
       in
       ignore
         (Lang.apply ~t:Lang.unit_t f
-           [("", Lang.float pos); ("", Lang.metadata latest_metadata)]) ;
+           [("", Lang.float pos); ("", Lang.metadata latest_metadata)]);
       executed <- true
 
     method private on_new_metadata =
@@ -71,25 +70,24 @@ class on_offset ~kind ~force ~offset ~override f s =
           with Failure _ -> raise (Invalid_override pos)
         in
         let ticks = ticks_of_offset pos in
-        (self#log)#info "Setting new offset to %.02fs (%Li ticks)" pos ticks ;
+        (self#log)#info "Setting new offset to %.02fs (%Li ticks)" pos ticks;
         offset <- ticks
       with
-        | Failure _ | Not_found ->
-            ()
+        | Failure _ | Not_found -> ()
         | Invalid_override pos ->
             (self#log)#important "Invalid value for override metadata: %s" pos
 
     method private get_frame ab =
       let pos = Int64.of_int (Frame.position ab) in
-      s#get ab ;
-      self#save_latest_metadata ab ;
+      s#get ab;
+      self#save_latest_metadata ab;
       let new_pos = Int64.of_int (Frame.position ab) in
-      elapsed <- elapsed ++ new_pos -- pos ;
-      if (not executed) && offset <= elapsed then self#execute ;
+      elapsed <- elapsed ++ new_pos -- pos;
+      if (not executed) && offset <= elapsed then self#execute;
       if Frame.is_partial ab then (
-        if force && not executed then self#execute ;
-        executed <- false ;
-        self#clear_latest_metadata ;
+        if force && not executed then self#execute;
+        executed <- false;
+        self#clear_latest_metadata;
         elapsed <- 0L )
   end
 

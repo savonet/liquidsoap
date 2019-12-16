@@ -42,7 +42,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks
     inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (Bjack_in.bjack_clock () :> Clock.clock))
@@ -55,7 +55,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks
       match device with
         | None ->
             (* Wait for things to settle *)
-            Thread.delay (5. *. seconds_per_frame) ;
+            Thread.delay (5. *. seconds_per_frame);
             let server_name = match server with "" -> None | s -> Some s in
             let dev =
               Bjack.open_t ~rate:samples_per_second
@@ -65,11 +65,10 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks
                   (nb_blocks * samples_per_frame * bytes_per_sample)
                 ~client_name:self#id ()
             in
-            Bjack.set_all_volume dev 100 ;
-            device <- Some dev ;
+            Bjack.set_all_volume dev 100;
+            device <- Some dev;
             dev
-        | Some d ->
-            d
+        | Some d -> d
 
     method push_block data =
       let dev = self#get_device in
@@ -77,7 +76,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks
       let data = Bytes.unsafe_to_string data in
       let remaining = ref (len - Bjack.write dev data) in
       while !remaining > 0 do
-        Thread.delay (seconds_per_frame /. 2.) ;
+        Thread.delay (seconds_per_frame /. 2.);
         let tmp = Str.string_after data (len - !remaining) in
         let written = Bjack.write dev tmp in
         remaining := !remaining - written
@@ -86,10 +85,9 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks
     method close =
       match device with
         | Some d ->
-            Bjack.close d ;
+            Bjack.close d;
             device <- None
-        | None ->
-            ()
+        | None -> ()
 
     method output_send wav =
       let push data = Audio.S16LE.of_audio (AFrame.content wav 0) data 0 in

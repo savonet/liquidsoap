@@ -40,7 +40,7 @@ class map ~kind source f =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       for i = offset to AFrame.position buf - 1 do
         for c = 0 to Array.length b - 1 do

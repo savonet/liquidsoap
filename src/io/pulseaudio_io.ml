@@ -31,8 +31,7 @@ let error_translator e =
     | Pulseaudio.Error n ->
         Some
           (Printf.sprintf "Pulseaudio error: %s" (Pulseaudio.string_of_error n))
-    | _ ->
-        None
+    | _ -> None
 
 let () = Printexc.register_printer error_translator
 
@@ -65,7 +64,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
           ~output_kind:"output.pulseaudio" val_source start as super
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
@@ -74,10 +73,9 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     method open_device =
       let ss =
-        {
-          sample_format= Sample_format_float32le;
-          sample_rate= samples_per_second;
-          sample_chans= channels;
+        { sample_format = Sample_format_float32le;
+          sample_rate = samples_per_second;
+          sample_chans = channels
         }
       in
       stream <-
@@ -87,17 +85,18 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     method close_device =
       match stream with
-        | None ->
-            ()
+        | None -> ()
         | Some s ->
-            Pulseaudio.Simple.free s ;
+            Pulseaudio.Simple.free s;
             stream <- None
 
     method output_start = self#open_device
 
     method output_stop = self#close_device
 
-    method output_reset = self#close_device ; self#open_device
+    method output_reset =
+      self#close_device;
+      self#open_device
 
     method output_send memo =
       let stream = Utils.get_some stream in
@@ -114,7 +113,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
             ((i * chans) + c)
             (Bigarray.Array1.unsafe_get bufc i)
         done
-      done ;
+      done;
       Simple.write_ba stream buf'
   end
 
@@ -144,7 +143,7 @@ class input ~kind p =
     inherit base ~client ~device
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
@@ -153,16 +152,17 @@ class input ~kind p =
 
     method private stop = self#close_device
 
-    method output_reset = self#close_device ; self#open_device
+    method output_reset =
+      self#close_device;
+      self#open_device
 
     val mutable stream = None
 
     method private open_device =
       let ss =
-        {
-          sample_format= Sample_format_float32le;
-          sample_rate= samples_per_second;
-          sample_chans= channels;
+        { sample_format = Sample_format_float32le;
+          sample_rate = samples_per_second;
+          sample_chans = channels
         }
       in
       stream <-
@@ -171,11 +171,11 @@ class input ~kind p =
              ~dir:Dir_record ?dev ~sample:ss ())
 
     method private close_device =
-      Pulseaudio.Simple.free (Utils.get_some stream) ;
+      Pulseaudio.Simple.free (Utils.get_some stream);
       stream <- None
 
     method input frame =
-      assert (0 = AFrame.position frame) ;
+      assert (0 = AFrame.position frame);
       let stream = Utils.get_some stream in
       let len = AFrame.size () in
       let ibuf =
@@ -183,13 +183,13 @@ class input ~kind p =
           (channels * len)
       in
       let buf = AFrame.content_of_type ~channels frame 0 in
-      Simple.read_ba stream ibuf ;
+      Simple.read_ba stream ibuf;
       for c = 0 to channels - 1 do
         let bufc = buf.(c) in
         for i = 0 to len - 1 do
           bufc.{i} <- Bigarray.Array1.unsafe_get ibuf ((i * channels) + c)
         done
-      done ;
+      done;
       AFrame.add_break frame (AFrame.size ())
   end
 
@@ -222,7 +222,7 @@ let () =
         fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
       in
       ( new output ~infallible ~on_start ~on_stop ~start ~kind p
-        :> Source.source )) ;
+        :> Source.source ));
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
     ~kind:(Lang.Unconstrained k) ~category:Lang.Input

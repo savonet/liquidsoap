@@ -44,11 +44,11 @@ class synth ~kind (synth : Synth.synth) (source : source) chan volume =
       if chan >= Array.length midi then (
         (self#log)#important
           "Cannot read MIDI channel %d, stream only has %d channels." chan
-          (Array.length midi) ;
+          (Array.length midi);
         source#get buf )
       else (
         let evs = midi.(chan) in
-        source#get buf ;
+        source#get buf;
         let b = AFrame.content buf offset in
         let position = AFrame.position buf in
         let len = position - offset in
@@ -97,7 +97,7 @@ let register obj name descr =
         else None
       in
       let src = Lang.to_source (f "") in
-      new synth ~kind (obj adsr) src chan volume) ;
+      new synth ~kind (obj adsr) src chan volume);
   let k =
     Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ~midi:16 ())
   in

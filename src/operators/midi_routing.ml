@@ -45,10 +45,10 @@ class merge ~kind (source : source) out =
 
     method private get_frame buf =
       let offset = MFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let m = MFrame.content buf offset in
       for c = 0 to Array.length m - 1 do
-        MIDI.merge m.(out) m.(c) ;
+        MIDI.merge m.(out) m.(c);
         if c <> out then MIDI.clear_all m.(c)
       done
   end
@@ -59,7 +59,7 @@ class remove ~kind (source : source) t =
 
     method private get_frame buf =
       let offset = MFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let m = MFrame.content buf offset in
       List.iter (fun c -> if c < Array.length m then MIDI.clear_all m.(c)) t
   end

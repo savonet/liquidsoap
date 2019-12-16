@@ -28,18 +28,11 @@ let () = Alsa.no_stderr_report ()
 (** Error translator *)
 let error_translator e =
   match e with
-    | Alsa.Buffer_xrun
-    | Alsa.Bad_state
-    | Alsa.Suspended
-    | Alsa.IO_error
-    | Alsa.Device_busy
-    | Alsa.Invalid_argument
-    | Alsa.Device_removed
-    | Alsa.Interrupted
-    | Alsa.Unknown_error _ ->
+    | Alsa.Buffer_xrun | Alsa.Bad_state | Alsa.Suspended | Alsa.IO_error
+    | Alsa.Device_busy | Alsa.Invalid_argument | Alsa.Device_removed
+    | Alsa.Interrupted | Alsa.Unknown_error _ ->
         Some (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e))
-    | _ ->
-        None
+    | _ -> None
 
 let () = Printexc.register_printer error_translator
 

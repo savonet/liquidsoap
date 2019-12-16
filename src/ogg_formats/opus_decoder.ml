@@ -27,12 +27,9 @@ let () =
     (Dtools.Init.at_start (fun () ->
          let rate = Lazy.force Frame.audio_rate in
          let rec f = function
-           | [] ->
-               48000
-           | x :: l when x < rate ->
-               f l
-           | x :: _ ->
-               x
+           | [] -> 48000
+           | x :: l when x < rate -> f l
+           | x :: _ -> x
          in
-         Ogg_demuxer_opus_decoder.decoder_samplerate := f samplerates)) ;
+         Ogg_demuxer_opus_decoder.decoder_samplerate := f samplerates));
   Ogg_demuxer_opus_decoder.register ()

@@ -44,13 +44,15 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
       socket_send <-
         Some
           (fun msg off len ->
-            Unix.sendto socket (Bytes.of_string msg) off len [] portaddr) ;
+            Unix.sendto socket (Bytes.of_string msg) off len [] portaddr);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
 
-    method private output_reset = self#output_start ; self#output_stop
+    method private output_reset =
+      self#output_start;
+      self#output_stop
 
     method private output_stop =
-      socket_send <- None ;
+      socket_send <- None;
       encoder <- None
 
     method private encode frame ofs len =
@@ -95,20 +97,21 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
 
     method private start =
       begin
-        match wait_feeding with None -> () | Some f ->
-            f () ;
+        match wait_feeding with None -> ()
+        | Some f ->
+            f ();
             wait_feeding <- None
-      end ;
+      end;
       let kill, wait = Tutils.stoppable_thread self#feed "UDP input" in
-      kill_feeding <- Some kill ;
+      kill_feeding <- Some kill;
       wait_feeding <- Some wait
 
     method private stop =
-      (Utils.get_some kill_feeding) () ;
+      (Utils.get_some kill_feeding) ();
       kill_feeding <- None
 
     method private output_reset =
-      request_stop <- true ;
+      request_stop <- true;
       request_start <- true
 
     method private is_active = true
@@ -122,38 +125,41 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
       in
       let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
       let addr = Unix.ADDR_INET (ipaddr, port) in
-      Unix.bind socket addr ;
+      Unix.bind socket addr;
+
       (* Wait until there's something to read or we must stop. *)
       let rec wait () =
-        if should_stop () then failwith "stop" ;
+        if should_stop () then failwith "stop";
         let l, _, _ = Unix.select [socket] [] [] 1. in
         if l = [] then wait ()
       in
       (* Read data from the network. *)
       let read buf ofs len =
-        wait () ;
+        wait ();
         let n, _ = Unix.recvfrom socket buf ofs len [] in
         n
       in
-      let input = {Decoder.read; tell= None; length= None; lseek= None} in
+      let input = { Decoder.read; tell = None; length = None; lseek = None } in
       try
         (* Feeding loop. *)
         let decoder = decoder_factory input in
         while true do
-          if should_stop () then failwith "stop" ;
+          if should_stop () then failwith "stop";
           decoder.Decoder.decode generator
         done
       with e ->
-        Generator.add_break ~sync:`Drop generator ;
+        Generator.add_break ~sync:`Drop generator;
+
         (* Closing the socket is slightly overkill but
          * we need to recreate the decoder anyway, which
          * might loose some data too. *)
-        Unix.close socket ;
+        Unix.close socket;
         begin
-          match e with Failure s -> (self#log)#severe "Feeding stopped: %s." s
+          match e with
+          | Failure s -> (self#log)#severe "Feeding stopped: %s." s
           | e ->
               (self#log)#severe "Feeding stopped: %s." (Printexc.to_string e)
-        end ;
+        end;
         if should_stop () then has_stopped ()
         else self#feed (should_stop, has_stopped)
   end

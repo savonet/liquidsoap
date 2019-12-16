@@ -28,13 +28,11 @@ let export_metadata m =
   Hashtbl.iter
     (fun x y ->
       if List.mem (String.lowercase_ascii x) l then Hashtbl.add ret x y)
-    m ;
+    m;
   ret
 
 let to_metadata m = m
-
 let empty_metadata = Hashtbl.create 0
-
 let is_empty m = Hashtbl.length m == 0
 
 let to_string m =

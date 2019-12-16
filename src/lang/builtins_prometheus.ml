@@ -53,10 +53,8 @@ let add_metric metric_name create register set =
       in
       let opt_v n =
         match Lang.to_string (List.assoc n p) with
-          | s when s = "" ->
-              None
-          | v ->
-              Some v
+          | s when s = "" -> None
+          | v -> Some v
       in
       let namespace = opt_v "namespace" in
       let subsystem = opt_v "subsystem" in
@@ -73,16 +71,17 @@ let add_metric metric_name create register set =
           if List.length labels <> List.length label_names then
             raise
               (Lang_errors.Invalid_value
-                 (labels_v, "Not enough labels provided!")) ;
+                 (labels_v, "Not enough labels provided!"));
           let m = register m labels in
           Lang.val_fun [("", "", Lang.float_t, None)] ~ret_t:Lang.unit_t
             (fun p _ ->
               let v = Lang.to_float (List.assoc "" p) in
-              set m v ; Lang.unit)))
+              set m v;
+              Lang.unit)))
 
 let () =
-  add_metric "counter" Counter.v_labels Counter.labels Counter.inc ;
-  add_metric "gauge" Gauge.v_labels Gauge.labels Gauge.set ;
+  add_metric "counter" Counter.v_labels Counter.labels Counter.inc;
+  add_metric "gauge" Gauge.v_labels Gauge.labels Gauge.set;
   add_metric "summary" Summary.v_labels Summary.labels Summary.observe
 
 let latencies = Hashtbl.create 10
@@ -90,8 +89,7 @@ let latencies = Hashtbl.create 10
 let get_latencies ~prefix ~label_names mode =
   let key = String.concat "" (mode :: label_names) in
   match Hashtbl.find_opt latencies key with
-    | Some l ->
-        l
+    | Some l -> l
     | None ->
         let latency =
           Gauge.v_labels ~label_names
@@ -110,22 +108,21 @@ let get_latencies ~prefix ~label_names mode =
             ~help:(Printf.sprintf "Max %s latency since start" mode)
             (Printf.sprintf "%s%s_max_latency_seconds" prefix mode)
         in
-        Hashtbl.add latencies key (latency, peak_latency, max_latency) ;
+        Hashtbl.add latencies key (latency, peak_latency, max_latency);
         (latency, peak_latency, max_latency)
 
 let last_data = ref None
 
 let get_last_data ~label_names =
   match !last_data with
-    | Some m ->
-        m
+    | Some m -> m
     | None ->
         let m =
           Gauge.v_labels ~label_names
             ~help:"Last time source produced some data."
             "liquidsoap_time_of_last_data_timestamp"
         in
-        last_data := Some m ;
+        last_data := Some m;
         m
 
 let source_monitor ~prefix ~label_names ~labels ~window s =
@@ -147,16 +144,16 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     let max = ref (-1.) in
     let add_latency l =
       let t = Unix.gettimeofday () in
-      Hashtbl.add latencies t l ;
+      Hashtbl.add latencies t l;
       Hashtbl.filter_map_inplace
         (fun old_t v -> if t -. window <= old_t then Some v else None)
-        latencies ;
+        latencies;
       let peak =
         Hashtbl.fold (fun _ v cur -> if cur < v then v else cur) latencies 0.
       in
-      if !max < peak then max := peak ;
-      Prometheus.Gauge.set latency (mean latencies) ;
-      Prometheus.Gauge.set peak_latency peak ;
+      if !max < peak then max := peak;
+      Prometheus.Gauge.set latency (mean latencies);
+      Prometheus.Gauge.set peak_latency peak;
       Prometheus.Gauge.set max_latency !max
     in
     add_latency
@@ -175,9 +172,9 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   let leave () = () in
   let get_frame ~start_time ~end_time ~start_position ~end_position
       ~is_partial:_ ~metadata:_ =
-    last_start_time := start_time ;
-    last_end_time := end_time ;
-    Prometheus.Gauge.set last_data end_time ;
+    last_start_time := start_time;
+    last_end_time := end_time;
+    Prometheus.Gauge.set last_data end_time;
     let encoded_time =
       Frame.seconds_of_master (end_position - start_position)
     in
@@ -186,10 +183,10 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   in
   let after_output () =
     let current_time = Unix.gettimeofday () in
-    add_output_latency ((current_time -. !last_end_time) /. frame_duration) ;
+    add_output_latency ((current_time -. !last_end_time) /. frame_duration);
     add_overall_latency ((current_time -. !last_start_time) /. frame_duration)
   in
-  let watcher = {Source.get_ready; leave; get_frame; after_output} in
+  let watcher = { Source.get_ready; leave; get_frame; after_output } in
   s#add_watcher watcher
 
 let () =
@@ -229,6 +226,6 @@ let () =
           if List.length labels <> List.length label_names then
             raise
               (Lang_errors.Invalid_value
-                 (labels_v, "Not enough labels provided!")) ;
-          source_monitor ~label_names ~labels ~window ~prefix s ;
+                 (labels_v, "Not enough labels provided!"));
+          source_monitor ~label_names ~labels ~window ~prefix s;
           Lang.unit))

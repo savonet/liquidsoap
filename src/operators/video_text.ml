@@ -61,48 +61,46 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta
           let a = get_pixel_rgba x y in
           Video.Image.set_pixel_rgba tf x y (tr, tg, tb, a)
         done
-      done ;
+      done;
       text_frame <- Some tf
 
     method get_text_frame =
       match text_frame with
-        | Some tf ->
-            tf
+        | Some tf -> tf
         | None ->
-            self#render_text cur_text ; Utils.get_some text_frame
+            self#render_text cur_text;
+            Utils.get_some text_frame
 
     method private get_frame ab =
       match VFrame.get_content ab source with
-        | None ->
-            ()
+        | None -> ()
         | Some (rgb, off, len) ->
             let rgb = rgb.(0) in
             let tf = self#get_text_frame in
             let tfw = Video.Image.width tf in
             let text =
               match meta with
-                | None ->
-                    text ()
+                | None -> text ()
                 | Some meta ->
                     let ans = ref cur_text in
                     List.iter
                       (fun (_, m) ->
                         try ans := Hashtbl.find m meta with Not_found -> ())
-                      (Frame.get_all_metadata ab) ;
+                      (Frame.get_all_metadata ab);
                     !ans
             in
             if cur_text <> text then (
-              cur_text <- text ;
-              self#render_text cur_text ) ;
+              cur_text <- text;
+              self#render_text cur_text );
             for i = off to off + len - 1 do
               if speed = 0 then (
-                Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y ;
-                pos_x <- tx () ;
+                Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
+                pos_x <- tx ();
                 pos_y <- ty () )
               else (
                 if pos_x <> -tfw then
-                  Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y ;
-                pos_x <- pos_x - speed ;
+                  Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
+                pos_x <- pos_x - speed;
                 if pos_x < -tfw then
                   if cycle then pos_x <- video_width
                   else pos_x <- -tfw (* avoid overflows *) )

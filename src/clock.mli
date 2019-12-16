@@ -62,13 +62,9 @@ val running : unit -> bool
   * which thread/code a given source has been added. *)
 
 val collect_after : (unit -> 'a) -> 'a
-
 val force_init : (Source.active_source -> bool) -> Source.active_source list
-
 val start : unit -> unit
-
 val stop : unit -> unit
-
 val fold : (Source.clock -> 'a -> 'a) -> 'a -> 'a
 
 type clock_variable = Source.clock_variable
@@ -81,9 +77,6 @@ val create_unknown :
   clock_variable
 
 val create_known : clock -> clock_variable
-
 val unify : clock_variable -> clock_variable -> unit
-
 val forget : clock_variable -> clock_variable -> unit
-
 val get : clock_variable -> Source.clock

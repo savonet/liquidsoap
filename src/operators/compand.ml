@@ -40,7 +40,7 @@ class compand ~kind (source : source) mu =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       for c = offset to Array.length b - 1 do
         let b_c = b.(c) in

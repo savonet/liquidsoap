@@ -38,12 +38,12 @@ class on_metadata ~kind f s =
 
     method private get_frame ab =
       let p = Frame.position ab in
-      s#get ab ;
+      s#get ab;
       List.iter
         (fun (i, m) ->
           if i >= p then (
             (self#log)#debug "Got metadata at position %d: calling handler..."
-              i ;
+              i;
             ignore (Lang.apply ~t:Lang.unit_t f [("", Lang.metadata m)]) ))
         (Frame.get_all_metadata ab)
   end

@@ -70,37 +70,35 @@ class sequence ~kind ?(merge = false) sources =
     method abort_track =
       if merge then (
         match List.rev seq_sources with
-          | [] ->
-              assert false
-          | hd :: _ ->
-              seq_sources <- [hd] ) ;
+          | [] -> assert false
+          | hd :: _ -> seq_sources <- [hd] );
       match seq_sources with hd :: _ -> hd#abort_track | _ -> ()
 
     method private get_frame buf =
       if head_ready then (
         let hd = List.hd seq_sources in
-        hd#get buf ;
+        hd#get buf;
         if Frame.is_partial buf then (
-          head_ready <- false ;
+          head_ready <- false;
           if List.length seq_sources > 1 then (
-            seq_sources <- List.tl seq_sources ;
+            seq_sources <- List.tl seq_sources;
             if merge && self#is_ready then (
               let pos = Frame.position buf in
-              self#get_frame buf ;
+              self#get_frame buf;
               Frame.set_breaks buf
                 (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) ) ) )
       else (
         match seq_sources with
           | a :: (_ :: _ as tl) ->
-              if a#is_ready then head_ready <- true else seq_sources <- tl ;
+              if a#is_ready then head_ready <- true else seq_sources <- tl;
               self#get_frame buf
           | [a] ->
-              assert a#is_ready ;
+              assert a#is_ready;
+
               (* Our #is_ready ensures that. *)
-              head_ready <- true ;
+              head_ready <- true;
               self#get_frame buf
-          | [] ->
-              assert false )
+          | [] -> assert false )
   end
 
 class merge_tracks ~kind source =
@@ -118,16 +116,14 @@ class merge_tracks ~kind source =
     method self_sync = source#self_sync
 
     method private get_frame buf =
-      source#get buf ;
+      source#get buf;
       if Frame.is_partial buf && source#is_ready then (
-        (self#log)#info "End of track: merging." ;
-        self#get_frame buf ;
+        (self#log)#info "End of track: merging.";
+        self#get_frame buf;
         Frame.set_breaks buf
           ( match Frame.breaks buf with
-            | b :: _ :: l ->
-                b :: l
-            | _ ->
-                assert false ) )
+            | b :: _ :: l -> b :: l
+            | _ -> assert false ) )
   end
 
 let () =

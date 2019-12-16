@@ -171,7 +171,7 @@ module From_audio_video : sig
       the generator, asynchronously, and they exit the buffer synchronously.
       [`Undefined] forbids any feeding, it's useful to make sure a meaningful
       mode is assigned before any use. *)
-  type mode = [`Audio | `Video | `Both | `Undefined]
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
 
   (** Create a generator with given mode. *)
   val create : mode -> t
@@ -210,7 +210,7 @@ module From_audio_video : sig
   val add_metadata : t -> Frame.metadata -> unit
 
   (** Add a track limit. Audio and video length should be equal. *)
-  val add_break : ?sync:[`Strict | `Ignore | `Drop] -> t -> unit
+  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
 
   (* [put_audio buffer data offset length]: offset and length
    * are in samples ! *)
@@ -227,7 +227,6 @@ module From_audio_video : sig
   val fill : t -> Frame.t -> unit
 
   val remove : t -> int -> unit
-
   val clear : t -> unit
 end
 
@@ -238,24 +237,16 @@ module type S_Asio = sig
   val length : t -> int (* ticks *)
 
   val audio_length : t -> int
-
   val video_length : t -> int
-
   val remaining : t -> int (* ticks *)
 
   val clear : t -> unit
-
   val fill : t -> Frame.t -> unit
-
   val add_metadata : t -> Frame.metadata -> unit
-
-  val add_break : ?sync:[`Strict | `Ignore | `Drop] -> t -> unit
-
+  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
-
   val put_video : t -> Frame.video_t array -> int -> int -> unit
-
-  val set_mode : t -> [`Audio | `Video | `Both | `Undefined] -> unit
+  val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
 (** Same as [From_audio_video] but with two extra features useful for streaming
@@ -264,11 +255,11 @@ module From_audio_video_plus : sig
   type t
 
   (** Same as [From_audio_video]. *)
-  type mode = [`Audio | `Video | `Both | `Undefined]
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
 
   (** How to handle overfull buffers:
     * drop old data, keeping at most [len] ticks. *)
-  type overfull = [`Drop_old of int]
+  type overfull = [ `Drop_old of int ]
 
   val create :
     ?lock:Mutex.t ->
@@ -279,28 +270,17 @@ module From_audio_video_plus : sig
     t
 
   val mode : t -> From_audio_video.mode
-
   val set_mode : t -> From_audio_video.mode -> unit
-
   val audio_length : t -> int
-
   val video_length : t -> int
-
   val length : t -> int
-
   val remaining : t -> int
-
   val audio_size : t -> int
-
   val video_size : t -> int
-
   val size : t -> int
-
   val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
-
   val add_metadata : t -> Frame.metadata -> unit
-
-  val add_break : ?sync:[`Strict | `Ignore | `Drop] -> t -> unit
+  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
 
   (* [put_audio buffer data offset length]:
    * offset and length are in audio samples! *)
@@ -309,10 +289,7 @@ module From_audio_video_plus : sig
   (* [put_video buffer data offset length]:
    * offset and length are in video samples! *)
   val put_video : t -> Frame.video_t array -> int -> int -> unit
-
   val fill : t -> Frame.t -> unit
-
   val remove : t -> int -> unit
-
   val clear : t -> unit
 end

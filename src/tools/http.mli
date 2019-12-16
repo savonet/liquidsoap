@@ -4,18 +4,13 @@ module type Transport_t = sig
   type connection
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
   val default_port : int
-
   val connect : ?bind_address:string -> string -> int -> connection
-
   val wait_for : ?log:(string -> unit) -> event -> float -> unit
-
   val write : connection -> Bytes.t -> int -> int -> int
-
   val read : connection -> Bytes.t -> int -> int -> int
-
   val disconnect : connection -> unit
 end
 
@@ -30,9 +25,9 @@ module type Http_t = sig
   type connection
 
   type event =
-    [`Write of connection | `Read of connection | `Both of connection]
+    [ `Write of connection | `Read of connection | `Both of connection ]
 
-  type uri = {host: string; port: int option; path: string}
+  type uri = { host : string; port : int option; path : string }
 
   (** Default port. *)
   val default_port : int

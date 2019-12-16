@@ -35,10 +35,8 @@ let quality_conf =
     ~comments:["Resampling quality: either \"nearest\" or \"linear\"."]
 
 let quality_of_string = function
-  | "nearest" ->
-      `Nearest
-  | "linear" ->
-      `Linear
+  | "nearest" -> `Nearest
+  | "linear" -> `Linear
   | s ->
       raise
         (Lang_errors.Invalid_value

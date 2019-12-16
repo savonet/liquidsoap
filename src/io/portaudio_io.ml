@@ -29,7 +29,7 @@ class virtual base =
   object (self)
     initializer
     if not !initialized then (
-      Portaudio.init () ;
+      Portaudio.init ();
       initialized := true )
 
     method virtual log : Log.t
@@ -65,7 +65,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
           start as super
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
@@ -79,23 +79,24 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
           stream <-
             Some
               (Portaudio.open_default_stream 0 channels samples_per_second
-                 buflen)) ;
+                 buflen));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Utils.get_some stream))
 
     method private close_device =
       match stream with
-        | None ->
-            ()
+        | None -> ()
         | Some s ->
-            Portaudio.close_stream s ;
+            Portaudio.close_stream s;
             stream <- None
 
     method output_start = self#open_device
 
     method output_stop = self#close_device
 
-    method output_reset = self#close_device ; self#open_device
+    method output_reset =
+      self#close_device;
+      self#open_device
 
     method output_send memo =
       let stream = Utils.get_some stream in
@@ -126,7 +127,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
           ~on_start ~on_stop ~fallible ~autostart:start as super
 
     method private set_clock =
-      super#set_clock ;
+      super#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
@@ -144,18 +145,20 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
           stream <-
             Some
               (Portaudio.open_default_stream channels 0 samples_per_second
-                 buflen)) ;
+                 buflen));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Utils.get_some stream))
 
     method private close_device =
-      Portaudio.close_stream (Utils.get_some stream) ;
+      Portaudio.close_stream (Utils.get_some stream);
       stream <- None
 
-    method output_reset = self#close_device ; self#open_device
+    method output_reset =
+      self#close_device;
+      self#open_device
 
     method input frame =
-      assert (0 = AFrame.position frame) ;
+      assert (0 = AFrame.position frame);
       let stream = Utils.get_some stream in
       let buf = AFrame.content_of_type ~channels frame 0 in
       self#handle "read_stream" (fun () ->
@@ -166,13 +169,13 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
           in
           Portaudio.read_stream_ba stream
             (Bigarray.genarray_of_array1 ibuf)
-            0 len ;
+            0 len;
           for c = 0 to channels - 1 do
             let bufc = buf.(c) in
             for i = 0 to len - 1 do
               bufc.{i} <- Bigarray.Array1.unsafe_get ibuf ((i * channels) + c)
             done
-          done) ;
+          done);
       AFrame.add_break frame (AFrame.size ())
   end
 
@@ -208,7 +211,7 @@ let () =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       ( new output
           ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
-        :> Source.source )) ;
+        :> Source.source ));
   Lang.add_operator "input.portaudio"
     ( Start_stop.input_proto
     @ [ ( "clock_safe",

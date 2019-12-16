@@ -46,12 +46,12 @@ let tracks ?pwd s =
       (fun (a, b) -> (recode_metas a, Playlist_parser.get_file ?pwd b))
       (Xmlplaylist.tracks s)
   with Xmlplaylist.Error e ->
-    log#debug "Parsing failed: %s" (Xmlplaylist.string_of_error e) ;
+    log#debug "Parsing failed: %s" (Xmlplaylist.string_of_error e);
     raise (Xmlplaylist.Error e)
 
 let register mimetype =
   Playlist_parser.parsers#register mimetype
-    {Playlist_parser.strict= true; Playlist_parser.parser= tracks}
+    { Playlist_parser.strict = true; Playlist_parser.parser = tracks }
 
 let () =
   ignore (Dtools.Init.at_start (fun () -> List.iter register conf_xml#get))

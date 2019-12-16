@@ -50,12 +50,9 @@ class max_duration ~kind ~override_meta ~duration source =
 
     method remaining =
       match (remaining, s#remaining) with
-        | 0, _ ->
-            0
-        | _, -1 ->
-            -1
-        | rem, rem' ->
-            min rem rem'
+        | 0, _ -> 0
+        | _, -1 -> -1
+        | rem, rem' -> min rem rem'
 
     method private check_for_override ~offset buf =
       List.iter
@@ -66,7 +63,7 @@ class max_duration ~kind ~override_meta ~duration source =
                 if lbl = override_meta then (
                   try
                     let v = float_of_string v in
-                    remaining <- Frame.master_of_seconds v ;
+                    remaining <- Frame.master_of_seconds v;
                     (self#log)#info "Overriding remaining value: %.02f." v
                   with _ ->
                     (self#log)#important
@@ -76,12 +73,12 @@ class max_duration ~kind ~override_meta ~duration source =
 
     method private get_frame buf =
       let offset = Frame.position buf in
-      s#get buf ;
-      self#check_for_override ~offset buf ;
-      remaining <- remaining - Frame.position buf + offset ;
+      s#get buf;
+      self#check_for_override ~offset buf;
+      remaining <- remaining - Frame.position buf + offset;
       if remaining <= 0 then (
-        s#leave (self :> Source.source) ;
-        s <- (new Blank.empty ~kind :> Source.source) ;
+        s#leave (self :> Source.source);
+        s <- (new Blank.empty ~kind :> Source.source);
         s#get_ready [(self :> Source.source)] )
   end
 

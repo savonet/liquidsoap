@@ -61,7 +61,7 @@ class filter ~kind (source : source) freq q wet mode =
      <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let freq = freq () in
@@ -71,22 +71,18 @@ class filter ~kind (source : source) freq q wet mode =
       for c = 0 to Array.length b - 1 do
         let b_c = b.(c) in
         for i = offset to position - 1 do
-          low.(c) <- low.(c) +. (f *. band.(c)) ;
-          high.(c) <- (q *. b_c.{i}) -. low.(c) -. (q *. band.(c)) ;
-          band.(c) <- (f *. high.(c)) +. band.(c) ;
-          notch.(c) <- high.(c) +. low.(c) ;
+          low.(c) <- low.(c) +. (f *. band.(c));
+          high.(c) <- (q *. b_c.{i}) -. low.(c) -. (q *. band.(c));
+          band.(c) <- (f *. high.(c)) +. band.(c);
+          notch.(c) <- high.(c) +. low.(c);
           b_c.{i} <-
             ( wet
             *.
             match mode with
-              | Low_pass ->
-                  low.(c)
-              | High_pass ->
-                  high.(c)
-              | Band_pass ->
-                  band.(c)
-              | Notch ->
-                  notch.(c) )
+              | Low_pass -> low.(c)
+              | High_pass -> high.(c)
+              | Band_pass -> band.(c)
+              | Notch -> notch.(c) )
             +. ((1. -. wet) *. b_c.{i})
         done
       done
@@ -124,14 +120,10 @@ let () =
       in
       let mode =
         match Lang.to_string mode with
-          | "low" ->
-              Low_pass
-          | "high" ->
-              High_pass
-          | "band" ->
-              Band_pass
-          | "notch" ->
-              Notch
+          | "low" -> Low_pass
+          | "high" -> High_pass
+          | "band" -> Band_pass
+          | "notch" -> Notch
           | _ ->
               raise
                 (Lang_errors.Invalid_value

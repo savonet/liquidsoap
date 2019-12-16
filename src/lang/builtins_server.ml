@@ -49,7 +49,7 @@ let () =
       in
       let ns = Pcre.split ~pat:"\\." namespace in
       let usage = if usage = "" then command ^ " <variable>" else usage in
-      Server.add ~ns ~usage ~descr command f ;
+      Server.add ~ns ~usage ~descr command f;
       Lang.unit)
 
 let () =
@@ -69,11 +69,13 @@ let () =
       let wait =
         Lang.val_fun [("", "", after_t, None)] ~ret_t:Lang.string_t (fun p _ ->
             let after = Lang.to_fun ~t:Lang.string_t (List.assoc "" p) in
-            opts.Server.wait (fun () -> Lang.to_string (after [])) ;
+            opts.Server.wait (fun () -> Lang.to_string (after []));
             Lang.string "")
       in
       let resume fn =
-        Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ -> fn () ; Lang.unit)
+        Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
+            fn ();
+            Lang.unit)
       in
       Lang.product wait
         (Lang.product
@@ -109,7 +111,7 @@ let () =
     (fun p ->
       let after = Lang.to_fun ~t:Lang.string_t (Lang.assoc "" 1 p) in
       let data = Lang.to_string (Lang.assoc "" 2 p) in
-      Server.write ~after:(fun () -> Lang.to_string (after [])) data ;
+      Server.write ~after:(fun () -> Lang.to_string (after [])) data;
       Lang.string "")
 
 let () =
@@ -122,7 +124,7 @@ let () =
         let after = Lang.to_fun ~t:Lang.string_t (Lang.assoc "" 1 p) in
         Server.read
           ~after:(fun ret -> Lang.to_string (after [("", Lang.string ret)]))
-          marker ;
+          marker;
         Lang.string "")
   in
   read
@@ -132,7 +134,7 @@ let () =
       "Read a string from the client up-to a marker. Marker can be any string \
        of regular expression. Should be used via the syntactic sugar: \
        `server.read <marker> : <varname> then <after> end`"
-    "server.read" ;
+    "server.read";
   read
     ~args:[("", Lang.int_t, None, Some "Number of characters to read")]
     ~mk_marker:(fun p -> Duppy.Io.Length (Lang.to_int (Lang.assoc "" 2 p)))
@@ -140,7 +142,7 @@ let () =
       "Read a string of fixed length from the client up-to a marker. Should \
        be used via the syntactic sugar: `server.readchars <len> : <varname> \
        then <after> end`"
-    "server.readchars" ;
+    "server.readchars";
   read ~args:[]
     ~mk_marker:(fun _ -> Duppy.Io.Split "[\r\n]+")
     ~descr:

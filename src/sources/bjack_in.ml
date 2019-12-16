@@ -23,7 +23,6 @@
 open Source
 
 let log = Log.make ["input"; "jack"]
-
 let bjack_clock = Tutils.lazy_cell (fun () -> new Clock.clock "bjack")
 
 class jack_in ~kind ~clock_safe ~nb_blocks ~server =
@@ -43,14 +42,16 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
     inherit [Bytes.t] IoRing.input ~nb_blocks ~blank as ioring
 
     method set_clock =
-      active_source#set_clock ;
+      active_source#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (bjack_clock () :> Clock.clock))
 
     method private wake_up l = active_source#wake_up l
 
-    method private sleep = active_source#sleep ; ioring#sleep
+    method private sleep =
+      active_source#sleep;
+      ioring#sleep
 
     method stype = Infallible
 
@@ -69,10 +70,9 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
     method close =
       match device with
         | Some d ->
-            Bjack.close d ;
+            Bjack.close d;
             device <- None
-        | None ->
-            ()
+        | None -> ()
 
     method private get_device =
       match device with
@@ -87,32 +87,31 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
                   (nb_blocks * samples_per_frame * bytes_per_sample)
                 ~client_name:self#id ()
             in
-            Bjack.set_all_volume dev 100 ;
-            device <- Some dev ;
+            Bjack.set_all_volume dev 100;
+            device <- Some dev;
             dev
-        | Some d ->
-            d
+        | Some d -> d
 
     method private pull_block block =
       let dev = self#get_device in
       let length = Bytes.length block in
       let ans = ref (Bjack.read dev length) in
       while String.length !ans < length do
-        Thread.delay (seconds_per_frame /. 2.) ;
+        Thread.delay (seconds_per_frame /. 2.);
         let len = length - String.length !ans in
         let tmp = Bjack.read dev len in
         ans := !ans ^ tmp
-      done ;
+      done;
       String.blit !ans 0 block 0 length
 
     method private get_frame buf =
-      assert (0 = AFrame.position buf) ;
+      assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
       let fbuf = AFrame.content_of_type ~channels buf 0 in
       Audio.S16LE.to_audio
         (Bytes.unsafe_to_string buffer)
         0
-        (Audio.sub fbuf 0 samples_per_frame) ;
+        (Audio.sub fbuf 0 samples_per_frame);
       AFrame.add_break buf samples_per_frame
 
     method output = if AFrame.is_partial memo then self#get_frame memo

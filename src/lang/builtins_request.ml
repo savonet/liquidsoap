@@ -163,7 +163,8 @@ let () =
     (fun p ->
       let force = Lang.to_bool (List.assoc "force" p) in
       let e = Lang.to_request (List.assoc "" p) in
-      Request.destroy ~force e ; Lang.unit)
+      Request.destroy ~force e;
+      Lang.unit)
 
 let () =
   add_builtin "request.duration" ~cat:Liq [("", Lang.string_t, None, None)]

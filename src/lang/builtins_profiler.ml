@@ -25,13 +25,13 @@ open Lang_builtins
 let () =
   add_builtin "profiler.enable" ~cat:Liq ~descr:"Record profiling statistics."
     [] Lang.unit_t (fun _ ->
-      Lang_values.profile := true ;
+      Lang_values.profile := true;
       Lang.unit)
 
 let () =
   add_builtin "profiler.disable" ~cat:Liq ~descr:"Record profiling statistics."
     [] Lang.unit_t (fun _ ->
-      Lang_values.profile := false ;
+      Lang_values.profile := false;
       Lang.unit)
 
 let () =
@@ -44,7 +44,8 @@ let () =
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let f () = ignore (Lang.apply f [] ~t:Lang.unit_t) in
-      Profiler.time name f () ; Lang.unit)
+      Profiler.time name f ();
+      Lang.unit)
 
 let () =
   add_builtin "profiler.stats.string" ~cat:Liq ~descr:"Profiling statistics."

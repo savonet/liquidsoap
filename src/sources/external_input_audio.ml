@@ -42,7 +42,7 @@ class external_input ~name ~kind ~restart ~bufferize ~restart_on_error ~max
     let data = converter (Bytes.sub_string buf 0 ret) in
     let len = Audio.length data in
     let buffered = Generator.length abg in
-    Generator.put_audio abg data 0 len ;
+    Generator.put_audio abg data 0 len;
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue
@@ -56,7 +56,7 @@ class external_input ~name ~kind ~restart ~bufferize ~restart_on_error ~max
 
     method wake_up x =
       (* Now we can create the log function *)
-      log_ref := (self#log)#important "%s" ;
+      log_ref := (self#log)#important "%s";
       base#wake_up x
   end
 
@@ -96,7 +96,7 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "channels" p,
                "Incompatible number of channels, please use a conversion \
-                operator." )) ;
+                operator." ));
       let audio_src_rate = float (Lang.to_int (List.assoc "samplerate" p)) in
       let converter =
         Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
@@ -123,10 +123,10 @@ let () =
         let channels = Wav_aiff.channels header in
         let audio_src_rate = float (Wav_aiff.sample_rate header) in
         let samplesize = Wav_aiff.sample_size header in
-        Wav_aiff.close header ;
+        Wav_aiff.close header;
         converter_ref :=
           Rutils.create_from_iff ~format:`Wav ~channels ~samplesize
-            ~audio_src_rate ;
+            ~audio_src_rate;
         `Reschedule Tutils.Non_blocking
       in
       let restart = Lang.to_bool (List.assoc "restart" p) in

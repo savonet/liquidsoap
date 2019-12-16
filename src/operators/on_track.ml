@@ -40,17 +40,16 @@ class on_track ~kind f s =
 
     method private get_frame ab =
       let p = Frame.position ab in
-      s#get ab ;
+      s#get ab;
       if not called then (
         let m =
           match Frame.get_metadata ab p with
             | None ->
                 Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
-            | Some m ->
-                Lang.metadata m
+            | Some m -> Lang.metadata m
         in
-        ignore (Lang.apply ~t:Lang.unit_t f [("", m)]) ;
-        called <- true ) ;
+        ignore (Lang.apply ~t:Lang.unit_t f [("", m)]);
+        called <- true );
       if Frame.is_partial ab then called <- false
   end
 

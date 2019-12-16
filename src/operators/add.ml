@@ -92,7 +92,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
        * be one type of data, hence the following helper. *)
       let fixed_content frame pos =
         let end_pos, c = Frame.content frame pos in
-        assert (end_pos = Lazy.force Frame.size) ;
+        assert (end_pos = Lazy.force Frame.size);
         c
       in
       (* Sum contributions *)
@@ -105,18 +105,18 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                * the others write to [tmp] and we'll sum that. *)
               if rank = 0 then buf
               else (
-                Frame.clear tmp ;
-                Frame.set_breaks tmp [offset] ;
+                Frame.clear tmp;
+                Frame.set_breaks tmp [offset];
                 tmp )
             in
-            s#get buffer ;
+            s#get buffer;
             let already = Frame.position buffer in
             let c = w /. weight in
             if c <> 1. && renorm then
               Audio.amplify c
                 (Audio.sub (fixed_content buffer offset).Frame.audio
                    (Frame.audio_of_master offset)
-                   (Frame.audio_of_master (already - offset))) ;
+                   (Frame.audio_of_master (already - offset)));
             if rank > 0 then (
               (* The region grows, make sure it is clean before adding.
                * TODO the same should be done for video. *)
@@ -124,13 +124,14 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                 Audio.clear
                   (Audio.sub (fixed_content buf already).Frame.audio
                      (Frame.audio_of_master end_offset)
-                     (Frame.audio_of_master (already - end_offset))) ;
+                     (Frame.audio_of_master (already - end_offset)));
+
               (* Add to the main buffer. *)
               Audio.add
                 (Audio.sub (fixed_content buf offset).Frame.audio offset
                    (already - offset))
                 (Audio.sub (fixed_content tmp offset).Frame.audio offset
-                   (already - offset)) ;
+                   (already - offset));
               let vbuf = (fixed_content buf offset).Frame.video in
               let vtmp = (fixed_content tmp offset).Frame.video in
               let ( ! ) = Frame.video_of_master in
@@ -146,7 +147,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                 for i = !offset to !already - 1 do
                   video_init (Video.get vbuf.(c) i)
                 done
-              done ) ;
+              done );
             (rank + 1, max end_offset already))
           (0, offset) sources
       in
@@ -155,18 +156,16 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
       match Frame.breaks buf with
         | pos :: breaks when pos < end_offset ->
             Frame.set_breaks buf (end_offset :: breaks)
-        | _ ->
-            ()
+        | _ -> ()
   end
 
 let () =
   (* TODO: add on midi chans also. *)
   let kind =
     Lang.Constrained
-      {
-        Frame.audio= Lang.Any_fixed 0;
-        video= Lang.Any_fixed 0;
-        midi= Lang.Fixed 0;
+      { Frame.audio = Lang.Any_fixed 0;
+        video = Lang.Any_fixed 0;
+        midi = Lang.Fixed 0
       }
   in
   let kind_t = Lang.kind_type_of_kind_format kind in
@@ -197,7 +196,7 @@ let () =
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
-               "there should be as many weights as sources" )) ;
+               "there should be as many weights as sources" ));
       new add
         ~kind ~renorm
         (List.map2 (fun w s -> (w, s)) weights sources)
@@ -211,7 +210,7 @@ let tile_pos n =
       let dx = (x' - x) / l in
       let x = ref (x - dx) in
       Array.init l (fun _ ->
-          x := !x + dx ;
+          x := !x + dx;
           (!x, y, dx, y' - y)) )
   in
   let x' = Lazy.force Frame.video_width in
@@ -266,7 +265,7 @@ let () =
           else (x, y, w, h)
         in
         let tmp' = Video.Image.create w h in
-        scale tmp tmp' ;
+        scale tmp tmp';
         Video.Image.add tmp' ~x ~y buf
       in
       let video_init buf = video_loop 0 buf buf in
@@ -274,7 +273,7 @@ let () =
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
-               "there should be as many weights as sources" )) ;
+               "there should be as many weights as sources" ));
       new add
         ~kind ~renorm
         (List.map2 (fun w s -> (w, s)) weights sources)

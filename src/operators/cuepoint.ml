@@ -38,7 +38,6 @@ open Source
  * We introduce a few notations to make this comfortable. *)
 
 let ( -- ) = Int64.sub
-
 let ( ++ ) = Int64.add
 
 class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
@@ -69,8 +68,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
       let source_remaining = Int64.of_int source#remaining in
       Int64.to_int
         ( match track_state with
-          | None | Some None ->
-              source_remaining
+          | None | Some None -> source_remaining
           | Some (Some (elapsed, cue_out)) ->
               let target = cue_out -- elapsed in
               if source_remaining = -1L then target
@@ -80,7 +78,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
      * we don't use the default mechanisms because we want complete
      * control over the source's clock. See cross.ml for details. *)
     method private wake_up activation =
-      super#wake_up activation ;
+      super#wake_up activation;
       source#get_ready [(self :> source)]
 
     method private sleep = source#leave (self :> source)
@@ -89,10 +87,12 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
       let slave_clock = Clock.create_known (new Clock.clock self#id) in
       (* Our external clock should stricly contain the slave clock. *)
       Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
+
       (* The source must belong to our clock, since we need occasional
        * control on its flow (to seek at the beginning of a track). *)
-      Clock.unify slave_clock source#clock ;
+      Clock.unify slave_clock source#clock;
+
       (* When this source disappears the slave clock becomes useless.
        * To allow for its collection, remove references to it as a subclock
        * of the master clock. *)
@@ -102,14 +102,16 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
      * extra tick at the beginning of each track where data has to
      * be skipped. *)
     method private slave_tick =
-      (Clock.get source#clock)#end_tick ; source#after_output
+      (Clock.get source#clock)#end_tick;
+      source#after_output
 
-    method after_output = super#after_output ; self#slave_tick
+    method after_output =
+      super#after_output;
+      self#slave_tick
 
     method private get_cue_points buf pos =
       match Frame.get_metadata buf pos with
-        | None ->
-            (None, None)
+        | None -> (None, None)
         | Some table ->
             let get key =
               try
@@ -120,7 +122,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
                        ( float_of_string content
                        *. float (Lazy.force Frame.master_rate) ))
                 with _ ->
-                  (self#log)#severe "Ill-formed metadata %s=%S!" key content ;
+                  (self#log)#severe "Ill-formed metadata %s=%S!" key content;
                   None
               with Not_found -> None
             in
@@ -134,10 +136,9 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
               match cue_in with
                 | Some i when i <= 0L ->
                     if i < 0L then
-                      (self#log)#severe "Ignoring negative cue-in point." ;
+                      (self#log)#severe "Ignoring negative cue-in point.";
                     None
-                | i ->
-                    i
+                | i -> i
             in
             let cue_out =
               match (cue_in, cue_out) with
@@ -145,27 +146,27 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
                     (self#log)#severe
                       "Ignoring cue-out point before cue-in. Note that \
                        cue-out should be given relative to the beginning of \
-                       the file." ;
+                       the file.";
                     None
                 | None, Some o when o < 0L ->
-                    (self#log)#severe "Ignoring negative cue-out point." ;
+                    (self#log)#severe "Ignoring negative cue-out point.";
                     None
-                | _, cue_out ->
-                    cue_out
+                | _, cue_out -> cue_out
             in
             (cue_in, cue_out)
 
     method private cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos seek_time =
-      (self#log)#important "Cueing in..." ;
+      (self#log)#important "Cueing in...";
       let seek_pos = Int64.to_int seek_time - delta_pos in
       let seeked_pos = source#seek seek_pos in
       (* Set back original breaks. *)
-      Frame.set_breaks buf breaks ;
+      Frame.set_breaks buf breaks;
+
       (* Before pulling new data to fill-in the frame,
        * we need to tick the slave clock otherwise we might get
        * the same old (cached) data. *)
-      self#slave_tick ;
-      source#get buf ;
+      self#slave_tick;
+      source#get buf;
       let new_pos = Frame.position buf in
       ( Int64.of_int (delta_pos + seeked_pos + new_pos - pos),
         if seeked_pos = seek_pos then out_pos
@@ -175,23 +176,25 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
             | Some o when position > o ->
                 (self#log)#important
                   "Initial seek reached %i ticks past cue-out point!"
-                  (Int64.to_int (position -- o)) ;
+                  (Int64.to_int (position -- o));
                 Some position
             | _ ->
                 if seeked_pos = 0 then
-                  (self#log)#severe "Could not seek to cue point!" ;
+                  (self#log)#severe "Could not seek to cue point!";
                 (self#log)#info "Seeked %i ticks instead of %i." seeked_pos
-                  seek_pos ;
+                  seek_pos;
                 out_pos ) )
 
     method private cue_out ~buf ~elapsed ~pos out_pos =
-      (self#log)#important "Cueing out..." ;
+      (self#log)#important "Cueing out...";
+
       (* If not already an end of track, notify the source to end the track
        * and do one more #get to consume any remaining data. *)
       if not (Frame.is_partial buf) then (
-        source#abort_track ;
-        self#slave_tick ;
-        source#get (Frame.create kind) ) ;
+        source#abort_track;
+        self#slave_tick;
+        source#get (Frame.create kind) );
+
       (* Quantify in the previous #get
        * - the amount of [extra] data past the cue point, to be dropped;
        * - the amount of [remaining] data, that should be left. *)
@@ -212,44 +215,40 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
        * frame that there isn't too much extra data. This also relies
        * on the careful checks done on cue_in, out_pos, and the
        * correction of out_pos after abusive cue_in. *)
-      assert (remaining >= 0) ;
+      assert (remaining >= 0);
       Frame.set_breaks buf
-        (Utils.remove_one (( = ) new_pos) (Frame.breaks buf)) ;
-      Frame.add_break buf (pos + remaining) ;
+        (Utils.remove_one (( = ) new_pos) (Frame.breaks buf));
+      Frame.add_break buf (pos + remaining);
       track_state <- None
 
     method private get_frame buf =
       let breaks = Frame.breaks buf in
       let pos = Frame.position buf in
-      source#get buf ;
+      source#get buf;
       let new_pos = Frame.position buf in
       let delta_pos = new_pos - pos in
       let in_track_state =
         (* Compute track state after the #get *)
         match track_state with
-          | Some None ->
-              None
-          | Some (Some (e, o)) ->
-              Some (e ++ Int64.of_int delta_pos, o)
+          | Some None -> None
+          | Some (Some (e, o)) -> Some (e ++ Int64.of_int delta_pos, o)
           | None -> (
               (* New track: get the cue point information from metadata *)
               let in_pos, out_pos = self#get_cue_points buf pos in
               (* Perform cue_in if required, adjusting out_pos if needed *)
               let elapsed, out_pos =
                 match in_pos with
-                  | None | Some 0L ->
-                      (Int64.of_int delta_pos, out_pos)
+                  | None | Some 0L -> (Int64.of_int delta_pos, out_pos)
                   | Some seek_time ->
                       self#cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos
                         seek_time
               in
               match out_pos with
-                | None ->
-                    None
-                | Some pos ->
-                    Some (elapsed, pos) )
+                | None -> None
+                | Some pos -> Some (elapsed, pos) )
       in
-      track_state <- Some in_track_state ;
+      track_state <- Some in_track_state;
+
       (* Perform cue-out if needed *)
       match in_track_state with
         | Some (elapsed, out_pos) when elapsed > out_pos ->
@@ -257,7 +256,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
         | _ ->
             if Frame.is_partial buf then (
               if in_track_state <> None then
-                (self#log)#important "End of track before cue-out point." ;
+                (self#log)#important "End of track before cue-out point.";
               track_state <- None )
   end
 

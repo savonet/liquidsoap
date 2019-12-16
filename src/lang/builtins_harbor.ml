@@ -31,7 +31,6 @@ end
 
 module Make (Harbor : T) = struct
   let name_up = String.uppercase_ascii Harbor.name
-
   let resp_t = Lang.string_getter_t ()
 
   let () =
@@ -96,7 +95,7 @@ module Make (Harbor : T) = struct
           try Harbor.simple_reply (Lang.to_string resp)
           with _ -> Harbor.reply (Lang.to_string_getter resp)
         in
-        Harbor.add_http_handler ~port ~verb ~uri f ;
+        Harbor.add_http_handler ~port ~verb ~uri f;
         Lang.unit)
 
   let () =
@@ -115,7 +114,7 @@ module Make (Harbor : T) = struct
         let verb =
           Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
         in
-        Harbor.remove_http_handler ~port ~verb ~uri () ;
+        Harbor.remove_http_handler ~port ~verb ~uri ();
         Lang.unit)
 end
 

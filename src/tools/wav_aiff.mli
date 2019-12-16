@@ -23,21 +23,20 @@
 (** Encode/decode IFF files, that is AIFF and WAV. *)
 
 type 'a t
-
-type format = [`Aiff | `Wav]
+type format = [ `Aiff | `Wav ]
 
 val format_of_handler : 'a t -> format
 
 exception Not_a_iff_file of string
 
-type 'a read_ops = {
-  really_input: 'a -> Bytes.t -> int -> int -> unit;
-  input_byte: 'a -> int;
-  input: 'a -> Bytes.t -> int -> int -> int;
-  (* Seek bytes from the _current_ stream position. *)
-  seek: 'a -> int -> unit;
-  close: 'a -> unit;
-}
+type 'a read_ops =
+  { really_input : 'a -> Bytes.t -> int -> int -> unit;
+    input_byte : 'a -> int;
+    input : 'a -> Bytes.t -> int -> int -> int;
+    (* Seek bytes from the _current_ stream position. *)
+    seek : 'a -> int -> unit;
+    close : 'a -> unit
+  }
 
 val in_chan_ops : in_channel read_ops
 
@@ -64,9 +63,7 @@ val info : 'a t -> string
 val channels : 'a t -> int
 
 val sample_rate : 'a t -> int
-
 val sample_size : 'a t -> int
-
 val data_length : 'a t -> int
 
 (** [close w] close the wav descriptor [w] *)

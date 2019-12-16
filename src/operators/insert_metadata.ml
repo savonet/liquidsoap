@@ -49,19 +49,18 @@ class insert_metadata ~kind source =
     val mutable ns = []
 
     method insert_metadata nt m : unit =
-      Mutex.lock lock_m ;
-      metadata <- Some m ;
-      new_track <- nt ;
+      Mutex.lock lock_m;
+      metadata <- Some m;
+      new_track <- nt;
       Mutex.unlock lock_m
 
     method private add_metadata frame pos =
       Tutils.mutexify lock_m
         (fun () ->
           match metadata with
-            | None ->
-                ()
+            | None -> ()
             | Some m ->
-                metadata <- None ;
+                metadata <- None;
                 Frame.set_metadata frame pos m)
         ()
 
@@ -69,14 +68,16 @@ class insert_metadata ~kind source =
       Tutils.mutexify lock_m
         (fun () ->
           let ret = new_track in
-          new_track <- false ;
+          new_track <- false;
           ret)
         ()
 
     method private get_frame buf =
       let p = Frame.position buf in
       if self#insert_track then Frame.add_break buf p
-      else (self#add_metadata buf p ; source#get buf)
+      else (
+        self#add_metadata buf p;
+        source#get buf )
   end
 
 let () =
@@ -108,7 +109,7 @@ let () =
       let _, t = Lang.of_product_t t in
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new insert_metadata ~kind s in
-      if id <> "" then s#set_id id ;
+      if id <> "" then s#set_id id;
       let f =
         Lang.val_fun
           [ ("new_track", "new_track", Lang.bool_t, Some (Lang.bool false));
@@ -117,7 +118,7 @@ let () =
           (fun p _ ->
             let m = Lang.to_metadata (List.assoc "" p) in
             let new_track = Lang.to_bool (List.assoc "new_track" p) in
-            s#insert_metadata new_track m ;
+            s#insert_metadata new_track m;
             Lang.unit)
       in
       Lang.product f (Lang.source (s :> Source.source)))
@@ -142,9 +143,9 @@ class replay ~kind meta src =
 
     method private get_frame ab =
       let start = Frame.position ab in
-      src#get ab ;
+      src#get ab;
       if first then (
         if Frame.get_metadata ab start = None then
-          Frame.set_metadata ab start meta ;
+          Frame.set_metadata ab start meta;
         first <- false )
   end

@@ -32,29 +32,20 @@ module type S = sig
   type t
 
   val add : unit -> int * (t -> unit)
-
   val kill : int -> float -> unit
-
   val find : int -> t option
-
   val fold : (int -> t -> 'a -> 'a) -> 'a -> 'a
-
   val iter : (int -> t -> unit) -> unit
-
   val remove : int -> unit
-
   val size : unit -> int
 end
 
 module Make (P : T) : S with type t = P.t = struct
   type t = P.t
-
-  type entry = {death_time: float option; value: t option}
+  type entry = { death_time : float option; value : t option }
 
   let m = Mutex.create ()
-
   let h : (int, entry) Hashtbl.t = Hashtbl.create 100
-
   let size = Tutils.mutexify m (fun () -> Hashtbl.length h)
 
   let find =
@@ -77,9 +68,10 @@ module Make (P : T) : S with type t = P.t = struct
           (fun i entry ->
             match entry.value with
               | Some t ->
-                  Mutex.unlock m ; f i t ; Mutex.lock m
-              | None ->
-                  ())
+                  Mutex.unlock m;
+                  f i t;
+                  Mutex.lock m
+              | None -> ())
           h)
       f
 
@@ -89,27 +81,25 @@ module Make (P : T) : S with type t = P.t = struct
     Tutils.mutexify m
       (fun () ->
         Hashtbl.replace h i
-          {(Hashtbl.find h i) with death_time= Some (Unix.time () +. grace)})
+          { (Hashtbl.find h i) with death_time = Some (Unix.time () +. grace) })
       ()
 
   let next =
     let rec find i =
       try
         match (Hashtbl.find h i).death_time with
-          | Some t when Unix.time () > t ->
-              i
-          | _ ->
-              find (i + 1)
+          | Some t when Unix.time () > t -> i
+          | _ -> find (i + 1)
       with Not_found -> i
     in
     Tutils.mutexify m (fun () ->
         let i = find 0 in
-        Hashtbl.replace h i {death_time= None; value= None} ;
+        Hashtbl.replace h i { death_time = None; value = None };
         i)
 
   let add () =
     let i = next () in
     ( i,
       Tutils.mutexify m (fun t ->
-          Hashtbl.replace h i {death_time= None; value= Some t}) )
+          Hashtbl.replace h i { death_time = None; value = Some t }) )
 end

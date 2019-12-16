@@ -46,7 +46,7 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let pos = AFrame.position buf in
       let len = pos - offset in

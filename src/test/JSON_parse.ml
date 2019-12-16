@@ -24,7 +24,8 @@ let json =
       \"spouse\": null\n\
       }\n";
      "{ \"face\": \"😂\" }";
-     "{ \"face\": \"\\uD83D\\uDE02\" }" |]
+     "{ \"face\": \"\\uD83D\\uDE02\" }"
+  |]
 
 let () =
   for i = 0 to Array.length json - 1 do

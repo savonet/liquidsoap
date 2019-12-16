@@ -46,7 +46,7 @@ let get_tags fname =
       not
         (Decoder.test_file ~mimes:mime_types#get
            ~extensions:file_extensions#get ~log fname)
-    then raise Invalid_file ;
+    then raise Invalid_file;
     let f = Taglib.File.open_file `Autodetect fname in
     Tutils.finalize
       ~k:(fun () -> Taglib.File.close_file f)
@@ -63,11 +63,10 @@ let get_tags fname =
               if v = "" then tags else (key, v) :: tags ))
           (Taglib.File.properties f) tags)
   with
-    | Invalid_file ->
-        []
+    | Invalid_file -> []
     | e ->
-        log#info "Error while decoding file tags: %s" (Printexc.to_string e) ;
-        log#info "Backtrace:\n%s" (Printexc.get_backtrace ()) ;
+        log#info "Error while decoding file tags: %s" (Printexc.to_string e);
+        log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
         raise Not_found
 
 let () = Request.mresolvers#register "TAGLIB" get_tags

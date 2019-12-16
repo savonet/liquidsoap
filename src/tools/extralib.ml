@@ -9,20 +9,15 @@ module List = struct
 
   let rec may_map f = function
     | x :: t -> (
-      match f x with Some x -> x :: may_map f t | None -> may_map f t )
-    | [] ->
-        []
+        match f x with Some x -> x :: may_map f t | None -> may_map f t )
+    | [] -> []
 
   let rec assoc_nth l n = function
-    | [] ->
-        raise Not_found
-    | (x, v) :: t when x = l ->
-        if n = 0 then v else assoc_nth l (n - 1) t
-    | _ :: t ->
-        assoc_nth l n t
+    | [] -> raise Not_found
+    | (x, v) :: t when x = l -> if n = 0 then v else assoc_nth l (n - 1) t
+    | _ :: t -> assoc_nth l n t
 
   let assoc_all x l = may_map (fun (y, v) -> if x = y then Some v else None) l
-
   let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
 end
 
@@ -45,9 +40,9 @@ let read_retry read buf off len =
   let loop = ref true in
   while !loop do
     let n = read buf (off + !r) (len - !r) in
-    r := !r + n ;
+    r := !r + n;
     loop := !r <> 0 && !r < len && n <> 0
-  done ;
+  done;
   !r
 
 module Unix = struct
@@ -60,18 +55,19 @@ module Unix = struct
       Array.iter
         (fun root ->
           ( match lstat root with
-            | {st_kind= S_DIR} ->
+            | { st_kind = S_DIR } ->
                 finddepth f
                   (Array.map (Filename.concat root) (Sys.readdir root))
-            | _ ->
-                () ) ;
+            | _ -> () );
           f root)
         roots
     in
     let zap path =
-      match lstat path with {st_kind= S_DIR} -> rmdir path | _ -> unlink path
+      match lstat path with
+        | { st_kind = S_DIR } -> rmdir path
+        | _ -> unlink path
     in
-    finddepth zap [|dir|] ;
+    finddepth zap [| dir |];
     rmdir dir
 end
 
@@ -91,11 +87,12 @@ module Filename = struct
         let dir =
           Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix
         in
-        try Unix.mkdir dir mode ; dir with
-          | Unix.Unix_error (Unix.EEXIST, _, _) ->
-              loop (count - 1)
-          | Unix.Unix_error (Unix.EINTR, _, _) ->
-              loop count
+        try
+          Unix.mkdir dir mode;
+          dir
+        with
+          | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
+          | Unix.Unix_error (Unix.EINTR, _, _) -> loop count
           | Unix.Unix_error (e, _, _) ->
               raise_err ("mk_temp_dir: " ^ Unix.error_message e) )
     in

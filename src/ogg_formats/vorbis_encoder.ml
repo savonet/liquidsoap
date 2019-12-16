@@ -25,7 +25,7 @@ let create_gen enc freq m =
   let p1, p2, p3 = Vorbis.Encoder.headerout_packetout ~encoder enc m in
   let started = ref false in
   let header_encoder os =
-    Ogg.Stream.put_packet os p1 ;
+    Ogg.Stream.put_packet os p1;
     Ogg.Stream.flush_page os
   in
   let fisbone_packet os =
@@ -34,12 +34,12 @@ let create_gen enc freq m =
          ~samplerate:(Int64.of_int freq) ())
   in
   let stream_start os =
-    Ogg.Stream.put_packet os p2 ;
-    Ogg.Stream.put_packet os p3 ;
+    Ogg.Stream.put_packet os p2;
+    Ogg.Stream.put_packet os p3;
     Ogg_muxer.flush_pages os
   in
   let data_encoder data os _ =
-    if not !started then started := true ;
+    if not !started then started := true;
     let b, ofs, len =
       (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
     in
@@ -57,16 +57,15 @@ let create_gen enc freq m =
     (* Assert that at least some data was encoded.. *)
     if not !started then (
       let b = empty_data () in
-      Vorbis.Encoder.encode_buffer_float enc os b 0 (Array.length b.(0)) ) ;
+      Vorbis.Encoder.encode_buffer_float enc os b 0 (Array.length b.(0)) );
     Vorbis.Encoder.end_of_stream enc os
   in
-  {
-    Ogg_muxer.header_encoder;
+  { Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
-    data_encoder= Ogg_muxer.Audio_encoder data_encoder;
+    data_encoder = Ogg_muxer.Audio_encoder data_encoder;
     end_of_page;
-    end_of_stream;
+    end_of_stream
   }
 
 (** Rates are given in bits per seconds,
@@ -116,8 +115,7 @@ let create_vorbis = function
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float samplerate in
       let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      {Ogg_encoder.reset; encode; id= None}
-  | _ ->
-      assert false
+      { Ogg_encoder.reset; encode; id = None }
+  | _ -> assert false
 
 let () = Hashtbl.add Ogg_encoder.encoders "vorbis" create_vorbis

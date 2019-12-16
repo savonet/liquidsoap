@@ -87,8 +87,10 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     initializer
     (* Add a few more server controls *)
     self#register_command "skip"
-      (fun _ -> self#skip ; "Done")
-      ~descr:"Skip current song." ;
+      (fun _ ->
+        self#skip;
+        "Done")
+      ~descr:"Skip current song.";
     self#register_command "metadata" ~descr:"Print current metadata." (fun _ ->
         let q = self#metadata_queue in
         fst
@@ -102,7 +104,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
                in
                (s, i - 1))
              ("", Queue.length q)
-             q)) ;
+             q));
     self#register_command "remaining"
       ~descr:"Display estimated remaining time." (fun _ ->
         let r = source#remaining in
@@ -113,7 +115,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     method is_ready =
       if infallible then (
-        assert source#is_ready ;
+        assert source#is_ready;
         true )
       else source#is_ready
 
@@ -125,13 +127,14 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     (* Operator startup *)
     method private wake_up activation =
-      start_stop#wake_up activation ;
+      start_stop#wake_up activation;
+
       (* Get our source ready.
        * This can take a while (preparing playlists, etc). *)
-      source#get_ready ((self :> operator) :: activation) ;
+      source#get_ready ((self :> operator) :: activation);
       if infallible then
         while not source#is_ready do
-          (self#log)#important "Waiting for %S to be ready..." source#id ;
+          (self#log)#important "Waiting for %S to be ready..." source#id;
           Thread.delay 1.
         done
 
@@ -140,7 +143,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method output_get_ready = self#may_start
 
     method private sleep =
-      self#do_stop ;
+      self#do_stop;
       source#leave (self :> operator)
 
     (* Metadata stuff: keep track of what was streamed. *)
@@ -149,7 +152,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     val metadata_q = Queue.create ()
 
     method private add_metadata m =
-      Queue.add m metadata_q ;
+      Queue.add m metadata_q;
       if Queue.length metadata_q > q_length then ignore (Queue.take metadata_q)
 
     method private metadata_queue = Queue.copy metadata_q
@@ -162,35 +165,37 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method private get_frame buf = source#get buf
 
     method private output =
-      self#may_start ;
+      self#may_start;
       if is_started then (
         (* Complete filling of the frame *)
         let get_count = ref 0 in
         while Frame.is_partial memo && self#is_ready do
-          incr get_count ;
+          incr get_count;
           if !get_count > Lazy.force Frame.size then
             (self#log)#severe
-              "Warning: there may be an infinite sequence of empty tracks!" ;
+              "Warning: there may be an infinite sequence of empty tracks!";
           source#get memo
-        done ;
+        done;
         List.iter
           (fun (_, m) -> self#add_metadata m)
-          (Frame.get_all_metadata memo) ;
+          (Frame.get_all_metadata memo);
+
         (* Output that frame if it has some data *)
-        if Frame.position memo > 0 then self#output_send memo ;
+        if Frame.position memo > 0 then self#output_send memo;
         if Frame.is_partial memo then (
           (self#log)#important
-            "Source failed (no more tracks) stopping output..." ;
-          request_stop <- true ) ) ;
+            "Source failed (no more tracks) stopping output...";
+          request_stop <- true ) );
       self#may_stop
 
     method after_output =
       (* Let [memo] be cleared and signal propagated *)
-      super#after_output ;
+      super#after_output;
+
       (* Perform skip if needed *)
       if skip then (
-        (self#log)#important "Performing user-requested skip" ;
-        skip <- false ;
+        (self#log)#important "Performing user-requested skip";
+        skip <- false;
         self#abort_track )
   end
 
@@ -248,19 +253,17 @@ class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
       let rec output_chunks frame =
         let f start stop =
           begin
-            match Frame.get_metadata frame start with None -> () | Some m ->
-                self#insert_metadata (Meta_format.export_metadata m)
-          end ;
+            match Frame.get_metadata frame start with None -> ()
+            | Some m -> self#insert_metadata (Meta_format.export_metadata m)
+          end;
           let data = self#encode frame start (stop - start) in
           self#send data
         in
         function
-        | [] ->
-            assert false
-        | [i] ->
-            assert (i = Lazy.force Frame.size || not infallible)
+        | [] -> assert false
+        | [i] -> assert (i = Lazy.force Frame.size || not infallible)
         | start :: stop :: l ->
-            if start < stop then f start stop else assert (start = stop) ;
+            if start < stop then f start stop else assert (start = stop);
             output_chunks frame (stop :: l)
       in
       output_chunks frame

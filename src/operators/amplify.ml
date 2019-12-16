@@ -42,9 +42,10 @@ class amplify ~kind (source : source) override_field coeff =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       begin
-        match override_field with Some f ->
+        match override_field with
+        | Some f ->
             List.iter
               (fun (p, m) ->
                 if p >= offset then (
@@ -54,21 +55,21 @@ class amplify ~kind (source : source) override_field coeff =
                       try Scanf.sscanf s " %f dB" Audio.lin_of_dB
                       with _ -> float_of_string s
                     in
-                    (self#log)#info "Overriding amplification: %f." k ;
+                    (self#log)#info "Overriding amplification: %f." k;
                     override <- Some k
                   with _ -> () ))
               (AFrame.get_all_metadata buf)
         | None -> ()
-      end ;
+      end;
       let k = match override with Some o -> o | None -> coeff () in
       if k <> 1. then
         Audio.amplify k
           (Audio.sub
              (AFrame.content buf offset)
              offset
-             (AFrame.position buf - offset)) ;
+             (AFrame.position buf - offset));
       if AFrame.is_partial buf && override <> None then (
-        (self#log)#info "End of the current overriding." ;
+        (self#log)#info "End of the current overriding.";
         override <- None )
   end
 

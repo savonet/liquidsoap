@@ -58,17 +58,13 @@ let () =
     (fun p b ->
       let l, e, f =
         match p with
-          | [("", l); ("", e); ("", f)] ->
-              (l, e, f)
-          | _ ->
-              assert false
+          | [("", l); ("", e); ("", f)] -> (l, e, f)
+          | _ -> assert false
       in
       let a = Lang.of_list_t l.Lang.t in
       match Lang.to_list l with
-        | [] ->
-            e
-        | x :: l ->
-            Lang.apply ~t:b f [("", x); ("", Lang.list ~t:a l)])
+        | [] -> e
+        | x :: l -> Lang.apply ~t:b f [("", x); ("", Lang.list ~t:a l)])
 
 let () =
   let a = Lang.univ_t () in
@@ -92,15 +88,12 @@ let () =
     (fun p b ->
       let l, e, f =
         match p with
-          | [("", l); ("", e); ("", f)] ->
-              (l, e, f)
-          | _ ->
-              assert false
+          | [("", l); ("", e); ("", f)] -> (l, e, f)
+          | _ -> assert false
       in
       let a = Lang.of_list_t l.Lang.t in
       let rec aux k = function
-        | [] ->
-            k e
+        | [] -> k e
         | x :: l ->
             aux
               (fun r ->
@@ -130,7 +123,7 @@ let () =
     ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p t ->
       let t = Lang.of_list_t t in
       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
-      Utils.randomize l ;
+      Utils.randomize l;
       Lang.list ~t (Array.to_list l))
 
 let () =

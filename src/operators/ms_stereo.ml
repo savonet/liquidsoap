@@ -42,19 +42,21 @@ class msstereo ~kind (source : source) mode width =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let buffer = AFrame.content buf offset in
       for i = offset to AFrame.position buf - 1 do
         match mode with
           | Encode ->
               let left = buffer.(0).{i} and right = buffer.(1).{i} in
-              buffer.(0).{i} <- 0.5 *. (left +. right) ;
+              buffer.(0).{i} <- 0.5 *. (left +. right);
+
               (* mid *)
               buffer.(1).{i} <- 0.5 *. (left -. right)
               (* side *)
           | Decode ->
               let mid = buffer.(0).{i} and side = buffer.(1).{i} in
-              buffer.(0).{i} <- mid +. (side *. width) ;
+              buffer.(0).{i} <- mid +. (side *. width);
+
               (* left *)
               buffer.(1).{i} <- mid -. (side *. width)
         (* right *)
@@ -69,7 +71,7 @@ let () =
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p kind ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      new msstereo ~kind s Encode 0.) ;
+      new msstereo ~kind s Encode 0.);
   Lang.add_operator "stereo.ms.decode"
     [ ( "width",
         Lang.float_t,

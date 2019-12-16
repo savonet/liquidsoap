@@ -40,15 +40,18 @@ class swap ~kind (source : source) =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      let buffer = source#get buf ; AFrame.content buf offset in
+      let buffer =
+        source#get buf;
+        AFrame.content buf offset
+      in
       if offset = 0 then (
         let tmp = buffer.(1) in
-        buffer.(1) <- buffer.(2) ;
+        buffer.(1) <- buffer.(2);
         buffer.(2) <- tmp )
       else
         for i = offset to AFrame.position buf - 1 do
           let tmp = buffer.(0).{i} in
-          buffer.(0).{i} <- buffer.(1).{i} ;
+          buffer.(0).{i} <- buffer.(1).{i};
           buffer.(1).{i} <- tmp
         done
   end

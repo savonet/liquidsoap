@@ -47,14 +47,14 @@ class bpm ~kind (source : source) cb every =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let len = AFrame.position buf - offset in
       let buf = AFrame.content buf offset in
       let ibuf = Audio.interleave (Audio.sub buf offset len) in
-      Soundtouch.BPM.put_samples_ba bpm ibuf ;
-      n <- n + len ;
+      Soundtouch.BPM.put_samples_ba bpm ibuf;
+      n <- n + len;
       if n >= every then (
-        n <- 0 ;
+        n <- 0;
         let bpm = Soundtouch.BPM.get_bpm bpm in
         ignore (cb [("", Lang.float bpm)]) )
   end

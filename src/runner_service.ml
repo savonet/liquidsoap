@@ -23,13 +23,9 @@
 (** Windows service runner. *)
 
 let name = ref "Liquidsoap"
-
 let display = ref "Liquidsoap Streaming Service"
-
 let text = ref "Powerful streaming service using Liquidsoap"
-
 let action = ref `None
-
 let split s = Str.split (Str.regexp " ") s
 
 module Runner : Main.Runner_t = struct
@@ -53,8 +49,8 @@ end
 
 let () =
   let options = Main.expand_options Runner.options in
-  Arg.parse options (fun _ -> ()) Main.usage ;
-  Arg.current := 0 ;
+  Arg.parse options (fun _ -> ()) Main.usage;
+  Arg.current := 0;
   let args =
     List.map
       (fun s -> if s <> "--install-service" then s else "--run-service")
@@ -62,13 +58,9 @@ let () =
   in
   let module S = struct
     let name = !name
-
     let display = !display
-
     let text = !text
-
     let arguments = args
-
     let stop = Tutils.shutdown
   end in
   let module Svc = Service.Make (S) in
@@ -78,18 +70,17 @@ let () =
   in
   match !action with
     | `Install ->
-        Svc.install () ;
+        Svc.install ();
         Printf.printf "Installed %s service with arguments %s\n" S.name
           (String.concat " " args)
     | `Remove ->
-        Svc.remove () ;
+        Svc.remove ();
         Printf.printf "Removed %s service\n" S.name
     | `Run -> (
-        Dtools.Log.conf_stdout#set false ;
-        Dtools.Log.conf_file#set true ;
+        Dtools.Log.conf_stdout#set false;
+        Dtools.Log.conf_file#set true;
         try Svc.run main
         with e ->
           Main.log#severe "Error while running service: %s"
             (Printexc.to_string e) )
-    | `None ->
-        main ()
+    | `None -> main ()

@@ -45,7 +45,6 @@ module Samplerate = struct
   type converter = float -> Frame.audio_t -> Frame.audio_t
 
   type converter_plug = unit -> converter
-
   type t = converter array
 
   let samplerate_conf =
@@ -71,7 +70,7 @@ module Samplerate = struct
     let converter =
       let rec f = function
         | conv :: l -> (
-          match converters#get conv with Some v -> v | None -> f l )
+            match converters#get conv with Some v -> v | None -> f l )
         | [] ->
             (* This should never come up since the native converter is always
              available. *)
@@ -82,7 +81,7 @@ module Samplerate = struct
     Array.init channels (fun _ -> converter ())
 
   let resample conv ratio data =
-    if Array.length conv <> Array.length data then raise Invalid_data ;
+    if Array.length conv <> Array.length data then raise Invalid_data;
     let convert i b = if ratio = 1. then b else conv.(i) ratio b in
     Array.mapi convert data
 
@@ -93,10 +92,8 @@ module Samplerate = struct
            let rec f = function
              | conv :: _ when converters#get conv <> None ->
                  log#important "Using samplerate converter: %s." conv
-             | _ :: l ->
-                 f l
-             | [] ->
-                 assert false
+             | _ :: l -> f l
+             | [] -> assert false
            in
            f converters_conf#get))
 end

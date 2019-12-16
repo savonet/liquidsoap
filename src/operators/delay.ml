@@ -48,11 +48,12 @@ class delay ~kind ~initial (source : source) delay =
     method is_ready = in_track || (self#delay_ok && source#is_ready)
 
     method private get_frame buf =
-      source#get buf ;
-      in_track <- true ;
+      source#get buf;
+      in_track <- true;
+
       (* The current track ends. *)
       if Frame.is_partial buf then (
-        in_track <- false ;
+        in_track <- false;
         last <- Unix.time () )
   end
 

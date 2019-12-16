@@ -46,15 +46,10 @@ exception No_metadata
 type metadata = (string, string) Hashtbl.t
 
 val free_metadata : t -> int -> unit
-
 val set_metadata : t -> int -> metadata -> unit
-
 val get_metadata : t -> int -> metadata option
-
 val free_all_metadata : t -> unit
-
 val get_all_metadata : t -> (int * metadata) list
-
 val set_all_metadata : t -> (int * metadata) list -> unit
 
 (** {2 Chunks} *)

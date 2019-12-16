@@ -60,11 +60,11 @@ let argv =
     let opts, script, more =
       if Sys.argv.(1) === Sys.getenv "_" then
         ( [||],
-          [|Sys.argv.(1)|],
+          [| Sys.argv.(1) |],
           Array.sub Sys.argv 2 (Array.length Sys.argv - 2) )
       else
         ( Array.of_list (Pcre.split ~pat:"\\s+" Sys.argv.(1)),
-          [|Sys.argv.(2)|],
+          [| Sys.argv.(2) |],
           Array.sub Sys.argv 3 (Array.length Sys.argv - 3) )
     in
-    Array.concat [[|Sys.argv.(0)|]; opts; script; [|"--"|]; more] )
+    Array.concat [[| Sys.argv.(0) |]; opts; script; [| "--" |]; more] )

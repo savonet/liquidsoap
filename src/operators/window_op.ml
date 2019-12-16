@@ -59,7 +59,7 @@ class window ~kind mode duration source =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let duration = duration () in
       if duration > 0. then (
         let duration = Frame.audio_of_seconds duration in
@@ -69,12 +69,10 @@ class window ~kind mode duration source =
           for c = 0 to channels - 1 do
             let x = buf.(c).{i} in
             match mode with
-              | RMS ->
-                  acc.(c) <- acc.(c) +. (x *. x)
-              | Peak ->
-                  acc.(c) <- max acc.(c) (abs_float x)
-          done ;
-          acc_dur <- acc_dur + 1 ;
+              | RMS -> acc.(c) <- acc.(c) +. (x *. x)
+              | Peak -> acc.(c) <- max acc.(c) (abs_float x)
+          done;
+          acc_dur <- acc_dur + 1;
           if acc_dur >= duration then (
             let dur = float acc_dur in
             let value' =
@@ -82,12 +80,14 @@ class window ~kind mode duration source =
                   match mode with
                     | RMS ->
                         let v = sqrt (acc.(i) /. dur) in
-                        acc.(i) <- 0. ; v
+                        acc.(i) <- 0.;
+                        v
                     | Peak ->
                         let v = acc.(i) in
-                        acc.(i) <- 0. ; v)
+                        acc.(i) <- 0.;
+                        v)
             in
-            acc_dur <- 0 ;
+            acc_dur <- 0;
             Tutils.mutexify m (fun () -> value <- value') () )
         done )
   end
@@ -127,7 +127,7 @@ let declare mode suffix format fun_ret_t f_ans =
       let _, t = Lang.of_product_t t in
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new window ~kind mode duration src in
-      if id <> "" then s#set_id id ;
+      if id <> "" then s#set_id id;
       let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun _ _ -> f_ans s#value) in
       Lang.product f (Lang.source (s :> Source.source)))
 
@@ -140,12 +140,12 @@ let () =
   let stereo value =
     Lang.product (Lang.float value.(0)) (Lang.float value.(1))
   in
-  declare RMS "" Lang.any_fixed Lang.float_t mean ;
+  declare RMS "" Lang.any_fixed Lang.float_t mean;
   declare RMS ".stereo"
     (Lang.any_fixed_with ~audio:2 ())
     (Lang.product_t Lang.float_t Lang.float_t)
-    stereo ;
-  declare Peak "" Lang.any_fixed Lang.float_t mean ;
+    stereo;
+  declare Peak "" Lang.any_fixed Lang.float_t mean;
   declare Peak ".stereo"
     (Lang.any_fixed_with ~audio:2 ())
     (Lang.product_t Lang.float_t Lang.float_t)

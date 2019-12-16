@@ -49,28 +49,27 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
         else if y <> "" then Hashtbl.replace m x y
         else Hashtbl.remove m x
       in
-      if not update then Hashtbl.clear m ;
+      if not update then Hashtbl.clear m;
       List.iter replace_val (Lang.to_list m')
 
     val mutable in_track = false
 
     method private get_frame buf =
       let p = Frame.position buf in
-      source#get buf ;
+      source#get buf;
       if insert_missing && (not in_track) && Frame.position buf > p then (
-        in_track <- true ;
+        in_track <- true;
         match Frame.get_metadata buf p with
           | None ->
-              (self#log)#important "Inserting missing metadata." ;
+              (self#log)#important "Inserting missing metadata.";
               let h = Hashtbl.create 10 in
               Frame.set_metadata buf p h
-          | Some _ ->
-              () ) ;
-      if Frame.is_partial buf then in_track <- false ;
+          | Some _ -> () );
+      if Frame.is_partial buf then in_track <- false;
       List.iter
         (fun (t, m) ->
           if t >= p then (
-            self#rewrite m ;
+            self#rewrite m;
             if strip && Hashtbl.length m = 0 then Frame.free_metadata buf t ))
         (Frame.get_all_metadata buf)
   end

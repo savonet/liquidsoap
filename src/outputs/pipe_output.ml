@@ -85,7 +85,8 @@ class virtual piped_output p =
 
     initializer
     self#register_command "reopen" ~descr:"Re-open the output." (fun _ ->
-        self#reopen ; "Done.")
+        self#reopen;
+        "Done.")
 
     val mutable encoder = None
 
@@ -106,31 +107,29 @@ class virtual piped_output p =
         match current_metadata with
           | Some m ->
               fun x -> subst (Hashtbl.find (Meta_format.to_metadata m) x)
-          | None ->
-              fun _ -> raise Not_found
+          | None -> fun _ -> raise Not_found
       in
       Utils.interpolate current_metadata s
 
     method prepare_pipe =
-      self#open_pipe ;
+      self#open_pipe;
       open_date <- Unix.gettimeofday ()
 
     method output_start =
-      assert ((not self#is_open) && encoder = None) ;
+      assert ((not self#is_open) && encoder = None);
       let enc = encoder_factory self#id in
       let meta =
         match current_metadata with
-          | Some m ->
-              m
-          | None ->
-              Meta_format.empty_metadata
+          | Some m -> m
+          | None -> Meta_format.empty_metadata
       in
       encoder <- Some (enc meta)
 
     method output_stop =
       if self#is_open then (
         let flush = (Utils.get_some encoder).Encoder.stop () in
-        self#send flush ; self#close_pipe ) ;
+        self#send flush;
+        self#close_pipe );
       encoder <- None
 
     method output_reset = ()
@@ -148,18 +147,19 @@ class virtual piped_output p =
     method reopen : unit =
       Tutils.mutexify m
         (fun () ->
-          (self#log)#important "Re-opening output pipe." ;
+          (self#log)#important "Re-opening output pipe.";
+
           (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
-          reopening <- true ;
-          self#output_stop ;
-          self#output_start ;
-          reopening <- false ;
+          reopening <- true;
+          self#output_stop;
+          self#output_start;
+          reopening <- false;
           need_reset <- false)
         ()
 
     method send b =
-      if not self#is_open then self#prepare_pipe ;
-      Strings.iter self#write_pipe b ;
+      if not self#is_open then self#prepare_pipe;
+      Strings.iter self#write_pipe b;
       if not reopening then
         if
           need_reset
@@ -169,7 +169,7 @@ class virtual piped_output p =
 
     method insert_metadata m =
       if reload_on_metadata then (
-        current_metadata <- Some m ;
+        current_metadata <- Some m;
         need_reset <- true )
       else (Utils.get_some encoder).Encoder.insert_metadata m
   end
@@ -198,11 +198,11 @@ class virtual chan_output p =
 
     method write_pipe b ofs len =
       let chan = Utils.get_some chan in
-      output_substring chan b ofs len ;
+      output_substring chan b ofs len;
       if flush then Stdlib.flush chan
 
     method close_pipe =
-      self#close_chan (Utils.get_some chan) ;
+      self#close_chan (Utils.get_some chan);
       chan <- None
 
     method is_open = chan <> None
@@ -237,15 +237,15 @@ class file_output p =
       (* Avoid / in metas for filename.. *)
       let subst m = Pcre.substitute ~pat:"/" ~subst:(fun _ -> "-") m in
       let filename = self#interpolate ~subst filename in
-      Utils.mkdir ~perm:dir_perm (Filename.dirname filename) ;
+      Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
       let fd = open_out_gen mode perm filename in
-      current_filename <- Some filename ;
-      set_binary_mode_out fd true ;
+      current_filename <- Some filename;
+      set_binary_mode_out fd true;
       fd
 
     method close_chan chan =
-      close_out chan ;
-      on_close (Utils.get_some current_filename) ;
+      close_out chan;
+      on_close (Utils.get_some current_filename);
       current_filename <- None
   end
 

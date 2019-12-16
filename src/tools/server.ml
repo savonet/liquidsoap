@@ -29,8 +29,7 @@ let () =
         Some
           (Printf.sprintf "Error while trying to bind server/telnet socket: %s"
              msg)
-    | _ ->
-        None)
+    | _ -> None)
 
 let conf =
   Dtools.Conf.void
@@ -116,7 +115,6 @@ exception Duppy of Duppy.Io.failure
 type namespace = string list
 
 let lock = Mutex.create ()
-
 let namespaces = Hashtbl.create 10
 
 let commands : (string, (string -> string) * string * string) Hashtbl.t =
@@ -129,18 +127,17 @@ let register ns kind =
   let ns () =
     while Hashtbl.mem namespaces (mkns ()) do
       incr c
-    done ;
+    done;
     mkns ()
   in
   Tutils.mutexify lock
     (fun () ->
       let ns = ns () in
-      Hashtbl.add namespaces ns kind ;
+      Hashtbl.add namespaces ns kind;
       ns)
     ()
 
 let to_string = String.concat "."
-
 let prefix_ns cmd ns = to_string (ns @ [cmd])
 
 (* Then add your commands to that namespace *)
@@ -154,7 +151,7 @@ let add ~ns ?usage ~descr cmd handler =
         log#severe
           "Server command %s already registered! Previous definition replaced.."
           name
-      else () ;
+      else ();
       Hashtbl.replace commands (prefix_ns cmd ns) (handler, usage, descr))
     ()
 
@@ -165,35 +162,34 @@ let remove ~ns cmd =
     ()
 
 (* That's if you want to have your command wait. *)
-type condition = {
-  wait: (unit -> string) -> unit;
-  signal: unit -> unit;
-  broadcast: unit -> unit;
-}
+type condition =
+  { wait : (unit -> string) -> unit;
+    signal : unit -> unit;
+    broadcast : unit -> unit
+  }
 
 module Mutex_control = struct
   type priority = Tutils.priority
 
   let scheduler = Tutils.scheduler
-
   let priority = Tutils.Non_blocking
 end
 
 module Duppy_m = Duppy.Monad.Mutex.Factory (Mutex_control)
 module Duppy_c = Duppy.Monad.Condition.Factory (Duppy_m)
 
-type server_condition = {
-  condition: Duppy_c.condition;
-  mutex: Duppy_m.mutex;
-  resume: unit -> string;
-}
+type server_condition =
+  { condition : Duppy_c.condition;
+    mutex : Duppy_m.mutex;
+    resume : unit -> string
+  }
 
 exception Server_wait of server_condition
 
 let condition () =
   let mutex = Duppy_m.create () in
   let condition = Duppy_c.create () in
-  let wait resume = raise (Server_wait {mutex; condition; resume}) in
+  let wait resume = raise (Server_wait { mutex; condition; resume }) in
   let signal () =
     Duppy.Monad.run
       ~return:(fun () -> ())
@@ -206,21 +202,20 @@ let condition () =
       ~raise:(fun exn -> raise exn)
       (Duppy_c.broadcast condition)
   in
-  {wait; signal; broadcast}
+  { wait; signal; broadcast }
 
-type ('a, 'b) interruption = {payload: 'a; after: 'b -> string}
-
+type ('a, 'b) interruption = { payload : 'a; after : 'b -> string }
 type write = (string, unit) interruption
 
 exception Write of write
 
-let write ~after payload = raise (Write {payload; after})
+let write ~after payload = raise (Write { payload; after })
 
 type read = (Duppy.Io.marker, string) interruption
 
 exception Read of read
 
-let read ~after payload = raise (Read {payload; after})
+let read ~after payload = raise (Read { payload; after })
 
 let unregister ns =
   Tutils.mutexify lock
@@ -235,7 +230,7 @@ let unregister ns =
           (fun cmd _ l -> if is_prefix cmd then cmd :: l else l)
           commands []
       in
-      List.iter (Hashtbl.remove commands) to_remove ;
+      List.iter (Hashtbl.remove commands) to_remove;
       Hashtbl.remove namespaces ns)
     ()
 
@@ -255,8 +250,8 @@ let usage () =
 (** The very-builtin commands *)
 let () =
   let add = add ~ns:[] in
-  add "exit" ~descr:"Close current server session." (fun _ -> raise Exit) ;
-  add "quit" ~descr:"Close current server session." (fun _ -> raise Exit) ;
+  add "exit" ~descr:"Close current server session." (fun _ -> raise Exit);
+  add "quit" ~descr:"Close current server session." (fun _ -> raise Exit);
   add "help" ~usage:"help [<command>]"
     ~descr:"Get information on available commands." (fun args ->
       try
@@ -266,7 +261,7 @@ let () =
       with Not_found ->
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
         ^ "Available commands:" ^ usage () ^ "\r\n\r\n"
-        ^ "Type \"help <command>\" for more information.") ;
+        ^ "Type \"help <command>\" for more information.");
   add "list"
     ~descr:"Get the list of available operators with their interfaces."
     (fun _ ->
@@ -289,34 +284,31 @@ let exec s =
     let command, _, _ = Tutils.mutexify lock (Hashtbl.find commands) s in
     command args
   with
-    | Server_wait opts ->
-        raise (Server_wait opts)
-    | Write opts ->
-        raise (Write opts)
-    | Read opts ->
-        raise (Read opts)
-    | Exit ->
-        raise Exit
+    | Server_wait opts -> raise (Server_wait opts)
+    | Write opts -> raise (Write opts)
+    | Read opts -> raise (Read opts)
+    | Exit -> raise Exit
     | Not_found ->
         "ERROR: unknown command, type \"help\" to get a list of commands."
-    | e ->
-        Printf.sprintf "ERROR: %s" (Printexc.to_string e)
+    | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
 
 let handle_client socket ip =
   let on_error e =
     ( match e with
-      | Duppy.Io.Io_error ->
-          ()
+      | Duppy.Io.Io_error -> ()
       | Duppy.Io.Timeout ->
           log#info "Timeout reached while communicating to client %s." ip
       | Duppy.Io.Unix (c, p, m) ->
           log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown e ->
-          log#important "%s" (Printexc.to_string e) ) ;
+      | Duppy.Io.Unknown e -> log#important "%s" (Printexc.to_string e) );
     Duppy e
   in
   let h =
-    {Duppy.Monad.Io.scheduler= Tutils.scheduler; socket; data= ""; on_error}
+    { Duppy.Monad.Io.scheduler = Tutils.scheduler;
+      socket;
+      data = "";
+      on_error
+    }
   in
   (* Read and process lines *)
   let process =
@@ -333,14 +325,14 @@ let handle_client socket ip =
                   (fun () -> run opts.resume)
             | Write opts ->
                 (* Make sure write are synchronous by setting TCP_NODELAY off and off. *)
-                Unix.setsockopt socket Unix.TCP_NODELAY false ;
+                Unix.setsockopt socket Unix.TCP_NODELAY false;
                 Duppy.Monad.bind
                   (Duppy.Monad.Io.write
                      ?timeout:(Some (get_timeout ()))
                      ~priority:Tutils.Non_blocking h
                      (Bytes.of_string opts.payload))
                   (fun () ->
-                    Unix.setsockopt socket Unix.TCP_NODELAY true ;
+                    Unix.setsockopt socket Unix.TCP_NODELAY true;
                     run opts.after)
             | Read opts ->
                 let __pa_duppy_0 =
@@ -350,8 +342,7 @@ let handle_client socket ip =
                 in
                 Duppy.Monad.bind __pa_duppy_0 (fun ret ->
                     run (fun () -> opts.after ret))
-            | e ->
-                Duppy.Monad.raise e
+            | e -> Duppy.Monad.raise e
         in
         let __pa_duppy_0 =
           Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
@@ -375,28 +366,25 @@ let handle_client socket ip =
     let raise = function
       | (Exit | Duppy Duppy.Io.Timeout) as e ->
           let on_error e =
-            ignore (on_error e) ;
-            log#important "Client %s disconnected while saying goodbye..!" ip ;
+            ignore (on_error e);
+            log#important "Client %s disconnected while saying goodbye..!" ip;
             close ()
           in
           let msg =
             match e with
-              | Exit ->
-                  "Bye!\r\n"
-              | Duppy Duppy.Io.Timeout ->
-                  "Connection timed out.. Bye!\r\n"
-              | _ ->
-                  assert false
+              | Exit -> "Bye!\r\n"
+              | Duppy Duppy.Io.Timeout -> "Connection timed out.. Bye!\r\n"
+              | _ -> assert false
           in
           let exec () =
-            log#important "Client %s disconnected." ip ;
+            log#important "Client %s disconnected." ip;
             close ()
           in
           Duppy.Io.write ~timeout:(get_timeout ())
             ~priority:Tutils.Non_blocking ~on_error ~exec Tutils.scheduler
             ~string:(Bytes.of_string msg) socket
       | _ ->
-          log#important "Client %s disconnected without saying goodbye..!" ip ;
+          log#important "Client %s disconnected without saying goodbye..!" ip;
           close ()
     in
     Duppy.Monad.run ~return:run ~raise process
@@ -418,37 +406,35 @@ let start_socket () =
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
-        log#important "New client %s." ip ;
+        log#important "New client %s." ip;
         handle_client socket ip
       with e ->
-        log#severe "Failed to accept new client: %S" (Printexc.to_string e) ) ;
-    [ {
-        Duppy.Task.priority= Tutils.Non_blocking;
-        events= [`Read sock];
-        handler= incoming;
+        log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
+    [ { Duppy.Task.priority = Tutils.Non_blocking;
+        events = [`Read sock];
+        handler = incoming
       } ]
   in
   (* Try to close the socket if exists.. *)
-  Unix.setsockopt sock Unix.SO_REUSEADDR true ;
+  Unix.setsockopt sock Unix.SO_REUSEADDR true;
   if not (Utils.dir_exists socket_dir) then
     failwith (Printf.sprintf "Unknown directory for the socket: %s" socket_dir)
-  else () ;
-  if Sys.file_exists socket_path then Unix.unlink socket_path else () ;
+  else ();
+  if Sys.file_exists socket_path then Unix.unlink socket_path else ();
   begin
     try Unix.bind sock bind_addr
     with exn -> raise (Bind_error (Printexc.to_string exn))
-  end ;
-  Unix.listen sock max_conn ;
+  end;
+  Unix.listen sock max_conn;
   ignore
     (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom] (fun () ->
-         log#important "Unlink %s" socket_name ;
-         Unix.unlink socket_path)) ;
-  Unix.chmod socket_path rights ;
+         log#important "Unlink %s" socket_name;
+         Unix.unlink socket_path));
+  Unix.chmod socket_path rights;
   Duppy.Task.add Tutils.scheduler
-    {
-      Duppy.Task.priority= Tutils.Non_blocking;
-      events= [`Read sock];
-      handler= incoming;
+    { Duppy.Task.priority = Tutils.Non_blocking;
+      events = [`Read sock];
+      handler = incoming
     }
 
 let start_telnet () =
@@ -463,45 +449,43 @@ let start_telnet () =
     ignore
       (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom]
          ~name:"Server shutdown" (fun () ->
-           log#important "Closing socket." ;
+           log#important "Closing socket.";
            Unix.close sock))
   in
   (* Set TCP_NODELAY on the socket *)
-  Unix.setsockopt sock Unix.TCP_NODELAY true ;
+  Unix.setsockopt sock Unix.TCP_NODELAY true;
   let rec incoming _ =
     ( try
         let socket, caller = Unix.accept sock in
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
-        log#important "New client: %s." ip ;
+        log#important "New client: %s." ip;
         handle_client socket ip
       with e ->
-        log#severe "Failed to accept new client: %S" (Printexc.to_string e) ) ;
-    [ {
-        Duppy.Task.priority= Tutils.Non_blocking;
-        events= [`Read sock];
-        handler= incoming;
+        log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
+    [ { Duppy.Task.priority = Tutils.Non_blocking;
+        events = [`Read sock];
+        handler = incoming
       } ]
   in
-  Unix.setsockopt sock Unix.SO_REUSEADDR true ;
+  Unix.setsockopt sock Unix.SO_REUSEADDR true;
   begin
     try Unix.bind sock bind_addr
     with exn -> raise (Bind_error (Printexc.to_string exn))
-  end ;
-  Unix.listen sock max_conn ;
+  end;
+  Unix.listen sock max_conn;
   Duppy.Task.add Tutils.scheduler
-    {
-      Duppy.Task.priority= Tutils.Non_blocking;
-      events= [`Read sock];
-      handler= incoming;
+    { Duppy.Task.priority = Tutils.Non_blocking;
+      events = [`Read sock];
+      handler = incoming
     }
 
 let start () =
   let telnet = conf_telnet#get in
   let socket = conf_socket#get in
   if telnet || socket then (
-    if telnet then start_telnet () else () ;
+    if telnet then start_telnet () else ();
     if socket then start_socket () else () )
   else ()
 

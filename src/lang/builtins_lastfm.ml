@@ -71,14 +71,10 @@ let () =
         let mode =
           if stype = Liqfm.Played then (
             match Lang.to_string (List.assoc "source" p) with
-              | "broadcast" ->
-                  Liqfm.Broadcast
-              | "user" ->
-                  Liqfm.User
-              | "recommendation" ->
-                  Liqfm.Recommendation
-              | "unknown" ->
-                  Liqfm.Unknown
+              | "broadcast" -> Liqfm.Broadcast
+              | "user" -> Liqfm.User
+              | "recommendation" -> Liqfm.Recommendation
+              | "unknown" -> Liqfm.Unknown
               | _ ->
                   raise
                     (Lang_errors.Invalid_value
@@ -91,7 +87,7 @@ let () =
           if length = false && mode = Liqfm.User then (
             log#severe
               "length information is required for \"user\" sources, setting \
-               to true." ;
+               to true.";
             true )
           else length
         in
@@ -99,12 +95,13 @@ let () =
           try Hashtbl.find tasks host
           with Not_found ->
             let t = Liqfm.init host in
-            Hashtbl.add tasks host t ; t
+            Hashtbl.add tasks host t;
+            t
         in
-        Liqfm.submit (user, password) task length mode stype [metas] ;
+        Liqfm.submit (user, password) task length mode stype [metas];
         Lang.unit)
   in
   f "audioscrobbler.submit" Liqfm.Played
-    "Submit a played song using the audioscrobbler protocol." ;
+    "Submit a played song using the audioscrobbler protocol.";
   f "audioscrobbler.nowplaying" Liqfm.NowPlaying
     "Submit a now playing song using the audioscrobbler protocol."

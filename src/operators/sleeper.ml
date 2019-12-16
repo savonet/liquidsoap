@@ -42,10 +42,10 @@ class map ~kind source delay random freeze =
     method self_sync = source#self_sync
 
     method private get_frame buf =
-      source#get buf ;
+      source#get buf;
       let delay = delay +. Random.float random in
-      Thread.delay delay ;
-      lived <- lived +. max dt delay ;
+      Thread.delay delay;
+      lived <- lived +. max dt delay;
       if freeze >= 0. && lived >= freeze then
         while true do
           Thread.delay 60.

@@ -25,10 +25,8 @@ module Img = Image.Generic
 let create_encoder ~theora ~metadata () =
   let quality, bitrate =
     match theora.Theora_format.bitrate_control with
-      | Theora_format.Bitrate x ->
-          (0, x)
-      | Theora_format.Quality x ->
-          (x, 0)
+      | Theora_format.Bitrate x -> (0, x)
+      | Theora_format.Quality x -> (x, 0)
   in
   let width = Lazy.force theora.Theora_format.width in
   let height = Lazy.force theora.Theora_format.height in
@@ -46,44 +44,42 @@ let create_encoder ~theora ~metadata () =
   let buffer_delay = theora.Theora_format.buffer_delay in
   let speed = theora.Theora_format.speed in
   let info =
-    {
-      Theora.frame_width= width;
-      frame_height= height;
+    { Theora.frame_width = width;
+      frame_height = height;
       picture_width;
       picture_height;
       picture_x;
       picture_y;
-      fps_numerator= fps;
-      fps_denominator= 1;
+      fps_numerator = fps;
+      fps_denominator = 1;
       aspect_numerator;
       aspect_denominator;
-      colorspace= Theora.CS_unspecified;
-      keyframe_granule_shift= Theora.default_granule_shift;
-      target_bitrate= bitrate;
+      colorspace = Theora.CS_unspecified;
+      keyframe_granule_shift = Theora.default_granule_shift;
+      target_bitrate = bitrate;
       quality;
       version_major;
       version_minor;
       version_subminor;
-      pixel_fmt= Theora.PF_420;
+      pixel_fmt = Theora.PF_420
     }
   in
   let params =
-    {
-      Theora.Encoder.keyframe_frequency;
+    { Theora.Encoder.keyframe_frequency;
       vp3_compatible;
       soft_target;
       buffer_delay;
-      speed;
+      speed
     }
   in
   let enc =
     if width mod 16 <> 0 || height mod 16 <> 0 then
-      failwith "Invalide theora width/height (should be a multiple of 16)." ;
+      failwith "Invalide theora width/height (should be a multiple of 16).";
     Theora.Encoder.create info params metadata
   in
   let started = ref false in
   let header_encoder os =
-    Theora.Encoder.encode_header enc os ;
+    Theora.Encoder.encode_header enc os;
     Ogg.Stream.flush_page os
   in
   let fisbone_packet os =
@@ -93,26 +89,25 @@ let create_encoder ~theora ~metadata () =
   let stream_start os = Ogg_muxer.flush_pages os in
   let yuv = Image.YUV420.create width height in
   let data_encoder data os _ =
-    if not !started then started := true ;
+    if not !started then started := true;
     let b, ofs, len =
       (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
     in
     for i = ofs to ofs + len - 1 do
       let img = Video.get b i in
       let theora_yuv =
-        {
-          Theora.y_width= width;
-          Theora.y_height= height;
-          Theora.y_stride= Image.YUV420.y_stride img;
-          Theora.u_width= width / 2;
-          Theora.u_height= height / 2;
-          Theora.u_stride= Image.YUV420.uv_stride img;
-          Theora.v_width= width / 2;
-          Theora.v_height= height / 2;
-          Theora.v_stride= Image.YUV420.uv_stride img;
-          Theora.y= Image.YUV420.y img;
-          Theora.u= Image.YUV420.u img;
-          Theora.v= Image.YUV420.v img;
+        { Theora.y_width = width;
+          Theora.y_height = height;
+          Theora.y_stride = Image.YUV420.y_stride img;
+          Theora.u_width = width / 2;
+          Theora.u_height = height / 2;
+          Theora.u_stride = Image.YUV420.uv_stride img;
+          Theora.v_width = width / 2;
+          Theora.v_height = height / 2;
+          Theora.v_stride = Image.YUV420.uv_stride img;
+          Theora.y = Image.YUV420.y img;
+          Theora.u = Image.YUV420.u img;
+          Theora.v = Image.YUV420.v img
         }
       in
       Theora.Encoder.encode_buffer enc os theora_yuv
@@ -132,32 +127,30 @@ let create_encoder ~theora ~metadata () =
     (* Encode at least some data.. *)
     if not !started then (
       let theora_yuv =
-        {
-          Theora.y_width= width;
-          Theora.y_height= height;
-          Theora.y_stride= width;
-          Theora.u_width= width / 2;
-          Theora.u_height= height / 2;
-          Theora.u_stride= width / 2;
-          Theora.v_width= width / 2;
-          Theora.v_height= height / 2;
-          Theora.v_stride= width / 2;
-          Theora.y= Image.Data.alloc width;
-          Theora.u= Image.Data.alloc (width / 2);
-          Theora.v= Image.Data.alloc (width / 2);
+        { Theora.y_width = width;
+          Theora.y_height = height;
+          Theora.y_stride = width;
+          Theora.u_width = width / 2;
+          Theora.u_height = height / 2;
+          Theora.u_stride = width / 2;
+          Theora.v_width = width / 2;
+          Theora.v_height = height / 2;
+          Theora.v_stride = width / 2;
+          Theora.y = Image.Data.alloc width;
+          Theora.u = Image.Data.alloc (width / 2);
+          Theora.v = Image.Data.alloc (width / 2)
         }
       in
-      Image.YUV420.blank_all yuv ;
-      Theora.Encoder.encode_buffer enc os theora_yuv ) ;
+      Image.YUV420.blank_all yuv;
+      Theora.Encoder.encode_buffer enc os theora_yuv );
     Theora.Encoder.eos enc os
   in
-  {
-    Ogg_muxer.header_encoder;
+  { Ogg_muxer.header_encoder;
     fisbone_packet;
     stream_start;
-    data_encoder= Ogg_muxer.Video_encoder data_encoder;
+    data_encoder = Ogg_muxer.Video_encoder data_encoder;
     end_of_page;
-    end_of_stream;
+    end_of_stream
   }
 
 let create_theora = function
@@ -167,8 +160,7 @@ let create_theora = function
         let enc = create_encoder ~theora ~metadata () in
         Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc
       in
-      {Ogg_encoder.encode= Ogg_encoder.encode_video; reset; id= None}
-  | _ ->
-      assert false
+      { Ogg_encoder.encode = Ogg_encoder.encode_video; reset; id = None }
+  | _ -> assert false
 
 let () = Hashtbl.add Ogg_encoder.encoders "theora" create_theora

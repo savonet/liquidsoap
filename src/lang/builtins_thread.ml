@@ -54,16 +54,15 @@ let () =
         else Tutils.Blocking
       in
       let rec task delay =
-        {
-          Duppy.Task.priority;
-          events= [`Delay delay];
-          handler=
+        { Duppy.Task.priority;
+          events = [`Delay delay];
+          handler =
             (fun _ ->
               let delay = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
-              if delay >= 0. then [task delay] else []);
+              if delay >= 0. then [task delay] else [])
         }
       in
-      Duppy.Task.add Tutils.scheduler (task delay) ;
+      Duppy.Task.add Tutils.scheduler (task delay);
       Lang.unit)
 
 let () =
@@ -84,13 +83,14 @@ let () =
                     List.map (fun (x, gv) -> (x, Lazy.from_val gv)) args
                   in
                   let env = List.rev_append args env in
-                  let v = {v with Lang.value= Lang.Fun ([], [], env, body)} in
+                  let v =
+                    { v with Lang.value = Lang.Fun ([], [], env, body) }
+                  in
                   Lang.apply ~t v [])
                 ()
             in
-            {v with Lang.value= Lang.FFI (p, args, fn)}
+            { v with Lang.value = Lang.FFI (p, args, fn) }
         | Lang.FFI (p, args, fn) ->
             let fn args t = Tutils.mutexify m (fun () -> fn args t) () in
-            {v with Lang.value= Lang.FFI (p, args, fn)}
-        | _ ->
-            v)
+            { v with Lang.value = Lang.FFI (p, args, fn) }
+        | _ -> v)

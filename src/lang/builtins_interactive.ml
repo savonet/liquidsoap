@@ -25,16 +25,15 @@ open Lang_builtins
 module Var = struct
   exception Invalid_value of string
 
-  type variable = {
-    name: string;
-    t: Lang.t;
-    get: unit -> string;
-    set: string -> unit;
-    validate: string -> unit;
-  }
+  type variable =
+    { name : string;
+      t : Lang.t;
+      get : unit -> string;
+      set : string -> unit;
+      validate : string -> unit
+    }
 
   let variables = ref []
-
   let ns = Server.register ["var"] "interactive variables"
 
   let () =
@@ -58,14 +57,12 @@ module Var = struct
           try
             let var = List.assoc name !variables in
             let oldval = var.get () in
-            var.validate v ;
-            var.set v ;
+            var.validate v;
+            var.set v;
             Printf.sprintf "Variable %s set (was %s)." name oldval
           with
-            | Not_found ->
-                Printf.sprintf "Variable %s is not defined." name
-            | Invalid_value s ->
-                Printf.sprintf "Invalid value: %s." s
+            | Not_found -> Printf.sprintf "Variable %s is not defined." name
+            | Invalid_value s -> Printf.sprintf "Invalid value: %s." s
         with Not_found -> "Usage: var." ^ usage)
 
   let () =
@@ -77,7 +74,7 @@ module Var = struct
         with Not_found -> Printf.sprintf "Variable %s is not defined." name)
 
   let add name t ~get ~set ~validate =
-    let var = {name; t; get; set; validate} in
+    let var = { name; t; get; set; validate } in
     variables := (name, var) :: !variables
 end
 
@@ -95,7 +92,7 @@ let () =
         ~set:(fun s -> v := Scanf.sscanf s "%S" (fun s -> s))
         ~validate:(fun s ->
           try ignore (Scanf.sscanf s "%S" (fun s -> s))
-          with _ -> raise (Var.Invalid_value (s ^ " is not a string"))) ;
+          with _ -> raise (Var.Invalid_value (s ^ " is not a string")));
       Lang.val_fun [] ~ret_t:Lang.string_t (fun _ _ -> Lang.string !v))
 
 let () =
@@ -112,7 +109,7 @@ let () =
         ~set:(fun s -> v := float_of_string s)
         ~validate:(fun s ->
           try ignore (float_of_string s)
-          with _ -> raise (Var.Invalid_value (s ^ " is not a float"))) ;
+          with _ -> raise (Var.Invalid_value (s ^ " is not a float")));
       Lang.val_fun [] ~ret_t:Lang.float_t (fun _ _ -> Lang.float !v))
 
 let () =
@@ -129,5 +126,5 @@ let () =
         ~set:(fun s -> v := s = "true")
         ~validate:(fun s ->
           if s <> "true" && s <> "false" then
-            raise (Var.Invalid_value (s ^ " is not a boolean"))) ;
+            raise (Var.Invalid_value (s ^ " is not a boolean")));
       Lang.val_fun [] ~ret_t:Lang.bool_t (fun _ _ -> Lang.bool !v))

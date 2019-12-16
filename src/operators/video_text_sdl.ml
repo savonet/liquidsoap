@@ -24,7 +24,7 @@ open Tsdl
 open Tsdl_ttf
 
 let init () =
-  Sdl_utils.init [] ;
+  Sdl_utils.init [];
   ignore
     (Dtools.Init.at_start (fun () -> Sdl_utils.check Tsdl_ttf.Ttf.init ()))
 
@@ -44,11 +44,12 @@ let render_text ~font ~size text =
   let img = Sdl_utils.Surface.to_img ts in
   let w = Video.Image.width img in
   let h = Video.Image.height img in
-  Sdl.free_surface ts ;
+  Sdl.free_surface ts;
+
   (* TODO: improve performance *)
   let get_pixel x y =
-    assert (0 <= x && x < w) ;
-    assert (0 <= y && y < h) ;
+    assert (0 <= x && x < w);
+    assert (0 <= y && y < h);
     let r, _, _, _ = Video.Image.get_pixel_rgba img x y in
     r
   in

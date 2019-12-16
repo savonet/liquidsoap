@@ -40,7 +40,7 @@ class resample ~kind ~active ~ratio (source : source) =
 
     method private wake_up x =
       (* Call super just for the debugging log messages *)
-      super#wake_up x ;
+      super#wake_up x;
       source#get_ready [(self :> source)]
 
     method private sleep = source#leave (self :> source)
@@ -48,8 +48,9 @@ class resample ~kind ~active ~ratio (source : source) =
     (* Clock setting: we need total control on our source's flow. *)
     method private set_clock =
       let c = Clock.create_known (new Clock.clock self#id) in
-      Clock.unify self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]) ;
-      Clock.unify source#clock c ;
+      Clock.unify self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]);
+      Clock.unify source#clock c;
+
       (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
       Gc.finalise (fun self -> Clock.forget self#clock c) self
 
@@ -89,26 +90,29 @@ class resample ~kind ~active ~ratio (source : source) =
 
     (* in master time *)
     method private slave_tick =
-      (Clock.get source#clock)#end_tick ;
-      source#after_output ;
-      Frame.advance frame ;
+      (Clock.get source#clock)#end_tick;
+      source#after_output;
+      Frame.advance frame;
       last_slave_tick <- (Clock.get self#clock)#get_tick
 
     method after_output =
-      super#after_output ;
+      super#after_output;
       let master_clock = Clock.get self#clock in
       (* Is it really a new tick? *)
       if master_time <> master_clock#get_tick then (
         (* Did the slave clock tick during this instant? *)
         if active && last_slave_tick <> master_time then (
-          self#slave_tick ;
-          last_slave_tick <- master_time ) ;
+          self#slave_tick;
+          last_slave_tick <- master_time );
         master_time <- master_clock#get_tick )
 
     method private fill_buffer =
-      if Lazy.force Frame.size = Frame.position frame then self#slave_tick ;
+      if Lazy.force Frame.size = Frame.position frame then self#slave_tick;
       let start = Frame.position frame in
-      let stop = source#get frame ; Frame.position frame in
+      let stop =
+        source#get frame;
+        Frame.position frame
+      in
       let ratio = ratio () in
       let content =
         let start = Frame.audio_of_master start in
@@ -116,13 +120,12 @@ class resample ~kind ~active ~ratio (source : source) =
         let content = AFrame.content frame start in
         let converter =
           match converter with
-            | Some c ->
-                c
+            | Some c -> c
             | None ->
                 let c =
                   Audio_converter.Samplerate.create (Array.length content)
                 in
-                converter <- Some c ;
+                converter <- Some c;
                 c
         in
         let len = stop - start in
@@ -130,7 +133,7 @@ class resample ~kind ~active ~ratio (source : source) =
           Audio_converter.Samplerate.resample converter ratio
             (Audio.sub content start len)
         in
-        {Frame.audio= pcm; video= [||]; midi= [||]}
+        { Frame.audio = pcm; video = [||]; midi = [||] }
       in
       let convert x = int_of_float (float x *. ratio) in
       let metadata =
@@ -139,7 +142,7 @@ class resample ~kind ~active ~ratio (source : source) =
       let start = convert start in
       let stop = convert stop in
       let len = stop - start in
-      Generator.feed generator ~metadata ~copy:false content start len ;
+      Generator.feed generator ~metadata ~copy:false content start len;
       if Frame.is_partial frame then Generator.add_break generator
 
     method private get_frame frame =
@@ -154,7 +157,7 @@ class resample ~kind ~active ~ratio (source : source) =
        * so there's no need to check that it's ready. *)
       while need_fill () do
         self#fill_buffer
-      done ;
+      done;
       Generator.fill generator frame
   end
 

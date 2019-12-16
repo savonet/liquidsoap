@@ -40,16 +40,11 @@
 type mode = Merge | Master | Auxiliary | Both
 
 let mode_of_string = function
-  | "none" ->
-      Merge
-  | "master" ->
-      Master
-  | "auxiliary" ->
-      Auxiliary
-  | "both" ->
-      Both
-  | s ->
-      failwith ("Unknown track mode: " ^ s)
+  | "none" -> Merge
+  | "master" -> Master
+  | "auxiliary" -> Auxiliary
+  | "both" -> Both
+  | s -> failwith ("Unknown track mode: " ^ s)
 
 let get_mode p = mode_of_string (Lang.to_string (List.assoc "mode" p))
 
@@ -72,7 +67,9 @@ class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
 
     method is_ready = master#is_ready && aux#is_ready
 
-    method abort_track = master#abort_track ; aux#abort_track
+    method abort_track =
+      master#abort_track;
+      aux#abort_track
 
     method remaining =
       let master = master#remaining in
@@ -100,21 +97,19 @@ class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
           match until with
             | `Once ->
                 let b = !once in
-                once := false ;
+                once := false;
                 b
-            | `Full ->
-                true
-            | `Pos p ->
-                Frame.position frame < p
+            | `Full -> true
+            | `Pos p -> Frame.position frame < p
         in
         while s#is_ready && Frame.is_partial frame && more () do
           s#get frame
-        done ;
+        done;
         let _, c = Frame.content frame pos in
         let end_pos = Frame.position frame in
         if inicon != c then
-          (self#log)#debug "Copy-avoiding optimization isn't working!" ;
-        Frame.set_breaks frame breaks ;
+          (self#log)#debug "Copy-avoiding optimization isn't working!";
+        Frame.set_breaks frame breaks;
         (c, end_pos)
       in
       (* Hiding contents to avoid the following. If the master layer is present in
@@ -165,14 +160,14 @@ class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
               let new_content = mux_content master aux in
               (new_content, end_pos)
       in
-      restore () ;
-      Frame.blit_content new_content pos dest pos (end_pos - pos) ;
+      restore ();
+      Frame.blit_content new_content pos dest pos (end_pos - pos);
       Frame.add_break frame end_pos
   end
 
 let () =
   let out_t = Lang.kind_type_of_kind_format Lang.any_fixed in
-  let {Frame.audio; video; midi} = Lang.of_frame_kind_t out_t in
+  let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
   let master_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi in
   let aux_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi:Lang.zero_t in
   Lang.add_operator "mux_video" ~category:Lang.Conversions
@@ -182,18 +177,18 @@ let () =
       ("", Lang.source_t master_t, None, None) ]
     (fun p kind ->
       let master = Lang.to_source (List.assoc "" p) in
-      let master_layer c = {c with Frame.video= [||]} in
+      let master_layer c = { c with Frame.video = [||] } in
       let aux = Lang.to_source (List.assoc "video" p) in
-      let aux_layer c = {c with Frame.audio= [||]; midi= [||]} in
+      let aux_layer c = { c with Frame.audio = [||]; midi = [||] } in
       let mux_content master aux =
-        {master with Frame.video= aux.Frame.video}
+        { master with Frame.video = aux.Frame.video }
       in
       let mode = get_mode p in
       new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
 
 let () =
   let out_t = Lang.kind_type_of_kind_format Lang.any_fixed in
-  let {Frame.audio; video; midi} = Lang.of_frame_kind_t out_t in
+  let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
   let master_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi in
   let aux_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi:Lang.zero_t in
   Lang.add_operator "mux_audio" ~category:Lang.Conversions
@@ -204,11 +199,11 @@ let () =
       ("", Lang.source_t master_t, None, None) ]
     (fun p kind ->
       let master = Lang.to_source (List.assoc "" p) in
-      let master_layer c = {c with Frame.audio= [||]} in
+      let master_layer c = { c with Frame.audio = [||] } in
       let aux = Lang.to_source (List.assoc "audio" p) in
-      let aux_layer c = {c with Frame.video= [||]; midi= [||]} in
+      let aux_layer c = { c with Frame.video = [||]; midi = [||] } in
       let mux_content master aux =
-        {master with Frame.audio= aux.Frame.audio}
+        { master with Frame.audio = aux.Frame.audio }
       in
       let mode = get_mode p in
       new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
@@ -220,7 +215,7 @@ let add_audio_mux label n =
       ~midi:Lang.zero_t
   in
   let out_t =
-    let {Frame.audio; video; midi} = Lang.of_frame_kind_t master_t in
+    let { Frame.audio; video; midi } = Lang.of_frame_kind_t master_t in
     Lang.frame_kind_t ~audio:(Lang.add_t n audio) ~video ~midi
   in
   Lang.add_operator ("mux_" ^ label) ~category:Lang.Conversions
@@ -233,14 +228,16 @@ let add_audio_mux label n =
       let master = Lang.to_source (List.assoc "" p) in
       let aux = Lang.to_source (List.assoc label p) in
       let master_layer c =
-        {
-          c with
-          Frame.audio=
-            Array.sub c.Frame.audio n (Array.length c.Frame.audio - n);
+        { c with
+          Frame.audio =
+            Array.sub c.Frame.audio n (Array.length c.Frame.audio - n)
         }
       in
       let aux_layer c =
-        {Frame.audio= Array.sub c.Frame.audio 0 n; video= [||]; midi= [||]}
+        { Frame.audio = Array.sub c.Frame.audio 0 n;
+          video = [||];
+          midi = [||]
+        }
       in
       let mux_content master aux =
         let audio =
@@ -249,9 +246,11 @@ let add_audio_mux label n =
             (fun i ->
               if i < n then aux.Frame.audio.(i) else master.Frame.audio.(i - n))
         in
-        {master with Frame.audio}
+        { master with Frame.audio }
       in
       let mode = get_mode p in
       new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
 
-let () = add_audio_mux "mono" 1 ; add_audio_mux "stereo" 2
+let () =
+  add_audio_mux "mono" 1;
+  add_audio_mux "stereo" 2

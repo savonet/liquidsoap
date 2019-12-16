@@ -37,7 +37,7 @@ let render m =
         (fun k x ->
           if String.uppercase_ascii l = String.uppercase_ascii k then
             raise (Found x))
-        m ;
+        m;
       t
     with Found x -> g t x
   in

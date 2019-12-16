@@ -25,30 +25,20 @@
 module type Fdkaac_t = sig
   module Encoder : sig
     exception Invalid_handle
-
     exception Unsupported_parameter
-
     exception Invalid_config
-
     exception Error of int
-
     exception End_of_file
-
     exception Unknown of int
 
     val string_of_exception : exn -> string option
 
     type t
-
-    type mpeg2_aac = [`AAC_LC | `HE_AAC | `HE_AAC_v2]
-
-    type mpeg4_aac = [`AAC_ELD | `AAC_LC | `AAC_LD | `HE_AAC | `HE_AAC_v2]
-
-    type aot = [`Mpeg_2 of mpeg2_aac | `Mpeg_4 of mpeg4_aac]
-
-    type bitrate_mode = [`Constant | `Variable of int | `Full_bitreservoir]
-
-    type transmux = [`Adif | `Adts | `Latm | `Latm_out_of_band | `Loas | `Raw]
+    type mpeg2_aac = [ `AAC_LC | `HE_AAC | `HE_AAC_v2 ]
+    type mpeg4_aac = [ `AAC_ELD | `AAC_LC | `AAC_LD | `HE_AAC | `HE_AAC_v2 ]
+    type aot = [ `Mpeg_2 of mpeg2_aac | `Mpeg_4 of mpeg4_aac ]
+    type bitrate_mode = [ `Constant | `Variable of int | `Full_bitreservoir ]
+    type transmux = [ `Adif | `Adts | `Latm | `Latm_out_of_band | `Loas | `Raw ]
 
     type param_name =
       [ `Afterburner
@@ -73,13 +63,9 @@ module type Fdkaac_t = sig
       | `Transmux of transmux ]
 
     val create : int -> t
-
     val set : t -> param -> unit
-
     val get : t -> param_name -> param
-
     val encode : t -> string -> int -> int -> string
-
     val flush : t -> string
   end
 end
@@ -103,30 +89,19 @@ module Register (Fdkaac : Fdkaac_t) = struct
         else [] )
       @
       match params.Fdkaac_format.bitrate_mode with
-        | `Variable vbr ->
-            [`Bitrate_mode (`Variable vbr)]
-        | `Constant ->
-            [`Bitrate (params.Fdkaac_format.bitrate * 1000)]
+        | `Variable vbr -> [`Bitrate_mode (`Variable vbr)]
+        | `Constant -> [`Bitrate (params.Fdkaac_format.bitrate * 1000)]
     in
     let string_of_param = function
-      | `Aot _ ->
-          "aot"
-      | `Afterburner _ ->
-          "afterburner"
-      | `Bandwidth _ ->
-          "bandwidth"
-      | `Bitrate _ ->
-          "bitrate"
-      | `Bitrate_mode _ ->
-          "bitrate mode"
-      | `Granule_length _ ->
-          "granule length"
-      | `Samplerate _ ->
-          "samplerate"
-      | `Sbr_mode _ ->
-          "sbr mode"
-      | `Transmux _ ->
-          "transmux"
+      | `Aot _ -> "aot"
+      | `Afterburner _ -> "afterburner"
+      | `Bandwidth _ -> "bandwidth"
+      | `Bitrate _ -> "bitrate"
+      | `Bitrate_mode _ -> "bitrate mode"
+      | `Granule_length _ -> "granule length"
+      | `Samplerate _ -> "samplerate"
+      | `Sbr_mode _ -> "sbr mode"
+      | `Transmux _ -> "transmux"
     in
     let set p =
       try Fdkaac.Encoder.set encoder p with
@@ -134,10 +109,10 @@ module Register (Fdkaac : Fdkaac_t) = struct
             failwith ("Invalid configuration: " ^ string_of_param p)
         | Fdkaac.Encoder.Unsupported_parameter ->
             failwith ("Unsupported parameter: " ^ string_of_param p)
-        | e ->
-            raise e
+        | e -> raise e
     in
-    List.iter set params ; encoder
+    List.iter set params;
+    encoder
 
   let encoder aac =
     let enc = create_encoder aac in
@@ -162,14 +137,14 @@ module Register (Fdkaac : Fdkaac_t) = struct
         else (b, start, len)
       in
       let encoded = Strings.Mutable.empty () in
-      Strings.Mutable.add buf (Audio.S16LE.make (Audio.sub b start len)) ;
+      Strings.Mutable.add buf (Audio.S16LE.make (Audio.sub b start len));
       while Strings.Mutable.length buf >= n do
         let data = Bytes.create n in
-        Strings.blit (Strings.sub (Strings.Mutable.to_strings buf) 0 n) data 0 ;
+        Strings.blit (Strings.sub (Strings.Mutable.to_strings buf) 0 n) data 0;
         let data = Bytes.unsafe_to_string data in
-        Strings.Mutable.drop buf n ;
+        Strings.Mutable.drop buf n;
         Strings.Mutable.add encoded (Fdkaac.Encoder.encode enc data 0 n)
-      done ;
+      done;
       Strings.Mutable.to_strings encoded
     in
     let stop () =
@@ -180,20 +155,17 @@ module Register (Fdkaac : Fdkaac_t) = struct
             (rem, 0, String.length rem))
           buf
       in
-      Strings.Mutable.add rem (Fdkaac.Encoder.flush enc) ;
+      Strings.Mutable.add rem (Fdkaac.Encoder.flush enc);
       Strings.Mutable.to_strings rem
     in
-    {
-      Encoder.insert_metadata= (fun _ -> ());
-      header= Strings.empty;
+    { Encoder.insert_metadata = (fun _ -> ());
+      header = Strings.empty;
       encode;
-      stop;
+      stop
     }
 
   let register_encoder name =
     Encoder.plug#register name (function
-      | Encoder.FdkAacEnc m ->
-          Some (fun _ _ -> encoder m)
-      | _ ->
-          None)
+      | Encoder.FdkAacEnc m -> Some (fun _ _ -> encoder m)
+      | _ -> None)
 end

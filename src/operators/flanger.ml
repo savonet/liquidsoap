@@ -51,7 +51,7 @@ class flanger ~kind (source : source) delay freq feedback phase =
     method private get_frame buf =
       let feedback = feedback () in
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let d_omega = 2. *. pi *. freq () /. float (Frame.audio_of_seconds 1.) in
@@ -64,14 +64,14 @@ class flanger ~kind (source : source) delay freq feedback phase =
             )
             mod past_len
           in
-          past.(c).{past_pos} <- b.(c).{i} ;
+          past.(c).{past_pos} <- b.(c).{i};
           b.(c).{i} <-
             (b.(c).{i} +. (past.(c).{delay} *. feedback)) /. (1. +. feedback)
-        done ;
-        omega <- omega +. d_omega ;
+        done;
+        omega <- omega +. d_omega;
         while omega > 2. *. pi do
           omega <- omega -. (2. *. pi)
-        done ;
+        done;
         past_pos <- (past_pos + 1) mod past_len
       done
   end

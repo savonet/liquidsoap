@@ -63,9 +63,7 @@ module Websocket_transport = struct
   type socket = Ssl.socket
 
   let read = Ssl.read
-
   let read_retry fd = Extralib.read_retry (Ssl.read fd)
-
   let write = Ssl.write
 end
 
@@ -76,36 +74,31 @@ module Duppy_transport : Duppy.Transport_t with type t = Ssl.socket = struct
     (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   let sock = Ssl.file_descr_of_socket
-
   let read = Ssl.read
-
   let write = Ssl.write
-
   let ba_write _ _ _ _ = failwith "Not implemented!"
 end
 
 let m = Mutex.create ()
-
 let ctx = ref None
 
 let get_ctx =
   Tutils.mutexify m (fun () ->
       match !ctx with
-        | Some ctx ->
-            ctx
+        | Some ctx -> ctx
         | None ->
             let _ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
             let password = conf_harbor_ssl_password#get in
             if password != "" then
-              Ssl.set_password_callback _ctx (fun _ -> password) ;
+              Ssl.set_password_callback _ctx (fun _ -> password);
             Ssl.use_certificate _ctx conf_harbor_ssl_certificate#get
-              conf_harbor_ssl_private_key#get ;
-            ctx := Some _ctx ;
+              conf_harbor_ssl_private_key#get;
+            ctx := Some _ctx;
             _ctx)
 
 let set_socket_default fd =
   if conf_harbor_ssl_read_timeout#get >= 0. then
-    Unix.setsockopt_float fd Unix.SO_RCVTIMEO conf_harbor_ssl_read_timeout#get ;
+    Unix.setsockopt_float fd Unix.SO_RCVTIMEO conf_harbor_ssl_read_timeout#get;
   if conf_harbor_ssl_write_timeout#get >= 0. then
     Unix.setsockopt_float fd Unix.SO_SNDTIMEO conf_harbor_ssl_write_timeout#get
 
@@ -113,20 +106,19 @@ module Transport = struct
   type socket = Ssl.socket
 
   let name = "ssl"
-
   let file_descr_of_socket = Ssl.file_descr_of_socket
-
   let read = Ssl.read
 
   let accept sock =
     let ctx = get_ctx () in
     let s, caller = Unix.accept sock in
-    set_socket_default s ;
+    set_socket_default s;
     let ssl_s = Ssl.embed_socket s ctx in
-    Ssl.accept ssl_s ; (ssl_s, caller)
+    Ssl.accept ssl_s;
+    (ssl_s, caller)
 
   let close ssl =
-    Ssl.shutdown ssl ;
+    Ssl.shutdown ssl;
     Unix.close (Ssl.file_descr_of_socket ssl)
 
   module Duppy = struct
@@ -134,7 +126,6 @@ module Transport = struct
 
     module Monad = struct
       module Io = Duppy.Monad.MakeIo (Io)
-
       include (Monad : Monad_t)
     end
   end

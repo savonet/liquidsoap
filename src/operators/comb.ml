@@ -48,16 +48,16 @@ class comb ~kind (source : source) delay feedback =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      source#get buf ;
+      source#get buf;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let feedback = feedback () in
       for i = offset to position - 1 do
         for c = 0 to Array.length b - 1 do
           let oldin = b.(c).{i} in
-          b.(c).{i} <- b.(c).{i} +. (past.(c).{past_pos} *. feedback) ;
+          b.(c).{i} <- b.(c).{i} +. (past.(c).{past_pos} *. feedback);
           past.(c).{past_pos} <- oldin
-        done ;
+        done;
         past_pos <- (past_pos + 1) mod past_len
       done
   end
