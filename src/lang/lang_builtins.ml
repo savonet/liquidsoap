@@ -83,24 +83,6 @@ let () =
     ~descr:"Executable file extension." "exe_ext"
     (Lang.String Configure.exe_ext) Lang.string_t
 
-module Foo = Lang.MkAbstract (struct
-  type content = string
-
-  let name = "foo"
-end)
-
-module Bar = Lang.MkAbstract (struct
-  type content = string
-
-  let name = "bar"
-end)
-
-let () =
-  Lang.add_builtin_base ~category:(string_of_category Sys) ~descr:"foo" "foo"
-    (Foo.to_value "foo").Lang.value Foo.t;
-  Lang.add_builtin_base ~category:(string_of_category Sys) ~descr:"bar" "bar"
-    (Bar.to_value "bar").Lang.value Bar.t
-
 (** Liquidsoap stuff *)
 
 let log = Lang.log
