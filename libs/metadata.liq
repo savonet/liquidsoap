@@ -51,7 +51,6 @@ end
 # @param file File from which the cover should be obtained
 def file.cover(file)
   m = file.metadata(file)
-  print("**meta: #{m}")
   m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
   if list.exists(fun (lv) -> fst(lv) == "coverart", m) then
     # We are likely to have an ogg/vorbis file
