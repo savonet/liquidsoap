@@ -147,6 +147,7 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       let b0 = AFrame.breaks ab in
       source#get ab;
       self#check_blank ab p0;
+
       (* It's useless to strip metadata, because [ab] is [memo]
        * and metadata will not be copied from it outside of the track. *)
       if self#in_blank then AFrame.set_breaks ab (p0 :: b0)

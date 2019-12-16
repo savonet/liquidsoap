@@ -44,6 +44,7 @@ let render_text ~font ~size text =
   let w = Video.Image.width img in
   let h = Video.Image.height img in
   Sdl.free_surface ts;
+
   (* TODO: improve performance *)
   let get_pixel x y =
     assert (0 <= x && x < w);

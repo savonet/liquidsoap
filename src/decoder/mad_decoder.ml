@@ -56,24 +56,25 @@ let init input =
   in
   let seek ticks =
     if ticks < 0 && input.Decoder.lseek = None then 0
-    else begin
+    else (
       let time = Frame.seconds_of_master ticks in
       let cur_time = get_time () in
       let seek_time = cur_time +. time in
       let seek_time = if seek_time < 0. then 0. else seek_time in
-      if time < 0. then begin
+      if time < 0. then (
         try
           let seek_time = int_of_float (floor seek_time) in
           let seek_pos = if seek_time > 0 then get_index seek_time else 0 in
           ignore ((Utils.get_some input.Decoder.lseek) seek_pos);
           dec := Mad.openstream input.Decoder.read;
+
           (* Decode one frame to set the decoder to a good reading position
            * on next read. *)
           ignore (Mad.decode_frame_float !dec);
+
           (* We have to assume here that new_pos = seek_pos.. *)
           time_offset := seek_time
-        with _ -> ()
-      end;
+        with _ -> () );
       let rec f pos =
         if pos < seek_time then
           if
@@ -87,8 +88,7 @@ let init input =
       in
       f (get_time ());
       let new_time = get_time () in
-      Frame.master_of_seconds (new_time -. cur_time)
-    end
+      Frame.master_of_seconds (new_time -. cur_time) )
   in
   let get_info () = Mad.get_output_format !dec in
   (get_info, get_data, seek)
@@ -190,11 +190,10 @@ let () =
         ||
         (* libmad always respects the first two kinds *)
         if Frame.type_has_kind (get_type filename) kind then true
-        else begin
+        else (
           log#important "File %S has an incompatible number of channels."
             filename;
-          false
-        end
+          false )
       then Some (fun () -> create_file_decoder filename kind)
       else None)
 

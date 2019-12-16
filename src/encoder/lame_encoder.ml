@@ -137,8 +137,10 @@ module Register (Lame : Lame_t) = struct
       (* Input settings *)
       Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate);
       Lame.set_num_channels enc (if mp3.Mp3_format.stereo then 2 else 1);
+
       (* Internal quality *)
       Lame.set_quality enc mp3.Mp3_format.internal_quality;
+
       (* Output settings *)
       if not mp3.Mp3_format.stereo then Lame.set_mode enc Lame.Mono
       else (
@@ -197,6 +199,7 @@ module Register (Lame : Lame_t) = struct
                 if !msg_position mod 8 = 0 then is_sync := false );
         let encoded () =
           has_started := true;
+
           (* Yes, lame requires this absurd scaling... *)
           let scale buf =
             let len = Audio.Mono.length buf in

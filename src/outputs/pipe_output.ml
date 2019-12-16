@@ -149,6 +149,7 @@ class virtual piped_output p =
       Tutils.mutexify m
         (fun () ->
           self#log#important "Re-opening output pipe.";
+
           (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
           reopening <- true;
           self#output_stop;

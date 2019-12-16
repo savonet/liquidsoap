@@ -113,12 +113,14 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
        * at the same position as final buffer. *)
       Frame.clear tmp;
       Frame.set_breaks tmp [Frame.position buf];
+
       (* Get content in respective buffers *)
       let c = VFrame.get_content buf source in
       let c2 = VFrame.get_content tmp source2 in
       match (c, c2) with
         | Some (rgb, offset, length), Some (rgb', offset', length') ->
             params ();
+
             (* Mix content where the two streams are available.
              * We could cut one stream when the other is too short,
              * and/or attempt to get some more data in the buffers...

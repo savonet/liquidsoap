@@ -57,7 +57,7 @@ class basic ~kind source =
       (* Install the final stereo layer, and copy everything to it *)
       let dst = Frame.content_of_type frame start stereo in
       let aux { Frame.content = src; start = pos; length = l } =
-        if pos >= start then begin
+        if pos >= start then (
           assert (src.Frame.video = [||] && src.Frame.midi = [||]);
           match src.Frame.audio with
             | [||] -> assert false
@@ -67,8 +67,7 @@ class basic ~kind source =
             | [| _; _ |] -> Frame.blit_content src pos dst pos l
             | audio ->
                 let content = { src with Frame.audio = Array.sub audio 0 2 } in
-                Frame.blit_content content pos dst pos l
-        end
+                Frame.blit_content content pos dst pos l )
       in
       List.iter aux layers
   end

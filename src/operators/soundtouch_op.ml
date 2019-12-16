@@ -39,6 +39,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
       Clock.unify slave_clock source#clock;
+
       (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
       Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
@@ -81,6 +82,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
         let tmp = Audio.deinterleave channels tmp in
         Generator.put_audio abg tmp 0 available );
       if AFrame.is_partial databuf then Generator.add_break abg;
+
       (* It's almost impossible to know where to add metadata,
        * b/c of tempo so we add then right here. *)
       List.iter

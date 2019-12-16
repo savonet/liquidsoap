@@ -49,12 +49,14 @@ class msstereo ~kind (source : source) mode width =
           | Encode ->
               let left = buffer.(0).{i} and right = buffer.(1).{i} in
               buffer.(0).{i} <- 0.5 *. (left +. right);
+
               (* mid *)
               buffer.(1).{i} <- 0.5 *. (left -. right)
               (* side *)
           | Decode ->
               let mid = buffer.(0).{i} and side = buffer.(1).{i} in
               buffer.(0).{i} <- mid +. (side *. width);
+
               (* left *)
               buffer.(1).{i} <- mid -. (side *. width)
         (* right *)

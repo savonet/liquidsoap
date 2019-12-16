@@ -326,6 +326,7 @@ let get_tags file =
   (* Go in paused state. *)
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
   GU.flush ~log bin;
+
   (* Wait for the state to complete. *)
   ignore (Gstreamer.Element.get_state bin);
   let ans = ref [] in

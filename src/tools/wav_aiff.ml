@@ -119,6 +119,7 @@ let read_header read_ops ic =
   let read_int ic = read_int_num_bytes ic 4 in
   let read_short ic = read_int_num_bytes ic 2 in
   ignore (read_int ic);
+
   (* size of the file *)
   begin
     match read_string ic 4 with
@@ -150,6 +151,7 @@ let read_header read_ops ic =
     let bit_per_samp = read_short ic in
     (* The fmt header can be padded *)
     if fmt_len > 0x10 then read_ops.seek ic (fmt_len - 0x10);
+
     (* Skip unhandled chunks. *)
     seek_chunk ic "data";
     let len_dat = read_int ic in
@@ -180,6 +182,7 @@ let read_header read_ops ic =
       match read_string ic 4 with
         | "NONE" -> read_ops.seek ic (even_ceil (fmt_len - 0x16))
         | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported") );
+
     (* Skip unhandled chunks. *)
     seek_chunk ic "SSND";
     let len_dat = read_int ic in

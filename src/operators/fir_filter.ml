@@ -55,6 +55,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
        zeros=%d."
       (freq /. float_of_int (Frame.audio_of_seconds 1.))
       beta f1 f2 tau nzeros;
+
     (* Init circle *)
     let circle =
       let rec mkcircle n =
@@ -83,6 +84,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
     for i = 1 to 1024 do
       vec.(2048 - i) <- vec.(i)
     done;
+
     (* FFT *)
     let ( +~ ), ( -~ ), ( *~ ) = (Complex.add, Complex.sub, Complex.mul) in
     let rec fft t d s n =
@@ -90,6 +92,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
         let h = n / 2 in
         for i = 0 to h - 1 do
           !t.(s + i) <- !d.(s + (2 * i));
+
           (* even *)
           !t.(s + h + i) <- !d.(s + (2 * i) + 1) (* odd  *)
         done;
@@ -103,6 +106,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
         done )
     in
     fft (ref temp) (ref vec) 0 2048;
+
     (* inverse fft *)
     let h = (numcoeffs - 1) / 2 in
     xcoeffs <-

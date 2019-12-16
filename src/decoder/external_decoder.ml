@@ -43,10 +43,9 @@ let external_input process input =
   let on_stdin pusher =
     let read = input.Decoder.read buf 0 buflen in
     if read = 0 then `Stop
-    else begin
+    else (
       Process_handler.really_write (Bytes.sub buf 0 read) pusher;
-      `Continue
-    end
+      `Continue )
   in
   let log = log#important "%s" in
   (* reading from input is blocking.. *)
@@ -188,6 +187,7 @@ let external_input_oblivious process filename prebuf =
         close ()
     end;
     Generator.fill gen frame;
+
     (* We return -1 while the process is not yet
      * finished. *)
     if Process_handler.stopped process then Generator.length gen else -1

@@ -205,6 +205,7 @@ module Read = struct
                 rem := !rem - l;
                 ll := c :: !ll
               done;
+
               (* Printf.printf ">>\n%!"; *)
               `LIST (subtag, List.rev !ll) )
         | "avih" ->
@@ -216,6 +217,7 @@ module Read = struct
             let _ = read 4 f in
             let flags = dword f in
             must "Not interleaved." (flags land 0x0100 <> 0);
+
             (* interleaved *)
             (* total_frame *)
             let _ = dword f in
@@ -229,6 +231,7 @@ module Read = struct
             let height = dword f in
             let scale = dword f in
             must "Non-zero scale." (scale = 0);
+
             (* rate *)
             let _ = dword f in
             (* start *)
@@ -253,6 +256,7 @@ module Read = struct
             must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
             let flags = dword f in
             must "Wrong strh flags." (flags = 0);
+
             (* priority *)
             let _ = word f in
             (* language *)
@@ -303,6 +307,7 @@ module Read = struct
 
   let headers f =
     must "Not a RIFF file." (read 4 f = "RIFF");
+
     (* filesize *)
     let _ = dword f in
     must "Not an AVI file." (read 4 f = "AVI ");

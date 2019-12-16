@@ -89,11 +89,13 @@ class virtual unqueued ~kind ~name =
             false
         | Some req when Request.is_ready req ->
             assert (Frame.kind_sub_kind (Utils.get_some (Request.kind req)) kind);
+
             (* [Request.is_ready] ensures that we can get a filename from the request,
          and it can be decoded. *)
             let file = Utils.get_some (Request.get_filename req) in
             let decoder = Utils.get_some (Request.get_decoder req) in
             self#log#important "Prepared %S (RID %d)." file (Request.get_id req);
+
             (* We use this mutex to avoid seeking and filling at the same time.. *)
             let m = Mutex.create () in
             current <-
@@ -252,12 +254,14 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
           assert (state = `Running);
           state <- `Tired)
         ();
+
       (* Make sure the task is awake so that it can see our signal. *)
       Duppy.Async.wake_up (Utils.get_some task);
       self#log#info "Waiting for feeding task to stop...";
       Tutils.wait state_cond state_lock (fun () -> state = `Sleeping);
       Duppy.Async.stop (Utils.get_some task);
       task <- None;
+
       (* No more feeding task, we can go to sleep. *)
       super#sleep;
       self#log#info "Cleaning up request queue...";
@@ -402,6 +406,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
           None
       in
       Mutex.unlock qlock;
+
       (* A request has been taken off the queue, there is a chance that the
        queue should be refilled: awaken the feeding task. However, we can wait
        that this file is played, and this need will be noticed in #get_frame.
@@ -424,11 +429,13 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
       if self#available_length < min_queue_length then (
         if not already_short then
           self#log#info "Expirations made the queue too short, feeding...";
+
         (* Notify in any case, notifying twice never hurts. *)
         self#notify_new_request )
 
     method private get_frame ab =
       super#get_frame ab;
+
       (* At an end of track, we always have unqueued#remaining=0, so there's
        nothing special to do. *)
       if self#available_length < min_queue_length then self#notify_new_request

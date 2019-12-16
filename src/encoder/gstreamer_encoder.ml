@@ -185,6 +185,7 @@ let encoder ext =
         Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) buf
       done );
     GU.flush ~log gst.bin;
+
     (* Return result. *)
     presentation_time := Int64.add !presentation_time duration;
     if !samples = 0 then Strings.empty

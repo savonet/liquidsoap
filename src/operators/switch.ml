@@ -83,6 +83,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
     method after_output =
       (* Advance the memo frame. *)
       self#advance;
+
       (* Propagate to all sub-sources, i.e. our children and the transitions
        * wrapping them:
        *  - current transition is [selected],
@@ -95,6 +96,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       end;
       List.iter (fun s -> s#after_output) to_finish;
       to_finish <- [];
+
       (* Selection may have been triggered by a call to #is_ready, without
        * any call to #get_ready (in particular if #select returned None).
        * It is cleared here in order to get a chance to be re-computed later. *)
@@ -148,6 +150,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
               match selected with
                 | None ->
                     self#log#important "Switch to %s." c.source#id;
+
                     (* The source is already ready, this call is only there for
                      * allowing an uniform treatment of switches, triggering
                      * a #leave call. *)
@@ -220,6 +223,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
         match selected with
           | None ->
               reselect ~forget:true ();
+
               (* Our #is_ready, and caching, ensure the following. *)
               assert (selected <> None);
               self#get_frame ab

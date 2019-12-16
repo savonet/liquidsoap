@@ -103,6 +103,7 @@ class chord ~kind metadata_name (source : source) =
         (fun (t, c, m) ->
           (* time, base, mode *)
           mute t;
+
           (* Negative base note means mute. *)
           if c >= 0 then (
             match m with

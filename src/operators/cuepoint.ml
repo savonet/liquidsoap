@@ -88,9 +88,11 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
       (* Our external clock should stricly contain the slave clock. *)
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
+
       (* The source must belong to our clock, since we need occasional
        * control on its flow (to seek at the beginning of a track). *)
       Clock.unify slave_clock source#clock;
+
       (* When this source disappears the slave clock becomes useless.
        * To allow for its collection, remove references to it as a subclock
        * of the master clock. *)
@@ -158,6 +160,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
       let seeked_pos = source#seek seek_pos in
       (* Set back original breaks. *)
       Frame.set_breaks buf breaks;
+
       (* Before pulling new data to fill-in the frame,
        * we need to tick the slave clock otherwise we might get
        * the same old (cached) data. *)
@@ -183,12 +186,14 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
 
     method private cue_out ~buf ~elapsed ~pos out_pos =
       self#log#important "Cueing out...";
+
       (* If not already an end of track, notify the source to end the track
        * and do one more #get to consume any remaining data. *)
       if not (Frame.is_partial buf) then (
         source#abort_track;
         self#slave_tick;
         source#get (Frame.create kind) );
+
       (* Quantify in the previous #get
        * - the amount of [extra] data past the cue point, to be dropped;
        * - the amount of [remaining] data, that should be left. *)
@@ -240,6 +245,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
               )
       in
       track_state <- Some in_track_state;
+
       (* Perform cue-out if needed *)
       match in_track_state with
         | Some (elapsed, out_pos) when elapsed > out_pos ->

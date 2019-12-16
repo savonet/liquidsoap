@@ -567,6 +567,7 @@ class output ~kind p =
       try
         Cry.connect connection source;
         self#log#important "Connection setup was successful.";
+
         (* Execute on_connect hook. *)
         on_connect ()
       with

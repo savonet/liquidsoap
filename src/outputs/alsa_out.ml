@@ -83,6 +83,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
               Pcm.set_channels dev params buffer_chans;
               alsa_rate <-
                 Pcm.set_rate_near dev params samples_per_second Dir_eq;
+
               (* Size in frames, must be set after the samplerate.
                * This setting is critical as a too small bufsize will easily result in
                * underruns when the thread isn't fast enough.

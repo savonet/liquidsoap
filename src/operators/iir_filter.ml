@@ -109,6 +109,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
       for i = 0 to n - 1 do
         multin z.(i) n c
       done;
+
       (* check that computed coeffs of z^k are all real *)
       for i = 0 to n do
         if abs_float c.(i).im > 1e-10 then
@@ -152,6 +153,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
               (cos theta) (sin theta);
             choosepole { re = cos theta; im = sin theta }
           done;
+
           (* Normalize *)
           let w1 = cor (2. *. Utils.pi *. warped_alpha1) in
           let w2 = cor (2. *. Utils.pi *. warped_alpha2) in
@@ -221,6 +223,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
                 yv <- Array.make_matrix channels (order + 1) 0.
             | _ -> assert false
           end;
+
           (* Compute Z-plane zeros & poles using bilinear transform *)
           self#log#info "S-Plane zeros:";
           self#log#info "%s"
@@ -280,10 +283,12 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
           zplane_numpoles <- 2;
           zplane_numzeros <- 2;
           zplane_zeros <- [| cor 1.; cor (-1.) |];
+
           (* where we want the peak to be *)
           let theta = 2. *. Utils.pi *. raw_alpha1 in
           if qfactor == infinity then (
             self#log#info "Infinite Q factor!";
+
             (* oscillator *)
             let zp = { re = cos theta; im = sin theta } in
             zplane_poles <- [| zp; Complex.conj zp |] )
@@ -308,15 +313,18 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
               if abs_float phi < 1e-10 then cvg := true;
               thm := 0.5 *. (!th1 +. !th2)
             done;
+
             (* if we failed to converge ... *)
             assert !cvg );
           xv <- Array.make_matrix channels zplane_numzeros 0.;
           yv <- Array.make_matrix channels zplane_numpoles 0.;
+
           (* Do we need to transform to Bandstop or Allpass? *)
           match filter_type with
             | Band_stop ->
                 (* Band-stop filter *)
                 self#log#info "This is a band-stop filter.";
+
                 (* compute Z-plane pole & zero positions for bandstop
                       resonator (notch filter) *)
                 (* place zeros exactly *)
@@ -325,6 +333,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
             | All_pass ->
                 (* All-pass filter *)
                 self#log#info "This is an all-pass filter.";
+
                 (* compute Z-plane pole & zero positions for allpass
                       resonator *)
                 zplane_zeros.(0) <-
@@ -334,6 +343,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
             | Band_pass -> ()
             | _ -> assert false )
     end;
+
     (* Now expand the polynomials *)
     self#log#info "Expanding polynomials...";
     topcoeffs <- expand zplane_zeros zplane_numzeros;
@@ -352,6 +362,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
             (Array.mapi
                (fun i a -> Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
                botcoeffs)));
+
     (* Gain *)
     dc_gain <- evaluate topcoeffs botcoeffs { re = 1.; im = 0. };
     let theta =
@@ -372,6 +383,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
     self#log#info "Gains:";
     self#log#info "DC=%+.013f Centre=%+.013f HF=%+.013f Final=%+.013f."
       (Complex.norm dc_gain) (Complex.norm fc_gain) (Complex.norm hf_gain) gain;
+
     (* X-coeffs *)
     for i = 0 to zplane_numzeros do
       xcoeffs <-
@@ -383,6 +395,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
       (String.concat "\n"
          (Array.to_list
             (Array.mapi (fun i a -> Printf.sprintf "%d: %+.013f." i a) xcoeffs)));
+
     (* Y-coeffs *)
     for i = 0 to zplane_numpoles do
       ycoeffs <-

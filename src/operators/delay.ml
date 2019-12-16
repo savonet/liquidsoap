@@ -50,6 +50,7 @@ class delay ~kind ~initial (source : source) delay =
     method private get_frame buf =
       source#get buf;
       in_track <- true;
+
       (* The current track ends. *)
       if Frame.is_partial buf then (
         in_track <- false;

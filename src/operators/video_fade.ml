@@ -130,6 +130,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
       in
       (* Reset the length at the end of a track *)
       if Frame.is_partial ab then cur_length <- None;
+
       (* Do the actual processing of video samples *)
       match video_content with
         | None -> ()

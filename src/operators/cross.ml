@@ -133,6 +133,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       (* Our external clock should stricly contain the slave clock. *)
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
+
       (* The source must belong to our clock, since we need occasional
        * control on its flow (to fold an end of track over a beginning).
        *
@@ -142,6 +143,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
        * which multiples clocks wouldn't ensure. *)
       Clock.unify slave_clock s#clock;
       Lang.iter_sources (fun s -> Clock.unify slave_clock s#clock) transition;
+
       (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
       Gc.finalise (finalise_slave_clock slave_clock) self
 
@@ -233,6 +235,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             if source#is_ready then self#analyze_after;
             self#slave_tick;
             self#create_transition;
+
             (* Check if the new source is ready *)
             if (Utils.get_some transition_source)#is_ready then
               self#get_frame frame
@@ -246,6 +249,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             if Generator.length pending_after = 0 && Frame.is_partial frame then (
               status <- `Idle;
               self#cleanup_transition_source;
+
               (* If underlying source if ready, try to continue filling up the frame
                * using it. Each call to [get_frame] must add exactly one break so
                * call it again and then remove the intermediate break that was just
@@ -278,6 +282,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       Generator.feed gen_before
         ~metadata:(Frame.get_all_metadata buf_frame)
         content start (stop - start);
+
       (* Analyze them *)
       let pcm = content.Frame.audio in
       for i = start to stop - 1 do
@@ -293,6 +298,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
         mem_i <- (mem_i + 1) mod rms_width;
         rmsi_before <- min rms_width (rmsi_before + 1)
       done;
+
       (* Should we buffer more or are we done ? *)
       if AFrame.is_partial buf_frame then (
         Generator.add_break gen_before;

@@ -187,6 +187,7 @@ module AdaptativeBuffer = struct
       method private get_frame frame =
         proceed c (fun () ->
             assert (not c.buffering);
+
             (* Update the average length of the ringbuffer (with a damping
              coefficient in order not to be too sensitive to quick local
              variations). *)
@@ -205,9 +206,11 @@ module AdaptativeBuffer = struct
             c.rb_length <-
               ((1. -. alpha) *. c.rb_length)
               +. (alpha *. float (RB.read_space c.rb));
+
             (* Limit estimation *)
             c.rb_length <- min c.rb_length (prebuf *. limit);
             c.rb_length <- max c.rb_length (prebuf /. limit);
+
             (* Fill dlen samples of dst using slen samples of the ringbuffer. *)
             let fill dst dofs dlen slen =
               (* TODO: when the RB is low on space we'd better not fill the whole
@@ -252,11 +255,13 @@ module AdaptativeBuffer = struct
             List.iter (fun (t, m) -> Frame.set_metadata frame (unscale t) m) md;
             MG.advance c.mg (min (Frame.master_of_audio salen) (MG.length c.mg));
             if Frame.is_partial frame then MG.drop_initial_break c.mg;
+
             (* If there is no data left, we should buffer again. *)
             if RB.read_space c.rb = 0 then (
               self#log#important "Buffer emptied, start buffering...";
               self#log#debug "Current scaling factor is x%f." scaling;
               MG.advance c.mg (MG.length c.mg);
+
               (* sync just in case *)
               c.buffering <- true ))
 

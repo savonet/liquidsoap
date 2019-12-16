@@ -369,6 +369,7 @@ module Buffered (Generator : Generator.S) = struct
             (Frame.string_of_content_type
                (Frame.type_of_content (snd (Frame.content frame c_end))))
             c_end position;
+
         (* Pretend nothing happened, and end decoding.
          * We first restore a content layer with a valid type, so that
          * the code which reads that frame doesn't see the anomaly.
@@ -420,6 +421,7 @@ module Buffered (Generator : Generator.S) = struct
       let in_bytes = tell () in
       let gen_len = Generator.length gen in
       out_ticks := !out_ticks + Frame.position frame - offset;
+
       (* Compute an estimated number of remaining ticks. *)
       if !proc_bytes = 0 then -1
       else (

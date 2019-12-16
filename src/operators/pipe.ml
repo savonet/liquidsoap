@@ -247,6 +247,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     method wake_up _ =
       source#get_ready [(self :> source)];
+
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#debug "%s";

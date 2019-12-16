@@ -201,6 +201,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       self#log#info "Playing.";
       started <- true;
       ignore (Element.set_state el.bin Element.State_playing);
+
       (* Don't uncomment the following line, it locks the program. I guess that
        GStreamer is waiting for some data before answering that we are
        playing. *)

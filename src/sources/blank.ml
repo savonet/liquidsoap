@@ -58,6 +58,7 @@ class blank ~kind duration =
         (Audio.sub content.Frame.audio
            (Frame.audio_of_master position)
            (Frame.audio_of_master length));
+
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))

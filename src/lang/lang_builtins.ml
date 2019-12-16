@@ -525,7 +525,7 @@ let () =
           opts := List.filter (fun x -> x <> name) argv;
           Lang.string "1"
         with Not_found -> Lang.string "0" )
-      else begin
+      else (
         let rec find l l' =
           match l with
             | [] -> (default, List.rev l')
@@ -534,8 +534,7 @@ let () =
         in
         let v, l = find argv [] in
         opts := l;
-        Lang.string v
-      end);
+        Lang.string v ));
 
   add_builtin "argv" ~cat:Sys
     ~descr:

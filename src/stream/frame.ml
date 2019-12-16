@@ -548,6 +548,7 @@ let blit src src_pos dst dst_pos len =
   let end_pos, src = content src src_pos in
   (* We want the data in one chunk. *)
   assert (src_pos + len <= end_pos);
+
   (* Get a compatible chunk in [dst]. *)
   let dst = content_of_type dst dst_pos (type_of_content src) in
   blit_content src src_pos dst dst_pos len
@@ -565,6 +566,7 @@ let get_chunk ab from =
   let copy_chunk i =
     add_break ab i;
     blit from p ab p (i - p);
+
     (* If the last metadata before [p] differ in [from] and [ab],
      * copy the one from [from] to [p] in [ab].
      * Note: equality probably does not make much sense for hash tables,
@@ -584,6 +586,7 @@ let get_chunk ab from =
         | Some b, a -> if a <> Some b then set_metadata ab p b
         | None, _ -> ()
     end;
+
     (* Copy new metadata blocks for this chunk.
      * We exclude blocks at the end of chunk, leaving them to be copied
      * during the next get_chunk. *)

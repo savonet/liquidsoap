@@ -94,6 +94,7 @@ class sequence ~kind ?(merge = false) sources =
               self#get_frame buf
           | [a] ->
               assert a#is_ready;
+
               (* Our #is_ready ensures that. *)
               head_ready <- true;
               self#get_frame buf

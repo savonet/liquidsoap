@@ -499,6 +499,7 @@ class hls_output p =
                 output_string oc
                   (self#segment_name ~relative:true ~segment s ^ "\r\n"))
               segments;
+
             (* output_string oc "#EXT-X-ENDLIST\n"; *)
             self#close_out (fname, oc) ))
         streams;

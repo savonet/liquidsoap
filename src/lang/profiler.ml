@@ -49,6 +49,7 @@ let time fname f x =
   children := List.tl !children;
   let dt = t1 -. t0 in
   List.hd !children := !(List.hd !children) +. dt;
+
   (* TODO: time is counted multiple times in recursive calls. *)
   let total_time = dt in
   let self_time = dt -. children_time in

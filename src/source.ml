@@ -301,6 +301,7 @@ class virtual operator ?(name = "src") content_kind sources =
       if not definitive_id then (
         id <- s;
         definitive_id <- definitive );
+
       (* Sometimes the ID is changed during initialization,
        * in order to make it equal to the server name,
        * which is only registered at initialization time in order
@@ -408,6 +409,7 @@ class virtual operator ?(name = "src") content_kind sources =
       self#log#info "Activations changed: static=[%s], dynamic=[%s]."
         (string_of static_activations)
         (string_of dynamic_activations);
+
       (* Decide whether caching mode is needed, and why *)
       match
         if self#is_output then Some "active source"
@@ -424,15 +426,13 @@ class virtual operator ?(name = "src") content_kind sources =
             | _ -> Some "two static activations" )
       with
         | None ->
-            if caching then begin
+            if caching then (
               caching <- false;
-              self#log#info "Disabling caching mode."
-            end
+              self#log#info "Disabling caching mode." )
         | Some msg ->
-            if not caching then begin
+            if not caching then (
               caching <- true;
-              self#log#info "Enabling caching mode: %s." msg
-            end
+              self#log#info "Enabling caching mode: %s." msg )
 
     (* Ask for initialization.
      * The current implementation makes it dangerous to call #get_ready from
@@ -440,18 +440,16 @@ class virtual operator ?(name = "src") content_kind sources =
      * forbidden. *)
     method get_ready ?(dynamic = false) (activation : operator list) =
       if log == source_log then self#create_log;
-      if static_activations = [] && dynamic_activations = [] then begin
+      if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up." id;
         self#wake_up activation;
-        if commands <> [] then begin
+        if commands <> [] then (
           assert (ns = []);
           ns <- Server.register [self#id] ns_kind;
           self#set_id (Server.to_string ns);
           List.iter
             (fun (descr, usage, name, f) -> Server.add ~ns ~descr ?usage name f)
-            commands
-        end
-      end;
+            commands ) );
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
       self#update_caching_mode;
@@ -479,7 +477,7 @@ class virtual operator ?(name = "src") content_kind sources =
       if dynamic then dynamic_activations <- remove [] dynamic_activations
       else static_activations <- remove [] static_activations;
       self#update_caching_mode;
-      if static_activations = [] && dynamic_activations = [] then begin
+      if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets down." id;
         (Tutils.mutexify on_shutdown_m (fun () ->
              List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
@@ -487,11 +485,9 @@ class virtual operator ?(name = "src") content_kind sources =
           ();
         self#sleep;
         List.iter (fun (_, _, name, _) -> Server.remove ~ns name) commands;
-        if ns <> [] then begin
+        if ns <> [] then (
           Server.unregister ns;
-          ns <- []
-        end
-      end;
+          ns <- [] ) );
       self#iter_watchers (fun w -> w.leave ())
 
     method is_up = static_activations <> [] || dynamic_activations <> []
@@ -538,7 +534,7 @@ class virtual operator ?(name = "src") content_kind sources =
 
     method private instrumented_get_frame buf =
       if watchers = [] then self#get_frame buf
-      else begin
+      else (
         let start_time = Unix.gettimeofday () in
         let start_position = Frame.position buf in
         self#get_frame buf;
@@ -552,8 +548,7 @@ class virtual operator ?(name = "src") content_kind sources =
         in
         self#iter_watchers (fun w ->
             w.get_frame ~start_time ~start_position ~end_time ~end_position
-              ~is_partial ~metadata)
-      end
+              ~is_partial ~metadata) )
 
     (* [#get buf] completes the frame with the next data in the stream.
      * Depending on whether caching is enabled or not,
@@ -564,6 +559,7 @@ class virtual operator ?(name = "src") content_kind sources =
      * round ([#after_output]). *)
     method get buf =
       assert (Frame.is_partial buf);
+
       (* In some cases we can't avoid #get being called on a non-ready
        * source, for example:
        * - A starts pumping B, stops in the middle of the track
@@ -589,11 +585,10 @@ class virtual operator ?(name = "src") content_kind sources =
         else (
           let b = Frame.breaks buf in
           self#instrumented_get_frame buf;
-          if List.length b + 1 <> List.length (Frame.breaks buf) then begin
+          if List.length b + 1 <> List.length (Frame.breaks buf) then (
             self#log#severe "#get_frame didn't add exactly one break!";
-            assert false
-          end )
-      else begin
+            assert false ) )
+      else (
         try Frame.get_chunk buf memo
         with Frame.No_chunk ->
           if not self#is_ready then silent_end_track ()
@@ -602,13 +597,11 @@ class virtual operator ?(name = "src") content_kind sources =
             let b = Frame.breaks memo in
             let p = Frame.position memo in
             self#instrumented_get_frame memo;
-            if List.length b + 1 <> List.length (Frame.breaks memo) then begin
+            if List.length b + 1 <> List.length (Frame.breaks memo) then (
               self#log#severe "#get_frame didn't add exactly one break!";
-              assert false
-            end
+              assert false )
             else if p < Frame.position memo then self#get buf
-            else Frame.add_break buf (Frame.position buf) )
-      end
+            else Frame.add_break buf (Frame.position buf) ) )
 
     (* That's the way the source produces audio data.
      * It cannot be called directly, but [#get] should be used instead, for

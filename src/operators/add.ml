@@ -124,6 +124,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                   (Audio.sub (fixed_content buf already).Frame.audio
                      (Frame.audio_of_master end_offset)
                      (Frame.audio_of_master (already - end_offset)));
+
               (* Add to the main buffer. *)
               Audio.add
                 (Audio.sub (fixed_content buf offset).Frame.audio offset

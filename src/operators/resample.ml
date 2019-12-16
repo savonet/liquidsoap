@@ -50,6 +50,7 @@ class resample ~kind ~active ~ratio (source : source) =
       let c = Clock.create_known (new Clock.clock self#id) in
       Clock.unify self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]);
       Clock.unify source#clock c;
+
       (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
       Gc.finalise (fun self -> Clock.forget self#clock c) self
 

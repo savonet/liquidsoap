@@ -151,6 +151,7 @@ module Make (Generator : Generator.S_Asio) = struct
       if reset then (
         Ogg_demuxer.reset decoder;
         Ogg_demuxer.update_standard_tracks decoder tracks;
+
         (* We enforce that all contents end together, otherwise there will
          * be a lag between different content types in the next track. *)
         if not merge_tracks then Generator.add_break ~sync:`Drop buffer );

@@ -735,6 +735,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         log_args )
     in
     Hashtbl.iter (log#info "%s Arg: %s, value: %s." protocol_name) log_args;
+
     (* First, try with a registered handler. *)
     let handler, _ = find_handler port in
     let f (verb, reg_uri) handler =
@@ -746,6 +747,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     try
       Hashtbl.iter f handler.http;
+
       (* Otherwise, try with a standard handler. *)
       match base_uri with
         (* Icecast *)
@@ -902,6 +904,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             | Duppy.Io.Unix (c, p, m) ->
                 log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
             | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e) );
+
           (* Sending an HTTP response in case of timeout
            * even though ICY connections are not HTTP.. *)
           if e = Duppy.Io.Timeout then

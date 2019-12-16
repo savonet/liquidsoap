@@ -156,6 +156,7 @@ module Generator = struct
       else (
         g.length <- g.length - needed;
         g.offset <- g.offset + needed );
+
       (* Add more data by recursing on the next block, or finish. *)
       if block_len < needed then aux chunks (offset + block_len)
       else List.rev chunks
@@ -227,6 +228,7 @@ module Metadata = struct
       (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
       g.metadata;
     advance g needed;
+
     (* Mark the end of this filling. If the frame is partial it must be because
      * of a break in the generator, or because the generator is emptying.
      * Conversely, each break in the generator must cause a partial frame, so
@@ -301,6 +303,7 @@ module From_frames = struct
           (* Filter out the last break, which only marks the end
            * of frame, not a track limit (doesn't mean is_partial). *)
           (List.filter (fun x -> x < size) (Frame.breaks frame));
+
     (* Feed all content layers into the generator. *)
     let rec feed_all ofs = function
       | (cstop, content) :: contents ->
@@ -330,6 +333,7 @@ module From_frames = struct
       (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
       fg.metadata;
     advance fg needed;
+
     (* Mark the end of this filling.
      * If the frame is partial it must be because of a break in the
      * generator, or because the generator is emptying.
@@ -466,6 +470,7 @@ module From_audio_video = struct
           (* Filter out the last break, which only marks the end
            * of frame, not a track limit (doesn't mean is_partial). *)
           (List.filter (fun x -> x < size) (Frame.breaks frame));
+
     (* Feed all content layers into the generator. *)
     let rec feed_all ofs = function
       | (cstop, content) :: contents ->
@@ -555,6 +560,7 @@ module From_audio_video = struct
       (fun (p, m) -> if p < l then Frame.set_metadata frame (fpos + p) m)
       t.metadata;
     advance t l;
+
     (* If the frame is partial it must be because of a break in the
      * generator, or because the generator is emptying.
      * Conversely, each break in the generator must cause a partial frame,

@@ -107,15 +107,15 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
           done;
           rmsc <- 0 )
       done;
+
       (* Reset values if it is the end of the track. *)
-      if AFrame.is_partial buf then begin
+      if AFrame.is_partial buf then (
         for c = 0 to channels - 1 do
           vold.(c) <- 1.;
           v.(c) <- 1.;
           rms.(c) <- 0.
         done;
-        rmsc <- 0
-      end
+        rmsc <- 0 )
   end
 
 let () =

@@ -125,6 +125,7 @@ module Make (Harbor : T) = struct
                           let fd = Harbor.file_descr_of_socket socket in
                           (* Wait for `Read event on socket. *)
                           Tutils.wait_for ~log (`Read fd) timeout;
+
                           (* Now read. *)
                           relay_read socket buf ofs len
                         with Harbor.Retry -> f ()
@@ -185,6 +186,7 @@ module Make (Harbor : T) = struct
                       '%s' and port %i."
                      mountpoint port ))
         end;
+
         (* Now we can create the log function *)
         log_ref := fun s -> self#log#important "%s" s
 

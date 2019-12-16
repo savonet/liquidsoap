@@ -77,7 +77,7 @@ let parse f =
               | "TALB" -> "album"
               | "TYER" -> "year"
               | "TRCK" -> "track"
-              | "TBPM" -> "bpm"
+              | "TBPM" -> "tempo"
               | _ -> id
           in
           let encoding = int_of_char data.[0] in

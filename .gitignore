@@ -34,6 +34,7 @@ src/test/strings_test
 src/test/JSON_parse
 src/test/is_url
 src/test/timezone
+src/test/id3v2_test
 *.conflicts
 liquidsoap.config
 doc/liquidsoap.1.md

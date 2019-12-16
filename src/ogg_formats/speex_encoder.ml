@@ -97,6 +97,7 @@ let create speex ~metadata () =
       let n = !status in
       if (frame_size * n) + frame_size < len then (
         status := n + 1;
+
         (* Speex float API are values in - 32768. <= x <= 32767. ..
            I don't really trust this, it must be a bug,
            so using the int API. *)

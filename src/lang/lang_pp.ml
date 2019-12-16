@@ -149,10 +149,9 @@ let includer dir tokenizer =
           token ()
       | (Lang_parser.EOF, _) as tok ->
           if Stack.is_empty stack then tok
-          else begin
+          else (
             close_in (trd3 (Stack.pop stack));
-            token ()
-          end
+            token () )
       | x -> x
   in
   token
@@ -181,27 +180,24 @@ let expand_string tokenizer =
           let tokenizer () = (fst (tokenizer ()), pos) in
           List.iter add
             [String s; Concat; LPar; String_of; Expr tokenizer; RPar; RPar];
-          if l <> [] then begin
+          if l <> [] then (
             add Concat;
-            parse l
-          end
+            parse l )
       | [x] -> add (String x)
       | [] -> assert false
     in
     parse l
   in
   let rec token () =
-    if Queue.is_empty state then begin
+    if Queue.is_empty state then (
       match tokenizer () with
         | Lang_parser.STRING s, pos ->
             parse s pos;
-            if Queue.length state > 1 then begin
+            if Queue.length state > 1 then (
               add pos RPar;
-              (Lang_parser.LPAR, pos)
-            end
+              (Lang_parser.LPAR, pos) )
             else token ()
-        | x -> x
-    end
+        | x -> x )
     else (
       let el, pos = Queue.peek state in
       match el with

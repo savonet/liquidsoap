@@ -555,13 +555,16 @@ module Make (Runner : Runner_t) = struct
   (* Startup *)
   let startup () =
     Random.self_init ();
+
     (* Set the default values. *)
     Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
     Dtools.Init.conf_daemon_pidfile#set_d (Some true);
     Dtools.Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid");
+
     (* We only allow evaluation of
      * lazy configuration keys now. *)
     Frame.allow_lazy_config_eval ();
+
     (* Parse command-line, and notably load scripts. *)
     parse Shebang.argv
       (expand_options Runner.options)
@@ -628,11 +631,13 @@ module Make (Runner : Runner_t) = struct
       if not Sys.win32 then (
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]) );
+
       (* On Windows we need to initiate shutdown ourselves by catching INT
        * since dtools doesn't do it. *)
       if Sys.win32 then
         Sys.set_signal Sys.sigint
           (Sys.Signal_handle (fun _ -> Tutils.shutdown ()));
+
       (* TODO if start fails (e.g. invalid password or mountpoint) it
        *   raises an exception and dtools catches it so we don't get
        *   a backtrace (by default at least). *)

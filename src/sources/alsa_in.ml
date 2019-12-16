@@ -102,6 +102,7 @@ class mic ~kind ~clock_safe device =
                     r)
             end;
             sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq;
+
             (* TODO: resample *)
             if sample_freq <> Lazy.force Frame.audio_rate then
               self#log#important

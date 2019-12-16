@@ -611,6 +611,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
    * all occurrences of the same variable, since the parser does not do it. *)
   assert (e.t.T.level = -1);
   e.t.T.level <- level;
+
   (* The toplevel position of the (un-dereferenced) type
    * is the actual parsing position of the value.
    * When we synthesize a type against which the type of the term is unified,
@@ -652,6 +653,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
     | List l ->
         List.iter (fun x -> check ~level ~env x) l;
+
         (* We first try to compute the sup of types of elements in the list,
          which will give us the type of the list. *)
         let tsup =
@@ -692,6 +694,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     | App (a, l) -> (
         check ~level ~env a;
         List.iter (fun (_, b) -> check ~env ~level b) l;
+
         (* If [a] is known to have a function type, manually dig through
          * it for better error messages. Otherwise generate its type
          * and unify -- in that case the optionality can't be guessed

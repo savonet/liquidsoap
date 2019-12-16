@@ -90,6 +90,7 @@ class visu ~kind source =
           (Audio.sub dst.Frame.audio
              (Frame.audio_of_master offset)
              (Frame.audio_of_master len));
+
         (* Feed the volume buffer. *)
         let acontent = AFrame.content frame (Frame.audio_of_master offset) in
         for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
@@ -100,6 +101,7 @@ class visu ~kind source =
                  x *. x)
                acontent)
         done;
+
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float channels in

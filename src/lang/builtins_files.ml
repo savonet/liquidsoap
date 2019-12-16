@@ -278,7 +278,7 @@ let () =
 (************** MP3 ********************)
 
 let () =
-  add_builtin "file.mp3.tags" ~cat:Sys
+  add_builtin "file.mp3.metadata" ~cat:Sys
     [
       ( "",
         Lang.string_t,

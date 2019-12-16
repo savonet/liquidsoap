@@ -310,6 +310,7 @@ module Make (Config : Config_t) = struct
           done
         with e ->
           if debug then raise e;
+
           (* Feeding has stopped: adding a break here. *)
           Generator.add_break ~sync:`Drop generator;
           begin
@@ -383,6 +384,7 @@ module Make (Config : Config_t) = struct
                   with _ -> false
                 in
                 if chunked then self#log#info "Chunked HTTP/1.1 transfer";
+
                 (* read_stream has a state, so we must create it here.. *)
                 let read = read_stream s chunked metaint self#insert_metadata in
                 socket <- Some (s, read, url);
@@ -518,8 +520,10 @@ module Make (Config : Config_t) = struct
 
       method wake_up act =
         super#wake_up act;
+
         (* Now we can create the log function *)
         (log_ref := fun s -> self#log#important "%s" s);
+
         (* Wait for the old polling thread to return, then create a new one. *)
         assert (kill_polling = None);
         begin

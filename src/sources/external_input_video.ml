@@ -45,6 +45,7 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data
   let last_vadiff_warning = ref 0. in
   let on_data reader =
     on_data abg reader;
+
     (* Check that audio and video roughly get filled as the same speed. *)
     let lv = Frame.seconds_of_master (Generator.video_length abg) in
     let la = Frame.seconds_of_master (Generator.audio_length abg) in

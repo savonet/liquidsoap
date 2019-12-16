@@ -127,6 +127,7 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
       let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
       let addr = Unix.ADDR_INET (ipaddr, port) in
       Unix.bind socket addr;
+
       (* Wait until there's something to read or we must stop. *)
       let rec wait () =
         if should_stop () then failwith "stop";
@@ -149,6 +150,7 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
         done
       with e ->
         Generator.add_break ~sync:`Drop generator;
+
         (* Closing the socket is slightly overkill but
          * we need to recreate the decoder anyway, which
          * might loose some data too. *)

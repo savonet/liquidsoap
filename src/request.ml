@@ -361,6 +361,7 @@ let push_indicators t l =
     add_log t (Printf.sprintf "Pushed [%S;...]." hd.string);
     t.indicators <- l :: t.indicators;
     t.decoder <- None;
+
     (* Performing a local check is quite fast and allows the request
      * to be instantly available if it is only made of valid local files,
      * without any need for a resolution process. *)
@@ -383,6 +384,7 @@ let update_metadata t =
   let replace = Hashtbl.replace t.root_metadata in
   replace "rid" (string_of_int t.id);
   replace "initial_uri" t.initial_uri;
+
   (* TOP INDICATOR *)
   replace "temporary"
     ( match t.indicators with
@@ -393,6 +395,7 @@ let update_metadata t =
     | Some f -> replace "filename" f
     | None -> ()
   end;
+
   (* STATUS *)
   begin
     match t.resolving with
@@ -506,8 +509,10 @@ let destroy ?force t =
   if t.status = Playing then t.status <- Ready;
   if force = Some true || not t.persistent then (
     t.status <- Idle;
+
     (* Freeze the metadata *)
     t.root_metadata <- get_all_metadata t;
+
     (* Remove the URIs, unlink temporary files *)
     while t.indicators <> [] do
       pop_indicator t

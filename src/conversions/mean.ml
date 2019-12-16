@@ -75,6 +75,7 @@ class mean ~kind source =
         dst.Frame.audio.(0).{i} <-
           Array.fold_left (fun m b -> m +. b.{i}) 0. src.Frame.audio /. channels
       done;
+
       (* Finally, blit in case src_mono.Frame.midi/video is not already
        * the same as dst.Frame.midi/video. *)
       Frame.blit_content

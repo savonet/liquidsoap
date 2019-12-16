@@ -130,6 +130,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     (* Operator startup *)
     method private wake_up activation =
       start_stop#wake_up activation;
+
       (* Get our source ready.
        * This can take a while (preparing playlists, etc). *)
       source#get_ready ((self :> operator) :: activation);
@@ -180,6 +181,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         List.iter
           (fun (_, m) -> self#add_metadata m)
           (Frame.get_all_metadata memo);
+
         (* Output that frame if it has some data *)
         if Frame.position memo > 0 then self#output_send memo;
         if Frame.is_partial memo then (
@@ -190,6 +192,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method after_output =
       (* Let [memo] be cleared and signal propagated *)
       super#after_output;
+
       (* Perform skip if needed *)
       if skip then (
         self#log#important "Performing user-requested skip";

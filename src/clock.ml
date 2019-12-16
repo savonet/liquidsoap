@@ -251,6 +251,7 @@ class clock ?(sync = `Auto) id =
                 (if !acc <= 100 then "" else " (we've been late for 100 rounds)");
               acc := 0 ) );
           ticks <- Int64.add ticks 1L;
+
           (* This is where the streaming actually happens: *)
           self#end_tick;
           loop () )
@@ -301,6 +302,7 @@ class clock ?(sync = `Auto) id =
             outputs <-
               List.filter (fun (_, s) -> not (List.mem s error)) outputs)
           ();
+
         (* To stop this clock it would be enough to detach all sources
          * and let things stop by themselves. We stop all sources by
          * calling Tutils.shutdown, which calls Clock.stop, stopping
@@ -480,6 +482,7 @@ let () = ignore (Gc.create_alarm gc_alarm)
   * and stop those that need stopping. *)
 let collect ~must_lock =
   if must_lock then Mutex.lock lock;
+
   (* If at least one task is engaged it will take care of collection later.
    * Otherwise, prepare a collection while in critical section
    * (to avoid harvesting sources created by a task) and run it

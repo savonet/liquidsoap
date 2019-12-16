@@ -128,6 +128,7 @@ module Make (Generator : Generator.S) = struct
               Frame.add_break ab (Frame.position ab) )
             else (
               Generator.fill generator ab;
+
               (* Currently, we don't enter the buffering phase between tracks
                * even when there's not enough data in the buffer. This is mostly
                * historical because there was initially no breaks in generators.

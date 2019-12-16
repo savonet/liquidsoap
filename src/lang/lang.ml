@@ -592,6 +592,7 @@ let type_and_run ~lib ast =
   Clock.collect_after (fun () ->
       (* Type checking *)
       Term.check ~ignored:true ast;
+
       (* Check for unused variables, relies on types *)
       Term.check_unused ~lib ast;
       ignore (Term.eval_toplevel ast))
@@ -680,6 +681,7 @@ let interactive () =
             gen ()
         | len, c when len = c ->
             position := -1;
+
             (* This means that the last read was a full chunk. Safe to try a new
             one right away. *)
             if len = chunk_size then gen () else None
