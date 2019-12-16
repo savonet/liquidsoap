@@ -54,27 +54,24 @@ def file.cover(file)
   m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
   if list.mem_assoc("coverart", m) then
     # We are likely to have an ogg/vorbis file
-    m = list.filter(fun (lv) -> fst(lv) == "coverart", m)
-    m = list.map(snd, m)
-    m = list.hd(default="", m)
-    if m == "" then "" else string.base64.decode(m) end
+    m = list.assoc(default="", "coverart", m)
+    string.base64.decode(m)
   else
     # Assume we have an mp3 file
     m =
-      if list.exists(fun (lv) -> fst(lv) == "apic", m) then
+      if list.mem_assoc("apic", m) then
         m
       else
-        # Try the builting tag reader because APIC tags are not read by default,
+        # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
         file.mp3.metadata(file)
       end
-    m = list.filter(fun (lv) -> fst(lv) == "apic", m)
-    m = list.map(snd, m)
-    if m == [] then
+    apic = list.assoc(default="", "apic", m)
+    if apic == "" then
       ""
     else
       # TODO: we could use file type in order to select cover if there are many
-      let (_,_,_,data) = file.mp3.parse_apic(list.hd(default="", m))
+      let (_,_,_,data) = file.mp3.parse_apic(apic)
       data
     end
   end
