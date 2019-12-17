@@ -753,7 +753,7 @@ module MkAbstract (Def : AbstractDef) = struct
   end
 
   let t = ground_t A.Type
-  let to_value c = mk ~t:string_t (L.V.Ground A.(Value c))
+  let to_value c = mk ~t (L.V.Ground A.(Value c))
 
   let of_value t =
     match t.value with L.V.Ground (A.Value c) -> c | _ -> assert false
