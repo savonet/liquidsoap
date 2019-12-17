@@ -38,11 +38,11 @@ and lazy_full_env =
   (string * ((int * Lang_types.constraints) list * value) Lazy.t) list
 
 and in_value = Lang_values.V.in_value =
-  | Abstract of string * unit
   | Bool of bool
   | Int of int
   | String of string
   | Float of float
+  | Ground of Lang_values.Ground.t
   | Source of Source.source
   | Request of Request.t
   | Encoder of Encoder.format

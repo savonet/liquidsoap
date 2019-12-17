@@ -27,9 +27,7 @@ let rec to_json_compact v =
    * JSON's escaping RFC. *)
   let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s in
   match v.Lang.value with
-    | Lang.Abstract (n, _) ->
-        log#important "Abstract types are not representable in json!";
-        "<" ^ n ^ ">"
+    | Lang.Ground g -> Lang_values.Ground.to_string g
     | Lang.Bool b -> Printf.sprintf "%b" b
     | Lang.Int i -> Printf.sprintf "%i" i
     | Lang.String s -> print_s s

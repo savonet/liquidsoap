@@ -408,8 +408,8 @@ let static_analysis_failed = ref []
 let iter_sources f v =
   let rec iter_term env v =
     match v.Term.term with
-      | Term.Abstract _ | Term.Bool _ | Term.String _ | Term.Int _
-      | Term.Float _ | Term.Encoder _ ->
+      | Term.Bool _ | Term.String _ | Term.Int _ | Term.Float _
+      | Term.Ground _ | Term.Encoder _ ->
           ()
       | Term.List l -> List.iter (iter_term env) l
       | Term.Ref a | Term.Get a -> iter_term env a
@@ -442,7 +442,7 @@ let iter_sources f v =
   and iter_value v =
     match v.value with
       | Source s -> f s
-      | Abstract _ | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _
+      | Bool _ | Int _ | Float _ | String _ | Ground _ | Request _ | Encoder _
         ->
           ()
       | List l -> List.iter iter_value l
@@ -734,10 +734,27 @@ module type AbstractDef = sig
   val name : string
 end
 
+module L = Lang_values
+module G = L.Ground
+
 module MkAbstract (Def : AbstractDef) = struct
-  let t = ground_t (T.Abstract Def.name)
-  let to_value c = mk ~t:string_t (Abstract (Def.name, Obj.magic c))
+  module A = struct
+    type T.ground += AbstractType
+    type G.t += AbstractValue of Def.content
+
+    let () =
+      G.register (function
+        | AbstractValue _ -> Some { G.descr = Def.name; typ = AbstractType }
+        | _ -> None);
+
+      Lang_types.register_ground_printer (function
+        | AbstractType -> Some Def.name
+        | _ -> None)
+  end
+
+  let t = ground_t A.AbstractType
+  let to_value c = mk ~t:string_t (L.V.Ground A.(AbstractValue c))
 
   let of_value t =
-    match t.value with Abstract (_, c) -> Obj.magic c | _ -> assert false
+    match t.value with L.V.Ground (A.AbstractValue c) -> c | _ -> assert false
 end

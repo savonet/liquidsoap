@@ -150,6 +150,27 @@ let type_of_format ~pos ~level f =
 (** Sets of variables. *)
 module Vars = Set.Make (String)
 
+module Ground = struct
+  type t = ..
+  type content = { descr : string; typ : T.ground }
+
+  let handlers = Queue.create ()
+  let register fn = Queue.add fn handlers
+
+  exception Found of content
+
+  let find v =
+    try
+      Queue.iter
+        (fun h -> match h v with Some c -> raise (Found c) | None -> ())
+        handlers;
+      assert false
+    with Found c -> c
+
+  let to_string (v : t) = (find v).descr
+  let to_type (v : t) = (find v).typ
+end
+
 type term = { mutable t : T.t; term : in_term }
 
 and let_t = {
@@ -161,11 +182,11 @@ and let_t = {
 }
 
 and in_term =
-  | Abstract of string * unit
   | Bool of bool
   | Int of int
   | String of string
   | Float of float
+  | Ground of Ground.t
   | Encoder of Encoder.format
   | List of term list
   | Tuple of term list
@@ -203,11 +224,11 @@ let rec is_ground x =
 (** Print terms, (almost) assuming they are in normal form. *)
 let rec print_term v =
   match v.term with
-    | Abstract _ -> "<opaque>"
     | Bool i -> string_of_bool i
     | Int i -> string_of_int i
     | Float f -> string_of_float f
     | String s -> Printf.sprintf "%S" s
+    | Ground g -> Ground.to_string g
     | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
@@ -235,7 +256,7 @@ let rec free_vars_pat = function
 
 let rec free_vars tm =
   match tm.term with
-    | Abstract _ | Bool _ | Int _ | String _ | Float _ | Encoder _ -> Vars.empty
+    | Ground _ | Bool _ | Int _ | String _ | Float _ | Encoder _ -> Vars.empty
     | Var x -> Vars.singleton x
     | Ref r | Get r -> free_vars r
     | Tuple l ->
@@ -284,7 +305,7 @@ let check_unused ~lib tm =
   let rec check ?(toplevel = false) v tm =
     match tm.term with
       | Var s -> Vars.remove s v
-      | Abstract _ | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
+      | Ground _ | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
       | Ref r -> check v r
       | Get r -> check v r
       | Tuple l -> List.fold_left (fun a -> check a) v l
@@ -350,7 +371,7 @@ let rec map_types f (gen : 'a list) tm =
     | lbl, var, t, Some tm -> (lbl, var, f gen t, Some (map_types f gen tm))
   in
   match tm.term with
-    | Abstract _ | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
+    | Ground _ | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
         { tm with t = f gen tm.t }
     | Ref r -> { t = f gen tm.t; term = Ref (map_types f gen r) }
     | Get r -> { t = f gen tm.t; term = Get (map_types f gen r) }
@@ -399,7 +420,7 @@ let rec fold_types f gen x tm =
       x p
   in
   match tm.term with
-    | Abstract _ | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
+    | Ground _ | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
         f gen x tm.t
     | List l ->
         List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
@@ -426,11 +447,11 @@ module V = struct
     (string * ((int * T.constraints) list * value) Lazy.t) list
 
   and in_value =
-    | Abstract of string * unit
     | Bool of bool
     | Int of int
     | String of string
     | Float of float
+    | Ground of Ground.t
     | Source of Source.source
     | Request of Request.t
     | Encoder of Encoder.format
@@ -459,7 +480,7 @@ module V = struct
 
   let rec print_value v =
     match v.value with
-      | Abstract _ -> "<opaque>"
+      | Ground g -> Ground.to_string g
       | Bool i -> string_of_bool i
       | Int i -> string_of_int i
       | Float f -> string_of_float f
@@ -501,7 +522,7 @@ module V = struct
   (** Map a function on all types occurring in a value. *)
   let rec map_types f gen v =
     match v.value with
-      | Abstract _ | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
+      | Ground _ | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
           { v with t = f gen v.t }
       | Tuple l ->
           { t = f gen v.t; value = Tuple (List.map (map_types f gen) l) }
@@ -645,7 +666,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     e.t >: mk (T.Arrow (proto_t, body.t))
   in
   match e.term with
-    | Abstract (n, _) -> e.t >: mkg (T.Abstract n)
+    | Ground g -> e.t >: mkg (Ground.to_type g)
     | Bool _ -> e.t >: mkg T.Bool
     | Int _ -> e.t >: mkg T.Int
     | String _ -> e.t >: mkg T.String
@@ -895,7 +916,7 @@ let rec eval ~env tm =
   in
   let mk v = { V.t = tm.t; V.value = v } in
   match tm.term with
-    | Abstract (x, y) -> mk (V.Abstract (x, y))
+    | Ground g -> mk (V.Ground g)
     | Bool x -> mk (V.Bool x)
     | Int x -> mk (V.Int x)
     | String x -> mk (V.String x)
