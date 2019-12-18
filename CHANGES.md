@@ -1,3 +1,9 @@
+1.4.1 (unreleased)
+=====
+
+Fixed:
+- Fixed `fade.final` and `fade.initial` (#1009)
+
 1.4.0 (29-09-2019)
 =====
 
