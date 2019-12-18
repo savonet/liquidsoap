@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let make params =
@@ -41,15 +42,15 @@ let make params =
   let ext =
     List.fold_left
       (fun f -> function
-        | "channels", { term = Int c; _ } ->
+        | "channels", { term = Ground (Int c); _ } ->
             { f with External_encoder_format.channels = c }
-        | "samplerate", { term = Int i; _ } ->
+        | "samplerate", { term = Ground (Int i); _ } ->
             { f with External_encoder_format.samplerate = Lazy.from_val i }
-        | "video", { term = Bool h; _ } ->
+        | "video", { term = Ground (Bool h); _ } ->
             { f with External_encoder_format.video = h }
-        | "header", { term = Bool h; _ } ->
+        | "header", { term = Ground (Bool h); _ } ->
             { f with External_encoder_format.header = h }
-        | "restart_on_crash", { term = Bool h; _ } ->
+        | "restart_on_crash", { term = Ground (Bool h); _ } ->
             { f with External_encoder_format.restart_on_crash = h }
         | "", { term = Var s; _ }
           when String.lowercase_ascii s = "restart_on_metadata" ->
@@ -57,14 +58,14 @@ let make params =
               f with
               External_encoder_format.restart = External_encoder_format.Metadata;
             }
-        | "restart_after_delay", { term = Int i; _ } ->
+        | "restart_after_delay", { term = Ground (Int i); _ } ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Delay i;
             }
-        | "process", { term = String s; _ } ->
+        | "process", { term = Ground (String s); _ } ->
             { f with External_encoder_format.process = s }
-        | "", { term = String s; _ } ->
+        | "", { term = Ground (String s); _ } ->
             { f with External_encoder_format.process = s }
         | _, t -> raise (generic_error t))
       defaults params

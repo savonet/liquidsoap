@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let make_cbr params =
@@ -37,13 +38,13 @@ let make_cbr params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | "samplerate", { term = Int i; _ } ->
+        | "samplerate", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | "bitrate", { term = Int i; _ } ->
+        | "bitrate", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.mode = Vorbis_format.CBR i }
-        | "channels", { term = Int i; _ } ->
+        | "channels", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.channels = i }
-        | "bytes_per_page", { term = Int i; _ } ->
+        | "bytes_per_page", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.fill = Some i }
         | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
@@ -71,20 +72,20 @@ let make_abr params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | "samplerate", { term = Int i; _ } ->
+        | "samplerate", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | "bitrate", { term = Int i; _ } ->
+        | "bitrate", { term = Ground (Int i); _ } ->
             let x, _, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, Some i, y) }
-        | "max_bitrate", { term = Int i; _ } ->
+        | "max_bitrate", { term = Ground (Int i); _ } ->
             let x, y, _ = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, y, Some i) }
-        | "min_bitrate", { term = Int i; _ } ->
+        | "min_bitrate", { term = Ground (Int i); _ } ->
             let _, x, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (Some i, x, y) }
-        | "channels", { term = Int i; _ } ->
+        | "channels", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.channels = i }
-        | "bytes_per_page", { term = Int i; _ } ->
+        | "bytes_per_page", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.fill = Some i }
         | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
@@ -107,20 +108,20 @@ let make params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | "samplerate", { term = Int i; _ } ->
+        | "samplerate", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | "quality", ({ term = Float q; _ } as t) ->
+        | "quality", ({ term = Ground (Float q); _ } as t) ->
             if q < -0.2 || q > 1. then
               raise (Error (t, "quality should be in [(-0.2)..1]"));
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | "quality", ({ term = Int i; _ } as t) ->
+        | "quality", ({ term = Ground (Int i); _ } as t) ->
             if i <> 0 && i <> 1 then
               raise (Error (t, "quality should be in [-(0.2)..1]"));
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | "channels", { term = Int i; _ } ->
+        | "channels", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.channels = i }
-        | "bytes_per_page", { term = Int i; _ } ->
+        | "bytes_per_page", { term = Ground (Int i); _ } ->
             { f with Vorbis_format.fill = Some i }
         | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }

@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let flac_gen params =
@@ -37,17 +38,18 @@ let flac_gen params =
   in
   List.fold_left
     (fun f -> function
-      | "channels", { term = Int i; _ } -> { f with Flac_format.channels = i }
-      | "samplerate", { term = Int i; _ } ->
+      | "channels", { term = Ground (Int i); _ } ->
+          { f with Flac_format.channels = i }
+      | "samplerate", { term = Ground (Int i); _ } ->
           { f with Flac_format.samplerate = Lazy.from_val i }
-      | "compression", ({ term = Int i; _ } as t) ->
+      | "compression", ({ term = Ground (Int i); _ } as t) ->
           if i < 0 || i > 8 then raise (Error (t, "invalid compression value"));
           { f with Flac_format.compression = i }
-      | "bits_per_sample", ({ term = Int i; _ } as t) ->
+      | "bits_per_sample", ({ term = Ground (Int i); _ } as t) ->
           if i <> 8 && i <> 16 && i <> 32 then
             raise (Error (t, "invalid bits_per_sample value"));
           { f with Flac_format.bits_per_sample = i }
-      | "bytes_per_page", { term = Int i; _ } ->
+      | "bytes_per_page", { term = Ground (Int i); _ } ->
           { f with Flac_format.fill = Some i }
       | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
           { f with Flac_format.channels = 1 }

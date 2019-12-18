@@ -30,6 +30,19 @@ type t = Lang_types.t
 (** {2 Values} *)
 
 (** A typed value. *)
+module Ground : sig
+  type t = Lang_values.Ground.t = ..
+  type t += Bool of bool | Int of int | String of string | Float of float
+
+  type content = Lang_values.Ground.content = {
+    descr : string;
+    typ : Lang_types.ground;
+  }
+
+  val register : (t -> content option) -> unit
+  val to_string : t -> string
+end
+
 type value = Lang_values.V.value = { mutable t : t; value : in_value }
 
 and full_env = (string * ((int * Lang_types.constraints) list * value)) list
@@ -38,10 +51,7 @@ and lazy_full_env =
   (string * ((int * Lang_types.constraints) list * value) Lazy.t) list
 
 and in_value = Lang_values.V.in_value =
-  | Bool of bool
-  | Int of int
-  | String of string
-  | Float of float
+  | Ground of Ground.t
   | Source of Source.source
   | Request of Request.t
   | Encoder of Encoder.format
@@ -314,3 +324,21 @@ val interactive : unit -> unit
 
 (** Evaluate a string *)
 val eval : string -> value option
+
+(* Abstract type and value. *)
+module type Abstract = sig
+  type content
+
+  val t : t
+  val to_value : content -> value
+  val of_value : value -> content
+end
+
+module type AbstractDef = sig
+  type content
+
+  val name : string
+end
+
+module MkAbstract (Def : AbstractDef) :
+  Abstract with type content := Def.content

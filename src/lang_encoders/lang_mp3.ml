@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let check_samplerate ?t i =
@@ -48,9 +49,10 @@ let mp3_base_defaults () =
   }
 
 let mp3_base f = function
-  | "stereo", { term = Bool b; _ } -> { f with Mp3_format.stereo = b }
-  | "mono", { term = Bool b; _ } -> { f with Mp3_format.stereo = not b }
-  | "stereo_mode", ({ term = String m; _ } as t) ->
+  | "stereo", { term = Ground (Bool b); _ } -> { f with Mp3_format.stereo = b }
+  | "mono", { term = Ground (Bool b); _ } ->
+      { f with Mp3_format.stereo = not b }
+  | "stereo_mode", ({ term = Ground (String m); _ } as t) ->
       let mode =
         match m with
           | "default" -> Mp3_format.Default
@@ -59,21 +61,22 @@ let mp3_base f = function
           | _ -> raise (Error (t, "invalid stereo mode"))
       in
       { f with Mp3_format.stereo_mode = mode }
-  | "internal_quality", ({ term = Int q; _ } as t) ->
+  | "internal_quality", ({ term = Ground (Int q); _ } as t) ->
       if q < 0 || q > 9 then
         raise (Error (t, "internal quality must be a value between 0 and 9"));
       { f with Mp3_format.internal_quality = q }
-  | "msg_interval", { term = Float i; _ } ->
+  | "msg_interval", { term = Ground (Float i); _ } ->
       { f with Mp3_format.msg_interval = i }
-  | "msg", { term = String m; _ } -> { f with Mp3_format.msg = m }
-  | "samplerate", ({ term = Int i; _ } as t) ->
+  | "msg", { term = Ground (String m); _ } -> { f with Mp3_format.msg = m }
+  | "samplerate", ({ term = Ground (Int i); _ } as t) ->
       { f with Mp3_format.samplerate = check_samplerate ~t (Lazy.from_val i) }
-  | "id3v2", ({ term = Bool true; _ } as t) -> (
+  | "id3v2", ({ term = Ground (Bool true); _ } as t) -> (
       match !Mp3_format.id3v2_export with
         | None ->
             raise (Error (t, "no id3v2 support available for the mp3 encoder"))
         | Some g -> { f with Mp3_format.id3v2 = Some g } )
-  | "id3v2", { term = Bool false; _ } -> { f with Mp3_format.id3v2 = None }
+  | "id3v2", { term = Ground (Bool false); _ } ->
+      { f with Mp3_format.id3v2 = None }
   | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
       { f with Mp3_format.stereo = false }
   | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
@@ -96,7 +99,7 @@ let make_cbr params =
   let mp3 =
     List.fold_left
       (fun f -> function
-        | "bitrate", ({ term = Int i; _ } as t) ->
+        | "bitrate", ({ term = Ground (Int i); _ } as t) ->
             let allowed =
               [
                 8;
@@ -173,7 +176,7 @@ let make_abr params =
   let mp3 =
     List.fold_left
       (fun f -> function
-        | "bitrate", ({ term = Int i; _ } as t) ->
+        | "bitrate", ({ term = Ground (Int i); _ } as t) ->
             let allowed =
               [
                 8;
@@ -199,7 +202,7 @@ let make_abr params =
             if not (List.mem i allowed) then
               raise (Error (t, "invalid bitrate value"));
             set_mean_bitrate f i
-        | "min_bitrate", ({ term = Int i; _ } as t) ->
+        | "min_bitrate", ({ term = Ground (Int i); _ } as t) ->
             let allowed =
               [
                 8;
@@ -225,7 +228,7 @@ let make_abr params =
             if not (List.mem i allowed) then
               raise (Error (t, "invalid bitrate value"));
             set_min_bitrate f i
-        | "max_bitrate", ({ term = Int i; _ } as t) ->
+        | "max_bitrate", ({ term = Ground (Int i); _ } as t) ->
             let allowed =
               [
                 8;
@@ -265,7 +268,7 @@ let make_vbr params =
   let mp3 =
     List.fold_left
       (fun f -> function
-        | "quality", ({ term = Int q; _ } as t) ->
+        | "quality", ({ term = Ground (Int q); _ } as t) ->
             if q < 0 || q > 9 then
               raise (Error (t, "quality should be in [0..9]"));
             { f with Mp3_format.bitrate_control = Mp3_format.VBR q }

@@ -27,14 +27,12 @@ let rec to_json_compact v =
    * JSON's escaping RFC. *)
   let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s in
   match v.Lang.value with
-    | Lang.Bool b -> Printf.sprintf "%b" b
-    | Lang.Int i -> Printf.sprintf "%i" i
-    | Lang.String s -> print_s s
     (* JSON specs do not allow a trailing . *)
-    | Lang.Float n ->
+    | Lang.(Ground (Ground.Float n)) ->
         let s = string_of_float n in
         let s = Printf.sprintf "%s" s in
         if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s else s
+    | Lang.Ground g -> Lang_values.Ground.to_string g
     | Lang.List l -> (
         try
           (* Convert (string*'a) list to object *)

@@ -28,8 +28,10 @@ val print_single_pos : Lexing.position -> string
 val print_pos : ?prefix:string -> pos -> string
 
 type variance = Covariant | Contravariant | Invariant
-type ground = Bool | Int | String | Float
+type ground = ..
+type ground += Bool | Int | String | Float
 
+val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
 
 type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any

@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let make params =
@@ -70,15 +71,15 @@ let make params =
   let fdkaac =
     List.fold_left
       (fun f -> function
-        | "afterburner", { term = Bool b; _ } ->
+        | "afterburner", { term = Ground (Bool b); _ } ->
             { f with Fdkaac_format.afterburner = b }
-        | "aot", ({ term = String s; _ } as t) ->
+        | "aot", ({ term = Ground (String s); _ } as t) ->
             let aot =
               try Fdkaac_format.aot_of_string s
               with Not_found -> raise (Error (t, "invalid aot value"))
             in
             { f with Fdkaac_format.aot }
-        | "vbr", ({ term = Int i; _ } as t) ->
+        | "vbr", ({ term = Ground (Int i); _ } as t) ->
             if not (List.mem i valid_vbr) then (
               let err =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
@@ -86,22 +87,23 @@ let make params =
               in
               raise (Error (t, err)) );
             { f with Fdkaac_format.bitrate_mode = `Variable i }
-        | "bandwidth", { term = Int i; _ } ->
+        | "bandwidth", { term = Ground (Int i); _ } ->
             { f with Fdkaac_format.bandwidth = `Fixed i }
-        | "bandwidth", { term = String s; _ }
+        | "bandwidth", { term = Ground (String s); _ }
           when String.lowercase_ascii s = "auto" ->
             { f with Fdkaac_format.bandwidth = `Auto }
-        | "bitrate", { term = Int i; _ } -> { f with Fdkaac_format.bitrate = i }
-        | "channels", { term = Int i; _ } ->
+        | "bitrate", { term = Ground (Int i); _ } ->
+            { f with Fdkaac_format.bitrate = i }
+        | "channels", { term = Ground (Int i); _ } ->
             { f with Fdkaac_format.channels = i }
-        | "samplerate", ({ term = Int i; _ } as t) ->
+        | "samplerate", ({ term = Ground (Int i); _ } as t) ->
             {
               f with
               Fdkaac_format.samplerate = check_samplerate ~t (Lazy.from_val i);
             }
-        | "sbr_mode", { term = Bool b; _ } ->
+        | "sbr_mode", { term = Ground (Bool b); _ } ->
             { f with Fdkaac_format.sbr_mode = b }
-        | "transmux", ({ term = String s; _ } as t) ->
+        | "transmux", ({ term = Ground (String s); _ } as t) ->
             let transmux =
               try Fdkaac_format.transmux_of_string s
               with Not_found -> raise (Error (t, "invalid transmux value"))

@@ -74,10 +74,13 @@ let () =
       in
       let final_key =
         match v.Lang.value with
-          | Lang.String s -> make Lang.string (Dtools.Conf.string ~d:s)
-          | Lang.Int s -> make Lang.int (Dtools.Conf.int ~d:s)
-          | Lang.Bool s -> make Lang.bool (Dtools.Conf.bool ~d:s)
-          | Lang.Float s -> make Lang.float (Dtools.Conf.float ~d:s)
+          | Lang.(Ground (Ground.String s)) ->
+              make Lang.string (Dtools.Conf.string ~d:s)
+          | Lang.(Ground (Ground.Int s)) -> make Lang.int (Dtools.Conf.int ~d:s)
+          | Lang.(Ground (Ground.Bool s)) ->
+              make Lang.bool (Dtools.Conf.bool ~d:s)
+          | Lang.(Ground (Ground.Float s)) ->
+              make Lang.float (Dtools.Conf.float ~d:s)
           | Lang.List l ->
               let l = List.map Lang.to_string l in
               let to_value l =
@@ -146,10 +149,11 @@ let () =
         begin
           match value.Lang.value with
           | Lang.Tuple [] -> set Dtools.Conf.as_unit path_s ()
-          | Lang.String s -> set Dtools.Conf.as_string path_s s
-          | Lang.Int s -> set Dtools.Conf.as_int path_s s
-          | Lang.Bool s -> set Dtools.Conf.as_bool path_s s
-          | Lang.Float s -> set Dtools.Conf.as_float path_s s
+          | Lang.(Ground (Ground.String s)) ->
+              set Dtools.Conf.as_string path_s s
+          | Lang.(Ground (Ground.Int s)) -> set Dtools.Conf.as_int path_s s
+          | Lang.(Ground (Ground.Bool s)) -> set Dtools.Conf.as_bool path_s s
+          | Lang.(Ground (Ground.Float s)) -> set Dtools.Conf.as_float path_s s
           | Lang.List l ->
               let l = List.map Lang.to_string l in
               set Dtools.Conf.as_list path_s l
@@ -183,10 +187,14 @@ let () =
       let v = List.assoc "default" p in
       match v.Lang.value with
         | Lang.Tuple [] -> Lang.unit
-        | Lang.String s -> Lang.string (get Dtools.Conf.as_string path s)
-        | Lang.Int s -> Lang.int (get Dtools.Conf.as_int path s)
-        | Lang.Bool s -> Lang.bool (get Dtools.Conf.as_bool path s)
-        | Lang.Float s -> Lang.float (get Dtools.Conf.as_float path s)
+        | Lang.(Ground (Ground.String s)) ->
+            Lang.string (get Dtools.Conf.as_string path s)
+        | Lang.(Ground (Ground.Int s)) ->
+            Lang.int (get Dtools.Conf.as_int path s)
+        | Lang.(Ground (Ground.Bool s)) ->
+            Lang.bool (get Dtools.Conf.as_bool path s)
+        | Lang.(Ground (Ground.Float s)) ->
+            Lang.float (get Dtools.Conf.as_float path s)
         | Lang.List l ->
             let l = List.map Lang.to_string l in
             Lang.list ~t:Lang.string_t

@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let make params =
@@ -37,11 +38,12 @@ let make params =
   let shine =
     List.fold_left
       (fun f -> function
-        | "channels", { term = Int i; _ } ->
+        | "channels", { term = Ground (Int i); _ } ->
             { f with Shine_format.channels = i }
-        | "samplerate", { term = Int i; _ } ->
+        | "samplerate", { term = Ground (Int i); _ } ->
             { f with Shine_format.samplerate = Lazy.from_val i }
-        | "bitrate", { term = Int i; _ } -> { f with Shine_format.bitrate = i }
+        | "bitrate", { term = Ground (Int i); _ } ->
+            { f with Shine_format.bitrate = i }
         | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }
         | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->

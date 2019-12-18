@@ -72,13 +72,29 @@ let print_pos ?(prefix = "at ") (start, stop) =
 
 (** Ground types *)
 
-type ground = Bool | Int | String | Float
+type ground = ..
+type ground += Bool | Int | String | Float
 
-let print_ground = function
-  | String -> "string"
-  | Bool -> "bool"
-  | Int -> "int"
-  | Float -> "float"
+let ground_printers = Queue.create ()
+let register_ground_printer fn = Queue.add fn ground_printers
+
+exception Found of string
+
+let () =
+  register_ground_printer (function
+    | String -> Some "string"
+    | Bool -> Some "bool"
+    | Int -> Some "int"
+    | Float -> Some "float"
+    | _ -> None)
+
+let print_ground v =
+  try
+    Queue.iter
+      (fun fn -> match fn v with Some s -> raise (Found s) | None -> ())
+      ground_printers;
+    assert false
+  with Found s -> s
 
 (** Type constraints *)
 

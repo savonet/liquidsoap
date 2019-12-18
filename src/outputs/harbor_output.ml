@@ -356,7 +356,14 @@ module Make (T : T) = struct
     let trivially_false = function
       | {
           Lang.value =
-            Lang.Fun (_, _, _, { Lang_values.term = Lang_values.Bool false; _ });
+            Lang.Fun
+              ( _,
+                _,
+                _,
+                {
+                  Lang_values.term = Lang_values.(Ground (Ground.Bool false));
+                  _;
+                } );
           _;
         } ->
           true

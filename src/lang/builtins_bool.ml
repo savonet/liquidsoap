@@ -24,10 +24,15 @@ open Lang_builtins
 
 let compare_value a b =
   let rec aux = function
-    | Lang.Float a, Lang.Float b -> compare a b
-    | Lang.Int a, Lang.Int b -> compare a b
-    | Lang.String a, Lang.String b -> compare a b
-    | Lang.Bool a, Lang.Bool b -> compare a b
+    | Lang.(Ground (Ground.Float a)), Lang.(Ground (Ground.Float b)) ->
+        compare a b
+    | Lang.(Ground (Ground.Int a)), Lang.(Ground (Ground.Int b)) -> compare a b
+    | Lang.(Ground (Ground.String a)), Lang.(Ground (Ground.String b)) ->
+        compare a b
+    | Lang.(Ground (Ground.Bool a)), Lang.(Ground (Ground.Bool b)) ->
+        compare a b
+    | Lang.(Ground a), Lang.(Ground b) ->
+        compare (Lang.Ground.to_string a) (Lang.Ground.to_string b)
     | Lang.Tuple l, Lang.Tuple m ->
         List.fold_left2
           (fun cmp a b ->

@@ -23,6 +23,8 @@
 module Term = Lang_values
 include Term.V
 module T = Lang_types
+module Ground = Term.Ground
+open Ground
 
 type t = T.t
 
@@ -178,10 +180,10 @@ let kind_type_of_kind_format fmt =
 
 let mk ~t v = { t; value = v }
 let unit = mk ~t:unit_t unit
-let int i = mk ~t:int_t (Int i)
-let bool i = mk ~t:bool_t (Bool i)
-let float i = mk ~t:float_t (Float i)
-let string i = mk ~t:string_t (String i)
+let int i = mk ~t:int_t (Ground (Int i))
+let bool i = mk ~t:bool_t (Ground (Bool i))
+let float i = mk ~t:float_t (Ground (Float i))
+let string i = mk ~t:string_t (Ground (String i))
 let tuple l = mk ~t:(tuple_t (List.map (fun a -> a.t) l)) (Tuple l)
 let product a b = tuple [a; b]
 let list ~t l = mk ~t:(list_t t) (List l)
@@ -219,10 +221,7 @@ let val_cst_fun p c =
    * to enable introspection, mostly for printing. *)
   match c.value with
     | Tuple [] -> f Term.unit
-    | Int i -> f (Term.Int i)
-    | Bool i -> f (Term.Bool i)
-    | Float i -> f (Term.Float i)
-    | String i -> f (Term.String i)
+    | Ground g -> f (Term.Ground g)
     | _ -> mk ~t (FFI (p', [], fun _ _ -> c))
 
 let metadata m =
@@ -374,7 +373,7 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
     let t = T.make (T.Ground T.String) in
     ( "id",
       t,
-      Some { t; value = String "" },
+      Some { t; value = Ground (String "") },
       Some "Force the value of the source ID." )
     :: List.stable_sort compare proto
   in
@@ -383,7 +382,9 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
     let k = frame_kind_of_kind_type kind_t in
     let src : Source.source = f env k in
     let id =
-      match (List.assoc "id" env).value with String s -> s | _ -> assert false
+      match (List.assoc "id" env).value with
+        | Ground (String s) -> s
+        | _ -> assert false
     in
     if id <> "" then src#set_id id;
     { t; value = Source src }
@@ -408,9 +409,7 @@ let static_analysis_failed = ref []
 let iter_sources f v =
   let rec iter_term env v =
     match v.Term.term with
-      | Term.Bool _ | Term.String _ | Term.Int _ | Term.Float _ | Term.Encoder _
-        ->
-          ()
+      | Term.Ground _ | Term.Encoder _ -> ()
       | Term.List l -> List.iter (iter_term env) l
       | Term.Ref a | Term.Get a -> iter_term env a
       | Term.Tuple l -> List.iter (iter_term env) l
@@ -442,7 +441,7 @@ let iter_sources f v =
   and iter_value v =
     match v.value with
       | Source s -> f s
-      | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
+      | Ground _ | Request _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
       | Fun (proto, pe, env, body) ->
@@ -497,15 +496,15 @@ let apply f p ~t = Clock.collect_after (fun () -> Term.apply f p ~t)
 (** {1 High-level manipulation of values} *)
 
 let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-let to_bool t = match t.value with Bool b -> b | _ -> assert false
+let to_bool t = match t.value with Ground (Bool b) -> b | _ -> assert false
 
 let to_bool_getter t =
   match t.value with
-    | Bool b -> fun () -> b
+    | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
           match (apply ~t:bool_t t []).value with
-            | Bool b -> b
+            | Ground (Bool b) -> b
             | _ -> assert false )
     | _ -> assert false
 
@@ -514,42 +513,43 @@ let to_fun ~t f =
     | Fun _ | FFI _ -> fun args -> apply ~t f args
     | _ -> assert false
 
-let to_string t = match t.value with String s -> s | _ -> assert false
+let to_string t =
+  match t.value with Ground (String s) -> s | _ -> assert false
 
 let to_string_getter t =
   match t.value with
-    | String s -> fun () -> s
+    | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
           match (apply ~t:string_t t []).value with
-            | String s -> s
+            | Ground (String s) -> s
             | _ -> assert false )
     | _ -> assert false
 
-let to_float t = match t.value with Float s -> s | _ -> assert false
+let to_float t = match t.value with Ground (Float s) -> s | _ -> assert false
 
 let to_float_getter t =
   match t.value with
-    | Float s -> fun () -> s
+    | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
           match (apply ~t:float_t t []).value with
-            | Float s -> s
+            | Ground (Float s) -> s
             | _ -> assert false )
     | _ -> assert false
 
 let to_source t = match t.value with Source s -> s | _ -> assert false
 let to_format t = match t.value with Encoder f -> f | _ -> assert false
 let to_request t = match t.value with Request x -> x | _ -> assert false
-let to_int t = match t.value with Int s -> s | _ -> assert false
+let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
   match t.value with
-    | Int n -> fun () -> n
+    | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
           match (apply ~t:int_t t []).value with
-            | Int n -> n
+            | Ground (Int n) -> n
             | _ -> assert false )
     | _ -> assert false
 
@@ -715,3 +715,42 @@ let interactive () =
   in
   loop ();
   Tutils.shutdown ()
+
+(* Abstract types. *)
+
+module type Abstract = sig
+  type content
+
+  val t : t
+  val to_value : content -> value
+  val of_value : value -> content
+end
+
+module type AbstractDef = sig
+  type content
+
+  val name : string
+end
+
+module L = Lang_values
+module G = L.Ground
+
+module MkAbstract (Def : AbstractDef) = struct
+  type T.ground += Type
+  type G.t += Value of Def.content
+
+  let () =
+    G.register (function
+      | Value _ -> Some { G.descr = Def.name; typ = Type }
+      | _ -> None);
+
+    Lang_types.register_ground_printer (function
+      | Type -> Some Def.name
+      | _ -> None)
+
+  let t = ground_t Type
+  let to_value c = mk ~t (L.V.Ground (Value c))
+
+  let of_value t =
+    match t.value with L.V.Ground (Value c) -> c | _ -> assert false
+end

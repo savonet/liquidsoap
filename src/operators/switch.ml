@@ -324,7 +324,11 @@ let satisfied f = Lang.to_bool (Lang.apply ~t:Lang.bool_t f [])
 let trivially_true = function
   | {
       Lang.value =
-        Lang.Fun (_, _, _, { Lang_values.term = Lang_values.Bool true; _ });
+        Lang.Fun
+          ( _,
+            _,
+            _,
+            { Lang_values.term = Lang_values.(Ground (Ground.Bool true)); _ } );
       _;
     } ->
       true

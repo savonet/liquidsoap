@@ -368,7 +368,14 @@ module Make (Harbor : T) = struct
           | {
               Lang.value =
                 Lang.Fun
-                  (_, _, _, { Lang_values.term = Lang_values.Bool false; _ });
+                  ( _,
+                    _,
+                    _,
+                    {
+                      Lang_values.term =
+                        Lang_values.(Ground (Ground.Bool false));
+                      _;
+                    } );
               _;
             } ->
               true
