@@ -56,7 +56,7 @@ osx-secure-transport package." {success & !ssl-enabled & !secure-transport-enabl
 depends: [
   "ocaml" {>= "4.08.0"}
   "camomile" {>= "1.0.0"}
-  "dtools" {>= "0.4.1"}
+  "dtools" {>= "0.4.2"}
   "duppy" {>= "0.8.1"}
   "menhir"
   "mm" {>= "0.6.0"}
