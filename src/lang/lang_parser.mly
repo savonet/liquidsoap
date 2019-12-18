@@ -23,6 +23,7 @@
 %{
 
   open Lang_values
+  open Lang_values.Ground
 
   (** Create a new value with an unknown type. *)
   let mk ~pos e =
@@ -116,7 +117,7 @@
       (t,t+d,p)
 
   let mk_time_pred ~pos (a,b,c) =
-    let args = List.map (fun x -> "", mk ~pos (Int x)) [a;b;c] in
+    let args = List.map (fun x -> "", mk ~pos (Ground (Int x))) [a;b;c] in
       mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
   let mk_var_mult bin mul =
@@ -245,15 +246,15 @@ exprs:
 /* General expressions. */
 expr:
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ; $2 }
-  | UMINUS FLOAT                     { mk ~pos:$loc (Float (-. $2)) }
-  | UMINUS INT                       { mk ~pos:$loc (Int (- $2)) }
+  | UMINUS FLOAT                     { mk ~pos:$loc (Ground (Float (-. $2))) }
+  | UMINUS INT                       { mk ~pos:$loc (Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "~-"), ["", $3])) }
   | LPAR expr RPAR                   { $2 }
-  | INT                              { mk ~pos:$loc (Int $1) }
+  | INT                              { mk ~pos:$loc (Ground (Int $1)) }
   | NOT expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "not"), ["", $2])) }
-  | BOOL                             { mk ~pos:$loc (Bool $1) }
-  | FLOAT                            { mk ~pos:$loc (Float  $1) }
-  | STRING                           { mk ~pos:$loc (String $1) }
+  | BOOL                             { mk ~pos:$loc (Ground (Bool $1)) }
+  | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
+  | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | varlist                          { mk ~pos:$loc (List $1) }
   | REF expr                         { mk ~pos:$loc (Ref $2) }
   | GET expr                         { mk ~pos:$loc (Get $2) }

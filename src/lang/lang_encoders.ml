@@ -26,8 +26,7 @@ open Lang_values
 
 exception Error of (term * string)
 
-let invalid t =
-  match t.term with Int _ | Bool _ | Float _ | String _ -> false | _ -> true
+let invalid t = match t.term with Ground _ -> false | _ -> true
 
 let generic_error t : exn =
   if invalid t then (

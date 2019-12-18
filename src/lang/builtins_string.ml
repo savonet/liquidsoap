@@ -439,5 +439,5 @@ let () =
     Lang.string_t
     (fun p ->
       match List.assoc "" p with
-        | { Lang.value = Lang.String s; _ } -> Lang.string s
+        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
         | v -> Lang.string (Lang.print_value v))

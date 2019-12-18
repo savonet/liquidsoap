@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let make params =
@@ -38,25 +39,26 @@ let make params =
   let wav =
     List.fold_left
       (fun f -> function
-        | "stereo", { term = Bool b; _ } ->
+        | "stereo", { term = Ground (Bool b); _ } ->
             { f with Wav_format.channels = (if b then 2 else 1) }
-        | "mono", { term = Bool b; _ } ->
+        | "mono", { term = Ground (Bool b); _ } ->
             { f with Wav_format.channels = (if b then 1 else 2) }
         | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
             { f with Wav_format.channels = 2 }
         | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
             { f with Wav_format.channels = 1 }
-        | "channels", { term = Int c; _ } -> { f with Wav_format.channels = c }
-        | "duration", { term = Float d; _ } ->
+        | "channels", { term = Ground (Int c); _ } ->
+            { f with Wav_format.channels = c }
+        | "duration", { term = Ground (Float d); _ } ->
             { f with Wav_format.duration = Some d }
-        | "samplerate", { term = Int i; _ } ->
+        | "samplerate", { term = Ground (Int i); _ } ->
             { f with Wav_format.samplerate = Lazy.from_val i }
-        | "samplesize", ({ term = Int i; _ } as t) ->
+        | "samplesize", ({ term = Ground (Int i); _ } as t) ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
               raise (Error (t, "invalid sample size"));
             { f with Wav_format.samplesize = i }
-        | "header", { term = Bool b; _ } -> { f with Wav_format.header = b }
-        | _, t -> raise (generic_error t))
+        | "header", { term = Ground (Bool b); _ } ->
+            { f with Wav_format.header = b } | _, t -> raise (generic_error t))
       defaults params
   in
   Encoder.WAV wav

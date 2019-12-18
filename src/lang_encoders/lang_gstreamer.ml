@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_values.Ground
 open Lang_encoders
 
 let make ?pos params =
@@ -40,20 +41,21 @@ let make ?pos params =
     let perhaps = function "" -> None | s -> Some s in
     List.fold_left
       (fun f -> function
-        | "channels", { term = Int i; _ } ->
+        | "channels", { term = Ground (Int i); _ } ->
             { f with Gstreamer_format.channels = i }
-        | "audio", { term = String s; _ } ->
+        | "audio", { term = Ground (String s); _ } ->
             { f with Gstreamer_format.audio = perhaps s }
-        | "has_video", { term = Bool b; _ } ->
+        | "has_video", { term = Ground (Bool b); _ } ->
             { f with Gstreamer_format.has_video = b }
-        | "video", { term = String s; _ } ->
+        | "video", { term = Ground (String s); _ } ->
             { f with Gstreamer_format.video = perhaps s }
-        | "muxer", { term = String s; _ } ->
+        | "muxer", { term = Ground (String s); _ } ->
             { f with Gstreamer_format.muxer = perhaps s }
-        | "metadata", { term = String s; _ } ->
+        | "metadata", { term = Ground (String s); _ } ->
             { f with Gstreamer_format.metadata = s }
-        | "log", { term = Int i; _ } -> { f with Gstreamer_format.log = i }
-        | "pipeline", { term = String s; _ } ->
+        | "log", { term = Ground (Int i); _ } ->
+            { f with Gstreamer_format.log = i }
+        | "pipeline", { term = Ground (String s); _ } ->
             { f with Gstreamer_format.pipeline = perhaps s }
         | _, t -> raise (generic_error t))
       defaults params

@@ -27,7 +27,8 @@ let () =
     let t = Lang.float_t in
     add_builtin name ~cat:Math ~descr [("", t, None, None)] t (fun p ->
         match p with
-          | [("", { Lang.value = Lang.Float a; _ })] -> Lang.float (op a)
+          | [("", { Lang.value = Lang.(Ground (Ground.Float a)); _ })] ->
+              Lang.float (op a)
           | _ -> assert false)
   in
   add sqrt "sqrt" "Square root.";
@@ -58,8 +59,8 @@ let () =
     (fun p ->
       match p with
         | [
-         ("", { Lang.value = Lang.Int a; _ });
-         ("", { Lang.value = Lang.Int b; _ });
+         ("", { Lang.value = Lang.(Ground (Ground.Int a)); _ });
+         ("", { Lang.value = Lang.(Ground (Ground.Int b)); _ });
         ] ->
             Lang.int (a mod b)
         | _ -> assert false)
@@ -68,8 +69,9 @@ let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
     [("", t, None, None)] t (function
-    | [("", { Lang.value = Lang.Int i; _ })] -> Lang.int ~-i
-    | [("", { Lang.value = Lang.Float i; _ })] -> Lang.float ~-.i
+    | [("", { Lang.value = Lang.(Ground (Ground.Int i)); _ })] -> Lang.int ~-i
+    | [("", { Lang.value = Lang.(Ground (Ground.Float i)); _ })] ->
+        Lang.float ~-.i
     | _ -> assert false)
 
 let () =
@@ -77,8 +79,8 @@ let () =
   add_builtin "abs" ~cat:Math ~descr:"Absolute value." [("", t, None, None)] t
     (fun p ->
       match (snd (List.hd p)).Lang.value with
-        | Lang.Int i -> Lang.int (abs i)
-        | Lang.Float i -> Lang.float (abs_float i)
+        | Lang.(Ground (Ground.Int i)) -> Lang.int (abs i)
+        | Lang.(Ground (Ground.Float i)) -> Lang.float (abs_float i)
         | _ -> assert false)
 
 let () =
@@ -88,13 +90,13 @@ let () =
       [("", t, None, None); ("", t, None, None)] t (fun p ->
         match p with
           | [
-           ("", { Lang.value = Lang.Int a; _ });
-           ("", { Lang.value = Lang.Int b; _ });
+           ("", { Lang.value = Lang.(Ground (Ground.Int a)); _ });
+           ("", { Lang.value = Lang.(Ground (Ground.Int b)); _ });
           ] ->
               Lang.int (op_int a b)
           | [
-           ("", { Lang.value = Lang.Float a; _ });
-           ("", { Lang.value = Lang.Float b; _ });
+           ("", { Lang.value = Lang.(Ground (Ground.Float a)); _ });
+           ("", { Lang.value = Lang.(Ground (Ground.Float b)); _ });
           ] ->
               Lang.float (op_float a b)
           | _ -> assert false)
