@@ -738,23 +738,21 @@ module L = Lang_values
 module G = L.Ground
 
 module MkAbstract (Def : AbstractDef) = struct
-  module A = struct
-    type T.ground += Type
-    type G.t += Value of Def.content
+  type T.ground += Type
+  type G.t += Value of Def.content
 
-    let () =
-      G.register (function
-        | Value _ -> Some { G.descr = Def.name; typ = Type }
-        | _ -> None);
+  let () =
+    G.register (function
+      | Value _ -> Some { G.descr = Def.name; typ = Type }
+      | _ -> None);
 
-      Lang_types.register_ground_printer (function
-        | Type -> Some Def.name
-        | _ -> None)
-  end
+    Lang_types.register_ground_printer (function
+      | Type -> Some Def.name
+      | _ -> None)
 
-  let t = ground_t A.Type
-  let to_value c = mk ~t (L.V.Ground A.(Value c))
+  let t = ground_t Type
+  let to_value c = mk ~t (L.V.Ground (Value c))
 
   let of_value t =
-    match t.value with L.V.Ground (A.Value c) -> c | _ -> assert false
+    match t.value with L.V.Ground (Value c) -> c | _ -> assert false
 end
