@@ -163,33 +163,6 @@ let () =
          new effect ~kind (fun buf -> Image.fill_all buf (r, g, b, 0xff)) src)
 
 let () =
-  Lang.add_operator "video.scale"
-    [
-      "scale", Lang.float_t, Some (Lang.float 1.),
-      Some "Scaling coefficient in both directions.";
-      "xscale", Lang.float_t, Some (Lang.float 1.), Some "x scaling.";
-      "yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.";
-      "x", Lang.int_t, Some (Lang.int 0), Some "x offset.";
-      "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
-      "", Lang.source_t kind, None, None
-    ]
-    ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.VideoProcessing
-    ~descr:"Scale and translate video."
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-       let c, cx, cy, ox, oy =
-         Lang.to_float (f "scale"),
-         Lang.to_float (f "xscale"),
-         Lang.to_float (f "yscale"),
-         Lang.to_int (f "x"),
-         Lang.to_int (f "y")
-       in
-         new effect ~kind
-           (fun buf -> Image.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
-
-let () =
   Lang.add_operator "video.rotate"
     [
       "angle", Lang.float_getter_t 1, Some (Lang.float 0.),
@@ -227,3 +200,43 @@ let () =
       in
       new effect ~kind effect src)
  *)
+
+let () =
+  Lang.add_operator "video.scale"
+    [ ( "scale",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Scaling coefficient in both directions." );
+      ("xscale", Lang.float_t, Some (Lang.float 1.), Some "x scaling.");
+      ("yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.");
+      ("x", Lang.int_t, Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.int_t, Some (Lang.int 0), Some "y offset.");
+      ("", Lang.source_t kind, None, None) ]
+    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
+    ~descr:"Scale and translate video."
+    (fun p kind ->
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      let c, cx, cy, ox, oy =
+        ( Lang.to_float (f "scale"),
+          Lang.to_float (f "xscale"),
+          Lang.to_float (f "yscale"),
+          Lang.to_int (f "x"),
+          Lang.to_int (f "y") )
+      in
+      new effect
+        ~kind
+        (fun buf ->
+          let round x = int_of_float (x +. 0.5) in
+          let width =
+            Video.Image.width buf |> float_of_int |> ( *. ) (c *. cx) |> round
+          in
+          let height =
+            Video.Image.height buf |> float_of_int |> ( *. ) (c *. cy) |> round
+          in
+          let dst = Video.Image.create width height in
+          Video.Image.scale buf dst;
+          Video.Image.blank buf;
+          Video.Image.fill_alpha buf 0;
+          Video.Image.add dst ~x:ox ~y:oy buf)
+        src)
