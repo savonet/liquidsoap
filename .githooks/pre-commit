@@ -2,11 +2,13 @@
 
 echo "--> Formatting ML files.. "
 
-FILES=`git status -s | grep -v '^D' | cut -d' ' -f3 | grep -E '\.ml$|\.mli$'`
+NEW_FILES=`git status --show-stash -s | grep -v '\->' | grep -v '^D' | cut -d' ' -f3 | grep -E '\.ml$|\.mli$'`
+RENAMED_FILES=`git status --show-stash -s | grep '\->' | cut -d'>' -f 2 | grep -E '\.ml$|\.mli$'`
+FILES="${NEW_FILES} ${RENAMED_FILES}"
 
 OCAMLFORMAT=`which ocamlformat`
 
-if [ -z "${FILES}" ]; then
+if [ "${FILES}" = " " ]; then
   echo "No ML files in this commit!";
   exit 0
 fi
