@@ -28,6 +28,7 @@ New:
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
 - Add `file.metadata` (#1058).
+- Added read timeout to srt inputs.
 
 Changed:
 

@@ -23,6 +23,7 @@
 (** SRT input *)
 
 exception Done
+exception Timeout
 
 module G = Generator
 module Generator = Generator.From_audio_video_plus
@@ -197,17 +198,21 @@ class virtual base ~payload_size ~messageapi =
   end
 
 class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
-  ~on_disconnect ~messageapi ~dump format =
+  ~on_disconnect ~read_timeout ~messageapi ~dump format =
   let max_ticks = Frame.master_of_seconds max in
+  let read_timeout = int_of_float (read_timeout *. 1000.) in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let generator =
     Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined
   in
+  let poll_handler = Srt.Poll.create () in
   object (self)
     inherit base ~payload_size ~messageapi
 
     inherit Source.source ~name:"input.srt" kind as super
+
+    initializer Gc.finalise_last (fun () -> Srt.Poll.release poll_handler) self
 
     val input_mutex = Mutex.create ()
 
@@ -249,6 +254,21 @@ class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
       self#log#info "Setting up socket to listen at %s"
         (self#string_of_address bind_address)
 
+    method private read_wait s =
+      Srt.setsockflag s Srt.rcvsyn false;
+      Srt.Poll.add_usock poll_handler s `Read;
+      let k () =
+        Srt.Poll.remove_usock poll_handler s;
+        Srt.setsockflag s Srt.rcvsyn true
+      in
+      Tutils.finalize ~k (fun () ->
+          match
+            Srt.Poll.wait poll_handler ~max_read:1 ~max_write:0
+              ~timeout:read_timeout
+          with
+            | [r], [] when r = s -> ()
+            | _ -> raise Timeout)
+
     method private create_decoder socket =
       let create_decoder =
         match Decoder.get_stream_decoder format kind with
@@ -260,6 +280,7 @@ class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
       let read bytes ofs len =
         if self#should_stop then raise Done;
         if Buffer.length buf < len then (
+          self#read_wait socket;
           let input = Srt.recvmsg socket tmp payload_size in
           if input = 0 then raise End_of_file;
           Buffer.add_subbytes buf tmp 0 input;
@@ -400,6 +421,12 @@ let () =
         Some
           "Dump received data to the given file for debugging. Unused is empty."
       );
+      ( "read_timeout",
+        Lang.float_t,
+        Some (Lang.float 5.),
+        Some
+          "Abort client connection when client fails to send data for more \
+           than the given time in seconds." );
       ( "content_type",
         Lang.string_t,
         Some (Lang.string "application/ffmpeg"),
@@ -428,6 +455,7 @@ let () =
       let max = Lang.to_float (List.assoc "max" p) in
       let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
       let payload_size = Lang.to_int (List.assoc "payload_size" p) in
+      let read_timeout = Lang.to_float (List.assoc "read_timeout" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let on_connect () =
         ignore (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) [])
@@ -445,7 +473,7 @@ let () =
         | _ -> () );
       ( new input
           ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~messageapi ~max ~dump format
+          ~on_disconnect ~messageapi ~max ~dump format ~read_timeout
         :> Source.source ))
 
 class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
