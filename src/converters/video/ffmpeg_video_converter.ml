@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Video_converter
-open FFmpeg
 module Img = Image.Generic
 module P = Img.Pixel
 

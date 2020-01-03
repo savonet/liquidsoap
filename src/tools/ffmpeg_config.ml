@@ -35,6 +35,5 @@ let () =
                  `Quiet
          in
          let level = conf_level#get in
-         FFmpeg.Avutil.Log.set_level verbosity;
-         FFmpeg.Avutil.Log.set_callback (fun s ->
-             log#f level "%s" (String.trim s))))
+         Avutil.Log.set_level verbosity;
+         Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s))))

@@ -22,8 +22,6 @@
 
 (** FFMPEG encoder *)
 
-open FFmpeg
-
 module Resampler =
   Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
 
@@ -44,10 +42,10 @@ let convert_options opts =
       | Some v -> Hashtbl.replace opts name (fn v)
   in
   convert "sample_fmt" (function
-    | `String fmt -> `Int FFmpeg.Avutil.Sample_format.(get_id (find fmt))
+    | `String fmt -> `Int Avutil.Sample_format.(get_id (find fmt))
     | _ -> assert false);
   convert "channel_layout" (function
-    | `String layout -> `Int FFmpeg.Avutil.Channel_layout.(get_id (find layout))
+    | `String layout -> `Int Avutil.Channel_layout.(get_id (find layout))
     | _ -> assert false)
 
 let encoder ffmpeg meta =

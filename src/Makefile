@@ -31,13 +31,13 @@ ogg_muxer = \
 audio_converters = \
 	converters/audio/native_audio_converter.ml \
 	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml) \
-	$(if $(W_FFMPEG),converters/audio/ffmpeg_audio_converter.ml)
+	$(if $(W_FFMPEG_SWRESAMPLE),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
 	converters/video_converter.ml \
 	converters/video/native_video_converter.ml \
 	$(if $(W_GAVL),converters/video/gavl_converter.ml) \
-	$(if $(W_FFMPEG),converters/video/ffmpeg_video_converter.ml)
+	$(if $(W_FFMPEG_SWSCALE),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
 	decoder/metadata_decoder.ml \
@@ -45,7 +45,7 @@ decoders = \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
 	decoder/id3v2_plug.ml \
-	$(if $(W_FFMPEG),decoder/ffmpeg_decoder.ml) \
+	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_decoder.ml) \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
@@ -127,7 +127,7 @@ encoders = \
 	$(if $(W_SHINE),encoder/shine_encoder.ml) \
 	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
-        $(if $(W_FFMPEG),encoder/ffmpeg_encoder.ml) \
+        $(if $(W_FFMPEG_ENCODER),encoder/ffmpeg_encoder.ml) \
 	$(if $(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml) \
 	$(if $(W_TAGLIB),encoder/taglib_id3v2.ml) \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
@@ -184,7 +184,7 @@ tools = tools/extralib.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
-	$(if $(W_FFMPEG),tools/ffmpeg_config.ml) \
+	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_config.ml) \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
