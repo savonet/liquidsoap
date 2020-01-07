@@ -536,11 +536,11 @@ AC_CHECK_OCAML_BINDING([gavl])
 #
 
 AC_CHECK_OCAML_BINDING([ffmpeg-avutil], [], [], [], [avutil])
-AC_CHECK_OCAML_BINDING([ffmpeg-avcodec], [avutil], [], [], [avcodec])
-AC_CHECK_OCAML_BINDING([ffmpeg-av], [avutil avcodec], [], [], [av])
-AC_CHECK_OCAML_BINDING([ffmpeg-avfilter], [avutil], [], [], [avfilter])
-AC_CHECK_OCAML_BINDING([ffmpeg-swresample], [avutil avcodec], [], [], [swresample])
-AC_CHECK_OCAML_BINDING([ffmpeg-swscale], [avutil], [], [], [swscale])
+AC_CHECK_OCAML_BINDING([ffmpeg-avcodec], [ffmpeg-avutil], [], [], [avcodec])
+AC_CHECK_OCAML_BINDING([ffmpeg-av], [ffmpeg-avutil ffmpeg-avcodec], [], [], [av])
+AC_CHECK_OCAML_BINDING([ffmpeg-avfilter], [ffmpeg-avutil], [], [], [avfilter])
+AC_CHECK_OCAML_BINDING([ffmpeg-swresample], [ffmpeg-avutil ffmpeg-avcodec], [], [], [swresample])
+AC_CHECK_OCAML_BINDING([ffmpeg-swscale], [ffmpeg-avutil], [], [], [swscale])
 
 if test -n "${W_FFMPEG_AV}" && test -n "${W_FFMPEG_AVFILTER}" &&
    test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
