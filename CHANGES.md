@@ -28,7 +28,7 @@ New:
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
 - Add `file.metadata` (#1058).
-- Add `predicate.activates` (#1075).
+- Add `predicate.activates`, `predicate.changes`, `predicate.once` (#1075).
 
 Changed:
 
