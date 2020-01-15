@@ -203,8 +203,7 @@ let () =
 
 let () =
   Lang.add_operator "video.scale"
-    [
-      ( "scale",
+    [ ( "scale",
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Scaling coefficient in both directions." );
@@ -212,8 +211,7 @@ let () =
       ("yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.");
       ("x", Lang.int_t, Some (Lang.int 0), Some "x offset.");
       ("y", Lang.int_t, Some (Lang.int 0), Some "y offset.");
-      ("", Lang.source_t kind, None, None);
-    ]
+      ("", Lang.source_t kind, None, None) ]
     ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
     ~descr:"Scale and translate video."
     (fun p kind ->
