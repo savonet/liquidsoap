@@ -675,13 +675,3 @@ def switch.nth(~id="",~track_sensitive=true,~on_unavailable={()},n,l)
   l = list.mapi(fun (i, s) -> ({p(i, s)}, s), l)
   switch(id=id, track_sensitive=track_sensitive, l)
 end
-
-sources = []
-
-n = ref(0)
-
-def on_unavailable()
-  n := list.index(source.is_ready, sources)
-end
-
-switch.nth(on_unavailable=on_unavailable, {!n}, sources)
