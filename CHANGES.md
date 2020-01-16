@@ -14,6 +14,7 @@ New:
 - Use a pager to display long help results (#1017).
 - Added `list.init`.
 - Added `list.ind`.
+- Added `list.index`.
 - Added `request.id`.
 - Added a profiler for the language. It can be enabled with `profiler.enable` and
   the results are obtained with `profiler.stats.string` (#1027).

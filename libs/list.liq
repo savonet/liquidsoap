@@ -184,6 +184,14 @@ def rec list.exists(p, l)
   list.case(l, false, f)
 end
 
+# First index where a predicate is satisfied.
+# @category List
+# @param p Predicate.
+# @param l List.
+def rec list.index(p, l)
+  list.ind(l, 0, fun (x, l, r) -> if p(x) then 0 else r+1 end)
+end
+
 # list.mem_assoc(key,l) returns true if l contains a pair (key,value).
 # @category List
 # @param a Key to look for
