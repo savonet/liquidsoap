@@ -657,3 +657,31 @@ def rec while(cond, f)
     while(cond, f)
   end
 end
+
+# Switch to the nth source in a list.
+# @category Source / Track Processing
+# @param ~id Source id.
+# @param ~track_sensitive Re-select only on end of tracks.
+# @param ~on_unavailable Function called when the source becomes unavailable.
+# @param n Index of the source to select.
+# @param l List of sources.
+def switch.nth(~id="",~track_sensitive=true,~on_unavailable={()},n,l)
+  n = to_int_getter(n)
+  def p(i, s)
+    ans = i == n()
+    if ans and not (source.is_ready(s)) then on_unavailable() end
+    ans
+  end
+  l = list.mapi(fun (i, s) -> ({p(i, s)}, s), l)
+  switch(id=id, track_sensitive=track_sensitive, l)
+end
+
+sources = []
+
+n = ref(0)
+
+def on_unavailable()
+  n := list.index(source.is_ready, sources)
+end
+
+switch.nth(on_unavailable=on_unavailable, {!n}, sources)
