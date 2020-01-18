@@ -123,7 +123,7 @@ care about the WAV length header then you should use this parameter.
 
 FFmpeg
 ------
-The `%ffmpeg` encoder is the latest addition to our collection, starting with version `1.4.0`. It is only for audio encoding for now. You need to have [ocaml-ffmpeg](https://github.com/savonet/ocaml-ffmpeg) installed and up-to date to enable the encoder during liquidsoap's build.
+The `%ffmpeg` encoder is the latest addition to our collection, starting with version `1.4.1`. It is only for audio encoding for now. You need to have [ocaml-ffmpeg](https://github.com/savonet/ocaml-ffmpeg) installed and up-to date to enable the encoder during liquidsoap's build.
 
 The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpeg.org/ffmpeg-formats.html#Muxers) and [encoders](https://www.ffmpeg.org/ffmpeg-codecs.html), including private configuration options. Configuration value are passed as key/values, with values being of types: `string`, `int`, or `float`. If a configuration is not recognized (or: unused), it will raise an error during the instantiation of the encoder. Here are some configuration examples:
 
