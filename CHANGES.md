@@ -69,6 +69,12 @@ Fixed:
 - Make `blank()` source unavailable past is expected duration (#668).
 - Fixed implementation details with `cross` operator.
 
+1.4.1 (18-02-2020)
+=====
+
+Fixed:
+- Fixed `fade.final` and `fade.initial` (#1009)
+
 1.4.0 (29-09-2019)
 =====
 
