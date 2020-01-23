@@ -30,7 +30,9 @@ let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "ao")
 
 class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   ~options ?channels_matrix source start =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels =
+    (Frame.type_of_kind (Lang.to_source source)#kind).Frame.audio
+  in
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
