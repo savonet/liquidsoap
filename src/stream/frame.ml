@@ -464,7 +464,7 @@ let content_of_type ?force (frame : t) pos content_type =
   let rec aux start_pos acc = function
     | [] -> assert false
     | (end_pos, content) :: l ->
-        if end_pos <= pos then aux end_pos ((end_pos, content) :: acc) l
+        if end_pos < pos then aux end_pos ((end_pos, content) :: acc) l
         else if
           (* We are starting somewhere inside that layer. *)
           content_has_type content content_type
