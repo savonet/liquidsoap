@@ -458,46 +458,52 @@ let content (frame : t) pos =
   * one. Hence, the caller of this function should always assume the
   * invalidation of all data after the given position. *)
 let content_of_type ?force (frame : t) pos content_type =
-  (* [acc] contains the previous layers in reverse order,
-   * [start_pos] is the starting position of the first layer in [acc],
-   * and we're walking through the next layers. *)
-  let rec aux start_pos acc = function
-    | [] -> assert false
-    | (end_pos, content) :: l ->
-        if end_pos < pos then aux end_pos ((end_pos, content) :: acc) l
-        else if
-          (* We are starting somewhere inside that layer. *)
-          content_has_type content content_type
-        then (
-          if l = [] then assert (end_pos = !!size)
-          else frame.contents <- List.rev ((!!size, content) :: acc);
-          assert (match force with Some c -> c = content | None -> true);
-          content )
-        else if pos = start_pos then (
-          (* We are erasing the current layer. *)
-            match acc with
-            | (_, content) :: acc when content_has_type content content_type ->
-                (* We must re-use the previous layer. *)
-                frame.contents <- List.rev ((!!size, content) :: acc);
-                assert (match force with Some c -> c = content | None -> true);
-                content
-            | _ ->
-                let content =
-                  match force with
-                    | None -> create_content content_type
-                    | Some c -> c
-                in
-                frame.contents <- List.rev ((!!size, content) :: acc);
-                content )
-        else (
-          let acc = (pos, content) :: acc in
-          let content =
-            match force with None -> create_content content_type | Some c -> c
-          in
-          frame.contents <- List.rev ((!!size, content) :: acc);
-          content )
-  in
-  aux 0 [] frame.contents
+  if pos = !!size then { audio = [||]; video = [||]; midi = [||] }
+  else (
+    (* [acc] contains the previous layers in reverse order,
+     * [start_pos] is the starting position of the first layer in [acc],
+     * and we're walking through the next layers. *)
+    let rec aux start_pos acc = function
+      | [] -> assert false
+      | (end_pos, content) :: l ->
+          if end_pos <= pos then aux end_pos ((end_pos, content) :: acc) l
+          else if
+            (* We are starting somewhere inside that layer. *)
+            content_has_type content content_type
+          then (
+            if l = [] then assert (end_pos = !!size)
+            else frame.contents <- List.rev ((!!size, content) :: acc);
+            assert (match force with Some c -> c = content | None -> true);
+            content )
+          else if pos = start_pos then (
+            (* We are erasing the current layer. *)
+              match acc with
+              | (_, content) :: acc when content_has_type content content_type
+                ->
+                  (* We must re-use the previous layer. *)
+                  frame.contents <- List.rev ((!!size, content) :: acc);
+                  assert (
+                    match force with Some c -> c = content | None -> true );
+                  content
+              | _ ->
+                  let content =
+                    match force with
+                      | None -> create_content content_type
+                      | Some c -> c
+                  in
+                  frame.contents <- List.rev ((!!size, content) :: acc);
+                  content )
+          else (
+            let acc = (pos, content) :: acc in
+            let content =
+              match force with
+                | None -> create_content content_type
+                | Some c -> c
+            in
+            frame.contents <- List.rev ((!!size, content) :: acc);
+            content )
+    in
+    aux 0 [] frame.contents )
 
 (** [hide_contents frame] removes all content layers from the frame,
   * and returns a function that restores them in their current state.

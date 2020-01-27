@@ -51,7 +51,7 @@ let get_content frame source =
     Some (content.video, v0, v1 - v0) )
   else None
 
-let content_of_type ~channels b =
+let content_of_type ~channels b pos =
   let ctype = { audio = 0; video = channels; midi = 0 } in
-  let content = content_of_type b (Frame.position b) ctype in
+  let content = content_of_type b (tov pos) ctype in
   content.video
