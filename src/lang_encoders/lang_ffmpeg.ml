@@ -29,59 +29,59 @@ let ffmpeg_gen params =
     {
       Ffmpeg_format.format = None;
       output = `Stream;
-      audio_codec = Some "libmp3lame";
-      video_codec = None;
       channels = 2;
       samplerate = Frame.audio_rate;
-      options = Hashtbl.create 0;
+      audio_codec = None;
+      video_codec = None;
+      audio_opts = Hashtbl.create 0;
+      video_opts = Hashtbl.create 0;
+      other_opts = Hashtbl.create 0;
     }
+  in
+  let rec parse_args opts = function
+    | [] -> ()
+    | (k, { term = Ground (String s); _ }) :: l ->
+        Hashtbl.add opts k (`String s);
+        parse_args opts l
+    | (k, { term = Ground (Int i); _ }) :: l ->
+        Hashtbl.add opts k (`Int i);
+        parse_args opts l
+    | (k, { term = Ground (Float i); _ }) :: l ->
+        Hashtbl.add opts k (`Float i);
+        parse_args opts l
+    | (_, t) :: _ -> raise (generic_error t)
   in
   List.fold_left
     (fun f -> function
-      | "format", { term = Ground (String fmt); _ } when fmt = "" ->
+      | `Option ("format", { term = Var s; _ }) when s = "none" ->
           { f with Ffmpeg_format.format = None }
-      | "format", { term = Ground (String fmt); _ } ->
+      | `Option ("format", { term = Ground (String fmt); _ }) ->
           { f with Ffmpeg_format.format = Some fmt }
-      | "audio_codec", { term = Var s; _ } when s = "none" ->
+      | `Option ("channels", { term = Ground (Int c); _ }) ->
+          { f with Ffmpeg_format.channels = c }
+      | `Option ("samplerate", { term = Ground (Int s); _ }) ->
+          { f with Ffmpeg_format.samplerate = Lazy.from_val s }
+      | `Option ("audio_codec", { term = Var s; _ }) when s = "none" ->
           { f with Ffmpeg_format.audio_codec = None; channels = 0 }
-      | "audio_codec", { term = Ground (String c); _ } when c = "" ->
+      | `Option ("audio_codec", { term = Ground (String c); _ }) ->
           { f with Ffmpeg_format.audio_codec = Some c }
-      | "audio_codec", { term = Ground (String c); _ } ->
-          { f with Ffmpeg_format.audio_codec = Some c }
-      | "video_codec", { term = Ground (String c); _ } when c = "" ->
-          { f with Ffmpeg_format.video_codec = None }
-      | "video_codec", { term = Ground (String c); _ } ->
+      | `Option ("video_codec", { term = Ground (String c); _ }) ->
           { f with Ffmpeg_format.video_codec = Some c }
-      | "channels", { term = Ground (Int i); _ }
-      | "ac", { term = Ground (Int i); _ }
-        when i = 0 ->
-          { f with Ffmpeg_format.channels = i; audio_codec = None }
-      | "channels", { term = Ground (Int i); _ }
-      | "ac", { term = Ground (Int i); _ } ->
-          { f with Ffmpeg_format.channels = i }
-      | "samplerate", { term = Ground (Int i); _ }
-      | "ar", { term = Ground (Int i); _ } ->
-          { f with Ffmpeg_format.samplerate = Lazy.from_val i }
-      | "sample_fmt", { term = Ground (String fmt); _ } ->
-          Hashtbl.add f.Ffmpeg_format.options "sample_fmt" (`String fmt);
+      | `Audio l ->
+          parse_args f.Ffmpeg_format.audio_opts l;
           f
-      | "channel_layout", { term = Ground (String layout); _ } ->
-          Hashtbl.add f.Ffmpeg_format.options "channel_layout" (`String layout);
+      | `Video l ->
+          parse_args f.Ffmpeg_format.video_opts l;
           f
-      | k, { term = Ground (String s); _ } ->
-          Hashtbl.add f.Ffmpeg_format.options k (`String s);
+      | `Option (k, { term = Ground (String s); _ }) ->
+          Hashtbl.add f.Ffmpeg_format.other_opts k (`String s);
           f
-      | k, { term = Ground (Int i); _ } ->
-          Hashtbl.add f.Ffmpeg_format.options k (`Int i);
+      | `Option (k, { term = Ground (Int i); _ }) ->
+          Hashtbl.add f.Ffmpeg_format.other_opts k (`Int i);
           f
-      | k, { term = Ground (Float i); _ } ->
-          Hashtbl.add f.Ffmpeg_format.options k (`Float i);
-          f
-      | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
-          { f with Ffmpeg_format.channels = 1 }
-      | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
-          { f with Ffmpeg_format.channels = 2 }
-      | _, t -> raise (generic_error t))
+      | `Option (k, { term = Ground (Float i); _ }) ->
+          Hashtbl.add f.Ffmpeg_format.other_opts k (`Float i);
+          f | `Option (_, t) -> raise (generic_error t))
     defaults params
 
 let make params = Encoder.Ffmpeg (ffmpeg_gen params)

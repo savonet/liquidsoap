@@ -88,6 +88,8 @@ let mk_encoder ~ffmpeg ~options output =
             ~sample_rate:(Lazy.force ffmpeg.Ffmpeg_format.samplerate)
             ()
         in
+        let audio_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.audio_opts in
+        Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.audio_opts;
         Hashtbl.iter (Hashtbl.add opts) options;
         let out_sample_format =
           Avcodec.Audio.find_best_sample_format audio_codec `Dbl
@@ -106,6 +108,13 @@ let mk_encoder ~ffmpeg ~options output =
         let stream = Av.new_audio_stream ~opts ~codec:audio_codec output in
         Hashtbl.filter_map_inplace
           (fun l v -> if Hashtbl.mem opts l then Some v else None)
+          audio_opts;
+        if Hashtbl.length audio_opts > 0 then
+          failwith
+            (Printf.sprintf "Unrecognized options: %s"
+               (Ffmpeg_format.string_of_options audio_opts));
+        Hashtbl.filter_map_inplace
+          (fun l v -> if Hashtbl.mem opts l then Some v else None)
           options;
         (stream, resampler))
       audio_codec
@@ -118,17 +127,26 @@ let mk_encoder ~ffmpeg ~options output =
         in
         let frame_rate = Lazy.force Frame.video_rate in
         let time_base = { Avutil.num = 1; den = frame_rate } in
+        let scaler =
+          Scaler.create [] video_width video_height `Yuv420p video_width
+            video_height pixel_format
+        in
         let opts =
           Av.mk_video_opts ~pixel_format ~frame_rate ~time_base
             ~size:(video_width, video_height)
             ()
         in
+        let video_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.video_opts in
+        Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.video_opts;
         Hashtbl.iter (Hashtbl.add opts) options;
-        let scaler =
-          Scaler.create [] video_width video_height `Yuv420p video_width
-            video_height pixel_format
-        in
         let stream = Av.new_video_stream ~opts ~codec:video_codec output in
+        Hashtbl.filter_map_inplace
+          (fun l v -> if Hashtbl.mem opts l then Some v else None)
+          video_opts;
+        if Hashtbl.length video_opts > 0 then
+          failwith
+            (Printf.sprintf "Unrecognized options: %s"
+               (Ffmpeg_format.string_of_options video_opts));
         Hashtbl.filter_map_inplace
           (fun l v -> if Hashtbl.mem opts l then Some v else None)
           options;
@@ -179,7 +197,7 @@ let insert_metadata ~encoder m =
 let encoder ffmpeg meta =
   let buf = Strings.Mutable.empty () in
   let make () =
-    let options = Hashtbl.copy ffmpeg.Ffmpeg_format.options in
+    let options = Hashtbl.copy ffmpeg.Ffmpeg_format.other_opts in
     convert_options options;
     let write str ofs len =
       Strings.Mutable.add_subbytes buf str ofs len;
