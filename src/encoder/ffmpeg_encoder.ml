@@ -60,9 +60,10 @@ let convert_options opts =
     | _ -> assert false)
 
 let mk_format ffmpeg =
-  match ffmpeg.Ffmpeg_format.format with
-    | Some short_name -> Av.Format.guess_output_format ~short_name ()
-    | None -> None
+  match (ffmpeg.Ffmpeg_format.format, ffmpeg.Ffmpeg_format.output) with
+    | Some short_name, _ -> Av.Format.guess_output_format ~short_name ()
+    | None, `Url filename -> Av.Format.guess_output_format ~filename ()
+    | _ -> None
 
 let mk_encoder ~ffmpeg ~options output =
   let audio_codec =

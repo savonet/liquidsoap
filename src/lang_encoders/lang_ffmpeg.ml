@@ -27,7 +27,7 @@ open Lang_encoders
 let ffmpeg_gen params =
   let defaults =
     {
-      Ffmpeg_format.format = Some "mp3";
+      Ffmpeg_format.format = None;
       output = `Stream;
       audio_codec = Some "libmp3lame";
       video_codec = None;
@@ -42,14 +42,20 @@ let ffmpeg_gen params =
           { f with Ffmpeg_format.format = None }
       | "format", { term = Ground (String fmt); _ } ->
           { f with Ffmpeg_format.format = Some fmt }
+      | "audio_codec", { term = Var s; _ } when s = "none" ->
+          { f with Ffmpeg_format.audio_codec = None; channels = 0 }
       | "audio_codec", { term = Ground (String c); _ } when c = "" ->
-          { f with Ffmpeg_format.audio_codec = None }
+          { f with Ffmpeg_format.audio_codec = Some c }
       | "audio_codec", { term = Ground (String c); _ } ->
           { f with Ffmpeg_format.audio_codec = Some c }
       | "video_codec", { term = Ground (String c); _ } when c = "" ->
           { f with Ffmpeg_format.video_codec = None }
       | "video_codec", { term = Ground (String c); _ } ->
           { f with Ffmpeg_format.video_codec = Some c }
+      | "channels", { term = Ground (Int i); _ }
+      | "ac", { term = Ground (Int i); _ }
+        when i = 0 ->
+          { f with Ffmpeg_format.channels = i; audio_codec = None }
       | "channels", { term = Ground (Int i); _ }
       | "ac", { term = Ground (Int i); _ } ->
           { f with Ffmpeg_format.channels = i }
