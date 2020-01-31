@@ -31,6 +31,11 @@ let vot ?round x =
     | None | Some `Down -> Frame.video_of_master x
     | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate - 1)
 
+let content b pos =
+  let stop, content = content b (vot pos) in
+  assert (stop = Lazy.force size);
+  content.video
+
 let size _ = vot (Lazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
 let add_break t i = add_break t (tov i)

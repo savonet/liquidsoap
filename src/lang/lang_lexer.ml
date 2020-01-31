@@ -74,6 +74,7 @@ let var_ref =
   [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '.' | '\'')]
 
 let var = [%sedlex.regexp? var_lit | so | math | other_math]
+let ffmpeg_var = [%sedlex.regexp? var, ':', ('a' | 'v' | 's')]
 
 let time =
   [%sedlex.regexp?
@@ -219,6 +220,7 @@ let rec token lexbuf =
         let t2 = String.trim t2 in
         INTERVAL (parse_time t1, parse_time t2)
     | var -> VAR (Sedlexing.Utf8.lexeme lexbuf)
+    | ffmpeg_var -> FFMPEG_VAR (Sedlexing.Utf8.lexeme lexbuf)
     | '"' ->
         read_string '"'
           (fst (Sedlexing.lexing_positions lexbuf))

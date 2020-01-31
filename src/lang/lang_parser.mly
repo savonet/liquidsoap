@@ -172,6 +172,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
+%token <string> FFMPEG_VAR
 %token OGG FLAC FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
@@ -265,7 +266,7 @@ expr:
   | SHINE app_opt                    { mk_enc ~pos:$loc (Lang_shine.make $2) }
   | FDKAAC app_opt                   { mk_enc ~pos:$loc (Lang_fdkaac.make $2) }
   | FLAC app_opt                     { mk_enc ~pos:$loc (Lang_flac.make $2) }
-  | FFMPEG app_opt                   { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
+  | FFMPEG ffmpeg_opt                { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
   | EXTERNAL app_opt                 { mk_enc ~pos:$loc (Lang_external_encoder.make $2) }
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
@@ -374,6 +375,15 @@ app_list:
   | app_list_elem                { [$1] }
   | app_list_elem COMMA app_list { $1::$3 }
 
+ffmpeg_list_elem:
+  | FFMPEG_VAR GETS expr { $1,$3 }
+  | VAR GETS expr        { $1,$3 }
+  | expr                 { "",$1 }
+ffmpeg_list:
+  |                                    { [] }
+  | ffmpeg_list_elem                   { [$1] }
+  | ffmpeg_list_elem COMMA ffmpeg_list { $1::$3 }
+
 bindvar:
   | VAR { $1 }
   | UNDERSCORE { "_" }
@@ -426,6 +436,10 @@ if_elsif:
                                       mk_fun ~pos:$loc [] (mk ~pos:$loc (App (op,["",cond; "else",else_b; "then",then_b]))) }
   | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
   |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
+
+ffmpeg_opt:
+  | %prec no_app { [] }
+  | LPAR ffmpeg_list RPAR { $2 }
 
 app_opt:
   | %prec no_app { [] }

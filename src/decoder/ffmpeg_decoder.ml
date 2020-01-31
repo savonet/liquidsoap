@@ -22,6 +22,9 @@
 
 (** Decode and read metadata using ffmpeg. *)
 
+exception End_of_file
+exception No_stream
+
 let log = Log.make ["decoder"; "ffmpeg"]
 
 (** Configuration keys for ffmpeg. *)
@@ -38,76 +41,217 @@ let file_extensions =
 
 module ConverterInput = Swresample.Make (Swresample.Frame)
 module Converter = ConverterInput (Swresample.FltPlanarBigArray)
+module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered (G)
 
-let duration file =
-  let container = Av.open_input file in
-  Tutils.finalize
-    ~k:(fun () -> Av.close container)
-    (fun () ->
-      let _, stream, _ = Av.find_best_audio_stream container in
-      let duration = Av.get_duration stream ~format:`Millisecond in
-      Int64.to_float duration /. 1000.)
-
-exception End_of_file
-
-let create_decoder fname =
-  let remaining = ref (Frame.master_of_seconds (duration fname)) in
-  let container = Av.open_input fname in
-  (* Only audio for now *)
-  let _, stream, codec = Av.find_best_audio_stream container in
+let mk_audio_decoder ~put_audio container =
+  let idx, stream, codec = Av.find_best_audio_stream container in
   let sample_freq = Avcodec.Audio.get_sample_rate codec in
   let channel_layout = Avcodec.Audio.get_channel_layout codec in
   let target_sample_rate = Lazy.force Frame.audio_rate in
-  let decr_remaining, get_remaining =
-    let m = Mutex.create () in
-    let decr_remaining =
-      Tutils.mutexify m (fun v -> remaining := !remaining - v)
-    in
-    let get_remaining = Tutils.mutexify m (fun () -> !remaining) in
-    (decr_remaining, get_remaining)
-  in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
   let mk_converter () =
     Converter.create channel_layout ~in_sample_format:!in_sample_format
       sample_freq channel_layout target_sample_rate
   in
   let converter = ref (mk_converter ()) in
-  let convert frame =
-    let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
-    if !in_sample_format <> frame_in_sample_format then (
-      log#important "Sample format change detected!";
-      in_sample_format := frame_in_sample_format;
-      converter := mk_converter () );
-    let data = Converter.convert !converter frame in
-    let consumed = Frame.master_of_audio (Audio.length data) in
-    decr_remaining consumed;
-    data
+  ( idx,
+    stream,
+    fun frame gen ->
+      let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
+      if !in_sample_format <> frame_in_sample_format then (
+        log#important "Sample format change detected!";
+        in_sample_format := frame_in_sample_format;
+        converter := mk_converter () );
+      let content = Converter.convert !converter frame in
+      put_audio gen content 0 (Audio.length content) )
+
+let mk_video_decoder ~put_video container =
+  let idx, stream, codec = Av.find_best_video_stream container in
+  let pixel_format = Avcodec.Video.get_pixel_format codec in
+  let width = Avcodec.Video.get_width codec in
+  let height = Avcodec.Video.get_height codec in
+  let target_frame_rate = Lazy.force Frame.video_rate in
+  let target_width = Lazy.force Frame.video_width in
+  let target_height = Lazy.force Frame.video_height in
+  let scaler =
+    Scaler.create [] width height pixel_format target_width target_height
+      `Yuv420p
   in
-  let seek ticks =
-    let position = Frame.seconds_of_master ticks in
-    let position = Int64.of_float (position *. 1000.) in
+  let time_base = Av.get_time_base stream in
+  let pixel_aspect = Av.get_pixel_aspect stream in
+  let config = Avfilter.init () in
+  let buffer =
+    match
+      List.find_opt (fun { Avfilter.name } -> name = "buffer") Avfilter.buffers
+    with
+      | Some buffer -> buffer
+      | None -> failwith "Could not find buffer ffmpeg filter!"
+  in
+  let buffer =
+    let args =
+      [
+        `Pair ("video_size", `String (Printf.sprintf "%dx%d" width height));
+        `Pair ("pix_fmt", `String (Avutil.Pixel_format.to_string pixel_format));
+        `Pair ("time_base", `Rational time_base);
+        `Pair ("pixel_aspect", `Rational pixel_aspect);
+      ]
+    in
+    Avfilter.attach ~name:"buffer" ~args buffer config
+  in
+  let fps =
+    match
+      List.find_opt (fun { Avfilter.name } -> name = "fps") Avfilter.filters
+    with
+      | Some fps -> fps
+      | None -> failwith "Could not find fps ffmpeg filter!"
+  in
+  let fps =
+    let args =
+      [`Pair ("fps", `Int target_frame_rate); `Pair ("start_time", `Int 0)]
+    in
+    Avfilter.attach ~name:"fps" ~args fps config
+  in
+  let buffersink =
+    match
+      List.find_opt
+        (fun { Avfilter.name } -> name = "buffersink")
+        Avfilter.sinks
+    with
+      | Some buffersink -> buffersink
+      | None -> failwith "Could not find buffersink ffmpeg filter!"
+  in
+  let buffersink = Avfilter.attach ~name:"buffersink" buffersink config in
+  Avfilter.link
+    (List.hd Avfilter.(buffer.io.outputs.video))
+    (List.hd Avfilter.(fps.io.inputs.video));
+  Avfilter.link
+    (List.hd Avfilter.(fps.io.outputs.video))
+    (List.hd Avfilter.(buffersink.io.inputs.video));
+  let graph = Avfilter.launch config in
+  let _, input = List.hd Avfilter.(graph.inputs.video) in
+  let _, output = List.hd Avfilter.(graph.outputs.video) in
+  ( idx,
+    stream,
+    fun frame gen ->
+      input frame;
+      let rec flush () =
+        try
+          let frame = output () in
+          let img =
+            match Scaler.convert scaler frame with
+              | [| (y, sy); (u, s); (v, _) |] ->
+                  Image.YUV420.make target_width target_height y sy u v s
+              | _ -> assert false
+          in
+          let content = Video.single img in
+          put_video gen [| content |] 0 (Video.length content);
+          flush ()
+        with Avutil.Error `Eagain -> ()
+      in
+      flush () )
+
+let mk_decoder ~set_mode ~add_break ~audio ~video ~container =
+  let rec read_input_frame () =
+    try Av.read_input_frame container
+    with Avutil.Error `Invalid_data -> read_input_frame ()
+  in
+  let mode_set = ref false in
+  fun gen ->
+    if not !mode_set then (
+      match (audio, video) with
+        | Some _, Some _ -> set_mode gen `Both
+        | Some _, None -> set_mode gen `Audio
+        | None, Some _ -> set_mode gen `Video
+        | _ -> failwith "no content!" );
+    mode_set := true;
+    match (audio, video, read_input_frame ()) with
+      | Some (idx, _, decoder), _, `Audio (i, frame) when i = idx ->
+          decoder frame gen
+      | _, Some (idx, _, decoder), `Video (i, frame) when i = idx ->
+          decoder frame gen
+      | _ -> ()
+      | exception Avutil.Error `Eof ->
+          add_break ?sync:(Some `Drop) gen;
+          raise End_of_file
+
+let seek ~audio ~video ticks =
+  let position = Frame.seconds_of_master ticks in
+  let position = Int64.of_float (position *. 1000.) in
+  let seek stream =
     try
       Av.seek stream `Millisecond position [||];
       ticks
     with Avutil.Error _ -> 0
   in
-  let rec read_frame () =
-    try Av.read_frame stream with Avutil.Error `Invalid_data -> read_frame ()
+  match (audio, video) with
+    | Some (_, s, _), _ -> seek s
+    | _, Some (_, s, _) -> seek s
+    | _ -> raise No_stream
+
+let duration file =
+  let container = Av.open_input file in
+  Tutils.finalize
+    ~k:(fun () -> Av.close container)
+    (fun () ->
+      let duration = Av.get_input_duration container ~format:`Millisecond in
+      Int64.to_float duration /. 1000.)
+
+let create_decoder fname =
+  let duration = duration fname in
+  let remaining = ref duration in
+  let m = Mutex.create () in
+  let set_remaining stream frame =
+    Tutils.mutexify m
+      (fun () ->
+        let pts = Avutil.frame_pts frame in
+        let { Avutil.num; den } = Av.get_time_base stream in
+        let position =
+          Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
+        in
+        remaining := duration -. position)
+      ()
   in
-  let decode gen =
+  let get_remaining =
+    Tutils.mutexify m (fun () -> Frame.master_of_seconds !remaining)
+  in
+  let container = Av.open_input fname in
+  let audio =
     try
-      let frame = read_frame () in
-      let content = convert frame in
-      G.set_mode gen `Audio;
-      G.put_audio gen content 0 (Audio.length content)
-    with Avutil.Error `Eof ->
-      G.add_break gen;
-      raise End_of_file
+      let idx, stream, decoder =
+        mk_audio_decoder ~put_audio:G.put_audio container
+      in
+      Some
+        ( idx,
+          stream,
+          fun frame gen ->
+            set_remaining stream frame;
+            decoder frame gen )
+    with Avutil.Error _ -> None
+  in
+  let video =
+    try
+      let idx, stream, decoder =
+        mk_video_decoder ~put_video:G.put_video container
+      in
+      Some
+        ( idx,
+          stream,
+          fun frame gen ->
+            set_remaining stream frame;
+            decoder frame gen )
+    with Avutil.Error _ -> None
   in
   let close () = Av.close container in
-  ({ Decoder.seek; decode }, close, get_remaining)
+  ( {
+      Decoder.seek = seek ~audio ~video;
+      decode =
+        mk_decoder ~set_mode:G.set_mode ~add_break:G.add_break ~audio ~video
+          ~container;
+    },
+    close,
+    get_remaining )
 
 let create_file_decoder filename kind =
   let generator = G.create `Audio in
@@ -118,18 +262,50 @@ let create_file_decoder filename kind =
   in
   Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator
 
-(* Get the number of channels of audio in a file. *)
-let get_type filename =
-  let container = Av.open_input filename in
-  Tutils.finalize
-    ~k:(fun () -> Av.close container)
-    (fun () ->
+(* Get the type of an input container. *)
+let get_type ~url container =
+  let audio, descr =
+    try
       let _, _, codec = Av.find_best_audio_stream container in
       let channels = Avcodec.Audio.get_nb_channels codec in
       let rate = Avcodec.Audio.get_sample_rate codec in
-      log#info "ffmpeg recognizes %S as: (%dHz,%d channels)." filename rate
-        channels;
-      { Frame.audio = channels; video = 0; midi = 0 })
+      let codec_name =
+        Avcodec.Audio.string_of_id (Avcodec.Audio.get_params_id codec)
+      in
+      ( channels,
+        [
+          Printf.sprintf "audio: {codec: %s, %dHz, %d channel(s)}" codec_name
+            rate channels;
+        ] )
+    with Avutil.Error _ -> (0, [])
+  in
+  let video, descr =
+    try
+      let _, _, codec = Av.find_best_video_stream container in
+      let width = Avcodec.Video.get_width codec in
+      let height = Avcodec.Video.get_height codec in
+      let pixel_format =
+        Avutil.Pixel_format.to_string (Avcodec.Video.get_pixel_format codec)
+      in
+      let codec_name =
+        Avcodec.Video.string_of_id (Avcodec.Video.get_params_id codec)
+      in
+      ( 1,
+        Printf.sprintf "video: {codec: %s, %dx%d, %s}" codec_name width height
+          pixel_format
+        :: descr )
+    with Avutil.Error _ -> (0, descr)
+  in
+  if audio == 0 && video == 0 then failwith "No valid stream found in file.";
+  log#info "ffmpeg recognizes %S as: %s." url
+    (String.concat ", " (List.rev descr));
+  { Frame.audio; video; midi = 0 }
+
+let get_file_type filename =
+  let container = Av.open_input filename in
+  Tutils.finalize
+    ~k:(fun () -> Av.close container)
+    (fun () -> get_type ~url:filename container)
 
 let () =
   Decoder.file_decoders#register "FFMPEG"
@@ -145,7 +321,7 @@ let () =
         kind.Frame.audio = Frame.Variable
         || kind.Frame.audio = Frame.Succ Frame.Variable
         ||
-        if Frame.type_has_kind (get_type filename) kind then true
+        if Frame.type_has_kind (get_file_type filename) kind then true
         else (
           log#important "File %S has an incompatible number of channels."
             filename;
@@ -168,7 +344,7 @@ let check filename =
     | Some f -> List.mem (f filename) mime_types#get
     | None -> (
         try
-          ignore (get_type filename);
+          ignore (get_file_type filename);
           true
         with _ -> false )
 
@@ -177,53 +353,26 @@ let () = Request.dresolvers#register "FFMPEG" duration
 module Make (Generator : Generator.S_Asio) = struct
   let create_decoder input =
     let read = input.Decoder.read in
-    let seek =
+    let seek_input =
       match input.Decoder.lseek with
         | None -> None
         | Some fn -> Some (fun len _ -> fn len)
     in
-    let container = Av.open_input_stream ?seek read in
-    (* Only audio for now *)
-    let _, stream, codec = Av.find_best_audio_stream container in
-    let sample_freq = Avcodec.Audio.get_sample_rate codec in
-    let channel_layout = Avcodec.Audio.get_channel_layout codec in
-    let target_sample_rate = Lazy.force Frame.audio_rate in
-    let seek ticks =
-      let position = Frame.seconds_of_master ticks in
-      let position = Int64.of_float (position *. 1000.) in
-      try
-        Av.seek stream `Millisecond position [||];
-        ticks
-      with Avutil.Error _ -> 0
+    let container = Av.open_input_stream ?seek:seek_input read in
+    let audio =
+      try Some (mk_audio_decoder ~put_audio:Generator.put_audio container)
+      with Avutil.Error _ -> None
     in
-    let rec read_frame () =
-      try Av.read_frame stream
-      with Avutil.Error `Invalid_data -> read_frame ()
+    let video =
+      try Some (mk_video_decoder ~put_video:Generator.put_video container)
+      with Avutil.Error _ -> None
     in
-    let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
-    let mk_converter () =
-      Converter.create channel_layout ~in_sample_format:!in_sample_format
-        sample_freq channel_layout target_sample_rate
-    in
-    let converter = ref (mk_converter ()) in
-    let decode gen =
-      try
-        let frame = read_frame () in
-        let frame_in_sample_format =
-          Avutil.Audio.frame_get_sample_format frame
-        in
-        if !in_sample_format <> frame_in_sample_format then (
-          log#important "Sample format change detected!";
-          in_sample_format := frame_in_sample_format;
-          converter := mk_converter () );
-        let content = Converter.convert !converter frame in
-        Generator.set_mode gen `Audio;
-        Generator.put_audio gen content 0 (Audio.length content)
-      with Avutil.Error `Eof ->
-        Generator.add_break gen;
-        raise End_of_file
-    in
-    { Decoder.seek; decode }
+    {
+      Decoder.seek = seek ~audio ~video;
+      decode =
+        mk_decoder ~set_mode:Generator.set_mode ~add_break:Generator.add_break
+          ~audio ~video ~container;
+    }
 end
 
 module D_stream = Make (Generator.From_audio_video_plus)
