@@ -50,7 +50,7 @@ Changed:
 - Removed `playlist.once`, its behavior can be achieved by passing `"once"` to
   the `reload_mode` argument of `playlist` (#1015).
 - Removed `playlist.merged`: it is not that useful and can be achieved easily
-  with `merge_tracs` on a `playlist` (#1015).
+  with `merge_tracks` on a `playlist` (#1015).
 - Deprecated `playlist.safe` (#1015).
 - Renamed `add_timeout` to `thread.run.recurrent`, added `thread.run` variant,
   renamed `exec_at` to `thread.when` and renamed `mutexify` to `thread.mutexify`
