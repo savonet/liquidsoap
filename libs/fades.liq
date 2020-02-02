@@ -44,9 +44,13 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
       lin_shape
     end
 
-  start_time = source.time(s)
+  start_time = ref (-1.)
   def fade() =
-    t = source.time(s) - start_time
+    if !start_time < 0. then
+      start_time := source.time(s)
+    end
+
+    t = source.time(s) - !start_time
     if t >= duration then
       on_done ()
       stop
@@ -173,16 +177,21 @@ end
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.final(~id="fade.out",~duration=3.,
-             ~override_duration="liq_fade_out",
-             ~override_type="liq_fade_type",
-             ~type="lin",s) =
-  max_duration(id=id,duration,
-    fade.out(duration=duration,override_duration=override_duration,
-             override_type=override_type,type=type,s))
+def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
+  fn = mkfade(start=1.,stop=0.,type=type,duration=duration,s)
+  should_play = ref true
+
+  def fn() =
+    v = fn()
+    if v == 0. then
+      should_play := false
+    end
+    v
+  end
+
+  s = amplify(id=id,fn,s)
+  switch(track_sensitive=false,[({!should_play},s)])
 end
 
 
@@ -234,16 +243,10 @@ end
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.initial(~id="fade.in",~duration=3.,
-            ~override_duration="liq_fade_initial",
-            ~override_type="liq_fade_type",
-            ~type="lin",s) =
-  map_first_track(id=id,
-    fade.in(duration=duration,override_duration=override_duration,
-            override_type=override_type,type=type),s)
+def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
+  fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
+  amplify(id=id,fn,s)
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in

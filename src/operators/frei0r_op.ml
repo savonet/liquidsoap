@@ -178,7 +178,7 @@ class frei0r_source ~kind ~name bgra instance params =
         params ();
         let start = VFrame.position frame in
         let stop = VFrame.size () in
-        let rgb = VFrame.content_of_type frame ~channels:1 in
+        let rgb = VFrame.content_of_type frame ~channels:1 start in
         let rgb = rgb.(0) in
         for i = start to stop - 1 do
           let img = Video.get rgb i in

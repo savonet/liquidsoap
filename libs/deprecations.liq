@@ -20,7 +20,7 @@ register(name="[DEPRECATED] Harbor bind_addr",
          descr="IP addresses on which the harbor should listen.",
          on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")
 
-# Deprecated: this function has been replaced by input.external.rawaudio.
+# Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag hidden
 def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                    ~restart=true,~restart_on_error=false,
@@ -31,7 +31,7 @@ def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                           samplerate=samplerate,cmd)
 end
 
-# Deprecated: this function has been replaced by quote.
+# Deprecated: this function has been replaced by `quote`.
 # @flag hidden
 def quote(s) =
   deprecated("quote", "string.quote")
@@ -45,44 +45,53 @@ def playlist.safe(~id="", ~mime_type="", ~mode="randomize", ~on_track={()}, ~pre
   mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
 
-# Deprecated: this function has been replaced by thread.run.recurrent.
+# Deprecated: this function has been replaced by `thread.run.recurrent`.
 # @flag hidden
 def add_timeout(~fast=true, delay, f)
   deprecated("add_timeout", "thread.run.recurrent")
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
 
-# Deprecated: this function has been replaced by thread.when.
+# Deprecated: this function has been replaced by `thread.when`.
 # @flag hidden
 def exec_at(~freq=1., ~pred, f)
   deprecated("exec_at", "thread.when")
   thread.when(every=freq, pred, f)
 end
 
-# Deprecated: this function has been replaced by thread.mutexify.
+# Deprecated: this function has been replaced by `thread.mutexify`.
 # @flag hidden
 def mutexify(f)
   deprecated("mutexify", "thread.mutexify")
   thread.mutexify(f)
 end
 
-# Deprecated: this function has been replaced by file.which.
+# Deprecated: this function has been replaced by `file.which`.
 # @flag hidden
 def which(f)
   deprecated("which", "file.which")
   file.which(f)
 end
 
-# Deprecated: this function has been replaced by string.base64.decode.
+# Deprecated: this function has been replaced by `string.base64.decode`.
 # @flag hidden
 def base64.decode(s)
   deprecated("base64.decode", "string.base64.decode")
   string.base64.decode(s)
 end
 
-# Deprecated: this function has been replaced by string.base64.encode.
+# Deprecated: this function has been replaced by `string.base64.encode`.
 # @flag hidden
 def base64.encode(s)
   deprecated("base64.encode", "string.base64.encode")
   string.base64.encode(s)
+end
+
+# Deprecated: this function has been replaced with `playlist`, setting
+# `reload_mode` argument to `"once"`.
+def playlist.once(~id="",~random=false,~reload_mode="",
+                  ~default_duration=30.,~length=10.,~conservative=false,
+                  ~filter=fun(_)->true,uri)
+  mode = if random then "randomize" else "normal" end
+  playlist(reload_mode="once", id=id, mode=mode, conservative=conservative, default_duration=default_duration, check_next=filter, uri)
 end
