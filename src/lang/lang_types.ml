@@ -711,10 +711,6 @@ let rec ( <: ) a b =
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false )
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
-    (* The EVar cases doing bind are abusive because of subtyping.
-     * In general we would need subtyping constraints, but that's
-     * a very different story, and it would be very hairy for arrows.
-     * For now we do with a couple special cases regarding arities... *)
     | EVar (_, _), Any -> ()
     | EVar (_, _), Succ b' -> (
         (* This could be optimized to process a bunch of succ all at once.

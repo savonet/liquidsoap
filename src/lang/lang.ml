@@ -84,7 +84,7 @@ let kind_type_of_frame_kind kind =
   frame_kind_t ~audio ~video ~midi
 
 (** Given a Lang type that has been inferred, convert it to a kind.
-  * This might require to force some Any variables. *)
+  * This might require to force some At_least variables. *)
 let rec mul_of_type default t =
   match (T.deref t).T.descr with
     | T.Succ t -> Frame.Succ (mul_of_type (default - 1) t)

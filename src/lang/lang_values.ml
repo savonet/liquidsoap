@@ -71,7 +71,7 @@ let type_of_int n = add_t n zero_t
 
 (** A frame kind type is a purely abstract type representing a frame kind.
   * The parameters [audio,video,midi] are intended to be multiplicity types,
-  * i.e. types of the form Succ*Zero. *)
+  * i.e. types of the form Succ*(Zero|Any). *)
 let frame_kind_t ?pos ?level audio video midi =
   T.make ?pos ?level
     (T.Constr
