@@ -82,7 +82,7 @@ class filter ~kind (source : source) rc wet mode =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.rc"
     [
       ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");

@@ -164,7 +164,7 @@ class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
   end
 
 let () =
-  let out_t = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let out_t = Lang.kind_type_of_kind_format Lang.any in
   let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
   let master_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi in
   let aux_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi:Lang.zero_t in
@@ -187,7 +187,7 @@ let () =
       new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
 
 let () =
-  let out_t = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let out_t = Lang.kind_type_of_kind_format Lang.any in
   let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
   let master_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi in
   let aux_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi:Lang.zero_t in
@@ -211,7 +211,7 @@ let () =
       new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
 
 let add_audio_mux label n =
-  let master_t = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let master_t = Lang.kind_type_of_kind_format Lang.any in
   let aux_t =
     Lang.frame_kind_t ~audio:(Lang.type_of_int n) ~video:Lang.zero_t
       ~midi:Lang.zero_t

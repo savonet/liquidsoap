@@ -172,9 +172,9 @@ let () =
     ~kind:
       (Lang.Constrained
          {
-           Frame.audio = Lang.Any_fixed 0;
+           Frame.audio = Lang.At_least 0;
            video = Lang.Fixed 0;
-           midi = Lang.Any_fixed 1;
+           midi = Lang.At_least 1;
          })
     ~category:Lang.Input ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."

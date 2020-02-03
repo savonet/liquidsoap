@@ -144,11 +144,7 @@ let process_request s =
   load_libs ();
   secondary_task := true;
   let kind =
-    {
-      Frame.audio = Frame.Variable;
-      Frame.video = Frame.Variable;
-      Frame.midi = Frame.Variable;
-    }
+    { Frame.audio = Frame.Any; Frame.video = Frame.Any; Frame.midi = Frame.Any }
   in
   let req = Request.create ~kind s in
   match Request.resolve req 20. with

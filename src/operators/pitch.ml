@@ -109,7 +109,7 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "pitch"
     [
       ( "length",

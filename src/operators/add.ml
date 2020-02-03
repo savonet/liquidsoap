@@ -163,8 +163,8 @@ let () =
   let kind =
     Lang.Constrained
       {
-        Frame.audio = Lang.Any_fixed 0;
-        video = Lang.Any_fixed 0;
+        Frame.audio = Lang.At_least 0;
+        video = Lang.At_least 0;
         midi = Lang.Fixed 0;
       }
   in
@@ -223,7 +223,7 @@ let tile_pos n =
   horiz (n / 2) (n - (n / 2))
 
 let () =
-  let kind = Lang.any_fixed_with ~video:1 () in
+  let kind = Lang.any_with ~video:1 () in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.tile" ~category:Lang.VideoProcessing
     ~descr:"Tile sources (same as add but produces tiles of videos)."

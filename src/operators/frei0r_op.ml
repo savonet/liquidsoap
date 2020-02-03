@@ -306,9 +306,7 @@ let register_plugin fname =
       | Frei0r.Mixer3 -> (3, 1)
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
-  let k =
-    if inputs = 0 then Lang.video_only else Lang.any_fixed_with ~video:1 ()
-  in
+  let k = if inputs = 0 then Lang.video_only else Lang.any_with ~video:1 () in
   let k = Lang.kind_type_of_kind_format k in
   let liq_params, params = params plugin info in
   let liq_params =

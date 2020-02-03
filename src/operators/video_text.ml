@@ -108,7 +108,7 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
   end
 
 let register name init render_text =
-  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ()) in
   let add_operator op =
     Lang.add_operator op
       [

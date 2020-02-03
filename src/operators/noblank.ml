@@ -227,7 +227,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
       done
   end
 
-let kind = Lang.kind_type_of_kind_format Lang.any_fixed
+let kind = Lang.kind_type_of_kind_format Lang.any
 
 let proto =
   [

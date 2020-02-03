@@ -60,7 +60,7 @@ class midimeter ~kind source =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "midimeter"
     [("", Lang.source_t k, None, None)]
     ~kind:(Lang.Unconstrained k) ~category:Lang.Visualization

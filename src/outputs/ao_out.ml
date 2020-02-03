@@ -100,7 +100,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   end
 
 let () =
-  let kind = Lang.any_fixed_with ~audio:1 () in
+  let kind = Lang.any_with ~audio:1 () in
   let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao" ~active:true
     ( Output.proto

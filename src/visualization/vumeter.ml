@@ -71,7 +71,7 @@ class vumeter ~kind source scroll =
   end
 
 let () =
-  let format = Lang.any_fixed_with ~audio:1 () in
+  let format = Lang.any_with ~audio:1 () in
   let k = Lang.kind_type_of_kind_format format in
   Lang.add_operator "vumeter"
     [

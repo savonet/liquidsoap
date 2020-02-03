@@ -210,7 +210,7 @@ let duration = delayed (fun () -> float !!size /. float !!master_rate)
 (** Data types *)
 
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
-type multiplicity = Variable | Zero | Succ of multiplicity
+type multiplicity = Any | Zero | Succ of multiplicity
 
 (** High-level, abstract and imprecise stream content type.
   * This controls a changing content type.
@@ -234,13 +234,13 @@ and midi_t = MIDI.buffer
   * TODO this is the other way around... it's correct in Lang, phew! *)
 
 let rec mul_sub_mul = function
-  | _, Variable -> true
+  | _, Any -> true
   | Zero, Zero -> true
   | Succ a, Succ b -> mul_sub_mul (a, b)
   | _ -> false
 
 let rec int_sub_mul = function
-  | _, Variable -> true
+  | _, Any -> true
   | n, Succ m when n > 0 -> int_sub_mul (n - 1, m)
   | 0, Zero -> true
   | _ -> false
@@ -278,7 +278,7 @@ let type_of_content c =
 
 let type_of_kind k =
   let rec aux def = function
-    | Variable -> max 0 def
+    | Any -> max 0 def
     | Zero -> 0
     | Succ m -> 1 + aux (def - 1) m
   in
@@ -293,13 +293,13 @@ let rec mul_of_int x = if x <= 0 then Zero else Succ (mul_of_int (x - 1))
 let rec add_mul x = function
   | Zero -> x
   | Succ y -> Succ (add_mul y x)
-  | Variable -> if x = Variable then x else add_mul Variable x
+  | Any -> if x = Any then x else add_mul Any x
 
 let string_of_mul m =
   let rec aux acc = function
     | Succ m -> aux (acc + 1) m
     | Zero -> string_of_int acc
-    | Variable -> string_of_int acc ^ "+"
+    | Any -> string_of_int acc ^ "+"
   in
   aux 0 m
 

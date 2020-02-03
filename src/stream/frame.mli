@@ -29,7 +29,7 @@ type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
 
 (** Multiplicity of a field, used in types to impose constraints on channels
     (empty, variable, at least k, etc.). *)
-type multiplicity = Variable | Zero | Succ of multiplicity
+type multiplicity = Any | Zero | Succ of multiplicity
 
 (** Multiplicity of each field of a frame. *)
 type content_kind = (multiplicity, multiplicity, multiplicity) fields

@@ -180,7 +180,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
   Lang.add_operator "output.portaudio" ~active:true
     ( Output.proto
     @ [

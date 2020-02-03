@@ -74,7 +74,7 @@ class amplify ~kind (source : source) override_field coeff =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "amplify"
     [
       ("", Lang.float_getter_t (), None, Some "Multiplicative factor.");

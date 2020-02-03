@@ -68,7 +68,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
   end
 
 (* The five first variables ('a,'b...) are used for getters. *)
-let k = Lang.kind_type_of_kind_format Lang.any_fixed
+let k = Lang.kind_type_of_kind_format Lang.any
 
 let proto =
   [

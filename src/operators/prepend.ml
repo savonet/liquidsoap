@@ -146,7 +146,7 @@ class prepend ~kind ~merge source f =
   end
 
 let register =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "prepend"
     [
       ( "merge",

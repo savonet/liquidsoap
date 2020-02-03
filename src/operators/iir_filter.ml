@@ -456,7 +456,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.butterworth.high"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");

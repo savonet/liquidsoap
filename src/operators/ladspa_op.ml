@@ -298,8 +298,7 @@ let register_descr plugin_name descr_n d inputs outputs =
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
   let k =
-    Lang.kind_type_of_kind_format
-      (if mono then Lang.any_fixed else Lang.audio_n ni)
+    Lang.kind_type_of_kind_format (if mono then Lang.any else Lang.audio_n ni)
   in
   let liq_params =
     liq_params @ if ni = 0 then [] else [("", Lang.source_t k, None, None)]

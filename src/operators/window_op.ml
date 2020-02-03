@@ -142,13 +142,13 @@ let () =
   let stereo value =
     Lang.product (Lang.float value.(0)) (Lang.float value.(1))
   in
-  declare RMS "" Lang.any_fixed Lang.float_t mean;
+  declare RMS "" Lang.any Lang.float_t mean;
   declare RMS ".stereo"
-    (Lang.any_fixed_with ~audio:2 ())
+    (Lang.any_with ~audio:2 ())
     (Lang.product_t Lang.float_t Lang.float_t)
     stereo;
-  declare Peak "" Lang.any_fixed Lang.float_t mean;
+  declare Peak "" Lang.any Lang.float_t mean;
   declare Peak ".stereo"
-    (Lang.any_fixed_with ~audio:2 ())
+    (Lang.any_with ~audio:2 ())
     (Lang.product_t Lang.float_t Lang.float_t)
     stereo

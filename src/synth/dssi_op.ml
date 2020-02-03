@@ -134,7 +134,7 @@ let register_descr plugin_name descr_n descr outputs =
       (Lang.Constrained
          {
            Frame.audio = Lang.Fixed chans;
-           video = Lang.Any_fixed 0;
+           video = Lang.At_least 0;
            midi = Lang.Fixed 1;
          })
   in
@@ -163,7 +163,7 @@ let register_descr plugin_name descr_n descr outputs =
       (Lang.Constrained
          {
            Frame.audio = Lang.Fixed chans;
-           video = Lang.Any_fixed 0;
+           video = Lang.At_least 0;
            midi = Lang.Fixed all_chans;
          })
   in

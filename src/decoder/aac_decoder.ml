@@ -186,8 +186,8 @@ let () =
                 ~extensions:aac_file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Variable
-        || kind.Frame.audio = Frame.Succ Frame.Variable
+        kind.Frame.audio = Frame.Any
+        || kind.Frame.audio = Frame.Succ Frame.Any
         || Frame.type_has_kind content kind
       then Some (fun () -> create_file_decoder filename kind)
       else None)
@@ -315,8 +315,8 @@ let () =
                 ~extensions:mp4_file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Variable
-        || kind.Frame.audio = Frame.Succ Frame.Variable
+        kind.Frame.audio = Frame.Any
+        || kind.Frame.audio = Frame.Succ Frame.Any
         || Frame.type_has_kind content kind
       then Some (fun () -> create_file_decoder filename kind)
       else None)

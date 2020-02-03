@@ -76,7 +76,7 @@ class flanger ~kind (source : source) delay freq feedback phase =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "flanger"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");

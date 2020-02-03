@@ -155,11 +155,7 @@ class visu ~kind source =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   let fmt =
-    {
-      Frame.audio = Lang.Any_fixed 1;
-      video = Lang.Fixed 1;
-      midi = Lang.Fixed 0;
-    }
+    { Frame.audio = Lang.At_least 1; video = Lang.Fixed 1; midi = Lang.Fixed 0 }
   in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]
