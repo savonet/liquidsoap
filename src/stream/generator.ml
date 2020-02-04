@@ -534,21 +534,25 @@ module From_audio_video = struct
             in
             let dst = Frame.content_of_type frame fpos ctype in
             let l = min al vl in
-            Utils.array_iter2 vblk dst.Frame.video (fun v v' ->
+            Array.iter2
+              (fun v v' ->
                 let ( ! ) = Frame.video_of_master in
                 (* How many samples should we output:
                  * the number of samples expected in total after this
                  * blit round, minus those that have been outputted before.
                  * When everything is aligned, this is the same as [!l]. *)
                 let l = !(vpos' + l) - !vpos' in
-                Video.blit v !vpos v' !fpos l);
-            Utils.array_iter2 ablk dst.Frame.audio (fun a a' ->
+                Video.blit v !vpos v' !fpos l)
+              vblk dst.Frame.video;
+            Array.iter2
+              (fun a a' ->
                 let ( ! ) = Frame.audio_of_master in
                 (* Same as above, even if in practice everything
                  * will always be aligned on the audio side. *)
                 let l = !(apos' + l) - !apos' in
                 Audio.Mono.blit (Audio.Mono.sub a !apos l)
-                  (Audio.Mono.sub a' !fpos l));
+                  (Audio.Mono.sub a' !fpos l))
+              ablk dst.Frame.audio;
             if al = vl then blit audio video
             else if al > vl then
               blit ((ablk, apos + vl, apos' + vl, al - vl) :: audio) video

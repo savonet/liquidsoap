@@ -531,20 +531,26 @@ let get_content_layers (frame : t) =
   aux 0 frame.contents
 
 let blit_content src src_pos dst dst_pos len =
-  Utils.array_iter2 src.audio dst.audio (fun a a' ->
+  Array.iter2
+    (fun a a' ->
       if a != a' then (
         let ( ! ) = audio_of_master in
         Audio.Mono.blit
           (Audio.Mono.sub a !src_pos !len)
-          (Audio.Mono.sub a' !dst_pos !len) ));
-  Utils.array_iter2 src.video dst.video (fun v v' ->
+          (Audio.Mono.sub a' !dst_pos !len) ))
+    src.audio dst.audio;
+  Array.iter2
+    (fun v v' ->
       if v != v' then (
         let ( ! ) = video_of_master in
-        Video.blit v !src_pos v' !dst_pos !len ));
-  Utils.array_iter2 src.midi dst.midi (fun m m' ->
+        Video.blit v !src_pos v' !dst_pos !len ))
+    src.video dst.video;
+  Array.iter2
+    (fun m m' ->
       if m != m' then (
         let ( ! ) = midi_of_master in
         MIDI.blit m !src_pos m' !dst_pos !len ))
+    src.midi dst.midi
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
