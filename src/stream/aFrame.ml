@@ -43,8 +43,6 @@ let channels_of_type t =
 
 let channels_of_kind k = channels_of_type (type_of_kind k)
 
-let channels_of_kind k = (type_of_kind k).Frame.audio
-
 let to_s16le b =
   (* TODO: generalize this *)
   let fpcm = content b 0 in
