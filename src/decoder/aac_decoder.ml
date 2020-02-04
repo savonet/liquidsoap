@@ -165,7 +165,7 @@ let get_type filename =
       in
       log#info "Libfaad recognizes %S as AAC (%dHz,%d channels)." filename rate
         channels;
-      { Frame.audio = channels; video = 0; midi = 0 })
+      { Frame.audio = `Raw channels; video = `Raw 0; midi = `Raw 0 })
 
 let () =
   Decoder.file_decoders#register "AAC"
@@ -177,17 +177,17 @@ let () =
        * check that the file seems relevant for AAC decoding. *)
       let content = get_type filename in
       if
-        content.Frame.audio = 0
+        content.Frame.audio = `Raw 0
         || (not
-              ( Frame.mul_sub_mul Frame.Zero kind.Frame.video
-              && Frame.mul_sub_mul Frame.Zero kind.Frame.midi ))
+              ( Frame.mul_sub_mul `Zero kind.Frame.video
+              && Frame.mul_sub_mul `Zero kind.Frame.midi ))
         || not
              (Decoder.test_file ~mimes:aac_mime_types#get
                 ~extensions:aac_file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Any
-        || kind.Frame.audio = Frame.Succ Frame.Any
+        kind.Frame.audio = `Any
+        || kind.Frame.audio = `Succ `Any
         || Frame.type_has_kind content kind
       then Some (fun () -> create_file_decoder filename kind)
       else None)
@@ -203,9 +203,9 @@ let () =
         List.mem mime aac_mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Zero
+        && `Zero <: kind.Frame.video
+        && `Zero <: kind.Frame.midi
+        && kind.Frame.audio <> `Zero
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -275,7 +275,7 @@ let get_type filename =
       let rate, channels = Faad.Mp4.init mp4 dec track in
       log#info "Libfaad recognizes %S as MP4 (%dHz,%d channels)." filename rate
         channels;
-      { Frame.audio = channels; video = 0; midi = 0 })
+      { Frame.audio = `Raw channels; video = `Raw 0; midi = `Raw 0 })
 
 let mp4_mime_types =
   Dtools.Conf.list
@@ -305,18 +305,18 @@ let () =
        * check that the file seems relevant for MP4 decoding. *)
       let content = get_type filename in
       if
-        content.Frame.audio = 0
-        || kind.Frame.audio = Frame.Zero
+        content.Frame.audio = `Raw 0
+        || kind.Frame.audio = `Zero
         || (not
-              ( Frame.mul_sub_mul Frame.Zero kind.Frame.video
-              && Frame.mul_sub_mul Frame.Zero kind.Frame.midi ))
+              ( Frame.mul_sub_mul `Zero kind.Frame.video
+              && Frame.mul_sub_mul `Zero kind.Frame.midi ))
         || not
              (Decoder.test_file ~mimes:mp4_mime_types#get
                 ~extensions:mp4_file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Any
-        || kind.Frame.audio = Frame.Succ Frame.Any
+        kind.Frame.audio = `Any
+        || kind.Frame.audio = `Succ `Any
         || Frame.type_has_kind content kind
       then Some (fun () -> create_file_decoder filename kind)
       else None)

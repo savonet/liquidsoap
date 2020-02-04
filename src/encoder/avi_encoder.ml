@@ -28,12 +28,12 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let content =
     Frame.content_of_type frame start
-      { Frame.audio = channels; video = 1; midi = 0 }
+      { Frame.audio = `Raw channels; video = `Raw 1; midi = `Raw 0 }
   in
   let audio =
     let astart = Frame.audio_of_master start in
     let alen = Frame.audio_of_master len in
-    let pcm = content.Frame.audio in
+    let pcm = Frame.get_raw content.Frame.audio in
     (* Resample if needed. *)
     let pcm, astart, alen =
       if ratio = 1. then (pcm, astart, alen)
@@ -49,7 +49,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
-    let vbuf = content.Frame.video in
+    let vbuf = Frame.get_raw content.Frame.video in
     let vbuf = vbuf.(0) in
     let vstart = Frame.video_of_master start in
     let vlen = Frame.video_of_master len in

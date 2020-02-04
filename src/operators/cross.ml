@@ -32,7 +32,7 @@ let finalise_slave_clock slave_clock source =
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   ~minimum_length ~conservative ~active transition =
-  let channels = float (Frame.type_of_kind kind).Frame.audio in
+  let channels = float (AFrame.channels_of_kind kind) in
   object (self)
     inherit source ~name:"cross" kind as super
 
@@ -284,7 +284,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
         content start (stop - start);
 
       (* Analyze them *)
-      let pcm = content.Frame.audio in
+      let pcm = Frame.get_raw content.Frame.audio in
       for i = start to stop - 1 do
         let squares =
           Array.fold_left
@@ -324,7 +324,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
           content start (stop - start);
         let after_len = Generator.length gen_after in
         if after_len <= rms_width then (
-          let pcm = content.Frame.audio in
+          let pcm = Frame.get_raw content.Frame.audio in
           for i = start to stop - 1 do
             let squares =
               Array.fold_left

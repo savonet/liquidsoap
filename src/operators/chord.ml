@@ -66,7 +66,7 @@ class chord ~kind metadata_name (source : source) =
       source#get buf;
       let m = Frame.content_of_type buf toffset (Frame.type_of_kind kind) in
       let pos = MFrame.position buf in
-      let m = m.Frame.midi in
+      let m = Frame.get_raw m.Frame.midi in
       let meta = MFrame.get_all_metadata buf in
       let meta = List.filter (fun (p, _) -> offset <= p && p < pos) meta in
       let chords =

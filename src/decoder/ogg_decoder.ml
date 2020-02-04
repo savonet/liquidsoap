@@ -275,8 +275,8 @@ module D = Make (G)
 let create_file_decoder filename content_type kind =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
-      | 0, _ -> `Audio
-      | _, 0 -> `Video
+      | `Raw 0, _ -> `Audio
+      | _, `Raw 0 -> `Video
       | _, _ -> `Both
   in
   let generator = G.create mode in
@@ -299,7 +299,7 @@ let get_type filename =
       in
       let video = if tracks.Ogg_demuxer.video_track <> None then 1 else 0 in
       log#info "File %S recognized as audio=%d video=%d." filename audio video;
-      { Frame.audio; video; midi = 0 })
+      { Frame.audio = `Raw audio; video = `Raw video; midi = `Raw 0 })
 
 let mime_types =
   Dtools.Conf.list
@@ -336,10 +336,10 @@ let () =
            * anyway.
            * A more fine-grained approach might or might not
            * be possible, based on the number of channels. *)
-          if kind.Frame.video = Frame.Zero then
-            { content_type with Frame.video = 0 }
-          else if kind.Frame.audio = Frame.Zero then
-            { content_type with Frame.audio = 0 }
+          if kind.Frame.video = `Zero then
+            { content_type with Frame.video = `Raw 0 }
+          else if kind.Frame.audio = `Zero then
+            { content_type with Frame.audio = `Raw 0 }
           else content_type
         in
         if Frame.type_has_kind content_type kind then
@@ -359,8 +359,8 @@ let () =
         let mode =
           let content_type = Frame.type_of_kind kind in
           match (content_type.Frame.video, content_type.Frame.audio) with
-            | 0, _ -> `Audio
-            | _, 0 -> `Video
+            | `Raw 0, _ -> `Audio
+            | _, `Raw 0 -> `Video
             | _, _ -> `Both
         in
         Some (D_stream.create_decoder `Stream mode) )

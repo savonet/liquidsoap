@@ -133,7 +133,11 @@ class resample ~kind ~active ~ratio (source : source) =
           Audio_converter.Samplerate.resample converter ratio
             (Audio.sub content start len)
         in
-        { Frame.audio = pcm; video = [||]; midi = [||] }
+        {
+          Frame.audio = Frame.Raw pcm;
+          video = Frame.Raw [||];
+          midi = Frame.Raw [||];
+        }
       in
       let convert x = int_of_float (float x *. ratio) in
       let metadata =

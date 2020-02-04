@@ -46,7 +46,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   let log_error = ref (fun _ -> ()) in
   let sample_rate = Frame.audio_of_seconds 1. in
   let audio_src_rate = float sample_rate in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let abg_max_len = Frame.audio_of_seconds max in
   let replay_delay = Frame.audio_of_seconds replay_delay in
   let samplesize = ref 16 in

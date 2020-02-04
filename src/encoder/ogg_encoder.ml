@@ -35,7 +35,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   (* start and len are in master ticks. *)
   let encode encoder id content start len =
-    let b = content.Frame.audio in
+    let b = Frame.get_raw content.Frame.audio in
     let start = Frame.audio_of_master start in
     let len = Frame.audio_of_master len in
     let buf, start, len =
@@ -57,7 +57,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
 
 (** Helper to encode video. *)
 let encode_video encoder id content start len =
-  let data = content.Frame.video in
+  let data = Frame.get_raw content.Frame.video in
   let start = Frame.video_of_master start in
   let len = Frame.video_of_master len in
   let data =

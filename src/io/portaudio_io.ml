@@ -53,7 +53,7 @@ class virtual base =
 
 class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
   val_source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit base
@@ -116,7 +116,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
   end
 
 class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit base

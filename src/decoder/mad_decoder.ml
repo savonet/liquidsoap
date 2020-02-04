@@ -165,7 +165,7 @@ let get_type filename =
         "Libmad recognizes %S as mpeg audio (layer %s, %ikbps, %dHz, %d \
          channels)."
         filename layer (f.Mad.bitrate / 1000) f.Mad.samplerate f.Mad.channels;
-      { Frame.audio = f.Mad.channels; video = 0; midi = 0 })
+      { Frame.audio = `Raw f.Mad.channels; video = `Raw 0; midi = `Raw 0 })
 
 let () =
   Decoder.file_decoders#register "MAD" ~plugin_aliases:["MP3"; "MP2"; "MP1"]
@@ -176,17 +176,17 @@ let () =
        * audio, and don't have to produce midi or video. Only then
        * check that the file seems relevant for decoding. *)
       if
-        kind.Frame.audio = Frame.Zero
+        kind.Frame.audio = `Zero
         || (not
-              ( Frame.mul_sub_mul Frame.Zero kind.Frame.video
-              && Frame.mul_sub_mul Frame.Zero kind.Frame.midi ))
+              ( Frame.mul_sub_mul `Zero kind.Frame.video
+              && Frame.mul_sub_mul `Zero kind.Frame.midi ))
         || not
              (Decoder.test_file ~mimes:mime_types#get
                 ~extensions:file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Any
-        || kind.Frame.audio = Frame.Succ Frame.Any
+        kind.Frame.audio = `Any
+        || kind.Frame.audio = `Succ `Any
         ||
         (* libmad always respects the first two kinds *)
         if Frame.type_has_kind (get_type filename) kind then true
@@ -208,9 +208,9 @@ let () =
         List.mem mime mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Zero
+        && `Zero <: kind.Frame.video
+        && `Zero <: kind.Frame.midi
+        && kind.Frame.audio <> `Zero
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.

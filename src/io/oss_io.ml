@@ -36,7 +36,7 @@ let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
 
 class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
   val_source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
@@ -88,7 +88,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
   end
 
 class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit

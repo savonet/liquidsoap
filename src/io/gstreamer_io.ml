@@ -177,7 +177,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       | Some video_pipeline -> (true, video_pipeline)
       | None -> (false, "")
   in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   object (self)
     inherit
       Output.output
@@ -275,7 +275,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
           let len = Lazy.force Frame.size in
           let duration = Gstreamer_utils.time_of_master len in
           if has_audio then (
-            let pcm = content.Frame.audio in
+            let pcm = Frame.get_raw content.Frame.audio in
             assert (Array.length pcm = channels);
             let len = Frame.audio_of_master len in
             let data = Bytes.create (2 * channels * len) in
@@ -283,7 +283,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
               (Utils.get_some el.audio) data 0 (Bytes.length data) );
           if has_video then (
-            let buf = content.Frame.video.(0) in
+            let buf = (Frame.get_raw content.Frame.video).(0) in
             for i = 0 to Video.length buf - 1 do
               let img = Video.get buf i in
               let y, u, v = Image.YUV420.data img in
@@ -467,7 +467,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       | None, None ->
           failwith "There should be at least one audio or video pipeline!"
   in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in

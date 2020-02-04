@@ -23,7 +23,7 @@
 open Source
 
 class biquad ~kind (source : source) filter_type freq fparam db_gain =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samplerate = Frame.audio_of_seconds 1. in
   object
     inherit operator ~name:"biquad_filter" kind [source]

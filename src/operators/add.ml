@@ -113,7 +113,8 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
             let c = w /. weight in
             if c <> 1. && renorm then
               Audio.amplify c
-                (Audio.sub (fixed_content buffer offset).Frame.audio
+                (Audio.sub
+                   (Frame.get_raw (fixed_content buffer offset).Frame.audio)
                    (Frame.audio_of_master offset)
                    (Frame.audio_of_master (already - offset)));
             if rank > 0 then (
@@ -121,18 +122,21 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                * TODO the same should be done for video. *)
               if already > end_offset then
                 Audio.clear
-                  (Audio.sub (fixed_content buf already).Frame.audio
+                  (Audio.sub
+                     (Frame.get_raw (fixed_content buf already).Frame.audio)
                      (Frame.audio_of_master end_offset)
                      (Frame.audio_of_master (already - end_offset)));
 
               (* Add to the main buffer. *)
               Audio.add
-                (Audio.sub (fixed_content buf offset).Frame.audio offset
-                   (already - offset))
-                (Audio.sub (fixed_content tmp offset).Frame.audio offset
-                   (already - offset));
-              let vbuf = (fixed_content buf offset).Frame.video in
-              let vtmp = (fixed_content tmp offset).Frame.video in
+                (Audio.sub
+                   (Frame.get_raw (fixed_content buf offset).Frame.audio)
+                   offset (already - offset))
+                (Audio.sub
+                   (Frame.get_raw (fixed_content tmp offset).Frame.audio)
+                   offset (already - offset));
+              let vbuf = Frame.get_raw (fixed_content buf offset).Frame.video in
+              let vtmp = Frame.get_raw (fixed_content tmp offset).Frame.video in
               let ( ! ) = Frame.video_of_master in
               for c = 0 to Array.length vbuf - 1 do
                 for i = !offset to !already - 1 do
@@ -140,7 +144,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                 done
               done )
             else (
-              let vbuf = (fixed_content buf offset).Frame.video in
+              let vbuf = Frame.get_raw (fixed_content buf offset).Frame.video in
               let ( ! ) = Frame.video_of_master in
               for c = 0 to Array.length vbuf - 1 do
                 for i = !offset to !already - 1 do

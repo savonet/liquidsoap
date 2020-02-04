@@ -24,7 +24,7 @@ open Source
 open Complex
 
 class fir ~kind (source : source) freq beta numcoeffs =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   object (self)
     inherit operator ~name:"fir_filter" kind [source]
 

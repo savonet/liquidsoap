@@ -146,13 +146,13 @@ let encoder ext =
     let videochans = if gst.video_src <> None then 1 else 0 in
     let content =
       Frame.content_of_type frame start
-        { Frame.audio = channels; video = videochans; midi = 0 }
+        { Frame.audio = `Raw channels; video = `Raw videochans; midi = `Raw 0 }
     in
     if channels > 0 then (
       (* Put audio. *)
       let astart = Frame.audio_of_master start in
       let alen = Frame.audio_of_master len in
-      let pcm = content.Frame.audio in
+      let pcm = Frame.get_raw content.Frame.audio in
       let data = Bytes.create (2 * channels * alen) in
       Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
       Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time
@@ -161,7 +161,7 @@ let encoder ext =
         data 0 (Bytes.length data) );
     if videochans > 0 then (
       (* Put video. *)
-      let vbuf = content.Frame.video in
+      let vbuf = Frame.get_raw content.Frame.video in
       let vbuf = vbuf.(0) in
       let vstart = Frame.video_of_master start in
       let vlen = Frame.video_of_master len in

@@ -2,6 +2,8 @@
 
 type t = Frame.t
 
+val channels_of_kind : Frame.content_kind -> int
+
 (** Is it partially filled ? *)
 val is_partial : t -> bool
 

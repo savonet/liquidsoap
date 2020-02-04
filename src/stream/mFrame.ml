@@ -24,6 +24,10 @@ open Frame
 
 type t = Frame.t
 
+let channels_of_type t =
+  match t.Frame.midi with `Raw n -> n | `Data -> assert false
+
+let channels_of_kind k = channels_of_type (type_of_kind k)
 let mot = midi_of_master
 let tom = master_of_midi
 let size () = mot (Lazy.force Frame.size)

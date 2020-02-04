@@ -129,7 +129,7 @@ class keyboard ~kind =
     method private get_frame frame =
       assert (0 = MFrame.position frame);
       let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
-      let m = m.Frame.midi in
+      let m = Frame.get_raw m.Frame.midi in
       let t = self#get_events in
       for c = 0 to Array.length m - 1 do
         MIDI.blit_all m.(c) t

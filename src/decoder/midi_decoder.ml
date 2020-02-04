@@ -65,9 +65,9 @@ let () =
        * independently of the actual file contents.
        * The kind should allow empty audio and video. *)
       let content =
-        { (Frame.type_of_kind kind) with Frame.audio = 0; video = 0 }
+        { (Frame.type_of_kind kind) with Frame.audio = `Raw 0; video = `Raw 0 }
       in
-      let channels = content.Frame.midi in
+      let channels = MFrame.channels_of_kind kind in
       if channels > 0 && Frame.type_has_kind content kind then
         Some (fun () -> decoder ~channels filename)
       else None)

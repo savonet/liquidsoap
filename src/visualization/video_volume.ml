@@ -29,7 +29,7 @@ let group_size = 1764
 let f_group_size = float group_size
 
 class visu ~kind source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   object (self)
@@ -80,14 +80,16 @@ class visu ~kind source =
         (* Add a video channel to the frame contents. *)
         let _, src = Frame.content frame offset in
         let src_type = Frame.type_of_content src in
-        let dst_type = { src_type with Frame.video = 1 } in
+        let dst_type = { src_type with Frame.video = `Raw 1 } in
         let dst = Frame.content_of_type frame offset dst_type in
         (* Reproduce audio data in the new contents. *)
         Audio.blit
-          (Audio.sub src.Frame.audio
+          (Audio.sub
+             (Frame.get_raw src.Frame.audio)
              (Frame.audio_of_master offset)
              (Frame.audio_of_master len))
-          (Audio.sub dst.Frame.audio
+          (Audio.sub
+             (Frame.get_raw dst.Frame.audio)
              (Frame.audio_of_master offset)
              (Frame.audio_of_master len));
 
@@ -105,7 +107,7 @@ class visu ~kind source =
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float channels in
-        let buf = dst.Frame.video.(0) in
+        let buf = (Frame.get_raw dst.Frame.video).(0) in
         let start = Frame.video_of_master offset in
         let stop = start + Frame.video_of_master len in
         let line img c p q =

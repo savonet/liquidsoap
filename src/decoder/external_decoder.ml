@@ -104,9 +104,9 @@ let test_kind f filename =
   else
     Some
       {
-        Frame.video = Frame.Zero;
-        midi = Frame.Zero;
-        audio = (if ret < 0 then Frame.Succ Frame.Any else Frame.mul_of_int ret);
+        Frame.video = `Zero;
+        midi = `Zero;
+        audio = (if ret < 0 then `Succ `Any else Frame.mul_of_int ret);
       }
 
 let register_stdin name sdoc mimes test process =
@@ -135,9 +135,9 @@ let register_stdin name sdoc mimes test process =
           List.mem mime mimes
           (* Check that it is okay to have zero video and midi,
            * and at least one audio channel. *)
-          && Frame.Zero <: kind.Frame.video
-          && Frame.Zero <: kind.Frame.midi
-          && kind.Frame.audio <> Frame.Zero
+          && `Zero <: kind.Frame.video
+          && `Zero <: kind.Frame.midi
+          && kind.Frame.audio <> `Zero
         then
           (* In fact we can't be sure that we'll satisfy the content
            * kind, because the stream might be mono or stereo.

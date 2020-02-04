@@ -171,8 +171,8 @@ let () =
       let mime = parse_mime mime in
       match mime with
         | Some format
-          when Frame.Zero <: kind.Frame.video
-               && Frame.Zero <: kind.Frame.midi
+          when `Zero <: kind.Frame.video
+               && `Zero <: kind.Frame.midi
                && Frame.mul_of_int format.channels <: kind.Frame.audio ->
             Some (D_stream.create ~format)
         | _ -> None)

@@ -121,7 +121,7 @@ class keyboard ~kind velocity =
     method get_frame frame =
       assert (0 = MFrame.position frame);
       let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
-      let m = m.Frame.midi in
+      let m = Frame.get_raw m.Frame.midi in
       let t =
         let ans = MIDI.create (MFrame.size ()) in
         Sdl.pump_events ();

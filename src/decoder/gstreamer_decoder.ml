@@ -196,11 +196,15 @@ let file_extensions =
 let create_file_decoder filename content_type kind =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
-      | 0, _ -> `Audio
-      | _, 0 -> `Video
+      | `Raw 0, _ -> `Audio
+      | _, `Raw 0 -> `Video
       | _, _ -> `Both
   in
-  let channels = content_type.Frame.audio in
+  let channels =
+    match content_type.Frame.audio with
+      | `Raw channels -> channels
+      | _ -> assert false
+  in
   let generator = G.create mode in
   let decoder, close, bin =
     D.create_decoder ~channels ~merge_tracks:true `File mode filename
@@ -254,7 +258,7 @@ let get_type ~channels filename =
       else 0
     with Gstreamer.Failed -> 0
   in
-  { Frame.video; audio; midi = 0 }
+  { Frame.video = `Raw video; audio = `Raw audio; midi = `Raw 0 }
 
 let () =
   Decoder.file_decoders#register "GSTREAMER"
@@ -267,17 +271,17 @@ let () =
       else (
         let channels =
           (* Get the default expected number of audio channels *)
-          (Frame.type_of_kind kind).Frame.audio
+          AFrame.channels_of_kind kind
         in
         let content_type = get_type ~channels filename in
         let content_type =
           (* If the kind doesn't allow audio, or video, pretend that we don't
            * have any: it will be dropped anyway. A more fine-grained approach
            * might or might not be possible, based on the number of channels. *)
-          if kind.Frame.video = Frame.Zero then
-            { content_type with Frame.video = 0 }
-          else if kind.Frame.audio = Frame.Zero then
-            { content_type with Frame.audio = 0 }
+          if kind.Frame.video = `Zero then
+            { content_type with Frame.video = `Raw 0 }
+          else if kind.Frame.audio = `Zero then
+            { content_type with Frame.audio = `Raw 0 }
           else content_type
         in
         if Frame.type_has_kind content_type kind then

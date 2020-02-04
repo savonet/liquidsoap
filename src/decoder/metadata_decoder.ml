@@ -57,7 +57,7 @@ let parse_file filename =
   close_in input;
   data
 
-let empty = { Frame.audio = 0; video = 0; midi = 0 }
+let empty = { Frame.audio = `Raw 0; video = `Raw 0; midi = `Raw 0 }
 
 let file_deco filename =
   let events = ref (parse_file filename) in

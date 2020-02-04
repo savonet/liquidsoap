@@ -40,8 +40,8 @@ class bpm ~kind (source : source) cb every =
     method abort_track = source#abort_track
 
     val bpm =
-      Soundtouch.BPM.make (Frame.type_of_kind kind).Frame.audio
-        (Lazy.force Frame.audio_rate)
+      let channels = AFrame.channels_of_kind kind in
+      Soundtouch.BPM.make channels (Lazy.force Frame.audio_rate)
 
     val mutable n = 0
 

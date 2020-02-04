@@ -26,7 +26,7 @@ open Source
 
 class compress ~kind (source : source) attack release threshold ratio knee
   rms_window gain =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samplerate = Lazy.force Frame.audio_rate in
   object
     inherit operator ~name:"compress" kind [source]
