@@ -57,7 +57,7 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   (* Compute a wave length from a frequency. *)
   let samples_per_second = float (Frame.audio_of_seconds 1.) in
   let wl f = int_of_float (samples_per_second /. f) in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let length = Frame.audio_of_seconds length in
   object (self)
     inherit operator ~name:"pitch" kind [source]

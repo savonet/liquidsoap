@@ -169,7 +169,7 @@ module AdaptativeBuffer = struct
 
   (** The source which produces data by reading the buffer. *)
   class producer ~kind ~pre_buffer ~averaging ~limit c =
-    let channels = (Frame.type_of_kind kind).Frame.audio in
+    let channels = AFrame.channels_of_kind kind in
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
     (* see get_frame for an explanation *)
     let alpha = log 2. *. AFrame.duration () /. averaging in
@@ -270,7 +270,7 @@ module AdaptativeBuffer = struct
 
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     ~kind source_val c =
-    let channels = (Frame.type_of_kind kind).Frame.audio in
+    let channels = AFrame.channels_of_kind kind in
     let prebuf = Frame.audio_of_seconds pre_buffer in
     object
       inherit
@@ -309,7 +309,7 @@ module AdaptativeBuffer = struct
 
   let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
       ~averaging ~limit ~reset ~kind source_val =
-    let channels = (Frame.type_of_kind kind).Frame.audio in
+    let channels = AFrame.channels_of_kind kind in
     let control =
       {
         lock = Mutex.create ();

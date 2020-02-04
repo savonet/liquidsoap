@@ -52,7 +52,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
   let val_source = List.assoc "" p in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
   object (self)
@@ -132,7 +132,7 @@ class input ~kind p =
     let f = List.assoc "on_stop" p in
     fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit

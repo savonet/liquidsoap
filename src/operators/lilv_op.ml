@@ -76,7 +76,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
     method self_sync = source#self_sync
 
     val inst =
-      Array.init (Frame.type_of_kind kind).Frame.audio (fun _ ->
+      Array.init (AFrame.channels_of_kind kind) (fun _ ->
           Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate)))
 
     initializer Array.iter Plugin.Instance.activate inst

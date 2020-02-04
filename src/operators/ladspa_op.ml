@@ -96,7 +96,7 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
     val inst =
       let p = Plugin.load plugin in
       let d = Descriptor.descriptor p descr in
-      Array.init (Frame.type_of_kind kind).Frame.audio (fun _ ->
+      Array.init (AFrame.channels_of_kind kind) (fun _ ->
           instantiate d (Lazy.force Frame.audio_rate))
 
     initializer Array.iter Descriptor.activate inst

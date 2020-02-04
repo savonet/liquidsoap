@@ -38,6 +38,8 @@ let content_of_type ~channels b pos =
   let content = content_of_type b (tos pos) ctype in
   content.audio
 
+let channels_of_kind k = (type_of_kind k).Frame.audio
+
 let to_s16le b =
   (* TODO: generalize this *)
   let fpcm = content b 0 in

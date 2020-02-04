@@ -31,7 +31,7 @@ let handle lbl f x =
       (Printf.sprintf "Error while setting %s: %s" lbl (string_of_error e))
 
 class virtual base ~kind dev mode =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let samples_per_frame = AFrame.size () in
   let periods = Alsa_settings.periods#get in
@@ -166,7 +166,7 @@ class virtual base ~kind dev mode =
 
 class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
   val_source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
@@ -226,7 +226,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
   end
 
 class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_frame = AFrame.size () in
   object (self)
     inherit base ~kind dev [Pcm.Capture]

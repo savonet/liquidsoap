@@ -26,7 +26,7 @@ let pi = acos (-1.)
 
 class flanger ~kind (source : source) delay freq feedback phase =
   let past_len = Frame.audio_of_seconds delay in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   object
     inherit operator ~name:"flanger" kind [source]
 

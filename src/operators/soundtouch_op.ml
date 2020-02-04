@@ -25,7 +25,7 @@ module Generator = Generator.From_audio_video
 
 class soundtouch ~kind (source : source) rate tempo pitch =
   let abg = Generator.create `Audio in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   object (self)
     inherit operator ~name:"soundtouch" kind [source]
 

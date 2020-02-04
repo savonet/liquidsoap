@@ -26,7 +26,7 @@ let bytes_per_sample = 2
 
 class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in

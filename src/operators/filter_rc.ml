@@ -25,7 +25,7 @@ open Source
 type mode = Low_pass | High_pass
 
 class filter ~kind (source : source) rc wet mode =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let rate = float (Lazy.force Frame.audio_rate) in
   let dt = 1. /. rate in
   object

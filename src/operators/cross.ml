@@ -32,7 +32,7 @@ let finalise_slave_clock slave_clock source =
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   ~minimum_length ~conservative ~active transition =
-  let channels = float (Frame.type_of_kind kind).Frame.audio in
+  let channels = float (AFrame.channels_of_kind kind) in
   object (self)
     inherit source ~name:"cross" kind as super
 

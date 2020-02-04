@@ -177,7 +177,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       | Some video_pipeline -> (true, video_pipeline)
       | None -> (false, "")
   in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   object (self)
     inherit
       Output.output
@@ -467,7 +467,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       | None, None ->
           failwith "There should be at least one audio or video pipeline!"
   in
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in

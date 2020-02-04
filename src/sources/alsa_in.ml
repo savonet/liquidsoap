@@ -31,7 +31,7 @@ open Source
 
 class mic ~kind ~clock_safe device =
   let buffer_length = AFrame.size () in
-  let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
+  let buffer_chans = AFrame.channels_of_kind kind in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let blank () = Audio.make buffer_chans buffer_length 0. in

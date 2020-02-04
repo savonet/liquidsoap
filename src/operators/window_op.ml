@@ -25,7 +25,7 @@ open Source
 type mode = RMS | Peak
 
 class window ~kind mode duration source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   object
     inherit
       operator

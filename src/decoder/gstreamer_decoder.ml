@@ -267,7 +267,7 @@ let () =
       else (
         let channels =
           (* Get the default expected number of audio channels *)
-          (Frame.type_of_kind kind).Frame.audio
+          AFrame.channels_of_kind kind
         in
         let content_type = get_type ~channels filename in
         let content_type =

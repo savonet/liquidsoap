@@ -27,7 +27,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
     window (* Spring coefficient when the sound is going louder. *) kup
   (* Spring coefficient when the sound is going less loud. *)
     kdown threshold gmin gmax =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let rmsi = Frame.audio_of_seconds window in
   object
     inherit operator ~name:"normalize" kind [source]

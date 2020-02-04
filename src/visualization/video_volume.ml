@@ -29,7 +29,7 @@ let group_size = 1764
 let f_group_size = float group_size
 
 class visu ~kind source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   object (self)

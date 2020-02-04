@@ -26,7 +26,7 @@ let log = Log.make ["input"; "jack"]
 let bjack_clock = Tutils.lazy_cell (fun () -> new Clock.clock "bjack")
 
 class jack_in ~kind ~clock_safe ~nb_blocks ~server =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let seconds_per_frame = float samples_per_frame /. float samples_per_second in

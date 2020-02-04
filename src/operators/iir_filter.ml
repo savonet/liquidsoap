@@ -28,7 +28,7 @@ type filter_family = Butterworth | Resonator
 
 class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   qfactor =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   let rate = float (Frame.audio_of_seconds 1.) in
   object (self)
     inherit operator ~name:"iir_filter" kind [source]

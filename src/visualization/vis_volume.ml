@@ -29,7 +29,7 @@ let group_size = 1764
 let f_group_size = float group_size
 
 class vumeter ~kind source =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let channels = AFrame.channels_of_kind kind in
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
 
