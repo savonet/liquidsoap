@@ -29,16 +29,34 @@ type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
 
 (** Multiplicity of a field, used in types to impose constraints on channels
     (empty, variable, at least k, etc.). *)
-type multiplicity = Any | Zero | Succ of multiplicity
+type multiplicity =
+  [ `Any  (** any number of raw channel *)
+  | `Zero  (** zero raw channels *)
+  | `Succ of multiplicity  (** successor of a number of raw channels *)
+  | `Data  (** compressed data *)
+  | `Raw_or_data  (** either raw or compressed data *) ]
 
 (** Multiplicity of each field of a frame. *)
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
 
-(** Content type of a frame: number of channels for audio, video and MIDI. *)
-type content_type = (int, int, int) fields
+type channels = [ `Raw of int | `Data ]
+
+(** content type of a frame: number of channels for audio, video and
+    MIDI. [None] means raw data. *)
+type content_type = (channels, channels, channels) fields
+
+(** Content of a channel. *)
+type 'a channel_content =
+  | Raw of 'a  (** raw data *)
+  | Data of (int * string) list
+      (** compressed data packets with presentation time in internal ticks *)
 
 (** Actual content of a frame. *)
-type content = (audio_t array, video_t array, midi_t array) fields
+type content =
+  ( audio_t array channel_content,
+    video_t array channel_content,
+    midi_t array channel_content )
+  fields
 
 (** Audio data. *)
 and audio_t = Audio.Mono.buffer
@@ -48,6 +66,9 @@ and video_t = Video.t
 
 (** MIDI data. *)
 and midi_t = MIDI.buffer
+
+(** Retrieve data which is assumed to be raw. *)
+val get_raw : 'a channel_content -> 'a
 
 (** [blit_content c1 o1 c2 o2 l] copies [l] data from [c1] starting at offset
     [o1] into [c2] starting at offset [o2]. All numerical values are in
@@ -173,7 +194,8 @@ val get_chunk : t -> t -> unit
     when [b] is more permissive than [a]. *)
 
 val mul_sub_mul : multiplicity -> multiplicity -> bool
-val int_sub_mul : int -> multiplicity -> bool
+
+(* val int_sub_mul : int -> multiplicity -> bool *)
 val mul_eq_int : multiplicity -> int -> bool
 val kind_sub_kind : content_kind -> content_kind -> bool
 val type_has_kind : content_type -> content_kind -> bool

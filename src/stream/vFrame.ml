@@ -48,10 +48,10 @@ let get_content frame source =
   if v0 < v1 then (
     let stop, content = Frame.content frame p0 in
     assert (stop = Lazy.force Frame.size);
-    Some (content.video, v0, v1 - v0) )
+    Some (Frame.get_raw content.video, v0, v1 - v0) )
   else None
 
 let content_of_type ~channels b pos =
-  let ctype = { audio = 0; video = channels; midi = 0 } in
+  let ctype = { audio = `Raw 0; video = `Raw channels; midi = `Raw 0 } in
   let content = content_of_type b (tov pos) ctype in
-  content.video
+  Frame.get_raw content.video

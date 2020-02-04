@@ -66,6 +66,8 @@ let ref_t ?pos ?level t =
 let zero_t = T.make T.Zero
 let succ_t t = T.make (T.Succ t)
 let any_t = T.make T.Any
+let data_t = T.make T.Data
+let raw_or_data_t = T.make T.Raw_or_data
 let rec add_t n m = if n = 0 then m else succ_t (add_t (n - 1) m)
 let type_of_int n = add_t n zero_t
 
@@ -122,12 +124,14 @@ let of_request_t t =
     | T.Constr { T.name = "request"; T.params = [(_, t)] } -> t
     | _ -> assert false
 
-let rec type_of_mul ~pos ~level m =
+let rec type_of_mul ~pos ~level (m : Frame.multiplicity) =
   T.make ~pos ~level
     ( match m with
-      | Frame.Any -> T.Any
-      | Frame.Zero -> T.Zero
-      | Frame.Succ m -> T.Succ (type_of_mul ~pos ~level m) )
+      | `Any -> T.Any
+      | `Zero -> T.Zero
+      | `Succ m -> T.Succ (type_of_mul ~pos ~level m)
+      | `Data -> T.Data
+      | `Raw_or_data -> T.Raw_or_data )
 
 let type_of_format ~pos ~level f =
   let kind = Encoder.kind_of_format f in

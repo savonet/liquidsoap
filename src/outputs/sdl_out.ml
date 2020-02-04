@@ -92,7 +92,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
       let rgb =
         let stop, c = Frame.content buf 0 in
         assert (stop = Lazy.force Frame.size);
-        Video.get c.Frame.video.(0) 0
+        Video.get (Frame.get_raw c.Frame.video).(0) 0
       in
       Sdl_utils.Surface.of_img surface rgb;
       Sdl_utils.check Sdl.update_window_surface window

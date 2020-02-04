@@ -46,7 +46,7 @@ class basic ~kind source =
 
     method self_sync = source#self_sync
 
-    val stereo = { Frame.audio = 2; video = 0; midi = 0 }
+    val stereo = { Frame.audio = `Raw 2; video = `Raw 0; midi = `Raw 0 }
 
     method private get_frame frame =
       let start = Frame.position frame in
@@ -58,15 +58,25 @@ class basic ~kind source =
       let dst = Frame.content_of_type frame start stereo in
       let aux { Frame.content = src; start = pos; length = l } =
         if pos >= start then (
-          assert (src.Frame.video = [||] && src.Frame.midi = [||]);
+          assert (
+            src.Frame.video = Frame.Raw [||] && src.Frame.midi = Frame.Raw [||]
+          );
           match src.Frame.audio with
-            | [||] -> assert false
-            | [| chan |] ->
-                let content = { src with Frame.audio = [| chan; chan |] } in
+            | Frame.Raw [||] -> assert false
+            | Frame.Raw [| chan |] ->
+                let content =
+                  { src with Frame.audio = Frame.Raw [| chan; chan |] }
+                in
                 Frame.blit_content content pos dst pos l
-            | [| _; _ |] -> Frame.blit_content src pos dst pos l
+            | Frame.Raw [| _; _ |] -> Frame.blit_content src pos dst pos l
             | audio ->
-                let content = { src with Frame.audio = Array.sub audio 0 2 } in
+                let content =
+                  {
+                    src with
+                    Frame.audio =
+                      Frame.Raw (Array.sub (Frame.get_raw audio) 0 2);
+                  }
+                in
                 Frame.blit_content content pos dst pos l )
       in
       List.iter aux layers

@@ -31,12 +31,17 @@ let tos = master_of_audio
 let content b pos =
   let stop, content = content b (tos pos) in
   assert (stop = Lazy.force size);
-  content.audio
+  Frame.get_raw content.audio
 
 let content_of_type ~channels b pos =
-  let ctype = { audio = channels; video = 0; midi = 0 } in
+  let ctype = { audio = `Raw channels; video = `Raw 0; midi = `Raw 0 } in
   let content = content_of_type b (tos pos) ctype in
-  content.audio
+  Frame.get_raw content.audio
+
+let channels_of_type t =
+  match t.Frame.audio with `Raw n -> n | `Data -> assert false
+
+let channels_of_kind k = channels_of_type (type_of_kind k)
 
 let to_s16le b =
   (* TODO: generalize this *)

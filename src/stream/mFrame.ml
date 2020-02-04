@@ -32,12 +32,12 @@ let position t = mot (position t)
 let content b pos =
   let stop, content = content b (tom pos) in
   assert (stop = size ());
-  content.midi
+  Frame.get_raw content.midi
 
 let content_of_type ~channels b pos =
-  let ctype = { audio = 0; video = 0; midi = channels } in
+  let ctype = { audio = `Raw 0; video = `Raw 0; midi = `Raw channels } in
   let content = content_of_type b (tom pos) ctype in
-  content.midi
+  Frame.get_raw content.midi
 
 let add_break t i = add_break t (tom i)
 let is_partial = is_partial

@@ -210,7 +210,9 @@ let duration = delayed (fun () -> float !!size /. float !!master_rate)
 (** Data types *)
 
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
-type multiplicity = Any | Zero | Succ of multiplicity
+
+type multiplicity =
+  [ `Any | `Zero | `Succ of multiplicity | `Data | `Raw_or_data ]
 
 (** High-level, abstract and imprecise stream content type.
   * This controls a changing content type.
@@ -218,10 +220,20 @@ type multiplicity = Any | Zero | Succ of multiplicity
   * video sample rates and sizes, they are global. *)
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
 
-(** Precise description of the channel types for the current track. *)
-type content_type = (int, int, int) fields
+type channels = [ `Raw of int | `Data ]
 
-type content = (audio_t array, video_t array, midi_t array) fields
+(** Precise description of the channel types for the current track. *)
+type content_type = (channels, channels, channels) fields
+
+type 'a channel_content = Raw of 'a | Data of (int * string) list
+
+(* presentation time in internal ticks and data *)
+
+type content =
+  ( audio_t array channel_content,
+    video_t array channel_content,
+    midi_t array channel_content )
+  fields
 
 and audio_t = Audio.Mono.buffer
 
@@ -229,58 +241,68 @@ and video_t = Video.t
 
 and midi_t = MIDI.buffer
 
+let get_raw = function Raw a -> a | _ -> assert false
+
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]..
   * TODO this is the other way around... it's correct in Lang, phew! *)
 
-let rec mul_sub_mul = function
-  | _, Any -> true
-  | Zero, Zero -> true
-  | Succ a, Succ b -> mul_sub_mul (a, b)
-  | _ -> false
+let rec mul_sub_mul m m' =
+  match (m, m') with
+    | `Zero, `Any -> true
+    | `Succ _, `Any -> true
+    | `Zero, `Zero -> true
+    | `Succ a, `Succ b -> mul_sub_mul a b
+    | `Data, `Data -> true
+    | _, `Raw_or_data -> true
+    | _ -> false
 
-let rec int_sub_mul = function
-  | _, Any -> true
-  | n, Succ m when n > 0 -> int_sub_mul (n - 1, m)
-  | 0, Zero -> true
-  | _ -> false
+let rec int_sub_mul n m =
+  match (n, m) with
+    | `Raw _, `Any -> true
+    | `Raw n, `Succ m when n > 0 -> int_sub_mul (`Raw (n - 1)) m
+    | `Raw 0, `Zero -> true
+    | _ -> false
 
-let rec mul_eq_int = function
-  | Succ m, n when n > 0 -> mul_eq_int (m, n - 1)
-  | Zero, 0 -> true
-  | _ -> false
-
-let mul_sub_mul a b = mul_sub_mul (a, b)
-let int_sub_mul a b = int_sub_mul (a, b)
-let mul_eq_int a b = mul_eq_int (a, b)
+let rec mul_eq_int m n =
+  match (m, n) with
+    | `Succ m, n when n > 0 -> mul_eq_int m (n - 1)
+    | `Zero, 0 -> true
+    | _ -> false
 
 let kind_sub_kind a b =
   mul_sub_mul a.audio b.audio
   && mul_sub_mul a.video b.video
   && mul_sub_mul a.midi b.midi
 
-let type_has_kind t k =
+let type_has_kind (t : content_type) (k : content_kind) =
   int_sub_mul t.audio k.audio
   && int_sub_mul t.video k.video
   && int_sub_mul t.midi k.midi
 
 let content_has_type c t =
-  Array.length c.audio = t.audio
-  && Array.length c.video = t.video
-  && Array.length c.midi = t.midi
+  let check c t =
+    match (c, t) with
+      | Raw a, `Raw n -> Array.length a = n
+      | Data _, `Data -> true
+      | _ -> false
+  in
+  check c.audio t.audio && check c.video t.video && check c.midi t.midi
 
 let type_of_content c =
-  {
-    audio = Array.length c.audio;
-    video = Array.length c.video;
-    midi = Array.length c.midi;
-  }
+  let typ = function Raw a -> `Raw (Array.length a) | Data _ -> `Data in
+  { audio = typ c.audio; video = typ c.video; midi = typ c.midi }
 
-let type_of_kind k =
+let type_of_kind (k : content_kind) =
   let rec aux def = function
-    | Any -> max 0 def
-    | Zero -> 0
-    | Succ m -> 1 + aux (def - 1) m
+    | `Any -> `Raw (max 0 def)
+    | `Zero -> `Raw 0
+    | `Succ m -> (
+        match aux (def - 1) m with
+          | `Raw m -> `Raw (1 + m)
+          | `Data -> assert false )
+    | `Data -> `Data
+    | `Raw_or_data -> aux def `Any
   in
   {
     audio = aux !!audio_channels k.audio;
@@ -288,18 +310,21 @@ let type_of_kind k =
     midi = aux !!midi_channels k.midi;
   }
 
-let rec mul_of_int x = if x <= 0 then Zero else Succ (mul_of_int (x - 1))
+let rec mul_of_int x = if x <= 0 then `Zero else `Succ (mul_of_int (x - 1))
 
 let rec add_mul x = function
-  | Zero -> x
-  | Succ y -> Succ (add_mul y x)
-  | Any -> if x = Any then x else add_mul Any x
+  | `Zero -> x
+  | `Succ y -> `Succ (add_mul y x)
+  | `Any -> if x = `Any then x else add_mul `Any x
+  | _ -> assert false
 
 let string_of_mul m =
   let rec aux acc = function
-    | Succ m -> aux (acc + 1) m
-    | Zero -> string_of_int acc
-    | Any -> string_of_int acc ^ "+"
+    | `Succ m -> aux (acc + 1) m
+    | `Zero -> string_of_int acc
+    | `Any -> string_of_int acc ^ "+"
+    | `Data -> "?"
+    | `Raw_or_data -> "*"
   in
   aux 0 m
 
@@ -308,7 +333,9 @@ let string_of_content_kind k =
     (string_of_mul k.video) (string_of_mul k.midi)
 
 let string_of_content_type k =
-  Printf.sprintf "{audio=%d;video=%d;midi=%d}" k.audio k.video k.midi
+  let s = function `Raw n -> string_of_int n | `Data -> "?" in
+  Printf.sprintf "{audio=%s;video=%s;midi=%s}" (s k.audio) (s k.video)
+    (s k.midi)
 
 (* Frames *)
 
@@ -344,16 +371,17 @@ type t = {
 
 (** Create a content chunk. All chunks have the same size. *)
 let create_content content_type =
+  let init chans f =
+    match chans with `Raw n -> Raw (Array.init n f) | `Data -> Data []
+  in
   {
     audio =
-      Array.init content_type.audio (fun _ ->
+      init content_type.audio (fun _ ->
           Audio.Mono.create (audio_of_master !!size));
     video =
-      Array.init content_type.video (fun _ ->
+      init content_type.video (fun _ ->
           Video.make (video_of_master !!size) !!video_width !!video_height);
-    midi =
-      Array.init content_type.midi (fun _ ->
-          MIDI.create (midi_of_master !!size));
+    midi = init content_type.midi (fun _ -> MIDI.create (midi_of_master !!size));
   }
 
 let create kind =
@@ -452,13 +480,22 @@ let content (frame : t) pos =
   in
   aux frame.contents
 
+let empty content_type =
+  let empty = function `Raw _ -> Raw [||] | `Data -> Data [] in
+  {
+    audio = empty content_type.audio;
+    video = empty content_type.video;
+    midi = empty content_type.midi;
+  }
+
 (** Get the content for a given position and type in a frame.
   * Calling this function may trigger a change of the contents layout,
   * if the current content type at the given position is not the required
   * one. Hence, the caller of this function should always assume the
   * invalidation of all data after the given position. *)
-let content_of_type ?force (frame : t) pos content_type =
-  if pos = !!size then { audio = [||]; video = [||]; midi = [||] }
+let content_of_type ?force (frame : t) pos (content_type : content_type) :
+    content =
+  if pos = !!size then empty content_type
   else (
     (* [acc] contains the previous layers in reverse order,
      * [start_pos] is the starting position of the first layer in [acc],
@@ -511,7 +548,8 @@ let content_of_type ?force (frame : t) pos content_type =
   * is often needed in optimized content conversions. *)
 let hide_contents (frame : t) =
   let save = frame.contents in
-  frame.contents <- [(!!size, { audio = [||]; video = [||]; midi = [||] })];
+  frame.contents <-
+    [(!!size, { audio = Raw [||]; video = Raw [||]; midi = Raw [||] })];
   fun () -> frame.contents <- save
 
 (** A content layer representation (see [t.contents]). *)
@@ -531,20 +569,26 @@ let get_content_layers (frame : t) =
   aux 0 frame.contents
 
 let blit_content src src_pos dst dst_pos len =
-  Utils.array_iter2 src.audio dst.audio (fun a a' ->
+  Array.iter2
+    (fun a a' ->
       if a != a' then (
         let ( ! ) = audio_of_master in
         Audio.Mono.blit
           (Audio.Mono.sub a !src_pos !len)
-          (Audio.Mono.sub a' !dst_pos !len) ));
-  Utils.array_iter2 src.video dst.video (fun v v' ->
+          (Audio.Mono.sub a' !dst_pos !len) ))
+    (get_raw src.audio) (get_raw dst.audio);
+  Array.iter2
+    (fun v v' ->
       if v != v' then (
         let ( ! ) = video_of_master in
-        Video.blit v !src_pos v' !dst_pos !len ));
-  Utils.array_iter2 src.midi dst.midi (fun m m' ->
+        Video.blit v !src_pos v' !dst_pos !len ))
+    (get_raw src.video) (get_raw dst.video);
+  Array.iter2
+    (fun m m' ->
       if m != m' then (
         let ( ! ) = midi_of_master in
         MIDI.blit m !src_pos m' !dst_pos !len ))
+    (get_raw src.midi) (get_raw dst.midi)
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
@@ -619,8 +663,12 @@ let get_chunk ab from =
   aux 0 (List.rev from.breaks)
 
 let copy content =
+  let map f = function
+    | Raw a -> Raw (Array.map f a)
+    | Data _ as data -> data
+  in
   {
-    audio = Array.map Audio.Mono.copy content.audio;
-    video = Array.map Video.copy content.video;
-    midi = Array.map MIDI.copy content.midi;
+    audio = map Audio.Mono.copy content.audio;
+    video = map Video.copy content.video;
+    midi = map MIDI.copy content.midi;
   }

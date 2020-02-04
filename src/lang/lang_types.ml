@@ -130,6 +130,8 @@ and descr =
   | Zero
   | Succ of t
   | Any
+  | Data
+  | Raw_or_data
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints (* type variable *)
   | Link of t
@@ -144,6 +146,8 @@ type repr =
   | `Zero
   | `Succ of repr
   | `Any
+  | `Data
+  | `Raw_or_data
   | `Arrow of (bool * string * repr) list * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
@@ -224,6 +228,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Zero -> `Zero
         | Any -> `Any
         | Succ t -> `Succ (repr t)
+        | Data -> `Data
+        | Raw_or_data -> `Raw_or_data
         | Constr { name; params } ->
             `Constr (name, List.map (fun (l, t) -> (l, repr t)) params)
         | Arrow (args, t) ->
@@ -326,6 +332,12 @@ let print_repr f t =
                 vars )
         in
         aux 0 t
+    | `Data ->
+        Format.fprintf f "?";
+        vars
+    | `Raw_or_data ->
+        Format.fprintf f "*?";
+        vars
     | `EVar (_, [Getter a]) when !pretty_getters ->
         Format.fprintf f "?{%s}" (print_ground a);
         vars
@@ -446,7 +458,7 @@ let rec occur_check a b =
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
     | Succ t -> occur_check a t
-    | Zero | Any -> ()
+    | Zero | Any | Data | Raw_or_data -> ()
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
@@ -784,7 +796,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Ground _ | Zero | Any -> l
+      | Ground _ | Zero | Any | Data | Raw_or_data -> l
       | Succ t | List t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
@@ -816,7 +828,7 @@ let copy_with subst t =
       | Ground _ -> cp t.descr
       | List t -> cp (List (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
-      | Zero | Any -> cp t.descr
+      | Zero | Any | Data | Raw_or_data -> cp t.descr
       | Succ t -> cp (Succ (aux t))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
@@ -861,7 +873,7 @@ let iter_constr f t =
     let t = deref t in
     match t.descr with
       | Ground _ -> ()
-      | Succ _ | Zero | Any -> ()
+      | Succ _ | Zero | Any | Data | Raw_or_data -> ()
       | List t -> aux pos t
       | Tuple l -> List.iter (aux pos) l
       | Constr c ->

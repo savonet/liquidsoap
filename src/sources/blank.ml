@@ -55,14 +55,15 @@ class blank ~kind duration =
       let video_pos = Frame.video_of_master position in
       (* Audio *)
       Audio.clear
-        (Audio.sub content.Frame.audio
+        (Audio.sub
+           (Frame.get_raw content.Frame.audio)
            (Frame.audio_of_master position)
            (Frame.audio_of_master length));
 
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))
-        content.Frame.video;
+        (Frame.get_raw content.Frame.video);
       Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks
       else if remaining > 0 then remaining <- remaining - length

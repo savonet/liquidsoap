@@ -6,6 +6,9 @@
 
 type t = Frame.t
 
+val channels_of_type : Frame.content_type -> int
+val channels_of_kind : Frame.content_kind -> int
+
 (** {2 Basic manipulation} *)
 
 (** Duration in seconds. *)

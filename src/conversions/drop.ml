@@ -44,17 +44,23 @@ class drop_video ~kind source =
       in
       let layer_end, src = Frame.content frame start in
       assert (layer_end = Lazy.force Frame.size);
-      if Array.length src.Frame.video > 0 then (
-        let new_type = { (Frame.type_of_content src) with Frame.video = 0 } in
+      if Array.length (Frame.get_raw src.Frame.video) > 0 then (
+        let new_type =
+          { (Frame.type_of_content src) with Frame.video = `Raw 0 }
+        in
         let dst = Frame.content_of_type frame start new_type in
-        for i = 0 to Array.length src.Frame.audio - 1 do
+        for i = 0 to Array.length (Frame.get_raw src.Frame.audio) - 1 do
           let ( ! ) = Frame.audio_of_master in
           Audio.Mono.blit
-            (Audio.Mono.sub src.Frame.audio.(i) !start !len)
-            (Audio.Mono.sub dst.Frame.audio.(i) !start !len)
+            (Audio.Mono.sub (Frame.get_raw src.Frame.audio).(i) !start !len)
+            (Audio.Mono.sub (Frame.get_raw dst.Frame.audio).(i) !start !len)
         done;
-        for i = 0 to Array.length src.Frame.midi - 1 do
-          MIDI.blit src.Frame.midi.(i) start dst.Frame.midi.(i) start len
+        for i = 0 to Array.length (Frame.get_raw src.Frame.midi) - 1 do
+          MIDI.blit
+            (Frame.get_raw src.Frame.midi).(i)
+            start
+            (Frame.get_raw dst.Frame.midi).(i)
+            start len
         done )
   end
 
@@ -92,19 +98,25 @@ class drop_audio ~kind source =
       in
       let layer_end, src = Frame.content frame start in
       assert (layer_end = Lazy.force Frame.size);
-      if Array.length src.Frame.audio > 0 then (
-        let new_type = { (Frame.type_of_content src) with Frame.audio = 0 } in
+      if Array.length (Frame.get_raw src.Frame.audio) > 0 then (
+        let new_type =
+          { (Frame.type_of_content src) with Frame.audio = `Raw 0 }
+        in
         let dst = Frame.content_of_type frame start new_type in
-        for i = 0 to Array.length src.Frame.video - 1 do
+        for i = 0 to Array.length (Frame.get_raw src.Frame.video) - 1 do
           let ( ! ) = Frame.video_of_master in
           for j = 0 to !len - 1 do
             Video.Image.blit
-              (Video.get src.Frame.video.(i) (!start + j))
-              (Video.get dst.Frame.video.(i) (!start + j))
+              (Video.get (Frame.get_raw src.Frame.video).(i) (!start + j))
+              (Video.get (Frame.get_raw dst.Frame.video).(i) (!start + j))
           done
         done;
-        for i = 0 to Array.length src.Frame.midi - 1 do
-          MIDI.blit src.Frame.midi.(i) start dst.Frame.midi.(i) start len
+        for i = 0 to Array.length (Frame.get_raw src.Frame.midi) - 1 do
+          MIDI.blit
+            (Frame.get_raw src.Frame.midi).(i)
+            start
+            (Frame.get_raw dst.Frame.midi).(i)
+            start len
         done )
   end
 
@@ -142,21 +154,23 @@ class drop_midi ~kind source =
       in
       let layer_end, src = Frame.content frame start in
       assert (layer_end = Lazy.force Frame.size);
-      if Array.length src.Frame.midi > 0 then (
-        let new_type = { (Frame.type_of_content src) with Frame.midi = 0 } in
+      if Array.length (Frame.get_raw src.Frame.midi) > 0 then (
+        let new_type =
+          { (Frame.type_of_content src) with Frame.midi = `Raw 0 }
+        in
         let dst = Frame.content_of_type frame start new_type in
-        for i = 0 to Array.length src.Frame.audio - 1 do
+        for i = 0 to Array.length (Frame.get_raw src.Frame.audio) - 1 do
           let ( ! ) = Frame.audio_of_master in
           Audio.Mono.blit
-            (Audio.Mono.sub src.Frame.audio.(i) !start !len)
-            (Audio.Mono.sub dst.Frame.audio.(i) !start !len)
+            (Audio.Mono.sub (Frame.get_raw src.Frame.audio).(i) !start !len)
+            (Audio.Mono.sub (Frame.get_raw dst.Frame.audio).(i) !start !len)
         done;
-        for i = 0 to Array.length src.Frame.video - 1 do
+        for i = 0 to Array.length (Frame.get_raw src.Frame.video) - 1 do
           let ( ! ) = Frame.video_of_master in
           for j = 0 to !len - 1 do
             Video.Image.blit
-              (Video.get src.Frame.video.(i) (!start + j))
-              (Video.get dst.Frame.video.(i) (!start + j))
+              (Video.get (Frame.get_raw src.Frame.video).(i) (!start + j))
+              (Video.get (Frame.get_raw dst.Frame.video).(i) (!start + j))
           done
         done )
   end

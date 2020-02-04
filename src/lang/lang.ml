@@ -57,6 +57,8 @@ let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
 let any_t = Term.any_t
+let data_t = Term.data_t
+let raw_or_data_t = Term.raw_or_data_t
 let add_t = Term.add_t
 let type_of_int = Term.type_of_int
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
@@ -72,10 +74,12 @@ let format_t t = Term.format_t t
 let request_t t = Term.request_t t
 let of_request_t t = Term.of_request_t t
 
-let rec t_of_mul = function
-  | Frame.Zero -> zero_t
-  | Frame.Any -> any_t
-  | Frame.Succ m -> succ_t (t_of_mul m)
+let rec t_of_mul : Frame.multiplicity -> t = function
+  | `Zero -> zero_t
+  | `Any -> any_t
+  | `Succ m -> succ_t (t_of_mul m)
+  | `Data -> data_t
+  | `Raw_or_data -> raw_or_data_t
 
 let kind_type_of_frame_kind kind =
   let audio = t_of_mul kind.Frame.audio in
@@ -85,11 +89,13 @@ let kind_type_of_frame_kind kind =
 
 (** Given a Lang type that has been inferred, convert it to a kind.
   * This might require to force some At_least variables. *)
-let rec mul_of_type default t =
+let rec mul_of_type default t : Frame.multiplicity =
   match (T.deref t).T.descr with
-    | T.Succ t -> Frame.Succ (mul_of_type (default - 1) t)
-    | T.Zero -> Frame.Zero
-    | T.Any -> Frame.Any
+    | T.Succ t -> `Succ (mul_of_type (default - 1) t)
+    | T.Zero -> `Zero
+    | T.Any -> `Any
+    | T.Data -> `Data
+    | T.Raw_or_data -> `Raw_or_data
     | T.EVar _ ->
         let default = max 0 default in
         T.bind t (type_of_int default);
@@ -188,7 +194,7 @@ let request r =
     match Request.kind r with
       | Some k -> k
       | None ->
-          let z = Frame.Zero in
+          let z = `Zero in
           { Frame.audio = z; video = z; midi = z }
   in
   mk ~t:(request_t (kind_type_of_frame_kind kind)) (Request r)

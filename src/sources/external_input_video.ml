@@ -38,7 +38,7 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data
   let log x = !log_ref x in
   let abg =
     Generator.create ~log ~kind
-      (if kind.Frame.audio = Frame.Zero then `Video else `Both)
+      (if kind.Frame.audio = `Zero then `Video else `Both)
   in
   (* Maximal difference between audio and video in seconds before a warning. *)
   let vadiff = 10. in
@@ -221,7 +221,7 @@ let () =
           | `Frame (`Audio, _, data) ->
               let converter = Utils.get_some !audio_converter in
               let data = converter data in
-              if kind.Frame.audio = Frame.Zero then
+              if kind.Frame.audio = `Zero then
                 log#info
                   "Received audio data whereas the type indicates that there \
                    are no audio channels, ingoring it."

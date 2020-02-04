@@ -51,6 +51,8 @@ and descr =
   | Zero
   | Succ of t
   | Any
+  | Data
+  | Raw_or_data
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t

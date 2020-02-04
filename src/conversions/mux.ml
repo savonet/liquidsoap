@@ -177,9 +177,11 @@ let () =
     ]
     (fun p kind ->
       let master = Lang.to_source (List.assoc "" p) in
-      let master_layer c = { c with Frame.video = [||] } in
+      let master_layer c = { c with Frame.video = Frame.Raw [||] } in
       let aux = Lang.to_source (List.assoc "video" p) in
-      let aux_layer c = { c with Frame.audio = [||]; midi = [||] } in
+      let aux_layer c =
+        { c with Frame.audio = Frame.Raw [||]; midi = Frame.Raw [||] }
+      in
       let mux_content master aux =
         { master with Frame.video = aux.Frame.video }
       in
@@ -201,9 +203,11 @@ let () =
     ]
     (fun p kind ->
       let master = Lang.to_source (List.assoc "" p) in
-      let master_layer c = { c with Frame.audio = [||] } in
+      let master_layer c = { c with Frame.audio = Frame.Raw [||] } in
       let aux = Lang.to_source (List.assoc "audio" p) in
-      let aux_layer c = { c with Frame.video = [||]; midi = [||] } in
+      let aux_layer c =
+        { c with Frame.video = Frame.Raw [||]; midi = Frame.Raw [||] }
+      in
       let mux_content master aux =
         { master with Frame.audio = aux.Frame.audio }
       in
@@ -232,23 +236,28 @@ let add_audio_mux label n =
       let master = Lang.to_source (List.assoc "" p) in
       let aux = Lang.to_source (List.assoc label p) in
       let master_layer c =
+        let audio = Frame.get_raw c.Frame.audio in
         {
           c with
-          Frame.audio =
-            Array.sub c.Frame.audio n (Array.length c.Frame.audio - n);
+          Frame.audio = Frame.Raw (Array.sub audio n (Array.length audio - n));
         }
       in
       let aux_layer c =
-        { Frame.audio = Array.sub c.Frame.audio 0 n; video = [||]; midi = [||] }
+        {
+          Frame.audio = Frame.Raw (Array.sub (Frame.get_raw c.Frame.audio) 0 n);
+          video = Frame.Raw [||];
+          midi = Frame.Raw [||];
+        }
       in
       let mux_content master aux =
         let audio =
           Array.init
-            (n + Array.length master.Frame.audio)
+            (n + Array.length (Frame.get_raw master.Frame.audio))
             (fun i ->
-              if i < n then aux.Frame.audio.(i) else master.Frame.audio.(i - n))
+              if i < n then (Frame.get_raw aux.Frame.audio).(i)
+              else (Frame.get_raw master.Frame.audio).(i - n))
         in
-        { master with Frame.audio }
+        { master with Frame.audio = Frame.Raw audio }
       in
       let mode = get_mode p in
       new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)

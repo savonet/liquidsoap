@@ -42,7 +42,7 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
       let rgb =
         let stop, c = Frame.content buf 0 in
         assert (stop = Lazy.force Frame.size);
-        c.Frame.video.(0)
+        (Frame.get_raw c.Frame.video).(0)
       in
       for frame = 0 to 0 do
         let img = Video.Image.to_int_image (Video.get rgb frame) in

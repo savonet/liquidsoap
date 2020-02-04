@@ -25,7 +25,7 @@ open Source
 class mean ~kind source =
   let dst_type = Frame.type_of_kind kind in
   let src_type = Frame.type_of_kind source#kind in
-  let channels = src_type.Frame.audio in
+  let channels = AFrame.channels_of_type src_type in
   let tmp_audio =
     Audio.create channels (Frame.audio_of_master (Lazy.force Frame.size))
   in
@@ -57,7 +57,7 @@ class mean ~kind source =
          * but the same video and midi channels, so that those do not
          * necessarily have to be copied -- the blit below will be
          * trivial if source#get does write to our special content layer. *)
-        let content = { dst with Frame.audio = tmp_audio } in
+        let content = { dst with Frame.audio = Frame.Raw tmp_audio } in
         let restore = Frame.hide_contents frame in
         let _ = Frame.content_of_type ~force:content frame start src_type in
         source#get frame;
@@ -72,8 +72,12 @@ class mean ~kind source =
       let ( ! ) = Frame.audio_of_master in
       (* Compute the mean of audio channels *)
       for i = !start to !(start + len) - 1 do
-        dst.Frame.audio.(0).{i} <-
-          Array.fold_left (fun m b -> m +. b.{i}) 0. src.Frame.audio /. channels
+        (Frame.get_raw dst.Frame.audio).(0).{i} <-
+          Array.fold_left
+            (fun m b -> m +. b.{i})
+            0.
+            (Frame.get_raw src.Frame.audio)
+          /. channels
       done;
 
       (* Finally, blit in case src_mono.Frame.midi/video is not already

@@ -24,7 +24,6 @@
 
 class noise ~kind duration =
   let ctype = Frame.type_of_kind kind in
-  let () = assert (ctype.Frame.midi = 0) in
   object
     inherit Synthesized.source ~seek:true ~name:"noise" kind duration
 
@@ -33,12 +32,12 @@ class noise ~kind duration =
       begin
         let off = Frame.audio_of_master off in
         let len = Frame.audio_of_master len in
-        let b = content.Frame.audio in
+        let b = Frame.get_raw content.Frame.audio in
         Audio.Generator.white_noise (Audio.sub b off len)
       end;
       let off = Frame.video_of_master off in
       let len = Frame.video_of_master len in
-      let b = content.Frame.video in
+      let b = Frame.get_raw content.Frame.video in
       for c = 0 to Array.length b - 1 do
         Video.iter Video.Image.randomize b.(c) off len
       done
