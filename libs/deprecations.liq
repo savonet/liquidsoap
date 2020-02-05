@@ -92,6 +92,22 @@ end
 def playlist.once(~id="",~random=false,~reload_mode="",
                   ~default_duration=30.,~length=10.,~conservative=false,
                   ~filter=fun(_)->true,uri)
+  deprecated("playlist.once", "playlist")
   mode = if random then "randomize" else "normal" end
   playlist(reload_mode="once", id=id, mode=mode, conservative=conservative, default_duration=default_duration, check_next=filter, uri)
+end
+
+# Deprecated: this function has been replaced by `map_metadata`.
+# @flag hidden
+def rewrite_metadata(l,~insert_missing=true,~update=true,~strip=false,s)
+  deprecated("rewrite_metadata", "map_metadata")
+  def map(m)
+    def apply(x)
+      label = fst(x)
+      value = snd(x)
+      (label,value % m)
+    end
+    list.map(apply,l)
+  end
+  map_metadata(map,insert_missing=insert_missing,update=update,strip=strip,s)
 end
