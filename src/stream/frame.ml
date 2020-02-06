@@ -225,7 +225,8 @@ type channels = [ `Raw of int | `Data ]
 (** Precise description of the channel types for the current track. *)
 type content_type = (channels, channels, channels) fields
 
-type 'a channel_content = Raw of 'a | Data of (int * string) list
+type packet = ..
+type 'a channel_content = Raw of 'a | Data of (int * packet) list
 
 (* presentation time in internal ticks and data *)
 

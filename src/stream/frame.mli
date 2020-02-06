@@ -45,10 +45,12 @@ type channels = [ `Raw of int | `Data ]
     MIDI. [None] means raw data. *)
 type content_type = (channels, channels, channels) fields
 
+type packet = ..
+
 (** Content of a channel. *)
 type 'a channel_content =
   | Raw of 'a  (** raw data *)
-  | Data of (int * string) list
+  | Data of (int * packet) list
       (** compressed data packets with presentation time in internal ticks *)
 
 (** Actual content of a frame. *)
