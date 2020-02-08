@@ -1,8 +1,8 @@
 FFmpeg filters
 ==============
 
-[FFmpeg filter](https://ffmpeg.org/ffmpeg-filters.html) provide audio and video filters that can be used
-to transform content using the ffmpeg library. They are enabled in liquidsoap when compiling with the 
+[FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html) provide audio and video filters that can be used
+to transform content using the ffmpeg library. They are enabled in liquidsoap when compiled with the 
 optional [ffmpeg-avfilter](https://github.com/savonet/ocaml-ffmpeg).
 
 If enabled, the filters should appear as operators, prefixed with `ffmpeg.filter`. For instance:

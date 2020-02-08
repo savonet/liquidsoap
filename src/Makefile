@@ -173,7 +173,7 @@ io = io/udp_io.ml \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
-        $(if $(W_FFMPEG_LIQ_FILTER),io/ffmpeg_filter_io.ml) \
+	$(if $(W_FFMPEG_LIQ_FILTER),io/ffmpeg_filter_io.ml) \
 	$(if $(W_FFMPEG_AV),io/ffmpeg_io.ml)
 
 tools = tools/extralib.ml tools/JSON.ml \
@@ -225,7 +225,7 @@ builtins = lang/lang_builtins.ml \
            $(if $(W_CRY),lang/builtins_cry.ml) \
            $(if $(W_LASTFM),lang/builtins_lastfm.ml) \
            $(if $(W_PROMETHEUS),lang/builtins_prometheus.ml) \
-	   $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
+           $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
