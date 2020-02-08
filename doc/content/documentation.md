@@ -32,7 +32,7 @@ Reference
 * [Playlist parsers](playlist_parsers.html): Supported playlist formats.
 * [JSON import/export](json.html): Importing and exporting language values in JSON.
 * [LADSPA plugins](ladspa.html): Using LADSPA plugins.
-* [FFmpeg filter](ffmpeg_filters.html): Using FFmpeg filters.
+* [FFmpeg filters](ffmpeg_filters.html): Using FFmpeg filters.
 
 Core
 ----
