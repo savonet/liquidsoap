@@ -121,9 +121,10 @@ let () =
   Lang.add_operator "output.url" ~active:true (url_proto kind)
     ~kind:(Lang.Unconstrained kind) ~category:Lang.Output
     ~descr:
-      "Encode and discard data. Useful for testing or with encoder with no \
-       expected output, e.g. `%ffmpeg` with `rtmp` output." (fun p _ ->
-      (new url_output p :> Source.source))
+      "Encode and let encoder handle data output. Useful with encoder with no \
+       expected output or to encode to files that need full control from the \
+       encoder, e.g. `%ffmpeg` with `rtmp` output or `\"mp4\"` format."
+    (fun p _ -> (new url_output p :> Source.source))
 
 (** Piped virtual class: open/close pipe,
   * implements metadata interpolation and
