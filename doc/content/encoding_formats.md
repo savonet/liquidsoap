@@ -129,7 +129,8 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
 
 * **AAC encoding at `22050kHz` using `fdk-aac` encoder and `mpegts` muxer**
 ```liquidsoap
-%ffmpeg(format="mpegts",codec="libfdk_aac",samplerate=22050,%audio(b="32k",afterburner=1,profile="aac_he_v2"))
+%ffmpeg(format="mpegts",audio_codec="libfdk_aac",samplerate=22050,
+        %audio(b="32k",afterburner=1,profile="aac_he_v2"))
 ```
 
 * **Mp3 encoding using `libshine` at 48000kHz**
