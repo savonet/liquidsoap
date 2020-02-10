@@ -3,6 +3,9 @@
 
 New:
 
+- Added support for video encoding and decoding using `ffmpeg` (#1038).
+- Added support for ffmpeg filters (#1038).
+- Added `output.url` for encoders that support handling data output (currently only `%ffmpeg`) (#1038).
 - Added `output.file.dash.ffmpeg`.
 - Added LV2 support (#906).
 - Added `string.nth` (#970).

@@ -567,6 +567,19 @@ fi
 
 AC_SUBST(W_FFMPEG_ENCODER)
 
+if test -n "${W_FFMPEG_AVFILTER}" &&
+   test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
+  W_FFMPEG_LIQ_FILTER=yes
+  w_FFMPEG_LIQ_FILTER=yes
+  b_FFMPEG_LIQ_FILTER=true
+else
+  W_FFMPEG_LIQ_FILTER=""
+  w_FFMPEG_LIQ_FILTER="no (require ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample)"
+  b_FFMPEG_LIQ_FILTER=false
+fi
+
+AC_SUBST(W_FFMPEG_LIQ_FILTER)
+
 #
 # Jack
 #
@@ -1081,6 +1094,7 @@ cat <<EOMSG
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime
+   - FFmpeg filters:   : $w_FFMPEG_LIQ_FILTER
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lo                : $w_LO
@@ -1158,6 +1172,7 @@ variables {
   ffmpeg-swscale-enabled: $b_FFMPEG_SWSCALE
   ffmpeg-decoder-enabled: $b_FFMPEG_DECODER
   ffmpeg-encoder-enabled: $b_FFMPEG_ENCODER
+  ffmpeg-liq-filter-enabled: $b_FFMPEG_LIQ_FILTER
   xmlplaylist-enabled: $b_XMLPLAYLIST
   lastfm-enabled: $b_LASTFM
   lame-enabled: $b_LAME

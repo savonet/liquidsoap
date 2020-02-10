@@ -50,11 +50,9 @@ let kind_of_format = function
   | Flac m ->
       { Frame.audio = m.Flac_format.channels; Frame.video = 0; Frame.midi = 0 }
   | Ffmpeg m ->
-      {
-        Frame.audio = m.Ffmpeg_format.channels;
-        Frame.video = 0;
-        Frame.midi = 0;
-      }
+      let channels = m.Ffmpeg_format.channels in
+      let video = if m.Ffmpeg_format.video_codec = None then 0 else 1 in
+      { Frame.audio = channels; video; midi = 0 }
   | FdkAacEnc m ->
       {
         Frame.audio = m.Fdkaac_format.channels;
@@ -157,6 +155,22 @@ let bitrate = function
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
   | _ -> raise Not_found
+
+(** Encoders that can output to a file. *)
+let file_output = function Ffmpeg _ -> true | _ -> false
+
+let with_file_output encoder file =
+  match encoder with
+    | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
+    | _ -> failwith "No file output!"
+
+(** Encoders that can output to a arbitrary url. *)
+let url_output = function Ffmpeg _ -> true | _ -> false
+
+let with_url_output encoder file =
+  match encoder with
+    | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
+    | _ -> failwith "No file output!"
 
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 

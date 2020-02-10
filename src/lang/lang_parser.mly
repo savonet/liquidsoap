@@ -172,7 +172,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
+%token OGG FLAC AUDIO VIDEO FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
@@ -265,7 +265,7 @@ expr:
   | SHINE app_opt                    { mk_enc ~pos:$loc (Lang_shine.make $2) }
   | FDKAAC app_opt                   { mk_enc ~pos:$loc (Lang_fdkaac.make $2) }
   | FLAC app_opt                     { mk_enc ~pos:$loc (Lang_flac.make $2) }
-  | FFMPEG app_opt                   { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
+  | FFMPEG ffmpeg_opt                { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
   | EXTERNAL app_opt                 { mk_enc ~pos:$loc (Lang_external_encoder.make $2) }
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
@@ -427,6 +427,7 @@ if_elsif:
   | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
   |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
 
+
 app_opt:
   | %prec no_app { [] }
   | LPAR app_list RPAR { $2 }
@@ -442,5 +443,18 @@ top_level_ogg_item:
   | SPEEX app_opt      { Lang_speex.make $2 }
   | OPUS app_opt       { Lang_opus.make $2 }
 ogg_item:
-  | FLAC app_opt   { Lang_flac.make_ogg $2 }
+  | FLAC app_opt       { Lang_flac.make_ogg $2 }
   | top_level_ogg_item { $1 }
+
+ffmpeg_list_elem:
+  | AUDIO LPAR app_list RPAR { `Audio  $3 }
+  | VIDEO LPAR app_list RPAR { `Video  $3 }
+  | VAR GETS expr { `Option ($1,$3) }
+ffmpeg_list:
+  |                                    { [] }
+  | ffmpeg_list_elem                   { [$1] }
+  | ffmpeg_list_elem COMMA ffmpeg_list { $1::$3 }
+
+ffmpeg_opt:
+  | %prec no_app { [] }
+  | LPAR ffmpeg_list RPAR { $2 }
