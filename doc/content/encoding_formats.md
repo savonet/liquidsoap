@@ -142,7 +142,7 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
 ```liquidsoap
 %ffmpeg(format="mpegts",
         audio_codec="ac3",%audio(channel_coupling=0),
-        video_codec="libx264"",%video(b="2600k",preset="ultrafast"))
+        video_codec="libx264",%video(b="2600k",preset="ultrafast"))
 ```
 
 The full syntax is as follows:
