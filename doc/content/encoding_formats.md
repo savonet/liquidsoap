@@ -133,9 +133,9 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
         %audio(b="32k",afterburner=1,profile="aac_he_v2"))
 ```
 
-* **Mp3 encoding using `libshine` at 48000kHz**
+* **Mp3 encoding using `libshine` at `48000kHz`**
 ```liquidsoap
-%ffmpeg(format="mp3",audio_codec="libshine")
+%ffmpeg(format="mp3",audio_codec="libshine",samplerate=48000)
 ```
 
 * **AC3 audio and H264 video encapsulated in a MPEG-TS stream**
