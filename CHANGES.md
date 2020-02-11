@@ -7,6 +7,7 @@ Fixed:
 - Fixed failures in `extract-replaygain` script (#1125)
 - Set set_default_verify_paths for SSL (#450)
 - Use 443 as default port for https (##1127)
+- Register audio/opus mime type for ogg decoding (#1089)
 
 1.4.1 (18-02-2020)
 =====

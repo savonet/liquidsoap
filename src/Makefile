@@ -233,10 +233,11 @@ liquidsoap_sources += \
 	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
-	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
+	$(video_converters) $(audio_converters) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \
-	$(encoders) $(ogg_muxer) $(io) \
-	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
+	$(encoders) $(decoders) $(ogg_demuxer) $(ogg_muxer) \
+	$(analyze) $(playlists) \
+	$(visualization) $(synth) $(io) \
 	shebang.ml $(builtins) main.ml \
 	$(if $(W_WINSVC),runner_service.ml,runner.ml)
 

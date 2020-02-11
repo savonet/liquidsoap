@@ -33,3 +33,6 @@ let () =
          in
          Ogg_demuxer_opus_decoder.decoder_samplerate := f samplerates));
   Ogg_demuxer_opus_decoder.register ()
+
+(* Register audio/opus mime *)
+let () = Ogg_decoder.mime_types#set ("audio/opus" :: Ogg_decoder.mime_types#get)
