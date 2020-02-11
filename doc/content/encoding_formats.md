@@ -135,7 +135,7 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
 
 * **Mp3 encoding using `libshine` at 48000kHz**
 ```liquidsoap
-%ffmpeg(format="mp3",codec="libshine")
+%ffmpeg(format="mp3",audio_codec="libshine")
 ```
 
 * **AC3 audio and H264 video encapsulated in a MPEG-TS stream**
@@ -165,8 +165,8 @@ The full syntax is as follows:
 ```
 Where:
 
-* `format` is either a string value (e.g. `"mpegts"`), as returned by the `ffmpeg -formats` command or `none`. When set to `none` or simply no specified, the encoder will try to auto-detect it.
-* `codec` is either a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command or `none`. When set to `none`, for audio, `channels` is set to `0` and, for either audio or video, the stream is assumed to have no such content.
+* `<format>` is either a string value (e.g. `"mpegts"`), as returned by the `ffmpeg -formats` command or `none`. When set to `none` or simply no specified, the encoder will try to auto-detect it.
+* `<codec>` is either a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command or `none`. When set to `none`, for audio, `channels` is set to `0` and, for either audio or video, the stream is assumed to have no such content.
 * `%audio(..)` is for options specific to the audio codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. The only exception being that you should make sure to always use `samplerate=<int>` in the top-level options and not the usual `ar=<int>` options from `ffmpeg`.
 * `%video(..)` is for options specific to the video codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
 * Generic options are passed to audio, video and format (container) setup. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. 
