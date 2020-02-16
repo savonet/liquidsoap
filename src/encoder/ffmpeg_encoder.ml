@@ -31,11 +31,11 @@ let log = Ffmpeg_config.log
 
 type audio_stream =
   (Avutil.output, Avutil.audio) Av.stream
-  * (Swresample.FltPlanarBigArray.t, Swresample.Frame.t) Swresample.ctx
+  * (Frame.content -> int -> int -> unit)
 
 type video_stream =
   (Avutil.output, Avutil.video) Av.stream
-  * (Swscale.BigArray.t, Swscale.Frame.t) Swscale.ctx
+  * (Frame.content -> int -> int -> unit)
 
 type handler = {
   output : Avutil.output Avutil.container;
@@ -72,14 +72,16 @@ let mk_encoder ~ffmpeg ~options output =
   let video_codec =
     Utils.maybe Avcodec.Video.find_encoder ffmpeg.Ffmpeg_format.video_codec
   in
-  let src_freq = Frame.audio_of_seconds 1. in
+  let src_samplerate = Frame.audio_of_seconds 1. in
   let channels = ffmpeg.Ffmpeg_format.channels in
   if channels > 0 && audio_codec = None then
     failwith "Audio codec required when channels > 0";
   let vchans = if video_codec = None then 0 else 1 in
-  let dst_freq = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
-  let video_width = Lazy.force Frame.video_width in
-  let video_height = Lazy.force Frame.video_height in
+  let dst_samplerate = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
+  let target_fps = Lazy.force ffmpeg.Ffmpeg_format.framerate in
+  let fps = Lazy.force Frame.video_rate in
+  let width = Lazy.force Frame.video_width in
+  let height = Lazy.force Frame.video_height in
   let audio_stream =
     Utils.maybe
       (fun audio_codec ->
@@ -102,10 +104,15 @@ let mk_encoder ~ffmpeg ~options output =
                for this number of channels.."
         in
         let resampler =
-          Resampler.create ~out_sample_format channels_layout src_freq
-            channels_layout dst_freq
+          Resampler.create ~out_sample_format channels_layout src_samplerate
+            channels_layout dst_samplerate
         in
         let stream = Av.new_audio_stream ~opts ~codec:audio_codec output in
+        let cb content start len =
+          let pcm = Audio.sub content.Frame.audio start len in
+          let aframe = Resampler.convert resampler pcm in
+          Av.write_frame stream aframe
+        in
         Hashtbl.filter_map_inplace
           (fun l v -> if Hashtbl.mem opts l then Some v else None)
           audio_opts;
@@ -116,7 +123,7 @@ let mk_encoder ~ffmpeg ~options output =
         Hashtbl.filter_map_inplace
           (fun l v -> if Hashtbl.mem opts l then Some v else None)
           options;
-        (stream, resampler))
+        (stream, cb))
       audio_codec
   in
   let video_stream =
@@ -125,21 +132,41 @@ let mk_encoder ~ffmpeg ~options output =
         let pixel_format =
           Avcodec.Video.find_best_pixel_format video_codec `Yuv420p
         in
-        let frame_rate = Lazy.force Frame.video_rate in
-        let time_base = { Avutil.num = 1; den = frame_rate } in
+        let time_base = { Avutil.num = 1; den = fps } in
+        let pts = ref 0L in
+        let pixel_aspect = { Avutil.num = 0; den = 1 } in
         let scaler =
-          Scaler.create [] video_width video_height `Yuv420p video_width
-            video_height pixel_format
+          Scaler.create [] width height `Yuv420p width height pixel_format
         in
         let opts =
-          Av.mk_video_opts ~pixel_format ~frame_rate ~time_base
-            ~size:(video_width, video_height)
-            ()
+          Av.mk_video_opts ~pixel_format ~frame_rate:target_fps
+            ~size:(width, height) ()
         in
         let video_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.video_opts in
         Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.video_opts;
         Hashtbl.iter (Hashtbl.add opts) options;
         let stream = Av.new_video_stream ~opts ~codec:video_codec output in
+        let fps_converter =
+          Ffmpeg_config.fps_converter ~width ~height ~pixel_format ~time_base
+            ~pixel_aspect ~fps ~target_fps (Av.write_frame stream)
+        in
+        let cb content start len =
+          let vstart = Frame.video_of_master start in
+          let vlen = Frame.video_of_master len in
+          let vbuf = content.Frame.video in
+          let vbuf = vbuf.(0) in
+          for i = vstart to vstart + vlen - 1 do
+            let f = Video.get vbuf i in
+            let y, u, v = Image.YUV420.data f in
+            let sy = Image.YUV420.y_stride f in
+            let s = Image.YUV420.uv_stride f in
+            let vdata = [| (y, sy); (u, s); (v, s) |] in
+            let vframe = Scaler.convert scaler vdata in
+            Avutil.frame_set_pts vframe !pts;
+            pts := Int64.succ !pts;
+            fps_converter vframe
+          done
+        in
         Hashtbl.filter_map_inplace
           (fun l v -> if Hashtbl.mem opts l then Some v else None)
           video_opts;
@@ -150,7 +177,7 @@ let mk_encoder ~ffmpeg ~options output =
         Hashtbl.filter_map_inplace
           (fun l v -> if Hashtbl.mem opts l then Some v else None)
           options;
-        (stream, scaler))
+        (stream, cb))
       video_codec
   in
   { output; audio_stream; channels; video_stream; vchans }
@@ -161,29 +188,9 @@ let encode ~encoder frame start len =
       { Frame.audio = encoder.channels; video = encoder.vchans; midi = 0 }
   in
   ignore
-    (Utils.maybe
-       (fun (stream, converter) ->
-         let pcm = content.Frame.audio in
-         let aframe = Resampler.convert converter pcm in
-         Av.write_frame stream aframe)
-       encoder.audio_stream);
+    (Utils.maybe (fun (_, cb) -> cb content start len) encoder.audio_stream);
   ignore
-    (Utils.maybe
-       (fun (stream, scaler) ->
-         let vstart = Frame.video_of_master start in
-         let vlen = Frame.video_of_master len in
-         let vbuf = content.Frame.video in
-         let vbuf = vbuf.(0) in
-         for i = vstart to vstart + vlen - 1 do
-           let f = Video.get vbuf i in
-           let y, u, v = Image.YUV420.data f in
-           let sy = Image.YUV420.y_stride f in
-           let s = Image.YUV420.uv_stride f in
-           let vdata = [| (y, sy); (u, s); (v, s) |] in
-           let vframe = Scaler.convert scaler vdata in
-           Av.write_frame stream vframe
-         done)
-       encoder.video_stream)
+    (Utils.maybe (fun (_, cb) -> cb content start len) encoder.video_stream)
 
 let insert_metadata ~encoder m =
   let m =

@@ -72,7 +72,7 @@ let mk_video_decoder ~put_video container =
   let pixel_format = Avcodec.Video.get_pixel_format codec in
   let width = Avcodec.Video.get_width codec in
   let height = Avcodec.Video.get_height codec in
-  let target_frame_rate = Lazy.force Frame.video_rate in
+  let target_fps = Lazy.force Frame.video_rate in
   let target_width = Lazy.force Frame.video_width in
   let target_height = Lazy.force Frame.video_height in
   let scaler =
@@ -81,74 +81,26 @@ let mk_video_decoder ~put_video container =
   in
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
-  let config = Avfilter.init () in
-  let buffer =
-    match
-      List.find_opt (fun { Avfilter.name } -> name = "buffer") Avfilter.buffers
-    with
-      | Some buffer -> buffer
-      | None -> failwith "Could not find buffer ffmpeg filter!"
-  in
-  let buffer =
-    let args =
-      [
-        `Pair ("video_size", `String (Printf.sprintf "%dx%d" width height));
-        `Pair ("pix_fmt", `String (Avutil.Pixel_format.to_string pixel_format));
-        `Pair ("time_base", `Rational time_base);
-        `Pair ("pixel_aspect", `Rational pixel_aspect);
-      ]
+  let generator = ref None in
+  let cb frame =
+    let img =
+      match Scaler.convert scaler frame with
+        | [| (y, sy); (u, s); (v, _) |] ->
+            Image.YUV420.make target_width target_height y sy u v s
+        | _ -> assert false
     in
-    Avfilter.attach ~name:"buffer" ~args buffer config
+    let content = Video.single img in
+    put_video (Utils.get_some !generator) [| content |] 0 (Video.length content)
   in
-  let fps =
-    match
-      List.find_opt (fun { Avfilter.name } -> name = "fps") Avfilter.filters
-    with
-      | Some fps -> fps
-      | None -> failwith "Could not find fps ffmpeg filter!"
+  let fps_converter =
+    Ffmpeg_config.fps_converter ~width ~height ~pixel_format ~time_base
+      ~pixel_aspect ~target_fps cb
   in
-  let fps =
-    let args = [`Pair ("fps", `Int target_frame_rate)] in
-    Avfilter.attach ~name:"fps" ~args fps config
-  in
-  let buffersink =
-    match
-      List.find_opt
-        (fun { Avfilter.name } -> name = "buffersink")
-        Avfilter.sinks
-    with
-      | Some buffersink -> buffersink
-      | None -> failwith "Could not find buffersink ffmpeg filter!"
-  in
-  let buffersink = Avfilter.attach ~name:"buffersink" buffersink config in
-  Avfilter.link
-    (List.hd Avfilter.(buffer.io.outputs.video))
-    (List.hd Avfilter.(fps.io.inputs.video));
-  Avfilter.link
-    (List.hd Avfilter.(fps.io.outputs.video))
-    (List.hd Avfilter.(buffersink.io.inputs.video));
-  let graph = Avfilter.launch config in
-  let _, input = List.hd Avfilter.(graph.inputs.video) in
-  let _, output = List.hd Avfilter.(graph.outputs.video) in
   ( idx,
     stream,
     fun frame gen ->
-      input frame;
-      let rec flush () =
-        try
-          let frame = output () in
-          let img =
-            match Scaler.convert scaler frame with
-              | [| (y, sy); (u, s); (v, _) |] ->
-                  Image.YUV420.make target_width target_height y sy u v s
-              | _ -> assert false
-          in
-          let content = Video.single img in
-          put_video gen [| content |] 0 (Video.length content);
-          flush ()
-        with Avutil.Error `Eagain -> ()
-      in
-      flush () )
+      generator := Some gen;
+      fps_converter frame )
 
 let mk_decoder ~set_mode ~add_break ~audio ~video ~container =
   let rec read_input_frame () =

@@ -158,6 +158,7 @@ The full syntax is as follows:
 
         # Video section
         video_codec=<codec>,
+        framerate=<int>,
         %video(<option_name>=<option_value>,..))
 
         # Generic options
@@ -168,7 +169,7 @@ Where:
 * `<format>` is either a string value (e.g. `"mpegts"`), as returned by the `ffmpeg -formats` command or `none`. When set to `none` or simply no specified, the encoder will try to auto-detect it.
 * `<codec>` is either a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command or `none`. When set to `none`, for audio, `channels` is set to `0` and, for either audio or video, the stream is assumed to have no such content.
 * `%audio(..)` is for options specific to the audio codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. The only exception being that you should make sure to always use `samplerate=<int>` in the top-level options and not the usual `ar=<int>` options from `ffmpeg`.
-* `%video(..)` is for options specific to the video codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
+* `%video(..)` is for options specific to the video codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. The only exception being that you should make sure to always use `framerate=<int>` in the top-level options and not the usual `r=<int>` options from `ffmpeg`.
 * Generic options are passed to audio, video and format (container) setup. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. 
 
 The `%ffmpeg` encoder is the prime encoder for HLS output as it is the only one of our collection of encoder which can produce Mpeg-ts muxed data, which is required by most HLS clients.
