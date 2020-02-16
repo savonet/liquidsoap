@@ -108,9 +108,7 @@ let mk_video_decoder ~put_video container =
       | None -> failwith "Could not find fps ffmpeg filter!"
   in
   let fps =
-    let args =
-      [`Pair ("fps", `Int target_frame_rate); `Pair ("start_time", `Int 0)]
-    in
+    let args = [`Pair ("fps", `Int target_frame_rate)] in
     Avfilter.attach ~name:"fps" ~args fps config
   in
   let buffersink =

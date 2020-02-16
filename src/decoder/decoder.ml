@@ -306,23 +306,11 @@ module Buffered (Generator : Generator.S) = struct
   let make_file_decoder ~filename ~close ~kind ~remaining decoder gen =
     let frame_size = Lazy.force Frame.size in
     let prebuf =
-      (* Amount of audio to decode in advance, in ticks.
-       * It has to be more than a frame, but taking just one frame
-       * is unsatisfying because it yields very low initial estimations
-       * of the remaining time (which triggers early downloads,
-       * transitions, etc). This is because the decoder will often
-       * skip some hearders or metadata, giving the impression of
-       * a poor compression rate.
-       * We also guarantee that the remaining time will be precisely
-       * given for the last [prebuf] seconds of a file. But in
-       * practice it seems that we get pretty good estimations
-       * way before that point... unless perhaps when there's a lot
-       * of metadata (or ill-formed data) at the end of the file?
-       * It seems that 0.5 seconds is enough. The more we put,
-       * the higher will be the initial computation burst.
-       * Putting a setting for that is probably too obscure to
-       * be useful. *)
-      Frame.master_of_seconds 0.5
+      (* Amount of data to decode in advance, in ticks.
+         This value was historically very high (0.5s) and
+         was too much for video. Setting it to 5 frames for
+         now. -- @toots *)
+      5 * Lazy.force Frame.size
     in
     let decoding_done = ref false in
     let fill frame =

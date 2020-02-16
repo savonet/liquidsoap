@@ -298,9 +298,7 @@ let () =
       let target_frame_rate = Lazy.force Frame.video_rate in
       let fps = get_filter ~source:Avfilter.filters "fps" in
       let fps =
-        let args =
-          [`Pair ("fps", `Int target_frame_rate); `Pair ("start_time", `Int 0)]
-        in
+        let args = [`Pair ("fps", `Int target_frame_rate)] in
         Avfilter.attach ~name:(uniq_name "fps") ~args fps config
       in
       let buffersink = get_filter ~source:Avfilter.sinks "buffersink" in
