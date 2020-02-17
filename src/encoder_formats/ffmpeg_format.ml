@@ -82,7 +82,10 @@ let to_string m =
       | `Stream -> ""
       | `Url path -> Printf.sprintf ",url=%S" path
   in
-  Printf.sprintf "%%fmpeg(channels=%d,samplerate=%d%s%s%s%s%s%s%s)" m.channels
-    (Lazy.force m.samplerate) audio_codec audio_opts video_codec video_opts
+  Printf.sprintf
+    "%%fmpeg(channels=%d,samplerate=%d,framerate=%d,width=%d,height=%d%s%s%s%s%s%s%s)"
+    m.channels (Lazy.force m.samplerate) (Lazy.force m.framerate)
+    (Lazy.force m.width) (Lazy.force m.height) audio_codec audio_opts
+    video_codec video_opts
     (if opts = "" then "" else Printf.sprintf ",%s" opts)
     format output
