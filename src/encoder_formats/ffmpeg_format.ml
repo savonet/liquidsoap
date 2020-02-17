@@ -30,6 +30,8 @@ type t = {
   channels : int;
   samplerate : int Lazy.t;
   framerate : int Lazy.t;
+  width : int Lazy.t;
+  height : int Lazy.t;
   audio_codec : string option;
   audio_opts : opts;
   video_codec : string option;

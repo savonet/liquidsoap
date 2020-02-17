@@ -80,8 +80,10 @@ let mk_encoder ~ffmpeg ~options output =
   let dst_samplerate = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
   let target_fps = Lazy.force ffmpeg.Ffmpeg_format.framerate in
   let fps = Lazy.force Frame.video_rate in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
+  let src_width = Lazy.force Frame.video_width in
+  let src_height = Lazy.force Frame.video_height in
+  let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
+  let target_height = Lazy.force ffmpeg.Ffmpeg_format.height in
   let audio_stream =
     Utils.maybe
       (fun audio_codec ->
@@ -136,19 +138,22 @@ let mk_encoder ~ffmpeg ~options output =
         let pts = ref 0L in
         let pixel_aspect = { Avutil.num = 0; den = 1 } in
         let scaler =
-          Scaler.create [] width height `Yuv420p width height pixel_format
+          Scaler.create [] src_width src_height `Yuv420p target_width
+            target_height pixel_format
         in
         let opts =
           Av.mk_video_opts ~pixel_format ~frame_rate:target_fps
-            ~size:(width, height) ()
+            ~size:(target_width, target_height)
+            ()
         in
         let video_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.video_opts in
         Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.video_opts;
         Hashtbl.iter (Hashtbl.add opts) options;
         let stream = Av.new_video_stream ~opts ~codec:video_codec output in
         let fps_converter =
-          Ffmpeg_config.fps_converter ~width ~height ~pixel_format ~time_base
-            ~pixel_aspect ~fps ~target_fps (Av.write_frame stream)
+          Ffmpeg_config.fps_converter ~width:target_width ~height:target_height
+            ~pixel_format ~time_base ~pixel_aspect ~fps ~target_fps
+            (Av.write_frame stream)
         in
         let cb content start len =
           let vstart = Frame.video_of_master start in

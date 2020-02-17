@@ -32,6 +32,8 @@ let ffmpeg_gen params =
       channels = 2;
       samplerate = Frame.audio_rate;
       framerate = Frame.video_rate;
+      width = Frame.video_width;
+      height = Frame.video_height;
       audio_codec = None;
       video_codec = None;
       audio_opts = Hashtbl.create 0;
@@ -62,8 +64,12 @@ let ffmpeg_gen params =
           { f with Ffmpeg_format.channels = c }
       | `Option ("samplerate", { term = Ground (Int s); _ }) ->
           { f with Ffmpeg_format.samplerate = Lazy.from_val s }
-      | `Option ("framerate", { term = Ground (Int s); _ }) ->
-          { f with Ffmpeg_format.framerate = Lazy.from_val s }
+      | `Option ("framerate", { term = Ground (Int r); _ }) ->
+          { f with Ffmpeg_format.framerate = Lazy.from_val r }
+      | `Option ("width", { term = Ground (Int w); _ }) ->
+          { f with Ffmpeg_format.framerate = Lazy.from_val w }
+      | `Option ("height", { term = Ground (Int h); _ }) ->
+          { f with Ffmpeg_format.framerate = Lazy.from_val h }
       | `Option ("audio_codec", { term = Var s; _ }) when s = "none" ->
           { f with Ffmpeg_format.audio_codec = None; channels = 0 }
       | `Option ("audio_codec", { term = Ground (String c); _ }) ->

@@ -159,6 +159,8 @@ The full syntax is as follows:
         # Video section
         video_codec=<codec>,
         framerate=<int>,
+        width=<int>,
+        height=<int>,
         %video(<option_name>=<option_value>,..))
 
         # Generic options
