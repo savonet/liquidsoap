@@ -669,6 +669,7 @@ let find_cmd cmds =
   cmd cmds
 
 let print_strings ?(pager = false) s =
+  let pager = if Sys.getenv "LIQ_NO_PAGER" <> "" then false else pager in
   let default s = Strings.iter (output_substring stdout) s in
   let cmd =
     let cmds = [("less", "-F -X"); ("more", "")] in
