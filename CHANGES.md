@@ -8,6 +8,7 @@ Fixed:
 - Set set_default_verify_paths for SSL (#450)
 - Use 443 as default port for https (##1127)
 - Register audio/opus mime type for ogg decoding (#1089)
+- Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
 - Accept 24 bits per sample in %flac encoder (#1073)
 
 1.4.1 (18-02-2020)

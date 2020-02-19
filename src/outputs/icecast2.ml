@@ -220,8 +220,9 @@ let proto kind =
         Lang.string_t,
         Some (Lang.string ""),
         Some
-          "Encoding used to send metadata. If empty, defaults to \"UTF-8\" for \
-           \"http(s)\" protocol and \"ISO-8859-1\" for \"icy\" protocol." );
+          "Encoding used to send metadata and stream info (name, genre and \
+           description). If empty, defaults to \"UTF-8\" for \"http(s)\" \
+           protocol and \"ISO-8859-1\" for \"icy\" protocol." );
       ("genre", Lang.string_t, Some (Lang.string ""), None);
       ( "protocol",
         Lang.string_t,
@@ -357,8 +358,7 @@ class output ~kind p =
   let icy_id = Lang.to_int (List.assoc "icy_id" p) in
 
   let mount = s "mount" in
-
-  let name = s "name" in
+  let name = Configure.recode_tag ~out_enc (s "name") in
   let mount, name =
     match (protocol, name, mount) with
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
@@ -392,7 +392,7 @@ class output ~kind p =
       | _, user -> user
   in
   let password = s "password" in
-  let genre = s "genre" in
+  let genre = Configure.recode_tag ~out_enc (s "genre") in
   let url = s "url" in
   let timeout = e Lang.to_float "timeout" in
   let connection_timeout =
@@ -400,7 +400,7 @@ class output ~kind p =
     if v > 0. then Some v else None
   in
   let dumpfile = match s "dumpfile" with "" -> None | s -> Some s in
-  let description = s "description" in
+  let description = Configure.recode_tag ~out_enc (s "description") in
   let public = e Lang.to_bool "public" in
   let headers =
     List.map
