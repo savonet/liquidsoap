@@ -8,7 +8,7 @@
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~icy_id Shoutcast source ID. Only supported by Shoutcast v2.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
-# @param ~encoding Encoding used to send metadata.
+# @param ~encoding Encoding used to send metadata and stream info.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
