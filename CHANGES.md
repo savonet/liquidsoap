@@ -72,6 +72,7 @@ Fixed:
 - Make `blank()` source unavailable past is expected duration (#668).
 - Fixed implementation details with `cross` operator.
 - Register audio/opus mime type for ogg decoding (#1089)
+- Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
 
 1.4.1 (18-02-2020)
 =====
