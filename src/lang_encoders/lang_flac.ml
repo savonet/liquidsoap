@@ -23,6 +23,8 @@
 open Lang_values
 open Lang_encoders
 
+let accepted_bits_per_sample = [8; 16; 24; 32]
+
 let flac_gen params =
   let defaults =
     {
@@ -44,7 +46,7 @@ let flac_gen params =
           if i < 0 || i > 8 then raise (Error (t, "invalid compression value"));
           { f with Flac_format.compression = i }
       | "bits_per_sample", ({ term = Int i; _ } as t) ->
-          if i <> 8 && i <> 16 && i <> 32 then
+          if not (List.mem i accepted_bits_per_sample) then
             raise (Error (t, "invalid bits_per_sample value"));
           { f with Flac_format.bits_per_sample = i }
       | "bytes_per_page", { term = Int i; _ } ->
