@@ -25,7 +25,8 @@ General tutorials
 
 Reference
 ---------
-* [API reference](reference.html): All the builtin functions of liquidsoap.
+* [Core API](reference.html): The core liquidsoap APe
+* [Extra API](reference-extra.html): Extra functions and libraries. 
 * [Protocols](protocols.html): List of protocols supported by liquidsoap.
 * [Settings](settings.html): The list of available settings for liquidsoap.
 * [Script language](language.html): A more detailed presentation.

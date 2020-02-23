@@ -23,6 +23,7 @@ src/*_depend
 src/liquidsoap
 doc/html
 doc/content/reference.md
+doc/content/reference-extras.md
 doc/content/settings.md
 doc/content/protocols.md
 autodoc/
