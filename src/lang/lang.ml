@@ -256,12 +256,13 @@ let doc_of_prototype_item ~generalized t d doc =
       | Some d -> Doc.trivial (print_value d) );
   item
 
-type doc_flag = Hidden | Deprecated | Experimental
+type doc_flag = Hidden | Deprecated | Experimental | Extra
 
 let string_of_flag = function
   | Hidden -> "hidden"
   | Deprecated -> "deprecated"
   | Experimental -> "experimental"
+  | Extra -> "extra"
 
 let builtin_type p t =
   T.make

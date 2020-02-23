@@ -105,7 +105,7 @@ let print_functions (doc : item) print_string =
   let functions = List.sort compare !functions in
   List.iter print_string functions
 
-let print_functions_md (doc : item) print_string =
+let print_functions_md ?(extra = false) (doc : item) print_string =
   let doc = to_json doc in
   let to_assoc = function `Assoc l -> l | _ -> assert false in
   let to_string = function `String s -> s | _ -> assert false in
@@ -124,6 +124,11 @@ let print_functions_md (doc : item) print_string =
   List.iter add doc;
   let by_cat = List.sort (fun (c, _) (c', _) -> compare c c') !by_cat in
   let by_cat = List.filter (fun (c, _) -> c <> "") by_cat in
+  let should_print flags =
+    if List.mem "hidden" flags then false
+    else if (not extra) && List.mem "extra" flags then false
+    else true
+  in
   List.iter
     (fun (cat, ff) ->
       Printf.ksprintf print_string "## %s\n\n" cat;
@@ -132,7 +137,7 @@ let print_functions_md (doc : item) print_string =
         (fun (f, desc) ->
           let flags = List.filter (fun (n, _) -> n = "_flag") desc in
           let flags = List.map (fun (_, f) -> to_string f) flags in
-          if not (List.mem "hidden" flags) then (
+          if should_print flags then (
             Printf.ksprintf print_string "### `%s`\n\n" f;
             Printf.ksprintf print_string "%s\n\n"
               (to_string (List.assoc "_info" desc));

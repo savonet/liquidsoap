@@ -459,6 +459,14 @@ let options =
             Utils.kprint_string ~pager:true
               (Doc.print_functions_md (Plug.plugs : Doc.item))),
         Printf.sprintf "Documentation of all functions in markdown." );
+      ( ["--list-extra-functions-md"],
+        Arg.Unit
+          (fun () ->
+            secondary_task := true;
+            load_libs ();
+            Utils.kprint_string ~pager:true
+              (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
+        Printf.sprintf "Documentation of all extra functions in markdown." );
       ( ["--list-protocols-md"],
         Arg.Unit
           (fun () ->
