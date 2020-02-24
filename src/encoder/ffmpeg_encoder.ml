@@ -87,8 +87,10 @@ let mk_encoder ~ffmpeg ~options output =
   let audio_stream =
     Utils.maybe
       (fun audio_codec ->
+        let time_base = { Avutil.num = 1; den = src_samplerate } in
+        let pts = ref 0L in
         let opts =
-          Av.mk_audio_opts ~channels
+          Av.mk_audio_opts ~channels ~time_base
             ~sample_rate:(Lazy.force ffmpeg.Ffmpeg_format.samplerate)
             ()
         in
@@ -113,6 +115,8 @@ let mk_encoder ~ffmpeg ~options output =
         let cb content start len =
           let pcm = Audio.sub content.Frame.audio start len in
           let aframe = Resampler.convert resampler pcm in
+          Avutil.frame_set_pts aframe !pts;
+          pts := Int64.add !pts (Int64.of_int len);
           Av.write_frame stream aframe
         in
         Hashtbl.filter_map_inplace
