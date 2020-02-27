@@ -129,40 +129,31 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
 
 * **AAC encoding at `22050kHz` using `fdk-aac` encoder and `mpegts` muxer**
 ```liquidsoap
-%ffmpeg(format="mpegts",audio_codec="libfdk_aac",samplerate=22050,
-        %audio(b="32k",afterburner=1,profile="aac_he_v2"))
+%ffmpeg(format="mpegts",
+        %audio(codec="libfdk_aac",samplerate=22050,b="32k",
+               afterburner=1,profile="aac_he_v2"))
 ```
 
 * **Mp3 encoding using `libshine` at `48000kHz`**
 ```liquidsoap
-%ffmpeg(format="mp3",audio_codec="libshine",samplerate=48000)
+%ffmpeg(format="mp3",%audio(codec="libshine",samplerate=48000))
 ```
 
 * **AC3 audio and H264 video encapsulated in a MPEG-TS stream**
 ```liquidsoap
 %ffmpeg(format="mpegts",
-        audio_codec="ac3",%audio(channel_coupling=0),
-        video_codec="libx264",%video(b="2600k",preset="ultrafast"))
+        %audio(codec="ac3",channel_coupling=0),
+        %video(codec="libx264",b="2600k",preset="ultrafast"))
 ```
 
 The full syntax is as follows:
 
 ```liquidsoap
 %ffmpeg(format=<format>,
-
         # Audio section
-        audio_codec=<codec>,
-        channels=<int>,
-        samplerate=<int>,
-        %audio(<option_name>=<option_value>,..),
-
+        %audio(codec=<codec>,<option_name>=<option_value>,..),
         # Video section
-        video_codec=<codec>,
-        framerate=<int>,
-        width=<int>,
-        height=<int>,
-        %video(<option_name>=<option_value>,..))
-
+        %video(codec=<codec>,<option_name>=<option_value>,..))
         # Generic options
         <option_name>=<option_value>,..
 ```
@@ -170,8 +161,8 @@ Where:
 
 * `<format>` is either a string value (e.g. `"mpegts"`), as returned by the `ffmpeg -formats` command or `none`. When set to `none` or simply no specified, the encoder will try to auto-detect it.
 * `<codec>` is either a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command or `none`. When set to `none`, for audio, `channels` is set to `0` and, for either audio or video, the stream is assumed to have no such content.
-* `%audio(..)` is for options specific to the audio codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. The only exception being that you should make sure to always use `samplerate=<int>` in the top-level options and not the usual `ar=<int>` options from `ffmpeg`.
-* `%video(..)` is for options specific to the video codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. The only exception being that you should make sure to always use `framerate=<int>` in the top-level options and not the usual `r=<int>` options from `ffmpeg`.
+* `%audio(..)` is for options specific to the audio codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
+* `%video(..)` is for options specific to the video codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
 * Generic options are passed to audio, video and format (container) setup. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. 
 
 The `%ffmpeg` encoder is the prime encoder for HLS output as it is the only one of our collection of encoder which can produce Mpeg-ts muxed data, which is required by most HLS clients.

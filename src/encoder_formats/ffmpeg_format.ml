@@ -53,39 +53,36 @@ let string_of_options options =
        options [])
 
 let to_string m =
-  let audio_codec =
-    match m.audio_codec with
-      | None -> ""
-      | Some c -> Printf.sprintf ",audio_codec=%S" c
+  let opts = [] in
+  let opts =
+    if Hashtbl.length m.other_opts > 0 then
+      string_of_options m.other_opts :: opts
+    else opts
   in
-  let video_codec =
+  let opts =
     match m.video_codec with
-      | None -> ""
-      | Some c -> Printf.sprintf ",video_codec=%S" c
+      | None -> opts
+      | Some c ->
+          let video_opts = Hashtbl.copy m.video_opts in
+          Hashtbl.add video_opts "codec" (`String c);
+          Hashtbl.add video_opts "framerate" (`Int (Lazy.force m.framerate));
+          Hashtbl.add video_opts "width" (`Int (Lazy.force m.width));
+          Hashtbl.add video_opts "height" (`Int (Lazy.force m.height));
+          Printf.sprintf "%%video(%s)" (string_of_options video_opts) :: opts
   in
-  let opts = string_of_options m.other_opts in
-  let audio_opts =
-    if Hashtbl.length m.audio_opts > 0 then
-      Printf.sprintf ",%%audio(%s)" (string_of_options m.audio_opts)
-    else ""
+  let opts =
+    match m.audio_codec with
+      | None -> opts
+      | Some c ->
+          let audio_opts = Hashtbl.copy m.audio_opts in
+          Hashtbl.add audio_opts "codec" (`String c);
+          Hashtbl.add audio_opts "channels" (`Int m.channels);
+          Hashtbl.add audio_opts "samplerate" (`Int (Lazy.force m.samplerate));
+          Printf.sprintf "%%audio(%s)" (string_of_options audio_opts) :: opts
   in
-  let video_opts =
-    if Hashtbl.length m.video_opts > 0 then
-      Printf.sprintf ",%%video(%s)" (string_of_options m.video_opts)
-    else ""
+  let opts =
+    match m.format with
+      | Some f -> Printf.sprintf "format=%S" f :: opts
+      | None -> opts
   in
-  let format =
-    match m.format with Some f -> Printf.sprintf ",format=%S" f | None -> ""
-  in
-  let output =
-    match m.output with
-      | `Stream -> ""
-      | `Url path -> Printf.sprintf ",url=%S" path
-  in
-  Printf.sprintf
-    "%%fmpeg(channels=%d,samplerate=%d,framerate=%d,width=%d,height=%d%s%s%s%s%s%s%s)"
-    m.channels (Lazy.force m.samplerate) (Lazy.force m.framerate)
-    (Lazy.force m.width) (Lazy.force m.height) audio_codec audio_opts
-    video_codec video_opts
-    (if opts = "" then "" else Printf.sprintf ",%s" opts)
-    format output
+  Printf.sprintf "%%fmpeg(%s)" (String.concat "," opts)

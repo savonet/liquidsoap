@@ -7,28 +7,34 @@ The main operator is `output.file.hls`. Here's an example using it, courtesy of 
 
 ```liquidsoap
 aac_lofi = %ffmpeg(format="mpegts",
-                   codec="libfdk_aac",
-                   channels=2,
-                   ar=44100,
-                   b="32k",
-                   afterburner=1,
-                   profile="aac_he_v2")
+                   %audio(
+                     codec="libfdk_aac",
+                     channels=2,
+                     ar=44100,
+                     b="32k",
+                     afterburner=1,
+                     profile="aac_he_v2"
+                   ))
 
 aac_midfi = %ffmpeg(format="mpegts",
-                   codec="libfdk_aac",
-                   channels=2,
-                   ar=44100,
-                   b="96k",
-                   afterburner=1,
-                   profile="aac_low")
+                    %audio(
+                      codec="libfdk_aac",
+                      channels=2,
+                      ar=44100,
+                      b="96k",
+                      afterburner=1,
+                      profile="aac_low"
+                    ))
 
 aac_hifi = %ffmpeg(format="mpegts",
-                   codec="libfdk_aac",
-                   channels=2,
-                   ar=44100,
-                   b="192k",
-                   afterburner=1,
-                   profile="aac_low")
+                   %audio(
+                     codec="libfdk_aac",
+                     channels=2,
+                     ar=44100,
+                     b="192k",
+                     afterburner=1,
+                     profile="aac_low"
+                   ))
 
 streams_info = [("aac_lofi",(40000,"mp4a.40.29","ts")),
                 ("aac_midfi",(110000,"mp4a.40.2","ts")),
