@@ -263,7 +263,8 @@ The parameters are:
       bits_per_sample=16)
 ```
 
-`compression` ranges from 0 to 8 and `bits_per_sample` should be one of: `8`, `16` or `32`.
+`compression` ranges from 0 to 8 and `bits_per_sample` should be one of: `8`, `16`, `24` or `32`.
+Please note that `32` bits per sample is currently not supported by the underlying `libflac`.
 
 FDK-AAC
 -------
