@@ -105,7 +105,7 @@ let print_functions (doc : item) print_string =
   let functions = List.sort compare !functions in
   List.iter print_string functions
 
-let print_functions_md ?(extra = false) (doc : item) print_string =
+let print_functions_md ~extra (doc : item) print_string =
   let doc = to_json doc in
   let to_assoc = function `Assoc l -> l | _ -> assert false in
   let to_string = function `String s -> s | _ -> assert false in
@@ -124,10 +124,8 @@ let print_functions_md ?(extra = false) (doc : item) print_string =
   List.iter add doc;
   let by_cat = List.sort (fun (c, _) (c', _) -> compare c c') !by_cat in
   let by_cat = List.filter (fun (c, _) -> c <> "") by_cat in
-  let should_print flags =
-    if List.mem "hidden" flags then false
-    else if (not extra) && List.mem "extra" flags then false
-    else true
+  let should_print l =
+    if List.mem "hidden" l then false else List.mem "extra" l = extra
   in
   List.iter
     (fun (cat, ff) ->

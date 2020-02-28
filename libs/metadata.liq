@@ -17,6 +17,7 @@ end
 
 # Create a string getter from a metadata: this is a string, whose value can be changed with a metadata.
 # @category Interaction
+# @flag extra
 # @param init Initial value.
 # @param metadata Metadata on which the value should be updated.
 # @param s Source containing the metadata.
@@ -26,6 +27,7 @@ end
 
 # Create a float getter from a metadata: this is a float, whose value can be changed with a metadata.
 # @category Interaction
+# @flag extra
 # @param init Initial value.
 # @param metadata Metadata on which the value should be updated.
 # @param s Source containing the metadata.
@@ -48,6 +50,7 @@ end
 # Obtain cover-art for a file. An empty string is returned in case there is no
 # such information.
 # @category System
+# @flag extra
 # @param file File from which the cover should be obtained
 def file.cover(~id="file.cover", file)
   m = file.metadata(file)

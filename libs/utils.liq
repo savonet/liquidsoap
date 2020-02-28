@@ -8,7 +8,7 @@ end
 
 # Add a skip function to a source when it does not have one by default.
 # @category Interaction
-# @flags extra
+# @flag extra
 # @param s The source to attach the command to.
 def add_skip_command(s) =
   # A command to skip
@@ -99,7 +99,7 @@ end
 # switching.
 # @category Source / Track Processing
 # @param ~input The input source
-# @flags extra
+# @flag extra
 # @param f The fallback source
 def fallback.skip(~input,f)
   def transition(a,b) =

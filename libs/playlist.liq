@@ -4,6 +4,7 @@
 # reload function can optionally be called with a new playlist URI, otherwise,
 # it reloads the previous URI.
 # @category Source / Input
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~check_next Function used to filter next tracks. A candidate track is only validated if the function returns true on it. The function is called before resolution, hence metadata will only be available for requests corresponding to local files. This is typically used to avoid repetitions, but be careful: if the function rejects all attempts, the playlist will enter into a consuming loop and stop playing anything.
 # @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.

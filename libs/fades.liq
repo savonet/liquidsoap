@@ -364,6 +364,7 @@ end
 # normal stream is available and when the special stream gets added on top of
 # it.
 # @category Source / Track Processing
+# @flag extra
 # @param ~delay   Delay before starting the special source.
 # @param ~p       Portion of amplitude of the normal source in the mix.
 # @param ~normal  The normal source, which could be called the carrier too.
