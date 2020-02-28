@@ -25,7 +25,7 @@ General tutorials
 
 Reference
 ---------
-* [Core API](reference.html): The core liquidsoap APe
+* [Core API](reference.html): The core liquidsoap API
 * [Extra API](reference-extra.html): Extra functions and libraries. 
 * [Protocols](protocols.html): List of protocols supported by liquidsoap.
 * [Settings](settings.html): The list of available settings for liquidsoap.
