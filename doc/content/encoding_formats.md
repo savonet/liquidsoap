@@ -143,7 +143,9 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
 ```liquidsoap
 %ffmpeg(format="mpegts",
         %audio(codec="ac3",channel_coupling=0),
-        %video(codec="libx264",b="2600k",preset="ultrafast"))
+        %video(codec="libx264",b="2600k",
+               "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
+               preset="ultrafast"))
 ```
 
 The full syntax is as follows:
@@ -161,6 +163,7 @@ Where:
 
 * `<format>` is either a string value (e.g. `"mpegts"`), as returned by the `ffmpeg -formats` command or `none`. When set to `none` or simply no specified, the encoder will try to auto-detect it.
 * `<codec>` is either a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command or `none`. When set to `none`, for audio, `channels` is set to `0` and, for either audio or video, the stream is assumed to have no such content.
+* `<option_name>` can be any syntactically valid variable name or string. Strings are typically used when the option name is of the form: `foo-bar`.
 * `%audio(..)` is for options specific to the audio codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
 * `%video(..)` is for options specific to the video codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
 * Generic options are passed to audio, video and format (container) setup. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. 

@@ -446,10 +446,18 @@ ogg_item:
   | FLAC app_opt       { Lang_flac.make_ogg $2 }
   | top_level_ogg_item { $1 }
 
+ffmpeg_param:
+  | STRING GETS expr { $1,$3 }
+  | VAR GETS expr        { $1,$3 }
+ffmpeg_params:
+  |                                  { [] }
+  | ffmpeg_param                     { [$1] }
+  | ffmpeg_param COMMA ffmpeg_params { $1::$3 }
+
 ffmpeg_list_elem:
-  | AUDIO LPAR app_list RPAR { `Audio  $3 }
-  | VIDEO LPAR app_list RPAR { `Video  $3 }
-  | VAR GETS expr { `Option ($1,$3) }
+  | AUDIO LPAR ffmpeg_params RPAR { `Audio  $3 }
+  | VIDEO LPAR ffmpeg_params RPAR { `Video  $3 }
+  | ffmpeg_param                  { `Option $1 }
 ffmpeg_list:
   |                                    { [] }
   | ffmpeg_list_elem                   { [$1] }
