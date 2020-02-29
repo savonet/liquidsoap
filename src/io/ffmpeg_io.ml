@@ -132,7 +132,7 @@ let () =
     @ [
         ( "buffer",
           Lang.float_t,
-          Some (Lang.float 1.),
+          Some (Lang.float 5.),
           Some "Duration of buffered data before starting playout." );
         ("", Lang.string_t, None, Some "URL to decode.");
       ] )
