@@ -61,8 +61,9 @@ let convert_options opts =
 
 let mk_format ffmpeg =
   match (ffmpeg.Ffmpeg_format.format, ffmpeg.Ffmpeg_format.output) with
+    | short_name, `Url filename ->
+        Av.Format.guess_output_format ~filename ?short_name ()
     | Some short_name, _ -> Av.Format.guess_output_format ~short_name ()
-    | None, `Url filename -> Av.Format.guess_output_format ~filename ()
     | _ -> None
 
 let mk_encoder ~ffmpeg ~options output =
@@ -205,10 +206,8 @@ let insert_metadata ~encoder m =
   let m =
     Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
   in
-  match (encoder.audio_stream, encoder.video_stream) with
-    | Some (s, _), _ -> Av.set_metadata s m
-    | None, Some (s, _) -> Av.set_metadata s m
-    | _ -> ()
+  if not (Av.output_started encoder.output) then
+    Av.set_output_metadata encoder.output m
 
 let encoder ffmpeg meta =
   let buf = Strings.Mutable.empty () in
@@ -239,11 +238,7 @@ let encoder ffmpeg meta =
     encode ~encoder:!encoder frame start len;
     Strings.Mutable.flush buf
   in
-  let insert_metadata m =
-    Av.close !encoder.output;
-    encoder := make ();
-    insert_metadata ~encoder:!encoder m
-  in
+  let insert_metadata m = insert_metadata ~encoder:!encoder m in
   insert_metadata meta;
   let stop () =
     Av.close !encoder.output;
