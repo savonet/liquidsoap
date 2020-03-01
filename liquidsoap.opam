@@ -35,7 +35,7 @@ for more information." {failure}
 users want. You might need to install the mad or ffmpeg package." {success & !mad-enabled & !ffmpeg-decoder-enabled}
 
 "We noticed that you did not install any mp3 encoder. This is a feature most
-users want. You might need to install the lame or shine package." {success & !lame-enabled & !shine-enabled}
+users want. You might need to install the lame or shine package." {success & !lame-enabled & !shine-enabled & !ffmpeg-encoder-enabled}
 
 "We noticed that you did not install the taglib package that provides support
 for reading metatadata in audio files. This is a feature most users want." {success & !taglib-enabled}
