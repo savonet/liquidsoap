@@ -1,5 +1,6 @@
 # VU meter: display the audio volume (RMS in dB).
 # @category Visualization
+# @flag extra
 # @param ~rms_min Minimal volume.
 # @param ~rms_max Maximal volume.
 # @param ~scroll Update the display in the same line.
