@@ -2,17 +2,18 @@
 
 set -e
 
-FFMPEG=`which ffmpeg || echo ""`
+FFMPEG=`which ffmpeg 2>/dev/null || echo ""`
+FFPROBE=`which ffprobe 2>/dev/null || echo ""`
 
 if test -z "$FFMPEG"; then
-  echo "ffmpeg must be installed"
-  exit 1
+        echo "ffmpeg must be installed"
+        exit 1
 fi
 
-SED=`which gsed || echo ""`
+SED=`which gsed 2>/dev/null || echo ""`
 
 if test -z "$SED"; then
-  SED=`which sed || echo ""`
+  SED=`which sed 2>/dev/null || echo ""`
 fi
 
 if test -z "$SED"; then
@@ -20,4 +21,23 @@ if test -z "$SED"; then
   exit 1
 fi
 
-$FFMPEG -i "$1" -vn -filter replaygain -f null /dev/null 2>&1 | $SED -n -r 's/.* track_gain = ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'
+# check store replay gain
+RG=`$FFPROBE "$1" 2>&1 | $SED -n -r 's/.* REPLAYGAIN_TRACK_GAIN: ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'`
+
+if [ -z "$RG" ]
+then
+
+ # no store replaygain : calculate it
+ RG=`$FFMPEG -i "$1" -vn -filter replaygain -f null /dev/null 2>&1 | $SED -n -r 's/.* track_gain = ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'`
+
+ # store it and keep file date
+ tmpdir=`mktemp -d`
+ tmpfile=$tmpdir/`basename "$1"`
+ 
+ filedate=`stat -c %y "$1"`
+ $FFMPEG -y -i "$1" -metadata REPLAYGAIN_TRACK_GAIN="$RG" -c:a copy "$tmpfile" 2> /dev/null
+
+ test -f "$tmpfile" && touch -d "$filedate" "$tmpfile" && mv "$tmpfile" "$1" && rm -r $tmpdir
+fi
+
+echo $RG
