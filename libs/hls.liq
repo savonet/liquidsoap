@@ -3,7 +3,7 @@
 # @param ~id Force the value of the source ID.
 # @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI
-# @flags experimental
+# @flag experimental
 def input.hls(~id="",~reload=10.,uri)
   playlist = ref []
   sequence = ref 0

@@ -18,7 +18,6 @@ end
 
 # Add a static image on the first video channel.
 # @category Source / Video Processing
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~width Scale to width (zero means frame width, negative means original width).
 # @param ~height Scale to height (zero means frame height, negative means original height).
@@ -219,5 +218,4 @@ def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
      metadata=metadata,size=size,
      speed=speed,x=x,y=y,d,s)
 end
-
 
