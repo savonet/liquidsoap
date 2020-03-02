@@ -125,6 +125,25 @@ main_source = fallback([timed_promotions,other_source])
 
 Where promotions is a source selecting the file to be promoted.
 
+Play a jingle at a fixed time
+-----------------------------
+
+Suppose that we have a playlist `jingles` of jingles and we want to play one
+within the 5 first minutes of every hour, without interrupting the current
+song. We can think of doing something like
+
+```liquidsoap
+radio = switch([({ 0m-5m }, jingles), ({ true }, playlist)])
+```
+
+but the problem is that it is likely to play many jingles. In order to play
+exactly one jingle, we can use the function `predicate.activates` which detects
+when a predicate (here `{ 0m-5m }`) becomes true:
+
+```liquidsoap
+radio = switch([(predicate.activates({ 0m-5m }), jingles), ({ true }, playlist)])
+```
+
 Handle special events: mix or switch
 ------------------------------------
 ```liquidsoap
