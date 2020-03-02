@@ -13,7 +13,6 @@
 %include "externals.liq"
 %include "shoutcast.liq"
 %include "lastfm.liq"
-%include "flows.liq"
 %include "http.liq"
 %include "hls.liq"
 %include "video.liq"

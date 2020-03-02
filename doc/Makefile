@@ -6,7 +6,7 @@ DISTDIRS = orig
 LIQUIDSOAP = ../src/liquidsoap
 PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
-MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/settings.md
+MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
 HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
 PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
@@ -40,6 +40,9 @@ content/protocols.md: $(LIQUIDSOAP)
 content/reference.md: $(LIQUIDSOAP)
 	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-functions-md > $@
 
+content/reference-extras.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-extra-functions-md > $@
+
 content/settings.md: $(LIQUIDSOAP)
 	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --conf-descr-md > $@
 
@@ -56,7 +59,7 @@ doc-install:
 	fi
 
 clean-local:
-	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
+	rm -rf html pdf content/reference.md content/reference-extras.md content/protocols.md content/settings.md
 
 $(LIQUIDSOAP):
 	@echo "Liquidsoap does not seem to be built. You have to build it before."

@@ -106,6 +106,7 @@ type doc_flag =
   | Hidden  (** Don't list the plugin in the documentation. *)
   | Deprecated  (** The plugin should not be used. *)
   | Experimental  (** The plugin should not considered as stable. *)
+  | Extra  (** Anything that is not part of the essential set of plugins. *)
 
 (** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :

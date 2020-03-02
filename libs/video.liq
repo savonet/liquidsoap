@@ -36,6 +36,7 @@ end
 
 # Input from ffmpeg.
 # @category Source / Video Processing
+# @flag extra
 # @param ~restart restart on exit.
 # @param ~restart_on_error restart on exit with error.
 # @param ~buffer Duration of the pre-buffered data.
@@ -67,6 +68,7 @@ end
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
 # @category Source / Video Processing
+# @flag extra
 def video.external.testsrc(~id="video.external.testsrc",~restart=true,~restart_on_error=false,~buffer=0.2,~max=10.,~framerate=0)
   framerate = if framerate <= 0 then video.frame.rate() else framerate end
   cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{framerate} \
@@ -79,6 +81,7 @@ end
 
 # Output to ffmpeg.
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -101,6 +104,7 @@ end
 
 # Output a HLS playlist using ffmpeg
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -126,6 +130,7 @@ end
 
 # Output an MPEG-DASH playlist using ffmpeg
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -150,6 +155,7 @@ end
 
 # Stream to youtube.
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -212,5 +218,4 @@ def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
      metadata=metadata,size=size,
      speed=speed,x=x,y=y,d,s)
 end
-
 
