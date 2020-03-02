@@ -198,7 +198,7 @@ stream =stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
 	$(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 
-visualization = visualization/vumeter.ml \
+visualization = \
 	visualization/midimeter.ml \
 	visualization/video_volume.ml \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml)
