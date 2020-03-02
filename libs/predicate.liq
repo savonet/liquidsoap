@@ -1,5 +1,6 @@
 # Detect when a predicate becomes true.
 # @category Liquidsoap
+# @flag extra
 # @param ~init Detect at begining.
 # @param p Predicate.
 def predicate.activates(~init=false, p)
@@ -14,6 +15,7 @@ end
 
 # Detect when a predicate changes.
 # @category Liquidsoap
+# @flag extra
 # @param p Predicate.
 def predicate.changes(p)
   last = ref(p())
@@ -27,6 +29,7 @@ end
 
 # First occurrence of a predicate.
 # @category Liquidsoap
+# @flag extra
 # @param p Predicate.
 def predicate.once(p)
   done = ref(false)
