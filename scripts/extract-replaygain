@@ -6,8 +6,8 @@ FFMPEG=`which ffmpeg 2>/dev/null || echo ""`
 FFPROBE=`which ffprobe 2>/dev/null || echo ""`
 
 if test -z "$FFMPEG"; then
-        echo "ffmpeg must be installed"
-        exit 1
+  echo "ffmpeg must be installed"
+  exit 1
 fi
 
 SED=`which gsed 2>/dev/null || echo ""`
