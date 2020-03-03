@@ -17,7 +17,7 @@ if test -z "$SED"; then
 fi
 
 if test -z "$SED"; then
-  echo "sed or gsed much be installed"
+  echo "sed or gsed must be installed"
   exit 1
 fi
 
