@@ -24,9 +24,7 @@ fi
 # check store replay gain
 RG=`$FFPROBE "$1" 2>&1 | $SED -n -r 's/.* REPLAYGAIN_TRACK_GAIN: ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'`
 
-if [ -z "$RG" ]
-then
-
+if [ -z "$RG" ]; then
  # no store replaygain : calculate it
  RG=`$FFMPEG -i "$1" -vn -filter replaygain -f null /dev/null 2>&1 | $SED -n -r 's/.* track_gain = ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'`
 
