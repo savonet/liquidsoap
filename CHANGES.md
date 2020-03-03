@@ -51,7 +51,7 @@ Changed:
 - Removed `request.equeue`, such a feature could be re-implemented in
   Liquidsoap, see `request.queue`.
 - The `playlist` operator is now fully implemented in Liquidsoap (#1015).
-- Removed `playlist.once`, its behavior can be achieved by passing `"once"` to
+- Removed `playlist.once`, its behavior can be achieved by passing `"never"` to
   the `reload_mode` argument of `playlist` (#1015).
 - Removed `playlist.merged`: it is not that useful and can be achieved easily
   with `merge_tracks` on a `playlist` (#1015).

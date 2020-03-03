@@ -88,13 +88,13 @@ def base64.encode(s)
 end
 
 # Deprecated: this function has been replaced with `playlist`, setting
-# `reload_mode` argument to `"once"`.
+# `reload_mode` argument to `"never"`.
 def playlist.once(~id="",~random=false,~reload_mode="",
                   ~default_duration=30.,~length=10.,~conservative=false,
                   ~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
   mode = if random then "randomize" else "normal" end
-  playlist(reload_mode="once", id=id, mode=mode, conservative=conservative, default_duration=default_duration, check_next=filter, uri)
+  playlist(reload_mode="never", id=id, mode=mode, conservative=conservative, default_duration=default_duration, check_next=filter, uri)
 end
 
 # Deprecated: this function has been replaced by `map_metadata`.

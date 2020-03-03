@@ -134,11 +134,11 @@ end
 # @param ~on_reload Callback called after playlist has reloaded.
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra information using annotate, or for resolution through a particular protocol, such as replaygain.
 # @param ~reload Amount of time (in seconds or rounds), when applicable, before which the playlist is reloaded; 0 means never.
-# @param ~reload_mode Unit of the reload parameter, either "once" (play the playlist only once), "rounds", "seconds" or "watch" (reload the file whenever it is changed).
+# @param ~reload_mode Unit of the reload parameter, either "never" (never reload the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is changed).
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
 def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
-  reload_mode = if not list.mem(reload_mode, ["rounds", "seconds", "watch"]) then log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds" else reload_mode end
+  reload_mode = if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds" else reload_mode end
   round = ref(0)
   # TODO: use a command here
   rreloader = ref(fun()->())
