@@ -21,7 +21,7 @@ if test -z "$SED"; then
   exit 1
 fi
 
-# check store replay gain
+# check for replaygain metadata
 RG=`$FFPROBE "$1" 2>&1 | $SED -n -r 's/.* REPLAYGAIN_TRACK_GAIN: ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'`
 
 if [ -z "$RG" ]; then
