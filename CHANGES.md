@@ -1,7 +1,15 @@
+1.4.2 (unreleased)
+=====
+Fixed:
+
+- Fixed errors when installing bash-completion files (#1095)
+- Fixed failures in `extract-replaygain` script.
+
 1.4.1 (18-02-2020)
 =====
 
 Fixed:
+
 - Fixed `fade.final` and `fade.initial` (#1009)
 
 1.4.0 (29-09-2019)

@@ -83,7 +83,7 @@ endif
 	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example
 	$(INSTALL_DIRECTORY) ${sysconfdir}/logrotate.d
 	$(INSTALL_DATA) scripts/liquidsoap.logrotate ${sysconfdir}/logrotate.d/liquidsoap
-	$(INSTALL_DIRECTORY) ${bashcompdir}
-	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
+	-$(INSTALL_DIRECTORY) ${bashcompdir}
+	-$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
 	$(INSTALL_DIRECTORY) ${emacsdir}
 	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
