@@ -138,10 +138,15 @@ end
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
 def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
+
   reload_mode = if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds" else reload_mode end
+  uri = ref(uri)
   round = ref(0)
-  # TODO: use a command here
+
+  # Will be filled with the actual reload function
   rreloader = ref(fun()->())
+
+  # Reload when the playlist is done
   def on_done()
     reloader = !rreloader
     if reload_mode == "rounds" and reload > 0 then
@@ -152,15 +157,33 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
       end
     end
   end
-  let (reloader, s) = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, prefix=prefix, timeout=timeout, uri)
-  def reloader () = reloader (); on_reload () end
+
+  let (reloader, s) = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
+  def reloader (~uri="") = reloader (uri=uri); on_reload () end
   rreloader := {reloader()}
+
+  # Set up reloading for seconds and watch
   if reload_mode == "seconds" and reload > 0 then
     n = float_of_int(reload)
     thread.run.recurrent(delay=n, {reloader(); n})
   elsif reload_mode == "watch" then
-    unwatch = file.watch(uri, reloader)
+    unwatch = file.watch(!uri, reloader)
     source.on_shutdown(s, unwatch)
   end
+
+  # Set up telnet commands
+  server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin source.skip(s); "OK" end)
+  server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin reloader(); "OK" end)
+  def uri_cmd (uri') =
+    if uri' == "" then !uri
+    else
+      if reload_mode == "watch" then log.important(label=id, "Warning: the watched file is not updated for now when changing the uri!") end # TODO
+      uri := uri'
+      reloader(uri=uri')
+      "OK"
+    end
+  end
+  server.register(namespace=id, description="Print playlist URI if called without an argument, otherwise set a new one and load it.", usage="uri [<uri>]", "uri", uri_cmd)
+
   s
 end
