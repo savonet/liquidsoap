@@ -72,20 +72,20 @@ let parse f =
               | _ -> id
           in
           let encoding = int_of_char data.[0] in
-          let z =
+          let start, len =
             match encoding with
               | 0 (* ISO-8859-1 *) -> (
-                  try String.index_from data 1 '\000'
+                  try (1, String.index_from data 1 '\000' - 1)
                   with Not_found -> raise Invalid )
               | 1 (* 16-bit unicode 2.0 *) -> (
                   try
                     let pos = String.index_from data 1 '\000' in
                     ignore (String.index_from data pos '\000');
-                    pos
+                    (1, pos - 1)
                   with Not_found -> raise Invalid )
-              | _ -> String.length data
+              | _ -> (0, String.length data)
           in
-          let text = String.sub data 1 (z - 1) in
+          let text = String.sub data start len in
           let text = recode encoding text in
           tags := (id, text) :: !tags )
         else tags := (id, data) :: !tags )
