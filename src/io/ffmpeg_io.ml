@@ -23,7 +23,7 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~bufferize ~kind ~start ~on_start ~on_stop url =
+class input ~bufferize ~kind ~start ~on_start ~on_stop ~format ~opts url =
   let max_ticks = 2 * Frame.master_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
@@ -53,7 +53,15 @@ class input ~bufferize ~kind ~start ~on_start ~on_stop url =
 
     method private get_decoder =
       self#close_container;
-      let input = Av.open_input url in
+      let opts_control = Hashtbl.copy opts in
+      let input = Av.open_input ~format ~opts url in
+      Hashtbl.filter_map_inplace
+        (fun l v -> if Hashtbl.mem opts l then Some v else None)
+        opts_control;
+      if Hashtbl.length opts_control > 0 then
+        failwith
+          (Printf.sprintf "Unrecognized options: %s"
+             (Ffmpeg_format.string_of_options opts_control));
       let content_type = Ffmpeg_decoder.get_type ~url input in
       if not (Frame.type_has_kind content_type kind) then
         failwith
@@ -124,16 +132,49 @@ class input ~bufferize ~kind ~start ~on_start ~on_stop url =
         else self#feed (should_stop, has_stopped)
   end
 
+let parse_args ~t name p opts =
+  let name = name ^ "_args" in
+  let args = List.assoc name p in
+  let args = Lang.to_list args in
+  let extract_pair extractor v =
+    let label, value = Lang.to_product v in
+    Hashtbl.add opts (Lang.to_string label) (extractor value)
+  in
+  let extract =
+    match t with
+      | `Int -> fun v -> extract_pair (fun v -> `Int (Lang.to_int v)) v
+      | `Float -> fun v -> extract_pair (fun v -> `Float (Lang.to_float v)) v
+      | `String -> fun v -> extract_pair (fun v -> `String (Lang.to_string v)) v
+  in
+  List.iter extract args
+
 let () =
   let k = Lang.univ_t () in
+  let args ?t name =
+    let t =
+      match t with
+        | Some t -> Lang.product_t Lang.string_t t
+        | None -> Lang.string_t
+    in
+    (name ^ "_args", Lang.list_t t, Some (Lang.list ~t []), None)
+  in
   Lang.add_operator "input.ffmpeg" ~active:true
     ~descr:"Decode a url using ffmpeg." ~category:Lang.Input
     ( Start_stop.input_proto
     @ [
+        args ~t:Lang.int_t "int";
+        args ~t:Lang.float_t "float";
+        args ~t:Lang.string_t "string";
         ( "buffer",
           Lang.float_t,
           Some (Lang.float 5.),
           Some "Duration of buffered data before starting playout." );
+        ( "format",
+          Lang.string_t,
+          Some (Lang.string ""),
+          Some
+            "Force a specific input format. Autodetected when passed an empty \
+             string." );
         ("", Lang.string_t, None, Some "URL to decode.");
       ] )
     ~kind:(Lang.Unconstrained k)
@@ -147,6 +188,20 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
       in
+      let format = List.assoc "format" p in
+      let format =
+        match Av.Format.find_input_format (Lang.to_string format) with
+          | Some f -> f
+          | None ->
+              raise
+                (Lang_errors.Invalid_value
+                   (format, "Could not find fffmpeg input format with that name"))
+      in
+      let opts = Hashtbl.create 10 in
+      parse_args ~t:`Int "int" p opts;
+      parse_args ~t:`Float "float" p opts;
+      parse_args ~t:`String "string" p opts;
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
-      (new input ~kind ~start ~on_start ~on_stop ~bufferize url :> Source.source))
+      ( new input ~kind ~start ~on_start ~on_stop ~bufferize ~format ~opts url
+        :> Source.source ))
