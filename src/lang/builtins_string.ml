@@ -302,13 +302,25 @@ let () =
 let () =
   add_builtin "string.replace" ~cat:String
     ~descr:
-      "Replace substrings in a string. \n\
-       Will replace all substrings matched in the pattern by the string \
-       returned by the replace function."
+      "Replace all substrings matched by a pattern by another string returned \
+       by a function."
     [
-      ("pattern", Lang.string_t, None, None);
-      ("", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t, None, None);
-      ("", Lang.string_t, None, None);
+      ( "pattern",
+        Lang.string_t,
+        None,
+        Some
+          "Pattern (regular expression) of substrings which should be replaced."
+      );
+      ( "",
+        Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t,
+        None,
+        Some
+          "Function getting a matched substring an returning the string to \
+           replace it with." );
+      ( "",
+        Lang.string_t,
+        None,
+        Some "String whose substrings should be replaced." );
     ]
     Lang.string_t
     (fun p ->
