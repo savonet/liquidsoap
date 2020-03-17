@@ -44,7 +44,6 @@ decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
-	decoder/id3v2_plug.ml \
 	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_decoder.ml) \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
@@ -54,6 +53,7 @@ decoders = \
 	$(if $(W_FLAC),decoder/flacduration.ml) \
 	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
+        decoder/id3v2_plug.ml \
 	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
 	$(if $(W_SDL_IMAGE),decoder/image/sdlimage_decoder.ml) \
 	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
