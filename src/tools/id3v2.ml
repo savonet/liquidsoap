@@ -74,14 +74,10 @@ let parse f =
           let encoding = int_of_char data.[0] in
           let start, len =
             match encoding with
-              | 0 (* ISO-8859-1 *) -> (
+              | 0x00 (* ISO-8859-1 *) | 0x01 (* 16-bit unicode 2.0 *)
+              | 0x02
+              (* UTF-16BE *)  | 0x03 (* UTF8 *) -> (
                   try (1, String.index_from data 1 '\000' - 1)
-                  with Not_found -> raise Invalid )
-              | 1 (* 16-bit unicode 2.0 *) -> (
-                  try
-                    let pos = String.index_from data 1 '\000' in
-                    ignore (String.index_from data pos '\000');
-                    (1, pos - 1)
                   with Not_found -> raise Invalid )
               | _ -> (0, String.length data)
           in
