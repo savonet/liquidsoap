@@ -53,15 +53,12 @@ class input ~bufferize ~kind ~start ~on_start ~on_stop ~format ~opts url =
 
     method private get_decoder =
       self#close_container;
-      let opts_control = Hashtbl.copy opts in
+      let opts = Hashtbl.copy opts in
       let input = Av.open_input ~format ~opts url in
-      Hashtbl.filter_map_inplace
-        (fun l v -> if Hashtbl.mem opts l then Some v else None)
-        opts_control;
-      if Hashtbl.length opts_control > 0 then
+      if Hashtbl.length opts > 0 then
         failwith
           (Printf.sprintf "Unrecognized options: %s"
-             (Ffmpeg_format.string_of_options opts_control));
+             (Ffmpeg_format.string_of_options opts));
       let content_type = Ffmpeg_decoder.get_type ~url input in
       if not (Frame.type_has_kind content_type kind) then
         failwith
