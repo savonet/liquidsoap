@@ -65,6 +65,7 @@ Changed:
 - Get rid of numbering of universal variables (#1037).
 - Renamed `base64.decode`/`base64.encode` to
   `string.base64.decode`/`string.base64.encode`.
+- Vumeter is now implemented in Liquidsoap (#1103).
 
 Fixed:
 
