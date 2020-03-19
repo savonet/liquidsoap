@@ -62,11 +62,9 @@ class chord ~kind metadata_name (source : source) =
 
     method private get_frame buf =
       let offset = MFrame.position buf in
-      let toffset = Frame.position buf in
       source#get buf;
-      let m = Frame.content_of_type buf toffset (Frame.type_of_kind kind) in
+      let m = MFrame.content buf in
       let pos = MFrame.position buf in
-      let m = m.Frame.midi in
       let meta = MFrame.get_all_metadata buf in
       let meta = List.filter (fun (p, _) -> offset <= p && p < pos) meta in
       let chords =
@@ -123,8 +121,8 @@ class chord ~kind metadata_name (source : source) =
 
 let () =
   (* TODO: is this really the type we want to give to it? *)
-  let in_k = Lang.kind_type_of_kind_format Lang.any_fixed in
-  let out_k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~midi:1 ()) in
+  let in_k = Lang.kind_type_of_kind_format Lang.any in
+  let out_k = Lang.kind_type_of_kind_format (Lang.any_with ~midi:1 ()) in
   Lang.add_operator "midi.chord"
     [
       ( "metadata",

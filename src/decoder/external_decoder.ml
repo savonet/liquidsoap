@@ -106,8 +106,7 @@ let test_kind f filename =
       {
         Frame.video = Frame.Zero;
         midi = Frame.Zero;
-        audio =
-          (if ret < 0 then Frame.Succ Frame.Variable else Frame.mul_of_int ret);
+        audio = (if ret < 0 then Frame.Succ Frame.Any else Frame.mul_of_int ret);
       }
 
 let register_stdin name sdoc mimes test process =

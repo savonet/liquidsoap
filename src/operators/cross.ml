@@ -274,11 +274,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       in
       self#save_last_metadata `Before buf_frame;
       self#update_cross_length buf_frame start;
-      let content =
-        let end_pos, c = Frame.content buf_frame start in
-        assert (end_pos >= stop);
-        c
-      in
+      let content = buf_frame.Frame.content in
       Generator.feed gen_before
         ~metadata:(Frame.get_all_metadata buf_frame)
         content start (stop - start);
@@ -314,11 +310,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
           source#get buf_frame;
           Frame.position buf_frame
         in
-        let content =
-          let end_pos, c = Frame.content buf_frame start in
-          assert (end_pos >= stop);
-          c
-        in
+        let content = buf_frame.Frame.content in
         Generator.feed gen_after
           ~metadata:(Frame.get_all_metadata buf_frame)
           content start (stop - start);

@@ -40,7 +40,7 @@ class synth ~kind (synth : Synth.synth) (source : source) chan volume =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      let midi = MFrame.content buf (MFrame.position buf) in
+      let midi = MFrame.content buf in
       if chan >= Array.length midi then (
         self#log#important
           "Cannot read MIDI channel %d, stream only has %d channels." chan
@@ -49,16 +49,14 @@ class synth ~kind (synth : Synth.synth) (source : source) chan volume =
       else (
         let evs = midi.(chan) in
         source#get buf;
-        let b = AFrame.content buf offset in
+        let b = AFrame.content buf in
         let position = AFrame.position buf in
         let len = position - offset in
         synth#play evs offset (Audio.sub b offset len) )
   end
 
 let register obj name descr =
-  let k =
-    Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ~midi:1 ())
-  in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ~midi:1 ()) in
   Lang.add_operator ("synth." ^ name)
     [
       ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
@@ -100,9 +98,7 @@ let register obj name descr =
       in
       let src = Lang.to_source (f "") in
       new synth ~kind (obj adsr) src chan volume);
-  let k =
-    Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ~midi:16 ())
-  in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ~midi:16 ()) in
   Lang.add_operator ("synth.all." ^ name)
     [
       ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");

@@ -62,7 +62,7 @@ class filter ~kind (source : source) freq q wet mode =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       let freq = freq () in
       let q = q () in
@@ -89,7 +89,7 @@ class filter ~kind (source : source) freq q wet mode =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter"
     [
       ("freq", Lang.float_getter_t (), None, None);

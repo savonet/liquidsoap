@@ -37,9 +37,8 @@ class midimeter ~kind source =
     method self_sync = source#self_sync
 
     method get_frame buf =
-      let offset = MFrame.position buf in
       source#get buf;
-      let m = MFrame.content buf offset in
+      let m = MFrame.content buf in
       (* Printf.printf "len: %d\n%!" (List.length (MIDI.data m.(0))); *)
       for c = 0 to Array.length m - 1 do
         List.iter
@@ -60,7 +59,7 @@ class midimeter ~kind source =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "midimeter"
     [("", Lang.source_t k, None, None)]
     ~kind:(Lang.Unconstrained k) ~category:Lang.Visualization

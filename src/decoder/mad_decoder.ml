@@ -185,8 +185,8 @@ let () =
                 ~extensions:file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Variable
-        || kind.Frame.audio = Frame.Succ Frame.Variable
+        kind.Frame.audio = Frame.Any
+        || kind.Frame.audio = Frame.Succ Frame.Any
         ||
         (* libmad always respects the first two kinds *)
         if Frame.type_has_kind (get_type filename) kind then true

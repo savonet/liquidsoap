@@ -89,7 +89,7 @@ let () =
 
 let () =
   let s_t =
-    let v = Lang.variable_t in
+    let v = Lang.any_t in
     Lang.source_t (Lang.frame_kind_t ~audio:v ~video:v ~midi:v)
   in
   add_builtin "source.init" ~cat:Liq

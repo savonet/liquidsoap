@@ -49,7 +49,7 @@ class echo ~kind (source : source) delay feedback ping_pong =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
@@ -57,7 +57,7 @@ class echo ~kind (source : source) delay feedback ping_pong =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "echo"
     [
       ( "delay",

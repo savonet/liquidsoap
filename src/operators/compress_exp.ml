@@ -41,7 +41,7 @@ class compress ~kind (source : source) mu =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       for c = 0 to Array.length b - 1 do
         let b_c = b.(c) in
         for i = offset to AFrame.position buf - 1 do
@@ -53,7 +53,7 @@ class compress ~kind (source : source) mu =
   end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let kind = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "compress.exponential" ~category:Lang.SoundProcessing
     ~descr:"Exponential compressor."
     [

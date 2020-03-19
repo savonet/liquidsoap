@@ -82,18 +82,6 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
           (fun (t, l) (w, s) -> (w +. t, if s#is_ready then (w, s) :: l else l))
           (0., []) sources
       in
-      let weight = weight in
-      (* Our sources are not allowed to have variable stream kinds.
-       * This is necessary, because then we might not be able to sum them
-       * if they vary in different ways.
-       * The frame [buf] might be partially filled with completely different
-       * content, but after the beginning of where we work there should always
-       * be one type of data, hence the following helper. *)
-      let fixed_content frame pos =
-        let end_pos, c = Frame.content frame pos in
-        assert (end_pos = Lazy.force Frame.size);
-        c
-      in
       (* Sum contributions *)
       let offset = Frame.position buf in
       let _, end_offset =
@@ -113,7 +101,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
             let c = w /. weight in
             if c <> 1. && renorm then
               Audio.amplify c
-                (Audio.sub (fixed_content buffer offset).Frame.audio
+                (Audio.sub (Frame.audio buffer)
                    (Frame.audio_of_master offset)
                    (Frame.audio_of_master (already - offset)));
             if rank > 0 then (
@@ -121,18 +109,16 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                * TODO the same should be done for video. *)
               if already > end_offset then
                 Audio.clear
-                  (Audio.sub (fixed_content buf already).Frame.audio
+                  (Audio.sub (Frame.audio buf)
                      (Frame.audio_of_master end_offset)
                      (Frame.audio_of_master (already - end_offset)));
 
               (* Add to the main buffer. *)
               Audio.add
-                (Audio.sub (fixed_content buf offset).Frame.audio offset
-                   (already - offset))
-                (Audio.sub (fixed_content tmp offset).Frame.audio offset
-                   (already - offset));
-              let vbuf = (fixed_content buf offset).Frame.video in
-              let vtmp = (fixed_content tmp offset).Frame.video in
+                (Audio.sub (Frame.audio buf) offset (already - offset))
+                (Audio.sub (Frame.audio tmp) offset (already - offset));
+              let vbuf = Frame.video buf in
+              let vtmp = Frame.video tmp in
               let ( ! ) = Frame.video_of_master in
               for c = 0 to Array.length vbuf - 1 do
                 for i = !offset to !already - 1 do
@@ -140,7 +126,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                 done
               done )
             else (
-              let vbuf = (fixed_content buf offset).Frame.video in
+              let vbuf = Frame.video buf in
               let ( ! ) = Frame.video_of_master in
               for c = 0 to Array.length vbuf - 1 do
                 for i = !offset to !already - 1 do
@@ -163,8 +149,8 @@ let () =
   let kind =
     Lang.Constrained
       {
-        Frame.audio = Lang.Any_fixed 0;
-        video = Lang.Any_fixed 0;
+        Frame.audio = Lang.At_least 0;
+        video = Lang.At_least 0;
         midi = Lang.Fixed 0;
       }
   in
@@ -223,7 +209,7 @@ let tile_pos n =
   horiz (n / 2) (n - (n / 2))
 
 let () =
-  let kind = Lang.any_fixed_with ~video:1 () in
+  let kind = Lang.any_with ~video:1 () in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.tile" ~category:Lang.VideoProcessing
     ~descr:"Tile sources (same as add but produces tiles of videos)."

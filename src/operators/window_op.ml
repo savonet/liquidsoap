@@ -64,7 +64,7 @@ class window ~kind mode duration source =
       if duration > 0. then (
         let duration = Frame.audio_of_seconds duration in
         let position = AFrame.position buf in
-        let buf = AFrame.content buf offset in
+        let buf = AFrame.content buf in
         for i = offset to position - 1 do
           for c = 0 to channels - 1 do
             let x = buf.(c).{i} in
@@ -142,13 +142,13 @@ let () =
   let stereo value =
     Lang.product (Lang.float value.(0)) (Lang.float value.(1))
   in
-  declare RMS "" Lang.any_fixed Lang.float_t mean;
+  declare RMS "" Lang.any Lang.float_t mean;
   declare RMS ".stereo"
-    (Lang.any_fixed_with ~audio:2 ())
+    (Lang.any_with ~audio:2 ())
     (Lang.product_t Lang.float_t Lang.float_t)
     stereo;
-  declare Peak "" Lang.any_fixed Lang.float_t mean;
+  declare Peak "" Lang.any Lang.float_t mean;
   declare Peak ".stereo"
-    (Lang.any_fixed_with ~audio:2 ())
+    (Lang.any_with ~audio:2 ())
     (Lang.product_t Lang.float_t Lang.float_t)
     stereo

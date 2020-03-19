@@ -112,6 +112,13 @@ def rewrite_metadata(l,~insert_missing=true,~update=true,~strip=false,s)
   map_metadata(map,insert_missing=insert_missing,update=update,strip=strip,s)
 end
 
+# Deprecated: this function will be removed in a future release
+# @flag hidden
+def id(~id="",s)
+ deprecated("id","")
+ s
+end 
+
 # Deprecated: flow is no longer maintained
 # Register a radio on Liquidsoap Flows.
 # @category Liquidsoap

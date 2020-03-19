@@ -26,10 +26,7 @@ open Avi_format
 
 let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
-  let content =
-    Frame.content_of_type frame start
-      { Frame.audio = channels; video = 1; midi = 0 }
-  in
+  let content = frame.Frame.content in
   let audio =
     let astart = Frame.audio_of_master start in
     let alen = Frame.audio_of_master len in

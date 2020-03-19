@@ -24,9 +24,6 @@ open Source
 
 class blank ~kind duration =
   let ticks = if duration < 0. then -1 else Frame.master_of_seconds duration in
-  (* The kind should not allow a variable number of channels,
-   * so it can directly be seen as a type. *)
-  let content_type = Frame.type_of_kind kind in
   object
     inherit source ~name:"blank" kind
 
@@ -51,7 +48,7 @@ class blank ~kind duration =
         if remaining < 0 then Lazy.force Frame.size - position
         else min remaining (Lazy.force Frame.size - position)
       in
-      let content = Frame.content_of_type ab position content_type in
+      let content = ab.Frame.content in
       let video_pos = Frame.video_of_master position in
       (* Audio *)
       Audio.clear

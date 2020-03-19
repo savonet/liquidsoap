@@ -427,7 +427,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let v_len = Array.length xv.(0) in
       let coeffs_len = Array.length xcoeffs in
       let fold_left2 init v coeffs l =
@@ -456,7 +456,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.butterworth.high"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");

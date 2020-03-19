@@ -25,7 +25,6 @@
 open Source
 
 class gen ~kind ~seek name g freq duration ampl =
-  let channels = AFrame.channels_of_kind kind in
   let g = g freq ampl in
   object
     inherit Synthesized.source ~seek ~name kind duration
@@ -33,7 +32,7 @@ class gen ~kind ~seek name g freq duration ampl =
     method private synthesize frame off len =
       let off = Frame.audio_of_master off in
       let len = Frame.audio_of_master len in
-      let buf = AFrame.content_of_type ~channels frame off in
+      let buf = AFrame.content frame in
       g#fill (Audio.sub buf off len)
   end
 

@@ -104,7 +104,7 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       let len = position - offset in
       for c = 0 to Array.length b - 1 do
@@ -133,7 +133,7 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       let len = position - offset in
       List.iter (fun (p, v) -> Descriptor.set_control_port inst p (v ())) params;
@@ -147,7 +147,7 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
         Descriptor.run inst len )
       else (
         (* We have to change channels. *)
-        let d = AFrame.content_of_type ~channels:oc buf offset in
+        let d = AFrame.content buf in
         for c = 0 to Array.length b - 1 do
           Descriptor.connect_port inst inputs.(c)
             (Audio.Mono.sub b.(c) offset len)
@@ -176,7 +176,7 @@ class ladspa_nosource ~kind plugin descr outputs params =
         must_fail <- false )
       else (
         let offset = AFrame.position buf in
-        let b = AFrame.content buf offset in
+        let b = AFrame.content buf in
         let position = AFrame.size () in
         let len = position - offset in
         List.iter
@@ -298,8 +298,7 @@ let register_descr plugin_name descr_n d inputs outputs =
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
   let k =
-    Lang.kind_type_of_kind_format
-      (if mono then Lang.any_fixed else Lang.audio_n ni)
+    Lang.kind_type_of_kind_format (if mono then Lang.any else Lang.audio_n ni)
   in
   let liq_params =
     liq_params @ if ni = 0 then [] else [("", Lang.source_t k, None, None)]

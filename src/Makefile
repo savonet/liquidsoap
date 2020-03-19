@@ -111,7 +111,7 @@ operators = \
 	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
-	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
+	conversions/conversion.ml conversions/audio_to_stereo.ml conversions/drop.ml \
 	conversions/swap.ml conversions/mean.ml conversions/mux.ml
 
 analyze = analyze/analyze_rms.ml

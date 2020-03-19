@@ -41,7 +41,7 @@ class map ~kind source f =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       for i = offset to AFrame.position buf - 1 do
         for c = 0 to Array.length b - 1 do
           b.(c).{i} <- f b.(c).{i}
@@ -53,7 +53,7 @@ let to_fun_float f x =
   Lang.to_float (Lang.apply ~t:Lang.float_t f [("", Lang.float x)])
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "audio.map"
     [
       ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);

@@ -42,7 +42,7 @@ class swap ~kind (source : source) =
       let offset = AFrame.position buf in
       let buffer =
         source#get buf;
-        AFrame.content buf offset
+        AFrame.content buf
       in
       if offset = 0 then (
         let tmp = buffer.(1) in

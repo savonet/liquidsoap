@@ -271,7 +271,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       let el = self#get_element in
       try
         if not (Frame.is_partial frame) then (
-          let _, content = Frame.content frame 0 in
+          let content = frame.Frame.content in
           let len = Lazy.force Frame.size in
           let duration = Gstreamer_utils.time_of_master len in
           if has_audio then (
@@ -331,7 +331,7 @@ let output_proto ~kind ~pipeline =
     ]
 
 let () =
-  let kind = Lang.any_fixed_with ~audio:1 () in
+  let kind = Lang.any_with ~audio:1 () in
   let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio" ~active:true
     (output_proto ~kind ~pipeline:"autoaudiosink")
@@ -362,7 +362,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.any_fixed_with ~video:1 () in
+  let kind = Lang.any_with ~video:1 () in
   let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.video" ~active:true
     (output_proto ~kind ~pipeline:"videoconvert ! autovideosink")
@@ -393,7 +393,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.any_fixed_with ~audio:1 ~video:1 () in
+  let kind = Lang.any_with ~audio:1 ~video:1 () in
   let kind = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio_video" ~active:true
     ( output_proto ~kind ~pipeline:""

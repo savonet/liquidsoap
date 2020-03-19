@@ -59,7 +59,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let rmst = rmst () in
       let kup = kup () in
       let kdown = kdown () in
@@ -119,7 +119,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "normalize"
     [
       ( "target",

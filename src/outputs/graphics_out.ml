@@ -40,7 +40,7 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
 
     method output_send buf =
       let rgb =
-        let stop, c = Frame.content buf 0 in
+        let stop, c = Frame.content buf in
         assert (stop = Lazy.force Frame.size);
         c.Frame.video.(0)
       in

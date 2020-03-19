@@ -41,7 +41,7 @@ class compand ~kind (source : source) mu =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       for c = offset to Array.length b - 1 do
         let b_c = b.(c) in
         for i = offset to AFrame.position buf - 1 do
@@ -54,7 +54,7 @@ class compand ~kind (source : source) mu =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "compand"
     [
       ("mu", Lang.float_t, Some (Lang.float 1.), None);

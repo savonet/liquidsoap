@@ -82,9 +82,8 @@ class pitch ~kind every length freq_min freq_max (source : source) =
     method self_sync = source#self_sync
 
     method private get_frame buf =
-      let pos = AFrame.position buf in
       source#get buf;
-      let buf = AFrame.content buf pos in
+      let buf = AFrame.content buf in
       Ringbuffer.write ring buf;
       if Ringbuffer.read_space ring > length then
         Ringbuffer.read_advance ring (Ringbuffer.read_space ring - length);
@@ -109,7 +108,7 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "pitch"
     [
       ( "length",

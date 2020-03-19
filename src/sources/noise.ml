@@ -29,7 +29,7 @@ class noise ~kind duration =
     inherit Synthesized.source ~seek:true ~name:"noise" kind duration
 
     method private synthesize frame off len =
-      let content = Frame.content_of_type frame off ctype in
+      let content = frame.Frame.content in
       begin
         let off = Frame.audio_of_master off in
         let len = Frame.audio_of_master len in

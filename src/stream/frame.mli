@@ -29,7 +29,7 @@ type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
 
 (** Multiplicity of a field, used in types to impose constraints on channels
     (empty, variable, at least k, etc.). *)
-type multiplicity = Variable | Zero | Succ of multiplicity
+type multiplicity = Any | Zero | Succ of multiplicity
 
 (** Multiplicity of each field of a frame. *)
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
@@ -54,7 +54,7 @@ and midi_t = MIDI.buffer
     ticks. *)
 val blit_content : content -> int -> content -> int -> int -> unit
 
-(** Make a copy of the contents of a frame. *)
+(** Make a copy of the content of a frame. *)
 val copy : content -> content
 
 (** Metadata of a frame. *)
@@ -69,36 +69,39 @@ type t = {
                                  of the next frame). *)
   mutable metadata : (int * metadata) list;
       (** Metadata along with the time they occur. *)
-  mutable contents : (int * content) list;
-      (** The actual content can represent
-                                               several tracks in one content
-                                               chunk, for efficiency, but may
-                                               also be split in several chunks
-                                               of different content_type. Each
-                                               chunk has an end position, after
-                                               which data should be considered
-                                               as undefined. Chunks can be seen
-                                               as layers: they all have the same
-                                               (full) size, and data goes from
-                                               one to the other. For example:
-                                               [[5,A;7,B;10,C]] is A = 0 1 2 3 4
-                                               . . . . ., B = . . . . . 5 6
-                                               . . ., C = . . . . . . . 7 8 9
-                                               where "." is an undefined sample.
-                                               This representation is slightly
-                                               costly in memory (but several
-                                               chunks shouldn't happen too
-                                               often) but is very convenient to
-                                               handle; notably, there's no need
-                                               to pass offsets around. *)
+  mutable content : content;
 }
 
 (** {2 Content-independent frame operations} *)
 
 (** All units are in ticks (master clock). *)
 
+(** Create a frame of a given content type. *)
+val create_type : content_type -> t
+
 (** Create a frame of given content kind. *)
 val create : content_kind -> t
+
+(** Get a frame's content type. *)
+val content_type : t -> content_type
+
+(** Get a frame's audio content. *)
+val audio : t -> audio_t array
+
+(** Set a frame's audio content. *)
+val set_audio : t -> audio_t array -> unit
+
+(** Get a frame's video content. *)
+val video : t -> video_t array
+
+(** Set a frame's video content. *)
+val set_video : t -> video_t array -> unit
+
+(** Get a frame's midi content. *)
+val midi : t -> midi_t array
+
+(** Set a frame's midi content. *)
+val set_midi : t -> midi_t array -> unit
 
 (** Position of the end of the last chunk of the frame (i.e. the offset of the
     end of the frame). *)
@@ -155,14 +158,6 @@ val get_past_metadata : t -> metadata option
 
 (** {2 Content operations} *)
 
-val content : t -> int -> int * content
-val content_of_type : ?force:content -> t -> int -> content_type -> content
-val hide_contents : t -> unit -> unit
-
-type content_layer = { content : content; start : int; length : int }
-
-val get_content_layers : t -> content_layer list
-
 exception No_chunk
 
 val get_chunk : t -> t -> unit
@@ -177,7 +172,6 @@ val int_sub_mul : int -> multiplicity -> bool
 val mul_eq_int : multiplicity -> int -> bool
 val kind_sub_kind : content_kind -> content_kind -> bool
 val type_has_kind : content_type -> content_kind -> bool
-val content_has_type : content -> content_type -> bool
 val type_of_content : content -> content_type
 val type_of_kind : content_kind -> content_type
 val mul_of_int : int -> multiplicity

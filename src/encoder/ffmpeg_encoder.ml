@@ -193,10 +193,7 @@ let mk_encoder ~ffmpeg ~options output =
   { output; audio_stream; channels; video_stream; vchans }
 
 let encode ~encoder frame start len =
-  let content =
-    Frame.content_of_type frame start
-      { Frame.audio = encoder.channels; video = encoder.vchans; midi = 0 }
-  in
+  let content = frame.Frame.content in
   ignore
     (Utils.maybe (fun (_, cb) -> cb content start len) encoder.audio_stream);
   ignore

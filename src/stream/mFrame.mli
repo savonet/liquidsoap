@@ -22,7 +22,4 @@ val get_all_metadata : t -> (int * metadata) list
 
 (** Get the MIDI tracks at a given position, assuming that the frame
   * already contains only MIDI starting at this point. *)
-val content : t -> int -> Frame.midi_t array
-
-(** Get the MIDI tracks at a given position, creating it if needed. *)
-val content_of_type : channels:int -> t -> int -> Frame.midi_t array
+val content : t -> Frame.midi_t array

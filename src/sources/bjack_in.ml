@@ -104,7 +104,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
     method private get_frame buf =
       assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
-      let fbuf = AFrame.content_of_type ~channels buf 0 in
+      let fbuf = AFrame.content buf in
       Audio.S16LE.to_audio
         (Bytes.unsafe_to_string buffer)
         0

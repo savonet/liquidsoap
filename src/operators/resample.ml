@@ -117,7 +117,7 @@ class resample ~kind ~active ~ratio (source : source) =
       let content =
         let start = Frame.audio_of_master start in
         let stop = Frame.audio_of_master stop in
-        let content = AFrame.content frame start in
+        let content = AFrame.content frame in
         let converter =
           match converter with
             | Some c -> c

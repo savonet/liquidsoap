@@ -304,7 +304,6 @@ let get_stream_decoder mime kind =
 
 module Buffered (Generator : Generator.S) = struct
   let make_file_decoder ~filename ~close ~kind ~remaining decoder gen =
-    let frame_size = Lazy.force Frame.size in
     let prebuf =
       (* Amount of audio to decode in advance, in ticks.
        * It has to be more than a frame, but taking just one frame
@@ -346,35 +345,17 @@ module Buffered (Generator : Generator.S) = struct
           if conf_debug#get then raise e );
       let offset = Frame.position frame in
       let old_breaks = Frame.breaks frame in
-      let c_end, content =
-        Generator.fill gen frame;
-        Frame.content frame offset
-      in
+      Generator.fill gen frame;
+      let content = frame.Frame.content in
       let c_type = Frame.type_of_content content in
-      let position = Frame.position frame in
       (* Check that we got only one chunk of data,
        * and that it has a correct type. *)
-      if not (c_end = frame_size && Frame.type_has_kind c_type kind) then (
-        if c_end = frame_size then
-          log#severe "Decoder of %S produced %s, but %s was expected!" filename
-            (Frame.string_of_content_type c_type)
-            (Frame.string_of_content_kind kind)
-        else
-          log#severe
-            "Decoder of %S produced non-uniform data: %s at %d, %s at %d! (End \
-             at %d)."
-            filename
-            (Frame.string_of_content_type c_type)
-            offset
-            (Frame.string_of_content_type
-               (Frame.type_of_content (snd (Frame.content frame c_end))))
-            c_end position;
+      if not (Frame.type_has_kind c_type kind) then (
+        log#severe "Decoder of %S produced %s, but %s was expected!" filename
+          (Frame.string_of_content_type c_type)
+          (Frame.string_of_content_kind kind);
 
-        (* Pretend nothing happened, and end decoding.
-         * We first restore a content layer with a valid type, so that
-         * the code which reads that frame doesn't see the anomaly.
-         * Then we reset breaks to indicate that there's no more data. *)
-        let _ = Frame.content_of_type frame offset (Frame.type_of_kind kind) in
+        (* Pretend nothing happened, and end decoding. *)
         Frame.set_breaks frame old_breaks;
         Frame.add_break frame offset;
         0 )

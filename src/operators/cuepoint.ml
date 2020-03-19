@@ -258,7 +258,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
   end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let kind = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "cue_cut" ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:
