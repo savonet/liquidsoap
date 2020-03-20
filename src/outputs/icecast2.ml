@@ -230,12 +230,12 @@ let proto kind =
         Some
           "Protocol of the streaming server: 'http' or 'https' for Icecast, \
            'icy' for shoutcast." );
-      ( "verb",
+      ( "method",
         Lang.string_t,
         Some (Lang.string "source"),
         Some
-          "Verb to use with the 'http(s)' protocol. One of: 'source', 'put' or \
-           'post'." );
+          "method to use with the 'http(s)' protocol. One of: 'source', 'put' \
+           or 'post'." );
       ( "chunked",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -296,21 +296,21 @@ class output ~kind p =
   let data = encoder_data p in
   let chunked = Lang.to_bool (List.assoc "chunked" p) in
   let protocol =
-    let verb =
-      let v = List.assoc "verb" p in
-      match Lang.to_string v with
+    let m =
+      let m = List.assoc "method" p in
+      match Lang.to_string m with
         | "source" -> Cry.Source
         | "put" -> Cry.Put
         | "post" -> Cry.Post
         | _ ->
             raise
               (Lang_errors.Invalid_value
-                 (v, "Valid values are: 'source' 'put' or 'post'."))
+                 (m, "Valid values are: 'source' 'put' or 'post'."))
     in
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
-      | "http" -> Cry.Http verb
-      | "https" -> Cry.Https verb
+      | "http" -> Cry.Http m
+      | "https" -> Cry.Https m
       | "icy" -> Cry.Icy
       | _ ->
           raise
