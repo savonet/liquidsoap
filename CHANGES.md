@@ -4,6 +4,7 @@ Fixed:
 
 - Fixed errors when installing bash-completion files (#1095)
 - Fixed failures in `extract-replaygain` script.
+- Set set_default_verify_paths for SSL. (#450)
 
 1.4.1 (18-02-2020)
 =====
