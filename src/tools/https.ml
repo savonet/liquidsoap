@@ -15,6 +15,7 @@ struct
     (* TODO: add option.. *)
     Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
     Ssl.set_verify_depth ctx 3;
+    ignore (Ssl.set_default_verify_paths ctx);
     let socket = Ssl.open_connection_with_context ctx socketaddr in
     begin
       match bind_address with
