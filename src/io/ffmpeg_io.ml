@@ -192,7 +192,7 @@ let () =
           | None ->
               raise
                 (Lang_errors.Invalid_value
-                   (format, "Could not find fffmpeg input format with that name"))
+                   (format, "Could not find ffmpeg input format with that name"))
       in
       let opts = Hashtbl.create 10 in
       parse_args ~t:`Int "int" p opts;
