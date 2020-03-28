@@ -96,9 +96,11 @@ class mic ~kind ~clock_safe device =
                 Pcm.set_format dev params Pcm.Format_s16_le;
                 read_fun <-
                   (fun pcm buf ofs len ->
-                    let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
+                    let sbuf = Bytes.make (2 * 2 * len) (Char.chr 0) in
                     let r = Pcm.readi pcm sbuf 0 len in
-                    Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r);
+                    Audio.S16LE.to_audio
+                      (Bytes.unsafe_to_string sbuf)
+                      0 (Audio.sub buf ofs r);
                     r)
             end;
             sample_freq <- Pcm.set_rate_near dev params sample_freq Dir_eq;

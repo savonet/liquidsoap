@@ -78,12 +78,14 @@ class virtual base ~kind dev mode =
                 (fun pcm buf ofs len ->
                   let sbuf = Bytes.create (2 * len * Array.length buf) in
                   Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
-                  Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len);
+                  Pcm.writei pcm sbuf 0 len);
               read <-
                 (fun pcm buf ofs len ->
-                  let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
+                  let sbuf = Bytes.make (2 * 2 * len) (Char.chr 0) in
                   let r = Pcm.readi pcm sbuf 0 len in
-                  Audio.S16LE.to_audio sbuf 0 (Audio.sub buf ofs r);
+                  Audio.S16LE.to_audio
+                    (Bytes.unsafe_to_string sbuf)
+                    0 (Audio.sub buf ofs r);
                   r)
             with Alsa.Invalid_argument ->
               self#log#important "Falling back on non-interleaved S16LE";
@@ -94,24 +96,25 @@ class virtual base ~kind dev mode =
                 (fun pcm buf ofs len ->
                   let sbuf =
                     Array.init channels (fun _ ->
-                        String.make (2 * len) (Char.chr 0))
+                        Bytes.make (2 * len) (Char.chr 0))
                   in
                   for c = 0 to Audio.channels buf - 1 do
                     Audio.S16LE.of_audio
                       (Audio.sub [| buf.(c) |] ofs len)
-                      (Bytes.of_string sbuf.(c))
-                      0
+                      sbuf.(c) 0
                   done;
                   Pcm.writen pcm sbuf 0 len);
               read <-
                 (fun pcm buf ofs len ->
                   let sbuf =
                     Array.init channels (fun _ ->
-                        String.make (2 * len) (Char.chr 0))
+                        Bytes.make (2 * len) (Char.chr 0))
                   in
                   let r = Pcm.readn pcm sbuf 0 len in
                   for c = 0 to Audio.channels buf - 1 do
-                    Audio.S16LE.to_audio sbuf.(c) 0
+                    Audio.S16LE.to_audio
+                      (Bytes.unsafe_to_string sbuf.(c))
+                      0
                       (Audio.sub [| buf.(c) |] ofs len)
                   done;
                   r) ) );

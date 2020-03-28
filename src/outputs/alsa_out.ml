@@ -79,7 +79,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
                     (fun pcm buf ofs len ->
                       let sbuf = Bytes.create (2 * len * Array.length buf) in
                       Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
-                      Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len) );
+                      Pcm.writei pcm sbuf 0 len) );
               Pcm.set_channels dev params buffer_chans;
               alsa_rate <-
                 Pcm.set_rate_near dev params samples_per_second Dir_eq;
