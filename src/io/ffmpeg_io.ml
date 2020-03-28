@@ -62,8 +62,8 @@ class input ~bufferize ~kind ~start ~on_start ~on_stop ~format ~opts url =
       let content_type = Ffmpeg_decoder.get_type ~url input in
       if not (Frame.type_has_kind content_type kind) then
         failwith
-          (Printf.sprintf "url %S cannot product content of type %s" url
-             (Frame.string_of_content_type content_type));
+          (Printf.sprintf "url %S cannot produce content of type %s" url
+             (Frame.string_of_content_kind kind));
       container <- Some input;
       let audio =
         try
@@ -94,7 +94,7 @@ class input ~bufferize ~kind ~start ~on_start ~on_stop ~format ~opts url =
             f ();
             wait_feeding <- None
       end;
-      let kill, wait = Tutils.stoppable_thread self#feed "UDP input" in
+      let kill, wait = Tutils.stoppable_thread self#feed "Ffmpeg input" in
       kill_feeding <- Some kill;
       wait_feeding <- Some wait
 
