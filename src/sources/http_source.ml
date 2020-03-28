@@ -233,13 +233,10 @@ module Make (Config : Config_t) = struct
         ~descr:
           "Get or set the stream's HTTP URL. Setting a new URL will not affect \
            an ongoing connection." (fun u ->
-          if u = "" then url
+          if u = "" then "Empty url!"
           else (
-            try
-              ignore (parse_url u);
-              url <- u;
-              "Done"
-            with Failure _ -> "Invalid URL" ));
+            url <- (fun () -> u);
+            "Done!" ));
       self#register_command "status" ~usage:"status"
         ~descr:
           "Return the current status of the source, either \"stopped\" (the \
@@ -512,6 +509,13 @@ module Make (Config : Config_t) = struct
       (* Take care of (re)starting the decoding *)
       method poll (should_stop, has_stopped) =
         (* Try to read the stream *)
+        let url =
+          let url = url () in
+          try
+            ignore (parse_url url);
+            url
+          with Failure _ -> failwith ("Invalid URL: " ^ url)
+        in
         if relaying then self#connect should_stop url;
         if should_stop () then has_stopped ()
         else (
@@ -619,7 +623,7 @@ module Make (Config : Config_t) = struct
           Some (Lang.string Http.user_agent),
           Some "User agent." );
         ( "",
-          Lang.string_t,
+          Lang.string_getter_t (),
           None,
           Some ("URL of an " ^ protocol ^ " stream (default port is 80).") );
       ]
@@ -638,12 +642,7 @@ module Make (Config : Config_t) = struct
                        "valid values are 'random', 'randomize', 'normal' and \
                         'first'" ))
         in
-        let url = Lang.to_string (List.assoc "" p) in
-        let () =
-          try ignore (parse_url url)
-          with Failure _ ->
-            raise (Lang_errors.Invalid_value (List.assoc "" p, "invalid URL"))
-        in
+        let url = Lang.to_string_getter (List.assoc "" p) in
         let autostart = Lang.to_bool (List.assoc "autostart" p) in
         let bind_address = Lang.to_string (List.assoc "bind_address" p) in
         let user_agent = Lang.to_string (List.assoc "user_agent" p) in

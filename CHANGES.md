@@ -67,6 +67,7 @@ Changed:
 - Renamed `base64.decode`/`base64.encode` to
   `string.base64.decode`/`string.base64.encode`.
 - Vumeter is now implemented in Liquidsoap (#1103).
+- Change `input.http` and `input.https` `url` parameter into a string getter (#1084)
 
 Fixed:
 
