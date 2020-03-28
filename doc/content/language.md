@@ -7,6 +7,10 @@ It allows the direct handling of liquidsoap notions such
 as [sources](sources.html) and [requests](requests.html),
 and also provides a convenient syntax for specifying time intervals.
 
+The language's parser expects UTF8 as input so you should make sure that your scripts
+are written in this encoding, in particular if you include strings or variable names
+with non-ASCII characters in them.
+
 Constants
 ---------
 The constants and their syntax are quite common:
