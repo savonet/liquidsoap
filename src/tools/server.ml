@@ -66,8 +66,8 @@ let conf_socket_path =
     "Path of the UNIX domain socket"
     ~comments:
       [
-        "In this filename, <pid>, <script> and <sysrundir> are replaced by ";
-        "their respective values: PID of the instance of liquidsoap,";
+        "In this filename, `<pid>`, `<script>` and `<sysrundir>` are replaced ";
+        "by their respective values: PID of the instance of liquidsoap,";
         "base name of the .liq script (if any), default runtime data directory.";
       ]
 
