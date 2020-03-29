@@ -11,4 +11,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build and test
-      run: docker docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -f .github/Dockerfile
+      run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -f .github/Dockerfile
