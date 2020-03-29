@@ -1,5 +1,9 @@
 name: CI
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master    
 
 jobs:
   # This workflow contains a single job called "build"
