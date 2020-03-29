@@ -47,14 +47,14 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let pos = AFrame.position buf in
       let len = pos - offset in
       effect#process (Audio.sub b offset len)
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.lowshelf"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -76,7 +76,7 @@ let () =
       new biquad ~kind src `Low_shelf freq param 0.)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.highshelf"
     [
       ("frequency", Lang.float_t, None, Some "Center frequency");
@@ -98,7 +98,7 @@ let () =
       new biquad ~kind src `High_shelf freq param 0.)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.low"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -117,7 +117,7 @@ let () =
       new biquad ~kind src `Low_pass freq param 0.)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.high"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -136,7 +136,7 @@ let () =
       new biquad ~kind src `High_pass freq param 0.)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.bandpass"
     [
       ("frequency", Lang.float_t, None, Some "Center frequency");
@@ -155,7 +155,7 @@ let () =
       new biquad ~kind src `Band_pass freq param 0.)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.allpass"
     [
       ("frequency", Lang.float_t, None, Some "Center frequency");
@@ -177,7 +177,7 @@ let () =
       new biquad ~kind src `All_pass freq param 0.)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.notch"
     [
       ("frequency", Lang.float_t, None, Some "Center frequency");
@@ -196,7 +196,7 @@ let () =
       new biquad ~kind src `Notch freq param 0.)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.eq.peak"
     [
       ("frequency", Lang.float_t, None, Some "Center frequency");

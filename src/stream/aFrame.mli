@@ -54,22 +54,10 @@ val free_all_metadata : t -> unit
 val get_all_metadata : t -> (int * metadata) list
 val set_all_metadata : t -> (int * metadata) list -> unit
 
-(** {2 Chunks} *)
-
-exception No_chunk
-
-val get_chunk : t -> t -> unit
-
 (** {2 Helpers} *)
 
-(** Get audio contents for access after a given offset.
-  * This requires that the frame currently has a purely audio layer
-  * at this position, until the end of the frame. *)
-val content : t -> int -> Frame.audio_t array
-
-(** Get audio contents for writing after a given offset.
-  * If necessary this creates an audio layer starting there. *)
-val content_of_type : channels:int -> t -> int -> Frame.audio_t array
+(** Get audio contents *)
+val content : t -> Frame.audio_t array
 
 (** Same as [content] with [offset=0], converted to s16le. *)
 val to_s16le : t -> string

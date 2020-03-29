@@ -46,7 +46,7 @@ class filter ~kind (source : source) rc wet mode =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       let rc = rc () in
       let alpha =
@@ -82,7 +82,7 @@ class filter ~kind (source : source) rc wet mode =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.rc"
     [
       ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");

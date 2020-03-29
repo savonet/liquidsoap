@@ -56,7 +56,7 @@ let of_list_t t =
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
-let variable_t = Term.variable_t
+let any_t = Term.any_t
 let add_t = Term.add_t
 let type_of_int = Term.type_of_int
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
@@ -74,7 +74,7 @@ let of_request_t t = Term.of_request_t t
 
 let rec t_of_mul = function
   | Frame.Zero -> zero_t
-  | Frame.Variable -> variable_t
+  | Frame.Any -> any_t
   | Frame.Succ m -> succ_t (t_of_mul m)
 
 let kind_type_of_frame_kind kind =
@@ -84,12 +84,12 @@ let kind_type_of_frame_kind kind =
   frame_kind_t ~audio ~video ~midi
 
 (** Given a Lang type that has been inferred, convert it to a kind.
-  * This might require to force some Any_fixed variables. *)
+  * This might require to force some At_least variables. *)
 let rec mul_of_type default t =
   match (T.deref t).T.descr with
     | T.Succ t -> Frame.Succ (mul_of_type (default - 1) t)
     | T.Zero -> Frame.Zero
-    | T.Variable -> Frame.Variable
+    | T.Any -> Frame.Any
     | T.EVar _ ->
         let default = max 0 default in
         T.bind t (type_of_int default);
@@ -108,36 +108,31 @@ let frame_kind_of_kind_type t =
 
 (** Description of how many of a channel type does an operator want.
   * [Fixed n] means exactly [n] channels.
-  * [Any_fixed n] means any fixed numbers of channels that is [>=n].
-  * [Variable n] means any (possibly variable) number of channels that
-  *   is [>=n]. *)
-type lang_kind_format = Fixed of int | Any_fixed of int | Variable of int
+  * [At_least n] means any fixed numbers of channels that is [>=n]. *)
+type lang_kind_format = Fixed of int | At_least of int
 
 type lang_kind_formats =
   | Unconstrained of t
   | Constrained of
       (lang_kind_format, lang_kind_format, lang_kind_format) Frame.fields
 
-let any_fixed =
+let any =
   Constrained
-    { Frame.audio = Any_fixed 0; video = Any_fixed 0; midi = Any_fixed 0 }
+    { Frame.audio = At_least 0; video = At_least 0; midi = At_least 0 }
 
 let empty =
   Constrained { Frame.audio = Fixed 0; video = Fixed 0; midi = Fixed 0 }
 
-let any_fixed_with ?(audio = 0) ?(video = 0) ?(midi = 0) () =
+let any_with ?(audio = 0) ?(video = 0) ?(midi = 0) () =
   Constrained
     {
-      Frame.audio = Any_fixed audio;
-      video = Any_fixed video;
-      midi = Any_fixed midi;
+      Frame.audio = At_least audio;
+      video = At_least video;
+      midi = At_least midi;
     }
 
-let audio_variable =
-  Constrained { Frame.audio = Variable 1; video = Fixed 0; midi = Fixed 0 }
-
 let audio_any =
-  Constrained { Frame.audio = Any_fixed 1; video = Fixed 0; midi = Fixed 0 }
+  Constrained { Frame.audio = At_least 1; video = Fixed 0; midi = Fixed 0 }
 
 let audio_n n =
   Constrained { Frame.audio = Fixed n; video = Fixed 0; midi = Fixed 0 }
@@ -149,10 +144,10 @@ let video_only =
   Constrained { Frame.audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
 
 let video =
-  Constrained { Frame.audio = Any_fixed 0; video = Fixed 1; midi = Any_fixed 0 }
+  Constrained { Frame.audio = At_least 0; video = Fixed 1; midi = At_least 0 }
 
 let audio_video_any =
-  Constrained { Frame.audio = Any_fixed 0; video = Any_fixed 0; midi = Fixed 0 }
+  Constrained { Frame.audio = At_least 0; video = At_least 0; midi = Fixed 0 }
 
 let video_n n =
   Constrained { Frame.audio = Fixed 0; video = Fixed n; midi = Fixed 0 }
@@ -168,8 +163,7 @@ let kind_type_of_kind_format fmt =
     | Constrained fields ->
         let aux = function
           | Fixed i -> type_of_int i
-          | Any_fixed i -> Term.add_t i (univ_t ~constraints:[T.Arity_fixed] ())
-          | Variable i -> Term.add_t i variable_t
+          | At_least i -> Term.add_t i (univ_t ())
         in
         let audio = aux fields.Frame.audio in
         let video = aux fields.Frame.video in

@@ -43,7 +43,7 @@ class msstereo ~kind (source : source) mode width =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let buffer = AFrame.content buf offset in
+      let buffer = AFrame.content buf in
       for i = offset to AFrame.position buf - 1 do
         match mode with
           | Encode ->

@@ -49,7 +49,7 @@ class comb ~kind (source : source) delay feedback =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       let feedback = feedback () in
       for i = offset to position - 1 do
@@ -63,7 +63,7 @@ class comb ~kind (source : source) delay feedback =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "comb"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");

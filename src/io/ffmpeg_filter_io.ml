@@ -88,7 +88,7 @@ class audio_output ~name ~kind val_source =
     method output_reset = ()
 
     method output_send memo =
-      let pcm = AFrame.content memo 0 in
+      let pcm = AFrame.content memo in
       let aframe = self#convert pcm in
       Avutil.frame_set_pts aframe pts;
       pts <- Int64.add (Int64.of_int (AFrame.position memo)) pts;
@@ -122,7 +122,7 @@ class video_output ~name val_source =
     method output_reset = ()
 
     method output_send memo =
-      let vbuf = VFrame.content memo 0 in
+      let vbuf = VFrame.content memo in
       let vlen = VFrame.position memo in
       let vbuf = vbuf.(0) in
       for i = 0 to 0 + vlen - 1 do

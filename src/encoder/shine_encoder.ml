@@ -41,8 +41,7 @@ let encoder shine =
   let buf = G.create () in
   let encoded = Strings.Mutable.empty () in
   let encode frame start len =
-    let start = Frame.audio_of_master start in
-    let b = AFrame.content_of_type ~channels frame start in
+    let b = AFrame.content frame in
     let len = Frame.audio_of_master len in
     let b, start, len =
       if src_freq <> dst_freq then (

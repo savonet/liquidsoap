@@ -31,11 +31,7 @@ let vot ?round x =
     | None | Some `Down -> Frame.video_of_master x
     | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate - 1)
 
-let content b pos =
-  let stop, content = content b (vot pos) in
-  assert (stop = Lazy.force size);
-  content.video
-
+let content b = b.content.video
 let size _ = vot (Lazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
 let add_break t i = add_break t (tov i)
@@ -50,13 +46,4 @@ let get_content frame source =
   in
   let v0 = vot ~round:`Up p0 in
   let v1 = vot ~round:`Down p1 in
-  if v0 < v1 then (
-    let stop, content = Frame.content frame p0 in
-    assert (stop = Lazy.force Frame.size);
-    Some (content.video, v0, v1 - v0) )
-  else None
-
-let content_of_type ~channels b pos =
-  let ctype = { audio = 0; video = channels; midi = 0 } in
-  let content = content_of_type b (tov pos) ctype in
-  content.video
+  if v0 < v1 then Some (frame.content.video, v0, v1 - v0) else None

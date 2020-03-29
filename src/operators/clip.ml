@@ -41,13 +41,13 @@ class clip ~kind (source : source) =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       Audio.clip (Audio.sub b offset (position - offset))
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "clip"
     [("", Lang.source_t k, None, None)]
     ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing

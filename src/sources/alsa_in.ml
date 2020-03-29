@@ -142,7 +142,7 @@ class mic ~kind ~clock_safe device =
     method get_frame buf =
       assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
-      let fbuf = AFrame.content_of_type ~channels:buffer_chans buf 0 in
+      let fbuf = AFrame.content buf in
       for c = 0 to Array.length fbuf - 1 do
         Audio.Mono.blit
           (Audio.Mono.sub buffer.(c) 0 buffer_length)

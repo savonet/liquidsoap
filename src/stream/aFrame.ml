@@ -27,30 +27,12 @@ type t = Frame.t
 (* Samples of ticks, and vice versa. *)
 let sot = audio_of_master
 let tos = master_of_audio
-
-let content b pos =
-  let stop, content = content b (tos pos) in
-  assert (stop = Lazy.force size);
-  content.audio
-
-let content_of_type ~channels b pos =
-  let ctype = { audio = channels; video = 0; midi = 0 } in
-  let content = content_of_type b (tos pos) ctype in
-  content.audio
-
+let content b = b.content.audio
 let channels_of_kind k = (type_of_kind k).Frame.audio
 
 let to_s16le b =
-  (* TODO: generalize this *)
-  let fpcm = content b 0 in
+  let fpcm = content b in
   assert (Audio.channels fpcm = 2);
-
-  (*
-  let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
-  let s = Bytes.create slen in
-    assert (Audio.to_16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
-    s
-  *)
   Audio.S16LE.make fpcm
 
 let duration () = Lazy.force duration
@@ -78,16 +60,10 @@ let set_all_metadata t l =
 
 let free_metadata = free_metadata
 let free_all_metadata = free_all_metadata
-
-exception No_chunk
-
-let get_chunk = get_chunk
-let blankify b off len = Audio.clear (Audio.sub (content b off) off len)
-let multiply b off len c = Audio.amplify c (Audio.sub (content b off) off len)
+let blankify b off len = Audio.clear (Audio.sub (content b) off len)
+let multiply b off len c = Audio.amplify c (Audio.sub (content b) off len)
 
 let add b1 off1 b2 off2 len =
-  Audio.add
-    (Audio.sub (content b1 off1) off1 len)
-    (Audio.sub (content b2 off2) off2 len)
+  Audio.add (Audio.sub (content b1) off1 len) (Audio.sub (content b2) off2 len)
 
-let rms b off len = Audio.Analyze.rms (Audio.sub (content b off) off len)
+let rms b off len = Audio.Analyze.rms (Audio.sub (content b) off len)

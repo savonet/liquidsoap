@@ -151,9 +151,7 @@ val string_of_flag : doc_flag -> string
 (** Description of how many channels of given type an operator requires. *)
 type lang_kind_format =
   | Fixed of int  (** exactly [n] channels *)
-  | Any_fixed of int  (** a fixed number of channels which is at least [n] *)
-  | Variable of int
-      (** a variable number of channel which always at least [n] *)
+  | At_least of int  (** a fixed number of channels which is at least [n] *)
 
 (** Description of all the channels an operator requires. *)
 type lang_kind_formats =
@@ -162,9 +160,9 @@ type lang_kind_formats =
       (lang_kind_format, lang_kind_format, lang_kind_format) Frame.fields
       (** specification of requirements for audio, video, etc. *)
 
-val any_fixed : lang_kind_formats
+val any : lang_kind_formats
 
-val any_fixed_with :
+val any_with :
   ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_formats
 
 val empty : lang_kind_formats
@@ -172,7 +170,6 @@ val audio_any : lang_kind_formats
 val audio_mono : lang_kind_formats
 val audio_stereo : lang_kind_formats
 val audio_n : int -> lang_kind_formats
-val audio_variable : lang_kind_formats
 
 (** One video channel only. *)
 val video_only : lang_kind_formats
@@ -240,7 +237,7 @@ val of_tuple_t : t -> t list
 val list_t : t -> t
 val of_list_t : t -> t
 val zero_t : t
-val variable_t : t
+val any_t : t
 val succ_t : t -> t
 val add_t : int -> t -> t
 val type_of_int : int -> t

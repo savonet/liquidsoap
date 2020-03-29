@@ -100,7 +100,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
 
     method output_send memo =
       let stream = Utils.get_some stream in
-      let buf = AFrame.content memo 0 in
+      let buf = AFrame.content memo in
       self#handle "write_stream" (fun () ->
           let len = Audio.length buf in
           (* TODO: non-interleaved format does not seem to be supported here *)
@@ -160,7 +160,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
     method input frame =
       assert (0 = AFrame.position frame);
       let stream = Utils.get_some stream in
-      let buf = AFrame.content_of_type ~channels frame 0 in
+      let buf = AFrame.content frame in
       self#handle "read_stream" (fun () ->
           let len = Audio.length buf in
           let ibuf =
@@ -180,7 +180,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
   Lang.add_operator "output.portaudio" ~active:true
     ( Output.proto
     @ [

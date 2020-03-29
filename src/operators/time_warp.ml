@@ -243,7 +243,7 @@ module AdaptativeBuffer = struct
             let len = Lazy.force Frame.size - ofs in
             let aofs = Frame.audio_of_master ofs in
             let alen = Frame.audio_of_master len in
-            let buf = AFrame.content_of_type ~channels frame aofs in
+            let buf = AFrame.content frame in
             let salen = scale alen in
             fill buf aofs alen salen;
             Frame.add_break frame (ofs + len);
@@ -270,7 +270,6 @@ module AdaptativeBuffer = struct
 
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     ~kind source_val c =
-    let channels = AFrame.channels_of_kind kind in
     let prebuf = Frame.audio_of_seconds pre_buffer in
     object
       inherit
@@ -292,8 +291,7 @@ module AdaptativeBuffer = struct
               c.abort <- false;
               source#abort_track );
             let len = AFrame.position frame in
-            (* TODO: is this ok to start from 0? *)
-            let buf = AFrame.content_of_type ~channels frame 0 in
+            let buf = AFrame.content frame in
             if RB.write_space c.rb < len then (
               (* Not enough write space, let's drop some data. *)
               let n = len - RB.write_space c.rb in

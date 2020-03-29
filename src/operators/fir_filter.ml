@@ -135,7 +135,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let shift a =
         for i = 0 to Array.length a - 2 do
           a.(i) <- a.(i + 1)
@@ -160,7 +160,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.fir"
     [
       ( "frequency",

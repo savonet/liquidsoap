@@ -81,7 +81,7 @@ class dssi ~kind ?chan plugin descr outputs params source =
         source#get buf;
         Frame.position buf
       in
-      let _, content = Frame.content buf offset in
+      let content = buf.Frame.content in
       let b = content.Frame.audio in
       let evs = content.Frame.midi in
       (* Now convert everything to audio samples. *)
@@ -134,7 +134,7 @@ let register_descr plugin_name descr_n descr outputs =
       (Lang.Constrained
          {
            Frame.audio = Lang.Fixed chans;
-           video = Lang.Any_fixed 0;
+           video = Lang.At_least 0;
            midi = Lang.Fixed 1;
          })
   in
@@ -163,7 +163,7 @@ let register_descr plugin_name descr_n descr outputs =
       (Lang.Constrained
          {
            Frame.audio = Lang.Fixed chans;
-           video = Lang.Any_fixed 0;
+           video = Lang.At_least 0;
            midi = Lang.Fixed all_chans;
          })
   in

@@ -144,10 +144,7 @@ let encoder ext =
   let encode frame start len =
     let duration = Int64.of_float (Frame.seconds_of_master len *. nano) in
     let videochans = if gst.video_src <> None then 1 else 0 in
-    let content =
-      Frame.content_of_type frame start
-        { Frame.audio = channels; video = videochans; midi = 0 }
-    in
+    let content = frame.Frame.content in
     if channels > 0 then (
       (* Put audio. *)
       let astart = Frame.audio_of_master start in

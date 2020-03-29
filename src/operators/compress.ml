@@ -52,7 +52,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
     method private get_frame buf =
       let ofs = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf ofs in
+      let b = AFrame.content buf in
       let pos = AFrame.position buf in
       let len = pos - ofs in
       effect#set_gain (gain ());
@@ -68,7 +68,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
   end
 
 (* The five first variables ('a,'b...) are used for getters. *)
-let k = Lang.kind_type_of_kind_format Lang.any_fixed
+let k = Lang.kind_type_of_kind_format Lang.any
 
 let proto =
   [

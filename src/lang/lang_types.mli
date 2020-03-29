@@ -34,7 +34,7 @@ type ground += Bool | Int | String | Float
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
 
-type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
+type constr = Num | Ord | Getter of ground | Dtools
 type constraints = constr list
 
 val print_constr : constr -> string
@@ -50,7 +50,7 @@ and descr =
   | Tuple of t list
   | Zero
   | Succ of t
-  | Variable
+  | Any
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t

@@ -210,7 +210,7 @@ let duration = delayed (fun () -> float !!size /. float !!master_rate)
 (** Data types *)
 
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
-type multiplicity = Variable | Zero | Succ of multiplicity
+type multiplicity = Any | Zero | Succ of multiplicity
 
 (** High-level, abstract and imprecise stream content type.
   * This controls a changing content type.
@@ -234,13 +234,13 @@ and midi_t = MIDI.buffer
   * TODO this is the other way around... it's correct in Lang, phew! *)
 
 let rec mul_sub_mul = function
-  | _, Variable -> true
+  | _, Any -> true
   | Zero, Zero -> true
   | Succ a, Succ b -> mul_sub_mul (a, b)
   | _ -> false
 
 let rec int_sub_mul = function
-  | _, Variable -> true
+  | _, Any -> true
   | n, Succ m when n > 0 -> int_sub_mul (n - 1, m)
   | 0, Zero -> true
   | _ -> false
@@ -264,11 +264,6 @@ let type_has_kind t k =
   && int_sub_mul t.video k.video
   && int_sub_mul t.midi k.midi
 
-let content_has_type c t =
-  Array.length c.audio = t.audio
-  && Array.length c.video = t.video
-  && Array.length c.midi = t.midi
-
 let type_of_content c =
   {
     audio = Array.length c.audio;
@@ -278,7 +273,7 @@ let type_of_content c =
 
 let type_of_kind k =
   let rec aux def = function
-    | Variable -> max 0 def
+    | Any -> max 0 def
     | Zero -> 0
     | Succ m -> 1 + aux (def - 1) m
   in
@@ -293,13 +288,13 @@ let rec mul_of_int x = if x <= 0 then Zero else Succ (mul_of_int (x - 1))
 let rec add_mul x = function
   | Zero -> x
   | Succ y -> Succ (add_mul y x)
-  | Variable -> if x = Variable then x else add_mul Variable x
+  | Any -> if x = Any then x else add_mul Any x
 
 let string_of_mul m =
   let rec aux acc = function
     | Succ m -> aux (acc + 1) m
     | Zero -> string_of_int acc
-    | Variable -> string_of_int acc ^ "+"
+    | Any -> string_of_int acc ^ "+"
   in
   aux 0 m
 
@@ -327,19 +322,7 @@ type t = {
   mutable breaks : int list;
   (* Metadata can be put anywhere in the stream. *)
   mutable metadata : (int * metadata) list;
-  (* The actual content can represent several tracks in one content
-   * chunk, for efficiency, but may also be split in several chunks
-   * of different content_type. Each chunk has an end position, after
-   * which data should be considered as undefined.
-   * Chunks can be seen as layers: they all have the same (full) size,
-   * and data goes from one to the other. For example: [5,A;7,B;10,C] is
-   * A = 0 1 2 3 4 . . . . .
-   * B = . . . . . 5 6 . . .
-   * C = . . . . . . . 7 8 9 where "." is an undefined sample.
-   * This representation is slightly costly in memory (but several
-   * chunks shouldn't happen too often) but is very convenient to
-   * handle; notably, there's no need to pass offsets around. *)
-  mutable contents : (int * content) list;
+  mutable content : content;
 }
 
 (** Create a content chunk. All chunks have the same size. *)
@@ -356,12 +339,25 @@ let create_content content_type =
           MIDI.create (midi_of_master !!size));
   }
 
-let create kind =
+let create_type content_type =
+  { breaks = []; metadata = []; content = create_content content_type }
+
+let create kind = create_type (type_of_kind kind)
+
+let content_type { content } =
+  let { audio; video; midi } = content in
   {
-    breaks = [];
-    metadata = [];
-    contents = [(!!size, create_content (type_of_kind kind))];
+    audio = Array.length audio;
+    video = Array.length video;
+    midi = Array.length midi;
   }
+
+let audio { content; _ } = content.audio
+let set_audio frame audio = frame.content <- { frame.content with audio }
+let video { content; _ } = content.video
+let set_video frame video = frame.content <- { frame.content with video }
+let midi { content; _ } = content.midi
+let set_midi frame midi = frame.content <- { frame.content with midi }
 
 (** Content independent *)
 
@@ -370,31 +366,20 @@ let is_partial b = position b < !!size
 let breaks b = b.breaks
 let set_breaks b breaks = b.breaks <- breaks
 let add_break b br = b.breaks <- br :: b.breaks
-let rec last = function [] -> assert false | [x] -> x | _ :: l -> last l
 
 (* When clearing a buffer, only the last content chunk is kept
  * since it is the most likely to be re-used. *)
 let clear (b : t) =
-  b.contents <- [last b.contents];
   b.breaks <- [];
   b.metadata <- []
 
 let clear_from (b : t) pos =
-  let rec aux = function
-    | [] -> assert false
-    | (end_pos, content) :: l ->
-        if end_pos < pos then (end_pos, content) :: aux l
-        else [(!!size, content)]
-  in
-  b.contents <- aux b.contents;
   b.breaks <- List.filter (fun p -> p <= pos) b.breaks;
   b.metadata <- List.filter (fun (p, _) -> p <= pos) b.metadata
 
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b =
   b.breaks <- [];
-  b.contents <- [last b.contents];
-  assert (fst (List.hd b.contents) = !!size);
   let max a (p, m) =
     match a with Some (pa, _) when pa > p -> a | _ -> Some (p, m)
   in
@@ -426,110 +411,6 @@ let set_all_metadata b l = b.metadata <- l
 let get_past_metadata b =
   try Some (List.assoc (-1) b.metadata) with Not_found -> None
 
-(** Operations on the contents *)
-
-(* When accessing content only for reading, or for chaning samples
- * in place, one does not choose the content type.
- * When accessing for writing, one chooses it, which possibly triggers a
- * layout change. *)
-
-(** Get the current content of a frame at a given position.  Independently of
-    breaks, this content may only be valid until some end position (that is
-    returned together with the content) in case the frame content type is not
-    fixed. Calling this function requires that the caller handles all possible
-    content types allowed by the frame kind, and never affects the contents
-    layout. *)
-let content (frame : t) pos =
-  (* The next line allows to homonegenously treat cases where no portion
-   * of the buffer actually has to be processed: if one wants to read
-   * past the end of the buffer, we can return anything really, but
-   * choose to return the last layer. *)
-  let pos = min pos (!!size - 1) in
-  let rec aux = function
-    | [] -> assert false
-    | (end_pos, content) :: l ->
-        if end_pos <= pos then aux l else (end_pos, content)
-  in
-  aux frame.contents
-
-(** Get the content for a given position and type in a frame.
-  * Calling this function may trigger a change of the contents layout,
-  * if the current content type at the given position is not the required
-  * one. Hence, the caller of this function should always assume the
-  * invalidation of all data after the given position. *)
-let content_of_type ?force (frame : t) pos content_type =
-  if pos = !!size then { audio = [||]; video = [||]; midi = [||] }
-  else (
-    (* [acc] contains the previous layers in reverse order,
-     * [start_pos] is the starting position of the first layer in [acc],
-     * and we're walking through the next layers. *)
-    let rec aux start_pos acc = function
-      | [] -> assert false
-      | (end_pos, content) :: l ->
-          if end_pos <= pos then aux end_pos ((end_pos, content) :: acc) l
-          else if
-            (* We are starting somewhere inside that layer. *)
-            content_has_type content content_type
-          then (
-            if l = [] then assert (end_pos = !!size)
-            else frame.contents <- List.rev ((!!size, content) :: acc);
-            assert (match force with Some c -> c = content | None -> true);
-            content )
-          else if pos = start_pos then (
-            (* We are erasing the current layer. *)
-              match acc with
-              | (_, content) :: acc when content_has_type content content_type
-                ->
-                  (* We must re-use the previous layer. *)
-                  frame.contents <- List.rev ((!!size, content) :: acc);
-                  assert (
-                    match force with Some c -> c = content | None -> true );
-                  content
-              | _ ->
-                  let content =
-                    match force with
-                      | None -> create_content content_type
-                      | Some c -> c
-                  in
-                  frame.contents <- List.rev ((!!size, content) :: acc);
-                  content )
-          else (
-            let acc = (pos, content) :: acc in
-            let content =
-              match force with
-                | None -> create_content content_type
-                | Some c -> c
-            in
-            frame.contents <- List.rev ((!!size, content) :: acc);
-            content )
-    in
-    aux 0 [] frame.contents )
-
-(** [hide_contents frame] removes all content layers from the frame,
-  * and returns a function that restores them in their current state.
-  * Hiding content layers avoids that they are used in any way, which
-  * is often needed in optimized content conversions. *)
-let hide_contents (frame : t) =
-  let save = frame.contents in
-  frame.contents <- [(!!size, { audio = [||]; video = [||]; midi = [||] })];
-  fun () -> frame.contents <- save
-
-(** A content layer representation (see [t.contents]). *)
-type content_layer = {
-  content : content;  (** Actual content. *)
-  start : int;  (** Begining position. *)
-  length : int;  (** End position. *)
-}
-
-(** Retrieve all content layers in a frame. *)
-let get_content_layers (frame : t) =
-  let rec aux pos = function
-    | [] -> []
-    | (endpos, c) :: l ->
-        { content = c; start = pos; length = endpos - pos } :: aux endpos l
-  in
-  aux 0 frame.contents
-
 let blit_content src src_pos dst dst_pos len =
   Array.iter2
     (fun a a' ->
@@ -557,13 +438,7 @@ let blit_content src src_pos dst dst_pos len =
 let blit src src_pos dst dst_pos len =
   (* Assuming that the tracks have the same track layout,
    * copy a chunk of data from [src] to [dst]. *)
-  let end_pos, src = content src src_pos in
-  (* We want the data in one chunk. *)
-  assert (src_pos + len <= end_pos);
-
-  (* Get a compatible chunk in [dst]. *)
-  let dst = content_of_type dst dst_pos (type_of_content src) in
-  blit_content src src_pos dst dst_pos len
+  blit_content src.content src_pos dst.content dst_pos len
 
 (** Raised by [get_chunk] when no chunk is available. *)
 exception No_chunk

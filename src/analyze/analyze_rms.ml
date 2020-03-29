@@ -46,7 +46,7 @@ class rms ~kind ~window_length ~update source =
         source#get ab;
         AFrame.position ab
       in
-      let buf = AFrame.content ab p0 in
+      let buf = AFrame.content ab in
       for i = p0 to p1 - 1 do
         let m =
           Array.fold_left

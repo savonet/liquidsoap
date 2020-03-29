@@ -194,7 +194,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
 
     method output_send memo =
       let pcm = Utils.get_some pcm in
-      let buf = AFrame.content memo 0 in
+      let buf = AFrame.content memo in
       let buf =
         if alsa_rate = samples_per_second then buf
         else
@@ -253,7 +253,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     (* TODO: convert samplerate *)
     method private input frame =
       let pcm = Utils.get_some pcm in
-      let buf = AFrame.content_of_type ~channels frame 0 in
+      let buf = AFrame.content frame in
       try
         let r = ref 0 in
         while !r < samples_per_frame do
@@ -281,7 +281,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
   Lang.add_operator "output.alsa" ~active:true
     ( Output.proto
     @ [

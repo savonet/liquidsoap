@@ -128,7 +128,7 @@ class keyboard ~kind =
 
     method private get_frame frame =
       assert (0 = MFrame.position frame);
-      let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
+      let m = frame.Frame.content in
       let m = m.Frame.midi in
       let t = self#get_events in
       for c = 0 to Array.length m - 1 do
@@ -142,9 +142,9 @@ let () =
     ~kind:
       (Lang.Constrained
          {
-           Frame.audio = Lang.Any_fixed 0;
+           Frame.audio = Lang.At_least 0;
            video = Lang.Fixed 0;
-           midi = Lang.Any_fixed 1;
+           midi = Lang.At_least 1;
          })
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]

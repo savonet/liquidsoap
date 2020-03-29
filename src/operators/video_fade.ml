@@ -148,7 +148,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
 
 (** Lang interface *)
 
-let kind = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~video:1 ())
+let kind = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
 
 (* TODO: share more with fade.ml *)
 let proto =

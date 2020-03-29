@@ -90,8 +90,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
       let surface = Sdl_utils.check Sdl.get_window_surface window in
       (* We only display the first image of each frame *)
       let rgb =
-        let stop, c = Frame.content buf 0 in
-        assert (stop = Lazy.force Frame.size);
+        let c = buf.Frame.content in
         Video.get c.Frame.video.(0) 0
       in
       Sdl_utils.Surface.of_img surface rgb;

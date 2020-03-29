@@ -84,7 +84,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let chans = Array.length b in
       let position = AFrame.position buf in
       let len = position - offset in
@@ -117,7 +117,7 @@ class lilv ~kind (source : source) plugin inputs outputs params =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
       let len = position - offset in
       List.iter
@@ -140,7 +140,7 @@ class lilv ~kind (source : source) plugin inputs outputs params =
         Plugin.Instance.run inst len )
       else (
         (* We have to change channels. *)
-        let d = AFrame.content_of_type ~channels:oc buf offset in
+        let d = AFrame.content buf in
         for c = 0 to Array.length b - 1 do
           Plugin.Instance.connect_port_float inst inputs.(c)
             (Audio.Mono.sub b.(c) offset len)
@@ -171,7 +171,7 @@ class lilv_nosource ~kind plugin outputs params =
         must_fail <- false )
       else (
         let offset = AFrame.position buf in
-        let b = AFrame.content buf offset in
+        let b = AFrame.content buf in
         let chans = Array.length b in
         let position = AFrame.size () in
         let len = position - offset in
@@ -200,7 +200,7 @@ class lilv_noout ~kind source plugin inputs params =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      let b = AFrame.content buf offset in
+      let b = AFrame.content buf in
       let chans = Array.length b in
       let position = AFrame.size () in
       let len = position - offset in
@@ -300,8 +300,7 @@ let register_plugin plugin =
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_plugin plugin in
   let k =
-    Lang.kind_type_of_kind_format
-      (if mono then Lang.any_fixed else Lang.audio_n ni)
+    Lang.kind_type_of_kind_format (if mono then Lang.any else Lang.audio_n ni)
   in
   let liq_params =
     liq_params @ if ni = 0 then [] else [("", Lang.source_t k, None, None)]

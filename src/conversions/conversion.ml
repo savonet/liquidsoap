@@ -20,35 +20,42 @@
 
  *****************************************************************************)
 
-open Source
-
-class id ~kind ?(name = "id") (source : source) =
-  object
-    inherit operator ~name kind [source]
-
+(* Conversion base class. contents marked as [true] are modified
+ * by the converter using this class. Other contents are untouched. *)
+class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
+  (source : Source.source) =
+  object (self)
     method stype = source#stype
-
-    method remaining = source#remaining
 
     method is_ready = source#is_ready
 
     method abort_track = source#abort_track
 
+    method remaining = source#remaining
+
     method seek = source#seek
 
     method self_sync = source#self_sync
 
-    method private get_frame buf = source#get buf
-  end
+    (* The tmp_frame is intended to be filled by the underlying
+     * source. Content untouched by the converter are replaced by
+     * by content from the calling frame. Touched content get their
+     * own layer. *)
+    val mutable tmp_frame = Frame.create source#kind
 
-let () =
-  let kind = Lang.univ_t () in
-  Lang.add_operator "id"
-    [("", Lang.source_t kind, None, None)]
-    ~category:Lang.Conversions
-    ~descr:"Does not do anything, simply forwards its input stream."
-    ~kind:(Lang.Unconstrained kind)
-    (fun p kind ->
-      let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
-      new id ~kind src)
+    method private tmp_frame = tmp_frame
+
+    method private copy_frame src dst =
+      Frame.set_breaks dst (Frame.breaks src);
+      Frame.set_all_metadata dst (Frame.get_all_metadata src);
+      if not audio then Frame.set_audio dst (Frame.audio src);
+      if not video then Frame.set_video dst (Frame.video src);
+      if not midi then Frame.set_midi dst (Frame.midi src)
+
+    method private get_frame frame =
+      let tmp_frame = self#tmp_frame in
+      self#copy_frame frame tmp_frame;
+      source#get tmp_frame;
+      converter ~frame tmp_frame;
+      self#copy_frame tmp_frame frame
+  end

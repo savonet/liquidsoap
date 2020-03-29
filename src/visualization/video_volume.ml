@@ -78,21 +78,12 @@ class visu ~kind source =
        * not even be a content layer of the right type to look at. *)
       if len > 0 then (
         (* Add a video channel to the frame contents. *)
-        let _, src = Frame.content frame offset in
-        let src_type = Frame.type_of_content src in
-        let dst_type = { src_type with Frame.video = 1 } in
-        let dst = Frame.content_of_type frame offset dst_type in
-        (* Reproduce audio data in the new contents. *)
-        Audio.blit
-          (Audio.sub src.Frame.audio
-             (Frame.audio_of_master offset)
-             (Frame.audio_of_master len))
-          (Audio.sub dst.Frame.audio
-             (Frame.audio_of_master offset)
-             (Frame.audio_of_master len));
+        let vFrame = Frame.(create_type { audio = 0; video = 1; midi = 0 }) in
+        Frame.(
+          frame.content <- { frame.content with video = vFrame.content.video });
 
         (* Feed the volume buffer. *)
-        let acontent = AFrame.content frame (Frame.audio_of_master offset) in
+        let acontent = AFrame.content frame in
         for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
           self#add_vol
             (Array.map
@@ -105,7 +96,7 @@ class visu ~kind source =
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float channels in
-        let buf = dst.Frame.video.(0) in
+        let buf = Frame.(frame.content.video.(0)) in
         let start = Frame.video_of_master offset in
         let stop = start + Frame.video_of_master len in
         let line img c p q =
@@ -155,11 +146,7 @@ class visu ~kind source =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   let fmt =
-    {
-      Frame.audio = Lang.Any_fixed 1;
-      video = Lang.Fixed 1;
-      midi = Lang.Fixed 0;
-    }
+    { Frame.audio = Lang.At_least 1; video = Lang.Fixed 1; midi = Lang.Fixed 0 }
   in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]

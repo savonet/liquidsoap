@@ -69,7 +69,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       Soundtouch.set_pitch st (pitch ());
       AFrame.clear databuf;
       source#get databuf;
-      let db = AFrame.content databuf 0 in
+      let db = AFrame.content databuf in
       let db = Audio.interleave db in
       Soundtouch.put_samples_ba st db;
       let available = Soundtouch.get_available_samples st in

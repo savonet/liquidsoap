@@ -119,9 +119,7 @@ let create_decoder metadata img =
   let duration = ref duration in
   let close () = () in
   let fill frame =
-    let video =
-      (VFrame.content_of_type ~channels:1 frame (VFrame.position frame)).(0)
-    in
+    let video = (VFrame.content frame).(0) in
     let start = VFrame.next_sample_position frame in
     let stop =
       if !duration = -1 then VFrame.size frame

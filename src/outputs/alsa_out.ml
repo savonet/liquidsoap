@@ -134,7 +134,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         else raise e
 
     method output_send buf =
-      let buf = AFrame.content buf 0 in
+      let buf = AFrame.content buf in
       let ratio = float alsa_rate /. float samples_per_second in
       let buf =
         Audio_converter.Samplerate.resample samplerate_converter ratio buf

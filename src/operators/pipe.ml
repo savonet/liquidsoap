@@ -178,7 +178,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         let tmp = Frame.create kind in
         source#get tmp;
         self#slave_tick;
-        let buf = AFrame.content_of_type ~channels tmp 0 in
+        let buf = AFrame.content tmp in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in

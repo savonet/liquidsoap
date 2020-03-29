@@ -101,7 +101,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     method output_send memo =
       let stream = Utils.get_some stream in
-      let buf = AFrame.content memo 0 in
+      let buf = AFrame.content memo in
       let chans = Array.length buf in
       let len = Audio.length buf in
       let buf' =
@@ -184,7 +184,7 @@ class input ~kind p =
         Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
           (channels * len)
       in
-      let buf = AFrame.content_of_type ~channels frame 0 in
+      let buf = AFrame.content frame in
       Simple.read_ba stream ibuf;
       for c = 0 to channels - 1 do
         let bufc = buf.(c) in
@@ -196,7 +196,7 @@ class input ~kind p =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_fixed_with ~audio:1 ()) in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
   let proto =
     [
       ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);

@@ -79,7 +79,6 @@ let file_deco filename =
             else Frame.add_break frame size
         | [] -> Frame.add_break frame pos
     in
-    ignore (Frame.content_of_type frame pos empty);
     aux ();
     t := !t +. Frame.seconds_of_master (Frame.position frame - pos);
     -1

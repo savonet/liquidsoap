@@ -98,13 +98,8 @@ let print_ground v =
 
 (** Type constraints *)
 
-type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
+type constr = Num | Ord | Getter of ground | Dtools
 type constraints = constr list
-
-let print_symconstr = function
-  | Arity_any -> Some "*"
-  | Arity_fixed -> Some "#"
-  | _ -> None
 
 let print_constr = function
   | Num -> "a number type"
@@ -114,8 +109,6 @@ let print_constr = function
       if !pretty_getters then Printf.sprintf "{%s}" t
       else Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "unit, bool, int, float, string or [string]"
-  | Arity_any -> "an arity"
-  | Arity_fixed -> "a fixed arity"
 
 (** Types *)
 
@@ -136,7 +129,7 @@ and descr =
   | Tuple of t list
   | Zero
   | Succ of t
-  | Variable
+  | Any
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints (* type variable *)
   | Link of t
@@ -150,7 +143,7 @@ type repr =
   | `Tuple of repr list
   | `Zero
   | `Succ of repr
-  | `Variable
+  | `Any
   | `Arrow of (bool * string * repr) list * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
@@ -188,12 +181,7 @@ let name =
   * which are then translated as `Ellipsis. *)
 let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
-    List.fold_left
-      (fun (s, constraints) c ->
-        match print_symconstr c with
-          | None -> (s, c :: constraints)
-          | Some sym -> (s ^ sym, constraints))
-      ("", []) c
+    List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
   let uvar i c =
     let constr_symbols, c = split_constr c in
@@ -234,7 +222,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | List t -> `List (repr t)
         | Tuple l -> `Tuple (List.map repr l)
         | Zero -> `Zero
-        | Variable -> `Variable
+        | Any -> `Any
         | Succ t -> `Succ (repr t)
         | Constr { name; params } ->
             `Constr (name, List.map (fun (l, t) -> (l, repr t)) params)
@@ -319,7 +307,7 @@ let print_repr f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "]@]";
         vars
-    | `Variable ->
+    | `Any ->
         Format.fprintf f "*";
         vars
     | (`Zero | `Succ _) as t ->
@@ -458,7 +446,7 @@ let rec occur_check a b =
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
     | Succ t -> occur_check a t
-    | Zero | Variable -> ()
+    | Zero | Any -> ()
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
@@ -539,29 +527,7 @@ let rec bind a0 b =
                     | EVar (j, c) ->
                         if List.mem Num c then ()
                         else b.descr <- EVar (j, Num :: c)
-                    | _ -> raise (Unsatisfied_constraint (Num, b)) )
-              | Arity_any ->
-                  let rec check b =
-                    match b.descr with
-                      | Zero | Variable -> ()
-                      | Succ b -> check (deref b)
-                      | EVar (j, c) ->
-                          if List.mem Arity_any c then ()
-                          else b.descr <- EVar (j, Arity_any :: c)
-                      | _ -> raise (Unsatisfied_constraint (Arity_any, b))
-                  in
-                  check b
-              | Arity_fixed ->
-                  let rec check b =
-                    match b.descr with
-                      | Zero -> ()
-                      | Succ b -> check (deref b)
-                      | EVar (j, c) ->
-                          if List.mem Arity_fixed c then ()
-                          else b.descr <- EVar (j, Arity_fixed :: c)
-                      | _ -> raise (Unsatisfied_constraint (Arity_fixed, b))
-                  in
-                  check b)
+                    | _ -> raise (Unsatisfied_constraint (Num, b)) ))
             constraints
       | _ -> assert false (* only EVars are bindable *)
     end;
@@ -686,12 +652,12 @@ let rec ( <: ) a b =
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
     | Zero, Zero -> ()
-    | Zero, Variable -> ()
+    | Zero, Any -> ()
     | Succ t1, Succ t2 -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`Succ a, `Succ b)) )
-    | Succ t1, Variable -> (
+    | Succ t1, Any -> (
         try t1 <: b with Error (a, b) -> raise (Error (`Succ a, b)) )
-    | Variable, Variable -> ()
+    | Any, Any -> ()
     | Arrow (l12, t), Arrow (l, t') ->
         (* Here, it must be that l12 = l1@l2
          * where l1 is essentially l modulo order
@@ -745,12 +711,7 @@ let rec ( <: ) a b =
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false )
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
-    (* The EVar cases doing bind are abusive because of subtyping.
-     * In general we would need subtyping constraints, but that's
-     * a very different story, and it would be very hairy for arrows.
-     * For now we do with a couple special cases regarding arities... *)
-    | EVar (_, c), Variable when List.mem Arity_fixed c -> ()
-    | EVar (_, c), Variable when List.mem Arity_any c -> ()
+    | EVar (_, _), Any -> ()
     | EVar (_, _), Succ b' -> (
         (* This could be optimized to process a bunch of succ all at once.
          * But it doesn't matter. The point is that binding might fail,
@@ -823,7 +784,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Ground _ | Zero | Variable -> l
+      | Ground _ | Zero | Any -> l
       | Succ t | List t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
@@ -855,7 +816,7 @@ let copy_with subst t =
       | Ground _ -> cp t.descr
       | List t -> cp (List (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
-      | Zero | Variable -> cp t.descr
+      | Zero | Any -> cp t.descr
       | Succ t -> cp (Succ (aux t))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
@@ -900,7 +861,7 @@ let iter_constr f t =
     let t = deref t in
     match t.descr with
       | Ground _ -> ()
-      | Succ _ | Zero | Variable -> ()
+      | Succ _ | Zero | Any -> ()
       | List t -> aux pos t
       | Tuple l -> List.iter (aux pos) l
       | Constr c ->

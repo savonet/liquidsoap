@@ -50,7 +50,7 @@ class bpm ~kind (source : source) cb every =
       let offset = AFrame.position buf in
       source#get buf;
       let len = AFrame.position buf - offset in
-      let buf = AFrame.content buf offset in
+      let buf = AFrame.content buf in
       let ibuf = Audio.interleave (Audio.sub buf offset len) in
       Soundtouch.BPM.put_samples_ba bpm ibuf;
       n <- n + len;
@@ -61,7 +61,7 @@ class bpm ~kind (source : source) cb every =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "bpm"
     [
       ( "every",

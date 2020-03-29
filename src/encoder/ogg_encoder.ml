@@ -113,7 +113,7 @@ let encoder ogg =
       if Ogg_muxer.state ogg_enc <> Ogg_muxer.Streaming then (
         streams_start ();
         enc.Encoder.header <- Ogg_muxer.get_header ogg_enc );
-      let _, content = Frame.content frame start in
+      let content = frame.Frame.content in
       let f track =
         track.encode ogg_enc (Utils.get_some track.id) content start len
       in

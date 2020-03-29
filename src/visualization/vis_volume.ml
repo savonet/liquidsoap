@@ -83,7 +83,7 @@ class vumeter ~kind source =
         AFrame.position buf
       in
       if offset < end_pos then (
-        let content = AFrame.content buf offset in
+        let content = AFrame.content buf in
         for i = offset to AFrame.position buf - 1 do
           self#add_vol
             (Array.map

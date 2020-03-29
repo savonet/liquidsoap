@@ -305,13 +305,7 @@ module From_frames = struct
           (List.filter (fun x -> x < size) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
-    let rec feed_all ofs = function
-      | (cstop, content) :: contents ->
-          Generator.put fg.generator (Frame.copy content) ofs cstop;
-          if cstop < size then feed_all cstop contents
-      | [] -> assert false
-    in
-    feed_all 0 frame.Frame.contents
+    Generator.put fg.generator (Frame.copy frame.Frame.content) 0 size
 
   (* Fill a frame from the generator's data. *)
   let fill fg frame =
@@ -325,8 +319,7 @@ module From_frames = struct
     let blocks = Generator.get fg.generator needed in
     List.iter
       (fun (block, o, o', size) ->
-        let ctype = Frame.type_of_content block in
-        let dst = Frame.content_of_type frame (offset + o') ctype in
+        let dst = frame.Frame.content in
         Frame.blit_content block o dst (offset + o') size)
       blocks;
     List.iter
@@ -472,20 +465,14 @@ module From_audio_video = struct
           (List.filter (fun x -> x < size) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
-    let rec feed_all ofs = function
-      | (cstop, content) :: contents ->
-          let content = Frame.copy content in
-          ( match mode t with
-            | `Audio -> put_audio t content.Frame.audio ofs cstop
-            | `Video -> put_video t content.Frame.video ofs cstop
-            | `Both ->
-                put_audio t content.Frame.audio ofs cstop;
-                put_video t content.Frame.video ofs cstop
-            | `Undefined -> () );
-          if cstop < size then feed_all cstop contents
-      | [] -> assert false
-    in
-    feed_all 0 frame.Frame.contents
+    let content = Frame.copy frame.Frame.content in
+    match mode t with
+      | `Audio -> put_audio t content.Frame.audio 0 size
+      | `Video -> put_video t content.Frame.video 0 size
+      | `Both ->
+          put_audio t content.Frame.audio 0 size;
+          put_video t content.Frame.video 0 size
+      | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
   let advance t len =
@@ -525,14 +512,7 @@ module From_audio_video = struct
              * after which vpos' is not the position of a video frame. *)
             assert (apos' = vpos');
             let fpos = fpos + apos' in
-            let ctype =
-              {
-                Frame.audio = Array.length ablk;
-                video = Array.length vblk;
-                midi = 0;
-              }
-            in
-            let dst = Frame.content_of_type frame fpos ctype in
+            let dst = frame.Frame.content in
             let l = min al vl in
             Array.iter2
               (fun v v' ->
@@ -641,7 +621,7 @@ module From_audio_video_plus = struct
         let p = Frame.position frame in
         let breaks = Frame.breaks frame in
         Super.fill t.gen frame;
-        let _, c = Frame.content frame p in
+        let c = frame.Frame.content in
         if not (Frame.type_has_kind (Frame.type_of_content c) t.kind) then (
           t.log "Incorrect stream type!";
           t.error <- true;
