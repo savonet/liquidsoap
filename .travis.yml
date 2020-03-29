@@ -2,9 +2,8 @@ sudo: required
 env:
   - DOCKER_TAG=debian_testing
   - DOCKER_TAG=debian_stable
-  - DOCKER_TAG=debian_stretch
-  - DOCKER_TAG=ubuntu_bionic
   - DOCKER_TAG=ubuntu_disco
+  - DOCKER_TAG=ubuntu_eoan
 services:
 - docker
 script:
