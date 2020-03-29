@@ -1,0 +1,14 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [debian_testing, debian_stable, ubuntu_disco, ubuntu_eoan]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and test
+      run: docker docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -f .github/Dockerfile
