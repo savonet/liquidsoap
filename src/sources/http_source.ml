@@ -24,6 +24,7 @@ module type Config_t = sig
   module Http : Http.Http_t
 
   val url_expr : Str.regexp
+  val default_port : int
 end
 
 module Make (Config : Config_t) = struct
@@ -168,7 +169,7 @@ module Make (Config : Config_t) = struct
         int_of_string (Str.matched_group 2 host),
         mount,
         auth )
-    else (host, 80, mount, auth)
+    else (host, default_port, mount, auth)
 
   module G = Generator
   module Generator = Generator.From_audio_video_plus
@@ -625,7 +626,9 @@ module Make (Config : Config_t) = struct
         ( "",
           Lang.string_getter_t (),
           None,
-          Some ("URL of an " ^ protocol ^ " stream (default port is 80).") );
+          Some
+            ( "URL of an " ^ protocol ^ " stream (default port is "
+            ^ string_of_int default_port ^ ")." ) );
       ]
       (fun p kind ->
         let playlist_mode =
@@ -696,6 +699,7 @@ module Config = struct
   module Http = Http
 
   let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp]://\\([^/]+\\)\\(/.*\\)?$"
+  let default_port = 80
 end
 
 module Input_http = Make (Config)
