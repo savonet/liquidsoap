@@ -24,6 +24,7 @@ module Config = struct
   module Http = Https
 
   let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp][sS]://\\([^/]+\\)\\(/.*\\)?$"
+  let default_port = 443
 end
 
 module Input_https = Http_source.Make (Config)
