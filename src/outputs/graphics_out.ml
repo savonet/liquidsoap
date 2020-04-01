@@ -40,12 +40,11 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
 
     method output_send buf =
       let rgb =
-        let stop, c = Frame.content buf in
-        assert (stop = Lazy.force Frame.size);
-        c.Frame.video.(0)
+        let c = buf.Frame.content in
+        Video.get c.Frame.video.(0) 0
       in
       for frame = 0 to 0 do
-        let img = Video.Image.to_int_image (Video.get rgb frame) in
+        let img = Video.Image.to_int_image rgb in
         let img = Graphics.make_image img in
         Graphics.draw_image img 0 0
       done

@@ -53,8 +53,6 @@ let getenv_opt value = try Some (Sys.getenv value) with Not_found -> None
 
 (* Several list utilities *)
 
-let rec make_list n v = if n = 0 then [] else v :: make_list (n - 1) v
-
 let rec prefix p l =
   match (p, l) with
     | [], _ -> true
@@ -187,8 +185,7 @@ let randomize a =
     done
 
 let special_char = function
-  | '"'
-  | '\\'
+  | '"' | '\\'
   (* DEL *)
   | '\x7F'
   (* Control chars *)
