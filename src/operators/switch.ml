@@ -307,7 +307,7 @@ let extract_common ~kind p l =
       raise
         (Lang_errors.Invalid_value
            (List.assoc "transitions" p, "Too many transitions"));
-    if ltr < l then tr @ Utils.make_list (l - ltr) (default_transition kind)
+    if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition kind)
     else tr
   in
   let replay = Lang.to_bool (List.assoc "replay_metadata" p) in
@@ -409,7 +409,7 @@ let () =
         List.map Lang.to_bool (Lang.to_list (List.assoc "single" p))
       in
       let singles =
-        if singles = [] then Utils.make_list (List.length children) false
+        if singles = [] then List.init (List.length children) (fun _ -> false)
         else singles
       in
       let children =
@@ -541,7 +541,7 @@ let () =
         in
         let weights =
           if weights <> [] then weights
-          else Utils.make_list (List.length children) (fun () -> 1)
+          else List.init (List.length children) (fun _ () -> 1)
         in
         let children =
           if List.length weights <> List.length children then

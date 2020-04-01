@@ -176,7 +176,7 @@ let () =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
       in
       let weights =
-        if weights = [] then Utils.make_list (List.length sources) 1.
+        if weights = [] then List.init (List.length sources) (fun _ -> 1.)
         else weights
       in
       let renorm = Lang.to_bool (List.assoc "normalize" p) in
@@ -234,7 +234,7 @@ let () =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
       in
       let weights =
-        if weights = [] then Utils.make_list (List.length sources) 1.
+        if weights = [] then List.init (List.length sources) (fun _ -> 1.)
         else weights
       in
       let renorm = Lang.to_bool (List.assoc "normalize" p) in
