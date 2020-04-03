@@ -78,7 +78,8 @@ Fixed:
 - Fixed implementation details with `cross` operator.
 - Register audio/opus mime type for ogg decoding (#1089)
 - Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
-- Accept 24 bits per sample in %flac encoder (#1073)
+- Accept 24 bits per sample in %flac encoder (#1073).
+- Fix rare stack overflow during clock unification (#1108).
 
 1.4.1 (18-02-2020)
 =====
