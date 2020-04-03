@@ -203,8 +203,8 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       ignore (Element.set_state el.bin Element.State_playing);
 
       (* Don't uncomment the following line, it locks the program. I guess that
-       GStreamer is waiting for some data before answering that we are
-       playing. *)
+         GStreamer is waiting for some data before answering that we are
+         playing. *)
       (* ignore (Element.get_state el.bin); *)
       self#register_task ~priority:Tutils.Blocking Tutils.scheduler
 
@@ -452,6 +452,7 @@ type 'a sink = { pending : unit -> int; pull : unit -> 'a }
 
 class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
   let max = Lang.to_float (List.assoc "max" p) in
+  let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
   let max_ticks = Frame.master_of_seconds max in
   let on_error = List.assoc "on_error" p in
   let on_error error =
@@ -471,7 +472,9 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in
-  let gen = Generator.create ~log:(fun x -> !rlog x) ~kind content in
+  let gen =
+    Generator.create ~log_overfull ~log:(fun x -> !rlog x) ~kind content
+  in
   object (self)
     inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
 
@@ -668,6 +671,10 @@ let input_proto =
       Lang.float_t,
       Some (Lang.float 10.),
       Some "Maximum duration of the buffered data." );
+    ( "log_overfull",
+      Lang.bool_t,
+      Some (Lang.bool true),
+      Some "Log when the source's buffer is overfull." );
   ]
 
 let () =

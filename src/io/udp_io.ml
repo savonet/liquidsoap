@@ -69,7 +69,7 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
+class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
   let max_ticks = 2 * Frame.master_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
@@ -80,7 +80,8 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
 
     inherit
       Generated.source
-        (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
+        (Generator.create ~log ~kind ~log_overfull
+           ~overfull:(`Drop_old max_ticks) `Undefined)
         ~empty_on_abort:false ~bufferize
 
     inherit
@@ -218,6 +219,10 @@ let () =
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Duration of buffered data before starting playout." );
+      ( "log_overfull",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Log when the source's buffer is overfull." );
       ("", Lang.string_t, None, Some "Mime type.");
     ]
     ~kind:(Lang.Unconstrained k)
@@ -226,6 +231,7 @@ let () =
       let port = Lang.to_int (List.assoc "port" p) in
       let hostname = Lang.to_string (List.assoc "host" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let mime = Lang.to_string (Lang.assoc "" 1 p) in
       match Decoder.get_stream_decoder mime kind with
         | None ->
@@ -233,5 +239,6 @@ let () =
               (Lang_errors.Invalid_value
                  (Lang.assoc "" 1 p, "Cannot get a stream decoder for this MIME"))
         | Some decoder_factory ->
-            ( new input ~kind ~hostname ~port ~bufferize ~decoder_factory
+            ( new input
+                ~kind ~hostname ~port ~bufferize ~log_overfull ~decoder_factory
               :> Source.source ))

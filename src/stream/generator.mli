@@ -266,6 +266,7 @@ module From_audio_video_plus : sig
     ?overfull:overfull ->
     kind:Frame.content_kind ->
     log:(string -> unit) ->
+    log_overfull:bool ->
     mode ->
     t
 

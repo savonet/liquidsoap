@@ -196,13 +196,14 @@ class virtual base ~payload_size ~messageapi =
         ()
   end
 
-class input ~kind ~bind_address ~max ~payload_size ~clock_safe ~on_connect
-  ~on_disconnect ~messageapi ~dump format =
+class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
+  ~on_connect ~on_disconnect ~messageapi ~dump format =
   let max_ticks = Frame.master_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let generator =
-    Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined
+    Generator.create ~log ~kind ~log_overfull ~overfull:(`Drop_old max_ticks)
+      `Undefined
   in
   object (self)
     inherit base ~payload_size ~messageapi
@@ -392,6 +393,10 @@ let () =
         Lang.float_t,
         Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." );
+      ( "log_overfull",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Log when the source's buffer is overfull." );
       ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
       ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
       ( "dump",
@@ -426,6 +431,7 @@ let () =
           | s -> Some s
       in
       let max = Lang.to_float (List.assoc "max" p) in
+      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
       let payload_size = Lang.to_int (List.assoc "payload_size" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -445,7 +451,7 @@ let () =
         | _ -> () );
       ( new input
           ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~messageapi ~max ~dump format
+          ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
         :> Source.source ))
 
 class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible

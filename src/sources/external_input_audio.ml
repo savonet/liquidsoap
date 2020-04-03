@@ -28,13 +28,13 @@ module Generated = Generated.From_audio_video_plus
 
 exception Finished of string * bool
 
-class external_input ~name ~kind ~restart ~bufferize ~restart_on_error ~max
-  ~converter ?read_header command =
+class external_input ~name ~kind ~restart ~bufferize ~log_overfull
+  ~restart_on_error ~max ~converter ?read_header command =
   let abg_max_len = Frame.audio_of_seconds max in
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
-  let abg = Generator.create ~log ~kind `Audio in
+  let abg = Generator.create ~log ~log_overfull ~kind `Audio in
   let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
   let on_data reader =
@@ -70,6 +70,10 @@ let proto =
       Lang.float_t,
       Some (Lang.float 10.),
       Some "Maximum duration of the buffered data." );
+    ( "log_overfull",
+      Lang.bool_t,
+      Some (Lang.bool true),
+      Some "Log when the source's buffer is overfull." );
     ( "restart",
       Lang.bool_t,
       Some (Lang.bool true),
@@ -93,6 +97,7 @@ let () =
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let channels = Lang.to_int (List.assoc "channels" p) in
       if not (Frame.mul_eq_int kind.Frame.audio channels) then
         raise
@@ -109,7 +114,7 @@ let () =
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       ( new external_input
-          ~kind ~restart ~bufferize ~restart_on_error ~max
+          ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
           ~name:"input.external.rawaudio" ~converter command
         :> Source.source ))
 
@@ -119,6 +124,7 @@ let () =
     ~kind:Lang.audio_any (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let converter_ref = ref (fun _ -> assert false) in
       let converter data = !converter_ref data in
       let read_header read =
@@ -136,6 +142,6 @@ let () =
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       ( new external_input
-          ~kind ~restart ~bufferize ~read_header ~restart_on_error ~max
-          ~name:"input.external.wav" ~converter command
+          ~kind ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error
+          ~max ~name:"input.external.wav" ~converter command
         :> Source.source ))

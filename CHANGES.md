@@ -33,6 +33,7 @@ New:
 - Add `string.null_terminated` (#960).
 - Add `file.metadata` (#1058).
 - Add `predicate.activates`, `predicate.changes`, `predicate.once` (#1075).
+- Make it possible to disable buffer overrun logs.
 
 Changed:
 
