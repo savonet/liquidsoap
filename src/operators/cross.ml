@@ -419,7 +419,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
+  let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "cross"
     [
       ( "duration",
