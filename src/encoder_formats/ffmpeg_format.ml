@@ -20,20 +20,15 @@
 
  *****************************************************************************)
 
-type opt_val = [
-  | `String of string
-  | `Int of int
-  | `Float of float
-]
-
+type opt_val = [ `String of string | `Int of int | `Float of float ]
 type opts = (string, opt_val) Hashtbl.t
 
 type t = {
-  format     : string;
-  codec      : string;
-  channels   : int;
-  samplerate : int Lazy.t ;
-  options    : opts
+  format : string;
+  codec : string;
+  channels : int;
+  samplerate : int Lazy.t;
+  options : opts;
 }
 
 let string_of_options options =
@@ -43,15 +38,14 @@ let string_of_options options =
     | `Float f -> string_of_float f
   in
   String.concat ","
-    (Hashtbl.fold (fun k v c ->
-      let v = Printf.sprintf "%s=%s" k (_v v) in
-      v::c) options [])
+    (Hashtbl.fold
+       (fun k v c ->
+         let v = Printf.sprintf "%s=%s" k (_v v) in
+         v :: c)
+       options [])
 
 let to_string m =
-  let opts =
-    string_of_options m.options
-  in
-  Printf.sprintf
-    "%%fmpeg(format=%S,codec=%S,ac=%d,ar=%d%s)"
-    m.format m.codec m.channels (Lazy.force m.samplerate)
+  let opts = string_of_options m.options in
+  Printf.sprintf "%%fmpeg(format=%S,codec=%S,ac=%d,ar=%d%s)" m.format m.codec
+    m.channels (Lazy.force m.samplerate)
     (if opts = "" then "" else Printf.sprintf ",%s" opts)

@@ -21,7 +21,9 @@
  *****************************************************************************)
 
 module Swresample = FFmpeg.Swresample
-module Resampler = Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
+
+module Resampler =
+  Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
 
 let samplerate_converter () =
   let chans = `Mono in
@@ -30,17 +32,14 @@ let samplerate_converter () =
   let rs_out_freq = ref 0 in
   fun x buf ofs len ->
     let out_freq = int_of_float (float in_freq *. x) in
-    if !rs = None || !rs_out_freq <> out_freq then
-      (
-        rs := Some (Resampler.create chans in_freq chans out_freq);
-        rs_out_freq := out_freq
-      );
+    if !rs = None || !rs_out_freq <> out_freq then (
+      rs := Some (Resampler.create chans in_freq chans out_freq);
+      rs_out_freq := out_freq );
     let rs = Utils.get_some !rs in
     let buf =
-      if ofs = 0 && len = Array.length buf then buf
-      else Array.sub buf ofs len
+      if ofs = 0 && len = Array.length buf then buf else Array.sub buf ofs len
     in
-    (Resampler.convert rs [|buf|]).(0)
+    (Resampler.convert rs [| buf |]).(0)
 
-let () = 
+let () =
   Audio_converter.Samplerate.converters#register "ffmpeg" samplerate_converter

@@ -23,32 +23,28 @@
 (** AVI encoder *)
 
 open Avi_format
-
 module Img = Image.RGBA32
 
 let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let content =
     Frame.content_of_type frame start
-      { Frame.
-        audio = channels;
-        video = 1;
-        midi = 0;
-      }
+      { Frame.audio = channels; video = 1; midi = 0 }
   in
   let audio =
     let astart = Frame.audio_of_master start in
     let alen = Frame.audio_of_master len in
     let pcm = content.Frame.audio in
     (* Resample if needed. *)
-    let pcm,astart,alen =
-      if ratio = 1. then
-        pcm, astart, alen
-      else
-        let pcm = Audio_converter.Samplerate.resample converter ratio pcm astart alen in
-        pcm, 0, Array.length pcm.(0)
+    let pcm, astart, alen =
+      if ratio = 1. then (pcm, astart, alen)
+      else (
+        let pcm =
+          Audio_converter.Samplerate.resample converter ratio pcm astart alen
+        in
+        (pcm, 0, Array.length pcm.(0)) )
     in
-    let data = Bytes.create (2*channels*alen) in
+    let data = Bytes.create (2 * channels * alen) in
     Audio.S16LE.of_audio pcm astart data 0 alen;
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
@@ -58,7 +54,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     let vstart = Frame.video_of_master start in
     let vlen = Frame.video_of_master len in
     let data = ref "" in
-    for i = vstart to vstart+vlen-1 do
+    for i = vstart to vstart + vlen - 1 do
       (* TODO: mplayer needs flipping, but not vlc or GStreamer... *)
       (* Img.Effect.flip vbuf.(i); *)
       Img.swap_rb vbuf.(i);
@@ -77,24 +73,19 @@ let encoder avi =
   let need_header = ref true in
   let encode frame start len =
     let ans = encode_frame ~channels ~samplerate ~converter frame start len in
-    if !need_header then
-      (
-        need_header := false;
-        header ^ ans
-      )
-    else
-      ans
+    if !need_header then (
+      need_header := false;
+      header ^ ans )
+    else ans
   in
   {
-    Encoder.
-    insert_metadata = (fun _ -> ());
-    encode = encode;
+    Encoder.insert_metadata = (fun _ -> ());
+    encode;
     header = Some header;
-    stop = (fun () -> "")
+    stop = (fun () -> "");
   }
 
 let () =
-  Encoder.plug#register "AVI"
-    (function
-       | Encoder.AVI avi -> Some (fun _ _ -> encoder avi)
-       | _ -> None)
+  Encoder.plug#register "AVI" (function
+    | Encoder.AVI avi -> Some (fun _ _ -> encoder avi)
+    | _ -> None)

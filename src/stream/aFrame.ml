@@ -29,14 +29,14 @@ let sot = audio_of_master
 let tos = master_of_audio
 
 let content b pos =
-  let stop,content = content b (tos pos) in
-    assert (stop = Lazy.force size) ;
-    content.audio
+  let stop, content = content b (tos pos) in
+  assert (stop = Lazy.force size);
+  content.audio
 
 let content_of_type ~channels b pos =
-  let ctype = { audio = channels ; video = 0 ; midi = 0 } in
+  let ctype = { audio = channels; video = 0; midi = 0 } in
   let content = content_of_type b (tos pos) ctype in
-    content.audio
+  content.audio
 
 let to_s16le b =
   (* TODO: generalize this *)
@@ -61,22 +61,25 @@ let advance = advance
 let clear = clear
 
 exception No_metadata
-type metadata = (string,string) Hashtbl.t
+
+type metadata = (string, string) Hashtbl.t
+
 let set_metadata t i m = set_metadata t (tos i) m
 let get_metadata t i = get_metadata t (tos i)
+
 let get_all_metadata t =
-  List.map (fun (x,y) -> sot x, y) (get_all_metadata t)
+  List.map (fun (x, y) -> (sot x, y)) (get_all_metadata t)
+
 let set_all_metadata t l =
-  set_all_metadata t (List.map (fun (x,y) -> tos x, y) l)
+  set_all_metadata t (List.map (fun (x, y) -> (tos x, y)) l)
+
 let free_metadata = free_metadata
 let free_all_metadata = free_all_metadata
 
 exception No_chunk
+
 let get_chunk = get_chunk
-
-let blankify b off len =
-  Audio.clear (content b off) off len
-
+let blankify b off len = Audio.clear (content b off) off len
 let multiply b off len c = Audio.amplify c (content b off) off len
 
 let add b1 off1 b2 off2 len =

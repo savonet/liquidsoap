@@ -22,38 +22,38 @@
 
 (** Samplerate converter using libsamplerate *)
 
-let samplerate_conf = 
-  Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate") 
-    "Libsamplerate conversion settings" 
+let samplerate_conf =
+  Dtools.Conf.void
+    ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate")
+    "Libsamplerate conversion settings"
     ~comments:["Options related to libsamplerate conversion."]
 
-let quality_conf = 
-  Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
+let quality_conf =
+  Dtools.Conf.string
+    ~p:(samplerate_conf#plug "quality")
     "Resampling quality" ~d:"fast"
-    ~comments:["Resampling quality, one of: \
-                `\"best\"`, \
-                `\"medium\"`, \
-                `\"fast\"`, \
-                `\"zero_order\"` or \
-                `\"linear\"`. Refer to ocaml-samplerate for details."]
+    ~comments:
+      [
+        "Resampling quality, one of: `\"best\"`, `\"medium\"`, `\"fast\"`, \
+         `\"zero_order\"` or `\"linear\"`. Refer to ocaml-samplerate for \
+         details.";
+      ]
 
-let quality_of_string v = 
+let quality_of_string v =
   match v with
     | "best" -> Samplerate.Conv_sinc_best_quality
     | "medium" -> Samplerate.Conv_sinc_medium_quality
     | "fast" -> Samplerate.Conv_fastest
     | "zero_order" -> Samplerate.Conv_zero_order_hold
     | "linear" -> Samplerate.Conv_linear
-    | _ -> raise (Lang_errors.Invalid_value 
-                    (Lang.string v,
-                      "libsamplerate quality must be one of: \
-                       \"best\", \
-                       \"medium\", \
-                       \"fast\", \
-                       \"zero_order\", \
-                       \"linear\"."))
+    | _ ->
+        raise
+          (Lang_errors.Invalid_value
+             ( Lang.string v,
+               "libsamplerate quality must be one of: \"best\", \"medium\", \
+                \"fast\", \"zero_order\", \"linear\"." ))
 
-let samplerate_converter () = 
+let samplerate_converter () =
   let quality = quality_of_string quality_conf#get in
   let converter = Samplerate.create quality 1 in
   let convert ratio b ofs len =
@@ -61,6 +61,6 @@ let samplerate_converter () =
   in
   convert
 
-let () = 
-  Audio_converter.Samplerate.converters#register 
-    "libsamplerate" samplerate_converter
+let () =
+  Audio_converter.Samplerate.converters#register "libsamplerate"
+    samplerate_converter
