@@ -229,7 +229,6 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
   end
 
 class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
-  let channels = AFrame.channels_of_kind kind in
   let samples_per_frame = AFrame.size () in
   object (self)
     inherit base ~kind dev [Pcm.Capture]
