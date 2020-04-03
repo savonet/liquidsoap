@@ -475,7 +475,7 @@ let () =
         ~kind ~replay_meta ~override_meta ~transition_length:tl ts children)
 
 (** Random switch *)
-exception Found of child
+exception Found of child option
 
 class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
   children =
@@ -486,30 +486,48 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
         ~name ~kind ~override_meta ~transition_length ?replay_meta ~mode
           (List.map snd children)
 
-    val mutable pos = -1
+    val mutable position = 0
+
+    val mutable tracks_played = 0
 
     (* Annihilate the reversal in #select once for all. *)
     val children = List.rev children
 
     method private select =
-      let ready_list, n =
-        List.fold_left
-          (fun (l, k) (w, s) ->
-            let w = w () in
-            if s.source#is_ready then ((s, w) :: l, k + w) else (l, k))
-          ([], 0) children
-      in
-      if n = 0 then None
-      else (
-        try
-          let sel = if strict then (pos + 1) mod n else Random.int n in
-          pos <- sel;
-          ignore
-            (List.fold_left
-               (fun k (s, w) -> if k + w > sel then raise (Found s) else k + w)
-               0 ready_list);
-          assert false
-        with Found s -> Some s )
+      let children_count = List.length children in
+      try
+        if children_count = 0 then raise (Found None);
+
+        (* First try to select another track from the source
+           currently playing. *)
+        let weight, s = List.nth children position in
+        if s.source#is_ready && tracks_played < weight () then (
+          tracks_played <- tracks_played + 1;
+          raise (Found (Some s)) );
+
+        (* Otherwise, select the next source to be played. Respect original
+           list order but skip over unavailale sources. *)
+        tracks_played <- 0;
+        let ready_list, ready_count =
+          List.fold_left
+            (fun (l, n) (_, s) ->
+              if s.source#is_ready then (Some s :: l, n + 1) else (None :: l, n))
+            ([], 0) children
+        in
+
+        if ready_count = 0 then raise (Found None);
+
+        let ready_list = List.rev ready_list in
+
+        let rec f () =
+          if strict then position <- (position + 1) mod children_count
+          else position <- Random.int children_count;
+          match List.nth ready_list position with
+            | Some s -> raise (Found (Some s))
+            | None -> f ()
+        in
+        f ()
+      with Found s -> s
 
     method stype =
       if List.exists (fun (_, s) -> s.source#stype = Infallible) children then
