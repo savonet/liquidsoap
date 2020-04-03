@@ -23,7 +23,8 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~bufferize ~kind ~start ~on_start ~on_stop ~format ~opts url =
+class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ~format
+  ~opts url =
   let max_ticks = 2 * Frame.master_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
@@ -34,7 +35,8 @@ class input ~bufferize ~kind ~start ~on_start ~on_stop ~format ~opts url =
 
     inherit
       Generated.source
-        (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
+        (Generator.create ~log ~kind ~log_overfull
+           ~overfull:(`Drop_old max_ticks) `Undefined)
         ~empty_on_abort:false ~bufferize
 
     inherit
@@ -166,6 +168,10 @@ let () =
           Lang.float_t,
           Some (Lang.float 5.),
           Some "Duration of buffered data before starting playout." );
+        ( "log_overfull",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Log when the source's buffer is overfull." );
         ( "format",
           Lang.string_t,
           Some (Lang.string ""),
@@ -199,6 +205,9 @@ let () =
       parse_args ~t:`Float "float" p opts;
       parse_args ~t:`String "string" p opts;
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
-      ( new input ~kind ~start ~on_start ~on_stop ~bufferize ~format ~opts url
+      ( new input
+          ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ~format ~opts
+          url
         :> Source.source ))

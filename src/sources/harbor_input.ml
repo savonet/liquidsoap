@@ -33,14 +33,15 @@ end
 module Make (Harbor : T) = struct
   class http_input_server ~kind ~dumpfile ~logfile ~bufferize ~max ~icy ~port
     ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
-    ~on_disconnect ~login ~debug ~timeout p =
+    ~on_disconnect ~login ~debug ~log_overfull ~timeout p =
     let max_ticks = Frame.master_of_seconds max in
     (* We need a temporary log until
      * the source has an id *)
     let log_ref = ref (fun _ -> ()) in
     let log x = !log_ref x in
     let abg =
-      Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined
+      Generator.create ~log ~kind ~log_overfull ~overfull:(`Drop_old max_ticks)
+        `Undefined
     in
     object (self)
       inherit Source.source ~name:Harbor.source_name kind as super
@@ -356,6 +357,10 @@ module Make (Harbor : T) = struct
           Lang.bool_t,
           Some (Lang.bool false),
           Some "Run in debugging mode by not catching some exceptions." );
+        ( "log_overfull",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Log when the source's buffer is overfull." );
         ("", Lang.string_t, None, Some "Mountpoint to look for.");
       ]
       (fun p kind ->
@@ -384,6 +389,7 @@ module Make (Harbor : T) = struct
         let default_user = Lang.to_string (List.assoc "user" p) in
         let default_password = Lang.to_string (List.assoc "password" p) in
         let debug = Lang.to_bool (List.assoc "debug" p) in
+        let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
         let timeout = Lang.to_float (List.assoc "timeout" p) in
         let icy = Lang.to_bool (List.assoc "icy" p) in
         let icy_charset =
@@ -462,7 +468,7 @@ module Make (Harbor : T) = struct
         ( new http_input_server
             ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
             ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-            ~on_disconnect ~debug p
+            ~on_disconnect ~debug ~log_overfull p
           :> Source.source ))
 end
 
