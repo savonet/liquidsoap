@@ -1,20 +1,28 @@
 opam-version: "2.0"
 name: "liquidsoap"
-version: "1.4.1"
+version: "1.4.2"
 maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
 build: [
   ["./bootstrap"] {dev}
-  ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
+  ["./configure" "--prefix" prefix
+                 "--sbindir=%{lib}%/liquidsoap/sbin"
+                 "--libexecdir=%{lib}%/liquidsoap/libexec"
+                 "--sysconfdir=%{lib}%/liquidsoap/etc"
+                 "--sharedstatedir=%{lib}%/liquidsoap/com"
+                 "--localstatedir=%{lib}%/liquidsoap/var"
+                 "--libdir=%{lib}%/liquidsoap/lib"
+                 "--includedir=%{lib}%/liquidsoap/include"
+                 "--datarootdir=%{lib}%/liquidsoap/share"
+                 "--with-bash-completion-dir=%{lib}%/liquidsoap/etc/bash_completion.d"
+                 "--with-user=dummy"
+                 "--with-group=dummy"]
   [make "clean"] {dev}
   [make]
 ]
 install: [
   [make "install"]
-]
-remove: [
-  ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
 ]
 post-messages: [
 "We're sorry that your liquidsoap install failed. Check out our installation
@@ -137,4 +145,3 @@ at will, giving you more power than you need for creating or
 transforming streams. But liquidsoap is still very light and easy to
 use, in the Unix tradition of simple strong components working
 together."""
-flags: light-uninstall
