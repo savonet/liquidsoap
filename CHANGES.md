@@ -1,10 +1,12 @@
 1.4.2 (unreleased)
 =====
+
 Fixed:
 
 - Fixed errors when installing bash-completion files (#1095)
-- Fixed failures in `extract-replaygain` script.
-- Set set_default_verify_paths for SSL. (#450)
+- Fixed failures in `extract-replaygain` script (#1125)
+- Set set_default_verify_paths for SSL (#450)
+- Use 443 as default port for https (##1127)
 
 1.4.1 (18-02-2020)
 =====
