@@ -389,8 +389,6 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
           raise (Lang_errors.Clock_conflict (t.T.pos, a, b))
       | Source.Clock_loop (a, b) ->
           raise (Lang_errors.Clock_loop (t.T.pos, a, b))
-      | Source.Invalid_kind (a, b) ->
-          raise (Lang_errors.Invalid_kind (t.T.pos, a, b))
   in
   let kind_type = kind_type_of_kind_format kind in
   let return_t = Term.source_t ~active kind_type in
