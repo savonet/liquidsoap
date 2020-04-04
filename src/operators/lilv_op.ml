@@ -103,7 +103,6 @@ class lilv_mono ~kind (source : source) plugin input output params =
   end
 
 class lilv ~kind (source : source) plugin inputs outputs params =
-  let oc = Array.length outputs in
   object
     inherit base ~kind source
 
