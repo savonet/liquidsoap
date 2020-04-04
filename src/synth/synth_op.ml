@@ -80,7 +80,7 @@ let register obj name descr =
         Some "Envelope release (in seconds)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~descr
+    ~return_t:k ~category:Lang.SoundSynthesis ~descr
     (fun p kind ->
       let f v = List.assoc v p in
       let chan = Lang.to_int (f "channel") in
@@ -120,7 +120,7 @@ let register obj name descr =
         Some "Envelope release (in seconds)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis
+    ~return_t:k ~category:Lang.SoundSynthesis
     ~descr:(descr ^ " It creates one synthesizer for each channel.")
     (fun p kind ->
       let f v = List.assoc v p in

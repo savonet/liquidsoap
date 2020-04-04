@@ -51,14 +51,14 @@ class filter ~kind (source : source) freq q wet mode =
     val mutable notch = Array.make channels 0.
 
     (* State vartiable filter, see
-     http://www.musicdsp.org/archive.php?classid=3#23
+       http://www.musicdsp.org/archive.php?classid=3#23
 
-     TODO: the problem with this filter is that it only handles freq <= rate/4,
-     we have to find something better. See
-     http://www.musicdsp.org/showArchiveComment.php?ArchiveID=23
+       TODO: the problem with this filter is that it only handles freq <= rate/4,
+       we have to find something better. See
+       http://www.musicdsp.org/showArchiveComment.php?ArchiveID=23
 
-     Maybe should we implement Chamberlin's version instead, which handles freq
-     <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
+       Maybe should we implement Chamberlin's version instead, which handles freq
+       <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
@@ -109,7 +109,7 @@ let () =
            filtered and 0. means only original signal)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
+    ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Perform several kinds of filtering on the signal"
     (fun p kind ->
       let f v = List.assoc v p in

@@ -169,7 +169,7 @@ let () =
         Some (Lang.float 0.8),
         Some "Velocity of notes." );
     ]
-    ~kind:
+    ~return_t:
       (Lang.Constrained
          {
            Frame.audio = Lang.At_least 0;

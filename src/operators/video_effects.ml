@@ -46,12 +46,12 @@ class effect ~kind effect (source : source) =
             Video.iter effect rgb offset length
   end
 
-let kind = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
+let return_t = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
 
 let () =
   Lang.add_operator "video.greyscale"
-    [("", Lang.source_t kind, None, None)]
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:Lang.VideoProcessing
     ~descr:"Convert video to greyscale."
     (fun p kind ->
       let f v = List.assoc v p in
@@ -60,9 +60,8 @@ let () =
 
 let () =
   Lang.add_operator "video.sepia"
-    [("", Lang.source_t kind, None, None)]
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
-    ~descr:"Convert video to sepia."
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:Lang.VideoProcessing ~descr:"Convert video to sepia."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
@@ -70,9 +69,8 @@ let () =
 
 let () =
   Lang.add_operator "video.invert"
-    [("", Lang.source_t kind, None, None)]
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
-    ~descr:"Invert video."
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:Lang.VideoProcessing ~descr:"Invert video."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
@@ -85,7 +83,7 @@ let () =
       "", Lang.float_t, None, Some "Coefficient to scale opacity with.";
       "", Lang.source_t kind, None, None
     ]
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     ~category:Lang.VideoProcessing
     ~descr:"Scale opacity of video."
     (fun p kind ->
@@ -98,7 +96,7 @@ let () =
     [
       "", Lang.source_t kind, None, None
     ]
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     ~category:Lang.VideoProcessing
     ~descr:"Blur opacity of video."
     (fun p kind ->
@@ -108,7 +106,7 @@ let () =
 let () =
   Lang.add_operator "video.lomo"
     [ "", Lang.source_t kind, None, None ]
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     ~category:Lang.VideoProcessing
     ~descr:"Emulate the \"Lomo effect\"."
     (fun p kind ->
@@ -128,7 +126,7 @@ let () =
 
       "", Lang.source_t kind, None, None
     ]
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     ~category:Lang.VideoProcessing
     ~descr:"Set a color to be transparent."
     (fun p kind ->
@@ -150,7 +148,7 @@ let () =
 
       "", Lang.source_t kind, None, None
     ]
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     ~category:Lang.VideoProcessing
     ~descr:"Fill frame with a color."
     (fun p kind ->
@@ -173,7 +171,7 @@ let () =
 
       "", Lang.source_t kind, None, None
     ]
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     ~category:Lang.VideoProcessing
     ~descr:"Rotate video."
     (fun p kind ->
@@ -212,10 +210,9 @@ let () =
       ("yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.");
       ("x", Lang.int_t, Some (Lang.int 0), Some "x offset.");
       ("y", Lang.int_t, Some (Lang.int 0), Some "y offset.");
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
-    ~descr:"Scale and translate video."
+    ~return_t ~category:Lang.VideoProcessing ~descr:"Scale and translate video."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in

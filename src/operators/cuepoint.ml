@@ -258,9 +258,8 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
   end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format Lang.any in
-  Lang.add_operator "cue_cut" ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.TrackProcessing
+  let return_t = Lang.kind_type_of_kind_format Lang.any in
+  Lang.add_operator "cue_cut" ~return_t ~category:Lang.TrackProcessing
     ~descr:
       "Start track after a cue in point and stop it at cue out point. The cue \
        points are given as metadata, in seconds from the begining of tracks."
@@ -273,7 +272,7 @@ let () =
         Lang.string_t,
         Some (Lang.string "liq_cue_out"),
         Some "Metadata for cue out points." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
     (fun p kind ->
       let m_cue_in = Lang.to_string (Lang.assoc "cue_in_metadata" 1 p) in

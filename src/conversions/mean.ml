@@ -55,7 +55,7 @@ let () =
   in
   Lang.add_operator "mean"
     [("", Lang.source_t in_kind, None, None)]
-    ~kind:(Lang.Unconstrained out_kind) ~category:Lang.Conversions
+    ~return_t:out_kind ~category:Lang.Conversions
     ~descr:"Produce mono audio by taking the mean of all audio channels."
     (fun p kind ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in

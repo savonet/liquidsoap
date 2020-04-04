@@ -45,10 +45,10 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
       let off_ticks = Frame.position ab in
       let video_content = VFrame.get_content ab source in
       (* In video frames: [length] of the fade, [count] since beginning.
-      * This must be done before accessing the (possibly empty video content)
-      * because the state has to be updated anyway. Also, it is important
-      * that the metadata is ready at the position in ticks rather than
-      * video, otherwise we might miss some data. *)
+         * This must be done before accessing the (possibly empty video content)
+         * because the state has to be updated anyway. Also, it is important
+         * that the metadata is ready at the position in ticks rather than
+         * video, otherwise we might miss some data. *)
       let fade, fadefun, length, count =
         match state with
           | `Idle ->
@@ -148,7 +148,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
 
 (** Lang interface *)
 
-let kind = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
+let return_t = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
 
 (* TODO: share more with fade.ml *)
 let proto =
@@ -171,7 +171,7 @@ let proto =
       Some
         "Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or \
          exponential." );
-    ("", Lang.source_t kind, None, None);
+    ("", Lang.source_t return_t, None, None);
   ]
 
 let rec transition_of_string p transition =
@@ -284,7 +284,7 @@ let () =
         Some (Lang.string "liq_video_fade_in"),
         override_doc )
     :: proto )
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
+    ~return_t ~category:Lang.VideoProcessing
     ~descr:
       "Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used \
        to set the duration for a specific track (float in seconds)."
@@ -298,7 +298,7 @@ let () =
         Some (Lang.string "liq_video_fade_out"),
         override_doc )
     :: proto )
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.VideoProcessing
+    ~return_t ~category:Lang.VideoProcessing
     ~descr:
       "Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to \
        set the duration for a specific track (float in seconds)."

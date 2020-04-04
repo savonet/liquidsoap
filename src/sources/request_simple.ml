@@ -70,7 +70,7 @@ let () =
          Some (Lang.bool false),
          Some "Enforce fallibility of the request." )
     :: queued_proto )
-    ~kind:(Lang.Unconstrained (Lang.univ_t ()))
+    ~return_t:(Lang.univ_t ())
     (fun p kind ->
       let val_uri = List.assoc "" p in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
@@ -89,7 +89,7 @@ let () =
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
     [("", Lang.request_t k, None, None)]
-    ~kind:(Lang.Unconstrained k)
+    ~return_t:k
     (fun p kind ->
       let r = Lang.to_request (List.assoc "" p) in
       (new unqueued ~kind r :> source))
@@ -132,7 +132,7 @@ let () =
            "Whether some new requests are available (when set to false, it \
             stops after current playing request)." )
     :: queued_proto )
-    ~kind:(Lang.Unconstrained k)
+    ~return_t:k
     (fun p kind ->
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in

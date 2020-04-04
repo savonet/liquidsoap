@@ -75,7 +75,7 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
   end
 
 let register =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "map_metadata"
     [
       ( "",
@@ -105,11 +105,10 @@ let register =
           "Treat track beginnings without metadata as having empty ones. The \
            operational order is: create empty if needed, map and strip if \
            enabled." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing
-    ~descr:"Rewrite metadata on the fly using a function."
-    ~kind:(Lang.Unconstrained kind)
+    ~descr:"Rewrite metadata on the fly using a function." ~return_t
     (fun p kind ->
       let source = Lang.to_source (Lang.assoc "" 2 p) in
       let f = Lang.assoc "" 1 p in

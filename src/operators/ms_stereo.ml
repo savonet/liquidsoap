@@ -67,7 +67,7 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
   Lang.add_operator "stereo.ms.encode"
     [("", Lang.source_t k, None, None)]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
+    ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p kind ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
@@ -80,7 +80,7 @@ let () =
         Some "Width of the stereo field." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
+    ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
     (fun p kind ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in

@@ -60,7 +60,7 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
   Lang.add_operator "swap"
     [("", Lang.source_t k, None, None)]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Conversions
+    ~return_t:k ~category:Lang.Conversions
     ~descr:"Swap two channels of a stereo source."
     (fun p kind ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in

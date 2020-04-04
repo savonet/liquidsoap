@@ -68,17 +68,17 @@ class store ~kind n s =
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "store_metadata"
     [
       ("size", Lang.int_t, Some (Lang.int 10), Some "Size of the history");
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Keep track of the last N metadata packets in the stream, and make the \
        history available via a server command."
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let s = Lang.to_source (List.assoc "" p) in
       let size = Lang.to_int (List.assoc "size" p) in

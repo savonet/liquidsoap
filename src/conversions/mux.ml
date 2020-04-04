@@ -146,7 +146,7 @@ let () =
     ~descr:
       "Add video channnels to a stream. Both sources need to be infallible. \
        Track marks and metadata are taken from both sources."
-    ~kind:(Lang.Unconstrained out_t)
+    ~return_t:out_t
     [
       ("video", Lang.source_t aux_t, None, None);
       ("", Lang.source_t main_t, None, None);
@@ -165,7 +165,7 @@ let () =
     ~descr:
       "Mux an audio stream into an audio-free stream. Both sources need to be \
        infallible. Track marks and metadata are taken from both sources."
-    ~kind:(Lang.Unconstrained out_t)
+    ~return_t:out_t
     [
       ("audio", Lang.source_t aux_t, None, None);
       ("", Lang.source_t main_t, None, None);

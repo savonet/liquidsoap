@@ -58,7 +58,7 @@ class delay ~kind ~initial (source : source) delay =
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "delay"
     [
       ( "initial",
@@ -71,12 +71,12 @@ let () =
         Some
           "The source won't be ready less than this amount of seconds after \
            any end of track" );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Prevents the child from being ready again too fast after a end of track"
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let f n = Lang.assoc "" n p in
       let d = Lang.to_float (f 1) in

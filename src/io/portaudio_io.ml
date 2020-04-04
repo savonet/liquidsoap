@@ -194,7 +194,7 @@ let () =
           Some "Length of a buffer in samples." );
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Output
+    ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p kind ->
       let e f v = f (List.assoc v p) in
@@ -226,7 +226,7 @@ let () =
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Input
+    ~return_t:k ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
     (fun p kind ->
       let e f v = f (List.assoc v p) in

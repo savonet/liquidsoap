@@ -117,9 +117,9 @@ class url_output p =
   end
 
 let () =
-  let kind = Lang.univ_t () in
-  Lang.add_operator "output.url" ~active:true (url_proto kind)
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.Output
+  let return_t = Lang.univ_t () in
+  Lang.add_operator "output.url" ~active:true (url_proto return_t) ~return_t
+    ~category:Lang.Output
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
@@ -374,10 +374,10 @@ let file_proto kind =
   @ chan_proto kind "Filename where to output the stream."
 
 let () =
-  let kind = Lang.univ_t () in
-  Lang.add_operator "output.file" (file_proto kind) ~active:true
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.Output
-    ~descr:"Output the source stream to a file." (fun p _ ->
+  let return_t = Lang.univ_t () in
+  Lang.add_operator "output.file" (file_proto return_t) ~active:true ~return_t
+    ~category:Lang.Output ~descr:"Output the source stream to a file."
+    (fun p _ ->
       let format_val = Lang.assoc "" 1 p in
       let format = Lang.to_format format_val in
       let kind = Encoder.kind_of_format format in
@@ -423,9 +423,9 @@ let pipe_proto kind descr =
   :: chan_proto kind descr
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "output.external" ~active:true
-    (pipe_proto kind "Process to pipe data to.")
-    ~kind:(Lang.Unconstrained kind) ~category:Lang.Output
+    (pipe_proto return_t "Process to pipe data to.")
+    ~return_t ~category:Lang.Output
     ~descr:"Send the stream to a process' standard input." (fun p _ ->
       (new external_output p :> Source.source))

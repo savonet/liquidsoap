@@ -163,7 +163,7 @@ let register =
            relevant track is to be appended. However, success must be \
            immediate or it will not be taken into account." );
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.TrackProcessing
+    ~return_t:k ~category:Lang.TrackProcessing
     ~descr:
       ( "Prepend an extra track before every track. "
       ^ "Set the metadata 'liq_prepend' to 'false' to "

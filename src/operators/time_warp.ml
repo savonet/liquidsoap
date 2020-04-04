@@ -133,7 +133,7 @@ let () =
           Some "Maximum amount of buffered data, in seconds." );
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Liquidsoap
+    ~return_t:k ~category:Lang.Liquidsoap
     ~descr:"Create a buffer between two different clocks."
     (fun p kind ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -189,20 +189,20 @@ module AdaptativeBuffer = struct
             assert (not c.buffering);
 
             (* Update the average length of the ringbuffer (with a damping
-             coefficient in order not to be too sensitive to quick local
-             variations). *)
+               coefficient in order not to be too sensitive to quick local
+               variations). *)
             (* y: average length, dt: frame duration, x: read length, A=a/dt
 
-             y(t+dt)=(1-a)y(t)+ax(t)
-             y'(t)=(a/dt)(x(t)-y(t))
-             y'(t)+Ay(t)=Ax(t)
+               y(t+dt)=(1-a)y(t)+ax(t)
+               y'(t)=(a/dt)(x(t)-y(t))
+               y'(t)+Ay(t)=Ax(t)
 
-             When x=x0 is constant and we start at y0, the solution is
-             y(t) = (y0-x0)exp(-At)+x0
+               When x=x0 is constant and we start at y0, the solution is
+               y(t) = (y0-x0)exp(-At)+x0
 
-             half-life is at th = ln(2)/A
-             we should thus choose alpha = (dt * ln 2)/th
-          *)
+               half-life is at th = ln(2)/A
+               we should thus choose alpha = (dt * ln 2)/th
+            *)
             c.rb_length <-
               ((1. -. alpha) *. c.rb_length)
               +. (alpha *. float (RB.read_space c.rb));
@@ -214,7 +214,7 @@ module AdaptativeBuffer = struct
             (* Fill dlen samples of dst using slen samples of the ringbuffer. *)
             let fill dst dofs dlen slen =
               (* TODO: when the RB is low on space we'd better not fill the whole
-               frame *)
+                 frame *)
               let slen = min slen (RB.read_space c.rb) in
               if slen > 0 then (
                 let src = Audio.create channels slen in
@@ -223,8 +223,8 @@ module AdaptativeBuffer = struct
                   Audio.blit (Audio.sub src 0 slen) (Audio.sub dst dofs slen)
                 else
                   (* TODO: we could do better than nearest interpolation. However,
-                   for slight adaptations the difference should not really be
-                   audible. *)
+                     for slight adaptations the difference should not really be
+                     audible. *)
                   for c = 0 to channels - 1 do
                     let srcc = src.(c) in
                     let dstc = dst.(c) in
@@ -235,7 +235,7 @@ module AdaptativeBuffer = struct
                   done )
             in
             (* We scale the reading so that the buffer always approximatively
-             contains prebuf data. *)
+               contains prebuf data. *)
             let scaling = c.rb_length /. prebuf in
             let scale n = int_of_float (float n *. scaling) in
             let unscale n = int_of_float (float n /. scaling) in
@@ -355,7 +355,7 @@ let () =
              again." );
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Liquidsoap
+    ~return_t:k ~category:Lang.Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \
        is adapted so that no buffer underrun or overrun occurs. This wonderful \
