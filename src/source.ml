@@ -177,6 +177,7 @@ let var_eq a b =
 
 exception Clock_conflict of string * string
 exception Clock_loop of string * string
+exception Invalid_kind of (Frame.content_kind * Frame.content_kind)
 
 let rec sub_clocks = function
   | Known c -> c#sub_clocks
@@ -273,6 +274,15 @@ let add_new_output, iterate_new_outputs =
         l := []) )
 
 class virtual operator ?(name = "src") content_kind sources =
+  let () =
+    List.iter
+      (fun source ->
+        (* We want content_kind to be able to accept at least
+         * what source#kind has. *)
+        if not (Frame.kind_sub_kind source#kind content_kind) then
+          raise (Invalid_kind (content_kind, source#kind)))
+      sources
+  in
   object (self)
     (** Monitoring *)
     val mutable watchers = []

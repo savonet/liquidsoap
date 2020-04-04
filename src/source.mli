@@ -280,6 +280,7 @@ class type clock =
 
 exception Clock_conflict of string * string
 exception Clock_loop of string * string
+exception Invalid_kind of (Frame.content_kind * Frame.content_kind)
 
 module Clock_variables : sig
   val to_string : clock_variable -> string

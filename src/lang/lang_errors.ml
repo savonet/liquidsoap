@@ -29,6 +29,9 @@ exception Invalid_value of Term.V.value * string
 exception Clock_conflict of (T.pos option * string * string)
 exception Clock_loop of (T.pos option * string * string)
 
+exception
+  Invalid_kind of (T.pos option * Frame.content_kind * Frame.content_kind)
+
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
@@ -155,6 +158,17 @@ let report lexbuf f =
             (Encoder.string_of_format fmt);
           raise Error
       | Sedlexing.MalFormed -> print_error 13 "Malformed file."
+      | Invalid_kind (pos, dst, src) ->
+          error_header 14 (T.print_pos (Utils.get_some pos));
+          Format.printf
+            "Incompatible source content! You are passing a source of type:@.  \
+             %s@.to an operator that only accepts sources of type:@.  \
+             %s@.Source content are inferred from the outputs, so make@ sure \
+             to check the content accepted by your outputs and@ use \
+             `drop_{audio,video}` and source content annotation,@ e.g. `s = \
+             (s:source(2,1,0))`.@]@."
+            (Frame.string_of_content_kind src)
+            (Frame.string_of_content_kind dst)
       | End_of_file -> raise End_of_file
       | e ->
           print_error (-1) "Unknown error";
