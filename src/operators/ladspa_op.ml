@@ -119,7 +119,6 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
   end
 
 class ladspa ~kind (source : source) plugin descr inputs outputs params =
-  let oc = Array.length outputs in
   object
     inherit base ~kind source
 

@@ -180,7 +180,8 @@ module Make (Config : Config_t) = struct
 
   class http ~kind ~protocol ~playlist_mode ~poll_delay ~track_on_meta
     ?(force_mime = None) ~bind_address ~autostart ~bufferize ~max ~timeout
-    ~debug ~on_connect ~on_disconnect ?(logfile = None) ~user_agent url =
+    ~debug ~log_overfull ~on_connect ~on_disconnect ?(logfile = None)
+    ~user_agent url =
     let max_ticks = Frame.master_of_seconds (Stdlib.max max bufferize) in
     (* We need a temporary log until the source has an ID. *)
     let log_ref = ref (fun _ -> ()) in
@@ -190,8 +191,8 @@ module Make (Config : Config_t) = struct
 
       inherit
         Generated.source
-          (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks)
-             `Undefined)
+          (Generator.create ~log ~kind ~log_overfull
+             ~overfull:(`Drop_old max_ticks) `Undefined)
           ~empty_on_abort:false ~bufferize
 
       method stype = Source.Fallible
@@ -619,6 +620,10 @@ module Make (Config : Config_t) = struct
           Lang.bool_t,
           Some (Lang.bool false),
           Some "Run in debugging mode, not catching some exceptions." );
+        ( "log_overfull",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Log when the source's buffer is overfull." );
         ( "user_agent",
           Lang.string_t,
           Some (Lang.string Http.user_agent),
@@ -654,6 +659,7 @@ module Make (Config : Config_t) = struct
           Lang.to_bool (List.assoc "new_track_on_metadata" p)
         in
         let debug = Lang.to_bool (List.assoc "debug" p) in
+        let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
         let logfile =
           match Lang.to_string (List.assoc "logfile" p) with
             | "" -> None
@@ -691,7 +697,7 @@ module Make (Config : Config_t) = struct
         ( new http
             ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta ~force_mime
             ~bind_address ~poll_delay ~timeout ~on_connect ~on_disconnect
-            ~bufferize ~max ~debug ~logfile ~user_agent url
+            ~bufferize ~max ~debug ~log_overfull ~logfile ~user_agent url
           :> Source.source ))
 end
 
