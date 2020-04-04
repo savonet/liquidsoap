@@ -38,8 +38,8 @@ type chunk = {
   mutable len : int;
 }
 
-class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
-  ~restart_on_error (source : source) =
+class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
+  ~restart ~restart_on_error (source : source) =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -64,7 +64,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     Process_handler.really_write header push;
     `Continue
   in
-  let abg = Generator.create ~log ~kind `Audio in
+  let abg = Generator.create ~log ~kind ~log_overfull `Audio in
   let mutex = Mutex.create () in
   let replay_pending = ref [] in
   let next_stop = ref `Nothing in
@@ -300,6 +300,10 @@ let proto =
       Lang.float_t,
       Some (Lang.float 10.),
       Some "Maximum duration of the buffered data." );
+    ( "log_overfull",
+      Lang.bool_t,
+      Some (Lang.bool true),
+      Some "Log when the source's buffer is overfull." );
     ( "restart",
       Lang.bool_t,
       Some (Lang.bool true),
@@ -318,6 +322,7 @@ let pipe p kind =
         data_len,
         bufferize,
         max,
+        log_overfull,
         restart,
         restart_on_error,
         src ) =
@@ -326,13 +331,14 @@ let pipe p kind =
       Lang.to_int (f "data_length"),
       Lang.to_float (f "buffer"),
       Lang.to_float (f "max"),
+      Lang.to_bool (f "log_overfull"),
       Lang.to_bool (f "restart"),
       Lang.to_bool (f "restart_on_error"),
       Lang.to_source (f "") )
   in
   ( new pipe
-      ~kind ~replay_delay ~data_len ~bufferize ~max ~restart ~restart_on_error
-      ~process src
+      ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
+      ~restart_on_error ~process src
     :> source )
 
 let () =

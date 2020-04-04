@@ -209,7 +209,10 @@ let rec unify a b =
         Link ({ contents = Unknown (sb, cb) } as rb) ) ->
         (* TODO perhaps optimize ca@cb *)
         occurs_check a b;
-        let merge = Link (ref (Unknown (sa @ sb, ca @ cb))) in
+        let merge =
+          (* Using List.rev_append to remain tail-recursive, see #1108. *)
+          Link (ref (Unknown (List.rev_append sa sb, List.rev_append ca cb)))
+        in
         ra := Same_as merge;
         rb := Same_as merge
     | Known c, Link ({ contents = Unknown (s, sc) } as r)

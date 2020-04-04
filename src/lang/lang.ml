@@ -91,9 +91,8 @@ let rec mul_of_type default t =
     | T.Zero -> Frame.Zero
     | T.Any -> Frame.Any
     | T.EVar _ ->
-        let default = max 0 default in
-        T.bind t (type_of_int default);
-        Frame.mul_of_int default
+        T.bind t any_t;
+        Frame.Any
     | _ -> assert false
 
 (* TODO can happen e.g. on request.queue() *)
@@ -676,7 +675,7 @@ let interactive () =
             position := -1;
 
             (* This means that the last read was a full chunk. Safe to try a new
-            one right away. *)
+               one right away. *)
             if len = chunk_size then gen () else None
         | len, _ ->
             position := len + 1;

@@ -131,12 +131,12 @@ module Generator = struct
     g.length <- g.length + len;
     Queue.add (content, ofs, len) g.buffers
 
-  (*  Get [size] amount of data from [g].
-  * Returns a list where each element will typically be passed to a blit:
-  * its elements are of the form [b,o,o',l] where [o] is the offset of data
-  * in the block [b], [o'] is the position at which it should be written
-  * (the first position [o'] will always be [0]), and [l] is the length
-  * of data to be taken from that block. *)
+  (* Get [size] amount of data from [g].
+     * Returns a list where each element will typically be passed to a blit:
+     * its elements are of the form [b,o,o',l] where [o] is the offset of data
+     * in the block [b], [o'] is the position at which it should be written
+     * (the first position [o'] will always be [0]), and [l] is the length
+     * of data to be taken from that block. *)
   let get g size =
     (* The main loop takes the current offset in the output buffer,
      * and iterates on input buffer chunks. *)
@@ -583,17 +583,19 @@ module From_audio_video_plus = struct
     overfull : overfull option;
     gen : Super.t;
     log : string -> unit;
+    log_overfull : bool;
     (* Metadata rewriting, in place modification allowed *)
     mutable map_meta : Frame.metadata -> Frame.metadata;
   }
 
-  let create ?(lock = Mutex.create ()) ?overfull ~kind ~log mode =
+  let create ?(lock = Mutex.create ()) ?overfull ~kind ~log ~log_overfull mode =
     {
       lock;
       kind;
       error = false;
       overfull;
       log;
+      log_overfull;
       gen = Super.create mode;
       map_meta = (fun x -> x);
     }
@@ -638,11 +640,12 @@ module From_audio_video_plus = struct
       | Some (`Drop_old len) when Super.length t.gen + extra > len ->
           let len = Super.length t.gen + extra - len in
           let len_time = Frame.seconds_of_master len in
-          t.log
-            (Printf.sprintf
-               "Buffer overrun: Dropping %.2fs. Consider increasing the max \
-                buffer size!"
-               len_time);
+          if t.log_overfull then
+            t.log
+              (Printf.sprintf
+                 "Buffer overrun: Dropping %.2fs. Consider increasing the max \
+                  buffer size!"
+                 len_time);
           Super.remove t.gen len
       | _ -> ()
 
