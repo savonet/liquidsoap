@@ -91,9 +91,8 @@ let rec mul_of_type default t =
     | T.Zero -> Frame.Zero
     | T.Any -> Frame.Any
     | T.EVar _ ->
-        let default = max 0 default in
-        T.bind t (type_of_int default);
-        Frame.mul_of_int default
+        T.bind t any_t;
+        Frame.Any
     | _ -> assert false
 
 (* TODO can happen e.g. on request.queue() *)
@@ -390,6 +389,8 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
           raise (Lang_errors.Clock_conflict (t.T.pos, a, b))
       | Source.Clock_loop (a, b) ->
           raise (Lang_errors.Clock_loop (t.T.pos, a, b))
+      | Source.Invalid_kind (a, b) ->
+          raise (Lang_errors.Invalid_kind (t.T.pos, a, b))
   in
   let kind_type = kind_type_of_kind_format kind in
   let return_t = Term.source_t ~active kind_type in
@@ -676,7 +677,7 @@ let interactive () =
             position := -1;
 
             (* This means that the last read was a full chunk. Safe to try a new
-            one right away. *)
+               one right away. *)
             if len = chunk_size then gen () else None
         | len, _ ->
             position := len + 1;
