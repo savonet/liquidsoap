@@ -75,7 +75,7 @@ module Samplerate = struct
             match converters#get conv with Some v -> v | None -> f l )
         | [] ->
             (* This should never come up since the native converter is always
-             available. *)
+               available. *)
             assert false
       in
       f converters_conf#get

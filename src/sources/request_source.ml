@@ -91,7 +91,7 @@ class virtual unqueued ~kind ~name =
             assert (Frame.kind_sub_kind (Utils.get_some (Request.kind req)) kind);
 
             (* [Request.is_ready] ensures that we can get a filename from the request,
-         and it can be decoded. *)
+               and it can be decoded. *)
             let file = Utils.get_some (Request.get_filename req) in
             let decoder = Utils.get_some (Request.get_decoder req) in
             self#log#important "Prepared %S (RID %d)." file (Request.get_id req);
@@ -214,7 +214,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         let remaining = self#remaining in
         if remaining < 0 then
           (* There is a track available but we don't know its duration at this
-           point. Hence, using default_duration. *)
+             point. Hence, using default_duration. *)
           queue_length +. default_duration
         else queue_length +. Frame.seconds_of_master remaining )
 
@@ -244,11 +244,11 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
 
     method private sleep =
       (* We need to be sure that the feeding task stopped filling the queue
-       before we destroy all requests from that queue.  Async.stop only
-       promises us that on the next round the task will stop but won't tell us
-       if it's currently resolving a file or not.  So we first put the queue
-       into an harmless state: we put the state to `Tired and wait for it to
-       acknowledge it by setting it to `Sleeping. *)
+         before we destroy all requests from that queue.  Async.stop only
+         promises us that on the next round the task will stop but won't tell us
+         if it's currently resolving a file or not.  So we first put the queue
+         into an harmless state: we put the state to `Tired and wait for it to
+         acknowledge it by setting it to `Sleeping. *)
       Tutils.mutexify state_lock
         (fun () ->
           assert (state = `Running);
@@ -279,8 +279,8 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
       opportunity to feed the queue, in case it is sleeping. *)
     method private notify_new_request =
       (* Avoid trying to wake up the task during the shutdown process where it
-       might have been stopped already, in which case we'd get an
-       exception. *)
+         might have been stopped already, in which case we'd get an
+         exception. *)
       Tutils.mutexify state_lock
         (fun () ->
           if state = `Running then Duppy.Async.wake_up (Utils.get_some task))
@@ -307,7 +307,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
     method private feed_queue () =
       if
         (* Is the source running? And does it need prefetching? If the test fails,
-         the task sleeps. *)
+           the task sleeps. *)
         Tutils.mutexify state_lock
           (fun () ->
             match state with
@@ -408,12 +408,12 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
       Mutex.unlock qlock;
 
       (* A request has been taken off the queue, there is a chance that the
-       queue should be refilled: awaken the feeding task. However, we can wait
-       that this file is played, and this need will be noticed in #get_frame.
-       This is critical in non-conservative mode because at this point
-       remaining is still 0 (we're inside #begin_track) which would lead to
-       too early prefetching; if we wait that a frame has been produced, we'll
-       get the first non-infinite remaining time estimations. *)
+         queue should be refilled: awaken the feeding task. However, we can wait
+         that this file is played, and this need will be noticed in #get_frame.
+         This is critical in non-conservative mode because at this point
+         remaining is still 0 (we're inside #begin_track) which would lead to
+         too early prefetching; if we wait that a frame has been produced, we'll
+         get the first non-infinite remaining time estimations. *)
       ans
 
     method private expire test =
@@ -437,7 +437,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
       super#get_frame ab;
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
-       nothing special to do. *)
+         nothing special to do. *)
       if self#available_length < min_queue_length then self#notify_new_request
 
     method copy_queue =

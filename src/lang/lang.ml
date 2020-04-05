@@ -676,7 +676,7 @@ let interactive () =
             position := -1;
 
             (* This means that the last read was a full chunk. Safe to try a new
-            one right away. *)
+               one right away. *)
             if len = chunk_size then gen () else None
         | len, _ ->
             position := len + 1;

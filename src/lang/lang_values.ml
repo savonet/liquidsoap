@@ -335,7 +335,7 @@ let check_unused ~lib tm =
           in
           let v = check v body in
           (* Restore masked variables. The masking variables have been used but it
-           does not count for the ones they masked. *)
+             does not count for the ones they masked. *)
           Vars.union masked v
       | Let { pat; def; body; _ } ->
           let v = check v def in
@@ -352,7 +352,7 @@ let check_unused ~lib tm =
                 (* Do we have an unused definition? *)
                 if Vars.mem s v then
                   (* There are exceptions: unit, active_source and functions when
-                    at toplevel (sort of a lib situation...) *)
+                     at toplevel (sort of a lib situation...) *)
                   if
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && is_fun def.t))
@@ -663,7 +663,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
         List.iter (fun x -> check ~level ~env x) l;
 
         (* We first try to compute the sup of types of elements in the list,
-         which will give us the type of the list. *)
+           which will give us the type of the list. *)
         let tsup =
           List.fold_left
             (fun sup e ->
