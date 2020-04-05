@@ -308,7 +308,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
     method output_reset = ()
   end
 
-let output_proto ~kind ~pipeline =
+let output_proto ~return_t ~pipeline =
   Output.proto
   @ [
       ( "clock_safe",
@@ -327,16 +327,16 @@ let output_proto ~kind ~pipeline =
         Lang.string_t,
         Some (Lang.string pipeline),
         Some "GStreamer pipeline for sink." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
 
 let () =
   let kind = Lang.any_with ~audio:1 () in
-  let kind = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio" ~active:true
-    (output_proto ~kind ~pipeline:"autoaudiosink")
+    (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~kind:(Lang.Unconstrained kind) (fun p kind ->
+    ~return_t (fun p kind ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -363,11 +363,11 @@ let () =
 
 let () =
   let kind = Lang.any_with ~video:1 () in
-  let kind = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.video" ~active:true
-    (output_proto ~kind ~pipeline:"videoconvert ! autovideosink")
+    (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~kind:(Lang.Unconstrained kind) (fun p kind ->
+    ~return_t (fun p kind ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -394,9 +394,9 @@ let () =
 
 let () =
   let kind = Lang.any_with ~audio:1 ~video:1 () in
-  let kind = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio_video" ~active:true
-    ( output_proto ~kind ~pipeline:""
+    ( output_proto ~return_t ~pipeline:""
     @ [
         ( "audio_pipeline",
           Lang.string_t,
@@ -412,7 +412,7 @@ let () =
           Some "Pushing buffers is blocking." );
       ] )
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
@@ -678,7 +678,7 @@ let input_proto =
   ]
 
 let () =
-  let k =
+  let return_t =
     Lang.kind_type_of_kind_format
       (Lang.Constrained
          {
@@ -704,8 +704,8 @@ let () =
           Some "Video pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.audio_video" proto
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Input ~flags:[]
+  Lang.add_operator "input.gstreamer.audio_video" proto ~return_t
+    ~category:Lang.Input ~flags:[]
     ~descr:"Stream audio+video from a GStreamer pipeline." (fun p kind ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       let audio_pipeline =
@@ -720,7 +720,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
   let proto =
     input_proto
     @ [
@@ -730,15 +730,14 @@ let () =
           Some "GStreamer pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.audio" proto ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Input ~flags:[]
-    ~descr:"Stream audio from a GStreamer pipeline." (fun p kind ->
+  Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:Lang.Input
+    ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p kind ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       ( new audio_video_input p kind ((fun () -> ""), Some pipeline, None)
         :> Source.source ))
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.video_n 1) in
+  let return_t = Lang.kind_type_of_kind_format (Lang.video_n 1) in
   let proto =
     input_proto
     @ [
@@ -748,9 +747,8 @@ let () =
           Some "GStreamer pipeline to input from." );
       ]
   in
-  Lang.add_operator "input.gstreamer.video" proto ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Input ~flags:[]
-    ~descr:"Stream video from a GStreamer pipeline." (fun p kind ->
+  Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:Lang.Input
+    ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p kind ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       ( new audio_video_input p kind ((fun () -> ""), None, Some pipeline)
         :> Source.source ))

@@ -622,11 +622,10 @@ module Make (T : T) = struct
     end
 
   let () =
-    let k = Lang.univ_t () in
+    let return_t = Lang.univ_t () in
     Lang.add_operator ~category:Lang.Output ~active:true
-      ~descr:T.source_description T.source_name (proto k)
-      ~kind:(Lang.Unconstrained k) (fun p kind ->
-        (new output ~kind p :> Source.source))
+      ~descr:T.source_description T.source_name (proto return_t) ~return_t
+      (fun p kind -> (new output ~kind p :> Source.source))
 end
 
 module Unix_output = struct

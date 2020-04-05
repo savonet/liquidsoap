@@ -54,7 +54,7 @@ class on_track ~kind f s =
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "on_track"
     [
       ( "",
@@ -69,10 +69,10 @@ let () =
            corresponding metadata as argument. If there is no metadata at the \
            beginning of track, the empty list is passed. That function should \
            be fast because it is executed in the main streaming thread." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing ~descr:"Call a given handler on new tracks."
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in

@@ -143,8 +143,7 @@ let register name init render_text =
         ("", Lang.string_getter_t (), None, Some "Text to display.");
         ("", Lang.source_t k, None, None);
       ]
-      ~kind:(Lang.Unconstrained k) ~category:Lang.VideoProcessing
-      ~descr:"Display a text."
+      ~return_t:k ~category:Lang.VideoProcessing ~descr:"Display a text."
       (fun p kind ->
         let f v = List.assoc v p in
         let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =

@@ -162,7 +162,7 @@ class resample ~kind ~active ~ratio (source : source) =
   end
 
 let () =
-  let k = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "stretch" (* TODO better name *)
     [
       ( "ratio",
@@ -178,9 +178,9 @@ let () =
            based on what is streamed off the child source, which results in \
            time-dependent active sources to be frozen when that source is \
            stopped." );
-      ("", Lang.source_t (Lang.kind_type_of_kind_format k), None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~kind:k ~category:Lang.SoundProcessing
+    ~return_t ~category:Lang.SoundProcessing
     ~descr:
       "Slow down or accelerate an audio stream by stretching (sounds lower) or \
        squeezing it (sounds higher)."

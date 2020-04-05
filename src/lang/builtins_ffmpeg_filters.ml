@@ -245,10 +245,9 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(abuffer.io.outputs.audio))));
 
-  let kind = Lang.kind_type_of_kind_format Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
-    ~descr:"Return an audio source from a filter's output"
-    ~kind:(Lang.Unconstrained kind)
+    ~descr:"Return an audio source from a filter's output" ~return_t
     [("", Graph.t, None, None); ("", Audio.t, None, None)] (fun p kind ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
@@ -281,10 +280,9 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
       Video.to_value (`Output (List.hd Avfilter.(buffer.io.outputs.video))));
 
-  let kind = Lang.kind_type_of_kind_format Lang.video_only in
+  let return_t = Lang.kind_type_of_kind_format Lang.video_only in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
-    ~descr:"Return a video source from a filter's output"
-    ~kind:(Lang.Unconstrained kind)
+    ~descr:"Return a video source from a filter's output" ~return_t
     [("", Graph.t, None, None); ("", Video.t, None, None)] (fun p kind ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in

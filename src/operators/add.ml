@@ -169,7 +169,7 @@ let () =
            for the homogeneous distribution." );
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
-    ~kind
+    ~return_t:kind_t
     (fun p kind ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
@@ -227,7 +227,7 @@ let () =
         Some "Scale preserving the proportions." );
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
-    ~kind
+    ~return_t:kind_t
     (fun p kind ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =

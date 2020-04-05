@@ -217,11 +217,11 @@ class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "output.dummy" ~active:true
-    (proto @ [("", Lang.source_t kind, None, None)])
+    (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:Lang.Output ~descr:"Dummy output for debugging purposes."
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in

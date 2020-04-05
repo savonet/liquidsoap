@@ -150,8 +150,8 @@ let () =
   in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]
-    ~kind:(Lang.Constrained fmt) ~category:Lang.Visualization
-    ~descr:"Graphical visualization of the sound."
+    ~return_t:(Lang.kind_type_of_kind_format (Lang.Constrained fmt))
+    ~category:Lang.Visualization ~descr:"Graphical visualization of the sound."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in

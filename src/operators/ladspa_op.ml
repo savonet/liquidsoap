@@ -296,25 +296,25 @@ let register_descr plugin_name descr_n d inputs outputs =
   let no = Array.length outputs in
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
-  let k =
+  let input_t =
     Lang.kind_type_of_kind_format (if mono then Lang.any else Lang.audio_n ni)
   in
   let liq_params =
-    liq_params @ if ni = 0 then [] else [("", Lang.source_t k, None, None)]
+    liq_params
+    @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
   in
   let maker = Descriptor.maker d in
   let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
-  let k =
-    if mono then k
+  let return_t =
+    if mono then input_t
     else
       (* TODO: do we really need a fresh variable here? *)
       Lang.kind_type_of_kind_format (Lang.audio_n no)
   in
   Lang.add_operator
     ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d))
-    liq_params ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~flags:[] ~descr
+    liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[] ~descr
     (fun p kind ->
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in

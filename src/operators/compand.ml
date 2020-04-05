@@ -60,8 +60,7 @@ let () =
       ("mu", Lang.float_t, Some (Lang.float 1.), None);
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Compand the signal"
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Compand the signal"
     (fun p kind ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in

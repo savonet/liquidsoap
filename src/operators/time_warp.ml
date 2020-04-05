@@ -133,7 +133,7 @@ let () =
           Some "Maximum amount of buffered data, in seconds." );
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Liquidsoap
+    ~return_t:k ~category:Lang.Liquidsoap
     ~descr:"Create a buffer between two different clocks."
     (fun p kind ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -355,7 +355,7 @@ let () =
              again." );
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Liquidsoap
+    ~return_t:k ~category:Lang.Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \
        is adapted so that no buffer underrun or overrun occurs. This wonderful \

@@ -59,7 +59,7 @@ class on_end ~kind ~delay f s =
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "on_end"
     [
       ( "delay",
@@ -77,13 +77,13 @@ let () =
           "Function to execute. First argument is the remaining time, second \
            is the latest metadata. That function should be fast because it is \
            executed in the main streaming thread." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Call a given handler when there is less than a given amount of time \
        remaining before then end of track."
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let delay = Lang.to_float_getter (List.assoc "delay" p) in
       let f = Lang.assoc "" 1 p in

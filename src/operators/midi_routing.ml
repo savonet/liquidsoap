@@ -69,7 +69,7 @@ let () =
       ("track_out", Lang.int_t, Some (Lang.int 0), Some "Destination track.");
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.MIDIProcessing
+    ~return_t:k ~category:Lang.MIDIProcessing
     ~descr:"Merge all MIDI tracks in one."
     (fun p kind ->
       let f v = List.assoc v p in
@@ -84,8 +84,7 @@ let () =
       ("", Lang.list_t Lang.int_t, None, Some "Tracks to remove.");
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.MIDIProcessing
-    ~descr:"Remove MIDI tracks."
+    ~return_t:k ~category:Lang.MIDIProcessing ~descr:"Remove MIDI tracks."
     (fun p kind ->
       (* let f v = List.assoc v p in *)
       let t = List.map Lang.to_int (Lang.to_list (Lang.assoc "" 1 p)) in

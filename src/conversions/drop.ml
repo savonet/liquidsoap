@@ -60,8 +60,7 @@ let () =
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~kind ~midi:true ~name:"drop_midi" source )
       in
-      Lang.add_operator name ~category:Lang.Conversions ~descr
-        ~kind:(Lang.Unconstrained output)
+      Lang.add_operator name ~category:Lang.Conversions ~descr ~return_t:output
         [("", Lang.source_t input, None, None)]
         (fun p kind -> (source p kind :> Source.source)))
     [`Audio; `Video; `Midi]

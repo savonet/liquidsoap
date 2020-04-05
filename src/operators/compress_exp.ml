@@ -53,7 +53,7 @@ class compress ~kind (source : source) mu =
   end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format Lang.any in
+  let return_t = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "compress.exponential" ~category:Lang.SoundProcessing
     ~descr:"Exponential compressor."
     [
@@ -61,9 +61,9 @@ let () =
         Lang.float_t,
         Some (Lang.float 2.),
         Some "Exponential compression factor, typically greater than 1." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in

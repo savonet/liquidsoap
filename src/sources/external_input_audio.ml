@@ -93,7 +93,7 @@ let () =
         ("channels", Lang.int_t, Some (Lang.int 2), Some "Number of channels.");
         ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.");
       ] )
-    ~kind:Lang.audio_any
+    ~return_t:(Lang.kind_type_of_kind_format Lang.audio_any)
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -121,7 +121,7 @@ let () =
 let () =
   Lang.add_operator "input.external.wav" ~category:Lang.Input
     ~descr:"Stream WAV data from an external application." proto
-    ~kind:Lang.audio_any (fun p kind ->
+    ~return_t:(Lang.kind_type_of_kind_format Lang.audio_any) (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

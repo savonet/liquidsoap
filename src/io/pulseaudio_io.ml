@@ -212,7 +212,7 @@ let () =
   in
   Lang.add_operator "output.pulseaudio" ~active:true
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Output
+    ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p kind ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -228,6 +228,6 @@ let () =
       (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Source.source));
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Input
+    ~return_t:k ~category:Lang.Input
     ~descr:"Stream from a portaudio input device." (fun p kind ->
       (new input ~kind p :> Source.source))

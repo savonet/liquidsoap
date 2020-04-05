@@ -64,8 +64,7 @@ let () =
         Some "Shelf slope (dB/octave)" );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Low shelf biquad filter."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low shelf biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -86,7 +85,7 @@ let () =
         Some "Shelf slope (in dB/octave)" );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
+    ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"High shelf biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
@@ -105,8 +104,7 @@ let () =
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Low pass biquad filter."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low pass biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -124,8 +122,7 @@ let () =
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"High pass biquad filter."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"High pass biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -143,8 +140,7 @@ let () =
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Band pass biquad filter."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Band pass biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -165,8 +161,7 @@ let () =
         Some "Bandwidth (in octaves)" );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"All pass biquad filter."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"All pass biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -184,8 +179,7 @@ let () =
       ("q", Lang.float_t, Some (Lang.float 1.), Some "Q");
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Band pass biquad filter."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Band pass biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, param, src =
@@ -204,8 +198,7 @@ let () =
       ("gain", Lang.float_t, Some (Lang.float 1.), Some "Gain (in dB)");
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Peak EQ biquad filter."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Peak EQ biquad filter."
     (fun p kind ->
       let f v = List.assoc v p in
       let freq, param, gain, src =

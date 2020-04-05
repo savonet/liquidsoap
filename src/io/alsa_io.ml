@@ -298,7 +298,7 @@ let () =
           Some "Alsa device to use" );
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Output
+    ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p kind ->
       let e f v = f (List.assoc v p) in
@@ -342,8 +342,7 @@ let () =
           Some (Lang.string "default"),
           Some "Alsa device to use" );
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Input
-    ~descr:"Stream from an ALSA input device."
+    ~return_t:k ~category:Lang.Input ~descr:"Stream from an ALSA input device."
     (fun p kind ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in

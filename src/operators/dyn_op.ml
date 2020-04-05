@@ -104,7 +104,6 @@ let () =
   let k = Lang.univ_t () in
   Lang.add_operator "source.dynamic"
     [("", Lang.fun_t [] (Lang.list_t (Lang.source_t k)), None, None)]
-    ~kind:(Lang.Unconstrained k)
-    ~descr:"Dynamically change the underlying source."
+    ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
     (fun p kind -> new dyn ~kind (List.assoc "" p))

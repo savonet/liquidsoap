@@ -62,7 +62,7 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "midimeter"
     [("", Lang.source_t k, None, None)]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Visualization
+    ~return_t:k ~category:Lang.Visualization
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Display midi events."
     (fun p kind ->

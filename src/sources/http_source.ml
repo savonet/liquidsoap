@@ -551,8 +551,7 @@ module Make (Config : Config_t) = struct
     end
 
   let register protocol =
-    Lang.add_operator ("input." ^ protocol)
-      ~kind:(Lang.Unconstrained (Lang.univ_t ()))
+    Lang.add_operator ("input." ^ protocol) ~return_t:(Lang.univ_t ())
       ~category:Lang.Input
       ~descr:("Create a source that fetches a " ^ protocol ^ " stream.")
       [

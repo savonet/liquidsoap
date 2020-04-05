@@ -74,8 +74,8 @@ let () =
         Some "Callback function." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Detect the BPM." ~flags:[]
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Detect the BPM."
+    ~flags:[]
     (fun p kind ->
       let f v = List.assoc v p in
       let every = Lang.to_float (f "every") in

@@ -83,7 +83,7 @@ class max_duration ~kind ~override_meta ~duration source =
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "max_duration"
     [
       ( "override",
@@ -93,10 +93,9 @@ let () =
           "Metadata field which, if present and containing a float, overrides \
            the remaining play time." );
       ("", Lang.float_t, None, Some "Maximum duration");
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~category:Lang.TrackProcessing ~descr:"Limit source duration"
-    ~kind:(Lang.Unconstrained k)
+    ~category:Lang.TrackProcessing ~descr:"Limit source duration" ~return_t
     (fun p kind ->
       let override_meta = Lang.to_string (List.assoc "override" p) in
       let duration =
