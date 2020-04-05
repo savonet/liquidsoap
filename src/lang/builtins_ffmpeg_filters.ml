@@ -22,8 +22,8 @@
 
 open Lang_builtins
 
-type 'a input = 'a Avutil.frame -> unit
-type 'a output = unit -> 'a Avutil.frame
+type 'a input = 'a Avfilter.input
+type 'a output = 'a Avfilter.output
 type 'a setter = 'a -> unit
 type 'a entries = (string, 'a setter) Hashtbl.t
 type inputs = ([ `Audio ] input entries, [ `Video ] input entries) Avfilter.av
@@ -182,18 +182,6 @@ let () =
           input_t output_t (apply_filter ~filter))
       filters)
 
-let get_filter =
-  let filters = Hashtbl.create 10 in
-  fun ~source name ->
-    match Hashtbl.find_opt filters name with
-      | Some f -> f
-      | None -> (
-          match List.find_opt (fun f -> f.Avfilter.name = name) source with
-            | Some f ->
-                Hashtbl.add filters name f;
-                f
-            | None -> failwith ("Could not find ffmpeg filter: " ^ name) )
-
 let abuffer_args channels =
   let sample_rate = Frame.audio_of_seconds 1. in
   let channel_layout =
@@ -238,12 +226,11 @@ let () =
       let kind = (Lang.to_source source_val)#kind in
       let channels = Frame.((type_of_kind kind).audio) in
       let name = uniq_name "abuffer" in
-      let abuffer = get_filter ~source:Avfilter.buffers "abuffer" in
       let args = abuffer_args channels in
-      let abuffer = Avfilter.attach ~args ~name abuffer config in
+      let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
       let s = Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) in
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
-      Audio.to_value (`Output (List.hd Avfilter.(abuffer.io.outputs.audio))));
+      Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));
 
   let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
@@ -258,9 +245,8 @@ let () =
           | _ -> assert false
       in
       let name = uniq_name "abuffersink" in
-      let abuffersink = get_filter ~source:Avfilter.sinks "abuffersink" in
-      let abuffersink = Avfilter.attach ~name abuffersink config in
-      Avfilter.(link pad (List.hd abuffersink.io.inputs.audio));
+      let _abuffersink = Avfilter.attach ~name Avfilter.abuffersink config in
+      Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
       let s = new Ffmpeg_filter_io.audio_input kind in
       Avfilter.(Hashtbl.add graph.entries.outputs.audio name s#set_output);
       (s :> Source.source));
@@ -273,12 +259,11 @@ let () =
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
       let name = uniq_name "buffer" in
-      let buffer = get_filter ~source:Avfilter.buffers "buffer" in
       let args = buffer_args () in
-      let buffer = Avfilter.attach ~args ~name buffer config in
+      let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
       let s = Ffmpeg_filter_io.(new video_output ~name source_val) in
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
-      Video.to_value (`Output (List.hd Avfilter.(buffer.io.outputs.video))));
+      Video.to_value (`Output (List.hd Avfilter.(_buffer.io.outputs.video))));
 
   let return_t = Lang.kind_type_of_kind_format Lang.video_only in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
@@ -294,16 +279,23 @@ let () =
       in
       let name = uniq_name "buffersink" in
       let target_frame_rate = Lazy.force Frame.video_rate in
-      let fps = get_filter ~source:Avfilter.filters "fps" in
+      let fps =
+        match
+          List.find_opt (fun f -> f.Avfilter.name = name) Avfilter.filters
+        with
+          | Some f -> f
+          | None -> failwith "Could not find ffmpeg fps filter"
+      in
       let fps =
         let args = [`Pair ("fps", `Int target_frame_rate)] in
         Avfilter.attach ~name:(uniq_name "fps") ~args fps config
       in
-      let buffersink = get_filter ~source:Avfilter.sinks "buffersink" in
-      let buffersink = Avfilter.attach ~name buffersink config in
+      let _buffersink = Avfilter.attach ~name Avfilter.buffersink config in
       Avfilter.(link pad (List.hd fps.io.inputs.video));
       Avfilter.(
-        link (List.hd fps.io.outputs.video) (List.hd buffersink.io.inputs.video));
+        link
+          (List.hd fps.io.outputs.video)
+          (List.hd _buffersink.io.inputs.video));
       let s = new Ffmpeg_filter_io.video_input kind in
       Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output);
       (s :> Source.source))

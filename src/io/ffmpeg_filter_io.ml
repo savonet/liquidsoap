@@ -200,9 +200,9 @@ class audio_input kind =
       in
       FromAudioFrame.convert converter frame
 
-    val mutable output = fun _ -> assert false
+    val mutable output = None
 
-    method set_output fn = output <- fn
+    method set_output v = output <- Some v
 
     method self_sync = false
 
@@ -211,6 +211,7 @@ class audio_input kind =
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
+      let output = (Utils.get_some output).Avfilter.handler in
       let rec f () =
         try
           let pcm = self#convert (output ()) in
@@ -277,9 +278,9 @@ class video_input kind =
       in
       FromVideoFrame.convert converter frame
 
-    val mutable output = fun _ -> assert false
+    val mutable output = None
 
-    method set_output fn = output <- fn
+    method set_output v = output <- Some v
 
     method self_sync = false
 
@@ -288,6 +289,7 @@ class video_input kind =
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
+      let output = (Utils.get_some output).Avfilter.handler in
       let rec f () =
         try
           let img =
