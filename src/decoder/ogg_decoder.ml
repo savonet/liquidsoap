@@ -154,7 +154,7 @@ module Make (Generator : Generator.S_Asio) = struct
 
         (* We enforce that all contents end together, otherwise there will
          * be a lag between different content types in the next track. *)
-        if not merge_tracks then Generator.add_break ~sync:`Drop buffer );
+        if not merge_tracks then Generator.add_break ~sync:true buffer );
       Generator.set_mode buffer mode;
       let add_meta f t =
         (* Initial metadata in files is handled separately. *)

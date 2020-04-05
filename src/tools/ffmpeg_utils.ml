@@ -111,3 +111,14 @@ let fps_converter ~width ~height ~pixel_format ~time_base ~pixel_aspect ?fps
     | _ ->
         fps_converter ~width ~height ~pixel_format ~time_base ~pixel_aspect
           ~target_fps cb
+
+let audio_time_base () =
+  { Avutil.num = AFrame.size (); den = Lazy.force Frame.audio_rate }
+
+let video_time_base () =
+  { Avutil.num = VFrame.size (); den = Lazy.force Frame.video_rate }
+
+let convert_pts ~src ~dst pts =
+  let num = src.Avutil.num * dst.Avutil.den in
+  let den = src.Avutil.den * dst.Avutil.num in
+  Int64.div (Int64.mul pts (Int64.of_int num)) (Int64.of_int den)

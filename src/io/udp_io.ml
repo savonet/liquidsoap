@@ -150,7 +150,7 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
           decoder.Decoder.decode generator
         done
       with e ->
-        Generator.add_break ~sync:`Drop generator;
+        Generator.add_break ~sync:true generator;
 
         (* Closing the socket is slightly overkill but
          * we need to recreate the decoder anyway, which

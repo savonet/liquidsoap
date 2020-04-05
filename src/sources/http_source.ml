@@ -266,7 +266,7 @@ module Make (Config : Config_t) = struct
           (try Hashtbl.find m "artist" with _ -> "?")
           (try Hashtbl.find m "title" with _ -> "?");
         Generator.add_metadata generator m;
-        if track_on_meta then Generator.add_break ~sync:`Ignore generator
+        if track_on_meta then Generator.add_break generator
 
       method feeding should_stop create_decoder =
         let read =
@@ -311,7 +311,7 @@ module Make (Config : Config_t) = struct
           if debug then raise e;
 
           (* Feeding has stopped: adding a break here. *)
-          Generator.add_break ~sync:`Drop generator;
+          Generator.add_break ~sync:true generator;
           begin
             match e with
             | Failure s -> self#log#severe "Feeding stopped: %s" s

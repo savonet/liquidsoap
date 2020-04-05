@@ -120,7 +120,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ~format
           decoder generator
         done
       with e ->
-        Generator.add_break ~sync:`Drop generator;
+        Generator.add_break ~sync:true generator;
         self#close_container;
         begin
           match e with
