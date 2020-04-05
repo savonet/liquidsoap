@@ -193,7 +193,7 @@ let abuffer_args channels =
   in
   [
     `Pair ("sample_rate", `Int sample_rate);
-    `Pair ("time_base", `Rational { Avutil.num = 1; den = sample_rate });
+    `Pair ("time_base", `Rational { Avutil.num = 1; den = AFrame.size () });
     `Pair ("channels", `Int channels);
     `Pair ("channel_layout", `Int (Avutil.Channel_layout.get_id channel_layout));
     `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id `Dbl));
@@ -205,7 +205,7 @@ let buffer_args () =
   let height = Lazy.force Frame.video_height in
   [
     `Pair ("frame_rate", `Int frame_rate);
-    `Pair ("time_base", `Rational { Avutil.num = 1; den = frame_rate });
+    `Pair ("time_base", `Rational { Avutil.num = 1; den = VFrame.size () });
     `Pair ("pixel_aspect", `Int 1);
     `Pair ("width", `Int width);
     `Pair ("height", `Int height);

@@ -30,12 +30,10 @@ module Scaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 let log = Ffmpeg_config.log
 
 type audio_stream =
-  (Avutil.output, Avutil.audio) Av.stream
-  * (Frame.content -> int -> int -> unit)
+  (Avutil.output, Avutil.audio) Av.stream * (Frame.t -> int -> int -> unit)
 
 type video_stream =
-  (Avutil.output, Avutil.video) Av.stream
-  * (Frame.content -> int -> int -> unit)
+  (Avutil.output, Avutil.video) Av.stream * (Frame.t -> int -> int -> unit)
 
 type handler = {
   output : Avutil.output Avutil.container;
@@ -88,8 +86,7 @@ let mk_encoder ~ffmpeg ~options output =
   let audio_stream =
     Utils.maybe
       (fun audio_codec ->
-        let time_base = { Avutil.num = 1; den = src_samplerate } in
-        let pts = ref 0L in
+        let time_base = { Avutil.num = 1; den = AFrame.size () } in
         let opts =
           Av.mk_audio_opts ~channels ~time_base
             ~sample_rate:(Lazy.force ffmpeg.Ffmpeg_format.samplerate)
@@ -113,11 +110,10 @@ let mk_encoder ~ffmpeg ~options output =
             channels_layout dst_samplerate
         in
         let stream = Av.new_audio_stream ~opts ~codec:audio_codec output in
-        let cb content start len =
-          let pcm = Audio.sub content.Frame.audio start len in
+        let cb frame start len =
+          let pcm = Audio.sub (AFrame.content frame) start len in
           let aframe = Resampler.convert resampler pcm in
-          Avutil.frame_set_pts aframe !pts;
-          pts := Int64.add !pts (Int64.of_int len);
+          Avutil.frame_set_pts aframe (Frame.pts frame);
           Av.write_frame stream aframe
         in
         Hashtbl.filter_map_inplace
@@ -139,8 +135,7 @@ let mk_encoder ~ffmpeg ~options output =
         let pixel_format =
           Avcodec.Video.find_best_pixel_format video_codec `Yuv420p
         in
-        let time_base = { Avutil.num = 1; den = fps } in
-        let pts = ref 0L in
+        let time_base = { Avutil.num = 1; den = VFrame.size () } in
         let pixel_aspect = { Avutil.num = 0; den = 1 } in
         let scaler =
           Scaler.create [] src_width src_height `Yuv420p target_width
@@ -160,10 +155,10 @@ let mk_encoder ~ffmpeg ~options output =
             ~pixel_format ~time_base ~pixel_aspect ~fps ~target_fps
             (Av.write_frame stream)
         in
-        let cb content start len =
+        let cb frame start len =
           let vstart = Frame.video_of_master start in
           let vlen = Frame.video_of_master len in
-          let vbuf = content.Frame.video in
+          let vbuf = VFrame.content frame in
           let vbuf = vbuf.(0) in
           for i = vstart to vstart + vlen - 1 do
             let f = Video.get vbuf i in
@@ -172,8 +167,7 @@ let mk_encoder ~ffmpeg ~options output =
             let s = Image.YUV420.uv_stride f in
             let vdata = [| (y, sy); (u, s); (v, s) |] in
             let vframe = Scaler.convert scaler vdata in
-            Avutil.frame_set_pts vframe !pts;
-            pts := Int64.succ !pts;
+            Avutil.frame_set_pts vframe (Frame.pts frame);
             fps_converter vframe
           done
         in
@@ -193,11 +187,8 @@ let mk_encoder ~ffmpeg ~options output =
   { output; audio_stream; channels; video_stream; vchans }
 
 let encode ~encoder frame start len =
-  let content = frame.Frame.content in
-  ignore
-    (Utils.maybe (fun (_, cb) -> cb content start len) encoder.audio_stream);
-  ignore
-    (Utils.maybe (fun (_, cb) -> cb content start len) encoder.video_stream)
+  ignore (Utils.maybe (fun (_, cb) -> cb frame start len) encoder.audio_stream);
+  ignore (Utils.maybe (fun (_, cb) -> cb frame start len) encoder.video_stream)
 
 let insert_metadata ~encoder m =
   let m =

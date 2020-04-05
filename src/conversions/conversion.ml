@@ -46,6 +46,7 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
     method private tmp_frame = tmp_frame
 
     method private copy_frame src dst =
+      Frame.set_pts dst (Frame.pts src);
       Frame.set_breaks dst (Frame.breaks src);
       Frame.set_all_metadata dst (Frame.get_all_metadata src);
       if not audio then Frame.set_audio dst (Frame.audio src);

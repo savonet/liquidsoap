@@ -46,8 +46,6 @@ class audio_output ~name ~kind val_source =
 
     method set_input fn = input <- fn
 
-    val mutable pts = Int64.zero
-
     val mutable channels = None
 
     val mutable converter = None
@@ -90,8 +88,7 @@ class audio_output ~name ~kind val_source =
     method output_send memo =
       let pcm = AFrame.content memo in
       let aframe = self#convert pcm in
-      Avutil.frame_set_pts aframe pts;
-      pts <- Int64.add (Int64.of_int (AFrame.position memo)) pts;
+      Avutil.frame_set_pts aframe (Frame.pts memo);
       input aframe
   end
 
@@ -110,8 +107,6 @@ class video_output ~name val_source =
           ~output_kind:"ffmpeg.filter.input" val_source true
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
-
-    val mutable pts = Int64.zero
 
     method set_input fn = input <- fn
 
@@ -132,8 +127,7 @@ class video_output ~name val_source =
         let s = Image.YUV420.uv_stride f in
         let vdata = [| (y, sy); (u, s); (v, s) |] in
         let vframe = ToVideoFrame.convert converter vdata in
-        Avutil.frame_set_pts vframe pts;
-        pts <- Int64.succ pts;
+        Avutil.frame_set_pts vframe (Frame.pts memo);
         input vframe
       done
   end
