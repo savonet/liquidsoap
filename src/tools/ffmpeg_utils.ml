@@ -93,3 +93,13 @@ let fps_converter ~width ~height ~pixel_format ~time_base ~pixel_aspect ?fps
     | _ ->
         fps_converter ~width ~height ~pixel_format ~time_base ~pixel_aspect
           ~target_fps cb
+
+let pts ~mode ~time_base frame =
+  let pts = Avutil.frame_pts frame in
+  let { Avutil.num; den } = time_base in
+  let liq_time_base =
+    match mode with `Audio -> AFrame.size () | `Video -> VFrame.size ()
+  in
+  Int64.div
+    (Int64.mul pts (Int64.of_int den))
+    (Int64.of_int (num * liq_time_base))

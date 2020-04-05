@@ -27,7 +27,7 @@ module Resampler =
 
 module Scaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
-let log = Ffmpeg_config.log
+let log = Ffmpeg_utils.log
 
 type audio_stream =
   (Avutil.output, Avutil.audio) Av.stream * (Frame.t -> int -> int -> unit)
@@ -151,7 +151,7 @@ let mk_encoder ~ffmpeg ~options output =
         Hashtbl.iter (Hashtbl.add opts) options;
         let stream = Av.new_video_stream ~opts ~codec:video_codec output in
         let fps_converter =
-          Ffmpeg_config.fps_converter ~width:target_width ~height:target_height
+          Ffmpeg_utils.fps_converter ~width:target_width ~height:target_height
             ~pixel_format ~time_base ~pixel_aspect ~fps ~target_fps
             (Av.write_frame stream)
         in

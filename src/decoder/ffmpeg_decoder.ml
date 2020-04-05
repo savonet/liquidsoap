@@ -45,6 +45,8 @@ module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered (G)
 
+let get_pts ~stream = Ffmpeg_utils.pts ~time_base:(Av.get_time_base stream)
+
 let mk_audio_decoder ~put_audio container =
   let idx, stream, codec = Av.find_best_audio_stream container in
   let sample_freq = Avcodec.Audio.get_sample_rate codec in
@@ -65,7 +67,8 @@ let mk_audio_decoder ~put_audio container =
         in_sample_format := frame_in_sample_format;
         converter := mk_converter () );
       let content = Converter.convert !converter frame in
-      put_audio gen content 0 (Audio.length content) )
+      let pts = Some (get_pts ~mode:`Audio ~stream frame) in
+      put_audio ?pts gen content 0 (Audio.length content) )
 
 let mk_video_decoder ~put_video container =
   let idx, stream, codec = Av.find_best_video_stream container in
@@ -90,10 +93,13 @@ let mk_video_decoder ~put_video container =
         | _ -> assert false
     in
     let content = Video.single img in
-    put_video (Utils.get_some !generator) [| content |] 0 (Video.length content)
+    let pts = Some (get_pts ~mode:`Video ~stream frame) in
+    put_video ?pts
+      (Utils.get_some !generator)
+      [| content |] 0 (Video.length content)
   in
   let fps_converter =
-    Ffmpeg_config.fps_converter ~width ~height ~pixel_format ~time_base
+    Ffmpeg_utils.fps_converter ~width ~height ~pixel_format ~time_base
       ~pixel_aspect ~target_fps cb
   in
   ( idx,

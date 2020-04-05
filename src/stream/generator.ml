@@ -48,8 +48,8 @@ module type S_Asio = sig
   val fill : t -> Frame.t -> unit
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
-  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
-  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
@@ -427,7 +427,7 @@ module From_audio_video = struct
       t.mode <- m )
 
   (** Add some audio content. Offset and length are given in audio samples. *)
-  let put_audio t content o l =
+  let put_audio ?pts t content o l =
     assert (content = [||] || Audio.Mono.length content.(0) >= o + l);
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
@@ -438,7 +438,7 @@ module From_audio_video = struct
       | `Video | `Undefined -> assert false
 
   (** Add some video content. Offset and length are given in video samples. *)
-  let put_video t content o l =
+  let put_video ?pts t content o l =
     assert (content = [||] || Video.length content.(0) <= o + l);
     let o = Frame.master_of_video o in
     let l = Frame.master_of_video l in
@@ -466,12 +466,13 @@ module From_audio_video = struct
 
     (* Feed all content layers into the generator. *)
     let content = Frame.copy frame.Frame.content in
+    let pts = Frame.pts frame in
     match mode t with
-      | `Audio -> put_audio t content.Frame.audio 0 size
-      | `Video -> put_video t content.Frame.video 0 size
+      | `Audio -> put_audio ~pts t content.Frame.audio 0 size
+      | `Video -> put_video ~pts t content.Frame.video 0 size
       | `Both ->
-          put_audio t content.Frame.audio 0 size;
-          put_video t content.Frame.video 0 size
+          put_audio ~pts t content.Frame.audio 0 size;
+          put_video ~pts t content.Frame.video 0 size
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -649,7 +650,7 @@ module From_audio_video_plus = struct
           Super.remove t.gen len
       | _ -> ()
 
-  let put_audio t buf off len =
+  let put_audio ?pts t buf off len =
     Tutils.mutexify t.lock
       (fun () ->
         if t.error then (
@@ -658,10 +659,10 @@ module From_audio_video_plus = struct
           raise Incorrect_stream_type )
         else (
           check_overfull t (Frame.master_of_audio len);
-          Super.put_audio t.gen buf off len ))
+          Super.put_audio ?pts t.gen buf off len ))
       ()
 
-  let put_video t buf off len =
+  let put_video ?pts t buf off len =
     Tutils.mutexify t.lock
       (fun () ->
         if t.error then (
@@ -670,6 +671,6 @@ module From_audio_video_plus = struct
           raise Incorrect_stream_type )
         else (
           check_overfull t (Frame.master_of_video len);
-          Super.put_video t.gen buf off len ))
+          Super.put_video ?pts t.gen buf off len ))
       ()
 end

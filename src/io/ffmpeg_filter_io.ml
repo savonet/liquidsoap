@@ -205,11 +205,14 @@ class audio_input kind =
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
-      let output = (Utils.get_some output).Avfilter.handler in
+      let output = Utils.get_some output in
+      let time_base = Avfilter.(time_base output.context) in
       let rec f () =
         try
-          let pcm = self#convert (output ()) in
-          Generator.put_audio generator pcm 0 (Audio.length pcm);
+          let frame = output.Avfilter.handler () in
+          let pcm = self#convert frame in
+          let pts = Ffmpeg_utils.pts ~mode:`Audio ~time_base frame in
+          Generator.put_audio ~pts generator pcm 0 (Audio.length pcm);
           f ()
         with Avutil.Error `Eagain -> ()
       in
@@ -283,17 +286,21 @@ class video_input kind =
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
-      let output = (Utils.get_some output).Avfilter.handler in
+      let output = Utils.get_some output in
+      let time_base = Avfilter.(time_base output.context) in
       let rec f () =
         try
+          let frame = output.Avfilter.handler () in
+          let pts = Ffmpeg_utils.pts ~mode:`Video ~time_base frame in
           let img =
-            match self#convert (output ()) with
+            match self#convert frame with
               | [| (y, sy); (u, s); (v, _) |] ->
                   Image.YUV420.make target_width target_height y sy u v s
               | _ -> assert false
           in
           let content = Video.single img in
-          Generator.put_video generator [| content |] 0 (Video.length content);
+          Generator.put_video ~pts generator [| content |] 0
+            (Video.length content);
           f ()
         with Avutil.Error `Eagain -> ()
       in
