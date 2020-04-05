@@ -807,7 +807,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             let handle_source smethod =
               let __pa_duppy_0 =
                 (* X-audiocast sends lines of the form:
-         * [SOURCE password path] *)
+                   [SOURCE password path] *)
                 match hprotocol with
                   | `Xaudiocast_uri uri ->
                       let password = huri in
@@ -825,7 +825,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                           Duppy.Monad.Io.exec
                             ~priority:
                               (* ICY = true means that authentication has already
-                   * hapenned *)
+                                 hapenned *)
                               Tutils.Maybe_blocking h
                             (let valid_user, auth_f = s#login in
                              if not (auth_f valid_user password) then

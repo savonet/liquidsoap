@@ -91,8 +91,9 @@ let rec mul_of_type default t =
     | T.Zero -> Frame.Zero
     | T.Any -> Frame.Any
     | T.EVar _ ->
-        T.bind t any_t;
-        Frame.Any
+        let default = max 0 default in
+        T.bind t (type_of_int default);
+        Frame.mul_of_int default
     | _ -> assert false
 
 (* TODO can happen e.g. on request.queue() *)

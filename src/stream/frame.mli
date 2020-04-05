@@ -62,13 +62,13 @@ type metadata = (string, string) Hashtbl.t
 
 (** A frame. *)
 type t = {
+  (* End of track markers. A break at the end of the
+     buffer is not an end of track (if needed, the
+     end-of-track needs to be put at the beginning
+     of the next frame). *)
   mutable breaks : int list;
-      (** End of track markers. A break at the end of the
-                                 buffer is not an end of track (if needed, the
-                                 end-of-track needs to be put at the beginning
-                                 of the next frame). *)
+  (* Metadata along with the time they occur. *)
   mutable metadata : (int * metadata) list;
-      (** Metadata along with the time they occur. *)
   mutable content : content;
 }
 

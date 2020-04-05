@@ -43,11 +43,9 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
         let c = buf.Frame.content in
         Video.get c.Frame.video.(0) 0
       in
-      for frame = 0 to 0 do
-        let img = Video.Image.to_int_image rgb in
-        let img = Graphics.make_image img in
-        Graphics.draw_image img 0 0
-      done
+      let img = Video.Image.to_int_image rgb in
+      let img = Graphics.make_image img in
+      Graphics.draw_image img 0 0
 
     method output_reset = ()
   end
