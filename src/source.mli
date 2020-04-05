@@ -101,28 +101,28 @@ class virtual source :
        method clock : clock_variable
 
        (** Does the source provide its own synchronization?
-    * Examples: Alsa, AO, SRT I/O, etc.. This information
-    * is used at the clock level to decide wether or not
-    * we should synchronize with the CPU clock after producing
-    * a frame (for [`Auto] clocks). Please note that in the case
-    * of multiple sources filling the frame with different notion
-    * notion of synchronization, there is no consistent notion
-    * of time or synchronization. In this case (and with a [`Auto]
-    * clock), we simply decide based on wether there is one [self_sync]
-    * source or not. This logic should dictate how the method is
-    * implemented by the various operators. *)
+           Examples: Alsa, AO, SRT I/O, etc.. This information
+           is used at the clock level to decide wether or not
+           we should synchronize with the CPU clock after producing
+           a frame (for [`Auto] clocks). Please note that in the case
+           of multiple sources filling the frame with different notion
+           notion of synchronization, there is no consistent notion
+           of time or synchronization. In this case (and with a [`Auto]
+           clock), we simply decide based on wether there is one [self_sync]
+           source or not. This logic should dictate how the method is
+           implemented by the various operators. *)
        method virtual self_sync : bool
 
        (** Choose your clock, by adjusting to your children source,
-    * or anything custom. *)
+           or anything custom. *)
        method private set_clock : unit
 
        (** The operator says to the source that he will ask it frames. *)
        method get_ready : ?dynamic:bool -> source list -> unit
 
        (** Called when the source must be ready and had no active operator,
-    * means that the source has to initialize. This method is called by
-    * [get_ready] and not called externally. *)
+           means that the source has to initialize. This method is called by
+           [get_ready] and not called externally. *)
        method private wake_up : source list -> unit
 
        (** Opposite of [get_ready] : the operator no longer needs the source. *)
@@ -146,20 +146,20 @@ class virtual source :
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int
 
-       (* [self#seek_ticks x] skips [x] master ticks.
-        * returns the number of ticks actually skipped.
-        * By default it always returns 0, refusing to seek at all.
-        * That method may be called from any thread, concurrently
-        * with [#get], so they should not interfer. *)
+       (** [self#seek_ticks x] skips [x] master ticks.
+           returns the number of ticks actually skipped.
+           By default it always returns 0, refusing to seek at all.
+           That method may be called from any thread, concurrently
+           with [#get], so they should not interfer. *)
        method seek : int -> int
 
        (** [is_ready] tells you if [get] can be called. *)
        method virtual is_ready : bool
 
        (** [get buf] asks the source to fill the buffer [buf] if possible.
-    * The [get] call is partial when the buffer is not completely filled.
-    * [get] should never be called with a full buffer,
-    * and without checking that the source is ready. *)
+           The [get] call is partial when the buffer is not completely filled.
+           [get] should never be called with a full buffer,
+           and without checking that the source is ready. *)
        method get : Frame.t -> unit
 
        method virtual private get_frame : Frame.t -> unit
@@ -170,11 +170,11 @@ class virtual source :
        method is_output : bool
 
        (** Wait for output round to finish.
-    * Typically, output nodes compute an audio frame (a full buffer),
-    * then launch a few output threads, which take care of encoding
-    * and outputting (to a file, network, ...).
-    * In that case, after_output allows the node to wait for its
-    * output threads. *)
+           Typically, output nodes compute an audio frame (a full buffer),
+           then launch a few output threads, which take care of encoding
+           and outputting (to a file, network, ...).
+           In that case, after_output allows the node to wait for its
+           output threads. *)
        method after_output : unit
 
        method advance : unit
@@ -202,8 +202,8 @@ and virtual active_source :
        inherit source
 
        (** Special init phase for outputs. This method is called by Root after the
-    * standard get_ready propagation, after the Root clock is started.
-    * It allows enhancements of the initial latency. *)
+           standard get_ready propagation, after the Root clock is started.
+           It allows enhancements of the initial latency. *)
        method virtual output_get_ready : unit
 
        (** Start a new output round, triggers computation of a new frame. *)
@@ -213,10 +213,10 @@ and virtual active_source :
        method virtual output_reset : unit
 
        (** Is the source active ?
-    * If the returned value is [false], then [output_reset]
-    * should not be called on that source.
-    * If [output_reset] does nothing, this function can return any value.
-    * TODO that kind of detail could be left inside #output_reset *)
+           If the returned value is [false], then [output_reset]
+           should not be called on that source.
+           If [output_reset] does nothing, this function can return any value.
+           TODO that kind of detail could be left inside #output_reset *)
        method virtual is_active : bool
      end
 
@@ -243,10 +243,10 @@ val has_outputs : unit -> bool
 val iterate_new_outputs : (active_source -> unit) -> unit
 
 (** {1 Clocks}
-  * Tick identifiers are useful (cf. [#get_tick]) but we don't need much
-  * more than the guarantee that the next tick is different from the
-  * current one. Booleans should be OK, in any case an overflow on int
-  * is not a problem. *)
+    Tick identifiers are useful (cf. [#get_tick]) but we don't need much
+    more than the guarantee that the next tick is different from the
+    current one. Booleans should be OK, in any case an overflow on int
+    is not a problem. *)
 
 class type clock =
   object
