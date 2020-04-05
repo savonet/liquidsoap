@@ -162,6 +162,15 @@ class keyboard ~kind velocity =
   end
 
 let () =
+  let kind =
+    Lang.kind_type_of_kind_format
+      (Lang.Constrained
+         {
+           Frame.audio = Lang.At_least 0;
+           video = Lang.Fixed 0;
+           midi = Lang.At_least 1;
+         })
+  in
   Lang.add_operator "input.keyboard.sdl"
     [
       ( "velocity",
@@ -169,14 +178,7 @@ let () =
         Some (Lang.float 0.8),
         Some "Velocity of notes." );
     ]
-    ~return_t:
-      (Lang.Constrained
-         {
-           Frame.audio = Lang.At_least 0;
-           video = Lang.Fixed 0;
-           midi = Lang.At_least 1;
-         })
-    ~category:Lang.Input ~flags:[Lang.Experimental]
+    ~return_t:kind ~category:Lang.Input ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."
     (fun p kind ->
       let f v = List.assoc v p in
