@@ -22,120 +22,151 @@
 
 (** Muxing takes a main and an auxiliary source.
   * The auxiliary source streams only one kind of content,
-  * the main has no channel of that kind, anything for the others.
-  *
-  * Both sources should be infallibles and track markers are taken
-  * from both sources. *)
+  * the main has no channel of that kind, anything for the others. *)
 
-class mux ~kind ~mode ~main ~aux =
-  let main_source = Lang.to_source main in
-  let () =
-    if main_source#stype <> Source.Infallible then
-      raise (Lang_errors.Invalid_value (main, "Main source cannot be fallible"))
-  in
+module Muxer = struct
+  module Generator = Generator.From_audio_video_plus
 
-  let aux_source = Lang.to_source aux in
-  let () =
-    if aux_source#stype <> Source.Infallible then
-      raise
-        (Lang_errors.Invalid_value (aux, "Auxiliary source cannot be fallible"))
-  in
-  object (self)
-    inherit Source.operator ~name:"mux" kind [main_source; aux_source] as super
+  (* The kind of value shared by a producer and a consumer. *)
+  type control = {
+    lock : Mutex.t;
+    generator : Generator.t;
+    mutable main_buffering : bool;
+    mutable aux_buffering : bool;
+    mutable main_abort : bool;
+    mutable aux_abort : bool;
+  }
 
-    method self_sync = main_source#self_sync || aux_source#self_sync
+  let proceed control f = Tutils.mutexify control.lock f ()
 
-    method stype = Source.Infallible
+  (** The source which produces data by reading the buffer. *)
+  class producer ~kind ~log_ref ~name c =
+    object (self)
+      inherit Source.source kind ~name
 
-    method is_ready = main_source#is_ready && aux_source#is_ready
+      initializer log_ref := self#log#important "%s"
 
-    method abort_track = main_source#abort_track
+      method self_sync = false
 
-    method remaining = main_source#remaining
+      method stype = Source.Fallible
 
-    method private set_pos frame =
-      function None -> () | Some position -> Frame.add_break frame position
+      method remaining = proceed c (fun () -> Generator.remaining c.generator)
 
-    val mutable main_pos = None
+      method is_ready =
+        proceed c (fun () -> not (c.main_buffering || c.aux_buffering))
 
-    method private main_frame frame =
-      let f =
-        Frame.
-          {
-            frame with
-            content =
-              ( match mode with
-                | `Add_audio -> { frame.content with audio = [||]; midi = [||] }
-                | `Add_video -> { frame.content with video = [||]; midi = [||] }
-                );
-          }
-      in
-      self#set_pos f main_pos;
-      f
+      method private get_frame frame =
+        proceed c (fun () ->
+            Generator.fill c.generator frame;
+            if Frame.is_partial frame && Generator.length c.generator = 0 then (
+              self#log#important "Buffer emptied, start buffering...";
+              c.main_buffering <- true;
+              c.aux_buffering <- true ))
 
-    val mutable aux_pos = None
+      method abort_track =
+        proceed c (fun () ->
+            c.main_abort <- true;
+            c.aux_abort <- true)
+    end
 
-    method private aux_frame frame =
-      let f =
-        Frame.
-          {
-            frame with
-            content =
-              ( match mode with
-                | `Add_audio -> { frame.content with video = [||]; midi = [||] }
-                | `Add_video -> { frame.content with audio = [||]; midi = [||] }
-                );
-          }
-      in
-      self#set_pos f aux_pos;
-      f
+  class consumer ~mode ~content ~pre_buffer ~max_buffer ~kind source_val c =
+    let prebuf = Frame.master_of_seconds pre_buffer in
+    let maxbuf = Frame.master_of_seconds max_buffer in
+    let autostart = true in
+    object (self)
+      inherit
+        Output.output
+          ~output_kind:"buffer" ~content_kind:kind ~infallible:false
+          ~on_start:(fun () -> ())
+          ~on_stop:(fun () -> ())
+          source_val autostart
 
-    method private get_frame frame =
-      let position = Frame.position frame in
-      let metadata = Frame.get_all_metadata frame in
+      method output_reset = ()
 
-      let main_frame = self#main_frame frame in
-      let aux_frame = self#aux_frame frame in
+      method output_start = ()
 
-      if Frame.is_partial main_frame then main_source#get main_frame;
-      if Frame.is_partial aux_frame then aux_source#get aux_frame;
+      method output_stop = ()
 
-      (* Each filling operation should add exactly one break so we take
-       * the earliest of both here and store the diff. *)
-      let new_pos =
-        match (Frame.position main_frame, Frame.position aux_frame) with
-          | p, p' when p = p' ->
-              aux_pos <- None;
-              main_pos <- None;
-              p
-          | p, p' when p < p' ->
-              aux_pos <- Some p';
-              main_pos <- None;
-              p
-          | p, p' when p' < p ->
-              aux_pos <- None;
-              main_pos <- Some p;
-              p'
-          | _ -> assert false
-      in
-      Frame.add_break frame new_pos;
+      val source = Lang.to_source source_val
 
-      (* Set metadata from both frames. *)
-      let new_metadata =
-        List.filter
-          (fun (x, _) -> position <= x)
-          (List.sort
-             (fun (x, _) (y, _) -> compare x y)
-             ( Frame.get_all_metadata main_frame
-             @ Frame.get_all_metadata aux_frame ))
-      in
-      Frame.set_all_metadata frame (new_metadata @ metadata)
+      method private feed_from_frame gen frame =
+        let pts = Frame.pts frame in
+        match content with
+          | `Audio ->
+              Generator.put_audio ~pts gen (AFrame.content frame) 0
+                (AFrame.position frame)
+          | `Video ->
+              Generator.put_video ~pts gen (VFrame.content frame) 0
+                (VFrame.position frame)
 
-    method after_output =
-      main_pos <- None;
-      aux_pos <- None;
-      super#after_output
-  end
+      method output_send frame =
+        proceed c (fun () ->
+            ( match mode with
+              | `Main ->
+                  if c.main_abort then (
+                    c.main_abort <- false;
+                    source#abort_track )
+              | `Aux ->
+                  if c.aux_abort then (
+                    c.aux_abort <- false;
+                    source#abort_track ) );
+
+            self#feed_from_frame c.generator frame;
+
+            if Generator.length c.generator > prebuf then (
+              match mode with
+                | `Main -> c.main_buffering <- false
+                | `Aux -> c.aux_buffering <- false );
+
+            if Generator.length c.generator > maxbuf then
+              Generator.remove c.generator
+                (Generator.length c.generator - maxbuf))
+    end
+
+  let create ~name ~log_overfull ~pre_buffer ~max_buffer ~kind ~main_kind
+      ~main_source ~main_content ~aux_source ~aux_kind ~aux_content () =
+    let max_ticks = Frame.master_of_seconds max_buffer in
+    let log_ref = ref (fun _ -> ()) in
+    let log x = !log_ref x in
+    let lock = Mutex.create () in
+    let control =
+      {
+        generator =
+          Generator.create ~lock ~kind ~log ~log_overfull
+            ~overfull:(`Drop_old max_ticks) `Both;
+        lock;
+        main_buffering = true;
+        aux_buffering = true;
+        main_abort = false;
+        aux_abort = false;
+      }
+    in
+    ignore
+      (new consumer
+         ~mode:`Main ~kind:main_kind ~content:main_content main_source
+         ~pre_buffer ~max_buffer control);
+    ignore
+      (new consumer
+         ~mode:`Aux ~kind:aux_kind ~content:aux_content aux_source ~pre_buffer
+         ~max_buffer control);
+    new producer ~name ~log_ref ~kind control
+end
+
+let base_proto =
+  [
+    ( "buffer",
+      Lang.float_t,
+      Some (Lang.float 1.),
+      Some "Amount of data to pre-buffer, in seconds." );
+    ( "max",
+      Lang.float_t,
+      Some (Lang.float 10.),
+      Some "Maximum amount of buffered data, in seconds." );
+    ( "log_overfull",
+      Lang.bool_t,
+      Some (Lang.bool true),
+      Some "Log when the source's buffer is overfull." );
+  ]
 
 let () =
   let out_t = Lang.kind_type_of_kind_format Lang.any in
@@ -144,17 +175,28 @@ let () =
   let aux_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi:Lang.zero_t in
   Lang.add_operator "mux_video" ~category:Lang.Conversions
     ~descr:
-      "Add video channnels to a stream. Both sources need to be infallible. \
-       Track marks and metadata are taken from both sources."
+      "Add video channnels to a stream. Track marks and metadata are taken \
+       from both sources."
     ~return_t:out_t
-    [
-      ("video", Lang.source_t aux_t, None, None);
-      ("", Lang.source_t main_t, None, None);
-    ]
+    ( base_proto
+    @ [
+        ("video", Lang.source_t aux_t, None, None);
+        ("", Lang.source_t main_t, None, None);
+      ] )
     (fun p kind ->
-      let main = List.assoc "" p in
-      let aux = List.assoc "video" p in
-      new mux ~kind ~mode:`Add_video ~main ~aux)
+      let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
+      let max_buffer = Lang.to_float (List.assoc "max" p) in
+      let max_buffer = max max_buffer (pre_buffer *. 1.1) in
+      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
+      let main_source = List.assoc "" p in
+      let main_content = `Audio in
+      let main_kind = Lang.frame_kind_of_kind_type main_t in
+      let aux_source = List.assoc "video" p in
+      let aux_content = `Video in
+      let aux_kind = Lang.frame_kind_of_kind_type aux_t in
+      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind ~log_overfull
+        ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
+        ())
 
 let () =
   let out_t = Lang.kind_type_of_kind_format Lang.any in
@@ -163,14 +205,25 @@ let () =
   let aux_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi:Lang.zero_t in
   Lang.add_operator "mux_audio" ~category:Lang.Conversions
     ~descr:
-      "Mux an audio stream into an audio-free stream. Both sources need to be \
-       infallible. Track marks and metadata are taken from both sources."
+      "Mux an audio stream into an audio-free stream. Track marks and metadata \
+       are taken from both sources."
     ~return_t:out_t
-    [
-      ("audio", Lang.source_t aux_t, None, None);
-      ("", Lang.source_t main_t, None, None);
-    ]
+    ( base_proto
+    @ [
+        ("audio", Lang.source_t aux_t, None, None);
+        ("", Lang.source_t main_t, None, None);
+      ] )
     (fun p kind ->
-      let main = List.assoc "" p in
-      let aux = List.assoc "audio" p in
-      new mux ~kind ~mode:`Add_audio ~main ~aux)
+      let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
+      let max_buffer = Lang.to_float (List.assoc "max" p) in
+      let max_buffer = max max_buffer (pre_buffer *. 1.1) in
+      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
+      let main_source = List.assoc "" p in
+      let main_content = `Video in
+      let main_kind = Lang.frame_kind_of_kind_type main_t in
+      let aux_source = List.assoc "audio" p in
+      let aux_content = `Audio in
+      let aux_kind = Lang.frame_kind_of_kind_type aux_t in
+      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind ~log_overfull
+        ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
+        ())
