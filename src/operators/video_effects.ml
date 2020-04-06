@@ -82,10 +82,9 @@ let () =
         Lang.float_getter_t (),
         None,
         Some "Coefficient to scale opacity with." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.VideoProcessing
-    ~descr:"Scale opacity of video."
+    ~return_t ~category:Lang.VideoProcessing ~descr:"Scale opacity of video."
     (fun p kind ->
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let a () = int_of_float (a () *. 255.) in
