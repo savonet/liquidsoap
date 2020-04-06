@@ -60,9 +60,9 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
         match Sdl.Event.(enum (get e typ)) with
           | `Quit ->
               (* Avoid an immediate restart (which would happen with autostart). But
-           do not cancel autostart. We should perhaps have a method in the
-           output class for that kind of thing, and try to get an uniform
-           behavior. *)
+                 do not cancel autostart. We should perhaps have a method in the
+                 output class for that kind of thing, and try to get an uniform
+                 behavior. *)
               request_start <- false;
               request_stop <- true
           | `Key_down ->

@@ -82,7 +82,7 @@ type plugin = {
   (* true is the format can be detected *)
   parser : ?pwd:string -> string -> playlist;
       (* The parser is expected to respect the order
-       of the files in the playlist. *)
+         of the files in the playlist. *)
 }
 
 (** Parsers are given a string and return a list of metadatas,uri, if possible. *)

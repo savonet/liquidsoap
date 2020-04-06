@@ -221,7 +221,7 @@ module Make (Generator : Generator.S_Asio) = struct
         let decode_audio, decode_video =
           if decode_audio && decode_video then
             (* Only decode the one which is late, so that we don't have memory
-             problems. *)
+               problems. *)
             if Generator.audio_length buffer < Generator.video_length buffer
             then (true, false)
             else (false, true)

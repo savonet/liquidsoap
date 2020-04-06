@@ -29,8 +29,7 @@ let make params =
     {
       External_encoder_format.channels
       (* We use a hardcoded value in order not to force the evaluation of the
-           number of channels too early, see #933. *) =
-        2;
+           number of channels too early, see #933. *) = 2;
       samplerate = Frame.audio_rate;
       video = false;
       header = true;

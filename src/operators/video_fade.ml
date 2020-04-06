@@ -45,10 +45,10 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
       let off_ticks = Frame.position ab in
       let video_content = VFrame.get_content ab source in
       (* In video frames: [length] of the fade, [count] since beginning.
-      * This must be done before accessing the (possibly empty video content)
-      * because the state has to be updated anyway. Also, it is important
-      * that the metadata is ready at the position in ticks rather than
-      * video, otherwise we might miss some data. *)
+         This must be done before accessing the (possibly empty video content)
+         because the state has to be updated anyway. Also, it is important
+         that the metadata is ready at the position in ticks rather than
+         video, otherwise we might miss some data. *)
       let fade, fadefun, length, count =
         match state with
           | `Idle ->
