@@ -210,6 +210,8 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
 
     inherit Source.source ~name:"input.srt" kind as super
 
+    initializer log_ref := self#log#info "%s"
+
     val input_mutex = Mutex.create ()
 
     val mutable client_data = None
