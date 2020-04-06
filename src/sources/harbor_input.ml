@@ -269,8 +269,7 @@ module Make (Harbor : T) = struct
     end
 
   let () =
-    Lang.add_operator Harbor.source_name
-      ~kind:(Lang.Unconstrained (Lang.univ_t ()))
+    Lang.add_operator Harbor.source_name ~return_t:(Lang.univ_t ())
       ~category:Lang.Input ~descr:Harbor.source_description
       [
         ( "buffer",

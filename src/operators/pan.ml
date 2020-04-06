@@ -67,8 +67,7 @@ let () =
         Some "Field width in degrees (between 0 and 90)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Pan a stereo sound."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Pan a stereo sound."
     (fun p kind ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in

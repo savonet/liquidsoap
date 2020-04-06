@@ -54,7 +54,7 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.video in
   Lang.add_operator "output.graphics" ~active:true
     (Output.proto @ [("", Lang.source_t k, None, None)])
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Output
+    ~return_t:k ~category:Lang.Output
     ~descr:"Display video stream using the Graphics library."
     (fun p kind ->
       let autostart = Lang.to_bool (List.assoc "start" p) in

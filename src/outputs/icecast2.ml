@@ -602,8 +602,8 @@ class output ~kind p =
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "output.icecast" ~active:true ~category:Lang.Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    (proto k) ~kind:(Lang.Unconstrained k) (fun p kind ->
+    (proto return_t) ~return_t (fun p kind ->
       (new output ~kind p :> Source.source))

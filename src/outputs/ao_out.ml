@@ -101,7 +101,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
 
 let () =
   let kind = Lang.any_with ~audio:1 () in
-  let kind = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao" ~active:true
     ( Output.proto
     @ [
@@ -125,11 +125,10 @@ let () =
           Lang.metadata_t,
           Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []),
           Some "List of parameters, depends on the driver." );
-        ("", Lang.source_t kind, None, None);
+        ("", Lang.source_t return_t, None, None);
       ] )
     ~category:Lang.Output
-    ~descr:"Output stream to local sound card using libao."
-    ~kind:(Lang.Unconstrained kind)
+    ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p kind ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let driver = Lang.to_string (List.assoc "driver" p) in

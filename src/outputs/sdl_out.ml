@@ -101,8 +101,7 @@ let () =
   let k = Lang.kind_type_of_kind_format Lang.video in
   Lang.add_operator "output.sdl" ~active:true
     (Output.proto @ [("", Lang.source_t k, None, None)])
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Output
-    ~descr:"Display a video using SDL."
+    ~return_t:k ~category:Lang.Output ~descr:"Display a video using SDL."
     (fun p kind ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

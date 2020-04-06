@@ -105,8 +105,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
 let log = Log.make ["input"; "external"; "video"]
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_video_any in
-  let kind = Lang.Unconstrained k in
+  let return_t = Lang.kind_type_of_kind_format Lang.audio_video_any in
   Lang.add_operator "input.external.avi" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
@@ -133,7 +132,7 @@ let () =
         Some "Restart process when exited with error." );
       ("", Lang.string_t, None, Some "Command to execute.");
     ]
-    ~kind
+    ~return_t
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
       let video_format = ref None in
@@ -245,8 +244,7 @@ let () =
 (***** raw video *****)
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.video_only in
-  let kind = Lang.Unconstrained k in
+  let return_t = Lang.kind_type_of_kind_format Lang.video_only in
   Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
@@ -273,7 +271,7 @@ let () =
         Some "Restart process when exited with error." );
       ("", Lang.string_t, None, Some "Command to execute.");
     ]
-    ~kind
+    ~return_t
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
       let width = Lazy.force Frame.video_width in

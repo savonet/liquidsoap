@@ -59,8 +59,7 @@ let () =
       ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k)
-    ~descr:"Map a function to all audio samples. This is SLOW!"
+    ~return_t:k ~descr:"Map a function to all audio samples. This is SLOW!"
     ~category:Lang.SoundProcessing
     ~flags:[Lang.Hidden] (* It works well but is probably useless. *)
     (fun p kind ->

@@ -227,7 +227,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
       done
   end
 
-let kind = Lang.kind_type_of_kind_format Lang.any
+let return_t = Lang.kind_type_of_kind_format Lang.any
 
 let proto =
   [
@@ -251,7 +251,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool true),
       Some "Reset blank counter at each track." );
-    ("", Lang.source_t kind, None, None);
+    ("", Lang.source_t return_t, None, None);
   ]
 
 let extract p =
@@ -277,8 +277,7 @@ let extract p =
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
 let () =
-  Lang.add_operator "on_blank" ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.TrackProcessing
+  Lang.add_operator "on_blank" ~return_t ~category:Lang.TrackProcessing
     ~descr:"Calls a given handler when detecting a blank."
     ( ( "",
         Lang.fun_t [] Lang.unit_t,
@@ -299,7 +298,7 @@ let () =
       new on_blank
         ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         ~on_blank ~on_noise s);
-  Lang.add_operator "strip_blank" ~active:true ~kind:(Lang.Unconstrained kind)
+  Lang.add_operator "strip_blank" ~active:true ~return_t
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank." proto
     (fun p kind ->
@@ -309,8 +308,7 @@ let () =
       ( new strip
           ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s
         :> Source.source ));
-  Lang.add_operator "eat_blank" ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.TrackProcessing
+  Lang.add_operator "eat_blank" ~return_t ~category:Lang.TrackProcessing
     ~descr:
       "Eat blanks, i.e., drop the contents of the stream until it is not blank \
        anymore."

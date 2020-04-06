@@ -307,11 +307,11 @@ let register_plugin fname =
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
   let k = if inputs = 0 then Lang.video_only else Lang.any_with ~video:1 () in
-  let k = Lang.kind_type_of_kind_format k in
+  let return_t = Lang.kind_type_of_kind_format k in
   let liq_params, params = params plugin info in
   let liq_params =
     let inputs =
-      List.init inputs (fun _ -> ("", Lang.source_t k, None, None))
+      List.init inputs (fun _ -> ("", Lang.source_t return_t, None, None))
     in
     liq_params @ inputs
   in
@@ -330,9 +330,8 @@ let register_plugin fname =
     a
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
-  Lang.add_operator ("video.frei0r." ^ name) liq_params
-    ~kind:(Lang.Unconstrained k) ~category:Lang.VideoProcessing ~flags:[] ~descr
-    (fun p kind ->
+  Lang.add_operator ("video.frei0r." ^ name) liq_params ~return_t
+    ~category:Lang.VideoProcessing ~flags:[] ~descr (fun p kind ->
       let instance =
         let width = Lazy.force Frame.video_width in
         let height = Lazy.force Frame.video_height in

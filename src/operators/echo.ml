@@ -74,8 +74,7 @@ let () =
         Some "Use ping-pong delay." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~descr:"Add echo."
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Add echo."
     (fun p kind ->
       let f v = List.assoc v p in
       let duration, feedback, pp, src =

@@ -180,7 +180,7 @@ let () =
              string." );
         ("", Lang.string_t, None, Some "URL to decode.");
       ] )
-    ~kind:(Lang.Unconstrained k)
+    ~return_t:k
     (fun p kind ->
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =

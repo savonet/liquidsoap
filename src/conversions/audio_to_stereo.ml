@@ -52,7 +52,7 @@ let () =
   let input_kind = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "audio_to_stereo" ~category:Lang.Conversions
     ~descr:"Convert any kind of audio source into a stereo source."
-    ~kind:Lang.audio_stereo
+    ~return_t:(Lang.kind_type_of_kind_format Lang.audio_stereo)
     [("", Lang.source_t input_kind, None, None)]
     (fun p kind ->
       let s = new basic ~kind (Lang.to_source (List.assoc "" p)) in

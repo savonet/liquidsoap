@@ -356,7 +356,7 @@ let string_of_category x =
   * so we have to force its value withing the acceptable range. *)
 
 let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
-    ~kind f =
+    ~return_t f =
   let compare (x, _, _, _) (y, _, _, _) =
     match (x, y) with
       | "", "" -> 0
@@ -391,8 +391,7 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
       | Source.Clock_loop (a, b) ->
           raise (Lang_errors.Clock_loop (t.T.pos, a, b))
   in
-  let kind_type = kind_type_of_kind_format kind in
-  let return_t = Term.source_t ~active kind_type in
+  let return_t = Term.source_t ~active return_t in
   let category = string_of_category category in
   add_builtin ~category ~descr ~flags name proto return_t f
 

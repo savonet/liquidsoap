@@ -372,7 +372,7 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   let proto =
     [
@@ -383,7 +383,7 @@ let () =
           "Forbid the selection of a branch for two tracks in a row. The empty \
            list stands for `[false,...,false]`." );
       ( "",
-        Lang.list_t (Lang.product_t pred_t (Lang.source_t kind)),
+        Lang.list_t (Lang.product_t pred_t (Lang.source_t return_t)),
         None,
         Some "Sources with the predicate telling when they can be played." );
     ]
@@ -392,8 +392,8 @@ let () =
     ~descr:
       "At the beginning of a track, select the first source whose predicate is \
        true."
-    (common kind @ proto)
-    ~kind:(Lang.Unconstrained kind)
+    (common return_t @ proto)
+    ~return_t
     (fun p kind ->
       let children =
         List.map
@@ -448,19 +448,19 @@ class fallback ~kind ~override_meta ~transition_length ?replay_meta mode
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   let proto =
     [
       ( "",
-        Lang.list_t (Lang.source_t kind),
+        Lang.list_t (Lang.source_t return_t),
         None,
         Some "Select the first ready source in this list." );
     ]
   in
   Lang.add_operator "fallback" ~category:Lang.TrackProcessing
     ~descr:"At the beginning of each track, select the first ready child."
-    (common kind @ proto)
-    ~kind:(Lang.Unconstrained kind)
+    (common return_t @ proto)
+    ~return_t
     (fun p kind ->
       let children = Lang.to_source_list (List.assoc "" p) in
       let replay_meta, ts, tr, tl, override_meta =
@@ -519,18 +519,18 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
 
 let () =
   let add name strict descr weight_descr =
-    let kind = Lang.univ_t () in
+    let return_t = Lang.univ_t () in
     let weight_t = Lang.int_getter_t () in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
-      ( common kind
+      ( common return_t
       @ [
           ( "weights",
             Lang.list_t weight_t,
             Some (Lang.list ~t:weight_t []),
             Some weight_descr );
-          ("", Lang.list_t (Lang.source_t kind), None, None);
+          ("", Lang.list_t (Lang.source_t return_t), None, None);
         ] )
-      ~kind:(Lang.Unconstrained kind)
+      ~return_t
       (fun p kind ->
         let children = Lang.to_source_list (List.assoc "" p) in
         let replay_meta, ts, tr, tl, override_meta =

@@ -177,7 +177,7 @@ let () =
         ("", Lang.format_t k, None, Some "Encoding format.");
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k)
+    ~return_t:k
     (fun p kind ->
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
@@ -225,7 +225,7 @@ let () =
         Some "Log when the source's buffer is overfull." );
       ("", Lang.string_t, None, Some "Mime type.");
     ]
-    ~kind:(Lang.Unconstrained k)
+    ~return_t:k
     (fun p kind ->
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in

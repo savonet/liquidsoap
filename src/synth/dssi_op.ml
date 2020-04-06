@@ -150,7 +150,7 @@ let register_descr plugin_name descr_n descr outputs =
       ]
     @ liq_params
     @ [("", Lang.source_t k, None, None)] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~flags:[]
+    ~return_t:k ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
     (fun p kind ->
       let f v = List.assoc v p in
@@ -171,7 +171,7 @@ let register_descr plugin_name descr_n descr outputs =
     ( "synth.all.dssi."
     ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
     (liq_params @ [("", Lang.source_t k, None, None)])
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundSynthesis ~flags:[]
+    ~return_t:k ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
     (fun p kind ->
       let f v = List.assoc v p in

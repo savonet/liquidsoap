@@ -72,7 +72,7 @@ let () =
         Some "Freeze after given amount of time (don't freeze if negative)." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k)
+    ~return_t:k
     ~descr:"Sleep at each frame. Useful for emulating network delays, etc."
     ~category:Lang.SoundProcessing
     ~flags:[Lang.Hidden; Lang.Experimental]

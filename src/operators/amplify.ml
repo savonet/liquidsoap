@@ -88,7 +88,7 @@ let () =
            disable." );
       ("", Lang.source_t k, None, None);
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
+    ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Multiply the amplitude of the signal."
     (fun p kind ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in

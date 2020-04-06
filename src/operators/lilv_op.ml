@@ -298,11 +298,12 @@ let register_plugin plugin =
   let no = Array.length outputs in
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_plugin plugin in
-  let k =
+  let input_t =
     Lang.kind_type_of_kind_format (if mono then Lang.any else Lang.audio_n ni)
   in
   let liq_params =
-    liq_params @ if ni = 0 then [] else [("", Lang.source_t k, None, None)]
+    liq_params
+    @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
   in
   let maker = Plugin.author_name plugin in
   let maker_homepage = Plugin.author_homepage plugin in
@@ -318,16 +319,15 @@ let register_plugin plugin =
     ^ "."
   in
   let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
-  let k =
-    if mono then k
+  let return_t =
+    if mono then input_t
     else
       (* TODO: do we really need a fresh variable here? *)
       Lang.kind_type_of_kind_format (Lang.audio_n no)
   in
   Lang.add_operator
     ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))
-    liq_params ~kind:(Lang.Unconstrained k) ~category:Lang.SoundProcessing
-    ~flags:[] ~descr
+    liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[] ~descr
     (fun p kind ->
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in

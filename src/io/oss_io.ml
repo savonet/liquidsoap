@@ -154,7 +154,7 @@ let () =
           Some "OSS device to use." );
         ("", Lang.source_t k, None, None);
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Output
+    ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
     (fun p kind ->
       let e f v = f (List.assoc v p) in
@@ -187,8 +187,7 @@ let () =
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
       ] )
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Input
-    ~descr:"Stream from an OSS input device."
+    ~return_t:k ~category:Lang.Input ~descr:"Stream from an OSS input device."
     (fun p kind ->
       let e f v = f (List.assoc v p) in
       let clock_safe = e Lang.to_bool "clock_safe" in

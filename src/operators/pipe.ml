@@ -271,7 +271,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         ()
   end
 
-let k = Lang.audio_any
+let return_t = Lang.kind_type_of_kind_format Lang.audio_any
 
 let proto =
   [
@@ -312,7 +312,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool true),
       Some "Restart process when exited with error." );
-    ("", Lang.source_t (Lang.kind_type_of_kind_format k), None, None);
+    ("", Lang.source_t return_t, None, None);
   ]
 
 let pipe p kind =
@@ -342,5 +342,5 @@ let pipe p kind =
     :> source )
 
 let () =
-  Lang.add_operator "pipe" proto ~kind:k ~category:Lang.SoundProcessing
+  Lang.add_operator "pipe" proto ~return_t ~category:Lang.SoundProcessing
     ~descr:"Process audio signal through a given process stdin/stdout." pipe

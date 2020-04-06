@@ -135,8 +135,7 @@ let () =
         Some (Lang.string ""),
         Some "Jack server to connect to." );
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.Input
-    ~descr:"Get stream from jack."
+    ~return_t:k ~category:Lang.Input ~descr:"Get stream from jack."
     (fun p kind ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in

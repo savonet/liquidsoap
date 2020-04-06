@@ -92,7 +92,7 @@ class on_offset ~kind ~force ~offset ~override f s =
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "on_offset"
     [
       ( "offset",
@@ -123,13 +123,13 @@ let () =
            the current track, second is the latest metadata. That function \
            should be fast because it is executed in the main streaming thread."
       );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing
     ~descr:
       "Call a given handler when position in track is equal or more than a \
        given amount of time."
-    ~kind:(Lang.Unconstrained kind)
+    ~return_t
     (fun p kind ->
       let offset = Lang.to_float (List.assoc "offset" p) in
       let force = Lang.to_bool (List.assoc "force" p) in

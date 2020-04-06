@@ -210,6 +210,8 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
 
     inherit Source.source ~name:"input.srt" kind as super
 
+    initializer log_ref := self#log#info "%s"
+
     val input_mutex = Mutex.create ()
 
     val mutable client_data = None
@@ -359,9 +361,8 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
   end
 
 let () =
-  let kind = Lang.univ_t () in
-  Lang.add_operator "input.srt" ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.Input
+  let return_t = Lang.univ_t () in
+  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input
     ~descr:"Start a SRT agent in listener mode to receive and decode a stream."
     [
       ( "bind_address",
@@ -605,9 +606,9 @@ class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
   end
 
 let () =
-  let kind = Lang.univ_t () in
-  Lang.add_operator "output.srt" ~active:true ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.Output ~descr:"Send a SRT stream to a distant host."
+  let return_t = Lang.univ_t () in
+  Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
+    ~descr:"Send a SRT stream to a distant host."
     ( Output.proto
     @ [
         ( "host",
@@ -632,8 +633,8 @@ let () =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Use message api" );
-        ("", Lang.format_t kind, None, Some "Encoding format.");
-        ("", Lang.source_t kind, None, None);
+        ("", Lang.format_t return_t, None, Some "Encoding format.");
+        ("", Lang.source_t return_t, None, None);
       ] )
     (fun p kind ->
       let hostname = Lang.to_string (List.assoc "host" p) in

@@ -139,13 +139,14 @@ class keyboard ~kind =
 
 let () =
   Lang.add_operator "input.keyboard" []
-    ~kind:
-      (Lang.Constrained
-         {
-           Frame.audio = Lang.At_least 0;
-           video = Lang.Fixed 0;
-           midi = Lang.At_least 1;
-         })
+    ~return_t:
+      (Lang.kind_type_of_kind_format
+         (Lang.Constrained
+            {
+              Frame.audio = Lang.At_least 0;
+              video = Lang.Fixed 0;
+              midi = Lang.At_least 1;
+            }))
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Play notes from the keyboard."

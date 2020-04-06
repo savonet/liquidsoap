@@ -39,7 +39,7 @@ class gen ~kind ~seek name g freq duration ampl =
 let add name g =
   Lang.add_operator name ~category:Lang.Input
     ~descr:("Generate a " ^ name ^ " wave.")
-    ~kind:Lang.audio_any
+    ~return_t:(Lang.kind_type_of_kind_format Lang.audio_any)
     [
       ( "duration",
         Lang.float_t,

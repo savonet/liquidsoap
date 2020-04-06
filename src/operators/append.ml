@@ -162,7 +162,7 @@ let register =
            This source is allowed to fail (produce nothing) if no relevant \
            track is to be appended." );
     ]
-    ~kind:(Lang.Unconstrained k) ~category:Lang.TrackProcessing
+    ~return_t:k ~category:Lang.TrackProcessing
     ~descr:
       "Append an extra track to every track. Set the metadata 'liq_append' to \
        'false' to inhibit appending on one track."

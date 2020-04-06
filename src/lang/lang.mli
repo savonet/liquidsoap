@@ -193,7 +193,7 @@ val add_operator :
   ?active:bool ->
   string ->
   proto ->
-  kind:lang_kind_formats ->
+  return_t:t ->
   (env -> Frame.content_kind -> Source.source) ->
   unit
 
