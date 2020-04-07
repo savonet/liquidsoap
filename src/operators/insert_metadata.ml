@@ -61,7 +61,6 @@ class insert_metadata ~kind source =
             | None -> ()
             | Some m ->
                 metadata <- None;
-                Printf.printf "Setting metadata\n%!";
                 Frame.set_metadata frame pos m)
         ()
 
