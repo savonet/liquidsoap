@@ -35,7 +35,7 @@ New:
 - Add `predicate.activates`, `predicate.changes`, `predicate.once` (#1075).
 - Add `playlist.list.reloadable` and `playlist.list` (#1133).
 - Make it possible to disable buffer overrun logs.
-- Add `accelerate` operator.
+- Add `accelerate` operator (#1144).
 
 Changed:
 
