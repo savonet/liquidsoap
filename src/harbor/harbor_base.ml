@@ -58,6 +58,7 @@ let conf_icy_metadata =
         "audio/x-aac";
         "audio/wav";
         "audio/wave";
+        "audio/flac";
         "audio/x-flac";
       ]
     "Content-type (mime) of formats which allow shout metadata update."
