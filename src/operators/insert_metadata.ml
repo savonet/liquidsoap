@@ -76,8 +76,11 @@ class insert_metadata ~kind source =
       let p = Frame.position buf in
       if self#insert_track then Frame.add_break buf p
       else (
-        self#add_metadata buf p;
-        source#get buf )
+        (* Insert new metadata _after_ the call to #get
+            otherwise, it will be visible to sources under
+           this one! See: #1115 *)
+        source#get buf;
+        self#add_metadata buf p )
   end
 
 let () =

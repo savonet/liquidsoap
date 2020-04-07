@@ -69,7 +69,9 @@ Changed:
 - Renamed `base64.decode`/`base64.encode` to
   `string.base64.decode`/`string.base64.encode`.
 - Vumeter is now implemented in Liquidsoap (#1103).
-- Change `input.http` and `input.https` `url` parameter into a string getter (#1084)
+- Change `input.http` and `input.https` `url` parameter into a string getter
+  (#1084).
+- Add `audio/flac` as mime for flac (#1143).
 
 Fixed:
 
@@ -81,6 +83,7 @@ Fixed:
 - Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
 - Accept 24 bits per sample in %flac encoder (#1073).
 - Fix rare stack overflow during clock unification (#1108).
+- Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
 
 1.4.1 (18-02-2020)
 =====
