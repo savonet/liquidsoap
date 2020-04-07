@@ -100,7 +100,8 @@ end
 let mime_types =
   Dtools.Conf.list
     ~p:(Decoder.conf_mime_types#plug "flac")
-    "Mime-types used for guessing FLAC format" ~d:["audio/x-flac"]
+    "Mime-types used for guessing FLAC format"
+    ~d:["audio/flac"; "audio/x-flac"]
 
 let file_extensions =
   Dtools.Conf.list

@@ -1,6 +1,10 @@
 1.4.2 (unreleased)
 =====
 
+Changed:
+
+- Set `audio/flac` as mime for flac (#1143).
+
 Fixed:
 
 - Fixed errors when installing bash-completion files (#1095)
