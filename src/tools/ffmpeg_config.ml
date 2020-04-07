@@ -1,5 +1,13 @@
 let log = Log.make ["ffmpeg"]
 
+let () =
+  Printexc.register_printer (function
+    | Avutil.Error `Encoder_not_found ->
+        Some
+          "The requested ffmpeg encoder was not found, please make sure that \
+           ffmpeg was compiled with support for it"
+    | _ -> None)
+
 let conf_ffmpeg =
   Dtools.Conf.void ~p:(Configure.conf#plug "ffmpeg") "FFMPEG configuration"
 
