@@ -27,7 +27,7 @@ let ogg_video_mime = "video/ogg"
 let wav_mime = "audio/wav"
 let avi_mime = "video/avi"
 let aac_mime = "audio/aac"
-let flac_mime = "audio/x-flac"
+let flac_mime = "audio/flac"
 
 let base_proto kind =
   [
