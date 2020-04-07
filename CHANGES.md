@@ -11,6 +11,7 @@ Fixed:
 - Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
 - Accept 24 bits per sample in %flac encoder (#1073).
 - Fix rare stack overflow during clock unification (#1108).
+- Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
 
 1.4.1 (18-02-2020)
 =====
