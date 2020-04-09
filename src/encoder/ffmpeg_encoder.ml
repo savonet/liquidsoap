@@ -136,18 +136,22 @@ let mk_encoder ~ffmpeg ~options output =
   let video_stream =
     Utils.maybe
       (fun video_codec ->
-        let pixel_format =
-          Avcodec.Video.find_best_pixel_format video_codec `Yuv420p
-        in
         let time_base = { Avutil.num = 1; den = fps } in
         let pts = ref 0L in
         let pixel_aspect = { Avutil.num = 0; den = 1 } in
+        let flag =
+          match Ffmpeg_config.conf_scaling_algorithm#get with
+            | "fast_bilinear" -> Swscale.Fast_bilinear
+            | "bilinear" -> Swscale.Bilinear
+            | "bicubic" -> Swscale.Bicubic
+            | _ -> failwith "Invalid value set for ffmpeg scaling algorithm!"
+        in
         let scaler =
-          Scaler.create [] src_width src_height `Yuv420p target_width
-            target_height pixel_format
+          Scaler.create [flag] src_width src_height `Yuv420p target_width
+            target_height `Yuv420p
         in
         let opts =
-          Av.mk_video_opts ~pixel_format ~frame_rate:target_fps
+          Av.mk_video_opts ~pixel_format:`Yuv420p ~frame_rate:target_fps
             ~size:(target_width, target_height)
             ()
         in
@@ -157,7 +161,7 @@ let mk_encoder ~ffmpeg ~options output =
         let stream = Av.new_video_stream ~opts ~codec:video_codec output in
         let fps_converter =
           Ffmpeg_config.fps_converter ~width:target_width ~height:target_height
-            ~pixel_format ~time_base ~pixel_aspect ~fps ~target_fps
+            ~pixel_format:`Yuv420p ~time_base ~pixel_aspect ~fps ~target_fps
             (Av.write_frame stream)
         in
         let cb content start len =

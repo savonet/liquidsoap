@@ -25,6 +25,16 @@ let conf_verbosity =
 
 let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
 
+let conf_scaling_algorithm =
+  Dtools.Conf.string
+    ~p:(conf_ffmpeg#plug "scaling_algorithm")
+    "Scaling algorithm" ~d:"bicubic"
+    ~comments:
+      [
+        "Set FFMPEG scaling algorithm. One of: \"fast_bilinear\",";
+        "\"bilinear\" or \"bicubic\".";
+      ]
+
 let () =
   ignore
     (Dtools.Init.at_start (fun () ->

@@ -58,9 +58,9 @@ let ffmpeg_gen params =
     | ("r", { term = Ground (Int r); _ }) :: l when mode = `Video ->
         parse_args ~mode { f with Ffmpeg_format.framerate = Lazy.from_val r } l
     | ("width", { term = Ground (Int w); _ }) :: l when mode = `Video ->
-        parse_args ~mode { f with Ffmpeg_format.framerate = Lazy.from_val w } l
+        parse_args ~mode { f with Ffmpeg_format.width = Lazy.from_val w } l
     | ("height", { term = Ground (Int h); _ }) :: l when mode = `Video ->
-        parse_args ~mode { f with Ffmpeg_format.framerate = Lazy.from_val h } l
+        parse_args ~mode { f with Ffmpeg_format.height = Lazy.from_val h } l
     (* Shared options *)
     | ("codec", { term = Var s; _ }) :: l when s = "none" ->
         let f =
