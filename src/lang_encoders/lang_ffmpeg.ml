@@ -62,7 +62,9 @@ let ffmpeg_gen params =
     | ("height", { term = Ground (Int h); _ }) :: l when mode = `Video ->
         parse_args ~mode { f with Ffmpeg_format.height = Lazy.from_val h } l
     (* Shared options *)
-    | ("codec", { term = Var s; _ }) :: l when s = "none" ->
+    | ("codec", { term = Ground (String s); _ }) :: l
+    | ("codec", { term = Var s; _ }) :: l
+      when s = "none" ->
         let f =
           match mode with
             | `Audio ->
@@ -98,7 +100,9 @@ let ffmpeg_gen params =
   List.fold_left
     (fun f -> function `Audio l -> parse_args ~mode:`Audio f l
       | `Video l -> parse_args ~mode:`Video f l
-      | `Option ("format", { term = Var s; _ }) when s = "none" ->
+      | `Option ("format", { term = Ground (String s); _ })
+      | `Option ("format", { term = Var s; _ })
+        when s = "none" ->
           { f with Ffmpeg_format.format = None }
       | `Option ("format", { term = Ground (String fmt); _ }) ->
           { f with Ffmpeg_format.format = Some fmt }
