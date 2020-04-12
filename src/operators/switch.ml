@@ -486,9 +486,9 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
         ~name ~kind ~override_meta ~transition_length ?replay_meta ~mode
           (List.map snd children)
 
-    val mutable position = 0
+    val mutable position = -1
 
-    val mutable tracks_played = 0
+    val mutable tracks_played = 1
 
     (* Annihilate the reversal in #select once for all. *)
     val children = List.rev children
@@ -500,14 +500,15 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
 
         (* First try to select another track from the source
            currently playing. *)
-        let weight, s = List.nth children position in
-        if s.source#is_ready && tracks_played < weight () then (
-          tracks_played <- tracks_played + 1;
-          raise (Found (Some s)) );
+        if position <> -1 then (
+          let weight, s = List.nth children position in
+          if s.source#is_ready && tracks_played < weight () then (
+            tracks_played <- tracks_played + 1;
+            raise (Found (Some s)) ) );
 
         (* Otherwise, select the next source to be played. Respect original
            list order but skip over unavailale sources. *)
-        tracks_played <- 0;
+        tracks_played <- 1;
         let ready_list, ready_count =
           List.fold_left
             (fun (l, n) (_, s) ->
@@ -516,8 +517,6 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
         in
 
         if ready_count = 0 then raise (Found None);
-
-        let ready_list = List.rev ready_list in
 
         let rec f () =
           if strict then position <- (position + 1) mod children_count
