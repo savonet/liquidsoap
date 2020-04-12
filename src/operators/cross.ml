@@ -36,8 +36,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   object (self)
     inherit source ~name:"cross" kind as super
 
-    (* This actually depends on [f], we have to trust the user here. *)
-    method stype = s#stype
+    method stype = Source.Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
      * sources but we do not have a static way of knowing it at the moment.
