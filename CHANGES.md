@@ -76,6 +76,7 @@ Changed:
 Fixed:
 
 - Fix implementation of recursive functions (#934).
+- Fix implementation of `rotate` (#1129).
 - Fix opam install error with some bash-completion configuration (#980).
 - Make `blank()` source unavailable past is expected duration (#668).
 - Fixed implementation details with `cross` operator.
