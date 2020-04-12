@@ -11,6 +11,7 @@ Fixed:
 - Fixed failures in `extract-replaygain` script (#1125)
 - Set set_default_verify_paths for SSL (#450)
 - Use 443 as default port for https (#1127)
+- Fix implementation of `rotate` (#1129).
 - Register audio/opus mime type for ogg decoding (#1089)
 - Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
 - Accept 24 bits per sample in %flac encoder (#1073).
