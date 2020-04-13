@@ -25,7 +25,7 @@ module Generator = Generator.From_frames
 
 class accelerate ~kind ~ratio (source : source) =
   object (self)
-    inherit source ~name:"accelearte" kind as super
+    inherit operator ~name:"accelerate" kind [source] as super
 
     method self_sync = source#self_sync
 
