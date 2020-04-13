@@ -71,7 +71,6 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
         (* How much we filled compared to what we should have. *)
         let d = float filled -. (float (filled + skipped) /. ratio) in
         let d = Frame.seconds_of_master (truncate d) in
-        Printf.printf "d: %f\n%!" d;
         let rnd = randomize () in
         if rnd = 0. then d > 0.
         else (
@@ -79,7 +78,6 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
           (* Scaled logistic function: 0. when a is very negative, 1. when a is
              very positive. *)
           let l = (tanh (a *. 2.) +. 1.) /. 2. in
-          Printf.printf "l: %f\n%!" l;
           Random.float 1. > 1. -. l ) )
 
     method private get_frame frame =
