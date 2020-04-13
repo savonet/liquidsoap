@@ -23,7 +23,7 @@
 open Source
 module Generator = Generator.From_frames
 
-class accelerate ~kind ~ratio (source : source) =
+class accelerate ~kind ~ratio ~randomize (source : source) =
   object (self)
     inherit operator ~name:"accelerate" kind [source] as super
 
@@ -64,11 +64,29 @@ class accelerate ~kind ~ratio (source : source) =
     (** Frame used for dropping samples. *)
     val null = Frame.create kind
 
+    method private must_drop =
+      let ratio = ratio () in
+      if ratio <= 1. then false
+      else (
+        (* How much we filled compared to what we should have. *)
+        let d = float filled -. (float (filled + skipped) /. ratio) in
+        let d = Frame.seconds_of_master (truncate d) in
+        Printf.printf "d: %f\n%!" d;
+        let rnd = randomize () in
+        if rnd = 0. then d > 0.
+        else (
+          let a = d /. rnd in
+          (* Scaled logistic function: 0. when a is very negative, 1. when a is
+             very positive. *)
+          let l = (tanh (a *. 2.) +. 1.) /. 2. in
+          Printf.printf "l: %f\n%!" l;
+          Random.float 1. > 1. -. l ) )
+
     method private get_frame frame =
       let pos = ref 1 in
       (* Drop frames if we are late. *)
       (* TODO: we could also duplicate if we are in advance. *)
-      while !pos > 0 && float (filled + skipped) /. float filled < ratio () do
+      while !pos > 0 && self#must_drop do
         Frame.clear null;
         source#get null;
         self#slave_tick;
@@ -90,6 +108,10 @@ let () =
         Lang.float_getter_t (),
         Some (Lang.float 2.),
         Some "A value higher than 1 means slowing down." );
+      ( "randomize",
+        Lang.float_getter_t (),
+        Some (Lang.float 1.),
+        Some "Randomization (0 means no randomization)." );
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.SoundProcessing
@@ -100,4 +122,5 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in
-      new accelerate ~kind ~ratio src)
+      let randomize = Lang.to_float_getter (f "randomize") in
+      new accelerate ~kind ~ratio ~randomize src)
