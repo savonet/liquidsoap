@@ -6,7 +6,7 @@ TESTS = $(basename $(LIQ))
 
 top_srcdir = ../..
 
-test: $(TESTS) flactest
+test: flactest $(TESTS)
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 
 %: %.liq
