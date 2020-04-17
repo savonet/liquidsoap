@@ -18,6 +18,7 @@ Fixed:
 - Fix rare stack overflow during clock unification (#1108).
 - Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
 - Fix `cross()` fallability.
+- Fix decoder remaining time when decoding is done (#1159)
 
 1.4.1 (18-02-2020)
 =====
