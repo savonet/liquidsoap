@@ -29,6 +29,7 @@ doc/content/protocols.md
 autodoc/
 *.annot
 scripts/tests/threesines/
+scripts/tests/flactest/
 src/test/readavi
 src/test/simplelex_test
 src/test/strings_test

@@ -78,10 +78,10 @@ let conf_video_channels =
   Conf.int ~p:(conf_video#plug "channels") ~d:0 "Default number of channels"
 
 let conf_video_width =
-  Conf.int ~p:(conf_video#plug "width") ~d:320 "Image width"
+  Conf.int ~p:(conf_video#plug "width") ~d:1280 "Image width"
 
 let conf_video_height =
-  Conf.int ~p:(conf_video#plug "height") ~d:240 "Image height"
+  Conf.int ~p:(conf_video#plug "height") ~d:720 "Image height"
 
 (* MIDI *)
 let conf_midi = Conf.void ~p:(conf#plug "midi") "MIDI parameters"

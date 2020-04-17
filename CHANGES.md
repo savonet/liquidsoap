@@ -76,6 +76,7 @@ Changed:
 Fixed:
 
 - Fix implementation of recursive functions (#934).
+- Fix implementation of `rotate` (#1129).
 - Fix opam install error with some bash-completion configuration (#980).
 - Make `blank()` source unavailable past is expected duration (#668).
 - Fixed implementation details with `cross` operator.
@@ -84,6 +85,8 @@ Fixed:
 - Accept 24 bits per sample in %flac encoder (#1073).
 - Fix rare stack overflow during clock unification (#1108).
 - Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
+- Fix `cross()` fallability.
+- Fix decoder remaining time when decoding is done (#1159)
 
 1.4.1 (18-02-2020)
 =====

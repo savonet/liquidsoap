@@ -281,7 +281,7 @@ let () =
       let target_frame_rate = Lazy.force Frame.video_rate in
       let fps =
         match
-          List.find_opt (fun f -> f.Avfilter.name = name) Avfilter.filters
+          List.find_opt (fun f -> f.Avfilter.name = "fps") Avfilter.filters
         with
           | Some f -> f
           | None -> failwith "Could not find ffmpeg fps filter"
