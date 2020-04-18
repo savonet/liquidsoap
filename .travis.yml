@@ -8,8 +8,8 @@ services:
 - docker
 script:
 - export TRAVIS_COMMIT_SHORT="$(git rev-parse --short ${TRAVIS_COMMIT})"
-- docker build . --tag liquidsoap-build --no-cache --build-arg DOCKER_TAG --build-arg TRAVIS_BRANCH --build-arg TRAVIS_COMMIT --build-arg TRAVIS_COMMIT_SHORT --build-arg TRAVIS_PULL_REQUEST --build-arg TRAVIS_PULL_REQUEST_BRANCH --build-arg TRAVIS_BUILD_NUMBER -f .travis/Dockerfile
-- ./.travis/get-deb.sh
+- docker build . --tag liquidsoap-build --no-cache --build-arg DOCKER_TAG --build-arg TRAVIS_BRANCH --build-arg TRAVIS_COMMIT --build-arg TRAVIS_COMMIT_SHORT --build-arg TRAVIS_PULL_REQUEST --build-arg TRAVIS_PULL_REQUEST_BRANCH --build-arg TRAVIS_BUILD_NUMBER -f .ci/travis/Dockerfile
+- ./.ci/travis/get-deb.sh
 
 deploy:
   provider: s3
