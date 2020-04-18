@@ -98,19 +98,14 @@ Here's how to install:
 [sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
-**debian/stretch:**
+**ubuntu/eoan:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list.d/liquidsoap.list
-```
-
-**ubuntu/bionic:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list.d/liquidsoap.list
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu eoan main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
-**ubuntu/disco:**
+**ubuntu/focal:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu disco main >> /etc/apt/sources.list.d/liquidsoap.list
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu focal main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 You can now see the list of available packages:
