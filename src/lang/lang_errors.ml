@@ -93,7 +93,7 @@ let report lexbuf f =
       | Failure s when s = "lexing: empty token" ->
           print_error 1 "Empty token";
           raise Error
-      | Parsing.Parse_error ->
+      | Lang_parser.Error | Parsing.Parse_error ->
           print_error 2 "Parse error";
           raise Error
       | Lang_values.Parse_error (pos, s) ->
