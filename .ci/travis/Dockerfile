@@ -39,9 +39,9 @@ RUN eval $(opam config env) && make test
 
 USER root
 
-ADD .travis/debian/ /tmp/liquidsoap-full/liquidsoap/debian
+ADD .ci/travis/debian/ /tmp/liquidsoap-full/liquidsoap/debian
 
-ADD .travis/build-deb.sh /tmp/liquidsoap-full/liquidsoap/
+ADD .ci/travis/build-deb.sh /tmp/liquidsoap-full/liquidsoap/
 
 RUN chown -R opam /tmp/liquidsoap-full/liquidsoap/debian
 
