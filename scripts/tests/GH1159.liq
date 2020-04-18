@@ -4,7 +4,7 @@
 # was retuning remaining = 0 too early,
 # trigering an early `on_end` call.
 
-s = single("./flactest/a.flac")
+s = single("./threesines/c.wav")
 
 def f(rem, _) =
   if rem > 0. then
@@ -18,6 +18,6 @@ end
 
 s = on_end(delay=0.1,f,s)
 
-clock.assign_new(sync="none",[s])
+clock.assign_new(sync=false,[s])
 
 output.dummy(s)
