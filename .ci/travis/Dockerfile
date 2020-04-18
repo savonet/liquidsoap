@@ -25,6 +25,7 @@ WORKDIR /tmp/liquidsoap-full
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout master && git pull && \
      git fetch origin $TRAVIS_COMMIT && git checkout $TRAVIS_COMMIT && \
+     ./.ci/checkout-deps.sh && \
      cd .. && ./bootstrap && \
      export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
      ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
@@ -38,9 +39,9 @@ RUN eval $(opam config env) && make test
 
 USER root
 
-ADD .travis/debian/ /tmp/liquidsoap-full/liquidsoap/debian
+ADD .ci/travis/debian/ /tmp/liquidsoap-full/liquidsoap/debian
 
-ADD .travis/build-deb.sh /tmp/liquidsoap-full/liquidsoap/
+ADD .ci/travis/build-deb.sh /tmp/liquidsoap-full/liquidsoap/
 
 RUN chown -R opam /tmp/liquidsoap-full/liquidsoap/debian
 
