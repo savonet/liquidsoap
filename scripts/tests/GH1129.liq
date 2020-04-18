@@ -35,7 +35,7 @@ s3 = map_metadata(id="s3",m3,s3)
 
 def f(m) =
   s2_ready := !s2_ready or m["id"] == "s3"
-  selected := list.cons(m["id"],!selected)
+  selected := list.add(m["id"],!selected)
 end
 
 s = rotate([s1,s2,s3])
@@ -57,6 +57,7 @@ def on_done () =
   end
 
   shutdown()
+  (-1.)
 end
 
-thread.run(delay=1., on_done)
+add_timeout(1., on_done)
