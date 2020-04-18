@@ -13,9 +13,9 @@ script:
 
 deploy:
   provider: s3
-  access_key_id: AKIA6KFHFXRIWW5COSJE
+  access_key_id: AKIA6KFHFXRI5AQ2J4KY
   secret_access_key:
-    secure: hPkyQfVBfKHi/bh8JzhOtmFT4gd+ln/gV8+Kyqh0sM1/UkaVTpzaKFT+meheIGhiNMYS/zM/V0RN665GLNNo3suAXOHc3P6Tl7VS0eHbqEKNhSW4fNLqVjxYxIhBWRivTWoIXU/n2jdg8GdSXKdqxauL/bgUWpL3cV4l4SQscq4=
+    secure: J0Alq2DgQ4q3Hy82Mkn1CfjSIMCkXdhdfDovQOWCNlSox8JzQWM/OF8+ePZQSeZ3tL/nrEEtu0vGlgPp22/EE4BJyXKPd8vnWgNE8xq7dpYSPnt9rDDqcIOtM/xXAmIpfTFs6Gc0KY+EPIPPZV3ySAvLyTFIhN0SgX/kkgYshr0=
   bucket: deb.liquidsoap.info
   skip_cleanup: true
   local_dir: debian
