@@ -51,14 +51,18 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
         end
         ""
       end
-    log.debug(label=id, "Next song will be \"#{file}\".")
-    r = request.create(file)
-    if check_next(r) then
-      r
+    if file == "" then
+      []
     else
-      log.info(label=id, "Request #{request.uri(r)} rejected by check_next.")
-      request.destroy(r)
-      next()
+      log.debug(label=id, "Next song will be \"#{file}\".")
+      r = request.create(file)
+      if check_next(r) then
+        [r]
+      else
+        log.info(label=id, "Request #{request.uri(r)} rejected by check_next.")
+        request.destroy(r)
+        next()
+      end
     end
   end
   # Instantiate the source
