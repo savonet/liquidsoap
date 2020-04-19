@@ -6,15 +6,23 @@ homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
 build: [
   ["./bootstrap"] {dev}
-  ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
+  ["./configure" "--prefix" prefix
+                 "--sbindir=%{lib}%/liquidsoap/sbin"
+                 "--libexecdir=%{lib}%/liquidsoap/libexec"
+                 "--sysconfdir=%{lib}%/liquidsoap/etc"
+                 "--sharedstatedir=%{lib}%/liquidsoap/com"
+                 "--localstatedir=%{lib}%/liquidsoap/var"
+                 "--libdir=%{lib}%/liquidsoap/lib"
+                 "--includedir=%{lib}%/liquidsoap/include"
+                 "--datarootdir=%{lib}%/liquidsoap/share"
+                 "--with-bash-completion-dir=%{lib}%/liquidsoap/etc/bash_completion.d"
+                 "--with-user=dummy"
+                 "--with-group=dummy"]
   [make "clean"] {dev}
   [make]
 ]
 install: [
   [make "install"]
-]
-remove: [
-  ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
 ]
 post-messages: [
 "We're sorry that your liquidsoap install failed. Check out our installation
@@ -48,7 +56,7 @@ depends: [
   "dtools" {>= "0.4.1"}
   "duppy" {>= "0.8.0"}
   "menhir"
-  "mm" {>= "0.5.0"}
+  "mm" {>= "0.5.0" & < "0.6.0"}
   "ocamlfind" {build}
   "pcre"
   "sedlex" {>= "2.0"}
@@ -99,21 +107,21 @@ conflicts: [
   "bjack" {< "0.1.3"}
   "cry" {< "0.6.0"}
   "dssi" {< "0.1.1"}
-  "faad" {< "0.4.0"}
+  "faad" {< "0.4.0" | >= "0.5.0"}
   "fdkaac" {< "0.3.1"}
-  "ffmpeg" {< "0.2.0"}
-  "flac" {< "0.1.5"}
+  "ffmpeg" {< "0.2.0" | >= "0.5.0"}
+  "flac" {< "0.1.5" | >= "0.2.0"}
   "frei0r" {< "0.1.0"}
   "gavl" {< "0.1.4"}
   "gstreamer" {< "0.3.0"}
   "inotify" {< "1.0"}
   "ladspa" {< "0.1.4"}
-  "lame" {< "0.3.2"}
+  "lame" {< "0.3.2" | >= "0.3.4"}
   "lastfm" {< "0.3.0"}
   "lo" {< "0.1.2"}
-  "mad" {< "0.1.4"}
+  "mad" {< "0.1.4" | >= "0.5.0"}
   "magic" {< "0.6"}
-  "ogg" {< "0.5.0"}
+  "ogg" {< "0.5.0" | > "0.6.0"}
   "opus" {< "0.1.3"}
   "portaudio" {< "0.2.0"}
   "pulseaudio" {< "0.1.2"}
@@ -137,4 +145,3 @@ at will, giving you more power than you need for creating or
 transforming streams. But liquidsoap is still very light and easy to
 use, in the Unix tradition of simple strong components working
 together."""
-flags: light-uninstall
