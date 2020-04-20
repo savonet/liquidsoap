@@ -27,7 +27,6 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
   end
   # Current remaining playlist
   playlist = ref(randomize(playlist))
-  print("playlist: #{playlist}")
   # A reference to know if the source has been stopped
   has_stopped = ref(false)
   # The next function
