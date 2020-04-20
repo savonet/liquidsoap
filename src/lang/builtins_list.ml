@@ -134,8 +134,13 @@ let () =
   add_builtin "list.sort" ~cat:List
     ~descr:"Sort a list according to a comparison function."
     [
-      ("", Lang.fun_t [(false, "", a); (false, "", a)] Lang.int_t, None, None);
-      ("", Lang.list_t a, None, None);
+      ( "",
+        Lang.fun_t [(false, "", a); (false, "", a)] Lang.int_t,
+        None,
+        Some
+          "Comparison function f such that f(x,y)<0 when x<y, f(x,y)=0 when \
+           x=y, and f(x,y)>0 when x>y." );
+      ("", Lang.list_t a, None, Some "List to sort.");
     ]
     (Lang.list_t a)
     (fun p ->
