@@ -27,6 +27,7 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
   end
   # Current remaining playlist
   playlist = ref(randomize(playlist))
+  print("playlist: #{playlist}")
   # A reference to know if the source has been stopped
   has_stopped = ref(false)
   # The next function
@@ -99,8 +100,9 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
     log.info(label=id, "Reloading playlist.")
     if file.is_directory(!playlist_uri) then
       log.info(label=id,"Playlist is a directory.")
-      files = file.ls(absolute=true,recursive=true,!playlist_uri)
-      list.filter(fun(f) -> not (file.is_directory(f)), files)
+      files = file.ls(absolute=true, recursive=true, !playlist_uri)
+      files = list.filter(fun(f) -> not (file.is_directory(f)), files)
+      list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
     else
       playlist = request.create.raw(!playlist_uri)
       result =
