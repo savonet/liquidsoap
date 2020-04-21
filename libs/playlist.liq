@@ -36,11 +36,15 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
         end
         ""
       end
-    r = request.create(file)
-    if filter(request.metadata(r)) then
-      r
+    if file == "" then
+      []
     else
-      next ()
+      r = request.create(file)
+      if filter(request.metadata(r)) then
+        [r]
+      else
+        [r]
+      end
     end
   end
   # Instanciate the source
