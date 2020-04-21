@@ -89,32 +89,71 @@ let () =
       let r = Lang.to_request (List.assoc "" p) in
       (new unqueued ~kind r :> source))
 
-class dynamic ~kind (f : Lang.value) length default_duration timeout
-  conservative =
+class dynamic ~kind ~retry_delay (f : Lang.value) length default_duration
+  timeout conservative =
   object (self)
     inherit
       Request_source.queued
         ~kind ~name:"request.dynamic" ~length ~default_duration ~timeout
-          ~conservative ()
+          ~conservative () as super
 
-    method get_next_request =
+    val mutable retry_status = None
+
+    method is_ready =
+      match (super#is_ready, retry_status) with
+        | true, _ -> true
+        | false, Some d when Unix.gettimeofday () < d -> false
+        | false, _ ->
+            super#notify_new_request;
+            false
+
+    (* First cache last requests. *)
+    val mutable last_requests = []
+
+    method private get_next_requests =
       try
         let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
-        let req = Lang.to_request (Lang.apply ~t f []) in
-        Request.set_root_metadata req "source" self#id;
-        Some req
+        let reqs =
+          List.map Lang.to_request (Lang.to_list (Lang.apply ~t f []))
+        in
+        List.iter
+          (fun req -> Request.set_root_metadata req "source" self#id)
+          reqs;
+        reqs
       with e ->
         log#severe "Failed to obtain a media request!";
         raise e
+
+    method get_next_request =
+      match last_requests with
+        | req :: tl ->
+            last_requests <- tl;
+            Some req
+        | [] -> (
+            match self#get_next_requests with
+              | req :: tl ->
+                  last_requests <- tl;
+                  Some req
+              | [] ->
+                  retry_status <- Some (Unix.gettimeofday () +. retry_delay ());
+                  None )
   end
 
 let () =
   let k = Lang.univ_t 1 in
   Lang.add_operator "request.dynamic" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    (("", Lang.fun_t [] (Lang.request_t k), None, None) :: queued_proto)
+    ( ("", Lang.fun_t [] (Lang.list_t (Lang.request_t k)), None, None)
+    :: ( "retry_delay",
+         Lang.float_getter_t 2,
+         Some (Lang.float 0.1),
+         Some
+           "Retry after a given time (in seconds) when callback returns an \
+            empty list." )
+    :: queued_proto )
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
       let f = List.assoc "" p in
+      let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
       let l, d, t, c = extract_queued_params p in
-      (new dynamic ~kind f l d t c :> source))
+      (new dynamic ~kind ~retry_delay f l d t c :> source))
