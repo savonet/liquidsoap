@@ -18,6 +18,7 @@ Fixed:
 
 - Fixed errors when installing bash-completion files (#1095)
 - Fixed failures in `extract-replaygain` script (#1125)
+- Do not crash when loading playlists using `~/path/to/..` paths.
 - Set set_default_verify_paths for SSL (#450)
 - Use 443 as default port for https (#1127)
 - Fix implementation of `rotate` (#1129).
