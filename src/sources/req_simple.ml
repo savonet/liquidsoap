@@ -141,7 +141,7 @@ class dynamic ~kind ~retry_delay (f : Lang.value) length default_duration
 
 let () =
   let k = Lang.univ_t 1 in
-  Lang.add_operator "request.dynamic" ~category:Lang.Input
+  Lang.add_operator "requests.dynamic" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
     ( ("", Lang.fun_t [] (Lang.list_t (Lang.request_t k)), None, None)
     :: ( "retry_delay",
