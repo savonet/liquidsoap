@@ -1,18 +1,18 @@
 1.4.2 (unreleased)
 =====
 
-Breaking Changes:
-- Changed `request.dynamic` callback function type to return an array of requests,
-  making possible to return multiple requests at once but, more importantly,
-  to return `[]`  when no next requests are available. (#1169)
-
 New:
 
 - Added `retry_delay` argument to `request.dynamic` (#1169).
+- Renamed `request.dynamic` to `requests.dynamic` and updated its
+  callback function type to return an array of requests, making possible
+  to return multiple requests at once but, more importantly,
+  to return `[]` when no next requests are available. (#1169)
 
 Changed:
 
 - Set `audio/flac` as mime for flac (#1143).
+- Deprecated `request.dynamic`.
 
 Fixed:
 
