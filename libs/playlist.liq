@@ -54,12 +54,13 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
   id = source.id(source)
   # The load function
   def load_playlist () =
+    playlist_uri = path.home.unrelate(!playlist_uri)
     files =
-      if file.is_directory(!playlist_uri) then
+      if file.is_directory(playlist_uri) then
         log(label=id,"playlist is a directory.")
-        get_process_lines("find #{string.quote(!playlist_uri)} -type f | sort")
+        get_process_lines("find #{string.quote(playlist_uri)} -type f | sort")
       else
-        playlist = request.create.raw(!playlist_uri)
+        playlist = request.create.raw(playlist_uri)
         result =
           if request.resolve(playlist) then
             playlist = request.filename(playlist)
