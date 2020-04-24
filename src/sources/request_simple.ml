@@ -99,7 +99,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   object (self)
     inherit
       Request_source.queued
-        ~kind ~name:"request.dynamic" ~length ~default_duration ~timeout
+        ~kind ~name:"requests.dynamic" ~length ~default_duration ~timeout
           ~conservative () as super
 
     val mutable retry_status = None

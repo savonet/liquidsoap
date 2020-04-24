@@ -19,7 +19,7 @@ New:
 - Added `list.ind`.
 - Added `list.index`.
 - Added `request.id`.
-- Added `retry_delay` argument to `request.dynamic` (#1169).
+- Added `retry_delay` argument to `requests.dynamic` (#1169).
 - Added a profiler for the language. It can be enabled with `profiler.enable` and
   the results are obtained with `profiler.stats.string` (#1027).
 - Added `gtts` protocol to use Google TTS (#1034).
@@ -44,9 +44,11 @@ Changed:
   the default safe behavior. (#1012)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
-- Changed `request.dynamic` callback function type to return an array of requests,
-  making possible to return multiple requests at once but, more importantly,
-  to return `[]`  when no next requests are available. (#1169)
+- Renamed `request.dynamic` to `requests.dynamic` and updated its
+  callback function type to return an array of requests, making possible
+  to return multiple requests at once but, more importantly,
+  to return `[]` when no next requests are available. (#1169)
+- Deprecated `request.dynamic`.
 - Renamed `verb` argument info `method` in `output.icecast`.
 - Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).
