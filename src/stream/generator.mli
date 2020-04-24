@@ -161,14 +161,42 @@ module From_frames : sig
   val fill : t -> Frame.t -> unit
 end
 
+(** Generator not only with output but also with asynchronous input. *)
+module type S_Asio = sig
+  type t
+
+  val length : t -> int (* ticks *)
+
+  val audio_length : t -> int
+  val video_length : t -> int
+  val remaining : t -> int (* ticks *)
+
+  val clear : t -> unit
+  val fill : t -> Frame.t -> unit
+  val add_metadata : t -> Frame.metadata -> unit
+  val add_break : ?sync:bool -> t -> unit
+  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
+  val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
+end
+
 (** Generator that consumes audio and video asynchronously, and produces
     frames. *)
 module From_audio_video : sig
   type t
 
   (** In [`Audio] mode, only audio can be put in the buffer, and similarly for
-      the [`Video] mode. In [`Both] mode, both types of content can be fed into
-      the generator, asynchronously, and they exit the buffer synchronously.
+      the [`Video] mode.
+
+      In [`Both] mode, both types of content can be fed into the generator,
+      asynchronously, and they exit the buffer synchronously. PTS are only
+      used in this mode and are used to make sure that all audio and video
+      content is synchronized when exported. Typically, during muxing, the
+      audio source may not be ready for a while while the video source keeps
+      filling up the buffer. In this case, when the audio source starts
+      filling up the buffer as well, we can filter out all the video content
+      that has no corresponding audio.
+
       [`Undefined] forbids any feeding, it's useful to make sure a meaningful
       mode is assigned before any use. *)
   type mode = [ `Audio | `Video | `Both | `Undefined ]
@@ -193,6 +221,10 @@ module From_audio_video : sig
   (** Length of data available in both audio and video. *)
   val length : t -> int
 
+  (** Length of buffered data, taking into account buffered
+      unsynced data. *)
+  val buffered_length : t -> int
+
   (** Size of audio data in bytes. *)
   val audio_size : t -> int
 
@@ -210,43 +242,25 @@ module From_audio_video : sig
   val add_metadata : t -> Frame.metadata -> unit
 
   (** Add a track limit. Audio and video length should be equal. *)
-  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
+  val add_break : ?sync:bool -> t -> unit
 
-  (* [put_audio buffer data offset length]: offset and length
+  (* [put_audio ?pts buffer data offset length]: offset and length
    * are in samples ! *)
-  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
 
-  (* [put_video buffer data offset length]: offset and length
+  (* [put_video ?pts buffer data offset length]: offset and length
    * are in samples ! *)
-  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
 
-  (** Feed from a frame, only copying data according to the mode. *)
-  val feed_from_frame : t -> Frame.t -> unit
+  (** Feed from a frame, only copying data according to the mode.
+      Defaults to the generator's mode. *)
+  val feed_from_frame : ?mode:mode -> t -> Frame.t -> unit
 
   (** Fill a frame from the generator. *)
   val fill : t -> Frame.t -> unit
 
   val remove : t -> int -> unit
   val clear : t -> unit
-end
-
-(** Generator not only with Output but also with ASynchronous Input. *)
-module type S_Asio = sig
-  type t
-
-  val length : t -> int (* ticks *)
-
-  val audio_length : t -> int
-  val video_length : t -> int
-  val remaining : t -> int (* ticks *)
-
-  val clear : t -> unit
-  val fill : t -> Frame.t -> unit
-  val add_metadata : t -> Frame.metadata -> unit
-  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
-  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
-  val put_video : t -> Frame.video_t array -> int -> int -> unit
-  val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
 (** Same as [From_audio_video] but with two extra features useful for streaming
@@ -281,15 +295,16 @@ module From_audio_video_plus : sig
   val size : t -> int
   val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
   val add_metadata : t -> Frame.metadata -> unit
-  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
+  val add_break : ?sync:bool -> t -> unit
 
-  (* [put_audio buffer data offset length]:
+  (* [put_audio ?pts buffer data offset length]:
    * offset and length are in audio samples! *)
-  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
 
   (* [put_video buffer data offset length]:
    * offset and length are in video samples! *)
-  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
+  val feed_from_frame : ?mode:mode -> t -> Frame.t -> unit
   val fill : t -> Frame.t -> unit
   val remove : t -> int -> unit
   val clear : t -> unit

@@ -62,6 +62,8 @@ type metadata = (string, string) Hashtbl.t
 
 (** A frame. *)
 type t = {
+  (* Presentation time, in multiple of frame size. *)
+  mutable pts : int64;
   (* End of track markers. A break at the end of the
      buffer is not an end of track (if needed, the
      end-of-track needs to be put at the beginning
@@ -117,8 +119,16 @@ val clear : t -> unit
 (** Same as [clear] from a given position. *)
 val clear_from : t -> int -> unit
 
-(** Same as [clear] but leaves the last metadata at position [-1]. *)
+(** Same as [clear] but leaves the last metadata at position [-1] and increases PTS. *)
 val advance : t -> unit
+
+(** {3 Presentation time} *)
+
+(** Frame presentation time, in multiple of a frame's size. *)
+val pts : t -> int64
+
+(** Set presentation time. *)
+val set_pts : t -> int64 -> unit
 
 (** {3 Breaks} *)
 

@@ -61,7 +61,7 @@ Libraries not developed by Savonet are:
 | ------------------- | ------------------------------------ | --------------------------------------------- |
 | camlimages          |            | Image decoding                                |
 | gd4o                |                    | Video.add_text() on servers without X         |
-| ocaml-alsa          |  >= 0.3.0                 | ALSA I/O                                      |
+| ocaml-alsa          |  >= 0.2.4                 | ALSA I/O                                      |
 | ocaml-ao            |  >= 0.2.0                   | Output via libao                              |
 | ocaml-bjack         |  >= 0.1.3                | Jack support                                  |
 | ocaml-cry           |  >= 0.6.5                  | Sending to Shoutcast & Icecast                |

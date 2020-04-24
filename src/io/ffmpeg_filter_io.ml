@@ -46,8 +46,6 @@ class audio_output ~name ~kind val_source =
 
     method set_input fn = input <- fn
 
-    val mutable pts = Int64.zero
-
     val mutable channels = None
 
     val mutable converter = None
@@ -90,8 +88,7 @@ class audio_output ~name ~kind val_source =
     method output_send memo =
       let pcm = AFrame.content memo in
       let aframe = self#convert pcm in
-      Avutil.frame_set_pts aframe pts;
-      pts <- Int64.add (Int64.of_int (AFrame.position memo)) pts;
+      Avutil.frame_set_pts aframe (Some (Frame.pts memo));
       input aframe
   end
 
@@ -110,8 +107,6 @@ class video_output ~name val_source =
           ~output_kind:"ffmpeg.filter.input" val_source true
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
-
-    val mutable pts = Int64.zero
 
     method set_input fn = input <- fn
 
@@ -132,8 +127,7 @@ class video_output ~name val_source =
         let s = Image.YUV420.uv_stride f in
         let vdata = [| (y, sy); (u, s); (v, s) |] in
         let vframe = ToVideoFrame.convert converter vdata in
-        Avutil.frame_set_pts vframe pts;
-        pts <- Int64.succ pts;
+        Avutil.frame_set_pts vframe (Some (Frame.pts memo));
         input vframe
       done
   end
@@ -145,7 +139,7 @@ type audio_config = {
 }
 
 (* Same thing here. *)
-class audio_input kind =
+class audio_input ~bufferize kind =
   let channels_layout channels =
     try Avutil.Channel_layout.get_default channels
     with Not_found ->
@@ -155,6 +149,7 @@ class audio_input kind =
   in
   let out_samplerate = Frame.audio_of_seconds 1. in
   let generator = Generator.create `Audio in
+  let min_buf = Frame.master_of_seconds bufferize in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
 
@@ -211,11 +206,19 @@ class audio_input kind =
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
-      let output = (Utils.get_some output).Avfilter.handler in
+      let output = Utils.get_some output in
+      let src = Avfilter.(time_base output.context) in
+      let dst = Ffmpeg_utils.audio_time_base () in
       let rec f () =
         try
-          let pcm = self#convert (output ()) in
-          Generator.put_audio generator pcm 0 (Audio.length pcm);
+          let frame = output.Avfilter.handler () in
+          let pcm = self#convert frame in
+          let pts =
+            Utils.maybe
+              (Ffmpeg_utils.convert_pts ~src ~dst)
+              (Avutil.frame_pts frame)
+          in
+          Generator.put_audio ?pts generator pcm 0 (Audio.length pcm);
           f ()
         with Avutil.Error `Eagain -> ()
       in
@@ -223,7 +226,7 @@ class audio_input kind =
 
     method is_ready =
       self#flush_buffer;
-      Generator.length generator > 0
+      Generator.length generator > min_buf
 
     method private get_frame frame =
       self#flush_buffer;
@@ -240,10 +243,11 @@ type video_config = {
   pixel_format : Avutil.Pixel_format.t;
 }
 
-class video_input kind =
+class video_input ~bufferize kind =
   let generator = Generator.create `Video in
   let target_width = Lazy.force Frame.video_width in
   let target_height = Lazy.force Frame.video_height in
+  let min_buf = Frame.master_of_seconds bufferize in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
 
@@ -289,17 +293,26 @@ class video_input kind =
     method remaining = Generator.remaining generator
 
     method private flush_buffer =
-      let output = (Utils.get_some output).Avfilter.handler in
+      let output = Utils.get_some output in
+      let src = Avfilter.(time_base output.context) in
+      let dst = Ffmpeg_utils.video_time_base () in
       let rec f () =
         try
+          let frame = output.Avfilter.handler () in
+          let pts =
+            Utils.maybe
+              (Ffmpeg_utils.convert_pts ~src ~dst)
+              (Avutil.frame_pts frame)
+          in
           let img =
-            match self#convert (output ()) with
+            match self#convert frame with
               | [| (y, sy); (u, s); (v, _) |] ->
                   Image.YUV420.make target_width target_height y sy u v s
               | _ -> assert false
           in
           let content = Video.single img in
-          Generator.put_video generator [| content |] 0 (Video.length content);
+          Generator.put_video ?pts generator [| content |] 0
+            (Video.length content);
           f ()
         with Avutil.Error `Eagain -> ()
       in
@@ -307,7 +320,7 @@ class video_input kind =
 
     method is_ready =
       self#flush_buffer;
-      Generator.length generator > 0
+      Generator.length generator > min_buf
 
     method private get_frame frame =
       self#flush_buffer;
