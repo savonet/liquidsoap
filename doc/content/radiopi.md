@@ -221,14 +221,14 @@ def channel_radiopilote(~skip=true,name)
     log("Request for #{name}")
     ret = list.hd(get_process_lines(scripts^"radiopilote-getnext "^quote(name)^sed))
     log("Got answer: #{ret} for #{name}")
-    request.create(ret)
+    [request.create(ret)]
   end
 
-  # Create the request.dynamic source
+  # Create the requests.dynamic source
   # Set conservative to true to queue
   # several songs in advance
   source = 
-    request.dynamic(conservative=true, length=400.,
+    requests.dynamic(conservative=true, length=400.,
                     id="dyn_"^name,request, 
                     timeout=60.)
  

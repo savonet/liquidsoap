@@ -225,8 +225,7 @@ end
 # @flag hidden
 def request.dynamic(~id="",~conservative=false,~default_duration=30.,
                     ~length=10.,~timeout=20.,fn) =
-  log.severe(label="lang.deprecated",
-    "WARNING: \"request.dynamic\" is deprecated! Please use \"requests.dynamic\".")
+  deprecated("request.dynamic", "requests.dynamic")
   requests.dynamic(id=id,conservative=conservative,default_duration=default_duration,
                    length=length,timeout=timeout,fun () -> [fn()])
 end

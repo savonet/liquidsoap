@@ -77,7 +77,7 @@ def input.hls(~id="",~reload=10.,uri)
   end
   find_stream ()
 
-  source = request.dynamic(id=id,default_duration=0.5,length=5.,next)
+  source = requests.dynamic(id=id,default_duration=0.5,length=5.,next)
 
   source = merge_tracks(source)
 
