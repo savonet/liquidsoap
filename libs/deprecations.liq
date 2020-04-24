@@ -229,3 +229,4 @@ def request.dynamic(~id="",~conservative=false,~default_duration=30.,
     "WARNING: \"request.dynamic\" is deprecated! Please use \"requests.dynamic\".")
   requests.dynamic(id=id,conservative=conservative,default_duration=default_duration,
                    length=length,timeout=timeout,fun () -> [fn()])
+end
