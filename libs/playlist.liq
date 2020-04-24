@@ -100,14 +100,15 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
   playlist_uri=ref(uri)
   # The load function
   def load_playlist () =
+    playlist_uri = path.home.unrelate(!playlist_uri)
     log.info(label=id, "Reloading playlist.")
-    if file.is_directory(!playlist_uri) then
+    if file.is_directory(playlist_uri) then
       log.info(label=id,"Playlist is a directory.")
-      files = file.ls(absolute=true, recursive=true, !playlist_uri)
+      files = file.ls(absolute=true, recursive=true, playlist_uri)
       files = list.filter(fun(f) -> not (file.is_directory(f)), files)
       list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
     else
-      playlist = request.create.raw(!playlist_uri)
+      playlist = request.create.raw(playlist_uri)
       result =
         if request.resolve(timeout=timeout, playlist) then
           playlist = request.filename(playlist)

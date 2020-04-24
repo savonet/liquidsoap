@@ -78,6 +78,7 @@ Changed:
 - Change `input.http` and `input.https` `url` parameter into a string getter
   (#1084).
 - Add `audio/flac` as mime for flac (#1143).
+- Added `path.home.unrelate`.
 
 Fixed:
 
@@ -85,6 +86,7 @@ Fixed:
 - Fix implementation of `rotate` (#1129).
 - Fix opam install error with some bash-completion configuration (#980).
 - Make `blank()` source unavailable past is expected duration (#668).
+- Do not crash when loading playlists using `~/path/to/..` paths.
 - Fixed implementation details with `cross` operator.
 - Register audio/opus mime type for ogg decoding (#1089)
 - Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
