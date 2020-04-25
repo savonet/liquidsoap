@@ -4,7 +4,7 @@
 New:
 
 - Added `retry_delay` argument to `request.dynamic` (#1169).
-- Renamed `request.dynamic` to `requests.dynamic` and updated its
+- Renamed `request.dynamic` to `request.dynamic.list` and updated its
   callback function type to return an array of requests, making possible
   to return multiple requests at once but, more importantly,
   to return `[]` when no next requests are available. (#1169)
