@@ -48,7 +48,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
     end
   end
   # Instanciate the source
-  source = requests.dynamic(id=id,conservative=conservative,default_duration=default_duration,
+  source = request.dynamic.list(id=id,conservative=conservative,default_duration=default_duration,
                            length=length,next)
   # Get its id.
   id = source.id(source)
