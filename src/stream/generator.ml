@@ -291,7 +291,7 @@ module From_frames = struct
     List.iter
       (fun (block, o, o', size) ->
         let dst = frame.Frame.content in
-        Frame.blit_content block o dst (offset + o') size)
+        Frame.blit_content ~fresh_video:false block o dst (offset + o') size)
       blocks;
     List.iter
       (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
@@ -593,14 +593,19 @@ module From_audio_video = struct
     let pts = Frame.pts frame in
     let mode = match mode with Some mode -> mode | None -> t.mode in
 
-    let content = Frame.copy frame.Frame.content in
+    (* Audio buffer is passed down to the decoders so we need to copy it
+       before storing it for later use. *)
+    let audio () = Array.map Audio.Mono.copy Frame.(frame.content.audio) in
+    (* Video data is actually acessible frame by frame is can be stored for
+       later use as-is. *)
+    let video = Frame.(frame.content.video) in
 
     match mode with
-      | `Audio -> put_audio ~pts t content.Frame.audio 0 (AFrame.size ())
-      | `Video -> put_video ~pts t content.Frame.video 0 (VFrame.size ())
+      | `Audio -> put_audio ~pts t (audio ()) 0 (AFrame.size ())
+      | `Video -> put_video ~pts t video 0 (VFrame.size ())
       | `Both ->
-          put_audio ~pts t content.Frame.audio 0 (AFrame.size ());
-          put_video ~pts t content.Frame.video 0 (VFrame.size ())
+          put_audio ~pts t (audio ()) 0 (AFrame.size ());
+          put_video ~pts t video 0 (VFrame.size ())
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -663,7 +668,9 @@ module From_audio_video = struct
                  * blit round, minus those that have been outputted before.
                  * When everything is aligned, this is the same as [!l]. *)
                 let l = !(vpos' + l) - !vpos' in
-                Video.blit v !vpos v' !fpos l)
+                for i = 0 to l - 1 do
+                  v'.(!fpos + i) <- v.(!vpos + i)
+                done)
               vblk dst.Frame.video;
             Array.iter2
               (fun a a' ->

@@ -38,6 +38,8 @@ class effect ~name ~kind effect (source : source) =
 
     method abort_track = source#abort_track
 
+    method needs_fresh_video = true
+
     method private get_frame buf =
       match VFrame.get_content buf source with
         | None -> ()

@@ -42,6 +42,8 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
 
     method self_sync = source#self_sync
 
+    method needs_fresh_video = true
+
     val mutable text_frame = None
 
     val mutable pos_x = tx ()

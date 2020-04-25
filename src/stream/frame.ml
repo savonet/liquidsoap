@@ -424,7 +424,7 @@ let set_all_metadata b l = b.metadata <- l
 let get_past_metadata b =
   try Some (List.assoc (-1) b.metadata) with Not_found -> None
 
-let blit_content src src_pos dst dst_pos len =
+let blit_content ~fresh_video src src_pos dst dst_pos len =
   Array.iter2
     (fun a a' ->
       if a != a' then (
@@ -433,11 +433,20 @@ let blit_content src src_pos dst dst_pos len =
           (Audio.Mono.sub a !src_pos !len)
           (Audio.Mono.sub a' !dst_pos !len) ))
     src.audio dst.audio;
+
+  let blit_video =
+    if fresh_video then Video.blit
+    else fun src src_pos dst dst_pos len ->
+      for i = 0 to len - 1 do
+        dst.(dst_pos + 1) <- src.(src_pos + i)
+      done
+  in
+
   Array.iter2
     (fun v v' ->
       if v != v' then (
         let ( ! ) = video_of_master in
-        Video.blit v !src_pos v' !dst_pos !len ))
+        blit_video v !src_pos v' !dst_pos !len ))
     src.video dst.video;
   Array.iter2
     (fun m m' ->
@@ -447,11 +456,12 @@ let blit_content src src_pos dst dst_pos len =
     src.midi dst.midi
 
 (** Copy data from [src] to [dst].
-  * This triggers changes of contents layout if needed. *)
-let blit src src_pos dst dst_pos len =
+    Video frames are assigned unless a copy is
+    requested. *)
+let blit ~fresh_video src src_pos dst dst_pos len =
   (* Assuming that the tracks have the same track layout,
    * copy a chunk of data from [src] to [dst]. *)
-  blit_content src.content src_pos dst.content dst_pos len
+  blit_content ~fresh_video src.content src_pos dst.content dst_pos len
 
 (** Raised by [get_chunk] when no chunk is available. *)
 exception No_chunk
@@ -460,12 +470,12 @@ exception No_chunk
   * (a chunk is a region of a frame between two breaks).
   * Metadata relevant to the copied chunk is copied as well,
   * and content layout is changed if needed. *)
-let get_chunk ab from =
+let get_chunk ~fresh_video ab from =
   assert (is_partial ab);
   let p = position ab in
   let copy_chunk i =
     add_break ab i;
-    blit from p ab p (i - p);
+    blit ~fresh_video from p ab p (i - p);
 
     (* If the last metadata before [p] differ in [from] and [ab],
      * copy the one from [from] to [p] in [ab].

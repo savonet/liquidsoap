@@ -156,6 +156,11 @@ class virtual source :
        (** [is_ready] tells you if [get] can be called. *)
        method virtual is_ready : bool
 
+       (** True if any of the underlying sources manipulates video data in place.
+           If so, shared video content is copied before being passed down by this
+           operator. *)
+       method needs_fresh_video : bool
+
        (** [get buf] asks the source to fill the buffer [buf] if possible.
            The [get] call is partial when the buffer is not completely filled.
            [get] should never be called with a full buffer,

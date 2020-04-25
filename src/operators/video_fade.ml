@@ -39,6 +39,8 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
 
     method self_sync = source#self_sync
 
+    method needs_fresh_video = true
+
     val mutable state = `Idle
 
     method private get_frame ab =
