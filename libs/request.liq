@@ -18,7 +18,7 @@ def request.queue.pushable(~id="", ~conservative=false, ~default_duration=30., ~
     log.info(label=id, "Pushing #{uri} on the queue.")
     queue := list.append(!queue, [uri])
   end
-  s = requests.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next)
+  s = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next)
   if interactive then
     namespace = if id == "" then "queue" else id end
     def push(uri) =

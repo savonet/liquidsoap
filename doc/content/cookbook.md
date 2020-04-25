@@ -171,7 +171,7 @@ This is explained in the documentation for [request-based sources](request_sourc
 For instance, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
 
 ```liquidsoap
-requests.dynamic(
+request.dynamic.list(
   { [request.create("bar:foo",
       indicators=
         get_process_lines("cat "^quote("playlist.pls")))] })

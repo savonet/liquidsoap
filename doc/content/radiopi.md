@@ -224,11 +224,11 @@ def channel_radiopilote(~skip=true,name)
     [request.create(ret)]
   end
 
-  # Create the requests.dynamic source
+  # Create the request.dynamic.list source
   # Set conservative to true to queue
   # several songs in advance
   source = 
-    requests.dynamic(conservative=true, length=400.,
+    request.dynamic.list(conservative=true, length=400.,
                     id="dyn_"^name,request, 
                     timeout=60.)
  

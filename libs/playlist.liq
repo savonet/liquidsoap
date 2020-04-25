@@ -66,7 +66,7 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
     end
   end
   # Instantiate the source
-  source = requests.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
+  source = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
   # The reload function
   def reload(p) =
     log.debug(label=id, "Reloading playlist.")

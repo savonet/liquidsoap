@@ -5,7 +5,7 @@ decoding.
 
 Liquidsoap provides several operators for playing requests:
 `single`, `playlist` and `playlist.safe`,
-`requests.dynamic`, `request.queue` and `request.equeue`.
+`request.dynamic.list`, `request.queue` and `request.equeue`.
 In a few cases (`single` with a local file,
 or `playlist.safe`) a request operator will know
 that it can always get a ready request instantaneously.
@@ -70,7 +70,7 @@ def my_request_function() =
 end
 
 # Create the source
-s = requests.dynamic(my_request_function)
+s = request.dynamic.list(my_request_function)
 ```
 
 Queues

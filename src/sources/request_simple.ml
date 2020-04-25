@@ -99,7 +99,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   object (self)
     inherit
       Request_source.queued
-        ~kind ~name:"requests.dynamic" ~length ~default_duration ~timeout
+        ~kind ~name:"request.dynamic.list" ~length ~default_duration ~timeout
           ~conservative () as super
 
     val mutable retry_status = None
@@ -148,7 +148,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
 
 let () =
   let k = Lang.univ_t () in
-  Lang.add_operator "requests.dynamic" ~category:Lang.Input
+  Lang.add_operator "request.dynamic.list" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
     ( ("", Lang.fun_t [] (Lang.list_t (Lang.request_t k)), None, None)
     :: ( "retry_delay",
