@@ -262,13 +262,34 @@ save a file per hour in wav format, the following script can be used:
 # s = ...
 
 # Dump the stream
-file_name = '/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3'
-output.file(%mp3,filename,s)
+output.file(%wav, '/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3', s, reopen_when={0m})
 ```
 
-This will save your source into a `mp3` file with name specified by `file_name`.
-In this example, we use [string interpolation](language.html) and time litterals to generate a different
-file name each time new metadata are coming from `s`.
+In the following variant we write a new mp3 file each time new metadata is
+coming from `s`:
+
+```liquidsoap
+file_name = '/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3'
+output.file(%mp3, filename, s, reopen_on_metadata=true)
+```
+
+In the two examples we use [string interpolation](language.html) and time
+litterals to generate the output file name.
+
+In order to limit the disk space used by this archive, on unix systems we can
+regularly call `find` to cleanup the folder ; if we can to keep 31 days of
+recording :
+
+```liquidsoap
+exec_at(freq=3600., pred={ true },
+    fun () -> list.iter(fun(msg) -> log(msg, label="archive_cleaner"),
+        list.append(
+            get_process_lines("find /archive/* -type f -mtime +31 -delete"),
+            get_process_lines("find /archive/* -type d -empty -delete")
+        )
+    )
+)
+```
 
 Manually dump a stream
 ----------------------
