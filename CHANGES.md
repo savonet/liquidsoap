@@ -37,6 +37,7 @@ New:
 - Add `playlist.list.reloadable` and `playlist.list` (#1133).
 - Make it possible to disable buffer overrun logs.
 - Add `video.resize`.
+- Add `getter.int_of_float` and `getter.float_of_int`.
 
 Changed:
 

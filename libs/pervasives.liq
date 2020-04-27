@@ -1,6 +1,7 @@
 %include "audio.liq"
 %include "ref.liq"
 %include "list.liq"
+%include "getter.liq"
 %include "predicate.liq"
 %include "thread.liq"
 %include "utils.liq"
