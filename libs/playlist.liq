@@ -106,7 +106,9 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       log.info(label=id,"Playlist is a directory.")
       files = file.ls(absolute=true, recursive=true, playlist_uri)
       files = list.filter(fun(f) -> not (file.is_directory(f)), files)
-      list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
+      files = list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
+      def add_prefix(file) = prefix^file end
+      list.map(add_prefix, files)
     else
       playlist = request.create.raw(playlist_uri)
       result =
