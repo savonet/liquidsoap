@@ -615,12 +615,18 @@ end
 def chop(~duration=float_getter(3.),~metadata=[],s) =
   duration=to_float_getter(duration)
   let (insert, s) = insert_metadata(s)
-  def f () =
-    insert(new_track=true, metadata)
-    duration()
+
+  # Track time in the source's context:
+  start_time = ref 0.
+  def f() =
+    if duration () <= source.time(s) - !start_time then
+      start_time := source.time(s)
+      insert(new_track=true, metadata)
+    end
+    1.
   end
-  thread.run.recurrent(delay=duration(), f)
-  s
+
+  amplify(f,s)
 end
 
 # Make a source available or not depending on a boolean.
