@@ -36,6 +36,7 @@ New:
 - Add `predicate.activates`, `predicate.changes`, `predicate.once` (#1075).
 - Add `playlist.list.reloadable` and `playlist.list` (#1133).
 - Make it possible to disable buffer overrun logs.
+- Add `video.resize`.
 
 Changed:
 
@@ -79,6 +80,7 @@ Changed:
   (#1084).
 - Add `audio/flac` as mime for flac (#1143).
 - Added `path.home.unrelate`.
+- Use getters for arguments of `video.add_image` (#1176).
 
 Fixed:
 

@@ -200,6 +200,50 @@ let () =
  *)
 
 let () =
+  Lang.add_operator "video.resize"
+    [
+      ("width", Lang.int_getter_t (), Some (Lang.int (-1)), Some "Target width.");
+      ( "height",
+        Lang.int_getter_t (),
+        Some (Lang.int (-1)),
+        Some "Target height." );
+      ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.VideoProcessing
+    ~descr:"Resize and translate video."
+    (fun p kind ->
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      let width = Lang.to_int_getter (f "width") in
+      let height = Lang.to_int_getter (f "height") in
+      let ox = Lang.to_int_getter (f "x") in
+      let oy = Lang.to_int_getter (f "y") in
+      new effect
+        ~kind
+        (fun buf ->
+          let width = width () in
+          let height = height () in
+          let width, height =
+            if width >= 0 && height >= 0 then (width, height)
+            else (
+              (* Negative values mean proportional scale. *)
+              let owidth = Video.Image.width buf in
+              let oheight = Video.Image.height buf in
+              if width < 0 && height < 0 then (owidth, oheight)
+              else if width < 0 then (owidth * height / oheight, height)
+              else if height < 0 then (width, oheight * width / owidth)
+              else assert false )
+          in
+          let dst = Video.Image.create width height in
+          Video.Image.scale buf dst;
+          Video.Image.blank buf;
+          Video.Image.fill_alpha buf 0;
+          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf)
+        src)
+
+let () =
   Lang.add_operator "video.scale"
     [
       ( "scale",
