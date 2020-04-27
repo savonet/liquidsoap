@@ -95,6 +95,7 @@ Fixed:
 - Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
 - Fix `cross()` fallability.
 - Fix decoder remaining time when decoding is done (#1159)
+- Fix `get_process_lines` regexp logic (#1151)
 
 1.4.1 (18-02-2020)
 =====
