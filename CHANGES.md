@@ -81,6 +81,7 @@ Changed:
 - Add `audio/flac` as mime for flac (#1143).
 - Added `path.home.unrelate`.
 - Use getters for arguments of `video.add_image` (#1176).
+- Generalize `audio_to_stereo` to video frames and those without audio.
 
 Fixed:
 

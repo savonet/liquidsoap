@@ -56,6 +56,7 @@ let of_list_t t =
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
+let rec n_t n = if n = 0 then zero_t else succ_t (n_t (n - 1))
 let any_t = Term.any_t
 let add_t = Term.add_t
 let type_of_int = Term.type_of_int

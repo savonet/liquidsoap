@@ -239,6 +239,7 @@ val of_list_t : t -> t
 val zero_t : t
 val any_t : t
 val succ_t : t -> t
+val n_t : int -> t
 val add_t : int -> t -> t
 val type_of_int : int -> t
 val request_t : t -> t
