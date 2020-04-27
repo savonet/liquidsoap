@@ -242,7 +242,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
               (* If not, finish this track, which requires our callers
                * to wait that we become ready again. *)
               Frame.add_break frame (Frame.position frame)
-        | `After ->
+        | `After when (Utils.get_some transition_source)#is_ready ->
             (Utils.get_some transition_source)#get frame;
             needs_tick <- true;
             if Generator.length pending_after = 0 && Frame.is_partial frame then (
@@ -259,6 +259,13 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                   ( match Frame.breaks frame with
                     | b :: _ :: l -> b :: l
                     | _ -> assert false ) ) )
+        | `After ->
+            (* Here, transition source went down so we switch back to main source.
+               Our [is_ready] check ensures that we only get here when the main source
+               is ready. *)
+            status <- `Idle;
+            self#cleanup_transition_source;
+            self#get_frame frame
 
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
@@ -409,7 +416,8 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       match status with
         | `Idle | `Before -> source#is_ready
         | `Limit -> true
-        | `After -> (Utils.get_some transition_source)#is_ready
+        | `After ->
+            (Utils.get_some transition_source)#is_ready || source#is_ready
 
     method abort_track =
       if status = `After && (Utils.get_some transition_source)#is_ready then

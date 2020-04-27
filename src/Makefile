@@ -186,7 +186,6 @@ tools = tools/extralib.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
-	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_config.ml) \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
@@ -194,8 +193,8 @@ tools = tools/extralib.ml tools/JSON.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
 	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 
-stream =stream/frame.ml stream/generator.ml \
-	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
+stream =stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
+	stream/generator.ml \
 	$(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 
 visualization = \
@@ -229,6 +228,7 @@ builtins = lang/lang_builtins.ml \
 
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
+	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml $(encoder_formats) encoder.ml \
@@ -244,7 +244,7 @@ liquidsoap_sources += \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \
-	$(sources) $(conversions) $(outputs) $(operators) \
+	$(sources) $(outputs) $(conversions) $(operators) \
 	$(encoders) $(decoders) $(ogg_demuxer) $(ogg_muxer) \
 	$(analyze) $(playlists) \
 	$(visualization) $(synth) $(io) \

@@ -51,18 +51,22 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
         end
         ""
       end
-    log.debug(label=id, "Next song will be \"#{file}\".")
-    r = request.create(file)
-    if check_next(r) then
-      r
+    if file == "" then
+      []
     else
-      log.info(label=id, "Request #{request.uri(r)} rejected by check_next.")
-      request.destroy(r)
-      next()
+      log.debug(label=id, "Next song will be \"#{file}\".")
+      r = request.create(file)
+      if check_next(r) then
+        [r]
+      else
+        log.info(label=id, "Request #{request.uri(r)} rejected by check_next.")
+        request.destroy(r)
+        next()
+      end
     end
   end
   # Instantiate the source
-  source = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
+  source = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
   # The reload function
   def reload(p) =
     log.debug(label=id, "Reloading playlist.")
@@ -96,13 +100,17 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
   playlist_uri=ref(uri)
   # The load function
   def load_playlist () =
+    playlist_uri = path.home.unrelate(!playlist_uri)
     log.info(label=id, "Reloading playlist.")
-    if file.is_directory(!playlist_uri) then
+    if file.is_directory(playlist_uri) then
       log.info(label=id,"Playlist is a directory.")
-      files = file.ls(absolute=true,recursive=true,!playlist_uri)
-      list.filter(fun(f) -> not (file.is_directory(f)), files)
+      files = file.ls(absolute=true, recursive=true, playlist_uri)
+      files = list.filter(fun(f) -> not (file.is_directory(f)), files)
+      files = list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
+      def add_prefix(file) = prefix^file end
+      list.map(add_prefix, files)
     else
-      playlist = request.create.raw(!playlist_uri)
+      playlist = request.create.raw(playlist_uri)
       result =
         if request.resolve(timeout=timeout, playlist) then
           playlist = request.filename(playlist)

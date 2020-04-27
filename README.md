@@ -13,6 +13,7 @@ tradition of simple strong components working together.
 Copyright 2003-2019 Savonet team
 
 [![GPL license](https://img.shields.io/badge/License-GPL-green.svg)](https://github.com/savonet/liquidsoap/blob/master/COPYING)
+![CI](https://github.com/savonet/liquidsoap/workflows/CI/badge.svg)
 [![GitHub release](https://img.shields.io/github/release/savonet/liquidsoap.svg)](https://GitHub.com/savonet/liquidsoap/releases/)
 [![Install with Opam !](https://img.shields.io/badge/Install%20with-Opam-1abc9c.svg)](http://opam.ocaml.org/packages/liquidsoap/)
 [![Chat on slack !](https://img.shields.io/badge/Chat%20on-Slack-1a1f9c.svg)](http://slack.liquidsoap.info/)

@@ -248,6 +248,14 @@ let () =
 (************** Paths ********************)
 
 let () =
+  add_builtin "path.home.unrelate" ~cat:Sys [("", Lang.string_t, None, None)]
+    Lang.string_t
+    ~descr:"Expand path that start with '~' with the current home directory."
+    (fun p ->
+      let f = Lang.to_string (List.assoc "" p) in
+      Lang.string (Utils.home_unrelate f))
+
+let () =
   add_builtin "path.basename" ~cat:Sys [("", Lang.string_t, None, None)]
     Lang.string_t ~descr:"Get the base name of a path." (fun p ->
       let f = Lang.to_string (List.assoc "" p) in

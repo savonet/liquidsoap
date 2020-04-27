@@ -47,9 +47,9 @@ module type S_Asio = sig
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
   val add_metadata : t -> Frame.metadata -> unit
-  val add_break : ?sync:[ `Strict | `Ignore | `Drop ] -> t -> unit
-  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
-  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val add_break : ?sync:bool -> t -> unit
+  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
@@ -95,35 +95,6 @@ module Generator = struct
         g.length <- g.length - removed;
         g.offset <- 0;
         remove g (len - removed) ) )
-
-  (** Remove data at the end of the generator: this is not a natural operation
-  * for Generators, it's done in linear time. *)
-  let remove_end g remove_len =
-    (* Remove length [l] at the beginning of the buffers,
-     * should correspond exactly to some last [n] chunks. *)
-    let rec remove l =
-      if l > 0 then (
-        let _, _, len = Queue.take g.buffers in
-        assert (l >= len);
-        remove (l - len) )
-    in
-    (* Go through the beginning of length [l] of the queue,
-     * possibly cut some element in half, remove the rest.
-     * The parsed elements are put back at the end
-     * of the queue. *)
-    let rec cut ?(initial_ofs = 0) l =
-      let c, ofs, len = Queue.take g.buffers in
-      if len - initial_ofs < l then (
-        Queue.push (c, ofs, len) g.buffers;
-        cut (l - len + initial_ofs) )
-      else (
-        Queue.push (c, ofs, l) g.buffers;
-        remove (remove_len - (len - l)) )
-    in
-    let new_len = g.length - remove_len in
-    assert (remove_len > 0 && new_len >= 0);
-    cut ~initial_ofs:g.offset new_len;
-    g.length <- new_len
 
   (** Feed an item into a generator.
   * The item is put as such, not copied. *)
@@ -340,13 +311,40 @@ module From_frames = struct
         | _ -> assert false )
 end
 
+(** In [`Both] mode, the buffer is always kept in sync as follows:
+    - PTS in audio and video is expected to be tracked when submitting
+      data. User with no knowledge of PTS (typically all decoders except
+      ffmpeg) should be able to submit without having to deal with PTS.
+    - The buffer is always in sync except for potentially one type of
+      data and always at the end of the buffer. Typically:
+         0----1----2--> audio
+         0----1----2----3----4----> video
+    - When a new chunk is added, any gap in data from the other type
+      is removed. So, for instance, when adding an audio chunk of type
+      4--(5)----(6)- one gets:
+         0----1----4----5----6-> audio
+         0----1----4----> video
+      Note: video frame being usually one frame long, we unfortunately cannot
+      keep partially filled frames.
+    - Current chunk length and PTS are tracked so that new chunk are split
+      by increment of frame size. Typically, if we have:
+         0----1----2--> audio
+         0----1----2----3----4----5> video
+      Adding a chunk of audio of type: 2--(3)----(4)- should
+      result in  adding a first chunk of 4-- then a chunk of 3----
+      and, finally, a chunk of 4-. *)
 module From_audio_video = struct
   type mode = [ `Audio | `Video | `Both | `Undefined ]
+  type 'a content = { pts : int64; data : 'a array }
 
   type t = {
     mutable mode : mode;
-    audio : Frame.audio_t array Generator.t;
-    video : Frame.video_t array Generator.t;
+    mutable current_audio_pts : int64;
+    current_audio : Frame.audio_t content Generator.t;
+    audio : Frame.audio_t content Generator.t;
+    mutable current_video_pts : int64;
+    current_video : Frame.video_t content Generator.t;
+    video : Frame.video_t content Generator.t;
     mutable metadata : (int * Frame.metadata) list;
     mutable breaks : int list;
   }
@@ -354,32 +352,43 @@ module From_audio_video = struct
   let create m =
     {
       mode = m;
+      current_audio_pts = 0L;
+      current_audio = Generator.create ();
       audio = Generator.create ();
+      current_video_pts = 0L;
+      current_video = Generator.create ();
       video = Generator.create ();
       metadata = [];
       breaks = [];
     }
 
   (** Audio length, in ticks. *)
-  let audio_length t = Generator.length t.audio
+  let audio_length t =
+    Generator.length t.audio + Generator.length t.current_audio
 
   (** Video length, in ticks. *)
-  let video_length t = Generator.length t.video
+  let video_length t =
+    Generator.length t.video + Generator.length t.current_video
 
   (** Total length. *)
   let length t = min (Generator.length t.audio) (Generator.length t.video)
 
+  (** Total buffered length. *)
+  let buffered_length t = max (audio_length t) (video_length t)
+
   let audio_size t =
     let float_size = 8 in
     let track_size (t : Frame.audio_t) = Audio.Mono.length t * float_size in
-    let audio_size = Array.fold_left (fun n t -> n + track_size t) 0 in
+    let audio_size { data } =
+      Array.fold_left (fun n t -> n + track_size t) 0 data
+    in
     Queue.fold
       (fun n a -> n + audio_size (Generator.chunk_data a))
       0 t.audio.Generator.buffers
 
   let video_size t =
-    let buffer_size (b : Frame.video_t array) =
-      Array.fold_left (fun n v -> n + Video.size v) 0 b
+    let buffer_size { data } =
+      Array.fold_left (fun n v -> n + Video.size v) 0 data
     in
     Queue.fold
       (fun n a -> n + buffer_size (Generator.chunk_data a))
@@ -396,17 +405,10 @@ module From_audio_video = struct
   let add_metadata t m = t.metadata <- t.metadata @ [(length t, m)]
 
   (** Add a track limit. Audio and video length should be equal. *)
-  let add_break ?(sync = `Strict) t =
-    begin
-      match sync with
-      | `Strict -> assert (audio_length t = video_length t)
-      | `Ignore -> ()
-      | `Drop ->
-          let alen = audio_length t in
-          let vlen = video_length t in
-          if alen > vlen then Generator.remove_end t.audio (alen - vlen);
-          if vlen > alen then Generator.remove_end t.video (vlen - alen)
-    end;
+  let add_break ?(sync = false) t =
+    if sync then (
+      Generator.clear t.current_audio;
+      Generator.clear t.current_video );
     t.breaks <- t.breaks @ [length t]
 
   let clear t =
@@ -426,30 +428,153 @@ module From_audio_video = struct
       assert (audio_length t = video_length t);
       t.mode <- m )
 
+  (** Check for pending synced A/V content *)
+  let sync_content t =
+    let s = Lazy.force Frame.size in
+
+    let audio = Queue.copy t.current_audio.Generator.buffers in
+    let video = Queue.copy t.current_video.Generator.buffers in
+
+    let rec pick ~picked ~pos ~chunks pts =
+      match Queue.peek_opt chunks with
+        | Some (chunk, _, l) when chunk.pts = pts ->
+            Queue.add (Queue.take chunks) picked;
+            pick ~picked ~pos:(pos + l) ~chunks pts
+        | Some (chunk, _, _) when pts < chunk.pts -> (pos, true)
+        | _ -> (pos, false)
+    in
+
+    let add_audio ~picked ~pos () =
+      Queue.iter (fun (chunk, o, l) -> Generator.put t.audio chunk o l) picked;
+      Generator.remove t.current_audio pos
+    in
+
+    let add_video ~picked ~pos () =
+      Queue.iter (fun (chunk, o, l) -> Generator.put t.video chunk o l) picked;
+      Generator.remove t.current_video pos
+    in
+
+    let rec f () =
+      match (Queue.peek_opt audio, Queue.peek_opt video) with
+        | Some ({ pts = audio_pts }, _, _), Some ({ pts = video_pts }, _, _)
+          when audio_pts < video_pts ->
+            let picked_audio = Queue.create () in
+            let audio_len, _ =
+              pick ~picked:picked_audio ~pos:0 ~chunks:audio audio_pts
+            in
+            Generator.remove t.current_audio audio_len;
+            f ()
+        | Some ({ pts = audio_pts }, _, _), Some ({ pts = video_pts }, _, _)
+          when video_pts < audio_pts ->
+            let picked_video = Queue.create () in
+            let video_len, _ =
+              pick ~picked:picked_video ~pos:0 ~chunks:video video_pts
+            in
+            Generator.remove t.current_video video_len;
+            f ()
+        | Some ({ pts }, _, _), Some _ ->
+            let picked_audio = Queue.create () in
+            let picked_video = Queue.create () in
+            let audio_len, more_audio =
+              pick ~picked:picked_audio ~pos:0 ~chunks:audio pts
+            in
+            let video_len, more_video =
+              pick ~picked:picked_video ~pos:0 ~chunks:video pts
+            in
+            ( match (audio_len, video_len) with
+              (* Full frame sync. Take it! *)
+              | _ when audio_len = video_len && video_len = s ->
+                  add_audio ~picked:picked_audio ~pos:audio_len ();
+                  add_video ~picked:picked_video ~pos:video_len ()
+              (* Partial audio or video frame. Can it! *)
+              | _
+                when (audio_len < s && more_audio)
+                     || (video_len < s && more_video) ->
+                  Generator.remove t.current_audio audio_len;
+                  Generator.remove t.current_video video_len
+              | _ -> () );
+            f ()
+        | _ -> ()
+    in
+
+    f ()
+
+  let put_frames ~pts ~current_pts gen data o l =
+    let s = Lazy.force Frame.size in
+
+    let current_chunk = Generator.length gen mod s in
+
+    let put ~pts o l =
+      if current_pts <= pts && 0 < l then Generator.put gen { pts; data } o l
+    in
+
+    (* First complete the previous chunk. *)
+    let r = min l (s - current_chunk) in
+    put ~pts o r;
+
+    let pts = if r + current_chunk = s then Int64.succ pts else pts in
+    let l = l - r in
+    let o = o + r in
+
+    (* Now fill out the rest of the frames in [l] *)
+    let frames = l / s in
+    let rem = l mod s in
+
+    (* Add data by increment one one pts/frame.size *)
+    for i = 0 to frames - 1 do
+      let pts = Int64.add pts (Int64.of_int i) in
+      put ~pts (o + (i * s)) s
+    done;
+
+    let pts = Int64.add pts (Int64.of_int frames) in
+
+    put ~pts (o + (frames * s)) rem;
+
+    pts
+
   (** Add some audio content. Offset and length are given in audio samples. *)
-  let put_audio t content o l =
-    assert (content = [||] || Audio.Mono.length content.(0) >= o + l);
+  let put_audio ?pts t data o l =
+    let pts = match pts with Some pts -> pts | None -> t.current_audio_pts in
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
-    Generator.put t.audio content o l;
-    match t.mode with
-      | `Audio -> Generator.put t.video [||] 0 l
+    t.current_audio_pts <-
+      put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio data o l;
+    begin
+      match t.mode with
+      (* The buffer's logic is all synchronous so we keep
+         constant empty content for the other type when using
+         the buffer with one single type. *)
+      | `Audio ->
+          t.current_video_pts <-
+            put_frames ~pts ~current_pts:t.current_video_pts t.current_video
+              [||] 0 l
       | `Both -> ()
-      | `Video | `Undefined -> assert false
+      | _ -> assert false
+    end;
+    sync_content t
 
   (** Add some video content. Offset and length are given in video samples. *)
-  let put_video t content o l =
-    assert (content = [||] || Video.length content.(0) <= o + l);
+  let put_video ?pts t data o l =
+    let pts = match pts with Some pts -> pts | None -> t.current_video_pts in
     let o = Frame.master_of_video o in
     let l = Frame.master_of_video l in
-    Generator.put t.video content o l;
-    match t.mode with
-      | `Video -> Generator.put t.audio [||] 0 l
-      | `Both -> ()
-      | `Audio | `Undefined -> assert false
+    t.current_video_pts <-
+      put_frames ~pts ~current_pts:t.current_video_pts t.current_video data o l;
+    begin
+      match t.mode with
+      (* The buffer's logic is all synchronous so we keep
+         constant empty content for the other type when using
+         the buffer with one single type. *)
+      | `Video ->
+          t.current_audio_pts <-
+            put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio
+              [||] 0 l
+      | _ -> ()
+    end;
+    sync_content t
 
   (** Take all data from a frame: breaks, metadata and available content. *)
-  let feed_from_frame t frame =
+  let feed_from_frame ?mode t frame =
     let size = Lazy.force Frame.size in
     t.metadata <-
       t.metadata
@@ -465,13 +590,17 @@ module From_audio_video = struct
           (List.filter (fun x -> x < size) (Frame.breaks frame));
 
     (* Feed all content layers into the generator. *)
+    let pts = Frame.pts frame in
+    let mode = match mode with Some mode -> mode | None -> t.mode in
+
     let content = Frame.copy frame.Frame.content in
-    match mode t with
-      | `Audio -> put_audio t content.Frame.audio 0 size
-      | `Video -> put_video t content.Frame.video 0 size
+
+    match mode with
+      | `Audio -> put_audio ~pts t content.Frame.audio 0 (AFrame.size ())
+      | `Video -> put_video ~pts t content.Frame.video 0 (VFrame.size ())
       | `Both ->
-          put_audio t content.Frame.audio 0 size;
-          put_video t content.Frame.video 0 size
+          put_audio ~pts t content.Frame.audio 0 (AFrame.size ());
+          put_video ~pts t content.Frame.video 0 (VFrame.size ())
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -482,8 +611,12 @@ module From_audio_video = struct
     t.breaks <- List.filter (fun x -> x >= 0) breaks
 
   let remove t len =
+    let audio_len = Generator.length t.audio in
     Generator.remove t.audio len;
+    Generator.remove t.current_audio (len - audio_len);
+    let video_len = Generator.length t.video in
     Generator.remove t.video len;
+    Generator.remove t.current_video (len - video_len);
     advance t len
 
   let fill t frame =
@@ -494,8 +627,16 @@ module From_audio_video = struct
       if l = -1 then length t else l
     in
     let l = min (size - fpos) remaining in
-    let audio = Generator.get t.audio l in
-    let video = Generator.get t.video l in
+    let audio =
+      List.map
+        (fun ({ data }, x, y, t) -> (data, x, y, t))
+        (Generator.get t.audio l)
+    in
+    let video =
+      List.map
+        (fun ({ data }, x, y, t) -> (data, x, y, t))
+        (Generator.get t.video l)
+    in
     (* We got equal durations of audio and video, but segmented differently.
      * We walk through them and blit them into the frame, possibly creating
      * several content layers of different types as the numbers of channels
@@ -637,8 +778,8 @@ module From_audio_video_plus = struct
   let check_overfull t extra =
     assert (Tutils.seems_locked t.lock);
     match t.overfull with
-      | Some (`Drop_old len) when Super.length t.gen + extra > len ->
-          let len = Super.length t.gen + extra - len in
+      | Some (`Drop_old len) when Super.buffered_length t.gen + extra > len ->
+          let len = Super.buffered_length t.gen + extra - len in
           let len_time = Frame.seconds_of_master len in
           if t.log_overfull then
             t.log
@@ -649,7 +790,7 @@ module From_audio_video_plus = struct
           Super.remove t.gen len
       | _ -> ()
 
-  let put_audio t buf off len =
+  let put_audio ?pts t buf off len =
     Tutils.mutexify t.lock
       (fun () ->
         if t.error then (
@@ -658,10 +799,10 @@ module From_audio_video_plus = struct
           raise Incorrect_stream_type )
         else (
           check_overfull t (Frame.master_of_audio len);
-          Super.put_audio t.gen buf off len ))
+          Super.put_audio ?pts t.gen buf off len ))
       ()
 
-  let put_video t buf off len =
+  let put_video ?pts t buf off len =
     Tutils.mutexify t.lock
       (fun () ->
         if t.error then (
@@ -670,6 +811,18 @@ module From_audio_video_plus = struct
           raise Incorrect_stream_type )
         else (
           check_overfull t (Frame.master_of_video len);
-          Super.put_video t.gen buf off len ))
+          Super.put_video ?pts t.gen buf off len ))
+      ()
+
+  let feed_from_frame ?mode t frame =
+    Tutils.mutexify t.lock
+      (fun () ->
+        if t.error then (
+          Super.clear t.gen;
+          t.error <- false;
+          raise Incorrect_stream_type )
+        else (
+          check_overfull t (Lazy.force Frame.size);
+          Super.feed_from_frame ?mode t.gen frame ))
       ()
 end

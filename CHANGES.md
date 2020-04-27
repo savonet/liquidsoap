@@ -19,6 +19,7 @@ New:
 - Added `list.ind`.
 - Added `list.index`.
 - Added `request.id`.
+- Added `retry_delay` argument to `request.dynamic.list` (#1169).
 - Added a profiler for the language. It can be enabled with `profiler.enable` and
   the results are obtained with `profiler.stats.string` (#1027).
 - Added `gtts` protocol to use Google TTS (#1034).
@@ -35,6 +36,7 @@ New:
 - Add `predicate.activates`, `predicate.changes`, `predicate.once` (#1075).
 - Add `playlist.list.reloadable` and `playlist.list` (#1133).
 - Make it possible to disable buffer overrun logs.
+- Add `video.resize`.
 
 Changed:
 
@@ -43,6 +45,11 @@ Changed:
   the default safe behavior. (#1012)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
+- Renamed `request.dynamic` to `request.dynamic.list` and updated its
+  callback function type to return an array of requests, making possible
+  to return multiple requests at once but, more importantly,
+  to return `[]` when no next requests are available. (#1169)
+- Deprecated `request.dynamic`.
 - Renamed `verb` argument info `method` in `output.icecast`.
 - Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).
@@ -72,6 +79,8 @@ Changed:
 - Change `input.http` and `input.https` `url` parameter into a string getter
   (#1084).
 - Add `audio/flac` as mime for flac (#1143).
+- Added `path.home.unrelate`.
+- Use getters for arguments of `video.add_image` (#1176).
 
 Fixed:
 
@@ -79,6 +88,7 @@ Fixed:
 - Fix implementation of `rotate` (#1129).
 - Fix opam install error with some bash-completion configuration (#980).
 - Make `blank()` source unavailable past is expected duration (#668).
+- Do not crash when loading playlists using `~/path/to/..` paths.
 - Fixed implementation details with `cross` operator.
 - Register audio/opus mime type for ogg decoding (#1089)
 - Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
@@ -87,6 +97,7 @@ Fixed:
 - Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
 - Fix `cross()` fallability.
 - Fix decoder remaining time when decoding is done (#1159)
+- Fix `get_process_lines` regexp logic (#1151)
 
 1.4.1 (18-02-2020)
 =====

@@ -178,7 +178,7 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to run
 def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  string.split(separator="[\\n|\\r]+",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
+  string.split(separator="\r?\n",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
 end
 
 # Return true if process exited with 0 code.
@@ -615,12 +615,18 @@ end
 def chop(~duration=float_getter(3.),~metadata=[],s) =
   duration=to_float_getter(duration)
   let (insert, s) = insert_metadata(s)
-  def f () =
-    insert(new_track=true, metadata)
-    duration()
+
+  # Track time in the source's context:
+  start_time = ref 0.
+  def f() =
+    if duration () <= source.time(s) - !start_time then
+      start_time := source.time(s)
+      insert(new_track=true, metadata)
+    end
+    1.
   end
-  thread.run.recurrent(delay=duration(), f)
-  s
+
+  amplify(f,s)
 end
 
 # Make a source available or not depending on a boolean.
