@@ -30,6 +30,7 @@ Fixed:
 - Fix `cross()` fallability.
 - Fix decoder remaining time when decoding is done (#1159)
 - Fixed crash when cleaning up `output.hls`
+- Fix `get_process_lines` regexp logic (#1151)
 
 1.4.1 (18-02-2020)
 =====

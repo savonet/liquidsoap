@@ -209,7 +209,7 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to run
 def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  string.split(separator="[\\n|\\r]+",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
+  string.split(separator="\r?\n",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
 end
 
 # Return true if process exited with 0 code.
