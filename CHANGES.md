@@ -81,6 +81,7 @@ Changed:
 - Add `audio/flac` as mime for flac (#1143).
 - Added `path.home.unrelate`.
 - Use getters for arguments of `video.add_image` (#1176).
+- Allow crossfading for video (#1132, #1135).
 
 Fixed:
 
