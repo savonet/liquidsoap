@@ -10,16 +10,15 @@
 def request.queue.pushable(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
   queue = ref(queue)
   def next()
-    r = list.hd(default=request.create(""), !queue)
-    queue := list.tl(!queue)
-    log.info(label=id, "Next song will be #{request.uri(r)}.")
-    r
+    reqs = !queue
+    queue := []
+    reqs
   end
   def push(uri)
     log.info(label=id, "Pushing #{uri} on the queue.")
     queue := list.append(!queue, [uri])
   end
-  s = request.dynamic(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next)
+  s = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next)
   if interactive then
     namespace = if id == "" then "queue" else id end
     def push(uri) =

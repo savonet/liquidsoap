@@ -2,7 +2,7 @@ Seeking in liquidsoap
 =====================
 Starting with Liquidsoap `1.0.0-beta2`, it is now possible to seek within sources! 
 Not all sources support seeking though: currently, they are mostly file-based sources
-such as `request.queue`, `playlist`, `request.dynamic` etc..
+such as `request.queue`, `playlist`, `request.dynamic.list` etc..
 
 The basic function to seek within a source is `source.seek`. It has the following type:
 

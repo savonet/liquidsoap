@@ -36,8 +36,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   object (self)
     inherit source ~name:"cross" kind as super
 
-    (* This actually depends on [f], we have to trust the user here. *)
-    method stype = s#stype
+    method stype = Source.Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
      * sources but we do not have a static way of knowing it at the moment.
@@ -243,7 +242,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
               (* If not, finish this track, which requires our callers
                * to wait that we become ready again. *)
               Frame.add_break frame (Frame.position frame)
-        | `After ->
+        | `After when (Utils.get_some transition_source)#is_ready ->
             (Utils.get_some transition_source)#get frame;
             needs_tick <- true;
             if Generator.length pending_after = 0 && Frame.is_partial frame then (
@@ -260,6 +259,13 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                   ( match Frame.breaks frame with
                     | b :: _ :: l -> b :: l
                     | _ -> assert false ) ) )
+        | `After ->
+            (* Here, transition source went down so we switch back to main source.
+               Our [is_ready] check ensures that we only get here when the main source
+               is ready. *)
+            status <- `Idle;
+            self#cleanup_transition_source;
+            self#get_frame frame
 
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
@@ -410,7 +416,8 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       match status with
         | `Idle | `Before -> source#is_ready
         | `Limit -> true
-        | `After -> (Utils.get_some transition_source)#is_ready
+        | `After ->
+            (Utils.get_some transition_source)#is_ready || source#is_ready
 
     method abort_track =
       if status = `After && (Utils.get_some transition_source)#is_ready then
@@ -419,7 +426,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
   Lang.add_operator "cross"
     [
       ( "duration",

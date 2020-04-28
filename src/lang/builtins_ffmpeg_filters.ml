@@ -34,6 +34,7 @@ type outputs =
 type graph = {
   mutable config : Avfilter.config option;
   entries : (inputs, outputs) Avfilter.io;
+  clocks : Source.clock_variable Queue.t;
 }
 
 module Graph = Lang.MkAbstract (struct
@@ -193,7 +194,7 @@ let abuffer_args channels =
   in
   [
     `Pair ("sample_rate", `Int sample_rate);
-    `Pair ("time_base", `Rational { Avutil.num = 1; den = sample_rate });
+    `Pair ("time_base", `Rational (Ffmpeg_utils.audio_time_base ()));
     `Pair ("channels", `Int channels);
     `Pair ("channel_layout", `Int (Avutil.Channel_layout.get_id channel_layout));
     `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id `Dbl));
@@ -205,7 +206,7 @@ let buffer_args () =
   let height = Lazy.force Frame.video_height in
   [
     `Pair ("frame_rate", `Int frame_rate);
-    `Pair ("time_base", `Rational { Avutil.num = 1; den = frame_rate });
+    `Pair ("time_base", `Rational (Ffmpeg_utils.video_time_base ()));
     `Pair ("pixel_aspect", `Int 1);
     `Pair ("width", `Int width);
     `Pair ("height", `Int height);
@@ -215,6 +216,15 @@ let buffer_args () =
 let () =
   let audio_t = Lang.(source_t (kind_type_of_kind_format audio_any)) in
   let video_t = Lang.(source_t (kind_type_of_kind_format video_only)) in
+
+  let output_base_proto =
+    [
+      ( "buffer",
+        Lang.float_t,
+        Some (Lang.float 0.1),
+        Some "Duration of the pre-buffered data." );
+    ]
+  in
 
   add_builtin ~cat:Liq "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
@@ -229,16 +239,19 @@ let () =
       let args = abuffer_args channels in
       let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
       let s = Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) in
+      Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));
 
   let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
     ~descr:"Return an audio source from a filter's output" ~return_t
-    [("", Graph.t, None, None); ("", Audio.t, None, None)] (fun p kind ->
+    (output_base_proto @ [("", Graph.t, None, None); ("", Audio.t, None, None)])
+    (fun p kind ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
+      let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let pad =
         match Audio.of_value (Lang.assoc "" 2 p) with
           | `Output p -> p
@@ -247,7 +260,8 @@ let () =
       let name = uniq_name "abuffersink" in
       let _abuffersink = Avfilter.attach ~name Avfilter.abuffersink config in
       Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
-      let s = new Ffmpeg_filter_io.audio_input kind in
+      let s = new Ffmpeg_filter_io.audio_input ~bufferize kind in
+      Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.outputs.audio name s#set_output);
       (s :> Source.source));
 
@@ -262,16 +276,19 @@ let () =
       let args = buffer_args () in
       let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
       let s = Ffmpeg_filter_io.(new video_output ~name source_val) in
+      Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
       Video.to_value (`Output (List.hd Avfilter.(_buffer.io.outputs.video))));
 
   let return_t = Lang.kind_type_of_kind_format Lang.video_only in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
     ~descr:"Return a video source from a filter's output" ~return_t
-    [("", Graph.t, None, None); ("", Video.t, None, None)] (fun p kind ->
+    (output_base_proto @ [("", Graph.t, None, None); ("", Video.t, None, None)])
+    (fun p kind ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
+      let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let pad =
         match Video.of_value (Lang.assoc "" 2 p) with
           | `Output p -> p
@@ -280,9 +297,7 @@ let () =
       let name = uniq_name "buffersink" in
       let target_frame_rate = Lazy.force Frame.video_rate in
       let fps =
-        match
-          List.find_opt (fun f -> f.Avfilter.name = name) Avfilter.filters
-        with
+        match Avfilter.find_opt "fps" with
           | Some f -> f
           | None -> failwith "Could not find ffmpeg fps filter"
       in
@@ -296,7 +311,8 @@ let () =
         link
           (List.hd fps.io.outputs.video)
           (List.hd _buffersink.io.inputs.video));
-      let s = new Ffmpeg_filter_io.video_input kind in
+      let s = new Ffmpeg_filter_io.video_input ~bufferize kind in
+      Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output);
       (s :> Source.source))
 
@@ -313,6 +329,7 @@ let () =
         Avfilter.
           {
             config = Some config;
+            clocks = Queue.create ();
             entries =
               {
                 inputs =
@@ -349,4 +366,10 @@ let () =
             set_output output)
           filter.outputs.video);
       graph.config <- None;
+      let () =
+        try
+          let first = Queue.take graph.clocks in
+          Queue.iter (Clock.unify first) graph.clocks
+        with Queue.Empty -> ()
+      in
       ret)

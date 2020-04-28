@@ -360,7 +360,7 @@ module Buffered (Generator : Generator.S) = struct
         Frame.add_break frame offset;
         0 )
       else (
-        try if not !decoding_done then remaining frame offset else 0
+        try remaining frame offset
         with e ->
           log#info "Error while getting decoder's remaining time: %s"
             (Printexc.to_string e);

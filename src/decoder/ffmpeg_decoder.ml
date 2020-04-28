@@ -56,6 +56,9 @@ let mk_audio_decoder ~put_audio container =
       sample_freq channel_layout target_sample_rate
   in
   let converter = ref (mk_converter ()) in
+  let decoder_time_base = { Avutil.num = 1; den = target_sample_rate } in
+  let internal_time_base = Ffmpeg_utils.audio_time_base () in
+  let decoder_pts = ref 0L in
   ( idx,
     stream,
     fun frame gen ->
@@ -65,7 +68,13 @@ let mk_audio_decoder ~put_audio container =
         in_sample_format := frame_in_sample_format;
         converter := mk_converter () );
       let content = Converter.convert !converter frame in
-      put_audio gen content 0 (Audio.length content) )
+      let l = Audio.length content in
+      let pts =
+        Ffmpeg_utils.convert_pts ~src:decoder_time_base ~dst:internal_time_base
+          !decoder_pts
+      in
+      decoder_pts := Int64.add !decoder_pts (Int64.of_int l);
+      put_audio ?pts:(Some pts) gen content 0 l )
 
 let mk_video_decoder ~put_video container =
   let idx, stream, codec = Av.find_best_video_stream container in
@@ -82,6 +91,9 @@ let mk_video_decoder ~put_video container =
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
   let generator = ref None in
+  let decoder_time_base = { Avutil.num = 1; den = target_fps } in
+  let internal_time_base = Ffmpeg_utils.video_time_base () in
+  let decoder_pts = ref 0L in
   let cb frame =
     let img =
       match Scaler.convert scaler frame with
@@ -90,10 +102,17 @@ let mk_video_decoder ~put_video container =
         | _ -> assert false
     in
     let content = Video.single img in
-    put_video (Utils.get_some !generator) [| content |] 0 (Video.length content)
+    let pts =
+      Ffmpeg_utils.convert_pts ~src:decoder_time_base ~dst:internal_time_base
+        !decoder_pts
+    in
+    decoder_pts := Int64.succ !decoder_pts;
+    put_video ?pts:(Some pts)
+      (Utils.get_some !generator)
+      [| content |] 0 (Video.length content)
   in
   let fps_converter =
-    Ffmpeg_config.fps_converter ~width ~height ~pixel_format ~time_base
+    Ffmpeg_utils.fps_converter ~width ~height ~pixel_format ~time_base
       ~pixel_aspect ~target_fps cb
   in
   ( idx,
@@ -123,7 +142,7 @@ let mk_decoder ~set_mode ~add_break ~audio ~video ~container =
           decoder frame gen
       | _ -> ()
       | exception Avutil.Error `Eof ->
-          add_break ?sync:(Some `Drop) gen;
+          add_break ?sync:(Some true) gen;
           raise End_of_file
 
 let seek ~audio ~video ticks =
@@ -155,12 +174,14 @@ let create_decoder fname =
   let set_remaining stream frame =
     Tutils.mutexify m
       (fun () ->
-        let pts = Avutil.frame_pts frame in
-        let { Avutil.num; den } = Av.get_time_base stream in
-        let position =
-          Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
-        in
-        remaining := duration -. position)
+        match Avutil.frame_pts frame with
+          | None -> ()
+          | Some pts ->
+              let { Avutil.num; den } = Av.get_time_base stream in
+              let position =
+                Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
+              in
+              remaining := duration -. position)
       ()
   in
   let get_remaining =

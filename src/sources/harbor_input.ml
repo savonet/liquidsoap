@@ -167,7 +167,7 @@ module Make (Harbor : T) = struct
           done
         with e ->
           (* Feeding has stopped: adding a break here. *)
-          Generator.add_break ~sync:`Drop generator;
+          Generator.add_break ~sync:true generator;
           self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
           self#disconnect ~lock:true;
           if debug then raise e

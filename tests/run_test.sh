@@ -4,7 +4,7 @@ CMD=$1
 TEST=$2
 
 echo -en "Running test \033[1m${TEST}\033[0m... "
-cat ${TEST} | ${CMD}  >/dev/null 2>&1
+${CMD} < ${TEST}  >/dev/null 2>&1
 
 STATUS=$?
 

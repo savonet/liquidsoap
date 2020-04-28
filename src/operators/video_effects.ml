@@ -42,11 +42,10 @@ class effect ~kind effect (source : source) =
       match VFrame.get_content buf source with
         | None -> ()
         | Some (rgb, offset, length) ->
-            let rgb = rgb.(0) in
-            Video.iter effect rgb offset length
+            Array.iter (fun rgb -> Video.iter effect rgb offset length) rgb
   end
 
-let return_t = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
+let return_t = Lang.kind_type_of_kind_format Lang.any
 
 let () =
   Lang.add_operator "video.greyscale"
@@ -76,21 +75,25 @@ let () =
       let src = Lang.to_source (f "") in
       new effect ~kind Video.Image.Effect.invert src)
 
-(*
 let () =
   Lang.add_operator "video.opacity"
     [
-      "", Lang.float_t, None, Some "Coefficient to scale opacity with.";
-      "", Lang.source_t kind, None, None
+      ( "",
+        Lang.float_getter_t (),
+        None,
+        Some "Coefficient to scale opacity with." );
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t
-    ~category:Lang.VideoProcessing
-    ~descr:"Scale opacity of video."
+    ~return_t ~category:Lang.VideoProcessing ~descr:"Scale opacity of video."
     (fun p kind ->
-       let a = Lang.to_float (Lang.assoc "" 1 p) in
-       let src = Lang.to_source (Lang.assoc "" 2 p) in
-         new effect ~kind (fun buf -> Image.Effect.Alpha.scale buf a) src)
+      let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
+      let src = Lang.to_source (Lang.assoc "" 2 p) in
+      new effect
+        ~kind
+        (fun buf -> Video.Image.Effect.Alpha.scale buf (a ()))
+        src)
 
+(*
 let () =
   Lang.add_operator "video.opacity.blur"
     [
@@ -200,16 +203,60 @@ let () =
  *)
 
 let () =
+  Lang.add_operator "video.resize"
+    [
+      ("width", Lang.int_getter_t (), Some (Lang.int (-1)), Some "Target width.");
+      ( "height",
+        Lang.int_getter_t (),
+        Some (Lang.int (-1)),
+        Some "Target height." );
+      ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.VideoProcessing
+    ~descr:"Resize and translate video."
+    (fun p kind ->
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      let width = Lang.to_int_getter (f "width") in
+      let height = Lang.to_int_getter (f "height") in
+      let ox = Lang.to_int_getter (f "x") in
+      let oy = Lang.to_int_getter (f "y") in
+      new effect
+        ~kind
+        (fun buf ->
+          let width = width () in
+          let height = height () in
+          let width, height =
+            if width >= 0 && height >= 0 then (width, height)
+            else (
+              (* Negative values mean proportional scale. *)
+              let owidth = Video.Image.width buf in
+              let oheight = Video.Image.height buf in
+              if width < 0 && height < 0 then (owidth, oheight)
+              else if width < 0 then (owidth * height / oheight, height)
+              else if height < 0 then (width, oheight * width / owidth)
+              else assert false )
+          in
+          let dst = Video.Image.create width height in
+          Video.Image.scale buf dst;
+          Video.Image.blank buf;
+          Video.Image.fill_alpha buf 0;
+          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf)
+        src)
+
+let () =
   Lang.add_operator "video.scale"
     [
       ( "scale",
-        Lang.float_t,
+        Lang.float_getter_t (),
         Some (Lang.float 1.),
         Some "Scaling coefficient in both directions." );
-      ("xscale", Lang.float_t, Some (Lang.float 1.), Some "x scaling.");
-      ("yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.");
-      ("x", Lang.int_t, Some (Lang.int 0), Some "x offset.");
-      ("y", Lang.int_t, Some (Lang.int 0), Some "y offset.");
+      ("xscale", Lang.float_getter_t (), Some (Lang.float 1.), Some "x scaling.");
+      ("yscale", Lang.float_getter_t (), Some (Lang.float 1.), Some "y scaling.");
+      ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Scale and translate video."
@@ -217,25 +264,29 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let c, cx, cy, ox, oy =
-        ( Lang.to_float (f "scale"),
-          Lang.to_float (f "xscale"),
-          Lang.to_float (f "yscale"),
-          Lang.to_int (f "x"),
-          Lang.to_int (f "y") )
+        ( Lang.to_float_getter (f "scale"),
+          Lang.to_float_getter (f "xscale"),
+          Lang.to_float_getter (f "yscale"),
+          Lang.to_int_getter (f "x"),
+          Lang.to_int_getter (f "y") )
       in
       new effect
         ~kind
         (fun buf ->
           let round x = int_of_float (x +. 0.5) in
           let width =
-            Video.Image.width buf |> float_of_int |> ( *. ) (c *. cx) |> round
+            Video.Image.width buf |> float_of_int
+            |> ( *. ) (c () *. cx ())
+            |> round
           in
           let height =
-            Video.Image.height buf |> float_of_int |> ( *. ) (c *. cy) |> round
+            Video.Image.height buf |> float_of_int
+            |> ( *. ) (c () *. cy ())
+            |> round
           in
           let dst = Video.Image.create width height in
           Video.Image.scale buf dst;
           Video.Image.blank buf;
           Video.Image.fill_alpha buf 0;
-          Video.Image.add dst ~x:ox ~y:oy buf)
+          Video.Image.add dst ~x:(ox ()) ~y:(oy ()) buf)
         src)

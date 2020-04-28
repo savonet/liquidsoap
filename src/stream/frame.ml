@@ -78,10 +78,10 @@ let conf_video_channels =
   Conf.int ~p:(conf_video#plug "channels") ~d:0 "Default number of channels"
 
 let conf_video_width =
-  Conf.int ~p:(conf_video#plug "width") ~d:320 "Image width"
+  Conf.int ~p:(conf_video#plug "width") ~d:1280 "Image width"
 
 let conf_video_height =
-  Conf.int ~p:(conf_video#plug "height") ~d:240 "Image height"
+  Conf.int ~p:(conf_video#plug "height") ~d:720 "Image height"
 
 (* MIDI *)
 let conf_midi = Conf.void ~p:(conf#plug "midi") "MIDI parameters"
@@ -312,6 +312,8 @@ let string_of_content_type k =
 type metadata = (string, string) Hashtbl.t
 
 type t = {
+  (* Presentation time, in multiple of frame size. *)
+  mutable pts : int64;
   (* End of track markers.
    * A break at the end of the buffer is not an end of track.
    * So maybe we should rather call that an end-of-fill marker,
@@ -340,7 +342,12 @@ let create_content content_type =
   }
 
 let create_type content_type =
-  { breaks = []; metadata = []; content = create_content content_type }
+  {
+    pts = 0L;
+    breaks = [];
+    metadata = [];
+    content = create_content content_type;
+  }
 
 let create kind = create_type (type_of_kind kind)
 
@@ -367,8 +374,6 @@ let breaks b = b.breaks
 let set_breaks b breaks = b.breaks <- breaks
 let add_break b br = b.breaks <- br :: b.breaks
 
-(* When clearing a buffer, only the last content chunk is kept
- * since it is the most likely to be re-used. *)
 let clear (b : t) =
   b.breaks <- [];
   b.metadata <- []
@@ -379,6 +384,7 @@ let clear_from (b : t) pos =
 
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b =
+  b.pts <- Int64.succ b.pts;
   b.breaks <- [];
   let max a (p, m) =
     match a with Some (pa, _) when pa > p -> a | _ -> Some (p, m)
@@ -386,6 +392,11 @@ let advance b =
   let rec last a = function [] -> a | b :: l -> last (max a b) l in
   b.metadata <-
     (match last None b.metadata with None -> [] | Some (_, e) -> [(-1, e)])
+
+(** Presentation time stuff. *)
+
+let pts { pts } = pts
+let set_pts frame pts = frame.pts <- pts
 
 (** Metadata stuff *)
 

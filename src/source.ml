@@ -409,7 +409,7 @@ class virtual operator ?(name = "src") content_kind sources =
              (fun l -> String.concat ":" (List.map (fun s -> s#id) l))
              activations)
       in
-      self#log#info "Activations changed: static=[%s], dynamic=[%s]."
+      self#log#debug "Activations changed: static=[%s], dynamic=[%s]."
         (string_of static_activations)
         (string_of dynamic_activations);
 
@@ -431,11 +431,11 @@ class virtual operator ?(name = "src") content_kind sources =
         | None ->
             if caching then (
               caching <- false;
-              self#log#info "Disabling caching mode." )
+              self#log#debug "Disabling caching mode." )
         | Some msg ->
             if not caching then (
               caching <- true;
-              self#log#info "Enabling caching mode: %s." msg )
+              self#log#debug "Enabling caching mode: %s." msg )
 
     (* Ask for initialization.
      * The current implementation makes it dangerous to call #get_ready from
@@ -481,7 +481,7 @@ class virtual operator ?(name = "src") content_kind sources =
       else static_activations <- remove [] static_activations;
       self#update_caching_mode;
       if static_activations = [] && dynamic_activations = [] then (
-        source_log#info "Source %s gets down." id;
+        source_log#debug "Source %s gets down." id;
         (Tutils.mutexify on_shutdown_m (fun () ->
              List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
              on_shutdown <- []))

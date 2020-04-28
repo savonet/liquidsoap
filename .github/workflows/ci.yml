@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [debian_testing, debian_stable, ubuntu_disco, ubuntu_eoan]
+        os: [debian_testing, debian_stable, ubuntu_bionic, ubuntu_eoan, ubuntu_focal]
     steps:
     - uses: actions/checkout@v2
     - name: Build and test
-      run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -f .github/Dockerfile
+      run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -f .ci/github/Dockerfile

@@ -1,5 +1,4 @@
 
-SUBDIRS = tests
 DISTFILES = $(wildcard *.in) Makefile ask-liquidsoap.rb ask-liquidsoap.pl \
 	    bash-completion liquidsoap-mode.el extract-replaygain
 
