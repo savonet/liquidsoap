@@ -1,17 +1,18 @@
 #!/bin/sh
+
 set -e
 
-FFMPEG=`which ffmpeg`
+FFMPEG=`which ffmpeg || echo ""`
 
 if test -z "$FFMPEG"; then
-	echo "ffmpeg must be installed"
-	exit 1
+  echo "ffmpeg must be installed"
+  exit 1
 fi
 
-SED=`which gsed`
+SED=`which gsed || echo ""`
 
 if test -z "$SED"; then
-  SED=`which sed`
+  SED=`which sed || echo ""`
 fi
 
 if test -z "$SED"; then
@@ -20,4 +21,3 @@ if test -z "$SED"; then
 fi
 
 $FFMPEG -i "$1" -vn -filter replaygain -f null /dev/null 2>&1 | $SED -n -r 's/.* track_gain = ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'
-

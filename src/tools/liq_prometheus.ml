@@ -20,30 +20,37 @@
 
  *****************************************************************************)
 
-open Source
+open Cohttp_lwt_unix
+module Prometheus_server = Prometheus_app.Cohttp (Server)
+open Prometheus_server
 
-class id ~kind ?(name="id") (source:source) =
-object
-  inherit operator ~name kind [source]
+let log = Log.make ["prometheus"; "server"]
 
-  method stype = source#stype
-  method remaining = source#remaining
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method seek = source#seek
-  method self_sync = source#self_sync
+let conf_prometheus =
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "prometheus")
+    "Metric reporting using prometheus."
 
-  method private get_frame buf = source#get buf
-end
+let conf_server =
+  Dtools.Conf.bool
+    ~p:(conf_prometheus#plug "server")
+    ~d:false "Enable the prometheus server."
 
-let () =
-  let kind = Lang.univ_t 1 in
-  Lang.add_operator "id"
-    ["", Lang.source_t kind, None, None]
-    ~category:Lang.Conversions
-    ~descr:"Does not do anything, simply forwards its input stream."
-    ~kind:(Lang.Unconstrained kind)
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new id ~kind src)
+let conf_port =
+  Dtools.Conf.int ~p:(conf_server#plug "port") ~d:9090
+    "Port to run the server on."
+
+let server () =
+  Server.create ~mode:(`TCP (`Port conf_port#get)) (Server.make ~callback ())
+
+let _ =
+  Dtools.Init.at_start (fun () ->
+      if conf_server#get then
+        ignore
+          (Thread.create
+             (fun () ->
+               log#important "Starting prometheus server on port %d"
+                 conf_port#get;
+               Lwt_main.run (server ());
+               log#important "Prometheus server shutdown!")
+             ()))

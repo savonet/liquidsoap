@@ -41,7 +41,7 @@ Libraries not developed by Savonet are:
 | Dependency     | Version                   |
 | -------------- | ------------------------- |
 | OCaml compiler | >= 4.08.0     |
-| ocaml-dtools   |  >= 0.4.1    |
+| ocaml-dtools   |  >= 0.4.2    |
 | ocaml-duppy    |  >= 0.8.1     |
 | ocaml-mm       |  >= 0.6.0        |
 | ocaml-pcre     |       |
@@ -61,14 +61,14 @@ Libraries not developed by Savonet are:
 | ------------------- | ------------------------------------ | --------------------------------------------- |
 | camlimages          |            | Image decoding                                |
 | gd4o                |                    | Video.add_text() on servers without X         |
-| ocaml-alsa          |  >= 0.2.4                 | ALSA I/O                                      |
+| ocaml-alsa          |  >= 0.3.0                 | ALSA I/O                                      |
 | ocaml-ao            |  >= 0.2.0                   | Output via libao                              |
 | ocaml-bjack         |  >= 0.1.3                | Jack support                                  |
 | ocaml-cry           |  >= 0.6.5                  | Sending to Shoutcast & Icecast                |
 | ocaml-dssi          |  >= 0.1.3                 | DSSI sound synthesis                          |
 | ocaml-faad          |  >= 0.5.0                 | AAC stream decoding                           |
 | ocaml-fdkaac        |  >= 0.3.1               | AAC(+) encoding                               |
-| ocaml-ffmpeg        |  >= 0.2.0               | Video conversion using the ffmpeg library     | 
+| ocaml-ffmpeg        |  >= 0.5.0        | Audio and video tools from the ffmpeg library | 
 | ocaml-flac          |  >= 0.2.0                 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        |  >= 0.1.0               | Frei0r plugins                                |
 | ocaml-gavl          |  >= 0.1.4                 | Video conversion using the gavl library       |
@@ -87,6 +87,7 @@ Libraries not developed by Savonet are:
 | ocaml-shine         |  >= 0.2.0                | Fixed-point MP3 encoding                      |
 | ocaml-soundtouch    |  >= 0.1.9           | Libsoundtouch's audio effects                 |
 | ocaml-speex         |  >= 0.3.0                | Ogg/Speex codec                               |
+| ocaml-srt           |  >= 0.1.1                  | SRT I/O                                       |
 | ocaml-ssl           |  >= 0.5.2                  | SSL/https support                             |
 | ocaml-taglib        |  >= 0.3.0               | MP3ID3 metadata access                        |
 | ocaml-theora        |  >= 0.3.1               | Ogg/Theora codec                              |

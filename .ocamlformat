@@ -1,0 +1,9 @@
+profile = conventional
+break-separators = after
+space-around-lists = false
+doc-comments-val = before
+match-indent = 2
+match-indent-nested = always
+parens-ite
+exp-grouping = preserve
+module-item-spacing = compact

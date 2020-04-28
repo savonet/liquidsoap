@@ -41,5 +41,7 @@ test(list.exists(fun (n) -> n > 0, [0,2,0]), true)
 test(list.exists(fun (n) -> n > 0, [0,0,0]), false)
 test(list.fold(fun(x,y)->x+y,1,[2,3,4]), 10)
 test(list.fold_right(fun(x,y)->x+y,1,[2,3,4]), 10)
+test(list.index(fun(x)->x==0,[1,2,0,3]), 2)
+test(list.index(fun(x)->x==0,[1,2,3]), 3)
 
 if !success then test.pass() else test.fail() end

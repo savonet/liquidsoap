@@ -535,7 +535,50 @@ AC_CHECK_OCAML_BINDING([gavl])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg])
+AC_CHECK_OCAML_BINDING([ffmpeg-avutil], [], [], [], [avutil])
+AC_CHECK_OCAML_BINDING([ffmpeg-avcodec], [ffmpeg-avutil], [], [], [avcodec])
+AC_CHECK_OCAML_BINDING([ffmpeg-av], [ffmpeg-avutil ffmpeg-avcodec], [], [], [av])
+AC_CHECK_OCAML_BINDING([ffmpeg-avfilter], [ffmpeg-avutil], [], [], [avfilter])
+AC_CHECK_OCAML_BINDING([ffmpeg-swresample], [ffmpeg-avutil ffmpeg-avcodec], [], [], [swresample])
+AC_CHECK_OCAML_BINDING([ffmpeg-swscale], [ffmpeg-avutil], [], [], [swscale])
+
+if test -n "${W_FFMPEG_AV}" && test -n "${W_FFMPEG_AVFILTER}" &&
+   test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
+  W_FFMPEG_DECODER=yes
+  w_FFMPEG_DECODER=yes
+  b_FFMPEG_DECODER=true
+else
+  W_FFMPEG_DECODER=""
+  w_FFMPEG_DECODER="no (require ffmpeg-av, ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample)"
+  b_FFMPEG_DECODER=false
+fi
+
+AC_SUBST(W_FFMPEG_DECODER)
+
+if test -n "${W_FFMPEG_AV}" && test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
+  W_FFMPEG_ENCODER=yes
+  w_FFMPEG_ENCODER=yes
+  b_FFMPEG_ENCODER=true
+else
+  W_FFMPEG_ENCODER=""
+  w_FFMPEG_ENCODER="no (require ffmpeg-av, ffmpeg-swscale and ffmpeg-swresample)"
+  b_FFMPEG_ENCODER=false
+fi
+
+AC_SUBST(W_FFMPEG_ENCODER)
+
+if test -n "${W_FFMPEG_AVFILTER}" &&
+   test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
+  W_FFMPEG_LIQ_FILTER=yes
+  w_FFMPEG_LIQ_FILTER=yes
+  b_FFMPEG_LIQ_FILTER=true
+else
+  W_FFMPEG_LIQ_FILTER=""
+  w_FFMPEG_LIQ_FILTER="no (require ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample)"
+  b_FFMPEG_LIQ_FILTER=false
+fi
+
+AC_SUBST(W_FFMPEG_LIQ_FILTER)
 
 #
 # Jack
@@ -804,6 +847,8 @@ AC_CHECK_OCAML_BINDING([tsdl])
 AC_CHECK_OCAML_BINDING([tsdl_ttf],[tsdl])
 AC_CHECK_OCAML_BINDING([tsdl_image],[tsdl])
 AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
+AC_CHECK_OCAML_BINDING([cohttp-lwt-unix])
+AC_CHECK_OCAML_BINDING([prometheus-app],[cohttp-lwt-unix])
 
 # TODO: switch to dune all the way?
 with_srt_types_dir=${with_srt_dir}
@@ -851,12 +896,10 @@ EOCONF
 AC_ARG_WITH([default-font],
             AS_HELP_STRING([--with-default-font],
                            [sets the default TTF font for video.add_text()]))
-if test "$w_SDL" = "yes" -o "$w_GD" = "yes" ; then
-  if test -z "$with_default_font" ; then
-    DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
-  else
-    DEFAULT_FONT=$with_default_font
-  fi
+if test -z "$with_default_font" ; then
+  DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+else
+  DEFAULT_FONT=$with_default_font
 fi
 cat >> src/configure.ml <<__BLAH__
 let default_font = "$DEFAULT_FONT"
@@ -987,7 +1030,7 @@ cat <<EOMSG
  * Supported input formats
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - Ffmpeg            : $w_FFMPEG
+   - Ffmpeg            : $w_FFMPEG_DECODER
    - Flac (native)     : $w_FLAC
    - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM
@@ -999,7 +1042,7 @@ cat <<EOMSG
 
  * Supported output formats
    - FDK-AAC           : $w_FDKAAC
-   - Ffmpeg            : $w_FFMPEG
+   - Ffmpeg            : $w_FFMPEG_ENCODER
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
    - Opus              : $w_OPUS
@@ -1015,6 +1058,7 @@ cat <<EOMSG
  * Input / output
    - ALSA              : $w_ALSA
    - AO                : $w_AO
+   - FFmpeg            : $w_FFMPEG_AV
    - Icecast/Shoutcast : $w_CRY
    - GStreamer         : $w_GSTREAMER
    - JACK              : $w_BJACK
@@ -1024,6 +1068,7 @@ cat <<EOMSG
    - SRT               : $w_SRT
 
  * Audio manipulation
+   - FFmpeg            : $w_FFMPEG_SWRESAMPLE
    - LADSPA            : $w_LADSPA
    - Lilv              : $w_LILV
    - Samplerate        : $w_SAMPLERATE
@@ -1031,7 +1076,7 @@ cat <<EOMSG
 
  * Video manipulation
    - camlimages        : $w_CAMLIMAGES
-   - FFmpeg            : $w_FFMPEG
+   - FFmpeg            : $w_FFMPEG_SWSCALE
    - frei0r            : $w_FREI0R
    - Gavl              : $w_GAVL
    - SDL-image         : $w_TSDL_IMAGE
@@ -1047,6 +1092,7 @@ cat <<EOMSG
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime
+   - FFmpeg filters:   : $w_FFMPEG_LIQ_FILTER
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lo                : $w_LO
@@ -1055,6 +1101,9 @@ cat <<EOMSG
    - ssl               : $w_SSL
    - windows service   : $w_WINSVC
    - yojson            : $w_YOJSON
+
+ * Monitoring
+   - Prometheus        : $w_PROMETHEUS_APP
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
@@ -1113,7 +1162,15 @@ variables {
   ogg_flac-enabled: $b_FLAC_OGG
   mad-enabled: $b_MAD
   faad-enabled: $b_FAAD
-  ffmpeg-enabled: $b_FFMPEG
+  ffmpeg-avutil-enabled: $b_FFMPEG_AVUTIL
+  ffmpeg-av-enabled: $b_FFMPEG_AV
+  ffmpeg-avcodec-enabled: $b_FFMPEG_AVCODEC
+  ffmpeg-avfilter-enabled: $b_FFMPEG_AVFILTER
+  ffmpeg-swresample-enabled: $b_FFMPEG_SWRESAMPLE
+  ffmpeg-swscale-enabled: $b_FFMPEG_SWSCALE
+  ffmpeg-decoder-enabled: $b_FFMPEG_DECODER
+  ffmpeg-encoder-enabled: $b_FFMPEG_ENCODER
+  ffmpeg-liq-filter-enabled: $b_FFMPEG_LIQ_FILTER
   xmlplaylist-enabled: $b_XMLPLAYLIST
   lastfm-enabled: $b_LASTFM
   lame-enabled: $b_LAME
@@ -1134,12 +1191,13 @@ variables {
   soundtouch-enabled: $b_SOUNDTOUCH
   ladspa-enabled: $b_LADSPA
   gavl-enabled: $b_GAVL
-  ffmpeg-enabled: $b_FFMPEG
   frei0r-enabled: $b_FREI0R
   camlimages-enabled: $b_CAMLIMAGES
   dssi-enabled: $b_DSSI
   graphics-enabled: $b_GRAPHICS
-  sdl-enabled: $b_SDL
+  sdl-enabled: $b_TSDL
+  sdl-image-enabled: $b_TSDL_IMAGE
+  sdl-ttf-enabled: $b_TSDL_TTF
   gd-enabled: $b_GD
   inotify-enabled: $b_INOTIFY
   lo-enabled: $b_LO
@@ -1149,5 +1207,6 @@ variables {
   secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
   srt-enabled: $b_SRT
   winscv-enabled: $b_WINSVC
+  prometheus-enabled: $b_PROMETHEUS_APP
 }
 EOCFG

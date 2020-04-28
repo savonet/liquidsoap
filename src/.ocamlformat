@@ -1,7 +1,0 @@
-break-separators = after-and-docked
-doc-comments = before
-match-indent = 2
-match-indent-nested = always
-parens-ite
-exp-grouping = preserve
-

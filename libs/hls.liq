@@ -51,16 +51,14 @@ def input.hls(~id="",~reload=10.,uri)
   end
 
   def rec next () =
-    file =
-      if list.length(!playlist) > 0 then
-        let (_,ret) = list.hd(default=(1,""),!playlist)
-        playlist := list.tl(!playlist)
-        sequence := !sequence + 1
-        ret
-      else
-        ""
-      end
-    request.create(file)
+    if list.length(!playlist) > 0 then
+      let (_,ret) = list.hd(default=(1,""),!playlist)
+      playlist := list.tl(!playlist)
+      sequence := !sequence + 1
+      [request.create(ret)]
+    else
+      []
+    end
   end
 
   def find_stream () =
@@ -79,7 +77,7 @@ def input.hls(~id="",~reload=10.,uri)
   end
   find_stream ()
 
-  source = request.dynamic(id=id,default_duration=0.5,length=5.,next)
+  source = request.dynamic.list(id=id,default_duration=0.5,length=5.,next)
 
   source = merge_tracks(source)
 

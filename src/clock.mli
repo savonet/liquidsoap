@@ -25,23 +25,7 @@
   * which prevents inconsistent uses of the source. Clocks are assigned to
   * sources at the end of the typing phase. *)
 
-(** In [`CPU] mode, synchronization is governed by the CPU clock.
-  * In [`None] mode, there is no synchronization control. Latency in
-  * is governed by the time it takes for the sources to produce and
-  * output data.
-  * In [`Auto] mode, synchronization is governed by the CPU unless at
-  * least one active source is declared [self_sync] in which case latency
-  * is delegated to this source. A typical example being a source linked
-  * to a sound card, in which case the source latency is governed
-  * by the sound card's clock. Another case is synchronous network
-  * protocol such as [input.srt]. *)
-type sync = [
-  | `Auto
-  | `CPU
-  | `None
-]
-
-class clock : ?sync:sync -> string -> Source.clock
+class clock : ?sync:Source.sync -> string -> Source.clock
 
 (** Indicates whether the application has started to run or not. *)
 val running : unit -> bool
@@ -81,14 +65,17 @@ val collect_after : (unit -> 'a) -> 'a
 val force_init : (Source.active_source -> bool) -> Source.active_source list
 val start : unit -> unit
 val stop : unit -> unit
-
 val fold : (Source.clock -> 'a -> 'a) -> 'a -> 'a
 
 type clock_variable = Source.clock_variable
-val to_string      : clock_variable -> string
-val create_unknown : sources:(Source.active_source list) ->
-                     sub_clocks:(clock_variable list) ->
-                     clock_variable
+
+val to_string : clock_variable -> string
+
+val create_unknown :
+  sources:Source.active_source list ->
+  sub_clocks:clock_variable list ->
+  clock_variable
+
 val create_known : clock -> clock_variable
 val unify : clock_variable -> clock_variable -> unit
 val forget : clock_variable -> clock_variable -> unit

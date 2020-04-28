@@ -123,21 +123,56 @@ care about the WAV length header then you should use this parameter.
 
 FFmpeg
 ------
-The `%ffmpeg` encoder is the latest addition to our collection, starting with version `1.4.0`. It is only for audio encoding for now. You need to have [ocaml-ffmpeg](https://github.com/savonet/ocaml-ffmpeg) installed and up-to date to enable the encoder during liquidsoap's build.
+The `%ffmpeg` encoder is the latest addition to our collection. You need to have [ffmpeg-av, ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample](https://github.com/savonet/ocaml-ffmpeg) installed and up-to date to enable the encoder during liquidsoap's build.
 
-The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpeg.org/ffmpeg-formats.html#Muxers) and [encoders](https://www.ffmpeg.org/ffmpeg-codecs.html), including private configuration options. Configuration value are passed as key/values, with values being of types: `string`, `int`, or `float`. If a configuration is not recognized (or: unused), it will raise an error during the instantiation of the encoder. Here are some configuration examples:
+The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpeg.org/ffmpeg-formats.html#Muxers) and [encoders](https://www.ffmpeg.org/ffmpeg-codecs.html), including private configuration options. Configuration value are passed as key/values, with values being of types: `string`, `int`, or `float`. If an option is not recognized (or: unused), it will raise an error during the instantiation of the encoder. Here are some configuration examples:
 
 * **AAC encoding at `22050kHz` using `fdk-aac` encoder and `mpegts` muxer**
-```
-%ffmpeg(format="mpegts",ar=22050,codec="libfdk_aac",b="32k",afterburner=1,profile="aac_he_v2")
+```liquidsoap
+%ffmpeg(format="mpegts",
+        %audio(codec="libfdk_aac",samplerate=22050,b="32k",
+               afterburner=1,profile="aac_he_v2"))
 ```
 
-* **Mp3 encoding using `libshine`**
+* **Mp3 encoding using `libshine` at `48000kHz`**
+```liquidsoap
+%ffmpeg(format="mp3",%audio(codec="libshine",samplerate=48000))
 ```
-%ffmpeg(format="mp3",codec="libshine")
+
+* **AC3 audio and H264 video encapsulated in a MPEG-TS stream**
+```liquidsoap
+%ffmpeg(format="mpegts",
+        %audio(codec="ac3",channel_coupling=0),
+        %video(codec="libx264",b="2600k",
+               "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
+               preset="ultrafast"))
 ```
+
+The full syntax is as follows:
+
+```liquidsoap
+%ffmpeg(format=<format>,
+        # Audio section
+        %audio(codec=<codec>,<option_name>=<option_value>,..),
+        # Video section
+        %video(codec=<codec>,<option_name>=<option_value>,..),
+        # Generic options
+        <option_name>=<option_value>,..)
+```
+Where:
+
+* `<format>` is either a string value (e.g. `"mpegts"`), as returned by the `ffmpeg -formats` command or `none`. When set to `none` or simply no specified, the encoder will try to auto-detect it.
+* `<codec>` is either a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command or `none`. When set to `none`, for audio, `channels` is set to `0` and, for either audio or video, the stream is assumed to have no such content.
+* `<option_name>` can be any syntactically valid variable name or string. Strings are typically used when the option name is of the form: `foo-bar`.
+* `%audio(..)` is for options specific to the audio codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
+* `%video(..)` is for options specific to the video codec. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
+* Generic options are passed to audio, video and format (container) setup. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here. 
 
 The `%ffmpeg` encoder is the prime encoder for HLS output as it is the only one of our collection of encoder which can produce Mpeg-ts muxed data, which is required by most HLS clients.
+
+Some encoding formats, for instance `mp4` require to rewing their stream and write a header after the fact, when encoding of the current track has finished. For historical reasons, such formats
+cannot be used with `output.file`. To remedy that, we have introduced the `output.url` operator. When using this operator, the encoder is fully in charge of the output file and can thus write headers
+after the fact. The `%ffmpeg` encoder is one such encoder that can be used with this operator.
 
 Ogg
 ---
@@ -231,7 +266,8 @@ The parameters are:
       bits_per_sample=16)
 ```
 
-`compression` ranges from 0 to 8 and `bits_per_sample` should be one of: `8`, `16` or `32`.
+`compression` ranges from 0 to 8 and `bits_per_sample` should be one of: `8`, `16`, `24` or `32`.
+Please note that `32` bits per sample is currently not supported by the underlying `libflac`.
 
 FDK-AAC
 -------

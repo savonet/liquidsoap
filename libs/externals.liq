@@ -146,7 +146,7 @@ def enable_external_flac_decoder() =
       end
     end
     add_decoder(name="EXTERNAL_FLAC",description="Decode files using the flac \
-                decoder binary.", mimes=["audio/x-flac"], test=test_flac,flac_p)
+                decoder binary.", mimes=["audio/flac", "audio/x-flac"], test=test_flac,flac_p)
   else
     log(label="decoder.external","Did not find flac binary, please adjust using the \"decoder.external.flac.path\" setting.")
   end
@@ -283,6 +283,7 @@ def string_of_metadata(m)
 end
 
 # Use X On Screen Display to display metadata info.
+# @flag extra
 # @param ~color    Color of the text.
 # @param ~position Position of the text (top|middle|bottom).
 # @param ~font     Font used (xfontsel is your friend...)
@@ -301,6 +302,7 @@ def osd_metadata(~color="green",~position="top",
 end
 
 # Use notify to display metadata info.
+# @flag extra
 # @param ~urgency Urgency (low|normal|critical).
 # @param ~icon    Icon filename or stock icon to display.
 # @param ~time    Timeout in milliseconds.
@@ -317,6 +319,7 @@ end
 
 %ifdef input.external.wav
 # Stream data from mplayer
+# @flag extra
 # @category Source / Input
 # @param s data URI.
 # @param ~restart restart on exit.

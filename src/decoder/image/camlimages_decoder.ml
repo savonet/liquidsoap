@@ -23,31 +23,27 @@
 module Img = Image.RGBA32
 module P = Image.Generic.Pixel
 
-let log = Log.make ["decoder";"camlimages"]
+let log = Log.make ["decoder"; "camlimages"]
 
 (* TODO: find something more efficient? *)
 let load_image filename =
   let img = OImages.load filename [] in
-  let width, height = img#width, img#height in
+  let width, height = (img#width, img#height) in
   let p =
     let rgba32_p img i j =
       let p = img#get i j in
       let c = p.Color.color in
-      c.Color.r, c.Color.g, c.Color.b, p.Color.alpha
+      (c.Color.r, c.Color.g, c.Color.b, p.Color.alpha)
     in
     match OImages.tag img with
-      | OImages.Rgba32 img ->
-        rgba32_p img
+      | OImages.Rgba32 img -> rgba32_p img
       | OImages.Rgb24 img ->
-        (fun i j ->
-          let p = img#get i j in
-          p.Color.r, p.Color.g, p.Color.b, 0xff)
-      | OImages.Index8 img ->
-        rgba32_p (img#to_rgba32)
-      | OImages.Index16 img ->
-        rgba32_p (img#to_rgba32)
-      | OImages.Cmyk32 _ ->
-        failwith "CMYK32 images are not supported for now."
+          fun i j ->
+            let p = img#get i j in
+            (p.Color.r, p.Color.g, p.Color.b, 0xff)
+      | OImages.Index8 img -> rgba32_p img#to_rgba32
+      | OImages.Index16 img -> rgba32_p img#to_rgba32
+      | OImages.Cmyk32 _ -> failwith "CMYK32 images are not supported for now."
   in
   let img = Video.Image.create width height in
   for j = 0 to height - 1 do
@@ -59,7 +55,6 @@ let load_image filename =
 
 let () =
   Decoder.image_file_decoders#register "camlimages"
-    ~sdoc:"Use camlimages library to decode images."
-    (fun filename ->
+    ~sdoc:"Use camlimages library to decode images." (fun filename ->
       let img = load_image filename in
       Some img)

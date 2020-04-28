@@ -204,7 +204,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     elsif list.mem(mime,["application/ogg", "application/x-ogg",
                          "audio/x-ogg", "audio/ogg", "video/ogg"]) then
       "ogg"
-    elsif mime == "audio/x-flac" then
+    elsif list.mem(mime, ["audio/flac", "audio/x-flac"]) then
       "flac"
     elsif list.mem(mime,["audio/mp4", "application/mp4"]) then
       "mp4"

@@ -1,6 +1,7 @@
 %ifdef input.lastfm
 # Utility to compose last.fm URIs.
 # @category String
+# @flag extra
 # @param ~user      Lastfm user
 # @param ~password  Lastfm password
 # @param ~discovery Allow lastfm suggestions
@@ -14,6 +15,7 @@ end
 
 # Submit metadata to libre.fm using the audioscrobbler protocol.
 # @category Interaction
+# @flag extra
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 def librefm.submit(~user,~password,~source="broadcast",~length=false,m) = 
@@ -25,6 +27,7 @@ end
 
 # Submit metadata to lastfm.fm using the audioscrobbler protocol.
 # @category Interaction
+# @flag extra
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 def lastfm.submit(~user,~password,~source="broadcast",~length=false,m) =
@@ -36,6 +39,7 @@ end
 
 # Submit metadata to libre.fm using the audioscrobbler protocol (nowplaying mode).
 # @category Interaction
+# @flag extra
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 def librefm.nowplaying(~user,~password,~length=false,m) =
   audioscrobbler.nowplaying(user=user,password=password,length=length,
@@ -45,6 +49,7 @@ end
 
 # Submit metadata to lastfm.fm using the audioscrobbler protocol (nowplaying mode).
 # @category Interaction
+# @flag extra
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 def lastfm.nowplaying(~user,~password,~length=false,m) =
   audioscrobbler.nowplaying(user=user,password=password,length=length,
@@ -56,6 +61,7 @@ end
 # First signal song as now playing when starting, and
 # then submit song when it ends.
 # @category Interaction
+# @flag extra
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 # @param ~delay Submit song when there is only this delay left, in seconds. 
@@ -88,6 +94,7 @@ end
 # First signal song as now playing when starting, and
 # then submit song when it ends.
 # @category Interaction
+# @flag extra
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 # @param ~delay Submit song when there is only this delay left, in seconds. If remaining time is less than this value, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
@@ -107,6 +114,7 @@ end
 # First signal song as now playing when starting, and
 # then submit song when it ends.
 # @category Interaction
+# @flag extra
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 # @param ~delay Submit song when there is only this delay left, in seconds. If remaining time is less than this value, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.

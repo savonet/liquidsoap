@@ -23,6 +23,7 @@
 %{
 
   open Lang_values
+  open Lang_values.Ground
 
   (** Create a new value with an unknown type. *)
   let mk ~pos e =
@@ -116,13 +117,13 @@
       (t,t+d,p)
 
   let mk_time_pred ~pos (a,b,c) =
-    let args = List.map (fun x -> "", mk ~pos (Int x)) [a;b;c] in
+    let args = List.map (fun x -> "", mk ~pos (Ground (Int x))) [a;b;c] in
       mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
   let mk_var_mult bin mul =
     if bin <> "+" then raise Parsing.Parse_error else
       let mul = Frame.mul_of_int mul in
-      let mul = Frame.add_mul Frame.Variable mul in
+      let mul = Frame.add_mul Frame.Any mul in
       Lang_values.type_of_mul ~pos:None ~level:(-1) mul
 
   let mk_ty ~pos name args =
@@ -171,7 +172,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
+%token OGG FLAC AUDIO VIDEO FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
@@ -245,15 +246,15 @@ exprs:
 /* General expressions. */
 expr:
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ; $2 }
-  | UMINUS FLOAT                     { mk ~pos:$loc (Float (-. $2)) }
-  | UMINUS INT                       { mk ~pos:$loc (Int (- $2)) }
+  | UMINUS FLOAT                     { mk ~pos:$loc (Ground (Float (-. $2))) }
+  | UMINUS INT                       { mk ~pos:$loc (Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "~-"), ["", $3])) }
   | LPAR expr RPAR                   { $2 }
-  | INT                              { mk ~pos:$loc (Int $1) }
+  | INT                              { mk ~pos:$loc (Ground (Int $1)) }
   | NOT expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "not"), ["", $2])) }
-  | BOOL                             { mk ~pos:$loc (Bool $1) }
-  | FLOAT                            { mk ~pos:$loc (Float  $1) }
-  | STRING                           { mk ~pos:$loc (String $1) }
+  | BOOL                             { mk ~pos:$loc (Ground (Bool $1)) }
+  | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
+  | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | varlist                          { mk ~pos:$loc (List $1) }
   | REF expr                         { mk ~pos:$loc (Ref $2) }
   | GET expr                         { mk ~pos:$loc (Get $2) }
@@ -264,7 +265,7 @@ expr:
   | SHINE app_opt                    { mk_enc ~pos:$loc (Lang_shine.make $2) }
   | FDKAAC app_opt                   { mk_enc ~pos:$loc (Lang_fdkaac.make $2) }
   | FLAC app_opt                     { mk_enc ~pos:$loc (Lang_flac.make $2) }
-  | FFMPEG app_opt                   { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
+  | FFMPEG ffmpeg_opt                { mk_enc ~pos:$loc (Lang_ffmpeg.make $2) }
   | EXTERNAL app_opt                 { mk_enc ~pos:$loc (Lang_external_encoder.make $2) }
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
@@ -326,7 +327,7 @@ ty:
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty_tuple RPAR        { Lang_types.make (Lang_types.Tuple $2) }
   | INT                       { Lang_values.type_of_int $1 }
-  | TIMES                     { Lang_values.variable_t }
+  | TIMES                     { Lang_values.any_t }
   | TIMES BIN2 INT            { mk_var_mult $2 $3 }
   | INT BIN2 TIMES            { mk_var_mult $2 $1 }
   | LPAR argsty RPAR YIELDS ty{ Lang_types.make (Lang_types.Arrow ($2,$5)) }
@@ -426,6 +427,7 @@ if_elsif:
   | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
   |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
 
+
 app_opt:
   | %prec no_app { [] }
   | LPAR app_list RPAR { $2 }
@@ -441,5 +443,26 @@ top_level_ogg_item:
   | SPEEX app_opt      { Lang_speex.make $2 }
   | OPUS app_opt       { Lang_opus.make $2 }
 ogg_item:
-  | FLAC app_opt   { Lang_flac.make_ogg $2 }
+  | FLAC app_opt       { Lang_flac.make_ogg $2 }
   | top_level_ogg_item { $1 }
+
+ffmpeg_param:
+  | STRING GETS expr { $1,$3 }
+  | VAR GETS expr        { $1,$3 }
+ffmpeg_params:
+  |                                  { [] }
+  | ffmpeg_param                     { [$1] }
+  | ffmpeg_param COMMA ffmpeg_params { $1::$3 }
+
+ffmpeg_list_elem:
+  | AUDIO LPAR ffmpeg_params RPAR { `Audio  $3 }
+  | VIDEO LPAR ffmpeg_params RPAR { `Video  $3 }
+  | ffmpeg_param                  { `Option $1 }
+ffmpeg_list:
+  |                                    { [] }
+  | ffmpeg_list_elem                   { [$1] }
+  | ffmpeg_list_elem COMMA ffmpeg_list { $1::$3 }
+
+ffmpeg_opt:
+  | %prec no_app { [] }
+  | LPAR ffmpeg_list RPAR { $2 }

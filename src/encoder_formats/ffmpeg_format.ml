@@ -20,20 +20,23 @@
 
  *****************************************************************************)
 
-type opt_val = [
-  | `String of string
-  | `Int of int
-  | `Float of float
-]
-
+type opt_val = [ `String of string | `Int of int | `Float of float ]
+type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
 
 type t = {
-  format     : string;
-  codec      : string;
-  channels   : int;
-  samplerate : int Lazy.t ;
-  options    : opts
+  format : string option;
+  output : output;
+  channels : int;
+  samplerate : int Lazy.t;
+  framerate : int Lazy.t;
+  width : int Lazy.t;
+  height : int Lazy.t;
+  audio_codec : string option;
+  audio_opts : opts;
+  video_codec : string option;
+  video_opts : opts;
+  other_opts : opts;
 }
 
 let string_of_options options =
@@ -43,15 +46,43 @@ let string_of_options options =
     | `Float f -> string_of_float f
   in
   String.concat ","
-    (Hashtbl.fold (fun k v c ->
-      let v = Printf.sprintf "%s=%s" k (_v v) in
-      v::c) options [])
+    (Hashtbl.fold
+       (fun k v c ->
+         let v = Printf.sprintf "%s=%s" k (_v v) in
+         v :: c)
+       options [])
 
 let to_string m =
+  let opts = [] in
   let opts =
-    string_of_options m.options
+    if Hashtbl.length m.other_opts > 0 then
+      string_of_options m.other_opts :: opts
+    else opts
   in
-  Printf.sprintf
-    "%%fmpeg(format=%S,codec=%S,ac=%d,ar=%d%s)"
-    m.format m.codec m.channels (Lazy.force m.samplerate)
-    (if opts = "" then "" else Printf.sprintf ",%s" opts)
+  let opts =
+    match m.video_codec with
+      | None -> opts
+      | Some c ->
+          let video_opts = Hashtbl.copy m.video_opts in
+          Hashtbl.add video_opts "codec" (`String c);
+          Hashtbl.add video_opts "framerate" (`Int (Lazy.force m.framerate));
+          Hashtbl.add video_opts "width" (`Int (Lazy.force m.width));
+          Hashtbl.add video_opts "height" (`Int (Lazy.force m.height));
+          Printf.sprintf "%%video(%s)" (string_of_options video_opts) :: opts
+  in
+  let opts =
+    match m.audio_codec with
+      | None -> opts
+      | Some c ->
+          let audio_opts = Hashtbl.copy m.audio_opts in
+          Hashtbl.add audio_opts "codec" (`String c);
+          Hashtbl.add audio_opts "channels" (`Int m.channels);
+          Hashtbl.add audio_opts "samplerate" (`Int (Lazy.force m.samplerate));
+          Printf.sprintf "%%audio(%s)" (string_of_options audio_opts) :: opts
+  in
+  let opts =
+    match m.format with
+      | Some f -> Printf.sprintf "format=%S" f :: opts
+      | None -> opts
+  in
+  Printf.sprintf "%%fmpeg(%s)" (String.concat "," opts)

@@ -8,6 +8,7 @@ end
 
 # Add a skip function to a source when it does not have one by default.
 # @category Interaction
+# @flag extra
 # @param s The source to attach the command to.
 def add_skip_command(s) =
   # A command to skip
@@ -98,6 +99,7 @@ end
 # switching.
 # @category Source / Track Processing
 # @param ~input The input source
+# @flag extra
 # @param f The fallback source
 def fallback.skip(~input,f)
   def transition(a,b) =
@@ -110,6 +112,7 @@ end
 
 # Compress and normalize, producing a more uniform and "full" sound.
 # @category Source / Sound Processing
+# @flag extra
 # @param s The input source.
 def nrj(s)
   compress(threshold=-15.,ratio=3.,gain=3.,normalize(s))
@@ -117,6 +120,7 @@ end
 
 # Multiband-compression.
 # @category Source / Sound Processing
+# @flag extra
 # @param s The input source.
 def sky(s)
   # 3-band crossover
@@ -142,6 +146,7 @@ end
 %ifdef soundtouch
 # Increases the pitch, making voices sound like on helium.
 # @category Source / Sound Processing
+# @flag extra
 # @param s The input source.
 def helium(s)
   soundtouch(pitch=1.5,s)
@@ -173,7 +178,7 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to run
 def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  string.split(separator="[\\n|\\r]+",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
+  string.split(separator="\r?\n",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
 end
 
 # Return true if process exited with 0 code.
@@ -610,12 +615,18 @@ end
 def chop(~duration=float_getter(3.),~metadata=[],s) =
   duration=to_float_getter(duration)
   let (insert, s) = insert_metadata(s)
-  def f () =
-    insert(new_track=true, metadata)
-    duration()
+
+  # Track time in the source's context:
+  start_time = ref 0.
+  def f() =
+    if duration () <= source.time(s) - !start_time then
+      start_time := source.time(s)
+      insert(new_track=true, metadata)
+    end
+    1.
   end
-  thread.run.recurrent(delay=duration(), f)
-  s
+
+  amplify(f,s)
 end
 
 # Make a source available or not depending on a boolean.

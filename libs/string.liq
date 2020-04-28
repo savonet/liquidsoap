@@ -37,3 +37,10 @@ def string.binary.to_int(~little_endian=true, s)
   for(0, n-1, fun (i) -> ans := lsl(!ans,8) + string.nth(s, if little_endian then n-1-i else i end))
   !ans
 end
+
+# Add a null character at the end of a string.
+# @category String
+# @param s String
+def string.null_terminated(s)
+  s ^ "\000"
+end

@@ -31,21 +31,20 @@ ogg_muxer = \
 audio_converters = \
 	converters/audio/native_audio_converter.ml \
 	$(if $(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml) \
-	$(if $(W_FFMPEG),converters/audio/ffmpeg_audio_converter.ml)
+	$(if $(W_FFMPEG_SWRESAMPLE),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
 	converters/video_converter.ml \
 	converters/video/native_video_converter.ml \
 	$(if $(W_GAVL),converters/video/gavl_converter.ml) \
-	$(if $(W_FFMPEG),converters/video/ffmpeg_video_converter.ml)
+	$(if $(W_FFMPEG_SWSCALE),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
 	decoder/metadata_decoder.ml \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
-	decoder/id3v2_plug.ml \
-	$(if $(W_FFMPEG),decoder/ffmpeg_decoder.ml) \
+	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_decoder.ml) \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
@@ -54,6 +53,7 @@ decoders = \
 	$(if $(W_FLAC),decoder/flacduration.ml) \
 	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
+        decoder/id3v2_plug.ml \
 	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
 	$(if $(W_SDL_IMAGE),decoder/image/sdlimage_decoder.ml) \
 	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
@@ -111,7 +111,7 @@ operators = \
 	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
-	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
+	conversions/conversion.ml conversions/audio_to_stereo.ml conversions/drop.ml \
 	conversions/swap.ml conversions/mean.ml conversions/mux.ml
 
 analyze = analyze/analyze_rms.ml
@@ -127,7 +127,7 @@ encoders = \
 	$(if $(W_SHINE),encoder/shine_encoder.ml) \
 	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
-        $(if $(W_FFMPEG),encoder/ffmpeg_encoder.ml) \
+        $(if $(W_FFMPEG_ENCODER),encoder/ffmpeg_encoder.ml) \
 	$(if $(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml) \
 	$(if $(W_TAGLIB),encoder/taglib_id3v2.ml) \
 	$(if $(W_GSTREAMER),encoder/gstreamer_encoder.ml)
@@ -172,7 +172,9 @@ io = io/udp_io.ml \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_ALSA),io/alsa_io.ml) \
-	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
+	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
+	$(if $(W_FFMPEG_LIQ_FILTER),io/ffmpeg_filter_io.ml) \
+	$(if $(W_FFMPEG_AV),io/ffmpeg_io.ml)
 
 tools = tools/extralib.ml tools/JSON.ml \
 	tools/stringView.ml tools/strings.ml \
@@ -184,18 +186,18 @@ tools = tools/extralib.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
-	$(if $(W_FFMPEG),tools/ffmpeg_config.ml) \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
 	tools/pool.ml tools/sha1.ml tools/websocket.ml tools/id3v2.ml \
-	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml)
+	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
+	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 
-stream =stream/frame.ml stream/generator.ml \
-	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
+stream =stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
+	stream/generator.ml \
 	$(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 
-visualization = visualization/vumeter.ml \
+visualization = \
 	visualization/midimeter.ml \
 	visualization/video_volume.ml \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml)
@@ -220,10 +222,13 @@ builtins = lang/lang_builtins.ml \
            $(if $(W_LO),lang/builtins_lo.ml) \
            $(if $(W_MAGIC),lang/builtins_magic.ml) \
            $(if $(W_CRY),lang/builtins_cry.ml) \
-           $(if $(W_LASTFM),lang/builtins_lastfm.ml)
+           $(if $(W_LASTFM),lang/builtins_lastfm.ml) \
+           $(if $(W_PROMETHEUS),lang/builtins_prometheus.ml) \
+           $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
+	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml $(encoder_formats) encoder.ml \
@@ -238,10 +243,11 @@ liquidsoap_sources += \
 	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
-	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
-	$(sources) $(conversions) $(outputs) $(operators) \
-	$(encoders) $(ogg_muxer) $(io) \
-	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
+	$(video_converters) $(audio_converters) $(protocols) \
+	$(sources) $(outputs) $(conversions) $(operators) \
+	$(encoders) $(decoders) $(ogg_demuxer) $(ogg_muxer) \
+	$(analyze) $(playlists) \
+	$(visualization) $(synth) $(io) \
 	shebang.ml $(builtins) main.ml \
 	$(if $(W_WINSVC),runner_service.ml,runner.ml)
 

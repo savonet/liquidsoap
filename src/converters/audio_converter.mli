@@ -24,21 +24,16 @@
 
 (* TODO: is it the right place for this ? *)
 val audio_conf : Dtools.Conf.ut
-
 val converter_conf : Dtools.Conf.ut
 
-module Samplerate :
-sig
+module Samplerate : sig
   exception Invalid_data
 
   type converter = float -> Frame.audio_t -> Frame.audio_t
-
   type converter_plug = unit -> converter
-
   type t
 
   val samplerate_conf : Dtools.Conf.ut
-
   val converters : converter_plug Plug.plug
 
   (** [create chan_nb] creates a converter. *)
@@ -49,4 +44,3 @@ sig
       passed at [create]. *)
   val resample : t -> float -> Frame.audio_t array -> Frame.audio_t array
 end
-

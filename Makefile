@@ -1,4 +1,4 @@
-SUBDIRS= src examples doc gui scripts libs
+SUBDIRS= src examples doc gui scripts tests libs
 DISTFILES = CHANGES CHANGES.md COPYING README README.md \
 	bootstrap configure.ac configure config.h.in \
 	Makefile Makefile.defs.in Makefile.rules install-sh \
@@ -17,7 +17,7 @@ pre-distclean: clean
 
 test:
 	$(MAKE) -C src/test test
-	$(MAKE) -C scripts/tests test
+	$(MAKE) -C tests test
 
 # Build liquidsoap as it will be used for building the doc
 doc-local: all
@@ -83,7 +83,7 @@ endif
 	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example
 	$(INSTALL_DIRECTORY) ${sysconfdir}/logrotate.d
 	$(INSTALL_DATA) scripts/liquidsoap.logrotate ${sysconfdir}/logrotate.d/liquidsoap
-	$(INSTALL_DIRECTORY) ${bashcompdir}
-	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
+	-$(INSTALL_DIRECTORY) ${bashcompdir}
+	-$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
 	$(INSTALL_DIRECTORY) ${emacsdir}
 	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/

@@ -19,29 +19,27 @@ end
 # Add a static image on the first video channel.
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
-# @param ~width Scale to width (zero means frame width, negative means original width).
-# @param ~height Scale to height (zero means frame height, negative means original height).
+# @param ~width Scale to width (negative means original width).
+# @param ~height Scale to height (negative means original height).
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id="",~width=0,~height=0,~x=max_int(),~y=max_int(),~file,s)
-  width = if width == 0 then "" else "width=#{width}" end
-  height = if height == 0 then "" else "height=#{height}" end
-  x = if x == max_int() then "" else "x=#{x}" end
-  y = if y == max_int() then "" else "y=#{y}" end
-  image = single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")
+def video.add_image(~id="", ~width=int_getter(-1), ~height=int_getter(-1), ~x=int_getter(max_int()), ~y=int_getter(max_int()), ~file, s)
+  image = single(id=id, file)
+  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
   image = mux_audio(audio=blank(), image)
   add([s,image])
 end
 
 # Input from ffmpeg.
 # @category Source / Video Processing
+# @flag extra
 # @param ~restart restart on exit.
 # @param ~restart_on_error restart on exit with error.
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
 # @param input ffmpeg options specifying the input
-def input.external.ffmpeg(~id="", ~show_command=false, 
+def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
                           ~restart=true,~restart_on_error=false,
                           ~buffer=0.2,~max=10.,input)
   input = (input : string)
@@ -49,11 +47,12 @@ def input.external.ffmpeg(~id="", ~show_command=false,
   cmd = "#{ffmpeg} #{input} -f avi \
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
-               #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\" \
-         -c:v rawvideo -vf format=yuv420p -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
+               #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\",\
+               format=yuv420p,fps=fps=#{video.frame.rate()} \
+         -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
          -ar #{audio.samplerate()} pipe:1"
 
-  if show_command then log.important("command: #{cmd}") end
+  if show_command then log.important(label=id, "command: #{cmd}") end
 
   (input.external.avi(id=id,restart=restart,
                       restart_on_error=restart_on_error,
@@ -66,19 +65,20 @@ end
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
 # @category Source / Video Processing
-def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,
-                          ~buffer=0.2,~max=10.)
-  cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:\
-                     rate=#{video.frame.rate()} \
-         -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}"
+# @flag extra
+def video.external.testsrc(~id="video.external.testsrc",~restart=true,~restart_on_error=false,~buffer=0.2,~max=10.,~framerate=0)
+  framerate = if framerate <= 0 then video.frame.rate() else framerate end
+  cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{framerate} \
+         -f lavfi -i sine=frequency=440:beep_factor=2:sample_rate=#{audio.samplerate()}"
 
   input.external.ffmpeg(id=id,restart=restart,
                         restart_on_error=restart_on_error,
-                        buffer=buffer,max=max,cmd)
+                        buffer=buffer,max=max,show_command=true,cmd)
 end
 
 # Output to ffmpeg.
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -101,6 +101,7 @@ end
 
 # Output a HLS playlist using ffmpeg
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -126,6 +127,7 @@ end
 
 # Output an MPEG-DASH playlist using ffmpeg
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -150,6 +152,7 @@ end
 
 # Stream to youtube.
 # @category Output
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
@@ -212,5 +215,4 @@ def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
      metadata=metadata,size=size,
      speed=speed,x=x,y=y,d,s)
 end
-
 

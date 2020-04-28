@@ -48,7 +48,7 @@ AC_ARG_WITH([binding()-dir],
       [--with-binding()-dir=path],
       [look for ocaml-binding() library in "path" (autodetected by default)]))
 
-m4_define([PKG_VERSION],m4_esyscmd([cat liquidsoap.opam | grep $1 | grep '<\|>' | sed 's/.*{[ ]*[<|>][=]\{0,1\}[ ]*"\([^"]*\)"[ ]*}/\1/' | tr -d '\r\n']))
+m4_define([PKG_VERSION],m4_esyscmd([cat liquidsoap.opam | grep $1 | grep '<\|>' | head -n 1 | sed 's/.*{[ ]*[<|>][=]\{0,1\}[ ]*"\([^"]*\)"[ ]*}/\1/' | tr -d '\r\n']))
 m4_define([VERSION_CHECK],[ifelse(PKG_VERSION,[],[],[ >= PKG_VERSION])])
 
 []binding()_version_descr="VERSION_CHECK"

@@ -20,13 +20,13 @@
 
  *****************************************************************************)
 
-module Config =
-struct
+module Config = struct
   module Http = Https
+
   let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp][sS]://\\([^/]+\\)\\(/.*\\)?$"
+  let default_port = 443
 end
 
-module Input_https = Http_source.Make(Config)
+module Input_https = Http_source.Make (Config)
 
-let () =
-  Input_https.register "https"
+let () = Input_https.register "https"
