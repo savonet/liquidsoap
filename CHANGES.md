@@ -37,6 +37,7 @@ New:
 - Add `playlist.list.reloadable` and `playlist.list` (#1133).
 - Make it possible to disable buffer overrun logs.
 - Add `video.resize`.
+- Add `getter.int_of_float` and `getter.float_of_int`.
 
 Changed:
 
@@ -82,6 +83,7 @@ Changed:
 - Added `path.home.unrelate`.
 - Use getters for arguments of `video.add_image` (#1176).
 - Generalize `audio_to_stereo` to video frames and those without audio.
+- Allow crossfading for video (#1132, #1135).
 
 Fixed:
 

@@ -42,11 +42,10 @@ class effect ~kind effect (source : source) =
       match VFrame.get_content buf source with
         | None -> ()
         | Some (rgb, offset, length) ->
-            let rgb = rgb.(0) in
-            Video.iter effect rgb offset length
+            Array.iter (fun rgb -> Video.iter effect rgb offset length) rgb
   end
 
-let return_t = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
+let return_t = Lang.kind_type_of_kind_format Lang.any
 
 let () =
   Lang.add_operator "video.greyscale"
@@ -76,21 +75,25 @@ let () =
       let src = Lang.to_source (f "") in
       new effect ~kind Video.Image.Effect.invert src)
 
-(*
 let () =
   Lang.add_operator "video.opacity"
     [
-      "", Lang.float_t, None, Some "Coefficient to scale opacity with.";
-      "", Lang.source_t kind, None, None
+      ( "",
+        Lang.float_getter_t (),
+        None,
+        Some "Coefficient to scale opacity with." );
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t
-    ~category:Lang.VideoProcessing
-    ~descr:"Scale opacity of video."
+    ~return_t ~category:Lang.VideoProcessing ~descr:"Scale opacity of video."
     (fun p kind ->
-       let a = Lang.to_float (Lang.assoc "" 1 p) in
-       let src = Lang.to_source (Lang.assoc "" 2 p) in
-         new effect ~kind (fun buf -> Image.Effect.Alpha.scale buf a) src)
+      let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
+      let src = Lang.to_source (Lang.assoc "" 2 p) in
+      new effect
+        ~kind
+        (fun buf -> Video.Image.Effect.Alpha.scale buf (a ()))
+        src)
 
+(*
 let () =
   Lang.add_operator "video.opacity.blur"
     [
