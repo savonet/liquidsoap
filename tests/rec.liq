@@ -1,4 +1,4 @@
-#!../../src/liquidsoap
+#!../src/liquidsoap
 
 # Some tests related to recusion and polymorphism.
 
