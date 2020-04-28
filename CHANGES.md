@@ -49,6 +49,9 @@ Changed:
   to return multiple requests at once but, more importantly,
   to return `[]` when no next requests are available. (#1169)
 - Deprecated `request.dynamic`.
+- Re-implemented switch-derived operators (`fallback`, `rotate`, `random`) as
+  scripted operators, removed `track_sensitive` argument from `rotate` and
+  `random` as it does not have a sound meaning for them. 
 - Renamed `verb` argument info `method` in `output.icecast`.
 - Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).

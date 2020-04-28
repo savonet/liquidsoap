@@ -25,7 +25,7 @@ def list.init(n, f)
       list.add(f(i), aux(i+1))
     end
   end
-  aux(0)
+  if n < 0 then [] else aux(0) end
 end
 
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.

@@ -3,6 +3,7 @@
 %include "list.liq"
 %include "predicate.liq"
 %include "thread.liq"
+%include "switches.liq"
 %include "utils.liq"
 %include "string.liq"
 %include "metadata.liq"
