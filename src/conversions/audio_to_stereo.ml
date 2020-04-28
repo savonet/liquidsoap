@@ -53,7 +53,7 @@ class basic ~kind source =
 
 let () =
   let input_kind = Lang.kind_type_of_kind_format Lang.any in
-  let { Frame.video; midi; _ } = Lang.of_frame_kind_t input_kind in
+  let { Frame.video; midi } = Lang.of_frame_kind_t input_kind in
   let output_kind = Lang.frame_kind_t ~audio:(Lang.n_t 2) ~video ~midi in
   Lang.add_operator "audio_to_stereo" ~category:Lang.Conversions
     ~descr:"Convert any kind of audio source into a stereo source."
