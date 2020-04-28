@@ -264,12 +264,13 @@ val univ_t : ?constraints:Lang_types.constraints -> unit -> t
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
 
-(** A string getter. The argument is the number of the universal type parameter
-  * (should be >= 1). *)
+(** A getter on an arbitrary type. *)
+val getter_t : t -> t
+
+(** A string getter. *)
 val string_getter_t : unit -> t
 
-(** A float getter. The argument is the number of the universal type parameter
-  * (should be >= 1). *)
+(** A float getter. *)
 val float_getter_t : unit -> t
 
 val int_getter_t : unit -> t

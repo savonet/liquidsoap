@@ -61,10 +61,11 @@ let any_t = Term.any_t
 let add_t = Term.add_t
 let type_of_int = Term.type_of_int
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
-let string_getter_t () = univ_t ~constraints:[T.Getter T.String] ()
-let float_getter_t () = univ_t ~constraints:[T.Getter T.Float] ()
-let int_getter_t () = univ_t ~constraints:[T.Getter T.Int] ()
-let bool_getter_t () = univ_t ~constraints:[T.Getter T.Bool] ()
+let getter_t a = univ_t ~constraints:[T.Getter a] ()
+let string_getter_t () = getter_t T.String
+let float_getter_t () = getter_t T.Float
+let int_getter_t () = getter_t T.Int
+let bool_getter_t () = getter_t T.Bool
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
