@@ -118,7 +118,7 @@ let () =
     [
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ("", Lang.string_t, None, Some "Name of the file.");
-      ("", Lang.source_t (Lang.univ_t 1), None, Some "Source to encode");
+      ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to encode");
     ]
     Lang.unit_t
     (fun p ->
