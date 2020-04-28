@@ -43,6 +43,7 @@ class basic ~kind source =
             match Frame.(tmp_frame.content.audio) with
               | [||] ->
                   let buf = Audio.Mono.create (AFrame.size ()) in
+                  Audio.Mono.clear buf;
                   [| buf; buf |]
               | [| chan |] -> [| chan; chan |]
               | audio -> Array.sub audio 0 2
