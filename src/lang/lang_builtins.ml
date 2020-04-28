@@ -103,12 +103,12 @@ let () =
       (fun p ->
         let getter = to_get (Lang.assoc "" 1 p) in
         Lang.val_fun [] ~ret_t:type_t (fun _ _ -> to_val (getter ())));
+    let a = get_t () in
     add_builtin ~cat:Liq (name ^ "_getter")
       ~descr:
         ( "Identity function over " ^ name ^ " getters. "
         ^ "This is useful to make types explicit." )
-      [("", get_t (), None, None)]
-      (get_t ())
+      [("", a, None, None)] a
       (fun p -> List.assoc "" p)
   in
   add_getters "string" Lang.string_getter_t Lang.string_t Lang.to_string_getter
