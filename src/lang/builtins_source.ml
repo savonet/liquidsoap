@@ -111,7 +111,7 @@ let () =
       Lang.list ~t:s_t (List.map (fun x -> Lang.source (x :> Source.source)) l))
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.univ_t () in
   add_builtin "source.dump" ~cat:Liq
     ~descr:"Immediately encode the whole contents of a source into a file."
     ~flags:[Lang.Experimental]
