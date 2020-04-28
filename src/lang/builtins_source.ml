@@ -111,6 +111,7 @@ let () =
       Lang.list ~t:s_t (List.map (fun x -> Lang.source (x :> Source.source)) l))
 
 let () =
+  let log = Log.make ["source"; "dump"] in
   let kind = Lang.univ_t () in
   add_builtin "source.dump" ~cat:Liq
     ~descr:"Immediately encode the whole contents of a source into a file."
@@ -122,29 +123,21 @@ let () =
     ]
     Lang.unit_t
     (fun p ->
-      let format_val = Lang.assoc "" 1 p in
-      let format = Lang.to_format format_val in
-      let encoder =
-        try Encoder.get_factory format
-        with Not_found ->
-          raise (Lang_errors.Invalid_value (format_val, "Unsupported format"))
+      let proto =
+        let p = Pipe_output.file_proto (Lang.univ_t ()) in
+        List.filter_map (fun (l, _, v, _) -> Option.map (fun v -> (l, v)) v) p
       in
-      let kind = Encoder.kind_of_format format in
-      let file = Lang.to_string (Lang.assoc "" 2 p) in
+      let proto = ("fallible", Lang.bool true) :: proto in
       let s = Lang.to_source (Lang.assoc "" 3 p) in
-      let encoder = encoder "source.dump" Meta_format.empty_metadata in
-      let frame = Frame.create kind in
-      let oc = open_out file in
-      Strings.iter (output_substring oc) encoder.Encoder.header;
-      s#get_ready [];
+      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
+      let fo = Pipe_output.new_file_output p in
+      fo#get_ready [s];
+      fo#output_get_ready;
+      log#info "Start dumping source.";
       while s#is_ready do
-        Frame.clear frame;
-        let start = Frame.position frame in
-        s#get frame;
-        let stop = Frame.position frame in
-        let data = encoder.Encoder.encode frame start (stop - start) in
-        Strings.iter (output_substring oc) data
+        fo#output;
+        fo#after_output
       done;
-      Strings.iter (output_substring oc) (encoder.Encoder.stop ());
-      close_out oc;
+      log#info "Source dumped.";
+      fo#leave s;
       Lang.unit)

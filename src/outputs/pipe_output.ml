@@ -373,17 +373,19 @@ let file_proto kind =
   ]
   @ chan_proto kind "Filename where to output the stream."
 
+let new_file_output p =
+  let format_val = Lang.assoc "" 1 p in
+  let format = Lang.to_format format_val in
+  let kind = Encoder.kind_of_format format in
+  if Encoder.file_output format then
+    (new file_output_using_encoder ~format_val ~kind p :> piped_output)
+  else (new file_output ~format_val ~kind p :> piped_output)
+
 let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.file" (file_proto return_t) ~active:true ~return_t
     ~category:Lang.Output ~descr:"Output the source stream to a file."
-    (fun p _ ->
-      let format_val = Lang.assoc "" 1 p in
-      let format = Lang.to_format format_val in
-      let kind = Encoder.kind_of_format format in
-      if Encoder.file_output format then
-        (new file_output_using_encoder ~format_val ~kind p :> Source.source)
-      else (new file_output ~format_val ~kind p :> Source.source))
+    (fun p _ -> (new_file_output p :> Source.source))
 
 (** External output *)
 
