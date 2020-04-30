@@ -39,6 +39,8 @@ New:
 - Add `accelerate` operator (#1144).
 - Add `video.resize`.
 - Add `getter.int_of_float` and `getter.float_of_int`.
+- Add `source.dump` (#1036).
+- Add `stereo` and `synth` protocols (#1036).
 
 Changed:
 
@@ -85,6 +87,7 @@ Changed:
 - Use getters for arguments of `video.add_image` (#1176).
 - Generalize `audio_to_stereo` to video frames and those without audio.
 - Allow crossfading for video (#1132, #1135).
+- Use getters for parameters of synthesizer sources (#1036).
 
 Fixed:
 
