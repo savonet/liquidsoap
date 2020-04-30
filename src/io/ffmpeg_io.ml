@@ -23,7 +23,7 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ~format
+class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
   ~opts url =
   let max_ticks = 2 * Frame.master_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
@@ -56,7 +56,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ~format
     method private get_decoder =
       self#close_container;
       let opts = Hashtbl.copy opts in
-      let input = Av.open_input ~format ~opts url in
+      let input = Av.open_input ?format ~opts url in
       if Hashtbl.length opts > 0 then
         failwith
           (Printf.sprintf "Unrecognized options: %s"
@@ -191,14 +191,17 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
       in
-      let format = List.assoc "format" p in
+      let format = Lang.to_string (List.assoc "format" p) in
       let format =
-        match Av.Format.find_input_format (Lang.to_string format) with
-          | Some f -> f
-          | None ->
-              raise
-                (Lang_errors.Invalid_value
-                   (format, "Could not find ffmpeg input format with that name"))
+        if format = "" then None
+        else (
+          match Av.Format.find_input_format format with
+            | Some f -> Some f
+            | None ->
+                raise
+                  (Lang_errors.Invalid_value
+                     ( Lang.string format,
+                       "Could not find ffmpeg input format with that name" )) )
       in
       let opts = Hashtbl.create 10 in
       parse_args ~t:`Int "int" p opts;
@@ -208,6 +211,6 @@ let () =
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
       ( new input
-          ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ~format ~opts
+          ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
           url
         :> Source.source ))
