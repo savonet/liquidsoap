@@ -260,39 +260,6 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
 (** Common tools for Lang bindings of switch operators *)
 
-let common kind =
-  [
-    ( "track_sensitive",
-      Lang.bool_getter_t (),
-      Some (Lang.bool true),
-      Some "Re-select only on end of tracks." );
-    ( "transition_length",
-      Lang.float_t,
-      Some (Lang.float 5.),
-      Some "Maximun transition duration." );
-    ( "override",
-      Lang.string_t,
-      Some (Lang.string "liq_transition_length"),
-      Some
-        "Metadata field which, if present and containing a float, overrides \
-         the `transition_length` parameter." );
-    ( "replay_metadata",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some
-        "Replay the last metadata of a child when switching to it in the \
-         middle of a track." );
-    (let transition_t =
-       Lang.fun_t
-         [(false, "", Lang.source_t kind); (false, "", Lang.source_t kind)]
-         (Lang.source_t kind)
-     in
-     ( "transitions",
-       Lang.list_t transition_t,
-       Some (Lang.list ~t:transition_t []),
-       Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
-  ]
-
 let default_transition k =
   let t = Lang.source_t (Lang.kind_type_of_frame_kind k) in
   Lang.val_fun [("", "x", t, None); ("", "y", t, None)] ~ret_t:t (fun e _ ->
@@ -374,8 +341,43 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
 let () =
   let return_t = Lang.univ_t () in
   let pred_t = Lang.fun_t [] Lang.bool_t in
-  let proto =
+  Lang.add_operator "switch" ~category:Lang.TrackProcessing
+    ~descr:
+      "At the beginning of a track, select the first source whose predicate is \
+       true."
     [
+      ( "track_sensitive",
+        Lang.bool_getter_t (),
+        Some (Lang.bool true),
+        Some "Re-select only on end of tracks." );
+      ( "transition_length",
+        Lang.float_t,
+        Some (Lang.float 5.),
+        Some "Maximun transition duration." );
+      ( "override",
+        Lang.string_t,
+        Some (Lang.string "liq_transition_length"),
+        Some
+          "Metadata field which, if present and containing a float, overrides \
+           the `transition_length` parameter." );
+      ( "replay_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Replay the last metadata of a child when switching to it in the \
+           middle of a track." );
+      (let transition_t =
+         Lang.fun_t
+           [
+             (false, "", Lang.source_t return_t);
+             (false, "", Lang.source_t return_t);
+           ]
+           (Lang.source_t return_t)
+       in
+       ( "transitions",
+         Lang.list_t transition_t,
+         Some (Lang.list ~t:transition_t []),
+         Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
       ( "single",
         Lang.list_t Lang.bool_t,
         Some (Lang.list ~t:Lang.bool_t []),
@@ -387,12 +389,6 @@ let () =
         None,
         Some "Sources with the predicate telling when they can be played." );
     ]
-  in
-  Lang.add_operator "switch" ~category:Lang.TrackProcessing
-    ~descr:
-      "At the beginning of a track, select the first source whose predicate is \
-       true."
-    (common return_t @ proto)
     ~return_t
     (fun p kind ->
       let children =
