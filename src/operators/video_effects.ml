@@ -22,9 +22,9 @@
 
 open Source
 
-class effect ~kind effect (source : source) =
+class effect ?name ~kind effect (source : source) =
   object
-    inherit operator ~name:"video.effect" kind [source]
+    inherit operator ?name kind [source]
 
     method stype = source#stype
 
@@ -48,35 +48,39 @@ class effect ~kind effect (source : source) =
 let return_t = Lang.kind_type_of_kind_format Lang.any
 
 let () =
-  Lang.add_operator "video.greyscale"
+  let name = "video.greyscale" in
+  Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:Lang.VideoProcessing
     ~descr:"Convert video to greyscale."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~kind Video.Image.Effect.greyscale src)
+      new effect ~name ~kind Video.Image.Effect.greyscale src)
 
 let () =
-  Lang.add_operator "video.sepia"
+  let name = "video.sepia" in
+  Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Convert video to sepia."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~kind Video.Image.Effect.sepia src)
+      new effect ~name ~kind Video.Image.Effect.sepia src)
 
 let () =
-  Lang.add_operator "video.invert"
+  let name = "video.invert" in
+  Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Invert video."
     (fun p kind ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~kind Video.Image.Effect.invert src)
+      new effect ~name ~kind Video.Image.Effect.invert src)
 
 let () =
-  Lang.add_operator "video.opacity"
+  let name = "video.opacity" in
+  Lang.add_operator name
     [
       ( "",
         Lang.float_getter_t (),
@@ -89,7 +93,7 @@ let () =
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
       new effect
-        ~kind
+        ~name ~kind
         (fun buf -> Video.Image.Effect.Alpha.scale buf (a ()))
         src)
 
@@ -203,7 +207,8 @@ let () =
  *)
 
 let () =
-  Lang.add_operator "video.resize"
+  let name = "video.resize" in
+  Lang.add_operator name
     [
       ("width", Lang.int_getter_t (), Some (Lang.int (-1)), Some "Target width.");
       ( "height",
@@ -224,7 +229,7 @@ let () =
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
       new effect
-        ~kind
+        ~name ~kind
         (fun buf ->
           let width = width () in
           let height = height () in
@@ -247,7 +252,8 @@ let () =
         src)
 
 let () =
-  Lang.add_operator "video.scale"
+  let name = "video.scale" in
+  Lang.add_operator name
     [
       ( "scale",
         Lang.float_getter_t (),
@@ -271,7 +277,7 @@ let () =
           Lang.to_int_getter (f "y") )
       in
       new effect
-        ~kind
+        ~name ~kind
         (fun buf ->
           let round x = int_of_float (x +. 0.5) in
           let width =
