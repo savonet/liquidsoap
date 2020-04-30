@@ -18,7 +18,7 @@ def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
          list.map(add_condition, sources))
 end
 
-# Rotate between the sources.
+# Rotate between sources.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
@@ -77,7 +77,6 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
       end
     end
 
-
     (cond, s)
   end
 
@@ -100,13 +99,13 @@ def random(~id="", ~override="liq_transition_length", ~replay_metadata=true,
            ~transition_length=5., ~transitions=[],
            ~weights=[], sources) =
   weights = list.map(to_int_getter, weights)
-  default_weigth = fun () -> 1
+  default_weight = fun () -> 1
   next_index = ref -1
 
   def pick() =
     def available_weighted_sources(cur, source) =
       let (index, current_weight, indexes) = cur
-      weight = list.nth(default=default_weigth, weights, index)
+      weight = list.nth(default=default_weight, weights, index)
 
       let (current_weight, indexes) =
         if source.is_ready(source) then
