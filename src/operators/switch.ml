@@ -357,7 +357,7 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
                 (fun (d, single, s) ->
                   (* Check single constraints *)
                   (if selected s then not single else true)
-                  && satisfied d && s.source#is_ready)
+                  && s.source#is_ready && satisfied d)
                 children))
       with Not_found -> None
 
