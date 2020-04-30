@@ -22,9 +22,9 @@
 
 open Source
 
-class effect ?name ~kind effect (source : source) =
+class effect ~name ~kind effect (source : source) =
   object
-    inherit operator ?name kind [source]
+    inherit operator ~name kind [source]
 
     method stype = source#stype
 
@@ -97,6 +97,31 @@ let () =
         (fun buf -> Video.Image.Effect.Alpha.scale buf (a ()))
         src)
 
+let () =
+  let name = "video.fill" in
+  Lang.add_operator name
+    [
+      ( "color",
+        Lang.int_getter_t (),
+        Some (Lang.int 0),
+        Some "Color to fill the image with (0xRRGGBB)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.VideoProcessing ~descr:"Fill frame with a color."
+    (fun p kind ->
+      let f v = List.assoc v p in
+      let color = Lang.to_int_getter (f "color") in
+      let src = Lang.to_source (f "") in
+      let color () =
+        Image.Pixel.yuv_of_rgb (Image.RGB8.Color.of_int (color ()))
+      in
+      new effect
+        ~name ~kind
+        (fun buf ->
+          Image.YUV420.fill buf (color ());
+          Image.YUV420.fill_alpha buf 0xff)
+        src)
+
 (*
 let () =
   Lang.add_operator "video.opacity.blur"
@@ -146,26 +171,6 @@ let () =
        let prec = int_of_float (prec *. 255.) in
        let color = Image.RGB8.Color.of_int color in
          new effect ~kind (fun buf -> Image.Effect.Alpha.of_color buf color prec) src)
-
-let () =
-  Lang.add_operator "video.fill"
-    [
-      "color", Lang.int_t, Some (Lang.int 0),
-      Some "Color to fill the image with.";
-
-      "", Lang.source_t kind, None, None
-    ]
-    ~return_t
-    ~category:Lang.VideoProcessing
-    ~descr:"Fill frame with a color."
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let color, src =
-         Lang.to_int (f "color"),
-         Lang.to_source (f "")
-       in
-       let r,g,b = Image.RGB8.Color.of_int color in
-         new effect ~kind (fun buf -> Image.fill_all buf (r, g, b, 0xff)) src)
 
 let () =
   Lang.add_operator "video.rotate"
