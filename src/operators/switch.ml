@@ -265,25 +265,6 @@ let default_transition k =
   Lang.val_fun [("", "x", t, None); ("", "y", t, None)] ~ret_t:t (fun e _ ->
       List.assoc "y" e)
 
-let extract_common ~kind p l =
-  let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
-  let tr =
-    let tr = Lang.to_list (List.assoc "transitions" p) in
-    let ltr = List.length tr in
-    if ltr > l then
-      raise
-        (Lang_errors.Invalid_value
-           (List.assoc "transitions" p, "Too many transitions"));
-    if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition kind)
-    else tr
-  in
-  let replay = Lang.to_bool (List.assoc "replay_metadata" p) in
-  let tl =
-    Frame.master_of_seconds (Lang.to_float (List.assoc "transition_length" p))
-  in
-  let override_meta = Lang.to_string (List.assoc "override" p) in
-  (replay, ts, tr, tl, override_meta)
-
 (** Switch: switch according to user-defined predicates. *)
 
 let satisfied f = Lang.to_bool (Lang.apply ~t:Lang.bool_t f [])
@@ -398,9 +379,25 @@ let () =
             (pred, Lang.to_source s))
           (Lang.to_list (List.assoc "" p))
       in
-      let replay_meta, ts, tr, tl, override_meta =
-        extract_common ~kind p (List.length children)
+      let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
+      let tr =
+        let l = List.length children in
+        let tr = Lang.to_list (List.assoc "transitions" p) in
+        let ltr = List.length tr in
+        if ltr > l then
+          raise
+            (Lang_errors.Invalid_value
+               (List.assoc "transitions" p, "Too many transitions"));
+        if ltr < l then
+          tr @ List.init (l - ltr) (fun _ -> default_transition kind)
+        else tr
       in
+      let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
+      let tl =
+        Frame.master_of_seconds
+          (Lang.to_float (List.assoc "transition_length" p))
+      in
+      let override_meta = Lang.to_string (List.assoc "override" p) in
       let singles =
         List.map Lang.to_bool (Lang.to_list (List.assoc "single" p))
       in
