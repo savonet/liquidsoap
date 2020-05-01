@@ -260,62 +260,10 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
 (** Common tools for Lang bindings of switch operators *)
 
-let common kind =
-  [
-    ( "track_sensitive",
-      Lang.bool_getter_t (),
-      Some (Lang.bool true),
-      Some "Re-select only on end of tracks." );
-    ( "transition_length",
-      Lang.float_t,
-      Some (Lang.float 5.),
-      Some "Maximun transition duration." );
-    ( "override",
-      Lang.string_t,
-      Some (Lang.string "liq_transition_length"),
-      Some
-        "Metadata field which, if present and containing a float, overrides \
-         the `transition_length` parameter." );
-    ( "replay_metadata",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some
-        "Replay the last metadata of a child when switching to it in the \
-         middle of a track." );
-    (let transition_t =
-       Lang.fun_t
-         [(false, "", Lang.source_t kind); (false, "", Lang.source_t kind)]
-         (Lang.source_t kind)
-     in
-     ( "transitions",
-       Lang.list_t transition_t,
-       Some (Lang.list ~t:transition_t []),
-       Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
-  ]
-
 let default_transition k =
   let t = Lang.source_t (Lang.kind_type_of_frame_kind k) in
   Lang.val_fun [("", "x", t, None); ("", "y", t, None)] ~ret_t:t (fun e _ ->
       List.assoc "y" e)
-
-let extract_common ~kind p l =
-  let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
-  let tr =
-    let tr = Lang.to_list (List.assoc "transitions" p) in
-    let ltr = List.length tr in
-    if ltr > l then
-      raise
-        (Lang_errors.Invalid_value
-           (List.assoc "transitions" p, "Too many transitions"));
-    if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition kind)
-    else tr
-  in
-  let replay = Lang.to_bool (List.assoc "replay_metadata" p) in
-  let tl =
-    Frame.master_of_seconds (Lang.to_float (List.assoc "transition_length" p))
-  in
-  let override_meta = Lang.to_string (List.assoc "override" p) in
-  (replay, ts, tr, tl, override_meta)
 
 (** Switch: switch according to user-defined predicates. *)
 
@@ -357,7 +305,7 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
                 (fun (d, single, s) ->
                   (* Check single constraints *)
                   (if selected s then not single else true)
-                  && satisfied d && s.source#is_ready)
+                  && s.source#is_ready && satisfied d)
                 children))
       with Not_found -> None
 
@@ -374,8 +322,43 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
 let () =
   let return_t = Lang.univ_t () in
   let pred_t = Lang.fun_t [] Lang.bool_t in
-  let proto =
+  Lang.add_operator "switch" ~category:Lang.TrackProcessing
+    ~descr:
+      "At the beginning of a track, select the first source whose predicate is \
+       true."
     [
+      ( "track_sensitive",
+        Lang.bool_getter_t (),
+        Some (Lang.bool true),
+        Some "Re-select only on end of tracks." );
+      ( "transition_length",
+        Lang.float_t,
+        Some (Lang.float 5.),
+        Some "Maximun transition duration." );
+      ( "override",
+        Lang.string_t,
+        Some (Lang.string "liq_transition_length"),
+        Some
+          "Metadata field which, if present and containing a float, overrides \
+           the `transition_length` parameter." );
+      ( "replay_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Replay the last metadata of a child when switching to it in the \
+           middle of a track." );
+      (let transition_t =
+         Lang.fun_t
+           [
+             (false, "", Lang.source_t return_t);
+             (false, "", Lang.source_t return_t);
+           ]
+           (Lang.source_t return_t)
+       in
+       ( "transitions",
+         Lang.list_t transition_t,
+         Some (Lang.list ~t:transition_t []),
+         Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
       ( "single",
         Lang.list_t Lang.bool_t,
         Some (Lang.list ~t:Lang.bool_t []),
@@ -387,12 +370,6 @@ let () =
         None,
         Some "Sources with the predicate telling when they can be played." );
     ]
-  in
-  Lang.add_operator "switch" ~category:Lang.TrackProcessing
-    ~descr:
-      "At the beginning of a track, select the first source whose predicate is \
-       true."
-    (common return_t @ proto)
     ~return_t
     (fun p kind ->
       let children =
@@ -402,9 +379,25 @@ let () =
             (pred, Lang.to_source s))
           (Lang.to_list (List.assoc "" p))
       in
-      let replay_meta, ts, tr, tl, override_meta =
-        extract_common ~kind p (List.length children)
+      let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
+      let tr =
+        let l = List.length children in
+        let tr = Lang.to_list (List.assoc "transitions" p) in
+        let ltr = List.length tr in
+        if ltr > l then
+          raise
+            (Lang_errors.Invalid_value
+               (List.assoc "transitions" p, "Too many transitions"));
+        if ltr < l then
+          tr @ List.init (l - ltr) (fun _ -> default_transition kind)
+        else tr
       in
+      let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
+      let tl =
+        Frame.master_of_seconds
+          (Lang.to_float (List.assoc "transition_length" p))
+      in
+      let override_meta = Lang.to_string (List.assoc "override" p) in
       let singles =
         List.map Lang.to_bool (Lang.to_list (List.assoc "single" p))
       in
@@ -427,160 +420,3 @@ let () =
       in
       new lang_switch
         ~kind ~replay_meta ~override_meta ~transition_length:tl ts children)
-
-(** Fallback selector: switch to the first ready source. *)
-class fallback ~kind ~override_meta ~transition_length ?replay_meta mode
-  children =
-  object
-    inherit
-      switch
-        ~name:"fallback" ~kind ~mode ~override_meta ~transition_length
-          ?replay_meta children
-
-    method private select =
-      try Some (List.find (fun s -> s.source#is_ready) children)
-      with Not_found -> None
-
-    method stype =
-      if List.exists (fun s -> s.source#stype = Infallible) children then
-        Infallible
-      else Fallible
-  end
-
-let () =
-  let return_t = Lang.univ_t () in
-  let proto =
-    [
-      ( "",
-        Lang.list_t (Lang.source_t return_t),
-        None,
-        Some "Select the first ready source in this list." );
-    ]
-  in
-  Lang.add_operator "fallback" ~category:Lang.TrackProcessing
-    ~descr:"At the beginning of each track, select the first ready child."
-    (common return_t @ proto)
-    ~return_t
-    (fun p kind ->
-      let children = Lang.to_source_list (List.assoc "" p) in
-      let replay_meta, ts, tr, tl, override_meta =
-        extract_common ~kind p (List.length children)
-      in
-      let children =
-        List.map2
-          (fun t s -> { transition = t; cur_meta = None; source = s })
-          tr children
-      in
-      new fallback
-        ~kind ~replay_meta ~override_meta ~transition_length:tl ts children)
-
-(** Random switch *)
-exception Found of child option
-
-class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
-  children =
-  let name = if strict then "rotate" else "random" in
-  object
-    inherit
-      switch
-        ~name ~kind ~override_meta ~transition_length ?replay_meta ~mode
-          (List.map snd children)
-
-    val mutable position = -1
-
-    val mutable tracks_played = 1
-
-    (* Annihilate the reversal in #select once for all. *)
-    val children = List.rev children
-
-    method private select =
-      let children_count = List.length children in
-      try
-        if children_count = 0 then raise (Found None);
-
-        (* First try to select another track from the source
-           currently playing. *)
-        if position <> -1 then (
-          let weight, s = List.nth children position in
-          if s.source#is_ready && tracks_played < weight () then (
-            tracks_played <- tracks_played + 1;
-            raise (Found (Some s)) ) );
-
-        (* Otherwise, select the next source to be played. Respect original
-           list order but skip over unavailale sources. *)
-        tracks_played <- 1;
-        let ready_list, ready_count =
-          List.fold_left
-            (fun (l, n) (_, s) ->
-              if s.source#is_ready then (Some s :: l, n + 1) else (None :: l, n))
-            ([], 0) children
-        in
-
-        if ready_count = 0 then raise (Found None);
-
-        let rec f () =
-          if strict then position <- (position + 1) mod children_count
-          else position <- Random.int children_count;
-          match List.nth ready_list position with
-            | Some s -> raise (Found (Some s))
-            | None -> f ()
-        in
-        f ()
-      with Found s -> s
-
-    method stype =
-      if List.exists (fun (_, s) -> s.source#stype = Infallible) children then
-        Infallible
-      else Fallible
-  end
-
-let () =
-  let add name strict descr weight_descr =
-    let return_t = Lang.univ_t () in
-    let weight_t = Lang.int_getter_t () in
-    Lang.add_operator name ~descr ~category:Lang.TrackProcessing
-      ( common return_t
-      @ [
-          ( "weights",
-            Lang.list_t weight_t,
-            Some (Lang.list ~t:weight_t []),
-            Some weight_descr );
-          ("", Lang.list_t (Lang.source_t return_t), None, None);
-        ] )
-      ~return_t
-      (fun p kind ->
-        let children = Lang.to_source_list (List.assoc "" p) in
-        let replay_meta, ts, tr, tl, override_meta =
-          extract_common ~kind p (List.length children)
-        in
-        let weights =
-          List.map Lang.to_int_getter (Lang.to_list (List.assoc "weights" p))
-        in
-        let weights =
-          if weights <> [] then weights
-          else List.init (List.length children) (fun _ () -> 1)
-        in
-        let children =
-          if List.length weights <> List.length children then
-            raise
-              (Lang_errors.Invalid_value
-                 ( List.assoc "weights" p,
-                   "there should be as many weights as sources" ));
-          List.map2
-            (fun w c -> (w, c))
-            weights
-            (List.map2
-               (fun tr s -> { transition = tr; source = s; cur_meta = None })
-               tr children)
-        in
-        new random
-          ~kind ~replay_meta ~override_meta ~transition_length:tl strict ts
-          children)
-  in
-  add "random" false
-    "At the beginning of every track, select a random ready child."
-    "Weights of the children (padded with 1), defining for each child the \
-     probability that it is selected.";
-  add "rotate" true "Rotate between the sources."
-    "Weights of the children (padded with 1), defining for each child how many \
-     tracks are played from it per round, if that many are actually available."
