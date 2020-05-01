@@ -5,7 +5,7 @@
 # @param f Function to execute.
 def thread.run(~fast=true, ~delay=0., f)
   def f() =
-    f()
+    ignore(f() == ())
     (-1.)
   end
   thread.run.recurrent(fast=fast, delay=delay, f)
