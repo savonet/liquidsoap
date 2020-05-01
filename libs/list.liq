@@ -184,6 +184,15 @@ def rec list.exists(p, l)
   list.case(l, false, f)
 end
 
+# First element satisfying a predicate.
+# @category List
+# @param ~default Returned value when the predicate is not found.
+# @param p Predicate.
+# @param l List.
+def rec list.find(~default, p, l)
+  list.case(l, default, fun(x, l) -> if p(x) then x else list.find(default=default, p, l) end)
+end
+
 # First index where a predicate is satisfied.
 # @category List
 # @param p Predicate.
