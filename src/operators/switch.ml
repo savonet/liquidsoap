@@ -44,14 +44,19 @@ type child = {
   * or only at track limits (sensitive). *)
 type track_mode = Sensitive | Insensitive
 
+(** Selected sources may have been dynamically created, in
+    which case we need to clean them when we don't need them
+    anymore. *)
+type selection = { child : child; s : source; mode : [ `Dynamic | `Static ] }
+
 class virtual switch ~kind ~name ~override_meta ~transition_length
   ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
   object (self)
-    inherit operator ~name kind (List.map (fun x -> x.source) cases)
+    inherit operator ~name kind (List.map (fun x -> x.source) cases) as super
 
     val mutable transition_length = transition_length
 
-    val mutable selected : (child * source) option = None
+    val mutable selected : selection option = None
 
     (** We have to explictly manage our children as they are dynamically created
     * by application of the transition functions. In particular we need a list
@@ -92,7 +97,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       begin
         match selected with
         | None -> ()
-        | Some (_, s) -> s#after_output
+        | Some selection -> selection.s#after_output
       end;
       List.iter (fun s -> s#after_output) to_finish;
       to_finish <- [];
@@ -102,33 +107,17 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
        * It is cleared here in order to get a chance to be re-computed later. *)
       cached_selected <- None
 
-    val mutable activation = []
-
-    method private wake_up activator =
-      activation <- (self :> source) :: activator;
-      List.iter
-        (fun { transition; source = s; _ } ->
-          s#get_ready ~dynamic:true activation;
-          Lang.iter_sources
-            (fun s -> s#get_ready ~dynamic:true activation)
-            transition)
-        cases
-
     method private sleep =
-      List.iter
-        (fun { transition; source = s; _ } ->
-          s#leave ~dynamic:true (self :> source);
-          Lang.iter_sources
-            (fun s -> s#leave ~dynamic:true (self :> source))
-            transition)
-        cases;
-      match selected with None -> () | Some (_, s) -> s#leave (self :> source)
+      super#sleep;
+      match selected with
+        | Some { s; mode } when mode = `Dynamic -> s#leave (self :> source)
+        | _ -> ()
 
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 
     method self_sync =
       match selected with
-        | Some (_, source) -> source#self_sync
+        | Some { s } -> s#self_sync
         | None -> (
             match self#cached_select with
               | Some { source } -> source#self_sync
@@ -150,21 +139,19 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
               match selected with
                 | None ->
                     self#log#important "Switch to %s." c.source#id;
-
-                    (* The source is already ready, this call is only there for
-                     * allowing an uniform treatment of switches, triggering
-                     * a #leave call. *)
-                    c.source#get_ready activation;
-                    selected <- Some (c, c.source)
-                | Some (old_c, old_s) when old_c != c ->
+                    selected <- Some { child = c; s = c.source; mode = `Static }
+                | Some old when old.child != c ->
                     self#log#important "Switch to %s with%s transition."
                       c.source#id
                       (if forget then " forgetful" else "");
-                    old_s#leave (self :> source);
-                    to_finish <- old_s :: to_finish;
+                    to_finish <- old.s :: to_finish;
                     Clock.collect_after (fun () ->
                         let old_source =
-                          if forget then Blank.empty kind else old_c.source
+                          if forget then (
+                            if old.mode = `Dynamic then
+                              old.s#leave (self :> source);
+                            Blank.empty kind )
+                          else old.s
                         in
                         let new_source =
                           (* Force insertion of old metadata if relevant.
@@ -199,17 +186,17 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                             ~kind ~merge:true [s; new_source]
                         in
                         Clock.unify s#clock self#clock;
-                        s#get_ready activation;
-                        selected <- Some (c, s))
+                        s#get_ready [(self :> source)];
+                        selected <- Some { child = c; s; mode = `Dynamic })
                 | _ ->
                     (* We are staying on the same child,
                      * don't start a new track. *)
                     need_eot <- false )
           | None -> (
               match selected with
-                | Some (_, old_s) ->
-                    old_s#leave (self :> source);
-                    to_finish <- old_s :: to_finish;
+                | Some { s; mode } ->
+                    if mode = `Dynamic then s#leave (self :> source);
+                    to_finish <- s :: to_finish;
                     selected <- None
                 | None -> () )
       in
@@ -227,9 +214,9 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
               (* Our #is_ready, and caching, ensure the following. *)
               assert (selected <> None);
               self#get_frame ab
-          | Some (c, s) ->
+          | Some { child; s } ->
               s#get ab;
-              c.cur_meta <-
+              child.cur_meta <-
                 ( if Frame.is_partial ab then None
                 else (
                   match
@@ -239,7 +226,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         | Some (curp, curm) ->
                             fun (p, m) ->
                               Some (if p >= curp then (p, m) else (curp, curm)))
-                      ( match c.cur_meta with
+                      ( match child.cur_meta with
                         | None -> None
                         | Some m -> Some (-1, m) )
                       (Frame.get_all_metadata ab)
@@ -250,12 +237,12 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
               else if not (mode ()) then reselect () )
 
     method remaining =
-      match selected with None -> 0 | Some (_, s) -> s#remaining
+      match selected with None -> 0 | Some { s } -> s#remaining
 
     method abort_track =
-      match selected with Some (_, s) -> s#abort_track | None -> ()
+      match selected with Some { s } -> s#abort_track | None -> ()
 
-    method seek n = match selected with Some (_, s) -> s#seek n | None -> 0
+    method seek n = match selected with Some { s } -> s#seek n | None -> 0
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -295,7 +282,7 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
     method private select =
       let selected s =
         match selected with
-          | Some (child, _) when child == s -> true
+          | Some { child } when child == s -> true
           | _ -> false
       in
       try
