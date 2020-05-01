@@ -86,7 +86,7 @@ operators = \
 	operators/on_metadata.ml operators/store_metadata.ml \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
 	operators/max_duration.ml operators/sequence.ml operators/add.ml \
-	operators/switch.ml operators/cross.ml \
+	operators/cross.ml \
 	operators/compress_exp.ml operators/pitch.ml operators/pipe.ml \
 	operators/fir_filter.ml operators/iir_filter.ml operators/filter_rc.ml \
 	operators/biquad_filter.ml operators/cuepoint.ml \

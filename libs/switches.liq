@@ -1,3 +1,19 @@
+# Select the first source whose predicate is true in a list.
+# @category Source / Track Processing
+# @param ~id Force the value of the source ID.
+# @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
+# @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
+# @param ~track_sensitive Re-select only on end of tracks.
+# @param ~transition_length Maximun transition duration.
+# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
+# @param sources Sources with the predicate telling when they can be played.
+def switch(~id="", ~override="liq_transition_length", ~replay_metadata=true, ~track_sensitive=bool_getter(true), ~transition_length=5., ~transitions=[], sources)
+  def s()
+    list.find(default=fail(), fun(ps)->fst(p)(), sources)
+  end
+  source.dynamic(track_sensitive=track_sensitive, s)
+end
+
 # At the beginning of each track, select the first ready child.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
@@ -9,13 +25,11 @@
 def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
            ~track_sensitive=true, ~transition_length=5., ~transitions=[],
            ~weights=[], sources) =
-  def add_condition(s) =
-    ({true}, s)
+  def s()
+    list.find(default=fail(), source.is_ready, sources)
   end
 
-  switch(id=id, override=override, replay_metadata=replay_metadata, transitions=transitions,
-         track_sensitive=track_sensitive, transition_length=transition_length,
-         list.map(add_condition, sources))
+  source.dynamic(track_sensitive=track_sensitive, s)
 end
 
 # Rotate between sources.

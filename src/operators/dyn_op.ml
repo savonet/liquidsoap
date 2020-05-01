@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class dyn ~kind f =
+class dynamic ~kind ~track_sensitive f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
 
@@ -28,12 +28,11 @@ class dyn ~kind f =
 
     val mutable activation = []
 
-    (* The dynamic stuff: #select calls the selection function and changes
-     * the source when needed, and #unregister_source does what its name says.
-     * Any sequence of calls to #select and #unregister_source is okay
-     * but they should not overlap.
-     * All that matters for cleanliness is that #unregister_source comes
-     * last, which #sleep ensures. *)
+    (* The dynamic stuff: #select calls the selection function and changes the
+       source when needed, and #unregister_source does what its name says. Any
+       sequence of calls to #select and #unregister_source is okay but they
+       should not overlap. All that matters for cleanliness is that
+       #unregister_source comes last, which #sleep ensures. *)
     val source_lock = Mutex.create ()
 
     val mutable source : Source.source option = None
@@ -54,19 +53,20 @@ class dyn ~kind f =
       Clock.collect_after
         (Tutils.mutexify source_lock (fun () ->
              let kind = Lang.kind_type_of_frame_kind kind in
-             let l = Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [] in
-             let l = Lang.to_source_list l in
-             match l with
-               | [] -> ()
-               | [s] ->
+             let s =
+               Lang.to_source
+                 (Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [])
+             in
+             match source with
+               | Some s' when s' == s -> ()
+               | _ ->
                    Clock.unify s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;
-                   source <- Some s
-               | _ -> assert false))
+                   source <- Some s))
 
-    (* Source methods: attempt to #select as soon as it could be useful
-     * for the selection function to change the source. *)
+    (* Source methods: attempt to #select as soon as it could be useful for the
+       selection function to change the source. *)
     method private wake_up ancestors =
       activation <- (self :> Source.source) :: ancestors;
       Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f;
@@ -88,7 +88,7 @@ class dyn ~kind f =
         | Some s -> s#get frame
         | None -> Frame.add_break frame (Frame.position frame)
       end;
-      self#select
+      if Frame.is_partial frame || not track_sensitive then self#select
 
     method remaining = match source with Some s -> s#remaining | None -> -1
 
@@ -103,7 +103,15 @@ class dyn ~kind f =
 let () =
   let k = Lang.univ_t () in
   Lang.add_operator "source.dynamic"
-    [("", Lang.fun_t [] (Lang.list_t (Lang.source_t k)), None, None)]
+    [
+      ( "track_sensitive",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Only change source on track boundaries." );
+      ("", Lang.fun_t [] (Lang.source_t k), None, None);
+    ]
     ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
-    (fun p kind -> new dyn ~kind (List.assoc "" p))
+    (fun p kind ->
+      let track_sensitive = Lang.to_bool (List.assoc "track_sensitive" p) in
+      new dynamic ~kind ~track_sensitive (List.assoc "" p))
