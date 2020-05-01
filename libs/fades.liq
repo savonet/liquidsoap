@@ -66,6 +66,15 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
   fade
 end
 
+# Scale source during fading.
+# @category Source / Sound Processing
+# @flag hidden
+def fade.scale(~id="fade.scale", x, s)
+  s = amplify(id=id, override="", x, s)
+  s = video.opacity(id=id, x, s)
+  s
+end
+
 # Fade the end of tracks.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
@@ -115,7 +124,7 @@ def fade.out(~id="fade.out",~duration=3.,
   delay = fun () -> !duration
   s = on_end(delay=delay,start_fade,s)
   s = on_track(stop_fade,s)
-  amplify(id=id,override="",apply,s)
+  fade.scale(id=id,apply,s)
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -170,7 +179,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
 
   s = on_metadata(update_fade,s)  
   s = on_track(stop_fade,s)
-  amplify(id=id,override="",apply,s)
+  fade.scale(id=id,apply,s)
 end
 
 # Fade a stream to silence.
@@ -190,7 +199,7 @@ def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
     v
   end
 
-  s = amplify(id=id,fn,s)
+  s = fade.scale(id=id,fn,s)
   switch(track_sensitive=false,[({!should_play},s)])
 end
 
@@ -236,7 +245,7 @@ def fade.in(~id="fade.in",~duration=3.,
   s = on_metadata(update_fade,s)
   s = on_track(start_fade,s)
 
-  amplify(id=id,override="",apply,s)
+  fade.scale(id=id,apply,s)
 end
 
 # Fade the beginning of a stream.
@@ -246,7 +255,7 @@ end
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
   fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
-  amplify(id=id,fn,s)
+  fade.scale(id=id,fn,s)
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in
@@ -378,7 +387,7 @@ def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
       fn = !fn
       fn()
     end
-    amplify(override="",v,s)
+    fade.scale(v,s)
   end
 
   special_volume = ref fun () -> 0.

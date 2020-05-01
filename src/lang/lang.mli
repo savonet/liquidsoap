@@ -239,6 +239,7 @@ val of_list_t : t -> t
 val zero_t : t
 val any_t : t
 val succ_t : t -> t
+val n_t : int -> t
 val add_t : int -> t -> t
 val type_of_int : int -> t
 val request_t : t -> t
@@ -263,12 +264,13 @@ val univ_t : ?constraints:Lang_types.constraints -> unit -> t
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
 
-(** A string getter. The argument is the number of the universal type parameter
-  * (should be >= 1). *)
+(** A getter on an arbitrary ground type. *)
+val getter_t : Lang_types.ground -> t
+
+(** A string getter. *)
 val string_getter_t : unit -> t
 
-(** A float getter. The argument is the number of the universal type parameter
-  * (should be >= 1). *)
+(** A float getter. *)
 val float_getter_t : unit -> t
 
 val int_getter_t : unit -> t
