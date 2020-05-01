@@ -437,11 +437,49 @@ class virtual operator ?(name = "src") content_kind sources =
               caching <- true;
               self#log#debug "Enabling caching mode: %s." msg )
 
+    (* We keep track of the source's lifecycle as:
+        - First [`Fresh]
+        - Then [`Active] when [get_ready] has been called
+          at least once
+        - Then [`Inactive] when [leave] has been called with
+          no more activation.
+        - Finally [`Shutdown] when [sleep] has been called.
+       State rules:
+       *  At state [`Inactive], a source can be shutdown at any
+          time once its [reference_count] goes down to zero.
+       *  At state [`Inactive], a source can be set to state
+          [`Active] again by calling [get_ready] *)
+    val mutable state = `Fresh
+
+    val mutable reference_count = 0
+
+    val mutable garbage_collected = false
+
+    method retain =
+      reference_count <- reference_count + 1;
+      if debug then
+        source_log#info "Retained %s, reference count: %d" self#id
+          reference_count
+
+    method release ~collected =
+      reference_count <- reference_count - 1;
+      garbage_collected <- collected;
+      if debug then
+        source_log#info "Released %s, reference count: %d" self#id
+          reference_count;
+      if reference_count <= 0 then (
+        assert (reference_count = 0);
+        if
+          static_activations = [] && dynamic_activations = []
+          && state = `Inactive
+        then self#sleep )
+
     (* Ask for initialization.
      * The current implementation makes it dangerous to call #get_ready from
      * another thread than the Root one, as interleaving with #get is
      * forbidden. *)
     method get_ready ?(dynamic = false) (activation : operator list) =
+      state <- `Active;
       if log == source_log then self#create_log;
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up." id;
@@ -470,6 +508,7 @@ class virtual operator ?(name = "src") content_kind sources =
      * another thread than the Root one, as interleaving with #get is
      * forbidden. *)
     method leave ?(dynamic = false) src =
+      assert (state = `Active);
       let rec remove acc = function
         | [] ->
             self#log#critical "Got ill-balanced activations (from %s)!" src#id;
@@ -481,12 +520,13 @@ class virtual operator ?(name = "src") content_kind sources =
       else static_activations <- remove [] static_activations;
       self#update_caching_mode;
       if static_activations = [] && dynamic_activations = [] then (
-        source_log#debug "Source %s gets down." id;
+        self#log#info "Source %s becomes inactive" self#id;
+        state <- `Inactive;
         (Tutils.mutexify on_shutdown_m (fun () ->
              List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
              on_shutdown <- []))
           ();
-        self#sleep;
+        if reference_count = 0 then self#sleep;
         List.iter (fun (_, _, name, _) -> Server.remove ~ns name) commands;
         if ns <> [] then (
           Server.unregister ns;
@@ -503,6 +543,9 @@ class virtual operator ?(name = "src") content_kind sources =
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
 
     method private sleep =
+      if (not garbage_collected) || debug then
+        source_log#info "Source %s gets down." id;
+      state <- `Shutdown;
       List.iter (fun s -> s#leave ?dynamic:None (self :> operator)) sources
 
     (** Streaming *)

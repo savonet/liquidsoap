@@ -93,6 +93,7 @@ Fixed:
 
 - Fix implementation of recursive functions (#934).
 - Fix implementation of `rotate` (#1129).
+- Fix source lifecycle when kept as a reference (#1182).
 - Fix opam install error with some bash-completion configuration (#980).
 - Make `blank()` source unavailable past is expected duration (#668).
 - Do not crash when loading playlists using `~/path/to/..` paths.

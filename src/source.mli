@@ -133,6 +133,25 @@ class virtual source :
        (** Check if a source is up or not. *)
        method is_up : bool
 
+       (* {1 References count}
+          Sources used a reference in the script need to be kept with
+          a dynamic activation for the duration of their reference as
+          they may be passed to any other source at any time, leading
+          to situations where we have:
+          - s := blank()
+          - o = output.dummy(!s)
+          - source.shutdown(o)
+          - o_again = output.dummy(!s)
+          This script will crash if we don't keep track of the fact
+          that there is a reference to [blank], as [blank] is cleaned
+          up during the first [source.shutdown], having to activations
+          left. See: GH#1182 for more details. *)
+       method retain : unit
+
+       (* Collected is true if the function is called in the context of a [Gc]
+          cleanup. *)
+       method release : collected:bool -> unit
+
        (** {1 Streaming} *)
 
        (** What kind of content does this source produce. *)

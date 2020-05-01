@@ -901,19 +901,34 @@ let rec eval ~env tm =
     let env = List.filter (fun (x, _) -> Vars.mem x fv) env in
     (p, env)
   in
+  (* Keep a reference count for references to dynamic
+   * values. Currently used on for sources. See [source.mli]
+   * for more details. *)
+  let retain v = match v.V.value with V.Source s -> s#retain | _ -> () in
+  let release ~collected v =
+    match v.V.value with V.Source s -> s#release ~collected | _ -> ()
+  in
   let mk v = { V.t = tm.t; V.value = v } in
   match tm.term with
     | Ground g -> mk (V.Ground g)
     | Encoder x -> mk (V.Encoder x)
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
-    | Ref v -> mk (V.Ref (ref (eval ~env v)))
+    | Ref v ->
+        let v = eval ~env v in
+        retain v;
+        let r = ref v in
+        Gc.finalise (fun r -> release ~collected:true !r) r;
+        mk (V.Ref r)
     | Get r -> (
         match (eval ~env r).V.value with V.Ref r -> !r | _ -> assert false )
     | Set (r, v) -> (
         match (eval ~env r).V.value with
           | V.Ref r ->
-              r := eval ~env v;
+              release ~collected:false !r;
+              let v = eval ~env v in
+              retain v;
+              r := v;
               mk V.unit
           | _ -> assert false )
     | Let { gen; pat; def = v; body = b; _ } ->
