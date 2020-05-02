@@ -173,7 +173,7 @@ end
 # @param ~merge Merge tracks when advancing from one source to the next one. This will NOT merge consecutive tracks from the last source; see merge_tracks() if you need that too.
 # @param sources List of sources to play tracks from.
 def sequence(~id="sequence", ~merge=false, sources)
-  if merge then log(label=id, level=2, "merge option of sequence operator is not supported anymore (for now). Use merge_tracks if you need to merge tracks.") end
+  if merge then log.severe(label=id, "merge option of sequence operator is not supported anymore (for now). Use merge_tracks if you need to merge tracks.") end
   len = list.length(sources)
   n = ref(0)
   fail = fail()
@@ -190,6 +190,6 @@ def sequence(~id="sequence", ~merge=false, sources)
     end
   end
   infallible = not(source.fallible(list.last(default=fail, sources)))
-  s = source.dynamic(infallible=infallible, s)
+  s = source.dynamic(infallible=infallible, track_sensitive=true, s)
   on_track(fun(_) -> incr(), s)
 end

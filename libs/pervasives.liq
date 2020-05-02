@@ -1,3 +1,4 @@
+%include "log.liq"
 %include "audio.liq"
 %include "ref.liq"
 %include "list.liq"
