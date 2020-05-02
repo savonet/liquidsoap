@@ -83,9 +83,9 @@ let () =
       let d = Lang.to_float (List.assoc "duration" p) in
       (new blank ~kind d :> source))
 
-class empty ~kind =
+class fail ~kind =
   object
-    inherit source ~name:"empty" kind
+    inherit source ~name:"fail" kind
 
     method stype = Fallible
 
@@ -100,7 +100,8 @@ class empty ~kind =
     method get_frame _ = assert false
   end
 
-let empty kind = (new empty ~kind :> source)
+let fail kind = (new fail ~kind :> source)
+let empty = fail
 
 let () =
   let audio = Lang.univ_t () in
@@ -110,7 +111,7 @@ let () =
     Lang.kind_type_of_kind_format
       (Lang.Unconstrained (Lang.frame_kind_t ~audio ~video ~midi))
   in
-  Lang.add_operator "empty" ~category:Lang.Input
+  Lang.add_operator "fail" ~category:Lang.Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
-    ~return_t [] (fun _ kind -> (new empty ~kind :> source))
+    ~return_t [] (fun _ kind -> (new fail ~kind :> source))
