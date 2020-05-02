@@ -181,7 +181,7 @@ def sequence(~id="sequence", ~merge=false, sources)
   def incr() = n := !n + 1 end
 
   def rec s()
-    sn = list.nth(default=fail, sources, !n)
+    sn = list.nth(default=list.last(default=fail, sources), sources, !n)
     if source.is_ready(sn) or !n >= len - 1 then
       sn
     else
@@ -191,5 +191,17 @@ def sequence(~id="sequence", ~merge=false, sources)
   end
   infallible = not(source.fallible(list.last(default=fail, sources)))
   s = source.dynamic(infallible=infallible, track_sensitive=true, s)
-  on_track(fun(_) -> incr(), s)
+
+  first = ref(true)
+  def ot(_)
+    if !first then
+      # Drop the first track
+      first := false
+    else
+      incr ()
+    end
+  end
+
+  s = on_track(ot, s)
+  s
 end
