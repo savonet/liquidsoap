@@ -71,22 +71,27 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
       picked_index := -1
     end
   end
+  pick()
 
   fail = fail()
   def s()
-    pick()
     list.nth(default=fail, sources, !picked_index)
   end
 
   infallible = not(list.for_all(source.fallible, sources))
   s = source.dynamic(infallible=infallible, track_sensitive=true, s)
 
-  def f(_)
-    tracks_played := !tracks_played + 1
-    weight = list.nth(default=default_weight, weights, !picked_index)
-    if !tracks_played >= weight() then pick() end
+  first = ref(true)
+  def ot(_)
+    if !first then
+      first := false
+    else
+      tracks_played := !tracks_played + 1
+      weight = list.nth(default=default_weight, weights, !picked_index)
+      if !tracks_played >= weight() then pick() end
+    end
   end
-  on_track(f, s)
+  on_track(ot, s)
 end
 
 # At the beginning of every track, select a random ready child.
