@@ -109,3 +109,35 @@ let () =
         Clock.force_init (fun x -> List.exists (fun y -> Oo.id x = Oo.id y) l)
       in
       Lang.list ~t:s_t (List.map (fun x -> Lang.source (x :> Source.source)) l))
+
+let () =
+  let log = Log.make ["source"; "dump"] in
+  let kind = Lang.univ_t () in
+  add_builtin "source.dump" ~cat:Liq
+    ~descr:"Immediately encode the whole contents of a source into a file."
+    ~flags:[Lang.Experimental]
+    [
+      ("", Lang.format_t kind, None, Some "Encoding format.");
+      ("", Lang.string_t, None, Some "Name of the file.");
+      ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to encode");
+    ]
+    Lang.unit_t
+    (fun p ->
+      let proto =
+        let p = Pipe_output.file_proto (Lang.univ_t ()) in
+        List.filter_map (fun (l, _, v, _) -> Option.map (fun v -> (l, v)) v) p
+      in
+      let proto = ("fallible", Lang.bool true) :: proto in
+      let s = Lang.to_source (Lang.assoc "" 3 p) in
+      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
+      let fo = Pipe_output.new_file_output p in
+      fo#get_ready [s];
+      fo#output_get_ready;
+      log#info "Start dumping source.";
+      while s#is_ready do
+        fo#output;
+        fo#after_output
+      done;
+      log#info "Source dumped.";
+      fo#leave s;
+      Lang.unit)
