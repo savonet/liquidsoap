@@ -29,9 +29,8 @@ def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
     list.find(default=fail(), source.is_ready, sources)
   end
 
-  s = source.dynamic(track_sensitive=track_sensitive, s)
   infallible = not(list.for_all(source.fallible, sources))
-  source.infallible(infallible=infallible, s)
+  s = source.dynamic(infallible=infallible, track_sensitive=track_sensitive, s)
 end
 
 # Rotate between sources.
@@ -68,38 +67,21 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
     end
   end
 
-  def add_condition(index, s) =
-    weight = list.nth(default=default_weight, weights, index)
-
-    def f(_) =
-      tracks_played := !tracks_played + 1
-    end
-
-    s = on_track(f, s)
-
-    def cond() =
-      if !picked_index == -1 then pick() end
-
-      if !picked_index == index then
-        if !tracks_played < weight () then
-          true
-        else
-           pick()
-           !picked_index == index
-        end
-      else
-        false
-      end
-    end
-
-    (cond, s)
+  fail = fail()
+  def s()
+    pick()
+    list.nth(default=fail, sources, !picked_index)
   end
 
-  s = switch(override=override, replay_metadata=replay_metadata, track_sensitive=true,
-             transition_length=transition_length, transitions=transitions,
-             list.mapi(add_condition, sources))
+  infallible = not(list.for_all(fallible, sources))
+  s = source.dynamic(infallible=infallible, track_sensitive=true, s)
 
-  fallback(id=id, track_sensitive=true, list.add(s, sources))
+  def f(_)
+    tracks_played := tracks_played + 1
+    weight = list.nth(default=default_weight, weights, index)
+    if !tracks_played >= weight() then pick() end
+  end
+  on_track(f, s)
 end
 
 # At the beginning of every track, select a random ready child.
