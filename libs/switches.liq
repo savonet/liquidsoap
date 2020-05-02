@@ -169,17 +169,19 @@ end
 # Play only one track of every successive source, except for the last one which
 # is played as much as available.
 # @category Source / Track Processing
-# @param id Force the value of the source ID.
-# @param merge Merge tracks when advancing from one source to the next one. This will NOT merge consecutive tracks from the last source; see merge_tracks() if you need that too.
+# @param ~id Force the value of the source ID.
+# @param ~merge Merge tracks when advancing from one source to the next one. This will NOT merge consecutive tracks from the last source; see merge_tracks() if you need that too.
+# @param sources List of sources to play tracks from.
 def sequence(~id="sequence", ~merge=false, sources)
   if merge then log(label=id, level=2, "merge option of sequence operator is not supported anymore (for now). Use merge_tracks if you need to merge tracks.") end
   len = list.length(sources)
   n = ref(0)
+  fail = fail()
 
   def incr() = n := !n + 1 end
 
   def rec s()
-    sn = list.nth(default=fail(), sources, !n)
+    sn = list.nth(default=fail, sources, !n)
     if source.is_ready(sn) or !n >= len - 1 then
       sn
     else
@@ -187,7 +189,7 @@ def sequence(~id="sequence", ~merge=false, sources)
       s()
     end
   end
-  infallible = not(source.fallible(list.last(sources)))
-  s = source.dynamic(s)
+  infallible = not(source.fallible(list.last(default=fail, sources)))
+  s = source.dynamic(infallible=infallible, s)
   on_track(fun(_) -> incr(), s)
 end
