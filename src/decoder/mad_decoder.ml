@@ -90,28 +90,19 @@ let init input =
       let new_time = get_time () in
       Frame.master_of_seconds (new_time -. cur_time) )
   in
-  let get_info () = Mad.get_output_format !dec in
+  let get_info () = Mad.get_frame_format !dec in
   (get_info, get_data, seek)
 
-module Make (Generator : Generator.S_Asio) = struct
-  let create_decoder input =
-    let resampler = Rutils.create_audio () in
-    let get_info, get_data, seek = init input in
-    {
-      Decoder.seek;
-      decode =
-        (fun gen ->
-          let data = get_data () in
-          let sample_freq, _, _ = get_info () in
-          let content = resampler ~audio_src_rate:(float sample_freq) data in
-          Generator.set_mode gen `Audio;
-          Generator.put_audio gen content 0 (Audio.length content));
-    }
-end
-
-module G = Generator.From_audio_video
-module Buffered = Decoder.Buffered (G)
-module D = Make (G)
+let create_decoder input =
+  let get_info, get_data, seek = init input in
+  {
+    Decoder.seek;
+    decode =
+      (fun buffer ->
+        let data = get_data () in
+        let { Mad.samplerate } = get_info () in
+        buffer.Decoder.put_audio ~samplerate data);
+  }
 
 (** Configuration keys for mad. *)
 let mime_types =
@@ -125,6 +116,11 @@ let file_extensions =
     ~p:(Decoder.conf_file_extensions#plug "mad")
     "File extensions used for guessing mpeg audio format"
     ~d:["mp3"; "mp2"; "mp1"]
+
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_priorities#plug "mad")
+    "Priority for the mpeg audio decoder" ~d:1
 
 (* Backward-compatibility keys.. *)
 let () =
@@ -141,14 +137,10 @@ let () =
           configuration keys!)"
        (Decoder.conf_file_extensions#plug "mp3"))
 
-let create_file_decoder filename kind =
-  let generator = G.create `Audio in
-  Buffered.file_decoder filename kind D.create_decoder generator
-
 (* Get the number of channels of audio in a mpeg audio file.
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
-let get_type filename =
+let file_type filename =
   let fd = Mad.openfile filename in
   Tutils.finalize
     ~k:(fun () -> Mad.close fd)
@@ -165,68 +157,32 @@ let get_type filename =
         "Libmad recognizes %S as mpeg audio (layer %s, %ikbps, %dHz, %d \
          channels)."
         filename layer (f.Mad.bitrate / 1000) f.Mad.samplerate f.Mad.channels;
-      { Frame.audio = f.Mad.channels; video = 0; midi = 0 })
+      Some { Frame.audio = f.Mad.channels; video = 0; midi = 0 })
+
+let create_file_decoder ~metadata:_ ~kind filename =
+  Decoder.opaque_file_decoder ~filename ~kind create_decoder
 
 let () =
-  Decoder.file_decoders#register "MAD" ~plugin_aliases:["MP3"; "MP2"; "MP1"]
+  Decoder.decoders#register "MAD" ~plugin_aliases:["MP3"; "MP2"; "MP1"]
     ~sdoc:
       "Use libmad to decode any file if its MIME type or file extension is \
-       appropriate." (fun ~metadata:_ filename kind ->
-      (* Before doing anything, check that we are allowed to produce
-       * audio, and don't have to produce midi or video. Only then
-       * check that the file seems relevant for decoding. *)
-      if
-        kind.Frame.audio = Frame.Zero
-        || (not
-              ( Frame.mul_sub_mul Frame.Zero kind.Frame.video
-              && Frame.mul_sub_mul Frame.Zero kind.Frame.midi ))
-        || not
-             (Decoder.test_file ~mimes:mime_types#get
-                ~extensions:file_extensions#get ~log filename)
-      then None
-      else if
-        kind.Frame.audio = Frame.Any
-        || kind.Frame.audio = Frame.Succ Frame.Any
-        ||
-        (* libmad always respects the first two kinds *)
-        if Frame.type_has_kind (get_type filename) kind then true
-        else (
-          log#important "File %S has an incompatible number of channels."
-            filename;
-          false )
-      then Some (fun () -> create_file_decoder filename kind)
-      else None)
-
-module D_stream = Make (Generator.From_audio_video_plus)
-
-let () =
-  Decoder.stream_decoders#register "MAD" ~plugin_aliases:["MP3"; "MP2"; "MP1"]
-    ~sdoc:"Use libmad to decode any stream with an appropriate MIME type."
-    (fun mime kind ->
-      let ( <: ) a b = Frame.mul_sub_mul a b in
-      if
-        List.mem mime mime_types#get
-        (* Check that it is okay to have zero video and midi,
-         * and at least one audio channel. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Zero
-      then
-        (* In fact we can't be sure that we'll satisfy the content
-         * kind, because the stream might be mono or stereo.
-         * For now, we let this problem result in an error at
-         * decoding-time. Failing early would only be an advantage
-         * if there was possibly another plugin for decoding
-         * correctly the stream (e.g. by performing conversions). *)
-        Some D_stream.create_decoder
-      else None)
+       appropriate."
+    {
+      Decoder.media_type = `Audio;
+      priority = (fun () -> priority#get);
+      file_extensions = (fun () -> Some file_extensions#get);
+      mime_types = (fun () -> Some mime_types#get);
+      file_type;
+      file_decoder = Some create_file_decoder;
+      stream_decoder = Some (fun _ -> create_decoder);
+    }
 
 let check filename =
   match Configure.file_mime with
     | Some f -> List.mem (f filename) mime_types#get
     | None -> (
         try
-          ignore (get_type filename);
+          ignore (file_type filename);
           true
         with _ -> false )
 

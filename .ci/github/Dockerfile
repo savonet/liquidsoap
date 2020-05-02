@@ -9,6 +9,9 @@ ARG GITHUB_SHA
 
 USER root
 
+# This can be removed when all CI images have been refreshed.
+RUN apt-get update && apt-get -y install ffmpeg
+
 USER opam
 
 WORKDIR /tmp/liquidsoap-full

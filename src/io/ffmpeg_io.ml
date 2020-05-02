@@ -68,21 +68,14 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
              (Frame.string_of_content_kind kind));
       container <- Some input;
       let audio =
-        try
-          Some
-            (Ffmpeg_decoder.mk_audio_decoder ~put_audio:Generator.put_audio
-               input)
+        try Some (Ffmpeg_decoder.mk_audio_decoder input)
         with Avutil.Error _ -> None
       in
       let video =
-        try
-          Some
-            (Ffmpeg_decoder.mk_video_decoder ~put_video:Generator.put_video
-               input)
+        try Some (Ffmpeg_decoder.mk_video_decoder input)
         with Avutil.Error _ -> None
       in
-      Ffmpeg_decoder.mk_decoder ~set_mode:Generator.set_mode
-        ~add_break:Generator.add_break ~audio ~video ~container:input
+      Ffmpeg_decoder.mk_decoder ~audio ~video ~container:input
 
     val mutable kill_feeding = None
 
@@ -115,9 +108,10 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
     method private feed (should_stop, has_stopped) =
       try
         let decoder = self#get_decoder in
+        let buffer = Decoder.mk_buffer ~kind generator in
         while true do
           if should_stop () then failwith "stop";
-          decoder generator
+          decoder buffer
         done
       with e ->
         Generator.add_break ~sync:true generator;

@@ -145,9 +145,10 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
       try
         (* Feeding loop. *)
         let decoder = decoder_factory input in
+        let buffer = Decoder.mk_buffer ~kind generator in
         while true do
           if should_stop () then failwith "stop";
-          decoder.Decoder.decode generator
+          decoder.Decoder.decode buffer
         done
       with e ->
         Generator.add_break ~sync:true generator;
@@ -233,7 +234,7 @@ let () =
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let mime = Lang.to_string (Lang.assoc "" 1 p) in
-      match Decoder.get_stream_decoder mime kind with
+      match Decoder.get_stream_decoder ~kind mime with
         | None ->
             raise
               (Lang_errors.Invalid_value

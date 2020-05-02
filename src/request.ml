@@ -145,7 +145,7 @@ type t = {
   log : log;
   mutable root_metadata : metadata;
   mutable indicators : indicator list list;
-  mutable decoder : (unit -> Decoder.file_decoder) option;
+  mutable decoder : (unit -> Decoder.file_decoder_ops) option;
 }
 
 let kind x = x.kind
@@ -324,7 +324,7 @@ let local_check t =
           add_log t "Read permission denied!";
           pop_indicator t )
         else (
-          match Decoder.get_file_decoder ~metadata name kind with
+          match Decoder.get_file_decoder ~metadata ~kind name with
             | Some (decoder_name, f) ->
                 t.decoder <- Some f;
                 set_root_metadata t "decoder" decoder_name;

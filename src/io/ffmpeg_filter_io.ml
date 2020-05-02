@@ -208,7 +208,7 @@ class audio_input ~bufferize kind =
     method private flush_buffer =
       let output = Utils.get_some output in
       let src = Avfilter.(time_base output.context) in
-      let dst = Ffmpeg_utils.audio_time_base () in
+      let dst = Ffmpeg_utils.liq_internal_audio_time_base () in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
@@ -295,7 +295,7 @@ class video_input ~bufferize kind =
     method private flush_buffer =
       let output = Utils.get_some output in
       let src = Avfilter.(time_base output.context) in
-      let dst = Ffmpeg_utils.video_time_base () in
+      let dst = Ffmpeg_utils.liq_internal_video_time_base () in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in

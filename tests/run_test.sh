@@ -2,8 +2,13 @@
 
 CMD=$1
 TEST=$2
+TEST_NAME=$3
 
-echo -en "Running test \033[1m${TEST}\033[0m... "
+if [ -z "${TEST_NAME}" ]; then
+  TEST_NAME=${TEST}
+fi
+
+echo -en "Running test \033[1m${TEST_NAME}\033[0m... "
 ${CMD} < ${TEST}  >/dev/null 2>&1
 
 STATUS=$?

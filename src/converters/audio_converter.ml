@@ -99,3 +99,69 @@ module Samplerate = struct
            in
            f converters_conf#get))
 end
+
+module Channel_layout = struct
+  exception Unsupported
+  exception Invalid_data
+
+  type layout = [ `Mono | `Stereo | `Five_point_one ]
+
+  type converter =
+    layout -> layout -> Frame.audio_t array -> Frame.audio_t array
+
+  type t = {
+    src : layout;
+    converter : Frame.audio_t array -> Frame.audio_t array;
+  }
+
+  let channel_layout_conf =
+    Dtools.Conf.void
+      ~p:(converter_conf#plug "channel_layout")
+      "Channel layout conversion settings"
+      ~comments:["Options related to channel layout conversion."]
+
+  let converters_conf =
+    Dtools.Conf.list
+      ~p:(channel_layout_conf#plug "converters")
+      "Preferred samplerate converters" ~d:["native"]
+      ~comments:
+        [
+          "Preferred chanel layout converter. The native converter is always \
+           available.";
+        ]
+
+  let converters : converter Plug.plug =
+    Plug.create "channel layout converters"
+      ~doc:"Methods for converting channel layouts."
+
+  let create src dst =
+    let converter =
+      if src = dst then fun _ _ x -> x
+      else (
+        let rec f = function
+          | conv :: l -> (
+              match converters#get conv with Some v -> v | None -> f l )
+          | [] ->
+              (* This should never come up since the native converter is always
+                 available. *)
+              assert false
+        in
+        f converters_conf#get )
+    in
+    { src; converter = converter src dst }
+
+  let channels_of_layout = function
+    | `Mono -> 1
+    | `Stereo -> 2
+    | `Five_point_one -> 6
+
+  let layout_of_channels = function
+    | 1 -> `Mono
+    | 2 -> `Stereo
+    | 6 -> `Five_point_one
+    | _ -> raise Unsupported
+
+  let convert { src; converter } input =
+    if Array.length input != channels_of_layout src then raise Invalid_data;
+    converter input
+end

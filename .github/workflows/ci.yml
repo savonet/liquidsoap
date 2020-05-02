@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [debian_testing, debian_stable, ubuntu_bionic, ubuntu_eoan, ubuntu_focal]
+        os: [debian_testing, debian_stable, ubuntu_eoan, ubuntu_focal]
     steps:
     - uses: actions/checkout@v2
     - name: Build and test
