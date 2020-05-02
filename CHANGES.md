@@ -91,6 +91,7 @@ Changed:
 - Generalize `audio_to_stereo` to video frames and those without audio.
 - Allow crossfading for video (#1132, #1135).
 - Use getters for parameters of synthesizer sources (#1036).
+- Renamed `empty` to `fail`.
 
 Fixed:
 

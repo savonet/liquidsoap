@@ -338,12 +338,6 @@ def mic_filter(s)
   filter(freq=200.,q=1.,mode="high",s)
 end
 
-# Creates a source that fails to produce anything.
-# @category Source / Input
-def fail(~id="")
-  fallback(id=id,[])
-end
-
 # Creates a source that plays only one track of the input source.
 # @category Source / Track Processing
 # @param s The input source.

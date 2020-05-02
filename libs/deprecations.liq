@@ -229,3 +229,9 @@ def request.dynamic(~id="",~conservative=false,~default_duration=30.,
   request.dynamic.list(id=id,conservative=conservative,default_duration=default_duration,
                    length=length,timeout=timeout,fun () -> [fn()])
 end
+
+# Deprecated: this function has been replaced by fail.
+# @flag hidden
+def empty(~id="")
+  fail()
+end
