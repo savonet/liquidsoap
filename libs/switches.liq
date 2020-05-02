@@ -33,14 +33,13 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
   picked_index = ref -1
   tracks_played = ref 0
   default_weight = fun () -> 1
-  fail = fallback([])
 
   def pick() =
     tracks_played := 0
 
     if list.exists(source.is_ready, sources) then
       def rec f(index) =
-        s = list.nth(default=fail, sources, index)
+        s = list.nth(default=fail(), sources, index)
         if source.is_ready(s) then
           picked_index := index
         else
