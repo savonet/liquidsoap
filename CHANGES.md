@@ -13,11 +13,9 @@ New:
 - Added `file.ls` (#1011).
 - Added native id3v2 tag parser, as well as associated function
   `file.mp3.metadata`, `file.mp3.parse_apic` and `file.cover` (#987).
-- Added `lists.exists` and `list.for_all`.
 - Use a pager to display long help results (#1017).
-- Added `list.init`.
-- Added `list.ind`.
-- Added `list.index`.
+- Added new functions for lists: `lists.exists`, `list.for_all`, `list.init`,
+  `list.ind`, `list.index`, `list.last`.
 - Added `request.id`.
 - Added `retry_delay` argument to `request.dynamic.list` (#1169).
 - Added a profiler for the language. It can be enabled with `profiler.enable` and

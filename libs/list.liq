@@ -46,6 +46,12 @@ def list.length(l)
   list.ind(l, 0, fun (_, _, r) -> r+1)
 end
 
+# Return the last element of a list.
+# @category list
+def list.last(~default, l)
+  list.nth(default=default, l, list.length(l)-1)
+end
+
 # Check whether an element belongs to a list.
 # @category List
 def rec list.mem(x, l)
