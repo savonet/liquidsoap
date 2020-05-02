@@ -9,7 +9,12 @@
 # @param sources Sources with the predicate telling when they can be played.
 def switch(~id="", ~override="liq_transition_length", ~replay_metadata=true, ~track_sensitive=bool_getter(true), ~transition_length=5., ~transitions=[], sources)
   def s()
-    list.find(default=fail(), fun(ps)->fst(p)(), sources)
+    def activated(ps)
+      p = fst(ps)
+      p()
+    end
+    ps = list.find(default=({true},fail()), activated, sources)
+    snd(ps)
   end
   source.dynamic(track_sensitive=track_sensitive, s)
 end
@@ -30,7 +35,7 @@ def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
   end
 
   infallible = not(list.for_all(source.fallible, sources))
-  s = source.dynamic(infallible=infallible, track_sensitive=track_sensitive, s)
+  source.dynamic(infallible=infallible, track_sensitive=track_sensitive, s)
 end
 
 # Rotate between sources.
@@ -73,12 +78,12 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
     list.nth(default=fail, sources, !picked_index)
   end
 
-  infallible = not(list.for_all(fallible, sources))
+  infallible = not(list.for_all(source.fallible, sources))
   s = source.dynamic(infallible=infallible, track_sensitive=true, s)
 
   def f(_)
-    tracks_played := tracks_played + 1
-    weight = list.nth(default=default_weight, weights, index)
+    tracks_played := !tracks_played + 1
+    weight = list.nth(default=default_weight, weights, !picked_index)
     if !tracks_played >= weight() then pick() end
   end
   on_track(f, s)

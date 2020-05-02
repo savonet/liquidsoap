@@ -20,11 +20,11 @@
 
  *****************************************************************************)
 
-class dynamic ~kind ~delay ~track_sensitive f =
+class dynamic ~kind ~delay ~infallible ~track_sensitive f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
 
-    method stype = Source.Fallible
+    method stype = if infallible then Source.Infallible else Source.Fallible
 
     val mutable activation = []
 
@@ -97,7 +97,9 @@ class dynamic ~kind ~delay ~track_sensitive f =
       produced <- produced + (Frame.position frame - pos);
       (* Reselect on each track or when not track sensitive and enough time has
          elapsed. *)
-      if Frame.is_partial frame || ((not track_sensitive) && produced > delay)
+      if
+        Frame.is_partial frame
+        || ((not (track_sensitive ())) && produced > delay)
       then (
         self#select;
         produced <- 0 )
@@ -122,8 +124,14 @@ let () =
         Some
           "Minimum delay (in seconds) before re-selecting a source (if not \
            track-sensitive)." );
-      ( "track_sensitive",
+      ( "infallible",
         Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Whether the source is infallible or not (be careful when setting \
+           this, it will not be checked by the typing system)." );
+      ( "track_sensitive",
+        Lang.bool_getter_t (),
         Some (Lang.bool true),
         Some "Only change source on track boundaries." );
       ("", Lang.fun_t [] (Lang.source_t k), None, None);
@@ -134,5 +142,8 @@ let () =
       let delay =
         Frame.master_of_seconds (Lang.to_float (List.assoc "delay" p))
       in
-      let track_sensitive = Lang.to_bool (List.assoc "track_sensitive" p) in
-      new dynamic ~kind ~delay ~track_sensitive (List.assoc "" p))
+      let infallible = Lang.to_bool (List.assoc "infallible" p) in
+      let track_sensitive =
+        Lang.to_bool_getter (List.assoc "track_sensitive" p)
+      in
+      new dynamic ~kind ~delay ~infallible ~track_sensitive (List.assoc "" p))
