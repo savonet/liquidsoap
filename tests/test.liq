@@ -5,6 +5,7 @@ end
 
 # End test with a failure.
 def test.fail()
+  print("Test failed!")
   exit(1)
 end
 
