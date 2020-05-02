@@ -22,11 +22,11 @@
 
 open Source
 
-class infallible ~kind (source : source) =
+class infallible ~kind i (source : source) =
   object
     inherit operator ~name:"source.infallible" kind [source]
 
-    method stype = Infallible
+    method stype = if i then Infallible else source#stype
 
     method is_ready = source#is_ready
 
@@ -44,7 +44,13 @@ class infallible ~kind (source : source) =
 let () =
   let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "source.infallible"
-    [("", Lang.source_t k, None, None)]
+    [
+      ( "infallible",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Whether the source should be declared infallible or not." );
+      ("", Lang.source_t k, None, None);
+    ]
     ~return_t:k ~category:Lang.Liquidsoap
     ~descr:
       "Assert that a source is infallible. This should be used with care since \
@@ -52,5 +58,6 @@ let () =
        for use in the standard library."
     ~flags:[Lang.Hidden]
     (fun p kind ->
+      let i = Lang.to_bool (List.assoc "infallible" p) in
       let s = Lang.to_source (List.assoc "" p) in
-      new infallible ~kind s)
+      new infallible ~kind i s)
