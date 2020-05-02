@@ -79,6 +79,8 @@ class dynamic ~kind ~delay ~track_sensitive f =
       self#unregister_source ~already_locked:false
 
     method is_ready =
+      (* TODO: do we want to select on each is_ready call? Or only when
+         s#is_ready is false? *)
       self#select;
       match source with Some s when s#is_ready -> true | _ -> false
 
@@ -93,7 +95,10 @@ class dynamic ~kind ~delay ~track_sensitive f =
         | None -> Frame.add_break frame (Frame.position frame)
       end;
       produced <- produced + (Frame.position frame - pos);
-      if (track_sensitive && produced > delay) || Frame.is_partial frame then (
+      (* Reselect on each track or when not track sensitive and enough time has
+         elapsed. *)
+      if Frame.is_partial frame || ((not track_sensitive) && produced > delay)
+      then (
         self#select;
         produced <- 0 )
 
