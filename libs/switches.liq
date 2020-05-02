@@ -29,7 +29,9 @@ def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
     list.find(default=fail(), source.is_ready, sources)
   end
 
-  source.dynamic(track_sensitive=track_sensitive, s)
+  s = source.dynamic(track_sensitive=track_sensitive, s)
+  infallible = not(list.for_all(source.fallible, sources))
+  source.infallible(infallible=infallible, s)
 end
 
 # Rotate between sources.
