@@ -10,8 +10,8 @@
 def switch(~id="", ~override="liq_transition_length", ~replay_metadata=true, ~track_sensitive=bool_getter(true), ~transition_length=5., ~transitions=[], sources)
   def s()
     def activated(ps)
-      p = fst(ps)
-      p()
+      let (p,s) = ps
+      p() and source.is_ready(s)
     end
     ps = list.find(default=({true},fail()), activated, sources)
     snd(ps)
