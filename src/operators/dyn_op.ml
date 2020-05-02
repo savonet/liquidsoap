@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class dynamic ~kind ~track_sensitive f =
+class dynamic ~kind ~delay ~track_sensitive f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
 
@@ -82,13 +82,20 @@ class dynamic ~kind ~track_sensitive f =
       self#select;
       match source with Some s when s#is_ready -> true | _ -> false
 
+    (** Produced stream (in master ticks) since last selection. *)
+    val mutable produced = 0
+
     method private get_frame frame =
+      let pos = Frame.position frame in
       begin
         match source with
         | Some s -> s#get frame
         | None -> Frame.add_break frame (Frame.position frame)
       end;
-      if Frame.is_partial frame || not track_sensitive then self#select
+      produced <- produced + (Frame.position frame - pos);
+      if (track_sensitive && produced > delay) || Frame.is_partial frame then (
+        self#select;
+        produced <- 0 )
 
     method remaining = match source with Some s -> s#remaining | None -> -1
 
@@ -104,6 +111,12 @@ let () =
   let k = Lang.univ_t () in
   Lang.add_operator "source.dynamic"
     [
+      ( "delay",
+        Lang.float_t,
+        Some (Lang.float 0.5),
+        Some
+          "Minimum delay (in seconds) before re-selecting a source (if not \
+           track-sensitive)." );
       ( "track_sensitive",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -113,5 +126,8 @@ let () =
     ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
     (fun p kind ->
+      let delay =
+        Frame.master_of_seconds (Lang.to_float (List.assoc "delay" p))
+      in
       let track_sensitive = Lang.to_bool (List.assoc "track_sensitive" p) in
-      new dynamic ~kind ~track_sensitive (List.assoc "" p))
+      new dynamic ~kind ~delay ~track_sensitive (List.assoc "" p))
