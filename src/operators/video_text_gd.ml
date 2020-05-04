@@ -23,35 +23,35 @@
 let init () = ()
 
 let render_text ~font ~size text =
-  let bounds =
-    Gd.ft_bbox ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:0 text
-  in
+  let size = float size in
+  let fname = font in
+  let angle = 0. in
+  let bounds = Gd.ft_bbox ~fname ~size ~angle ~x:0 ~y:0 text in
   let x1, y1 = (bounds.(6), bounds.(7)) in
   let x2, y2 = (bounds.(2), bounds.(3)) in
   let w, h = (x2 - x1, y2 - y1) in
+  (* Double height in order to account for text below the baseline. *)
+  let h = 2 * h in
+  (* Double the size of the image in order to perform anti-aliasing. *)
+  let w, h = (2 * w, 2 * h) in
+  let size = 2. *. size in
   let img = Gd.create ~x:w ~y:h in
   let ca = img#colors in
   img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w - 1) ~y2:(h - 1) ca#black;
   ignore
-    (img#string_ft ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:h
-       ~fg:ca#white text);
+    (img#string_ft ~fname ~size ~angle:0. ~x:0 ~y:(h / 2) ~fg:ca#white text);
   let get_pixel x y =
     let c = img#get_pixel ~x ~y in
     if c = ca#white then 0xff else 0
   in
-  (* Manual antialiasing... *)
-  (*
+  (* Anti-aliasing. *)
   let get_pixel x y =
-    if x = 0 || y = 0 || x = w-1 || y = w -1 then
-      get_pixel x y
-    else
-      (get_pixel (x-1) y
-      + get_pixel (x+1) y
-      + get_pixel x (y-1)
-      + get_pixel x (y+1)
-      + get_pixel x y) / 5
+    ( get_pixel (2 * x) (2 * y)
+    + get_pixel ((2 * x) + 1) (2 * y)
+    + get_pixel (2 * x) ((2 * y) + 1)
+    + get_pixel ((2 * x) + 1) ((2 * y) + 1) )
+    / 4
   in
-  *)
   (w, h, get_pixel)
 
 let () = Video_text.register "gd" init render_text

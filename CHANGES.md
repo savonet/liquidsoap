@@ -89,6 +89,7 @@ Fixed:
 - Fix implementation of recursive functions (#934).
 - Make `blank()` source unavailable past is expected duration (#668).
 - Remove `video.add_text.gstreamer` shade in background (#1190).
+- Improve the quality of `video.add_text.gd` (#1188).
 
 1.4.2 (03-05-2020)
 =====
