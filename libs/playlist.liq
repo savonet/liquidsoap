@@ -36,7 +36,7 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
 
   # The next function
   def rec next() =
-    if loop and list.length(!playlist) == 0 then playlist := !playlist_orig end
+    if loop and list.length(!playlist) == 0 then playlist := randomize(!playlist_orig) end
     file =
       if list.length(!playlist) > 0 then
         if mode == "random" then
