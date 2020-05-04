@@ -15,8 +15,10 @@
 # @param playlist Playlist.
 def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~on_done={()}, ~timeout=20., playlist)
   mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
+
   # Original playlist when loaded
   playlist_orig = ref(playlist)
+
   # Randomize the playlist if necessary
   def randomize(p)
     if mode == "randomize" then
@@ -25,10 +27,13 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
       p
     end
   end
+
   # Current remaining playlist
   playlist = ref(randomize(playlist))
+
   # A reference to know if the source has been stopped
   has_stopped = ref(false)
+
   # The next function
   def rec next() =
     if loop and list.length(!playlist) == 0 then playlist := !playlist_orig end
@@ -65,14 +70,17 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
       end
     end
   end
+
   # Instantiate the source
   source = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
+
   # The reload function
   def reload(p) =
     log.debug(label=id, "Reloading playlist.")
     playlist := randomize(p)
     has_stopped := false
   end
+
   # Return
   (reload,source)
 end
@@ -98,6 +106,7 @@ end
 def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_done={()}, ~prefix="", ~timeout=20., uri)
   # URI of the current playlist
   playlist_uri=ref(uri)
+
   # The load function
   def load_playlist () =
     playlist_uri = path.home.unrelate(!playlist_uri)
@@ -135,8 +144,10 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       result
     end
   end
+
   # Create the source
   let (reload, source) = playlist.list.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, load_playlist())
+
   # The reload function
   def reload(~uri="") =
     if uri != "" then
@@ -145,6 +156,7 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
     log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
     reload(load_playlist())
   end
+
   (reload, source)
 end
 
