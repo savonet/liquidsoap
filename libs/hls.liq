@@ -47,7 +47,6 @@ def input.hls(~id="",~reload=10.,uri)
       playlist := []
     end
     request.destroy(pl)
-    reload
   end
 
   def rec next () =
@@ -81,7 +80,7 @@ def input.hls(~id="",~reload=10.,uri)
 
   source = merge_tracks(source)
 
-  thread.run.recurrent(load_playlist)
+  thread.run(every=reload, load_playlist)
 
   source
 end

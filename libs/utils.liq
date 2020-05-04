@@ -390,10 +390,9 @@ def clock.log(~delay=0., ~every=1., logfile)
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
     status = list.map(fun (c) -> status[c], clocks)
     ignore(file.write(append=true, data="#{string.concat(separator=' ', status)}", logfile))
-    every
   end
   delay = if delay <= 0. then 0. else delay end
-  thread.run.recurrent(delay=delay, report)
+  thread.run(delay=delay, every=every, report)
 end
 
 # Skip track when detecting a blank.
