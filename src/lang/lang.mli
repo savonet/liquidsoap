@@ -72,6 +72,8 @@ and in_value = Lang_values.V.in_value =
       * full_env
       * (full_env -> t -> value)
 
+val demeth : value -> value
+
 type env = (string * value) list
 
 (** Get a string representation of a value. *)

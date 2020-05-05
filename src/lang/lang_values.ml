@@ -574,6 +574,8 @@ module V = struct
           assert (f gen v.t = v.t);
           r := map_types f gen !r;
           v
+
+  let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
 end
 
 (** {2 Built-in values and toplevel definitions} *)

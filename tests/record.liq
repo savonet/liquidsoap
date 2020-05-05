@@ -11,7 +11,8 @@ def test(x, y)
   end
 end
 
-r = {{ 4 | test = 4 }}
-ignore(r)
+r = {{ 2 | test = fun () -> 5 }}
+test(r+1, 3)
+
 
 if !success then test.pass() else test.fail() end

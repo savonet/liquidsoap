@@ -664,6 +664,17 @@ let rec ( <: ) a b =
               let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
+    | Meth (l1, t1, u1), Meth (l2, t2, u2) when l1 = l2 -> (
+        ( try t1 <: t2
+          with Error (a, b) ->
+            raise (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
+        );
+        try u1 <: u2
+        with Error (a, b) ->
+          raise (Error (`Meth (l1, `Ellipsis, a), `Meth (l2, `Ellipsis, b))) )
+    | Meth (l1, _, u1), _ -> (
+        try u1 <: b
+        with Error (a, b) -> raise (Error (`Meth (l1, `Ellipsis, a), b)) )
     | Zero, Zero -> ()
     | Zero, Any -> ()
     | Succ t1, Succ t2 -> (
