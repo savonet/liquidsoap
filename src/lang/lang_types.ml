@@ -127,6 +127,7 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
+  | Field of string * t * t
   | Zero
   | Succ of t
   | Any
@@ -141,6 +142,7 @@ type repr =
   | `Ground of ground
   | `List of repr
   | `Tuple of repr list
+  | `Field of string * repr * repr
   | `Zero
   | `Succ of repr
   | `Any
@@ -221,6 +223,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Ground g -> `Ground g
         | List t -> `List (repr t)
         | Tuple l -> `Tuple (List.map repr l)
+        | Field (l, t, u) -> `Field (l, repr t, repr u)
         | Zero -> `Zero
         | Any -> `Any
         | Succ t -> `Succ (repr t)
@@ -301,6 +304,13 @@ let print_repr f t =
         in
         let vars = aux vars l in
         if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
+        vars
+    | `Field (l, t, u) ->
+        Format.fprintf f "@[<1>{{";
+        let vars = print ~par:true vars u in
+        Format.fprintf f " ; %s = " l;
+        let vars = print ~par:true vars t in
+        Format.fprintf f "}}@]";
         vars
     | `List t ->
         Format.fprintf f "@[<1>[";
@@ -445,6 +455,9 @@ let rec occur_check a b =
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
+    | Field (_, t, u) ->
+        occur_check a t;
+        occur_check a u
     | Succ t -> occur_check a t
     | Zero | Any -> ()
     | Arrow (p, t) ->
@@ -787,6 +800,7 @@ let filter_vars f t =
       | Ground _ | Zero | Any -> l
       | Succ t | List t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
+      | Field (_, t, u) -> aux (aux l t) u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
@@ -816,6 +830,7 @@ let copy_with subst t =
       | Ground _ -> cp t.descr
       | List t -> cp (List (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
+      | Field (l, t, u) -> cp (Field (l, aux t, aux u))
       | Zero | Any -> cp t.descr
       | Succ t -> cp (Succ (aux t))
       | Arrow (p, t) ->
@@ -864,6 +879,9 @@ let iter_constr f t =
       | Succ _ | Zero | Any -> ()
       | List t -> aux pos t
       | Tuple l -> List.iter (aux pos) l
+      | Field (_, t, u) ->
+          aux pos t;
+          aux pos u
       | Constr c ->
           f pos c;
           List.iter (fun (_, t) -> aux pos t) c.params
