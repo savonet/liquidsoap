@@ -399,6 +399,29 @@ let () =
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.quote s))
 
+let () =
+  add_builtin "string.hex_of_int" ~cat:String
+    ~descr:"Hexadecimal representation of an integer."
+    [
+      ( "pad",
+        Lang.int_t,
+        Some (Lang.int 0),
+        Some
+          "Minimum length in digits (pad on the left with zeros in order to \
+           reach it)." );
+      ("", Lang.int_t, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let pad = Lang.to_int (List.assoc "pad" p) in
+      let n = Lang.to_int (List.assoc "" p) in
+      let s = Printf.sprintf "%x" n in
+      let s =
+        let len = String.length s in
+        if len < pad then String.make (pad - len) '0' ^ s else s
+      in
+      Lang.string s)
+
 (** Data conversions. *)
 
 let () =
