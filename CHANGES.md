@@ -39,6 +39,7 @@ New:
 - Add `getter.int_of_float` and `getter.float_of_int`.
 - Add `source.dump` (#1036).
 - Add `stereo` and `synth` protocols (#1036).
+- Add `video.add_text.ffmpeg`.
 
 Changed:
 
