@@ -409,7 +409,7 @@ let iter_sources f v =
       | Term.List l -> List.iter (iter_term env) l
       | Term.Ref a | Term.Get a -> iter_term env a
       | Term.Tuple l -> List.iter (iter_term env) l
-      | Term.Field (_, a, b) ->
+      | Term.Meth (_, a, b) ->
           iter_term env a;
           iter_term env b
       | Term.Let { Term.def = a; body = b; _ }
@@ -443,7 +443,7 @@ let iter_sources f v =
       | Ground _ | Request _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
-      | Field (_, a, b) ->
+      | Meth (_, a, b) ->
           iter_value a;
           iter_value b
       | Fun (proto, pe, env, body) ->

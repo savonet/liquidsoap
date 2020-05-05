@@ -57,7 +57,7 @@ and in_value = Lang_values.V.in_value =
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
-  | Field of string * value * value
+  | Meth of string * value * value
   | Ref of value ref
   | Fun of
       (string * string * value option) list
