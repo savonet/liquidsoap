@@ -180,8 +180,8 @@
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
-%token LPAR RPAR COMMA SEQ SEQSEQ COLON
-%token LBRA RBRA LCUR RCUR PIPE
+%token LPAR RPAR COMMA SEQ SEQSEQ COLON PIPE
+%token LBRA RBRA LCUR RCUR LCURR RCURR
 %token FUN YIELDS
 %token <string> BIN0
 %token <string> BIN1
@@ -274,7 +274,9 @@ expr:
   | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
-  | LCUR expr PIPE record RCUR       { $4 $2 }
+  | LCURR expr PIPE record RCURR     { $4 $2 }
+  | LCURR record RCURR               { $2 (mk ~pos:$loc (Tuple [])) }
+  | LCURR RCURR                      { mk ~pos:$loc (Tuple []) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }
@@ -469,5 +471,5 @@ ffmpeg_opt:
   | LPAR ffmpeg_list RPAR { $2 }
 
 record:
-  | { fun e -> e }
-  | STRING GETS expr record { fun e -> mk ~pos:$loc (Meth ($1, $3, $4 e)) }
+  | VAR GETS expr { fun e -> mk ~pos:$loc (Meth ($1, $3, e)) }
+  | VAR GETS expr COMMA record { fun e -> mk ~pos:$loc (Meth ($1, $3, $5 e)) }

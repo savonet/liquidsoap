@@ -53,7 +53,7 @@ let rec to_json_compact v =
           Printf.sprintf "[%s]" (String.concat "," (List.map to_json_compact l))
         )
     | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
-    | Lang.Field _ -> failwith "TODO: JSON of field not yet implemented"
+    | Lang.Meth _ -> failwith "TODO: JSON of field not yet implemented"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
