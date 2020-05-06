@@ -40,7 +40,7 @@ New:
 - Add `source.dump` (#1036).
 - Add `stereo` and `synth` protocols (#1036).
 - Add `video.add_text.ffmpeg`.
-- Add support for records and methods.
+- Add support for records and methods (#1197).
 
 Changed:
 
