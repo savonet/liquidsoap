@@ -1,3 +1,5 @@
+test = ()
+
 # End test successfully.
 def test.pass()
   shutdown()

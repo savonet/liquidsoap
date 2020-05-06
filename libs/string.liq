@@ -27,6 +27,8 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s)
   !ans
 end
 
+let string.binary = ()
+
 # Value of an integer encoded using native memory representation.
 # @category String
 # @param ~little_endian Whether the memory representation is little endian.

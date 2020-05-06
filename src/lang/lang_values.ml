@@ -805,7 +805,10 @@ let rec check ?(print_toplevel = false) ~level ~env e =
         e.t >: mk (T.Meth (l, a.t, b.t))
     | Invoke (a, l) ->
         check ~level ~env a;
-        e.t >: mk (T.Meth (l, a.t, T.fresh_evar ~level ~pos))
+        let x = T.fresh_evar ~level ~pos in
+        let y = T.fresh_evar ~level ~pos in
+        a.t <: mk (T.Meth (l, x, y));
+        e.t >: x
     | Ref a ->
         check ~level ~env a;
         e.t >: ref_t ~pos ~level a.t
@@ -1019,7 +1022,7 @@ let rec eval ~env tm =
           match t.V.value with
             | V.Meth (l', t, _) when l = l' -> t
             | V.Meth (_, _, t) -> aux t
-            | _ -> assert false
+            | _ -> failwith ("Fatal error: invoked method " ^ l ^ " not found")
         in
         aux (eval ~env t)
     | Ref v -> mk (V.Ref (ref (eval ~env v)))

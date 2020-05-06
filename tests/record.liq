@@ -1,7 +1,5 @@
 #!../src/liquidsoap ../libs/pervasives.liq
 
-%include "test.liq"
-
 success = ref(true)
 
 def test(x, y)
@@ -10,6 +8,8 @@ def test(x, y)
     success := false
   end
 end
+
+%include "test.liq"
 
 r = {{ 2 | a = 8 , b = 12 , f = fun(x) -> 2 * x }}
 test(r+1, 3)
