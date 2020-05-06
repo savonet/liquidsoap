@@ -132,6 +132,9 @@ val add_builtin_base :
   t ->
   unit
 
+(** Declare a new module. *)
+val add_module : string -> unit
+
 (** Category of an operator. *)
 type category =
   | Input  (** Input. *)

@@ -316,6 +316,8 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
     flags;
   Term.add_builtin ~doc (String.split_on_char '.' name) (generalized, value)
 
+let add_module name = Term.add_module (String.split_on_char '.' name)
+
 (** Specialized version for operators, that is builtins returning sources. *)
 
 type category =

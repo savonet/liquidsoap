@@ -147,6 +147,10 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   end
 
 let () =
+  Lang.add_module "request";
+  Lang.add_module "request.dynamic"
+
+let () =
   let k = Lang.univ_t () in
   Lang.add_operator "request.dynamic.list" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."

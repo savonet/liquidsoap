@@ -489,6 +489,16 @@ module V = struct
 
   let unit : in_value = Tuple []
 
+  (** Find a method in a value. *)
+  let rec invoke x l =
+    match x.value with
+      | Meth (l', y, _) when l' = l -> y
+      | Meth (_, _, x) -> invoke x l
+      | _ -> failwith ("Coult not find method " ^ l)
+
+  (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
+  let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
+
   type env = (string * value) list
 
   let string_of_float f =
@@ -599,27 +609,17 @@ let default_environment () = !builtins_env
 let default_typing_environment () =
   List.map (fun (x, (g, v)) -> (x, (g, v.V.t))) (default_environment ())
 
-let add_builtin ?doc name (g, v) =
-  builtins#register ?doc (String.concat "." name) (g, v);
+let add_builtin ?(register = true) ?doc name (g, v) =
+  if register then builtins#register ?doc (String.concat "." name) (g, v);
   match name with
-    | [name] -> builtins_env := (name, (g, v)) :: !builtins_env
+    | [name] ->
+        (* Don't allow overriding builtins. *)
+        assert (not (List.mem_assoc name !builtins_env));
+        builtins_env := (name, (g, v)) :: !builtins_env
     | x :: ll ->
         let xv =
           try snd (List.assoc x !builtins_env)
           with Not_found -> failwith ("Could not find builtin variable " ^ x)
-        in
-        (* Find a method in a value. We need to compute it here in order to have a
-           value as result. *)
-        let rec invoke x l =
-          match x.V.value with
-            | V.Meth (l', y, _) when l' = l -> y
-            | V.Meth (_, _, x) -> invoke x l
-            | _ -> failwith ("Coult not find method " ^ l)
-        in
-        (* invokes x [l1;l2;l3;...] computes x....l3.l2.l1. *)
-        let rec invokes x = function
-          | l :: ll -> invoke (invokes x ll) l
-          | [] -> x
         in
         (* x.l1.l2.l3 = v means
            x = (x where l1 = (x.l1 where l2 = (x.l1.l2 where l3 = v)))
@@ -637,7 +637,7 @@ let _ =
     *)
         let rec aux prefix : string list -> V.value = function
           | l :: ll ->
-              let v = invokes xv prefix in
+              let v = V.invokes xv (List.rev prefix) in
               let lv = aux (l :: prefix) ll in
               {
                 V.t = T.make (T.Meth (l, lv.V.t, v.V.t));
@@ -649,6 +649,30 @@ let _ =
     | [] -> assert false
 
 let has_builtin name = builtins#is_registered name
+
+(** Declare a module. *)
+let add_module name =
+  (* Ensure that it does not already exist. *)
+  ( match name with
+    | [] -> assert false
+    | [x] ->
+        if List.mem_assoc x !builtins_env then
+          failwith ("Module " ^ String.concat "." name ^ " already declared")
+    | x :: mm -> (
+        let mm = List.rev mm in
+        let l = List.hd mm in
+        let mm = List.rev (List.tl mm) in
+        let e =
+          try V.invokes (snd (List.assoc x !builtins_env)) mm
+          with _ ->
+            failwith
+              ("Could not find the parent module of " ^ String.concat "." name)
+        in
+        try
+          ignore (V.invoke e l);
+          failwith ("Module " ^ String.concat "." name ^ " already exists")
+        with _ -> () ) );
+  add_builtin ~register:false name ([], { V.t = T.make T.unit; value = V.unit })
 
 (* Builtins are only used for documentation now. *)
 let builtins = (builtins :> Doc.item)
