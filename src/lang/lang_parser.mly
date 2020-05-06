@@ -180,7 +180,7 @@
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
-%token LPAR RPAR COMMA SEQ SEQSEQ COLON PIPE
+%token LPAR RPAR COMMA SEQ SEQSEQ COLON PIPE DOT
 %token LBRA RBRA LCUR RCUR LCURR RCURR
 %token FUN YIELDS
 %token <string> BIN0
@@ -206,6 +206,7 @@
 %left BIN2 MINUS
 %left BIN3 TIMES
 %nonassoc GET          /* (!x)+2 */
+%left DOT
 
 
 /* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg */
@@ -277,6 +278,7 @@ expr:
   | LCURR expr PIPE record RCURR     { $4 $2 }
   | LCURR record RCURR               { $2 (mk ~pos:$loc (Tuple [])) }
   | LCURR RCURR                      { mk ~pos:$loc (Tuple []) }
+  | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }

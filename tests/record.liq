@@ -11,8 +11,10 @@ def test(x, y)
   end
 end
 
-r = {{ 2 | a = fun () -> 5 , b = fun (x) -> 2 * x }}
+r = {{ 2 | a = 8 , b = 12 , f = fun(x) -> 2 * x }}
 test(r+1, 3)
+test(r`b, 12)
+test(r`a, 8)
 
 
 if !success then test.pass() else test.fail() end

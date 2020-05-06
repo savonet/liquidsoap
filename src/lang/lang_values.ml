@@ -197,6 +197,7 @@ and in_term =
   | List of term list
   | Tuple of term list
   | Meth of string * term * term
+  | Invoke of term * string
   | Ref of term
   | Get of term
   | Set of term * term
@@ -236,7 +237,8 @@ let rec print_term v =
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
     | Meth (l, v, e) ->
-        "{{" ^ print_term e ^ "; " ^ l ^ " = " ^ print_term v ^ "}}"
+        "{{" ^ print_term e ^ " | " ^ l ^ " = " ^ print_term v ^ "}}"
+    | Invoke (e, l) -> print_term e ^ "." ^ l
     | Ref a -> Printf.sprintf "ref(%s)" (print_term a)
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
@@ -268,6 +270,7 @@ let rec free_vars tm =
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
     | Seq (a, b) | Set (a, b) -> Vars.union (free_vars a) (free_vars b)
     | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
+    | Invoke (e, _) -> free_vars e
     | List l ->
         List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
     | App (hd, l) ->
@@ -316,6 +319,7 @@ let check_unused ~lib tm =
       | Get r -> check v r
       | Tuple l -> List.fold_left (fun a -> check a) v l
       | Meth (_, f, e) -> check (check v e) f
+      | Invoke (e, _) -> check v e
       | Set (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b
       | List l -> List.fold_left (fun x y -> check x y) v l
@@ -387,6 +391,7 @@ let rec map_types f (gen : 'a list) tm =
           t = f gen tm.t;
           term = Meth (l, map_types f gen x, map_types f gen e);
         }
+    | Invoke (e, l) -> { t = f gen tm.t; term = Invoke (map_types f gen e, l) }
     | Seq (a, b) ->
         { t = f gen tm.t; term = Seq (map_types f gen a, map_types f gen b) }
     | Set (a, b) ->
@@ -438,6 +443,7 @@ let rec fold_types f gen x tm =
     | Ref r | Get r -> fold_types f gen x r
     | Tuple l -> List.fold_left (fold_types f gen) x l
     | Meth (_, v, e) -> fold_types f gen (fold_types f gen x v) e
+    | Invoke (e, _) -> fold_types f gen x e
     | Seq (a, b) | Set (a, b) -> fold_types f gen (fold_types f gen x a) b
     | App (tm, l) ->
         let x = fold_types f gen x tm in
@@ -708,6 +714,9 @@ let rec check ?(print_toplevel = false) ~level ~env e =
         check ~level ~env a;
         check ~level ~env b;
         e.t >: mk (T.Meth (l, a.t, b.t))
+    | Invoke (a, l) ->
+        check ~level ~env a;
+        e.t >: mk (T.Meth (l, a.t, T.fresh_evar ~level ~pos))
     | Ref a ->
         check ~level ~env a;
         e.t >: ref_t ~pos ~level a.t
@@ -933,6 +942,14 @@ let rec eval ~env tm =
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
     | Meth (l, u, v) -> mk (V.Meth (l, eval ~env u, eval ~env v))
+    | Invoke (t, l) ->
+        let rec aux t =
+          match t.V.value with
+            | V.Meth (l', t, _) when l = l' -> t
+            | V.Meth (_, _, t) -> aux t
+            | _ -> assert false
+        in
+        aux (eval ~env t)
     | Ref v -> mk (V.Ref (ref (eval ~env v)))
     | Get r -> (
         match (eval ~env r).V.value with V.Ref r -> !r | _ -> assert false )

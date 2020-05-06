@@ -412,6 +412,7 @@ let iter_sources f v =
       | Term.Meth (_, a, b) ->
           iter_term env a;
           iter_term env b
+      | Term.Invoke (a, _) -> iter_term env a
       | Term.Let { Term.def = a; body = b; _ }
       | Term.Seq (a, b)
       | Term.Set (a, b) ->
