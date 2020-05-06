@@ -23,6 +23,12 @@
 open Lang_builtins
 
 let () =
+  Lang.add_module "string";
+  Lang.add_module "string.utf8";
+  Lang.add_module "string.base64";
+  Lang.add_module "url"
+
+let () =
   add_builtin "^" ~cat:String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->

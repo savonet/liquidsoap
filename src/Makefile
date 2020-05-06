@@ -87,11 +87,11 @@ operators = \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
 	operators/max_duration.ml operators/sequence.ml operators/add.ml \
 	operators/switch.ml operators/cross.ml \
-	operators/compress_exp.ml operators/pitch.ml operators/pipe.ml \
+	operators/pitch.ml operators/pipe.ml operators/filter.ml \
 	operators/fir_filter.ml operators/iir_filter.ml operators/filter_rc.ml \
 	operators/biquad_filter.ml operators/cuepoint.ml \
 	operators/map_op.ml operators/flanger.ml operators/comb.ml \
-	operators/compress.ml operators/clip.ml operators/filter.ml \
+	operators/compress.ml operators/compress_exp.ml operators/clip.ml \
 	operators/amplify.ml operators/normalize.ml operators/echo.ml \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
 	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
@@ -240,7 +240,7 @@ liquidsoap_sources= \
 liquidsoap_sources += \
 	lang/lang_types.ml lang/profiler.ml lang/lang_values.ml \
 	$(lang_encoders) lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml \
+	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml lang/modules.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \

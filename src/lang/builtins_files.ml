@@ -24,6 +24,7 @@ open Lang_builtins
 open Extralib
 
 let log = Log.make ["lang.file"]
+let () = Lang.add_module "file"
 
 let () =
   add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
@@ -248,6 +249,10 @@ let () =
 (************** Paths ********************)
 
 let () =
+  Lang.add_module "path";
+  Lang.add_module "path.home"
+
+let () =
   add_builtin "path.home.unrelate" ~cat:Sys [("", Lang.string_t, None, None)]
     Lang.string_t
     ~descr:"Expand path that start with '~' with the current home directory."
@@ -284,6 +289,8 @@ let () =
       Lang.string (Filename.remove_extension f))
 
 (************** MP3 ********************)
+
+let () = Lang.add_module "file.mp3"
 
 let () =
   add_builtin "file.mp3.metadata" ~cat:Sys

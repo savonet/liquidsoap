@@ -64,6 +64,7 @@ class msstereo ~kind (source : source) mode width =
   end
 
 let () =
+  Lang.add_module "stereo.ms";
   let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
   Lang.add_operator "stereo.ms.encode"
     [("", Lang.source_t k, None, None)]

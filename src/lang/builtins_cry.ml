@@ -22,6 +22,7 @@
 
 open Lang_builtins
 
+let () = Lang.add_module "icy"
 let log = Log.make ["icy"; "update_metadata"]
 
 let () =

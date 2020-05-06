@@ -23,38 +23,6 @@
 open Lang_builtins
 
 let () =
-  add_builtin "request.create.raw" ~cat:Liq
-    ~descr:
-      "Create a raw request, for files that should not be decoded for \
-       streaming such as playlists. Creation may fail if there is no available \
-       RID, which cannot be detected currently: in that case one will obtain a \
-       request that will fail to be resolved."
-    [
-      ( "indicators",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list ~t:Lang.string_t []),
-        None );
-      ("persistent", Lang.bool_t, Some (Lang.bool false), None);
-      ("", Lang.string_t, None, None);
-    ]
-    (Lang.request_t
-       (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t
-          ~midi:Lang.zero_t))
-    (fun p ->
-      let indicators = List.assoc "indicators" p in
-      let persistent = Lang.to_bool (List.assoc "persistent" p) in
-      let initial = Lang.to_string (List.assoc "" p) in
-      let l = String.length initial in
-      let initial =
-        (* Remove trailing newline *)
-        if l > 0 && initial.[l - 1] = '\n' then String.sub initial 0 (l - 1)
-        else initial
-      in
-      let indicators = List.map Lang.to_string (Lang.to_list indicators) in
-      let indicators = List.map (fun x -> Request.indicator x) indicators in
-      Lang.request (Request.create_raw ~persistent ~indicators initial))
-
-let () =
   Lang.add_builtin "request.create" ~category:(string_of_category Liq)
     ~descr:
       "Create a request. Creation may fail if there is no available RID, which \
@@ -86,6 +54,38 @@ let () =
         Lang.frame_kind_of_kind_type k_t
       in
       Lang.request (Request.create ~kind ~persistent ~indicators initial))
+
+let () =
+  add_builtin "request.create.raw" ~cat:Liq
+    ~descr:
+      "Create a raw request, for files that should not be decoded for \
+       streaming such as playlists. Creation may fail if there is no available \
+       RID, which cannot be detected currently: in that case one will obtain a \
+       request that will fail to be resolved."
+    [
+      ( "indicators",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list ~t:Lang.string_t []),
+        None );
+      ("persistent", Lang.bool_t, Some (Lang.bool false), None);
+      ("", Lang.string_t, None, None);
+    ]
+    (Lang.request_t
+       (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t
+          ~midi:Lang.zero_t))
+    (fun p ->
+      let indicators = List.assoc "indicators" p in
+      let persistent = Lang.to_bool (List.assoc "persistent" p) in
+      let initial = Lang.to_string (List.assoc "" p) in
+      let l = String.length initial in
+      let initial =
+        (* Remove trailing newline *)
+        if l > 0 && initial.[l - 1] = '\n' then String.sub initial 0 (l - 1)
+        else initial
+      in
+      let indicators = List.map Lang.to_string (Lang.to_list indicators) in
+      let indicators = List.map (fun x -> Request.indicator x) indicators in
+      Lang.request (Request.create_raw ~persistent ~indicators initial))
 
 let () =
   add_builtin "request.resolve" ~cat:Liq

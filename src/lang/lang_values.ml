@@ -489,16 +489,6 @@ module V = struct
 
   let unit : in_value = Tuple []
 
-  (** Find a method in a value. *)
-  let rec invoke x l =
-    match x.value with
-      | Meth (l', y, _) when l' = l -> y
-      | Meth (_, _, x) -> invoke x l
-      | _ -> failwith ("Coult not find method " ^ l)
-
-  (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
-  let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
-
   type env = (string * value) list
 
   let string_of_float f =
@@ -593,6 +583,16 @@ module V = struct
           assert (f gen v.t = v.t);
           r := map_types f gen !r;
           v
+
+  (** Find a method in a value. *)
+  let rec invoke x l =
+    match x.value with
+      | Meth (l', y, _) when l' = l -> y
+      | Meth (_, _, x) -> invoke x l
+      | _ -> failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
+
+  (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
+  let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
   let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
 end

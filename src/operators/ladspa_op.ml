@@ -23,6 +23,8 @@
 open Source
 open Ladspa
 
+let () = Lang.add_module "ladspa"
+
 type t = Float | Int | Bool
 
 let log = Log.make ["LADSPA extension"]

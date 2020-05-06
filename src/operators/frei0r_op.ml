@@ -23,6 +23,10 @@
 open Source
 open Extralib
 
+let () =
+  Lang.add_module "frei0r";
+  Lang.add_module "video.frei0r"
+
 type t = Float | Int | Bool
 
 let log = Log.make ["frei0r"]

@@ -22,6 +22,8 @@
 
 open Lang_builtins
 
+let () = Lang.add_module "interactive"
+
 module Var = struct
   exception Invalid_value of string
 

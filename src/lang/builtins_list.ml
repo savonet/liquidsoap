@@ -22,6 +22,8 @@
 
 open Lang_builtins
 
+let () = Lang.add_module "list"
+
 let () =
   (* TODO It would be good to generalize this one but we'd need a way to handle
      errors. *)

@@ -456,6 +456,9 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   end
 
 let () =
+  Lang.add_module "filter.iir";
+  Lang.add_module "filter.iir.butterworth";
+  Lang.add_module "filter.iir.resonator";
   let k = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "filter.iir.butterworth.high"
     [

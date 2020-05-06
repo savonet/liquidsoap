@@ -32,6 +32,7 @@ end
 module Make (Harbor : T) = struct
   let name_up = String.uppercase_ascii Harbor.name
   let resp_t = Lang.string_getter_t ()
+  let () = Lang.add_module ("harbor." ^ Harbor.name)
 
   let () =
     Lang_builtins.add_builtin

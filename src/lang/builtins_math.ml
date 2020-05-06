@@ -22,6 +22,8 @@
 
 open Lang_builtins
 
+let () = Lang.add_module "random"
+
 let () =
   let add op name descr =
     let t = Lang.float_t in

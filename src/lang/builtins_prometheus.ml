@@ -23,6 +23,7 @@
 open Lang_builtins
 open Prometheus
 
+let () = Lang.add_module "prometheus"
 let log = Log.make ["prometheus"]
 
 let metric_proto =

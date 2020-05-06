@@ -331,6 +331,10 @@ let output_proto ~return_t ~pipeline =
     ]
 
 let () =
+  Lang.add_module "output.gstreamer";
+  Lang.add_module "input.gstreamer"
+
+let () =
   let kind = Lang.any_with ~audio:1 () in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio" ~active:true

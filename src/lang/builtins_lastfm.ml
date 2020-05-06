@@ -22,6 +22,7 @@
 
 open Lang_builtins
 
+let () = Lang.add_module "audioscrobbler"
 let log = Log.make ["lastfm"; "submit"]
 
 let () =
