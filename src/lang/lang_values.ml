@@ -589,7 +589,23 @@ end
 let builtins : ((int * T.constraints) list * V.value) Plug.plug =
   Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
 
-(* {2 Type checking/inference} *)
+(* Environment for builtins. *)
+let builtins_env = ref []
+let default_environment () = !builtins_env
+
+let default_typing_environment () =
+  List.map (fun (x, (g, v)) -> (x, (g, v.V.t))) (default_environment ())
+
+let add_builtin ?doc name gv =
+  builtins_env := (name, gv) :: !builtins_env;
+  builtins#register ?doc name gv
+
+let has_builtin name = builtins#is_registered name
+
+(* Builtins are only used for documentation now. *)
+let builtins = (builtins :> Doc.item)
+
+(** {2 Type checking/inference} *)
 
 let ( <: ) = T.( <: )
 let ( >: ) = T.( >: )
@@ -781,10 +797,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     | Var var ->
         let generalized, orig =
           try List.assoc var env
-          with Not_found -> (
-            match builtins#get var with
-              | Some (g, v) -> (g, v.V.t)
-              | None -> raise (Unbound (e.t.T.pos, var)) )
+          with Not_found -> raise (Unbound (e.t.T.pos, var))
         in
         e.t >: T.instantiate ~level ~generalized orig;
         if Lazy.force debug then
@@ -830,7 +843,8 @@ let rec check ?(print_toplevel = false) ~level ~env e =
 let check ?(ignored = false) e =
   let print_toplevel = !Configure.display_types in
   try
-    check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e;
+    let env = default_typing_environment () in
+    check ~print_toplevel ~level:(List.length env) ~env e;
     if print_toplevel && (T.deref e.t).T.descr <> T.unit then
       add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t);
     if ignored && not (can_ignore e.t) then raise (Ignored e);
@@ -1036,7 +1050,8 @@ and apply ~t f l =
      * is issued about that FFI-made value and a position is needed. *)
     { v with V.t = T.make ~pos:t.T.pos (T.Link v.V.t) } )
 
-let eval ~env tm =
+let eval ?env tm =
+  let env = match env with Some env -> env | None -> default_environment () in
   let env = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) env in
   eval ~env tm
 
@@ -1081,15 +1096,12 @@ let toplevel_add (doc, params) pat ~generalized v =
       Printf.eprintf "WARNING: Unused @param %S for %s!\n" s (string_of_pat pat))
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized v.V.t);
-  List.iter
-    (fun (x, v) -> builtins#register ~doc x (generalized, v))
-    (eval_pat pat v)
+  List.iter (fun (x, v) -> add_builtin ~doc x (generalized, v)) (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
     | Let { doc = comment; gen = generalized; pat; def; body } ->
-        let env = builtins#get_all in
-        let def = eval ~env def in
+        let def = eval def in
         toplevel_add comment pat ~generalized def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n" (string_of_pat pat)
@@ -1105,7 +1117,7 @@ let rec eval_toplevel ?(interactive = false) t =
            if v.V.t.T.pos = None then { v with V.t = a.t } else v);
         eval_toplevel ~interactive b
     | _ ->
-        let v = eval ~env:builtins#get_all t in
+        let v = eval t in
         if interactive && t.term <> unit then
           Format.printf "- : %a = %s@." T.pp_type v.V.t (V.print_value v);
         v

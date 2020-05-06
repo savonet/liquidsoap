@@ -300,7 +300,7 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
     }
   in
   let generalized = T.filter_vars (fun _ -> true) t in
-  Term.builtins#register
+  Term.add_builtin
     ~doc:(to_plugin_doc category flags descr proto return_t)
     name (generalized, value)
 
@@ -313,7 +313,7 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   List.iter
     (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
-  Term.builtins#register ~doc name (generalized, value)
+  Term.add_builtin ~doc name (generalized, value)
 
 (** Specialized version for operators, that is builtins returning sources. *)
 
@@ -659,7 +659,7 @@ let eval s =
     let expr = mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf in
     Clock.collect_after (fun () ->
         Term.check ~ignored:false expr;
-        Some (Term.eval ~env:Term.builtins#get_all expr))
+        Some (Term.eval expr))
   with e ->
     Printf.eprintf "Evaluating %S failed: %s!" s (Printexc.to_string e);
     None

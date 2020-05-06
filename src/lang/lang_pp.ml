@@ -92,8 +92,7 @@ let eval_ifdefs tokenizer =
                   if fst tok = Lang_parser.PP_IFDEF then fun x -> x else not
                 in
                 (* XXX Less natural meaning than the original one. *)
-                if test (Lang_values.builtins#is_registered v) then go_on ()
-                else skip ()
+                if test (Lang_values.has_builtin v) then go_on () else skip ()
             | _ -> failwith "expected a variable after %ifdef" )
       | (Lang_parser.PP_IFENCODER, _ | Lang_parser.PP_IFNENCODER, _) as tok ->
           let fmt = get_encoder_format tokenizer in
