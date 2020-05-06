@@ -11,7 +11,7 @@ def test(x, y)
   end
 end
 
-r = {{ 2 | test = fun () -> 5 }}
+r = {{ 2 | a = fun () -> 5 , b = fun (x) -> 2 * x }}
 test(r+1, 3)
 
 
