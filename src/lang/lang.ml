@@ -53,6 +53,9 @@ let list_t t = T.make (T.List t)
 let of_list_t t =
   match (T.deref t).T.descr with T.List t -> t | _ -> assert false
 
+let ref_t t =
+  T.make (T.Constr { T.name = "ref"; T.params = [(T.Invariant, t)] })
+
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
@@ -407,11 +410,9 @@ let iter_sources f v =
     match v.Term.term with
       | Term.Ground _ | Term.Encoder _ -> ()
       | Term.List l -> List.iter (iter_term env) l
-      | Term.Ref a | Term.Get a -> iter_term env a
+      | Term.Ref a -> iter_term env a
       | Term.Tuple l -> List.iter (iter_term env) l
-      | Term.Let { Term.def = a; body = b; _ }
-      | Term.Seq (a, b)
-      | Term.Set (a, b) ->
+      | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
           iter_term env a;
           iter_term env b
       | Term.Var v -> (
@@ -554,6 +555,8 @@ let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
 
 let to_product t =
   match t.value with Tuple [a; b] -> (a, b) | _ -> assert false
+
+let to_ref t = match t.value with Ref r -> r | _ -> assert false
 
 let to_metadata_list t =
   let pop v =

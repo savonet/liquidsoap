@@ -214,6 +214,7 @@ val to_int_getter : value -> unit -> int
 val to_list : value -> value list
 val to_product : value -> value * value
 val to_tuple : value -> value list
+val to_ref : value -> value ref
 val to_metadata_list : value -> (string * string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
@@ -236,6 +237,7 @@ val tuple_t : t list -> t
 val of_tuple_t : t -> t list
 val list_t : t -> t
 val of_list_t : t -> t
+val ref_t : t -> t
 val zero_t : t
 val any_t : t
 val succ_t : t -> t

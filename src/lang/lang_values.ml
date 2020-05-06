@@ -197,8 +197,6 @@ and in_term =
   | List of term list
   | Tuple of term list
   | Ref of term
-  | Get of term
-  | Set of term * term
   | Let of let_t
   | Var of string
   | Seq of term * term
@@ -246,7 +244,7 @@ let rec print_term v =
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
-    | Let _ | Seq _ | Get _ | Set _ -> assert false
+    | Let _ | Seq _ -> assert false
 
 let rec string_of_pat = function
   | PVar x -> x
@@ -260,10 +258,10 @@ let rec free_vars tm =
   match tm.term with
     | Ground _ | Encoder _ -> Vars.empty
     | Var x -> Vars.singleton x
-    | Ref r | Get r -> free_vars r
+    | Ref r -> free_vars r
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
-    | Seq (a, b) | Set (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | List l ->
         List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
     | App (hd, l) ->
@@ -309,9 +307,7 @@ let check_unused ~lib tm =
       | Var s -> Vars.remove s v
       | Ground _ | Encoder _ -> v
       | Ref r -> check v r
-      | Get r -> check v r
       | Tuple l -> List.fold_left (fun a -> check a) v l
-      | Set (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b
       | List l -> List.fold_left (fun x y -> check x y) v l
       | App (hd, l) ->
@@ -375,12 +371,9 @@ let rec map_types f (gen : 'a list) tm =
   match tm.term with
     | Ground _ | Encoder _ | Var _ -> { tm with t = f gen tm.t }
     | Ref r -> { t = f gen tm.t; term = Ref (map_types f gen r) }
-    | Get r -> { t = f gen tm.t; term = Get (map_types f gen r) }
     | Tuple l -> { t = f gen tm.t; term = Tuple (List.map (map_types f gen) l) }
     | Seq (a, b) ->
         { t = f gen tm.t; term = Seq (map_types f gen a, map_types f gen b) }
-    | Set (a, b) ->
-        { t = f gen tm.t; term = Set (map_types f gen a, map_types f gen b) }
     | List l -> { t = f gen tm.t; term = List (List.map (map_types f gen) l) }
     | App (hd, l) ->
         {
@@ -425,9 +418,9 @@ let rec fold_types f gen x tm =
     | List l ->
         List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
     (* In the next cases, don't care about tm.t, nothing "new" in it. *)
-    | Ref r | Get r -> fold_types f gen x r
+    | Ref r -> fold_types f gen x r
     | Tuple l -> List.fold_left (fold_types f gen) x l
-    | Seq (a, b) | Set (a, b) -> fold_types f gen (fold_types f gen x a) b
+    | Seq (a, b) -> fold_types f gen (fold_types f gen x a) b
     | App (tm, l) ->
         let x = fold_types f gen x tm in
         List.fold_left (fun x (_, tm) -> fold_types f gen x tm) x l
@@ -686,14 +679,6 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     | Ref a ->
         check ~level ~env a;
         e.t >: ref_t ~pos ~level a.t
-    | Get a ->
-        check ~level ~env a;
-        a.t <: ref_t ~pos ~level e.t
-    | Set (a, b) ->
-        check ~level ~env a;
-        check ~level ~env b;
-        a.t <: ref_t ~pos ~level b.t;
-        e.t >: mk T.unit
     | Seq (a, b) ->
         check ~env ~level a;
         if not (can_ignore a.t) then raise (Ignored a);
@@ -908,14 +893,6 @@ let rec eval ~env tm =
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
     | Ref v -> mk (V.Ref (ref (eval ~env v)))
-    | Get r -> (
-        match (eval ~env r).V.value with V.Ref r -> !r | _ -> assert false )
-    | Set (r, v) -> (
-        match (eval ~env r).V.value with
-          | V.Ref r ->
-              r := eval ~env v;
-              mk V.unit
-          | _ -> assert false )
     | Let { gen; pat; def = v; body = b; _ } ->
         (* It should be the case that generalizable variables don't get
             instantiated in any way when evaluating the definition. But we don't
