@@ -609,12 +609,13 @@ let default_environment () = !builtins_env
 let default_typing_environment () =
   List.map (fun (x, (g, v)) -> (x, (g, v.V.t))) (default_environment ())
 
-let add_builtin ?(register = true) ?doc name (g, v) =
+let add_builtin ?(override = false) ?(register = true) ?doc name (g, v) =
   if register then builtins#register ?doc (String.concat "." name) (g, v);
   match name with
     | [name] ->
         (* Don't allow overriding builtins. *)
-        assert (not (List.mem_assoc name !builtins_env));
+        if (not override) && List.mem_assoc name !builtins_env then
+          failwith ("Trying to override builtin " ^ name);
         builtins_env := (name, (g, v)) :: !builtins_env
     | x :: ll ->
         let xv =
@@ -635,7 +636,7 @@ let _ =
   let ll = ["l1"; "l2"; "l3"] in
   Printf.sprintf "%s = %s" x (aux [] ll)
     *)
-        let rec aux prefix : string list -> V.value = function
+        let rec aux prefix = function
           | l :: ll ->
               let v = V.invokes xv (List.rev prefix) in
               let lv = aux (l :: prefix) ll in
@@ -1169,7 +1170,7 @@ let toplevel_add (doc, params) pat ~generalized v =
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized v.V.t);
   List.iter
-    (fun (x, v) -> add_builtin ~doc [x] (generalized, v))
+    (fun (x, v) -> add_builtin ~override:true ~doc [x] (generalized, v))
     (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =

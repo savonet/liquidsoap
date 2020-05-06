@@ -45,6 +45,26 @@
   let mk_let ~pos (doc,pat,def) body =
     mk ~pos (Let { doc ; pat ; gen = [] ; def ; body })
 
+  let mk_let ~pos (doc,pat,def) body =
+    match pat with
+    | PVar x when String.contains x '.' ->
+       let x = String.split_on_char '.' x in
+       let ll = List.tl x in
+       let x  = List.hd x in
+       let rec aux prefix = function
+         | l::ll ->
+            let rec invokes x = function
+              | l::ll -> invokes (mk ~pos (Invoke (x, l))) ll
+              | [] -> x
+            in
+            let x = invokes (mk ~pos (Var x)) (List.rev prefix) in
+            let lv = aux (l::prefix) ll in
+            mk ~pos (Meth (l, lv, x))
+         | [] -> def
+       in
+       mk_let ~pos (doc, PVar x, aux [] ll) body
+    | _ -> mk_let ~pos (doc, pat, def) body
+
   let mk_rec_fun ~pos pat args body =
     let name = match pat with PVar name -> name | _ -> assert false in
     let bound = List.map (fun (_,x,_,_) -> x) args in
