@@ -83,7 +83,7 @@ let () =
 
 let () =
   let k = Lang.univ_t () in
-  Lang.add_operator "unsafe.single.infallible" ~category:Lang.Input
+  Lang.add_operator "single.infallible" ~category:Lang.Input
     ~flags:[Lang.Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \

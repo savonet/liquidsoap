@@ -470,6 +470,9 @@ module V = struct
     | Encoder of Encoder.format
     | List of value list
     | Tuple of value list
+    (* TODO: It would be better to have a list of methods associated to each
+       value than a constructor here. However, I am keeping as is for now because
+       implementation is safer this way. *)
     | Meth of string * value * value
     | Ref of value ref
         (** The first environment contains the parameters already passed
@@ -596,9 +599,54 @@ let default_environment () = !builtins_env
 let default_typing_environment () =
   List.map (fun (x, (g, v)) -> (x, (g, v.V.t))) (default_environment ())
 
-let add_builtin ?doc name gv =
-  builtins_env := (name, gv) :: !builtins_env;
-  builtins#register ?doc name gv
+let add_builtin ?doc name (g, v) =
+  builtins#register ?doc (String.concat "." name) (g, v);
+  match name with
+    | [name] -> builtins_env := (name, (g, v)) :: !builtins_env
+    | x :: ll ->
+        let xv =
+          try snd (List.assoc x !builtins_env)
+          with Not_found -> failwith ("Could not find builtin variable " ^ x)
+        in
+        (* Find a method in a value. We need to compute it here in order to have a
+           value as result. *)
+        let rec invoke x l =
+          match x.V.value with
+            | V.Meth (l', y, _) when l' = l -> y
+            | V.Meth (_, _, x) -> invoke x l
+            | _ -> failwith ("Coult not find method " ^ l)
+        in
+        (* invokes x [l1;l2;l3;...] computes x....l3.l2.l1. *)
+        let rec invokes x = function
+          | l :: ll -> invoke (invokes x ll) l
+          | [] -> x
+        in
+        (* x.l1.l2.l3 = v means
+           x = (x where l1 = (x.l1 where l2 = (x.l1.l2 where l3 = v)))
+        *)
+        (*
+let _ =
+  let x = "x" in
+  let v = "v" in
+  let rec aux prefix = function
+    | l::ll -> Printf.sprintf "%s.%s where (%s = %s)" x (String.concat "." (List.rev prefix)) l (aux (l::prefix) ll)
+    | [] -> v
+  in
+  let ll = ["l1"; "l2"; "l3"] in
+  Printf.sprintf "%s = %s" x (aux [] ll)
+    *)
+        let rec aux prefix : string list -> V.value = function
+          | l :: ll ->
+              let v = invokes xv prefix in
+              let lv = aux (l :: prefix) ll in
+              {
+                V.t = T.make (T.Meth (l, lv.V.t, v.V.t));
+                value = V.Meth (l, lv, v);
+              }
+          | [] -> v
+        in
+        builtins_env := (x, (g, aux [] ll)) :: !builtins_env
+    | [] -> assert false
 
 let has_builtin name = builtins#is_registered name
 
@@ -1096,7 +1144,9 @@ let toplevel_add (doc, params) pat ~generalized v =
       Printf.eprintf "WARNING: Unused @param %S for %s!\n" s (string_of_pat pat))
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized v.V.t);
-  List.iter (fun (x, v) -> add_builtin ~doc x (generalized, v)) (eval_pat pat v)
+  List.iter
+    (fun (x, v) -> add_builtin ~doc [x] (generalized, v))
+    (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with

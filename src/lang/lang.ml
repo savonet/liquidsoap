@@ -302,7 +302,8 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
   let generalized = T.filter_vars (fun _ -> true) t in
   Term.add_builtin
     ~doc:(to_plugin_doc category flags descr proto return_t)
-    name (generalized, value)
+    (String.split_on_char '.' name)
+    (generalized, value)
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
@@ -313,7 +314,7 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   List.iter
     (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
-  Term.add_builtin ~doc name (generalized, value)
+  Term.add_builtin ~doc (String.split_on_char '.' name) (generalized, value)
 
 (** Specialized version for operators, that is builtins returning sources. *)
 

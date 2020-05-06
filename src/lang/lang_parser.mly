@@ -399,12 +399,12 @@ binding:
       let body = $4 in
       $1,$2,body
     }
-  | DEF VARLPAR arglist RPAR g exprs END {
+  | DEF varlpar arglist RPAR g exprs END {
       let arglist = $3 in
       let body = mk_fun ~pos:$loc arglist $6 in
       $1,PVar $2,body
     }
-  | DEF REC VARLPAR arglist RPAR g exprs END {
+  | DEF REC varlpar arglist RPAR g exprs END {
       let doc = $1 in
       let pat = PVar $3 in
       let arglist = $4 in
@@ -412,9 +412,9 @@ binding:
       doc,pat,body
     }
 
-vardotlpar:
-  | VARLPAR            { [$1] }
-  | VAR DOT vardotlpar { $1::$3 }
+varlpar:
+  | VARLPAR         { $1 }
+  | VAR DOT varlpar { $1^"."^$3 }
 
 arglist:
   |                   { [] }
