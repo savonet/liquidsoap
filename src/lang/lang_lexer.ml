@@ -68,11 +68,9 @@ let var_underscore = [%sedlex.regexp? '_', Plus '_']
 let var_lit =
   [%sedlex.regexp?
     ( var_underscore
-    | Star '_', var_char, Star (var_char | decimal_digit | '_' | '.' | '\'') )]
+    | Star '_', var_char, Star (var_char | decimal_digit | '_' | '\'') )]
 
-let var_ref =
-  [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '.' | '\'')]
-
+let var_ref = [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '\'')]
 let var = [%sedlex.regexp? var_lit | so | math | other_math]
 
 let time =
@@ -167,7 +165,7 @@ let rec token lexbuf =
     | "%shine" -> SHINE
     | "%fdkaac" -> FDKAAC
     | '|' -> PIPE
-    | '`' -> DOT
+    | '.' -> DOT
     | '[' -> LBRA
     | ']' -> RBRA
     | '(' -> LPAR

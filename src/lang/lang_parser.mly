@@ -42,6 +42,9 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
+  let mk_let ~pos (doc,pat,def) body =
+    mk ~pos (Let { doc ; pat ; gen = [] ; def ; body })
+
   let mk_rec_fun ~pos pat args body =
     let name = match pat with PVar name -> name | _ -> assert false in
     let bound = List.map (fun (_,x,_,_) -> x) args in
@@ -237,12 +240,9 @@ exprs:
   | expr s                   { $1 }
   | expr exprs               { mk ~pos:$loc (Seq ($1,$2)) }
   | expr SEQ exprs           { mk ~pos:$loc (Seq ($1,$3)) }
-  | binding s                { let doc,pat,def = $1 in
-                               mk ~pos:$loc (Let { doc ; pat ; gen = [] ; def=def ; body = mk ~pos:$loc unit }) }
-  | binding exprs            { let doc,pat,def = $1 in
-                               mk ~pos:$loc (Let { doc ; pat ; gen = [] ; def ; body = $2 }) }
-  | binding SEQ exprs        { let doc,pat,def = $1 in
-                               mk ~pos:$loc (Let { doc ; pat ; gen = [] ; def ; body = $3 }) }
+  | binding s                { mk_let ~pos:$loc $1 (mk ~pos:$loc unit) }
+  | binding exprs            { mk_let ~pos:$loc $1 $2 }
+  | binding SEQ exprs        { mk_let ~pos:$loc $1 $3 }
 
 /* General expressions. */
 expr:
@@ -384,6 +384,10 @@ bindvar:
   | VAR { $1 }
   | UNDERSCORE { "_" }
 
+bindvars:
+  | bindvar { $1 }
+  | VAR DOT bindvars { $1^"."^$3 }
+
 pattern:
   | bindvar { PVar $1 }
   | LPAR pattern_list RPAR { PTuple $2 }
@@ -393,7 +397,7 @@ pattern_list:
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | bindvar GETS expr { (Doc.none (),[]),PVar $1,$3 }
+  | bindvars GETS expr { (Doc.none (),[]),PVar $1,$3 }
   | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
   | DEF pattern g exprs END {
       let body = $4 in
@@ -415,6 +419,7 @@ binding:
 varlpar:
   | VARLPAR         { $1 }
   | VAR DOT varlpar { $1^"."^$3 }
+  | REF DOT varlpar { "ref."^$3 }
 
 arglist:
   |                   { [] }
