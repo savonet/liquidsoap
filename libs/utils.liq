@@ -39,21 +39,21 @@ end
 # output. The only exception is AO: it is the default output after dummy, so the
 # input will be a dummy when AO is used for output.
 
-output.prefered=output.dummy
+let output.prefered=output.dummy
 %ifdef output.ao
-  output.prefered=output.ao
+  let output.prefered=output.ao
 %endif
 %ifdef output.alsa
-  output.prefered=output.alsa
+  let output.prefered=output.alsa
 %endif
 %ifdef output.oss
-  output.prefered=output.oss
+  let output.prefered=output.oss
 %endif
 %ifdef output.portaudio
-  output.prefered = output.portaudio
+  let output.prefered = output.portaudio
 %endif
 %ifdef output.pulseaudio
-  output.prefered=output.pulseaudio
+  let output.prefered=output.pulseaudio
 %endif
 # Output to local audio card using the first available driver in pulseaudio,
 # portaudio, oss, alsa, ao, dummy.

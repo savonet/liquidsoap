@@ -404,21 +404,25 @@ bindvar:
   | VAR { $1 }
   | UNDERSCORE { "_" }
 
-bindvars:
-  | bindvar { $1 }
-  | VAR DOT bindvars { $1^"."^$3 }
-
 pattern:
   | bindvar { PVar $1 }
   | LPAR pattern_list RPAR { PTuple $2 }
+
+subfield:
+  | VAR DOT in_subfield { $1^"."^$3 }
+
+in_subfield:
+  | VAR { $1 }
+  | VAR DOT in_subfield { $1^"."^$3 }
 
 pattern_list:
   | pattern COMMA pattern { [$1;$3] }
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | bindvars GETS expr { (Doc.none (),[]),PVar $1,$3 }
+  | bindvar GETS expr { (Doc.none (),[]),PVar $1,$3 }
   | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
+  | LET subfield GETS expr { (Doc.none (),[]),PVar $2,$4 }
   | DEF pattern g exprs END {
       let body = $4 in
       $1,$2,body
