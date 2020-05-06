@@ -102,12 +102,12 @@ def random(~id="", ~override="liq_transition_length", ~replay_metadata=true,
   next_index = ref -1
 
   def pick() =
-    def available_weighted_sources(cur, source) =
+    def available_weighted_sources(cur, s) =
       let (index, current_weight, indexes) = cur
       weight = list.nth(default=default_weight, weights, index)
 
       let (current_weight, indexes) =
-        if source.is_ready(source) then
+        if source.is_ready(s) then
           weight = weight()
           indexes = list.add((current_weight, current_weight+weight, index), indexes)
           (current_weight + weight, indexes)

@@ -670,22 +670,6 @@ let rec ( <: ) a b =
               let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
-    | Meth (l1, t1, u1), Meth (l2, t2, u2) ->
-        if l1 = l2 then (
-          ( try t1 <: t2
-            with Error (a, b) ->
-              raise (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
-          );
-          try hide_meth l1 u1 <: hide_meth l2 u2
-          with Error (a, b) ->
-            raise (Error (`Meth (l1, `Ellipsis, a), `Meth (l2, `Ellipsis, b))) )
-        else
-          (* TODO: this can largely be improved: the labels are not commutative
-             for now... *)
-          a <: u2
-    | Meth (l1, _, u1), _ -> (
-        try u1 <: b
-        with Error (a, b) -> raise (Error (`Meth (l1, `Ellipsis, a), b)) )
     | Zero, Zero -> ()
     | Zero, Any -> ()
     | Succ t1, Succ t2 -> (
@@ -774,6 +758,22 @@ let rec ( <: ) a b =
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)) )
+    | Meth (l1, t1, u1), Meth (l2, t2, u2) ->
+        if l1 = l2 then (
+          ( try t1 <: t2
+            with Error (a, b) ->
+              raise (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
+          );
+          try hide_meth l1 u1 <: hide_meth l2 u2
+          with Error (a, b) ->
+            raise (Error (`Meth (l1, `Ellipsis, a), `Meth (l2, `Ellipsis, b))) )
+        else
+          (* TODO: this can largely be improved: the labels are not commutative
+             for now... *)
+          a <: u2
+    | Meth (l1, _, u1), _ -> (
+        try u1 <: b
+        with Error (a, b) -> raise (Error (`Meth (l1, `Ellipsis, a), b)) )
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining
