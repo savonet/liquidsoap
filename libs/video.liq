@@ -197,18 +197,18 @@ def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, tex
 end
 %endif
 
-video.add_text = video.add_text.native
+let video.add_text = video.add_text.native
 
 %ifdef video.add_text.sdl
-video.add_text = video.add_text.sdl
+let video.add_text = video.add_text.sdl
 %endif
 
 %ifdef video.add_text.gstreamer
-video.add_text = video.add_text.gstreamer
+let video.add_text = video.add_text.gstreamer
 %endif
 
 %ifdef video.add_text.gd
-video.add_text = video.add_text.gd
+let video.add_text = video.add_text.gd
 %endif
 
 # Display a text using the first available operator in: gd, gstreamer, sdl or native

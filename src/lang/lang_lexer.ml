@@ -125,6 +125,7 @@ let rec token lexbuf =
     | "%define" -> PP_DEFINE
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
+    | "ref" -> REF
     | "def" -> PP_DEF
     | "let" -> LET
     | "fun" -> FUN
@@ -190,7 +191,6 @@ let rec token lexbuf =
     | "mod" -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
     | "*" -> TIMES
     | var_ref -> VAR (Sedlexing.Utf8.lexeme lexbuf)
-    | "ref" -> REF
     | "!" -> GET
     | ":=" -> SET
     | '_' -> UNDERSCORE

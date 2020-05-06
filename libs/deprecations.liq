@@ -73,6 +73,8 @@ def which(f)
   file.which(f)
 end
 
+base64 = ()
+
 # Deprecated: this function has been replaced by `string.base64.decode`.
 # @flag hidden
 def base64.decode(s)

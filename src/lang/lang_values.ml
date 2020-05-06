@@ -994,10 +994,9 @@ let eval_pat pat v =
 let rec eval ~env tm =
   let env = (env : V.lazy_full_env) in
   let prepare_fun fv p env =
-    (* Unlike OCaml we always evaluate default values,
-     * and we do that early.
-     * I think the only reason is homogeneity with FFI,
-     * which are declared with values as defaults. *)
+    (* Unlike OCaml we always evaluate default values, and we do that early. I
+       think the only reason is homogeneity with FFI, which are declared with
+       values as defaults. *)
     let p =
       List.map
         (function
