@@ -127,6 +127,7 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
+  | Meth of string * t * t
   | Zero
   | Succ of t
   | Any
@@ -141,6 +142,7 @@ type repr =
   | `Ground of ground
   | `List of repr
   | `Tuple of repr list
+  | `Meth of string * repr * repr
   | `Zero
   | `Succ of repr
   | `Any
@@ -157,6 +159,12 @@ let dummy = make ~pos:None (EVar (-1, []))
   * going through links created by instantiations.
   * One should (almost) never work on a non-dereferenced type. *)
 let rec deref t = match t.descr with Link x -> deref x | _ -> t
+
+let rec hide_meth l a =
+  match (deref a).descr with
+    | Meth (l', _, u) when l' = l -> u
+    | Meth (l', t, u) -> { a with descr = Meth (l', t, hide_meth l u) }
+    | _ -> a
 
 (** Given a strictly positive integer, generate a name in [a-z]+:
   * a, b, ... z, aa, ab, ... az, ba, ... *)
@@ -221,6 +229,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Ground g -> `Ground g
         | List t -> `List (repr t)
         | Tuple l -> `Tuple (List.map repr l)
+        | Meth (l, t, u) -> `Meth (l, repr t, repr u)
         | Zero -> `Zero
         | Any -> `Any
         | Succ t -> `Succ (repr t)
@@ -301,6 +310,13 @@ let print_repr f t =
         in
         let vars = aux vars l in
         if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
+        vars
+    | `Meth (l, t, u) ->
+        Format.fprintf f "@[<1>{{";
+        let vars = print ~par:true vars u in
+        Format.fprintf f " ; %s = " l;
+        let vars = print ~par:true vars t in
+        Format.fprintf f "}}@]";
         vars
     | `List t ->
         Format.fprintf f "@[<1>[";
@@ -445,6 +461,9 @@ let rec occur_check a b =
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
+    | Meth (_, t, u) ->
+        occur_check a t;
+        occur_check a u
     | Succ t -> occur_check a t
     | Zero | Any -> ()
     | Arrow (p, t) ->
@@ -651,6 +670,22 @@ let rec ( <: ) a b =
               let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
+    | Meth (l1, t1, u1), Meth (l2, t2, u2) ->
+        if l1 = l2 then (
+          ( try t1 <: t2
+            with Error (a, b) ->
+              raise (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
+          );
+          try hide_meth l1 u1 <: hide_meth l2 u2
+          with Error (a, b) ->
+            raise (Error (`Meth (l1, `Ellipsis, a), `Meth (l2, `Ellipsis, b))) )
+        else
+          (* TODO: this can largely be improved: the labels are not commutative
+             for now... *)
+          a <: u2
+    | Meth (l1, _, u1), _ -> (
+        try u1 <: b
+        with Error (a, b) -> raise (Error (`Meth (l1, `Ellipsis, a), b)) )
     | Zero, Zero -> ()
     | Zero, Any -> ()
     | Succ t1, Succ t2 -> (
@@ -787,6 +822,7 @@ let filter_vars f t =
       | Ground _ | Zero | Any -> l
       | Succ t | List t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
+      | Meth (_, t, u) -> aux (aux l t) u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
@@ -816,6 +852,7 @@ let copy_with subst t =
       | Ground _ -> cp t.descr
       | List t -> cp (List (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
+      | Meth (l, t, u) -> cp (Meth (l, aux t, aux u))
       | Zero | Any -> cp t.descr
       | Succ t -> cp (Succ (aux t))
       | Arrow (p, t) ->
@@ -864,6 +901,9 @@ let iter_constr f t =
       | Succ _ | Zero | Any -> ()
       | List t -> aux pos t
       | Tuple l -> List.iter (aux pos) l
+      | Meth (_, t, u) ->
+          aux pos t;
+          aux pos u
       | Constr c ->
           f pos c;
           List.iter (fun (_, t) -> aux pos t) c.params

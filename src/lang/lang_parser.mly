@@ -180,8 +180,8 @@
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
-%token LPAR RPAR COMMA SEQ SEQSEQ COLON
-%token LBRA RBRA LCUR RCUR
+%token LPAR RPAR COMMA SEQ SEQSEQ COLON PIPE DOT
+%token LBRA RBRA LCUR RCUR LCURR RCURR
 %token FUN YIELDS
 %token <string> BIN0
 %token <string> BIN1
@@ -206,6 +206,7 @@
 %left BIN2 MINUS
 %left BIN3 TIMES
 %nonassoc GET          /* (!x)+2 */
+%left DOT
 
 
 /* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg */
@@ -255,6 +256,7 @@ expr:
   | BOOL                             { mk ~pos:$loc (Ground (Bool $1)) }
   | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
+  | VAR                              { mk ~pos:$loc (Var $1) }
   | varlist                          { mk ~pos:$loc (List $1) }
   | REF expr                         { mk ~pos:$loc (Ref $2) }
   | GET expr                         { mk ~pos:$loc (Get $2) }
@@ -274,7 +276,11 @@ expr:
   | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
-  | VAR                              { mk ~pos:$loc (Var $1) }
+  | LCURR expr PIPE record RCURR     { $4 $2 }
+  | LCURR record RCURR               { $2 (mk ~pos:$loc (Tuple [])) }
+  | LCURR RCURR                      { mk ~pos:$loc (Tuple []) }
+  | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
+  | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:$loc (Invoke ($1, $3)), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
@@ -406,6 +412,10 @@ binding:
       doc,pat,body
     }
 
+vardotlpar:
+  | VARLPAR            { [$1] }
+  | VAR DOT vardotlpar { $1::$3 }
+
 arglist:
   |                   { [] }
   | arg               { [$1] }
@@ -466,3 +476,7 @@ ffmpeg_list:
 ffmpeg_opt:
   | %prec no_app { [] }
   | LPAR ffmpeg_list RPAR { $2 }
+
+record:
+  | VAR GETS expr { fun e -> mk ~pos:$loc (Meth ($1, $3, e)) }
+  | VAR GETS expr COMMA record { fun e -> mk ~pos:$loc (Meth ($1, $3, $5 e)) }

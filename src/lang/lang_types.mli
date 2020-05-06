@@ -48,6 +48,7 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
+  | Meth of string * t * t
   | Zero
   | Succ of t
   | Any

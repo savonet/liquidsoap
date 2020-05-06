@@ -166,10 +166,14 @@ let rec token lexbuf =
     | "%mp3.fxp" -> SHINE
     | "%shine" -> SHINE
     | "%fdkaac" -> FDKAAC
+    | '|' -> PIPE
+    | '`' -> DOT
     | '[' -> LBRA
     | ']' -> RBRA
     | '(' -> LPAR
     | ')' -> RPAR
+    | "{{" -> LCURR
+    | "}}" -> RCURR
     | '{' -> LCUR
     | '}' -> RCUR
     | ',' -> COMMA

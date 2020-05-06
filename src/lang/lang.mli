@@ -57,6 +57,7 @@ and in_value = Lang_values.V.in_value =
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
+  | Meth of string * value * value
   | Ref of value ref
   | Fun of
       (string * string * value option) list
@@ -70,6 +71,8 @@ and in_value = Lang_values.V.in_value =
       (string * string * value option) list
       * full_env
       * (full_env -> t -> value)
+
+val demeth : value -> value
 
 type env = (string * value) list
 

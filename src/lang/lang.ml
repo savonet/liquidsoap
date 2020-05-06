@@ -409,6 +409,10 @@ let iter_sources f v =
       | Term.List l -> List.iter (iter_term env) l
       | Term.Ref a | Term.Get a -> iter_term env a
       | Term.Tuple l -> List.iter (iter_term env) l
+      | Term.Meth (_, a, b) ->
+          iter_term env a;
+          iter_term env b
+      | Term.Invoke (a, _) -> iter_term env a
       | Term.Let { Term.def = a; body = b; _ }
       | Term.Seq (a, b)
       | Term.Set (a, b) ->
@@ -440,6 +444,9 @@ let iter_sources f v =
       | Ground _ | Request _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
+      | Meth (_, a, b) ->
+          iter_value a;
+          iter_value b
       | Fun (proto, pe, env, body) ->
           (* The following is necessarily imprecise: we might see
            * sources that will be unused in the execution of the function. *)
@@ -491,11 +498,13 @@ let apply f p ~t = Clock.collect_after (fun () -> Term.apply f p ~t)
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-let to_bool t = match t.value with Ground (Bool b) -> b | _ -> assert false
+let to_unit t = match (demeth t).value with Tuple [] -> () | _ -> assert false
+
+let to_bool t =
+  match (demeth t).value with Ground (Bool b) -> b | _ -> assert false
 
 let to_bool_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
@@ -505,15 +514,15 @@ let to_bool_getter t =
     | _ -> assert false
 
 let to_fun ~t f =
-  match f.value with
+  match (demeth f).value with
     | Fun _ | FFI _ -> fun args -> apply ~t f args
     | _ -> assert false
 
 let to_string t =
-  match t.value with Ground (String s) -> s | _ -> assert false
+  match (demeth t).value with Ground (String s) -> s | _ -> assert false
 
 let to_string_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
@@ -522,10 +531,11 @@ let to_string_getter t =
             | _ -> assert false )
     | _ -> assert false
 
-let to_float t = match t.value with Ground (Float s) -> s | _ -> assert false
+let to_float t =
+  match (demeth t).value with Ground (Float s) -> s | _ -> assert false
 
 let to_float_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
@@ -534,13 +544,20 @@ let to_float_getter t =
             | _ -> assert false )
     | _ -> assert false
 
-let to_source t = match t.value with Source s -> s | _ -> assert false
-let to_format t = match t.value with Encoder f -> f | _ -> assert false
-let to_request t = match t.value with Request x -> x | _ -> assert false
-let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
+let to_source t =
+  match (demeth t).value with Source s -> s | _ -> assert false
+
+let to_format t =
+  match (demeth t).value with Encoder f -> f | _ -> assert false
+
+let to_request t =
+  match (demeth t).value with Request x -> x | _ -> assert false
+
+let to_int t =
+  match (demeth t).value with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
@@ -549,11 +566,11 @@ let to_int_getter t =
             | _ -> assert false )
     | _ -> assert false
 
-let to_list t = match t.value with List l -> l | _ -> assert false
-let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
+let to_list t = match (demeth t).value with List l -> l | _ -> assert false
+let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
 
 let to_product t =
-  match t.value with Tuple [a; b] -> (a, b) | _ -> assert false
+  match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
 
 let to_metadata_list t =
   let pop v =
