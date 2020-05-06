@@ -15,6 +15,6 @@ r = {{ 2 | a = 8 , b = 12 , f = fun(x) -> 2 * x }}
 test(r+1, 3)
 test(r`b, 12)
 test(r`a, 8)
-
+test(r`f(5), 10)
 
 if !success then test.pass() else test.fail() end
