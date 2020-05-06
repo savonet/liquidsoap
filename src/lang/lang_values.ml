@@ -841,20 +841,6 @@ let check ?(ignored = false) e =
 
 (** {2 Computations} *)
 
-(** For internal use. I want to give an ID to sources built by FFI application
-  * based on the name under which the FFI is registered.
-  * [get_name f] returns the name under which the FFI f is registered. *)
-exception F of string
-
-let get_name f =
-  try
-    builtins#iter (fun name (_, v) ->
-        match v.V.value with
-          | V.FFI (_, _, ff) when f == ff -> raise (F name)
-          | _ -> ());
-    "<ff>"
-  with F s -> s
-
 (** [remove_first f l] removes the first element [e] of [l] such that [f e],
   * and returns [e,l'] where [l'] is the list without [e].
   * Asserts that there is such an element. *)
