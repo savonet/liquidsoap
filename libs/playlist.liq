@@ -121,11 +121,11 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       def add_prefix(file) = prefix^file end
       list.map(add_prefix, files)
     else
-      playlist = request.create.raw(playlist_uri)
+      pl = request.create.raw(playlist_uri)
       result =
-        if request.resolve(timeout=timeout, playlist) then
-          playlist = request.filename(playlist)
-          files = playlist.parse(mime=mime_type, playlist)
+        if request.resolve(timeout=timeout, pl) then
+          pl = request.filename(pl)
+          files = playlist.parse(mime=mime_type, pl)
           def file_request(el) =
             let (meta, file) = el
             file = prefix^file
@@ -142,7 +142,7 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
           log.important(label=id, "Couldn't read playlist: request resolution failed.")
           []
         end
-      request.destroy(playlist)
+      request.destroy(pl)
       result
     end
   end
@@ -173,9 +173,9 @@ end
 # @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
 # @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
 # @param ~timeout Timeout (in sec.) for a single download.
-# @param playlist List of files.
-def playlist.list(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~timeout=20., playlist)
-  rs = playlist.list.reloadable(id=id, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, timeout=timeout, playlist)
+# @param pl List of files.
+def playlist.list(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~timeout=20., pl)
+  rs = playlist.list.reloadable(id=id, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, timeout=timeout, pl)
   snd(rs)
 end
 
