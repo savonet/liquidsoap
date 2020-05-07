@@ -1,5 +1,3 @@
-let playlist.list = ()
-
 let playlist_parse = playlist.parse
 
 # Play a list of files.
@@ -74,7 +72,7 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   end
 
   # Instantiate the source
-  source = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
+  s = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
 
   # The reload function
   def reload(p) =
@@ -84,8 +82,10 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   end
 
   # Return
-  {{ source | reload = reload }}
+  {{ s | reload = reload }}
 end
+
+let playlist_list = playlist.list
 
 # Read a playlist or a directory, play all files and stop. It returns a pair
 # `(reload,source)` where `reload` is a function of type `(?uri:string)->unit`
@@ -148,7 +148,7 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
   end
 
   # Create the source
-  s = playlist.list.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, load_playlist())
+  s = playlist.list(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, load_playlist())
 
   # The reload function
   def reload(~uri="") =
@@ -156,10 +156,10 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       playlist_uri := uri
     end
     log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
-    reload(load_playlist())
+    s.reload(load_playlist())
   end
 
-  {{ source | reload = reload }}
+  {{ s | reload = reload }}
 end
 
 playlist_reloadable = playlist.reloadable
@@ -201,8 +201,8 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
     end
   end
 
-  let (reloader, s) = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
-  def reloader (~uri="") = reloader (uri=uri); on_reload () end
+  s = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
+  def reloader (~uri="") = s.reload(uri=uri); on_reload () end
   rreloader := {reloader()}
 
   # Set up reloading for seconds and watch
@@ -232,6 +232,5 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
 end
 
 let playlist.list = playlist_list
-let playlist.list.reloadable = playlist_list_reloadable
 let playlist.parse = playlist_parse
 let playlist.reloadable = playlist_reloadable
