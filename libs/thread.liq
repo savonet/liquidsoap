@@ -24,7 +24,7 @@ let thread.run.recurrent = trr
 # @param ~changed Execute the function only if the predicate was false when last checked.
 # @param p Predicate indicating when to execute the function, typically a time interval such as `{10h-10h30}`.
 # @param f Function to execute when the predicate is true.
-def thread.when(~every=1., ~once=false, ~changed=true, p, f)
+def thread.when(~fast=true, ~every=1., ~once=false, ~changed=true, p, f)
   last = ref(false)
   def check()
     b = p()
@@ -32,5 +32,5 @@ def thread.when(~every=1., ~once=false, ~changed=true, p, f)
     last := b
     if b and once then (-1.) else every end
   end
-  thread.run.recurrent(delay=0., check)
+  thread.run.recurrent(fast=fast, delay=0., check)
 end

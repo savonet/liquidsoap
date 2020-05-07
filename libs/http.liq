@@ -88,18 +88,18 @@ def http_response_stream(
 end
 
 # @flag hidden
-def harbor.http.static.base(serve,~content_type,~path,~port,~headers,directory) =
-  path =
-    if string.sub(path,start=0,length=1) != "/" then
-      "/#{path}"
+def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directory) =
+  basepath =
+    if string.sub(basepath,start=0,length=1) != "/" then
+      "/#{basepath}"
     else
-      path
+      basepath
     end
 
   responseHeaders = headers
 
   def handler(~method,~protocol,~data,~headers,uri)
-    ret = string.extract(pattern="^#{path}([^?]*)",uri)
+    ret = string.extract(pattern="^#{basepath}([^?]*)",uri)
 
     if list.length(ret) == 0 then
       http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
@@ -107,9 +107,9 @@ def harbor.http.static.base(serve,~content_type,~path,~port,~headers,directory) 
       let (_,match) = list.hd(default=("1","foo"),ret)
       match = string.trim(match)
 
-      file = path.concat(directory, match)
-      if file.exists(file) then
-        mime = content_type(file)
+      fname = path.concat(directory, match)
+      if file.exists(fname) then
+        mime = content_type(fname)
 
         responseHeaders =
           if mime != "" then
@@ -121,7 +121,7 @@ def harbor.http.static.base(serve,~content_type,~path,~port,~headers,directory) 
         if method == "OPTIONS" or method == "HEAD" then
           http_response(protocol=protocol,code=200,headers=responseHeaders)
         else
-          http_response_stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(file),data=file.read(file))
+          http_response_stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(fname),data=file.read(fname))
         end
       else
         http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
@@ -130,7 +130,7 @@ def harbor.http.static.base(serve,~content_type,~path,~port,~headers,directory) 
   end
 
   def register(method)
-    serve(port=port,method=method,"^#{path}",handler(method=method))
+    serve(port=port,method=method,"^#{basepath}",handler(method=method))
   end
   list.iter(register, ["OPTIONS","HEAD","GET"])
 end
@@ -155,7 +155,7 @@ content_type = file.mime
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
 def harbor.http.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.http.register,content_type=content_type,path=path,port=port,headers=headers,directory)
+  harbor.http.static.base(harbor.http.register,content_type=content_type,basepath=path,port=port,headers=headers,directory)
 end
 
 %ifdef harbor.https.register
@@ -167,6 +167,6 @@ end
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
 def harbor.https.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.http.register,path=path,content_type=content_type,port=port,headers=headers,directory)
+  harbor.http.static.base(harbor.http.register,basepath=path,content_type=content_type,port=port,headers=headers,directory)
 end
 %endif

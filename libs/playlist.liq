@@ -87,6 +87,8 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
   (reload,source)
 end
 
+playlist_list_reloadable = playlist.list.reloadable
+
 # Read a playlist or a directory, play all files and stop. It returns a pair
 # `(reload,source)` where `reload` is a function of type `(?uri:string)->unit`
 # that can be used to reload the source and `source` is the actual source. The
@@ -162,6 +164,8 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
   (reload, source)
 end
 
+playlist_reloadable = playlist.reloadable
+
 # Play a list of files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -178,6 +182,8 @@ def playlist.list(~id="", ~check_next=fun(_)->true, ~conservative=false, ~defaul
   rs = playlist.list.reloadable(id=id, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, timeout=timeout, pl)
   snd(rs)
 end
+
+playlist_list = playlist.list
 
 # Read a playlist or a directory and play all files.
 # @category Source / Input
@@ -245,3 +251,7 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
 
   s
 end
+
+let playlist.list = playlist_list
+let playlist.list.reloadable = playlist_list_reloadable
+let playlist.reloadable = playlist_reloadable

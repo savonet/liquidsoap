@@ -38,13 +38,13 @@ end
 # @param ~restart_on_error restart on exit with error.
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
-# @param input ffmpeg options specifying the input
+# @param inputopts ffmpeg options specifying the input
 def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
                           ~restart=true,~restart_on_error=false,
-                          ~buffer=0.2,~max=10.,input)
-  input = (input : string)
+                          ~buffer=0.2,~max=10.,inputopts)
+  inputopts = (inputopts : string)
   ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
-  cmd = "#{ffmpeg} #{input} -f avi \
+  cmd = "#{ffmpeg} #{inputopts} -f avi \
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
                #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\",\
@@ -91,9 +91,9 @@ end
 def output.external.ffmpeg(~id="", ~show_command=false, ~flush=false, ~fallible=false, 
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
-                           ~start=true, output, s)
-  output = (output : string)
-  cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{output}"
+                           ~start=true, outputopts, s)
+  outputopts = (outputopts : string)
+  cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{outputopts}"
   if show_command then log.important(label="output.external.ffmpeg", "command: #{cmd}") end
   output.external(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
                   reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, %avi, cmd, s)

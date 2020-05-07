@@ -316,12 +316,49 @@ let print_repr f t =
         let vars = aux vars l in
         if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
         vars
-    | `Meth (l, t, u) ->
-        Format.fprintf f "@[<1>{{";
-        let vars = print ~par:true vars u in
-        Format.fprintf f " ; %s = " l;
-        let vars = print ~par:true vars t in
-        Format.fprintf f "}}@]";
+    | `Meth _ as t ->
+        (* Find all methods. *)
+        let rec aux = function
+          | `Meth (l, t, u) ->
+              let m, u = aux u in
+              ((l, t) :: m, u)
+          | u -> ([], u)
+        in
+        let m, t = aux t in
+        (* Filter out duplicates. *)
+        let rec aux = function
+          | (l, t) :: m ->
+              (l, t) :: aux (List.filter (fun (l', _) -> l <> l') m)
+          | [] -> []
+        in
+        let m = aux m in
+        (* Put latest addition last. *)
+        let m = List.rev m in
+        Format.fprintf f "@[<3>{{ ";
+        let vars =
+          if t = `Tuple [] then vars
+          else (
+            let vars = print ~par:false vars t in
+            Format.fprintf f " | ";
+            vars )
+        in
+        let vars =
+          if m = [] then vars
+          else (
+            let rec aux vars = function
+              | [(l, t)] ->
+                  Format.fprintf f "%s = " l;
+                  print ~par:true vars t
+              | (l, t) :: m ->
+                  Format.fprintf f "%s = " l;
+                  let vars = print ~par:false vars t in
+                  Format.fprintf f " ,@ ";
+                  aux vars m
+              | [] -> assert false
+            in
+            aux vars m )
+        in
+        Format.fprintf f " }}@]";
         vars
     | `List t ->
         Format.fprintf f "@[<1>[";
@@ -514,15 +551,15 @@ let rec bind a0 b =
                         else b.descr <- EVar (j, Getter g :: c)
                     | _ -> raise error )
               | Ord ->
-                  (* In check, [b] is assumed to be dereferenced *)
                   let rec check b =
+                    let b = demeth b in
                     match b.descr with
                       | Ground _ -> ()
                       | EVar (j, c) ->
                           if List.mem Ord c then ()
                           else b.descr <- EVar (j, Ord :: c)
-                      | Tuple l -> List.iter (fun b -> check (deref b)) l
-                      | List b -> check (deref b)
+                      | Tuple l -> List.iter (fun b -> check b) l
+                      | List b -> check b
                       | _ -> raise (Unsatisfied_constraint (Ord, b))
                   in
                   check b
@@ -544,7 +581,7 @@ let rec bind a0 b =
                           b.descr <- EVar (j, Dtools :: c)
                     | _ -> raise (Unsatisfied_constraint (Dtools, b)) )
               | Num -> (
-                  match b.descr with
+                  match (demeth b).descr with
                     | Ground g ->
                         if g <> Int && g <> Float then
                           raise (Unsatisfied_constraint (Num, b))
@@ -756,8 +793,8 @@ let rec ( <: ) a b =
     | EVar _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
-          (* Can't do more concise than a full representation,
-           * as the problem isn't local. *)
+          (* Can't do more concise than a full representation, as the problem
+             isn't local. *)
           raise (Error (repr a, repr b)) )
     | _, EVar _ -> (
         try bind b a
@@ -797,10 +834,16 @@ let rec ( <: ) a b =
         raise (Error (a, b))
 
 let ( >: ) a b =
-  try b <: a with Error (y, x) -> raise (Type_Error (true, b, a, y, x))
+  try b <: a
+  with Error (y, x) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Type_Error (true, b, a, y, x)) bt
 
 let ( <: ) a b =
-  try a <: b with Error (x, y) -> raise (Type_Error (false, a, b, x, y))
+  try a <: b
+  with Error (x, y) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
 
 (** {1 Type generalization and instantiation}
   *

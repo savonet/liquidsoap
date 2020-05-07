@@ -926,8 +926,9 @@ let check ?(ignored = false) e =
     if ignored && not (can_ignore e.t) then raise (Ignored e);
     pop_tasks ()
   with e ->
+    let bt = Printexc.get_raw_backtrace () in
     pop_tasks ();
-    raise e
+    Printexc.raise_with_backtrace e bt
 
 (** {2 Computations} *)
 

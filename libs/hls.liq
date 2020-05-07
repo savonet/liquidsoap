@@ -5,7 +5,7 @@
 # @param uri Playlist URI
 # @flag experimental
 def input.hls(~id="",~reload=10.,uri)
-  playlist = ref []
+  pl = ref []
   sequence = ref 0
   playlist_uri = ref uri
 
@@ -30,7 +30,7 @@ def input.hls(~id="",~reload=10.,uri)
 
       files = list.mapi(file_request,files)
 
-      let (first_idx, _) = list.hd(default=(-1,""),!playlist)
+      let (first_idx, _) = list.hd(default=(-1,""),!pl)
 
       def add_file(playlist, file) =
         let (idx,_) = file
@@ -41,18 +41,18 @@ def input.hls(~id="",~reload=10.,uri)
         end
       end
 
-      playlist := list.fold(add_file, !playlist, files)
+      pl := list.fold(add_file, !pl, files)
     else
       log.severe(label=id,"Couldn't read playlist: request resolution failed.")
-      playlist := []
+      pl := []
     end
     request.destroy(pl)
   end
 
   def rec next () =
-    if list.length(!playlist) > 0 then
-      let (_,ret) = list.hd(default=(1,""),!playlist)
-      playlist := list.tl(!playlist)
+    if list.length(!pl) > 0 then
+      let (_,ret) = list.hd(default=(1,""),!pl)
+      pl := list.tl(!pl)
       sequence := !sequence + 1
       [request.create(ret)]
     else
@@ -98,8 +98,8 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
       file.temp_dir("hls","")
     end
 
-  def content_type(file) =
-    ext = file.extension(file)
+  def content_type(fname) =
+    ext = file.extension(fname)
     if ext == ".m3u8" then
       "application/x-mpegURL"
     else
