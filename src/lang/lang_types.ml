@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
+let debug_levels = ref false
 
 (** Pretty-print getters as {t}. *)
 let pretty_getters = ref true
@@ -196,7 +197,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar i c =
+  let uvar level i c =
     let constr_symbols, c = split_constr c in
     let rec index n = function
       | v :: tl ->
@@ -204,7 +205,9 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           else index (n + 1) tl
       | [] -> assert false
     in
-    `UVar (index 1 (List.rev generalized), c)
+    let v = index 1 (List.rev generalized) in
+    let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
+    `UVar (v, c)
   in
   let counter =
     let c = ref 0 in
@@ -213,9 +216,12 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar i c =
+  let evar level i c =
     let constr_symbols, c = split_constr c in
-    if !debug then `EVar (Printf.sprintf "?%s%d" constr_symbols i, c)
+    if !debug then (
+      let v = Printf.sprintf "?%s%d" constr_symbols i in
+      let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
+      `EVar (v, c) )
     else (
       let s =
         try Hashtbl.find evars i
@@ -243,7 +249,8 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Arrow (args, t) ->
             `Arrow
               (List.map (fun (opt, lbl, t) -> (opt, lbl, repr t)) args, repr t)
-        | EVar (id, c) -> if generalized id then uvar id c else evar id c
+        | EVar (id, c) ->
+            if generalized id then uvar t.level id c else evar t.level id c
         | Link t -> repr t )
   in
   repr t

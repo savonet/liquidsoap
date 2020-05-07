@@ -689,6 +689,8 @@ let rec value_restriction t =
     | Fun _ -> true
     | RFun _ -> true
     | List l | Tuple l -> List.for_all value_restriction l
+    | Meth (_, t, u) -> value_restriction t && value_restriction u
+    | Ground _ -> true
     | _ -> false
 
 exception Unbound of T.pos option * string
