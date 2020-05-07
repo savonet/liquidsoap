@@ -87,6 +87,8 @@ def http_response_stream(
   resp
 end
 
+let harbor.http.static = ()
+
 # @flag hidden
 def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directory) =
   basepath =

@@ -125,6 +125,8 @@ def output.file.hls.ffmpeg(~id="", ~flush=false, ~fallible=false,
                          reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
 end
 
+let output.file.dash = ()
+
 # Output an MPEG-DASH playlist using ffmpeg
 # @category Output
 # @flag extra
@@ -149,6 +151,9 @@ def output.file.dash.ffmpeg(~id="", ~flush=false, ~fallible=false,
   cmd = "-map 0 -map 0 -c:a libfdk_aac -c:v libx264 -b:v:0 800k -b:v:1 300k -s:v:1 #{width}x#{height} -profile:v:1 baseline -profile:v:0 main -bf 1 -keyint_min 120 -g 120 -sc_threshold 0 -b_strategy 0 -ar:a:1 #{samplerate} -use_timeline 1 -use_template 1 -window_size 5 -adaptation_sets \"id=0,streams=v id=1,streams=a\" -f dash #{directory}/#{playlist}"
   output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay, reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, show_command=true, cmd, s)
 end
+
+let output.youtube = ()
+let output.youtube.live = ()
 
 # Stream to youtube.
 # @category Output

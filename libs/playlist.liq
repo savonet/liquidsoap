@@ -1,5 +1,7 @@
 let playlist.list = ()
 
+let playlist_parse = playlist.parse
+
 # Read a list of files, play all files and stop. It returns a pair
 # `(reload,source)` where `reload` is a function of type `([string])->unit`
 # that can be used to reload the source and `source` is the actual source.
@@ -254,4 +256,5 @@ end
 
 let playlist.list = playlist_list
 let playlist.list.reloadable = playlist_list_reloadable
+let playlist.parse = playlist_parse
 let playlist.reloadable = playlist_reloadable

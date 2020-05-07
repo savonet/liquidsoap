@@ -47,5 +47,7 @@ let () =
       "synth.all";
       "video";
       "video.add_text";
+      "video.external";
+      "video.frame";
       "visu";
     ]

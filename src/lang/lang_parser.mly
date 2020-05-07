@@ -431,8 +431,9 @@ binding:
       let arglist = $3 in
       let body = mk_fun ~pos:$loc arglist $6 in
       $1,PVar $2,body
-    }
-  | DEF REC varlpar arglist RPAR g exprs END {
+        }
+  /* We don't handle recursive fields for now... */
+  | DEF REC VARLPAR arglist RPAR g exprs END {
       let doc = $1 in
       let pat = PVar $3 in
       let arglist = $4 in

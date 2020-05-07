@@ -84,7 +84,7 @@ def file.cover(~id="file.cover", fname)
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
         log.debug(label=id, "APIC not found for #{file}, trying builtin tag reader.")
-        file.mp3.metadata(file)
+        file.mp3.metadata(fname)
       end
     apic = list.assoc(default="", "apic", m)
     if apic == "" then

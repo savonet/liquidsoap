@@ -5,7 +5,7 @@
 # @param uri Playlist URI
 # @flag experimental
 def input.hls(~id="",~reload=10.,uri)
-  pl = ref []
+  playlistr = ref []
   sequence = ref 0
   playlist_uri = ref uri
 
@@ -30,7 +30,7 @@ def input.hls(~id="",~reload=10.,uri)
 
       files = list.mapi(file_request,files)
 
-      let (first_idx, _) = list.hd(default=(-1,""),!pl)
+      let (first_idx, _) = list.hd(default=(-1,""),!playlistr)
 
       def add_file(playlist, file) =
         let (idx,_) = file
@@ -41,18 +41,18 @@ def input.hls(~id="",~reload=10.,uri)
         end
       end
 
-      pl := list.fold(add_file, !pl, files)
+      playlistr := list.fold(add_file, !playlistr, files)
     else
       log.severe(label=id,"Couldn't read playlist: request resolution failed.")
-      pl := []
+      playlistr := []
     end
     request.destroy(pl)
   end
 
   def rec next () =
-    if list.length(!pl) > 0 then
-      let (_,ret) = list.hd(default=(1,""),!pl)
-      pl := list.tl(!pl)
+    if list.length(!playlistr) > 0 then
+      let (_,ret) = list.hd(default=(1,""),!playlistr)
+      playlistr := list.tl(!playlistr)
       sequence := !sequence + 1
       [request.create(ret)]
     else
@@ -86,7 +86,7 @@ def input.hls(~id="",~reload=10.,uri)
 end
 
 # @flag hidden
-def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
+def output.harbor.hls_base(~id,~fallible,~on_start,~on_stop,~streams_info,
                            ~playlist,~segment_name,~segment_duration,
                            ~segments,~segments_overhead,~encode_metadata,
                            ~persist,~persist_at,~on_file_change,~start,
@@ -153,7 +153,7 @@ def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encod
   def serve(~port,~path,~content_type,dir) =
     harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
-  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,encode_metadata=encode_metadata,
+  output.harbor.hls_base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,encode_metadata=encode_metadata,
                          segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
@@ -192,7 +192,7 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
   def serve(~port,~path,~content_type,dir) =
     harbor.https.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
-  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
+  output.harbor.hls_base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,encode_metadata=encode_metadata,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
