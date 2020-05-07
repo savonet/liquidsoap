@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
-let debug_levels = ref false
+let debug_levels = false
 
 (** Pretty-print getters as {t}. *)
 let pretty_getters = ref true
@@ -206,7 +206,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       | [] -> assert false
     in
     let v = index 1 (List.rev generalized) in
-    let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
+    let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
     `UVar (v, c)
   in
   let counter =
@@ -220,7 +220,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     let constr_symbols, c = split_constr c in
     if !debug then (
       let v = Printf.sprintf "?%s%d" constr_symbols i in
-      let v = if !debug_levels then Printf.sprintf "%s[%d]" v level else v in
+      let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
       `EVar (v, c) )
     else (
       let s =

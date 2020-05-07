@@ -618,8 +618,8 @@ let add_builtin ?(override = false) ?(register = true) ?doc name (g, v) =
           failwith ("Trying to override builtin " ^ name);
         builtins_env := (name, (g, v)) :: !builtins_env
     | x :: ll ->
-        let xv =
-          try snd (List.assoc x !builtins_env)
+        let g0, xv =
+          try List.assoc x !builtins_env
           with Not_found -> failwith ("Could not find builtin variable " ^ x)
         in
         (* x.l1.l2.l3 = v means
@@ -646,7 +646,7 @@ let _ =
               }
           | [] -> v
         in
-        builtins_env := (x, (g, aux [] ll)) :: !builtins_env
+        builtins_env := (x, (g @ g0, aux [] ll)) :: !builtins_env
     | [] -> assert false
 
 let has_builtin name = builtins#is_registered name
