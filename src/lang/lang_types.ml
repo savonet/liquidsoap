@@ -819,7 +819,7 @@ let rec ( <: ) a b =
                   )
                 else aux u1
             | EVar _ -> failwith "TODO"
-            | _ -> raise (Error (`Ellipsis, `Meth (l2, `Ellipsis, `Ellipsis)))
+            | _ -> raise (Error (repr a, `Meth (l2, `Ellipsis, `Ellipsis)))
         in
         aux a;
         a <: hide_meth l2 u2
