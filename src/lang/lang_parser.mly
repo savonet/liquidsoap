@@ -508,4 +508,4 @@ ffmpeg_opt:
 
 record:
   | VAR GETS expr { fun e -> mk ~pos:$loc (Meth ($1, $3, e)) }
-  | VAR GETS expr COMMA record { fun e -> mk ~pos:$loc (Meth ($1, $3, $5 e)) }
+  | record COMMA VAR GETS expr { fun e -> mk ~pos:$loc (Meth ($3, $5, $1 e)) }
