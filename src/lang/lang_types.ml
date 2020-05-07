@@ -155,10 +155,15 @@ type repr =
 let make ?(pos = None) ?(level = -1) d = { pos; level; descr = d }
 let dummy = make ~pos:None (EVar (-1, []))
 
-(** Dereferencing gives you the meaning of a term,
-  * going through links created by instantiations.
-  * One should (almost) never work on a non-dereferenced type. *)
+(** Dereferencing gives you the meaning of a term, going through links created
+    by instantiations. One should (almost) never work on a non-dereferenced
+    type. *)
 let rec deref t = match t.descr with Link x -> deref x | _ -> t
+
+(** Remove methods. This function also remove links. *)
+let rec demeth t =
+  let t = deref t in
+  match t.descr with Meth (_, _, t) -> demeth t | _ -> t
 
 let rec hide_meth l a =
   match (deref a).descr with

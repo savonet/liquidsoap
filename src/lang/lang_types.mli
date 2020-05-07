@@ -75,6 +75,7 @@ exception Unsatisfied_constraint of constr * t
 
 val bind : t -> t -> unit
 val deref : t -> t
+val demeth : t -> t
 val filter_vars : (t -> bool) -> t -> (int * constraints) list
 val copy_with : ((int * constraints) * t) list -> t -> t
 val instantiate : level:int -> generalized:(int * constraints) list -> t -> t

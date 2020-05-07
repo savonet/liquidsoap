@@ -833,7 +833,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
          * it for better error messages. Otherwise generate its type
          * and unify -- in that case the optionality can't be guessed
          * and mandatory is the default. *)
-        match (T.deref a.t).T.descr with
+        match (T.demeth a.t).T.descr with
           | T.Arrow (ap, t) ->
               (* Find in l the first arg labeled lbl,
                * return it together with the remaining of the list. *)
