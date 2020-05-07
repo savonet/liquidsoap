@@ -823,7 +823,7 @@ let rec ( <: ) a b =
         in
         aux a;
         a <: hide_meth l2 u2
-    (* | Meth (l1, t1, u1), _ -> *)
+    | Meth (_, _, u1), _ -> u1 <: b
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining
