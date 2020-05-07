@@ -800,22 +800,23 @@ let rec ( <: ) a b =
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)) )
-    | Meth (l1, t1, u1), Meth (l2, t2, u2) ->
-        if l1 = l2 then (
-          ( try t1 <: t2
-            with Error (a, b) ->
-              raise (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
-          );
-          try hide_meth l1 u1 <: hide_meth l2 u2
-          with Error (a, b) ->
-            raise (Error (`Meth (l1, `Ellipsis, a), `Meth (l2, `Ellipsis, b))) )
-        else
-          (* TODO: this can largely be improved: the labels are not commutative
-             for now... *)
-          a <: u2
-    | Meth (l1, _, u1), _ -> (
-        try u1 <: b
-        with Error (a, b) -> raise (Error (`Meth (l1, `Ellipsis, a), b)) )
+    | _, Meth (l2, t2, u2) ->
+        let rec aux a =
+          match (deref a).descr with
+            | Meth (l1, t1, u1) ->
+                if l1 = l2 then (
+                  try t1 <: t2
+                  with Error (a, b) ->
+                    raise
+                      (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
+                  )
+                else aux u1
+            | EVar _ -> failwith "TODO"
+            | _ -> raise (Error (`Ellipsis, `Meth (l2, `Ellipsis, `Ellipsis)))
+        in
+        aux a;
+        a <: hide_meth l2 u2
+    (* | Meth (l1, t1, u1), _ -> *)
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining
