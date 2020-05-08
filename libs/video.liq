@@ -235,4 +235,3 @@ def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
      metadata=metadata,size=size,
      speed=speed,x=x,y=y,d,s)
 end
-
