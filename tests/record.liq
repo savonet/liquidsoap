@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq -i
+#!../src/liquidsoap ../libs/pervasives.liq
 
 success = ref(true)
 
@@ -11,10 +11,18 @@ def t(x, y)
   end
 end
 
+# Basic checks
 r = {{ 2 | a = 8 , b = 12 , f = fun(x) -> 2 * x }}
 t(1+r, 3)
 t(r.b, 12)
 t(r.a, 8)
 t(r.f(5), 10)
+
+# Test overriding with subfields
+r = ()
+let r.f = ()
+let r.f.variant = 7
+let r.f = r.f.variant
+# let r = {{ r | f = r.f.variant }}
 
 if !success then test.pass() else test.fail() end
