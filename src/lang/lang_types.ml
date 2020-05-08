@@ -133,10 +133,12 @@ and descr =
   | Succ of t
   | Any
   | Arrow of (bool * string * t) list * t
-  | EVar of int * constraints (* type variable *)
+  | EVar of var (* type variable *)
   | Link of t
 
-and scheme = (int * constraints) list * t
+and var = int * constraints
+
+and scheme = var list * t
 
 let unit = Tuple []
 
@@ -261,9 +263,10 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
 (** Substitutions. *)
 module Subst = struct
   module M = Map.Make (struct
-    type t = int
+    type t = var
 
-    let compare (x : t) (y : t) = compare x y
+    (* We can compare variables with their indices. *)
+    let compare (x : var) (y : var) = compare (fst x) (fst y)
   end)
 
   type subst = t M.t
@@ -272,9 +275,11 @@ module Subst = struct
   let of_seq seq : t = M.of_seq seq
 
   (** Retrieve the value of a variable. *)
-  let value (s : t) (i : int) = M.find i s
+  let value (s : t) (i : var) = M.find i s
 
   let filter f (s : t) = M.filter (fun i t -> f i t) s
+
+  (** Whether we have the identity substitution. *)
   let is_identity (s : t) = M.is_empty s
 end
 
@@ -690,7 +695,7 @@ let copy_with (subst : Subst.t) t =
   let rec aux t =
     let cp x = { t with descr = x } in
     match t.descr with
-      | EVar (i, _) -> ( try Subst.value subst i with Not_found -> t )
+      | EVar v -> ( try Subst.value subst v with Not_found -> t )
       | Constr c ->
           let params = List.map (fun (v, t) -> (v, aux t)) c.params in
           cp (Constr { c with params })
@@ -721,7 +726,7 @@ let copy_with (subst : Subst.t) t =
 let instantiate ~level ~generalized =
   let subst =
     Seq.map
-      (fun (i, c) -> (i, fresh_evar ~level ~constraints:c ~pos:None))
+      (fun ic -> (ic, fresh_evar ~level ~constraints:(snd ic) ~pos:None))
       (List.to_seq generalized)
   in
   let subst = Subst.of_seq subst in

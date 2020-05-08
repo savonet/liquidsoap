@@ -413,7 +413,7 @@ let rec map_types f gen tm =
           term = RFun (x, fv, List.map aux p, map_types f gen v);
         }
     | Let l ->
-        let gen' = List.map fst l.gen @ gen in
+        let gen' = l.gen @ gen in
         {
           t = f gen tm.t;
           term =
@@ -535,7 +535,7 @@ module V = struct
   let tm_map_types = map_types
 
   (** Map a function on all types occurring in a value. *)
-  let rec map_types f (gen : int list) v =
+  let rec map_types f gen v =
     match v.value with
       | Ground _ | Encoder _ -> { v with t = f gen v.t }
       | Tuple l ->
@@ -973,7 +973,7 @@ let instantiate ~generalized def =
   let subst =
     (* Levels don't matter since we're never going to generalize. *)
     Seq.map
-      (fun (i, c) -> (i, T.fresh ~level:0 ~constraints:c ~pos:None))
+      (fun ic -> (ic, T.fresh ~level:0 ~constraints:(snd ic) ~pos:None))
       (List.to_seq generalized)
   in
   let subst = T.Subst.of_seq subst in

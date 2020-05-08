@@ -53,16 +53,18 @@ and descr =
   | Succ of t
   | Any
   | Arrow of (bool * string * t) list * t
-  | EVar of int * constraints
+  | EVar of var
   | Link of t
 
-and scheme = (int * constraints) list * t
+and var = int * constraints
+
+and scheme = var list * t
 
 module Subst : sig
   type subst
 
-  val of_seq : (int * t) Seq.t -> subst
-  val filter : (int -> t -> bool) -> subst -> subst
+  val of_seq : (var * t) Seq.t -> subst
+  val filter : (var -> t -> bool) -> subst -> subst
 
   type t = subst
 end
@@ -75,8 +77,8 @@ val pp_type : Format.formatter -> t -> unit
 val pp_type_generalized :
   (int * constraints) list -> Format.formatter -> t -> unit
 
-val print : ?generalized:(int * constraints) list -> t -> string
-val doc_of_type : generalized:(int * constraints) list -> t -> Doc.item
+val print : ?generalized:var list -> t -> string
+val doc_of_type : generalized:var list -> t -> Doc.item
 
 exception Occur_check of t * t
 
@@ -87,10 +89,10 @@ exception Unsatisfied_constraint of constr * t
 val bind : t -> t -> unit
 val deref : t -> t
 val demeth : t -> t
-val filter_vars : (t -> bool) -> t -> (int * constraints) list
+val filter_vars : (t -> bool) -> t -> var list
 val copy_with : Subst.t -> t -> t
 val instantiate : level:int -> generalized:(int * constraints) list -> t -> t
-val generalizable : level:int -> t -> (int * constraints) list
+val generalizable : level:int -> t -> var list
 
 type explanation
 
