@@ -237,7 +237,7 @@ let rec print_term v =
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
     | Meth (l, v, e) ->
-        "{{" ^ print_term e ^ " | " ^ l ^ " = " ^ print_term v ^ "}}"
+        "{{ " ^ print_term e ^ " | " ^ l ^ " = " ^ print_term v ^ " }}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
     | Ref a -> Printf.sprintf "ref(%s)" (print_term a)
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
@@ -505,7 +505,7 @@ module V = struct
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
       | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
       | Meth (l, v, e) ->
-          "{{" ^ print_value e ^ " ; " ^ l ^ " = " ^ print_value v ^ "}}"
+          "{{" ^ print_value e ^ " | " ^ l ^ " = " ^ print_value v ^ "}}"
       | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
       | Fun (l, _, _, x) when is_ground x ->
           let f (label, _, value) =
@@ -1184,7 +1184,7 @@ let rec eval_toplevel ?(interactive = false) t =
         let def = eval def in
         toplevel_add comment pat ~generalized def;
         if Lazy.force debug then
-          Printf.eprintf "Added toplevel %s : %s\n" (string_of_pat pat)
+          Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (T.print ~generalized def.V.t);
         if interactive then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." (string_of_pat pat)
