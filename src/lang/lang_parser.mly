@@ -260,9 +260,9 @@ exprs:
   | expr s                   { $1 }
   | expr exprs               { mk ~pos:$loc (Seq ($1,$2)) }
   | expr SEQ exprs           { mk ~pos:$loc (Seq ($1,$3)) }
-  | binding s                { mk_let ~pos:$loc $1 (mk ~pos:$loc unit) }
-  | binding exprs            { mk_let ~pos:$loc $1 $2 }
-  | binding SEQ exprs        { mk_let ~pos:$loc $1 $3 }
+  | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
+  | binding exprs            { mk_let ~pos:$loc($1) $1 $2 }
+  | binding SEQ exprs        { mk_let ~pos:$loc($1) $1 $3 }
 
 /* General expressions. */
 expr:
@@ -296,8 +296,8 @@ expr:
   | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
-  | LCURR expr PIPE record RCURR     { $4 $2 }
-  | LCURR record RCURR               { $2 (mk ~pos:$loc (Tuple [])) }
+  | LCURR expr PIPE record RCURR     { $4 ~pos:$loc $2 }
+  | LCURR record RCURR               { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
   | LCURR RCURR                      { mk ~pos:$loc (Tuple []) }
   | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
   | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:$loc (Invoke ($1, $3)), $4)) }
@@ -508,5 +508,5 @@ ffmpeg_opt:
   | LPAR ffmpeg_list RPAR { $2 }
 
 record:
-  | VAR GETS expr { fun e -> mk ~pos:$loc (Meth ($1, $3, e)) }
-  | record COMMA VAR GETS expr { fun e -> mk ~pos:$loc (Meth ($3, $5, $1 e)) }
+  | VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($1, $3, e)) }
+  | record COMMA VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($3, $5, $1 ~pos e)) }
