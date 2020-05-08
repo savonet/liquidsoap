@@ -168,7 +168,7 @@ let rec demeth t =
 
 let rec hide_meth l a =
   match (deref a).descr with
-    | Meth (l', _, u) when l' = l -> u
+    | Meth (l', _, u) when l' = l -> hide_meth l u
     | Meth (l', t, u) -> { a with descr = Meth (l', t, hide_meth l u) }
     | _ -> a
 
@@ -323,50 +323,59 @@ let print_repr f t =
         let vars = aux vars l in
         if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
         vars
-    | `Meth _ as t ->
-        (* Find all methods. *)
-        let rec aux = function
-          | `Meth (l, t, u) ->
-              let m, u = aux u in
-              ((l, t) :: m, u)
-          | u -> ([], u)
-        in
-        let m, t = aux t in
-        (* Filter out duplicates. *)
-        let rec aux = function
-          | (l, t) :: m ->
-              (l, t) :: aux (List.filter (fun (l', _) -> l <> l') m)
-          | [] -> []
-        in
-        let m = aux m in
-        (* Put latest addition last. *)
-        let m = List.rev m in
-        Format.fprintf f "@[<3>{{ ";
-        let vars =
-          if t = `Tuple [] then vars
-          else (
-            let vars = print ~par:false vars t in
-            Format.fprintf f " | ";
-            vars )
-        in
-        let vars =
-          if m = [] then vars
-          else (
-            let rec aux vars = function
-              | [(l, t)] ->
-                  Format.fprintf f "%s = " l;
-                  print ~par:true vars t
-              | (l, t) :: m ->
-                  Format.fprintf f "%s = " l;
-                  let vars = print ~par:false vars t in
-                  Format.fprintf f " ,@ ";
-                  aux vars m
-              | [] -> assert false
-            in
-            aux vars m )
-        in
-        Format.fprintf f " }}@]";
-        vars
+    | `Meth (l, a, b) as t ->
+        (* Nice printing. Disable for debugging type inference. *)
+        if true then (
+          (* Find all methods. *)
+          let rec aux = function
+            | `Meth (l, t, u) ->
+                let m, u = aux u in
+                ((l, t) :: m, u)
+            | u -> ([], u)
+          in
+          let m, t = aux t in
+          (* Filter out duplicates. *)
+          let rec aux = function
+            | (l, t) :: m ->
+                (l, t) :: aux (List.filter (fun (l', _) -> l <> l') m)
+            | [] -> []
+          in
+          let m = aux m in
+          (* Put latest addition last. *)
+          let m = List.rev m in
+          Format.fprintf f "@[<3>{{ ";
+          let vars =
+            if t = `Tuple [] then vars
+            else (
+              let vars = print ~par:false vars t in
+              Format.fprintf f " | ";
+              vars )
+          in
+          let vars =
+            if m = [] then vars
+            else (
+              let rec aux vars = function
+                | [(l, t)] ->
+                    Format.fprintf f "%s = " l;
+                    print ~par:true vars t
+                | (l, t) :: m ->
+                    Format.fprintf f "%s = " l;
+                    let vars = print ~par:false vars t in
+                    Format.fprintf f " ,@ ";
+                    aux vars m
+                | [] -> assert false
+              in
+              aux vars m )
+          in
+          Format.fprintf f " }}@]";
+          vars )
+        else (
+          Format.fprintf f "{{ ";
+          let vars = print ~par:false vars b in
+          Format.fprintf f " | %s = " l;
+          let vars = print ~par:false vars a in
+          Format.fprintf f " }}";
+          vars )
     | `List t ->
         Format.fprintf f "@[<1>[";
         let vars = print ~par:false vars t in
@@ -823,7 +832,7 @@ let rec ( <: ) a b =
         in
         aux a;
         a <: hide_meth l2 u2
-    | Meth (_, _, u1), _ -> u1 <: b
+    | Meth (l, _, u1), _ -> hide_meth l u1 <: b
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining
