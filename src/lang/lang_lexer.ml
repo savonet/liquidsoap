@@ -22,6 +22,32 @@
 
 open Lang_parser
 
+module String = struct
+  include String
+
+  (** Find character satisfying a predicate from a particular index. *)
+  let indexp_from s n p =
+    let l = String.length s in
+    let n = ref n in
+    try
+      while !n < l do
+        if p s.[!n] then raise Exit;
+        incr n
+      done;
+      raise Not_found
+    with Exit -> !n
+
+  let rindexp s p =
+    let n = ref (String.length s - 1) in
+    try
+      while !n >= 0 do
+        if p s.[!n] then raise Exit;
+        decr n
+      done;
+      raise Not_found
+    with Exit -> !n
+end
+
 let parse_time t =
   let g sub n =
     let s = Pcre.get_substring sub n in
@@ -105,8 +131,16 @@ let rec token lexbuf =
         let doc = Pcre.split ~pat:"\n" doc in
         PP_COMMENT doc
     | '\n' -> PP_ENDL
-    | "%ifdef" -> PP_IFDEF
-    | "%ifndef" -> PP_IFNDEF
+    | "%ifdef", Plus ' ', var, Star ("" | '.', var) ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n = String.indexp_from matched 6 (fun c -> c <> ' ') in
+        let r = String.rindexp matched (fun c -> c <> ' ') in
+        PP_IFDEF (String.sub matched n (r - n + 1))
+    | "%ifndef", Plus ' ', var, Star ("" | '.', var) ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n = String.indexp_from matched 7 (fun c -> c <> ' ') in
+        let r = String.rindexp matched (fun c -> c <> ' ') in
+        PP_IFNDEF (String.sub matched n (r - n + 1))
     | "%ifencoder" -> PP_IFENCODER
     | "%ifnencoder" -> PP_IFNENCODER
     | "%endif" -> PP_ENDIF
