@@ -690,6 +690,7 @@ let rec value_restriction t =
     | RFun _ -> true
     | List l | Tuple l -> List.for_all value_restriction l
     | Meth (_, t, u) -> value_restriction t && value_restriction u
+    | Invoke (t, _) -> value_restriction t
     | Ground _ -> true
     | _ -> false
 
