@@ -73,10 +73,7 @@ val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
 val pp_type : Format.formatter -> t -> unit
-
-val pp_type_generalized :
-  (int * constraints) list -> Format.formatter -> t -> unit
-
+val pp_type_generalized : var list -> Format.formatter -> t -> unit
 val print : ?generalized:var list -> t -> string
 val doc_of_type : generalized:var list -> t -> Doc.item
 
@@ -91,7 +88,7 @@ val deref : t -> t
 val demeth : t -> t
 val filter_vars : (t -> bool) -> t -> var list
 val copy_with : Subst.t -> t -> t
-val instantiate : level:int -> generalized:(int * constraints) list -> t -> t
+val instantiate : level:int -> generalized:var list -> t -> t
 val generalizable : level:int -> t -> var list
 
 type explanation
