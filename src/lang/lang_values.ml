@@ -641,12 +641,14 @@ let _ =
               let v = V.invokes xv (List.rev prefix) in
               let lv = aux (l :: prefix) ll in
               {
-                V.t = T.make (T.Meth (l, lv.V.t, v.V.t));
+                V.t =
+                  T.make
+                    (T.Meth (l, ((if ll = [] then g else []), lv.V.t), v.V.t));
                 value = V.Meth (l, lv, v);
               }
           | [] -> v
         in
-        builtins_env := (x, (g @ g0, aux [] ll)) :: !builtins_env
+        builtins_env := (x, (g0, aux [] ll)) :: !builtins_env
     | [] -> assert false
 
 let has_builtin name = builtins#is_registered name
@@ -690,7 +692,7 @@ let rec value_restriction t =
     | RFun _ -> true
     | List l | Tuple l -> List.for_all value_restriction l
     | Meth (_, t, u) -> value_restriction t && value_restriction u
-    | Invoke (t, _) -> value_restriction t
+    (* | Invoke (t, _) -> value_restriction t *)
     | Ground _ -> true
     | _ -> false
 
@@ -805,13 +807,20 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     | Meth (l, a, b) ->
         check ~level ~env a;
         check ~level ~env b;
-        e.t >: mk (T.Meth (l, a.t, b.t))
+        e.t >: mk (T.Meth (l, (T.generalizable ~level a.t, a.t), b.t))
     | Invoke (a, l) ->
         check ~level ~env a;
-        let x = T.fresh_evar ~level ~pos in
-        let y = T.fresh_evar ~level ~pos in
-        a.t <: mk (T.Meth (l, x, y));
-        e.t >: x
+        let rec aux t =
+          match (T.deref t).T.descr with
+            | T.Meth (l', (g, b), c) ->
+                if l = l' then T.instantiate ~level ~generalized:g b else aux c
+            | _ ->
+                let x = T.fresh_evar ~level ~pos in
+                let y = T.fresh_evar ~level ~pos in
+                t <: mk (T.Meth (l, ([], x), y));
+                x
+        in
+        e.t >: aux a.t
     | Ref a ->
         check ~level ~env a;
         e.t >: ref_t ~pos ~level a.t

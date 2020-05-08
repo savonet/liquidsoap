@@ -128,13 +128,15 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
-  | Meth of string * t * t
+  | Meth of string * scheme * t
   | Zero
   | Succ of t
   | Any
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints (* type variable *)
   | Link of t
+
+and scheme = (int * constraints) list * t
 
 let unit = Tuple []
 
@@ -197,7 +199,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar level i c =
+  let uvar g level i c =
     let constr_symbols, c = split_constr c in
     let rec index n = function
       | v :: tl ->
@@ -205,7 +207,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
           else index (n + 1) tl
       | [] -> assert false
     in
-    let v = index 1 (List.rev generalized) in
+    let v = index 1 (List.rev g) in
     let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
     `UVar (v, c)
   in
@@ -232,28 +234,29 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       in
       `EVar (Printf.sprintf "?%s%s" constr_symbols s, c) )
   in
-  let generalized i = List.exists (fun (j, _) -> j = i) generalized in
-  let rec repr t =
+  let rec repr g t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
         | Ground g -> `Ground g
-        | List t -> `List (repr t)
-        | Tuple l -> `Tuple (List.map repr l)
-        | Meth (l, t, u) -> `Meth (l, repr t, repr u)
+        | List t -> `List (repr g t)
+        | Tuple l -> `Tuple (List.map (repr g) l)
+        | Meth (l, (g', t), u) -> `Meth (l, repr (g' @ g) t, repr g u)
         | Zero -> `Zero
         | Any -> `Any
-        | Succ t -> `Succ (repr t)
+        | Succ t -> `Succ (repr g t)
         | Constr { name; params } ->
-            `Constr (name, List.map (fun (l, t) -> (l, repr t)) params)
+            `Constr (name, List.map (fun (l, t) -> (l, repr g t)) params)
         | Arrow (args, t) ->
             `Arrow
-              (List.map (fun (opt, lbl, t) -> (opt, lbl, repr t)) args, repr t)
-        | EVar (id, c) ->
-            if generalized id then uvar t.level id c else evar t.level id c
-        | Link t -> repr t )
+              ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
+                repr g t )
+        | EVar (i, c) ->
+            if List.exists (fun (j, _) -> j = i) g then uvar g t.level i c
+            else evar t.level i c
+        | Link t -> repr g t )
   in
-  repr t
+  repr generalized t
 
 (** Substitutions. *)
 module Subst = struct
@@ -271,7 +274,8 @@ module Subst = struct
   (** Retrieve the value of a variable. *)
   let value (s : t) (i : int) = M.find i s
 
-  let filter f s = M.filter (fun i t -> f i t) s
+  let filter f (s : t) = M.filter (fun i t -> f i t) s
+  let is_identity (s : t) = M.is_empty s
 end
 
 (** Sets of type descriptions. *)
@@ -538,7 +542,8 @@ let rec occur_check a b =
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
-    | Meth (_, t, u) ->
+    | Meth (_, (_, t), u) ->
+        (* We assume that a is not a generalized variable of t. *)
         occur_check a t;
         occur_check a u
     | Succ t -> occur_check a t
@@ -637,7 +642,99 @@ let rec bind a0 b =
       a.descr <- Link { a0 with descr = b.descr }
     else a.descr <- Link b )
 
-(* {1 Subtype checking/inference} *)
+(** {1 Type generalization and instantiation}
+  *
+  * We don't have type schemes per se, but we compute generalizable variables
+  * and keep track of them in the AST.
+  * This is simple and useful because in any case we need to distinguish
+  * two 'a variables bound at different places. Indeed, we might instantiate
+  * one in a term where the second is bound, and we don't want to
+  * merge the two when going under the binder.
+  *
+  * When generalizing we need to know what can be generalized in the outermost
+  * type but also in the inner types of the term forming a let-definition.
+  * Indeed those variables will have to be instantiated by fresh ones for
+  * every instance.
+  *
+  * If the value restriction applies, then we have some (fun (...) -> ...)
+  * and any type variable of higher level can be generalized, whether it's
+  * in the outermost type or not. *)
+
+(** Find all the free variables satisfying a predicate. *)
+let filter_vars f t =
+  let rec aux l t =
+    let t = deref t in
+    match t.descr with
+      | Ground _ | Zero | Any -> l
+      | Succ t | List t -> aux l t
+      | Tuple aa -> List.fold_left aux l aa
+      | Meth (_, (g, t), u) ->
+          List.filter (fun ic -> not (List.mem ic g)) (aux (aux l t) u)
+      | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
+      | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
+      | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
+      | Link _ -> assert false
+  in
+  aux [] t
+
+(** Return a list of generalizable variables in a type.
+  * This is performed after type inference on the left-hand side
+  * of a let-in, with [level] being the level of that let-in.
+  * Uses the simple method of ML, to be associated with a value restriction. *)
+let generalizable ~level t = filter_vars (fun t -> t.level >= level) t
+
+(** Copy a term, substituting some EVars as indicated by a list
+  * of associations. Other EVars are not copied, so sharing is
+  * preserved. *)
+let copy_with (subst : Subst.t) t =
+  let rec aux t =
+    let cp x = { t with descr = x } in
+    match t.descr with
+      | EVar (i, _) -> ( try Subst.value subst i with Not_found -> t )
+      | Constr c ->
+          let params = List.map (fun (v, t) -> (v, aux t)) c.params in
+          cp (Constr { c with params })
+      | Ground _ -> cp t.descr
+      | List t -> cp (List (aux t))
+      | Tuple l -> cp (Tuple (List.map aux l))
+      | Meth (l, (g, t), u) ->
+          (* We assume that we don't substitute generalized variables. *)
+          cp (Meth (l, (g, aux t), aux u))
+      | Zero | Any -> cp t.descr
+      | Succ t -> cp (Succ (aux t))
+      | Arrow (p, t) ->
+          cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
+      | Link t ->
+          (* Keep links to preserve rich position information,
+           * and to make it possible to check if the application left
+           * the type unchanged. *)
+          cp (Link (aux t))
+  in
+  if Subst.is_identity subst then t else aux t
+
+(** Instantiate a type scheme, given as a type together with a list
+  * of generalized variables.
+  * Fresh variables are created with the given (current) level,
+  * and attached to the appropriate constraints.
+  * This erases position information, since they usually become
+  * irrelevant. *)
+let instantiate ~level ~generalized =
+  let subst =
+    Seq.map
+      (fun (i, c) -> (i, fresh_evar ~level ~constraints:c ~pos:None))
+      (List.to_seq generalized)
+  in
+  let subst = Subst.of_seq subst in
+  fun t -> copy_with subst t
+
+(** Simplified version of existential variable generation,
+  * without constraints. This is used when parsing to annotate
+  * the AST. *)
+let fresh = fresh_evar
+
+let fresh_evar = fresh_evar ~constraints:[]
+
+(** {1 Subtype checking/inference} *)
 
 exception Error of (repr * repr)
 
@@ -812,14 +909,14 @@ let rec ( <: ) a b =
         (* This could be optimized to process a bunch of succ all at once.
          * But it doesn't matter. The point is that binding might fail,
          * and is too abusive anyway. *)
-        let a' = fresh_evar ~level:a.level ~constraints:[] ~pos:None in
+        let a' = fresh_evar ~level:a.level ~pos:None in
         begin
           try bind a (make ~pos:a.pos (Succ a'))
           with Unsatisfied_constraint _ -> raise (Error (repr a, repr b))
         end;
         try a' <: b' with Error (a', b') -> raise (Error (`Succ a', `Succ b')) )
     | Succ a', EVar (_, _) -> (
-        let b' = fresh_evar ~level:b.level ~constraints:[] ~pos:None in
+        let b' = fresh_evar ~level:b.level ~pos:None in
         begin
           try bind b (make ~pos:b.pos (Succ b'))
           with Unsatisfied_constraint _ -> raise (Error (repr a, repr b))
@@ -835,12 +932,16 @@ let rec ( <: ) a b =
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)) )
-    | _, Meth (l2, t2, u2) ->
+    | _, Meth (l2, (g2, t2), u2) ->
         let rec aux a =
           match (deref a).descr with
-            | Meth (l1, t1, u1) ->
+            | Meth (l1, (g1, t1), u1) ->
                 if l1 = l2 then (
-                  try t1 <: t2
+                  try
+                    (* TODO: we should perform proper type scheme subtyping, but
+                       this is a good approximation for now... *)
+                    instantiate ~level:(-1) ~generalized:g1 t1
+                    <: instantiate ~level:(-1) ~generalized:g2 t2
                   with Error (a, b) ->
                     raise
                       (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
@@ -881,99 +982,11 @@ let ( <: ) a b =
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
 
-(** {1 Type generalization and instantiation}
-  *
-  * We don't have type schemes per se, but we compute generalizable variables
-  * and keep track of them in the AST.
-  * This is simple and useful because in any case we need to distinguish
-  * two 'a variables bound at different places. Indeed, we might instantiate
-  * one in a term where the second is bound, and we don't want to
-  * merge the two when going under the binder.
-  *
-  * When generalizing we need to know what can be generalized in the outermost
-  * type but also in the inner types of the term forming a let-definition.
-  * Indeed those variables will have to be instantiated by fresh ones for
-  * every instance.
-  *
-  * If the value restriction applies, then we have some (fun (...) -> ...)
-  * and any type variable of higher level can be generalized, whether it's
-  * in the outermost type or not. *)
-
-let filter_vars f t =
-  let rec aux l t =
-    let t = deref t in
-    match t.descr with
-      | Ground _ | Zero | Any -> l
-      | Succ t | List t -> aux l t
-      | Tuple aa -> List.fold_left aux l aa
-      | Meth (_, t, u) -> aux (aux l t) u
-      | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
-      | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
-      | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
-      | Link _ -> assert false
-  in
-  aux [] t
-
-(** Return a list of generalizable variables in a type.
-  * This is performed after type inference on the left-hand side
-  * of a let-in, with [level] being the level of that let-in.
-  * Uses the simple method of ML, to be associated with a value restriction. *)
-let generalizable ~level t = filter_vars (fun t -> t.level >= level) t
-
-(** Copy a term, substituting some EVars as indicated by a list
-  * of associations. Other EVars are not copied, so sharing is
-  * preserved. *)
-let copy_with (subst : Subst.t) t =
-  let rec aux t =
-    let cp x = { t with descr = x } in
-    match t.descr with
-      | EVar (i, _) -> ( try Subst.value subst i with Not_found -> t )
-      | Constr c ->
-          let params = List.map (fun (v, t) -> (v, aux t)) c.params in
-          cp (Constr { c with params })
-      | Ground _ -> cp t.descr
-      | List t -> cp (List (aux t))
-      | Tuple l -> cp (Tuple (List.map aux l))
-      | Meth (l, t, u) -> cp (Meth (l, aux t, aux u))
-      | Zero | Any -> cp t.descr
-      | Succ t -> cp (Succ (aux t))
-      | Arrow (p, t) ->
-          cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
-      | Link t ->
-          (* Keep links to preserve rich position information,
-           * and to make it possible to check if the application left
-           * the type unchanged. *)
-          cp (Link (aux t))
-  in
-  aux t
-
-(** Instantiate a type scheme, given as a type together with a list
-  * of generalized variables.
-  * Fresh variables are created with the given (current) level,
-  * and attached to the appropriate constraints.
-  * This erases position information, since they usually become
-  * irrelevant. *)
-let instantiate ~level ~generalized =
-  let subst =
-    Seq.map
-      (fun (i, c) -> (i, fresh_evar ~level ~constraints:c ~pos:None))
-      (List.to_seq generalized)
-  in
-  let subst = Subst.of_seq subst in
-  fun t -> copy_with subst t
-
-(** Simplified version of existential variable generation,
-  * without constraints. This is used when parsing to annotate
-  * the AST. *)
-let fresh = fresh_evar
-
-let fresh_evar = fresh_evar ~constraints:[]
-
 (** {1 Misc} *)
 
-(** Iterate over all constructed types, giving info about their
-  * positivity, and return [true] if there is a var, because it might be
-  * instantiated by a ground type later. *)
+(** Iterate over all constructed types, giving info about their positivity, and
+    return [true] if there is a var, because it might be instantiated by a ground
+    type later. *)
 let iter_constr f t =
   let has_var_pos = ref false in
   let has_var_neg = ref false in
@@ -984,7 +997,7 @@ let iter_constr f t =
       | Succ _ | Zero | Any -> ()
       | List t -> aux pos t
       | Tuple l -> List.iter (aux pos) l
-      | Meth (_, t, u) ->
+      | Meth (_, (_, t), u) ->
           aux pos t;
           aux pos u
       | Constr c ->

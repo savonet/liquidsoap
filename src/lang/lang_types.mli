@@ -48,13 +48,15 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
-  | Meth of string * t * t
+  | Meth of string * scheme * t
   | Zero
   | Succ of t
   | Any
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t
+
+and scheme = (int * constraints) list * t
 
 module Subst : sig
   type subst

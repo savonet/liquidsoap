@@ -604,15 +604,16 @@ let rec assoc label n = function
 
 let type_and_run ~lib ast =
   Clock.collect_after (fun () ->
-      if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+      if true || Lazy.force Term.debug then
+        Printf.eprintf "Type checking...\n%!";
       (* Type checking *)
       Term.check ~ignored:true ast;
 
-      if Lazy.force Term.debug then
+      if true || Lazy.force Term.debug then
         Printf.eprintf "Checking for unused variables...\n%!";
       (* Check for unused variables, relies on types *)
       Term.check_unused ~lib ast;
-      if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+      if true || Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
       ignore (Term.eval_toplevel ast))
 
 let mk_expr ~pwd processor lexbuf =
