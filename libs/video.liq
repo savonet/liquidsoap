@@ -202,18 +202,18 @@ def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, tex
 end
 %endif
 
-let video.add_text = video.add_text.native
+let video.add_text.best = video.add_text.native
 
 %ifdef video.add_text.sdl
-let video.add_text = video.add_text.sdl
+let video.add_text.best = video.add_text.sdl
 %endif
 
 %ifdef video.add_text.gstreamer
-let video.add_text = video.add_text.gstreamer
+let video.add_text.best = video.add_text.gstreamer
 %endif
 
 %ifdef video.add_text.gd
-let video.add_text = video.add_text.gd
+let video.add_text.best = video.add_text.gd
 %endif
 
 # Display a text using the first available operator in: gd, gstreamer, sdl or native
@@ -231,7 +231,9 @@ let video.add_text = video.add_text.gd
 def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
                    ~metadata="",~size=18,~speed=70,~x=10,~y=10,
                    d,s) =
-  video.add_text(id=id,cycle=cycle,font=font,
+  video.add_text.best(id=id,cycle=cycle,font=font,
      metadata=metadata,size=size,
      speed=speed,x=x,y=y,d,s)
 end
+
+#TODO: unhide specialized implementations of video.add_text

@@ -23,6 +23,9 @@ def input.v4l2_with_audio(~id="",~device="/dev/video0",~on_error=fun(_)->3.)
   input.gstreamer.audio_video(id=id, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline, on_error=on_error)
 end
 
+let gstreamer = ()
+let gstreamer.single = ()
+
 # Play a single audio file using GStreamer.
 # @category Source / Input
 # @flag extra
@@ -88,6 +91,8 @@ def gstreamer.encode_mp3(fname, source)
   output.gstreamer.audio(pipeline="audioconvert ! lamemp3enc ! filesink location=\"#{fname}\"", source)
 end
 
+let gstreamer.rtp = ()
+
 # Broadcast a video in RTP. In order to play it, save the following in `xxx.sdp`
 # and use `vlc xxx.sdp`:
 # ```
@@ -129,6 +134,8 @@ def output.youtube.live(~id="",
   output.gstreamer.audio_video(id=id,video_pipeline=video_pipeline,
     audio_pipeline=audio_pipeline,pipeline=pipeline,source)
 end
+
+let video.testsrc = ()
 
 # Test audio-video source using GStreamer.
 # @category Source / Input
