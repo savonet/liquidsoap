@@ -376,7 +376,7 @@ let check_unused ~lib tm =
 
 (** Maps a function on all types occurring in a term.
   * Ignores variable generalizations. *)
-let rec map_types f (gen : 'a list) tm =
+let rec map_types f gen tm =
   let aux = function
     | lbl, var, t, None -> (lbl, var, f gen t, None)
     | lbl, var, t, Some tm -> (lbl, var, f gen t, Some (map_types f gen tm))
@@ -413,7 +413,7 @@ let rec map_types f (gen : 'a list) tm =
           term = RFun (x, fv, List.map aux p, map_types f gen v);
         }
     | Let l ->
-        let gen' = l.gen @ gen in
+        let gen' = List.map fst l.gen @ gen in
         {
           t = f gen tm.t;
           term =
@@ -535,7 +535,7 @@ module V = struct
   let tm_map_types = map_types
 
   (** Map a function on all types occurring in a value. *)
-  let rec map_types f gen v =
+  let rec map_types f (gen : int list) v =
     match v.value with
       | Ground _ | Encoder _ -> { v with t = f gen v.t }
       | Tuple l ->
@@ -962,15 +962,16 @@ let remove_first filter =
 let instantiate ~generalized def =
   let subst =
     (* Levels don't matter since we're never going to generalize. *)
-    List.map
-      (fun (i, c) -> ((i, c), T.fresh ~level:0 ~constraints:c ~pos:None))
-      generalized
+    Seq.map
+      (fun (i, c) -> (i, T.fresh ~level:0 ~constraints:c ~pos:None))
+      (List.to_seq generalized)
   in
+  let subst = T.Subst.of_seq subst in
   if generalized = [] then def
   else
     V.map_types
       (fun bound t ->
-        let subst = List.filter (fun (x, _) -> not (List.mem x bound)) subst in
+        let subst = T.Subst.filter (fun x _ -> not (List.mem x bound)) subst in
         T.copy_with subst t)
       [] def
 

@@ -255,6 +255,25 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   in
   repr t
 
+(** Substitutions. *)
+module Subst = struct
+  module M = Map.Make (struct
+    type t = int
+
+    let compare (x : t) (y : t) = compare x y
+  end)
+
+  type subst = t M.t
+  type t = subst
+
+  let of_seq seq : t = M.of_seq seq
+
+  (** Retrieve the value of a variable. *)
+  let value (s : t) (i : int) = M.find i s
+
+  let filter f s = M.filter (fun i t -> f i t) s
+end
+
 (** Sets of type descriptions. *)
 module DS = Set.Make (struct
   type t = string * constraints
@@ -904,13 +923,11 @@ let generalizable ~level t = filter_vars (fun t -> t.level >= level) t
 (** Copy a term, substituting some EVars as indicated by a list
   * of associations. Other EVars are not copied, so sharing is
   * preserved. *)
-let copy_with subst t =
+let copy_with (subst : Subst.t) t =
   let rec aux t =
     let cp x = { t with descr = x } in
     match t.descr with
-      | EVar (i, _) -> (
-          try snd (List.find (fun ((j, _), _) -> i = j) subst)
-          with Not_found -> t )
+      | EVar (i, _) -> ( try Subst.value subst i with Not_found -> t )
       | Constr c ->
           let params = List.map (fun (v, t) -> (v, aux t)) c.params in
           cp (Constr { c with params })
@@ -938,10 +955,11 @@ let copy_with subst t =
   * irrelevant. *)
 let instantiate ~level ~generalized =
   let subst =
-    List.map
-      (fun (i, c) -> ((i, c), fresh_evar ~level ~constraints:c ~pos:None))
-      generalized
+    Seq.map
+      (fun (i, c) -> (i, fresh_evar ~level ~constraints:c ~pos:None))
+      (List.to_seq generalized)
   in
+  let subst = Subst.of_seq subst in
   fun t -> copy_with subst t
 
 (** Simplified version of existential variable generation,

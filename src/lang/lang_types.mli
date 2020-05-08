@@ -56,6 +56,15 @@ and descr =
   | EVar of int * constraints
   | Link of t
 
+module Subst : sig
+  type subst
+
+  val of_seq : (int * t) Seq.t -> subst
+  val filter : (int -> t -> bool) -> subst -> subst
+
+  type t = subst
+end
+
 val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
@@ -77,7 +86,7 @@ val bind : t -> t -> unit
 val deref : t -> t
 val demeth : t -> t
 val filter_vars : (t -> bool) -> t -> (int * constraints) list
-val copy_with : ((int * constraints) * t) list -> t -> t
+val copy_with : Subst.t -> t -> t
 val instantiate : level:int -> generalized:(int * constraints) list -> t -> t
 val generalizable : level:int -> t -> (int * constraints) list
 
