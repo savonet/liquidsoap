@@ -160,38 +160,6 @@ def getenv(s) =
   list.assoc(default="",s,environment())
 end
 
-# Perform a shell call and return its output.
-# @category System
-# @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
-# @param ~env Process environment
-# @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
-# @param command Command to run
-def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  let (stdout, _, _) = run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)
-  stdout
-end
-
-# Perform a shell call and return the list of its output lines.
-# @category System
-# @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
-# @param ~env Process environment
-# @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
-# @param command Command to run
-def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  string.split(separator="\r?\n",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
-end
-
-# Return true if process exited with 0 code.
-# @category System
-# @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
-# @param ~env Process environment
-# @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
-# @param command Command to test
-def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  let (_, _, status) = run_process(timeout=timeout,env=env,command)
-  status == ("exit","0")
-end
-
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
 # [("arg","bar"),("arg2","bar2")].
 # @category String
@@ -278,58 +246,6 @@ def server.rms(~id="",s) =
                   "rms",rms)
   s
 end
-
-# Read some value from standard input (console).
-# @category System
-# @param ~hide Hide typed characters (for passwords).
-def read(~hide=false)
-  if hide then
-    system("stty -echo")
-  end
-  s = list.hd(default="",get_process_lines("read BLA && echo $BLA"))
-  if hide then
-    system("stty echo")
-  end
-  print("")
-  s
-end
-
-# Dummy implementation of file.mime
-# @category System
-def file.mime_default(_)
-  ""
-end
-%ifdef file.mime
-# Alias of file.mime (because it is available)
-# @category System
-def file.mime_default(file)
-  file.mime(file)
-end
-%endif
-
-# Generic mime test. First try to use file.mime if it exist.  Otherwise try to
-# get the value using the file binary. Returns "" (empty string) if no value
-# can be found.
-# @category System
-# @param fname The file to test
-def get_mime(fname) =
-  def file_method(fname) =
-    if test_process("which file") then
-      list.hd(default="",get_process_lines("file -b --mime-type #{string.quote(fname)}"))
-    else
-      ""
-    end
-  end
-  # First try mime method
-  ret = file.mime_default(fname)
-  if ret != "" then
-    ret
-  else
-    # Now try file method
-    file_method(fname)
-  end
-end
-
 
 # Remove low frequencies often produced by microphones.
 # @category Source / Sound Processing
@@ -542,21 +458,6 @@ end
 def server.broadcast(x) =
   broadcast = snd(snd(x))
   broadcast()
-end
-
-# Read the whole contents of a file.
-# @category System
-def file.contents(f) =
-  fn = file.read(f)
-  def rec f(cur) =
-    s = fn()
-    if s == "" then
-      cur
-    else
-      f("#{cur}#{s}")
-    end
-  end
-  f("")
 end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).

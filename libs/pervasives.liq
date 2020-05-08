@@ -5,6 +5,8 @@
 %include "predicate.liq"
 %include "log.liq"
 %include "thread.liq"
+%include "process.liq"
+%include "file.liq"
 %include "switches.liq"
 %include "utils.liq"
 %include "string.liq"
