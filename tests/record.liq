@@ -25,4 +25,21 @@ let r.f.variant = 7
 let r.f = r.f.variant
 # let r = {{ r | f = r.f.variant }}
 
+# A resetable counter
+
+n = ref(0)
+def counter()
+  n := !n + 1
+  !n
+end
+def counter.reset()
+  n := 0
+end
+
+ignore(counter())
+ignore(counter())
+t(counter(), 3)
+counter.reset()
+t(counter(), 1)
+
 if !success then test.pass() else test.fail() end
