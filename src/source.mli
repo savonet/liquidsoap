@@ -65,10 +65,24 @@ type watcher = {
   after_output : unit -> unit;
 }
 
+module Kind : sig
+  (** Description of how many of a channel type does an operator want. *)
+  type format =
+    | Fixed of int  (** exactly [n] channels *)
+    | At_least of int  (** at least [n] channels *)
+
+  type formats = (format, format, format) Frame.fields
+  type t
+
+  exception Conflict
+
+  val unify : t -> t -> unit
+end
+
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> object
 
        (** {1 Naming} *)
@@ -135,12 +149,17 @@ class virtual source :
 
        (** {1 Streaming} *)
 
+       method kind_var : Kind.t
+
+       (** Choose your kind by adjusting to your children sources or whatever. *)
+       method private set_kind : unit
+
        (** What kind of content does this source produce. *)
        method kind : Frame.content_kind
 
-       (** Frame currently being filled. *)
-       val memo : Frame.t
+       method content_type : Frame.content_type
 
+       (** Retrieve the frame currently being filled. *)
        method get_memo : Frame.t
 
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
@@ -197,7 +216,7 @@ class virtual source :
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> object
        inherit source
 
@@ -223,7 +242,7 @@ and virtual active_source :
 (* This is for defining a source which has children *)
 class virtual operator :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> source list
   -> object
        inherit source
@@ -233,7 +252,7 @@ class virtual operator :
  * and outputting it. *)
 class virtual active_operator :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> source list
   -> object
        inherit active_source

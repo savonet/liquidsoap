@@ -125,7 +125,7 @@ let report lexbuf f =
             else Format.sprintf "argument labeled %S" lbl );
           raise Error
       | Invalid_value (v, msg) ->
-          error_header 7 (T.print_pos (Utils.get_some v.Term.V.t.T.pos));
+          error_header 7 (T.print_pos (Utils.get_some v.Term.V.pos));
           Format.printf "Invalid value:@ %s@]@." msg;
           raise Error
       | Lang_encoders.Error (v, s) ->

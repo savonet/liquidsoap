@@ -27,6 +27,9 @@ val log : Log.t
 (** The type of a value. *)
 type t = Lang_types.t
 
+(** Position in source code. *)
+type pos = Lang_types.pos
+
 (** {2 Values} *)
 
 (** A typed value. *)
@@ -43,12 +46,11 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Lang_values.V.value = { mutable t : t; value : in_value }
+type value = Lang_values.V.value = { pos : pos option; value : in_value }
 
-and full_env = (string * ((int * Lang_types.constraints) list * value)) list
+and env = (string * value) list
 
-and lazy_full_env =
-  (string * ((int * Lang_types.constraints) list * value) Lazy.t) list
+and lazy_env = (string * value Lazy.t) list
 
 and in_value = Lang_values.V.in_value =
   | Ground of Ground.t
@@ -59,19 +61,11 @@ and in_value = Lang_values.V.in_value =
   | Tuple of value list
   | Ref of value ref
   | Fun of
-      (string * string * value option) list
-      * full_env
-      * lazy_full_env
-      * Lang_values.term
+      (string * string * value option) list * env * lazy_env * Lang_values.term
       (** A function with given arguments (argument label, argument variable,
       default value), parameters already passed to the function, closure and
       value. *)
-  | FFI of
-      (string * string * value option) list
-      * full_env
-      * (full_env -> t -> value)
-
-type env = (string * value) list
+  | FFI of (string * string * value option) list * env * (env -> value)
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -85,7 +79,7 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
-val apply : value -> env -> t:t -> value
+val apply : value -> env -> value
 
 (** {3 Helpers for registering protocols} *)
 
@@ -116,7 +110,7 @@ val add_builtin :
   string ->
   proto ->
   t ->
-  (env -> t -> value) ->
+  (env -> value) ->
   unit
 
 (** Add an builtin to the language, more rudimentary version. *)
@@ -149,16 +143,12 @@ val string_of_category : category -> string
 val string_of_flag : doc_flag -> string
 
 (** Description of how many channels of given type an operator requires. *)
-type lang_kind_format =
+type lang_kind_format = Source.Kind.format =
   | Fixed of int  (** exactly [n] channels *)
   | At_least of int  (** a fixed number of channels which is at least [n] *)
 
 (** Description of all the channels an operator requires. *)
-type lang_kind_formats =
-  | Unconstrained of t  (** no requirements *)
-  | Constrained of
-      (lang_kind_format, lang_kind_format, lang_kind_format) Frame.fields
-      (** specification of requirements for audio, video, etc. *)
+type lang_kind_formats = Source.Kind.formats
 
 val any : lang_kind_formats
 
@@ -194,7 +184,7 @@ val add_operator :
   string ->
   proto ->
   return_t:t ->
-  (env -> Frame.content_kind -> Source.source) ->
+  (env -> Source.source) ->
   unit
 
 (** {2 Manipulation of values} *)
@@ -219,7 +209,7 @@ val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
-val to_fun : t:t -> value -> (string * value) list -> value
+val to_fun : value -> (string * value) list -> value
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
   * This is useful for retrieving arguments of a function. *)
@@ -280,25 +270,21 @@ val int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
-val list : t:t -> value list -> value
+val list : value list -> value
 val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value
 val tuple : value list -> value
 
-(** Build a function from an OCaml function.
-  * Items in the prototype indicate the label, type and optional
-  * values. *)
+(** Build a function from an OCaml function. Items in the prototype indicate
+    the label, type and optional values. *)
 val val_fun :
-  (string * string * t * value option) list ->
-  ret_t:t ->
-  (env -> t -> value) ->
-  value
+  (string * string * t * value option) list -> (env -> value) -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure
   * when the constant is ground. *)
-val val_cst_fun : (string * t * value option) list -> value -> value
+val val_cst_fun : (string * value option) list -> value -> value
 
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
