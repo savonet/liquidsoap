@@ -425,34 +425,6 @@ let rec map_types f gen tm =
               };
         }
 
-(** Folds [f] over almost all types occurring in a term,
-  * skipping as much as possible while still
-  * guaranteeing that [f] will see all variables. *)
-let rec fold_types f gen x tm =
-  let fold_proto x p =
-    List.fold_left
-      (fun x -> function _, _, t, Some tm -> fold_types f gen (f gen x t) tm
-        | _, _, t, None -> f gen x t)
-      x p
-  in
-  match tm.term with
-    | Ground _ | Encoder _ | Var _ -> f gen x tm.t
-    | List l ->
-        List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
-    (* In the next cases, don't care about tm.t, nothing "new" in it. *)
-    | Ref r | Get r -> fold_types f gen x r
-    | Tuple l -> List.fold_left (fold_types f gen) x l
-    | Meth (_, v, e) -> fold_types f gen (fold_types f gen x v) e
-    | Invoke (e, _) -> fold_types f gen x e
-    | Seq (a, b) | Set (a, b) -> fold_types f gen (fold_types f gen x a) b
-    | App (tm, l) ->
-        let x = fold_types f gen x tm in
-        List.fold_left (fun x (_, tm) -> fold_types f gen x tm) x l
-    | Fun (_, p, v) | RFun (_, _, p, v) -> fold_types f gen (fold_proto x p) v
-    | Let { gen = gen'; def; body; _ } ->
-        let x = fold_types f (gen' @ gen) x def in
-        fold_types f gen x body
-
 (** Values are normal forms of terms. *)
 module V = struct
   type value = { mutable t : T.t; value : in_value }
