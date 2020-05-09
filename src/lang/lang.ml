@@ -609,7 +609,7 @@ let type_and_run ~lib ast =
       (* Type checking *)
       Term.check ~ignored:true ast;
 
-      if true || Lazy.force Term.debug then
+      if Lazy.force Term.debug then
         Printf.eprintf "Checking for unused variables...\n%!";
       (* Check for unused variables, relies on types *)
       Term.check_unused ~lib ast;
