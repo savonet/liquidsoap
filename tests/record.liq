@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../src/liquidsoap -i ../libs/pervasives.liq
 
 success = ref(true)
 

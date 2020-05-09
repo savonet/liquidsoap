@@ -815,6 +815,9 @@ let rec check ?(print_toplevel = false) ~level ~env e =
             | T.Meth (l', (g, b), c) ->
                 if l = l' then T.instantiate ~level ~generalized:g b else aux c
             | _ ->
+                (* We did not find the method, the type we will infer is not the
+                   most general one (no generalization), but this is safe and
+                   enough for records. *)
                 let x = T.fresh_evar ~level ~pos in
                 let y = T.fresh_evar ~level ~pos in
                 t <: mk (T.Meth (l, ([], x), y));

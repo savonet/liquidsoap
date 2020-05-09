@@ -26,6 +26,9 @@ let debug_levels = false
 (** Pretty-print getters as {t}. *)
 let pretty_getters = ref true
 
+(** Show generalized variables in records. *)
+let show_record_schemes = ref true
+
 (* Type information comes attached to the AST from the parsing,
  * with appropriate sharing of the type variables. Then the type inference
  * performs in-place unification.
@@ -147,7 +150,7 @@ type repr =
   | `Ground of ground
   | `List of repr
   | `Tuple of repr list
-  | `Meth of string * repr * repr
+  | `Meth of string * ((string * constraints) list * repr) * repr
   | `Zero
   | `Succ of repr
   | `Any
@@ -243,7 +246,13 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Ground g -> `Ground g
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
-        | Meth (l, (g', t), u) -> `Meth (l, repr (g' @ g) t, repr g u)
+        | Meth (l, (g', u), v) ->
+            let gen =
+              List.map
+                (fun (i, c) -> match uvar g' t.level i c with `UVar ic -> ic)
+                (List.sort_uniq compare g')
+            in
+            `Meth (l, (gen, repr (g' @ g) u), repr g v)
         | Zero -> `Zero
         | Any -> `Any
         | Succ t -> `Succ (repr g t)
@@ -351,7 +360,7 @@ let print_repr f t =
         let vars = aux vars l in
         if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
         vars
-    | `Meth (l, a, b) as t ->
+    | `Meth (l, (_, a), b) as t ->
         (* Nice printing. Disable for debugging type inference. *)
         if true then (
           (* Find all methods. *)
@@ -382,12 +391,19 @@ let print_repr f t =
           let vars =
             if m = [] then vars
             else (
+              let rec gen = function
+                | (x, _) :: g -> x ^ "." ^ gen g
+                | [] -> ""
+              in
+              let gen g =
+                if !show_record_schemes then gen (List.sort compare g) else ""
+              in
               let rec aux vars = function
-                | [(l, t)] ->
-                    Format.fprintf f "%s = " l;
+                | [(l, (g, t))] ->
+                    Format.fprintf f "%s = %s" l (gen g);
                     print ~par:true vars t
-                | (l, t) :: m ->
-                    Format.fprintf f "%s = " l;
+                | (l, (g, t)) :: m ->
+                    Format.fprintf f "%s = %s" l (gen g);
                     let vars = print ~par:false vars t in
                     Format.fprintf f " ,@ ";
                     aux vars m
@@ -948,12 +964,16 @@ let rec ( <: ) a b =
                     instantiate ~level:(-1) ~generalized:g1 t1
                     <: instantiate ~level:(-1) ~generalized:g2 t2
                   with Error (a, b) ->
+                    (* TODO: it would be better to keep generalized variables
+                       here and below *)
                     raise
-                      (Error (`Meth (l1, a, `Ellipsis), `Meth (l2, b, `Ellipsis)))
-                  )
+                      (Error
+                         ( `Meth (l1, ([], a), `Ellipsis),
+                           `Meth (l2, ([], b), `Ellipsis) )) )
                 else aux u1
             | EVar _ -> failwith "TODO"
-            | _ -> raise (Error (repr a, `Meth (l2, `Ellipsis, `Ellipsis)))
+            | _ ->
+                raise (Error (repr a, `Meth (l2, ([], `Ellipsis), `Ellipsis)))
         in
         aux a;
         a <: hide_meth l2 u2
