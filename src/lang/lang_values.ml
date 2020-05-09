@@ -812,8 +812,8 @@ let rec check ?(print_toplevel = false) ~level ~env e =
         check ~level ~env a;
         let rec aux t =
           match (T.deref t).T.descr with
-            | T.Meth (l', (g, b), c) ->
-                if l = l' then T.instantiate ~level ~generalized:g b else aux c
+            | T.Meth (l', (generalized, b), c) ->
+                if l = l' then T.instantiate ~level ~generalized b else aux c
             | _ ->
                 (* We did not find the method, the type we will infer is not the
                    most general one (no generalization), but this is safe and
@@ -911,7 +911,11 @@ let rec check ?(print_toplevel = false) ~level ~env e =
               in
               x' @ x
             in
-            fold_types f [] [] def )
+            (* TODO: I am not really sure why it was needed to fold over all types
+               in def, but this causes overly generous generalizations because type
+               schemes are not properly taken in account... *)
+            (* fold_types f [] [] def *)
+            f [] [] def.t )
           else []
         in
         let penv, pa = type_of_pat ~level ~pos pat in

@@ -213,6 +213,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
       | [] -> assert false
     in
     let v = index 1 (List.rev g) in
+    (* let v = Printf.sprintf "'%d" i in *)
     let v = if debug_levels then Printf.sprintf "%s[%d]" v level else v in
     `UVar (v, c)
   in
@@ -535,6 +536,22 @@ let print_repr f t =
   end;
   Format.fprintf f "@]"
 
+let pp_type f t = print_repr f (repr t)
+
+let pp_type_generalized generalized f t =
+  if !debug then
+    List.iter
+      (fun v ->
+        print_repr f (repr ~generalized (make (EVar v)));
+        Format.fprintf f ".")
+      generalized;
+  print_repr f (repr ~generalized t)
+
+let print ?generalized t : string =
+  print_repr Format.str_formatter (repr ?generalized t);
+  Format.fprintf Format.str_formatter "@?";
+  Format.flush_str_formatter ()
+
 let fresh_evar =
   let fresh_id =
     let c = ref 0 in
@@ -690,7 +707,8 @@ let filter_vars f t =
       | Succ t | List t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Meth (_, (g, t), u) ->
-          List.filter (fun ic -> not (List.mem ic g)) (aux (aux l t) u)
+          let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
+          aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | EVar (i, constraints) -> if f t then (i, constraints) :: l else l
@@ -720,6 +738,8 @@ let copy_with (subst : Subst.t) t =
       | Tuple l -> cp (Tuple (List.map aux l))
       | Meth (l, (g, t), u) ->
           (* We assume that we don't substitute generalized variables. *)
+          if !debug then
+            assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
           cp (Meth (l, (g, aux t), aux u))
       | Zero | Any -> cp t.descr
       | Succ t -> cp (Succ (aux t))
@@ -762,14 +782,6 @@ exception Error of (repr * repr)
 type explanation = bool * t * t * repr * repr
 
 exception Type_Error of explanation
-
-let pp_type f t = print_repr f (repr t)
-let pp_type_generalized generalized f t = print_repr f (repr ~generalized t)
-
-let print ?generalized t : string =
-  print_repr Format.str_formatter (repr ?generalized t);
-  Format.fprintf Format.str_formatter "@?";
-  Format.flush_str_formatter ()
 
 let print_type_error error_header (flipped, ta, tb, a, b) =
   error_header
