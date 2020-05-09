@@ -1092,20 +1092,24 @@ and apply ~t f l =
    * or foreign, together with a rewrapping function for creating
    * a closure in case of partial application. *)
   let p, pe, f, rewrap =
-    match f.V.value with
-      | V.Fun (p, pe, e, body) ->
-          ( p,
-            pe,
-            (fun pe _ ->
-              let pe = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) pe in
-              eval ~env:(List.rev_append pe e) body),
-            fun p pe -> mk (V.Fun (p, pe, e, body)) )
-      | V.FFI (p, pe, f) ->
-          ( p,
-            pe,
-            (fun pe t -> f (List.rev pe) t),
-            fun p pe -> mk (V.FFI (p, pe, f)) )
-      | _ -> assert false
+    let rec aux f =
+      match f.V.value with
+        | V.Fun (p, pe, e, body) ->
+            ( p,
+              pe,
+              (fun pe _ ->
+                let pe = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) pe in
+                eval ~env:(List.rev_append pe e) body),
+              fun p pe -> mk (V.Fun (p, pe, e, body)) )
+        | V.FFI (p, pe, f) ->
+            ( p,
+              pe,
+              (fun pe t -> f (List.rev pe) t),
+              fun p pe -> mk (V.FFI (p, pe, f)) )
+        | V.Meth (_, _, f) -> aux f
+        | _ -> assert false
+    in
+    aux f
   in
   let pe, p =
     List.fold_left
