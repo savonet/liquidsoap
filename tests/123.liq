@@ -1,3 +1,5 @@
+#!../src/liquidsoap ../libs/pervasives.liq
+
 # Correctly parse urls with empty arguments.
 # https://github.com/savonet/liquidsoap/issues/123
 
