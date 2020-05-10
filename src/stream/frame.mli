@@ -28,8 +28,8 @@
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
 
 (** Multiplicity of a field, used in types to impose constraints on channels
-    (empty, variable, at least k, etc.). *)
-type multiplicity = Any | Zero | Succ of multiplicity
+    (fixed, at least k, etc.). *)
+type multiplicity = Fixed of int | At_least of int
 
 (** Multiplicity of each field of a frame. *)
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
@@ -186,6 +186,7 @@ val type_of_content : content -> content_type
 val type_of_kind : content_kind -> content_type
 val mul_of_int : int -> multiplicity
 val add_mul : multiplicity -> multiplicity -> multiplicity
+val succ_mul : multiplicity -> multiplicity
 val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string
 

@@ -125,9 +125,11 @@ let of_request_t t =
 let rec type_of_mul ~pos ~level m =
   T.make ~pos ~level
     ( match m with
-      | Frame.Any -> T.Any
-      | Frame.Zero -> T.Zero
-      | Frame.Succ m -> T.Succ (type_of_mul ~pos ~level m) )
+      | Frame.Fixed 0 -> T.Zero
+      | Frame.Fixed n -> T.Succ (type_of_mul ~pos ~level (Frame.Fixed (n - 1)))
+      | Frame.At_least 0 -> T.Any
+      | Frame.At_least n ->
+          T.Succ (type_of_mul ~pos ~level (Frame.At_least (n - 1))) )
 
 let type_of_format ~pos ~level f =
   let kind = Encoder.kind_of_format f in

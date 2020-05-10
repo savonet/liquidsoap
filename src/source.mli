@@ -67,7 +67,7 @@ type watcher = {
 
 module Kind : sig
   (** Description of how many of a channel type does an operator want. *)
-  type format =
+  type format = Frame.multiplicity =
     | Fixed of int  (** exactly [n] channels *)
     | At_least of int  (** at least [n] channels *)
 

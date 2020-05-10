@@ -122,9 +122,7 @@
 
   let mk_var_mult bin mul =
     if bin <> "+" then raise Parsing.Parse_error else
-      let mul = Frame.mul_of_int mul in
-      let mul = Frame.add_mul Frame.Any mul in
-      Lang_values.type_of_mul ~pos:None ~level:(-1) mul
+      Lang_values.type_of_mul ~pos:None ~level:(-1) (Frame.At_least mul)
 
   let mk_ty ~pos name args =
     match name with

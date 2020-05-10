@@ -210,7 +210,7 @@ let duration = delayed (fun () -> float !!size /. float !!master_rate)
 (** Data types *)
 
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
-type multiplicity = Any | Zero | Succ of multiplicity
+type multiplicity = Fixed of int | At_least of int
 
 (** High-level, abstract and imprecise stream content type.
   * This controls a changing content type.
@@ -233,26 +233,15 @@ and midi_t = MIDI.buffer
   * [sub a b] if [a] is more permissive than [b]..
   * TODO this is the other way around... it's correct in Lang, phew! *)
 
-let rec mul_sub_mul = function
-  | _, Any -> true
-  | Zero, Zero -> true
-  | Succ a, Succ b -> mul_sub_mul (a, b)
-  | _ -> false
+let mul_sub_mul m n =
+  match (m, n) with
+    | Fixed m, Fixed n -> m = n
+    | At_least m, At_least n -> m <= n
+    | Fixed m, At_least n -> m <= n
+    | At_least _, Fixed _ -> false
 
-let rec int_sub_mul = function
-  | _, Any -> true
-  | n, Succ m when n > 0 -> int_sub_mul (n - 1, m)
-  | 0, Zero -> true
-  | _ -> false
-
-let rec mul_eq_int = function
-  | Succ m, n when n > 0 -> mul_eq_int (m, n - 1)
-  | Zero, 0 -> true
-  | _ -> false
-
-let mul_sub_mul a b = mul_sub_mul (a, b)
-let int_sub_mul a b = int_sub_mul (a, b)
-let mul_eq_int a b = mul_eq_int (a, b)
+let int_sub_mul n m = mul_sub_mul (Fixed n) m
+let mul_eq_int m n = m = Fixed n
 
 let kind_sub_kind a b =
   mul_sub_mul a.audio b.audio
@@ -272,31 +261,28 @@ let type_of_content c =
   }
 
 let type_of_kind k =
-  let rec aux def = function
-    | Any -> max 0 def
-    | Zero -> 0
-    | Succ m -> 1 + aux (def - 1) m
-  in
+  let aux def = function Fixed n -> n | At_least n -> min n def in
   {
     audio = aux !!audio_channels k.audio;
     video = aux !!video_channels k.video;
     midi = aux !!midi_channels k.midi;
   }
 
-let rec mul_of_int x = if x <= 0 then Zero else Succ (mul_of_int (x - 1))
+let mul_of_int n = Fixed n
 
-let rec add_mul x = function
-  | Zero -> x
-  | Succ y -> Succ (add_mul y x)
-  | Any -> if x = Any then x else add_mul Any x
+let add_mul m n =
+  match (m, n) with
+    | Fixed m, Fixed n -> Fixed (m + n)
+    | At_least m, Fixed n | Fixed m, At_least n | At_least m, At_least n ->
+        At_least (m + n)
 
-let string_of_mul m =
-  let rec aux acc = function
-    | Succ m -> aux (acc + 1) m
-    | Zero -> string_of_int acc
-    | Any -> string_of_int acc ^ "+"
-  in
-  aux 0 m
+let succ_mul = function
+  | Fixed n -> Fixed (n + 1)
+  | At_least n -> At_least (n + 1)
+
+let string_of_mul = function
+  | Fixed n -> string_of_int n
+  | At_least n -> string_of_int n ^ "+"
 
 let string_of_content_kind k =
   Printf.sprintf "{audio=%s;video=%s;midi=%s}" (string_of_mul k.audio)

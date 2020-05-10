@@ -76,9 +76,10 @@ let request_t t = Term.request_t t
 let of_request_t t = Term.of_request_t t
 
 let rec t_of_mul = function
-  | Frame.Zero -> zero_t
-  | Frame.Any -> any_t
-  | Frame.Succ m -> succ_t (t_of_mul m)
+  | Frame.Fixed 0 -> zero_t
+  | Frame.Fixed n -> succ_t (t_of_mul (Frame.Fixed (n - 1)))
+  | Frame.At_least 0 -> any_t
+  | Frame.At_least n -> succ_t (t_of_mul (Frame.At_least (n - 1)))
 
 let kind_type_of_frame_kind kind =
   let audio = t_of_mul kind.Frame.audio in
@@ -90,9 +91,9 @@ let kind_type_of_frame_kind kind =
   * This might require to force some At_least variables. *)
 let rec mul_of_type default t =
   match (T.deref t).T.descr with
-    | T.Succ t -> Frame.Succ (mul_of_type (default - 1) t)
-    | T.Zero -> Frame.Zero
-    | T.Any -> Frame.Any
+    | T.Succ t -> Frame.succ_mul (mul_of_type (default - 1) t)
+    | T.Zero -> Frame.Fixed 0
+    | T.Any -> Frame.At_least 0
     | T.EVar _ ->
         let default = max 0 default in
         T.bind t (type_of_int default);

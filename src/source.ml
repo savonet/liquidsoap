@@ -232,7 +232,7 @@ let rec forget var subclock =
 (** Kind with variables in order to unify kinds. *)
 module Kind = struct
   (** Description of how many of a channel type does an operator want. *)
-  type format =
+  type format = Frame.multiplicity =
     | Fixed of int  (** exactly [n] channels *)
     | At_least of int  (** at least [n] channels *)
 
@@ -298,9 +298,9 @@ module Kind = struct
     (** Compute a multiplicity from a multiplicity with variables. *)
     let rec get default m =
       match unvar m with
-        | Succ m -> Frame.Succ (get default m)
-        | Zero -> Frame.Zero
-        | Var _ -> failwith "TODO?"
+        | Succ m -> Frame.succ_mul (get default m)
+        | Zero -> Frame.Fixed 0
+        | Var _ -> Frame.At_least 0
   end
 
   type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
