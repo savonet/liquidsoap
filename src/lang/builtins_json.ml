@@ -157,7 +157,14 @@ let rec of_json d j =
         Lang.list l
     | Lang.Tuple [d1; d2], `List [j1; j2] ->
         Lang.product (of_json d1 j1) (of_json d2 j2)
-    | Lang.List (d :: _), `Assoc l ->
+    | ( Lang.List
+          ({
+             Lang.value =
+               Lang.Tuple
+                 [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; d];
+           }
+          :: _),
+        `Assoc l ) ->
         (* Try to convert the object to a list of pairs, dropping fields that
            cannot be parsed.  This requires the target type to be [(string*'a)],
            currently it won't work if it is [?T] which would be obtained with
