@@ -140,7 +140,8 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
+  let kind = Lang.any_with ~audio:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.oss" ~active:true
     ( Output.proto
     @ [
@@ -156,17 +157,17 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
-    (fun p kind ->
+    (fun p ->
       let e f v = f (List.assoc v p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let clock_safe = e Lang.to_bool "clock_safe" in
       let device = e Lang.to_string "device" in
@@ -188,7 +189,7 @@ let () =
           Some "OSS device to use." );
       ] )
     ~return_t:k ~category:Lang.Input ~descr:"Stream from an OSS input device."
-    (fun p kind ->
+    (fun p ->
       let e f v = f (List.assoc v p) in
       let clock_safe = e Lang.to_bool "clock_safe" in
       let device = e Lang.to_string "device" in
@@ -196,11 +197,11 @@ let () =
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       ( new input ~kind ~start ~on_start ~on_stop ~fallible ~clock_safe device
         :> Source.source ))

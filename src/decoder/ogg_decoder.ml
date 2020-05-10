@@ -336,9 +336,9 @@ let () =
            * anyway.
            * A more fine-grained approach might or might not
            * be possible, based on the number of channels. *)
-          if kind.Frame.video = Frame.Zero then
+          if kind.Frame.video = Frame.Fixed 0 then
             { content_type with Frame.video = 0 }
-          else if kind.Frame.audio = Frame.Zero then
+          else if kind.Frame.audio = Frame.Fixed 0 then
             { content_type with Frame.audio = 0 }
           else content_type
         in

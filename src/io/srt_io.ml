@@ -202,7 +202,7 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let generator =
-    Generator.create ~log ~kind ~log_overfull ~overfull:(`Drop_old max_ticks)
+    Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
       `Undefined
   in
   object (self)
@@ -361,7 +361,8 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.srt" ~return_t ~category:Lang.Input
     ~descr:"Start a SRT agent in listener mode to receive and decode a stream."
     [
@@ -413,7 +414,7 @@ let () =
           "Content-Type (mime type) used to find a decoder for the input \
            stream." );
     ]
-    (fun p kind ->
+    (fun p ->
       let bind_address = Lang.to_string (List.assoc "bind_address" p) in
       let bind_address =
         try Unix.inet_addr_of_string bind_address
@@ -436,11 +437,9 @@ let () =
       let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
       let payload_size = Lang.to_int (List.assoc "payload_size" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-      let on_connect () =
-        ignore (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) [])
-      in
+      let on_connect () = ignore (Lang.apply (List.assoc "on_connect" p) []) in
       let on_disconnect () =
-        ignore (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+        ignore (Lang.apply (List.assoc "on_disconnect" p) [])
       in
       let format = Lang.to_string (List.assoc "content_type" p) in
       ( match Decoder.get_stream_decoder format kind with
@@ -606,7 +605,8 @@ class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
     ~descr:"Send a SRT stream to a distant host."
     ( Output.proto
@@ -636,7 +636,7 @@ let () =
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
       ] )
-    (fun p kind ->
+    (fun p ->
       let hostname = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
       let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
@@ -647,11 +647,11 @@ let () =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let encoder_factory =
         let fmt = Lang.assoc "" 1 p in

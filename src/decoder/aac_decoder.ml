@@ -179,15 +179,15 @@ let () =
       if
         content.Frame.audio = 0
         || (not
-              ( Frame.mul_sub_mul Frame.Zero kind.Frame.video
-              && Frame.mul_sub_mul Frame.Zero kind.Frame.midi ))
+              ( Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.video
+              && Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.midi ))
         || not
              (Decoder.test_file ~mimes:aac_mime_types#get
                 ~extensions:aac_file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Any
-        || kind.Frame.audio = Frame.Succ Frame.Any
+        kind.Frame.audio = Frame.At_least 0
+        || kind.Frame.audio = Frame.At_least 1
         || Frame.type_has_kind content kind
       then Some (fun () -> create_file_decoder filename kind)
       else None)
@@ -203,9 +203,9 @@ let () =
         List.mem mime aac_mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Zero
+        && Frame.Fixed 0 <: kind.Frame.video
+        && Frame.Fixed 0 <: kind.Frame.midi
+        && kind.Frame.audio <> Frame.Fixed 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -306,17 +306,17 @@ let () =
       let content = get_type filename in
       if
         content.Frame.audio = 0
-        || kind.Frame.audio = Frame.Zero
+        || kind.Frame.audio = Frame.Fixed 0
         || (not
-              ( Frame.mul_sub_mul Frame.Zero kind.Frame.video
-              && Frame.mul_sub_mul Frame.Zero kind.Frame.midi ))
+              ( Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.video
+              && Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.midi ))
         || not
              (Decoder.test_file ~mimes:mp4_mime_types#get
                 ~extensions:mp4_file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Any
-        || kind.Frame.audio = Frame.Succ Frame.Any
+        kind.Frame.audio = Frame.At_least 0
+        || kind.Frame.audio = Frame.At_least 1
         || Frame.type_has_kind content kind
       then Some (fun () -> create_file_decoder filename kind)
       else None)

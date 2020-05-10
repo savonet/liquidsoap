@@ -145,8 +145,8 @@ let () =
              ~extensions:file_extensions#get ~log filename)
       then None
       else if
-        kind.Frame.audio = Frame.Any
-        || kind.Frame.audio = Frame.Succ Frame.Any
+        kind.Frame.audio = Frame.At_least 0
+        || kind.Frame.audio = Frame.At_least 1
         ||
         (* libmad always respects the first two kinds *)
         if Frame.type_has_kind (get_type filename) kind then true
@@ -168,9 +168,9 @@ let () =
         List.mem mime mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Zero
+        && Frame.Fixed 0 <: kind.Frame.video
+        && Frame.Fixed 0 <: kind.Frame.midi
+        && kind.Frame.audio <> Frame.Fixed 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the MP3 stream might be mono or stereo.

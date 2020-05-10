@@ -56,7 +56,8 @@ class synth ~kind (synth : Synth.synth) (source : source) chan volume =
   end
 
 let register obj name descr =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ~midi:1 ()) in
+  let kind = Lang.any_with ~audio:1 ~midi:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator ("synth." ^ name)
     [
       ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
@@ -81,7 +82,7 @@ let register obj name descr =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundSynthesis ~descr
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let chan = Lang.to_int (f "channel") in
       let volume = Lang.to_float (f "volume") in
@@ -98,7 +99,8 @@ let register obj name descr =
       in
       let src = Lang.to_source (f "") in
       new synth ~kind (obj adsr) src chan volume);
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ~midi:16 ()) in
+  let kind = Lang.any_with ~audio:1 ~midi:16 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator ("synth.all." ^ name)
     [
       ("envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.");
@@ -122,7 +124,7 @@ let register obj name descr =
     ]
     ~return_t:k ~category:Lang.SoundSynthesis
     ~descr:(descr ^ " It creates one synthesizer for each channel.")
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let adsr =

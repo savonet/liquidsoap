@@ -96,7 +96,7 @@ class keyboard ~kind velocity =
 
     method self_sync = false
 
-    method output = if AFrame.is_partial memo then self#get_frame memo
+    method output = if AFrame.is_partial self#memo then self#get_frame self#memo
 
     val mutable window = None
 
@@ -163,14 +163,13 @@ class keyboard ~kind velocity =
 
 let () =
   let kind =
-    Lang.kind_type_of_kind_format
-      (Lang.Constrained
-         {
-           Frame.audio = Lang.At_least 0;
-           video = Lang.Fixed 0;
-           midi = Lang.At_least 1;
-         })
+    {
+      Frame.audio = Lang.At_least 0;
+      video = Lang.Fixed 0;
+      midi = Lang.At_least 1;
+    }
   in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.keyboard.sdl"
     [
       ( "velocity",
@@ -178,9 +177,9 @@ let () =
         Some (Lang.float 0.8),
         Some "Velocity of notes." );
     ]
-    ~return_t:kind ~category:Lang.Input ~flags:[Lang.Experimental]
+    ~return_t:k ~category:Lang.Input ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let velocity = Lang.to_float (f "velocity") in
       (new keyboard ~kind velocity :> Source.source))

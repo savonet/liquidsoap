@@ -80,8 +80,8 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
 
     inherit
       Generated.source
-        (Generator.create ~log ~kind ~log_overfull
-           ~overfull:(`Drop_old max_ticks) `Undefined)
+        (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
+           `Undefined)
         ~empty_on_abort:false ~bufferize
 
     inherit
@@ -166,7 +166,8 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.udp" ~active:true
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:Lang.Output ~flags:[Lang.Experimental]
@@ -178,17 +179,17 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k
-    (fun p kind ->
+    (fun p ->
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in
@@ -208,7 +209,8 @@ let () =
         :> Source.source ))
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.udp" ~active:true
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:Lang.Input ~flags:[Lang.Experimental]
@@ -226,7 +228,7 @@ let () =
       ("", Lang.string_t, None, Some "Mime type.");
     ]
     ~return_t:k
-    (fun p kind ->
+    (fun p ->
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in
       let hostname = Lang.to_string (List.assoc "host" p) in

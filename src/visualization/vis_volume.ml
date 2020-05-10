@@ -119,12 +119,13 @@ class vumeter ~kind source =
   end
 
 let () =
+  let kind = Lang.any_with ~audio:1 () in
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "visu.volume"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.Visualization
     ~descr:"Graphical visualization of the volume."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       new vumeter ~kind src)

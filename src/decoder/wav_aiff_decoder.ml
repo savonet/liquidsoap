@@ -183,7 +183,7 @@ let () =
     (fun ~metadata:_ filename kind ->
       (* Don't get the file's type if no audio is allowed anyway. *)
       if
-        kind.Frame.audio = Frame.Zero
+        kind.Frame.audio = Frame.Fixed 0
         || not
              (Decoder.test_file ~mimes:wav_mime_types#get
                 ~extensions:wav_file_extensions#get ~log filename)
@@ -216,7 +216,7 @@ let () =
     (fun ~metadata:_ filename kind ->
       (* Don't get the file's type if no audio is allowed anyway. *)
       if
-        kind.Frame.audio = Frame.Zero
+        kind.Frame.audio = Frame.Fixed 0
         || not
              (Decoder.test_file ~mimes:aiff_mime_types#get
                 ~extensions:aiff_file_extensions#get ~log filename)
@@ -253,9 +253,9 @@ let () =
         List.mem mime wav_mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Zero
+        && Frame.Fixed 0 <: kind.Frame.video
+        && Frame.Fixed 0 <: kind.Frame.midi
+        && kind.Frame.audio <> Frame.Fixed 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -275,9 +275,9 @@ let () =
         List.mem mime aiff_mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Zero
+        && Frame.Fixed 0 <: kind.Frame.video
+        && Frame.Fixed 0 <: kind.Frame.midi
+        && kind.Frame.audio <> Frame.Fixed 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -302,8 +302,8 @@ let () =
         List.mem mime mime_types_basic#get
         (* Check that it is okay to have zero video and midi,
          * and two audio channels. *)
-        && Frame.Zero <: kind.Frame.video
-        && Frame.Zero <: kind.Frame.midi
-        && Frame.Succ (Frame.Succ Frame.Zero) <: kind.Frame.audio
+        && Frame.Fixed 0 <: kind.Frame.video
+        && Frame.Fixed 0 <: kind.Frame.midi
+        && Frame.Fixed 2 <: kind.Frame.audio
       then Some (D_stream.create ~header:(`Wav, 8, 2, 8000., -1))
       else None)

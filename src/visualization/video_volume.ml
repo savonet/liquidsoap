@@ -144,15 +144,13 @@ class visu ~kind source =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
-  let fmt =
-    { Frame.audio = Lang.At_least 1; video = Lang.Fixed 1; midi = Lang.Fixed 0 }
-  in
+  let kind = Lang.any_with ~audio:1 ~video:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]
-    ~return_t:(Lang.kind_type_of_kind_format (Lang.Constrained fmt))
-    ~category:Lang.Visualization ~descr:"Graphical visualization of the sound."
-    (fun p kind ->
+    ~return_t:k ~category:Lang.Visualization
+    ~descr:"Graphical visualization of the sound."
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       new visu ~kind src)

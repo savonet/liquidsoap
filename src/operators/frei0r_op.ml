@@ -306,8 +306,10 @@ let register_plugin fname =
       | Frei0r.Mixer3 -> (3, 1)
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
-  let k = if inputs = 0 then Lang.video_only else Lang.any_with ~video:1 () in
-  let return_t = Lang.kind_type_of_kind_format k in
+  let kind =
+    if inputs = 0 then Lang.video_only else Lang.any_with ~video:1 ()
+  in
+  let return_t = Lang.kind_type_of_kind_format kind in
   let liq_params, params = params plugin info in
   let liq_params =
     let inputs =
@@ -331,7 +333,7 @@ let register_plugin fname =
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
   Lang.add_operator ("video.frei0r." ^ name) liq_params ~return_t
-    ~category:Lang.VideoProcessing ~flags:[] ~descr (fun p kind ->
+    ~category:Lang.VideoProcessing ~flags:[] ~descr (fun p ->
       let instance =
         let width = Lazy.force Frame.video_width in
         let height = Lazy.force Frame.video_height in
