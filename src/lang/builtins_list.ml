@@ -57,16 +57,15 @@ let () =
         Some "Result when the list is non-empty." );
     ]
     b
-    (fun p b ->
+    (fun p ->
       let l, e, f =
         match p with
           | [("", l); ("", e); ("", f)] -> (l, e, f)
           | _ -> assert false
       in
-      let a = Lang.of_list_t l.Lang.t in
       match Lang.to_list l with
         | [] -> e
-        | x :: l -> Lang.apply ~t:b f [("", x); ("", Lang.list ~t:a l)])
+        | x :: l -> Lang.apply f [("", x); ("", Lang.list l)])
 
 let () =
   let a = Lang.univ_t () in
@@ -89,19 +88,17 @@ let () =
            tail and the result of the recursive call on the tail." );
     ]
     b
-    (fun p b ->
+    (fun p ->
       let l, e, f =
         match p with
           | [("", l); ("", e); ("", f)] -> (l, e, f)
           | _ -> assert false
       in
-      let a = Lang.of_list_t l.Lang.t in
       let rec aux k = function
         | [] -> k e
         | x :: l ->
             aux
-              (fun r ->
-                k (Lang.apply ~t:b f [("", x); ("", Lang.list ~t:a l); ("", r)]))
+              (fun r -> k (Lang.apply f [("", x); ("", Lang.list l); ("", r)]))
               l
       in
       aux (fun r -> r) (Lang.to_list l))
@@ -112,22 +109,20 @@ let () =
     ~descr:"Add an element at the top of a list."
     [("", a, None, None); ("", Lang.list_t a, None, None)]
     (Lang.list_t a)
-    (fun p t ->
-      let t = Lang.of_list_t t in
+    (fun p ->
       let x, l =
         match p with [("", x); ("", l)] -> (x, l) | _ -> assert false
       in
       let l = Lang.to_list l in
-      Lang.list ~t (x :: l))
+      Lang.list (x :: l))
 
 let () =
   let t = Lang.list_t (Lang.univ_t ()) in
   Lang.add_builtin "list.randomize" ~category:(string_of_category List)
-    ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p t ->
-      let t = Lang.of_list_t t in
+    ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p ->
       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
       Utils.randomize l;
-      Lang.list ~t (Array.to_list l))
+      Lang.list (Array.to_list l))
 
 let () =
   let a = Lang.univ_t () in
@@ -145,8 +140,6 @@ let () =
     (Lang.list_t a)
     (fun p ->
       let f = Lang.assoc "" 1 p in
-      let sort x y =
-        Lang.to_int (Lang.apply ~t:Lang.int_t f [("", x); ("", y)])
-      in
+      let sort x y = Lang.to_int (Lang.apply f [("", x); ("", y)]) in
       let l = Lang.assoc "" 2 p in
-      Lang.list ~t:(Lang.of_list_t l.Lang.t) (List.sort sort (Lang.to_list l)))
+      Lang.list (List.sort sort (Lang.to_list l)))

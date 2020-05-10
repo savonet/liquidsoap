@@ -126,11 +126,11 @@ class input ~kind p =
   let fallible = Lang.to_bool (List.assoc "fallible" p) in
   let on_start =
     let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -196,7 +196,8 @@ class input ~kind p =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
+  let kind = Lang.any_with ~audio:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   let proto =
     [
       ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
@@ -214,20 +215,20 @@ let () =
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
-    (fun p kind ->
+    (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Source.source));
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
     ~return_t:k ~category:Lang.Input
-    ~descr:"Stream from a portaudio input device." (fun p kind ->
+    ~descr:"Stream from a portaudio input device." (fun p ->
       (new input ~kind p :> Source.source))

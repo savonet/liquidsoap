@@ -48,7 +48,7 @@ let string_of_category = function
 
 let add_builtin ~cat ~descr ?flags name proto ret_t f =
   Lang.add_builtin ~category:(string_of_category cat) ~descr ?flags name proto
-    ret_t (fun p _ -> f p)
+    ret_t (fun p -> f p)
 
 let () =
   Lang.add_builtin_base ~category:(string_of_category Liq)
@@ -102,7 +102,7 @@ let () =
       (Lang.fun_t [] type_t)
       (fun p ->
         let getter = to_get (Lang.assoc "" 1 p) in
-        Lang.val_fun [] ~ret_t:type_t (fun _ _ -> to_val (getter ())));
+        Lang.val_fun [] (fun _ -> to_val (getter ())));
     add_builtin ~cat:Liq (name ^ "_getter")
       ~descr:
         ( "Identity function over " ^ name ^ " getters. "
@@ -196,12 +196,9 @@ let () =
                     (Clock.create_known (clock :> Clock.clock))
                 with
                   | Source.Clock_conflict (a, b) ->
-                      raise
-                        (Lang_errors.Clock_conflict
-                           (s.Lang.t.Lang_types.pos, a, b))
+                      raise (Lang_errors.Clock_conflict (s.Lang.pos, a, b))
                   | Source.Clock_loop (a, b) ->
-                      raise
-                        (Lang_errors.Clock_loop (s.Lang.t.Lang_types.pos, a, b)))
+                      raise (Lang_errors.Clock_loop (s.Lang.pos, a, b)))
               sources;
             Lang.unit)
 
@@ -220,9 +217,9 @@ let () =
               Lang.unit
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Lang_errors.Clock_conflict (l.Lang.t.Lang_types.pos, a, b))
+            raise (Lang_errors.Clock_conflict (l.Lang.pos, a, b))
         | Source.Clock_loop (a, b) ->
-            raise (Lang_errors.Clock_loop (l.Lang.t.Lang_types.pos, a, b)))
+            raise (Lang_errors.Clock_loop (l.Lang.pos, a, b)))
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
@@ -241,7 +238,7 @@ let () =
              (int_of_float (Utils.uptime () /. Lazy.force Frame.duration)))
         :: l
       in
-      Lang.list ~t l)
+      Lang.list l)
 
 let () =
   (* The type of the test function for external decoders.
@@ -260,9 +257,7 @@ let () =
          audio but number of audio channels unknown, x: fixed number of \
          decodable audio channels." )
   in
-  let test_f f file =
-    Lang.to_int (Lang.apply f ~t:Lang.int_t [("", Lang.string file)])
-  in
+  let test_f f file = Lang.to_int (Lang.apply f [("", Lang.string file)]) in
   add_builtin "add_decoder" ~cat:Liq
     ~descr:
       "Register an external decoder. The encoder should output in WAV format \
@@ -273,7 +268,7 @@ let () =
       ("description", Lang.string_t, None, Some "Description of the decoder.");
       ( "mimes",
         Lang.list_t Lang.string_t,
-        Some (Lang.list ~t:Lang.string_t []),
+        Some (Lang.list []),
         Some
           "List of mime types supported by this decoder for decoding streams."
       );
@@ -319,7 +314,7 @@ let () =
       let descr = Lang.to_string (List.assoc "description" p) in
       let prebuf = Lang.to_float (List.assoc "buffer" p) in
       let process file =
-        Lang.to_string (Lang.apply f ~t:Lang.string_t [("", Lang.string file)])
+        Lang.to_string (Lang.apply f [("", Lang.string file)])
       in
       let test = List.assoc "test" p in
       External_decoder.register_oblivious name descr (test_f test) process
@@ -364,7 +359,7 @@ let () =
     let a = Lang.to_string (Lang.assoc "" 2 p) in
     let s = match a with "" -> c | _ -> c ^ " " ^ a in
     let r = try Server.exec s with Not_found -> "Command not found!" in
-    Lang.list ~t:Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
+    Lang.list (List.map Lang.string (Pcre.split ~pat:"\n" r))
   in
   add_builtin "server.execute" ~cat ~descr params return_t execute
 
@@ -379,12 +374,12 @@ let () =
       ("else", Lang.fun_t [] t, None, None);
     ]
     t
-    (fun p t ->
+    (fun p ->
       let c = List.assoc "" p in
       let fy = List.assoc "then" p in
       let fn = List.assoc "else" p in
       let c = Lang.to_bool c in
-      Lang.apply ~t (if c then fy else fn) [])
+      Lang.apply (if c then fy else fn) [])
 
 let () =
   add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application." []
@@ -463,7 +458,7 @@ let () =
       let l = Utils.environment () in
       let l = List.map (fun (x, y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x, y) -> Lang.product x y) l in
-      Lang.list ~t:ss l)
+      Lang.list l)
 
 let () =
   add_builtin "setenv" ~cat:Sys
@@ -595,7 +590,6 @@ let () =
         let pwd = Lang.to_string (List.assoc "path" p) in
         if pwd = "" then Filename.dirname f else pwd
       in
-      let ret_item_t = Lang.product_t Lang.metadata_t Lang.string_t in
       let mime = Lang.to_string (List.assoc "mime" p) in
       try
         let _, l =
@@ -609,13 +603,11 @@ let () =
         in
         let process m =
           let f (n, v) = Lang.product (Lang.string n) (Lang.string v) in
-          Lang.list
-            ~t:(Lang.product_t Lang.string_t Lang.string_t)
-            (List.map f m)
+          Lang.list (List.map f m)
         in
         let process (m, uri) = Lang.product (process m) (Lang.string uri) in
-        Lang.list ~t:ret_item_t (List.map process l)
-      with _ -> Lang.list ~t:ret_item_t [])
+        Lang.list (List.map process l)
+      with _ -> Lang.list [])
 
 (** Sound utils. *)
 

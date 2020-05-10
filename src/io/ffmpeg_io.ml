@@ -35,8 +35,8 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
 
     inherit
       Generated.source
-        (Generator.create ~log ~kind ~log_overfull
-           ~overfull:(`Drop_old max_ticks) `Undefined)
+        (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
+           `Undefined)
         ~empty_on_abort:false ~bufferize
 
     inherit
@@ -148,14 +148,15 @@ let parse_args ~t name p opts =
   List.iter extract args
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   let args ?t name =
     let t =
       match t with
         | Some t -> Lang.product_t Lang.string_t t
         | None -> Lang.string_t
     in
-    (name ^ "_args", Lang.list_t t, Some (Lang.list ~t []), None)
+    (name ^ "_args", Lang.list_t t, Some (Lang.list []), None)
   in
   Lang.add_operator "input.ffmpeg" ~active:true
     ~descr:"Decode a url using ffmpeg." ~category:Lang.Input
@@ -181,15 +182,15 @@ let () =
         ("", Lang.string_t, None, Some "URL to decode.");
       ] )
     ~return_t:k
-    (fun p kind ->
+    (fun p ->
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let format = Lang.to_string (List.assoc "format" p) in
       let format =

@@ -36,11 +36,6 @@ let rec to_json_compact v =
     | Lang.List l -> (
         try
           (* Convert (string*'a) list to object *)
-          let t = v.Lang.t in
-          let t = Lang.of_list_t t in
-          let t, _ = Lang.of_product_t t in
-          let compare = Lang_types.( <: ) in
-          ignore (compare t Lang.string_t);
           let l =
             List.map
               (fun x ->
@@ -64,11 +59,6 @@ let rec to_json_pp f v =
     | Lang.List l -> (
         try
           (* Convert (string*'a) list to object *)
-          let t = v.Lang.t in
-          let t = Lang.of_list_t t in
-          let t, _ = Lang.of_product_t t in
-          let compare = Lang_types.( <: ) in
-          ignore (compare t Lang.string_t);
           let print f l =
             let len = List.length l in
             let f pos x =
@@ -143,14 +133,8 @@ let () =
 (* We compare the default's type with
  * the parsed json value and return if they match..
  * This comes with json_of in Lang_builtins.. *)
-let rec of_json t j =
-  let ( <: ) = Lang_types.( <: ) in
-  let f x =
-    try
-      ignore (x <: t);
-      true
-    with _ -> false
-  in
+let rec of_json j =
+  let f x = try true with _ -> false in
   match j with
     | `Null when f Lang.unit_t -> Lang.unit
     | `Bool b when f Lang.bool_t -> Lang.bool b
@@ -164,15 +148,12 @@ let rec of_json t j =
     | `List l -> (
         try
           (* First, try to parse as a list. *)
-          let t = Lang.of_list_t t in
-          let l = List.map (of_json t) l in
-          Lang.list ~t l
+          let l = List.map of_json l in
+          Lang.list l
         with _ -> (
           (* Otherwise try to parse as product. *)
             match l with
-            | [j; j'] ->
-                let t, t' = Lang.of_product_t t in
-                Lang.product (of_json t j) (of_json t' j')
+            | [j; j'] -> Lang.product (of_json j) (of_json j')
             | _ -> raise Failed ) )
     | `Assoc l ->
         (* Try to convert the object to a list of pairs, dropping fields
@@ -180,17 +161,14 @@ let rec of_json t j =
          * This requires the target type to be [(string*'a)],
          * currently it won't work if it is [?T] which would be
          * obtained with of_json(default=[],...). *)
-        let lt = Lang.of_list_t t in
-        let t, t' = Lang.of_product_t lt in
-        ignore (Lang.string_t <: t);
         let l =
           List.fold_left
             (fun cur (x, y) ->
-              try Lang.product (Lang.string x) (of_json t' y) :: cur
+              try Lang.product (Lang.string x) (of_json y) :: cur
               with _ -> cur)
             [] l
         in
-        Lang.list ~t:lt l
+        Lang.list l
     | _ -> raise Failed
 
 let () =
@@ -220,7 +198,7 @@ let () =
       let s = Lang.to_string (List.assoc "" p) in
       try
         let json = Configure.JSON.from_string s in
-        of_json default.Lang.t json
+        of_json json
       with e ->
         log#info "JSON parsing failed: %s" (Printexc.to_string e);
         default)

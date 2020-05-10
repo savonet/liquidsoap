@@ -280,7 +280,8 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
+  let kind = Lang.any_with ~audio:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.alsa" ~active:true
     ( Output.proto
     @ [
@@ -300,7 +301,7 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
-    (fun p kind ->
+    (fun p ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in
       let clock_safe = e Lang.to_bool "clock_safe" in
@@ -310,11 +311,11 @@ let () =
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       if bufferize then
         ( new Alsa_out.output
@@ -328,7 +329,8 @@ let () =
           :> Source.source ))
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.alsa" ~active:true
     ( Start_stop.input_proto
     @ [
@@ -343,7 +345,7 @@ let () =
           Some "Alsa device to use" );
       ] )
     ~return_t:k ~category:Lang.Input ~descr:"Stream from an ALSA input device."
-    (fun p kind ->
+    (fun p ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in
       let clock_safe = e Lang.to_bool "clock_safe" in
@@ -352,11 +354,11 @@ let () =
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       if bufferize then
         (new Alsa_in.mic ~kind ~clock_safe device :> Source.source)

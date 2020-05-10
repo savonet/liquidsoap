@@ -180,7 +180,8 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
+  let kind = Lang.any_with ~audio:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.portaudio" ~active:true
     ( Output.proto
     @ [
@@ -196,18 +197,18 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
-    (fun p kind ->
+    (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -228,7 +229,7 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
-    (fun p kind ->
+    (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -236,11 +237,11 @@ let () =
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       ( new input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen
         :> Source.source ))

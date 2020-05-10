@@ -317,7 +317,7 @@ let output_proto ~return_t ~pipeline =
         Some "Use the dedicated GStreamer clock." );
       ( "on_error",
         Lang.fun_t [(false, "", Lang.string_t)] Lang.float_t,
-        Some (Lang.val_cst_fun [("", Lang.string_t, None)] (Lang.float 3.)),
+        Some (Lang.val_cst_fun [("", None)] (Lang.float 3.)),
         Some
           "Callback executed when an error happens. The callback receives a \
            string representation of the error that occured and returns a \
@@ -336,24 +336,23 @@ let () =
   Lang.add_operator "output.gstreamer.audio" ~active:true
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p kind ->
+    ~return_t (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
-        Lang.to_float
-          (Lang.apply ~t:Lang.unit_t on_error [("", Lang.string msg)])
+        Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       ( new output
@@ -367,24 +366,23 @@ let () =
   Lang.add_operator "output.gstreamer.video" ~active:true
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p kind ->
+    ~return_t (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
-        Lang.to_float
-          (Lang.apply ~t:Lang.unit_t on_error [("", Lang.string msg)])
+        Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       ( new output
@@ -413,7 +411,7 @@ let () =
       ] )
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
@@ -422,18 +420,17 @@ let () =
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
-        Lang.to_float
-          (Lang.apply ~t:Lang.unit_t on_error [("", Lang.string msg)])
+        Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let blocking = Lang.to_bool (List.assoc "blocking" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       ( new output
@@ -457,7 +454,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
   let on_error = List.assoc "on_error" p in
   let on_error error =
     let msg = Printexc.to_string error in
-    Lang.to_float (Lang.apply ~t:Lang.unit_t on_error [("", Lang.string msg)])
+    Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
   in
   let restart = Lang.to_bool (List.assoc "restart" p) in
   let content, has_audio, has_video =
@@ -472,9 +469,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in
-  let gen =
-    Generator.create ~log_overfull ~log:(fun x -> !rlog x) ~kind content
-  in
+  let gen = Generator.create ~log_overfull ~log:(fun x -> !rlog x) content in
   object (self)
     inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
 
@@ -657,7 +652,7 @@ let input_proto =
   [
     ( "on_error",
       Lang.fun_t [(false, "", Lang.string_t)] Lang.float_t,
-      Some (Lang.val_cst_fun [("", Lang.string_t, None)] (Lang.float 3.)),
+      Some (Lang.val_cst_fun [("", None)] (Lang.float 3.)),
       Some
         "Callback executed when an error happens. The callback receives a \
          string representation of the error that occured and returns a float. \
@@ -678,15 +673,14 @@ let input_proto =
   ]
 
 let () =
-  let return_t =
-    Lang.kind_type_of_kind_format
-      (Lang.Constrained
-         {
-           Frame.audio (* TODO: be more flexible on audio *) = Lang.Fixed 2;
-           video = Lang.Fixed 1;
-           midi = Lang.Fixed 0;
-         })
+  let kind =
+    {
+      Frame.audio (* TODO: be more flexible on audio *) = Lang.Fixed 2;
+      video = Lang.Fixed 1;
+      midi = Lang.Fixed 0;
+    }
   in
+  let return_t = Lang.kind_type_of_kind_format kind in
   let proto =
     input_proto
     @ [
@@ -706,7 +700,7 @@ let () =
   in
   Lang.add_operator "input.gstreamer.audio_video" proto ~return_t
     ~category:Lang.Input ~flags:[]
-    ~descr:"Stream audio+video from a GStreamer pipeline." (fun p kind ->
+    ~descr:"Stream audio+video from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       let audio_pipeline =
         Lang.to_string_getter (List.assoc "audio_pipeline" p)
@@ -720,7 +714,8 @@ let () =
         :> Source.source ))
 
 let () =
-  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   let proto =
     input_proto
     @ [
@@ -731,13 +726,14 @@ let () =
       ]
   in
   Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:Lang.Input
-    ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p kind ->
+    ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       ( new audio_video_input p kind ((fun () -> ""), Some pipeline, None)
         :> Source.source ))
 
 let () =
-  let return_t = Lang.kind_type_of_kind_format (Lang.video_n 1) in
+  let kind = Lang.video_n 1 in
+  let return_t = Lang.kind_type_of_kind_format kind in
   let proto =
     input_proto
     @ [
@@ -748,7 +744,7 @@ let () =
       ]
   in
   Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:Lang.Input
-    ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p kind ->
+    ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       ( new audio_video_input p kind ((fun () -> ""), None, Some pipeline)
         :> Source.source ))

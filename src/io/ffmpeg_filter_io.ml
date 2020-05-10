@@ -93,7 +93,9 @@ class audio_output ~name ~kind val_source =
   end
 
 class video_output ~name val_source =
-  let content_kind = Frame.{ audio = Zero; video = Succ Zero; midi = Zero } in
+  let content_kind =
+    Frame.{ audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
+  in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let converter =
