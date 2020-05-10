@@ -292,13 +292,6 @@ module Kind = struct
         | m, (Var _ as n) -> unify n m
         | _, _ -> raise Conflict
 
-    (*
-    let rec make = function
-      | Frame.Succ m -> Succ (make m)
-      | Frame.Zero -> Zero
-      | Frame.Variable -> fresh_var ()
-    *)
-
     let rec of_format = function
       | Fixed 0 -> Zero
       | Fixed n -> Succ (of_format (Fixed (n - 1)))
@@ -337,11 +330,6 @@ module Kind = struct
       video = f kind.Frame.video;
       midi = f kind.Frame.midi;
     }
-
-  (*
-  let make (kind : Frame.content_kind) : t =
-    map_kind Multiplicity.make kind
-  *)
 
   let of_formats kind = map_kind Multiplicity.of_format kind
 
@@ -487,7 +475,7 @@ class virtual operator ?(name = "src") kind sources =
       (* Compute the kind only once. *)
       Lazy.force
         (Lazy.from_fun (fun () ->
-             self#set_clock;
+             self#set_kind;
              let kind_string = Kind.to_string self#kind_var in
              let kind = Kind.get self#kind_var in
              self#log#info "Kind %s becomes %s" kind_string
