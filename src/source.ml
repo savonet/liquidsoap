@@ -257,6 +257,17 @@ module Kind = struct
     let fresh_var () = Var (ref None)
     let rec int = function 0 -> Zero | n -> Succ (int (n - 1))
 
+    let to_string m =
+      let rec aux = function
+        | Succ m ->
+            let n, b = aux m in
+            (n + 1, b)
+        | Zero -> (0, false)
+        | Var _ -> (0, true)
+      in
+      let n, b = aux m in
+      string_of_int n ^ if b then "+" else ""
+
     (* Remove variable pointers. *)
     let rec unvar = function
       | Succ m -> unvar m
@@ -309,6 +320,12 @@ module Kind = struct
   end
 
   type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
+
+  let to_string k =
+    Printf.sprintf "(%s,%s,%s)"
+      (Multiplicity.to_string k.Frame.audio)
+      (Multiplicity.to_string k.Frame.video)
+      (Multiplicity.to_string k.Frame.midi)
 
   let set_audio kind n = { kind with Frame.audio = Multiplicity.int n }
   let set_video kind n = { kind with Frame.video = Multiplicity.int n }
@@ -472,8 +489,10 @@ class virtual operator ?(name = "src") kind sources =
       (* Compute the kind only once. *)
       Lazy.force
         (Lazy.from_fun (fun () ->
+             let kind_string = Kind.to_string self#kind_var in
              let kind = Kind.get self#kind_var in
-             self#log#info "Kind is %s" (Frame.string_of_content_kind kind);
+             self#log#info "Kind %s becomes %s" kind_string
+               (Frame.string_of_content_kind kind);
              kind))
 
     method private set_kind =

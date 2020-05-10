@@ -622,11 +622,13 @@ let rec ( <: ) a b =
                   try (* TODO use variance info *)
                       h1 <: h2
                   with Error (a, b) ->
+                    let bt = Printexc.get_raw_backtrace () in
                     let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
-                    raise
+                    Printexc.raise_with_backtrace
                       (Error
                          ( `Constr (c1.name, pre @ [(v, a)] @ post),
                            `Constr (c1.name, pre @ [(v, b)] @ post) ))
+                      bt
                 end;
                 aux ((v, `Ellipsis) :: pre) t1 t2
             | [], [] -> ()
