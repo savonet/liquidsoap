@@ -127,7 +127,8 @@ class merge_tracks ~kind source =
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "sequence"
     [
       ( "merge",
@@ -144,14 +145,15 @@ let () =
       "Play only one track of every successive source, except for the last one \
        which is played as much as available."
     ~return_t:k
-    (fun p kind ->
+    (fun p ->
       new sequence
         ~kind
         ~merge:(Lang.to_bool (List.assoc "merge" p))
         (Lang.to_source_list (List.assoc "" p)))
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "merge_tracks"
     [("", Lang.source_t k, None, None)]
     ~category:Lang.TrackProcessing
@@ -159,4 +161,4 @@ let () =
       "Merge consecutive tracks from the input source. They will be considered \
        as one big track, so `on_track()` will not trigger for example."
     ~return_t:k
-    (fun p kind -> new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))
+    (fun p -> new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))

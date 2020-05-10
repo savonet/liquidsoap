@@ -51,21 +51,22 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.video in
+  let kind = Lang.video in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.graphics" ~active:true
     (Output.proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output
     ~descr:"Display video stream using the Graphics library."
-    (fun p kind ->
+    (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       ( new output ~kind ~infallible ~autostart ~on_start ~on_stop source

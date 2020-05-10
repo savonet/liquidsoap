@@ -382,8 +382,8 @@ let new_file_output p =
 let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.file" (file_proto return_t) ~active:true ~return_t
-    ~category:Lang.Output ~descr:"Output the source stream to a file."
-    (fun p _ -> (new_file_output p :> Source.source))
+    ~category:Lang.Output ~descr:"Output the source stream to a file." (fun p ->
+      (new_file_output p :> Source.source))
 
 (** External output *)
 
@@ -427,5 +427,5 @@ let () =
   Lang.add_operator "output.external" ~active:true
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:Lang.Output
-    ~descr:"Send the stream to a process' standard input." (fun p _ ->
+    ~descr:"Send the stream to a process' standard input." (fun p ->
       (new external_output p :> Source.source))

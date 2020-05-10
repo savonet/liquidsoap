@@ -64,7 +64,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
     Process_handler.really_write header push;
     `Continue
   in
-  let abg = Generator.create ~log ~kind ~log_overfull `Audio in
+  let abg = Generator.create ~log ~log_overfull `Audio in
   let mutex = Mutex.create () in
   let replay_pending = ref [] in
   let next_stop = ref `Nothing in
@@ -271,76 +271,74 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         ()
   end
 
-let return_t = Lang.kind_type_of_kind_format Lang.audio_any
-
-let proto =
-  [
-    ("process", Lang.string_t, None, Some "Process used to pipe data to.");
-    ( "replay_delay",
-      Lang.float_t,
-      Some (Lang.float (-1.)),
-      Some
-        "Replay track marks and metadata from the input source on the output \
-         after a given delay. If negative (default) close and flush the \
-         process on each track and metadata to get an exact timing." );
-    ( "data_length",
-      Lang.int_t,
-      Some (Lang.int (-1)),
-      Some
-        "Length passed in the WAV data chunk. Data is streamed so no the \
-         consuming program should process it as it comes. Some program operate \
-         better when this value is set to `0`, some other when it is set to \
-         the maximum length allowed by the WAV specs. Use any negative value \
-         to set to maximum length." );
-    ( "buffer",
-      Lang.float_t,
-      Some (Lang.float 1.),
-      Some "Duration of the pre-buffered data." );
-    ( "max",
-      Lang.float_t,
-      Some (Lang.float 10.),
-      Some "Maximum duration of the buffered data." );
-    ( "log_overfull",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Log when the source's buffer is overfull." );
-    ( "restart",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Restart process when exited." );
-    ( "restart_on_error",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Restart process when exited with error." );
-    ("", Lang.source_t return_t, None, None);
-  ]
-
-let pipe p kind =
-  let f v = List.assoc v p in
-  let ( process,
-        replay_delay,
-        data_len,
-        bufferize,
-        max,
-        log_overfull,
-        restart,
-        restart_on_error,
-        src ) =
-    ( Lang.to_string (f "process"),
-      Lang.to_float (f "replay_delay"),
-      Lang.to_int (f "data_length"),
-      Lang.to_float (f "buffer"),
-      Lang.to_float (f "max"),
-      Lang.to_bool (f "log_overfull"),
-      Lang.to_bool (f "restart"),
-      Lang.to_bool (f "restart_on_error"),
-      Lang.to_source (f "") )
-  in
-  ( new pipe
-      ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
-      ~restart_on_error ~process src
-    :> source )
-
 let () =
-  Lang.add_operator "pipe" proto ~return_t ~category:Lang.SoundProcessing
-    ~descr:"Process audio signal through a given process stdin/stdout." pipe
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "pipe"
+    [
+      ("process", Lang.string_t, None, Some "Process used to pipe data to.");
+      ( "replay_delay",
+        Lang.float_t,
+        Some (Lang.float (-1.)),
+        Some
+          "Replay track marks and metadata from the input source on the output \
+           after a given delay. If negative (default) close and flush the \
+           process on each track and metadata to get an exact timing." );
+      ( "data_length",
+        Lang.int_t,
+        Some (Lang.int (-1)),
+        Some
+          "Length passed in the WAV data chunk. Data is streamed so no the \
+           consuming program should process it as it comes. Some program \
+           operate better when this value is set to `0`, some other when it is \
+           set to the maximum length allowed by the WAV specs. Use any \
+           negative value to set to maximum length." );
+      ( "buffer",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Duration of the pre-buffered data." );
+      ( "max",
+        Lang.float_t,
+        Some (Lang.float 10.),
+        Some "Maximum duration of the buffered data." );
+      ( "log_overfull",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Log when the source's buffer is overfull." );
+      ( "restart",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Restart process when exited." );
+      ( "restart_on_error",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Restart process when exited with error." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.SoundProcessing
+    ~descr:"Process audio signal through a given process stdin/stdout."
+    (fun p ->
+      let f v = List.assoc v p in
+      let ( process,
+            replay_delay,
+            data_len,
+            bufferize,
+            max,
+            log_overfull,
+            restart,
+            restart_on_error,
+            src ) =
+        ( Lang.to_string (f "process"),
+          Lang.to_float (f "replay_delay"),
+          Lang.to_int (f "data_length"),
+          Lang.to_float (f "buffer"),
+          Lang.to_float (f "max"),
+          Lang.to_bool (f "log_overfull"),
+          Lang.to_bool (f "restart"),
+          Lang.to_bool (f "restart_on_error"),
+          Lang.to_source (f "") )
+      in
+      ( new pipe
+          ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
+          ~restart_on_error ~process src
+        :> source ))

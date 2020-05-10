@@ -380,8 +380,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                   ("", Lang.source b);
                 ]
               in
-              let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-              Lang.to_source (Lang.apply ~t transition params)
+              Lang.to_source (Lang.apply transition params)
             in
             let compound =
               self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
@@ -426,7 +425,8 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
+  let kind = Lang.any_with ~audio:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "cross"
     [
       ( "duration",
@@ -494,7 +494,7 @@ let () =
        track with the beginning of the next track, using a transition function \
        depending on the relative power of the signal before and after the end \
        of track."
-    (fun p kind ->
+    (fun p ->
       let duration = Lang.to_float (List.assoc "duration" p) in
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)

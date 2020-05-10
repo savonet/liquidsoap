@@ -27,9 +27,7 @@ open Alsa
 class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
   =
   let buffer_length = AFrame.size () in
-  let buffer_chans = AFrame.channels_of_kind kind in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
-  let blank () = Audio.make buffer_chans buffer_length 0. in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
@@ -40,7 +38,18 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.alsa" source start as super
 
-    inherit [Frame.audio_t array] IoRing.output ~nb_blocks ~blank as ioring
+    inherit [Frame.audio_t array] IoRing.output ~nb_blocks as ioring
+
+    val mutable initialized = false
+
+    method kind =
+      if not initialized then (
+        initialized <- true;
+        let blank () = Audio.make self#channels buffer_length 0. in
+        ioring#init blank );
+      super#kind
+
+    method channels = AFrame.channels_of_kind self#kind
 
     method private set_clock =
       super#set_clock;
@@ -54,7 +63,11 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
 
     val mutable alsa_rate = samples_per_second
 
-    val samplerate_converter = Audio_converter.Samplerate.create buffer_chans
+    method samplerate_converter =
+      (* Defer the creation of the converter until we know the kind and thus the number of channels. *)
+      Lazy.force
+        (Lazy.from_fun (fun () ->
+             Audio_converter.Samplerate.create self#channels))
 
     val mutable alsa_write =
       fun pcm buf ofs len -> Pcm.writen_float_ba pcm (Audio.sub buf ofs len)
@@ -80,7 +93,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
                       let sbuf = Bytes.create (2 * len * Array.length buf) in
                       Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                       Pcm.writei pcm sbuf 0 len) );
-              Pcm.set_channels dev params buffer_chans;
+              Pcm.set_channels dev params self#channels;
               alsa_rate <-
                 Pcm.set_rate_near dev params samples_per_second Dir_eq;
 
@@ -137,7 +150,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
       let buf = AFrame.content buf in
       let ratio = float alsa_rate /. float samples_per_second in
       let buf =
-        Audio_converter.Samplerate.resample samplerate_converter ratio buf
+        Audio_converter.Samplerate.resample self#samplerate_converter ratio buf
       in
       let f data = Audio.blit buf data in
       ioring#put_block f

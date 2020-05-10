@@ -160,7 +160,8 @@ class fir ~kind (source : source) freq beta numcoeffs =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.fir"
     [
       ( "frequency",
@@ -174,7 +175,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low-pass FIR filter."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, beta, num, src =
         ( Lang.to_float (f "frequency"),

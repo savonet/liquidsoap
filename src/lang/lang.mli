@@ -277,9 +277,8 @@ val product : value -> value -> value
 val tuple : value list -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
-    the label, type and optional values. *)
-val val_fun :
-  (string * string * t * value option) list -> (env -> value) -> value
+    the label and optional values. *)
+val val_fun : (string * string * value option) list -> (env -> value) -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure

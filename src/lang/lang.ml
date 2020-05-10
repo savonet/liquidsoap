@@ -158,7 +158,7 @@ let source s = mk (Source s)
 let request r = mk (Request r)
 
 let val_fun p f =
-  let p' = List.map (fun (l, x, _, d) -> (l, x, d)) p in
+  let p' = List.map (fun (l, x, d) -> (l, x, d)) p in
   mk (FFI (p', [], f))
 
 let val_cst_fun p c =

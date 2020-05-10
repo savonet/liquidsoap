@@ -74,6 +74,10 @@ module Kind : sig
   type formats = (format, format, format) Frame.fields
   type t
 
+  val set_audio : t -> int -> t
+  val set_video : t -> int -> t
+  val set_midi : t -> int -> t
+
   exception Conflict
 
   val unify : t -> t -> unit

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+(* TODO: restore with proper kind unification... *)
+(*
 (** Muxing takes a main and an auxiliary source.
   * The auxiliary source streams only one kind of content,
   * the main has no channel of that kind, anything for the others. *)
@@ -168,7 +170,7 @@ let () =
         ("video", Lang.source_t aux_t, None, None);
         ("", Lang.source_t main_t, None, None);
       ] )
-    (fun p kind ->
+    (fun p ->
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
@@ -178,7 +180,7 @@ let () =
       let aux_source = List.assoc "video" p in
       let aux_content = `Video in
       let aux_kind = Frame.{ kind with audio = Zero; midi = Zero } in
-      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind ~main_source
+      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind:Lang.any ~main_source
         ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind ())
 
 let () =
@@ -196,7 +198,7 @@ let () =
         ("audio", Lang.source_t aux_t, None, None);
         ("", Lang.source_t main_t, None, None);
       ] )
-    (fun p kind ->
+    (fun p ->
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
@@ -206,5 +208,6 @@ let () =
       let aux_source = List.assoc "audio" p in
       let aux_content = `Audio in
       let aux_kind = Frame.{ kind with video = Zero; midi = Zero } in
-      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind ~main_source
+      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind:Lang.any ~main_source
         ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind ())
+*)

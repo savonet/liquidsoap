@@ -57,15 +57,19 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   (* Compute a wave length from a frequency. *)
   let samples_per_second = float (Frame.audio_of_seconds 1.) in
   let wl f = int_of_float (samples_per_second /. f) in
-  let channels = AFrame.channels_of_kind kind in
   let length = Frame.audio_of_seconds length in
   object (self)
     inherit operator ~name:"pitch" kind [source]
 
-    val ring = Ringbuffer.create channels (2 * length)
+    method channels = AFrame.channels_of_kind self#kind
+
+    method ring : Ringbuffer.t =
+      Lazy.force
+        (Lazy.from_fun (fun () -> Ringbuffer.create self#channels (2 * length)))
 
     (** Array used to get data to analyze. *)
-    val databuf = Audio.create channels length
+    method databuf =
+      Lazy.force (Lazy.from_fun (fun () -> Audio.create self#channels length))
 
     val mutable computations = -1
 
@@ -84,6 +88,8 @@ class pitch ~kind every length freq_min freq_max (source : source) =
     method private get_frame buf =
       source#get buf;
       let buf = AFrame.content buf in
+      let ring = self#ring in
+      let databuf = self#databuf in
       Ringbuffer.write ring buf;
       if Ringbuffer.read_space ring > length then
         Ringbuffer.read_advance ring (Ringbuffer.read_space ring - length);
@@ -108,7 +114,8 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "pitch"
     [
       ( "length",
@@ -125,10 +132,10 @@ let () =
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Compute the pitch of a sound."
     ~flags:[Lang.Hidden; Lang.Experimental]
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let length = Lang.to_float (f "length") in
       let freq_min = Lang.to_float (f "freq_min") in
       let freq_max = Lang.to_float (f "freq_max") in
       let src = Lang.to_source (f "") in
-      new pitch ~kind 10 length freq_min freq_max src)
+      (new pitch ~kind 10 length freq_min freq_max src :> Source.source))

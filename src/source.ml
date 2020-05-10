@@ -231,13 +231,18 @@ let rec forget var subclock =
 
 (** Kind with variables in order to unify kinds. *)
 module Kind = struct
+  (* These two types should be only in Frame eventually. Not doing this now in
+     order to minimize the diff. *)
+
   (** Description of how many of a channel type does an operator want. *)
   type format = Frame.multiplicity =
     | Fixed of int  (** exactly [n] channels *)
     | At_least of int  (** at least [n] channels *)
 
   (** Formats for every channels. *)
-  type formats = (format, format, format) Frame.fields
+  type formats = Frame.content_kind
+
+  (* = (format, format, format) Frame.fields *)
 
   exception Conflict
 
@@ -304,6 +309,10 @@ module Kind = struct
   end
 
   type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
+
+  let set_audio kind n = { kind with Frame.audio = Multiplicity.int n }
+  let set_video kind n = { kind with Frame.video = Multiplicity.int n }
+  let set_midi kind n = { kind with Frame.midi = Multiplicity.int n }
 
   let map_kind f kind =
     {
@@ -459,7 +468,13 @@ class virtual operator ?(name = "src") kind sources =
        sources by default. *)
     method kind_var = Kind.of_formats kind
 
-    method kind = Kind.get self#kind_var
+    method kind =
+      (* Compute the kind only once. *)
+      Lazy.force
+        (Lazy.from_fun (fun () ->
+             let kind = Kind.get self#kind_var in
+             self#log#info "Kind is %s" (Frame.string_of_content_kind kind);
+             kind))
 
     method private set_kind =
       List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources

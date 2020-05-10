@@ -147,12 +147,11 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
 let () =
   (* TODO: add on midi chans also. *)
   let kind =
-    Lang.Constrained
-      {
-        Frame.audio = Lang.At_least 0;
-        video = Lang.At_least 0;
-        midi = Lang.Fixed 0;
-      }
+    {
+      Frame.audio = Lang.At_least 0;
+      video = Lang.At_least 0;
+      midi = Lang.Fixed 0;
+    }
   in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "add" ~category:Lang.SoundProcessing
@@ -163,14 +162,14 @@ let () =
       ("normalize", Lang.bool_t, Some (Lang.bool true), None);
       ( "weights",
         Lang.list_t Lang.float_t,
-        Some (Lang.list ~t:Lang.int_t []),
+        Some (Lang.list []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
            for the homogeneous distribution." );
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
     ~return_t:kind_t
-    (fun p kind ->
+    (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
@@ -217,7 +216,7 @@ let () =
       ("normalize", Lang.bool_t, Some (Lang.bool true), None);
       ( "weights",
         Lang.list_t Lang.float_t,
-        Some (Lang.list ~t:Lang.int_t []),
+        Some (Lang.list []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
            for the homogeneous distribution." );
@@ -228,7 +227,7 @@ let () =
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
     ~return_t:kind_t
-    (fun p kind ->
+    (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
