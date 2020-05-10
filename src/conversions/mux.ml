@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-(* TODO: restore with proper kind unification... *)
-(*
 (** Muxing takes a main and an auxiliary source.
   * The auxiliary source streams only one kind of content,
   * the main has no channel of that kind, anything for the others. *)
@@ -156,7 +154,8 @@ let base_proto =
   ]
 
 let () =
-  let out_t = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let out_t = Lang.kind_type_of_kind_format kind in
   let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
   let main_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi in
   let aux_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi:Lang.zero_t in
@@ -176,15 +175,17 @@ let () =
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Audio in
-      let main_kind = Frame.{ kind with video = Zero; midi = Zero } in
+      let main_kind = Frame.{ kind with video = Fixed 0; midi = Fixed 0 } in
       let aux_source = List.assoc "video" p in
       let aux_content = `Video in
-      let aux_kind = Frame.{ kind with audio = Zero; midi = Zero } in
-      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind:Lang.any ~main_source
-        ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind ())
+      let aux_kind = Frame.{ kind with audio = Fixed 0; midi = Fixed 0 } in
+      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind:Lang.any
+        ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
+        ())
 
 let () =
-  let out_t = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let out_t = Lang.kind_type_of_kind_format kind in
   let { Frame.audio; video; midi } = Lang.of_frame_kind_t out_t in
   let main_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi in
   let aux_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi:Lang.zero_t in
@@ -204,10 +205,10 @@ let () =
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Video in
-      let main_kind = Frame.{ kind with audio = Zero; midi = Zero } in
+      let main_kind = Frame.{ kind with audio = Fixed 0; midi = Fixed 0 } in
       let aux_source = List.assoc "audio" p in
       let aux_content = `Audio in
-      let aux_kind = Frame.{ kind with video = Zero; midi = Zero } in
-      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind:Lang.any ~main_source
-        ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind ())
-*)
+      let aux_kind = Frame.{ kind with video = Fixed 0; midi = Fixed 0 } in
+      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind:Lang.any
+        ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
+        ())
