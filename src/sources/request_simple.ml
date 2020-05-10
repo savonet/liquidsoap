@@ -30,17 +30,29 @@ class unqueued ~kind r =
   object (self)
     inherit Request_source.unqueued ~name:"single" ~kind as super
 
+    val mutable request = None
+
+    method request =
+      match request with
+        | Some request -> request
+        | None ->
+            let r = r self#kind in
+            request <- Some r;
+            r
+
     method wake_up x =
-      let uri = Request.initial_uri r in
+      let request = self#request in
+      let uri = Request.initial_uri request in
       self#log#important "%S is static, resolving once for all..." uri;
-      if Request.Resolved <> Request.resolve r 60. then raise (Invalid_URI uri);
-      let filename = Utils.get_some (Request.get_filename r) in
+      if Request.Resolved <> Request.resolve request 60. then
+        raise (Invalid_URI uri);
+      let filename = Utils.get_some (Request.get_filename request) in
       if String.length filename < 15 then self#set_id filename;
       super#wake_up x
 
     method stype = Infallible
 
-    method get_next_file = Some r
+    method get_next_file = Some self#request
   end
 
 class queued ~kind uri length default_duration timeout conservative =
@@ -79,7 +91,7 @@ let () =
       let l, d, t, c = extract_queued_params p in
       let uri = Lang.to_string val_uri in
       if (not fallible) && Request.is_static uri then (
-        let r = Request.create ~kind ~persistent:true uri in
+        let r kind = Request.create ~kind ~persistent:true uri in
         (new unqueued ~kind r :> source) )
       else (new queued uri ~kind l d t c :> source))
 
@@ -94,7 +106,7 @@ let () =
     [("", Lang.request_t t, None, None)]
     ~return_t:t
     (fun p ->
-      let r = Lang.to_request (List.assoc "" p) in
+      let r _ = Lang.to_request (List.assoc "" p) in
       (new unqueued ~kind r :> source))
 
 class dynamic ~kind ~retry_delay ~available (f : Lang.value) length

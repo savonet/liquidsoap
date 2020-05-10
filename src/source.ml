@@ -250,6 +250,7 @@ module Kind = struct
     type t = Var of t var | Zero | Succ of t
 
     let fresh_var () = Var (ref None)
+    let rec int = function 0 -> Zero | n -> Succ (int (n - 1))
 
     (* Remove variable pointers. *)
     let rec unvar = function
@@ -288,12 +289,18 @@ module Kind = struct
       | At_least 0 -> fresh_var ()
       | At_least n -> Succ (of_format (At_least (n - 1)))
 
+    let rec close default m =
+      match unvar m with
+        | Succ m -> close (default - 1) m
+        | Zero -> ()
+        | Var x -> x := Some (int (max 0 default))
+
     (** Compute a multiplicity from a multiplicity with variables. *)
     let rec get default m =
       match unvar m with
         | Succ m -> Frame.Succ (get default m)
         | Zero -> Frame.Zero
-        | Var _ -> Frame.Any
+        | Var _ -> failwith "TODO?"
   end
 
   type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
@@ -312,14 +319,17 @@ module Kind = struct
 
   let of_formats kind = map_kind Multiplicity.of_format kind
 
-  (** Compute a multiplicity from a multiplicity with variables. *)
-  let get (kind : t) : Frame.content_kind =
+  (** Compute a multiplicity from a multiplicity with variables. The [close]
+      parameter indicates whether we should fix the value of variables. *)
+  let get ?(close = true) (kind : t) : Frame.content_kind =
+    let get default m =
+      if close then Multiplicity.close default m;
+      Multiplicity.get default m
+    in
     {
-      Frame.audio =
-        Multiplicity.get (Lazy.force Frame.audio_channels) kind.Frame.audio;
-      video =
-        Multiplicity.get (Lazy.force Frame.video_channels) kind.Frame.video;
-      midi = Multiplicity.get (Lazy.force Frame.midi_channels) kind.Frame.midi;
+      Frame.audio = get (Lazy.force Frame.audio_channels) kind.Frame.audio;
+      video = get (Lazy.force Frame.video_channels) kind.Frame.video;
+      midi = get (Lazy.force Frame.midi_channels) kind.Frame.midi;
     }
 
   let unify k k' =

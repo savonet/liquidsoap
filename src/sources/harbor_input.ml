@@ -40,7 +40,7 @@ module Make (Harbor : T) = struct
     let log_ref = ref (fun _ -> ()) in
     let log x = !log_ref x in
     let abg =
-      Generator.create ~log ~kind ~log_overfull ~overfull:(`Drop_old max_ticks)
+      Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
         `Undefined
     in
     object (self)
@@ -203,7 +203,7 @@ module Make (Harbor : T) = struct
           with Not_found -> mime
         in
         Generator.set_mode generator `Undefined;
-        match Decoder.get_stream_decoder mime kind with
+        match Decoder.get_stream_decoder mime self#kind with
           | Some d ->
               create_decoder <- d;
               mime_type <- Some mime
@@ -286,7 +286,7 @@ module Make (Harbor : T) = struct
           Some "Timeout for source connectionn." );
         ( "on_connect",
           Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
-          Some (Lang.val_cst_fun [("", Lang.metadata_t, None)] Lang.unit),
+          Some (Lang.val_cst_fun [("", None)] Lang.unit),
           Some
             "Function to execute when a source is connected. Its receives the \
              list of headers, of the form: (<label>,<value>). All labels are \
@@ -333,10 +333,7 @@ module Make (Harbor : T) = struct
           Lang.fun_t
             [(false, "", Lang.string_t); (false, "", Lang.string_t)]
             Lang.bool_t,
-          Some
-            (Lang.val_cst_fun
-               [("", Lang.string_t, None); ("", Lang.string_t, None)]
-               (Lang.bool false)),
+          Some (Lang.val_cst_fun [("", None); ("", None)] (Lang.bool false)),
           Some
             "Authentication function. `f(login,password)` returns `true` if \
              the user should be granted access for this login. Override any \
@@ -362,7 +359,7 @@ module Make (Harbor : T) = struct
           Some "Log when the source's buffer is overfull." );
         ("", Lang.string_t, None, Some "Mountpoint to look for.");
       ]
-      (fun p kind ->
+      (fun p ->
         let mountpoint = Lang.to_string (List.assoc "" p) in
         let mountpoint =
           if mountpoint <> "" && mountpoint.[0] = '/' then mountpoint
@@ -427,7 +424,7 @@ module Make (Harbor : T) = struct
           in
           if not (trivially_false auth_function) then
             Lang.to_bool
-              (Lang.apply ~t:Lang.bool_t auth_function
+              (Lang.apply auth_function
                  [("", Lang.string user); ("", Lang.string password)])
           else default_login
         in
@@ -455,15 +452,13 @@ module Make (Harbor : T) = struct
               (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
               l
           in
-          let arg =
-            Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
-          in
-          ignore
-            (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) [("", arg)])
+          let arg = Lang.list l in
+          ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
         in
         let on_disconnect () =
-          ignore (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+          ignore (Lang.apply (List.assoc "on_disconnect" p) [])
         in
+        let kind = Lang.any in
         ( new http_input_server
             ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
             ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
