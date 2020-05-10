@@ -63,11 +63,16 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
 
     val mutable alsa_rate = samples_per_second
 
+    val mutable samplerate_converter = None
+
     method samplerate_converter =
       (* Defer the creation of the converter until we know the kind and thus the number of channels. *)
-      Lazy.force
-        (Lazy.from_fun (fun () ->
-             Audio_converter.Samplerate.create self#channels))
+      match samplerate_converter with
+        | Some samplerate_converter -> samplerate_converter
+        | None ->
+            let sc = Audio_converter.Samplerate.create self#channels in
+            samplerate_converter <- Some sc;
+            sc
 
     val mutable alsa_write =
       fun pcm buf ofs len -> Pcm.writen_float_ba pcm (Audio.sub buf ofs len)

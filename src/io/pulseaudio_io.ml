@@ -52,7 +52,6 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
   let val_source = List.assoc "" p in
-  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
   object (self)
@@ -71,12 +70,14 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     val mutable stream = None
 
+    method channels = AFrame.channels_of_kind self#kind
+
     method open_device =
       let ss =
         {
           sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = channels;
+          sample_chans = self#channels;
         }
       in
       stream <-

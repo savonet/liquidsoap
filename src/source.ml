@@ -471,16 +471,19 @@ class virtual operator ?(name = "src") kind sources =
        sources by default. *)
     method kind_var = Kind.of_formats kind
 
+    val mutable kind = None
+
     method kind =
-      (* Compute the kind only once. *)
-      Lazy.force
-        (Lazy.from_fun (fun () ->
-             self#set_kind;
-             let kind_string = Kind.to_string self#kind_var in
-             let kind = Kind.get self#kind_var in
-             self#log#info "Kind %s becomes %s" kind_string
-               (Frame.string_of_content_kind kind);
-             kind))
+      match kind with
+        | Some kind -> kind
+        | None ->
+            self#set_kind;
+            let kind_string = Kind.to_string self#kind_var in
+            let k = Kind.get self#kind_var in
+            self#log#info "Kind %s becomes %s" kind_string
+              (Frame.string_of_content_kind k);
+            kind <- Some k;
+            k
 
     method private set_kind =
       List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources
