@@ -56,32 +56,38 @@ let rec to_json_compact v =
 let rec to_json_pp f v =
   match v.Lang.value with
     | Lang.List l -> (
-        try
-          (* Convert (string*'a) list to object *)
-          (* TODO: check that we have a string *)
-          let print f l =
-            let len = List.length l in
-            let f pos x =
-              let x, y = Lang.to_product x in
-              if pos != len - 1 then
-                Format.fprintf f "%a: %a,@;<1 0>" to_json_pp x to_json_pp y
-              else Format.fprintf f "%a: %a" to_json_pp x to_json_pp y;
-              pos + 1
-            in
-            ignore (List.fold_left f 0 l)
-          in
-          Format.fprintf f "@[{@;<1 1>@[%a@]@;<1 0>}@]" print l
-        with _ ->
-          let print f l =
-            let len = List.length l in
-            let f pos x =
-              if pos < len - 1 then Format.fprintf f "%a,@;<1 0>" to_json_pp x
-              else Format.fprintf f "%a" to_json_pp x;
-              pos + 1
-            in
-            ignore (List.fold_left f 0 l)
-          in
-          Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l )
+        match l with
+          | {
+              Lang.value =
+                Lang.Tuple
+                  [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; _];
+            }
+            :: _ ->
+              (* Convert (string*'a) list to object *)
+              let print f l =
+                let len = List.length l in
+                let f pos x =
+                  let x, y = Lang.to_product x in
+                  if pos != len - 1 then
+                    Format.fprintf f "%a: %a,@;<1 0>" to_json_pp x to_json_pp y
+                  else Format.fprintf f "%a: %a" to_json_pp x to_json_pp y;
+                  pos + 1
+                in
+                ignore (List.fold_left f 0 l)
+              in
+              Format.fprintf f "@[{@;<1 1>@[%a@]@;<1 0>}@]" print l
+          | _ ->
+              let print f l =
+                let len = List.length l in
+                let f pos x =
+                  if pos < len - 1 then
+                    Format.fprintf f "%a,@;<1 0>" to_json_pp x
+                  else Format.fprintf f "%a" to_json_pp x;
+                  pos + 1
+                in
+                ignore (List.fold_left f 0 l)
+              in
+              Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l )
     | Lang.Tuple l ->
         Format.fprintf f "@[[@;<1 1>@[";
         let rec aux = function
