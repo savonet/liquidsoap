@@ -119,7 +119,8 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "normalize"
     [
       ( "target",
@@ -166,7 +167,7 @@ let () =
        far as creating saturation in some extreme cases. If possible, consider \
        using some track-based normalization techniques such as those based on \
        replay gain. See the documentation for more details."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let target, window, kup, kdown, threshold, gmin, gmax, src =
         ( Lang.to_float_getter (f "target"),

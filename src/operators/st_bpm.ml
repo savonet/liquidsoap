@@ -61,7 +61,8 @@ class bpm ~kind (source : source) cb every =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "bpm"
     [
       ( "every",
@@ -76,9 +77,9 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Detect the BPM."
     ~flags:[]
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let every = Lang.to_float (f "every") in
-      let cb = Lang.to_fun (Lang.assoc "" 1 p) ~t:Lang.unit_t in
+      let cb = Lang.to_fun (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       new bpm ~kind s cb every)

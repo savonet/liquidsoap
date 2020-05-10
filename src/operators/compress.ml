@@ -67,8 +67,8 @@ class compress ~kind (source : source) attack release threshold ratio knee
       if AFrame.is_partial buf then effect#reset
   end
 
-(* The five first variables ('a,'b...) are used for getters. *)
-let k = Lang.kind_type_of_kind_format Lang.any
+let kind = Lang.any
+let k = Lang.kind_type_of_kind_format kind
 
 let proto =
   [
@@ -99,7 +99,7 @@ let proto =
     ("", Lang.source_t k, None, None);
   ]
 
-let compress p kind =
+let compress p =
   let f v = List.assoc v p in
   let attack, release, threshold, ratio, knee, rmsw, gain, src =
     ( Lang.to_float_getter (f "attack"),

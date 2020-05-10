@@ -53,12 +53,12 @@ class dyn ~kind f =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
         (Tutils.mutexify source_lock (fun () ->
-             let kind = Lang.kind_type_of_frame_kind kind in
-             let l = Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [] in
+             let l = Lang.apply f [] in
              let l = Lang.to_source_list l in
              match l with
                | [] -> ()
                | [s] ->
+                   Source.Kind.unify s#kind_var self#kind_var;
                    Clock.unify s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;
@@ -101,9 +101,10 @@ class dyn ~kind f =
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "source.dynamic"
     [("", Lang.fun_t [] (Lang.list_t (Lang.source_t k)), None, None)]
     ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
-    (fun p kind -> new dyn ~kind (List.assoc "" p))
+    (fun p -> new dyn ~kind (List.assoc "" p))

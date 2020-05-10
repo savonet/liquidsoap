@@ -71,7 +71,8 @@ class amplify ~kind (source : source) override_field coeff =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "amplify"
     [
       ("", Lang.float_getter_t (), None, Some "Multiplicative factor.");
@@ -90,7 +91,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Multiply the amplitude of the signal."
-    (fun p kind ->
+    (fun p ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       let o = Lang.to_string (Lang.assoc "override" 1 p) in

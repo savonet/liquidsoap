@@ -258,7 +258,8 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
   end
 
 let () =
-  let return_t = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "cue_cut" ~return_t ~category:Lang.TrackProcessing
     ~descr:
       "Start track after a cue in point and stop it at cue out point. The cue \
@@ -274,7 +275,7 @@ let () =
         Some "Metadata for cue out points." );
       ("", Lang.source_t return_t, None, None);
     ]
-    (fun p kind ->
+    (fun p ->
       let m_cue_in = Lang.to_string (Lang.assoc "cue_in_metadata" 1 p) in
       let m_cue_out = Lang.to_string (Lang.assoc "cue_out_metadata" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 1 p) in

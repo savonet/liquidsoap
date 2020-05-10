@@ -92,8 +92,8 @@ class window ~kind mode duration source =
         done )
   end
 
-let declare mode suffix format fun_ret_t f_ans =
-  let k = Lang.kind_type_of_kind_format format in
+let declare mode suffix kind fun_ret_t f_ans =
+  let k = Lang.kind_type_of_kind_format kind in
   let return_t = Lang.product_t (Lang.fun_t [] fun_ret_t) (Lang.source_t k) in
   let name = match mode with RMS -> "rms" | Peak -> "peak" in
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
@@ -121,16 +121,14 @@ let declare mode suffix format fun_ret_t f_ans =
       ("", Lang.source_t k, None, None);
     ]
     return_t
-    (fun p t ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let id = Lang.to_string (f "id") in
       let duration = Lang.to_float_getter (f "duration") in
-      let _, t = Lang.of_product_t t in
-      let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new window ~kind mode duration src in
       if id <> "" then s#set_id id;
-      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun _ _ -> f_ans s#value) in
+      let f = Lang.val_fun [] (fun _ -> f_ans s#value) in
       Lang.product f (Lang.source (s :> Source.source)))
 
 let () =

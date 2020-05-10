@@ -122,11 +122,12 @@ class mixing ~kind source =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "mix"
     [("", Lang.list_t (Lang.source_t k), None, None)]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Mixing table controllable via the telnet interface."
-    (fun p kind ->
+    (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       new mixing ~kind (Array.of_list sources))

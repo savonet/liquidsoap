@@ -162,7 +162,8 @@ class resample ~kind ~active ~ratio (source : source) =
   end
 
 let () =
-  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "stretch" (* TODO better name *)
     [
       ( "ratio",
@@ -184,7 +185,7 @@ let () =
     ~descr:
       "Slow down or accelerate an audio stream by stretching (sounds lower) or \
        squeezing it (sounds higher)."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in

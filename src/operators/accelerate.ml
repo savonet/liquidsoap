@@ -99,7 +99,8 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
   end
 
 let () =
-  let return_t = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "accelerate"
     [
       ( "ratio",
@@ -116,7 +117,7 @@ let () =
     ~descr:
       "Accelerate a stream by dropping frames. This is useful for testing \
        scripts."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in

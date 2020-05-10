@@ -57,7 +57,8 @@ class echo ~kind (source : source) delay feedback ping_pong =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "echo"
     [
       ( "delay",
@@ -75,7 +76,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Add echo."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let duration, feedback, pp, src =
         ( Lang.to_float_getter (f "delay"),

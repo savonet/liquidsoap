@@ -76,7 +76,8 @@ class flanger ~kind (source : source) delay freq feedback phase =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "flanger"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
@@ -95,7 +96,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Flanger effect."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let duration, freq, feedback, phase, src =
         ( Lang.to_float (f "delay"),

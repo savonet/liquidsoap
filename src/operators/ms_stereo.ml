@@ -64,12 +64,13 @@ class msstereo ~kind (source : source) mode width =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_stereo in
+  let kind = Lang.audio_stereo in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "stereo.ms.encode"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
-    (fun p kind ->
+    (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       new msstereo ~kind s Encode 0.);
   Lang.add_operator "stereo.ms.decode"
@@ -82,7 +83,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
-    (fun p kind ->
+    (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let w = Lang.to_float (Lang.assoc "width" 1 p) in
       new msstereo ~kind s Decode w)

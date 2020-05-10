@@ -100,7 +100,8 @@ class soundtouch ~kind (source : source) rate tempo pitch =
 
 let () =
   (* TODO: could we keep the video in some cases? *)
-  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "soundtouch"
     [
       ("rate", Lang.float_getter_t (), Some (Lang.float 1.0), None);
@@ -111,7 +112,7 @@ let () =
     ~category:Lang.SoundProcessing ~return_t
     ~descr:"Change the rate, the tempo or the pitch of the sound."
     ~flags:[Lang.Experimental]
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let rate = Lang.to_float_getter (f "rate") in
       let tempo = Lang.to_float_getter (f "tempo") in

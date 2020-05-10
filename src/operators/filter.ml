@@ -89,7 +89,8 @@ class filter ~kind (source : source) freq q wet mode =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter"
     [
       ("freq", Lang.float_getter_t (), None, None);
@@ -111,7 +112,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Perform several kinds of filtering on the signal"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, q, wet, mode, src =
         ( Lang.to_float_getter (f "freq"),
