@@ -257,22 +257,22 @@ module Kind = struct
     let fresh_var () = Var (ref None)
     let rec int = function 0 -> Zero | n -> Succ (int (n - 1))
 
+    (* Remove variable pointers. *)
+    let rec unvar = function
+      | Var v as m -> ( match !v with Some m -> unvar m | None -> m )
+      | (Succ _ | Zero) as m -> m
+
     let to_string m =
-      let rec aux = function
-        | Succ m ->
-            let n, b = aux m in
-            (n + 1, b)
-        | Zero -> (0, false)
-        | Var _ -> (0, true)
+      let rec aux m =
+        match unvar m with
+          | Succ m ->
+              let n, b = aux m in
+              (n + 1, b)
+          | Zero -> (0, false)
+          | Var _ -> (0, true)
       in
       let n, b = aux m in
       string_of_int n ^ if b then "+" else ""
-
-    (* Remove variable pointers. *)
-    let rec unvar = function
-      | Succ m -> unvar m
-      | Zero -> Zero
-      | Var v as m -> ( match !v with Some m -> unvar m | None -> m )
 
     let rec occurs x m =
       match unvar m with
@@ -479,8 +479,6 @@ class virtual operator ?(name = "src") kind sources =
     method private set_clock =
       List.iter (fun s -> unify self#clock s#clock) sources
 
-    initializer self#set_clock
-
     (* Kinds now use the same mechanism as clocks: we unify with the children
        sources by default. *)
     method kind_var = Kind.of_formats kind
@@ -489,6 +487,7 @@ class virtual operator ?(name = "src") kind sources =
       (* Compute the kind only once. *)
       Lazy.force
         (Lazy.from_fun (fun () ->
+             self#set_clock;
              let kind_string = Kind.to_string self#kind_var in
              let kind = Kind.get self#kind_var in
              self#log#info "Kind %s becomes %s" kind_string
