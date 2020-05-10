@@ -78,7 +78,7 @@ let of_request_t t = Term.of_request_t t
 let rec t_of_mul = function
   | Frame.Fixed 0 -> zero_t
   | Frame.Fixed n -> succ_t (t_of_mul (Frame.Fixed (n - 1)))
-  | Frame.At_least 0 -> any_t
+  | Frame.At_least 0 -> univ_t ()
   | Frame.At_least n -> succ_t (t_of_mul (Frame.At_least (n - 1)))
 
 let kind_type_of_frame_kind kind =

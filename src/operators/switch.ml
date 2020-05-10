@@ -316,7 +316,7 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_frame_kind kind in
+  let return_t = Lang.kind_type_of_kind_format kind in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   Lang.add_operator "switch" ~category:Lang.TrackProcessing
     ~descr:
