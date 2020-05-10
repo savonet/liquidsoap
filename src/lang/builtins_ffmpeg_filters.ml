@@ -319,8 +319,7 @@ let () =
       (s :> Source.source))
 
 let () =
-  let kind = Lang.any in
-  let univ_t = Lang.kind_type_of_kind_format kind in
+  let univ_t = Lang.univ_t () in
   add_builtin "ffmpeg.filter.create" ~cat:Liq
     ~descr:"Configure and launch a filter graph"
     [("", Lang.fun_t [(false, "", Graph.t)] univ_t, None, None)]
