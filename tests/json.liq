@@ -1,3 +1,5 @@
+#!../src/liquidsoap ../libs/pervasives.liq
+
 # We test some ground values for json import/export.
 
 %include "test.liq"
