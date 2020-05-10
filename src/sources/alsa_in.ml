@@ -31,14 +31,23 @@ open Source
 
 class mic ~kind ~clock_safe device =
   let buffer_length = AFrame.size () in
-  let buffer_chans = AFrame.channels_of_kind kind in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
-  let blank () = Audio.make buffer_chans buffer_length 0. in
   object (self)
     inherit active_source ~name:"input.alsa" kind as active_source
 
-    inherit [Frame.audio_t array] IoRing.input ~nb_blocks ~blank as ioring
+    inherit [Frame.audio_t array] IoRing.input ~nb_blocks as ioring
+
+    val mutable initialized = false
+
+    method channels = AFrame.channels_of_kind self#kind
+
+    method kind =
+      if not initialized then (
+        initialized <- true;
+        let blank () = Audio.make self#channels buffer_length 0. in
+        ioring#init blank );
+      active_source#kind
 
     method private set_clock =
       active_source#set_clock;
@@ -112,7 +121,7 @@ class mic ~kind ~clock_safe device =
                  resampled in the future)."
                 sample_freq
                 (Lazy.force Frame.audio_rate);
-            Pcm.set_channels dev params buffer_chans;
+            Pcm.set_channels dev params self#channels;
             Pcm.set_params dev params;
             Pcm.prepare dev;
             device <- Some dev;
@@ -150,7 +159,7 @@ class mic ~kind ~clock_safe device =
       done;
       AFrame.add_break buf buffer_length
 
-    method output = if AFrame.is_partial memo then self#get_frame memo
+    method output = if AFrame.is_partial self#memo then self#get_frame self#memo
 
     method output_reset = ()
 

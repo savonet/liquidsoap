@@ -655,7 +655,7 @@ class virtual operator ?(name = "src") kind sources =
        by unfication. *)
     val mutable memo = None
 
-    method get_memo =
+    method memo =
       match memo with
         | Some memo -> memo
         | None ->
@@ -720,7 +720,7 @@ class virtual operator ?(name = "src") kind sources =
             self#log#severe "#get_frame didn't add exactly one break!";
             assert false ) )
       else (
-        let memo = self#get_memo in
+        let memo = self#memo in
         try Frame.get_chunk buf memo
         with Frame.No_chunk ->
           if not self#is_ready then silent_end_track ()
@@ -753,7 +753,7 @@ class virtual operator ?(name = "src") kind sources =
       self#iter_watchers (fun w -> w.after_output ())
 
     (* Reset the cache frame *)
-    method advance = Frame.advance self#get_memo
+    method advance = Frame.advance self#memo
 
     (** Utils. *)
 

@@ -38,11 +38,11 @@ class virtual base ~kind ~source ~name p =
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   object (self)
     inherit
@@ -123,7 +123,7 @@ let () =
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
-       encoder, e.g. `%ffmpeg` with `rtmp` output." (fun p _ ->
+       encoder, e.g. `%ffmpeg` with `rtmp` output." (fun p ->
       (new url_output p :> Source.source))
 
 (** Piped virtual class: open/close pipe,
@@ -221,7 +221,7 @@ class virtual piped_output ~kind p =
         if
           need_reset
           || Unix.gettimeofday () > reload_delay +. open_date
-             && Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate [])
+             && Lang.to_bool (Lang.apply reload_predicate [])
         then self#reopen
 
     method insert_metadata m =
@@ -272,9 +272,7 @@ class virtual chan_output p =
 class virtual file_output_base p =
   let filename = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let on_close = List.assoc "on_close" p in
-  let on_close s =
-    Lang.to_unit (Lang.apply ~t:Lang.unit_t on_close [("", Lang.string s)])
-  in
+  let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
   object (self)
     val mutable current_filename = None
 
@@ -366,7 +364,7 @@ let file_proto kind =
          511)." );
     ( "on_close",
       Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t,
-      Some (Lang.val_cst_fun [("", Lang.string_t, None)] Lang.unit),
+      Some (Lang.val_cst_fun [("", None)] Lang.unit),
       Some
         "This function will be called for each file, after that it is finished \
          and closed. The filename will be passed as argument." );

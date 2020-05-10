@@ -173,7 +173,7 @@ class virtual input ~name ~source_kind ~content_kind ~(on_start : unit -> unit)
 
     method private output =
       self#may_start;
-      let memo = self#get_memo in
+      let memo = self#memo in
       if is_started && AFrame.is_partial memo then self#get_frame memo;
       if fallible then self#may_stop
 

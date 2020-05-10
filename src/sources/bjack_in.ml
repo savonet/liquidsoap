@@ -26,24 +26,37 @@ let log = Log.make ["input"; "jack"]
 let bjack_clock = Tutils.lazy_cell (fun () -> new Clock.clock "bjack")
 
 class jack_in ~kind ~clock_safe ~nb_blocks ~server =
-  let channels = AFrame.channels_of_kind kind in
+  (* let channels = AFrame.channels_of_kind kind in *)
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let seconds_per_frame = float samples_per_frame /. float samples_per_second in
   let bytes_per_sample = 2 in
-  let blank () =
-    Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
-  in
+
   object (self)
     inherit active_source ~name:"input.jack" kind as active_source
 
-    inherit [Bytes.t] IoRing.input ~nb_blocks ~blank as ioring
+    inherit [Bytes.t] IoRing.input ~nb_blocks as ioring
+
+    val mutable intialized = false
+
+    method kind =
+      if not intialized then (
+        intialized <- true;
+        (* We need to know the number of channels to intialize the ioring. We
+           defer this until the kind is known. *)
+        let blank () =
+          Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+        in
+        ioring#init blank );
+      active_source#kind
 
     method set_clock =
       active_source#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (bjack_clock () :> Clock.clock))
+
+    method channels = AFrame.channels_of_kind self#kind
 
     method private wake_up l = active_source#wake_up l
 
@@ -78,8 +91,9 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
             let server_name = match server with "" -> None | s -> Some s in
             let dev =
               Bjack.open_t ~rate:samples_per_second
-                ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:channels
-                ~output_channels:0 ~flags:[] ?server_name
+                ~bits_per_sample:(bytes_per_sample * 8)
+                ~input_channels:self#channels ~output_channels:0 ~flags:[]
+                ?server_name
                 ~ringbuffer_size:
                   (nb_blocks * samples_per_frame * bytes_per_sample)
                 ~client_name:self#id ()
@@ -111,7 +125,9 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
         (Audio.sub fbuf 0 samples_per_frame);
       AFrame.add_break buf samples_per_frame
 
-    method output = if AFrame.is_partial memo then self#get_frame memo
+    method output =
+      let memo = self#memo in
+      if AFrame.is_partial memo then self#get_frame memo
 
     method output_reset = ()
 
@@ -119,7 +135,8 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.jack"
     [
       ( "clock_safe",
@@ -135,8 +152,8 @@ let () =
         Some (Lang.string ""),
         Some "Jack server to connect to." );
     ]
-    ~return_t:k ~category:Lang.Input ~descr:"Get stream from jack."
-    (fun p kind ->
+    ~return_t ~category:Lang.Input ~descr:"Get stream from jack."
+    (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in

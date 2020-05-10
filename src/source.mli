@@ -160,7 +160,7 @@ class virtual source :
        method content_type : Frame.content_type
 
        (** Retrieve the frame currently being filled. *)
-       method get_memo : Frame.t
+       method memo : Frame.t
 
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int

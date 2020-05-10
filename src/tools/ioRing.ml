@@ -22,13 +22,20 @@
 
 (** Producer/consumer source utils. *)
 
-class virtual ['a] base ~nb_blocks ~blank =
+class virtual ['a] base ~nb_blocks =
   let () =
     if nb_blocks < 1 then
       failwith "Buffered I/O requires a non-zero buffer length."
   in
   object
-    val buffer = Array.init nb_blocks (fun _ -> blank ())
+    val mutable buffer = None
+
+    method buffer =
+      match buffer with Some buffer -> buffer | None -> assert false
+
+    method init (blank : unit -> 'a) =
+      assert (buffer = None);
+      buffer <- Some (Array.init nb_blocks (fun _ -> blank ()))
 
     val mutable read = 0
 
@@ -83,9 +90,9 @@ class virtual ['a] base ~nb_blocks ~blank =
         | `Crashed -> ()
   end
 
-class virtual ['a] input ~nb_blocks ~blank =
+class virtual ['a] input ~nb_blocks =
   object (self)
-    inherit ['a] base ~nb_blocks ~blank
+    inherit ['a] base ~nb_blocks
 
     method virtual pull_block : 'a -> unit
 
@@ -117,7 +124,7 @@ class virtual ['a] input ~nb_blocks ~blank =
           if state = `Tired then raise Exit;
 
           (* ...write a block. *)
-          self#pull_block buffer.(write mod nb_blocks);
+          self#pull_block self#buffer.(write mod nb_blocks);
           Mutex.lock wait_m;
           write <- (write + 1) mod (2 * nb_blocks);
           Mutex.unlock wait_m;
@@ -152,16 +159,16 @@ class virtual ['a] input ~nb_blocks ~blank =
       (* Check that the writer still has an advance. *)
       Mutex.lock wait_m;
       if write = read && state <> `Crashed then Condition.wait wait_c wait_m;
-      let b = buffer.(read mod nb_blocks) in
+      let b = self#buffer.(read mod nb_blocks) in
       read <- (read + 1) mod (2 * nb_blocks);
       Mutex.unlock wait_m;
       Condition.signal wait_c;
       b
   end
 
-class virtual ['a] output ~nb_blocks ~blank =
+class virtual ['a] output ~nb_blocks =
   object (self)
-    inherit ['a] base ~nb_blocks ~blank
+    inherit ['a] base ~nb_blocks
 
     method virtual id : string
 
@@ -189,7 +196,7 @@ class virtual ['a] output ~nb_blocks ~blank =
           if state = `Tired then raise Exit;
 
           (* ...read a block. *)
-          self#push_block buffer.(read mod nb_blocks);
+          self#push_block self#buffer.(read mod nb_blocks);
           Mutex.lock wait_m;
           read <- (read + 1) mod (2 * nb_blocks);
           Mutex.unlock wait_m;
@@ -227,7 +234,7 @@ class virtual ['a] output ~nb_blocks ~blank =
         && state <> `Crashed
       then Condition.wait wait_c wait_m;
       Mutex.unlock wait_m;
-      f buffer.(write mod nb_blocks);
+      f self#buffer.(write mod nb_blocks);
       Mutex.lock wait_m;
       write <- (write + 1) mod (2 * nb_blocks);
       Mutex.unlock wait_m;
