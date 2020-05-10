@@ -74,6 +74,8 @@ module Kind : sig
   type formats = (format, format, format) Frame.fields
   type t
 
+  val to_string : t -> string
+
   val set_audio : t -> int -> t
   val set_video : t -> int -> t
   val set_midi : t -> int -> t

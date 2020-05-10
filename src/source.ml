@@ -467,9 +467,11 @@ class virtual operator ?(name = "src") kind sources =
     method private set_clock =
       List.iter (fun s -> unify self#clock s#clock) sources
 
+    val kind_var = Kind.of_formats kind
+
     (* Kinds now use the same mechanism as clocks: we unify with the children
        sources by default. *)
-    method kind_var = Kind.of_formats kind
+    method kind_var = kind_var
 
     val mutable kind = None
 
