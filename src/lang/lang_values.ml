@@ -412,32 +412,6 @@ let rec map_types f (gen : 'a list) tm =
               };
         }
 
-(** Folds [f] over almost all types occurring in a term,
-  * skipping as much as possible while still
-  * guaranteeing that [f] will see all variables. *)
-let rec fold_types f gen x tm =
-  let fold_proto x p =
-    List.fold_left
-      (fun x -> function _, _, t, Some tm -> fold_types f gen (f gen x t) tm
-        | _, _, t, None -> f gen x t)
-      x p
-  in
-  match tm.term with
-    | Ground _ | Encoder _ | Var _ -> f gen x tm.t
-    | List l ->
-        List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
-    (* In the next cases, don't care about tm.t, nothing "new" in it. *)
-    | Ref r | Get r -> fold_types f gen x r
-    | Tuple l -> List.fold_left (fold_types f gen) x l
-    | Seq (a, b) | Set (a, b) -> fold_types f gen (fold_types f gen x a) b
-    | App (tm, l) ->
-        let x = fold_types f gen x tm in
-        List.fold_left (fun x (_, tm) -> fold_types f gen x tm) x l
-    | Fun (_, p, v) | RFun (_, _, p, v) -> fold_types f gen (fold_proto x p) v
-    | Let { gen = gen'; def; body; _ } ->
-        let x = fold_types f (gen' @ gen) x def in
-        fold_types f gen x body
-
 (** Values are untyped normal forms of terms. *)
 module V = struct
   type value = { pos : T.pos option; value : in_value }
@@ -701,20 +675,18 @@ let rec check ?(print_toplevel = false) ~level ~env e =
         check ~level ~env def;
         let generalized =
           if value_restriction def then (
-            let f gen x t =
+            let f x t =
               let x' =
                 T.filter_vars
                   (function
                     | { T.descr = T.EVar (i, _); level = l; _ } ->
-                        (not (List.mem_assoc i x))
-                        && (not (List.mem_assoc i gen))
-                        && l >= level
+                        (not (List.mem_assoc i x)) && l >= level
                     | _ -> assert false)
                   t
               in
               x' @ x
             in
-            fold_types f [] [] def )
+            f [] def.t )
           else []
         in
         let penv, pa = type_of_pat ~level ~pos pat in
