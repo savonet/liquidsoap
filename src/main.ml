@@ -143,9 +143,7 @@ let lang_doc name =
 let process_request s =
   load_libs ();
   secondary_task := true;
-  let kind =
-    { Frame.audio = Frame.Any; Frame.video = Frame.Any; Frame.midi = Frame.Any }
-  in
+  let kind = Lang.any in
   let req = Request.create ~kind s in
   match Request.resolve req 20. with
     | Request.Failed ->

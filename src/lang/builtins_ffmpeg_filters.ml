@@ -160,7 +160,7 @@ let () =
           | Some t -> Lang.product_t Lang.string_t t
           | None -> Lang.string_t
       in
-      (name ^ "_args", Lang.list_t t, Some (Lang.list ~t []), None)
+      (name ^ "_args", Lang.list_t t, Some (Lang.list []), None)
     in
     List.iter
       (fun ({ name; description; io } as filter) ->
@@ -243,11 +243,12 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));
 
-  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
     ~descr:"Return an audio source from a filter's output" ~return_t
     (output_base_proto @ [("", Graph.t, None, None); ("", Audio.t, None, None)])
-    (fun p kind ->
+    (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -280,11 +281,12 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
       Video.to_value (`Output (List.hd Avfilter.(_buffer.io.outputs.video))));
 
-  let return_t = Lang.kind_type_of_kind_format Lang.video_only in
+  let kind = Lang.video_only in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
     ~descr:"Return a video source from a filter's output" ~return_t
     (output_base_proto @ [("", Graph.t, None, None); ("", Video.t, None, None)])
-    (fun p kind ->
+    (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -317,7 +319,8 @@ let () =
       (s :> Source.source))
 
 let () =
-  let univ_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let univ_t = Lang.kind_type_of_kind_format kind in
   add_builtin "ffmpeg.filter.create" ~cat:Liq
     ~descr:"Configure and launch a filter graph"
     [("", Lang.fun_t [(false, "", Graph.t)] univ_t, None, None)]
@@ -339,7 +342,7 @@ let () =
               };
           }
       in
-      let ret = Lang.apply ~t:Lang.unit_t fn [("", Graph.to_value graph)] in
+      let ret = Lang.apply fn [("", Graph.to_value graph)] in
       let filter = Avfilter.launch config in
       Avfilter.(
         List.iter

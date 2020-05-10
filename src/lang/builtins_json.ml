@@ -23,8 +23,7 @@
 let log = Log.make ["lang"; "json"]
 
 let rec to_json_compact v =
-  (* Utils.escape implements
-   * JSON's escaping RFC. *)
+  (* Utils.escape implements JSON's escaping RFC. *)
   let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s in
   match v.Lang.value with
     (* JSON specs do not allow a trailing . *)
@@ -59,6 +58,7 @@ let rec to_json_pp f v =
     | Lang.List l -> (
         try
           (* Convert (string*'a) list to object *)
+          (* TODO: check that we have a string *)
           let print f l =
             let len = List.length l in
             let f pos x =
@@ -130,11 +130,11 @@ let () =
     | Failed -> Some "Liquidsoap count not parse JSON string"
     | _ -> None)
 
-(* We compare the default's type with
- * the parsed json value and return if they match..
- * This comes with json_of in Lang_builtins.. *)
+(* We compare the default's type with the parsed json value and return if they
+   match. This comes with json_of in Lang_builtins. *)
 let rec of_json j =
-  let f x = try true with _ -> false in
+  (* TODO: restore some type safety... *)
+  let f _ = true in
   match j with
     | `Null when f Lang.unit_t -> Lang.unit
     | `Bool b when f Lang.bool_t -> Lang.bool b
@@ -156,11 +156,10 @@ let rec of_json j =
             | [j; j'] -> Lang.product (of_json j) (of_json j')
             | _ -> raise Failed ) )
     | `Assoc l ->
-        (* Try to convert the object to a list of pairs, dropping fields
-         * that cannot be parsed.
-         * This requires the target type to be [(string*'a)],
-         * currently it won't work if it is [?T] which would be
-         * obtained with of_json(default=[],...). *)
+        (* Try to convert the object to a list of pairs, dropping fields that
+           cannot be parsed.  This requires the target type to be [(string*'a)],
+           currently it won't work if it is [?T] which would be obtained with
+           of_json(default=[],...). *)
         let l =
           List.fold_left
             (fun cur (x, y) ->

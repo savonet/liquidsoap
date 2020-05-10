@@ -30,10 +30,7 @@ let () =
        RID, which cannot be detected currently: in that case one will obtain a \
        request that will fail to be resolved."
     [
-      ( "indicators",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list ~t:Lang.string_t []),
-        None );
+      ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
       ("persistent", Lang.bool_t, Some (Lang.bool false), None);
       ("", Lang.string_t, None, None);
     ]
@@ -61,15 +58,12 @@ let () =
        cannot be detected currently: in that case one will obtain a request \
        that will fail to be resolved."
     [
-      ( "indicators",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list ~t:Lang.string_t []),
-        None );
+      ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
       ("persistent", Lang.bool_t, Some (Lang.bool false), None);
       ("", Lang.string_t, None, None);
     ]
     (Lang.request_t (Lang.univ_t ()))
-    (fun p t ->
+    (fun p ->
       let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let initial = Lang.to_string (List.assoc "" p) in
@@ -81,11 +75,9 @@ let () =
       in
       let indicators = List.map Lang.to_string (Lang.to_list indicators) in
       let indicators = List.map (fun x -> Request.indicator x) indicators in
-      let kind =
-        let k_t = Lang.of_request_t t in
-        Lang.frame_kind_of_kind_type k_t
-      in
-      Lang.request (Request.create ~kind ~persistent ~indicators initial))
+      (* TODO: this kind is quite unsafe... *)
+      Lang.request
+        (Request.create ~kind:Lang.any ~persistent ~indicators initial))
 
 let () =
   add_builtin "request.resolve" ~cat:Liq

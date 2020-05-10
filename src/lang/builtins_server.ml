@@ -45,9 +45,7 @@ let () =
       let usage = Lang.to_string (List.assoc "usage" p) in
       let command = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let f x =
-        Lang.to_string (Lang.apply ~t:Lang.string_t f [("", Lang.string x)])
-      in
+      let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
       let ns = Pcre.split ~pat:"\\." namespace in
       let usage = if usage = "" then command ^ " <variable>" else usage in
       Server.add ~ns ~usage ~descr command f;
@@ -68,13 +66,13 @@ let () =
     (fun _ ->
       let opts = Server.condition () in
       let wait =
-        Lang.val_fun [("", "", after_t, None)] ~ret_t:Lang.string_t (fun p _ ->
-            let after = Lang.to_fun ~t:Lang.string_t (List.assoc "" p) in
+        Lang.val_fun [("", "", None)] (fun p ->
+            let after = Lang.to_fun (List.assoc "" p) in
             opts.Server.wait (fun () -> Lang.to_string (after []));
             Lang.string "")
       in
       let resume fn =
-        Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
+        Lang.val_fun [] (fun _ ->
             fn ();
             Lang.unit)
       in
@@ -98,7 +96,7 @@ let () =
     ] Lang.string_t (fun p ->
       let cond = Lang.assoc "" 1 p in
       let wait, _ = Lang.to_product cond in
-      let wait = Lang.to_fun ~t:Lang.string_t wait in
+      let wait = Lang.to_fun wait in
       let resume = Lang.assoc "" 2 p in
       wait [("", resume)])
 
@@ -112,7 +110,7 @@ let () =
       ("", after_t, None, Some "function to run after write");
       ("", Lang.string_t, None, Some "string to write");
     ] Lang.string_t (fun p ->
-      let after = Lang.to_fun ~t:Lang.string_t (Lang.assoc "" 1 p) in
+      let after = Lang.to_fun (Lang.assoc "" 1 p) in
       let data = Lang.to_string (Lang.assoc "" 2 p) in
       Server.write ~after:(fun () -> Lang.to_string (after [])) data;
       Lang.string "")
@@ -124,7 +122,7 @@ let () =
       (("", after_t, None, Some "function to run after write") :: args)
       Lang.string_t (fun p ->
         let marker = mk_marker p in
-        let after = Lang.to_fun ~t:Lang.string_t (Lang.assoc "" 1 p) in
+        let after = Lang.to_fun (Lang.assoc "" 1 p) in
         Server.read
           ~after:(fun ret -> Lang.to_string (after [("", Lang.string ret)]))
           marker;

@@ -108,7 +108,7 @@ let () =
          *   this trick to compare active sources and passive ones... *)
         Clock.force_init (fun x -> List.exists (fun y -> Oo.id x = Oo.id y) l)
       in
-      Lang.list ~t:s_t (List.map (fun x -> Lang.source (x :> Source.source)) l))
+      Lang.list (List.map (fun x -> Lang.source (x :> Source.source)) l))
 
 let () =
   let log = Log.make ["source"; "dump"] in

@@ -124,9 +124,7 @@ let () =
        File is done reading when function returns the empty string `\"\"`."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      let mk_fn fn =
-        Lang.val_fun [] ~ret_t:Lang.string_t (fun _ _ -> Lang.string (fn ()))
-      in
+      let mk_fn fn = Lang.val_fun [] (fun _ -> Lang.string (fn ())) in
       try
         let ic = ref (Some (open_in_bin f)) in
         let buflen = Utils.pagesize in
@@ -189,10 +187,10 @@ let () =
       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
       let fname = Utils.home_unrelate fname in
       let f = List.assoc_nth "" 1 p in
-      let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
+      let f () = ignore (Lang.apply f []) in
       let watch = !Configure.file_watcher in
       let unwatch = watch [`Modify] fname f in
-      Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
+      Lang.val_fun [] (fun _ ->
           unwatch ();
           Lang.unit))
 
@@ -243,7 +241,7 @@ let () =
         if absolute then List.map (Filename.concat dir) files else files
       in
       let files = List.map Lang.string files in
-      Lang.list ~t:Lang.string_t files)
+      Lang.list files)
 
 (************** Paths ********************)
 
@@ -310,7 +308,6 @@ let () =
           []
       in
       Lang.list
-        ~t:(Lang.product_t Lang.string_t Lang.string_t)
         (List.map
            (fun (l, v) -> Lang.product (Lang.string l) (Lang.string v))
            ans))
