@@ -138,30 +138,26 @@ let () =
 
 (* We compare the default's type with the parsed json value and return if they
    match. This comes with json_of in Lang_builtins. *)
-let rec of_json j =
-  (* TODO: restore some type safety... *)
-  let f _ = true in
-  match j with
-    | `Null when f Lang.unit_t -> Lang.unit
-    | `Bool b when f Lang.bool_t -> Lang.bool b
-    (* JSON specs do not differenciate between ints
-     * and floats. Therefore, we should parse int as
-     * floats when required.. *)
-    | `Int i when f Lang.int_t -> Lang.int i
-    | `Int i when f Lang.float_t -> Lang.float (float_of_int i)
-    | `String s when f Lang.string_t -> Lang.string s
-    | `Float x when f Lang.float_t -> Lang.float x
-    | `List l -> (
-        try
-          (* First, try to parse as a list. *)
-          let l = List.map of_json l in
-          Lang.list l
-        with _ -> (
-          (* Otherwise try to parse as product. *)
-            match l with
-            | [j; j'] -> Lang.product (of_json j) (of_json j')
-            | _ -> raise Failed ) )
-    | `Assoc l ->
+let rec of_json d j =
+  match (d.Lang.value, j) with
+    | Lang.Tuple [], `Null -> Lang.unit
+    | Lang.Ground (Lang.Ground.Bool _), `Bool b ->
+        Lang.bool b
+        (* JSON specs do not differenciate between ints
+         * and floats. Therefore, we should parse int as
+         * floats when required.. *)
+    | Lang.Ground (Lang.Ground.Int _), `Int i -> Lang.int i
+    | Lang.Ground (Lang.Ground.Float _), `Int i -> Lang.float (float_of_int i)
+    | Lang.Ground (Lang.Ground.String _), `String s -> Lang.string s
+    | Lang.Ground (Lang.Ground.Float _), `Float x -> Lang.float x
+    | Lang.List [], `List [] -> Lang.list []
+    | Lang.List (d :: _), `List l ->
+        (* TODO: we could also try with other elements of the default list... *)
+        let l = List.map (of_json d) l in
+        Lang.list l
+    | Lang.Tuple [d1; d2], `List [j1; j2] ->
+        Lang.product (of_json d1 j1) (of_json d2 j2)
+    | Lang.List (d :: _), `Assoc l ->
         (* Try to convert the object to a list of pairs, dropping fields that
            cannot be parsed.  This requires the target type to be [(string*'a)],
            currently it won't work if it is [?T] which would be obtained with
@@ -169,7 +165,7 @@ let rec of_json j =
         let l =
           List.fold_left
             (fun cur (x, y) ->
-              try Lang.product (Lang.string x) (of_json y) :: cur
+              try Lang.product (Lang.string x) (of_json d y) :: cur
               with _ -> cur)
             [] l
         in
@@ -203,7 +199,7 @@ let () =
       let s = Lang.to_string (List.assoc "" p) in
       try
         let json = Configure.JSON.from_string s in
-        of_json json
+        of_json default json
       with e ->
         log#info "JSON parsing failed: %s" (Printexc.to_string e);
         default)
