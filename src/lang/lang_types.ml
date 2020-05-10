@@ -757,10 +757,16 @@ let rec ( <: ) a b =
         raise (Error (a, b))
 
 let ( >: ) a b =
-  try b <: a with Error (y, x) -> raise (Type_Error (true, b, a, y, x))
+  try b <: a
+  with Error (y, x) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Type_Error (true, b, a, y, x)) bt
 
 let ( <: ) a b =
-  try a <: b with Error (x, y) -> raise (Type_Error (false, a, b, x, y))
+  try a <: b
+  with Error (x, y) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
 
 (** {1 Type generalization and instantiation}
   *
