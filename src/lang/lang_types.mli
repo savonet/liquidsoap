@@ -50,7 +50,6 @@ and descr =
   | Tuple of t list
   | Zero
   | Succ of t
-  | Any
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t

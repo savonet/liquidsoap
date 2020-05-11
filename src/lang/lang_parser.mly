@@ -325,7 +325,6 @@ ty:
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty_tuple RPAR        { Lang_types.make (Lang_types.Tuple $2) }
   | INT                       { Lang_values.type_of_int $1 }
-  | TIMES                     { Lang_values.any_t }
   | TIMES BIN2 INT            { mk_var_mult $2 $3 }
   | INT BIN2 TIMES            { mk_var_mult $2 $1 }
   | LPAR argsty RPAR YIELDS ty{ Lang_types.make (Lang_types.Arrow ($2,$5)) }

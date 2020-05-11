@@ -65,7 +65,6 @@ let ref_t ?pos ?level t =
 
 let zero_t = T.make T.Zero
 let succ_t t = T.make (T.Succ t)
-let any_t = T.make T.Any
 let rec add_t n m = if n = 0 then m else succ_t (add_t (n - 1) m)
 let type_of_int n = add_t n zero_t
 
@@ -127,7 +126,7 @@ let rec type_of_mul ~pos ~level m =
     ( match m with
       | Frame.Fixed 0 -> T.Zero
       | Frame.Fixed n -> T.Succ (type_of_mul ~pos ~level (Frame.Fixed (n - 1)))
-      | Frame.At_least 0 -> T.Any
+      | Frame.At_least 0 -> (T.fresh_evar ~pos ~level).T.descr
       | Frame.At_least n ->
           T.Succ (type_of_mul ~pos ~level (Frame.At_least (n - 1))) )
 
