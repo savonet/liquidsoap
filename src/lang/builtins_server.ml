@@ -39,7 +39,7 @@ let () =
       ("", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t, None, None);
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let namespace = Lang.to_string (List.assoc "namespace" p) in
       let descr = Lang.to_string (List.assoc "description" p) in
       let usage = Lang.to_string (List.assoc "usage" p) in
@@ -63,16 +63,16 @@ let () =
        `server.write`."
     []
     (Lang.product_t wait_t (Lang.product_t resume_t resume_t))
-    (fun _ ->
+    (fun _ _ ->
       let opts = Server.condition () in
       let wait =
-        Lang.val_fun [("", "", None)] (fun p ->
+        Lang.val_fun [("", "", None)] (fun p _ ->
             let after = Lang.to_fun (List.assoc "" p) in
             opts.Server.wait (fun () -> Lang.to_string (after []));
             Lang.string "")
       in
       let resume fn =
-        Lang.val_fun [] (fun _ ->
+        Lang.val_fun [] (fun _ _ ->
             fn ();
             Lang.unit)
       in
@@ -93,7 +93,7 @@ let () =
     [
       ("", condition_t, None, Some "condition");
       ("", resume_t, None, Some "code to execute when resuming");
-    ] Lang.string_t (fun p ->
+    ] Lang.string_t (fun p _ ->
       let cond = Lang.assoc "" 1 p in
       let wait, _ = Lang.to_product cond in
       let wait = Lang.to_fun wait in
@@ -109,7 +109,7 @@ let () =
     [
       ("", after_t, None, Some "function to run after write");
       ("", Lang.string_t, None, Some "string to write");
-    ] Lang.string_t (fun p ->
+    ] Lang.string_t (fun p _ ->
       let after = Lang.to_fun (Lang.assoc "" 1 p) in
       let data = Lang.to_string (Lang.assoc "" 2 p) in
       Server.write ~after:(fun () -> Lang.to_string (after [])) data;
@@ -120,7 +120,7 @@ let () =
     let after_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
     add_builtin name ~cat:Interaction ~descr
       (("", after_t, None, Some "function to run after write") :: args)
-      Lang.string_t (fun p ->
+      Lang.string_t (fun p _ ->
         let marker = mk_marker p in
         let after = Lang.to_fun (Lang.assoc "" 1 p) in
         Server.read

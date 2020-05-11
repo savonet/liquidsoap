@@ -51,7 +51,7 @@ class virtual base =
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
   end
 
-class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
+class output ~pos ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
   val_source =
   let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -60,7 +60,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
 
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind
+        ~pos ~infallible ~on_stop ~on_start ~content_kind:kind
           ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source
           start as super
 
@@ -197,7 +197,7 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
-    (fun p ->
+    (fun p pos ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -213,7 +213,8 @@ let () =
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       ( new output
-          ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
+          ~pos ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen
+          source
         :> Source.source ));
   Lang.add_operator "input.portaudio"
     ( Start_stop.input_proto
@@ -229,7 +230,7 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
-    (fun p ->
+    (fun p _ ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in

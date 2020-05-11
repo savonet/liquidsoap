@@ -34,7 +34,7 @@ let () =
         Some
           "Process to start. The function takes the format and filename as \
            argument and returns a list of (name,value) fields." );
-    ] Lang.unit_t (fun p ->
+    ] Lang.unit_t (fun p _ ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let resolver name =
@@ -70,7 +70,7 @@ let () =
         None,
         Some "True if playlist format can be detected unambiguously." );
       ("", parser_t, None, Some "Playlist parser");
-    ] Lang.unit_t (fun p ->
+    ] Lang.unit_t (fun p _ ->
       let format = Lang.to_string (List.assoc "format" p) in
       let strict = Lang.to_bool (List.assoc "strict" p) in
       let fn = List.assoc "" p in
@@ -140,7 +140,7 @@ let () =
            resolution should take." );
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let temporary = Lang.to_bool (List.assoc "temporary" p) in
@@ -149,7 +149,7 @@ let () =
       let syntax = Lang.to_string (List.assoc "syntax" p) in
       Lang.add_protocol ~syntax ~doc ~static name (fun arg ~log timeout ->
           let log =
-            Lang.val_fun log_p (fun p ->
+            Lang.val_fun log_p (fun p _ ->
                 let v = List.assoc "" p in
                 log (Lang.to_string v);
                 Lang.unit)

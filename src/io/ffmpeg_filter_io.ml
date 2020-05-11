@@ -34,13 +34,13 @@ module Generator = Generator.From_audio_video
 
 (** From the script perspective, the operator sending data to a filter graph
   * is an output. *)
-class audio_output ~name ~kind val_source =
+class audio_output ~pos ~name ~kind val_source =
   let noop () = () in
   object (self)
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
-          ~output_kind:"ffmpeg.filter.input" val_source true
+        ~pos ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind
+          ~name ~output_kind:"ffmpeg.filter.input" val_source true
 
     val mutable input = fun _ -> assert false
 
@@ -92,7 +92,7 @@ class audio_output ~name ~kind val_source =
       input aframe
   end
 
-class video_output ~name val_source =
+class video_output ~pos ~name val_source =
   let content_kind =
     Frame.{ audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
   in
@@ -105,7 +105,7 @@ class video_output ~name val_source =
   object
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind ~name
+        ~pos ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind ~name
           ~output_kind:"ffmpeg.filter.input" val_source true
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false

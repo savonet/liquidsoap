@@ -25,7 +25,7 @@ open Lang_builtins
 let () =
   add_builtin "^" ~cat:String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t (fun p _ ->
       let s1 = Lang.to_string (Lang.assoc "" 1 p) in
       let s2 = Lang.to_string (Lang.assoc "" 2 p) in
       Lang.string (s1 ^ s2))
@@ -37,7 +37,7 @@ let () =
       ("", Lang.list_t Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let sep = Lang.to_string (List.assoc "separator" p) in
       let l = Lang.to_list (List.assoc "" p) in
       let l = List.map Lang.to_string l in
@@ -49,7 +49,7 @@ let () =
     [
       ("", Lang.string_t, None, Some "String to look into.");
       ("", Lang.int_t, None, Some "Index of the character.");
-    ] Lang.int_t (fun p ->
+    ] Lang.int_t (fun p _ ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
       let n = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (int_of_char s.[n]))
@@ -75,7 +75,7 @@ let register_escape_fun ~name ~descr ~escape ~escape_char =
   let special_chars =
     Lang.list (List.map Lang.string (List.map (String.make 1) special_chars))
   in
-  let escape_char p =
+  let escape_char p _ =
     let v = List.assoc "" p in
     Lang.string (escape_char (Lang.to_string v).[0])
   in
@@ -95,7 +95,7 @@ let register_escape_fun ~name ~descr ~escape ~escape_char =
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_string (List.assoc "" p) in
       let special_chars =
         List.map
@@ -133,7 +133,7 @@ let () =
        Perl compatible regular expressions are recognized. Hence, special \
        characters should be escaped."
     [("separator", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    (Lang.list_t Lang.string_t) (fun p ->
+    (Lang.list_t Lang.string_t) (fun p _ ->
       let sep = Lang.to_string (List.assoc "separator" p) in
       let string = Lang.to_string (List.assoc "" p) in
       let rex = Pcre.regexp sep in
@@ -149,7 +149,7 @@ let () =
        If the list does not have a pair associated to some index, it means \
        that the corresponding pattern was not found."
     [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.metadata_t (fun p ->
+    Lang.metadata_t (fun p _ ->
       let pattern = Lang.to_string (List.assoc "pattern" p) in
       let string = Lang.to_string (List.assoc "" p) in
       let rex = Pcre.regexp pattern in
@@ -176,7 +176,7 @@ let () =
       "Match a string with an expression. Perl compatible regular expressions \
        are recognized. Hence, special characters should be escaped."
     [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.bool_t (fun p ->
+    Lang.bool_t (fun p _ ->
       let pattern = Lang.to_string (List.assoc "pattern" p) in
       let string = Lang.to_string (List.assoc "" p) in
       let rex = Pcre.regexp pattern in
@@ -197,7 +197,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let in_enc =
         match Lang.to_string (List.assoc "in_enc" p) with
           | "" -> None
@@ -209,7 +209,7 @@ let () =
 
 let () =
   add_builtin "string.length" ~cat:String ~descr:"Get the length of a string."
-    [("", Lang.string_t, None, None)] Lang.int_t (fun p ->
+    [("", Lang.string_t, None, None)] Lang.int_t (fun p _ ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.int (String.length string))
 
@@ -229,7 +229,7 @@ let () =
         Lang.int_t,
         None,
         Some "Return a sub string of `length` characters." );
-    ] Lang.string_t (fun p ->
+    ] Lang.string_t (fun p _ ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
       let string = Lang.to_string (List.assoc "" p) in
@@ -247,7 +247,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let lower = Lang.to_bool (List.assoc "lower" p) in
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string
@@ -257,7 +257,7 @@ let () =
 let () =
   add_builtin "string.trim" ~cat:String
     ~descr:"Return a string without leading and trailing whitespace."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)] Lang.string_t (fun p _ ->
       Lang.string (String.trim (Lang.to_string (List.assoc "" p))))
 
 let () =
@@ -277,7 +277,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let cap = Lang.to_bool (List.assoc "capitalize" p) in
       let space_sensitive = Lang.to_bool (List.assoc "space_sensitive" p) in
       let string = Lang.to_string (List.assoc "" p) in
@@ -315,7 +315,7 @@ let () =
         Some "String whose substrings should be replaced." );
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let pattern = Lang.to_string (List.assoc "pattern" p) in
       let string = Lang.to_string (Lang.assoc "" 2 p) in
       let subst = Lang.assoc "" 1 p in
@@ -329,14 +329,14 @@ let () =
 let () =
   add_builtin "string.base64.decode" ~cat:String
     ~descr:"Decode a Base64 encoded string." [("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t (fun p _ ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.decode64 string))
 
 let () =
   add_builtin "string.base64.encode" ~cat:String
     ~descr:"Encode a string in Base64." [("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t (fun p _ ->
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.encode64 string))
 
@@ -348,7 +348,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let plus = Lang.to_bool (List.assoc "plus" p) in
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Http.url_decode ~plus string))
@@ -361,7 +361,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let plus = Lang.to_bool (List.assoc "plus" p) in
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string (Http.url_encode ~plus string))
@@ -374,7 +374,7 @@ let () =
        - `$(if $(k2),\"a\",\"b\") into \"a\" if k2 is found in the list, \"b\" \
        otherwise."
     [("", Lang.string_t, None, None); ("", Lang.metadata_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t (fun p _ ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
       let l =
         List.map
@@ -387,7 +387,7 @@ let () =
 
 let () =
   add_builtin "string.quote" ~cat:String ~descr:"Escape shell metacharacters."
-    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+    [("", Lang.string_t, None, None)] Lang.string_t (fun p _ ->
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.quote s))
 
@@ -404,7 +404,7 @@ let () =
       ("", Lang.int_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let pad = Lang.to_int (List.assoc "pad" p) in
       let n = Lang.to_int (List.assoc "" p) in
       let s = Printf.sprintf "%x" n in
@@ -429,7 +429,7 @@ let () =
          | None -> p
          | Some d -> ("default", out_type, Some d, None) :: p)
       out_type
-      (fun p ->
+      (fun p _ ->
         try out_value (func (in_value (List.assoc "" p)))
         with _ -> List.assoc "default" p)
   in
@@ -464,7 +464,7 @@ let () =
     ~descr:"Return the representation of a value."
     [("", Lang.univ_t (), None, None)]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       match List.assoc "" p with
-        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
+        | Lang.(Ground (Ground.String s)) -> Lang.string s
         | v -> Lang.string (Lang.print_value v))

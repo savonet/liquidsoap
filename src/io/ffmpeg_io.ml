@@ -182,7 +182,7 @@ let () =
         ("", Lang.string_t, None, Some "URL to decode.");
       ] )
     ~return_t:k
-    (fun p ->
+    (fun p pos ->
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -201,7 +201,8 @@ let () =
             | None ->
                 raise
                   (Lang_errors.Invalid_value
-                     ( Lang.string format,
+                     ( pos,
+                       Lang.string format,
                        "Could not find ffmpeg input format with that name" )) )
       in
       let opts = Hashtbl.create 10 in

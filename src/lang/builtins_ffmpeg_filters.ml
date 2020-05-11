@@ -100,18 +100,19 @@ let mk_args ~t name p =
   in
   List.map extract args
 
-let get_config graph =
+let get_config ~pos graph =
   let { config; _ } = Graph.of_value graph in
   match config with
     | Some config -> config
     | None ->
         raise
           (Lang_errors.Invalid_value
-             ( graph,
+             ( pos,
+               graph,
                "Graph variables cannot be used outside of ffmpeg.filter.create!"
              ))
 
-let apply_filter ~filter p =
+let apply_filter ~filter p pos =
   let int_args = mk_args ~t:`Int "int" p in
   let float_args = mk_args ~t:`Float "float" p in
   let string_args = mk_args ~t:`String "string" p in
@@ -119,7 +120,7 @@ let apply_filter ~filter p =
   let flag_args = mk_args ~t:`Flag "flag" p in
   let args = int_args @ float_args @ string_args @ rational_args @ flag_args in
   Avfilter.(
-    let config = get_config (Lang.assoc "" 1 p) in
+    let config = get_config ~pos (Lang.assoc "" 1 p) in
     let name = uniq_name filter.name in
     let filter = attach ~args ~name filter config in
     let audio_inputs_c = List.length filter.io.inputs.audio in
@@ -228,9 +229,9 @@ let () =
 
   add_builtin ~cat:Liq "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
-    [("", Graph.t, None, None); ("", audio_t, None, None)] Audio.t (fun p ->
+    [("", Graph.t, None, None); ("", audio_t, None, None)] Audio.t (fun p pos ->
       let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
+      let config = get_config ~pos graph_v in
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
       let kind = (Lang.to_source source_val)#kind in
@@ -238,7 +239,7 @@ let () =
       let name = uniq_name "abuffer" in
       let args = abuffer_args channels in
       let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
-      let s = Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) in
+      let s = Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) ~pos in
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));
@@ -248,9 +249,9 @@ let () =
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
     ~descr:"Return an audio source from a filter's output" ~return_t
     (output_base_proto @ [("", Graph.t, None, None); ("", Audio.t, None, None)])
-    (fun p ->
+    (fun p pos ->
       let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
+      let config = get_config ~pos graph_v in
       let graph = Graph.of_value graph_v in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let pad =
@@ -268,15 +269,15 @@ let () =
 
   add_builtin ~cat:Liq "ffmpeg.filter.video.input"
     ~descr:"Attach a video source to a filter's input"
-    [("", Graph.t, None, None); ("", video_t, None, None)] Video.t (fun p ->
+    [("", Graph.t, None, None); ("", video_t, None, None)] Video.t (fun p pos ->
       let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
+      let config = get_config ~pos graph_v in
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
       let name = uniq_name "buffer" in
       let args = buffer_args () in
       let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
-      let s = Ffmpeg_filter_io.(new video_output ~name source_val) in
+      let s = Ffmpeg_filter_io.(new video_output ~name source_val) ~pos in
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
       Video.to_value (`Output (List.hd Avfilter.(_buffer.io.outputs.video))));
@@ -286,9 +287,9 @@ let () =
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
     ~descr:"Return a video source from a filter's output" ~return_t
     (output_base_proto @ [("", Graph.t, None, None); ("", Video.t, None, None)])
-    (fun p ->
+    (fun p pos ->
       let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
+      let config = get_config ~pos graph_v in
       let graph = Graph.of_value graph_v in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let pad =
@@ -324,7 +325,7 @@ let () =
     ~descr:"Configure and launch a filter graph"
     [("", Lang.fun_t [(false, "", Graph.t)] univ_t, None, None)]
     univ_t
-    (fun p ->
+    (fun p _ ->
       let fn = List.assoc "" p in
       let config = Avfilter.init () in
       let graph =

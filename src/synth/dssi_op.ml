@@ -151,7 +151,7 @@ let register_descr plugin_name descr_n descr outputs =
     @ [("", Lang.source_t k, None, None)] )
     ~return_t:k ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let chan = Lang.to_int (f "channel") in
       let source = Lang.to_source (f "") in
@@ -171,7 +171,7 @@ let register_descr plugin_name descr_n descr outputs =
     (liq_params @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let source = Lang.to_source (f "") in
       let params = params p in
@@ -241,7 +241,7 @@ let () =
     ~category:(Lang.string_of_category Lang.SoundSynthesis)
     ~descr:"Resgister a DSSI plugin."
     [("", Lang.string_t, None, Some "Path of the DSSI plugin file.")]
-    Lang.unit_t (fun p ->
+    Lang.unit_t (fun p _ ->
       dssi_init ();
       let fname = Lang.to_string (List.assoc "" p) in
       register_plugin ~log_errors:true fname;

@@ -20,13 +20,13 @@
 
  *****************************************************************************)
 
-class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-  ~encoder_factory source =
+class output ~pos ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname
+  ~port ~encoder_factory source =
   object (self)
     inherit
       Output.encoded
-        ~output_kind:"udp" ~content_kind:kind ~on_start ~on_stop ~infallible
-          ~autostart
+        ~pos ~output_kind:"udp" ~content_kind:kind ~on_start ~on_stop
+          ~infallible ~autostart
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         source
 
@@ -179,7 +179,7 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k
-    (fun p ->
+    (fun p pos ->
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -200,11 +200,11 @@ let () =
         with Not_found ->
           raise
             (Lang_errors.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               (pos, fmt, "Cannot get a stream encoder for that format"))
       in
       let source = Lang.assoc "" 2 p in
       ( new output
-          ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
+          ~pos ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
           ~encoder_factory:fmt source
         :> Source.source ))
 
@@ -228,7 +228,7 @@ let () =
       ("", Lang.string_t, None, Some "Mime type.");
     ]
     ~return_t:k
-    (fun p ->
+    (fun p pos ->
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in
       let hostname = Lang.to_string (List.assoc "host" p) in
@@ -239,7 +239,9 @@ let () =
         | None ->
             raise
               (Lang_errors.Invalid_value
-                 (Lang.assoc "" 1 p, "Cannot get a stream decoder for this MIME"))
+                 ( pos,
+                   Lang.assoc "" 1 p,
+                   "Cannot get a stream decoder for this MIME" ))
         | Some decoder_factory ->
             ( new input
                 ~kind ~hostname ~port ~bufferize ~log_overfull ~decoder_factory

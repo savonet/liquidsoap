@@ -167,7 +167,7 @@ class virtual base ~kind dev mode =
       self#open_device
   end
 
-class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
+class output ~pos ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
   val_source =
   let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -175,7 +175,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
+        ~pos ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.alsa" val_source start as super
 
     inherit base ~kind dev [Pcm.Playback]
@@ -301,7 +301,7 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
-    (fun p ->
+    (fun p pos ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in
       let clock_safe = e Lang.to_bool "clock_safe" in
@@ -319,12 +319,12 @@ let () =
       in
       if bufferize then
         ( new Alsa_out.output
-            ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible device
+            ~pos ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible device
             source
           :> Source.source )
       else
         ( new output
-            ~kind ~clock_safe ~infallible ~start ~on_start ~on_stop device
+            ~pos ~kind ~clock_safe ~infallible ~start ~on_start ~on_stop device
             source
           :> Source.source ))
 
@@ -345,7 +345,7 @@ let () =
           Some "Alsa device to use" );
       ] )
     ~return_t:k ~category:Lang.Input ~descr:"Stream from an ALSA input device."
-    (fun p ->
+    (fun p _ ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in
       let clock_safe = e Lang.to_bool "clock_safe" in

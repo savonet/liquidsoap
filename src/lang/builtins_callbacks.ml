@@ -27,7 +27,7 @@ let () =
     [("", Lang.fun_t [] Lang.unit_t, None, None)]
     Lang.unit_t
     ~descr:"Register a function to be called when Liquidsoap shuts down."
-    (fun p ->
+    (fun p _ ->
       let f = List.assoc "" p in
       let wrap_f () = ignore (Lang.apply f []) in
       ignore (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] wrap_f);
@@ -38,7 +38,7 @@ let () =
     [("", Lang.fun_t [] Lang.unit_t, None, None)]
     Lang.unit_t
     ~descr:"Register a function to be called when Liquidsoap starts."
-    (fun p ->
+    (fun p _ ->
       let f = List.assoc "" p in
       let wrap_f () = ignore (Lang.apply f []) in
       (* TODO: this could happen after duppy and other threads are shut down, is that ok? *)
@@ -53,7 +53,7 @@ let () =
     ]
     Lang.unit_t
     ~descr:"Register a function to be called when source shuts down."
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let wrap_f () = ignore (Lang.apply f []) in
@@ -64,4 +64,4 @@ let () =
   add_builtin "source.is_up" ~cat:Sys
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t ~descr:"Check whether a source is up."
-    (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)
+    (fun p _ -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)

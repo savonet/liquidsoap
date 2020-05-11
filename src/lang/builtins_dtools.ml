@@ -58,7 +58,7 @@ let () =
       ("", univ, None, Some "Setting initial value");
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let name = Lang.to_string (List.assoc "name" p) in
       let descr = Lang.to_string (List.assoc "descr" p) in
       let descr = if descr = "" then [] else [descr] in
@@ -73,7 +73,7 @@ let () =
         conf#ut
       in
       let final_key =
-        match v.Lang.value with
+        match v with
           | Lang.(Ground (Ground.String s)) ->
               make Lang.string (Dtools.Conf.string ~d:s)
           | Lang.(Ground (Ground.Int s)) -> make Lang.int (Dtools.Conf.int ~d:s)
@@ -107,7 +107,7 @@ let () =
       ("", Lang.univ_t ~constraints:[Lang_types.Dtools] (), None, None);
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p pos ->
       let path = Lang.assoc "" 1 p in
       let path_s = Lang.to_string path in
       let value = Lang.assoc "" 2 p in
@@ -129,23 +129,23 @@ let () =
                 Printf.sprintf "key %S is %s, thus cannot be set to %s" path_s
                   kind (Lang.print_value value)
               in
-              Lang_errors.Invalid_value (value, msg)
+              Lang_errors.Invalid_value (pos, value, msg)
           | Dtools.Conf.Invalid_Value _ ->
               let msg =
                 Printf.sprintf "invalid value %s for key %S"
                   (Lang.print_value value) path_s
               in
-              Lang_errors.Invalid_value (value, msg)
+              Lang_errors.Invalid_value (pos, value, msg)
           | Dtools.Conf.Unbound (_, _) ->
               let msg =
                 Printf.sprintf "there is no configuration key named %S!" path_s
               in
-              Lang_errors.Invalid_value (path, msg)
+              Lang_errors.Invalid_value (pos, path, msg)
           | _ -> e
       in
       try
         begin
-          match value.Lang.value with
+          match value with
           | Lang.Tuple [] -> set Dtools.Conf.as_unit path_s ()
           | Lang.(Ground (Ground.String s)) ->
               set Dtools.Conf.as_string path_s s
@@ -163,7 +163,7 @@ let () =
         if Tutils.has_started () then (
           let m =
             match e with
-              | Lang_errors.Invalid_value (_, m) -> m
+              | Lang_errors.Invalid_value (_, _, m) -> m
               | _ -> Printexc.to_string e
           in
           log#severe "WARNING: %s" m;
@@ -180,10 +180,10 @@ let () =
   let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] () in
   add_builtin "get" ~cat:Liq ~descr:"Get a setting's value."
     [("default", univ, None, None); ("", Lang.string_t, None, None)] univ
-    (fun p ->
+    (fun p _ ->
       let path = Lang.to_string (List.assoc "" p) in
       let v = List.assoc "default" p in
-      match v.Lang.value with
+      match v with
         | Lang.Tuple [] -> Lang.unit
         | Lang.(Ground (Ground.String s)) ->
             Lang.string (get Dtools.Conf.as_string path s)

@@ -25,7 +25,7 @@ let log = Log.make ["lang"; "json"]
 let rec to_json_compact v =
   (* Utils.escape implements JSON's escaping RFC. *)
   let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s in
-  match v.Lang.value with
+  match v with
     (* JSON specs do not allow a trailing . *)
     | Lang.(Ground (Ground.Float n)) ->
         let s = string_of_float n in
@@ -54,15 +54,10 @@ let rec to_json_compact v =
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
 let rec to_json_pp f v =
-  match v.Lang.value with
+  match v with
     | Lang.List l -> (
         match l with
-          | {
-              Lang.value =
-                Lang.Tuple
-                  [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; _];
-            }
-            :: _ ->
+          | Lang.Tuple [Lang.Ground (Lang.Ground.String _); _] :: _ ->
               (* Convert (string*'a) list to object *)
               let print f l =
                 let len = List.length l in
@@ -124,7 +119,7 @@ let () =
       ("", Lang.univ_t (), None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let compact = Lang.to_bool (List.assoc "compact" p) in
       let v = to_json ~compact (List.assoc "" p) in
       Lang.string v)
@@ -139,7 +134,7 @@ let () =
 (* We compare the default's type with the parsed json value and return if they
    match. This comes with json_of in Lang_builtins. *)
 let rec of_json d j =
-  match (d.Lang.value, j) with
+  match (d, j) with
     | Lang.Tuple [], `Null -> Lang.unit
     | Lang.Ground (Lang.Ground.Bool _), `Bool b ->
         Lang.bool b
@@ -157,13 +152,7 @@ let rec of_json d j =
         Lang.list l
     | Lang.Tuple [d1; d2], `List [j1; j2] ->
         Lang.product (of_json d1 j1) (of_json d2 j2)
-    | ( Lang.List
-          ({
-             Lang.value =
-               Lang.Tuple
-                 [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; d];
-           }
-          :: _),
+    | ( Lang.List (Lang.Tuple [Lang.Ground (Lang.Ground.String _); d] :: _),
         `Assoc l ) ->
         (* Try to convert the object to a list of pairs, dropping fields that
            cannot be parsed.  This requires the target type to be [(string*'a)],
@@ -201,7 +190,7 @@ let () =
     [
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);
-    ] t (fun p ->
+    ] t (fun p _ ->
       let default = List.assoc "default" p in
       let s = Lang.to_string (List.assoc "" p) in
       try

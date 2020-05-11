@@ -73,7 +73,7 @@ module Make (Harbor : T) = struct
              argument contains the requested URI." );
       ]
       Lang.unit_t
-      (fun p ->
+      (fun p _ ->
         let port = Lang.to_int (List.assoc "port" p) in
         let verb =
           Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
@@ -114,7 +114,7 @@ module Make (Harbor : T) = struct
         ("", Lang.string_t, None, Some "URI served.");
       ]
       Lang.unit_t
-      (fun p ->
+      (fun p _ ->
         let port = Lang.to_int (List.assoc "port" p) in
         let uri = Lang.to_string (Lang.assoc "" 1 p) in
         let verb =

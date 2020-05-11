@@ -58,7 +58,7 @@ let () =
       ("", Lang.metadata_t, None, None);
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p pos ->
       let user = Lang.to_string (List.assoc "user" p) in
       let password = Lang.to_string (List.assoc "password" p) in
       let mount = Lang.to_string (List.assoc "mount" p) in
@@ -99,7 +99,9 @@ let () =
           | _ ->
               raise
                 (Lang_errors.Invalid_value
-                   (v, "protocol should be one of: 'icy', 'http' or 'https'."))
+                   ( pos,
+                     v,
+                     "protocol should be one of: 'icy', 'http' or 'https'." ))
       in
       let mount =
         match protocol with

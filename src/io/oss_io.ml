@@ -34,7 +34,7 @@ let force f fd x =
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
 
-class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
+class output ~pos ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
   val_source =
   let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -42,7 +42,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
+        ~pos ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.oss" val_source start as super
 
     method private set_clock =
@@ -157,7 +157,7 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
-    (fun p ->
+    (fun p pos ->
       let e f v = f (List.assoc v p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
@@ -173,7 +173,8 @@ let () =
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
       ( new output
-          ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
+          ~pos ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device
+          source
         :> Source.source ));
   let k = Lang.kind_type_of_kind_format Lang.audio_any in
   Lang.add_operator "input.oss" ~active:true
@@ -189,7 +190,7 @@ let () =
           Some "OSS device to use." );
       ] )
     ~return_t:k ~category:Lang.Input ~descr:"Stream from an OSS input device."
-    (fun p ->
+    (fun p _ ->
       let e f v = f (List.assoc v p) in
       let clock_safe = e Lang.to_bool "clock_safe" in
       let device = e Lang.to_string "device" in

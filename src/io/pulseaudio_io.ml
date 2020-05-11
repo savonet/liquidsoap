@@ -47,7 +47,7 @@ class virtual base ~client ~device =
     method self_sync = dev <> None
   end
 
-class output ~infallible ~start ~on_start ~on_stop ~kind p =
+class output ~pos ~infallible ~start ~on_start ~on_stop ~kind p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
@@ -59,7 +59,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
+        ~pos ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.pulseaudio" val_source start as super
 
     method private set_clock =
@@ -216,7 +216,7 @@ let () =
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
-    (fun p ->
+    (fun p pos ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
@@ -227,9 +227,10 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Source.source));
+      ( new output ~pos ~infallible ~on_start ~on_stop ~start ~kind p
+        :> Source.source ));
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
     ~return_t:k ~category:Lang.Input
-    ~descr:"Stream from a portaudio input device." (fun p ->
+    ~descr:"Stream from a portaudio input device." (fun p _ ->
       (new input ~kind p :> Source.source))

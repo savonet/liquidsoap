@@ -37,7 +37,7 @@ let () =
     (Lang.request_t
        (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t
           ~midi:Lang.zero_t))
-    (fun p ->
+    (fun p _ ->
       let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let initial = Lang.to_string (List.assoc "" p) in
@@ -63,7 +63,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     (Lang.request_t (Lang.univ_t ()))
-    (fun p ->
+    (fun p _ ->
       let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let initial = Lang.to_string (List.assoc "" p) in
@@ -93,7 +93,7 @@ let () =
       "Resolve a request, i.e. attempt to get a valid local file. The \
        operation can take some time. Return true if the resolving was \
        successful, false otherwise (timeout or invalid URI)."
-    (fun p ->
+    (fun p _ ->
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r = Lang.to_request (List.assoc "" p) in
       Lang.bool
@@ -103,7 +103,7 @@ let () =
   add_builtin "request.metadata" ~cat:Liq
     [("", Lang.request_t (Lang.univ_t ()), None, None)]
     Lang.metadata_t ~descr:"Get the metadata associated to a request."
-    (fun p ->
+    (fun p _ ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.metadata (Request.get_all_metadata r))
 
@@ -111,7 +111,7 @@ let () =
   add_builtin "request.log" ~cat:Liq
     [("", Lang.request_t (Lang.univ_t ()), None, None)]
     Lang.string_t ~descr:"Get log data associated to a request."
-    (fun p ->
+    (fun p _ ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.string (Request.string_of_log (Request.get_log r)))
 
@@ -123,7 +123,7 @@ let () =
        before being ready."
     [("", Lang.request_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p ->
+    (fun p _ ->
       let e = Lang.to_request (List.assoc "" p) in
       Lang.bool (Request.is_ready e))
 
@@ -131,7 +131,7 @@ let () =
   add_builtin "request.uri" ~cat:Liq ~descr:"Initial URI of a request."
     [("", Lang.request_t (Lang.univ_t ()), None, None)]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.string (Request.initial_uri r))
 
@@ -142,7 +142,7 @@ let () =
        string otherwise."
     [("", Lang.request_t (Lang.univ_t ()), None, None)]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.string (match Request.get_filename r with Some f -> f | None -> ""))
 
@@ -160,7 +160,7 @@ let () =
       ("", Lang.request_t (Lang.univ_t ()), None, None);
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let force = Lang.to_bool (List.assoc "force" p) in
       let e = Lang.to_request (List.assoc "" p) in
       Request.destroy ~force e;
@@ -172,7 +172,7 @@ let () =
     ~descr:
       "Compute the duration in seconds of audio data contained in a request. \
        The computation may be expensive. Returns -1. if computation failed, \
-       typically if the file was not recognized as valid audio." (fun p ->
+       typically if the file was not recognized as valid audio." (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.float (try Request.duration f with Not_found -> -1.))
 
@@ -180,6 +180,6 @@ let () =
   add_builtin "request.id" ~cat:Liq ~descr:"Identifier of a request."
     [("", Lang.request_t (Lang.univ_t ()), None, None)]
     Lang.int_t
-    (fun p ->
+    (fun p _ ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.int (Request.get_id r))

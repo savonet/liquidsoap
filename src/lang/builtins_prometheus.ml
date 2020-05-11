@@ -48,7 +48,7 @@ let register_t =
 let add_metric metric_name create register set =
   add_builtin ("prometheus." ^ metric_name) ~cat:Interaction
     ~descr:("Register a prometheus " ^ metric_name) metric_proto register_t
-    (fun p ->
+    (fun p _ ->
       let help = Lang.to_string (List.assoc "help" p) in
       let label_names =
         List.map Lang.to_string (Lang.to_list (List.assoc "labels" p))
@@ -64,15 +64,15 @@ let add_metric metric_name create register set =
       let m =
         create ~label_names ?registry:None ~help ?namespace ?subsystem name
       in
-      Lang.val_fun [("label_values", "label_values", None)] (fun p ->
+      Lang.val_fun [("label_values", "label_values", None)] (fun p pos ->
           let labels_v = List.assoc "label_values" p in
           let labels = List.map Lang.to_string (Lang.to_list labels_v) in
           if List.length labels <> List.length label_names then
             raise
               (Lang_errors.Invalid_value
-                 (labels_v, "Not enough labels provided!"));
+                 (pos, labels_v, "Not enough labels provided!"));
           let m = register m labels in
-          Lang.val_fun [("", "", None)] (fun p ->
+          Lang.val_fun [("", "", None)] (fun p _ ->
               let v = Lang.to_float (List.assoc "" p) in
               set m v;
               Lang.unit)))
@@ -208,20 +208,20 @@ let () =
     ]
     source_monitor_register_t ~cat:Lang_builtins.Liq
     ~descr:"Monitor a source's internal latencies on Prometheus"
-    (fun p ->
+    (fun p _ ->
       let window = Lang.to_float (List.assoc "window" p) in
       let prefix = Lang.to_string (List.assoc "prefix" p) in
       let label_names =
         List.map Lang.to_string (Lang.to_list (List.assoc "labels" p))
       in
       Lang.val_fun [("label_values", "label_values", None); ("", "", None)]
-        (fun p ->
+        (fun p pos ->
           let s = Lang.to_source (List.assoc "" p) in
           let labels_v = List.assoc "label_values" p in
           let labels = List.map Lang.to_string (Lang.to_list labels_v) in
           if List.length labels <> List.length label_names then
             raise
               (Lang_errors.Invalid_value
-                 (labels_v, "Not enough labels provided!"));
+                 (pos, labels_v, "Not enough labels provided!"));
           source_monitor ~label_names ~labels ~window ~prefix s;
           Lang.unit))

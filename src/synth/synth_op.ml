@@ -82,7 +82,7 @@ let register obj name descr =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundSynthesis ~descr
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let chan = Lang.to_int (f "channel") in
       let volume = Lang.to_float (f "volume") in
@@ -124,7 +124,7 @@ let register obj name descr =
     ]
     ~return_t:k ~category:Lang.SoundSynthesis
     ~descr:(descr ^ " It creates one synthesizer for each channel.")
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let adsr =

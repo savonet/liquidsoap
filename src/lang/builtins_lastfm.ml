@@ -63,7 +63,7 @@ let () =
     in
     let tasks = Hashtbl.create 1 in
     add_builtin name ~cat:Interaction (* TODO better cat *) ~descr proto
-      Lang.unit_t (fun p ->
+      Lang.unit_t (fun p pos ->
         let user = Lang.to_string (List.assoc "user" p) in
         let password = Lang.to_string (List.assoc "password" p) in
         let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
@@ -80,8 +80,9 @@ let () =
               | _ ->
                   raise
                     (Lang_errors.Invalid_value
-                       (List.assoc "source" p, "unknown lastfm submission mode"))
-            )
+                       ( pos,
+                         List.assoc "source" p,
+                         "unknown lastfm submission mode" )) )
           else Liqfm.Unknown
         in
         let length = Lang.to_bool (List.assoc "length" p) in

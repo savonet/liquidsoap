@@ -39,7 +39,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let dir_sep = Lang.to_string (List.assoc "dir_sep" p) in
       let leading_dot = Lang.to_bool (List.assoc "leading_dot" p) in
       Lang.string
@@ -48,7 +48,7 @@ let () =
 
 let () =
   add_builtin "file.unlink" ~cat:Sys ~descr:"Remove a file."
-    [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
+    [("", Lang.string_t, None, None)] Lang.unit_t (fun p _ ->
       try
         Unix.unlink (Lang.to_string (List.assoc "" p));
         Lang.unit
@@ -56,7 +56,7 @@ let () =
 
 let () =
   add_builtin "file.size" ~cat:Sys ~descr:"File size in bytes."
-    [("", Lang.string_t, None, None)] Lang.int_t (fun p ->
+    [("", Lang.string_t, None, None)] Lang.int_t (fun p _ ->
       try
         let ic = open_in_bin (Lang.to_string (List.assoc "" p)) in
         let ret = in_channel_length ic in
@@ -66,7 +66,7 @@ let () =
 
 let () =
   add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
-    [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
+    [("", Lang.string_t, None, None)] Lang.unit_t (fun p _ ->
       try
         Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
         Lang.unit
@@ -80,7 +80,7 @@ let () =
     [
       ("", Lang.string_t, None, Some "File prefix");
       ("", Lang.string_t, None, Some "File suffix");
-    ] Lang.string_t (fun p ->
+    ] Lang.string_t (fun p _ ->
       Lang.string
         (Filename.temp_file
            (Lang.to_string (Lang.assoc "" 1 p))
@@ -95,7 +95,7 @@ let () =
     [
       ("", Lang.string_t, None, Some "Directory prefix");
       ("", Lang.string_t, None, Some "Directory suffix");
-    ] Lang.string_t (fun p ->
+    ] Lang.string_t (fun p _ ->
       Lang.string
         (Extralib.Filename.mk_temp_dir
            (Lang.to_string (Lang.assoc "" 1 p))
@@ -103,7 +103,8 @@ let () =
 
 let () =
   add_builtin "file.exists" ~cat:Sys [("", Lang.string_t, None, None)]
-    Lang.bool_t ~descr:"Returns true if the file or directory exists." (fun p ->
+    Lang.bool_t ~descr:"Returns true if the file or directory exists."
+    (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       let f = Utils.home_unrelate f in
       Lang.bool (Sys.file_exists f))
@@ -111,7 +112,7 @@ let () =
 let () =
   add_builtin "file.is_directory" ~cat:Sys [("", Lang.string_t, None, None)]
     Lang.bool_t ~descr:"Returns true if the file exists and is a directory."
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       let f = Utils.home_unrelate f in
       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
@@ -122,9 +123,9 @@ let () =
     ~descr:
       "Read the content of a file. Returns a function of type `()->string`. \
        File is done reading when function returns the empty string `\"\"`."
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
-      let mk_fn fn = Lang.val_fun [] (fun _ -> Lang.string (fn ())) in
+      let mk_fn fn = Lang.val_fun [] (fun _ _ -> Lang.string (fn ())) in
       try
         let ic = ref (Some (open_in_bin f)) in
         let buflen = Utils.pagesize in
@@ -159,7 +160,7 @@ let () =
       ("", Lang.string_t, None, Some "Path to write to");
     ]
     Lang.bool_t ~descr:"Write data to a file. Returns `true` if successful."
-    (fun p ->
+    (fun p _ ->
       let data = Lang.to_string (List.assoc "data" p) in
       let append = Lang.to_bool (List.assoc "append" p) in
       let perms = Lang.to_int (List.assoc "perms" p) in
@@ -183,14 +184,14 @@ let () =
     ]
     (Lang.fun_t [] Lang.unit_t)
     ~descr:"Call a function when a file is modified. Returns unwatch function."
-    (fun p ->
+    (fun p _ ->
       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
       let fname = Utils.home_unrelate fname in
       let f = List.assoc_nth "" 1 p in
       let f () = ignore (Lang.apply f []) in
       let watch = !Configure.file_watcher in
       let unwatch = watch [`Modify] fname f in
-      Lang.val_fun [] (fun _ ->
+      Lang.val_fun [] (fun _ _ ->
           unwatch ();
           Lang.unit))
 
@@ -209,7 +210,7 @@ let () =
     ]
     (Lang.list_t Lang.string_t)
     ~descr:"List all the files in a directory."
-    (fun p ->
+    (fun p _ ->
       let absolute = Lang.to_bool (List.assoc "absolute" p) in
       let recursive = Lang.to_bool (List.assoc "recursive" p) in
       let dir = Lang.to_string (List.assoc "" p) in
@@ -249,19 +250,19 @@ let () =
   add_builtin "path.home.unrelate" ~cat:Sys [("", Lang.string_t, None, None)]
     Lang.string_t
     ~descr:"Expand path that start with '~' with the current home directory."
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Utils.home_unrelate f))
 
 let () =
   add_builtin "path.basename" ~cat:Sys [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Get the base name of a path." (fun p ->
+    Lang.string_t ~descr:"Get the base name of a path." (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.basename f))
 
 let () =
   add_builtin "path.dirname" ~cat:Sys [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Get the directory name of a path." (fun p ->
+    Lang.string_t ~descr:"Get the directory name of a path." (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.dirname f))
 
@@ -270,14 +271,14 @@ let () =
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.string_t
     ~descr:"Concatenate two paths, using the appropriate directory separator."
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_string (Lang.assoc "" 1 p) in
       let s = Lang.to_string (Lang.assoc "" 2 p) in
       Lang.string (Filename.concat f s))
 
 let () =
   add_builtin "path.remove_extension" ~cat:Sys [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Remove the file extension from a path." (fun p ->
+    Lang.string_t ~descr:"Remove the file extension from a path." (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.remove_extension f))
 
@@ -295,7 +296,7 @@ let () =
     ~descr:
       "Read the tags from an MP3 file using the builtin functions. Only ID3v2 \
        tags are supported for now."
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       let ic = open_in f in
       let ans =
@@ -320,7 +321,7 @@ let () =
       "Parse APIC ID3v2 tags (such as those obtained in the APIC tag from \
        `file.mp3.tags`). The returned values are: mime, picture type, \
        description, and picture data."
-    (fun p ->
+    (fun p _ ->
       let apic = Lang.to_string (List.assoc "" p) in
       let apic = Id3v2.parse_apic apic in
       Lang.tuple
@@ -337,7 +338,7 @@ let () =
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
        using directories from the PATH environment variable and returns \"\" \
        if it could not find one." [("", Lang.string_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t (fun p _ ->
       let file = Lang.to_string (List.assoc "" p) in
       Lang.string
         (try Utils.which ~path:Configure.path file with Not_found -> ""))

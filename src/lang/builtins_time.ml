@@ -27,7 +27,7 @@ let () =
   add_builtin "time_in_mod" ~cat:Other ~flags:[Lang.Hidden]
     ~descr:
       ( "INTERNAL: time_in_mod(a,b,c) checks that the unix time T "
-      ^ "satisfies a <= T mod c < b" ) [t; t; t] Lang.bool_t (fun p ->
+      ^ "satisfies a <= T mod c < b" ) [t; t; t] Lang.bool_t (fun p _ ->
       match List.map (fun (_, x) -> Lang.to_int x) p with
         | [a; b; c] ->
             let t = Unix.localtime (Unix.time ()) in
@@ -45,7 +45,7 @@ let () =
   add_builtin ~cat:Sys "time"
     ~descr:
       "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
-    Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()));
+    Lang.float_t (fun _ _ -> Lang.float (Unix.gettimeofday ()));
   let t = Lang.univ_t () in
   let execute cb tm =
     Lang.apply cb
@@ -81,7 +81,7 @@ let () =
       "Convert a time in seconds into a date in the local time zone and \
        execute passed callback with the result. Fields meaning same as POSIX's \
        `tm struct`. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
-    [("", Lang.float_t, None, None); ("", fn_t, None, None)] t (fun p ->
+    [("", Lang.float_t, None, None); ("", fn_t, None, None)] t (fun p _ ->
       let tm = Unix.localtime (Lang.to_float (Lang.assoc "" 1 p)) in
       let fn = Lang.assoc "" 2 p in
       execute fn tm);
@@ -90,7 +90,7 @@ let () =
       "Convert a time in seconds into a date in the UTC time zone and execute \
        passed callback with the result. Fields meaning same as POSIX's `tm \
        struct`. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
-    [("", Lang.float_t, None, None); ("", fn_t, None, None)] t (fun p ->
+    [("", Lang.float_t, None, None); ("", fn_t, None, None)] t (fun p _ ->
       let tm = Unix.localtime (Lang.to_float (Lang.assoc "" 1 p)) in
       let fn = Lang.assoc "" 2 p in
       execute fn tm);
@@ -98,7 +98,7 @@ let () =
     ~descr:"Get a source's time, based on its assigned clock"
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.float_t
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (List.assoc "" p) in
       let ticks =
         if Source.Clock_variables.is_known s#clock then

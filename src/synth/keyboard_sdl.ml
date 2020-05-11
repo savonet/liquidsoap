@@ -179,7 +179,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.Input ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let velocity = Lang.to_float (f "velocity") in
       (new keyboard ~kind velocity :> Source.source))

@@ -100,16 +100,16 @@ let () =
       ~descr:("Return a function from a " ^ name ^ " getter")
       [("", get_t (), None, None)]
       (Lang.fun_t [] type_t)
-      (fun p ->
+      (fun p _ ->
         let getter = to_get (Lang.assoc "" 1 p) in
-        Lang.val_fun [] (fun _ -> to_val (getter ())));
+        Lang.val_fun [] (fun _ _ -> to_val (getter ())));
     add_builtin ~cat:Liq (name ^ "_getter")
       ~descr:
         ( "Identity function over " ^ name ^ " getters. "
         ^ "This is useful to make types explicit." )
       [("", get_t (), None, None)]
       (get_t ())
-      (fun p -> List.assoc "" p)
+      (fun p _ -> List.assoc "" p)
   in
   add_getters "string" Lang.string_getter_t Lang.string_t Lang.to_string_getter
     Lang.string;
@@ -125,7 +125,7 @@ let () =
     ~descr:"Return the content-type (mime) of an encoder, if known."
     [("", Lang.format_t kind, None, None)]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_format (List.assoc "" p) in
       try Lang.string (Encoder.mime f) with _ -> Lang.string "")
 
@@ -135,7 +135,7 @@ let () =
     ~descr:"Return the file extension of an encoder, if known."
     [("", Lang.format_t kind, None, None)]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_format (List.assoc "" p) in
       try Lang.string (Encoder.extension f) with _ -> Lang.string "")
 
@@ -143,7 +143,7 @@ let () =
   add_builtin ~cat:Liq "eval"
     ~descr:"Evaluate a string as an expression in the toplevel environment."
     ~flags:[Lang.Hidden] [("", Lang.string_t, None, None)] Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
       match Lang.eval s with
         | None -> Lang.string ""
@@ -171,7 +171,7 @@ let () =
         Some "List of sources to which the new clock will be assigned" );
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p pos ->
       match Lang.to_list (List.assoc "" p) with
         | [] -> Lang.unit
         | hd :: _ as sources ->
@@ -183,7 +183,8 @@ let () =
                 | s when s = "none" -> `None
                 | _ ->
                     raise
-                      (Lang_errors.Invalid_value (sync, "Invalid sync value"))
+                      (Lang_errors.Invalid_value
+                         (pos, sync, "Invalid sync value"))
             in
             let id = Lang.to_string (List.assoc "id" p) in
             let id = if id = "" then (Lang.to_source hd)#id else id in
@@ -196,9 +197,9 @@ let () =
                     (Clock.create_known (clock :> Clock.clock))
                 with
                   | Source.Clock_conflict (a, b) ->
-                      raise (Lang_errors.Clock_conflict (s.Lang.pos, a, b))
+                      raise (Lang_errors.Clock_conflict (pos, a, b))
                   | Source.Clock_loop (a, b) ->
-                      raise (Lang_errors.Clock_loop (s.Lang.pos, a, b)))
+                      raise (Lang_errors.Clock_loop (pos, a, b)))
               sources;
             Lang.unit)
 
@@ -207,7 +208,7 @@ let () =
     ~descr:"Enforce that a list of sources all belong to the same clock."
     [("", Lang.list_t (Lang.source_t (Lang.univ_t ())), None, None)]
     Lang.unit_t
-    (fun p ->
+    (fun p pos ->
       let l = List.assoc "" p in
       try
         match Lang.to_source_list l with
@@ -217,15 +218,14 @@ let () =
               Lang.unit
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Lang_errors.Clock_conflict (l.Lang.pos, a, b))
-        | Source.Clock_loop (a, b) ->
-            raise (Lang_errors.Clock_loop (l.Lang.pos, a, b)))
+            raise (Lang_errors.Clock_conflict (pos, a, b))
+        | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b)))
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
   add_builtin "clock.status" ~cat:Liq
     ~descr:"Get the current time for all allocated clocks." [] (Lang.list_t t)
-    (fun _ ->
+    (fun _ _ ->
       let l =
         Clock.fold
           (fun clock l ->
@@ -276,7 +276,7 @@ let () =
       ("", Lang.string_t, None, Some "Process to start.");
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let process = Lang.to_string (Lang.assoc "" 1 p) in
       let name = Lang.to_string (List.assoc "name" p) in
       let descr = Lang.to_string (List.assoc "description" p) in
@@ -308,7 +308,7 @@ let () =
            returns the process to start." );
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let f = Lang.assoc "" 1 p in
       let name = Lang.to_string (List.assoc "name" p) in
       let descr = Lang.to_string (List.assoc "description" p) in
@@ -323,7 +323,7 @@ let () =
 
 let () =
   add_builtin "metadata.export" ~cat:Liq ~descr:"Filter-out internal metadata."
-    [("", Lang.metadata_t, None, None)] Lang.metadata_t (fun p ->
+    [("", Lang.metadata_t, None, None)] Lang.metadata_t (fun p _ ->
       Lang.metadata
         (Meta_format.to_metadata
            (Meta_format.export_metadata (Lang.to_metadata (List.assoc "" p)))))
@@ -336,11 +336,11 @@ let () =
   add_builtin "fst" ~cat:Pair ~descr:"Get the first component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t1
-    (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p)));
+    (fun p _ -> fst (Lang.to_product (Lang.assoc "" 1 p)));
   add_builtin "snd" ~cat:Pair ~descr:"Get the second component of a pair."
     [("", Lang.product_t t1 t2, None, None)]
     t2
-    (fun p -> snd (Lang.to_product (Lang.assoc "" 1 p)))
+    (fun p _ -> snd (Lang.to_product (Lang.assoc "" 1 p)))
 
 (** Misc control/system functions. *)
 
@@ -354,7 +354,7 @@ let () =
     ]
   in
   let return_t = Lang.list_t Lang.string_t in
-  let execute p =
+  let execute p _ =
     let c = Lang.to_string (Lang.assoc "" 1 p) in
     let a = Lang.to_string (Lang.assoc "" 2 p) in
     let s = match a with "" -> c | _ -> c ^ " " ^ a in
@@ -374,7 +374,7 @@ let () =
       ("else", Lang.fun_t [] t, None, None);
     ]
     t
-    (fun p ->
+    (fun p _ ->
       let c = List.assoc "" p in
       let fy = List.assoc "then" p in
       let fn = List.assoc "else" p in
@@ -383,12 +383,12 @@ let () =
 
 let () =
   add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application." []
-    Lang.unit_t (fun _ ->
+    Lang.unit_t (fun _ _ ->
       Configure.restart := false;
       Tutils.shutdown ();
       Lang.unit);
   add_builtin "restart" ~cat:Sys ~descr:"Restart the application." []
-    Lang.unit_t (fun _ ->
+    Lang.unit_t (fun _ _ ->
       Configure.restart := true;
       Tutils.shutdown ();
       Lang.unit);
@@ -407,7 +407,7 @@ let () =
       "Sleep for a given amount of seconds (beware that it freezes the thread \
        executing it)."
     [("", Lang.float_t, None, Some "Number of seconds of sleep.")] Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let t = Lang.to_float (List.assoc "" p) in
       let t = int_of_float (t +. 0.5) in
       Unix.sleep t;
@@ -416,7 +416,7 @@ let () =
 let () =
   let reopen name descr f =
     add_builtin name ~cat:Sys ~descr [("", Lang.string_t, None, None)]
-      Lang.unit_t (fun p ->
+      Lang.unit_t (fun p _ ->
         let file = Lang.to_string (List.assoc "" p) in
         f file;
         Lang.unit)
@@ -430,31 +430,31 @@ let () =
 
 let () =
   add_builtin "garbage_collect" ~cat:Liq
-    ~descr:"Trigger full major garbage collection." [] Lang.unit_t (fun _ ->
+    ~descr:"Trigger full major garbage collection." [] Lang.unit_t (fun _ _ ->
       Gc.full_major ();
       Lang.unit)
 
 let () =
   add_builtin "system" ~cat:Sys [("", Lang.string_t, None, None)]
-    Lang.unit_t ~descr:"Shell command call." (fun p ->
+    Lang.unit_t ~descr:"Shell command call." (fun p _ ->
       ignore (Unix.system (Lang.to_string (List.assoc "" p)));
       Lang.unit)
 
 let () =
   add_builtin "getpid" ~cat:Sys [] Lang.int_t ~descr:"Get the process' pid."
-    (fun _ -> Lang.int (Unix.getpid ()))
+    (fun _ _ -> Lang.int (Unix.getpid ()))
 
 let () =
   add_builtin "gettimeofday" ~cat:Sys [] Lang.float_t
     ~descr:
       "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
-    (fun _ -> Lang.float (Unix.gettimeofday ()))
+    (fun _ _ -> Lang.float (Unix.gettimeofday ()))
 
 let () =
   let ss = Lang.product_t Lang.string_t Lang.string_t in
   let ret_t = Lang.list_t ss in
   add_builtin "environment" ~cat:Sys ~descr:"Return the process environment." []
-    ret_t (fun _ ->
+    ret_t (fun _ _ ->
       let l = Utils.environment () in
       let l = List.map (fun (x, y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x, y) -> Lang.product x y) l in
@@ -466,7 +466,7 @@ let () =
     [
       ("", Lang.string_t, None, Some "Variable to be set.");
       ("", Lang.string_t, None, Some "Value to set.");
-    ] Lang.unit_t (fun p ->
+    ] Lang.unit_t (fun p _ ->
       let label = Lang.to_string (Lang.assoc "" 1 p) in
       let value = Lang.to_string (Lang.assoc "" 2 p) in
       Unix.putenv label value;
@@ -480,7 +480,7 @@ let () =
       ("", Lang.string_t, None, None);
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let msg = Lang.to_string (List.assoc "" p) in
       let label = Lang.to_string (List.assoc "label" p) in
       let level = Lang.to_int (List.assoc "level" p) in
@@ -516,7 +516,7 @@ let () =
        \"X\" otherwise.\n\
        The result is removed from the list of arguments, affecting subsequent\n\
        calls to `argv()` and `getopt()`."
-    (fun p ->
+    (fun p _ ->
       let default = Lang.to_string (List.assoc "default" p) in
       let name = Lang.to_string (List.assoc "" p) in
       let argv = !opts in
@@ -546,7 +546,7 @@ let () =
       ("", Lang.int_t, None, None);
     ]
     Lang.string_t
-    (fun p ->
+    (fun p _ ->
       let default = Lang.to_string (List.assoc "default" p) in
       let i = Lang.to_int (List.assoc "" p) in
       let opts = !opts in
@@ -563,7 +563,7 @@ let () =
     ~cat:Control
     [("", Lang.univ_t (), None, None)]
     Lang.unit_t
-    (fun _ -> Lang.unit)
+    (fun _ _ -> Lang.unit)
 
 let () =
   add_builtin "playlist.parse" ~cat:Liq
@@ -582,7 +582,7 @@ let () =
     ~descr:
       "Try to parse a local playlist. Return a list of (metadata,URI) items, \
        where metadata is a list of (key,value) bindings."
-    (fun p ->
+    (fun p _ ->
       let f = Lang.to_string (List.assoc "" p) in
       let f = Utils.home_unrelate f in
       let content = Utils.read_all f in
@@ -613,18 +613,18 @@ let () =
 
 let () =
   add_builtin "dB_of_lin" ~cat:Math [("", Lang.float_t, None, None)]
-    Lang.float_t ~descr:"Convert linear scale into decibels." (fun p ->
+    Lang.float_t ~descr:"Convert linear scale into decibels." (fun p _ ->
       let x = Lang.to_float (Lang.assoc "" 1 p) in
       Lang.float (Audio.dB_of_lin x));
   add_builtin "lin_of_dB" ~cat:Math [("", Lang.float_t, None, None)]
-    Lang.float_t ~descr:"Convert decibels into linear scale." (fun p ->
+    Lang.float_t ~descr:"Convert decibels into linear scale." (fun p _ ->
       let x = Lang.to_float (Lang.assoc "" 1 p) in
       Lang.float (Audio.lin_of_dB x))
 
 let () =
   add_builtin "seconds_of_master" ~cat:Liq
     ~descr:"Convert a number of master ticks in seconds."
-    [("", Lang.int_t, None, None)] Lang.float_t (fun p ->
+    [("", Lang.int_t, None, None)] Lang.float_t (fun p _ ->
       Lang.float (Frame.seconds_of_master (Lang.to_int (List.assoc "" p))))
 
 let () =
@@ -637,11 +637,11 @@ let () =
       ("", Lang.univ_t (), None, None);
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let nl = Lang.to_bool (List.assoc "newline" p) in
       let v = List.assoc "" p in
       let v =
-        match v.Lang.value with
+        match v with
           | Lang.(Ground (Ground.String s)) -> s
           | _ -> Lang.print_value v
       in

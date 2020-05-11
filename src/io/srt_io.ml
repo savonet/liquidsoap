@@ -414,14 +414,15 @@ let () =
           "Content-Type (mime type) used to find a decoder for the input \
            stream." );
     ]
-    (fun p ->
+    (fun p pos ->
       let bind_address = Lang.to_string (List.assoc "bind_address" p) in
       let bind_address =
         try Unix.inet_addr_of_string bind_address
         with exn ->
           raise
             (Lang_errors.Invalid_value
-               ( List.assoc "bind_address" p,
+               ( pos,
+                 List.assoc "bind_address" p,
                  Printf.sprintf "Invalid address: %s" (Printexc.to_string exn)
                ))
       in
@@ -446,7 +447,8 @@ let () =
         | None ->
             raise
               (Lang_errors.Invalid_value
-                 ( List.assoc "content_type" p,
+                 ( pos,
+                   List.assoc "content_type" p,
                    "Couldn't find a decoder for this format" ))
         | _ -> () );
       ( new input
@@ -454,15 +456,15 @@ let () =
           ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
         :> Source.source ))
 
-class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
+class output ~pos ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
   ~autostart ~clock_safe ~port ~hostname ~encoder_factory source =
   object (self)
     inherit base ~payload_size ~messageapi
 
     inherit
       Output.encoded
-        ~output_kind:"srt" ~content_kind:kind ~on_start ~on_stop ~infallible
-          ~autostart ~name:"output.srt" source as super
+        ~pos ~output_kind:"srt" ~content_kind:kind ~on_start ~on_stop
+          ~infallible ~autostart ~name:"output.srt" source as super
 
     val output_mutex = Mutex.create ()
 
@@ -636,7 +638,7 @@ let () =
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
       ] )
-    (fun p ->
+    (fun p pos ->
       let hostname = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
       let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
@@ -659,9 +661,9 @@ let () =
         with Not_found ->
           raise
             (Lang_errors.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               (pos, fmt, "Cannot get a stream encoder for that format"))
       in
       ( new output
-          ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
+          ~pos ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
           ~infallible ~messageapi ~clock_safe ~encoder_factory source
         :> Source.source ))

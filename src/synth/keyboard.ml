@@ -148,5 +148,5 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.keyboard" [] ~return_t ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]
-    ~descr:"Play notes from the keyboard." (fun _ ->
+    ~descr:"Play notes from the keyboard." (fun _ _ ->
       (new keyboard ~kind :> Source.source))

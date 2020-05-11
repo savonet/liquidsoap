@@ -30,7 +30,7 @@ let () =
       "l[k] returns the first v such that (k,v) is in the list l (or \"\" if \
        no such v exists)."
     [("", Lang.string_t, None, None); ("", Lang.metadata_t, None, None)]
-    Lang.string_t (fun p ->
+    Lang.string_t (fun p _ ->
       let k = Lang.to_string (Lang.assoc "" 1 p) in
       let l =
         List.map
@@ -57,7 +57,7 @@ let () =
         Some "Result when the list is non-empty." );
     ]
     b
-    (fun p ->
+    (fun p _ ->
       let l, e, f =
         match p with
           | [("", l); ("", e); ("", f)] -> (l, e, f)
@@ -88,7 +88,7 @@ let () =
            tail and the result of the recursive call on the tail." );
     ]
     b
-    (fun p ->
+    (fun p _ ->
       let l, e, f =
         match p with
           | [("", l); ("", e); ("", f)] -> (l, e, f)
@@ -109,7 +109,7 @@ let () =
     ~descr:"Add an element at the top of a list."
     [("", a, None, None); ("", Lang.list_t a, None, None)]
     (Lang.list_t a)
-    (fun p ->
+    (fun p _ ->
       let x, l =
         match p with [("", x); ("", l)] -> (x, l) | _ -> assert false
       in
@@ -119,7 +119,7 @@ let () =
 let () =
   let t = Lang.list_t (Lang.univ_t ()) in
   Lang.add_builtin "list.randomize" ~category:(string_of_category List)
-    ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p ->
+    ~descr:"Shuffle the content of a list." [("", t, None, None)] t (fun p _ ->
       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
       Utils.randomize l;
       Lang.list (Array.to_list l))
@@ -138,7 +138,7 @@ let () =
       ("", Lang.list_t a, None, Some "List to sort.");
     ]
     (Lang.list_t a)
-    (fun p ->
+    (fun p _ ->
       let f = Lang.assoc "" 1 p in
       let sort x y = Lang.to_int (Lang.apply f [("", x); ("", y)]) in
       let l = Lang.assoc "" 2 p in

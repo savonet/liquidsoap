@@ -25,10 +25,9 @@ open Lang_builtins
 let () =
   let add op name descr =
     let t = Lang.float_t in
-    add_builtin name ~cat:Math ~descr [("", t, None, None)] t (fun p ->
+    add_builtin name ~cat:Math ~descr [("", t, None, None)] t (fun p _ ->
         match p with
-          | [("", { Lang.value = Lang.(Ground (Ground.Float a)); _ })] ->
-              Lang.float (op a)
+          | [("", Lang.(Ground (Ground.Float a)))] -> Lang.float (op a)
           | _ -> assert false)
   in
   add sqrt "sqrt" "Square root.";
@@ -56,11 +55,10 @@ let () =
     ~descr:
       "Integer remainder. If y is not zero, x == (x / y) * y + x mod y, and \
        abs(x mod y) <= abs(y)-1." [("", t, None, None); ("", t, None, None)] t
-    (fun p ->
+    (fun p _ ->
       match p with
         | [
-         ("", { Lang.value = Lang.(Ground (Ground.Int a)); _ });
-         ("", { Lang.value = Lang.(Ground (Ground.Int b)); _ });
+         ("", Lang.(Ground (Ground.Int a))); ("", Lang.(Ground (Ground.Int b)));
         ] ->
             Lang.int (a mod b)
         | _ -> assert false)
@@ -68,17 +66,17 @@ let () =
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
-    [("", t, None, None)] t (function
-    | [("", { Lang.value = Lang.(Ground (Ground.Int i)); _ })] -> Lang.int ~-i
-    | [("", { Lang.value = Lang.(Ground (Ground.Float i)); _ })] ->
-        Lang.float ~-.i
-    | _ -> assert false)
+    [("", t, None, None)] t (fun p _ ->
+      match p with
+        | [("", Lang.(Ground (Ground.Int i)))] -> Lang.int ~-i
+        | [("", Lang.(Ground (Ground.Float i)))] -> Lang.float ~-.i
+        | _ -> assert false)
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   add_builtin "abs" ~cat:Math ~descr:"Absolute value." [("", t, None, None)] t
-    (fun p ->
-      match (snd (List.hd p)).Lang.value with
+    (fun p _ ->
+      match snd (List.hd p) with
         | Lang.(Ground (Ground.Int i)) -> Lang.int (abs i)
         | Lang.(Ground (Ground.Float i)) -> Lang.float (abs_float i)
         | _ -> assert false)
@@ -87,16 +85,15 @@ let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   let register_op doc name op_int op_float =
     add_builtin name ~cat:Math ~descr:(Printf.sprintf "%s of numbers." doc)
-      [("", t, None, None); ("", t, None, None)] t (fun p ->
+      [("", t, None, None); ("", t, None, None)] t (fun p _ ->
         match p with
           | [
-           ("", { Lang.value = Lang.(Ground (Ground.Int a)); _ });
-           ("", { Lang.value = Lang.(Ground (Ground.Int b)); _ });
+           ("", Lang.(Ground (Ground.Int a))); ("", Lang.(Ground (Ground.Int b)));
           ] ->
               Lang.int (op_int a b)
           | [
-           ("", { Lang.value = Lang.(Ground (Ground.Float a)); _ });
-           ("", { Lang.value = Lang.(Ground (Ground.Float b)); _ });
+           ("", Lang.(Ground (Ground.Float a)));
+           ("", Lang.(Ground (Ground.Float b)));
           ] ->
               Lang.float (op_float a b)
           | _ -> assert false)
@@ -119,7 +116,7 @@ let () =
       ("max", Lang.float_t, Some (Lang.float 1000000.), None);
     ]
     Lang.float_t
-    (fun p ->
+    (fun p _ ->
       let min = Lang.to_float (List.assoc "min" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       Lang.float (Random.float (max -. min) +. min))
@@ -133,29 +130,29 @@ let () =
       ("max", Lang.int_t, Some (Lang.int (1 lsl 29)), None);
     ]
     Lang.int_t
-    (fun p ->
+    (fun p _ ->
       let min = Lang.to_int (List.assoc "min" p) in
       let max = Lang.to_int (List.assoc "max" p) in
       Lang.int (Random.int (max - min) + min))
 
 let () =
   add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random boolean." []
-    Lang.bool_t (fun _ -> Lang.bool (Random.bool ()))
+    Lang.bool_t (fun _ _ -> Lang.bool (Random.bool ()))
 
 let () =
   add_builtin "max_int" ~cat:Math ~descr:"Maximal representable integer."
-    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ -> Lang.int max_int)
+    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ _ -> Lang.int max_int)
 
 let () =
   add_builtin "min_int" ~cat:Math ~descr:"Minimal representable integer."
-    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ -> Lang.int min_int)
+    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ _ -> Lang.int min_int)
 
 let () =
   add_builtin "lsl" ~cat:Math ~descr:"Logical shift left."
     [
       ("", Lang.int_t, None, Some "Number to shift.");
       ("", Lang.int_t, None, Some "Number of bits to shift.");
-    ] Lang.int_t (fun p ->
+    ] Lang.int_t (fun p _ ->
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsl b))
@@ -165,7 +162,7 @@ let () =
     [
       ("", Lang.int_t, None, Some "Number to shift.");
       ("", Lang.int_t, None, Some "Number of bits to shift.");
-    ] Lang.int_t (fun p ->
+    ] Lang.int_t (fun p _ ->
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsr b))

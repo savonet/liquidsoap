@@ -49,7 +49,7 @@ let add_http_request http name descr request =
       ]
   in
   let (module Http : Http.Http_t) = http in
-  add_builtin name ~cat:Interaction ~descr params request_return_t (fun p ->
+  add_builtin name ~cat:Interaction ~descr params request_return_t (fun p _ ->
       let headers = List.assoc "headers" p in
       let headers = Lang.to_list headers in
       let headers = List.map Lang.to_product headers in

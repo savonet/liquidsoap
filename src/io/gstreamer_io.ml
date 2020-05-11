@@ -165,7 +165,7 @@ class virtual ['a, 'b] element_factory ~on_error =
 
 (* Audio/video output *)
 
-class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
+class output ~pos ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
   ?(blocking = true) source start (pipeline, audio_pipeline, video_pipeline) =
   let has_audio, audio_pipeline =
     match audio_pipeline with
@@ -181,7 +181,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
   object (self)
     inherit
       Output.output
-        ~content_kind:kind ~infallible ~on_start ~on_stop
+        ~pos ~content_kind:kind ~infallible ~on_start ~on_stop
           ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
@@ -336,7 +336,7 @@ let () =
   Lang.add_operator "output.gstreamer.audio" ~active:true
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p ->
+    ~return_t (fun p pos ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -356,7 +356,7 @@ let () =
       in
       let source = List.assoc "" p in
       ( new output
-          ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source
+          ~pos ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source
           start ("", Some pipeline, None)
         :> Source.source ))
 
@@ -366,7 +366,7 @@ let () =
   Lang.add_operator "output.gstreamer.video" ~active:true
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p ->
+    ~return_t (fun p pos ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -386,7 +386,7 @@ let () =
       in
       let source = List.assoc "" p in
       ( new output
-          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source
+          ~pos ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source
           start ("", None, Some pipeline)
         :> Source.source ))
 
@@ -411,7 +411,7 @@ let () =
       ] )
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
     ~return_t
-    (fun p ->
+    (fun p pos ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
@@ -434,8 +434,8 @@ let () =
       in
       let source = List.assoc "" p in
       ( new output
-          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking
-          source start
+          ~pos ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop
+          ~blocking source start
           (pipeline, Some audio_pipeline, Some video_pipeline)
         :> Source.source ))
 
@@ -700,7 +700,7 @@ let () =
   in
   Lang.add_operator "input.gstreamer.audio_video" proto ~return_t
     ~category:Lang.Input ~flags:[]
-    ~descr:"Stream audio+video from a GStreamer pipeline." (fun p ->
+    ~descr:"Stream audio+video from a GStreamer pipeline." (fun p _ ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       let audio_pipeline =
         Lang.to_string_getter (List.assoc "audio_pipeline" p)
@@ -726,7 +726,7 @@ let () =
       ]
   in
   Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:Lang.Input
-    ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p ->
+    ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p _ ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       ( new audio_video_input p kind ((fun () -> ""), Some pipeline, None)
         :> Source.source ))
@@ -744,7 +744,7 @@ let () =
       ]
   in
   Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:Lang.Input
-    ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p ->
+    ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p _ ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       ( new audio_video_input p kind ((fun () -> ""), None, Some pipeline)
         :> Source.source ))

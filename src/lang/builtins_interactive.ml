@@ -84,7 +84,7 @@ let () =
     [
       ("", Lang.string_t, None, Some "Name of the variable.");
       ("", Lang.string_t, None, Some "Initial value.");
-    ] (Lang.fun_t [] Lang.string_t) (fun p ->
+    ] (Lang.fun_t [] Lang.string_t) (fun p _ ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_string (Lang.assoc "" 2 p) in
       let v = ref v in
@@ -94,7 +94,7 @@ let () =
         ~validate:(fun s ->
           try ignore (Scanf.sscanf s "%S" (fun s -> s))
           with _ -> raise (Var.Invalid_value (s ^ " is not a string")));
-      Lang.val_fun [] (fun _ -> Lang.string !v))
+      Lang.val_fun [] (fun _ _ -> Lang.string !v))
 
 let () =
   add_builtin "interactive.float" ~cat:Interaction
@@ -102,7 +102,7 @@ let () =
     [
       ("", Lang.string_t, None, Some "Name of the variable.");
       ("", Lang.float_t, None, Some "Initial value.");
-    ] (Lang.fun_t [] Lang.float_t) (fun p ->
+    ] (Lang.fun_t [] Lang.float_t) (fun p _ ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_float (Lang.assoc "" 2 p) in
       let v = ref v in
@@ -112,7 +112,7 @@ let () =
         ~validate:(fun s ->
           try ignore (float_of_string s)
           with _ -> raise (Var.Invalid_value (s ^ " is not a float")));
-      Lang.val_fun [] (fun _ -> Lang.float !v))
+      Lang.val_fun [] (fun _ _ -> Lang.float !v))
 
 let () =
   add_builtin "interactive.bool" ~cat:Interaction
@@ -120,7 +120,7 @@ let () =
     [
       ("", Lang.string_t, None, Some "Name of the variable.");
       ("", Lang.bool_t, None, Some "Initial value.");
-    ] (Lang.fun_t [] Lang.bool_t) (fun p ->
+    ] (Lang.fun_t [] Lang.bool_t) (fun p _ ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_bool (Lang.assoc "" 2 p) in
       let v = ref v in
@@ -130,4 +130,4 @@ let () =
         ~validate:(fun s ->
           if s <> "true" && s <> "false" then
             raise (Var.Invalid_value (s ^ " is not a boolean")));
-      Lang.val_fun [] (fun _ -> Lang.bool !v))
+      Lang.val_fun [] (fun _ _ -> Lang.bool !v))

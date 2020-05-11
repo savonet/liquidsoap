@@ -26,7 +26,7 @@ let () =
   add_builtin "source.skip" ~cat:Liq ~descr:"Skip to the next track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       (Lang.to_source (List.assoc "" p))#abort_track;
       Lang.unit)
 
@@ -39,7 +39,7 @@ let () =
       ("", Lang.float_t, None, None);
     ]
     Lang.float_t
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let time = Lang.to_float (Lang.assoc "" 2 p) in
       let len = Frame.master_of_seconds time in
@@ -50,14 +50,14 @@ let () =
   add_builtin "source.id" ~cat:Liq ~descr:"Get one source's identifier."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.string_t
-    (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
+    (fun p _ -> Lang.string (Lang.to_source (List.assoc "" p))#id)
 
 let () =
   add_builtin "source.fallible" ~cat:Liq
     ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p ->
+    (fun p _ ->
       Lang.bool ((Lang.to_source (List.assoc "" p))#stype == Source.Fallible))
 
 let () =
@@ -65,14 +65,14 @@ let () =
     ~descr:"Indicate if a source is ready to stream, or currently streaming."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#is_ready)
+    (fun p _ -> Lang.bool (Lang.to_source (List.assoc "" p))#is_ready)
 
 let () =
   add_builtin "source.remaining" ~cat:Liq
     ~descr:"Estimation of remaining time in the current track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.float_t
-    (fun p ->
+    (fun p _ ->
       let r = (Lang.to_source (List.assoc "" p))#remaining in
       let f = if r = -1 then infinity else Frame.seconds_of_master r in
       Lang.float f)
@@ -81,7 +81,7 @@ let () =
   add_builtin "source.shutdown" ~cat:Liq ~descr:"Desactivate a source."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.unit_t
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (List.assoc "" p) in
       (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
           (s' :> Source.source) = s);
@@ -98,7 +98,7 @@ let () =
        failed to initialize."
     [("", Lang.list_t s_t, None, None)]
     (Lang.list_t s_t)
-    (fun p ->
+    (fun p _ ->
       let l = Lang.to_list (List.assoc "" p) in
       let l = List.map Lang.to_source l in
       let l =
@@ -122,7 +122,7 @@ let () =
       ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to encode");
     ]
     Lang.unit_t
-    (fun p ->
+    (fun p pos ->
       let proto =
         let p = Pipe_output.file_proto (Lang.univ_t ()) in
         List.filter_map (fun (l, _, v, _) -> Option.map (fun v -> (l, v)) v) p
@@ -130,7 +130,7 @@ let () =
       let proto = ("fallible", Lang.bool true) :: proto in
       let s = Lang.to_source (Lang.assoc "" 3 p) in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
-      let fo = Pipe_output.new_file_output p in
+      let fo = Pipe_output.new_file_output p pos in
       fo#get_ready [s];
       fo#output_get_ready;
       log#info "Start dumping source.";

@@ -91,14 +91,14 @@ let register name osc_t liq_t =
     [
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Initial value.");
-    ] (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path." (fun p ->
+    ] (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path." (fun p _ ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
       let v = ref v in
       let handle vv = v := val_array vv in
       add_handler path osc_t handle;
       start_server ();
-      Lang.val_fun [] (fun _ -> !v));
+      Lang.val_fun [] (fun _ _ -> !v));
   Lang.add_builtin ("osc.on_" ^ name) ~category:"Interaction"
     [
       ("", Lang.string_t, None, Some "OSC path.");
@@ -108,7 +108,7 @@ let register name osc_t liq_t =
         Some "Callback function." );
     ]
     Lang.unit_t ~descr:"Register a callback on OSC messages."
-    (fun p ->
+    (fun p _ ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let handle v =
@@ -124,18 +124,17 @@ let register name osc_t liq_t =
       ("port", Lang.int_t, None, Some "OSC client port.");
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Value to send.");
-    ] Lang.unit_t ~descr:"Send a value to an OSC client." (fun p ->
+    ] Lang.unit_t ~descr:"Send a value to an OSC client." (fun p _ ->
       let host = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
       let address = LO.Address.create host port in
-      let osc_val v =
-        match v.Lang.value with
-          | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
-          | Lang.(Ground (Ground.String s)) -> [`String s]
-          | Lang.(Ground (Ground.Float x)) -> [`Float x]
-          | _ -> failwith "Unhandled value."
+      let osc_val = function
+        | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
+        | Lang.(Ground (Ground.String s)) -> [`String s]
+        | Lang.(Ground (Ground.Float x)) -> [`Float x]
+        | _ -> failwith "Unhandled value."
       in
       (* There was a bug in early versions of lo bindings and anyway we don't
          really want errors to show up here... *)
