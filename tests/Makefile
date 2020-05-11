@@ -9,6 +9,10 @@ top_srcdir = ..
 test: flactest $(TESTS)
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 
+perf:
+	perf record --call-graph=dwarf -- ../src/liquidsoap ../libs/pervasives.liq performance.liq
+	perf report
+
 %: %.liq
 	@./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q $(top_srcdir)/libs/pervasives.liq -" $<
 
