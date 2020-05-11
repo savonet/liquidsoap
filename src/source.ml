@@ -467,6 +467,8 @@ class virtual operator ?(name = "src") kind sources =
     method private set_clock =
       List.iter (fun s -> unify self#clock s#clock) sources
 
+    initializer self#set_clock
+
     val kind_var = Kind.of_formats kind
 
     (* Kinds now use the same mechanism as clocks: we unify with the children
@@ -479,8 +481,10 @@ class virtual operator ?(name = "src") kind sources =
       match kind with
         | Some kind -> kind
         | None ->
-            self#set_kind;
             let kind_string = Kind.to_string self#kind_var in
+            (* The computation cannot be performed too early beacuse it can use
+               default values for channels, which can be overridden by the
+               script... *)
             let k = Kind.get self#kind_var in
             self#log#info "Kind %s becomes %s" kind_string
               (Frame.string_of_content_kind k);
