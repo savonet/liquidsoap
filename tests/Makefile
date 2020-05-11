@@ -8,6 +8,10 @@ top_srcdir = ..
 
 test: flactest $(TESTS)
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
+	@echo
+	@echo
+	@echo "***** Performance tests *****"
+	@./performance.liq
 
 %: %.liq
 	@./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q $(top_srcdir)/libs/pervasives.liq -" $<
