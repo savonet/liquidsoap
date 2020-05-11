@@ -315,7 +315,7 @@ module Kind = struct
   type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
 
   let to_string k =
-    Printf.sprintf "(%s,%s,%s)"
+    Printf.sprintf "{audio=%s;video=%s;midi=%s}"
       (Multiplicity.to_string k.Frame.audio)
       (Multiplicity.to_string k.Frame.video)
       (Multiplicity.to_string k.Frame.midi)

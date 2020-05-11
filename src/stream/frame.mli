@@ -178,14 +178,11 @@ val get_chunk : t -> t -> unit
     when [b] is more permissive than [a]. *)
 
 val mul_sub_mul : multiplicity -> multiplicity -> bool
-val int_sub_mul : int -> multiplicity -> bool
-val mul_eq_int : multiplicity -> int -> bool
 val kind_sub_kind : content_kind -> content_kind -> bool
 val type_has_kind : content_type -> content_kind -> bool
 val type_of_content : content -> content_type
 val type_of_kind : content_kind -> content_type
 val mul_of_int : int -> multiplicity
-val add_mul : multiplicity -> multiplicity -> multiplicity
 val succ_mul : multiplicity -> multiplicity
 val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string

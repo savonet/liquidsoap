@@ -241,7 +241,6 @@ let mul_sub_mul m n =
     | At_least _, Fixed _ -> false
 
 let int_sub_mul n m = mul_sub_mul (Fixed n) m
-let mul_eq_int m n = m = Fixed n
 
 let kind_sub_kind a b =
   mul_sub_mul a.audio b.audio
@@ -269,12 +268,6 @@ let type_of_kind k =
   }
 
 let mul_of_int n = Fixed n
-
-let add_mul m n =
-  match (m, n) with
-    | Fixed m, Fixed n -> Fixed (m + n)
-    | At_least m, Fixed n | Fixed m, At_least n | At_least m, At_least n ->
-        At_least (m + n)
 
 let succ_mul = function
   | Fixed n -> Fixed (n + 1)
