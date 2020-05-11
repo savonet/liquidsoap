@@ -145,7 +145,7 @@ let () =
       "Play only one track of every successive source, except for the last one \
        which is played as much as available."
     ~return_t:k
-    (fun p ->
+    (fun p _ ->
       new sequence
         ~kind
         ~merge:(Lang.to_bool (List.assoc "merge" p))
@@ -161,4 +161,4 @@ let () =
       "Merge consecutive tracks from the input source. They will be considered \
        as one big track, so `on_track()` will not trigger for example."
     ~return_t:k
-    (fun p -> new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))
+    (fun p _ -> new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))

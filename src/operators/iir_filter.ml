@@ -465,7 +465,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, order, src =
         ( Lang.to_float (f "frequency"),
@@ -480,7 +480,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, order, src =
         ( Lang.to_float (f "frequency"),
@@ -496,7 +496,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
         ( Lang.to_float (f "frequency1"),
@@ -513,7 +513,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
         ( Lang.to_float (f "frequency1"),
@@ -529,7 +529,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, q, src =
         ( Lang.to_float (f "frequency"),
@@ -544,7 +544,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, q, src =
         ( Lang.to_float (f "frequency"),
@@ -559,7 +559,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, q, src =
         ( Lang.to_float (f "frequency"),

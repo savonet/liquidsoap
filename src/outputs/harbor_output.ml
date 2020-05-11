@@ -277,7 +277,7 @@ module Make (T : T) = struct
 
   (** Sending encoded data to a shout-compatible server.
     * It directly takes the Lang param list and extracts stuff from it. *)
-  class output ~kind p =
+  class output ~pos ~kind p =
     let e f v = f (List.assoc v p) in
     let s v = e Lang.to_string v in
     let on_connect = List.assoc "on_connect" p in
@@ -296,7 +296,7 @@ module Make (T : T) = struct
       ignore (Lang.apply on_disconnect [("", Lang.string s)])
     in
     let metaint = Lang.to_int (List.assoc "metaint" p) in
-    let data = encoder_data p in
+    let data = encoder_data p ~pos in
     let encoding = Lang.to_string (List.assoc "encoding" p) in
     let recode ~icy m =
       let out_enc =
@@ -317,13 +317,15 @@ module Make (T : T) = struct
       if chunk > buflen then
         raise
           (Lang_errors.Invalid_value
-             ( List.assoc "buffer" p,
+             ( pos,
+               List.assoc "buffer" p,
                "Maximum buffering inferior to chunk length" ))
       else ();
       if burst > buflen then
         raise
           (Lang_errors.Invalid_value
-             ( List.assoc "buffer" p,
+             ( pos,
+               List.assoc "buffer" p,
                "Maximum buffering inferior to burst length" ))
       else ()
     in
@@ -348,18 +350,12 @@ module Make (T : T) = struct
     let default_password = s "password" in
     (* Cf sources/harbor_input.ml *)
     let trivially_false = function
-      | {
-          Lang.value =
-            Lang.Fun
-              ( _,
-                _,
-                _,
-                {
-                  Lang_values.term = Lang_values.(Ground (Ground.Bool false));
-                  _;
-                } );
-          _;
-        } ->
+      | Lang.Fun
+          ( _,
+            _,
+            _,
+            { Lang_values.term = Lang_values.(Ground (Ground.Bool false)); _ }
+          ) ->
           true
       | _ -> false
     in
@@ -388,8 +384,8 @@ module Make (T : T) = struct
       (** File descriptor where to dump. *)
       inherit
         Output.encoded
-          ~content_kind:kind ~output_kind:T.source_name ~infallible ~autostart
-            ~on_start ~on_stop ~name:mount source
+          ~pos ~content_kind:kind ~output_kind:T.source_name ~infallible
+            ~autostart ~on_start ~on_stop ~name:mount source
 
       val mutable dump = None
 
@@ -620,7 +616,7 @@ module Make (T : T) = struct
     let return_t = Lang.kind_type_of_kind_format kind in
     Lang.add_operator ~category:Lang.Output ~active:true
       ~descr:T.source_description T.source_name (proto return_t) ~return_t
-      (fun p -> (new output ~kind p :> Source.source))
+      (fun p pos -> (new output ~pos ~kind p :> Source.source))
 end
 
 module Unix_output = struct

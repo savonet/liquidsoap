@@ -258,22 +258,18 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 (** Common tools for Lang bindings of switch operators *)
 
 let default_transition =
-  Lang.val_fun [("", "x", None); ("", "y", None)] (fun e -> List.assoc "y" e)
+  Lang.val_fun [("", "x", None); ("", "y", None)] (fun e _ -> List.assoc "y" e)
 
 (** Switch: switch according to user-defined predicates. *)
 
 let satisfied f = Lang.to_bool (Lang.apply f [])
 
 let trivially_true = function
-  | {
-      Lang.value =
-        Lang.Fun
-          ( _,
-            _,
-            _,
-            { Lang_values.term = Lang_values.(Ground (Ground.Bool true)); _ } );
-      _;
-    } ->
+  | Lang.Fun
+      ( _,
+        _,
+        _,
+        { Lang_values.term = Lang_values.(Ground (Ground.Bool true)); _ } ) ->
       true
   | _ -> false
 
@@ -367,7 +363,7 @@ let () =
         Some "Sources with the predicate telling when they can be played." );
     ]
     ~return_t
-    (fun p ->
+    (fun p pos ->
       let children =
         List.map
           (fun p ->
@@ -383,7 +379,7 @@ let () =
         if ltr > l then
           raise
             (Lang_errors.Invalid_value
-               (List.assoc "transitions" p, "Too many transitions"));
+               (pos, List.assoc "transitions" p, "Too many transitions"));
         if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
         else tr
       in
@@ -410,7 +406,8 @@ let () =
         with Invalid_argument s when s = "List.map2" ->
           raise
             (Lang_errors.Invalid_value
-               ( List.assoc "single" p,
+               ( pos,
+                 List.assoc "single" p,
                  "there should be exactly one flag per children" ))
       in
       new lang_switch

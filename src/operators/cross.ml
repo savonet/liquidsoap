@@ -494,7 +494,7 @@ let () =
        track with the beginning of the next track, using a transition function \
        depending on the relative power of the signal before and after the end \
        of track."
-    (fun p ->
+    (fun p _ ->
       let duration = Lang.to_float (List.assoc "duration" p) in
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)

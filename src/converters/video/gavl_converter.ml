@@ -52,13 +52,13 @@ let scale_args =
 
 exception Internal of Gavl.Video.scale_mode
 
-let scale_mode_of_arg x =
+let scale_mode_of_arg ~pos x =
   try
     let f (n, m) = if x = n then raise (Internal m) in
     List.iter f scale_modes;
     raise
       (Lang_errors.Invalid_value
-         (Lang.string x, "gavl scale mode must be one of: " ^ scale_args))
+         (pos, Lang.string x, "gavl scale mode must be one of: " ^ scale_args))
   with Internal m -> m
 
 let conf_scale_mode =

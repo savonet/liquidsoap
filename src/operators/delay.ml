@@ -78,7 +78,7 @@ let () =
     ~descr:
       "Prevents the child from being ready again too fast after a end of track"
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let f n = Lang.assoc "" n p in
       let d = Lang.to_float (f 1) in
       let s = Lang.to_source (f 2) in

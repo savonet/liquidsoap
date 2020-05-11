@@ -166,7 +166,7 @@ let register =
     ~descr:
       "Append an extra track to every track. Set the metadata 'liq_append' to \
        'false' to inhibit appending on one track."
-    (fun p ->
+    (fun p _ ->
       let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
       let insert_missing = Lang.to_bool (Lang.assoc "insert_missing" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in

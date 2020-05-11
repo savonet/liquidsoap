@@ -85,7 +85,7 @@ let () =
       "Call a given handler when there is less than a given amount of time \
        remaining before then end of track."
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let delay = Lang.to_float_getter (List.assoc "delay" p) in
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in

@@ -150,7 +150,7 @@ let () =
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.Visualization
     ~descr:"Graphical visualization of the sound."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       new visu ~kind src)

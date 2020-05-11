@@ -24,10 +24,10 @@ module Term = Lang_values
 module T = Lang_types
 
 (** Runtime error, should eventually disappear. *)
-exception Invalid_value of Term.V.value * string
+exception Invalid_value of T.pos list * Term.V.value * string
 
-exception Clock_conflict of (T.pos option * string * string)
-exception Clock_loop of (T.pos option * string * string)
+exception Clock_conflict of (T.pos list * string * string)
+exception Clock_loop of (T.pos list * string * string)
 
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
@@ -124,9 +124,14 @@ let report lexbuf f =
             ( if lbl = "" then "unlabeled argument"
             else Format.sprintf "argument labeled %S" lbl );
           raise Error
-      | Invalid_value (v, msg) ->
-          error_header 7 (T.print_pos (Utils.get_some v.Term.V.pos));
-          Format.printf "Invalid value:@ %s@]@." msg;
+      | Invalid_value (pos, v, msg) ->
+          error_header 7
+            ( match pos with
+              | [] -> "At unknown position"
+              | pos :: _ -> T.print_pos pos );
+          Format.printf "Invalid value@ %s:@ %s@]@."
+            (Lang_values.V.print_value v)
+            msg;
           raise Error
       | Lang_encoders.Error (v, s) ->
           error_header 8 (T.print_pos (Utils.get_some v.Lang_values.t.T.pos));
@@ -138,12 +143,12 @@ let report lexbuf f =
       | Clock_conflict (pos, a, b) ->
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
-          error_header 10 (T.print_pos (Utils.get_some pos));
+          error_header 10 (T.print_pos (List.hd pos));
           Format.printf "A source cannot belong to two clocks (%s,@ %s).@]@." a
             b;
           raise Error
       | Clock_loop (pos, a, b) ->
-          error_header 11 (T.print_pos (Utils.get_some pos));
+          error_header 11 (T.print_pos (List.hd pos));
           Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@." a b;
           raise Error
       | Lang_values.Unsupported_format (pos, fmt) ->

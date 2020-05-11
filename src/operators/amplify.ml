@@ -91,7 +91,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Multiply the amplitude of the signal."
-    (fun p ->
+    (fun p _ ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       let o = Lang.to_string (Lang.assoc "override" 1 p) in

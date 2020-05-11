@@ -54,7 +54,7 @@ let () =
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:Lang.VideoProcessing
     ~descr:"Convert video to greyscale."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       new effect ~name ~kind Video.Image.Effect.greyscale src)
@@ -64,7 +64,7 @@ let () =
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Convert video to sepia."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       new effect ~name ~kind Video.Image.Effect.sepia src)
@@ -74,7 +74,7 @@ let () =
   Lang.add_operator name
     [("", Lang.source_t return_t, None, None)]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Invert video."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       new effect ~name ~kind Video.Image.Effect.invert src)
@@ -90,7 +90,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Scale opacity of video."
-    (fun p ->
+    (fun p _ ->
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
       new effect
@@ -109,7 +109,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Fill frame with a color."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let color = Lang.to_int_getter (f "color") in
       let src = Lang.to_source (f "") in
@@ -227,7 +227,7 @@ let () =
     ]
     ~return_t ~category:Lang.VideoProcessing
     ~descr:"Resize and translate video."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let width = Lang.to_int_getter (f "width") in
@@ -272,7 +272,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Scale and translate video."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let c, cx, cy, ox, oy =

@@ -96,7 +96,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Flanger effect."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let duration, freq, feedback, phase, src =
         ( Lang.to_float (f "delay"),

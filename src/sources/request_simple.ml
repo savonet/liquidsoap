@@ -85,7 +85,7 @@ let () =
          Some "Enforce fallibility of the request." )
     :: queued_proto )
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let val_uri = List.assoc "" p in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let l, d, t, c = extract_queued_params p in
@@ -105,7 +105,7 @@ let () =
        WARNING: if used uncarefully, it can crash your application!"
     [("", Lang.request_t t, None, None)]
     ~return_t:t
-    (fun p ->
+    (fun p _ ->
       let r _ = Lang.to_request (List.assoc "" p) in
       (new unqueued ~kind r :> source))
 
@@ -180,7 +180,7 @@ let () =
             stops after current playing request)." )
     :: queued_proto )
     ~return_t:t
-    (fun p ->
+    (fun p _ ->
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in

@@ -63,6 +63,6 @@ let () =
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.Conversions
     ~descr:"Swap two channels of a stereo source."
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       new swap ~kind s)

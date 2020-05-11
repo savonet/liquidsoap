@@ -255,7 +255,7 @@ let proto =
     ("", Lang.source_t return_t, None, None);
   ]
 
-let extract p =
+let extract p pos =
   let f v = List.assoc v p in
   let s = Lang.to_source (f "") in
   let start_blank = Lang.to_bool (f "start_blank") in
@@ -271,7 +271,7 @@ let extract p =
     let v = f "threshold" in
     let t = Lang.to_float v in
     if t > 0. then
-      raise (Lang_errors.Invalid_value (v, "threshold should be negative"));
+      raise (Lang_errors.Invalid_value (pos, v, "threshold should be negative"));
     Audio.lin_of_dB t
   in
   let ts = Lang.to_bool (f "track_sensitive") in
@@ -289,12 +289,12 @@ let () =
          Some (Lang.val_cst_fun [] Lang.unit),
          Some "Handler called when noise is detected." )
     :: proto )
-    (fun p ->
+    (fun p pos ->
       let on_blank = Lang.assoc "" 1 p in
       let on_noise = Lang.assoc "on_noise" 1 p in
       let p = List.remove_assoc "" p in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
-        extract p
+        extract p pos
       in
       new on_blank
         ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
@@ -302,9 +302,9 @@ let () =
   Lang.add_operator "strip_blank" ~active:true ~return_t
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank." proto
-    (fun p ->
+    (fun p pos ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
-        extract p
+        extract p pos
       in
       ( new strip
           ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s
@@ -318,10 +318,10 @@ let () =
         Some (Lang.bool false),
         Some "Only eat at the beginning of a track." )
     :: proto )
-    (fun p ->
+    (fun p pos ->
       let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
-        extract p
+        extract p pos
       in
       new eat
         ~kind ~at_beginning ~track_sensitive ~start_blank ~max_blank ~min_noise

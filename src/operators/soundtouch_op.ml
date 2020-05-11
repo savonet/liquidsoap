@@ -112,7 +112,7 @@ let () =
     ~category:Lang.SoundProcessing ~return_t
     ~descr:"Change the rate, the tempo or the pitch of the sound."
     ~flags:[Lang.Experimental]
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let rate = Lang.to_float_getter (f "rate") in
       let tempo = Lang.to_float_getter (f "tempo") in

@@ -153,7 +153,7 @@ let () =
         Some "Jack server to connect to." );
     ]
     ~return_t ~category:Lang.Input ~descr:"Get stream from jack."
-    (fun p ->
+    (fun p _ ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in

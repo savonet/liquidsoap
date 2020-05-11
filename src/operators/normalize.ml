@@ -167,7 +167,7 @@ let () =
        far as creating saturation in some extreme cases. If possible, consider \
        using some track-based normalization techniques such as those based on \
        replay gain. See the documentation for more details."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let target, window, kup, kdown, threshold, gmin, gmax, src =
         ( Lang.to_float_getter (f "target"),

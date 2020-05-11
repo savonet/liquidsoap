@@ -69,14 +69,14 @@ module Buffer = struct
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+  class consumer ~pos ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
     ~max_buffer ~kind source_val c =
     let prebuf = Frame.master_of_seconds pre_buffer in
     let maxbuf = Frame.master_of_seconds max_buffer in
     object
       inherit
         Output.output
-          ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
+          ~pos ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
             ~on_stop source_val autostart
 
       method output_reset = ()
@@ -100,8 +100,8 @@ module Buffer = struct
                   (Generator.length c.generator - maxbuf) ))
     end
 
-  let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~kind source_val =
+  let create ~pos ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+      ~max_buffer ~kind source_val =
     let control =
       {
         generator = Generator.create ();
@@ -112,8 +112,8 @@ module Buffer = struct
     in
     let _ =
       new consumer
-        ~autostart ~infallible ~on_start ~on_stop ~kind source_val ~pre_buffer
-        ~max_buffer control
+        ~pos ~autostart ~infallible ~on_start ~on_stop ~kind source_val
+        ~pre_buffer ~max_buffer control
     in
     new producer ~kind control
 end
@@ -136,7 +136,7 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Liquidsoap
     ~descr:"Create a buffer between two different clocks."
-    (fun p ->
+    (fun p pos ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
@@ -147,7 +147,7 @@ let () =
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      Buffer.create ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
+      Buffer.create ~pos ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
         ~max_buffer ~kind s)
 
 module AdaptativeBuffer = struct
@@ -269,13 +269,13 @@ module AdaptativeBuffer = struct
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
-    ~kind source_val c =
+  class consumer ~pos ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+    ~reset ~kind source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
     object
       inherit
         Output.output
-          ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
+          ~pos ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
             ~on_stop source_val autostart
 
       method output_reset = ()
@@ -306,8 +306,8 @@ module AdaptativeBuffer = struct
                 c.rb_length <- float (Frame.audio_of_seconds pre_buffer) ))
     end
 
-  let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~averaging ~limit ~reset ~kind source_val =
+  let create ~pos ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+      ~max_buffer ~averaging ~limit ~reset ~kind source_val =
     let channels = AFrame.channels_of_kind kind in
     let control =
       {
@@ -321,8 +321,8 @@ module AdaptativeBuffer = struct
     in
     let _ =
       new consumer
-        ~autostart ~infallible ~on_start ~on_stop ~kind source_val ~pre_buffer
-        ~reset control
+        ~pos ~autostart ~infallible ~on_start ~on_stop ~kind source_val
+        ~pre_buffer ~reset control
     in
     new producer ~kind ~pre_buffer ~averaging ~limit control
 end
@@ -363,7 +363,7 @@ let () =
        is adapted so that no buffer underrun or overrun occurs. This wonderful \
        behavior has a cost: the pitch of the sound might be changed a little."
     ~flags:[Lang.Experimental]
-    (fun p ->
+    (fun p pos ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
@@ -378,5 +378,5 @@ let () =
       let limit = if limit < 1. then 1. /. limit else limit in
       let reset = Lang.to_bool (List.assoc "reset" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      AdaptativeBuffer.create ~infallible ~autostart ~on_start ~on_stop
+      AdaptativeBuffer.create ~pos ~infallible ~autostart ~on_start ~on_stop
         ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~kind s)

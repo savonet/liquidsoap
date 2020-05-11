@@ -62,6 +62,6 @@ let () =
     ~descr:"Convert any kind of audio source into a stereo source."
     ~return_t:output_kind
     [("", Lang.source_t input_kind, None, None)]
-    (fun p ->
+    (fun p _ ->
       let s = new basic ~kind:Lang.any (Lang.to_source (List.assoc "" p)) in
       (s :> Source.source))

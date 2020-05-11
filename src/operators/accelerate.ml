@@ -117,7 +117,7 @@ let () =
     ~descr:
       "Accelerate a stream by dropping frames. This is useful for testing \
        scripts."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in

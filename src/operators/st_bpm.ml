@@ -77,7 +77,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Detect the BPM."
     ~flags:[]
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let every = Lang.to_float (f "every") in
       let cb = Lang.to_fun (Lang.assoc "" 1 p) in

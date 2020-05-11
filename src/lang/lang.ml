@@ -143,35 +143,34 @@ let kind_type_of_kind_format fields =
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value }
-let unit = mk unit
-let int i = mk (Ground (Int i))
-let bool i = mk (Ground (Bool i))
-let float i = mk (Ground (Float i))
-let string i = mk (Ground (String i))
-let tuple l = mk (Tuple l)
+let unit = unit
+let int i = Ground (Int i)
+let bool i = Ground (Bool i)
+let float i = Ground (Float i)
+let string i = Ground (String i)
+let tuple l = Tuple l
 let product a b = tuple [a; b]
-let list l = mk (List l)
-let source s = mk (Source s)
-let request r = mk (Request r)
+let list l = List l
+let source s = Source s
+let request r = Request r
 
 let val_fun p f =
   let p' = List.map (fun (l, x, d) -> (l, x, d)) p in
-  mk (FFI (p', [], f))
+  FFI (p', [], f)
 
 let val_cst_fun p c =
   let p' = List.map (fun (l, d) -> (l, l, d)) p in
-  let f t tm = mk (Fun (p', [], [], { Term.t; Term.term = tm })) in
+  let f t tm = Fun (p', [], [], { Term.t; Term.term = tm }) in
   let mkg t = T.make (T.Ground t) in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
-  match c.value with
+  match c with
     | Tuple [] -> f (T.make T.unit) Term.unit
     | Ground (Int i) -> f (mkg T.Int) (Term.Ground (Term.Ground.Int i))
     | Ground (Bool i) -> f (mkg T.Bool) (Term.Ground (Term.Ground.Bool i))
     | Ground (Float i) -> f (mkg T.Float) (Term.Ground (Term.Ground.Float i))
     | Ground (String i) -> f (mkg T.String) (Term.Ground (Term.Ground.String i))
-    | _ -> mk (FFI (p', [], fun _ -> c))
+    | _ -> FFI (p', [], fun _ _ -> c)
 
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
@@ -235,11 +234,7 @@ let to_plugin_doc category flags main_doc proto return_t =
 let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
   let t = builtin_type proto return_t in
   let value =
-    {
-      pos = None;
-      value =
-        FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
-    }
+    FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f)
   in
   let generalized = T.filter_vars (fun _ -> true) t in
   Term.builtins#register
@@ -249,7 +244,6 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
-  let value = { pos = t.T.pos; value } in
   let generalized = T.filter_vars (fun _ -> true) t in
   doc#add_subsection "_category" (Doc.trivial category);
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
@@ -313,26 +307,25 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
     let t = T.make (T.Ground T.String) in
     ( "id",
       t,
-      Some { pos = t.T.pos; value = Ground (String "") },
+      Some (Ground (String "")),
       Some "Force the value of the source ID." )
     :: List.stable_sort compare proto
   in
-  let f env =
-    let src : Source.source = f env in
+  let f env stack =
+    let src : Source.source = f env stack in
     let id =
-      match (List.assoc "id" env).value with
+      match List.assoc "id" env with
         | Ground (String s) -> s
         | _ -> assert false
     in
     if id <> "" then src#set_id id;
-    { pos = None; value = Source src }
+    Source src
   in
-  let f env =
-    let pos = None in
-    try f env with
+  let f env stack =
+    try f env stack with
       | Source.Clock_conflict (a, b) ->
-          raise (Lang_errors.Clock_conflict (pos, a, b))
-      | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
+          raise (Lang_errors.Clock_conflict (stack, a, b))
+      | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (stack, a, b))
   in
   let return_t = Term.source_t ~active return_t in
   let category = string_of_category category in
@@ -373,36 +366,35 @@ let iter_sources f v =
             (fun (_, _, _, v) ->
               match v with Some v -> iter_term env v | None -> ())
             proto
-  and iter_value v =
-    match v.value with
-      | Source s -> f s
-      | Ground _ | Request _ | Encoder _ -> ()
-      | List l -> List.iter iter_value l
-      | Tuple l -> List.iter iter_value l
-      | Fun (proto, pe, env, body) ->
-          (* The following is necessarily imprecise: we might see sources that
-             will be unused in the execution of the function. *)
-          iter_term env body;
-          List.iter (fun (_, v) -> iter_value v) pe;
-          List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-      | FFI (proto, pe, _) ->
-          List.iter (fun (_, v) -> iter_value v) pe;
-          List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-      | Ref r ->
-          if List.memq r !static_analysis_failed then ()
-          else (
-            (* Do not walk inside references, otherwise the list of "contained"
-             * sources may change from one time to the next, which makes it
-             * impossible to avoid ill-balanced activations.
-             * Not walking inside references does not break things more than they
-             * are already: detecting sharing in presence of references to sources
-             * cannot be done statically anyway.)
-             * Display a fat log message to warn about this risky situation,
-             * which probably won't prevent users to get biffled... *)
-            let may_have_source =
-              (* TODO: restore this if possible *)
-              false
-              (*
+  and iter_value = function
+    | Source s -> f s
+    | Ground _ | Request _ | Encoder _ -> ()
+    | List l -> List.iter iter_value l
+    | Tuple l -> List.iter iter_value l
+    | Fun (proto, pe, env, body) ->
+        (* The following is necessarily imprecise: we might see sources that
+           will be unused in the execution of the function. *)
+        iter_term env body;
+        List.iter (fun (_, v) -> iter_value v) pe;
+        List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+    | FFI (proto, pe, _) ->
+        List.iter (fun (_, v) -> iter_value v) pe;
+        List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+    | Ref r ->
+        if List.memq r !static_analysis_failed then ()
+        else (
+          (* Do not walk inside references, otherwise the list of "contained"
+           * sources may change from one time to the next, which makes it
+           * impossible to avoid ill-balanced activations.
+           * Not walking inside references does not break things more than they
+           * are already: detecting sharing in presence of references to sources
+           * cannot be done statically anyway.)
+           * Display a fat log message to warn about this risky situation,
+           * which probably won't prevent users to get biffled... *)
+          let may_have_source =
+            (* TODO: restore this if possible *)
+            false
+            (*
               try
                 let _, has_var_pos =
                   Lang_types.iter_constr
@@ -419,84 +411,80 @@ let iter_sources f v =
                 has_var_pos
               with Exit -> true
                 *)
-            in
-            static_analysis_failed := r :: !static_analysis_failed;
-            if may_have_source then
-              log#severe
-                "WARNING! Found a reference, potentially containing sources, \
-                 inside a dynamic source-producing function. Static analysis \
-                 cannot be performed: make sure you are not sharing sources \
-                 contained in references!" )
+          in
+          static_analysis_failed := r :: !static_analysis_failed;
+          if may_have_source then
+            log#severe
+              "WARNING! Found a reference, potentially containing sources, \
+               inside a dynamic source-producing function. Static analysis \
+               cannot be performed: make sure you are not sharing sources \
+               contained in references!" )
   in
   iter_value v
 
-let apply f p = Clock.collect_after (fun () -> Term.apply f p)
+let apply ?(stack = []) f p =
+  Clock.collect_after (fun () -> Term.apply ~stack f p)
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-let to_bool t = match t.value with Ground (Bool b) -> b | _ -> assert false
+let to_unit t = match t with Tuple [] -> () | _ -> assert false
+let to_bool t = match t with Ground (Bool b) -> b | _ -> assert false
 
 let to_bool_getter t =
-  match t.value with
+  match t with
     | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
+          match apply t [] ~stack:[] with
             | Ground (Bool b) -> b
             | _ -> assert false )
     | _ -> assert false
 
 let to_fun f =
-  match f.value with
-    | Fun _ | FFI _ -> fun args -> apply f args
-    | _ -> assert false
+  match f with Fun _ | FFI _ -> fun args -> apply f args | _ -> assert false
 
-let to_string t =
-  match t.value with Ground (String s) -> s | _ -> assert false
+let to_string t = match t with Ground (String s) -> s | _ -> assert false
 
 let to_string_getter t =
-  match t.value with
+  match t with
     | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
+          match apply t [] ~stack:[] with
             | Ground (String s) -> s
             | _ -> assert false )
     | _ -> assert false
 
-let to_float t = match t.value with Ground (Float s) -> s | _ -> assert false
+let to_float t = match t with Ground (Float s) -> s | _ -> assert false
 
 let to_float_getter t =
-  match t.value with
+  match t with
     | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
+          match apply t [] ~stack:[] with
             | Ground (Float s) -> s
             | _ -> assert false )
     | _ -> assert false
 
-let to_source t = match t.value with Source s -> s | _ -> assert false
-let to_format t = match t.value with Encoder f -> f | _ -> assert false
-let to_request t = match t.value with Request x -> x | _ -> assert false
-let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
+let to_source t = match t with Source s -> s | _ -> assert false
+let to_format t = match t with Encoder f -> f | _ -> assert false
+let to_request t = match t with Request x -> x | _ -> assert false
+let to_int t = match t with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
-  match t.value with
+  match t with
     | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
+          match apply t [] ~stack:[] with
             | Ground (Int n) -> n
             | _ -> assert false )
     | _ -> assert false
 
-let to_list t = match t.value with List l -> l | _ -> assert false
-let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
-
-let to_product t =
-  match t.value with Tuple [a; b] -> (a, b) | _ -> assert false
+let to_list t = match t with List l -> l | _ -> assert false
+let to_tuple t = match t with Tuple l -> l | _ -> assert false
+let to_product t = match t with Tuple [a; b] -> (a, b) | _ -> assert false
 
 let to_metadata_list t =
   let pop v =
@@ -689,8 +677,6 @@ module MkAbstract (Def : AbstractDef) = struct
       | _ -> None)
 
   let t = ground_t Type
-  let to_value c = mk (L.V.Ground (Value c))
-
-  let of_value t =
-    match t.value with L.V.Ground (Value c) -> c | _ -> assert false
+  let to_value c = L.V.Ground (Value c)
+  let of_value t = match t with L.V.Ground (Value c) -> c | _ -> assert false
 end

@@ -22,16 +22,16 @@
 
 (** base class *)
 
-let encoder_factory ?format format_val =
+let encoder_factory ~pos ?format format_val =
   let format =
     match format with Some f -> f | None -> Lang.to_format format_val
   in
   try Encoder.get_factory format
   with Not_found ->
     raise
-      (Lang_errors.Invalid_value (format_val, "Unsupported encoding format"))
+      (Lang_errors.Invalid_value (pos, format_val, "Unsupported encoding format"))
 
-class virtual base ~kind ~source ~name p =
+class virtual base ~pos ~kind ~source ~name p =
   let e f v = f (List.assoc v p) in
   (* Output settings *)
   let autostart = e Lang.to_bool "start" in
@@ -47,8 +47,8 @@ class virtual base ~kind ~source ~name p =
   object (self)
     inherit
       Output.encoded
-        ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name ~content_kind:kind source
+        ~pos ~infallible ~on_start ~on_stop ~autostart
+          ~output_kind:"output.file" ~name ~content_kind:kind source
 
     val mutable encoder = None
 
@@ -94,7 +94,7 @@ let url_proto kind =
       ("", Lang.source_t kind, None, None);
     ]
 
-class url_output p =
+class url_output p pos =
   let url = Lang.to_string (List.assoc "url" p) in
   let format_val = Lang.assoc "" 1 p in
   let format = Lang.to_format format_val in
@@ -102,16 +102,16 @@ class url_output p =
     if not (Encoder.url_output format) then
       raise
         (Lang_errors.Invalid_value
-           (format_val, "Encoding format does not support output url!"))
+           (pos, format_val, "Encoding format does not support output url!"))
   in
   let format = Encoder.with_url_output format url in
   let kind = Encoder.kind_of_format format in
   let source = Lang.assoc "" 2 p in
   let name = "output.url" in
   object
-    inherit base p ~kind ~source ~name
+    inherit base p ~pos ~kind ~source ~name
 
-    method private encoder_factory = encoder_factory ~format format_val
+    method private encoder_factory = encoder_factory ~pos ~format format_val
 
     method write_pipe _ _ _ = ()
   end
@@ -123,8 +123,8 @@ let () =
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
-       encoder, e.g. `%ffmpeg` with `rtmp` output." (fun p ->
-      (new url_output p :> Source.source))
+       encoder, e.g. `%ffmpeg` with `rtmp` output." (fun p pos ->
+      (new url_output p pos :> Source.source))
 
 (** Piped virtual class: open/close pipe,
   * implements metadata interpolation and
@@ -156,7 +156,7 @@ let pipe_proto kind arg_doc =
       ("", Lang.source_t kind, None, None);
     ]
 
-class virtual piped_output ~kind p =
+class virtual piped_output ~pos ~kind p =
   let reload_predicate = List.assoc "reopen_when" p in
   let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
   let reload_on_metadata = Lang.to_bool (List.assoc "reopen_on_metadata" p) in
@@ -164,7 +164,7 @@ class virtual piped_output ~kind p =
   let name = name () in
   let source = Lang.assoc "" 3 p in
   object (self)
-    inherit base ~kind ~source ~name p as super
+    inherit base ~pos ~kind ~source ~name p as super
 
     initializer
     self#register_command "reopen" ~descr:"Re-open the output." (fun _ ->
@@ -289,18 +289,18 @@ class virtual file_output_base p =
     method private on_close = on_close
   end
 
-class file_output ~format_val ~kind p =
+class file_output ~pos ~format_val ~kind p =
   let append = Lang.to_bool (List.assoc "append" p) in
   let perm = Lang.to_int (List.assoc "perm" p) in
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   object (self)
-    inherit piped_output ~kind p
+    inherit piped_output ~pos ~kind p
 
     inherit chan_output p
 
     inherit file_output_base p
 
-    method encoder_factory = encoder_factory format_val
+    method encoder_factory = encoder_factory ~pos format_val
 
     method open_chan =
       let mode =
@@ -320,16 +320,16 @@ class file_output ~format_val ~kind p =
       current_filename <- None
   end
 
-class file_output_using_encoder ~format_val ~kind p =
+class file_output_using_encoder ~pos ~format_val ~kind p =
   let format = Lang.to_format format_val in
   object (self)
-    inherit piped_output ~kind p
+    inherit piped_output ~pos ~kind p
 
     inherit file_output_base p
 
     method encoder_factory name meta =
       let format = Encoder.with_file_output format self#filename in
-      encoder_factory ~format format_val name meta
+      encoder_factory ~pos ~format format_val name meta
 
     method is_open = true
 
@@ -371,34 +371,34 @@ let file_proto kind =
   ]
   @ chan_proto kind "Filename where to output the stream."
 
-let new_file_output p =
+let new_file_output p pos =
   let format_val = Lang.assoc "" 1 p in
   let format = Lang.to_format format_val in
   let kind = Encoder.kind_of_format format in
   if Encoder.file_output format then
-    (new file_output_using_encoder ~format_val ~kind p :> piped_output)
-  else (new file_output ~format_val ~kind p :> piped_output)
+    (new file_output_using_encoder ~pos ~format_val ~kind p :> piped_output)
+  else (new file_output ~pos ~format_val ~kind p :> piped_output)
 
 let () =
   let return_t = Lang.univ_t () in
   Lang.add_operator "output.file" (file_proto return_t) ~active:true ~return_t
-    ~category:Lang.Output ~descr:"Output the source stream to a file." (fun p ->
-      (new_file_output p :> Source.source))
+    ~category:Lang.Output ~descr:"Output the source stream to a file."
+    (fun p pos -> (new_file_output p pos :> Source.source))
 
 (** External output *)
 
-class external_output p =
+class external_output p pos =
   let format_val = Lang.assoc "" 1 p in
   let format = Lang.to_format format_val in
   let kind = Encoder.kind_of_format format in
   let process = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
-    inherit piped_output ~kind p
+    inherit piped_output ~pos ~kind p
 
     inherit chan_output p
 
-    method encoder_factory = encoder_factory format_val
+    method encoder_factory = encoder_factory ~pos format_val
 
     method self_sync = self_sync
 
@@ -427,5 +427,5 @@ let () =
   Lang.add_operator "output.external" ~active:true
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:Lang.Output
-    ~descr:"Send the stream to a process' standard input." (fun p ->
-      (new external_output p :> Source.source))
+    ~descr:"Send the stream to a process' standard input." (fun p pos ->
+      (new external_output p pos :> Source.source))

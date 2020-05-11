@@ -96,7 +96,7 @@ let () =
         ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.");
       ] )
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
@@ -120,7 +120,7 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.wav" ~category:Lang.Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
-    (fun p ->
+    (fun p _ ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

@@ -185,7 +185,7 @@ let () =
     ~descr:
       "Slow down or accelerate an audio stream by stretching (sounds lower) or \
        squeezing it (sounds higher)."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in

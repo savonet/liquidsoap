@@ -138,7 +138,7 @@ let () =
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Compute the pitch of a sound."
     ~flags:[Lang.Hidden; Lang.Experimental]
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let length = Lang.to_float (f "length") in
       let freq_min = Lang.to_float (f "freq_min") in

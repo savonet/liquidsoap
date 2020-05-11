@@ -66,7 +66,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low shelf biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, src =
         ( Lang.to_float (f "frequency"),
@@ -89,7 +89,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"High shelf biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, src =
         ( Lang.to_float (f "frequency"),
@@ -108,7 +108,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low pass biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, src =
         ( Lang.to_float (f "frequency"),
@@ -127,7 +127,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"High pass biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, src =
         ( Lang.to_float (f "frequency"),
@@ -146,7 +146,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Band pass biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, src =
         ( Lang.to_float (f "frequency"),
@@ -168,7 +168,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"All pass biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, src =
         ( Lang.to_float (f "frequency"),
@@ -187,7 +187,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Band pass biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, src =
         ( Lang.to_float (f "frequency"),
@@ -207,7 +207,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Peak EQ biquad filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, param, gain, src =
         ( Lang.to_float (f "frequency"),

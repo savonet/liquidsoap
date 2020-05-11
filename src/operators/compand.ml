@@ -62,7 +62,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Compand the signal"
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
       new compand ~kind src mu)

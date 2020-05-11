@@ -128,6 +128,6 @@ let () =
     [("", Lang.list_t (Lang.source_t k), None, None)]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Mixing table controllable via the telnet interface."
-    (fun p ->
+    (fun p _ ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       new mixing ~kind (Array.of_list sources))

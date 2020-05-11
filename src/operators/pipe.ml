@@ -317,7 +317,7 @@ let () =
     ]
     ~return_t ~category:Lang.SoundProcessing
     ~descr:"Process audio signal through a given process stdin/stdout."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let ( process,
             replay_delay,

@@ -131,7 +131,7 @@ let () =
       "Call a given handler when position in track is equal or more than a \
        given amount of time."
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let offset = Lang.to_float (List.assoc "offset" p) in
       let force = Lang.to_bool (List.assoc "force" p) in
       let override = Lang.to_string (List.assoc "override" p) in

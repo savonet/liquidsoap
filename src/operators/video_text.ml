@@ -145,7 +145,7 @@ let register name init render_text =
         ("", Lang.source_t k, None, None);
       ]
       ~return_t:k ~category:Lang.VideoProcessing ~descr:"Display a text."
-      (fun p ->
+      (fun p _ ->
         let f v = List.assoc v p in
         let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
           ( Lang.to_string (f "font"),

@@ -66,7 +66,7 @@ let () =
     ~return_t:k ~category:Lang.Visualization
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Display midi events."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       (new midimeter ~kind src :> Source.source))

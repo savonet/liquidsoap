@@ -64,7 +64,7 @@ module Muxer = struct
             c.aux_abort <- true)
     end
 
-  class consumer ~producer ~mode ~content ~max_buffer ~pre_buffer ~kind
+  class consumer ~pos ~producer ~mode ~content ~max_buffer ~pre_buffer ~kind
     source_val c =
     let prebuf = Frame.master_of_seconds pre_buffer in
     let max_buffer = Frame.master_of_seconds max_buffer in
@@ -80,7 +80,7 @@ module Muxer = struct
     object (self)
       inherit
         Output.output
-          ~output_kind ~content_kind:kind ~infallible:false
+          ~pos ~output_kind ~content_kind:kind ~infallible:false
           ~on_start:(fun () -> ())
           ~on_stop:(fun () -> ())
           source_val autostart
@@ -117,7 +117,7 @@ module Muxer = struct
                   (Generator.length c.generator - max_buffer) ))
     end
 
-  let create ~name ~pre_buffer ~max_buffer ~kind ~main_kind ~main_source
+  let create ~pos ~name ~pre_buffer ~max_buffer ~kind ~main_kind ~main_source
       ~main_content ~aux_source ~aux_kind ~aux_content () =
     let lock = Mutex.create () in
     let control =
@@ -132,12 +132,12 @@ module Muxer = struct
     let producer = new producer ~name ~kind control in
     ignore
       (new consumer
-         ~producer ~mode:`Main ~kind:main_kind ~content:main_content main_source
-         ~max_buffer ~pre_buffer control);
+         ~pos ~producer ~mode:`Main ~kind:main_kind ~content:main_content
+         main_source ~max_buffer ~pre_buffer control);
     ignore
       (new consumer
-         ~producer ~mode:`Aux ~kind:aux_kind ~content:aux_content aux_source
-         ~max_buffer ~pre_buffer control);
+         ~pos ~producer ~mode:`Aux ~kind:aux_kind ~content:aux_content
+         aux_source ~max_buffer ~pre_buffer control);
     producer
 end
 
@@ -169,7 +169,7 @@ let () =
         ("video", Lang.source_t aux_t, None, None);
         ("", Lang.source_t main_t, None, None);
       ] )
-    (fun p ->
+    (fun p pos ->
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
@@ -179,7 +179,7 @@ let () =
       let aux_source = List.assoc "video" p in
       let aux_content = `Video in
       let aux_kind = Frame.{ kind with audio = Fixed 0; midi = Fixed 0 } in
-      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind:Lang.any
+      Muxer.create ~pos ~name:"mux_video" ~pre_buffer ~max_buffer ~kind:Lang.any
         ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
         ())
 
@@ -199,7 +199,7 @@ let () =
         ("audio", Lang.source_t aux_t, None, None);
         ("", Lang.source_t main_t, None, None);
       ] )
-    (fun p ->
+    (fun p pos ->
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
@@ -209,6 +209,6 @@ let () =
       let aux_source = List.assoc "audio" p in
       let aux_content = `Audio in
       let aux_kind = Frame.{ kind with video = Fixed 0; midi = Fixed 0 } in
-      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind:Lang.any
+      Muxer.create ~pos ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind:Lang.any
         ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
         ())

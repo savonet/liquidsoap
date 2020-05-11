@@ -135,7 +135,7 @@ let () =
       ("", Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let command = Lang.to_string (List.assoc "" p) in
       let video_format = ref None in
       let width = ref None in
@@ -278,7 +278,7 @@ let () =
       ("", Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let command = Lang.to_string (List.assoc "" p) in
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in

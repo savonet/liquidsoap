@@ -78,7 +78,7 @@ let () =
           "Duration of blank tracks in seconds, Negative value means forever."
       );
     ]
-    (fun p ->
+    (fun p _ ->
       let d = Lang.to_float (List.assoc "duration" p) in
       (new blank ~kind d :> source))
 
@@ -108,4 +108,4 @@ let () =
   Lang.add_operator "fail" ~category:Lang.Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
-    ~return_t [] (fun _ -> (new fail ~kind :> source))
+    ~return_t [] (fun _ _ -> (new fail ~kind :> source))

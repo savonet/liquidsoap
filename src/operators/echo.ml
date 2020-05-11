@@ -76,7 +76,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Add echo."
-    (fun p ->
+    (fun p pos ->
       let f v = List.assoc v p in
       let duration, feedback, pp, src =
         ( Lang.to_float_getter (f "delay"),
@@ -89,7 +89,7 @@ let () =
         if feedback () > 0. then
           raise
             (Lang_errors.Invalid_value
-               (f "feedback", "feedback should be negative"));
+               (pos, f "feedback", "feedback should be negative"));
         fun () -> Audio.lin_of_dB (feedback ())
       in
       new echo ~kind src duration feedback pp)

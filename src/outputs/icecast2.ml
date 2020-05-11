@@ -278,7 +278,7 @@ let proto kind =
 
 (** Sending encoded data to a shout-compatible server.
   * It directly takes the Lang param list and extracts stuff from it. *)
-class output ~kind p =
+class output ~pos ~kind p =
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
   let on_connect = List.assoc "on_connect" p in
@@ -290,7 +290,7 @@ class output ~kind p =
     let msg = Printexc.to_string error in
     Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
   in
-  let data = encoder_data p in
+  let data = encoder_data p ~pos in
   let chunked = Lang.to_bool (List.assoc "chunked" p) in
   let protocol =
     let m =
@@ -302,7 +302,7 @@ class output ~kind p =
         | _ ->
             raise
               (Lang_errors.Invalid_value
-                 (m, "Valid values are: 'source' 'put' or 'post'."))
+                 (pos, m, "Valid values are: 'source' 'put' or 'post'."))
     in
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
@@ -312,7 +312,9 @@ class output ~kind p =
       | _ ->
           raise
             (Lang_errors.Invalid_value
-               (v, "Valid values are 'http' (icecast) and 'icy' (shoutcast)"))
+               ( pos,
+                 v,
+                 "Valid values are 'http' (icecast) and 'icy' (shoutcast)" ))
   in
   let icy_metadata =
     let v = List.assoc "icy_metadata" p in
@@ -324,7 +326,7 @@ class output ~kind p =
         | _ ->
             raise
               (Lang_errors.Invalid_value
-                 (v, "Valid values are 'guess', 'true' or 'false'"))
+                 (pos, v, "Valid values are 'guess', 'true' or 'false'"))
     in
     match (data.format, icy) with
       | _, `True -> true
@@ -335,7 +337,8 @@ class output ~kind p =
       | _, _ ->
           raise
             (Lang_errors.Invalid_value
-               ( List.assoc "icy_metadata" p,
+               ( pos,
+                 List.assoc "icy_metadata" p,
                  "Could not guess icy_metadata for this format, please specify \
                   either 'true' or 'false'." ))
   in
@@ -353,7 +356,8 @@ class output ~kind p =
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
           raise
             (Lang_errors.Invalid_value
-               ( List.assoc "mount" p,
+               ( pos,
+                 List.assoc "mount" p,
                  "Either name or mount must be defined for icecast sources." ))
       | Cry.Icy, name, _ when name = no_name ->
           (Cry.Icy_id icy_id, Printf.sprintf "sc#%i" icy_id)
@@ -400,8 +404,8 @@ class output ~kind p =
   object (self)
     inherit
       Output.encoded
-        ~content_kind:kind ~output_kind:"output.icecast" ~infallible ~autostart
-          ~on_start ~on_stop ~name source
+        ~pos ~content_kind:kind ~output_kind:"output.icecast" ~infallible
+          ~autostart ~on_start ~on_stop ~name source
 
     (** In this operator, we don't exactly follow the start/stop
     * mechanism of Output.encoded because we want to control
@@ -603,4 +607,5 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.icecast" ~active:true ~category:Lang.Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    (proto return_t) ~return_t (fun p -> (new output ~kind p :> Source.source))
+    (proto return_t) ~return_t (fun p pos ->
+      (new output ~pos ~kind p :> Source.source))

@@ -169,7 +169,7 @@ let () =
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
     ~return_t:kind_t
-    (fun p ->
+    (fun p pos ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
@@ -182,7 +182,8 @@ let () =
       if List.length weights <> List.length sources then
         raise
           (Lang_errors.Invalid_value
-             ( List.assoc "weights" p,
+             ( pos,
+               List.assoc "weights" p,
                "there should be as many weights as sources" ));
       new add
         ~kind ~renorm
@@ -227,7 +228,7 @@ let () =
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
     ~return_t:kind_t
-    (fun p ->
+    (fun p pos ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
@@ -261,7 +262,8 @@ let () =
       if List.length weights <> List.length sources then
         raise
           (Lang_errors.Invalid_value
-             ( List.assoc "weights" p,
+             ( pos,
+               List.assoc "weights" p,
                "there should be as many weights as sources" ));
       new add
         ~kind ~renorm

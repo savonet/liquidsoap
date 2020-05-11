@@ -164,7 +164,7 @@ let register =
       ( "Prepend an extra track before every track. "
       ^ "Set the metadata 'liq_prepend' to 'false' to "
       ^ "inhibit prepending on one track." )
-    (fun p ->
+    (fun p _ ->
       let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in

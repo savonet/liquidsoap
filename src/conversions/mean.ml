@@ -60,6 +60,6 @@ let () =
     [("", Lang.source_t in_kind, None, None)]
     ~return_t:out_kind ~category:Lang.Conversions
     ~descr:"Produce mono audio by taking the mean of all audio channels."
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       (new mean ~kind:Lang.any s :> Source.source))

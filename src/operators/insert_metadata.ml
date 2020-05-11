@@ -108,7 +108,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     return_t
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (List.assoc "" p) in
       let id = Lang.to_string (List.assoc "id" p) in
       let s = new insert_metadata ~kind s in
@@ -116,7 +116,7 @@ let () =
       let f =
         Lang.val_fun
           [("new_track", "new_track", Some (Lang.bool false)); ("", "", None)]
-          (fun p ->
+          (fun p _ ->
             let m = Lang.to_metadata (List.assoc "" p) in
             let new_track = Lang.to_bool (List.assoc "new_track" p) in
             s#insert_metadata new_track m;

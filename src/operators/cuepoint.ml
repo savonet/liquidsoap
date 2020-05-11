@@ -275,7 +275,7 @@ let () =
         Some "Metadata for cue out points." );
       ("", Lang.source_t return_t, None, None);
     ]
-    (fun p ->
+    (fun p _ ->
       let m_cue_in = Lang.to_string (Lang.assoc "cue_in_metadata" 1 p) in
       let m_cue_out = Lang.to_string (Lang.assoc "cue_out_metadata" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 1 p) in

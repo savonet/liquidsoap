@@ -41,7 +41,7 @@ let hls_proto kind =
         ("position", "position", None);
         ("extname", "extname", None);
         ("", "", None);
-      ] (fun p ->
+      ] (fun p _ ->
         let position = Lang.to_int (List.assoc "position" p) in
         let extname = Lang.to_string (List.assoc "extname" p) in
         let sname = Lang.to_string (List.assoc "" p) in
@@ -161,7 +161,7 @@ let string_of_file_state = function
   | `Closed -> "closed"
   | `Deleted -> "deleted"
 
-class hls_output p =
+class hls_output p ~pos =
   let on_start =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply f [])
@@ -189,7 +189,7 @@ class hls_output p =
     then
       raise
         (Lang_errors.Invalid_value
-           (Lang.assoc "" 1 p, "The target directory does not exist"))
+           (pos, Lang.assoc "" 1 p, "The target directory does not exist"))
   in
   let persist = Lang.to_bool (List.assoc "persist" p) in
   let persist_at =
@@ -203,7 +203,8 @@ class hls_output p =
       with exn ->
         raise
           (Lang_errors.Invalid_value
-             ( Lang.assoc "persist_at" 1 p,
+             ( pos,
+               Lang.assoc "persist_at" 1 p,
                Printf.sprintf
                  "Error while creating directory %S for persisting state: %s"
                  dir (Printexc.to_string exn) )) )
@@ -230,7 +231,7 @@ class hls_output p =
     if l = [] then
       raise
         (Lang_errors.Invalid_value
-           (streams, "The list of streams cannot be empty"));
+           (pos, streams, "The list of streams cannot be empty"));
     l
   in
   let streams =
@@ -241,7 +242,7 @@ class hls_output p =
       let hls_encoder_factory =
         try Encoder.get_factory hls_format
         with Not_found ->
-          raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))
+          raise (Lang_errors.Invalid_value (pos, fmt, "Unsupported format"))
       in
       let hls_encoder =
         hls_encoder_factory hls_name Meta_format.empty_metadata
@@ -254,7 +255,8 @@ class hls_output p =
             with Not_found ->
               raise
                 (Lang_errors.Invalid_value
-                   ( fmt,
+                   ( pos,
+                     fmt,
                      "Bandwidth cannot be inferred from codec, please specify \
                       it in `streams_info`" ))
           in
@@ -263,7 +265,8 @@ class hls_output p =
             with Not_found ->
               raise
                 (Lang_errors.Invalid_value
-                   ( fmt,
+                   ( pos,
+                     fmt,
                      "Codec cannot be inferred from codec, please specify it \
                       in `streams_info`" ))
           in
@@ -272,7 +275,8 @@ class hls_output p =
             with Not_found ->
               raise
                 (Lang_errors.Invalid_value
-                   ( fmt,
+                   ( pos,
+                     fmt,
                      "File extension cannot be inferred from codec, please \
                       specify it in `streams_info`" ))
           in
@@ -327,8 +331,8 @@ class hls_output p =
   object (self)
     inherit
       Output.encoded
-        ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name ~content_kind:kind source
+        ~pos ~infallible ~on_start ~on_stop ~autostart
+          ~output_kind:"output.file" ~name ~content_kind:kind source
 
     (** Current segment ID *)
     val mutable current_segment =
@@ -578,4 +582,4 @@ let () =
     ~return_t ~category:Lang.Output
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
-       directory." (fun p -> (new hls_output p :> Source.source))
+       directory." (fun p pos -> (new hls_output p ~pos :> Source.source))

@@ -103,7 +103,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"First-order filter (RC filter)."
-    (fun p ->
+    (fun p pos ->
       let f v = List.assoc v p in
       let rc, wet, mode, src =
         ( Lang.to_float_getter (f "rc"),
@@ -117,6 +117,7 @@ let () =
           | "high" -> High_pass
           | _ ->
               raise
-                (Lang_errors.Invalid_value (mode, "valid values are low|high"))
+                (Lang_errors.Invalid_value
+                   (pos, mode, "valid values are low|high"))
       in
       new filter ~kind src rc wet mode)

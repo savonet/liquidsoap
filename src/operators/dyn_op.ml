@@ -107,4 +107,4 @@ let () =
     [("", Lang.fun_t [] (Lang.list_t (Lang.source_t k)), None, None)]
     ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
-    (fun p -> new dyn ~kind (List.assoc "" p))
+    (fun p _ -> new dyn ~kind (List.assoc "" p))

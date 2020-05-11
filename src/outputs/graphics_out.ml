@@ -19,14 +19,14 @@
 
  *****************************************************************************)
 
-class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
+class output ~pos ~kind ~infallible ~autostart ~on_start ~on_stop source =
   let video_width = Lazy.force Frame.video_width in
   let video_height = Lazy.force Frame.video_height in
   object
     inherit
       Output.output
-        ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start
-          ~on_stop ~content_kind:kind source autostart
+        ~pos ~name:"graphics" ~output_kind:"output.graphics" ~infallible
+          ~on_start ~on_stop ~content_kind:kind source autostart
 
     val mutable sleep = false
 
@@ -57,7 +57,7 @@ let () =
     (Output.proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output
     ~descr:"Display video stream using the Graphics library."
-    (fun p ->
+    (fun p pos ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_start =
@@ -69,5 +69,5 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      ( new output ~kind ~infallible ~autostart ~on_start ~on_stop source
+      ( new output ~pos ~kind ~infallible ~autostart ~on_start ~on_stop source
         :> Source.source ))

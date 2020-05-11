@@ -99,7 +99,7 @@ let proto =
     ("", Lang.source_t k, None, None);
   ]
 
-let compress p =
+let compress p _ =
   let f v = List.assoc v p in
   let attack, release, threshold, ratio, knee, rmsw, gain, src =
     ( Lang.to_float_getter (f "attack"),

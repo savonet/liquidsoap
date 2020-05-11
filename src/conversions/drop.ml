@@ -72,5 +72,5 @@ let () =
       in
       Lang.add_operator name ~category:Lang.Conversions ~descr ~return_t:output
         [("", Lang.source_t input, None, None)]
-        (fun p -> (source p :> Source.source)))
+        (fun p _ -> (source p :> Source.source)))
     [`Audio; `Video; `Midi]

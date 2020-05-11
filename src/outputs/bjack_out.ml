@@ -24,16 +24,16 @@
 
 let bytes_per_sample = 2
 
-class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
-  source =
+class output ~pos ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks
+  ~server source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name:"output.jack"
-          ~output_kind:"output.jack" source true as super
+        ~pos ~infallible ~on_stop ~on_start ~content_kind:kind
+          ~name:"output.jack" ~output_kind:"output.jack" source true as super
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
@@ -126,7 +126,7 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k ~category:Lang.Output ~descr:"Output stream to jack."
-    (fun p ->
+    (fun p pos ->
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
@@ -141,6 +141,6 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       ( new output
-          ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
-          source
+          ~pos ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks
+          ~server source
         :> Source.source ))

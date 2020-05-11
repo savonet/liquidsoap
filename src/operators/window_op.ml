@@ -121,14 +121,14 @@ let declare mode suffix kind fun_ret_t f_ans =
       ("", Lang.source_t k, None, None);
     ]
     return_t
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let id = Lang.to_string (f "id") in
       let duration = Lang.to_float_getter (f "duration") in
       let s = new window ~kind mode duration src in
       if id <> "" then s#set_id id;
-      let f = Lang.val_fun [] (fun _ -> f_ans s#value) in
+      let f = Lang.val_fun [] (fun _ _ -> f_ans s#value) in
       Lang.product f (Lang.source (s :> Source.source)))
 
 let () =

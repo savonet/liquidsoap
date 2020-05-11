@@ -65,7 +65,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
       new compress ~kind src mu)

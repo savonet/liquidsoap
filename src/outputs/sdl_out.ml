@@ -24,15 +24,15 @@
 
 open Tsdl
 
-class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class output ~pos ~infallible ~on_start ~on_stop ~autostart ~kind source =
   let video_width = Lazy.force Frame.video_width in
   let video_height = Lazy.force Frame.video_height in
   let () = Sdl_utils.init [Sdl.Init.video] in
   object (self)
     inherit
       Output.output
-        ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~on_start ~on_stop
-          ~content_kind:kind source autostart
+        ~name:"sdl" ~pos ~output_kind:"output.sdl" ~infallible ~on_start
+          ~on_stop ~content_kind:kind source autostart
 
     val mutable fullscreen = false
 
@@ -103,7 +103,7 @@ let () =
   Lang.add_operator "output.sdl" ~active:true
     (Output.proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output ~descr:"Display a video using SDL."
-    (fun p ->
+    (fun p pos ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_start =
@@ -115,5 +115,5 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      ( new output ~infallible ~autostart ~on_start ~on_stop ~kind source
+      ( new output ~pos ~infallible ~autostart ~on_start ~on_stop ~kind source
         :> Source.source ))

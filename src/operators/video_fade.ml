@@ -175,7 +175,7 @@ let proto =
     ("", Lang.source_t return_t, None, None);
   ]
 
-let rec transition_of_string p transition =
+let rec transition_of_string p pos transition =
   let translate img x y =
     let tmp = Video.Image.copy img in
     Image.YUV420.fill_alpha img 0;
@@ -230,15 +230,17 @@ let rec transition_of_string p transition =
         in
         fun () ->
           let f =
-            transition_of_string p trans.(Random.int (Array.length trans)) ()
+            transition_of_string p pos
+              trans.(Random.int (Array.length trans))
+              ()
           in
           f
     | _ ->
         raise
           (Lang_errors.Invalid_value
-             (List.assoc "transition" p, "Invalid transition kind"))
+             (pos, List.assoc "transition" p, "Invalid transition kind"))
 
-let extract p =
+let extract p pos =
   ( Lang.to_float (List.assoc "duration" p),
     (let mode = List.assoc "type" p in
      let f =
@@ -262,7 +264,7 @@ let extract p =
              let msg =
                "The 'type' parameter should be 'lin','sin','log' or 'exp'!"
              in
-             raise (Lang_errors.Invalid_value (mode, msg))
+             raise (Lang_errors.Invalid_value (pos, mode, msg))
      in
      fun l ->
        let l = float l in
@@ -270,7 +272,7 @@ let extract p =
          let i = float i /. l in
          f (max 0. (min 1. i))),
     (let transition = Lang.to_string (List.assoc "transition" p) in
-     transition_of_string p transition),
+     transition_of_string p pos transition),
     Lang.to_source (List.assoc "" p) )
 
 let override_doc =
@@ -289,8 +291,8 @@ let () =
     ~descr:
       "Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used \
        to set the duration for a specific track (float in seconds)."
-    (fun p ->
-      let d, f, t, s = extract p in
+    (fun p pos ->
+      let d, f, t, s = extract p pos in
       let meta = Lang.to_string (List.assoc "override" p) in
       new fade_in ~kind ~meta d f t s);
   Lang.add_operator "video.fade.out"
@@ -303,7 +305,7 @@ let () =
     ~descr:
       "Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to \
        set the duration for a specific track (float in seconds)."
-    (fun p ->
-      let d, f, t, s = extract p in
+    (fun p pos ->
+      let d, f, t, s = extract p pos in
       let meta = Lang.to_string (List.assoc "override" p) in
       new fade_out ~kind ~meta d f t s)

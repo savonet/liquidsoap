@@ -135,7 +135,7 @@ let () =
       ("", Lang.source_t in_k, None, None);
     ]
     ~return_t:out_k ~category:Lang.MIDIProcessing ~descr:"Generate a chord."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let metadata = Lang.to_string (f "metadata") in

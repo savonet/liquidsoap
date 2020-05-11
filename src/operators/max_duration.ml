@@ -97,7 +97,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing ~descr:"Limit source duration" ~return_t
-    (fun p ->
+    (fun p _ ->
       let override_meta = Lang.to_string (List.assoc "override" p) in
       let duration =
         Frame.master_of_seconds (Lang.to_float (Lang.assoc "" 1 p))

@@ -79,7 +79,7 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.AVI _ -> Some avi
     | Encoder.Ogg _ -> Some ogg
 
-  let encoder_data p =
+  let encoder_data ~pos p =
     let v = Lang.assoc "" 1 p in
     let enc = Lang.to_format v in
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
@@ -87,7 +87,7 @@ module Icecast_v (M : Icecast_t) = struct
       try Encoder.get_factory enc
       with Not_found ->
         raise
-          (Lang_errors.Invalid_value (v, "No encoder found for that format"))
+          (Lang_errors.Invalid_value (pos, v, "No encoder found for that format"))
     in
     let format =
       let f = Lang.to_string (List.assoc "format" p) in
@@ -98,8 +98,7 @@ module Icecast_v (M : Icecast_t) = struct
           | None ->
               raise
                 (Lang_errors.Invalid_value
-                   ( Lang.assoc "" 1 p,
-                     "No format (mime) found, please specify one." )) )
+                   (pos, v, "No format (mime) found, please specify one.")) )
     in
     { factory = encoder_factory; format; info }
 end

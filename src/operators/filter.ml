@@ -112,7 +112,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Perform several kinds of filtering on the signal"
-    (fun p ->
+    (fun p pos ->
       let f v = List.assoc v p in
       let freq, q, wet, mode, src =
         ( Lang.to_float_getter (f "freq"),
@@ -130,6 +130,6 @@ let () =
           | _ ->
               raise
                 (Lang_errors.Invalid_value
-                   (mode, "valid values are low|high|band|notch"))
+                   (pos, mode, "valid values are low|high|band|notch"))
       in
       new filter ~kind src freq q wet mode)

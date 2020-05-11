@@ -80,7 +80,7 @@ let () =
       "Keep track of the last N metadata packets in the stream, and make the \
        history available via a server command."
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let s = Lang.to_source (List.assoc "" p) in
       let size = Lang.to_int (List.assoc "size" p) in
       new store ~kind size s)

@@ -54,7 +54,7 @@ let proto =
   * Takes care of pulling the data out of the source, type checkings,
   * maintains a queue of last ten metadata and setups standard Server commands,
   * including start/stop. *)
-class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
+class virtual output ~content_kind ~pos ~output_kind ?(name = "") ~infallible
   ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
@@ -62,7 +62,8 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     (* This should be done before the active_operator initializer
      * attaches us to a clock. *)
     if infallible && source#stype <> Infallible then
-      raise (Lang_errors.Invalid_value (val_source, "That source is fallible"))
+      raise
+        (Lang_errors.Invalid_value (pos, val_source, "That source is fallible"))
 
     inherit active_operator ~name:output_kind content_kind [source] as super
 
@@ -200,12 +201,12 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         self#abort_track )
   end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
+class dummy ~pos ~infallible ~on_start ~on_stop ~autostart ~kind source =
   object
     inherit
       output
-        source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
-          ~on_start ~on_stop ~content_kind:kind
+        source autostart ~pos ~name:"dummy" ~output_kind:"output.dummy"
+          ~infallible ~on_start ~on_stop ~content_kind:kind
 
     method private output_reset = ()
 
@@ -223,7 +224,7 @@ let () =
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:Lang.Output ~descr:"Dummy output for debugging purposes."
     ~return_t
-    (fun p ->
+    (fun p pos ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
@@ -231,18 +232,18 @@ let () =
       let on_start () = ignore (Lang.apply on_start []) in
       let on_stop () = ignore (Lang.apply on_stop []) in
       ( new dummy
-          ~kind ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p)
+          ~kind ~pos ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p)
         :> Source.source ))
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
-class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
-  ~on_stop ~autostart source =
+class virtual encoded ~content_kind ~pos ~output_kind ~name ~infallible
+  ~on_start ~on_stop ~autostart source =
   object (self)
     inherit
       output
-        ~infallible ~on_start ~on_stop ~content_kind ~output_kind ~name source
-          autostart
+        ~pos ~infallible ~on_start ~on_stop ~content_kind ~output_kind ~name
+          source autostart
 
     method virtual private insert_metadata : Meta_format.export_metadata -> unit
 

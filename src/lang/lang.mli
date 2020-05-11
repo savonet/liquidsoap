@@ -46,13 +46,7 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Lang_values.V.value = { pos : pos option; value : in_value }
-
-and env = (string * value) list
-
-and lazy_env = (string * value Lazy.t) list
-
-and in_value = Lang_values.V.in_value =
+type value = Lang_values.V.value =
   | Ground of Ground.t
   | Source of Source.source
   | Request of Request.t
@@ -65,7 +59,12 @@ and in_value = Lang_values.V.in_value =
       (** A function with given arguments (argument label, argument variable,
       default value), parameters already passed to the function, closure and
       value. *)
-  | FFI of (string * string * value option) list * env * (env -> value)
+  | FFI of
+      (string * string * value option) list * env * (env -> pos list -> value)
+
+and env = (string * value) list
+
+and lazy_env = (string * value Lazy.t) list
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -79,7 +78,7 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
-val apply : value -> env -> value
+val apply : ?stack:pos list -> value -> env -> value
 
 (** {3 Helpers for registering protocols} *)
 
@@ -110,7 +109,7 @@ val add_builtin :
   string ->
   proto ->
   t ->
-  (env -> value) ->
+  (env -> pos list -> value) ->
   unit
 
 (** Add an builtin to the language, more rudimentary version. *)
@@ -119,7 +118,7 @@ val add_builtin_base :
   descr:string ->
   ?flags:doc_flag list ->
   string ->
-  in_value ->
+  value ->
   t ->
   unit
 
@@ -184,7 +183,7 @@ val add_operator :
   string ->
   proto ->
   return_t:t ->
-  (env -> Source.source) ->
+  (env -> pos list -> Source.source) ->
   unit
 
 (** {2 Manipulation of values} *)
@@ -277,7 +276,8 @@ val tuple : value list -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. *)
-val val_fun : (string * string * value option) list -> (env -> value) -> value
+val val_fun :
+  (string * string * value option) list -> (env -> pos list -> value) -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure

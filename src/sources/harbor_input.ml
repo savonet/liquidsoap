@@ -31,8 +31,8 @@ module type T = sig
 end
 
 module Make (Harbor : T) = struct
-  class http_input_server ~kind ~dumpfile ~logfile ~bufferize ~max ~icy ~port
-    ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
+  class http_input_server ~kind ~pos ~dumpfile ~logfile ~bufferize ~max ~icy
+    ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
     ~on_disconnect ~login ~debug ~log_overfull ~timeout p =
     let max_ticks = Frame.master_of_seconds max in
     (* We need a temporary log until
@@ -179,7 +179,8 @@ module Make (Harbor : T) = struct
           with Harbor.Registered ->
             raise
               (Lang_errors.Invalid_value
-                 ( List.assoc "" p,
+                 ( pos,
+                   List.assoc "" p,
                    (* TODO: raise two script values ? *)
                    let port = Lang.to_int (List.assoc "port" p) in
                    Printf.sprintf
@@ -359,26 +360,21 @@ module Make (Harbor : T) = struct
           Some "Log when the source's buffer is overfull." );
         ("", Lang.string_t, None, Some "Mountpoint to look for.");
       ]
-      (fun p ->
+      (fun p pos ->
         let mountpoint = Lang.to_string (List.assoc "" p) in
         let mountpoint =
           if mountpoint <> "" && mountpoint.[0] = '/' then mountpoint
           else Printf.sprintf "/%s" mountpoint
         in
         let trivially_false = function
-          | {
-              Lang.value =
-                Lang.Fun
-                  ( _,
-                    _,
-                    _,
-                    {
-                      Lang_values.term =
-                        Lang_values.(Ground (Ground.Bool false));
-                      _;
-                    } );
-              _;
-            } ->
+          | Lang.Fun
+              ( _,
+                _,
+                _,
+                {
+                  Lang_values.term = Lang_values.(Ground (Ground.Bool false));
+                  _;
+                } ) ->
               true
           | _ -> false
         in
@@ -444,7 +440,8 @@ module Make (Harbor : T) = struct
         if bufferize >= max then
           raise
             (Lang_errors.Invalid_value
-               ( List.assoc "max" p,
+               ( pos,
+                 List.assoc "max" p,
                  "Maximum buffering inferior to pre-buffered data" ));
         let on_connect l =
           let l =
@@ -460,9 +457,9 @@ module Make (Harbor : T) = struct
         in
         let kind = Lang.any in
         ( new http_input_server
-            ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
-            ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-            ~on_disconnect ~debug ~log_overfull p
+            ~kind ~pos ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
+            ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta
+            ~on_connect ~on_disconnect ~debug ~log_overfull p
           :> Source.source ))
 end
 

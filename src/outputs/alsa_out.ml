@@ -24,8 +24,8 @@
 
 open Alsa
 
-class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
-  =
+class output ~pos ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev
+  source =
   let buffer_length = AFrame.size () in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
@@ -35,7 +35,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
+        ~pos ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.alsa" source start as super
 
     inherit [Frame.audio_t array] IoRing.output ~nb_blocks as ioring

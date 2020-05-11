@@ -58,7 +58,7 @@ let add name g =
         Some (Lang.float 440.),
         Some ("Frequency of the " ^ name ^ ".") );
     ]
-    (fun p ->
+    (fun p _ ->
       ( new gen
           ~seek:true ~kind name g
           (Lang.to_float_getter (List.assoc "" p))

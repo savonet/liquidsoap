@@ -175,7 +175,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low-pass FIR filter."
-    (fun p ->
+    (fun p _ ->
       let f v = List.assoc v p in
       let freq, beta, num, src =
         ( Lang.to_float (f "frequency"),

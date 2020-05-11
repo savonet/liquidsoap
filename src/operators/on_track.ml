@@ -73,7 +73,7 @@ let () =
     ]
     ~category:Lang.TrackProcessing ~descr:"Call a given handler on new tracks."
     ~return_t
-    (fun p ->
+    (fun p _ ->
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       new on_track ~kind f s)

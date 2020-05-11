@@ -634,7 +634,7 @@ module Make (Config : Config_t) = struct
             ( "URL of an " ^ protocol ^ " stream (default port is "
             ^ string_of_int default_port ^ ")." ) );
       ]
-      (fun p ->
+      (fun p pos ->
         let playlist_mode =
           let s = List.assoc "playlist_mode" p in
           match Lang.to_string s with
@@ -645,7 +645,8 @@ module Make (Config : Config_t) = struct
             | _ ->
                 raise
                   (Lang_errors.Invalid_value
-                     ( s,
+                     ( pos,
+                       s,
                        "valid values are 'random', 'randomize', 'normal' and \
                         'first'" ))
         in
@@ -675,7 +676,8 @@ module Make (Config : Config_t) = struct
         if bufferize >= max then
           raise
             (Lang_errors.Invalid_value
-               ( List.assoc "max" p,
+               ( pos,
+                 List.assoc "max" p,
                  "Maximum buffering inferior to pre-buffered data" ));
         let on_connect l =
           let l =
