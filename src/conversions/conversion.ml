@@ -41,9 +41,15 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
      * source. Content untouched by the converter are replaced by
      * by content from the calling frame. Touched content get their
      * own layer. *)
-    val mutable tmp_frame = Frame.create source#kind
+    val mutable tmp_frame = None
 
-    method private tmp_frame = tmp_frame
+    method private tmp_frame =
+      match tmp_frame with
+        | Some tmp_frame -> tmp_frame
+        | None ->
+            let frame = Frame.create source#kind in
+            tmp_frame <- Some frame;
+            frame
 
     method private copy_frame src dst =
       Frame.set_pts dst (Frame.pts src);
