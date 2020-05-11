@@ -29,7 +29,13 @@ let conf_lilv =
   Dtools.Conf.void ~p:(Utils.conf#plug "lilv") "Lilv Configuration"
 
 let conf_enable =
-  Dtools.Conf.bool ~p:(conf_lilv#plug "enable") ~d:true "Enable LV2 plugins"
+  let d =
+    try
+      let venv = Unix.getenv "LIQ_LILV" in
+      venv = "1" || venv = "true"
+    with Not_found -> true
+  in
+  Dtools.Conf.bool ~p:(conf_lilv#plug "enable") ~d "Enable LV2 plugins"
 
 class virtual base ~kind source =
   object
