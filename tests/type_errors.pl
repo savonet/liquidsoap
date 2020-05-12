@@ -49,8 +49,6 @@ incorrect('(1:unit)');
 # Next one requires the inference of a subtype (fixed vs. variable arity)
 correct('ignore(audio_to_stereo(add([])))');
 correct('ignore((blank():source(audio=1,video=1,midi=1)))');
-# correct('ignore((blank():source(*+1,0,0)))');
-# correct('ignore((blank():source(1+*,0,0)))');
 
 section("CONSTRAINTS");
 incorrect('"bl"+"a"');
