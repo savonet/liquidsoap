@@ -54,8 +54,9 @@ let get_tags fname =
   with
     | Id3v2.Invalid -> []
     | e ->
+        let bt = Printexc.get_backtrace () in
         log#info "Error while decoding file tags: %s" (Printexc.to_string e);
-        log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
+        log#info "Backtrace:\n%s" bt;
         raise Not_found
 
 let () = Request.mresolvers#register "ID3V2" get_tags

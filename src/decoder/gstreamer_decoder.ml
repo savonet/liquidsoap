@@ -156,8 +156,9 @@ module Make (Generator : Generator.S_Asio) = struct
         GU.flush ~log gst.bin;
         Gstreamer_utils.master_of_time (Int64.sub new_pos pos)
       with exn ->
+        let bt = Printexc.get_backtrace () in
         log#important "Seek failed: %s" (Printexc.to_string exn);
-        log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
+        log#info "Backtrace:\n%s" bt;
         0
     in
     let close () =
