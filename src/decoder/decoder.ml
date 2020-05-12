@@ -254,9 +254,9 @@ let get_file_decoder ~metadata filename kind =
         fun () ->
           try f ()
           with exn ->
+            let bt = Printexc.get_backtrace () in
             log#severe "Decoder %S betrayed us on %S! Error: %s\n%s" name
-              filename (Printexc.to_string exn)
-              (Printexc.get_backtrace ());
+              filename (Printexc.to_string exn) bt;
             dummy )
 
 (** Get a valid image decoder creator for [filename]. *)
@@ -339,8 +339,9 @@ module Buffered (Generator : Generator.S) = struct
             decoder.decode gen
           done
         with e ->
+          let bt = Printexc.get_backtrace () in
           log#info "Decoding %S ended: %s." filename (Printexc.to_string e);
-          log#debug "%s" (Printexc.get_backtrace ());
+          log#debug "%s" bt;
           decoding_done := true;
           if conf_debug#get then raise e );
       let offset = Frame.position frame in

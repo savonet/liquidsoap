@@ -223,9 +223,9 @@ let new_queue ?priorities ~name () =
         | None -> Duppy.queue scheduler ~log:qlog name
         | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
     with e ->
+      let bt = Printexc.get_backtrace () in
       log#severe "Queue %s crashed with exception %s\n%s" name
-        (Printexc.to_string e)
-        (Printexc.get_backtrace ());
+        (Printexc.to_string e) bt;
       log#critical
         "PANIC: Liquidsoap has crashed, exiting.,\n\
          Please report at: savonet-users@lists.sf.net";
