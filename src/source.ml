@@ -477,10 +477,14 @@ class virtual operator ?(name = "src") kind sources =
 
     val mutable kind = None
 
+    (* Check that functions are accessed in a sane order. *)
+    val mutable accessed_kind = false
+
     method kind =
       match kind with
         | Some kind -> kind
         | None ->
+            accessed_kind <- true;
             let kind_string = Kind.to_string self#kind_var in
             (* The computation cannot be performed too early beacuse it can use
                default values for channels, which can be overridden by the
@@ -492,6 +496,7 @@ class virtual operator ?(name = "src") kind sources =
             k
 
     method private set_kind =
+      assert (not accessed_kind);
       List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources
 
     initializer self#set_kind
