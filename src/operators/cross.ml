@@ -32,9 +32,10 @@ let finalise_slave_clock slave_clock source =
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   ~minimum_length ~conservative ~active transition =
-  let channels = float (AFrame.channels_of_kind kind) in
   object (self)
     inherit source ~name:"cross" kind as super
+
+    method private channels = float (AFrame.channels_of_kind self#kind)
 
     method stype = Source.Fallible
 
@@ -345,10 +346,11 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     (* Sum up analysis and build the transition *)
     method private create_transition =
       let db_after =
-        Audio.dB_of_lin (sqrt (rms_after /. float rmsi_after /. channels))
+        Audio.dB_of_lin (sqrt (rms_after /. float rmsi_after /. self#channels))
       in
       let db_before =
-        Audio.dB_of_lin (sqrt (rms_before /. float rmsi_before /. channels))
+        Audio.dB_of_lin
+          (sqrt (rms_before /. float rmsi_before /. self#channels))
       in
       let compound =
         Clock.collect_after (fun () ->

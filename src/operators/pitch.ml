@@ -61,7 +61,7 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   object (self)
     inherit operator ~name:"pitch" kind [source]
 
-    method channels = AFrame.channels_of_kind self#kind
+    method private channels = AFrame.channels_of_kind self#kind
 
     val mutable ring = None
 

@@ -24,8 +24,8 @@ open Source
 
 class bpm ~kind (source : source) cb every =
   let every = Frame.audio_of_seconds every in
-  object
-    inherit operator ~name:"bpm" kind [source]
+  object (self)
+    inherit operator ~name:"bpm" kind [source] as super
 
     method stype = source#stype
 
@@ -39,14 +39,20 @@ class bpm ~kind (source : source) cb every =
 
     method abort_track = source#abort_track
 
-    val bpm =
-      Soundtouch.BPM.make
-        (AFrame.channels_of_kind kind)
-        (Lazy.force Frame.audio_rate)
+    val mutable bpm = None
+
+    method wake_up a =
+      super#wake_up a;
+      bpm <-
+        Some
+          (Soundtouch.BPM.make
+             (AFrame.channels_of_kind self#kind)
+             (Lazy.force Frame.audio_rate))
 
     val mutable n = 0
 
     method private get_frame buf =
+      let bpm = Option.get bpm in
       let offset = AFrame.position buf in
       source#get buf;
       let len = AFrame.position buf - offset in
@@ -82,4 +88,4 @@ let () =
       let every = Lang.to_float (f "every") in
       let cb = Lang.to_fun (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
-      new bpm ~kind s cb every)
+      (new bpm ~kind s cb every :> Source.source))

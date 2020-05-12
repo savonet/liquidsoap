@@ -40,7 +40,7 @@ class mic ~kind ~clock_safe device =
 
     val mutable initialized = false
 
-    method channels = AFrame.channels_of_kind self#kind
+    method private channels = AFrame.channels_of_kind self#kind
 
     method kind =
       if not initialized then (

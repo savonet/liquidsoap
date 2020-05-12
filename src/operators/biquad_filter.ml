@@ -23,14 +23,24 @@
 open Source
 
 class biquad ~kind (source : source) filter_type freq fparam db_gain =
-  let channels = AFrame.channels_of_kind kind in
   let samplerate = Frame.audio_of_seconds 1. in
-  object
+  object (self)
     inherit operator ~name:"biquad_filter" kind [source]
 
-    val effect =
-      new Audio.Effect.biquad_filter
-        channels samplerate filter_type ~gain:db_gain freq fparam
+    method private channels = AFrame.channels_of_kind self#kind
+
+    val mutable effect = None
+
+    method effect =
+      match effect with
+        | Some effect -> effect
+        | None ->
+            let e =
+              new Audio.Effect.biquad_filter
+                self#channels samplerate filter_type ~gain:db_gain freq fparam
+            in
+            effect <- Some e;
+            e
 
     method stype = source#stype
 
@@ -50,7 +60,7 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
       let b = AFrame.content buf in
       let pos = AFrame.position buf in
       let len = pos - offset in
-      effect#process (Audio.sub b offset len)
+      self#effect#process (Audio.sub b offset len)
   end
 
 let () =
@@ -73,7 +83,7 @@ let () =
           Lang.to_float (f "slope"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `Low_shelf freq param 0.)
+      (new biquad ~kind src `Low_shelf freq param 0. :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -96,7 +106,7 @@ let () =
           Lang.to_float (f "slope"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `High_shelf freq param 0.)
+      (new biquad ~kind src `High_shelf freq param 0. :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -115,7 +125,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `Low_pass freq param 0.)
+      (new biquad ~kind src `Low_pass freq param 0. :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -134,7 +144,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `High_pass freq param 0.)
+      (new biquad ~kind src `High_pass freq param 0. :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -153,7 +163,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `Band_pass freq param 0.)
+      (new biquad ~kind src `Band_pass freq param 0. :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -175,7 +185,7 @@ let () =
           Lang.to_float (f "bandwidth"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `All_pass freq param 0.)
+      (new biquad ~kind src `All_pass freq param 0. :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -194,7 +204,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `Notch freq param 0.)
+      (new biquad ~kind src `Notch freq param 0. :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -215,4 +225,4 @@ let () =
           Lang.to_float (f "gain"),
           Lang.to_source (f "") )
       in
-      new biquad ~kind src `Peaking freq param gain)
+      (new biquad ~kind src `Peaking freq param gain :> Source.source))

@@ -46,87 +46,14 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let log_error = ref (fun _ -> ()) in
   let sample_rate = Frame.audio_of_seconds 1. in
   let audio_src_rate = float sample_rate in
-  let channels = AFrame.channels_of_kind kind in
   let abg_max_len = Frame.audio_of_seconds max in
   let replay_delay = Frame.audio_of_seconds replay_delay in
-  let samplesize = ref 16 in
-  let converter =
-    ref
-      (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:!samplesize
-         ~audio_src_rate)
-  in
   let len = match data_len with x when x < 0 -> None | l -> Some l in
-  let header =
-    Bytes.unsafe_of_string
-      (Wav_aiff.wav_header ~channels ~sample_rate ?len ~sample_size:16 ())
-  in
-  let on_start push =
-    Process_handler.really_write header push;
-    `Continue
-  in
   let abg = Generator.create ~log ~log_overfull `Audio in
   let mutex = Mutex.create () in
   let replay_pending = ref [] in
   let next_stop = ref `Nothing in
   let header_read = ref false in
-  let bytes = Bytes.create Utils.pagesize in
-  let on_stdout pull =
-    if not !header_read then (
-      let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
-      header_read := true;
-      Tutils.mutexify mutex
-        (fun () ->
-          if Wav_aiff.channels wav <> channels then
-            failwith "Invalid channels from pipe process!";
-          samplesize := Wav_aiff.sample_size wav;
-          converter :=
-            Rutils.create_from_iff ~format:`Wav ~channels
-              ~samplesize:!samplesize
-              ~audio_src_rate:(float (Wav_aiff.sample_rate wav)))
-        ();
-      `Reschedule Tutils.Non_blocking )
-    else (
-      let len = pull bytes 0 Utils.pagesize in
-      let data = !converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
-      let len = Audio.length data in
-      let buffered = Generator.length abg in
-      Generator.put_audio abg data 0 len;
-      let to_replay =
-        Tutils.mutexify mutex
-          (fun () ->
-            let pending = !replay_pending in
-            let to_replay, pending =
-              List.fold_left
-                (fun ((pos, b), cur) (pos', b') ->
-                  if pos' + len > replay_delay then (
-                    if pos > 0 then
-                      log
-                        "Cannot replay multiple element at once.. Picking up \
-                         the most recent";
-                    if pos > 0 && pos < pos' then ((pos, b), cur)
-                    else ((pos', b'), cur) )
-                  else ((pos, b), (pos' + len, b') :: cur))
-                ((-1, `Nothing), [])
-                pending
-            in
-            replay_pending := pending;
-            to_replay)
-          ()
-      in
-      begin
-        match to_replay with
-        | -1, _ -> ()
-        | _, `Break_and_metadata m ->
-            Generator.add_metadata abg m;
-            Generator.add_break abg
-        | _, `Metadata m -> Generator.add_metadata abg m
-        | _, `Break -> Generator.add_break abg
-        | _ -> ()
-      end;
-      if abg_max_len < buffered + len then
-        `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
-      else `Continue )
-  in
   let bytes = Bytes.create Utils.pagesize in
   let on_stderr reader =
     let len = reader bytes 0 Utils.pagesize in
@@ -160,9 +87,82 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
           | _, `Nothing -> restart)
   in
   object (self)
-    inherit source ~name:"pipe" kind
+    inherit source ~name:"pipe" kind as super
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
+
+    method private channels = AFrame.channels_of_kind self#kind
+
+    val mutable samplesize = 16
+
+    (* Filled in by wake_up. *)
+    val mutable converter = fun _ -> assert false
+
+    method private header =
+      Bytes.unsafe_of_string
+        (Wav_aiff.wav_header ~channels:self#channels ~sample_rate ?len
+           ~sample_size:16 ())
+
+    method private on_start push =
+      Process_handler.really_write self#header push;
+      `Continue
+
+    method private on_stdout pull =
+      if not !header_read then (
+        let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
+        header_read := true;
+        Tutils.mutexify mutex
+          (fun () ->
+            if Wav_aiff.channels wav <> self#channels then
+              failwith "Invalid channels from pipe process!";
+            samplesize <- Wav_aiff.sample_size wav;
+            converter <-
+              Rutils.create_from_iff ~format:`Wav ~channels:self#channels
+                ~samplesize
+                ~audio_src_rate:(float (Wav_aiff.sample_rate wav)))
+          ();
+        `Reschedule Tutils.Non_blocking )
+      else (
+        let len = pull bytes 0 Utils.pagesize in
+        let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
+        let len = Audio.length data in
+        let buffered = Generator.length abg in
+        Generator.put_audio abg data 0 len;
+        let to_replay =
+          Tutils.mutexify mutex
+            (fun () ->
+              let pending = !replay_pending in
+              let to_replay, pending =
+                List.fold_left
+                  (fun ((pos, b), cur) (pos', b') ->
+                    if pos' + len > replay_delay then (
+                      if pos > 0 then
+                        log
+                          "Cannot replay multiple element at once.. Picking up \
+                           the most recent";
+                      if pos > 0 && pos < pos' then ((pos, b), cur)
+                      else ((pos', b'), cur) )
+                    else ((pos, b), (pos' + len, b') :: cur))
+                  ((-1, `Nothing), [])
+                  pending
+              in
+              replay_pending := pending;
+              to_replay)
+            ()
+        in
+        begin
+          match to_replay with
+          | -1, _ -> ()
+          | _, `Break_and_metadata m ->
+              Generator.add_metadata abg m;
+              Generator.add_break abg
+          | _, `Metadata m -> Generator.add_metadata abg m
+          | _, `Break -> Generator.add_break abg
+          | _ -> ()
+        end;
+        if abg_max_len < buffered + len then
+          `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
+        else `Continue )
 
     val mutable handler = None
 
@@ -245,17 +245,21 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
       Clock.unify slave_clock source#clock;
       Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
-    method wake_up _ =
-      source#get_ready [(self :> source)];
+    method wake_up a =
+      super#wake_up a;
+      converter <-
+        Rutils.create_from_iff ~format:`Wav ~channels:self#channels ~samplesize
+          ~audio_src_rate;
 
+      source#get_ready [(self :> source)];
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#debug "%s";
       handler <-
         Some
-          (Process_handler.run ~on_stop ~on_start ~on_stdout
-             ~on_stdin:self#on_stdin ~priority:Tutils.Blocking ~on_stderr ~log
-             process)
+          (Process_handler.run ~on_stop ~on_start:self#on_start
+             ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
+             ~priority:Tutils.Blocking ~on_stderr ~log process)
 
     method abort_track = source#abort_track
 

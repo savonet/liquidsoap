@@ -25,11 +25,18 @@ module Generator = Generator.From_audio_video
 
 class soundtouch ~kind (source : source) rate tempo pitch =
   let abg = Generator.create `Audio in
-  let channels = AFrame.channels_of_kind kind in
   object (self)
-    inherit operator ~name:"soundtouch" kind [source]
+    inherit operator ~name:"soundtouch" kind [source] as super
 
-    val st = Soundtouch.make channels (Lazy.force Frame.audio_rate)
+    method private channels = AFrame.channels_of_kind self#kind
+
+    val mutable st = None
+
+    method wake_up a =
+      super#wake_up a;
+      st <- Some (Soundtouch.make self#channels (Lazy.force Frame.audio_rate));
+      self#log#important "Using soundtouch %s."
+        (Soundtouch.get_version_string (Option.get st))
 
     val databuf = Frame.create kind
 
@@ -48,9 +55,6 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       source#after_output;
       Frame.advance databuf
 
-    initializer
-    self#log#important "Using soundtouch %s." (Soundtouch.get_version_string st)
-
     method stype = source#stype
 
     method self_sync = false
@@ -64,6 +68,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       source#abort_track
 
     method private feed =
+      let st = Option.get st in
       Soundtouch.set_rate st (rate ());
       Soundtouch.set_tempo st (tempo ());
       Soundtouch.set_pitch st (pitch ());
@@ -76,10 +81,10 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       if available > 0 then (
         let tmp =
           Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-            (channels * available)
+            (self#channels * available)
         in
         ignore (Soundtouch.get_samples_ba st tmp);
-        let tmp = Audio.deinterleave channels tmp in
+        let tmp = Audio.deinterleave self#channels tmp in
         Generator.put_audio abg tmp 0 available );
       if AFrame.is_partial databuf then Generator.add_break abg;
 
@@ -118,4 +123,4 @@ let () =
       let tempo = Lang.to_float_getter (f "tempo") in
       let pitch = Lang.to_float_getter (f "pitch") in
       let s = Lang.to_source (f "") in
-      new soundtouch ~kind s rate tempo pitch)
+      (new soundtouch ~kind s rate tempo pitch :> Source.source))

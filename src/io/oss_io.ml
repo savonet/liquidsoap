@@ -36,7 +36,6 @@ let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "OSS")
 
 class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
   val_source =
-  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
@@ -44,6 +43,8 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
       Output.output
         ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.oss" val_source start as super
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method private set_clock =
       super#set_clock;
@@ -59,7 +60,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
       let descr = Unix.openfile dev [Unix.O_WRONLY] 0o200 in
       fd <- Some descr;
       force set_format descr 16;
-      force set_channels descr channels;
+      force set_channels descr self#channels;
       force set_rate descr samples_per_second
 
     method close_device =
@@ -88,7 +89,6 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
   end
 
 class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
-  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
@@ -103,6 +103,8 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
 
+    method private channels = AFrame.channels_of_kind self#kind
+
     val mutable fd = None
 
     method self_sync = fd <> None
@@ -113,7 +115,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       let descr = Unix.openfile dev [Unix.O_RDONLY] 0o400 in
       fd <- Some descr;
       force set_format descr 16;
-      force set_channels descr channels;
+      force set_channels descr self#channels;
       force set_rate descr samples_per_second
 
     method private stop = self#close_device

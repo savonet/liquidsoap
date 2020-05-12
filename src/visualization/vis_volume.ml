@@ -29,9 +29,10 @@ let group_size = 1764
 let f_group_size = float group_size
 
 class vumeter ~kind source =
-  let channels = AFrame.channels_of_kind kind in
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method stype = source#stype
 
@@ -43,28 +44,31 @@ class vumeter ~kind source =
 
     method self_sync = source#self_sync
 
-    method private wake_up act =
-      super#wake_up act;
-      Graphics.open_graph "";
-      Graphics.set_window_title "Liquidsoap's volume";
-      Graphics.auto_synchronize false
-
     method private sleep =
       super#sleep;
       Graphics.close_graph ()
 
     (* Ringbuffer for previous values, with its current position *)
-    val vol = Array.init channels (fun _ -> Array.make backpoints 0.)
+    val mutable vol = [||]
 
     val mutable pos = 0
 
     (* Another buffer for accumulating RMS over [group_size] samples,
      * with its current position. *)
-    val mutable cur_rms = Array.make channels 0.
+    val mutable cur_rms = [||]
 
     val mutable group = 0
 
+    method private wake_up act =
+      super#wake_up act;
+      vol <- Array.init self#channels (fun _ -> Array.make backpoints 0.);
+      cur_rms <- Array.make self#channels 0.;
+      Graphics.open_graph "";
+      Graphics.set_window_title "Liquidsoap's volume";
+      Graphics.auto_synchronize false
+
     method private add_vol v =
+      let channels = self#channels in
       for c = 0 to channels - 1 do
         cur_rms.(c) <- cur_rms.(c) +. v.(c)
       done;
@@ -77,6 +81,7 @@ class vumeter ~kind source =
         pos <- (pos + 1) mod backpoints )
 
     method private get_frame buf =
+      let channels = self#channels in
       let offset = AFrame.position buf in
       let end_pos =
         source#get buf;

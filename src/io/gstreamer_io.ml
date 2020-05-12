@@ -178,7 +178,6 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       | Some video_pipeline -> (true, video_pipeline)
       | None -> (false, "")
   in
-  let channels = AFrame.channels_of_kind kind in
   object (self)
     inherit
       Output.output
@@ -186,6 +185,8 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
           ~name:"output.gstreamer" ~output_kind:"gstreamer" source start as super
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     val mutable started = false
 
@@ -235,7 +236,8 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       let pipeline =
         if has_audio then
           Printf.sprintf "%s ! %s %s"
-            (GU.Pipeline.audio_src ~channels ~block:blocking "audio_src")
+            (GU.Pipeline.audio_src ~channels:self#channels ~block:blocking
+               "audio_src")
             audio_pipeline pipeline
         else pipeline
       in
@@ -277,9 +279,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
           let duration = Gstreamer_utils.time_of_master len in
           if has_audio then (
             let pcm = content.Frame.audio in
-            assert (Array.length pcm = channels);
+            assert (Array.length pcm = self#channels);
             let len = Frame.audio_of_master len in
-            let data = Bytes.create (2 * channels * len) in
+            let data = Bytes.create (2 * self#channels * len) in
             Audio.S16LE.of_audio pcm data 0;
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
               (Utils.get_some el.audio) data 0 (Bytes.length data) );
@@ -467,7 +469,6 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       | None, None ->
           failwith "There should be at least one audio or video pipeline!"
   in
-  let channels = AFrame.channels_of_kind kind in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in
@@ -496,6 +497,8 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       ~descr:"Restart gstreamer pipeline state to paused" (fun _ ->
         self#restart;
         "Done. Task will complete asynchronously.")
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method stype = Source.Fallible
 
@@ -558,7 +561,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
           Printf.sprintf "%s %s ! %s ! %s" (pipeline ())
             (Utils.get_some audio_pipeline ())
             (GU.Pipeline.decode_audio ())
-            (GU.Pipeline.audio_sink ~channels "audio_sink")
+            (GU.Pipeline.audio_sink ~channels:self#channels "audio_sink")
         else pipeline ()
       in
       let pipeline =
@@ -606,8 +609,8 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
     method private fill_audio audio =
       while audio.pending () > 0 && not self#is_generator_at_max do
         let b = audio.pull () in
-        let len = String.length b / (2 * channels) in
-        let buf = Audio.create channels len in
+        let len = String.length b / (2 * self#channels) in
+        let buf = Audio.create self#channels len in
         Audio.S16LE.to_audio b 0 (Audio.sub buf 0 len);
         Generator.put_audio gen buf 0 len
       done

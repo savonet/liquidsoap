@@ -27,22 +27,30 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
     window (* Spring coefficient when the sound is going louder. *) kup
   (* Spring coefficient when the sound is going less loud. *)
     kdown threshold gmin gmax =
-  let channels = AFrame.channels_of_kind kind in
   let rmsi = Frame.audio_of_seconds window in
-  object
-    inherit operator ~name:"normalize" kind [source]
+  object (self)
+    inherit operator ~name:"normalize" kind [source] as super
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     (** Current squares of RMS. *)
-    val rms = Array.make channels 0.
+    val mutable rms = [||]
 
     (** Current number of samples used to compute [rmsl] and [rmsr]. *)
     val mutable rmsc = 0
 
     (** Volume coefficients. *)
-    val v = Array.make channels 1.
+    val mutable v = [||]
 
     (** Previous volume coefficients. *)
-    val vold = Array.make channels 1.
+    val mutable vold = [||]
+
+    method wake_up a =
+      super#wake_up a;
+      let channels = self#channels in
+      rms <- Array.make channels 0.;
+      v <- Array.make channels 1.;
+      vold <- Array.make channels 1.
 
     method stype = source#stype
 
@@ -67,7 +75,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
       let gmin = gmin () in
       let gmax = gmax () in
       for i = offset to AFrame.position buf - 1 do
-        for c = 0 to channels - 1 do
+        for c = 0 to self#channels - 1 do
           let bc = b.(c) in
           let x = bc.{i} in
           rms.(c) <- rms.(c) +. (x *. x);
@@ -95,7 +103,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
               end ;
               *)
           (* TODO: do all the computations in dB? *)
-          for c = 0 to channels - 1 do
+          for c = 0 to self#channels - 1 do
             let r = sqrt (rms.(c) /. float_of_int rmsi) in
             if r > threshold then
               if r *. v.(c) > rmst then
@@ -110,7 +118,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
 
       (* Reset values if it is the end of the track. *)
       if AFrame.is_partial buf then (
-        for c = 0 to channels - 1 do
+        for c = 0 to self#channels - 1 do
           vold.(c) <- 1.;
           v.(c) <- 1.;
           rms.(c) <- 0.
@@ -179,10 +187,11 @@ let () =
           Lang.to_float_getter (f "gain_max"),
           Lang.to_source (f "") )
       in
-      new normalize
-        ~kind src
-        (fun () -> Audio.lin_of_dB (target ()))
-        window kup kdown
-        (fun () -> Audio.lin_of_dB (threshold ()))
-        (fun () -> Audio.lin_of_dB (gmin ()))
-        (fun () -> Audio.lin_of_dB (gmax ())))
+      ( new normalize
+          ~kind src
+          (fun () -> Audio.lin_of_dB (target ()))
+          window kup kdown
+          (fun () -> Audio.lin_of_dB (threshold ()))
+          (fun () -> Audio.lin_of_dB (gmin ()))
+          (fun () -> Audio.lin_of_dB (gmax ()))
+        :> Source.source ))

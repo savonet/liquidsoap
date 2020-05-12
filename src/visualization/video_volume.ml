@@ -29,11 +29,12 @@ let group_size = 1764
 let f_group_size = float group_size
 
 class visu ~kind source =
-  let channels = AFrame.channels_of_kind kind in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   object (self)
-    inherit operator ~name:"video.volume" kind [source]
+    inherit operator ~name:"video.volume" kind [source] as super
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method stype = source#stype
 
@@ -46,23 +47,28 @@ class visu ~kind source =
     method self_sync = source#self_sync
 
     (* Ringbuffer for previous values, with its current position. *)
-    val vol = Array.init channels (fun _ -> Array.make backpoints 0.)
+    val mutable vol = [||]
 
     val mutable pos = 0
 
     (* Another buffer for accumulating RMS over [group_size] samples, with its
      * current position. *)
-    val mutable cur_rms = Array.make channels 0.
+    val mutable cur_rms = [||]
 
     val mutable group = 0
 
+    method wake_up a =
+      super#wake_up a;
+      vol <- Array.init self#channels (fun _ -> Array.make backpoints 0.);
+      cur_rms <- Array.make self#channels 0.
+
     method private add_vol v =
-      for c = 0 to channels - 1 do
+      for c = 0 to self#channels - 1 do
         cur_rms.(c) <- cur_rms.(c) +. v.(c)
       done;
       group <- (group + 1) mod group_size;
       if group = 0 then (
-        for c = 0 to channels - 1 do
+        for c = 0 to self#channels - 1 do
           vol.(c).(pos) <- sqrt (cur_rms.(c) /. f_group_size);
           cur_rms.(c) <- 0.
         done;
@@ -95,7 +101,7 @@ class visu ~kind source =
 
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
-        let volheight = float height /. float channels in
+        let volheight = float height /. float self#channels in
         let buf = Frame.(frame.content.video.(0)) in
         let start = Frame.video_of_master offset in
         let stop = start + Frame.video_of_master len in
@@ -113,10 +119,10 @@ class visu ~kind source =
         for f = start to stop - 1 do
           let buf = Video.get buf f in
           Video.Image.blank buf;
-          for i = 0 to channels - 1 do
+          for i = 0 to self#channels - 1 do
             let y = int_of_float (volheight *. float i) in
             line buf (90, 90, 90, 0xff) (0, y) (width - 1, y);
-            for chan = 0 to channels - 1 do
+            for chan = 0 to self#channels - 1 do
               let vol = vol.(chan) in
               let chan_height = int_of_float (volheight *. float chan) in
               let x0 = 0 in
@@ -153,4 +159,4 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new visu ~kind src)
+      (new visu ~kind src :> Source.source))

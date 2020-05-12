@@ -25,12 +25,13 @@ open Source
 type mode = RMS | Peak
 
 class window ~kind mode duration source =
-  let channels = AFrame.channels_of_kind kind in
-  object
+  object (self)
     inherit
       operator
         kind [source]
-        ~name:(match mode with RMS -> "rms" | Peak -> "peak")
+        ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method stype = source#stype
 
@@ -45,13 +46,19 @@ class window ~kind mode duration source =
     method self_sync = source#self_sync
 
     (** Accumulator (e.g. sum of squares). *)
-    val acc = Array.make channels 0.
+    val mutable acc = [||]
 
     (** Duration of the accumlated data. *)
     val mutable acc_dur = 0
 
     (** Last computed value (rms or peak). *)
-    val mutable value = Array.make channels 0.
+    val mutable value = [||]
+
+    method wake_up a =
+      super#wake_up a;
+      let channels = self#channels in
+      acc <- Array.make channels 0.;
+      value <- Array.make channels 0.
 
     val m = Mutex.create ()
 
@@ -66,7 +73,7 @@ class window ~kind mode duration source =
         let position = AFrame.position buf in
         let buf = AFrame.content buf in
         for i = offset to position - 1 do
-          for c = 0 to channels - 1 do
+          for c = 0 to self#channels - 1 do
             let x = buf.(c).{i} in
             match mode with
               | RMS -> acc.(c) <- acc.(c) +. (x *. x)
@@ -76,7 +83,7 @@ class window ~kind mode duration source =
           if acc_dur >= duration then (
             let dur = float acc_dur in
             let value' =
-              Array.init channels (fun i ->
+              Array.init self#channels (fun i ->
                   match mode with
                     | RMS ->
                         let v = sqrt (acc.(i) /. dur) in

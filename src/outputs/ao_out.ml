@@ -52,7 +52,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
         ioring#init blank );
       super#kind
 
-    method channels = AFrame.channels_of_kind self#kind
+    method private channels = AFrame.channels_of_kind self#kind
 
     method private set_clock =
       super#set_clock;

@@ -170,12 +170,13 @@ module AdaptativeBuffer = struct
 
   (** The source which produces data by reading the buffer. *)
   class producer ~kind ~pre_buffer ~averaging ~limit c =
-    let channels = AFrame.channels_of_kind kind in
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
     (* see get_frame for an explanation *)
     let alpha = log 2. *. AFrame.duration () /. averaging in
     object (self)
       inherit Source.source kind ~name:"buffer.adaptative_producer"
+
+      method private channels = AFrame.channels_of_kind self#kind
 
       method stype = Source.Fallible
 
@@ -218,7 +219,7 @@ module AdaptativeBuffer = struct
                  frame *)
               let slen = min slen (RB.read_space c.rb) in
               if slen > 0 then (
-                let src = Audio.create channels slen in
+                let src = Audio.create self#channels slen in
                 RB.read c.rb src;
                 if slen = dlen then
                   Audio.blit (Audio.sub src 0 slen) (Audio.sub dst dofs slen)
@@ -226,7 +227,7 @@ module AdaptativeBuffer = struct
                   (* TODO: we could do better than nearest interpolation. However,
                      for slight adaptations the difference should not really be
                      audible. *)
-                  for c = 0 to channels - 1 do
+                  for c = 0 to self#channels - 1 do
                     let srcc = src.(c) in
                     let dstc = dst.(c) in
                     for i = 0 to dlen - 1 do

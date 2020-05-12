@@ -30,13 +30,16 @@ let handle lbl f x =
     failwith
       (Printf.sprintf "Error while setting %s: %s" lbl (string_of_error e))
 
-class virtual base ~kind dev mode =
-  let channels = AFrame.channels_of_kind kind in
+class virtual base dev mode =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let samples_per_frame = AFrame.size () in
   let periods = Alsa_settings.periods#get in
   object (self)
     method virtual log : Log.t
+
+    method virtual kind : Frame.content_kind
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     val mutable alsa_rate = -1
 
@@ -95,7 +98,7 @@ class virtual base ~kind dev mode =
               write <-
                 (fun pcm buf ofs len ->
                   let sbuf =
-                    Array.init channels (fun _ ->
+                    Array.init self#channels (fun _ ->
                         Bytes.make (2 * len) (Char.chr 0))
                   in
                   for c = 0 to Audio.channels buf - 1 do
@@ -107,7 +110,7 @@ class virtual base ~kind dev mode =
               read <-
                 (fun pcm buf ofs len ->
                   let sbuf =
-                    Array.init channels (fun _ ->
+                    Array.init self#channels (fun _ ->
                         Bytes.make (2 * len) (Char.chr 0))
                   in
                   let r = Pcm.readn pcm sbuf 0 len in
@@ -118,7 +121,7 @@ class virtual base ~kind dev mode =
                       (Audio.sub [| buf.(c) |] ofs len)
                   done;
                   r) ) );
-        handle "channels" (Pcm.set_channels dev params) channels;
+        handle "channels" (Pcm.set_channels dev params) self#channels;
         let rate =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
@@ -169,7 +172,6 @@ class virtual base ~kind dev mode =
 
 class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
   val_source =
-  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
@@ -178,7 +180,9 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
         ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.alsa" val_source start as super
 
-    inherit base ~kind dev [Pcm.Playback]
+    inherit base dev [Pcm.Playback]
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method private set_clock =
       super#set_clock;
@@ -186,7 +190,15 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
         Clock.unify self#clock
           (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
 
-    val samplerate_converter = Audio_converter.Samplerate.create channels
+    val mutable samplerate_converter = None
+
+    method samplerate_converter =
+      match samplerate_converter with
+        | Some samplerate_converter -> samplerate_converter
+        | None ->
+            let sc = Audio_converter.Samplerate.create self#channels in
+            samplerate_converter <- Some sc;
+            sc
 
     method output_start = self#open_device
 
@@ -198,7 +210,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
       let buf =
         if alsa_rate = samples_per_second then buf
         else
-          Audio_converter.Samplerate.resample samplerate_converter
+          Audio_converter.Samplerate.resample self#samplerate_converter
             (float alsa_rate /. float samples_per_second)
             buf
       in
@@ -231,7 +243,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
 class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   let samples_per_frame = AFrame.size () in
   object (self)
-    inherit base ~kind dev [Pcm.Capture]
+    inherit base dev [Pcm.Capture]
 
     inherit
       Start_stop.input

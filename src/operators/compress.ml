@@ -26,16 +26,22 @@ open Source
 
 class compress ~kind (source : source) attack release threshold ratio knee
   rms_window gain =
-  let channels = AFrame.channels_of_kind kind in
   let samplerate = Lazy.force Frame.audio_rate in
-  object
-    inherit operator ~name:"compress" kind [source]
+  object (self)
+    inherit operator ~name:"compress" kind [source] as super
 
-    val effect =
-      new Audio.Effect.compress
-        ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ())
-        ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ()) channels
-        samplerate
+    method private channels = AFrame.channels_of_kind self#kind
+
+    val mutable effect = None
+
+    method private wake_up a =
+      super#wake_up a;
+      effect <-
+        Some
+          (new Audio.Effect.compress
+             ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ())
+             ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ())
+             self#channels samplerate)
 
     method stype = source#stype
 
@@ -55,6 +61,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
       let b = AFrame.content buf in
       let pos = AFrame.position buf in
       let len = pos - ofs in
+      let effect = Option.get effect in
       effect#set_gain (gain ());
       effect#set_attack (attack ());
       effect#set_release (release ());

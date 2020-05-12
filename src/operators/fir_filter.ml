@@ -24,9 +24,10 @@ open Source
 open Complex
 
 class fir ~kind (source : source) freq beta numcoeffs =
-  let channels = AFrame.channels_of_kind kind in
   object (self)
-    inherit operator ~name:"fir_filter" kind [source]
+    inherit operator ~name:"fir_filter" kind [source] as super
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
@@ -40,7 +41,11 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     val mutable gain = 0.
 
-    val mutable xv = Array.make_matrix channels numcoeffs 0.
+    val mutable xv = [||]
+
+    method wake_up a =
+      super#wake_up a;
+      xv <- Array.make_matrix self#channels numcoeffs 0.
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.
@@ -183,4 +188,4 @@ let () =
           Lang.to_int (f "coeffs"),
           Lang.to_source (f "") )
       in
-      new fir ~kind src freq beta num)
+      (new fir ~kind src freq beta num :> Source.source))

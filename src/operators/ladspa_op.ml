@@ -90,16 +90,21 @@ let instantiate d samplerate =
 
 (* A plugin is created for each channel. *)
 class ladspa_mono ~kind (source : source) plugin descr input output params =
-  object
-    inherit base ~kind source
+  object (self)
+    inherit base ~kind source as super
 
-    val inst =
+    val mutable inst = None
+
+    method wake_up a =
+      super#wake_up a;
       let p = Plugin.load plugin in
       let d = Descriptor.descriptor p descr in
-      Array.init (AFrame.channels_of_kind kind) (fun _ ->
-          instantiate d (Lazy.force Frame.audio_rate))
-
-    initializer Array.iter Descriptor.activate inst
+      let i =
+        Array.init (AFrame.channels_of_kind self#kind) (fun _ ->
+            instantiate d (Lazy.force Frame.audio_rate))
+      in
+      Array.iter Descriptor.activate i;
+      inst <- Some i
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -107,6 +112,7 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
       let b = AFrame.content buf in
       let position = AFrame.position buf in
       let len = position - offset in
+      let inst = Option.get inst in
       for c = 0 to Array.length b - 1 do
         let buf = Audio.Mono.sub b.(c) offset len in
         Descriptor.connect_port inst.(c) input buf;
@@ -329,9 +335,10 @@ let register_descr plugin_name descr_n d inputs outputs =
         let kind = Lang.audio_n no in
         new ladspa_nosource ~kind plugin_name descr_n outputs params )
       else if mono then
-        new ladspa_mono
-          ~kind:Lang.any (Utils.get_some source) plugin_name descr_n inputs.(0)
-          outputs.(0) params
+        ( new ladspa_mono
+            ~kind:Lang.any (Utils.get_some source) plugin_name descr_n
+            inputs.(0) outputs.(0) params
+          :> Source.source )
       else
         ( new ladspa
             ~kind:Lang.any (Utils.get_some source) plugin_name descr_n inputs

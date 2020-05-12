@@ -26,9 +26,8 @@ open Source
 
 class comb ~kind (source : source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
-  let channels = AFrame.channels_of_kind kind in
-  object
-    inherit operator ~name:"comb" kind [source]
+  object (self)
+    inherit operator ~name:"comb" kind [source] as super
 
     method stype = source#stype
 
@@ -42,7 +41,15 @@ class comb ~kind (source : source) delay feedback =
 
     method abort_track = source#abort_track
 
-    val past = Audio.make channels past_len 0.
+    method private channels = AFrame.channels_of_kind self#kind
+
+    val mutable past = None
+
+    method private wake_up s =
+      super#wake_up s;
+      if past = None then past <- Some (Audio.make self#channels past_len 0.)
+
+    method private past = Option.get past
 
     val mutable past_pos = 0
 
@@ -52,6 +59,7 @@ class comb ~kind (source : source) delay feedback =
       let b = AFrame.content buf in
       let position = AFrame.position buf in
       let feedback = feedback () in
+      let past = self#past in
       for i = offset to position - 1 do
         for c = 0 to Array.length b - 1 do
           let oldin = b.(c).{i} in

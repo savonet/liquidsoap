@@ -70,7 +70,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     val mutable stream = None
 
-    method channels = AFrame.channels_of_kind self#kind
+    method private channels = AFrame.channels_of_kind self#kind
 
     method open_device =
       let ss =
@@ -133,7 +133,6 @@ class input ~kind p =
     let f = List.assoc "on_stop" p in
     fun () -> ignore (Lang.apply f [])
   in
-  let channels = AFrame.channels_of_kind kind in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
@@ -143,6 +142,8 @@ class input ~kind p =
         ~on_start ~on_stop ~autostart:start ~fallible as super
 
     inherit base ~client ~device
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method private set_clock =
       super#set_clock;
@@ -165,7 +166,7 @@ class input ~kind p =
         {
           sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = channels;
+          sample_chans = self#channels;
         }
       in
       stream <-
@@ -183,14 +184,14 @@ class input ~kind p =
       let len = AFrame.size () in
       let ibuf =
         Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-          (channels * len)
+          (self#channels * len)
       in
       let buf = AFrame.content frame in
       Simple.read_ba stream ibuf;
-      for c = 0 to channels - 1 do
+      for c = 0 to self#channels - 1 do
         let bufc = buf.(c) in
         for i = 0 to len - 1 do
-          bufc.{i} <- Bigarray.Array1.unsafe_get ibuf ((i * channels) + c)
+          bufc.{i} <- Bigarray.Array1.unsafe_get ibuf ((i * self#channels) + c)
         done
       done;
       AFrame.add_break frame (AFrame.size ())

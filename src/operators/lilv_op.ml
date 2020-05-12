@@ -76,16 +76,22 @@ let constant_data len x =
 
 (** A mono LV2 plugin: a plugin is created for each channel. *)
 class lilv_mono ~kind (source : source) plugin input output params =
-  object
-    inherit base ~kind source
+  object (self)
+    inherit base ~kind source as super
 
     method self_sync = source#self_sync
 
-    val inst =
-      Array.init (AFrame.channels_of_kind kind) (fun _ ->
-          Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate)))
+    val mutable inst = None
 
-    initializer Array.iter Plugin.Instance.activate inst
+    method wake_up a =
+      super#wake_up a;
+      let i =
+        Array.init (AFrame.channels_of_kind self#kind) (fun _ ->
+            Plugin.instantiate plugin
+              (float_of_int (Lazy.force Frame.audio_rate)))
+      in
+      Array.iter Plugin.Instance.activate i;
+      inst <- Some i
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -94,6 +100,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
       let chans = Array.length b in
       let position = AFrame.position buf in
       let len = position - offset in
+      let inst = Option.get inst in
       for c = 0 to chans - 1 do
         Plugin.Instance.connect_port_float inst.(c) input
           (Audio.Mono.sub b.(c) offset len);
@@ -352,9 +359,10 @@ let register_plugin plugin =
             ~kind:(Lang.audio_n 0) (Utils.get_some source) plugin inputs params
           :> Source.source )
       else if mono then
-        new lilv_mono
-          ~kind:Lang.any (Utils.get_some source) plugin inputs.(0) outputs.(0)
-          params
+        ( new lilv_mono
+            ~kind:Lang.any (Utils.get_some source) plugin inputs.(0) outputs.(0)
+            params
+          :> Source.source )
       else
         ( new lilv
             ~kind:Lang.any (Utils.get_some source) plugin inputs outputs params

@@ -26,9 +26,10 @@ let pi = acos (-1.)
 
 class flanger ~kind (source : source) delay freq feedback phase =
   let past_len = Frame.audio_of_seconds delay in
-  let channels = AFrame.channels_of_kind kind in
-  object
-    inherit operator ~name:"flanger" kind [source]
+  object (self)
+    inherit operator ~name:"flanger" kind [source] as super
+
+    method private channels = AFrame.channels_of_kind self#kind
 
     method stype = source#stype
 
@@ -42,7 +43,11 @@ class flanger ~kind (source : source) delay freq feedback phase =
 
     method abort_track = source#abort_track
 
-    val past = Audio.make channels past_len 0.
+    val mutable past = Audio.make 0 0 0.
+
+    method wake_up a =
+      super#wake_up a;
+      past <- Audio.make self#channels past_len 0.
 
     val mutable past_pos = 0
 
@@ -106,4 +111,4 @@ let () =
           Lang.to_source (f "") )
       in
       let feedback () = Audio.lin_of_dB (feedback ()) in
-      new flanger ~kind src duration freq feedback phase)
+      (new flanger ~kind src duration freq feedback phase :> Source.source))
