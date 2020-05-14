@@ -36,7 +36,7 @@ class unqueued ~kind r =
       match request with
         | Some request -> request
         | None ->
-            let r = r self#kind in
+            let r = r self#ctype in
             request <- Some r;
             r
 
@@ -91,7 +91,7 @@ let () =
       let l, d, t, c = extract_queued_params p in
       let uri = Lang.to_string val_uri in
       if (not fallible) && Request.is_static uri then (
-        let r kind = Request.create ~kind ~persistent:true uri in
+        let r ctype = Request.create ~ctype ~persistent:true uri in
         (new unqueued ~kind r :> source) )
       else (new queued uri ~kind l d t c :> source))
 

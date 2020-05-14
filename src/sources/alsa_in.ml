@@ -40,14 +40,7 @@ class mic ~kind ~clock_safe device =
 
     val mutable initialized = false
 
-    method private channels = AFrame.channels_of_kind self#kind
-
-    method kind =
-      if not initialized then (
-        initialized <- true;
-        let blank () = Audio.make self#channels buffer_length 0. in
-        ioring#init blank );
-      active_source#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       active_source#set_clock;
@@ -57,7 +50,10 @@ class mic ~kind ~clock_safe device =
 
     method self_sync = true
 
-    method private wake_up l = active_source#wake_up l
+    method private wake_up l =
+      active_source#wake_up l;
+      let blank () = Audio.make self#channels buffer_length 0. in
+      ioring#init blank
 
     method private sleep =
       active_source#sleep;

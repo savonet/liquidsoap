@@ -30,7 +30,7 @@ class filter ~kind (source : source) rc wet mode =
   object (self)
     inherit operator ~name:"filter.rc" kind [source] as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 

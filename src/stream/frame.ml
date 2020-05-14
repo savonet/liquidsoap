@@ -320,15 +320,16 @@ let create_content content_type =
           MIDI.create (midi_of_master !!size));
   }
 
-let create_type content_type =
+let create ctype =
+  { pts = 0L; breaks = []; metadata = []; content = create_content ctype }
+
+let dummy =
   {
     pts = 0L;
     breaks = [];
     metadata = [];
-    content = create_content content_type;
+    content = { audio = [||]; video = [||]; midi = [||] };
   }
-
-let create kind = create_type (type_of_kind kind)
 
 let content_type { content } =
   let { audio; video; midi } = content in

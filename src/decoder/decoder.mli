@@ -54,14 +54,14 @@ type file_decoder = {
 val file_decoders :
   (metadata:Frame.metadata ->
   file ->
-  Frame.content_kind ->
+  Frame.content_type ->
   (unit -> file_decoder) option)
   Plug.plug
 
 val image_file_decoders : (file -> Video.Image.t option) Plug.plug
 
 val stream_decoders :
-  (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
+  (stream -> Frame.content_type -> stream_decoder option) Plug.plug
 
 val conf_decoder : Dtools.Conf.ut
 val conf_mime_types : Dtools.Conf.ut
@@ -74,11 +74,11 @@ val test_file :
 val get_file_decoder :
   metadata:Frame.metadata ->
   file ->
-  Frame.content_kind ->
+  Frame.content_type ->
   (string * (unit -> file_decoder)) option
 
 val get_image_file_decoder : file -> Video.Image.t option
-val get_stream_decoder : file -> Frame.content_kind -> stream_decoder option
+val get_stream_decoder : file -> Frame.content_type -> stream_decoder option
 
 module Buffered (Generator : Generator.S) : sig
   (* This is the most recent API. [file_decoder]
@@ -87,7 +87,7 @@ module Buffered (Generator : Generator.S) : sig
   val make_file_decoder :
     filename:string ->
     close:(unit -> unit) ->
-    kind:Frame.content_kind ->
+    ctype:Frame.content_type ->
     remaining:(Frame.t -> int -> int) ->
     Generator.t decoder ->
     Generator.t ->
@@ -95,7 +95,7 @@ module Buffered (Generator : Generator.S) : sig
 
   val file_decoder :
     file ->
-    Frame.content_kind ->
+    Frame.content_type ->
     (input -> Generator.t decoder) ->
     Generator.t ->
     file_decoder

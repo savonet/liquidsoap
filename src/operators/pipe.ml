@@ -91,7 +91,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable samplesize = 16
 
@@ -175,7 +175,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     method private get_to_write =
       if source#is_ready then (
-        let tmp = Frame.create kind in
+        let tmp = Frame.create self#ctype in
         source#get tmp;
         self#slave_tick;
         let buf = AFrame.content tmp in

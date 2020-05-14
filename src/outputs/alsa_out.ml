@@ -42,14 +42,12 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
 
     val mutable initialized = false
 
-    method kind =
-      if not initialized then (
-        initialized <- true;
-        let blank () = Audio.make self#channels buffer_length 0. in
-        ioring#init blank );
-      super#kind
+    method wake_up a =
+      super#wake_up a;
+      let blank () = Audio.make self#channels buffer_length 0. in
+      ioring#init blank
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;

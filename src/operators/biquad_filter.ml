@@ -27,7 +27,7 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
   object (self)
     inherit operator ~name:"biquad_filter" kind [source]
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable effect = None
 

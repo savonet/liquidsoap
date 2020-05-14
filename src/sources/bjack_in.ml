@@ -36,28 +36,22 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
 
     inherit [Bytes.t] IoRing.input ~nb_blocks as ioring
 
-    val mutable intialized = false
-
-    method kind =
-      if not intialized then (
-        intialized <- true;
-        (* We need to know the number of channels to intialize the ioring. We
-           defer this until the kind is known. *)
-        let blank () =
-          Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
-        in
-        ioring#init blank );
-      active_source#kind
-
     method set_clock =
       active_source#set_clock;
       if clock_safe then
         Clock.unify self#clock
           (Clock.create_known (bjack_clock () :> Clock.clock))
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
-    method private wake_up l = active_source#wake_up l
+    method private wake_up l =
+      active_source#wake_up l;
+      (* We need to know the number of channels to intialize the ioring. We
+           defer this until the kind is known. *)
+      let blank () =
+        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+      in
+      ioring#init blank
 
     method private sleep =
       active_source#sleep;

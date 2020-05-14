@@ -49,7 +49,7 @@ type watcher = {
     stype:source_t ->
     is_output:bool ->
     id:string ->
-    content_kind:Frame.content_kind ->
+    ctype:Frame.content_type ->
     clock_id:string ->
     clock_sync_mode:clock_sync_mode ->
     unit;
@@ -75,7 +75,6 @@ module Kind : sig
   type t
 
   val to_string : t -> string
-
   val set_audio : t -> int -> t
   val set_video : t -> int -> t
   val set_midi : t -> int -> t
@@ -160,10 +159,8 @@ class virtual source :
        (** Choose your kind by adjusting to your children sources or whatever. *)
        method private set_kind : unit
 
-       (** What kind of content does this source produce. *)
-       method kind : Frame.content_kind
-
-       method content_type : Frame.content_type
+       (** What type of content does this source produce. *)
+       method ctype : Frame.content_type
 
        (** Retrieve the frame currently being filled. *)
        method memo : Frame.t

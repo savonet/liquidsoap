@@ -364,7 +364,7 @@ type watcher = {
     stype:source_t ->
     is_output:bool ->
     id:string ->
-    content_kind:Frame.content_kind ->
+    ctype:Frame.content_type ->
     clock_id:string ->
     clock_sync_mode:clock_sync_mode ->
     unit;
@@ -619,7 +619,7 @@ class virtual operator ?(name = "src") kind sources =
       in
       self#iter_watchers (fun w ->
           w.get_ready ~stype:self#stype ~is_output:self#is_output ~id:self#id
-            ~content_kind:self#kind ~clock_id ~clock_sync_mode)
+            ~ctype:self#ctype ~clock_id ~clock_sync_mode)
 
     (* Release the source, which will shutdown if possible.
      * The current implementation makes it dangerous to call #leave from
@@ -654,7 +654,7 @@ class virtual operator ?(name = "src") kind sources =
     (** Two methods called for initialization and shutdown of the source *)
     method private wake_up activation =
       self#log#info "Content kind is %s."
-        (Frame.string_of_content_kind self#kind);
+        (Frame.string_of_content_type self#ctype);
       let activation = (self :> operator) :: activation in
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
 
@@ -693,7 +693,7 @@ class virtual operator ?(name = "src") kind sources =
       match memo with
         | Some memo -> memo
         | None ->
-            let m = Frame.create self#kind in
+            let m = Frame.create self#ctype in
             memo <- Some m;
             m
 
@@ -795,7 +795,7 @@ class virtual operator ?(name = "src") kind sources =
     * in the metadatas of the request. *)
     method private create_request ?(metadata = []) =
       let metadata = ("source", self#id) :: metadata in
-      Request.create ~metadata ~kind:self#kind
+      Request.create ~metadata ~ctype:self#ctype
   end
 
 (** Entry-point sources, which need to actively perform some task. *)

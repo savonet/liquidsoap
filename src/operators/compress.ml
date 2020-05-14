@@ -30,7 +30,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
   object (self)
     inherit operator ~name:"compress" kind [source] as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable effect = None
 

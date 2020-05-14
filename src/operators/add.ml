@@ -33,7 +33,7 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
   =
-  object
+  object (self)
     inherit operator ~name:"add" kind (List.map snd sources)
 
     (* We want the sources at the beginning of the list to
@@ -73,9 +73,18 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
      * wanted, even if they end a track -- this is quite needed. There is an
      * exception when there is only one active source, then the end of tracks
      * are not hidden anymore, which is useful for transitions, for example. *)
-    val tmp = Frame.create kind
+    val mutable tmp = None
+
+    method private tmp =
+      match tmp with
+        | Some tmp -> tmp
+        | None ->
+            let f = Frame.create self#ctype in
+            tmp <- Some f;
+            f
 
     method private get_frame buf =
+      let tmp = self#tmp in
       (* Compute the list of ready sources, and their total weight *)
       let weight, sources =
         List.fold_left
