@@ -31,7 +31,7 @@ class window ~kind mode duration source =
         kind [source]
         ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 

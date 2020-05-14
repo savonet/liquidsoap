@@ -57,8 +57,6 @@ let parse_file filename =
   close_in input;
   data
 
-let empty = { Frame.audio = 0; video = 0; midi = 0 }
-
 let file_deco filename =
   let events = ref (parse_file filename) in
   let t = ref 0. in
@@ -86,9 +84,11 @@ let file_deco filename =
   in
   { Decoder.fill; fseek = (fun _ -> 0); close = ignore }
 
+let empty = { Frame.audio = 0; video = 0; midi = 0 }
+
 let () =
-  Decoder.file_decoders#register "META" (fun ~metadata:_ filename kind ->
-      if Frame.type_has_kind empty kind then (
+  Decoder.file_decoders#register "META" (fun ~metadata:_ filename ctype ->
+      if ctype = empty then (
         ignore (parse_file filename);
         Some (fun () -> file_deco filename) )
       else None)

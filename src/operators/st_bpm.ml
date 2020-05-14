@@ -45,8 +45,7 @@ class bpm ~kind (source : source) cb every =
       super#wake_up a;
       bpm <-
         Some
-          (Soundtouch.BPM.make
-             (AFrame.channels_of_kind self#kind)
+          (Soundtouch.BPM.make self#ctype.Frame.audio
              (Lazy.force Frame.audio_rate))
 
     val mutable n = 0

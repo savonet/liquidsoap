@@ -180,23 +180,23 @@ let wav_file_extensions =
 let () =
   Decoder.file_decoders#register "WAV"
     ~sdoc:"Decode as WAV any file with a correct header."
-    (fun ~metadata:_ filename kind ->
+    (fun ~metadata:_ filename ctype ->
       (* Don't get the file's type if no audio is allowed anyway. *)
       if
-        kind.Frame.audio = Frame.Fixed 0
+        ctype.Frame.audio = 0
         || not
              (Decoder.test_file ~mimes:wav_mime_types#get
                 ~extensions:wav_file_extensions#get ~log filename)
       then None
       else (
         let file_type = get_type filename in
-        if Frame.type_has_kind file_type kind then
-          Some (fun () -> create_file_decoder filename kind)
+        if file_type = ctype then
+          Some (fun () -> create_file_decoder filename ctype)
         else (
           log#important "WAV file %S has content type %s but %s was expected."
             filename
             (Frame.string_of_content_type file_type)
-            (Frame.string_of_content_kind kind);
+            (Frame.string_of_content_type ctype);
           None ) ))
 
 let aiff_mime_types =
@@ -213,23 +213,23 @@ let aiff_file_extensions =
 let () =
   Decoder.file_decoders#register "AIFF"
     ~sdoc:"Decode as AIFF any file with a correct header."
-    (fun ~metadata:_ filename kind ->
+    (fun ~metadata:_ filename ctype ->
       (* Don't get the file's type if no audio is allowed anyway. *)
       if
-        kind.Frame.audio = Frame.Fixed 0
+        ctype.Frame.audio = 0
         || not
              (Decoder.test_file ~mimes:aiff_mime_types#get
                 ~extensions:aiff_file_extensions#get ~log filename)
       then None
       else (
         let file_type = get_type filename in
-        if Frame.type_has_kind file_type kind then
-          Some (fun () -> create_file_decoder filename kind)
+        if file_type = ctype then
+          Some (fun () -> create_file_decoder filename ctype)
         else (
           log#important "AIFF file %S has content type %s but %s was expected."
             filename
             (Frame.string_of_content_type file_type)
-            (Frame.string_of_content_kind kind);
+            (Frame.string_of_content_type ctype);
           None ) ))
 
 let () =
@@ -247,7 +247,8 @@ module D_stream = Make (Generator_plus)
 
 let () =
   Decoder.stream_decoders#register "WAV"
-    ~sdoc:"Decode a WAV stream with an appropriate MIME type." (fun mime kind ->
+    ~sdoc:"Decode a WAV stream with an appropriate MIME type."
+    (fun mime ctype ->
       let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime wav_mime_types#get
@@ -269,15 +270,13 @@ let () =
 let () =
   Decoder.stream_decoders#register "AIFF"
     ~sdoc:"Decode a AIFF stream with an appropriate MIME type."
-    (fun mime kind ->
+    (fun mime ctype ->
       let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime aiff_mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Fixed 0 <: kind.Frame.video
-        && Frame.Fixed 0 <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Fixed 0
+        && ctype.Frame.audio <> 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -296,14 +295,12 @@ let mime_types_basic =
 let () =
   Decoder.stream_decoders#register "PCM/BASIC"
     ~sdoc:"Decode audio/basic as headerless stereo U8 PCM at 8kHz."
-    (fun mime kind ->
+    (fun mime ctype ->
       let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime mime_types_basic#get
         (* Check that it is okay to have zero video and midi,
          * and two audio channels. *)
-        && Frame.Fixed 0 <: kind.Frame.video
-        && Frame.Fixed 0 <: kind.Frame.midi
-        && Frame.Fixed 2 <: kind.Frame.audio
+        && 2 <= ctype.Frame.audio
       then Some (D_stream.create ~header:(`Wav, 8, 2, 8000., -1))
       else None)

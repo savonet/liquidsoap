@@ -28,17 +28,18 @@ class soundtouch ~kind (source : source) rate tempo pitch =
   object (self)
     inherit operator ~name:"soundtouch" kind [source] as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable st = None
 
+    val mutable databuf = Frame.dummy
+
     method wake_up a =
       super#wake_up a;
+      databuf <- Frame.create self#ctype;
       st <- Some (Soundtouch.make self#channels (Lazy.force Frame.audio_rate));
       self#log#important "Using soundtouch %s."
         (Soundtouch.get_version_string (Option.get st))
-
-    val databuf = Frame.create kind
 
     method private set_clock =
       let slave_clock = Clock.create_known (new Clock.clock self#id) in

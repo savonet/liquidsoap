@@ -75,15 +75,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     (* An audio frame for intermediate computations. It is used to buffer the
        end and beginnings of tracks. Its past metadata should mimick that of the
        main stream in order to avoid metadata duplication. *)
-    val mutable buf_frame = None
-
-    method buf_frame =
-      match buf_frame with
-        | Some buf_frame -> buf_frame
-        | None ->
-            let frame = Frame.create self#ctype in
-            buf_frame <- Some frame;
-            frame
+    val mutable buf_frame = Frame.dummy
 
     method private reset_analysis =
       gen_before <- Generator.create ();
@@ -120,7 +112,9 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             s#leave ~dynamic:true (self :> source);
             transition_source <- None
 
-    method private wake_up _ =
+    method private wake_up a =
+      super#wake_up a;
+      buf_frame <- Frame.create self#ctype;
       source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
       Lang.iter_sources
@@ -170,7 +164,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     method private slave_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output;
-      Frame.advance self#buf_frame;
+      Frame.advance buf_frame;
       needs_tick <- false;
       last_slave_tick <- (Clock.get self#clock)#get_tick
 
@@ -221,8 +215,8 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             else (
               self#log#info "Buffering end of track...";
               status <- `Before;
-              Frame.set_breaks self#buf_frame [Frame.position frame];
-              Frame.set_all_metadata self#buf_frame
+              Frame.set_breaks buf_frame [Frame.position frame];
+              Frame.set_all_metadata buf_frame
                 ( match Frame.get_past_metadata frame with
                   | Some x -> [(-1, x)]
                   | None -> [] );
@@ -278,7 +272,6 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
     method private buffering n =
-      let buf_frame = self#buf_frame in
       (* For the first call, the position is the old position in the master
        * frame. After that it'll always be 0. *)
       if not (Frame.is_partial buf_frame) then self#slave_tick;
@@ -320,7 +313,6 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     method private analyze_after =
       let before_len = Generator.length gen_before in
       let rec f () =
-        let buf_frame = self#buf_frame in
         let start = Frame.position buf_frame in
         let stop =
           source#get buf_frame;
