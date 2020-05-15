@@ -186,7 +186,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable started = false
 
@@ -498,7 +498,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         self#restart;
         "Done. Task will complete asynchronously.")
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method stype = Source.Fallible
 

@@ -171,46 +171,33 @@ let () =
   Decoder.file_decoders#register "MAD" ~plugin_aliases:["MP3"; "MP2"; "MP1"]
     ~sdoc:
       "Use libmad to decode any file if its MIME type or file extension is \
-       appropriate." (fun ~metadata:_ filename kind ->
+       appropriate." (fun ~metadata:_ filename ctype ->
       (* Before doing anything, check that we are allowed to produce
        * audio, and don't have to produce midi or video. Only then
        * check that the file seems relevant for decoding. *)
       if
-        kind.Frame.audio = Frame.Fixed 0
-        || (not
-              ( Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.video
-              && Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.midi ))
+        ctype.Frame.audio = 0 || ctype.Frame.video <> 0 || ctype.Frame.midi <> 0
         || not
              (Decoder.test_file ~mimes:mime_types#get
                 ~extensions:file_extensions#get ~log filename)
       then None
-      else if
-        kind.Frame.audio = Frame.At_least 0
-        || kind.Frame.audio = Frame.At_least 1
-        ||
-        (* libmad always respects the first two kinds *)
-        if Frame.type_has_kind (get_type filename) kind then true
-        else (
-          log#important "File %S has an incompatible number of channels."
-            filename;
-          false )
-      then Some (fun () -> create_file_decoder filename kind)
-      else None)
+      else if get_type filename <> ctype then (
+        log#important "File %S has an incompatible number of channels." filename;
+        None )
+      else Some (fun () -> create_file_decoder filename ctype))
 
 module D_stream = Make (Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register "MAD" ~plugin_aliases:["MP3"; "MP2"; "MP1"]
     ~sdoc:"Use libmad to decode any stream with an appropriate MIME type."
-    (fun mime kind ->
-      let ( <: ) a b = Frame.mul_sub_mul a b in
+    (fun mime ctype ->
       if
         List.mem mime mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Fixed 0 <: kind.Frame.video
-        && Frame.Fixed 0 <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Fixed 0
+        && ctype.Frame.video = 0
+        && ctype.Frame.midi = 0 && ctype.Frame.audio > 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.

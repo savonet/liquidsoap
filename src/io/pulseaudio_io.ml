@@ -70,7 +70,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     val mutable stream = None
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method open_device =
       let ss =
@@ -143,7 +143,7 @@ class input ~kind p =
 
     inherit base ~client ~device
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;

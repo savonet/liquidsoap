@@ -323,7 +323,7 @@ let file_extensions =
 let () =
   Decoder.file_decoders#register "OGG"
     ~sdoc:"Decode a file as OGG provided that libogg accepts it."
-    (fun ~metadata:_ filename kind ->
+    (fun ~metadata:_ filename ctype ->
       (* First, test file extension and mime *)
       if
         Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
@@ -331,19 +331,16 @@ let () =
       then (
         let content_type = get_type filename in
         let content_type =
-          (* If the kind doesn't allow audio, or video,
-           * pretend that we don't have any: it will be dropped
-           * anyway.
-           * A more fine-grained approach might or might not
-           * be possible, based on the number of channels. *)
-          if kind.Frame.video = Frame.Fixed 0 then
-            { content_type with Frame.video = 0 }
-          else if kind.Frame.audio = Frame.Fixed 0 then
+          (* If the kind doesn't allow audio, or video, pretend that we don't
+             have any: it will be dropped anyway. A more fine-grained approach
+             might or might not be possible, based on the number of channels. *)
+          if ctype.Frame.video = 0 then { content_type with Frame.video = 0 }
+          else if ctype.Frame.audio = 0 then
             { content_type with Frame.audio = 0 }
           else content_type
         in
-        if Frame.type_has_kind content_type kind then
-          Some (fun () -> create_file_decoder filename content_type kind)
+        if content_type = ctype then
+          Some (fun () -> create_file_decoder filename content_type ctype)
         else None )
       else None)
 
@@ -354,11 +351,10 @@ module D_stream = Make (Generator.From_audio_video_plus)
 let () =
   Decoder.stream_decoders#register "OGG"
     ~sdoc:"Decode as OGG any stream with an appropriate MIME type."
-    (fun mime kind ->
+    (fun mime ctype ->
       if List.mem mime mime_types#get then (
         let mode =
-          let content_type = Frame.type_of_kind kind in
-          match (content_type.Frame.video, content_type.Frame.audio) with
+          match (ctype.Frame.video, ctype.Frame.audio) with
             | 0, _ -> `Audio
             | _, 0 -> `Video
             | _, _ -> `Both

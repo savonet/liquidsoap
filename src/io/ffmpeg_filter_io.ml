@@ -171,7 +171,7 @@ class audio_input ~bufferize kind =
         {
           format = `Dbl;
           rate = out_samplerate;
-          channels = Frame.((type_of_kind self#kind).audio);
+          channels = self#ctype.Frame.audio;
         }
       in
       let mk_converter () =
