@@ -307,9 +307,9 @@ module Kind = struct
     (** Compute a multiplicity from a multiplicity with variables. *)
     let rec get default m =
       match unvar m with
-        | Succ m -> Frame.succ_mul (get default m)
-        | Zero -> Frame.Fixed 0
-        | Var _ -> Frame.At_least 0
+        | Succ m -> 1 + get default m
+        | Zero -> 0
+        | Var _ -> assert false
   end
 
   type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
@@ -335,9 +335,9 @@ module Kind = struct
 
   (** Compute a multiplicity from a multiplicity with variables. The [close]
       parameter indicates whether we should fix the value of variables. *)
-  let get ?(close = true) (kind : t) : Frame.content_kind =
+  let get (kind : t) : Frame.content_type =
     let get default m =
-      if close then Multiplicity.close default m;
+      Multiplicity.close default m;
       Multiplicity.get default m
     in
     {
@@ -364,7 +364,7 @@ type watcher = {
     stype:source_t ->
     is_output:bool ->
     id:string ->
-    content_kind:Frame.content_kind ->
+    ctype:Frame.content_type ->
     clock_id:string ->
     clock_sync_mode:clock_sync_mode ->
     unit;
@@ -475,33 +475,32 @@ class virtual operator ?(name = "src") kind sources =
        sources by default. *)
     method kind_var = kind_var
 
-    val mutable kind = None
+    val mutable ctype = None
 
     (* Check that functions are accessed in a sane order. *)
     val mutable accessed_kind = false
 
-    method kind =
-      match kind with
-        | Some kind -> kind
+    (* Content type. *)
+    method ctype =
+      match ctype with
+        | Some ctype -> ctype
         | None ->
             accessed_kind <- true;
             let kind_string = Kind.to_string self#kind_var in
             (* The computation cannot be performed too early beacuse it can use
                default values for channels, which can be overridden by the
                script... *)
-            let k = Kind.get self#kind_var in
+            let ct = Kind.get self#kind_var in
             self#log#info "Kind %s becomes %s" kind_string
-              (Frame.string_of_content_kind k);
-            kind <- Some k;
-            k
+              (Frame.string_of_content_type ct);
+            ctype <- Some ct;
+            ct
 
     method private set_kind =
       assert (not accessed_kind);
       List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources
 
     initializer self#set_kind
-
-    method content_type = Frame.type_of_kind self#kind
 
     (** Startup/shutdown.
     *
@@ -620,7 +619,7 @@ class virtual operator ?(name = "src") kind sources =
       in
       self#iter_watchers (fun w ->
           w.get_ready ~stype:self#stype ~is_output:self#is_output ~id:self#id
-            ~content_kind:self#kind ~clock_id ~clock_sync_mode)
+            ~ctype:self#ctype ~clock_id ~clock_sync_mode)
 
     (* Release the source, which will shutdown if possible.
      * The current implementation makes it dangerous to call #leave from
@@ -655,7 +654,7 @@ class virtual operator ?(name = "src") kind sources =
     (** Two methods called for initialization and shutdown of the source *)
     method private wake_up activation =
       self#log#info "Content kind is %s."
-        (Frame.string_of_content_kind self#kind);
+        (Frame.string_of_content_type self#ctype);
       let activation = (self :> operator) :: activation in
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
 
@@ -694,7 +693,7 @@ class virtual operator ?(name = "src") kind sources =
       match memo with
         | Some memo -> memo
         | None ->
-            let m = Frame.create self#kind in
+            let m = Frame.create self#ctype in
             memo <- Some m;
             m
 
@@ -796,7 +795,7 @@ class virtual operator ?(name = "src") kind sources =
     * in the metadatas of the request. *)
     method private create_request ?(metadata = []) =
       let metadata = ("source", self#id) :: metadata in
-      Request.create ~metadata ~kind:self#kind
+      Request.create ~metadata ~ctype:self#ctype
   end
 
 (** Entry-point sources, which need to actively perform some task. *)

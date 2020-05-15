@@ -63,7 +63,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
           ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source
           start as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -126,7 +126,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
         ~content_kind:kind ~source_kind:"portaudio" ~name:"portaudio_in"
           ~on_start ~on_stop ~fallible ~autostart:start as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;

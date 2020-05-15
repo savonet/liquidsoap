@@ -95,30 +95,18 @@ let create_stream process input =
   Gc.finalise close ret;
   ret
 
-let test_kind f filename =
-  (* 0 = file rejected,
-   * n<0 = file accepted, unknown number of audio channels,
-   * n>0 = file accepted, known number of channels. *)
-  let ret = f filename in
-  if ret = 0 then None
-  else
-    Some
-      {
-        Frame.video = Frame.Fixed 0;
-        midi = Frame.Fixed 0;
-        audio = (if ret < 0 then Frame.At_least 1 else Frame.mul_of_int ret);
-      }
-
+(* The test function should return: 0 = file rejected, n<0 = file accepted,
+   unknown number of audio channels, n>0 = file accepted, known number of
+   channels. *)
 let register_stdin name sdoc mimes test process =
-  Decoder.file_decoders#register name ~sdoc (fun ~metadata:_ filename kind ->
-      match test_kind test filename with
-        | None -> None
-        | Some out_kind ->
-            (* Check that kind is more permissive than out_kind and
-             * declare that our decoding function will respect out_kind. *)
-            if Frame.kind_sub_kind out_kind kind then
-              Some (fun () -> create process out_kind filename)
-            else None);
+  Decoder.file_decoders#register name ~sdoc (fun ~metadata:_ filename ctype ->
+      let t = test filename in
+      try
+        if t = 0 then raise Exit;
+        if ctype.Frame.video <> 0 || ctype.Frame.midi <> 0 then raise Exit;
+        if t > 0 && ctype.Frame.audio <> t then raise Exit;
+        Some (fun () -> create process ctype filename)
+      with Exit -> None);
   let duration filename =
     let process = Printf.sprintf "cat %s | %s" (Utils.quote filename) process in
     duration process
@@ -129,15 +117,13 @@ let register_stdin name sdoc mimes test process =
       ~sdoc:
         (Printf.sprintf
            "Use %s to decode any stream with an appropriate MIME type." name)
-      (fun mime kind ->
-        let ( <: ) a b = Frame.mul_sub_mul a b in
+      (fun mime ctype ->
         if
           List.mem mime mimes
-          (* Check that it is okay to have zero video and midi,
-           * and at least one audio channel. *)
-          && Frame.Fixed 0 <: kind.Frame.video
-          && Frame.Fixed 0 <: kind.Frame.midi
-          && kind.Frame.audio <> Frame.Fixed 0
+          (* Check that it is okay to have zero video and midi, and at least one
+             audio channel. *)
+          && ctype.Frame.video = 0
+          && ctype.Frame.midi = 0 && ctype.Frame.audio <> 0
         then
           (* In fact we can't be sure that we'll satisfy the content
            * kind, because the stream might be mono or stereo.
@@ -194,14 +180,13 @@ let external_input_oblivious process filename prebuf =
   { Decoder.fill; fseek = decoder.Decoder.seek; close }
 
 let register_oblivious name sdoc test process prebuf =
-  Decoder.file_decoders#register name ~sdoc (fun ~metadata:_ filename kind ->
-      match test_kind test filename with
-        | None -> None
-        | Some out_kind ->
-            (* Check that kind is more permissive than out_kind and
-             * declare that our decoding function will respect out_kind. *)
-            if Frame.kind_sub_kind out_kind kind then
-              Some (fun () -> external_input_oblivious process filename prebuf)
-            else None);
+  Decoder.file_decoders#register name ~sdoc (fun ~metadata:_ filename ctype ->
+      let t = test filename in
+      try
+        if t = 0 then raise Exit;
+        if ctype.Frame.video <> 0 || ctype.Frame.midi <> 0 then raise Exit;
+        if t > 0 && ctype.Frame.audio <> t then raise Exit;
+        Some (fun () -> external_input_oblivious process filename prebuf)
+      with Exit -> None);
   let duration filename = duration (process filename) in
   Request.dresolvers#register name duration

@@ -40,7 +40,7 @@ type t
   * resolving includes testing that the file can actually be decoded
   * into a stream of the expected kind. *)
 val create :
-  kind:Frame.content_kind ->
+  ctype:Frame.content_type ->
   ?metadata:(string * string) list ->
   ?persistent:bool ->
   ?indicators:indicator list ->
@@ -54,8 +54,8 @@ val create_raw :
   string ->
   t
 
-(** Return the kind of a media request, None for raw requests. *)
-val kind : t -> Frame.content_kind option
+(** Return the type of a media request, None for raw requests. *)
+val ctype : t -> Frame.content_type option
 
 (** Return the request's initial uri. *)
 val initial_uri : t -> string

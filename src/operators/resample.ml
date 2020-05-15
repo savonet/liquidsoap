@@ -38,11 +38,6 @@ class resample ~kind ~active ~ratio (source : source) =
 
     method abort_track = source#abort_track
 
-    method private wake_up x =
-      (* Call super just for the debugging log messages *)
-      super#wake_up x;
-      source#get_ready [(self :> source)]
-
     method private sleep = source#leave (self :> source)
 
     (* Clock setting: we need total control on our source's flow. *)
@@ -82,7 +77,13 @@ class resample ~kind ~active ~ratio (source : source) =
     * if this data has been required by an output operator in the
     * slave clock. *)
 
-    val frame = Frame.create kind
+    val mutable frame = Frame.dummy
+
+    method private wake_up x =
+      (* Call super just for the debugging log messages *)
+      super#wake_up x;
+      frame <- Frame.create self#ctype;
+      source#get_ready [(self :> source)]
 
     val mutable master_time = 0
 

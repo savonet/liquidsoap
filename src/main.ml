@@ -143,8 +143,7 @@ let lang_doc name =
 let process_request s =
   load_libs ();
   secondary_task := true;
-  let kind = Lang.any in
-  let req = Request.create ~kind s in
+  let req = Request.create_raw s in
   match Request.resolve req 20. with
     | Request.Failed ->
         Printf.printf "Request resolution failed.\n";

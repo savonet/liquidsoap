@@ -75,9 +75,8 @@ let () =
       in
       let indicators = List.map Lang.to_string (Lang.to_list indicators) in
       let indicators = List.map (fun x -> Request.indicator x) indicators in
-      (* TODO: this kind is quite unsafe... *)
-      Lang.request
-        (Request.create ~kind:Lang.any ~persistent ~indicators initial))
+      (* TODO: we should ensure that the ctype is right by using Request.create instead... *)
+      Lang.request (Request.create_raw ~persistent ~indicators initial))
 
 let () =
   add_builtin "request.resolve" ~cat:Liq

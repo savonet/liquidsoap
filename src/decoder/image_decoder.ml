@@ -143,10 +143,12 @@ let create_decoder metadata img =
 
 let () =
   Decoder.file_decoders#register "Image" ~sdoc:"Decoder for static images."
-    (fun ~metadata filename kind ->
-      let ctype = { Frame.video = 1; audio = 0; midi = 0 } in
+    (fun ~metadata filename ctype ->
       try
-        if not (Frame.type_has_kind ctype kind) then raise Exit;
+        if
+          ctype.Frame.audio <> 0 || ctype.Frame.video <> 1
+          || ctype.Frame.midi <> 0
+        then raise Exit;
         let img =
           match Decoder.get_image_file_decoder filename with
             | Some img -> img

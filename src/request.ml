@@ -128,7 +128,7 @@ type status = Idle | Resolving | Ready | Playing | Destroyed
 type t = {
   id : int;
   initial_uri : string;
-  kind : Frame.content_kind option;
+  ctype : Frame.content_type option;
   (* No kind for raw requests *)
   persistent : bool;
   (* The status of a request gives partial information of what's being done
@@ -148,7 +148,7 @@ type t = {
   mutable decoder : (unit -> Decoder.file_decoder) option;
 }
 
-let kind x = x.kind
+let ctype x = x.ctype
 let initial_uri x = x.initial_uri
 
 let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
@@ -313,7 +313,7 @@ let file_is_readable name =
   with Unix.Unix_error _ -> false
 
 let local_check t =
-  let check_decodable kind =
+  let check_decodable ctype =
     try
       while t.decoder = None && file_exists (peek_indicator t).string do
         let indicator = peek_indicator t in
@@ -324,7 +324,7 @@ let local_check t =
           add_log t "Read permission denied!";
           pop_indicator t )
         else (
-          match Decoder.get_file_decoder ~metadata name kind with
+          match Decoder.get_file_decoder ~metadata name ctype with
             | Some (decoder_name, f) ->
                 t.decoder <- Some f;
                 set_root_metadata t "decoder" decoder_name;
@@ -353,7 +353,7 @@ let local_check t =
       done
     with No_indicator -> ()
   in
-  match t.kind with None -> () | Some k -> check_decodable k
+  match t.ctype with None -> () | Some t -> check_decodable t
 
 let push_indicators t l =
   if l <> [] then (
@@ -372,7 +372,7 @@ let push_indicators t l =
 let is_ready t =
   t.indicators <> []
   && Sys.file_exists (peek_indicator t).string
-  && (t.decoder <> None || t.kind = None)
+  && (t.decoder <> None || t.ctype = None)
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
@@ -408,9 +408,9 @@ let update_metadata t =
     | None -> ()
   end;
   begin
-    match t.kind with
+    match t.ctype with
     | None -> ()
-    | Some k -> replace "kind" (Frame.string_of_content_kind k)
+    | Some ct -> replace "kind" (Frame.string_of_content_type ct)
   end;
   replace "status"
     ( match t.status with
@@ -462,7 +462,7 @@ let leak_warning =
   Dtools.Conf.int ~p:(conf#plug "leak_warning") ~d:100
     "Number of requests at which a leak warning should be issued."
 
-let create ~kind ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
+let create ~ctype ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
@@ -479,7 +479,7 @@ let create ~kind ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
     {
       id = rid;
       initial_uri = u;
-      kind;
+      ctype;
       persistent;
       on_air = None;
       resolving = None;
@@ -495,8 +495,8 @@ let create ~kind ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
   push_indicators t (if indicators = [] then [indicator u] else indicators);
   t
 
-let create_raw = create ~kind:None
-let create ~kind = create ~kind:(Some kind)
+let create_raw = create ~ctype:None
+let create ~ctype = create ~ctype:(Some ctype)
 
 let on_air t =
   t.on_air <- Some (Unix.time ());

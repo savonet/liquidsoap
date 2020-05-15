@@ -32,7 +32,7 @@ class vumeter ~kind source =
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 

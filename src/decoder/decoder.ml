@@ -142,7 +142,7 @@ let get_decoders conf decoders =
 let file_decoders :
     (metadata:Frame.metadata ->
     file ->
-    Frame.content_kind ->
+    Frame.content_type ->
     (unit -> file_decoder) option)
     Plug.plug =
   Plug.create
@@ -155,7 +155,7 @@ let image_file_decoders : (file -> Video.Image.t option) Plug.plug =
     ~doc:"Image file decoding methods." ~insensitive:true "image file decoding"
 
 let stream_decoders :
-    (stream -> Frame.content_kind -> stream_decoder option) Plug.plug =
+    (stream -> Frame.content_type -> stream_decoder option) Plug.plug =
   Plug.create
     ~register_hook:(fun (name, _) -> f conf_stream_decoders name)
     ~doc:"Stream decoding methods." ~insensitive:true "stream decoding"
@@ -228,13 +228,13 @@ let dummy =
 exception Exit of (string * (unit -> file_decoder))
 
 (** Get a valid decoder creator for [filename]. *)
-let get_file_decoder ~metadata filename kind =
+let get_file_decoder ~metadata filename ctype =
   try
     List.iter
       (fun (name, decoder) ->
         log#info "Trying method %S for %S..." name filename;
         match
-          try decoder ~metadata filename kind
+          try decoder ~metadata filename ctype
           with e ->
             log#info "Decoder %S failed on %S: %s!" name filename
               (Printexc.to_string e);
@@ -246,7 +246,7 @@ let get_file_decoder ~metadata filename kind =
           | None -> ())
       (get_decoders conf_file_decoders file_decoders);
     log#important "Unable to decode %S as %s!" filename
-      (Frame.string_of_content_kind kind);
+      (Frame.string_of_content_type ctype);
     None
   with Exit (name, f) ->
     Some
@@ -285,12 +285,12 @@ let get_image_file_decoder filename =
 
 exception Exit_decoder of stream_decoder
 
-let get_stream_decoder mime kind =
+let get_stream_decoder mime ctype =
   try
     List.iter
       (fun (name, decoder) ->
         log#info "Trying method %S for %S..." name mime;
-        match try decoder mime kind with _ -> None with
+        match try decoder mime ctype with _ -> None with
           | Some f ->
               log#important "Method %S accepted %S." name mime;
               raise (Exit_decoder f)
@@ -303,7 +303,7 @@ let get_stream_decoder mime kind =
 (** {1 Helpers for defining decoders} *)
 
 module Buffered (Generator : Generator.S) = struct
-  let make_file_decoder ~filename ~close ~kind ~remaining decoder gen =
+  let make_file_decoder ~filename ~close ~ctype ~remaining decoder gen =
     let prebuf =
       (* Amount of audio to decode in advance, in ticks.
        * It has to be more than a frame, but taking just one frame
@@ -351,10 +351,10 @@ module Buffered (Generator : Generator.S) = struct
       let c_type = Frame.type_of_content content in
       (* Check that we got only one chunk of data,
        * and that it has a correct type. *)
-      if not (Frame.type_has_kind c_type kind) then (
+      if c_type <> ctype then (
         log#severe "Decoder of %S produced %s, but %s was expected!" filename
           (Frame.string_of_content_type c_type)
-          (Frame.string_of_content_kind kind);
+          (Frame.string_of_content_type ctype);
 
         (* Pretend nothing happened, and end decoding. *)
         Frame.set_breaks frame old_breaks;
@@ -380,7 +380,7 @@ module Buffered (Generator : Generator.S) = struct
     in
     { fill; fseek; close }
 
-  let file_decoder filename kind create_decoder gen =
+  let file_decoder filename ctype create_decoder gen =
     let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
     let file_size = (Unix.stat filename).Unix.st_size in
     let proc_bytes = ref 0 in
@@ -414,5 +414,5 @@ module Buffered (Generator : Generator.S) = struct
         int_of_float remaining_ticks )
     in
     let close () = Unix.close fd in
-    make_file_decoder ~filename ~close ~kind ~remaining decoder gen
+    make_file_decoder ~filename ~close ~ctype ~remaining decoder gen
 end

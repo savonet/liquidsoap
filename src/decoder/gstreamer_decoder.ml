@@ -194,7 +194,7 @@ let file_extensions =
     "File extensions used for guessing format handled by GStreamer"
     ~d:["wma"; "wmv"; "avi"; "mp4"; "3gp"; "webm"; "mkv"]
 
-let create_file_decoder filename content_type kind =
+let create_file_decoder filename content_type ctype =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
       | 0, _ -> `Audio
@@ -217,7 +217,8 @@ let create_file_decoder filename content_type kind =
     in
     duration - pos + G.length generator + Frame.position frame - offset
   in
-  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator
+  Buffered.make_file_decoder ~filename ~close ~ctype ~remaining decoder
+    generator
 
 (** Get the type of a file's content. For now it is a bit imprecise:
   * we always pretend that audio content has the expected number of
@@ -259,30 +260,27 @@ let get_type ~channels filename =
 
 let () =
   Decoder.file_decoders#register "GSTREAMER"
-    ~sdoc:"Decode a file using GStreamer." (fun ~metadata:_ filename kind ->
+    ~sdoc:"Decode a file using GStreamer." (fun ~metadata:_ filename ctype ->
       if
         not
           (Decoder.test_file ~mimes:mime_types#get
              ~extensions:file_extensions#get ~log filename)
       then None
       else (
-        let channels =
-          (* Get the default expected number of audio channels *)
-          AFrame.channels_of_kind kind
-        in
+        (* Get the default expected number of audio channels *)
+        let channels = ctype.Frame.audio in
         let content_type = get_type ~channels filename in
         let content_type =
           (* If the kind doesn't allow audio, or video, pretend that we don't
-           * have any: it will be dropped anyway. A more fine-grained approach
-           * might or might not be possible, based on the number of channels. *)
-          if kind.Frame.video = Frame.Fixed 0 then
-            { content_type with Frame.video = 0 }
-          else if kind.Frame.audio = Frame.Fixed 0 then
+             have any: it will be dropped anyway. A more fine-grained approach
+             might or might not be possible, based on the number of channels. *)
+          if ctype.Frame.video = 0 then { content_type with Frame.video = 0 }
+          else if ctype.Frame.audio = 0 then
             { content_type with Frame.audio = 0 }
           else content_type
         in
-        if Frame.type_has_kind content_type kind then
-          Some (fun () -> create_file_decoder filename content_type kind)
+        if content_type = ctype then
+          Some (fun () -> create_file_decoder filename content_type ctype)
         else None ))
 
 (** Stream decoder *)

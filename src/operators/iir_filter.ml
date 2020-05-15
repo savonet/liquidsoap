@@ -32,7 +32,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   object (self)
     inherit operator ~name:"iir_filter" kind [source]
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     (* Params *)
     val raw_alpha1 = freq1 /. rate

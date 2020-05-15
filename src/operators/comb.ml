@@ -41,7 +41,7 @@ class comb ~kind (source : source) delay feedback =
 
     method abort_track = source#abort_track
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable past = Audio.make 0 0 0.
 

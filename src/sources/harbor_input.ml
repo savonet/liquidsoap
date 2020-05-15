@@ -203,7 +203,7 @@ module Make (Harbor : T) = struct
           with Not_found -> mime
         in
         Generator.set_mode generator `Undefined;
-        match Decoder.get_stream_decoder mime self#kind with
+        match Decoder.get_stream_decoder mime self#ctype with
           | Some d ->
               create_decoder <- d;
               mime_type <- Some mime

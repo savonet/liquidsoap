@@ -224,14 +224,15 @@ let create_decoder fname =
     close,
     get_remaining )
 
-let create_file_decoder filename kind =
+let create_file_decoder filename ctype =
   let generator = G.create `Audio in
   let decoder, close, remaining = create_decoder filename in
   let remaining frame offset =
     let remaining = remaining () in
     remaining + G.length generator + Frame.position frame - offset
   in
-  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator
+  Buffered.make_file_decoder ~filename ~close ~ctype ~remaining decoder
+    generator
 
 (* Get the type of an input container. *)
 let get_type ~url container =
@@ -282,23 +283,16 @@ let () =
   Decoder.file_decoders#register "FFMPEG"
     ~sdoc:
       "Use libffmpeg to decode any file if its MIME type or file extension is \
-       appropriate." (fun ~metadata:_ filename kind ->
+       appropriate." (fun ~metadata:_ filename ctype ->
       if
         not
           (Decoder.test_file ~mimes:mime_types#get
              ~extensions:file_extensions#get ~log filename)
       then None
-      else if
-        kind.Frame.audio = Frame.At_least 0
-        || kind.Frame.audio = Frame.At_least 1
-        ||
-        if Frame.type_has_kind (get_file_type filename) kind then true
-        else (
-          log#important "File %S has an incompatible number of channels."
-            filename;
-          false )
-      then Some (fun () -> create_file_decoder filename kind)
-      else None)
+      else if get_file_type filename <> ctype then (
+        log#important "File %S has an incompatible number of channels." filename;
+        None )
+      else Some (fun () -> create_file_decoder filename ctype))
 
 let log = Log.make ["metadata"; "ffmpeg"]
 
@@ -351,15 +345,13 @@ module D_stream = Make (Generator.From_audio_video_plus)
 let () =
   Decoder.stream_decoders#register "FFMPEG"
     ~sdoc:"Use ffmpeg/libav to decode any stream with an appropriate MIME type."
-    (fun mime kind ->
-      let ( <: ) a b = Frame.mul_sub_mul a b in
+    (fun mime ctype ->
       if
         List.mem mime mime_types#get
-        (* Check that it is okay to have zero video and midi,
-         * and at least one audio channel. *)
-        && Frame.Fixed 0 <: kind.Frame.video
-        && Frame.Fixed 0 <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Fixed 0
+        (* Check that it is okay to have zero video and midi, and at least one
+           audio channel. *)
+        && ctype.Frame.video = 0
+        && ctype.Frame.midi = 0 && ctype.Frame.audio <> 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.

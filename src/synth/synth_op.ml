@@ -98,7 +98,7 @@ let register obj name descr =
         else None
       in
       let src = Lang.to_source (f "") in
-      new synth ~kind (obj adsr) src chan volume);
+      (new synth ~kind (obj adsr) src chan volume :> Source.source));
   let kind = Lang.any_with ~audio:1 ~midi:16 () in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator ("synth.all." ^ name)
@@ -143,10 +143,11 @@ let register obj name descr =
             (1., new synth ~kind (obj adsr) src c 1.))
       in
       let synths = Array.to_list synths in
-      new Add.add
-        ~kind ~renorm:false synths
-        (fun _ -> ())
-        (fun _ buf tmp -> Video.Image.add buf tmp))
+      ( new Add.add
+          ~kind ~renorm:false synths
+          (fun _ -> ())
+          (fun _ buf tmp -> Video.Image.add buf tmp)
+        :> Source.source ))
 
 let () =
   register

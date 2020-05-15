@@ -83,8 +83,8 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
 class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
-  object
-    inherit operator ~name:("frei0r." ^ name) kind [source; source2]
+  object (self)
+    inherit operator ~name:("frei0r." ^ name) kind [source; source2] as super
 
     method stype =
       match (source#stype, source2#stype) with
@@ -106,7 +106,11 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
 
     val mutable t = 0.
 
-    val tmp = Frame.create kind
+    val mutable tmp = Frame.dummy
+
+    method private wake_up a =
+      super#wake_up a;
+      tmp <- Frame.create self#ctype
 
     method private get_frame buf =
       (* Prepare buffer for the second source

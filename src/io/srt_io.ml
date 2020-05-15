@@ -254,7 +254,7 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
 
     method private create_decoder socket =
       let create_decoder =
-        match Decoder.get_stream_decoder format kind with
+        match Decoder.get_stream_decoder format self#ctype with
           | Some d -> d
           | None -> raise Harbor.Unknown_codec
       in
@@ -442,13 +442,16 @@ let () =
         ignore (Lang.apply (List.assoc "on_disconnect" p) [])
       in
       let format = Lang.to_string (List.assoc "content_type" p) in
-      ( match Decoder.get_stream_decoder format kind with
+      (* TODO: why did we do that if we don't use the stream_decoder? *)
+      (*
+      ( match Decoder.get_stream_decoder format ctype with
         | None ->
             raise
               (Lang_errors.Invalid_value
                  ( List.assoc "content_type" p,
                    "Couldn't find a decoder for this format" ))
         | _ -> () );
+      *)
       ( new input
           ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
           ~on_disconnect ~messageapi ~max ~log_overfull ~dump format

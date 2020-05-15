@@ -192,7 +192,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
       if not (Frame.is_partial buf) then (
         source#abort_track;
         self#slave_tick;
-        source#get (Frame.create kind) );
+        source#get (Frame.create self#ctype) );
 
       (* Quantify in the previous #get
        * - the amount of [extra] data past the cue point, to be dropped;

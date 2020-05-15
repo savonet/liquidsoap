@@ -171,41 +171,33 @@ let () =
   Decoder.file_decoders#register "AAC"
     ~sdoc:
       "Use libfaad to decode AAC if MIME type or file extension is appropriate."
-    (fun ~metadata:_ filename kind ->
-      (* Before doing anything, check that we are allowed to produce
-       * audio, and don't have to produce midi or video. Only then
-       * check that the file seems relevant for AAC decoding. *)
+    (fun ~metadata:_ filename ctype ->
+      (* Before doing anything, check that we are allowed to produce audio, and
+         don't have to produce midi or video. Only then check that the file
+         seems relevant for AAC decoding. *)
       let content = get_type filename in
       if
-        content.Frame.audio = 0
+        content.Frame.audio = 0 || content.Frame.video <> 0
+        || content.Frame.midi <> 0
         || (not
-              ( Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.video
-              && Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.midi ))
-        || not
-             (Decoder.test_file ~mimes:aac_mime_types#get
-                ~extensions:aac_file_extensions#get ~log filename)
+              (Decoder.test_file ~mimes:aac_mime_types#get
+                 ~extensions:aac_file_extensions#get ~log filename))
+        || ctype <> content
       then None
-      else if
-        kind.Frame.audio = Frame.At_least 0
-        || kind.Frame.audio = Frame.At_least 1
-        || Frame.type_has_kind content kind
-      then Some (fun () -> create_file_decoder filename kind)
-      else None)
+      else Some (fun () -> create_file_decoder filename ctype))
 
 module D_stream = Make (Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register "AAC"
     ~sdoc:"Use libfaad to decode any stream with an appropriate MIME type."
-    (fun mime kind ->
-      let ( <: ) a b = Frame.mul_sub_mul a b in
+    (fun mime ctype ->
       if
         List.mem mime aac_mime_types#get
         (* Check that it is okay to have zero video and midi,
          * and at least one audio channel. *)
-        && Frame.Fixed 0 <: kind.Frame.video
-        && Frame.Fixed 0 <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Fixed 0
+        && ctype.Frame.video = 0
+        && ctype.Frame.midi = 0 && ctype.Frame.audio <> 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -299,27 +291,20 @@ let () =
   Decoder.file_decoders#register "MP4"
     ~sdoc:
       "Use libfaad to decode MP4 if MIME type or file extension is appropriate."
-    (fun ~metadata:_ filename kind ->
-      (* Before doing anything, check that we are allowed to produce
-       * audio, and don't have to produce midi or video. Only then
-       * check that the file seems relevant for MP4 decoding. *)
+    (fun ~metadata:_ filename ctype ->
+      (* Before doing anything, check that we are allowed to produce audio, and
+         don't have to produce midi or video. Only then check that the file
+         seems relevant for MP4 decoding. *)
       let content = get_type filename in
       if
-        content.Frame.audio = 0
-        || kind.Frame.audio = Frame.Fixed 0
+        content.Frame.audio = 0 || content.Frame.video <> 0
+        || content.Frame.midi <> 0
         || (not
-              ( Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.video
-              && Frame.mul_sub_mul (Frame.Fixed 0) kind.Frame.midi ))
-        || not
-             (Decoder.test_file ~mimes:mp4_mime_types#get
-                ~extensions:mp4_file_extensions#get ~log filename)
+              (Decoder.test_file ~mimes:mp4_mime_types#get
+                 ~extensions:mp4_file_extensions#get ~log filename))
+        || content <> ctype
       then None
-      else if
-        kind.Frame.audio = Frame.At_least 0
-        || kind.Frame.audio = Frame.At_least 1
-        || Frame.type_has_kind content kind
-      then Some (fun () -> create_file_decoder filename kind)
-      else None)
+      else Some (fun () -> create_file_decoder filename ctype))
 
 let log = Log.make ["metadata"; "mp4"]
 

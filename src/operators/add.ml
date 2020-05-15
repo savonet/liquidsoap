@@ -33,8 +33,8 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
   =
-  object
-    inherit operator ~name:"add" kind (List.map snd sources)
+  object (self)
+    inherit operator ~name:"add" kind (List.map snd sources) as super
 
     (* We want the sources at the beginning of the list to
      * have their metadatas copied to the output stream, so direction
@@ -73,9 +73,14 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
      * wanted, even if they end a track -- this is quite needed. There is an
      * exception when there is only one active source, then the end of tracks
      * are not hidden anymore, which is useful for transitions, for example. *)
-    val tmp = Frame.create kind
+    val mutable tmp = Frame.dummy
+
+    method wake_up a =
+      super#wake_up a;
+      tmp <- Frame.create self#ctype
 
     method private get_frame buf =
+      let tmp = tmp in
       (* Compute the list of ready sources, and their total weight *)
       let weight, sources =
         List.fold_left
@@ -184,11 +189,12 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      new add
-        ~kind ~renorm
-        (List.map2 (fun w s -> (w, s)) weights sources)
-        (fun _ -> ())
-        (fun _ buf tmp -> Video.Image.add tmp buf))
+      ( new add
+          ~kind ~renorm
+          (List.map2 (fun w s -> (w, s)) weights sources)
+          (fun _ -> ())
+          (fun _ buf tmp -> Video.Image.add tmp buf)
+        :> Source.source ))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -263,7 +269,8 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      new add
-        ~kind ~renorm
-        (List.map2 (fun w s -> (w, s)) weights sources)
-        video_init video_loop)
+      ( new add
+          ~kind ~renorm
+          (List.map2 (fun w s -> (w, s)) weights sources)
+          video_init video_loop
+        :> Source.source ))

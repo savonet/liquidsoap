@@ -35,7 +35,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   object (self)
     inherit source ~name:"cross" kind as super
 
-    method private channels = float (AFrame.channels_of_kind self#kind)
+    method private channels = float self#ctype.Frame.audio
 
     method stype = Source.Fallible
 
@@ -72,11 +72,10 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
 
     val mutable after_metadata = None
 
-    (* An audio frame for intermediate computations.
-     * It is used to buffer the end and beginnings of tracks.
-     * Its past metadata should mimick that of the main stream in order
-     * to avoid metadata duplication. *)
-    val buf_frame = Frame.create kind
+    (* An audio frame for intermediate computations. It is used to buffer the
+       end and beginnings of tracks. Its past metadata should mimick that of the
+       main stream in order to avoid metadata duplication. *)
+    val mutable buf_frame = Frame.dummy
 
     method private reset_analysis =
       gen_before <- Generator.create ();
@@ -113,7 +112,9 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             s#leave ~dynamic:true (self :> source);
             transition_source <- None
 
-    method private wake_up _ =
+    method private wake_up a =
+      super#wake_up a;
+      buf_frame <- Frame.create self#ctype;
       source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
       Lang.iter_sources

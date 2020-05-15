@@ -213,6 +213,8 @@ let buffer_args () =
     `Pair ("pix_fmt", `String "yuv420p");
   ]
 
+(* TODO: restore me! *)
+(*
 let () =
   let audio_t = Lang.(source_t (kind_type_of_kind_format audio_any)) in
   let video_t = Lang.(source_t (kind_type_of_kind_format video_only)) in
@@ -317,6 +319,7 @@ let () =
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output);
       (s :> Source.source))
+*)
 
 let () =
   let univ_t = Lang.univ_t () in

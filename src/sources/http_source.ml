@@ -477,7 +477,7 @@ module Make (Config : Config_t) = struct
             else (
               Generator.set_mode generator `Undefined;
               let dec =
-                match Decoder.get_stream_decoder content_type self#kind with
+                match Decoder.get_stream_decoder content_type self#ctype with
                   | Some d -> d
                   | None -> failwith "Unknown format!"
               in

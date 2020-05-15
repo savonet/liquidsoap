@@ -34,7 +34,7 @@ class visu ~kind source =
   object (self)
     inherit operator ~name:"video.volume" kind [source] as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 
@@ -84,7 +84,7 @@ class visu ~kind source =
        * not even be a content layer of the right type to look at. *)
       if len > 0 then (
         (* Add a video channel to the frame contents. *)
-        let vFrame = Frame.(create_type { audio = 0; video = 1; midi = 0 }) in
+        let vFrame = Frame.(create { audio = 0; video = 1; midi = 0 }) in
         Frame.(
           frame.content <- { frame.content with video = vFrame.content.video });
 

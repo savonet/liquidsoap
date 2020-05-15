@@ -29,7 +29,7 @@ class flanger ~kind (source : source) delay freq feedback phase =
   object (self)
     inherit operator ~name:"flanger" kind [source] as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 

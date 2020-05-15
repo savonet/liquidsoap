@@ -176,7 +176,7 @@ module AdaptativeBuffer = struct
     object (self)
       inherit Source.source kind ~name:"buffer.adaptative_producer"
 
-      method private channels = AFrame.channels_of_kind self#kind
+      method private channels = self#ctype.Frame.audio
 
       method stype = Source.Fallible
 

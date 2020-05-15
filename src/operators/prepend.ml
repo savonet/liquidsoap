@@ -34,7 +34,7 @@ class prepend ~kind ~merge source f =
             (* We're at the beginning of a track.
              * Let's peek one sample of data and read its metadata. *)
             (* TODO how does that play with caching ? *)
-            let peek = Frame.create kind in
+            let peek = Frame.create self#ctype in
             let peekpos = AFrame.size () - 1 in
             AFrame.add_break peek peekpos;
             source#get peek;

@@ -44,7 +44,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
         ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.oss" val_source start as super
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -103,7 +103,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable fd = None
 

@@ -37,9 +37,9 @@ class virtual base dev mode =
   object (self)
     method virtual log : Log.t
 
-    method virtual kind : Frame.content_kind
+    method virtual ctype : Frame.content_type
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     val mutable alsa_rate = -1
 
@@ -182,7 +182,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
 
     inherit base dev [Pcm.Playback]
 
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;

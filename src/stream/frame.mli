@@ -79,10 +79,10 @@ type t = {
 (** All units are in ticks (master clock). *)
 
 (** Create a frame of a given content type. *)
-val create_type : content_type -> t
+val create : content_type -> t
 
-(** Create a frame of given content kind. *)
-val create : content_kind -> t
+(** A dummy frame. *)
+val dummy : t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type

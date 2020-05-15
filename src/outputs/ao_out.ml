@@ -41,18 +41,14 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
-    val mutable initialized = false
+    method wake_up a =
+      super#wake_up a;
+      let blank () =
+        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+      in
+      ioring#init blank
 
-    method kind =
-      if not initialized then (
-        initialized <- true;
-        let blank () =
-          Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
-        in
-        ioring#init blank );
-      super#kind
-
-    method private channels = AFrame.channels_of_kind self#kind
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
