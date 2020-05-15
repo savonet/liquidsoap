@@ -165,14 +165,12 @@ let parse_mime m =
   with _ -> None
 
 let () =
-  let ( <: ) a b = Frame.mul_sub_mul a b in
   Decoder.stream_decoders#register "raw audio" ~sdoc:"Decode audio/x-raw."
-    (fun mime kind ->
+    (fun mime ctype ->
       let mime = parse_mime mime in
       match mime with
         | Some format
-          when Frame.Fixed 0 <: kind.Frame.video
-               && Frame.Fixed 0 <: kind.Frame.midi
-               && Frame.mul_of_int format.channels <: kind.Frame.audio ->
+          when ctype.Frame.video = 0 && ctype.Frame.midi = 0
+               && ctype.Frame.audio = format.channels ->
             Some (D_stream.create ~format)
         | _ -> None)

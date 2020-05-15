@@ -249,14 +249,12 @@ let () =
   Decoder.stream_decoders#register "WAV"
     ~sdoc:"Decode a WAV stream with an appropriate MIME type."
     (fun mime ctype ->
-      let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime wav_mime_types#get
-        (* Check that it is okay to have zero video and midi,
-         * and at least one audio channel. *)
-        && Frame.Fixed 0 <: kind.Frame.video
-        && Frame.Fixed 0 <: kind.Frame.midi
-        && kind.Frame.audio <> Frame.Fixed 0
+        (* Check that it is okay to have zero video and midi, and at least one
+           audio channel. *)
+        && ctype.Frame.video = 0
+        && ctype.Frame.video = 0 && ctype.Frame.audio <> 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -271,12 +269,12 @@ let () =
   Decoder.stream_decoders#register "AIFF"
     ~sdoc:"Decode a AIFF stream with an appropriate MIME type."
     (fun mime ctype ->
-      let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime aiff_mime_types#get
-        (* Check that it is okay to have zero video and midi,
-         * and at least one audio channel. *)
-        && ctype.Frame.audio <> 0
+        (* Check that it is okay to have zero video and midi, and at least one
+           audio channel. *)
+        && ctype.Frame.video = 0
+        && ctype.Frame.video = 0 && ctype.Frame.audio <> 0
       then
         (* In fact we can't be sure that we'll satisfy the content
          * kind, because the stream might be mono or stereo.
@@ -296,11 +294,11 @@ let () =
   Decoder.stream_decoders#register "PCM/BASIC"
     ~sdoc:"Decode audio/basic as headerless stereo U8 PCM at 8kHz."
     (fun mime ctype ->
-      let ( <: ) a b = Frame.mul_sub_mul a b in
       if
         List.mem mime mime_types_basic#get
-        (* Check that it is okay to have zero video and midi,
-         * and two audio channels. *)
-        && 2 <= ctype.Frame.audio
+        (* Check that it is okay to have zero video and midi, and two audio
+           channels. *)
+        && ctype.Frame.video = 0
+        && ctype.Frame.video = 0 && ctype.Frame.audio = 2
       then Some (D_stream.create ~header:(`Wav, 8, 2, 8000., -1))
       else None)

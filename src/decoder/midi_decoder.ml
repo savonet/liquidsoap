@@ -58,16 +58,11 @@ let decoder file =
   { Decoder.fill; fseek = (fun _ -> 0); close }
 
 let () =
-  Decoder.file_decoders#register "MIDI" (fun ~metadata:_ filename kind ->
-      (* Any number of MIDI channel is acceptable as the decoder
-       * silently drops events on higher channels if needed.
-       * The number of MIDI channels is chosen at the beginning
-       * independently of the actual file contents.
-       * The kind should allow empty audio and video. *)
-      let content =
-        { (Frame.type_of_kind kind) with Frame.audio = 0; video = 0 }
-      in
-      let channels = content.Frame.midi in
-      if channels > 0 && Frame.type_has_kind content kind then
-        Some (fun () -> decoder filename)
+  Decoder.file_decoders#register "MIDI" (fun ~metadata:_ filename ctype ->
+      (* Any number of MIDI channel is acceptable as the decoder silently drops
+         events on higher channels if needed. The number of MIDI channels is
+         chosen at the beginning independently of the actual file contents.  The
+         kind should allow empty audio and video. *)
+      if ctype.Frame.audio = 0 && ctype.Frame.video = 0 && ctype.Frame.midi > 0
+      then Some (fun () -> decoder filename)
       else None)
