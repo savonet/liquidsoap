@@ -26,7 +26,6 @@ def on_done () =
   recorded_digest = list.assoc(default="", file, digests)
   pass_digest =
     if recorded_digest != "" then
-print(file.digest(out))
       recorded_digest == file.digest(out)
     else
       true

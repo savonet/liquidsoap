@@ -70,10 +70,10 @@ $(ENCODED_FILES): ENCODER = $(subst @,%,$(word 1,$(subst ., ,$*)))
 test_files: files/audio files/video $(ENCODED_FILES)
 
 files/audio:
-	mkdir -p files/audio
+	@mkdir -p files/audio
 
 files/video:
-	mkdir -p files/video
+	@mkdir -p files/video
 
 files/audio/%: $(top_srcdir)/src/liquidsoap
 	$(call generate_audio,$(ENCODER),$@)
