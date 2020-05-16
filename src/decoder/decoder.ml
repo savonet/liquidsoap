@@ -311,6 +311,12 @@ let get_file_decoder ~metadata ~kind filename =
               | Some decoded_type ->
                   if can_decode_kind decoded_type kind then
                     raise (Found (name, decoded_type, specs))
+                  else
+                    log#info
+                      "Cannot decode file %S with ecoder %s. Detected content: \
+                       %s"
+                      filename name
+                      (Frame.string_of_content_type decoded_type)
               | None -> ()
           with
             | Found v -> raise (Found v)
