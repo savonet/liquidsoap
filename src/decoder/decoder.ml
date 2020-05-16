@@ -320,7 +320,11 @@ let get_file_decoder ~metadata ~kind filename =
               | None -> ()
           with
             | Found v -> raise (Found v)
-            | _ -> ())
+            | exn ->
+                let bt = Printexc.get_backtrace () in
+                log#info "Error while checking file's content: %s"
+                  (Printexc.to_string exn);
+                log#info "%s" bt)
         decoders;
       log#important "Available decoders cannot decode %S as %s" filename
         (Frame.string_of_content_kind kind);
