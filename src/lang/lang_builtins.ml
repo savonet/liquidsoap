@@ -387,15 +387,18 @@ let () =
       Lang.apply ~t (if c then fy else fn) [])
 
 let () =
-  add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application." []
-    Lang.unit_t (fun _ ->
+  add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
+    [("code", Lang.int_t, Some (Lang.int 0), Some "Exit code. Default: `0`")]
+    Lang.unit_t
+    (fun p ->
       Configure.restart := false;
-      Tutils.shutdown ();
+      let code = Lang.to_int (List.assoc "code" p) in
+      Tutils.shutdown code;
       Lang.unit);
   add_builtin "restart" ~cat:Sys ~descr:"Restart the application." []
     Lang.unit_t (fun _ ->
       Configure.restart := true;
-      Tutils.shutdown ();
+      Tutils.shutdown 0;
       Lang.unit);
   add_builtin "exit" ~cat:Sys
     ~descr:

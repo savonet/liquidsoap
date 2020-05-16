@@ -364,13 +364,17 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
-let run = ref true
+let run = ref `Run
 
-let main () = wait no_problem lock (fun () -> not (!run && !uncaught = None))
+let main () =
+  wait no_problem lock (fun () -> not (!run = `Run && !uncaught = None))
 
-let shutdown () =
-  run := false;
-  Condition.signal no_problem
+let shutdown code =
+  if !run = `Run then (
+    run := `Exit code;
+    Condition.signal no_problem )
+
+let exit_code () = match !run with `Exit code -> code | _ -> 0
 
 (** Thread-safe lazy cell. *)
 let lazy_cell f =

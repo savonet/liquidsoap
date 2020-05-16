@@ -310,7 +310,7 @@ class clock ?(sync = `Auto) id =
          * In any case, we can't just raise an exception here, otherwise
          * the streaming thread (method private run) will die and won't
          * be able to leave all sources. *)
-        if not allow_streaming_errors#get then Tutils.shutdown () );
+        if not allow_streaming_errors#get then Tutils.shutdown 1 );
       round <- round + 1;
       List.iter (fun s -> s#after_output) active
 
@@ -399,7 +399,7 @@ class clock ?(sync = `Auto) id =
               (leaving, errors))
             ()
         in
-        if !started <> `Yes && errors <> [] then Tutils.shutdown ();
+        if !started <> `Yes && errors <> [] then Tutils.shutdown 1;
         if leaving <> [] then (
           log#info "Stopping %d sources..." (List.length leaving);
           List.iter (fun (s : active_source) -> leave s) leaving );
