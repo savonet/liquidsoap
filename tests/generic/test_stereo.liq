@@ -4,6 +4,8 @@
 set("log.level",4)
 set("frame.audio.samplerate",48000)
 
+set("decoder.priorities.ffmpeg",-1)
+
 file = argv(default="",1)
 out = "files/test.wav"
 
