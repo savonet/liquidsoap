@@ -14,8 +14,7 @@ ARG TRAVIS_BUILD_NUMBER
 
 USER root
 
-# This can be removed when all CI images have been refreshed.
-RUN apt-get update && apt-get -y install ffmpeg
+RUN apt-get update && apt-get -y install ffmpeg gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-plugins-bad
 
 USER opam
 
