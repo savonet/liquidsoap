@@ -7,7 +7,6 @@ TESTS = $(basename $(LIQ))
 
 top_srcdir = ..
 
-# TODO: fix test_stream_video
 test: test_files test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder $(TESTS)
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 	@echo
