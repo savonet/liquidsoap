@@ -44,3 +44,28 @@ module Samplerate : sig
       passed at [create]. *)
   val resample : t -> float -> Frame.audio_t array -> Frame.audio_t array
 end
+
+module Channel_layout : sig
+  exception Unsupported
+  exception Invalid_data
+
+  type layout = [ `Mono | `Stereo | `Five_point_one ]
+
+  type converter =
+    layout -> layout -> Frame.audio_t array -> Frame.audio_t array
+
+  type t
+
+  val channels_of_layout : layout -> int
+  val layout_of_channels : int -> layout
+  val channel_layout_conf : Dtools.Conf.ut
+  val converters : converter Plug.plug
+
+  (** [create src dst] creates a converter. *)
+  val create : layout -> layout -> t
+
+  (** [convert converter data]: converts input data to the destination layout.
+      Raises [Invalid_data] if input layout does not match the layout passed
+      as [create]. *)
+  val convert : t -> Frame.audio_t array -> Frame.audio_t array
+end

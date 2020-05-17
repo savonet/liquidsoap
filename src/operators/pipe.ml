@@ -44,21 +44,21 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let log_error = ref (fun _ -> ()) in
-  let sample_rate = Frame.audio_of_seconds 1. in
-  let audio_src_rate = float sample_rate in
+  let samplerate = Frame.audio_of_seconds 1. in
   let channels = AFrame.channels_of_kind kind in
   let abg_max_len = Frame.audio_of_seconds max in
   let replay_delay = Frame.audio_of_seconds replay_delay in
   let samplesize = ref 16 in
   let converter =
-    ref
-      (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:!samplesize
-         ~audio_src_rate)
+    ref (Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize:!samplesize)
   in
+  let samplerate = ref samplerate in
+  let resampler = Decoder_utils.samplerate_converter () in
   let len = match data_len with x when x < 0 -> None | l -> Some l in
   let header =
     Bytes.unsafe_of_string
-      (Wav_aiff.wav_header ~channels ~sample_rate ?len ~sample_size:16 ())
+      (Wav_aiff.wav_header ~channels ~sample_rate:!samplerate ?len
+         ~sample_size:16 ())
   in
   let on_start push =
     Process_handler.really_write header push;
@@ -79,15 +79,16 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
           if Wav_aiff.channels wav <> channels then
             failwith "Invalid channels from pipe process!";
           samplesize := Wav_aiff.sample_size wav;
+          samplerate := Wav_aiff.sample_rate wav;
           converter :=
-            Rutils.create_from_iff ~format:`Wav ~channels
-              ~samplesize:!samplesize
-              ~audio_src_rate:(float (Wav_aiff.sample_rate wav)))
+            Decoder_utils.from_iff ~format:`Wav ~channels
+              ~samplesize:!samplesize)
         ();
       `Reschedule Tutils.Non_blocking )
     else (
       let len = pull bytes 0 Utils.pagesize in
       let data = !converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
+      let data = resampler ~samplerate:!samplerate data in
       let len = Audio.length data in
       let buffered = Generator.length abg in
       Generator.put_audio abg data 0 len;

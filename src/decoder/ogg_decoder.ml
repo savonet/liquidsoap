@@ -77,214 +77,148 @@ let video_convert scale =
       converter (Image.Generic.of_YUV420 sframe) frame;
       yuv )
 
-(** Stupid nearest neighbour resampling.
-  * For meaningful results, one should first partially apply the freq params,
-  * and re-use the resulting functions on consecutive chunks of a single
-  * input stream. *)
-let resample ~in_freq ~out_freq =
-  (* We have something like this:
-   *
-   * i i i i i i i i i i i i i i i i i i i ...
-   * o     o       o     o       o     o   ...
-   *
-   * (1) We ensure that out_len/out_freq = in_len/in_freq asymptotically.
-   *     For doing so, we must keep track of the full input length,
-   *     modulo in_freq.
-   * (2) We do the simplest possible thing to choose which i becomes
-   *     which o: nearest neighbour in the currently available buffer.
-   *     This is not as good as nearest neighbour in the real stream.
-   *
-   * Turns out the same code codes for when out_freq>in_freq too. *)
-  (* TODO: fractional sample rate! *)
-  let in_pos = ref 0 in
-  let in_freq = int_of_float in_freq in
-  fun input off len ->
-    let new_in_pos = !in_pos + len in
-    let already_out_len = !in_pos * out_freq / in_freq in
-    let needed_out_len = new_in_pos * out_freq / in_freq in
-    let out_len = needed_out_len - already_out_len in
-    in_pos := new_in_pos mod in_freq;
-    Array.init out_len (fun i -> input.(off + (i * in_freq / out_freq)))
-
-let video_resample () =
-  let in_out = ref None in
-  let resampler = ref None in
-  fun ~in_freq ~out_freq buf off len ->
-    if !in_out = Some (in_freq, out_freq) then
-      (Utils.get_some !resampler) buf off len
-    else (
-      in_out := Some (in_freq, out_freq);
-      resampler := Some (resample ~in_freq ~out_freq);
-      (Utils.get_some !resampler) buf off len )
-
 let demuxer_log x = log#debug "%s" x
 
-module Make (Generator : Generator.S_Asio) = struct
-  (* Note: the following code is still
-   * written as if there was a case where 
-   * we decode only the first logical track.
-   * In fact, both file and stream decoding 
-   * do decode all tracks. However, this may 
-   * change in the future so the possibility
-   * is left. *)
+let create_decoder ?(merge_tracks = false) source input =
+  let decoder =
+    let callbacks =
+      {
+        Ogg_demuxer.read = input.Decoder.read;
+        seek = input.Decoder.lseek;
+        tell = input.Decoder.tell;
+      }
+    in
+    Ogg_demuxer.init ~log:demuxer_log callbacks
+  in
+  let video_scale = Video_converter.scaler () ~proportional:true in
+  let started = ref false in
+  let tracks = Ogg_demuxer.get_standard_tracks decoder in
+  let first_meta = ref true in
+  let init ~reset buffer =
+    if reset then (
+      Ogg_demuxer.reset decoder;
+      Ogg_demuxer.update_standard_tracks decoder tracks;
 
-  let create_decoder ?(merge_tracks = false) source mode input =
-    let decoder =
-      let callbacks =
-        {
-          Ogg_demuxer.read = input.Decoder.read;
-          seek = input.Decoder.lseek;
-          tell = input.Decoder.tell;
-        }
+      (* We enforce that all contents end together, otherwise there will
+       * be a lag between different content types in the next track. *)
+      if not merge_tracks then
+        Decoder.G.add_break ~sync:true buffer.Decoder.generator );
+    let add_meta f t =
+      (* Initial metadata in files is handled separately. *)
+      if source = `Stream || (merge_tracks && not !first_meta) then (
+        let _, (v, m) = f decoder t in
+        let metas = Hashtbl.create 10 in
+        List.iter
+          (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
+          m;
+        Hashtbl.add metas "vendor" v;
+        Decoder.G.add_metadata buffer.Decoder.generator metas );
+      first_meta := false
+    in
+    let drop_track d t =
+      match t with None -> () | Some t -> Ogg_demuxer.drop_track d t
+    in
+    (* Make sure the stream has what we need *)
+    (* TODO this should be done based on the kind, not the mode,
+     *      which should be (re)set accordingly *)
+    match
+      ( tracks.Ogg_demuxer.audio_track,
+        tracks.Ogg_demuxer.video_track,
+        Decoder.G.mode buffer.Decoder.generator )
+    with
+      | Some audio, Some video, `Both ->
+          add_meta Ogg_demuxer.audio_info audio;
+          add_meta Ogg_demuxer.video_info video
+      | Some audio, video, `Audio ->
+          drop_track decoder video;
+          add_meta Ogg_demuxer.audio_info audio
+      | audio, Some video, `Video ->
+          drop_track decoder audio;
+          add_meta Ogg_demuxer.video_info video
+      | _ -> failwith "Ogg stream does not contain required data"
+  in
+  let decode buffer =
+    let decode_audio, decode_video =
+      match Decoder.G.mode buffer.Decoder.generator with
+        | `Both -> (true, true)
+        | `Audio -> (true, false)
+        | `Video -> (false, true)
+        | _ -> assert false
+    in
+    try
+      if not !started then (
+        init ~reset:false buffer;
+        started := true );
+      if Ogg_demuxer.eos decoder then
+        if merge_tracks || source = `Stream then init ~reset:true buffer
+        else raise Ogg_demuxer.End_of_stream;
+      let audio_feed track buf =
+        let info, _ = Ogg_demuxer.audio_info decoder track in
+        buffer.Decoder.put_audio ~samplerate:info.Ogg_demuxer.sample_rate buf
       in
-      Ogg_demuxer.init ~log:demuxer_log callbacks
-    in
-    let audio_resample = Rutils.create_audio () in
-    let video_resample = video_resample () in
-    let video_scale = Video_converter.scaler () ~proportional:true in
-    let decode_audio = mode = `Both || mode = `Audio in
-    let decode_video = mode = `Both || mode = `Video in
-    let started = ref false in
-    let tracks = Ogg_demuxer.get_standard_tracks decoder in
-    let first_meta = ref true in
-    let init ~reset buffer =
-      if reset then (
-        Ogg_demuxer.reset decoder;
-        Ogg_demuxer.update_standard_tracks decoder tracks;
-
-        (* We enforce that all contents end together, otherwise there will
-         * be a lag between different content types in the next track. *)
-        if not merge_tracks then Generator.add_break ~sync:true buffer );
-      Generator.set_mode buffer mode;
-      let add_meta f t =
-        (* Initial metadata in files is handled separately. *)
-        if source = `Stream || (merge_tracks && not !first_meta) then (
-          let _, (v, m) = f decoder t in
-          let metas = Hashtbl.create 10 in
-          List.iter
-            (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
-            m;
-          Hashtbl.add metas "vendor" v;
-          Generator.add_metadata buffer metas );
-        first_meta := false
+      let video_feed track buf =
+        let info, _ = Ogg_demuxer.video_info decoder track in
+        let rgb = video_convert video_scale buf in
+        let fps =
+          {
+            Decoder.num = info.Ogg_demuxer.fps_numerator;
+            den = info.Ogg_demuxer.fps_denominator;
+          }
+        in
+        buffer.Decoder.put_video ~fps [| Video.single rgb |]
       in
-      let drop_track d t =
-        match t with None -> () | Some t -> Ogg_demuxer.drop_track d t
+      let decode_audio, decode_video =
+        if decode_audio && decode_video then
+          (* Only decode the one which is late, so that we don't have memory
+             problems. *)
+          if
+            Decoder.G.audio_length buffer.Decoder.generator
+            < Decoder.G.video_length buffer.Decoder.generator
+          then (true, false)
+          else (false, true)
+        else (decode_audio, decode_video)
       in
-      (* Make sure the stream has what we need *)
-      (* TODO this should be done based on the kind, not the mode,
-       *      which should be (re)set accordingly *)
-      match
-        (tracks.Ogg_demuxer.audio_track, tracks.Ogg_demuxer.video_track, mode)
-      with
-        | Some audio, Some video, `Both ->
-            add_meta Ogg_demuxer.audio_info audio;
-            add_meta Ogg_demuxer.video_info video
-        | Some audio, video, `Audio ->
-            drop_track decoder video;
-            add_meta Ogg_demuxer.audio_info audio
-        | audio, Some video, `Video ->
-            drop_track decoder audio;
-            add_meta Ogg_demuxer.video_info video
-        | _ -> failwith "Ogg stream does not contain required data"
-    in
-    let decode buffer =
-      try
-        if not !started then (
-          init ~reset:false buffer;
-          started := true );
-        if Ogg_demuxer.eos decoder then
-          if merge_tracks || source = `Stream then init ~reset:true buffer
-          else raise Ogg_demuxer.End_of_stream;
-        let audio_feed track buf =
-          let info, _ = Ogg_demuxer.audio_info decoder track in
-          let content =
-            audio_resample
-              ~audio_src_rate:(float info.Ogg_demuxer.sample_rate)
-              buf
-          in
-          Generator.put_audio buffer content 0 (Audio.length content)
-        in
-        let video_feed track buf =
-          let info, _ = Ogg_demuxer.video_info decoder track in
-          let out_freq = Lazy.force Frame.video_rate in
-          let rgb = video_convert video_scale buf in
-          let in_freq =
-            float info.Ogg_demuxer.fps_numerator
-            /. float info.Ogg_demuxer.fps_denominator
-          in
-          let stream =
-            video_resample ~in_freq ~out_freq (Video.single rgb) 0 1
-          in
-          Generator.put_video buffer [| stream |] 0 (Video.length stream)
-        in
-        let decode_audio, decode_video =
-          if decode_audio && decode_video then
-            (* Only decode the one which is late, so that we don't have memory
-               problems. *)
-            if Generator.audio_length buffer < Generator.video_length buffer
-            then (true, false)
-            else (false, true)
-          else (decode_audio, decode_video)
-        in
-        if decode_audio then (
-          let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
-          Ogg_demuxer.decode_audio decoder track (fun buf ->
-              audio_feed track (Audio.of_array buf)) );
-        if decode_video then (
-          let track = Utils.get_some tracks.Ogg_demuxer.video_track in
-          Ogg_demuxer.decode_video decoder track (video_feed track) )
-      with
-        (* We catch [Ogg_demuxer.End_of_stream] only if asked to
-         * to merge logical tracks or with a stream source. 
-         * In this case, we try to reset the decoder to see if 
-         * there could be another sequentialized logical stream
-         * starting. Actual reset is handled in the
-         * decoding function since we need the actual
-         * buffer to add metadata etc. *)
-        | Ogg_demuxer.End_of_stream when merge_tracks || source = `Stream ->
-            ()
-            (* We catch Ogg.Out_of_sync only in
-             * stream mode. Ogg/theora streams, for instance,
-             * in icecast contain the header (packet 0) and
-             * then current stream, with packet 1543 for instance..
-             * Note: we only catch during audio/video decoding
-             * which implies that the stream has already been
-             * parsed as ogg. Indeed, Ogg.Out_of_sync when
-             * parsing ogg means that the stream is not ogg... *)
-        | Ogg.Out_of_sync when source = `Stream -> ()
-    in
-    let seek offset =
-      try
-        let time_offset = Frame.seconds_of_master offset in
-        let new_time = Ogg_demuxer.seek ~relative:true decoder time_offset in
-        Frame.master_of_seconds new_time
-      with Ogg_demuxer.End_of_stream | Ogg.End_of_stream ->
-        log#info "End of track reached while seeking!";
-        0
-    in
-    { Decoder.decode; seek }
-end
+      if decode_audio then (
+        let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
+        Ogg_demuxer.decode_audio decoder track (fun buf ->
+            audio_feed track (Audio.of_array buf)) );
+      if decode_video then (
+        let track = Utils.get_some tracks.Ogg_demuxer.video_track in
+        Ogg_demuxer.decode_video decoder track (video_feed track) )
+    with
+      (* We catch [Ogg_demuxer.End_of_stream] only if asked to
+       * to merge logical tracks or with a stream source. 
+       * In this case, we try to reset the decoder to see if 
+       * there could be another sequentialized logical stream
+       * starting. Actual reset is handled in the
+       * decoding function since we need the actual
+       * buffer to add metadata etc. *)
+      | Ogg_demuxer.End_of_stream when merge_tracks || source = `Stream ->
+          ()
+          (* We catch Ogg.Out_of_sync only in
+           * stream mode. Ogg/theora streams, for instance,
+           * in icecast contain the header (packet 0) and
+           * then current stream, with packet 1543 for instance..
+           * Note: we only catch during audio/video decoding
+           * which implies that the stream has already been
+           * parsed as ogg. Indeed, Ogg.Out_of_sync when
+           * parsing ogg means that the stream is not ogg... *)
+      | Ogg.Out_of_sync when source = `Stream -> ()
+  in
+  let seek offset =
+    try
+      let time_offset = Frame.seconds_of_master offset in
+      let new_time = Ogg_demuxer.seek ~relative:true decoder time_offset in
+      Frame.master_of_seconds new_time
+    with Ogg_demuxer.End_of_stream | Ogg.End_of_stream ->
+      log#info "End of track reached while seeking!";
+      0
+  in
+  { Decoder.decode; seek }
 
 (** File decoder *)
 
-module G = Generator.From_audio_video
-module Buffered = Decoder.Buffered (G)
-module D = Make (G)
-
-let create_file_decoder filename content_type kind =
-  let mode =
-    match (content_type.Frame.video, content_type.Frame.audio) with
-      | 0, _ -> `Audio
-      | _, 0 -> `Video
-      | _, _ -> `Both
-  in
-  let generator = G.create mode in
-  Buffered.file_decoder filename kind
-    (D.create_decoder ~merge_tracks:true `File mode)
-    generator
-
-let get_type filename =
+let file_type filename =
   let decoder, fd = Ogg_demuxer.init_from_file ~log:demuxer_log filename in
   let tracks = Ogg_demuxer.get_standard_tracks decoder in
   Tutils.finalize
@@ -299,7 +233,7 @@ let get_type filename =
       in
       let video = if tracks.Ogg_demuxer.video_track <> None then 1 else 0 in
       log#info "File %S recognized as audio=%d video=%d." filename audio video;
-      { Frame.audio; video; midi = 0 })
+      Some { Frame.audio; video; midi = 0 })
 
 let mime_types =
   Dtools.Conf.list
@@ -320,59 +254,35 @@ let file_extensions =
     "File extensions used for guessing OGG format"
     ~d:["ogv"; "oga"; "ogx"; "ogg"; "opus"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_priorities#plug "ogg")
+    "Priority for the OGG decoder" ~d:1
+
+let create_file_decoder ~metadata:_ ~kind filename =
+  Decoder.opaque_file_decoder ~filename ~kind
+    (create_decoder ~merge_tracks:true `File)
+
 let () =
-  Decoder.file_decoders#register "OGG"
+  Decoder.decoders#register "OGG"
     ~sdoc:"Decode a file as OGG provided that libogg accepts it."
-    (fun ~metadata:_ filename kind ->
-      (* First, test file extension and mime *)
-      if
-        Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
-          ~log filename
-      then (
-        let content_type = get_type filename in
-        let content_type =
-          (* If the kind doesn't allow audio, or video,
-           * pretend that we don't have any: it will be dropped
-           * anyway.
-           * A more fine-grained approach might or might not
-           * be possible, based on the number of channels. *)
-          if kind.Frame.video = Frame.Zero then
-            { content_type with Frame.video = 0 }
-          else if kind.Frame.audio = Frame.Zero then
-            { content_type with Frame.audio = 0 }
-          else content_type
-        in
-        if Frame.type_has_kind content_type kind then
-          Some (fun () -> create_file_decoder filename content_type kind)
-        else None )
-      else None)
-
-(** Stream decoder *)
-
-module D_stream = Make (Generator.From_audio_video_plus)
-
-let () =
-  Decoder.stream_decoders#register "OGG"
-    ~sdoc:"Decode as OGG any stream with an appropriate MIME type."
-    (fun mime kind ->
-      if List.mem mime mime_types#get then (
-        let mode =
-          let content_type = Frame.type_of_kind kind in
-          match (content_type.Frame.video, content_type.Frame.audio) with
-            | 0, _ -> `Audio
-            | _, 0 -> `Video
-            | _, _ -> `Both
-        in
-        Some (D_stream.create_decoder `Stream mode) )
-      else None)
+    {
+      Decoder.media_type = `Audio_video;
+      priority = (fun () -> priority#get);
+      file_extensions = (fun () -> Some file_extensions#get);
+      mime_types = (fun () -> Some mime_types#get);
+      file_type;
+      file_decoder = Some create_file_decoder;
+      stream_decoder = Some (fun _ -> create_decoder `Stream);
+    }
 
 (** Metadata *)
 
 let get_tags file =
   if
     not
-      (Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
-         ~log file)
+      (Decoder.test_file ~log ~mimes:mime_types#get
+         ~extensions:file_extensions#get file)
   then raise Not_found;
   let decoder, fd = Ogg_demuxer.init_from_file ~log:demuxer_log file in
   let tracks = Ogg_demuxer.get_standard_tracks decoder in

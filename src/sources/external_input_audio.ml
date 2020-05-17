@@ -105,11 +105,12 @@ let () =
              ( List.assoc "channels" p,
                "Incompatible number of channels, please use a conversion \
                 operator." ));
-      let audio_src_rate = float (Lang.to_int (List.assoc "samplerate" p)) in
-      let converter =
-        Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
-          ~audio_src_rate
+      let samplerate = Lang.to_int (List.assoc "samplerate" p) in
+      let resampler = Decoder_utils.samplerate_converter () in
+      let convert =
+        Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize:16
       in
+      let converter data = resampler ~samplerate (convert data) in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
@@ -130,12 +131,14 @@ let () =
       let read_header read =
         let header = Wav_aiff.read_header Wav_aiff.callback_ops read in
         let channels = Wav_aiff.channels header in
-        let audio_src_rate = float (Wav_aiff.sample_rate header) in
+        let samplerate = Wav_aiff.sample_rate header in
         let samplesize = Wav_aiff.sample_size header in
         Wav_aiff.close header;
-        converter_ref :=
-          Rutils.create_from_iff ~format:`Wav ~channels ~samplesize
-            ~audio_src_rate;
+        let resampler = Decoder_utils.samplerate_converter () in
+        let convert =
+          Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize
+        in
+        (converter_ref := fun data -> resampler ~samplerate (convert data));
         `Reschedule Tutils.Non_blocking
       in
       let restart = Lang.to_bool (List.assoc "restart" p) in

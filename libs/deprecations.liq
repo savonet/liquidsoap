@@ -20,6 +20,15 @@ register(name="[DEPRECATED] Harbor bind_addr",
          descr="IP addresses on which the harbor should listen.",
          on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")
 
+# @flag hidden
+def on_change_video_samplerate(r) =
+  deprecated("frame.video.samplerate", "frame.video.framerate")
+  set("frame.video.framerate",r)
+end
+
+register(name="[DEPRECATED] Framerate",
+         on_change=on_change_video_samplerate,"frame.video.samplerate",25)
+
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag hidden
 def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
