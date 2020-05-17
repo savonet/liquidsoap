@@ -592,8 +592,7 @@ module From_audio_video = struct
     (* Feed all content layers into the generator. *)
     let pts = Frame.pts frame in
     let mode = match mode with Some mode -> mode | None -> t.mode in
-
-    let content = Frame.copy frame.Frame.content in
+    let content = frame.Frame.content in
 
     match mode with
       | `Audio -> put_audio ~pts t content.Frame.audio 0 (AFrame.size ())
