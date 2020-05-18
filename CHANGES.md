@@ -40,6 +40,7 @@ New:
 - Add `source.dump` (#1036).
 - Add `stereo` and `synth` protocols (#1036).
 - Add `video.add_text.ffmpeg`.
+- Added support for `file:///path/to/file` and `file:/path/to/file`protocols.
 
 Changed:
 
