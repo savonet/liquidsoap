@@ -270,8 +270,15 @@ let () =
         Lang.list_t Lang.string_t,
         Some (Lang.list []),
         Some
-          "List of mime types supported by this decoder for decoding streams."
-      );
+          "List of mime types supported by this decoder. Empty means any mime \
+           type should be accepted." );
+      ( "file_extensions",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list ~t:Lang.string_t []),
+        Some
+          "List of file extensions. Empty means any file extension should be \
+           accepted." );
+      ("priority", Lang.int_t, Some (Lang.int 1), Some "Decoder priority");
       test_arg;
       ("", Lang.string_t, None, Some "Process to start.");
     ]
@@ -279,12 +286,21 @@ let () =
     (fun p ->
       let process = Lang.to_string (Lang.assoc "" 1 p) in
       let name = Lang.to_string (List.assoc "name" p) in
-      let descr = Lang.to_string (List.assoc "description" p) in
+      let sdoc = Lang.to_string (List.assoc "description" p) in
       let mimes =
         List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
       in
+      let mimes = if mimes = [] then None else Some mimes in
+      let file_extensions =
+        List.map Lang.to_string (Lang.to_list (List.assoc "file_extensions" p))
+      in
+      let file_extensions =
+        if file_extensions = [] then None else Some file_extensions
+      in
+      let priority = Lang.to_int (List.assoc "priority" p) in
       let test = List.assoc "test" p in
-      External_decoder.register_stdin name descr mimes (test_f test) process;
+      External_decoder.register_stdin ~name ~sdoc ~priority ~mimes
+        ~file_extensions ~test:(test_f test) process;
       Lang.unit);
 
   let process_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
@@ -299,6 +315,19 @@ let () =
       ("name", Lang.string_t, None, Some "Format/decoder's name.");
       ("description", Lang.string_t, None, Some "Description of the decoder.");
       test_arg;
+      ("priority", Lang.int_t, Some (Lang.int 1), Some "Decoder priority");
+      ( "mimes",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list ~t:Lang.string_t []),
+        Some
+          "List of mime types supported by this decoder. Empty means any mime \
+           type should be accepted." );
+      ( "file_extensions",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list ~t:Lang.string_t []),
+        Some
+          "List of file extensions. Empty means any file extension should be \
+           accepted." );
       ("buffer", Lang.float_t, Some (Lang.float 5.), None);
       ( "",
         process_t,
@@ -311,14 +340,25 @@ let () =
     (fun p ->
       let f = Lang.assoc "" 1 p in
       let name = Lang.to_string (List.assoc "name" p) in
-      let descr = Lang.to_string (List.assoc "description" p) in
+      let sdoc = Lang.to_string (List.assoc "description" p) in
       let prebuf = Lang.to_float (List.assoc "buffer" p) in
       let process file =
         Lang.to_string (Lang.apply f [("", Lang.string file)])
       in
       let test = List.assoc "test" p in
-      External_decoder.register_oblivious name descr (test_f test) process
-        prebuf;
+      let priority = Lang.to_int (List.assoc "priority" p) in
+      let mimes =
+        List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
+      in
+      let mimes = if mimes = [] then None else Some mimes in
+      let file_extensions =
+        List.map Lang.to_string (Lang.to_list (List.assoc "file_extensions" p))
+      in
+      let file_extensions =
+        if file_extensions = [] then None else Some file_extensions
+      in
+      External_decoder.register_oblivious ~name ~sdoc ~priority ~mimes
+        ~file_extensions ~test:(test_f test) ~process prebuf;
       Lang.unit)
 
 let () =
@@ -382,15 +422,18 @@ let () =
       Lang.apply (if c then fy else fn) [])
 
 let () =
-  add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application." []
-    Lang.unit_t (fun _ ->
+  add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
+    [("code", Lang.int_t, Some (Lang.int 0), Some "Exit code. Default: `0`")]
+    Lang.unit_t
+    (fun p ->
       Configure.restart := false;
-      Tutils.shutdown ();
+      let code = Lang.to_int (List.assoc "code" p) in
+      Tutils.shutdown code;
       Lang.unit);
   add_builtin "restart" ~cat:Sys ~descr:"Restart the application." []
     Lang.unit_t (fun _ ->
       Configure.restart := true;
-      Tutils.shutdown ();
+      Tutils.shutdown 0;
       Lang.unit);
   add_builtin "exit" ~cat:Sys
     ~descr:

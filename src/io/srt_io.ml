@@ -254,7 +254,7 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
 
     method private create_decoder socket =
       let create_decoder =
-        match Decoder.get_stream_decoder format self#ctype with
+        match Decoder.get_stream_decoder ~ctype:self#ctype format with
           | Some d -> d
           | None -> raise Harbor.Unknown_codec
       in
@@ -334,8 +334,9 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
                 decoder
             | Some d -> d
         in
+        let buffer = Decoder.mk_buffer ~kind generator in
         while Generator.length generator < Lazy.force Frame.size do
-          decoder.Decoder.decode generator
+          decoder.Decoder.decode buffer
         done;
         Generator.fill generator frame
       with exn ->

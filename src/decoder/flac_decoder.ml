@@ -26,75 +26,68 @@ let log = Log.make ["decoder"; "flac"]
 
 exception End_of_stream
 
-module Make (Generator : Generator.S_Asio) = struct
-  let create_decoder input =
-    let resampler = Rutils.create_audio () in
-    let read = input.Decoder.read in
-    let seek =
-      match input.Decoder.lseek with
-        | Some f -> Some (fun len -> ignore (f (Int64.to_int len)))
-        | None -> None
-    in
-    let tell =
-      match input.Decoder.tell with
-        | Some f -> Some (fun () -> Int64.of_int (f ()))
-        | None -> None
-    in
-    let length =
-      match input.Decoder.length with
-        | Some f -> Some (fun () -> Int64.of_int (f ()))
-        | None -> None
-    in
-    let dummy_c =
-      Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun _ -> ())
-    in
-    let decoder = Flac.Decoder.create dummy_c in
-    let decoder, info, _ = Flac.Decoder.init decoder dummy_c in
-    let sample_freq, _ =
-      (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
-    in
-    let processed = ref Int64.zero in
-    {
-      Decoder.seek =
-        (fun ticks ->
-          let duration = Frame.seconds_of_master ticks in
-          let samples = Int64.of_float (duration *. float sample_freq) in
-          let pos = Int64.add !processed samples in
-          let c =
-            Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun _ -> ())
-          in
-          let ret = Flac.Decoder.seek decoder c pos in
-          if ret = true then (
-            processed := pos;
-            ticks )
-          else (
-            match Flac.Decoder.state decoder c with
-              | `Seek_error ->
-                  if Flac.Decoder.flush decoder c then 0
-                  else
-                    (* Flushing failed, we are in an unknown state.. *)
-                    raise End_of_stream
-              | _ -> 0 ));
-      decode =
-        (fun gen ->
-          let c =
-            Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun data ->
-                let data = Audio.of_array data in
-                let len = try Audio.length data with _ -> 0 in
-                processed := Int64.add !processed (Int64.of_int len);
-                let content =
-                  resampler ~audio_src_rate:(float sample_freq) data
-                in
-                Generator.set_mode gen `Audio;
-                Generator.put_audio gen content 0 (Audio.length content))
-          in
+let create_decoder input =
+  let read = input.Decoder.read in
+  let seek =
+    match input.Decoder.lseek with
+      | Some f -> Some (fun len -> ignore (f (Int64.to_int len)))
+      | None -> None
+  in
+  let tell =
+    match input.Decoder.tell with
+      | Some f -> Some (fun () -> Int64.of_int (f ()))
+      | None -> None
+  in
+  let length =
+    match input.Decoder.length with
+      | Some f -> Some (fun () -> Int64.of_int (f ()))
+      | None -> None
+  in
+  let dummy_c =
+    Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun _ -> ())
+  in
+  let decoder = Flac.Decoder.create dummy_c in
+  let decoder, info, _ = Flac.Decoder.init decoder dummy_c in
+  let samplerate, _ =
+    (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
+  in
+  let processed = ref Int64.zero in
+  {
+    Decoder.seek =
+      (fun ticks ->
+        let duration = Frame.seconds_of_master ticks in
+        let samples = Int64.of_float (duration *. float samplerate) in
+        let pos = Int64.add !processed samples in
+        let c =
+          Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun _ -> ())
+        in
+        let ret = Flac.Decoder.seek decoder c pos in
+        if ret = true then (
+          processed := pos;
+          ticks )
+        else (
           match Flac.Decoder.state decoder c with
-            | `Search_for_metadata | `Read_metadata | `Search_for_frame_sync
-            | `Read_frame ->
-                Flac.Decoder.process decoder c
-            | _ -> raise End_of_stream);
-    }
-end
+            | `Seek_error ->
+                if Flac.Decoder.flush decoder c then 0
+                else
+                  (* Flushing failed, we are in an unknown state.. *)
+                  raise End_of_stream
+            | _ -> 0 ));
+    decode =
+      (fun buffer ->
+        let c =
+          Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun data ->
+              let data = Audio.of_array data in
+              let len = try Audio.length data with _ -> 0 in
+              processed := Int64.add !processed (Int64.of_int len);
+              buffer.Decoder.put_audio ~samplerate data)
+        in
+        match Flac.Decoder.state decoder c with
+          | `Search_for_metadata | `Read_metadata | `Search_for_frame_sync
+          | `Read_frame ->
+              Flac.Decoder.process decoder c
+          | _ -> raise End_of_stream);
+  }
 
 (** Configuration keys for flac. *)
 let mime_types =
@@ -108,18 +101,15 @@ let file_extensions =
     ~p:(Decoder.conf_file_extensions#plug "flac")
     "File extensions used for guessing FLAC format" ~d:["flac"]
 
-module G = Generator.From_audio_video
-module Buffered = Decoder.Buffered (G)
-module D = Make (G)
-
-let create_file_decoder filename kind =
-  let generator = G.create `Audio in
-  Buffered.file_decoder filename kind D.create_decoder generator
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_priorities#plug "flac")
+    "Priority for the flac decoder" ~d:1
 
 (* Get the number of channels of audio in an MP3 file.
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
-let get_type filename =
+let file_type filename =
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0o640 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
@@ -132,52 +122,33 @@ let get_type filename =
       in
       log#info "Libflac recognizes %S as FLAC (%dHz,%d channels)." filename rate
         channels;
-      { Frame.audio = channels; video = 0; midi = 0 })
+      Some { Frame.audio = channels; video = 0; midi = 0 })
+
+let file_decoder ~metadata:_ ~ctype =
+  Decoder.opaque_file_decoder ~filename ~ctype create_decoder
 
 let () =
-  Decoder.file_decoders#register "FLAC"
+  Decoder.decoders#register "FLAC"
     ~sdoc:
-      "Use libflac to decode any file if its MIME type or file extension is \
-       appropriate." (fun ~metadata:_ filename ctype ->
-      if
-        not
-          (Decoder.test_file ~mimes:mime_types#get
-             ~extensions:file_extensions#get ~log filename)
-      then None
-      else if get_type filename <> ctype then (
-        log#important "File %S has an incompatible number of channels." filename;
-        None )
-      else Some (fun () -> create_file_decoder filename ctype))
-
-module D_stream = Make (Generator.From_audio_video_plus)
-
-let () =
-  Decoder.stream_decoders#register "FLAC"
-    ~sdoc:"Use libflac to decode any stream with an appropriate MIME type."
-    (fun mime ctype ->
-      if
-        List.mem mime mime_types#get
-        (* Check that it is okay to have zero video and midi, and at least one
-           audio channel. *)
-        && ctype.Frame.video = 0
-        && ctype.Frame.midi = 0 && ctype.Frame.audio <> 0
-      then
-        (* In fact we can't be sure that we'll satisfy the content
-         * kind, because the MP3 stream might be mono or stereo.
-         * For now, we let this problem result in an error at
-         * decoding-time. Failing early would only be an advantage
-         * if there was possibly another plugin for decoding
-         * correctly the stream (e.g. by performing conversions). *)
-        Some D_stream.create_decoder
-      else None)
+      "Use libflac to decode any file or stream if its MIME type or file \
+       extension is appropriate."
+    {
+      Decoder.media_type = `Audio;
+      priority = (fun () -> priority#get);
+      file_extensions = (fun () -> Some file_extensions#get);
+      mime_types = (fun () -> Some mime_types#get);
+      file_type;
+      file_decoder = Some file_decoder;
+      stream_decoder = Some (fun _ -> create_decoder);
+    }
 
 let log = Log.make ["metadata"; "flac"]
 
 let get_tags file =
   if
     not
-      (Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
-         ~log file)
+      (Decoder.test_file ~log ~mimes:mime_types#get
+         ~extensions:file_extensions#get file)
   then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o640 in
   Tutils.finalize
@@ -194,7 +165,7 @@ let check filename =
     | Some f -> List.mem (f filename) mime_types#get
     | None -> (
         try
-          ignore (get_type filename);
+          ignore (file_type filename);
           true
         with _ -> false )
 

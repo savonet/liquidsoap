@@ -2,7 +2,6 @@ sudo: required
 env:
   - DOCKER_TAG=debian_testing
   - DOCKER_TAG=debian_stable
-  - DOCKER_TAG=ubuntu_bionic
   - DOCKER_TAG=ubuntu_eoan
   - DOCKER_TAG=ubuntu_focal
 services:

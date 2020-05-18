@@ -39,7 +39,8 @@ let conf_duration =
     "Tentative frame duration in seconds"
     ~comments:
       [
-        "Audio and video samplerates constrain the possible frame durations.";
+        "Audio samplerate and video frame rate constrain the possible frame \
+         durations.";
         "This setting is used as a hint for the duration, when \
          'frame.audio.size'";
         "is not provided.";
@@ -61,7 +62,8 @@ let conf_audio_size =
     "Tentative frame duration in audio samples"
     ~comments:
       [
-        "Audio and video samplerates constrain the possible frame durations.";
+        "Audio samplerate and video frame rate constrain the possible frame \
+         durations.";
         "This setting is used as a hint for the duration, overriding";
         "'frame.duration'.";
         "Tweaking frame duration is tricky but needed when dealing with latency";
@@ -71,8 +73,8 @@ let conf_audio_size =
 (* Video *)
 let conf_video = Conf.void ~p:(conf#plug "video") "Video format"
 
-let conf_video_samplerate =
-  Conf.int ~p:(conf_video#plug "samplerate") ~d:25 "Samplerate"
+let conf_video_framerate =
+  Conf.int ~p:(conf_video#plug "framerate") ~d:25 "Frame rate"
 
 let conf_video_channels =
   Conf.int ~p:(conf_video#plug "channels") ~d:0 "Default number of channels"
@@ -119,7 +121,7 @@ let midi_channels = delayed_conf conf_midi_channels
 let video_width = delayed_conf conf_video_width
 let video_height = delayed_conf conf_video_height
 let audio_rate = delayed_conf conf_audio_samplerate
-let video_rate = delayed_conf conf_video_samplerate
+let video_rate = delayed_conf conf_video_framerate
 
 (* TODO: midi rate is assumed to be the same as audio,
  *   so we should not have two different values *)

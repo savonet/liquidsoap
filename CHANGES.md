@@ -51,6 +51,7 @@ Changed:
 - Re-implemented switch-derived operators (`fallback`, `rotate`, `random`) as
   scripted operators, removed `track_sensitive` argument from `rotate` and
   `random` as it does not have a sound meaning for them. 
+- Added optional exit `code` to `shutdown`.
 - Renamed `verb` argument info `method` in `output.icecast`.
 - Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).
@@ -92,6 +93,7 @@ Fixed:
 - Make `blank()` source unavailable past is expected duration (#668).
 - Remove `video.add_text.gstreamer` shade in background (#1190).
 - Improve the quality of `video.add_text.gd` (#1188).
+- Exit with non-zero code on errors.
 
 1.4.2 (03-05-2020)
 =====

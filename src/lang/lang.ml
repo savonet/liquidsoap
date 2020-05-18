@@ -654,7 +654,7 @@ let interactive () =
     then loop ()
   in
   loop ();
-  Tutils.shutdown ()
+  Tutils.shutdown 0
 
 (* Abstract types. *)
 

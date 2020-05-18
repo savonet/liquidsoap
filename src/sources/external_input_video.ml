@@ -192,14 +192,15 @@ let () =
                   dst )
               in
               video_converter := Some converter
-          | `Audio (channels, audio_src_rate) ->
-              let audio_src_rate = float audio_src_rate in
+          | `Audio (channels, samplerate) ->
               if !audio_converter <> None then
                 failwith "Only one audio track is supported for now.";
+              let resampler = Decoder_utils.samplerate_converter () in
+              let converter =
+                Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize:16
+              in
               audio_converter :=
-                Some
-                  (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
-                     ~audio_src_rate)
+                Some (fun data -> resampler ~samplerate (converter data))
         in
         List.iter check h;
         `Continue

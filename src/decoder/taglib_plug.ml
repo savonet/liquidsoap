@@ -44,8 +44,8 @@ let get_tags fname =
   try
     if
       not
-        (Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
-           ~log fname)
+        (Decoder.test_file ~log ~mimes:mime_types#get
+           ~extensions:file_extensions#get fname)
     then raise Invalid_file;
     let f = Taglib.File.open_file `Autodetect fname in
     Tutils.finalize

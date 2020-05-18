@@ -68,19 +68,15 @@ let duration process =
   ignore (Unix.close_process_in pull);
   ret
 
-module Generator = Generator.From_audio_video
-module Buffered = Decoder.Buffered (Generator)
-
 (** A function to wrap around the Wav_aiff_decoder *)
 let create process kind filename =
   let close = ref (fun () -> ()) in
   let create input =
     let input, actual_close = external_input process input in
     close := actual_close;
-    Wav_aiff_decoder.D.create ?header:None input
+    Wav_aiff_decoder.create ?header:None input
   in
-  let generator = Generator.create `Audio in
-  let dec = Buffered.file_decoder filename kind create generator in
+  let dec = Decoder.opaque_file_decoder ~filename ~kind create in
   {
     dec with
     Decoder.close =
@@ -91,48 +87,46 @@ let create_stream process input =
   let input, close = external_input process input in
   (* Put this here so that ret is not in its closure.. *)
   let close _ = close () in
-  let ret = Wav_aiff_decoder.D_stream.create input in
+  let ret = Wav_aiff_decoder.create input in
   Gc.finalise close ret;
   ret
 
-(* The test function should return: 0 = file rejected, n<0 = file accepted,
-   unknown number of audio channels, n>0 = file accepted, known number of
-   channels. *)
-let register_stdin name sdoc mimes test process =
-  Decoder.file_decoders#register name ~sdoc (fun ~metadata:_ filename ctype ->
-      let t = test filename in
-      try
-        if t = 0 then raise Exit;
-        if ctype.Frame.video <> 0 || ctype.Frame.midi <> 0 then raise Exit;
-        if t > 0 && ctype.Frame.audio <> t then raise Exit;
-        Some (fun () -> create process ctype filename)
-      with Exit -> None);
+let test_ctype f filename =
+  (* 0 = file rejected,
+   * n<0 = file accepted, unknown number of audio channels,
+   * n>0 = file accepted, known number of channels. *)
+  let ret = f filename in
+  if ret = 0 then None
+  else
+    Some
+      {
+        Frame.
+        video = 0;
+        midi = 0;
+        (* TODO: this is not perfect *)
+        audio = (if ret < 0 then Lazy.force Frame.audio_channels else ret);
+      }
+
+let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
+  Decoder.decoders#register name ~sdoc
+    {
+      Decoder.media_type = `Audio;
+      priority = (fun () -> priority);
+      file_extensions = (fun () -> file_extensions);
+      mime_types = (fun () -> mimes);
+      file_type =
+        (fun filename ->
+          Utils.maybe (test_ctype test filename));
+      file_decoder =
+        Some (fun ~metadata:_ ~kind filename -> create process kind filename);
+      stream_decoder = Some (fun _ -> create_stream process);
+    };
+
   let duration filename =
     let process = Printf.sprintf "cat %s | %s" (Utils.quote filename) process in
     duration process
   in
-  Request.dresolvers#register name duration;
-  if mimes <> [] then
-    Decoder.stream_decoders#register name
-      ~sdoc:
-        (Printf.sprintf
-           "Use %s to decode any stream with an appropriate MIME type." name)
-      (fun mime ctype ->
-        if
-          List.mem mime mimes
-          (* Check that it is okay to have zero video and midi, and at least one
-             audio channel. *)
-          && ctype.Frame.video = 0
-          && ctype.Frame.midi = 0 && ctype.Frame.audio <> 0
-        then
-          (* In fact we can't be sure that we'll satisfy the content
-           * kind, because the stream might be mono or stereo.
-           * For now, we let this problem result in an error at
-           * decoding-time. Failing early would only be an advantage
-           * if there was possibly another plugin for decoding
-           * correctly the stream (e.g. by performing conversions). *)
-          Some (create_stream process)
-        else None)
+  Request.dresolvers#register name duration
 
 (** Now an external decoder that directly operates
   * on the file. The remaining time in this case
@@ -142,6 +136,8 @@ let register_stdin name sdoc mimes test process =
   * has exited. *)
 
 let log = Log.make ["decoder"; "external"; "oblivious"]
+
+module Generator = Decoder.G
 
 let external_input_oblivious process filename prebuf =
   let command = process filename in
@@ -156,16 +152,20 @@ let external_input_oblivious process filename prebuf =
     try Process_handler.kill process with Process_handler.Finished -> ()
   in
   let input = { Decoder.read; tell = None; length = None; lseek = None } in
-  let gen = Generator.create `Audio in
+  let kind = Frame.{ audio = Any; video = Zero; midi = Zero } in
+  let gen =
+    Generator.create ~log_overfull:false ~log:(log#info "%s") ~kind `Audio
+  in
+  let buffer = Decoder.mk_buffer ~kind gen in
   let prebuf = Frame.master_of_seconds prebuf in
-  let decoder = Wav_aiff_decoder.D.create input in
+  let decoder = Wav_aiff_decoder.create input in
   let fill frame =
     begin
       try
         while
           Generator.length gen < prebuf && not (Process_handler.stopped process)
         do
-          decoder.Decoder.decode gen
+          decoder.Decoder.decode buffer
         done
       with e ->
         log#info "Decoding %s ended: %s." command (Printexc.to_string e);
@@ -179,14 +179,23 @@ let external_input_oblivious process filename prebuf =
   in
   { Decoder.fill; fseek = decoder.Decoder.seek; close }
 
-let register_oblivious name sdoc test process prebuf =
-  Decoder.file_decoders#register name ~sdoc (fun ~metadata:_ filename ctype ->
-      let t = test filename in
-      try
-        if t = 0 then raise Exit;
-        if ctype.Frame.video <> 0 || ctype.Frame.midi <> 0 then raise Exit;
-        if t > 0 && ctype.Frame.audio <> t then raise Exit;
-        Some (fun () -> external_input_oblivious process filename prebuf)
-      with Exit -> None);
+let register_oblivious ~name ~sdoc ~priority ~mimes ~file_extensions ~test
+    ~process prebuf =
+  Decoder.decoders#register name ~sdoc
+    {
+      Decoder.media_type = `Audio;
+      priority = (fun () -> priority);
+      file_extensions = (fun () -> file_extensions);
+      mime_types = (fun () -> mimes);
+      file_type =
+        (fun filename ->
+          Utils.maybe Frame.type_of_kind (test_kind test filename));
+      file_decoder =
+        Some
+          (fun ~metadata:_ ~kind:_ filename ->
+            external_input_oblivious process filename prebuf);
+      stream_decoder = None;
+    };
+
   let duration filename = duration (process filename) in
   Request.dresolvers#register name duration

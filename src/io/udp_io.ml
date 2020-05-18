@@ -152,10 +152,11 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
       try
         (* Feeding loop. *)
-        let decoder = self#decoder_factory input in
+        let decoder = decoder_factory input in
+        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         while true do
           if should_stop () then failwith "stop";
-          decoder.Decoder.decode generator
+          decoder.Decoder.decode buffer
         done
       with e ->
         Generator.add_break ~sync:true generator;
@@ -243,15 +244,12 @@ let () =
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let mime = Lang.to_string (Lang.assoc "" 1 p) in
-      let get_stream_decoder ctype =
-        match Decoder.get_stream_decoder mime ctype with
-          | None ->
-              raise
-                (Lang_errors.Invalid_value
-                   ( Lang.assoc "" 1 p,
-                     "Cannot get a stream decoder for this MIME" ))
-          | Some decoder_factory -> decoder_factory
-      in
-      ( new input
-          ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
-        :> Source.source ))
+      match Decoder.get_stream_decoder ~kind mime with
+        | None ->
+            raise
+              (Lang_errors.Invalid_value
+                 (Lang.assoc "" 1 p, "Cannot get a stream decoder for this MIME"))
+        | Some decoder_factory ->
+            ( new input
+                ~kind ~hostname ~port ~bufferize ~log_overfull ~decoder_factory
+              :> Source.source ))

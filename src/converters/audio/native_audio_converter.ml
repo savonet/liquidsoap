@@ -50,3 +50,14 @@ let samplerate_converter () =
 
 let () =
   Audio_converter.Samplerate.converters#register "native" samplerate_converter
+
+let channel_layout_converter src dst =
+  assert (src <> dst);
+  match dst with
+    | `Mono -> fun data -> [| Audio.to_mono data |]
+    | `Stereo -> fun data -> [| data.(0); data.(0) |]
+    | _ -> raise Audio_converter.Channel_layout.Unsupported
+
+let () =
+  Audio_converter.Channel_layout.converters#register "native"
+    channel_layout_converter

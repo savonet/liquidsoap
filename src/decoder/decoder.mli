@@ -36,67 +36,107 @@ type input = {
   length : (unit -> int) option;
 }
 
-type 'a decoder = {
-  decode : 'a -> unit;
+module G = Generator.From_audio_video_plus
+
+type fps = Decoder_utils.fps = { num : int; den : int }
+
+(* Buffer passed to decoder. This wraps around
+   regular buffer, adding:
+    - Implicit resampling
+    - Implicit audio channel conversion
+    - Implicit video resize
+    - Implicit fps conversion
+    - Implicit content drop *)
+type buffer = {
+  generator : G.t;
+  put_audio : ?pts:Int64.t -> samplerate:int -> Frame.audio_t array -> unit;
+  put_video : ?pts:Int64.t -> fps:fps -> Frame.video_t array -> unit;
+}
+
+type decoder = {
+  decode : buffer -> unit;
   (* [seek x]: Skip [x] master ticks.
    * Returns the number of ticks atcually skiped. *)
   seek : int -> int;
 }
 
-type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
-
-type file_decoder = {
+type file_decoder_ops = {
   fill : Frame.t -> int;
   fseek : int -> int;
   close : unit -> unit;
 }
 
-val file_decoders :
-  (metadata:Frame.metadata ->
-  file ->
-  Frame.content_type ->
-  (unit -> file_decoder) option)
-  Plug.plug
+type stream_decoder = input -> decoder
+type image_decoder = file -> Video.Image.t
 
-val image_file_decoders : (file -> Video.Image.t option) Plug.plug
+type file_decoder =
+  metadata:Frame.metadata ->
+  ctype:Frame.content_type ->
+  string ->
+  file_decoder_ops
 
-val stream_decoders :
-  (stream -> Frame.content_type -> stream_decoder option) Plug.plug
+type decoder_specs = {
+  media_type : [ `Audio | `Video | `Audio_video | `Midi ];
+  priority : unit -> int;
+  (* None means accept all file extensions. *)
+  file_extensions : unit -> string list option;
+  (* Mime types are parsed up-to the first ;
+   * so a file with mime-type foo/bar; bla
+   * matches mime-type foo/bar. Furthermore,
+   * for streams, a stream with mime foo/bar<whatever>
+   * matches mime-type foo/bar. 
+   * None means accept all mime-types. *)
+  mime_types : unit -> string list option;
+  (* None means no decodable content for that file. *)
+  file_type : string -> Frame.content_type option;
+  file_decoder : file_decoder option;
+  (* First argument is the full mime-type. *)
+  stream_decoder : (string -> stream_decoder) option;
+}
 
+val decoders : decoder_specs Plug.plug
 val conf_decoder : Dtools.Conf.ut
 val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
+val conf_priorities : Dtools.Conf.ut
 
 (** Test file extension and mime if available *)
 val test_file :
-  ?log:Log.t -> mimes:string list -> extensions:string list -> string -> bool
+  ?log:Log.t -> ?mimes:string list -> ?extensions:string list -> string -> bool
+
+(** Test if we can decode for a given kind. This include cases where we
+    know how to convert channel layout. *)
+val can_decode_kind : Frame.content_type -> Frame.content_kind -> bool
 
 val get_file_decoder :
   metadata:Frame.metadata ->
-  file ->
-  Frame.content_type ->
-  (string * (unit -> file_decoder)) option
+  ctype:Frame.content_type ->
+  string ->
+  (string * (unit -> file_decoder_ops)) option
 
+val get_stream_decoder :
+  kind:Frame.content_kind -> string -> stream_decoder option
+
+val image_file_decoders : (file -> Video.Image.t option) Plug.plug
 val get_image_file_decoder : file -> Video.Image.t option
-val get_stream_decoder : file -> Frame.content_type -> stream_decoder option
 
-module Buffered (Generator : Generator.S) : sig
-  (* This is the most recent API. [file_decoder]
-   * below uses it and might be deprecated at some
-   * point in the future. *)
-  val make_file_decoder :
-    filename:string ->
-    close:(unit -> unit) ->
-    ctype:Frame.content_type ->
-    remaining:(Frame.t -> int -> int) ->
-    Generator.t decoder ->
-    Generator.t ->
-    file_decoder
+(* Initialize a decoding buffer *)
+val mk_buffer : kind:Frame.content_kind -> G.t -> buffer
 
-  val file_decoder :
-    file ->
-    Frame.content_type ->
-    (input -> Generator.t decoder) ->
-    Generator.t ->
-    file_decoder
-end
+(* Create a file decoder when remaning time is known. *)
+val file_decoder :
+  filename:string ->
+  close:(unit -> unit) ->
+  remaining:(unit -> int) ->
+  ctype:Frame.content_type ->
+  decoder ->
+  file_decoder_ops
+
+(* Create a file decoder when remaining time is not know,
+   in which case it is estimated from consumed bytes during
+   the decoding process. *)
+val opaque_file_decoder :
+  filename:string ->
+  ctype:Frame.content_type ->
+  (input -> decoder) ->
+  file_decoder_ops

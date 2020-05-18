@@ -170,7 +170,7 @@ val duration : string -> float
 
 (** Return a decoder if the file has been resolved, guaranteed to have
   * available data to deliver. *)
-val get_decoder : t -> Decoder.file_decoder option
+val get_decoder : t -> Decoder.file_decoder_ops option
 
 (** {1 Plugs}
   * Respectively for computing duration,

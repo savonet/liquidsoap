@@ -44,10 +44,10 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let log_error = ref (fun _ -> ()) in
-  let sample_rate = Frame.audio_of_seconds 1. in
-  let audio_src_rate = float sample_rate in
+  let samplerate = Frame.audio_of_seconds 1. in
   let abg_max_len = Frame.audio_of_seconds max in
   let replay_delay = Frame.audio_of_seconds replay_delay in
+  let resampler = Decoder_utils.samplerate_converter () in
   let len = match data_len with x when x < 0 -> None | l -> Some l in
   let abg = Generator.create ~log ~log_overfull `Audio in
   let mutex = Mutex.create () in
@@ -55,37 +55,6 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let next_stop = ref `Nothing in
   let header_read = ref false in
   let bytes = Bytes.create Utils.pagesize in
-  let on_stderr reader =
-    let len = reader bytes 0 Utils.pagesize in
-    !log_error (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
-    `Continue
-  in
-  let on_stop =
-    Tutils.mutexify mutex (fun e ->
-        let ret = !next_stop in
-        next_stop := `Nothing;
-        header_read := false;
-        let should_restart =
-          match e with
-            | `Status s when s <> Unix.WEXITED 0 -> restart_on_error
-            | `Exception _ -> restart_on_error
-            | _ -> true
-        in
-        match (should_restart, ret) with
-          | false, _ -> false
-          | _, `Sleep -> false
-          | _, `Break_and_metadata m ->
-              Generator.add_metadata abg m;
-              Generator.add_break abg;
-              true
-          | _, `Metadata m ->
-              Generator.add_metadata abg m;
-              true
-          | _, `Break ->
-              Generator.add_break abg;
-              true
-          | _, `Nothing -> restart)
-  in
   object (self)
     inherit source ~name:"pipe" kind as super
 
@@ -108,61 +77,62 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
       `Continue
 
     method private on_stdout pull =
-      if not !header_read then (
-        let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
-        header_read := true;
+          if not !header_read then (
+      let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
+      header_read := true;
+      Tutils.mutexify mutex
+        (fun () ->
+          if Wav_aiff.channels wav <> channels then
+            failwith "Invalid channels from pipe process!";
+          samplesize := Wav_aiff.sample_size wav;
+          samplerate := Wav_aiff.sample_rate wav;
+          converter :=
+            Decoder_utils.from_iff ~format:`Wav ~channels
+              ~samplesize:!samplesize)
+        ();
+      `Reschedule Tutils.Non_blocking )
+    else (
+      let len = pull bytes 0 Utils.pagesize in
+      let data = !converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
+      let data = resampler ~samplerate:!samplerate data in
+      let len = Audio.length data in
+      let buffered = Generator.length abg in
+      Generator.put_audio abg data 0 len;
+      let to_replay =
         Tutils.mutexify mutex
           (fun () ->
-            if Wav_aiff.channels wav <> self#channels then
-              failwith "Invalid channels from pipe process!";
-            samplesize <- Wav_aiff.sample_size wav;
-            converter <-
-              Rutils.create_from_iff ~format:`Wav ~channels:self#channels
-                ~samplesize
-                ~audio_src_rate:(float (Wav_aiff.sample_rate wav)))
-          ();
-        `Reschedule Tutils.Non_blocking )
-      else (
-        let len = pull bytes 0 Utils.pagesize in
-        let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
-        let len = Audio.length data in
-        let buffered = Generator.length abg in
-        Generator.put_audio abg data 0 len;
-        let to_replay =
-          Tutils.mutexify mutex
-            (fun () ->
-              let pending = !replay_pending in
-              let to_replay, pending =
-                List.fold_left
-                  (fun ((pos, b), cur) (pos', b') ->
-                    if pos' + len > replay_delay then (
-                      if pos > 0 then
-                        log
-                          "Cannot replay multiple element at once.. Picking up \
-                           the most recent";
-                      if pos > 0 && pos < pos' then ((pos, b), cur)
-                      else ((pos', b'), cur) )
-                    else ((pos, b), (pos' + len, b') :: cur))
-                  ((-1, `Nothing), [])
-                  pending
-              in
-              replay_pending := pending;
-              to_replay)
-            ()
-        in
-        begin
-          match to_replay with
-          | -1, _ -> ()
-          | _, `Break_and_metadata m ->
-              Generator.add_metadata abg m;
-              Generator.add_break abg
-          | _, `Metadata m -> Generator.add_metadata abg m
-          | _, `Break -> Generator.add_break abg
-          | _ -> ()
-        end;
-        if abg_max_len < buffered + len then
-          `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
-        else `Continue )
+            let pending = !replay_pending in
+            let to_replay, pending =
+              List.fold_left
+                (fun ((pos, b), cur) (pos', b') ->
+                  if pos' + len > replay_delay then (
+                    if pos > 0 then
+                      log
+                        "Cannot replay multiple element at once.. Picking up \
+                         the most recent";
+                    if pos > 0 && pos < pos' then ((pos, b), cur)
+                    else ((pos', b'), cur) )
+                  else ((pos, b), (pos' + len, b') :: cur))
+                ((-1, `Nothing), [])
+                pending
+            in
+            replay_pending := pending;
+            to_replay)
+          ()
+      in
+      begin
+        match to_replay with
+        | -1, _ -> ()
+        | _, `Break_and_metadata m ->
+            Generator.add_metadata abg m;
+            Generator.add_break abg
+        | _, `Metadata m -> Generator.add_metadata abg m
+        | _, `Break -> Generator.add_break abg
+        | _ -> ()
+      end;
+      if abg_max_len < buffered + len then
+        `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
+      else `Continue )
 
     val mutable handler = None
 
@@ -232,6 +202,37 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
           chunk.len <- len - ret;
           `Continue )
       with Queue.Empty -> `Continue
+
+    method private on_stderr reader =
+      let len = reader bytes 0 Utils.pagesize in
+      !log_error (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
+      `Continue
+
+    method private on_stop =
+      Tutils.mutexify mutex (fun e ->
+        let ret = !next_stop in
+        next_stop := `Nothing;
+        header_read := false;
+        let should_restart =
+          match e with
+            | `Status s when s <> Unix.WEXITED 0 -> restart_on_error
+            | `Exception _ -> restart_on_error
+            | _ -> true
+        in
+        match (should_restart, ret) with
+          | false, _ -> false
+          | _, `Sleep -> false
+          | _, `Break_and_metadata m ->
+              Generator.add_metadata abg m;
+              Generator.add_break abg;
+              true
+          | _, `Metadata m ->
+              Generator.add_metadata abg m;
+              true
+          | _, `Break ->
+              Generator.add_break abg;
+              true
+          | _, `Nothing -> restart)
 
     method private slave_tick =
       (Clock.get source#clock)#end_tick;
