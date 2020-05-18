@@ -682,14 +682,7 @@ def file_protocol(~rlog,~maxtime,arg) =
       segments
     end
 
-  path = string.concat(separator="/",segments)
-  
-  # We support the buggy form: file:/path/to/file"
-  if file.exists("/#{path}") then
-    ["/#{path}"]
-  else
-    [path]
-  end
+  [string.concat(separator="/",segments)]
 end
 
 add_protocol(static=true, temporary=false, "file", file_protocol,
