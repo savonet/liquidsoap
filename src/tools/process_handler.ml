@@ -141,7 +141,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
   let create () =
     log "Starting process";
     let p = open_process command env in
-    let out_pipe, in_pipe = Unix.pipe () in
+    let out_pipe, in_pipe = Unix.pipe ~cloexec:true () in
     let process =
       { in_pipe; out_pipe; p; priority; stopped = false; status = None }
     in

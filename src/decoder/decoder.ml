@@ -506,7 +506,7 @@ let file_decoder ~filename ~close ~remaining ~kind decoder =
   mk_decoder ~filename ~close ~remaining ~buffer decoder
 
 let opaque_file_decoder ~filename ~kind create_decoder =
-  let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
+  let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0 in
 
   let file_size = (Unix.stat filename).Unix.st_size in
   let proc_bytes = ref 0 in

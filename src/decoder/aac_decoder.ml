@@ -144,7 +144,7 @@ let aac_priority =
 
 (* Get the number of channels of audio in an AAC file. *)
 let file_type filename =
-  let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
+  let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o644 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
     (fun () ->
@@ -221,7 +221,7 @@ let create_decoder input =
 (* Get the number of channels of audio in an MP4 file. *)
 let file_type filename =
   let dec = Faad.create () in
-  let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
+  let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o644 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
     (fun () ->
@@ -274,7 +274,7 @@ let get_tags file =
       (Decoder.test_file ~log ~mimes:mp4_mime_types#get
          ~extensions:mp4_file_extensions#get file)
   then raise Not_found;
-  let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
+  let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o644 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
     (fun () ->

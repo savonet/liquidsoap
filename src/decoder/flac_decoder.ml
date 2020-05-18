@@ -110,7 +110,7 @@ let priority =
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
 let file_type filename =
-  let fd = Unix.openfile filename [Unix.O_RDONLY] 0o640 in
+  let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
     (fun () ->
@@ -150,7 +150,7 @@ let get_tags file =
       (Decoder.test_file ~log ~mimes:mime_types#get
          ~extensions:file_extensions#get file)
   then raise Not_found;
-  let fd = Unix.openfile file [Unix.O_RDONLY] 0o640 in
+  let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
     (fun () ->
@@ -171,7 +171,7 @@ let check filename =
 
 let duration file =
   if not (check file) then raise Not_found;
-  let fd = Unix.openfile file [Unix.O_RDONLY] 0o640 in
+  let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
     (fun () ->

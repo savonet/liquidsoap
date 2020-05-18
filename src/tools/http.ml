@@ -22,7 +22,7 @@ struct
   exception Socket
 
   let connect ?bind_address host port =
-    let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    let socket = Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_STREAM 0 in
     begin
       match bind_address with
       | None -> ()

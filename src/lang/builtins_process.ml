@@ -168,7 +168,7 @@ let () =
         (-1., Some (`Status (Unix.close_process_full p)))
       in
       let asynchronous () =
-        let out_pipe, in_pipe = Unix.pipe () in
+        let out_pipe, in_pipe = Unix.pipe ~cloexec:true () in
         Tutils.finalize
           ~k:(fun () ->
             ignore (Unix.close in_pipe);

@@ -55,7 +55,7 @@ module Unix_transport = struct
   let name = "unix"
   let file_descr_of_socket socket = socket
   let read = Unix.read
-  let accept fd = Unix.accept fd
+  let accept fd = Unix.accept ~cloexec:true fd
   let close = Unix.close
 
   module Duppy = Duppy
@@ -968,7 +968,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let bind_addr_inet = Unix.inet_addr_of_string bind_addr in
       let bind_addr = Unix.ADDR_INET (bind_addr_inet, port) in
       let domain = Unix.domain_of_sockaddr bind_addr in
-      let sock = Unix.socket domain Unix.SOCK_STREAM 0 in
+      let sock = Unix.socket ~cloexec:true domain Unix.SOCK_STREAM 0 in
       (* Set TCP_NODELAY on the socket *)
       Unix.setsockopt sock Unix.SO_REUSEADDR true;
       Unix.setsockopt sock Unix.TCP_NODELAY true;
@@ -981,7 +981,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         (fun cur bind_addr -> if bind_addr <> "" then bind_addr :: cur else cur)
         [] conf_harbor_bind_addrs#get
     in
-    let in_s, out_s = Unix.pipe () in
+    let in_s, out_s = Unix.pipe ~cloexec:true () in
     let events = `Read in_s :: List.map (open_socket port) bind_addrs in
     Task.add Tutils.scheduler
       {

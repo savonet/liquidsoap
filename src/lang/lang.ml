@@ -628,7 +628,7 @@ let load_libs ?parse_only () =
 let from_file = from_file ~ns:None
 
 let from_string ?parse_only ~lib expr =
-  let i, o = Unix.pipe () in
+  let i, o = Unix.pipe ~cloexec:true () in
   let i = Unix.in_channel_of_descr i in
   let o = Unix.out_channel_of_descr o in
   output_string o expr;

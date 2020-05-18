@@ -90,6 +90,7 @@ Changed:
 
 Fixed:
 
+- Set `cloexec` on all relevant Unix calls (#1192).
 - Fix implementation of recursive functions (#934).
 - Make `blank()` source unavailable past is expected duration (#668).
 - Remove `video.add_text.gstreamer` shade in background (#1190).
