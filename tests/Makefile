@@ -6,6 +6,7 @@ SUBDIRS = files fixme generic language regression
 top_srcdir = ..
 
 test:
+	@$(MAKE) -C files
 	@$(MAKE) -C language
 	@$(MAKE) -C regression
 	@$(MAKE) -C generic

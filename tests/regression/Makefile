@@ -1,5 +1,5 @@
 LIQ = $(sort $(wildcard *.liq))
-TESTS = $(basename $(LIQ))
+TESTS = $(filter-out test, $(basename $(LIQ)))
 DISTFILES = Makefile $(wildcard *.liq)
 top_srcdir = ../..
 
