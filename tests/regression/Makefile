@@ -1,8 +1,13 @@
+.PHONY: test
+
 LIQ = $(sort $(wildcard *.liq))
-TESTS = $(basename $(LIQ))
-DISTFILES = Makefile $(wildcard *.liq)
-top_srcdir = ../..
+TESTS = $(filter-out test, $(basename $(LIQ)))
+DISTFILES = Makefile $(LIQ)
+top_srcdir = $(shell realpath ../..)
 
 test: $(TESTS)
 
-include ../Makefile.include
+%: %.liq
+	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" regression/$<
+
+include $(top_srcdir)/Makefile.rules
