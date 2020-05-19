@@ -36,7 +36,7 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
 
     method private output_start =
       let socket =
-        Unix.socket Unix.PF_INET Unix.SOCK_DGRAM
+        Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_DGRAM
           (Unix.getprotobyname "udp").Unix.p_proto
       in
       let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
@@ -130,7 +130,7 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
     method private feed (should_stop, has_stopped) =
       let socket =
-        Unix.socket Unix.PF_INET Unix.SOCK_DGRAM
+        Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_DGRAM
           (Unix.getprotobyname "udp").Unix.p_proto
       in
       let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in

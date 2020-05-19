@@ -40,6 +40,7 @@ New:
 - Add `source.dump` (#1036).
 - Add `stereo` and `synth` protocols (#1036).
 - Add `video.add_text.ffmpeg`.
+- Added support for `file:///path/to/file` and `file:/path/to/file`protocols.
 
 Changed:
 
@@ -91,6 +92,7 @@ Changed:
 
 Fixed:
 
+- Set `cloexec` on all relevant Unix calls (#1192).
 - Fix implementation of recursive functions (#934).
 - Make `blank()` source unavailable past is expected duration (#668).
 - Remove `video.add_text.gstreamer` shade in background (#1190).

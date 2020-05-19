@@ -57,7 +57,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
     method self_sync = fd <> None
 
     method open_device =
-      let descr = Unix.openfile dev [Unix.O_WRONLY] 0o200 in
+      let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
       fd <- Some descr;
       force set_format descr 16;
       force set_channels descr self#channels;
@@ -112,7 +112,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method private start = self#open_device
 
     method private open_device =
-      let descr = Unix.openfile dev [Unix.O_RDONLY] 0o400 in
+      let descr = Unix.openfile dev [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o400 in
       fd <- Some descr;
       force set_format descr 16;
       force set_channels descr self#channels;

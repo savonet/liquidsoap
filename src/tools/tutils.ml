@@ -261,8 +261,8 @@ let () =
   * Never use that when logging to stdout: it would just loop! *)
 let start_forwarding () =
   let reopen fd =
-    let i, o = Unix.pipe () in
-    Unix.dup2 o fd;
+    let i, o = Unix.pipe ~cloexec:true () in
+    Unix.dup2 ~cloexec:true o fd;
     Unix.close o;
     Unix.set_close_on_exec i;
     i

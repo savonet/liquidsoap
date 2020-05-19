@@ -665,3 +665,26 @@ end
 add_protocol(static=true, temporary=true, "synth", synth_protocol,
 doc="Syntesize audio. Parameters are optional.",
 syntax="synth:shape=sine,frequency=440.,duration=10.")
+
+# File protocol
+# @flag hidden
+def file_protocol(~rlog,~maxtime,arg) =
+  path = list.nth(default="", string.split(separator=":",arg), 1)
+  segments = string.split(separator="/",path)
+
+  segments =
+    if list.length(segments) > 3 and
+       list.nth(default="foo",segments,0) == "" and
+       list.nth(default="foo",segments,1) == ""
+    then
+      list.tl(list.tl(segments))
+    else
+      segments
+    end
+
+  [string.concat(separator="/",segments)]
+end
+
+add_protocol(static=true, temporary=false, "file", file_protocol,
+             doc="File protocol. Only local files are supported",
+             syntax="file:///path/to/file")

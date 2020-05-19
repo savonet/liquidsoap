@@ -538,15 +538,15 @@ let normalize_parameter_string s =
 let reopen_out outchan filename =
   flush outchan;
   let fd1 = Unix.descr_of_out_channel outchan in
-  let fd2 = Unix.openfile filename [Unix.O_WRONLY] 0o666 in
-  Unix.dup2 fd2 fd1;
+  let fd2 = Unix.openfile filename [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o666 in
+  Unix.dup2 ~cloexec:true fd2 fd1;
   Unix.close fd2
 
 (** The same for inchan *)
 let reopen_in inchan filename =
   let fd1 = Unix.descr_of_in_channel inchan in
-  let fd2 = Unix.openfile filename [Unix.O_RDONLY] 0o666 in
-  Unix.dup2 fd2 fd1;
+  let fd2 = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o666 in
+  Unix.dup2 ~cloexec:true fd2 fd1;
   Unix.close fd2
 
 (* See: http://www.onicos.com/staff/iz/formats/ieee.c *)

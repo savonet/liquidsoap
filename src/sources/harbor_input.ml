@@ -184,8 +184,8 @@ module Make (Harbor : T) = struct
                    (* TODO: raise two script values ? *)
                    let port = Lang.to_int (List.assoc "port" p) in
                    Printf.sprintf
-                     "A source is already register for this mountpointpoint \
-                      '%s' and port %i."
+                     "A source is already register for this mountpoint '%s' \
+                      and port %i."
                      mountpoint port ))
         end;
 

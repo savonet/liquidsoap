@@ -48,7 +48,7 @@ let connect () =
     with Not_found -> raise (Error "Host not found")
   in
   let sockaddr = Unix.ADDR_INET (host.Unix.h_addr_list.(0), conf_port#get) in
-  let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+  let socket = Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_STREAM 0 in
   let read () =
     let buflen = Utils.pagesize in
     let buf = Bytes.create buflen in
