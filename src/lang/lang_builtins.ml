@@ -274,7 +274,7 @@ let () =
            type should be accepted." );
       ( "file_extensions",
         Lang.list_t Lang.string_t,
-        Some (Lang.list ~t:Lang.string_t []),
+        Some (Lang.list []),
         Some
           "List of file extensions. Empty means any file extension should be \
            accepted." );
@@ -318,13 +318,13 @@ let () =
       ("priority", Lang.int_t, Some (Lang.int 1), Some "Decoder priority");
       ( "mimes",
         Lang.list_t Lang.string_t,
-        Some (Lang.list ~t:Lang.string_t []),
+        Some (Lang.list []),
         Some
           "List of mime types supported by this decoder. Empty means any mime \
            type should be accepted." );
       ( "file_extensions",
         Lang.list_t Lang.string_t,
-        Some (Lang.list ~t:Lang.string_t []),
+        Some (Lang.list []),
         Some
           "List of file extensions. Empty means any file extension should be \
            accepted." );

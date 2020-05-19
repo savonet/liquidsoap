@@ -69,14 +69,14 @@ let duration process =
   ret
 
 (** A function to wrap around the Wav_aiff_decoder *)
-let create process kind filename =
+let create process ctype filename =
   let close = ref (fun () -> ()) in
   let create input =
     let input, actual_close = external_input process input in
     close := actual_close;
     Wav_aiff_decoder.create ?header:None input
   in
-  let dec = Decoder.opaque_file_decoder ~filename ~kind create in
+  let dec = Decoder.opaque_file_decoder ~filename ~ctype create in
   {
     dec with
     Decoder.close =
@@ -100,8 +100,7 @@ let test_ctype f filename =
   else
     Some
       {
-        Frame.
-        video = 0;
+        Frame.video = 0;
         midi = 0;
         (* TODO: this is not perfect *)
         audio = (if ret < 0 then Lazy.force Frame.audio_channels else ret);
@@ -114,11 +113,9 @@ let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
       priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
-      file_type =
-        (fun filename ->
-          Utils.maybe (test_ctype test filename));
+      file_type = (fun filename -> test_ctype test filename);
       file_decoder =
-        Some (fun ~metadata:_ ~kind filename -> create process kind filename);
+        Some (fun ~metadata:_ ~ctype filename -> create process ctype filename);
       stream_decoder = Some (fun _ -> create_stream process);
     };
 
@@ -152,11 +149,12 @@ let external_input_oblivious process filename prebuf =
     try Process_handler.kill process with Process_handler.Finished -> ()
   in
   let input = { Decoder.read; tell = None; length = None; lseek = None } in
-  let kind = Frame.{ audio = Any; video = Zero; midi = Zero } in
-  let gen =
-    Generator.create ~log_overfull:false ~log:(log#info "%s") ~kind `Audio
+  (* TODO: is this really what we want for audio channels? *)
+  let ctype =
+    Frame.{ audio = Lazy.force Frame.audio_channels; video = 0; midi = 0 }
   in
-  let buffer = Decoder.mk_buffer ~kind gen in
+  let gen = Generator.create ~log_overfull:false ~log:(log#info "%s") `Audio in
+  let buffer = Decoder.mk_buffer ~ctype gen in
   let prebuf = Frame.master_of_seconds prebuf in
   let decoder = Wav_aiff_decoder.create input in
   let fill frame =
@@ -187,12 +185,10 @@ let register_oblivious ~name ~sdoc ~priority ~mimes ~file_extensions ~test
       priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
-      file_type =
-        (fun filename ->
-          Utils.maybe Frame.type_of_kind (test_kind test filename));
+      file_type = (fun filename -> test_ctype test filename);
       file_decoder =
         Some
-          (fun ~metadata:_ ~kind:_ filename ->
+          (fun ~metadata:_ ~ctype:_ filename ->
             external_input_oblivious process filename prebuf);
       stream_decoder = None;
     };

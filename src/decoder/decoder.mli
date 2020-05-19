@@ -106,7 +106,7 @@ val test_file :
 
 (** Test if we can decode for a given kind. This include cases where we
     know how to convert channel layout. *)
-val can_decode_kind : Frame.content_type -> Frame.content_kind -> bool
+val can_decode_type : Frame.content_type -> Frame.content_type -> bool
 
 val get_file_decoder :
   metadata:Frame.metadata ->
@@ -115,13 +115,13 @@ val get_file_decoder :
   (string * (unit -> file_decoder_ops)) option
 
 val get_stream_decoder :
-  kind:Frame.content_kind -> string -> stream_decoder option
+  ctype:Frame.content_type -> string -> stream_decoder option
 
 val image_file_decoders : (file -> Video.Image.t option) Plug.plug
 val get_image_file_decoder : file -> Video.Image.t option
 
 (* Initialize a decoding buffer *)
-val mk_buffer : kind:Frame.content_kind -> G.t -> buffer
+val mk_buffer : ctype:Frame.content_type -> G.t -> buffer
 
 (* Create a file decoder when remaning time is known. *)
 val file_decoder :

@@ -302,7 +302,7 @@ module Make (Config : Config_t) = struct
         in
         try
           let decoder = create_decoder input in
-          let buffer = Decoder.mk_buffer ~kind generator in
+          let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
           while true do
             if should_fail then failwith "end of track";
             if should_stop () || not relaying then failwith "source stopped";
@@ -478,7 +478,9 @@ module Make (Config : Config_t) = struct
             else (
               Generator.set_mode generator `Undefined;
               let dec =
-                match Decoder.get_stream_decoder ~ctype:self#ctype content_type with
+                match
+                  Decoder.get_stream_decoder ~ctype:self#ctype content_type
+                with
                   | Some d -> d
                   | None -> failwith "Unknown format!"
               in

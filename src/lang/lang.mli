@@ -231,8 +231,7 @@ val succ_t : t -> t
 val n_t : int -> t
 val add_t : int -> t -> t
 val type_of_int : int -> t
-val request_t : t -> t
-val of_request_t : t -> t
+val request_t : t
 val source_t : t -> t
 val of_source_t : t -> t
 val format_t : t -> t

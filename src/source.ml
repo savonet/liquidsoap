@@ -795,7 +795,7 @@ class virtual operator ?(name = "src") kind sources =
     * in the metadatas of the request. *)
     method private create_request ?(metadata = []) =
       let metadata = ("source", self#id) :: metadata in
-      Request.create ~metadata ~ctype:self#ctype
+      Request.create ~metadata
   end
 
 (** Entry-point sources, which need to actively perform some task. *)

@@ -71,8 +71,7 @@ let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
-let request_t t = Term.request_t t
-let of_request_t t = Term.of_request_t t
+let request_t = Term.request_t ()
 
 let rec t_of_mul = function
   | Frame.Fixed 0 -> zero_t

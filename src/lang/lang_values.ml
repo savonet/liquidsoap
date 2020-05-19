@@ -112,14 +112,8 @@ let of_source_t t =
     | T.Constr { T.name = "active_source"; T.params = [(_, t)] } -> t
     | _ -> assert false
 
-let request_t ?pos ?level k =
-  T.make ?pos ?level
-    (T.Constr { T.name = "request"; T.params = [(T.Invariant, k)] })
-
-let of_request_t t =
-  match (T.deref t).T.descr with
-    | T.Constr { T.name = "request"; T.params = [(_, t)] } -> t
-    | _ -> assert false
+let request_t ?pos ?level () =
+  T.make ?pos ?level (T.Constr { T.name = "request"; T.params = [] })
 
 let rec type_of_mul ~pos ~level m =
   T.make ~pos ~level

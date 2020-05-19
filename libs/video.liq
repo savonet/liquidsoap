@@ -182,20 +182,20 @@ def output.youtube.live.ffmpeg(~id="",~flush=false, ~fallible=false,
                          reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
 end
 
-%ifdef ffmpeg.filter.drawtext
-def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, text, s)
-  int_args = [("fontsize", size), ("x", x), ("y", y)]
-  color = "0x" ^ string.hex_of_int(pad=6, color)
-  string_args = [("fontcolor", color), ("text", text)]
-  string_args = if font == "" then string_args else list.add(("fontfile", font), string_args) end
-  def mkfilter(graph)
-    s = ffmpeg.filter.video.input(graph, s)
-    s = ffmpeg.filter.drawtext(graph, int_args=int_args, string_args=string_args, s)
-    ffmpeg.filter.video.output(graph, s)
-  end
-  ffmpeg.filter.create(mkfilter)
-end
-%endif
+# %ifdef ffmpeg.filter.drawtext
+# def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, text, s)
+  # int_args = [("fontsize", size), ("x", x), ("y", y)]
+  # color = "0x" ^ string.hex_of_int(pad=6, color)
+  # string_args = [("fontcolor", color), ("text", text)]
+  # string_args = if font == "" then string_args else list.add(("fontfile", font), string_args) end
+  # def mkfilter(graph)
+    # s = ffmpeg.filter.video.input(graph, s)
+    # s = ffmpeg.filter.drawtext(graph, int_args=int_args, string_args=string_args, s)
+    # ffmpeg.filter.video.output(graph, s)
+  # end
+  # ffmpeg.filter.create(mkfilter)
+# end
+# %endif
 
 video.add_text = video.add_text.native
 

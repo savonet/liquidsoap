@@ -239,8 +239,14 @@ def request.dynamic(~id="",~conservative=false,~default_duration=30.,
                    length=length,timeout=timeout,fun () -> [fn()])
 end
 
-# Deprecated: this function has been replaced by fail.
+# Deprecated: this function has been replaced by `fail`.
 # @flag hidden
 def empty(~id="")
   fail()
+end
+
+# Deprecated: use `request.create` instead.
+# @flag hidden
+def request.create.raw(~indicators=[], ~persistent=false, uri)
+  request.create(indicators=indicators, persistent=persistent, uri)
 end

@@ -243,6 +243,20 @@ let () =
       let files = List.map Lang.string files in
       Lang.list files)
 
+let () =
+  add_builtin "file.metadata" ~cat:Sys
+    [("", Lang.string_t, None, Some "Read metadata from a file.")]
+    Lang.metadata_t
+    ~descr:"Call a function when a file is modified. Returns unwatch function."
+    (fun p ->
+      let uri = Lang.to_string (List.assoc "" p) in
+      let r = Request.create uri in
+      (* TODO: it would be better to set audio to 0, but this does not seem to work... *)
+      let ctype = { Frame.audio = 2; video = 0; midi = 0 } in
+      if Request.resolve ~ctype:(Some ctype) r 30. = Request.Resolved then
+        Lang.metadata (Request.get_all_metadata r)
+      else Lang.metadata (Hashtbl.create 0))
+
 (************** Paths ********************)
 
 let () =

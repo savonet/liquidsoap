@@ -158,7 +158,7 @@ module Make (Harbor : T) = struct
         in
         try
           let decoder = create_decoder input in
-          let buffer = Decoder.mk_buffer ~kind generator in
+          let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
           while true do
             Tutils.mutexify relay_m
               (fun () ->
@@ -204,7 +204,7 @@ module Make (Harbor : T) = struct
           with Not_found -> mime
         in
         Generator.set_mode generator `Undefined;
-        match Decoder.get_stream_decoder ~ctype:self#ctype mime self#ctype with
+        match Decoder.get_stream_decoder ~ctype:self#ctype mime with
           | Some d ->
               create_decoder <- d;
               mime_type <- Some mime

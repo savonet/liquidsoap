@@ -143,8 +143,8 @@ let lang_doc name =
 let process_request s =
   load_libs ();
   secondary_task := true;
-  let req = Request.create_raw s in
-  match Request.resolve req 20. with
+  let req = Request.create s in
+  match Request.resolve ~ctype:None req 20. with
     | Request.Failed ->
         Printf.printf "Request resolution failed.\n";
         Request.destroy req;

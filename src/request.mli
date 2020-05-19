@@ -36,18 +36,8 @@ val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
   * which are devices for obtaining a local file from an URI. *)
 type t
 
-(** For media requests,
-  * resolving includes testing that the file can actually be decoded
-  * into a stream of the expected kind. *)
+(** Create a request. *)
 val create :
-  ctype:Frame.content_type ->
-  ?metadata:(string * string) list ->
-  ?persistent:bool ->
-  ?indicators:indicator list ->
-  string ->
-  t
-
-val create_raw :
   ?metadata:(string * string) list ->
   ?persistent:bool ->
   ?indicators:indicator list ->
@@ -111,7 +101,7 @@ type resolve_flag = Resolved | Failed | Timeout
 (** [resolve request timeout] tries to resolve the request within [timeout]
   * seconds. If resolving succeeds, [is_ready request] is true and you
   * can get a filename. *)
-val resolve : t -> float -> resolve_flag
+val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
 
 (** [is_ready r] if there's an available local filename. It can be true even if
   * the resolving hasn't been run, if the initial URI was already a local

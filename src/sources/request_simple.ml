@@ -26,33 +26,23 @@ open Request_source
 exception Invalid_URI of string
 
 (** [r] must resolve and be always ready. *)
-class unqueued ~kind r =
+class unqueued ~kind request =
   object (self)
     inherit Request_source.unqueued ~name:"single" ~kind as super
 
-    val mutable request = None
-
-    method request =
-      match request with
-        | Some request -> request
-        | None ->
-            let r = r self#ctype in
-            request <- Some r;
-            r
-
     method wake_up x =
-      let request = self#request in
       let uri = Request.initial_uri request in
       self#log#important "%S is static, resolving once for all..." uri;
-      if Request.Resolved <> Request.resolve request 60. then
-        raise (Invalid_URI uri);
+      if
+        Request.Resolved <> Request.resolve ~ctype:(Some self#ctype) request 60.
+      then raise (Invalid_URI uri);
       let filename = Utils.get_some (Request.get_filename request) in
       if String.length filename < 15 then self#set_id filename;
       super#wake_up x
 
     method stype = Infallible
 
-    method get_next_file = Some self#request
+    method get_next_file = Some request
   end
 
 class queued ~kind uri length default_duration timeout conservative =
@@ -91,8 +81,8 @@ let () =
       let l, d, t, c = extract_queued_params p in
       let uri = Lang.to_string val_uri in
       if (not fallible) && Request.is_static uri then (
-        let r ctype = Request.create ~ctype ~persistent:true uri in
-        (new unqueued ~kind r :> source) )
+        let request = Request.create ~persistent:true uri in
+        (new unqueued ~kind request :> source) )
       else (new queued uri ~kind l d t c :> source))
 
 let () =
@@ -103,11 +93,9 @@ let () =
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
-    [("", Lang.request_t t, None, None)]
-    ~return_t:t
-    (fun p ->
-      let r _ = Lang.to_request (List.assoc "" p) in
-      (new unqueued ~kind r :> source))
+    [("", Lang.request_t, None, None)] ~return_t:t (fun p ->
+      let request = Lang.to_request (List.assoc "" p) in
+      (new unqueued ~kind request :> source))
 
 class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   default_duration timeout conservative =
@@ -165,7 +153,7 @@ let () =
   let t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "request.dynamic.list" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    ( ("", Lang.fun_t [] (Lang.list_t (Lang.request_t t)), None, None)
+    ( ("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
     :: ( "retry_delay",
          Lang.float_getter_t (),
          Some (Lang.float 0.1),

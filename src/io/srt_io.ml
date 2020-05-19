@@ -334,7 +334,7 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
                 decoder
             | Some d -> d
         in
-        let buffer = Decoder.mk_buffer ~kind generator in
+        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         while Generator.length generator < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;

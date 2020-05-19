@@ -81,7 +81,8 @@ type t = {
 (** Create a frame of a given content type. *)
 val create : content_type -> t
 
-(** A dummy frame. *)
+(** A dummy frame which should never written to or read from. This is however
+    useful as a placeholder before initialization of references. *)
 val dummy : t
 
 (** Get a frame's content type. *)

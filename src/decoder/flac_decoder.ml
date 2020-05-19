@@ -124,7 +124,7 @@ let file_type filename =
         channels;
       Some { Frame.audio = channels; video = 0; midi = 0 })
 
-let file_decoder ~metadata:_ ~ctype =
+let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder
 
 let () =

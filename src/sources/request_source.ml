@@ -353,7 +353,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         | None -> Empty
         | Some req -> (
             resolving <- Some req;
-            match Request.resolve req timeout with
+            match Request.resolve ~ctype:(Some self#ctype) req timeout with
               | Request.Resolved ->
                   let len =
                     match Request.get_metadata req "duration" with

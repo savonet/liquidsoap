@@ -101,12 +101,7 @@ let () =
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let channels = Lang.to_int (List.assoc "channels" p) in
-      if ctype.Frame.audio <> channels then
-        raise
-          (Lang_errors.Invalid_value
-             ( List.assoc "channels" p,
-               "Incompatible number of channels, please use a conversion \
-                operator." ));
+      let kind = { kind with Frame.audio = Lang.Fixed channels } in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
       let resampler = Decoder_utils.samplerate_converter () in
       let convert =

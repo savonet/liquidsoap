@@ -128,7 +128,7 @@ type status = Idle | Resolving | Ready | Playing | Destroyed
 type t = {
   id : int;
   initial_uri : string;
-  ctype : Frame.content_type option;
+  mutable ctype : Frame.content_type option;
   (* No kind for raw requests *)
   persistent : bool;
   (* The status of a request gives partial information of what's being done
@@ -462,7 +462,7 @@ let leak_warning =
   Dtools.Conf.int ~p:(conf#plug "leak_warning") ~d:100
     "Number of requests at which a leak warning should be issued."
 
-let create ~ctype ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
+let create ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
@@ -479,7 +479,8 @@ let create ~ctype ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
     {
       id = rid;
       initial_uri = u;
-      ctype;
+      ctype = None;
+      (* This is fixed when resolving the request. *)
       persistent;
       on_air = None;
       resolving = None;
@@ -494,9 +495,6 @@ let create ~ctype ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
   List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata;
   push_indicators t (if indicators = [] then [indicator u] else indicators);
   t
-
-let create_raw = create ~ctype:None
-let create ~ctype = create ~ctype:(Some ctype)
 
 let on_air t =
   t.on_air <- Some (Unix.time ());
@@ -556,7 +554,9 @@ type resolve_flag = Resolved | Failed | Timeout
 
 exception ExnTimeout
 
-let resolve t timeout =
+let resolve ~ctype t timeout =
+  assert (t.ctype = None || t.ctype = ctype);
+  t.ctype <- ctype;
   t.resolving <- Some (Unix.time ());
   t.status <- Resolving;
   let maxtime = Unix.time () +. timeout in

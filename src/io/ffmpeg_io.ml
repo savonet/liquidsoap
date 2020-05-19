@@ -108,7 +108,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
     method private feed (should_stop, has_stopped) =
       try
         let decoder = self#get_decoder in
-        let buffer = Decoder.mk_buffer ~kind generator in
+        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         while true do
           if should_stop () then failwith "stop";
           decoder buffer
