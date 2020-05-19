@@ -263,7 +263,9 @@ let decoder_modes ctype =
   let audio = ctype.Frame.audio in
   let video = ctype.Frame.video in
   let midi = ctype.Frame.midi in
-  if audio = 0 && video = 0 && midi > 0 then [`Midi]
+  if audio = 0 && video = 0 && midi = 0 then
+    [`Audio_video; `Audio; `Video; `Midi]
+  else if audio = 0 && video = 0 && midi > 0 then [`Midi]
   else if midi <> 0 then []
   else if audio > 0 && video > 0 then [`Audio_video]
   else if audio > 0 && video = 0 then [`Audio]
