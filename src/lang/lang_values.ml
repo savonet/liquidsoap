@@ -112,8 +112,7 @@ let of_source_t t =
     | T.Constr { T.name = "active_source"; T.params = [(_, t)] } -> t
     | _ -> assert false
 
-let request_t ?pos ?level () =
-  T.make ?pos ?level (T.Constr { T.name = "request"; T.params = [] })
+let request_t ?pos ?level () = T.make ?pos ?level (T.Ground T.Request)
 
 let rec type_of_mul ~pos ~level m =
   T.make ~pos ~level
