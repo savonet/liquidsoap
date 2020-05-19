@@ -98,3 +98,5 @@ test_gstreamer_video_decoder: $(ENCODED_VIDEO_FILES) $(top_srcdir)/src/liquidsoa
 	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_gstreamer_video_decoder.liq "Gstreamer video decoder test for $$i" || exit; \
           fi \
 	done
+
+include $(top_srcdir)/Makefile.rules
