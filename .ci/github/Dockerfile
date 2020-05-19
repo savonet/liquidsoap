@@ -24,7 +24,7 @@ RUN eval $(opam config env) && git pull && make clean && make update && \
      ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
                  --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
                  --with-camomile-data-dir=/usr/share/liquidsoap/camomile && \
-     make clean && make && make test && cd liquidsoap && make doc
+     make clean && make && cd liquidsoap && make test && make doc
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
