@@ -178,7 +178,7 @@ module Ground = struct
       | Int i -> Some { descr = string_of_int i; typ = T.Int }
       | String s -> Some { descr = Printf.sprintf "%S" s; typ = T.String }
       | Float f -> Some { descr = string_of_float f; typ = T.Float }
-      | Request r -> Some { descr = "<request>"; typ = T.Request }
+      | Request _ -> Some { descr = "<request>"; typ = T.Request }
       | _ -> None)
 end
 
