@@ -7,7 +7,7 @@ top_srcdir = ..
 
 test:
 	@$(MAKE) -C language test
-	@$(MAGE) -C media test
+	@$(MAKE) -C media test
 	@$(MAKE) -C regression test
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 	@echo
