@@ -29,9 +29,10 @@ doc/content/protocols.md
 autodoc/
 *.annot
 tests/threesines/
-tests/files/
-tests/generic/test_stream_audio.liq
-tests/generic/test_stream_video.liq
+tests/media/files/
+tests/media/test_encoder.liq
+tests/media/test_stream_audio.liq
+tests/media/test_stream_video.liq
 src/test/readavi
 src/test/simplelex_test
 src/test/strings_test

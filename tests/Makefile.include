@@ -1,4 +1,0 @@
-%: %.liq
-	@./$(top_srcdir)/tests/run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" $<
-
-include $(top_srcdir)/Makefile.rules

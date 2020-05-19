@@ -1,15 +1,14 @@
-.PHONY: test test_files test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder
+.PHONY: test
 
-DISTFILES = Makefile mk_stream_test.sh $(wildcard *.liq) $(wildcard *.pl)
-SUBDIRS = files fixme generic language regression
+DISTFILES = Makefile $(wildcard *.sh) $(wildcard *.liq) $(wildcard *.pl)
+SUBDIRS = fixme media language regression
 
 top_srcdir = ..
 
 test:
-	@$(MAKE) -C files
-	@$(MAKE) -C language
-	@$(MAKE) -C regression
-	@$(MAKE) -C generic
+	@$(MAKE) -C language test
+	@$(MAGE) -C media test
+	@$(MAKE) -C regression test
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 	@echo
 	@echo

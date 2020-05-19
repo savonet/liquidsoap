@@ -4,7 +4,7 @@
 # was retuning remaining = 0 too early,
 # trigering an early `on_end` call.
 
-s = single("../files/audio/@flac(stereo).flac")
+s = single("../media/files/audio/@flac(stereo).flac")
 
 def f(rem, _) =
   if rem > 0. then
