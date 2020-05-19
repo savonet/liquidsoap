@@ -50,7 +50,6 @@ let rec to_json_compact v =
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
-    | Lang.Request _ -> "\"<request>\""
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
 let rec to_json_pp f v =

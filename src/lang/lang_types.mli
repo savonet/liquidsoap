@@ -29,7 +29,7 @@ val print_pos : ?prefix:string -> pos -> string
 
 type variance = Covariant | Contravariant | Invariant
 type ground = ..
-type ground += Bool | Int | String | Float
+type ground += Bool | Int | String | Float | Request
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string

@@ -73,7 +73,7 @@ let print_pos ?(prefix = "at ") (start, stop) =
 (** Ground types *)
 
 type ground = ..
-type ground += Bool | Int | String | Float
+type ground += Bool | Int | String | Float | Request
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
@@ -86,6 +86,7 @@ let () =
     | Bool -> Some "bool"
     | Int -> Some "int"
     | Float -> Some "float"
+    | Request -> Some "request"
     | _ -> None)
 
 let print_ground v =

@@ -55,7 +55,6 @@ and lazy_env = (string * value Lazy.t) list
 and in_value = Lang_values.V.in_value =
   | Ground of Ground.t
   | Source of Source.source
-  | Request of Request.t
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list

@@ -152,7 +152,7 @@ let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
 let list l = mk (List l)
 let source s = mk (Source s)
-let request r = mk (Request r)
+let request r = mk (Ground (Request r))
 
 let val_fun p f =
   let p' = List.map (fun (l, x, d) -> (l, x, d)) p in
@@ -375,7 +375,7 @@ let iter_sources f v =
   and iter_value v =
     match v.value with
       | Source s -> f s
-      | Ground _ | Request _ | Encoder _ -> ()
+      | Ground _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
       | Fun (proto, pe, env, body) ->
@@ -478,7 +478,10 @@ let to_float_getter t =
 
 let to_source t = match t.value with Source s -> s | _ -> assert false
 let to_format t = match t.value with Encoder f -> f | _ -> assert false
-let to_request t = match t.value with Request x -> x | _ -> assert false
+
+let to_request t =
+  match t.value with Ground (Request x) -> x | _ -> assert false
+
 let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =

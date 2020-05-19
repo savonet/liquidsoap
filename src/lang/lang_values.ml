@@ -165,7 +165,12 @@ module Ground = struct
   let to_string (v : t) = (find v).descr
   let to_type (v : t) = (find v).typ
 
-  type t += Bool of bool | Int of int | String of string | Float of float
+  type t +=
+    | Bool of bool
+    | Int of int
+    | String of string
+    | Float of float
+    | Request of Request.t
 
   let () =
     register (function
@@ -173,6 +178,7 @@ module Ground = struct
       | Int i -> Some { descr = string_of_int i; typ = T.Int }
       | String s -> Some { descr = Printf.sprintf "%S" s; typ = T.String }
       | Float f -> Some { descr = string_of_float f; typ = T.Float }
+      | Request r -> Some { descr = "<request>"; typ = T.Request }
       | _ -> None)
 end
 
@@ -417,7 +423,6 @@ module V = struct
   and in_value =
     | Ground of Ground.t
     | Source of Source.source
-    | Request of Request.t
     | Encoder of Encoder.format
     | List of value list
     | Tuple of value list
@@ -440,7 +445,6 @@ module V = struct
     match v.value with
       | Ground g -> Ground.to_string g
       | Source _ -> "<source>"
-      | Request _ -> "<request>"
       | Encoder e -> Encoder.string_of_format e
       | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
