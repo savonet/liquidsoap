@@ -1,10 +1,10 @@
 DISTFILES = Makefile $(wildcard *.liq *.liq.in)
 top_srcdir = ../..
 
-all: files test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder
+test: files test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder
 
 files:
-	$(MAKE) -C ../files
+	@$(MAKE) -C ../files
 
 test_mono: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_FILES:%="%"); do \

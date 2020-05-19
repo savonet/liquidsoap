@@ -1,7 +1,7 @@
 .PHONY: test test_files test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder
 
 DISTFILES = Makefile mk_stream_test.sh $(wildcard *.liq) $(wildcard *.pl)
-SUBDIRS = fixme tests generic
+SUBDIRS = files fixme generic language regression
 
 top_srcdir = ..
 

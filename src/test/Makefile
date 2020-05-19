@@ -10,7 +10,10 @@ OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
 
 all: $(TESTS)
 
-test: all
+test.mp3:
+	if [ ! -e test.wav ] ; then ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 -metadata title="Liquidsong" -metadata artist="Liquidsinger" test.mp3 ; fi
+
+test: test.mp3 all
 	@for t in $(TESTS); do echo "Testing $$t..."; ./$$t || exit 1; done
 
 clean:

@@ -3,6 +3,6 @@ TESTS = $(basename $(LIQ))
 DISTFILES = Makefile $(wildcard *.liq)
 top_srcdir = ../..
 
-all: $(TESTS)
+test: $(TESTS)
 
 include ../Makefile.include
