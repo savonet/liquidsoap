@@ -213,8 +213,6 @@ let buffer_args () =
     `Pair ("pix_fmt", `String "yuv420p");
   ]
 
-(* TODO: restore me! *)
-(*
 let () =
   let audio_t = Lang.(source_t (kind_type_of_kind_format audio_any)) in
   let video_t = Lang.(source_t (kind_type_of_kind_format video_only)) in
@@ -230,16 +228,25 @@ let () =
 
   add_builtin ~cat:Liq "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
-    [("", Graph.t, None, None); ("", audio_t, None, None)] Audio.t (fun p ->
+    [
+      ( "channels",
+        Lang.int_t,
+        Some (Lang.int 2),
+        Some "Number of audio channels." );
+      ("", Graph.t, None, None);
+      ("", audio_t, None, None);
+    ]
+    Audio.t
+    (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
-      let kind = (Lang.to_source source_val)#kind in
-      let channels = Frame.((type_of_kind kind).audio) in
+      let channels = Lang.to_int (List.assoc "channels" p) in
       let name = uniq_name "abuffer" in
       let args = abuffer_args channels in
       let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
+      let kind = Lang.audio_n channels in
       let s = Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) in
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
@@ -319,7 +326,6 @@ let () =
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output);
       (s :> Source.source))
-*)
 
 let () =
   let univ_t = Lang.univ_t () in
