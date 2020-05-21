@@ -682,7 +682,7 @@ def file_protocol(~rlog,~maxtime,arg) =
       segments
     end
 
-  [string.concat(separator="/",segments)]
+  [url.decode(string.concat(separator="/",segments))]
 end
 
 add_protocol(static=true, temporary=false, "file", file_protocol,
