@@ -160,7 +160,7 @@ let () =
           | Some t -> Lang.product_t Lang.string_t t
           | None -> Lang.string_t
       in
-      (name ^ "_args", Lang.list_t t, Some (Lang.list ~t []), None)
+      (name ^ "_args", Lang.list_t t, Some (Lang.list []), None)
     in
     List.iter
       (fun ({ name; description; io } as filter) ->
@@ -228,26 +228,36 @@ let () =
 
   add_builtin ~cat:Liq "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
-    [("", Graph.t, None, None); ("", audio_t, None, None)] Audio.t (fun p ->
+    [
+      ( "channels",
+        Lang.int_t,
+        Some (Lang.int 2),
+        Some "Number of audio channels." );
+      ("", Graph.t, None, None);
+      ("", audio_t, None, None);
+    ]
+    Audio.t
+    (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
-      let kind = (Lang.to_source source_val)#kind in
-      let channels = Frame.((type_of_kind kind).audio) in
+      let channels = Lang.to_int (List.assoc "channels" p) in
       let name = uniq_name "abuffer" in
       let args = abuffer_args channels in
       let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
+      let kind = Lang.audio_n channels in
       let s = Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) in
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));
 
-  let return_t = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
     ~descr:"Return an audio source from a filter's output" ~return_t
     (output_base_proto @ [("", Graph.t, None, None); ("", Audio.t, None, None)])
-    (fun p kind ->
+    (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -280,11 +290,12 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
       Video.to_value (`Output (List.hd Avfilter.(_buffer.io.outputs.video))));
 
-  let return_t = Lang.kind_type_of_kind_format Lang.video_only in
+  let kind = Lang.video_only in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
     ~descr:"Return a video source from a filter's output" ~return_t
     (output_base_proto @ [("", Graph.t, None, None); ("", Video.t, None, None)])
-    (fun p kind ->
+    (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
@@ -339,7 +350,7 @@ let () =
               };
           }
       in
-      let ret = Lang.apply ~t:Lang.unit_t fn [("", Graph.to_value graph)] in
+      let ret = Lang.apply fn [("", Graph.to_value graph)] in
       let filter = Avfilter.launch config in
       Avfilter.(
         List.iter

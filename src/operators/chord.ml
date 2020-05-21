@@ -46,6 +46,9 @@ class chord ~kind metadata_name (source : source) =
   object (self)
     inherit operator ~name:"chord" kind [source]
 
+    method set_kind =
+      Source.Kind.unify self#kind_var (Source.Kind.set_midi source#kind_var 1)
+
     method stype = source#stype
 
     method remaining = source#remaining
@@ -132,8 +135,8 @@ let () =
       ("", Lang.source_t in_k, None, None);
     ]
     ~return_t:out_k ~category:Lang.MIDIProcessing ~descr:"Generate a chord."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let metadata = Lang.to_string (f "metadata") in
-      new chord ~kind metadata src)
+      (new chord ~kind:Lang.any metadata src :> Source.source))

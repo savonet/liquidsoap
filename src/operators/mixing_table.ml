@@ -43,7 +43,15 @@ class mixing ~kind source =
 
     method self_sync = Array.exists (fun s -> s#self_sync) source
 
-    val tmp = Frame.create kind
+    val mutable tmp = None
+
+    method tmp =
+      match tmp with
+        | Some tmp -> tmp
+        | None ->
+            let frame = Frame.create self#ctype in
+            tmp <- Some frame;
+            frame
 
     initializer
     (* Server commands *)
@@ -85,6 +93,7 @@ class mixing ~kind source =
       (fun _ -> Array.fold_left (fun e s -> e ^ " " ^ s#id) "" source)
 
     method private get_frame buf =
+      let tmp = self#tmp in
       let p = AFrame.position buf in
       let r = AFrame.size () - p in
       AFrame.blankify buf p r;
@@ -122,11 +131,12 @@ class mixing ~kind source =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "mix"
     [("", Lang.list_t (Lang.source_t k), None, None)]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Mixing table controllable via the telnet interface."
-    (fun p kind ->
+    (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
-      new mixing ~kind (Array.of_list sources))
+      (new mixing ~kind (Array.of_list sources) :> Source.source))

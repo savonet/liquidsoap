@@ -39,9 +39,11 @@ class gen ~kind ~seek name g freq duration ampl =
   end
 
 let add name g =
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator name ~category:Lang.Input
     ~descr:("Generate a " ^ name ^ " wave.")
-    ~return_t:(Lang.kind_type_of_kind_format Lang.audio_any)
+    ~return_t
     [
       ( "duration",
         Lang.float_t,
@@ -56,7 +58,7 @@ let add name g =
         Some (Lang.float 440.),
         Some ("Frequency of the " ^ name ^ ".") );
     ]
-    (fun p kind ->
+    (fun p ->
       ( new gen
           ~seek:true ~kind name g
           (Lang.to_float_getter (List.assoc "" p))

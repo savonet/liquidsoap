@@ -15,4 +15,8 @@ test:
 	@echo "***** Performance tests *****"
 	@./performance.liq
 
+perf:
+	perf record --call-graph=dwarf -- ../src/liquidsoap ../libs/pervasives.liq performance.liq
+	perf report
+
 include $(top_srcdir)/Makefile.rules

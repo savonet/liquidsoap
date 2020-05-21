@@ -191,8 +191,8 @@ module Make (Config : Config_t) = struct
 
       inherit
         Generated.source
-          (Generator.create ~log ~kind ~log_overfull
-             ~overfull:(`Drop_old max_ticks) `Undefined)
+          (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
+             `Undefined)
           ~empty_on_abort:false ~bufferize
 
       method stype = Source.Fallible
@@ -302,7 +302,7 @@ module Make (Config : Config_t) = struct
         in
         try
           let decoder = create_decoder input in
-          let buffer = Decoder.mk_buffer ~kind generator in
+          let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
           while true do
             if should_fail then failwith "end of track";
             if should_stop () || not relaying then failwith "source stopped";
@@ -478,7 +478,9 @@ module Make (Config : Config_t) = struct
             else (
               Generator.set_mode generator `Undefined;
               let dec =
-                match Decoder.get_stream_decoder ~kind content_type with
+                match
+                  Decoder.get_stream_decoder ~ctype:self#ctype content_type
+                with
                   | Some d -> d
                   | None -> failwith "Unknown format!"
               in
@@ -577,7 +579,7 @@ module Make (Config : Config_t) = struct
           Some "Timeout for source connectionn." );
         ( "on_connect",
           Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
-          Some (Lang.val_cst_fun [("", Lang.metadata_t, None)] Lang.unit),
+          Some (Lang.val_cst_fun [("", None)] Lang.unit),
           Some
             "Function to execute when a source is connected. Its receives the \
              list of headers, of the form: (<label>,<value>). All labels are \
@@ -635,7 +637,7 @@ module Make (Config : Config_t) = struct
             ( "URL of an " ^ protocol ^ " stream (default port is "
             ^ string_of_int default_port ^ ")." ) );
       ]
-      (fun p kind ->
+      (fun p ->
         let playlist_mode =
           let s = List.assoc "playlist_mode" p in
           match Lang.to_string s with
@@ -684,16 +686,14 @@ module Make (Config : Config_t) = struct
               (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
               l
           in
-          let arg =
-            Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
-          in
-          ignore
-            (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) [("", arg)])
+          let arg = Lang.list l in
+          ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
         in
         let on_disconnect () =
-          ignore (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+          ignore (Lang.apply (List.assoc "on_disconnect" p) [])
         in
         let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
+        let kind = Lang.any in
         ( new http
             ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta ~force_mime
             ~bind_address ~poll_delay ~timeout ~on_connect ~on_disconnect

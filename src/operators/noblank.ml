@@ -109,8 +109,8 @@ class on_blank ~kind ~start_blank ~max_blank ~min_noise ~threshold
         self#in_blank
       in
       match (was_blank, is_blank) with
-        | true, false -> ignore (Lang.apply ~t:Lang.unit_t on_noise [])
-        | false, true -> ignore (Lang.apply ~t:Lang.unit_t on_blank [])
+        | true, false -> ignore (Lang.apply on_noise [])
+        | false, true -> ignore (Lang.apply on_blank [])
         | _ -> ()
   end
 
@@ -160,8 +160,8 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
        * the track ends, the beginning of the next track won't be lost. (Because
        * of granularity issues, the change of #is_ready only takes effect at the
        * end of the clock cycle). *)
-      if source#is_ready && self#in_blank && AFrame.is_partial memo then
-        self#get_frame memo
+      if source#is_ready && self#in_blank && AFrame.is_partial self#memo then
+        self#get_frame self#memo
 
     method output_reset = ()
 
@@ -227,7 +227,8 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
       done
   end
 
-let return_t = Lang.kind_type_of_kind_format Lang.any
+let kind = Lang.any
+let return_t = Lang.kind_type_of_kind_format kind
 
 let proto =
   [
@@ -288,7 +289,7 @@ let () =
          Some (Lang.val_cst_fun [] Lang.unit),
          Some "Handler called when noise is detected." )
     :: proto )
-    (fun p kind ->
+    (fun p ->
       let on_blank = Lang.assoc "" 1 p in
       let on_noise = Lang.assoc "on_noise" 1 p in
       let p = List.remove_assoc "" p in
@@ -301,7 +302,7 @@ let () =
   Lang.add_operator "strip_blank" ~active:true ~return_t
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank." proto
-    (fun p kind ->
+    (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
@@ -317,7 +318,7 @@ let () =
         Some (Lang.bool false),
         Some "Only eat at the beginning of a track." )
     :: proto )
-    (fun p kind ->
+    (fun p ->
       let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p

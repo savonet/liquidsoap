@@ -27,6 +27,7 @@ module Ground = Term.Ground
 open Ground
 
 type t = T.t
+type pos = T.pos
 
 let log = Log.make ["lang"]
 
@@ -57,7 +58,6 @@ let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
 let rec n_t n = if n = 0 then zero_t else succ_t (n_t (n - 1))
-let any_t = Term.any_t
 let add_t = Term.add_t
 let type_of_int = Term.type_of_int
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
@@ -71,13 +71,13 @@ let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
-let request_t t = Term.request_t t
-let of_request_t t = Term.of_request_t t
+let request_t = Term.request_t ()
 
 let rec t_of_mul = function
-  | Frame.Zero -> zero_t
-  | Frame.Any -> any_t
-  | Frame.Succ m -> succ_t (t_of_mul m)
+  | Frame.Fixed 0 -> zero_t
+  | Frame.Fixed n -> succ_t (t_of_mul (Frame.Fixed (n - 1)))
+  | Frame.At_least 0 -> univ_t ()
+  | Frame.At_least n -> succ_t (t_of_mul (Frame.At_least (n - 1)))
 
 let kind_type_of_frame_kind kind =
   let audio = t_of_mul kind.Frame.audio in
@@ -89,9 +89,8 @@ let kind_type_of_frame_kind kind =
   * This might require to force some At_least variables. *)
 let rec mul_of_type default t =
   match (T.deref t).T.descr with
-    | T.Succ t -> Frame.Succ (mul_of_type (default - 1) t)
-    | T.Zero -> Frame.Zero
-    | T.Any -> Frame.Any
+    | T.Succ t -> Frame.succ_mul (mul_of_type (default - 1) t)
+    | T.Zero -> Frame.Fixed 0
     | T.EVar _ ->
         let default = max 0 default in
         T.bind t (type_of_int default);
@@ -108,122 +107,73 @@ let frame_kind_of_kind_type t =
     midi = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi;
   }
 
-(** Description of how many of a channel type does an operator want.
-  * [Fixed n] means exactly [n] channels.
-  * [At_least n] means any fixed numbers of channels that is [>=n]. *)
-type lang_kind_format = Fixed of int | At_least of int
+type lang_kind_format = Source.Kind.format = Fixed of int | At_least of int
+type lang_kind_formats = Source.Kind.formats
 
-type lang_kind_formats =
-  | Unconstrained of t
-  | Constrained of
-      (lang_kind_format, lang_kind_format, lang_kind_format) Frame.fields
-
-let any =
-  Constrained
-    { Frame.audio = At_least 0; video = At_least 0; midi = At_least 0 }
-
-let empty =
-  Constrained { Frame.audio = Fixed 0; video = Fixed 0; midi = Fixed 0 }
+let any = { Frame.audio = At_least 0; video = At_least 0; midi = At_least 0 }
+let empty = { Frame.audio = Fixed 0; video = Fixed 0; midi = Fixed 0 }
 
 let any_with ?(audio = 0) ?(video = 0) ?(midi = 0) () =
-  Constrained
-    {
-      Frame.audio = At_least audio;
-      video = At_least video;
-      midi = At_least midi;
-    }
+  { Frame.audio = At_least audio; video = At_least video; midi = At_least midi }
 
-let audio_any =
-  Constrained { Frame.audio = At_least 1; video = Fixed 0; midi = Fixed 0 }
-
-let audio_n n =
-  Constrained { Frame.audio = Fixed n; video = Fixed 0; midi = Fixed 0 }
-
+let audio_any = { Frame.audio = At_least 1; video = Fixed 0; midi = Fixed 0 }
+let audio_n n = { Frame.audio = Fixed n; video = Fixed 0; midi = Fixed 0 }
 let audio_mono = audio_n 1
 let audio_stereo = audio_n 2
-
-let video_only =
-  Constrained { Frame.audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
-
-let video =
-  Constrained { Frame.audio = At_least 0; video = Fixed 1; midi = At_least 0 }
+let video_only = { Frame.audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
+let video = { Frame.audio = At_least 0; video = Fixed 1; midi = At_least 0 }
 
 let audio_video_any =
-  Constrained { Frame.audio = At_least 0; video = At_least 0; midi = Fixed 0 }
+  { Frame.audio = At_least 0; video = At_least 0; midi = Fixed 0 }
 
-let video_n n =
-  Constrained { Frame.audio = Fixed 0; video = Fixed n; midi = Fixed 0 }
-
-let midi_n n =
-  Constrained { Frame.audio = Fixed 0; video = Fixed 0; midi = Fixed n }
-
+let video_n n = { Frame.audio = Fixed 0; video = Fixed n; midi = Fixed 0 }
+let midi_n n = { Frame.audio = Fixed 0; video = Fixed 0; midi = Fixed n }
 let midi_only = midi_n 1
 
-let kind_type_of_kind_format fmt =
-  match fmt with
-    | Unconstrained t -> t
-    | Constrained fields ->
-        let aux = function
-          | Fixed i -> type_of_int i
-          | At_least i -> Term.add_t i (univ_t ())
-        in
-        let audio = aux fields.Frame.audio in
-        let video = aux fields.Frame.video in
-        let midi = aux fields.Frame.midi in
-        frame_kind_t ~audio ~video ~midi
+let kind_type_of_kind_format fields =
+  let aux = function
+    | Fixed i -> type_of_int i
+    | At_least i -> Term.add_t i (univ_t ())
+  in
+  let audio = aux fields.Frame.audio in
+  let video = aux fields.Frame.video in
+  let midi = aux fields.Frame.midi in
+  frame_kind_t ~audio ~video ~midi
 
 (** Value construction *)
 
-let mk ~t v = { t; value = v }
-let unit = mk ~t:unit_t unit
-let int i = mk ~t:int_t (Ground (Int i))
-let bool i = mk ~t:bool_t (Ground (Bool i))
-let float i = mk ~t:float_t (Ground (Float i))
-let string i = mk ~t:string_t (Ground (String i))
-let tuple l = mk ~t:(tuple_t (List.map (fun a -> a.t) l)) (Tuple l)
+let mk ?pos value = { pos; value }
+let unit = mk unit
+let int i = mk (Ground (Int i))
+let bool i = mk (Ground (Bool i))
+let float i = mk (Ground (Float i))
+let string i = mk (Ground (String i))
+let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
-let list ~t l = mk ~t:(list_t t) (List l)
-let source s = mk ~t:(source_t (kind_type_of_frame_kind s#kind)) (Source s)
+let list l = mk (List l)
+let source s = mk (Source s)
+let request r = mk (Ground (Request r))
 
-let request r =
-  let kind =
-    match Request.kind r with
-      | Some k -> k
-      | None ->
-          let z = Frame.Zero in
-          { Frame.audio = z; video = z; midi = z }
-  in
-  mk ~t:(request_t (kind_type_of_frame_kind kind)) (Request r)
-
-let val_fun p ~ret_t f =
-  let f env t =
-    f
-      (List.map
-         (fun (x, (g, v)) ->
-           assert (g = []);
-           (x, v))
-         env)
-      t
-  in
-  let t = fun_t (List.map (fun (l, _, t, d) -> (d <> None, l, t)) p) ret_t in
-  let p' = List.map (fun (l, x, _, d) -> (l, x, d)) p in
-  mk ~t (FFI (p', [], f))
+let val_fun p f =
+  let p' = List.map (fun (l, x, d) -> (l, x, d)) p in
+  mk (FFI (p', [], f))
 
 let val_cst_fun p c =
-  let t = fun_t (List.map (fun (l, t, d) -> (d <> None, l, t)) p) c.t in
-  let p' = List.map (fun (l, _, d) -> (l, l, d)) p in
-  let f tm = mk ~t (Fun (p', [], [], { Term.t = c.t; Term.term = tm })) in
-  (* Convert the value into a term if possible,
-   * to enable introspection, mostly for printing. *)
+  let p' = List.map (fun (l, d) -> (l, l, d)) p in
+  let f t tm = mk (Fun (p', [], [], { Term.t; Term.term = tm })) in
+  let mkg t = T.make (T.Ground t) in
+  (* Convert the value into a term if possible, to enable introspection, mostly
+     for printing. *)
   match c.value with
-    | Tuple [] -> f Term.unit
-    | Ground g -> f (Term.Ground g)
-    | _ -> mk ~t (FFI (p', [], fun _ _ -> c))
+    | Tuple [] -> f (T.make T.unit) Term.unit
+    | Ground (Int i) -> f (mkg T.Int) (Term.Ground (Term.Ground.Int i))
+    | Ground (Bool i) -> f (mkg T.Bool) (Term.Ground (Term.Ground.Bool i))
+    | Ground (Float i) -> f (mkg T.Float) (Term.Ground (Term.Ground.Float i))
+    | Ground (String i) -> f (mkg T.String) (Term.Ground (Term.Ground.String i))
+    | _ -> mk (FFI (p', [], fun _ -> c))
 
 let metadata m =
-  list
-    ~t:(product_t string_t string_t)
-    (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
+  list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
 (** Helpers for defining protocols. *)
 
@@ -283,18 +233,9 @@ let to_plugin_doc category flags main_doc proto return_t =
 
 let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
   let t = builtin_type proto return_t in
-  let f env t =
-    f
-      (List.map
-         (fun (s, (g, v)) ->
-           assert (g = []);
-           (s, v))
-         env)
-      t
-  in
   let value =
     {
-      t;
+      pos = None;
       value =
         FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
     }
@@ -302,18 +243,19 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
   let generalized = T.filter_vars (fun _ -> true) t in
   Term.builtins#register
     ~doc:(to_plugin_doc category flags descr proto return_t)
-    name (generalized, value)
+    name
+    ((generalized, t), value)
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
-  let value = { t; value } in
+  let value = { pos = t.T.pos; value } in
   let generalized = T.filter_vars (fun _ -> true) t in
   doc#add_subsection "_category" (Doc.trivial category);
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
   List.iter
     (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
-  Term.builtins#register ~doc name (generalized, value)
+  Term.builtins#register ~doc name ((generalized, t), value)
 
 (** Specialized version for operators, that is builtins returning sources. *)
 
@@ -370,34 +312,30 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
     let t = T.make (T.Ground T.String) in
     ( "id",
       t,
-      Some { t; value = Ground (String "") },
+      Some { pos = t.T.pos; value = Ground (String "") },
       Some "Force the value of the source ID." )
     :: List.stable_sort compare proto
   in
-  let f env t =
-    let kind_t = Term.of_source_t t in
-    let k = frame_kind_of_kind_type kind_t in
-    let src : Source.source = f env k in
+  let f env =
+    let src : Source.source = f env in
     let id =
       match (List.assoc "id" env).value with
         | Ground (String s) -> s
         | _ -> assert false
     in
     if id <> "" then src#set_id id;
-    { t; value = Source src }
+    { pos = None; value = Source src }
   in
-  let f env t =
-    try f env t with
+  let f env =
+    let pos = None in
+    try f env with
       | Source.Clock_conflict (a, b) ->
-          raise (Lang_errors.Clock_conflict (t.T.pos, a, b))
-      | Source.Clock_loop (a, b) ->
-          raise (Lang_errors.Clock_loop (t.T.pos, a, b))
+          raise (Lang_errors.Clock_conflict (pos, a, b))
+      | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
   in
   let return_t = Term.source_t ~active return_t in
   let category = string_of_category category in
   add_builtin ~category ~descr ~flags name proto return_t f
-
-exception Found
 
 (** List of references for which iter_sources had to give up --- see below. *)
 let static_analysis_failed = ref []
@@ -419,9 +357,9 @@ let iter_sources f v =
             (* If it's locally bound it won't be in [env]. *)
             (* TODO since inner-bound variables don't mask outer ones in [env],
              *   we are actually checking values that may be out of reach. *)
-            let gv = List.assoc v env in
-            if Lazy.is_val gv then (
-              let _, v = Lazy.force gv in
+            let v = List.assoc v env in
+            if Lazy.is_val v then (
+              let v = Lazy.force v in
               iter_value v )
             else ()
           with Not_found -> () )
@@ -437,17 +375,17 @@ let iter_sources f v =
   and iter_value v =
     match v.value with
       | Source s -> f s
-      | Ground _ | Request _ | Encoder _ -> ()
+      | Ground _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
       | Fun (proto, pe, env, body) ->
-          (* The following is necessarily imprecise: we might see
-           * sources that will be unused in the execution of the function. *)
+          (* The following is necessarily imprecise: we might see sources that
+             will be unused in the execution of the function. *)
           iter_term env body;
-          List.iter (fun (_, (_, v)) -> iter_value v) pe;
+          List.iter (fun (_, v) -> iter_value v) pe;
           List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
       | FFI (proto, pe, _) ->
-          List.iter (fun (_, (_, v)) -> iter_value v) pe;
+          List.iter (fun (_, v) -> iter_value v) pe;
           List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
       | Ref r ->
           if List.memq r !static_analysis_failed then ()
@@ -459,8 +397,11 @@ let iter_sources f v =
              * are already: detecting sharing in presence of references to sources
              * cannot be done statically anyway.)
              * Display a fat log message to warn about this risky situation,
-             * which probably won't prevent users to get biffled... *)
+             * which probably won't prevent users to get biffled [I spot a mrpingouin here! - RB]... *)
             let may_have_source =
+              (* TODO: restore this if possible *)
+              false
+              (*
               try
                 let _, has_var_pos =
                   Lang_types.iter_constr
@@ -471,11 +412,12 @@ let iter_sources f v =
                         match c with
                           | { T.name = "source"; _ } -> true
                           | _ -> false
-                      then raise Found)
+                      then raise Exit)
                     v.t
                 in
                 has_var_pos
-              with Found -> true
+              with Exit -> true
+                *)
             in
             static_analysis_failed := r :: !static_analysis_failed;
             if may_have_source then
@@ -487,7 +429,7 @@ let iter_sources f v =
   in
   iter_value v
 
-let apply f p ~t = Clock.collect_after (fun () -> Term.apply f p ~t)
+let apply f p = Clock.collect_after (fun () -> Term.apply f p)
 
 (** {1 High-level manipulation of values} *)
 
@@ -499,14 +441,14 @@ let to_bool_getter t =
     | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply ~t:bool_t t []).value with
+          match (apply t []).value with
             | Ground (Bool b) -> b
             | _ -> assert false )
     | _ -> assert false
 
-let to_fun ~t f =
+let to_fun f =
   match f.value with
-    | Fun _ | FFI _ -> fun args -> apply ~t f args
+    | Fun _ | FFI _ -> fun args -> apply f args
     | _ -> assert false
 
 let to_string t =
@@ -517,7 +459,7 @@ let to_string_getter t =
     | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply ~t:string_t t []).value with
+          match (apply t []).value with
             | Ground (String s) -> s
             | _ -> assert false )
     | _ -> assert false
@@ -529,14 +471,17 @@ let to_float_getter t =
     | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply ~t:float_t t []).value with
+          match (apply t []).value with
             | Ground (Float s) -> s
             | _ -> assert false )
     | _ -> assert false
 
 let to_source t = match t.value with Source s -> s | _ -> assert false
 let to_format t = match t.value with Encoder f -> f | _ -> assert false
-let to_request t = match t.value with Request x -> x | _ -> assert false
+
+let to_request t =
+  match t.value with Ground (Request x) -> x | _ -> assert false
+
 let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
@@ -544,7 +489,7 @@ let to_int_getter t =
     | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply ~t:int_t t []).value with
+          match (apply t []).value with
             | Ground (Int n) -> n
             | _ -> assert false )
     | _ -> assert false
@@ -642,7 +587,8 @@ let eval s =
     let expr = mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf in
     Clock.collect_after (fun () ->
         Term.check ~ignored:false expr;
-        Some (Term.eval ~env:Term.builtins#get_all expr))
+        let env = List.map (fun (x, (_, v)) -> (x, v)) Term.builtins#get_all in
+        Some (Term.eval ~env expr))
   with e ->
     Printf.eprintf "Evaluating %S failed: %s!" s (Printexc.to_string e);
     None
@@ -745,7 +691,7 @@ module MkAbstract (Def : AbstractDef) = struct
       | _ -> None)
 
   let t = ground_t Type
-  let to_value c = mk ~t (L.V.Ground (Value c))
+  let to_value c = mk (L.V.Ground (Value c))
 
   let of_value t =
     match t.value with L.V.Ground (Value c) -> c | _ -> assert false

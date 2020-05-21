@@ -119,7 +119,8 @@ module Buffer = struct
 end
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "buffer"
     ( Output.proto
     @ [
@@ -135,13 +136,13 @@ let () =
       ] )
     ~return_t:k ~category:Lang.Liquidsoap
     ~descr:"Create a buffer between two different clocks."
-    (fun p kind ->
+    (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
       let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply ~t:Lang.unit_t on_start []) in
-      let on_stop () = ignore (Lang.apply ~t:Lang.unit_t on_stop []) in
+      let on_start () = ignore (Lang.apply on_start []) in
+      let on_stop () = ignore (Lang.apply on_stop []) in
       let s = List.assoc "" p in
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
@@ -169,12 +170,13 @@ module AdaptativeBuffer = struct
 
   (** The source which produces data by reading the buffer. *)
   class producer ~kind ~pre_buffer ~averaging ~limit c =
-    let channels = AFrame.channels_of_kind kind in
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
     (* see get_frame for an explanation *)
     let alpha = log 2. *. AFrame.duration () /. averaging in
     object (self)
       inherit Source.source kind ~name:"buffer.adaptative_producer"
+
+      method private channels = self#ctype.Frame.audio
 
       method stype = Source.Fallible
 
@@ -217,7 +219,7 @@ module AdaptativeBuffer = struct
                  frame *)
               let slen = min slen (RB.read_space c.rb) in
               if slen > 0 then (
-                let src = Audio.create channels slen in
+                let src = Audio.create self#channels slen in
                 RB.read c.rb src;
                 if slen = dlen then
                   Audio.blit (Audio.sub src 0 slen) (Audio.sub dst dofs slen)
@@ -225,7 +227,7 @@ module AdaptativeBuffer = struct
                   (* TODO: we could do better than nearest interpolation. However,
                      for slight adaptations the difference should not really be
                      audible. *)
-                  for c = 0 to channels - 1 do
+                  for c = 0 to self#channels - 1 do
                     let srcc = src.(c) in
                     let dstc = dst.(c) in
                     for i = 0 to dlen - 1 do
@@ -327,7 +329,8 @@ module AdaptativeBuffer = struct
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "buffer.adaptative"
     ( Output.proto
     @ [
@@ -361,13 +364,13 @@ let () =
        is adapted so that no buffer underrun or overrun occurs. This wonderful \
        behavior has a cost: the pitch of the sound might be changed a little."
     ~flags:[Lang.Experimental]
-    (fun p kind ->
+    (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
       let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply ~t:Lang.unit_t on_start []) in
-      let on_stop () = ignore (Lang.apply ~t:Lang.unit_t on_stop []) in
+      let on_start () = ignore (Lang.apply on_start []) in
+      let on_stop () = ignore (Lang.apply on_stop []) in
       let s = List.assoc "" p in
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in

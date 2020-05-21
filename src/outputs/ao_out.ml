@@ -30,22 +30,25 @@ let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "ao")
 
 class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   ~options ?channels_matrix source start =
-  let channels =
-    (Frame.type_of_kind (Lang.to_source source)#kind).Frame.audio
-  in
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
-  let blank () =
-    Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
-  in
   object (self)
     inherit
       Output.output
         ~content_kind:kind ~infallible ~on_start ~on_stop ~name:"ao"
           ~output_kind:"output.ao" source start as super
 
-    inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
+    inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
+
+    method wake_up a =
+      super#wake_up a;
+      let blank () =
+        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+      in
+      ioring#init blank
+
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -68,10 +71,10 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
             in
             let dev =
               self#log#important "Opening %s (%d channels)..." driver.Ao.name
-                channels;
+                self#channels;
               open_live ~driver ~options ?channels_matrix
-                ~rate:samples_per_second ~bits:(bytes_per_sample * 8) ~channels
-                ()
+                ~rate:samples_per_second ~bits:(bytes_per_sample * 8)
+                ~channels:self#channels ()
             in
             device <- Some dev;
             dev
@@ -91,7 +94,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
       if not (Frame.is_partial wav) then (
         let push data =
           let pcm = AFrame.content wav in
-          assert (Array.length pcm = channels);
+          assert (Array.length pcm = self#channels);
           Audio.S16LE.of_audio pcm data 0
         in
         ioring#put_block push )
@@ -123,13 +126,13 @@ let () =
           Some "Set buffer size, in frames." );
         ( "options",
           Lang.metadata_t,
-          Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []),
+          Some (Lang.list []),
           Some "List of parameters, depends on the driver." );
         ("", Lang.source_t return_t, None, None);
       ] )
     ~category:Lang.Output
     ~descr:"Output stream to local sound card using libao." ~return_t
-    (fun p kind ->
+    (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let driver = Lang.to_string (List.assoc "driver" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
@@ -148,11 +151,11 @@ let () =
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
       ( new output

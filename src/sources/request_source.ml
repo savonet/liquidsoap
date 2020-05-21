@@ -88,7 +88,7 @@ class virtual unqueued ~kind ~name =
             self#log#debug "Failed to prepare track: no file.";
             false
         | Some req when Request.is_ready req ->
-            assert (Frame.kind_sub_kind (Utils.get_some (Request.kind req)) kind);
+            assert (Utils.get_some (Request.ctype req) <> self#ctype);
 
             (* [Request.is_ready] ensures that we can get a filename from the request,
                and it can be decoded. *)
@@ -353,7 +353,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         | None -> Empty
         | Some req -> (
             resolving <- Some req;
-            match Request.resolve req timeout with
+            match Request.resolve ~ctype:(Some self#ctype) req timeout with
               | Request.Resolved ->
                   let len =
                     match Request.get_metadata req "duration" with

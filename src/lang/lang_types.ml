@@ -73,7 +73,7 @@ let print_pos ?(prefix = "at ") (start, stop) =
 (** Ground types *)
 
 type ground = ..
-type ground += Bool | Int | String | Float
+type ground += Bool | Int | String | Float | Request
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
@@ -86,6 +86,7 @@ let () =
     | Bool -> Some "bool"
     | Int -> Some "int"
     | Float -> Some "float"
+    | Request -> Some "request"
     | _ -> None)
 
 let print_ground v =
@@ -129,7 +130,6 @@ and descr =
   | Tuple of t list
   | Zero
   | Succ of t
-  | Any
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints (* type variable *)
   | Link of t
@@ -222,7 +222,6 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | List t -> `List (repr t)
         | Tuple l -> `Tuple (List.map repr l)
         | Zero -> `Zero
-        | Any -> `Any
         | Succ t -> `Succ (repr t)
         | Constr { name; params } ->
             `Constr (name, List.map (fun (l, t) -> (l, repr t)) params)
@@ -446,7 +445,7 @@ let rec occur_check a b =
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
     | Succ t -> occur_check a t
-    | Zero | Any -> ()
+    | Zero -> ()
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
@@ -622,11 +621,13 @@ let rec ( <: ) a b =
                   try (* TODO use variance info *)
                       h1 <: h2
                   with Error (a, b) ->
+                    let bt = Printexc.get_raw_backtrace () in
                     let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
-                    raise
+                    Printexc.raise_with_backtrace
                       (Error
                          ( `Constr (c1.name, pre @ [(v, a)] @ post),
                            `Constr (c1.name, pre @ [(v, b)] @ post) ))
+                      bt
                 end;
                 aux ((v, `Ellipsis) :: pre) t1 t2
             | [], [] -> ()
@@ -652,12 +653,8 @@ let rec ( <: ) a b =
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
     | Zero, Zero -> ()
-    | Zero, Any -> ()
     | Succ t1, Succ t2 -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`Succ a, `Succ b)) )
-    | Succ t1, Any -> (
-        try t1 <: b with Error (a, b) -> raise (Error (`Succ a, b)) )
-    | Any, Any -> ()
     | Arrow (l12, t), Arrow (l, t') ->
         (* Here, it must be that l12 = l1@l2
          * where l1 is essentially l modulo order
@@ -711,7 +708,6 @@ let rec ( <: ) a b =
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false )
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
-    | EVar (_, _), Any -> ()
     | EVar (_, _), Succ b' -> (
         (* This could be optimized to process a bunch of succ all at once.
          * But it doesn't matter. The point is that binding might fail,
@@ -757,10 +753,16 @@ let rec ( <: ) a b =
         raise (Error (a, b))
 
 let ( >: ) a b =
-  try b <: a with Error (y, x) -> raise (Type_Error (true, b, a, y, x))
+  try b <: a
+  with Error (y, x) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Type_Error (true, b, a, y, x)) bt
 
 let ( <: ) a b =
-  try a <: b with Error (x, y) -> raise (Type_Error (false, a, b, x, y))
+  try a <: b
+  with Error (x, y) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
 
 (** {1 Type generalization and instantiation}
   *
@@ -784,7 +786,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Ground _ | Zero | Any -> l
+      | Ground _ | Zero -> l
       | Succ t | List t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
@@ -816,7 +818,7 @@ let copy_with subst t =
       | Ground _ -> cp t.descr
       | List t -> cp (List (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
-      | Zero | Any -> cp t.descr
+      | Zero -> cp t.descr
       | Succ t -> cp (Succ (aux t))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
@@ -861,7 +863,7 @@ let iter_constr f t =
     let t = deref t in
     match t.descr with
       | Ground _ -> ()
-      | Succ _ | Zero | Any -> ()
+      | Succ _ | Zero -> ()
       | List t -> aux pos t
       | Tuple l -> List.iter (aux pos) l
       | Constr c ->
