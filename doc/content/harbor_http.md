@@ -117,7 +117,7 @@ directly fetch the page's content from the Icecast server:
 def proxy_icecast(~protocol,~data,~headers,uri) =
   def f(x) =
     # Replace Host
-    if string.capitalize(fst(x)) == "HOST" then
+    if string.case(lower=false, fst(x)) == "HOST" then
       "Host: localhost:8000"
     else
       "#{fst(x)}: #{snd(x)}"

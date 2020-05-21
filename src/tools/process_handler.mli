@@ -43,14 +43,15 @@
 type t
 
 (** Type for continuation decision. *)
-type continuation = [
-  | `Continue
-  | `Stop (** triggers an asynchronous process stop, closing the process' stdin
+type continuation =
+  [ `Continue
+  | `Stop
+    (** triggers an asynchronous process stop, closing the process' stdin
              and waiting for termination *)
-  | `Kill (** kill the process immediately *)
-  | `Delay of float (** wait for a given amount of seconds *)
-  | `Reschedule of Tutils.priority (** Update the process' priority and continue processing. *)
-]
+  | `Kill  (** kill the process immediately *)
+  | `Delay of float  (** wait for a given amount of seconds *)
+  | `Reschedule of Tutils.priority
+    (** Update the process' priority and continue processing. *) ]
 
 (** A call back. *)
 type 'a callback = 'a -> continuation
@@ -61,10 +62,7 @@ type pull = Bytes.t -> int -> int -> int
 (** Function for writing data. *)
 type push = Bytes.t -> int -> int -> int
 
-type status = [
-  | `Exception of exn
-  | `Status of Unix.process_status
-]
+type status = [ `Exception of exn | `Status of Unix.process_status ]
 
 (** Trying to performed an operation on a stopped process. *)
 exception Finished
@@ -73,15 +71,17 @@ exception Finished
    synchronously, i.e. when returning [`Stop], the process' stdin is closed
    immediately after the callback has returned. The process is restarted when
    the function [on_stop] returns [true]. *)
-val run : ?priority:Tutils.priority ->
-          ?env:(string array) -> 
-          ?on_start:(push callback) ->
-          ?on_stdin:(push callback) ->
-          ?on_stdout:(pull callback) ->
-          ?on_stderr:(pull callback) ->
-          ?on_stop:(status -> bool) ->
-          ?log:(string->unit) ->
-          string -> t
+val run :
+  ?priority:Tutils.priority ->
+  ?env:string array ->
+  ?on_start:push callback ->
+  ?on_stdin:push callback ->
+  ?on_stdout:pull callback ->
+  ?on_stderr:pull callback ->
+  ?on_stop:(status -> bool) ->
+  ?log:(string -> unit) ->
+  string ->
+  t
 
 (** Change the process' asynchronous task priority. Useful when switching from
     blocking read to non-blocking read. *)
@@ -97,12 +97,8 @@ val kill : t -> unit
 (** Whether the process was stopped. *)
 val stopped : t -> bool
 
-(** Read a given number of bytes (the result might be smaller than the requested
-   number of bytes). *)
-val read : int -> pull -> bytes
-
-(** Write bytes. *)
-val write : bytes -> push -> unit
+(** Write bytes recursively. *)
+val really_write : ?offset:int -> ?length:int -> bytes -> push -> unit
 
 (** Synchronous (blocking) write on the process' stdin. Raises [Finished] if the
    process has been stopped/killed. *)

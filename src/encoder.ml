@@ -29,58 +29,71 @@ type format =
   | MP3 of Mp3_format.t
   | Shine of Shine_format.t
   | Flac of Flac_format.t
+  | Ffmpeg of Ffmpeg_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
   | GStreamer of Gstreamer_format.t
 
 let kind_of_format = function
   | WAV w ->
-      { Frame.audio = w.Wav_format.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
+      { Frame.audio = w.Wav_format.channels; Frame.video = 0; Frame.midi = 0 }
   | AVI a ->
-      { Frame.audio = a.Avi_format.channels ;
-        Frame.video = 1 ; Frame.midi = 0 }
+      { Frame.audio = a.Avi_format.channels; Frame.video = 1; Frame.midi = 0 }
   | MP3 m ->
-      { Frame.audio = if m.Mp3_format.stereo then 2 else 1 ;
-        Frame.video = 0 ; Frame.midi = 0 }
+      {
+        Frame.audio = (if m.Mp3_format.stereo then 2 else 1);
+        Frame.video = 0;
+        Frame.midi = 0;
+      }
   | Shine m ->
-      { Frame.audio = m.Shine_format.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
+      { Frame.audio = m.Shine_format.channels; Frame.video = 0; Frame.midi = 0 }
   | Flac m ->
-      { Frame.audio = m.Flac_format.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
+      { Frame.audio = m.Flac_format.channels; Frame.video = 0; Frame.midi = 0 }
+  | Ffmpeg m ->
+      let channels = m.Ffmpeg_format.channels in
+      let video = if m.Ffmpeg_format.video_codec = None then 0 else 1 in
+      { Frame.audio = channels; video; midi = 0 }
   | FdkAacEnc m ->
-      { Frame.audio = m.Fdkaac_format.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
+      {
+        Frame.audio = m.Fdkaac_format.channels;
+        Frame.video = 0;
+        Frame.midi = 0;
+      }
   | Ogg l ->
       List.fold_left
         (fun k -> function
-           | Ogg_format.Vorbis { Vorbis_format.channels = n; _} ->
-               { k with Frame.audio = k.Frame.audio+n }
-           | Ogg_format.Opus { Opus_format.channels = n; _} ->
-               { k with Frame.audio = k.Frame.audio+n }
-           | Ogg_format.Flac { Flac_format.channels = n; _} ->
-               { k with Frame.audio = k.Frame.audio+n }
-           | Ogg_format.Theora _ ->
-               { k with Frame.video = k.Frame.video+1 }
-           | Ogg_format.Speex { Speex_format.stereo = stereo; _} ->
-               let n = if stereo then 2 else 1 in
-               { k with Frame.audio = k.Frame.audio+n })
-        { Frame.audio = 0 ; Frame.video = 0 ; Frame.midi = 0 }
+          | Ogg_format.Vorbis { Vorbis_format.channels = n; _ } ->
+              { k with Frame.audio = k.Frame.audio + n }
+          | Ogg_format.Opus { Opus_format.channels = n; _ } ->
+              { k with Frame.audio = k.Frame.audio + n }
+          | Ogg_format.Flac { Flac_format.channels = n; _ } ->
+              { k with Frame.audio = k.Frame.audio + n }
+          | Ogg_format.Theora _ -> { k with Frame.video = k.Frame.video + 1 }
+          | Ogg_format.Speex { Speex_format.stereo; _ } ->
+              let n = if stereo then 2 else 1 in
+              { k with Frame.audio = k.Frame.audio + n })
+        { Frame.audio = 0; Frame.video = 0; Frame.midi = 0 }
         l
   | External e ->
-      { Frame.audio = e.External_encoder_format.channels ;
-        Frame.video = if e.External_encoder_format.video then 1 else 0 ; Frame.midi = 0 }
+      {
+        Frame.audio = e.External_encoder_format.channels;
+        Frame.video = (if e.External_encoder_format.video then 1 else 0);
+        Frame.midi = 0;
+      }
   | GStreamer e ->
-    { Frame.audio = Gstreamer_format.audio_channels e;
-      Frame.video = Gstreamer_format.video_channels e;
-      Frame.midi = 0 }
+      {
+        Frame.audio = Gstreamer_format.audio_channels e;
+        Frame.video = Gstreamer_format.video_channels e;
+        Frame.midi = 0;
+      }
 
 let kind_of_format f =
   let k = kind_of_format f in
-    { Frame.audio = Frame.mul_of_int k.Frame.audio ;
-      Frame.video = Frame.mul_of_int k.Frame.video ;
-      Frame.midi = Frame.mul_of_int k.Frame.midi }
+  {
+    Frame.audio = Frame.mul_of_int k.Frame.audio;
+    Frame.video = Frame.mul_of_int k.Frame.video;
+    Frame.midi = Frame.mul_of_int k.Frame.midi;
+  }
 
 let string_of_format = function
   | WAV w -> Wav_format.to_string w
@@ -89,6 +102,7 @@ let string_of_format = function
   | MP3 w -> Mp3_format.to_string w
   | Shine w -> Shine_format.to_string w
   | Flac w -> Flac_format.to_string w
+  | Ffmpeg w -> Ffmpeg_format.to_string w
   | FdkAacEnc w -> Fdkaac_format.to_string w
   | External w -> External_encoder_format.to_string w
   | GStreamer w -> Gstreamer_format.to_string w
@@ -96,18 +110,16 @@ let string_of_format = function
 (** ISO Base Media File Format, see RFC 6381 section 3.3. *)
 let iso_base_file_media_file_format = function
   | MP3 _ | Shine _ -> "mp4a.40.34" (* I have also seen "mp4a.69" and "mp3" *)
-  | FdkAacEnc m ->
-     (
-       match m.Fdkaac_format.aot with
-         | `Mpeg_4 `AAC_LC -> "mp4a.40.2"
-         | `Mpeg_4 `HE_AAC -> "mp4a.40.5"
-         | `Mpeg_4 `HE_AAC_v2 -> "mp4a.40.29"
-         | `Mpeg_4 `AAC_LD -> "mp4a.40.23"
-         | `Mpeg_4 `AAC_ELD -> "mp4a.40.39"
-         | `Mpeg_2 `AAC_LC -> "mp4a.67"
-         | `Mpeg_2 `HE_AAC -> "mp4a.67" (* TODO: check this *)
-         | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *)
-     )
+  | FdkAacEnc m -> (
+      match m.Fdkaac_format.aot with
+        | `Mpeg_4 `AAC_LC -> "mp4a.40.2"
+        | `Mpeg_4 `HE_AAC -> "mp4a.40.5"
+        | `Mpeg_4 `HE_AAC_v2 -> "mp4a.40.29"
+        | `Mpeg_4 `AAC_LD -> "mp4a.40.23"
+        | `Mpeg_4 `AAC_ELD -> "mp4a.40.39"
+        | `Mpeg_2 `AAC_LC -> "mp4a.67"
+        | `Mpeg_2 `HE_AAC -> "mp4a.67" (* TODO: check this *)
+        | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *) )
   | Ogg [Ogg_format.Speex _] -> "speex"
   | Ogg [Ogg_format.Vorbis _] -> "vorbis"
   | Ogg [Ogg_format.Flac _] -> "flac"
@@ -124,7 +136,18 @@ let extension = function
   | Shine _ -> "mp3"
   | Flac _ -> "flac"
   | FdkAacEnc _ -> "aac"
-  | _ -> "audio"
+  | _ -> raise Not_found
+
+(** Mime types *)
+let mime = function
+  | WAV _ -> "audio/wav"
+  | AVI _ -> "video/avi"
+  | Ogg _ -> "application/ogg"
+  | MP3 _ -> "audio/mpeg"
+  | Shine _ -> "audio/mpeg"
+  | Flac _ -> "audio/flex"
+  | FdkAacEnc _ -> "audio/aac"
+  | _ -> "application/octet-stream"
 
 (** Bitrate estimation in bits per second. *)
 let bitrate = function
@@ -132,6 +155,22 @@ let bitrate = function
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
   | _ -> raise Not_found
+
+(** Encoders that can output to a file. *)
+let file_output = function Ffmpeg _ -> true | _ -> false
+
+let with_file_output encoder file =
+  match encoder with
+    | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
+    | _ -> failwith "No file output!"
+
+(** Encoders that can output to a arbitrary url. *)
+let url_output = function Ffmpeg _ -> true | _ -> false
+
+let with_url_output encoder file =
+  match encoder with
+    | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
+    | _ -> failwith "No file output!"
 
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 
@@ -147,13 +186,13 @@ let bitrate = function
   * header contains data that should be sent first to streaming 
   * client. *)
 type encoder = {
-  insert_metadata : Meta_format.export_metadata -> unit ;
+  insert_metadata : Meta_format.export_metadata -> unit;
   (* Encoder are all called from the main 
    * thread so there's no need to protect this
    * value with a mutex so far.. *)
-  mutable header : string option ;
-  encode : Frame.t -> int -> int -> string ;
-  stop : unit -> string
+  mutable header : Strings.t;
+  encode : Frame.t -> int -> int -> Strings.t;
+  stop : unit -> Strings.t;
 }
 
 type factory = string -> Meta_format.export_metadata -> encoder
@@ -163,9 +202,7 @@ type factory = string -> Meta_format.export_metadata -> encoder
 type plugin = format -> factory option
 
 let plug : plugin Plug.plug =
-  Plug.create
-    ~doc:"Methods to encode streams."
-    ~insensitive:true
+  Plug.create ~doc:"Methods to encode streams." ~insensitive:true
     "stream encoding formats"
 
 exception Found of factory
@@ -173,11 +210,7 @@ exception Found of factory
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =
   try
-    plug#iter
-      (fun _ f ->
-         match f fmt with
-           | Some factory -> raise (Found factory)
-           | None -> ()) ;
+    plug#iter (fun _ f ->
+        match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
-  with
-    | Found factory -> factory
+  with Found factory -> factory

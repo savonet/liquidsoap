@@ -12,7 +12,7 @@ include $(top_srcdir)/Makefile.defs
 all: all-local all-subdirs all-auto
 install: install-local install-subdirs
 clean: clean-subdirs clean-local clean-buildings
-	rm -f *.~ *.orig *.cmo *.cmi *.cmx *.cma *.cmxa *.cmxs *.o *.so *.a *.annot
+	rm -f *.~ *.orig *.cmo *.cmi *.cmx *.cma *.cmxa *.cmxs *.o *.so *.a *.annot *.cmt *.cmti *.s
 doc: doc-local doc-subdirs doc-auto
 
 # Those rules must be bound

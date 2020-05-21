@@ -16,6 +16,7 @@
   <highlighting>
     <list name="Keywords">
       <item>def</item>
+      <item>rec</item>
       <item>let</item>
       <item>fun</item>
       <item>begin</item>
@@ -33,6 +34,11 @@
       <item>not</item>
       <item>ref</item>
       <item>!</item>
+    </list>
+
+    <list name="Booleans">
+      <item>true</item>
+      <item>false</item>
     </list>
 
     <list name="Types">
@@ -63,6 +69,7 @@
         <!-- Identifiers and keywords. -->
         <keyword String="Keywords"                 context="#stay" attribute="Keyword" />
         <keyword String="Operators"                context="#stay" attribute="Operator" />
+        <keyword String="Booleans"                 context="#stay" attribute="Boolean" />
         <!-- <keyword String="Types"                    context="#stay" attribute="Type" /> -->
         <keyword String="Annotation"               context="#stay" attribute="Annotation" />
         <RegExpr String="%[a-zA-Z0-9]+"            context="#stay" attribute="Format" />
@@ -100,6 +107,7 @@
       <itemData name="Label"                   defStyleNum="dsVariable" />
 
       <itemData name="Decimal"                 defStyleNum="dsDecVal"   />
+      <itemData name="Boolean"                 defStyleNum="dsDecVal"   />
       <itemData name="Hexadecimal"             defStyleNum="dsBaseN"   />
       <itemData name="Float"                   defStyleNum="dsFloat"    />
       <itemData name="String"                  defStyleNum="dsString"   />

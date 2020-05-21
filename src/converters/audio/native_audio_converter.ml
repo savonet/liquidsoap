@@ -20,9 +20,44 @@
 
  *****************************************************************************)
 
-  (** Native audio converters *)
+(** Native audio converters *)
 
-(* TODO: setting to be able to choose linear resampling. *)
-let samplerate_converter () x = Audio.Mono.resample x
+let samplerate_conf =
+  Dtools.Conf.void
+    ~p:(Audio_converter.Samplerate.samplerate_conf#plug "native")
+    "Native samplerate conversion settings"
+    ~comments:["Options related to native samplerate conversion."]
 
-let () = Audio_converter.Samplerate.converters#register "native" samplerate_converter
+let quality_conf =
+  Dtools.Conf.string
+    ~p:(samplerate_conf#plug "quality")
+    "Resampling quality" ~d:"linear"
+    ~comments:["Resampling quality: either \"nearest\" or \"linear\"."]
+
+let quality_of_string = function
+  | "nearest" -> `Nearest
+  | "linear" -> `Linear
+  | s ->
+      raise
+        (Lang_errors.Invalid_value
+           ( Lang.string s,
+             "Native resampling quality must either be \"nearest\" or \
+              \"linear\"." ))
+
+let samplerate_converter () =
+  let mode = quality_of_string quality_conf#get in
+  Audio.Mono.resample ~mode
+
+let () =
+  Audio_converter.Samplerate.converters#register "native" samplerate_converter
+
+let channel_layout_converter src dst =
+  assert (src <> dst);
+  match dst with
+    | `Mono -> fun data -> [| Audio.to_mono data |]
+    | `Stereo -> fun data -> [| data.(0); data.(0) |]
+    | _ -> raise Audio_converter.Channel_layout.Unsupported
+
+let () =
+  Audio_converter.Channel_layout.converters#register "native"
+    channel_layout_converter

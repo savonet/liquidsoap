@@ -1,16 +1,13 @@
-dnl BEFORE RELEASING
-dnl Make sure that you edit the version number on the next line
-dnl as well as the "version" variable below AND the "libs_dir_version",
-dnl which is used as the final component of the standard .liq libdir,
-dnl $libdir/liquidsoap/$libs_dir_version
+# Liquidsoap autoconf setup
 
-# Set git_snapshot to false before releasing
-# Do not use $version below before the next line, since we grep
-# for the literal version there
-AC_INIT([liquidsoap],[1.4.0])
+AC_INIT([liquidsoap],
+        m4_esyscmd([cat liquidsoap.opam | grep ^version | sed 's/version: "\([^"]*\)"/\1/' | tr -d '\r\n']),
+        [savonet-users@lists.sourceforge.net],
+        [liquidsoap],
+        [https://github.com/savonet/liquidsoap])
 git_snapshot=true
 version="$PACKAGE_VERSION"
-min_ocaml_version=4.08.0
+min_ocaml_version=m4_esyscmd([cat liquidsoap.opam | grep \"ocaml\" | sed 's/[ ]*"ocaml" {>= "\([^"]*\)"}/\1/' | tr -d '\r\n'])
 git_commit=`git rev-parse --short HEAD || true`
 
 if test $git_snapshot != "false"; then
@@ -26,7 +23,11 @@ else
 fi
 
 AC_SUBST(version)
+AC_SUBST(min_ocaml_version)
 AC_SUBST(libs_dir_version)
+
+ocaml_version_descr=">= ${min_ocaml_version}"
+AC_SUBST(ocaml_version_descr)
 
 AC_PREREQ(2.61)
 AC_CONFIG_SRCDIR([src/main.ml])
@@ -135,10 +136,19 @@ if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
 
-dnl The following does not correctly uses prefix
-dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
-bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
-AS_IF([test -z "$bashcompdir"], [bashcompdir="\${sysconfdir}/bash_completion.d"])
+AC_ARG_WITH([bash-completion-dir],
+   AC_HELP_STRING(
+      [--with-bash-completion-dir=path],
+      [path to directory used to install bash-completion files (autodetected by default)]))
+
+if test -n "${with_bash_completion_dir}" ; then
+  bashcompdir="${with_bash_completion_dir}"
+else
+  dnl The following does not correctly uses prefix
+  dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+  bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
+  AS_IF([test -z "$bashcompdir"], [bashcompdir='${sysconfdir}/bash_completion.d'])
+fi
 AC_SUBST(bashcompdir)
 
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
@@ -212,7 +222,7 @@ fi
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
-  liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+  liquidsoap_ocamlcflags="-g -annot -bin-annot $liquidsoap_ocamlcflags"
   liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
 fi
 # Disable nativecode if ocamlopt is not present
@@ -275,7 +285,7 @@ AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
 if test -z "${VERSION_OK}"; then
-  AC_MSG_ERROR([version 4.08.0 or greater of the OCaml compiler is required to build liquidsoap])
+  AC_MSG_ERROR([version $min_ocaml_version or greater of the OCaml compiler is required to build liquidsoap])
 fi
 
 AC_SUBST(BYTE)
@@ -313,38 +323,31 @@ AC_SUBST(W_CUSTOM_PATH)
 # Graphics
 #
 
-AC_ARG_ENABLE([graphics],AS_HELP_STRING([--enable-graphics],[use the graphics library]))
-if test "x$enable_graphics" = "xyes" ; then
-  AC_CHECK_OCAML_BINDING([graphics])
-else
-   W_GRAPHICS=""
-   w_GRAPHICS="no"
-   b_GRAPHICS="false"
-fi
+AC_CHECK_OCAML_BINDING([graphics])
 
 #
 # Bytes
 #
 
-AC_CHECK_OCAML_BINDING([bytes],[],[],[1])
+AC_CHECK_OCAML_BINDING([bytes],[],[1])
 
 #
 # PCRE
 #
 
-AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
+AC_CHECK_OCAML_BINDING([pcre],[],[1])
 
 #
 # SEDLEX
 #
 
-AC_CHECK_OCAML_BINDING([sedlex],[2.0],[],[1],[sedlex sedlex.ppx],[1])
+AC_CHECK_OCAML_BINDING([sedlex],[],[1],[sedlex sedlex.ppx],[1])
 
 #
 # MENHIR
 #
 
-AC_CHECK_OCAML_BINDING([menhirLib],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([menhirLib],[],[1],[],[1])
 
 MENHIR=`which menhir 2>/dev/null`
 if test -z "${MENHIR}" ; then
@@ -356,77 +359,77 @@ AC_SUBST(MENHIR)
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[],[1])
 
 #
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[],[1])
 
 #
 # Cry
 #
 
-AC_CHECK_OCAML_BINDING([cry],[0.6.0])
+AC_CHECK_OCAML_BINDING([cry])
 
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.5.0],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[],[1])
 
 #
 # xmlplaylist
 #
 
-AC_CHECK_OCAML_BINDING([xmlplaylist],[0.1.3])
+AC_CHECK_OCAML_BINDING([xmlplaylist])
 
 #
 # Lastfm
 #
 
-AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
+AC_CHECK_OCAML_BINDING([lastfm],[xmlplaylist])
 
 #
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
+AC_CHECK_OCAML_BINDING([ogg])
 
 #
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[ogg])
 
 #
 # Opus
 #
 
-AC_CHECK_OCAML_BINDING([opus],[0.1.1],[ogg])
+AC_CHECK_OCAML_BINDING([opus],[ogg])
 
 #
 # Speex
 #
 
-AC_CHECK_OCAML_BINDING([speex],[0.2.1],[ogg])
+AC_CHECK_OCAML_BINDING([speex],[ogg])
 
 #
 # Mad
 #
 
-AC_CHECK_OCAML_BINDING([mad],[0.4.4])
+AC_CHECK_OCAML_BINDING([mad])
 
 #
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.1.5])
+AC_CHECK_OCAML_BINDING([flac])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
-AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
+AC_CHECK_OCAML_BINDING([flac.ogg],[ogg flac],[],[],[flac])
 
 #
 # Dynlink
@@ -472,7 +475,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame],[0.3.2])
+AC_CHECK_OCAML_BINDING([lame])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -487,25 +490,25 @@ AC_SUBST(W_LAME_DYN)
 # Shine
 #
 
-AC_CHECK_OCAML_BINDING([shine],[0.2.0])
+AC_CHECK_OCAML_BINDING([shine])
 
 #
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer],[0.3.0])
+AC_CHECK_OCAML_BINDING([gstreamer])
 
 #
 # frei0r
 #
 
-AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
+AC_CHECK_OCAML_BINDING([frei0r])
 
 #
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.3.0])
+AC_CHECK_OCAML_BINDING([fdkaac])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -520,49 +523,92 @@ AC_SUBST(W_FDKAAC_DYN)
 # Theora
 #
 
-AC_CHECK_OCAML_BINDING([theora],[0.3.1],[ogg])
+AC_CHECK_OCAML_BINDING([theora],[ogg])
 
 #
 # Gavl
 #
 
-AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
+AC_CHECK_OCAML_BINDING([gavl])
 
 #
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.2.0])
+AC_CHECK_OCAML_BINDING([ffmpeg-avutil], [], [], [], [avutil])
+AC_CHECK_OCAML_BINDING([ffmpeg-avcodec], [ffmpeg-avutil], [], [], [avcodec])
+AC_CHECK_OCAML_BINDING([ffmpeg-av], [ffmpeg-avutil ffmpeg-avcodec], [], [], [av])
+AC_CHECK_OCAML_BINDING([ffmpeg-avfilter], [ffmpeg-avutil], [], [], [avfilter])
+AC_CHECK_OCAML_BINDING([ffmpeg-swresample], [ffmpeg-avutil ffmpeg-avcodec], [], [], [swresample])
+AC_CHECK_OCAML_BINDING([ffmpeg-swscale], [ffmpeg-avutil], [], [], [swscale])
+
+if test -n "${W_FFMPEG_AV}" && test -n "${W_FFMPEG_AVFILTER}" &&
+   test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
+  W_FFMPEG_DECODER=yes
+  w_FFMPEG_DECODER=yes
+  b_FFMPEG_DECODER=true
+else
+  W_FFMPEG_DECODER=""
+  w_FFMPEG_DECODER="no (require ffmpeg-av, ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample)"
+  b_FFMPEG_DECODER=false
+fi
+
+AC_SUBST(W_FFMPEG_DECODER)
+
+if test -n "${W_FFMPEG_AV}" && test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
+  W_FFMPEG_ENCODER=yes
+  w_FFMPEG_ENCODER=yes
+  b_FFMPEG_ENCODER=true
+else
+  W_FFMPEG_ENCODER=""
+  w_FFMPEG_ENCODER="no (require ffmpeg-av, ffmpeg-swscale and ffmpeg-swresample)"
+  b_FFMPEG_ENCODER=false
+fi
+
+AC_SUBST(W_FFMPEG_ENCODER)
+
+if test -n "${W_FFMPEG_AVFILTER}" &&
+   test -n "${W_FFMPEG_SWSCALE}" && test -n "${W_FFMPEG_SWRESAMPLE}"; then
+  W_FFMPEG_LIQ_FILTER=yes
+  w_FFMPEG_LIQ_FILTER=yes
+  b_FFMPEG_LIQ_FILTER=true
+else
+  W_FFMPEG_LIQ_FILTER=""
+  w_FFMPEG_LIQ_FILTER="no (require ffmpeg-avfilter, ffmpeg-swscale and ffmpeg-swresample)"
+  b_FFMPEG_LIQ_FILTER=false
+fi
+
+AC_SUBST(W_FFMPEG_LIQ_FILTER)
 
 #
 # Jack
 #
 
-AC_CHECK_OCAML_BINDING([bjack],[0.1.3])
+AC_CHECK_OCAML_BINDING([bjack])
 
 #
 # Alsa
 #
 
-AC_CHECK_OCAML_BINDING([alsa],[0.2.1])
+AC_CHECK_OCAML_BINDING([alsa])
 
 #
 # LibAO
 #
 
-AC_CHECK_OCAML_BINDING([ao],[0.2.0])
+AC_CHECK_OCAML_BINDING([ao])
 
 #
 # Samplerate
 #
 
-AC_CHECK_OCAML_BINDING([samplerate],[0.1.1])
+AC_CHECK_OCAML_BINDING([samplerate])
 
 #
 # Taglib
 #
 
-AC_CHECK_OCAML_BINDING([taglib],[0.3.0])
+AC_CHECK_OCAML_BINDING([taglib])
 
 #
 # OSS
@@ -585,7 +631,7 @@ AC_SUBST(W_OSS)
 # SSL
 #
 
-AC_CHECK_OCAML_BINDING([ssl],[0.5.2])
+AC_CHECK_OCAML_BINDING([ssl])
 
 if test "a$W_SSL" = "ayes"; then
     cat >> src/configure.ml <<EOCONF
@@ -641,7 +687,7 @@ fi
 AC_ARG_ENABLE([camomile],
   AS_HELP_STRING([--disable-camomile],[don't use camomile (no charset detection and conversion)]))
 
-AC_CHECK_OCAML_BINDING([camomile],[1.0.0])
+AC_CHECK_OCAML_BINDING([camomile])
 
 AC_ARG_WITH([camomile-data-dir],
    AC_HELP_STRING(
@@ -768,7 +814,7 @@ fi
 
 # Inotify
 
-AC_CHECK_OCAML_BINDING([inotify],[1.5])
+AC_CHECK_OCAML_BINDING([inotify])
 
 cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch
@@ -790,20 +836,41 @@ fi
 
 # OCaml bindings
 
-AC_CHECK_OCAML_BINDING([faad],[0.4.0])
-AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
-AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
-AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])
-AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
-AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
-AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
-AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
-AC_CHECK_OCAML_BINDING([lo],[0.1.2])
+AC_CHECK_OCAML_BINDING([faad])
+AC_CHECK_OCAML_BINDING([soundtouch])
+AC_CHECK_OCAML_BINDING([portaudio])
+AC_CHECK_OCAML_BINDING([pulseaudio])
+AC_CHECK_OCAML_BINDING([ladspa])
+AC_CHECK_OCAML_BINDING([dssi])
+AC_CHECK_OCAML_BINDING([lilv])
+AC_CHECK_OCAML_BINDING([tsdl])
+AC_CHECK_OCAML_BINDING([tsdl_ttf],[tsdl])
+AC_CHECK_OCAML_BINDING([tsdl_image],[tsdl])
+AC_CHECK_OCAML_BINDING([camlimages],[],[],[camlimages.all_formats])
+AC_CHECK_OCAML_BINDING([cohttp-lwt-unix])
+AC_CHECK_OCAML_BINDING([prometheus-app],[cohttp-lwt-unix])
+
+# TODO: switch to dune all the way?
+with_srt_types_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/types"
+AC_CHECK_OCAML_BINDING([srt.types],[],[],[],[srt_types])
+
+with_srt_stubs_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs"
+AC_CHECK_OCAML_BINDING([srt.stubs],[srt.types],[],[],[srt_stubs])
+
+with_srt_stubs_locked_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs/locked"
+AC_CHECK_OCAML_BINDING([srt.stubs],[],[],[],[srt_stubs_locked])
+
+AC_CHECK_OCAML_BINDING([srt],[srt.types srt.stubs srt.stubs.locked])
+
+AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([gd])
 
 # Winsvc (to run as a service)
 
-AC_CHECK_OCAML_BINDING([winsvc],[0.0.1])
+AC_CHECK_OCAML_BINDING([winsvc])
 
 #
 # Tuning (See INSTALL to understand these features)
@@ -829,12 +896,10 @@ EOCONF
 AC_ARG_WITH([default-font],
             AS_HELP_STRING([--with-default-font],
                            [sets the default TTF font for video.add_text()]))
-if test "$w_SDL" = "yes" -o "$w_GD" = "yes" ; then
-  if test -z "$with_default_font" ; then
-    DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
-  else
-    DEFAULT_FONT=$with_default_font
-  fi
+if test -z "$with_default_font" ; then
+  DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+else
+  DEFAULT_FONT=$with_default_font
 fi
 cat >> src/configure.ml <<__BLAH__
 let default_font = "$DEFAULT_FONT"
@@ -910,6 +975,7 @@ echo
 
 AC_CONFIG_FILES([doc/content/install.md])
 AC_CONFIG_FILES([doc/content/build.md])
+AC_CONFIG_FILES([doc/liquidsoap.1.md])
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
 AC_OUTPUT
@@ -958,9 +1024,13 @@ cat <<EOMSG
 
  -------------------------------------------------------------------- Features
 
+ * Liquidsoap
+   - version           : $version
+
  * Supported input formats
+   - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - Avcodec (ffmpeg)  : $w_FFMPEG
+   - Ffmpeg            : $w_FFMPEG_DECODER
    - Flac (native)     : $w_FLAC
    - Flac (ogg)        : $w_FLAC_OGG
    - Lastfm            : $w_LASTFM
@@ -972,6 +1042,7 @@ cat <<EOMSG
 
  * Supported output formats
    - FDK-AAC           : $w_FDKAAC
+   - Ffmpeg            : $w_FFMPEG_ENCODER
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
    - Opus              : $w_OPUS
@@ -987,23 +1058,29 @@ cat <<EOMSG
  * Input / output
    - ALSA              : $w_ALSA
    - AO                : $w_AO
+   - FFmpeg            : $w_FFMPEG_AV
    - Icecast/Shoutcast : $w_CRY
    - GStreamer         : $w_GSTREAMER
    - JACK              : $w_BJACK
    - OSS               : $w_OSS
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
+   - SRT               : $w_SRT
 
  * Audio manipulation
+   - FFmpeg            : $w_FFMPEG_SWRESAMPLE
    - LADSPA            : $w_LADSPA
+   - Lilv              : $w_LILV
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
 
  * Video manipulation
    - camlimages        : $w_CAMLIMAGES
-   - FFmpeg            : $w_FFMPEG
+   - FFmpeg            : $w_FFMPEG_SWSCALE
    - frei0r            : $w_FREI0R
    - Gavl              : $w_GAVL
+   - SDL-image         : $w_TSDL_IMAGE
+   - SDL-ttf           : $w_TSDL_TTF
 
  * MIDI manipulation
    - DSSI              : $w_DSSI
@@ -1011,10 +1088,11 @@ cat <<EOMSG
  * Visualization
    - GD                : $w_GD
    - Graphics          : $w_GRAPHICS
-   - SDL               : $w_SDL
+   - SDL               : $w_TSDL
 
  * Additional libraries
    - curl URI resolver : requires curl at runtime
+   - FFmpeg filters:   : $w_FFMPEG_LIQ_FILTER
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lo                : $w_LO
@@ -1023,6 +1101,9 @@ cat <<EOMSG
    - ssl               : $w_SSL
    - windows service   : $w_WINSVC
    - yojson            : $w_YOJSON
+
+ * Monitoring
+   - Prometheus        : $w_PROMETHEUS_APP
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
@@ -1081,7 +1162,15 @@ variables {
   ogg_flac-enabled: $b_FLAC_OGG
   mad-enabled: $b_MAD
   faad-enabled: $b_FAAD
-  ffmpeg-enabled: $b_FFMPEG
+  ffmpeg-avutil-enabled: $b_FFMPEG_AVUTIL
+  ffmpeg-av-enabled: $b_FFMPEG_AV
+  ffmpeg-avcodec-enabled: $b_FFMPEG_AVCODEC
+  ffmpeg-avfilter-enabled: $b_FFMPEG_AVFILTER
+  ffmpeg-swresample-enabled: $b_FFMPEG_SWRESAMPLE
+  ffmpeg-swscale-enabled: $b_FFMPEG_SWSCALE
+  ffmpeg-decoder-enabled: $b_FFMPEG_DECODER
+  ffmpeg-encoder-enabled: $b_FFMPEG_ENCODER
+  ffmpeg-liq-filter-enabled: $b_FFMPEG_LIQ_FILTER
   xmlplaylist-enabled: $b_XMLPLAYLIST
   lastfm-enabled: $b_LASTFM
   lame-enabled: $b_LAME
@@ -1102,12 +1191,13 @@ variables {
   soundtouch-enabled: $b_SOUNDTOUCH
   ladspa-enabled: $b_LADSPA
   gavl-enabled: $b_GAVL
-  ffmpeg-enabled: $b_FFMPEG
   frei0r-enabled: $b_FREI0R
   camlimages-enabled: $b_CAMLIMAGES
   dssi-enabled: $b_DSSI
   graphics-enabled: $b_GRAPHICS
-  sdl-enabled: $b_SDL
+  sdl-enabled: $b_TSDL
+  sdl-image-enabled: $b_TSDL_IMAGE
+  sdl-ttf-enabled: $b_TSDL_TTF
   gd-enabled: $b_GD
   inotify-enabled: $b_INOTIFY
   lo-enabled: $b_LO
@@ -1115,6 +1205,8 @@ variables {
   yojson-enabled: $b_YOJSON
   ssl-enabled: $b_SSL
   secure_transport-enabled: $b_OSX_SECURE_TRANSPORT
+  srt-enabled: $b_SRT
   winscv-enabled: $b_WINSVC
+  prometheus-enabled: $b_PROMETHEUS_APP
 }
 EOCFG

@@ -140,10 +140,10 @@ frequency of one jingle every 3 songs. In a lot of cases, you may want
 more flexibility and have full-features scheduling of your songs. The
 best approach in this case is to *externalize* this operation by creating
 a scheduler with the language/framework of your choice and integrating it 
-with liquidsoap using `request.dynamic`.
+with liquidsoap using `request.dynamic.list`.
 
-`request.dynamic` takes a function of type `()->request`,
-i.e. a function with no arguments that returns a new request to queue 
+`request.dynamic.list` takes a function of type `()->[request('a)]`,
+i.e. a function with no arguments that returns an array of new requests to queue 
 and create a source with it. Every time that liquidsoap needs to 
 prepare a new file, it will execute the function and use its result.
 
@@ -157,7 +157,7 @@ For instance, `ftp://server.net/path/to/file.mp3` is a requests using
 the *ftp* protocol, which is resolved using `wget` (if present in the 
 system).
 
-We are going to use `request.dynamic` to merge both the `songs` and 
+We are going to use `request.dynamic.list` to merge both the `songs` and 
 `jingles` sources into one source and let our external scheduler 
 decides when to play a jingle or a song. However, we will need 
 later to know if we are currently playing a song or a jingle. 
@@ -181,13 +181,13 @@ def get_request() =
   # Get the URI
   uri = list.hd(default="",get_process_lines("cat /tmp/request"))
   # Create a request
-  request.create(uri)
+  [request.create(uri)]
 end
 ```
 Now, we replace the lines defining `songs`, `files` and the line
 using the `rotate` operator in `radio.liq` with the following code:
 ```liquidsoap
-s = request.dynamic(id="s",get_request)
+s = request.dynamic.list(id="s",get_request)
 ```
 
 * Update your scripts.
@@ -204,8 +204,8 @@ annotate:type="jingle":/path/to/jingle.mp3
 
 Solutions:
 
-* [radio.liq](radio.liq-request.dynamic)
-* [library.liq](library.liq-request.dynamic)
+* [radio.liq](radio.liq-request.dynamic.list)
+* [library.liq](library.liq-request.dynamic.list)
 
 ### Custom metadata
 
@@ -242,7 +242,7 @@ def update_title(m) =
   end
 end
 ```
-Finally, we apply `map_metadata` to the source, just after the `request.dynamic`
+Finally, we apply `map_metadata` to the source, just after the `request.dynamic.list`
 definition in `radio.liq`:
 ```liquidsoap
 s = map_metadata(update_title,s)
@@ -398,7 +398,7 @@ to extract the replaygain information
 * The replay gain metadata resolver, enabled by adding a line of the form `enable_replaygain_metadata ()` in your script. In this cases, all requests and not only local files can be processed and you cannot select which one should be used with replaygain.
 
 The most simple solution, in our case, is to change the requests
-passed to `request.dynamic` to something of the form:
+passed to `request.dynamic.list` to something of the form:
 ```
 annotate:type="song":replay_gain:URI
 ```
@@ -416,7 +416,7 @@ def add_replaygain(m) =
   # Get the type
   type = m["type"]
   # The replaygain script is located there
-  script = "#{configure.libdir}/extract-replaygain"
+  script = "#{configure.bindir}/extract-replaygain"
   # The file name is contained in this value
   filename = m["filename"]
 
@@ -430,7 +430,7 @@ def add_replaygain(m) =
   end
 end
 ```
-And, we add the following line in `radio.liq` after the `request.dynamic` line:
+And, we add the following line in `radio.liq` after the `request.dynamic.list` line:
 ```liquidsoap
 s = map_metadata(add_replaygain,s)
 ```
@@ -479,7 +479,7 @@ We give here a simple custom implementation of our crossfade. What we do is:
 * Sequentialize the tracks otherwise.
 
 We identify the type of each track by reading the `"type"` metadata we 
-have added when creating the `request.dynamic` source.
+have added when creating the `request.dynamic.list` source.
 
 A typical `smart_crossfade` operator is defined in `utils.liq`
 but you may do much more things with a little bit of imagination.
@@ -713,7 +713,7 @@ end
 **Note** `source.skip` may cause troubles if 
 the file source does not prepare a new track quickly enough.
 In this case, you may add `conservative=true` to the 
-parameters of the `request.dynamic` source.
+parameters of the `request.dynamic.list` source.
 
 Then, we add the following code in `radio.liq`, where
 we defined the `fallback` between the two live sources and 

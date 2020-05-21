@@ -21,14 +21,14 @@
  *****************************************************************************)
 
 type t = {
-  channels : int ;
-  bits_per_sample : int ;
-  samplerate : int ;
-  compression : int ;
-  fill : int option ;
+  channels : int;
+  bits_per_sample : int;
+  samplerate : int Lazy.t;
+  compression : int;
+  fill : int option;
 }
 
 let to_string m =
   Printf.sprintf
     "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
-    m.channels m.bits_per_sample m.samplerate m.compression
+    m.channels m.bits_per_sample (Lazy.force m.samplerate) m.compression

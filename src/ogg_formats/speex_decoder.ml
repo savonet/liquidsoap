@@ -20,5 +20,4 @@
 
  *****************************************************************************)
 
-let () = Ogg_demuxer_speex_decoder.register () 
-
+let () = Ogg_demuxer_speex_decoder.register ()

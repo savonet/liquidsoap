@@ -16,6 +16,7 @@ liquidsoap, you may want to read the [custom path](custom-path.html) page.
 General tutorials
 -----------------
 * [Quickstart](quick_start.html): where anyone should start.
+* [Presentations](presentations.html): some presentations we did about liquidsoap
 * [Complete case analysis](complete_case.html): an example that is not a toy.
 * [Advanced](advanced.html): overview of more advanced features for serious usage.
 * [How to find help](help.html) about operators, settings, server commands, etc.
@@ -24,7 +25,8 @@ General tutorials
 
 Reference
 ---------
-* [API reference](reference.html): All the builtin functions of liquidsoap.
+* [Core API](reference.html): The core liquidsoap API
+* [Extra API](reference-extra.html): Extra functions and libraries. 
 * [Protocols](protocols.html): List of protocols supported by liquidsoap.
 * [Settings](settings.html): The list of available settings for liquidsoap.
 * [Script language](language.html): A more detailed presentation.
@@ -32,6 +34,7 @@ Reference
 * [Playlist parsers](playlist_parsers.html): Supported playlist formats.
 * [JSON import/export](json.html): Importing and exporting language values in JSON.
 * [LADSPA plugins](ladspa.html): Using LADSPA plugins.
+* [FFmpeg filters](ffmpeg_filters.html): Using FFmpeg filters.
 
 Core
 ----
@@ -44,22 +47,25 @@ Specific tutorials
 ------------------
 * [Blank detection](blank.html)
 * [Customize metadata](metadata.html)
-* [Seek and cue support](seek.html): seek and set cue-in and cue-out points in sources.
+* [Dynamic source creation](dynamic_sources.html): dynamically create sources using server requests.
 * [External decoders](external_decoders.html): use an external program for decoding audio files.
-* [External streams](external_streams.html): use an external program for streaming audio data.
 * [External encoders](external_encoders.html): use an external audio encoding program.
+* [External streams](external_streams.html): use an external program for streaming audio data.
+* [HLS ouptut](hls_output.html): output your stream as HTTP Live Stream.
 * [HTTP input](http_input.html): relay external streams.
 * [Harbor input](harbor.html): receive streams from icecast and shoutcast source clients.
+* [ICY metadata update](icy_metadata.html): manipulate and configure metadata update in Icecast.
 * [Interaction with the Harbor](harbor_http.html): interact with a running Liquidsoap using the Harbor server.
 * [Interaction with the server](server.html) interact with a running Liquidsoap instance using the telnet server.
-* [ICY metadata update](icy_metadata.html): manipulate and configure metadata update in Icecast.
+* [Liquid Flows](flows.html): add your radio to the [webpage](http://flows.liquidsoap.info/) of proud users.
 * [Normalization and replay gain](replay_gain.html): normalize audio data.
+* [Profiling](profiling.html): profiling your scripts.
+* [Prometheus reporting](prometheus.html): metrics reporting via prometheus.
 * [Requests-based sources](request_sources.html): create advanced sources using requests.
+* [Seek and cue support](seek.html): seek and set cue-in and cue-out points in sources.
 * [Shoutcast output](shoutcast.html): output to shoutcast.
-* [Dynamic source creation](dynamic_sources.html): dynamically create sources using server requests.
 * [Smart crossfading](smartcrossfade.html): define custom crossfade transitions.
 * [Using in production](in_production.html): integrate liquidsoap scripts in a production environment.
-* [Liquid Flows](flows.html): add your radio to the [webpage](http://flows.liquidsoap.info/) of proud users.
 * [Videos streams](video.html): why restrict yourself to sound only?
 
 User scripts

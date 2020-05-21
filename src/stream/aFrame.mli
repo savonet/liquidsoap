@@ -6,6 +6,8 @@
 
 type t = Frame.t
 
+val channels_of_kind : Frame.content_kind -> int
+
 (** {2 Basic manipulation} *)
 
 (** Duration in seconds. *)
@@ -16,16 +18,16 @@ val duration : unit -> float
   * Everything below is in samples. *)
 
 (** Size of an audio frame. *)
-val size       : unit -> int
+val size : unit -> int
 
 (** Current position in frame. *)
-val position   : t -> int
+val position : t -> int
 
 (** Breaks in frame. *)
-val breaks     : t -> int list
+val breaks : t -> int list
 
 (** Add a break. *)
-val add_break  : t -> int -> unit
+val add_break : t -> int -> unit
 
 (** Change all the breaks. *)
 val set_breaks : t -> int list -> unit
@@ -43,30 +45,19 @@ val advance : t -> unit
 
 exception No_metadata
 
-type metadata = (string,string) Hashtbl.t
+type metadata = (string, string) Hashtbl.t
 
-val free_metadata    : t -> int -> unit
-val set_metadata     : t -> int -> metadata -> unit
-val get_metadata     : t -> int -> metadata option
-val free_all_metadata: t -> unit
-val get_all_metadata : t -> (int*metadata) list
-val set_all_metadata : t -> (int*metadata) list -> unit
-
-(** {2 Chunks} *)
-
-exception No_chunk
-val get_chunk : t -> t -> unit
+val free_metadata : t -> int -> unit
+val set_metadata : t -> int -> metadata -> unit
+val get_metadata : t -> int -> metadata option
+val free_all_metadata : t -> unit
+val get_all_metadata : t -> (int * metadata) list
+val set_all_metadata : t -> (int * metadata) list -> unit
 
 (** {2 Helpers} *)
 
-(** Get audio contents for access after a given offset.
-  * This requires that the frame currently has a purely audio layer
-  * at this position, until the end of the frame. *)
-val content : t -> int -> float array array
-
-(** Get audio contents for writing after a given offset.
-  * If necessary this creates an audio layer starting there. *)
-val content_of_type : channels:int -> t -> int -> float array array
+(** Get audio contents *)
+val content : t -> Frame.audio_t array
 
 (** Same as [content] with [offset=0], converted to s16le. *)
 val to_s16le : t -> string

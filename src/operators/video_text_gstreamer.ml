@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-module Img = Image.RGBA32
 module GU = Gstreamer_utils
 
 let init () = ()
@@ -29,15 +28,36 @@ let render_text ~font ~size text =
   (* Override default value... *)
   let font = if font.[0] = '/' then "Helvetica" else font in
   let font = Printf.sprintf "%s %d" font size in
-  let pipeline = Printf.sprintf "videotestsrc pattern=black ! textoverlay font-desc=\"%s\" text=\"%s\" ypad=0" font text in
+  let pipeline =
+    Printf.sprintf
+      "videotestsrc pattern=black ! textoverlay font-desc=\"%s\" \
+       valignment=top halignment=left text=\"%s\" ypad=0"
+      font text
+  in
   let img = GU.render_image pipeline in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
-  let get_pixel x y =
-    let z,_,_,_ = Img.get_pixel img x y in
+  let get_pixel i j =
+    let z, _, _, _ = Video.Image.get_pixel_rgba img i j in
     z
   in
-  width, height, get_pixel
+  (* Normalize the pixel values, we get shade otherwise, see #1190. *)
+  let pmin = ref 0xff in
+  let pmax = ref 0x00 in
+  for j = 0 to height - 1 do
+    for i = 0 to width - 1 do
+      let z = get_pixel i j in
+      pmin := min !pmin z;
+      pmax := max !pmax z
+    done
+  done;
+  if !pmin = !pmax then pmax := 0xff;
+  let pmin = !pmin in
+  let pmax = !pmax in
+  let get_pixel i j =
+    let z = get_pixel i j in
+    (z - pmin) * 0xff / (pmax - pmin)
+  in
+  (width, height, get_pixel)
 
-let () =
-  Video_text.register "gstreamer" init render_text
+let () = Video_text.register "gstreamer" init render_text

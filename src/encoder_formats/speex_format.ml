@@ -21,18 +21,18 @@
  *****************************************************************************)
 
 type bitrate_control = Quality of int | Vbr of int | Abr of int
-type mode            = Narrowband | Wideband | Ultra_wideband
+type mode = Narrowband | Wideband | Ultra_wideband
 
 type t = {
-  bitrate_control   : bitrate_control ;
-  samplerate        : int ;
-  stereo            : bool ;
-  mode              : mode ;
-  frames_per_packet : int ;
-  complexity        : int option ;
-  fill              : int option ;
-  dtx               : bool ;
-  vad               : bool ;
+  bitrate_control : bitrate_control;
+  samplerate : int Lazy.t;
+  stereo : bool;
+  mode : mode;
+  frames_per_packet : int;
+  complexity : int option;
+  fill : int option;
+  dtx : bool;
+  vad : bool;
 }
 
 let string_of_br_ctl x =
@@ -44,22 +44,17 @@ let string_of_br_ctl x =
 let string_of_mode x =
   match x with
     | Narrowband -> "narrowband"
-    | Wideband   -> "widebande"
+    | Wideband -> "widebande"
     | Ultra_wideband -> "ultra-wideband"
 
 let string_of_complexity x =
-  match x with
-    | None -> ""
-    | Some x -> Printf.sprintf ",complexity=%d" x
+  match x with None -> "" | Some x -> Printf.sprintf ",complexity=%d" x
 
 let to_string m =
   Printf.sprintf
     "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B,vad=%B)"
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_br_ctl m.bitrate_control)
-    m.samplerate
-    (string_of_mode m.mode)
-    m.frames_per_packet
+    (Lazy.force m.samplerate) (string_of_mode m.mode) m.frames_per_packet
     (string_of_complexity m.complexity)
-    m.dtx
-    m.vad
+    m.dtx m.vad

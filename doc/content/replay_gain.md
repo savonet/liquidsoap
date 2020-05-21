@@ -16,27 +16,27 @@ On the other hand, replay gain has its drawbacks. First, it requires an initial 
 
 ### How to use replay gain in Liquidsoap
 
-One easy way to enable replay gain is to use the `ffmpeg2wav` protocol:
+One easy way to enable replay gain is to use the `ffmpeg` protocol:
 ```liquidsoap
-set("protocol.ffmpeg2wav.replaygain",true)
+set("protocol.ffmpeg.replaygain",true)
 
-s = single("ffmpeg2wav:/path/to/file.mp3")
+s = single("ffmpeg:/path/to/file.mp3")
 
 ...
 ```
 
-With the `ffmpeg2wav` protocol, files are entirely decoded to `WAV` format using the `ffmpeg` binary. When the `"protocol.ffmpeg2wav.replaygain"` setting is set to `true`, it will also apply
+With the `ffmpeg` protocol, files are entirely decoded to `WAV` format using the `ffmpeg` binary. When the `"protocol.ffmpeg.replaygain"` setting is set to `true`, it will also apply
 the replay gain amplification while decoding.
 
 The protocol requires `ffmpeg` in the path, which can be set via
 ```liquidsoap
-set("protocol.ffmpeg2wav.path","...")
+set("protocol.ffmpeg.path","...")
 ```
 
-The `ffmpeg2wav` protocol is handy but it is also limited. For instance, it decodes and analyzes whole files, which can be a problem if you are using
+The `ffmpeg` protocol is handy but it is also limited. For instance, it decodes and analyzes whole files, which can be a problem if you are using
 large audio files. Aditionally, you might want to exclude certain files, e.g. jingles from this processing.
 
-If you need more finer-grained control or do not wish to use the `ffmpeg2wav` protocol, you can see the method below.
+If you need more finer-grained control or do not wish to use the `ffmpeg` protocol, you can see the method below.
 
 ### Renormalizing according to some metadata field
 
@@ -102,7 +102,7 @@ which will return an annotated request, finally resulting in your file
 with the extra `replay_gain` metadata.
 
 Prepending `replay_gain:` is easy if you are using a script
-behind some `request.dynamic` operator. If you are using the
+behind some `request.dynamic.list` operator. If you are using the
 `playlist` operator, you can use its `prefix` parameter.
 
 

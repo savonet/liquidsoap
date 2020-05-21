@@ -30,7 +30,7 @@ def enable_external_ffmpeg_decoder() =
   mime_types = get(default=[],"decoder.mime_types.ffmpeg")
 
   def ffprobe_test(fname) =
-    json = get_process_output("#{ffprobe} -print_format json -show_streams #{quote(fname)}")
+    json = get_process_output("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
     default = [("streams",[[("channels",0)]])]
     data = of_json(default=default,json)
     streams = list.assoc(default=[],"streams",data)
@@ -38,7 +38,7 @@ def enable_external_ffmpeg_decoder() =
     list.assoc(default=0,"channels",stream)
   end
 
-  if which(ffmpeg) != "" and which (ffprobe) != "" then
+  if file.which(ffmpeg) != "" and file.which (ffprobe) != "" then
    log(label="external.decoder","Enabling FFMPEG decoder")
     add_decoder(
       name="FFMPEG",
@@ -71,7 +71,7 @@ def enable_external_mpc_decoder() =
     def get_channels(file) =
       int_of_string(
         list.hd(default="",
-          get_process_lines("#{mpcdec} -i #{quote(file)} 2>&1 \
+          get_process_lines("#{mpcdec} -i #{string.quote(file)} 2>&1 \
                              | grep channels | cut -d' ' -f 2")))
     end
     # Get the file's mime
@@ -95,9 +95,9 @@ def enable_external_mpc_decoder() =
     end
   end
 
-  if which(mpcdec) != "" then
+  if file.which(mpcdec) != "" then
     log(label="external.decoder","Enabling MPCDEC external decoder.")
-    mpcdec_p = fun(f) -> "#{mpcdec} #{quote(f)} -"
+    mpcdec_p = fun(f) -> "#{mpcdec} #{string.quote(f)} -"
     add_oblivious_decoder(name="MPCDEC",description="Decode files using the mpcdec \
                 musepack decoder binary",test=test_mpc,mpcdec_p)
   else
@@ -124,14 +124,14 @@ def enable_external_flac_decoder() =
   flac = get(default="flac#{exe_ext}","decoder.external.flac.path")
   metaflac = get(default="metaflac#{exe_ext}","decoder.external.metaflac.path")
 
-  if which(flac) != "" then
+  if file.which(flac) != "" then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
     flac_p = "#{flac} -d -c -"
     def test_flac(file) =
-      if which(metaflac) != "" then
+      if file.which(metaflac) != "" then
         channels = list.hd(default="",
                            get_process_lines("#{metaflac} \
-                                              --show-channels #{quote(file)}"))
+                                              --show-channels #{string.quote(file)}"))
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
@@ -146,17 +146,17 @@ def enable_external_flac_decoder() =
       end
     end
     add_decoder(name="EXTERNAL_FLAC",description="Decode files using the flac \
-                decoder binary.", mimes=["audio/x-flac"], test=test_flac,flac_p)
+                decoder binary.", mimes=["audio/flac", "audio/x-flac"], test=test_flac,flac_p)
   else
     log(label="decoder.external","Did not find flac binary, please adjust using the \"decoder.external.flac.path\" setting.")
   end
 
-  if which(metaflac) != "" then
+  if file.which(metaflac) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FLAC metadata \
                 resolver.")
     def flac_meta(file)
       ret = get_process_lines("#{metaflac} --export-tags-to=- \
-                   #{quote(file)}")
+                   #{string.quote(file)}")
       ret = list.map(string.split(separator="="),ret)
       # Could be made better..
       def f(l',l)=
@@ -221,14 +221,14 @@ def enable_external_faad_decoder() =
     end
   end
 
-  if which(faad) != "" then
+  if file.which(faad) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FAAD decoder and \
                  metadata resolver.")
-    faad_p = (fun (f) -> "#{faad} -w #{quote(f)}")
+    faad_p = (fun (f) -> "#{faad} -w #{string.quote(f)}")
     def test_faad(file) =
       if faad_test(file) then
         channels = list.hd(default="",
-                           get_process_lines("#{faad} -i #{quote(file)} 2>&1 | \
+                           get_process_lines("#{faad} -i #{string.quote(file)} 2>&1 | \
                                               grep 'ch,'"))
         ret = string.extract(pattern=", (\\d) ch,",channels)
         ret =
@@ -249,7 +249,7 @@ def enable_external_faad_decoder() =
     def faad_meta(file) =
       if faad_test(file) then
         ret = get_process_lines("#{faad} -i \
-                     #{quote(file)} 2>&1")
+                     #{string.quote(file)} 2>&1")
         # Yea, this is ugly programming (again)!
         def get_meta(l,s)=
           ret = string.extract(pattern="^(\\w+):\\s(.+)$",s)
@@ -283,6 +283,7 @@ def string_of_metadata(m)
 end
 
 # Use X On Screen Display to display metadata info.
+# @flag extra
 # @param ~color    Color of the text.
 # @param ~position Position of the text (top|middle|bottom).
 # @param ~font     Font used (xfontsel is your friend...)
@@ -292,15 +293,16 @@ def osd_metadata(~color="green",~position="top",
         ~font="-*-courier-*-r-*-*-*-240-*-*-*-*-*-*",
         ~display=string_of_metadata,
         s)
-  osd = 'osd_cat -p #{position} --font #{quote(font)}'
+  osd = 'osd_cat -p #{position} --font #{string.quote(font)}'
       ^ ' --color #{color}'
   def feedback(m)
-    system("echo #{quote(display(m))} | #{osd} &")
+    system("echo #{string.quote(display(m))} | #{osd} &")
   end
   on_metadata(feedback,s)
 end
 
 # Use notify to display metadata info.
+# @flag extra
 # @param ~urgency Urgency (low|normal|critical).
 # @param ~icon    Icon filename or stock icon to display.
 # @param ~time    Timeout in milliseconds.
@@ -311,12 +313,13 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
            ~display=string_of_metadata,
            ~title="Liquidsoap: new track",s)
   send = 'notify-send -i #{icon} -u #{urgency}'
-       ^ ' -t #{time} #{quote(title)} '
-  on_metadata(fun (m) -> system(send^quote(display(m))),s)
+       ^ ' -t #{time} #{string.quote(title)} '
+  on_metadata(fun (m) -> system(send^string.quote(display(m))),s)
 end
 
 %ifdef input.external.wav
 # Stream data from mplayer
+# @flag extra
 # @category Source / Input
 # @param s data URI.
 # @param ~restart restart on exit.
@@ -333,6 +336,6 @@ def input.mplayer(~id="input.mplayer",
                      "mplayer -really-quiet \
                        -af resample=#{audio.samplerate()},channels=#{audio.channels()} \
                        -ao pcm:file=/dev/stdout \
-                       -vc null -vo null #{quote(s)} 2>/dev/null")
+                       -vc null -vo null #{string.quote(s)} 2>/dev/null")
 end
 %endif

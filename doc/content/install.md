@@ -1,7 +1,7 @@
 Installing Savonet/Liquidsoap
 =============================
 
-**Note** These instructions are from the documentation from liquidsoap `1.4.0`.
+**Note** These instructions are from the documentation from liquidsoap `1.5.0`.
 Make sure to consult the instructions from the version you wish to install,
 most likely the latest stable release.
 
@@ -79,29 +79,44 @@ These packages are available for quick testing of `liquidsoap` on certain Debian
 and Ubuntu distributions. However, we do not recommend them yet for production 
 purposes.
 
+**Please note** We cannot guarantee that any of the distribution below will remain
+available at all time and we reserve the right to purge old versions of the packages
+at any time. If you plan on using some of these packages for any sort of production
+use, make sure to copy them and use your own distribution channels.
+
 Here's how to install:
 
 * First install the repository signing key:
 ```
 [sudo] apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 20D63CCDDD0F62C2
 ```
+
 * Then one of the following source:
+
+**debian/stable:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/debian stable main >> /etc/apt/sources.list.d/liquidsoap.list
+```
 
 **debian/testing:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list
+[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
-**debian/stretch:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list
-```
+
 **ubuntu/bionic:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list
+[sudo] add-apt-repository ppa:sergey-dryabzhinsky/ffmpeg
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
-* Finally, update your packages list:
+
+**ubuntu/eoan:**
 ```
-[sudo] apt-get update
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu eoan main >> /etc/apt/sources.list.d/liquidsoap.list
+```
+
+**ubuntu/focal:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu focal main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 You can now see the list of available packages:
@@ -109,10 +124,10 @@ You can now see the list of available packages:
 apt-cache show liquidsoap
 ```
 
-Package versions are of the form: `1:0+<commit>~<distribution>-1` or `1:0+<branch>~<distribution>-1`. For instance,
-to install the latest `master` on `debian/testing`, you can do:
+Package names are of the form: `liquidsoap-<commit>` and `liquidsoap-<branch>`. For instance,
+to install the latest `master` you can do:
 ```
-[sudo] apt-get install liquidsoap=1:0+master~testing-1
+[sudo] apt-get install liquidsoap-master
 ```
 
 

@@ -92,7 +92,7 @@ output = "/tmp/output.ogg"
 source = once(single(input))
 
 # We use a clock with disabled synchronization
-clock.assign_new(sync=false,[source])
+clock.assign_new(sync="none",[source])
 
 # Finally, we output the source to an
 # ogg/vorbis file
@@ -125,6 +125,25 @@ main_source = fallback([timed_promotions,other_source])
 
 Where promotions is a source selecting the file to be promoted.
 
+Play a jingle at a fixed time
+-----------------------------
+
+Suppose that we have a playlist `jingles` of jingles and we want to play one
+within the 5 first minutes of every hour, without interrupting the current
+song. We can think of doing something like
+
+```liquidsoap
+radio = switch([({ 0m-5m }, jingles), ({ true }, playlist)])
+```
+
+but the problem is that it is likely to play many jingles. In order to play
+exactly one jingle, we can use the function `predicate.activates` which detects
+when a predicate (here `{ 0m-5m }`) becomes true:
+
+```liquidsoap
+radio = switch([(predicate.activates({ 0m-5m }), jingles), ({ true }, playlist)])
+```
+
 Handle special events: mix or switch
 ------------------------------------
 ```liquidsoap
@@ -152,10 +171,10 @@ This is explained in the documentation for [request-based sources](request_sourc
 For instance, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
 
 ```liquidsoap
-request.dynamic(
-  { request.create("bar:foo",
+request.dynamic.list(
+  { [request.create("bar:foo",
       indicators=
-        get_process_lines("cat "^quote("playlist.pls"))) })
+        get_process_lines("cat "^quote("playlist.pls")))] })
 ```
 
 Of course a more interesting behaviour is obtained with a more interesting program than `cat`.
@@ -243,13 +262,34 @@ save a file per hour in wav format, the following script can be used:
 # s = ...
 
 # Dump the stream
-file_name = '/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3'
-output.file(%mp3,filename,s)
+output.file(%wav, '/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3', s, reopen_when={0m})
 ```
 
-This will save your source into a `mp3` file with name specified by `file_name`.
-In this example, we use [string interpolation](language.html) and time litterals to generate a different
-file name each time new metadata are coming from `s`.
+In the following variant we write a new mp3 file each time new metadata is
+coming from `s`:
+
+```liquidsoap
+file_name = '/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3'
+output.file(%mp3, filename, s, reopen_on_metadata=true)
+```
+
+In the two examples we use [string interpolation](language.html) and time
+litterals to generate the output file name.
+
+In order to limit the disk space used by this archive, on unix systems we can
+regularly call `find` to cleanup the folder ; if we can to keep 31 days of
+recording :
+
+```liquidsoap
+exec_at(freq=3600., pred={ true },
+    fun () -> list.iter(fun(msg) -> log(msg, label="archive_cleaner"),
+        list.append(
+            get_process_lines("find /archive/* -type f -mtime +31 -delete"),
+            get_process_lines("find /archive/* -type d -empty -delete")
+        )
+    )
+)
+```
 
 Manually dump a stream
 ----------------------

@@ -24,9 +24,10 @@
 
 let duration file =
   let h = Flac.Decoder.File.create (fun _ -> ()) file in
-  Tutils.finalize ~k:(fun () -> Unix.close h.Flac.Decoder.File.fd)
-    (fun _ -> (Int64.to_float h.Flac.Decoder.File.info.Flac.Decoder.total_samples) /.
-              (float h.Flac.Decoder.File.info.Flac.Decoder.sample_rate))
+  Tutils.finalize
+    ~k:(fun () -> Unix.close h.Flac.Decoder.File.fd)
+    (fun _ ->
+      Int64.to_float h.Flac.Decoder.File.info.Flac.Decoder.total_samples
+      /. float h.Flac.Decoder.File.info.Flac.Decoder.sample_rate)
 
 let () = Request.dresolvers#register "FLAC" duration
-

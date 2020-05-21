@@ -20,140 +20,47 @@
 
  *****************************************************************************)
 
-class drop_video ~kind source =
-object
-  inherit Source.operator kind [source] ~name:"drop_video"
+class drop ?audio ?video ?midi ~kind ~name source =
+  object
+    inherit Source.operator kind [source] ~name
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method remaining = source#remaining
-  method seek = source#seek
-
-  method private get_frame frame =
-    let start = Frame.position frame in
-    let len = source#get frame ; Frame.position frame - start in
-    let layer_end,src = Frame.content frame start in
-      assert (layer_end = Lazy.force Frame.size) ;
-      if Array.length src.Frame.video > 0 then
-        let new_type = { (Frame.type_of_content src) with Frame.video = 0 } in
-        let dst = Frame.content_of_type frame start new_type in
-          for i = 0 to Array.length src.Frame.audio - 1 do
-            let (!) = Frame.audio_of_master in
-            Audio.Mono.blit
-              src.Frame.audio.(i) !start
-              dst.Frame.audio.(i) !start
-              !len
-          done ;
-          for i = 0 to Array.length src.Frame.midi - 1 do
-            MIDI.blit
-              src.Frame.midi.(i) start
-              dst.Frame.midi.(i) start
-              len
-          done
-end
+    inherit
+      Conversion.base
+        ?audio ?video ?midi
+        ~converter:(fun ~frame:_ _ -> ())
+        source
+  end
 
 let () =
-  let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  let {Frame.audio=audio;video=_;midi=midi} = Lang.of_frame_kind_t input in
-  let output = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi in
-  Lang.add_operator "drop_video"
-    ~category:Lang.Conversions
-    ~descr:"Drop all video channels of a stream."
-    ~kind:(Lang.Unconstrained output)
-    [ "", Lang.source_t input, None, None ]
-    (fun p kind ->
-       new drop_video ~kind (Lang.to_source (List.assoc "" p)))
-
-class drop_audio ~kind source =
-object
-  inherit Source.operator kind [source] ~name:"drop_audio"
-
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method remaining = source#remaining
-  method seek = source#seek
-
-  method private get_frame frame =
-    let start = Frame.position frame in
-    let len = source#get frame ; Frame.position frame - start in
-    let layer_end,src = Frame.content frame start in
-      assert (layer_end = Lazy.force Frame.size) ;
-      if Array.length src.Frame.audio > 0 then
-        let new_type = { (Frame.type_of_content src) with Frame.audio = 0 } in
-        let dst = Frame.content_of_type frame start new_type in
-          for i = 0 to Array.length src.Frame.video - 1 do
-            let (!) = Frame.video_of_master in
-              for j = 0 to !len-1 do
-                Image.RGBA32.blit
-                  src.Frame.video.(i).(!start+j)
-                  dst.Frame.video.(i).(!start+j)
-              done
-          done ;
-          for i = 0 to Array.length src.Frame.midi - 1 do
-            MIDI.blit
-              src.Frame.midi.(i) start
-              dst.Frame.midi.(i) start
-              len
-          done
-end
-
-let () =
-  let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  let {Frame.audio=_;video=video;midi=midi} = Lang.of_frame_kind_t input in
-  let output = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi in
-  Lang.add_operator "drop_audio"
-    ~category:Lang.Conversions
-    ~descr:"Drop all audio channels of a stream."
-    ~kind:(Lang.Unconstrained output)
-    [ "", Lang.source_t input, None, None ]
-    (fun p kind ->
-       new drop_audio ~kind (Lang.to_source (List.assoc "" p)))
-
-class drop_midi ~kind source =
-object
-  inherit Source.operator kind [source] ~name:"drop_midi"
-
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method remaining = source#remaining
-  method seek = source#seek
-
-  method private get_frame frame =
-    let start = Frame.position frame in
-    let len = source#get frame ; Frame.position frame - start in
-    let layer_end,src = Frame.content frame start in
-      assert (layer_end = Lazy.force Frame.size) ;
-      if Array.length src.Frame.midi > 0 then
-        let new_type = { (Frame.type_of_content src) with Frame.midi = 0 } in
-        let dst = Frame.content_of_type frame start new_type in
-          for i = 0 to Array.length src.Frame.audio - 1 do
-            let (!) = Frame.audio_of_master in
-              Audio.Mono.blit
-                src.Frame.audio.(i) !start
-                dst.Frame.audio.(i) !start
-                !len
-          done ;
-          for i = 0 to Array.length src.Frame.video - 1 do
-            let (!) = Frame.video_of_master in
-              for j = 0 to !len-1 do
-                Image.RGBA32.blit
-                  src.Frame.video.(i).(!start+j)
-                  dst.Frame.video.(i).(!start+j)
-              done
-          done
-end
-
-let () =
-  let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  let {Frame.audio=audio;video=video;midi=_} = Lang.of_frame_kind_t input in
-  let output = Lang.frame_kind_t ~audio ~video ~midi:Lang.zero_t in
-  Lang.add_operator "drop_midi"
-    ~category:Lang.Conversions
-    ~descr:"Drop all midi channels of a stream."
-    ~kind:(Lang.Unconstrained output)
-    [ "", Lang.source_t input, None, None ]
-    (fun p kind ->
-       new drop_midi ~kind (Lang.to_source (List.assoc "" p)))
+  List.iter
+    (fun content ->
+      let input = Lang.kind_type_of_kind_format Lang.any in
+      let { Frame.audio; video; midi } = Lang.of_frame_kind_t input in
+      let name, descr, output, source =
+        match content with
+          | `Audio ->
+              ( "drop_audio",
+                "Drop all audio content of a stream.",
+                Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi,
+                fun p kind ->
+                  let source = Lang.to_source (List.assoc "" p) in
+                  new drop ~kind ~audio:true ~name:"drop_audio" source )
+          | `Video ->
+              ( "drop_video",
+                "Drop all video content of a stream.",
+                Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi,
+                fun p kind ->
+                  let source = Lang.to_source (List.assoc "" p) in
+                  new drop ~kind ~video:true ~name:"drop_video" source )
+          | `Midi ->
+              ( "drop_midi",
+                "Drop all midi content of a stream.",
+                Lang.frame_kind_t ~audio ~video ~midi:Lang.zero_t,
+                fun p kind ->
+                  let source = Lang.to_source (List.assoc "" p) in
+                  new drop ~kind ~midi:true ~name:"drop_midi" source )
+      in
+      Lang.add_operator name ~category:Lang.Conversions ~descr ~return_t:output
+        [("", Lang.source_t input, None, None)]
+        (fun p kind -> (source p kind :> Source.source)))
+    [`Audio; `Video; `Midi]

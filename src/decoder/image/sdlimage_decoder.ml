@@ -20,23 +20,20 @@
 
  *****************************************************************************)
 
+open Tsdl
 module Img = Image.RGBA32
 module P = Image.Generic.Pixel
 
-let log = Log.make ["decoder";"sdlimage"]
+let log = Log.make ["decoder"; "sdlimage"]
 
 let load_image filename =
-  let surface = Sdlloader.load_image filename in
-  log#info "SDL loaded %S as %dbpp." filename (Sdlvideo.surface_bpp surface);
-  match Sdlvideo.surface_bpp surface with
-  | 8 -> Sdl_utils.from_8 surface
-  | 24 -> Sdl_utils.from_24 surface
-  | 32 -> Sdl_utils.from_32 surface
-  | _ -> failwith "unsupported pixel format"
+  let surface = Sdl_utils.check Tsdl_image.Image.load filename in
+  let img = Sdl_utils.Surface.to_img surface in
+  Sdl.free_surface surface;
+  img
 
 let () =
   Decoder.image_file_decoders#register "SDL/image"
-    ~sdoc:"Use SDL to decode images."
-    (fun filename ->
+    ~sdoc:"Use SDL to decode images." (fun filename ->
       let img = load_image filename in
       Some img)

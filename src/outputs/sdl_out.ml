@@ -22,99 +22,97 @@
 
 (** Output using SDL lib. *)
 
+open Tsdl
+
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
-  let video_width    = Lazy.force Frame.video_width in
-  let video_height   = Lazy.force Frame.video_height in
-  let () = Sdl_utils.init [`VIDEO] in
-object (self)
-  inherit Output.output ~name:"sdl" ~output_kind:"output.sdl"
-    ~infallible ~on_start ~on_stop
-    ~content_kind:kind source autostart
+  let video_width = Lazy.force Frame.video_width in
+  let video_height = Lazy.force Frame.video_height in
+  let () = Sdl_utils.init [Sdl.Init.video] in
+  object (self)
+    inherit
+      Output.output
+        ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~on_start ~on_stop
+          ~content_kind:kind source autostart
 
-  val mutable fullscreen = false
+    val mutable fullscreen = false
 
-  method output_start =
-    Sdlevent.enable_events (Sdlevent.quit_mask lor Sdlevent.keydown_mask);
-    (* Try to get 32bpp because it's faster (twice as fast here),
-     * but accept other formats too. *)
-    ignore (Sdlvideo.set_video_mode
-              ~w:video_width ~h:video_height
-              ~bpp:32 [`ANYFORMAT;`DOUBLEBUF]) ;
-    self#log#info "Initialized SDL video surface with %dbpp."
-      (Sdlvideo.surface_bpp (Sdlvideo.get_video_surface ()))
+    val mutable window = None
 
-  (** We don't care about latency. *)
-  method output_reset = ()
+    method output_start =
+      window <-
+        Some
+          (Sdl_utils.check
+             (fun () ->
+               Sdl.create_window "Liquidsoap" ~w:video_width ~h:video_height
+                 Sdl.Window.windowed)
+             ());
+      self#log#info "Initialized SDL video surface."
 
-  (** Stop SDL. We have to assume that there's only one SDL output anyway. *)
-  method output_stop = Sdl.quit ()
+    (** We don't care about latency. *)
+    method output_reset = ()
 
-  method process_events =
-    match Sdlevent.poll () with
-      | Some Sdlevent.QUIT ->
-        (* Avoid an immediate restart (which would happen with autostart).
-         * But do not cancel autostart.
-         * We should perhaps have a method in the output class for that
-         * kind of thing, and try to get an uniform behavior. *)
-        request_start <- false;
-        request_stop <- true
-      | Some (Sdlevent.KEYDOWN k) ->
-        (
-          match k.Sdlevent.keysym with
-            | Sdlkey.KEY_f ->
-              fullscreen <- not fullscreen;
-              let mode = [`ANYFORMAT;`DOUBLEBUF] in
-              let mode = if fullscreen then `FULLSCREEN::mode else mode in
-              ignore (Sdlvideo.set_video_mode
-                        ~w:video_width ~h:video_height
-                        ~bpp:32 mode);
-            | Sdlkey.KEY_q ->
-              Sdlevent.add [Sdlevent.QUIT]
-            | _ -> ()
-        );
-        self#process_events
-      | Some _ ->
-        self#process_events
-      | None -> ()
+    (** Stop SDL. We have to assume that there's only one SDL output anyway. *)
+    method output_stop = Sdl.quit ()
 
-  method output_send buf =
-    self#process_events;
-    let surface = Sdlvideo.get_video_surface () in
-    (* We only display the first image of each frame *)
-    let rgb =
-      let stop,c = Frame.content buf 0 in
-        assert (stop = Lazy.force Frame.size) ;
-        c.Frame.video.(0).(0)
-    in
-    begin match Sdlvideo.surface_bpp surface with
-      | 16 -> Sdl_utils.to_16 rgb surface
-      | 32 -> Sdl_utils.to_32 rgb surface
-      | i -> failwith (Printf.sprintf "Unsupported format %dbpp" i)
-    end ;
-    Sdlvideo.flip surface
+    method process_events =
+      let e = Sdl.Event.create () in
+      if Sdl.poll_event (Some e) then (
+        match Sdl.Event.(enum (get e typ)) with
+          | `Quit ->
+              (* Avoid an immediate restart (which would happen with autostart). But
+                 do not cancel autostart. We should perhaps have a method in the
+                 output class for that kind of thing, and try to get an uniform
+                 behavior. *)
+              request_start <- false;
+              request_stop <- true
+          | `Key_down ->
+              (let k = Sdl.Event.(get e keyboard_keycode) in
+               match k with
+                 | k when k = Sdl.K.f ->
+                     fullscreen <- not fullscreen;
+                     Sdl_utils.check
+                       (fun () ->
+                         Sdl.set_window_fullscreen (Option.get window)
+                           ( if fullscreen then Sdl.Window.fullscreen
+                           else Sdl.Window.windowed ))
+                       ()
+                 | k when k = Sdl.K.q ->
+                     let e = Sdl.Event.create () in
+                     Sdl.Event.(set e typ quit);
+                     assert (Sdl_utils.check Sdl.push_event e)
+                 | _ -> ());
+              self#process_events
+          | _ -> self#process_events )
 
-end
+    method output_send buf =
+      self#process_events;
+      let window = Option.get window in
+      let surface = Sdl_utils.check Sdl.get_window_surface window in
+      (* We only display the first image of each frame *)
+      let rgb =
+        let c = buf.Frame.content in
+        Video.get c.Frame.video.(0) 0
+      in
+      Sdl_utils.Surface.of_img surface rgb;
+      Sdl_utils.check Sdl.update_window_surface window
+  end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.video_only in
+  let k = Lang.kind_type_of_kind_format Lang.video in
   Lang.add_operator "output.sdl" ~active:true
-    (Output.proto @ [
-      "", Lang.source_t k, None, None
-    ])
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Output
-    ~descr:"Display a video using SDL."
+    (Output.proto @ [("", Lang.source_t k, None, None)])
+    ~return_t:k ~category:Lang.Output ~descr:"Display a video using SDL."
     (fun p kind ->
-       let autostart = Lang.to_bool (List.assoc "start" p) in
-       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let on_start =
-         let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let on_stop =
-         let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
-       in
-       let source = List.assoc "" p in
-         ((new output ~infallible ~autostart ~on_start ~on_stop
-                 ~kind source):>Source.source))
+      let autostart = Lang.to_bool (List.assoc "start" p) in
+      let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let on_start =
+        let f = List.assoc "on_start" p in
+        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      in
+      let on_stop =
+        let f = List.assoc "on_stop" p in
+        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+      in
+      let source = List.assoc "" p in
+      ( new output ~infallible ~autostart ~on_start ~on_stop ~kind source
+        :> Source.source ))

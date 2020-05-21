@@ -1,7 +1,7 @@
 register(name="Protocol Settings","protocol",())
 
 register(name="Replay_gain protocol settings","protocol.replay_gain",())
-register(name="Replay_gain path","protocol.replay_gain.path","#{configure.libdir}/extract-replaygain")
+register(name="Replay_gain path","protocol.replay_gain.path","#{configure.bindir}/extract-replaygain")
 
 # Register the replaygain protocol.
 # @flag hidden
@@ -9,7 +9,7 @@ def replaygain_protocol(~rlog,~maxtime,arg)
  delay = maxtime - gettimeofday()
  # The extraction program
  extract_replaygain =
-   get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+   get(default="#{configure.bindir}/extract-replaygain","protocol.replay_gain.path")
  ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
  if ret != "" then
   ["annotate:replay_gain=\"#{ret}\":#{arg}"]
@@ -57,26 +57,28 @@ def process_protocol(~rlog,~maxtime,arg)
   output = file.temp("liq-process", ".#{extname}")
 
   def resolve(input) =
-    cmd = cmd % [("input",quote(input)),
-                 ("output",quote(output)),
+    cmd = cmd % [("input",string.quote(input)),
+                 ("output",string.quote(output)),
                  ("colon",":")]
 
-    log(level=4,"Executing #{cmd}")
+    log.info("Executing #{cmd}")
 
     env_vars = get(default=[],"protocol.process.env")
     env = environment()
-    def get_env(k) =
-      (k,env[k])
-    end
+    def get_env(k) = (k,env[k]) end
     env = list.map(get_env,env_vars)
     inherit_env = get(default=true,"protocol.process.inherit_env")
 
     delay = maxtime - gettimeofday()
-    let (_,_,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
+    let (stdout,stderr,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
     if status == ("exit","0") then
       [output]
     else
-      log(level=3,"Failed to execute #{cmd}: #{status}")
+      log.important("Failed to execute #{cmd}: #{status}")
+      log.info("Standard output:\n#{stdout}")
+      log.info("Error output:\n#{stderr}")
+      log.info("Removing #{output}.")
+      file.unlink(output)
       []
     end
   end
@@ -146,7 +148,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
 
   # First define using curl.
   def get_mime() =
-    cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+    cmd = "#{curl} -sLI -X HEAD #{string.quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
     log(level=4,"Running #{cmd}")
     ret = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
     let (stdout,_,(status,code)) = ret
@@ -202,7 +204,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     elsif list.mem(mime,["application/ogg", "application/x-ogg",
                          "audio/x-ogg", "audio/ogg", "video/ogg"]) then
       "ogg"
-    elsif mime == "audio/x-flac" then
+    elsif list.mem(mime, ["audio/flac", "audio/x-flac"]) then
       "flac"
     elsif list.mem(mime,["audio/mp4", "application/mp4"]) then
       "mp4"
@@ -213,7 +215,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
       log(level=3,"No known file extension for mime: #{mime}")
       "osb"
     end
-  [process_uri(extname=extname,"#{curl} -sL #{quote(uri)} -o $(output)")]
+  [process_uri(extname=extname,"#{curl} -sL #{string.quote(uri)} -o $(output)")]
 end
 
 # Register download protocol
@@ -242,7 +244,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   end
 
   delay = maxtime - gettimeofday()
-  cmd = "#{binary} --get-title --get-filename -- #{quote(arg)}"
+  cmd = "#{binary} --get-title --get-filename -- #{string.quote(arg)}"
   log(level=4,"Executing #{cmd}")
   x = get_process_lines(timeout=delay,cmd)
 
@@ -256,11 +258,11 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   title = list.hd(default="",x)
   ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
-  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{quote(arg)}"
+  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{string.quote(arg)}"
   process = process_uri(extname=ext,cmd)
 
   if title != "" then
-    ["annotate:title=#{quote(title)}:#{process}"]
+    ["annotate:title=#{string.quote(title)}:#{process}"]
   else
     [process]
   end
@@ -290,29 +292,42 @@ add_protocol("tmp",tmp_protocol,
              doc="Mark the given uri as temporary. Useful when chaining protocols",
              temporary=true,syntax="tmp:uri")
 
-register(name="ffmpeg2wav protocol settings","protocol.ffmpeg2wav",())
-register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
-register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
-register(name="Extract metadata","protocol.ffmpeg2wav.metadata",true)
-register(name="Adjust replaygain","protocol.ffmpeg2wav.replaygain",false)
+register(name="ffmpeg protocol settings","protocol.ffmpeg",())
+register(name="Path to ffmpeg","protocol.ffmpeg.path","ffmpeg")
+register(name="Number of channels","protocol.ffmpeg.channels",2)
+register(name="Extract metadata","protocol.ffmpeg.metadata",true)
+register(name="Adjust replaygain","protocol.ffmpeg.replaygain",false)
 
-# Register ffmpeg2wav
+# Register ffmpeg
 # @flag hidden
-def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
-  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg2wav.path")
-  channels = get(default=2,"protocol.ffmpeg2wav.channels")
-  metadata = get(default=true,"protocol.ffmpeg2wav.metadata")
-  replaygain = get(default=false,"protocol.ffmpeg2wav.replaygain")
+def ffmpeg_protocol(~rlog,~maxtime,arg) =
+  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg.path")
+  channels = get(default=2,"protocol.ffmpeg.channels")
+  metadata = get(default=true,"protocol.ffmpeg.metadata")
+  replaygain = get(default=false,"protocol.ffmpeg.replaygain")
 
-  log = log(label="protocol.ffmpeg2wav")
+  log = log(label="protocol.ffmpeg")
 
   def log(~level,s) =
     rlog(s)
     log(level=level,s)
   end
 
+  def annotate(m) =
+    def f(x) =
+      let (key,value) = x
+      "#{key}=#{string.quote(value)}"
+    end
+    m = string.concat(separator=",",list.map(f,m))
+    if string.length(m) > 0 then
+      "annotate:#{m}:"
+    else
+      ""
+    end
+  end
+
   def parse_metadata(file) =
-    cmd = "#{ffmpeg} -i #{quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
+    cmd = "#{ffmpeg} -i #{string.quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
     delay = maxtime - gettimeofday()
     log(level=4,"Executing #{cmd}")
     lines = get_process_lines(timeout=delay,cmd)
@@ -321,14 +336,111 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
       if list.length(m) >= 2 then
         key = list.hd(default="",m)
         value = string.concat(separator="=",list.tl(m))
-        list.add("#{key}=#{quote(value)}",cur)
+        list.add((key,value),cur)
       else
         cur
       end
     end
-    m = string.concat(separator=",",list.fold(f,[],lines))
-    if string.length(m) > 0 then
-      "annotate:#{m}:"
+    list.fold(f,[],lines)
+  end
+
+  def replaygain_filter(file) =
+    if replaygain then
+      # The extraction program
+      extract_replaygain =
+        get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+      delay = maxtime - gettimeofday()
+      ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
+      if ret != "" then
+        "-af \"volume=#{ret}\""
+      else
+        ""
+      end
+    else
+      ""
+    end
+  end
+
+  def cue_points(m) =
+    cue_in = float_of_string(default=0., list.assoc(default="0.","liq_cue_in",m))
+    cue_out = float_of_string(default=0., list.assoc(default="","liq_cue_out",m))
+
+    args =
+      if cue_in > 0. then
+        "-ss #{cue_in}"
+      else
+        ""
+      end
+
+    if cue_out > cue_in then
+      "#{args} -t #{cue_out-cue_in}"
+    else
+      args
+    end
+  end
+
+  def fades(r) =
+    m = request.metadata(r)
+
+    fade_type = list.assoc(default="","liq_fade_type",m)
+    fade_in = list.assoc(default="","liq_fade_in",m)
+    cue_in = list.assoc(default="","liq_cue_in",m)
+    fade_out = list.assoc(default="","liq_fade_out",m)
+    cue_out = list.assoc(default="","liq_cue_out",m)
+
+    curve =
+      if fade_type == "lin" then
+        ":curve=tri"
+      elsif fade_type == "sin" then
+        ":curve=qsin"
+      elsif fade_type == "log" then
+        ":curve=log"
+      elsif fade_type == "exp" then
+        ":curve=exp"
+      else
+        ""
+      end
+      
+
+    args =
+      if fade_in != "" then
+        fade_in = float_of_string(default=0.,fade_in)
+        start_time =
+          if cue_in != "" then
+            float_of_string(default=0.,cue_in)
+          else
+            0.
+        end
+        if fade_in > 0. then
+          ["afade=in:st=#{start_time}:d=#{fade_in}#{curve}"]
+        else
+          []
+        end
+      else
+        []
+      end
+
+    args =
+      if fade_out != "" then
+        fade_out = float_of_string(default=0.,fade_out)
+        end_time =
+          if cue_out != "" then
+            float_of_string(default=0.,cue_out)
+          else
+            request.duration(request.filename(r))
+          end
+        if fade_out > 0. then
+          list.append(args,["afade=out:st=#{end_time-fade_out}:d=#{fade_out}#{curve}"])
+        else
+          args
+        end
+      else
+        args
+      end
+
+    if list.length(args) > 0 then
+      args = string.concat(separator=",",args)
+      "-af #{args}"
     else
       ""
     end
@@ -337,45 +449,36 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
   r = request.create.raw(arg)
   delay = maxtime - gettimeofday()
   if request.resolve(timeout=delay,r) then
-    res = request.filename(r)
+    filename = request.filename(r)
+    m = request.metadata(r)
 
-    annotate = if metadata then
-      parse_metadata(res)
+    m = if metadata then
+      list.append(m,parse_metadata(filename))
     else
-      ""
+      m
     end
-   
+
+    annotate = annotate(m)
+    request.destroy(r)
+
     # Now parse the audio
     wav = file.temp("liq-process", ".wav")
 
-    replaygain_filter =
-      if replaygain then
-        # The extraction program
-        extract_replaygain =
-          get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
-        delay = maxtime - gettimeofday()
-        ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
-        if ret != "" then
-          "-af \"volume=#{ret}\""
-        else
-          ""
-        end
-      else
-        ""
-      end
-    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{replaygain_filter} #{quote(wav)}"
+    cue_points = cue_points(request.metadata(r))
+    fades = fades(r)
+    replaygain_filter = replaygain_filter(filename)
 
-    uri = process_uri(extname="wav",uri=res,cmd)
+    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{cue_points} #{fades} #{replaygain_filter} #{string.quote(wav)}"
+
+    uri = process_uri(extname="wav",uri=filename,cmd)
 
     wav_r = request.create.raw(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,wav_r) then
-      request.destroy(r)
       request.destroy(wav_r)
       ["#{annotate}tmp:#{wav}"]
     else
       log(level=3,"Failed to resolve #{uri}")
-      request.destroy(r)
       []
     end
   else
@@ -383,9 +486,19 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     []
   end
 end
-add_protocol("ffmpeg2wav",ffmpeg2wav_protocol,
+add_protocol("ffmpeg",ffmpeg_protocol,
              doc="Decode any file to wave using ffmpeg",
-             syntax="ffmpeg2wav:uri")
+             syntax="ffmpeg:uri")
+
+# Register stereo protocol which converts a file to stereo (currently decodes as
+# wav).
+# @flag hidden
+def stereo_protocol(~rlog, ~maxtime, arg)
+  file = file.temp("liq-stereo", ".wav")
+  source.dump(%wav, file, audio_to_stereo(once(single(arg))))
+  [file]
+end
+add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
 
 register(name="Text2wave protocol settings","protocol.text2wave",())
 register(name="Text2wave path","protocol.text2wave.path","text2wave")
@@ -393,21 +506,30 @@ register(name="Text2wave path","protocol.text2wave.path","text2wave")
 # Register the text2wave: protocol using text2wav
 # @flag hidden
 def text2wave_protocol(~rlog,~maxtime,arg) =
-  binary = get(default="text2wave","protocol.text2wave.path")
-  [process_uri(extname="wav","echo #{quote(arg)} | #{binary} -scale 1.9 > $(output)")]
+  binary = get(default="text2wave", "protocol.text2wave.path")
+  [process_uri(extname="wav", "echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
-             syntax="text2wav2:Text to read")
+             syntax="text2wave:Text to read")
 
-register(name="Say protocol settings","protocol.say",())
-register(name="Sox path","protocol.say.sox_path","sox")
+register(name="gTTS protocol settings", "protocol.gtts",())
+register(name="gtts-cli binary path", "protocol.gtts.path", "gtts-cli")
+
+# Register the gtts: protocol using gtts
+# @flag hidden
+def gtts_protocol(~rlog,~maxtime,arg) =
+  binary = get(default="gtts-cli","protocol.gtts.path")
+  [process_uri(extname="mp3","#{binary} -o $(output) #{string.quote(arg)}")]
+end
+add_protocol(static=true,"gtts",gtts_protocol,
+             doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
+             syntax="gtts:Text to read")
 
 # Register the legacy say: protocol using text2wave and sox
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
-  sox = get(default="sox","protocol.say.sox_path")
-  [process_uri(extname="wav",uri="text2wave:#{arg}","#{sox} $(input) -c 2 $(output)")]
+  ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",
@@ -446,7 +568,7 @@ def aws_base() =
 
   aws =
     if endpoint !="" then
-      "#{aws} --endpoint-url #{quote(endpoint)}"
+      "#{aws} --endpoint-url #{string.quote(endpoint)}"
     else
       aws
     end
@@ -454,7 +576,7 @@ def aws_base() =
   profile = get(default="","protocol.aws.profile")
 
   if profile !="" then
-    "#{aws} --profile #{quote(profile)}"
+    "#{aws} --profile #{string.quote(profile)}"
   else
     aws
   end
@@ -490,7 +612,7 @@ def polly_protocol(~rlog,~maxtime,text) =
 
   voice_id = get(default="Joanna","protocol.aws.polly.voice")
 
-  cmd = "#{aws} --text #{quote(text)} --voice-id #{quote(voice_id)} $(output)"
+  cmd = "#{aws} --text #{string.quote(text)} --voice-id #{string.quote(voice_id)} $(output)"
 
   [process_uri(extname=extname,cmd)]
 end
@@ -498,3 +620,71 @@ add_protocol(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
                   Result might be mono, needs aws binary in the path.",
              syntax="polly:Text to read")
+
+# Protocol to synthesize audio.
+# @flag hidden
+def synth_protocol(~rlog,~maxtime,text) =
+  log.debug(label="synth", "Synthesizing request: #{text}")
+  args = string.split(separator=",", text)
+  args = list.map(string.split(separator="="), args)
+  if list.exists(fun(l)-> list.length(l) != 2, args) then
+    []
+  else
+    args = list.map(fun(l) -> (list.hd(default="",l), list.hd(default="",list.tl(l))), args)
+    shape = ref("sine")
+    duration = ref(10.)
+    frequency = ref(440.)
+    def set(p)
+      let (k,v) = p
+      if k == "duration" then duration := float_of_string(v)
+      elsif k == "frequency" then frequency := float_of_string(v)
+      elsif k == "shape" then shape := v
+      end
+    end
+    list.iter(set, args)
+    def synth(s)
+      file = file.temp("liq-synth",".wav")
+      log.info(label="synth", "Synthesizing #{!shape} in #{file}.")
+      source.dump(%wav, file, once(s))
+      [file]
+    end
+    if !shape == "sine" then
+      synth(sine(duration=!duration, !frequency))
+    elsif !shape == "saw" then
+      synth(saw(duration=!duration, !frequency))
+    elsif !shape == "square" then
+      synth(square(duration=!duration, !frequency))
+    elsif !shape == "blank" then
+      synth(blank(duration=!duration))
+    else
+      []
+    end
+  end
+end
+
+add_protocol(static=true, temporary=true, "synth", synth_protocol,
+doc="Syntesize audio. Parameters are optional.",
+syntax="synth:shape=sine,frequency=440.,duration=10.")
+
+# File protocol
+# @flag hidden
+def file_protocol(~rlog,~maxtime,arg) =
+  path = list.nth(default="", string.split(separator=":",arg), 1)
+  segments = string.split(separator="/",path)
+
+  segments =
+    if list.length(segments) > 3 and
+       list.nth(default="foo",segments,0) == "" and
+       list.nth(default="foo",segments,1) == ""
+    then
+      list.tl(list.tl(segments))
+    else
+      segments
+    end
+
+  [string.concat(separator="/",segments)]
+end
+
+add_protocol(static=true, temporary=false, "file", file_protocol,
+             doc="File protocol. Only local files are supported",
+             syntax="file:///path/to/file")

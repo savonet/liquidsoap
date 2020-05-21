@@ -24,9 +24,9 @@ dependencies. You can read [here](https://opam.ocaml.org/doc/Usage.html) about
 how to use OPAM. In order to use it:
 
 - [you should have at least OPAM version 2.0](https://opam.ocaml.org/doc/Install.html),
-- you should have at least OCaml version 4.08.0, which can be achieved by typing
+- you should have at least OCaml version @min_ocaml_version@, which can be achieved by typing
   ```
-  opam switch create 4.08.0
+  opam switch create @min_ocaml_version@
   ```
 
 A typical installation with MP3 and Vorbis encoding/decoding and icecast support
@@ -79,29 +79,44 @@ These packages are available for quick testing of `liquidsoap` on certain Debian
 and Ubuntu distributions. However, we do not recommend them yet for production 
 purposes.
 
+**Please note** We cannot guarantee that any of the distribution below will remain
+available at all time and we reserve the right to purge old versions of the packages
+at any time. If you plan on using some of these packages for any sort of production
+use, make sure to copy them and use your own distribution channels.
+
 Here's how to install:
 
 * First install the repository signing key:
 ```
 [sudo] apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 20D63CCDDD0F62C2
 ```
+
 * Then one of the following source:
+
+**debian/stable:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/debian stable main >> /etc/apt/sources.list.d/liquidsoap.list
+```
 
 **debian/testing:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list
+[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
-**debian/stretch:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list
-```
+
 **ubuntu/bionic:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list
+[sudo] add-apt-repository ppa:sergey-dryabzhinsky/ffmpeg
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
-* Finally, update your packages list:
+
+**ubuntu/eoan:**
 ```
-[sudo] apt-get update
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu eoan main >> /etc/apt/sources.list.d/liquidsoap.list
+```
+
+**ubuntu/focal:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu focal main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 You can now see the list of available packages:
@@ -109,10 +124,10 @@ You can now see the list of available packages:
 apt-cache show liquidsoap
 ```
 
-Package versions are of the form: `1:0+<commit>~<distribution>-1` or `1:0+<branch>~<distribution>-1`. For instance,
-to install the latest `master` on `debian/testing`, you can do:
+Package names are of the form: `liquidsoap-<commit>` and `liquidsoap-<branch>`. For instance,
+to install the latest `master` you can do:
 ```
-[sudo] apt-get install liquidsoap=1:0+master~testing-1
+[sudo] apt-get install liquidsoap-master
 ```
 
 
