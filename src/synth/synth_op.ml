@@ -139,7 +139,7 @@ let register obj name descr =
         else None
       in
       let synths =
-        Array.init (Frame.type_of_kind kind).Frame.midi (fun c ->
+        Array.init (Lazy.force Frame.midi_channels) (fun c ->
             (1., new synth ~kind (obj adsr) src c 1.))
       in
       let synths = Array.to_list synths in

@@ -62,10 +62,10 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
           (Printf.sprintf "Unrecognized options: %s"
              (Ffmpeg_format.string_of_options opts));
       let content_type = Ffmpeg_decoder.get_type ~url input in
-      if not (Frame.type_has_kind content_type kind) then
+      if content_type <> self#ctype then
         failwith
           (Printf.sprintf "url %S cannot produce content of type %s" url
-             (Frame.string_of_content_kind kind));
+             (Frame.string_of_content_type self#ctype));
       container <- Some input;
       let audio =
         try Some (Ffmpeg_decoder.mk_audio_decoder input)

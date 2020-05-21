@@ -242,17 +242,10 @@ let mul_sub_mul m n =
     | Fixed m, At_least n -> m <= n
     | At_least _, Fixed _ -> false
 
-let int_sub_mul n m = mul_sub_mul (Fixed n) m
-
 let kind_sub_kind a b =
   mul_sub_mul a.audio b.audio
   && mul_sub_mul a.video b.video
   && mul_sub_mul a.midi b.midi
-
-let type_has_kind t k =
-  int_sub_mul t.audio k.audio
-  && int_sub_mul t.video k.video
-  && int_sub_mul t.midi k.midi
 
 let type_of_content c =
   {

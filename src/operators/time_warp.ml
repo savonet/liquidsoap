@@ -151,7 +151,28 @@ let () =
         ~max_buffer ~kind s)
 
 module AdaptativeBuffer = struct
-  module RB = Audio.Ringbuffer
+  (** Ringbuffers where number of channels is fixed on first write. *)
+  module RB = struct
+    module RB = Audio.Ringbuffer
+
+    type t = { size : int; mutable rb : RB.t option }
+
+    let create size = { size; rb = None }
+    let read_space r = match r.rb with Some rb -> RB.read_space rb | None -> 0
+    let read r buf = RB.read (Option.get r.rb) buf
+    let read_advance r n = RB.read_advance (Option.get r.rb) n
+
+    let write_space r =
+      match r.rb with Some rb -> RB.write_space rb | None -> r.size
+
+    let rec write r buf =
+      match r.rb with
+        | Some rb -> RB.write rb buf
+        | None ->
+            r.rb <- Some (RB.create (Audio.channels buf) r.size);
+            write r buf
+  end
+
   module MG = Generator.Metadata
 
   (* The kind of value shared by a producer and a consumer. *)
@@ -273,11 +294,13 @@ module AdaptativeBuffer = struct
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     ~kind source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
-    object
+    object (self)
       inherit
         Output.output
           ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
             ~on_stop source_val autostart
+
+      method private channels = self#ctype.Frame.audio
 
       method output_reset = ()
 
@@ -309,11 +332,10 @@ module AdaptativeBuffer = struct
 
   let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
       ~averaging ~limit ~reset ~kind source_val =
-    let channels = AFrame.channels_of_kind kind in
     let control =
       {
         lock = Mutex.create ();
-        rb = RB.create channels (Frame.audio_of_seconds max_buffer);
+        rb = RB.create (Frame.audio_of_seconds max_buffer);
         rb_length = float (Frame.audio_of_seconds pre_buffer);
         mg = MG.create ();
         buffering = true;
