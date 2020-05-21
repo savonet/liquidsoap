@@ -235,31 +235,11 @@ and midi_t = MIDI.buffer
   * [sub a b] if [a] is more permissive than [b]..
   * TODO this is the other way around... it's correct in Lang, phew! *)
 
-let mul_sub_mul m n =
-  match (m, n) with
-    | Fixed m, Fixed n -> m = n
-    | At_least m, At_least n -> m <= n
-    | Fixed m, At_least n -> m <= n
-    | At_least _, Fixed _ -> false
-
-let kind_sub_kind a b =
-  mul_sub_mul a.audio b.audio
-  && mul_sub_mul a.video b.video
-  && mul_sub_mul a.midi b.midi
-
 let type_of_content c =
   {
     audio = Array.length c.audio;
     video = Array.length c.video;
     midi = Array.length c.midi;
-  }
-
-let type_of_kind k =
-  let aux def = function Fixed n -> n | At_least n -> min n def in
-  {
-    audio = aux !!audio_channels k.audio;
-    video = aux !!video_channels k.video;
-    midi = aux !!midi_channels k.midi;
   }
 
 let mul_of_int n = Fixed n

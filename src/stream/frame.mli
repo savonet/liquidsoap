@@ -178,8 +178,6 @@ val get_chunk : t -> t -> unit
 (** Compatibilities between content kinds, types and values: [sub a b] is [true]
     when [b] is more permissive than [a]. *)
 
-val mul_sub_mul : multiplicity -> multiplicity -> bool
-val kind_sub_kind : content_kind -> content_kind -> bool
 val type_of_content : content -> content_type
 val mul_of_int : int -> multiplicity
 val succ_mul : multiplicity -> multiplicity
