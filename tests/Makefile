@@ -12,6 +12,9 @@ test:
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 	@echo
 	@echo
+	$(MAKE) performance
+
+performance: performance.liq
 	@echo "***** Performance tests *****"
 	@./performance.liq
 
