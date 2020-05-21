@@ -62,6 +62,7 @@ let mime_types =
         "audio/x-ogg";
         "audio/ogg";
         "video/ogg";
+        "video/webm";
         "application/ffmpeg";
       ]
 
