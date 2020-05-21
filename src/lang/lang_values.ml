@@ -742,10 +742,9 @@ let eval_pat pat v =
 let rec eval ~env tm =
   let env = (env : V.lazy_env) in
   let prepare_fun fv p env =
-    (* Unlike OCaml we always evaluate default values,
-     * and we do that early.
-     * I think the only reason is homogeneity with FFI,
-     * which are declared with values as defaults. *)
+    (* Unlike OCaml we always evaluate default values, and we do that early. I
+       think the only reason is homogeneity with FFI, which are declared with
+       values as defaults. *)
     let p =
       List.map
         (function
@@ -772,9 +771,6 @@ let rec eval ~env tm =
               mk V.unit
           | _ -> assert false )
     | Let { pat; def = v; body = b; _ } ->
-        (* It should be the case that generalizable variables don't get
-            instantiated in any way when evaluating the definition. But we don't
-            double-check it. *)
         let v = eval ~env v in
         let env =
           List.map (fun (x, v) -> (x, Lazy.from_val v)) (eval_pat pat v) @ env
@@ -849,8 +845,6 @@ and apply f l =
     (* Partial application. *)
     rewrap p pe
   else (
-    (* Contrarily to older implementation of eval, we do not assign
-       location-based IDs to sources (e.g. add@L13C4). *)
     let pe =
       List.fold_left
         (fun pe (_, var, v) ->
