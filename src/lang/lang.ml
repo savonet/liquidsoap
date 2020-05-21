@@ -73,40 +73,6 @@ let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 let request_t = Term.request_t ()
 
-let rec t_of_mul = function
-  | Frame.Fixed 0 -> zero_t
-  | Frame.Fixed n -> succ_t (t_of_mul (Frame.Fixed (n - 1)))
-  | Frame.At_least 0 -> univ_t ()
-  | Frame.At_least n -> succ_t (t_of_mul (Frame.At_least (n - 1)))
-
-let kind_type_of_frame_kind kind =
-  let audio = t_of_mul kind.Frame.audio in
-  let video = t_of_mul kind.Frame.video in
-  let midi = t_of_mul kind.Frame.midi in
-  frame_kind_t ~audio ~video ~midi
-
-(** Given a Lang type that has been inferred, convert it to a kind.
-  * This might require to force some At_least variables. *)
-let rec mul_of_type default t =
-  match (T.deref t).T.descr with
-    | T.Succ t -> Frame.succ_mul (mul_of_type (default - 1) t)
-    | T.Zero -> Frame.Fixed 0
-    | T.EVar _ ->
-        let default = max 0 default in
-        T.bind t (type_of_int default);
-        Frame.mul_of_int default
-    | _ -> assert false
-
-(* TODO can happen e.g. on request.queue() *)
-
-let frame_kind_of_kind_type t =
-  let k = Term.of_frame_kind_t t in
-  {
-    Frame.audio = mul_of_type (Lazy.force Frame.audio_channels) k.Frame.audio;
-    video = mul_of_type (Lazy.force Frame.video_channels) k.Frame.video;
-    midi = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi;
-  }
-
 type lang_kind_format = Source.Kind.format = Fixed of int | At_least of int
 type lang_kind_formats = Source.Kind.formats
 

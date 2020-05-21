@@ -85,7 +85,7 @@ class insert_metadata ~kind source =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_frame_kind kind in
+  let k = Lang.kind_type_of_kind_format kind in
   let return_t =
     Lang.product_t
       (Lang.fun_t

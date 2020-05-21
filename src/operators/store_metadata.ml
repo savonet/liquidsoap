@@ -69,7 +69,7 @@ class store ~kind n s =
 
 let () =
   let kind = Lang.any in
-  let return_t = Lang.kind_type_of_frame_kind kind in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "store_metadata"
     [
       ("size", Lang.int_t, Some (Lang.int 10), Some "Size of the history");

@@ -236,8 +236,6 @@ val of_source_t : t -> t
 val format_t : t -> t
 val frame_kind_t : audio:t -> video:t -> midi:t -> t
 val of_frame_kind_t : t -> (t, t, t) Frame.fields
-val frame_kind_of_kind_type : t -> Frame.content_kind
-val kind_type_of_frame_kind : Frame.content_kind -> t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].
