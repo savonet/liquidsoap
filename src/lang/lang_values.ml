@@ -123,6 +123,16 @@ let rec type_of_mul ~pos ~level m =
       | Frame.At_least n ->
           T.Succ (type_of_mul ~pos ~level (Frame.At_least (n - 1))) )
 
+let rec mul_of_type t =
+  match (T.deref t).T.descr with
+    | T.Zero -> Frame.Fixed 0
+    | T.Succ t -> (
+        match mul_of_type t with
+          | Frame.Fixed n -> Frame.Fixed (n + 1)
+          | Frame.At_least n -> Frame.At_least (n + 1) )
+    | T.EVar _ -> Frame.At_least 0
+    | _ -> assert false
+
 let type_of_format ~pos ~level f =
   let kind = Encoder.kind_of_format f in
   let audio = type_of_mul ~pos ~level kind.Frame.audio in
@@ -755,7 +765,26 @@ let rec eval ~env tm =
     let env = List.filter (fun (x, _) -> Vars.mem x fv) env in
     (p, env)
   in
-  let mk v = { V.pos = tm.t.T.pos; V.value = v } in
+  let mk v =
+    ( (* Ensure that the kind computed at runtime for sources will agree with
+         the typing. *)
+      match (T.deref tm.t).T.descr with
+      | T.Constr { T.name = "source"; params = [(T.Invariant, k)] } -> (
+          let k = of_frame_kind_t k in
+          let k =
+            {
+              Frame.audio = mul_of_type k.Frame.audio;
+              video = mul_of_type k.Frame.video;
+              midi = mul_of_type k.Frame.midi;
+            }
+          in
+          let k = Source.Kind.of_formats k in
+          match v with
+            | V.Source s -> Source.Kind.unify s#kind_var k
+            | _ -> assert false )
+      | _ -> () );
+    { V.pos = tm.t.T.pos; V.value = v }
+  in
   match tm.term with
     | Ground g -> mk (V.Ground g)
     | Encoder x -> mk (V.Encoder x)

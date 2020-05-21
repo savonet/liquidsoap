@@ -75,6 +75,7 @@ module Kind : sig
   type t
 
   val to_string : t -> string
+  val of_formats : formats -> t
   val set_audio : t -> int -> t
   val set_video : t -> int -> t
   val set_midi : t -> int -> t
