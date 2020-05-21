@@ -268,8 +268,8 @@ let decoder_modes ctype =
   else if audio = 0 && video = 0 && midi > 0 then [`Midi]
   else if midi <> 0 then []
   else if audio > 0 && video > 0 then [`Audio_video]
-  else if audio > 0 && video = 0 then [`Audio]
-  else if audio = 0 && video > 0 then [`Video]
+  else if audio > 0 && video = 0 then [`Audio; `Audio_video]
+  else if audio = 0 && video > 0 then [`Video; `Audio_video]
   else []
 
 exception Found of (string * Frame.content_type * decoder_specs)
