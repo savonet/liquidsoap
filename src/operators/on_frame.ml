@@ -21,30 +21,40 @@
  *****************************************************************************)
 
 class on_frame ~kind f s =
-object
-  inherit Source.operator ~name:"on_frame" kind [s]
+  object
+    inherit Source.operator ~name:"on_frame" kind [s]
 
-  method stype = s#stype
-  method is_ready = s#is_ready
-  method abort_track = s#abort_track
-  method remaining = s#remaining
-  method seek n = s#seek n
+    method stype = s#stype
 
-  method private get_frame ab =
-    s#get ab;
-    ignore (Lang.apply ~t:Lang.unit_t f [])
-end
+    method is_ready = s#is_ready
+
+    method abort_track = s#abort_track
+
+    method remaining = s#remaining
+
+    method seek n = s#seek n
+
+    method self_sync = s#self_sync
+
+    method private get_frame ab =
+      s#get ab;
+      ignore (Lang.apply ~t:Lang.unit_t f [])
+  end
 
 let () =
-  let kind = Lang.univ_t 1 in
+  let kind = Lang.kind_type_of_kind_format Lang.any in
   Lang.add_operator "on_frame"
-    [ "", Lang.fun_t [] Lang.unit_t, None,
-      Some "Function called on every frame. It should be fast because it is \
-            executed in the main streaming thread." ;
-      "", Lang.source_t kind, None, None ]
-    ~category:Lang.TrackProcessing
-    ~descr:"Call a given handler on every frame."
-    ~kind:(Lang.Unconstrained kind)
+    [
+      ( "",
+        Lang.fun_t [] Lang.unit_t,
+        None,
+        Some
+          "Function called on every frame. It should be fast because it is \
+           executed in the main streaming thread." );
+      ("", Lang.source_t kind, None, None);
+    ]
+    ~category:Lang.TrackProcessing ~descr:"Call a given handler on every frame."
+    ~return_t:kind
     (fun p kind ->
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
