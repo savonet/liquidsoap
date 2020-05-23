@@ -6,9 +6,10 @@ SUBDIRS = fixme media language regression
 top_srcdir = ..
 
 test:
-	@$(MAKE) -C language test
-	@$(MAKE) -C media test
-	@$(MAKE) -C regression test
+	@$(MAKE) -C language $@
+	@$(MAKE) -C streams $@
+	@$(MAKE) -C media $@
+	@$(MAKE) -C regression $@
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 	@echo
 	@echo
