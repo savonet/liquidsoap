@@ -50,3 +50,11 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
 
   on_track(id="check_non_repeating",check,s)
 end
+
+# Asynchronous test handler with dummy output
+# Best practice is to run all manual tests
+# through this one.
+def test.check(f) =
+  thread.run(delay=0.,f)
+  output.dummy(blank())
+end
