@@ -1,6 +1,3 @@
-;;
-1
-
 (*****************************************************************************
 
    Liquidsoap, a programmable audio stream generator.
