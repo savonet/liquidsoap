@@ -98,9 +98,15 @@ val is_static : string -> bool
   * audio file, or simply because there was no enough time left. *)
 type resolve_flag = Resolved | Failed | Timeout
 
-(** [resolve request timeout] tries to resolve the request within [timeout]
-  * seconds. If resolving succeeds, [is_ready request] is true and you
-  * can get a filename. *)
+(** Read the metadata for the toplevel indicator of the request. This is usually
+    performed automatically by [resolve] so that you do not have to use this,
+    excepting when the [ctype] is [None]. *)
+val read_metadata : t -> unit
+
+(** [resolve ?ctype request timeout] tries to resolve the request within
+    [timeout] seconds. It finds a decoder for the request which produces content
+    type [ctype], unless this is set to [None]. If resolving succeeds, [is_ready
+    request] is true and you can get a filename. *)
 val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
 
 (** [is_ready r] if there's an available local filename. It can be true even if

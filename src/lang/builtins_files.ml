@@ -251,9 +251,9 @@ let () =
     (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
       let r = Request.create uri in
-      let ctype = { Frame.audio = 0; video = 0; midi = 0 } in
-      if Request.resolve ~ctype:(Some ctype) r 30. = Request.Resolved then
-        Lang.metadata (Request.get_all_metadata r)
+      if Request.resolve ~ctype:None r 30. = Request.Resolved then (
+        Request.read_metadata r;
+        Lang.metadata (Request.get_all_metadata r) )
       else Lang.metadata (Hashtbl.create 0))
 
 (************** Paths ********************)

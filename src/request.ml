@@ -312,6 +312,31 @@ let file_is_readable name =
     true
   with Unix.Unix_error _ -> false
 
+let read_metadata t =
+  let indicator = peek_indicator t in
+  let name = indicator.string in
+  if not (file_exists name) then log#important "File %S does not exist!" name
+  else if not (file_is_readable name) then
+    log#important "Read permission denied for %S!" name
+  else
+    List.iter
+      (fun (_, resolver) ->
+        try
+          let ans = resolver name in
+          List.iter
+            (fun (k, v) ->
+              let k = String.lowercase_ascii k in
+              if conf_override_metadata#get || get_metadata t k = None then
+                Hashtbl.replace indicator.metadata k (cleanup v))
+            ans;
+          if conf_duration#get && get_metadata t "duration" = None then (
+            try
+              Hashtbl.replace indicator.metadata "duration"
+                (string_of_float (duration name))
+            with Not_found -> () )
+        with _ -> ())
+      (get_decoders conf_metadata_decoders mresolvers)
+
 let local_check t =
   let check_decodable ctype =
     try
@@ -328,26 +353,7 @@ let local_check t =
             | Some (decoder_name, f) ->
                 t.decoder <- Some f;
                 set_root_metadata t "decoder" decoder_name;
-                List.iter
-                  (fun (_, resolver) ->
-                    try
-                      let ans = resolver name in
-                      List.iter
-                        (fun (k, v) ->
-                          let k = String.lowercase_ascii k in
-                          if
-                            conf_override_metadata#get
-                            || get_metadata t k = None
-                          then Hashtbl.replace indicator.metadata k (cleanup v))
-                        ans;
-                      if conf_duration#get && get_metadata t "duration" = None
-                      then (
-                        try
-                          Hashtbl.replace indicator.metadata "duration"
-                            (string_of_float (duration name))
-                        with Not_found -> () )
-                    with _ -> ())
-                  (get_decoders conf_metadata_decoders mresolvers);
+                read_metadata t;
                 t.status <- Ready
             | None -> pop_indicator t )
       done
