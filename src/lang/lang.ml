@@ -362,8 +362,7 @@ let iter_sources f v =
              * Not walking inside references does not break things more than they
              * are already: detecting sharing in presence of references to sources
              * cannot be done statically anyway.)
-             * Display a fat log message to warn about this risky situation,
-             * which probably won't prevent users to get biffled [I spot a mrpingouin here! - RB]... *)
+             * Display a fat log message to warn about this risky situation *)
             let may_have_source =
               (* TODO: restore this if possible *)
               false
