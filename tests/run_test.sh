@@ -22,7 +22,7 @@ cleanup() {
 
 echo -en "Running test \033[1m${TEST_NAME}\033[0m... "
 
-${CMD} < "${PWD}/${TEST}"  > "${LOG_FILE}" 2>&1
+${CMD} < "${PWD}/${TEST}"  # > "${LOG_FILE}" 2>&1
 
 STATUS=$?
 
