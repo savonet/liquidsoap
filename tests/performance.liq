@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../src/liquidsoap ../libs/pervasives.liq --force-start
 
 %include "test.liq"
 
@@ -10,7 +10,7 @@ def time(name, f)
   print("Computing #{name} took #{t'-t} seconds.")
 end
 
-def erathostenes_imp(n)
+def erathostenes(n)
   l = list.init(n-2, fun (i) -> i+2)
   l = ref(l)
   p = ref([])
@@ -22,7 +22,9 @@ def erathostenes_imp(n)
   list.rev(!p)
 end
 
-def erathostenes_rec(n)
+time("Erathostenes (imperative)", {erathostenes(10000)})
+
+def erathostenes(n)
   def rec aux(p, l)
     list.case(l, p, fun (i, l) -> aux(list.add(i, p), list.filter(fun (j) -> j mod i != 0, l)))
   end
@@ -30,10 +32,6 @@ def erathostenes_rec(n)
   list.rev(aux([], l))
 end
 
-def f() =
-  time("Erathostenes (imperative)", {erathostenes_imp(10000)})
-  time("Erathostenes (recursive)", {erathostenes_rec(10000)})
-  test.pass()
-end
+time("Erathostenes (recursive)", {erathostenes(10000)})
 
-test.check(f)
+exit(0)
