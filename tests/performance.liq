@@ -33,6 +33,7 @@ end
 def f() =
   time("Erathostenes (imperative)", {erathostenes_imp(10000)})
   time("Erathostenes (recursive)", {erathostenes_rec(10000)})
+  test.pass()
 end
 
 test.check(f)
