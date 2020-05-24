@@ -3,7 +3,7 @@
 DISTFILES = Makefile $(wildcard *.sh) $(wildcard *.liq *.liq.in)
 top_srcdir = $(shell realpath ../..)
 
-test: test_encoder test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder
+test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder # test_stream_audio test_stream_video
 
 AUDIO_TEST_FORMATS = \
   @flac(stereo).flac \
@@ -26,6 +26,11 @@ VIDEO_TEST_FORMATS = \
   @ffmpeg(format=\"mp4\",@audio(codec=\"aac\",channels=1),@video(codec=\"libx264\")).mp4 \
   @ffmpeg(format=\"mp4\",@audio(codec=\"aac\",channels=2),@video(codec=\"libx264\")).mp4 \
   @ffmpeg(format=\"mp4\",@audio(codec=none),@video(codec=\"libx264\")).mp4
+
+VIDEO_STREAM_TEST_FORMATS = \
+  @ffmpeg(format=\"flv\",@audio(codec=\"aac\",channels=1),@video(codec=\"libx264\")).flv \
+  @ffmpeg(format=\"flv\",@audio(codec=\"aac\",channels=2),@video(codec=\"libx264\")).flv \
+  @ffmpeg(format=\"flv\",@audio(codec=none),@video(codec=\"libx264\")).flv
 
 ENCODED_AUDIO_FILES=$(AUDIO_TEST_FORMATS:%=files/audio/%)
 
@@ -76,7 +81,7 @@ test_stream_audio: $(top_srcdir)/src/liquidsoap
 	done
 
 test_stream_video: $(top_srcdir)/src/liquidsoap
-	@for i in $(VIDEO_TEST_FORMATS:%="%"); do \
+	@for i in $(VIDEO_STREAM_TEST_FORMATS:%="%"); do \
 	  ./mk_stream_test.sh $$i video; \
 	  ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_stream_video.liq "Video stream decoder test for $$i" || exit; \
 	done

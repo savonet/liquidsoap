@@ -2,6 +2,7 @@
 %include "test.liq"
 
 set("log.level",4)
+set("ffmpeg.log.level",4)
 set("frame.audio.samplerate",48000)
 
 out = "files/test.mp4"
@@ -39,4 +40,4 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="flv",%audio(codec="aac",channels=1),%video(codec="libx264")), out, s)
+output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mp4",%audio(codec="aac",channels=1),%video(codec="libx264")), out, s)
