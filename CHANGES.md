@@ -87,7 +87,7 @@ Changed:
 - Allow crossfading for video (#1132, #1135).
 - Use getters for parameters of synthesizer sources (#1036).
 - Renamed `empty` to `fail`.
-- Restored `request.dynamic` ().
+- Restored `request.dynamic` (#1213).
 
 Fixed:
 
