@@ -248,5 +248,6 @@ end
 # Deprecated: use `request.create` instead.
 # @flag hidden
 def request.create.raw(~indicators=[], ~persistent=false, uri)
+  deprecated("request.create.raw", "request.create")
   request.create(indicators=indicators, persistent=persistent, uri)
 end
