@@ -16,9 +16,9 @@ s = once(s)
 
 clock.assign_new(sync='none',[s])
 
-output.udp(fallible=true,@FORMAT@,s)
+output.udp(id="output",port=5001,host="localhost",fallible=true,@FORMAT@,s)
 
-s = input.udp(buffer=0.1)
+s = input.udp(id="input",port=5001,host="localhost",buffer=0.1,"application/ffmpeg")
 
 s = (s:source(1,1,0)) 
 

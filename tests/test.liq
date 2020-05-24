@@ -1,5 +1,6 @@
 # End test successfully.
 def test.pass()
+  print("Test passed!")
   shutdown()
 end
 
@@ -11,6 +12,7 @@ end
 
 # End test with signal 2
 def test.skip()
+  print("Test skipped..")
   exit(2)
 end
 
