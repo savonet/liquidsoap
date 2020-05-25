@@ -69,9 +69,9 @@ and in_value = Lang_values.V.in_value =
 (** Get a string representation of a value. *)
 val print_value : value -> string
 
-(** Iter a function over all sources contained in a value.
-  * This only applies to statically referenced objects, ie.
-  * it does not explore inside reference cells. *)
+(** Iter a function over all sources contained in a value. This only applies to
+    statically referenced objects, i.e. it does not explore inside reference
+    cells. *)
 val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)

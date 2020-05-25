@@ -359,32 +359,23 @@ let iter_sources f v =
           if List.memq r !static_analysis_failed then ()
           else (
             (* Do not walk inside references, otherwise the list of "contained"
-             * sources may change from one time to the next, which makes it
-             * impossible to avoid ill-balanced activations.
-             * Not walking inside references does not break things more than they
-             * are already: detecting sharing in presence of references to sources
-             * cannot be done statically anyway.)
-             * Display a fat log message to warn about this risky situation *)
+               sources may change from one time to the next, which makes it
+               impossible to avoid ill-balanced activations. Not walking inside
+               references does not break things more than they are already:
+               detecting sharing in presence of references to sources cannot be
+               done statically anyway. We display a fat log message to warn
+               about this risky situation. *)
             let may_have_source =
-              (* TODO: restore this if possible *)
-              false
-              (*
-              try
-                let _, has_var_pos =
-                  Lang_types.iter_constr
-                    (fun pos c ->
-                      if
-                        pos
-                        &&
-                        match c with
-                          | { T.name = "source"; _ } -> true
-                          | _ -> false
-                      then raise Exit)
-                    v.t
-                in
-                has_var_pos
-              with Exit -> true
-                *)
+              let rec aux v =
+                match v.value with
+                  | Source _ -> true
+                  | Ground _ | Encoder _ -> false
+                  | List l -> List.exists aux l
+                  | Tuple l -> List.exists aux l
+                  | Ref r -> aux !r
+                  | Fun _ | FFI _ -> true
+              in
+              aux v
             in
             static_analysis_failed := r :: !static_analysis_failed;
             if may_have_source then

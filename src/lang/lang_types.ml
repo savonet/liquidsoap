@@ -854,30 +854,3 @@ let instantiate ~level ~generalized =
 let fresh = fresh_evar
 
 let fresh_evar = fresh_evar ~constraints:[]
-
-(** {1 Misc} *)
-
-(** Iterate over all constructed types, giving info about their
-  * positivity, and return [true] if there is a var, because it might be
-  * instantiated by a ground type later. *)
-let iter_constr f t =
-  let has_var_pos = ref false in
-  let has_var_neg = ref false in
-  let rec aux pos t =
-    let t = deref t in
-    match t.descr with
-      | Ground _ -> ()
-      | Succ _ | Zero -> ()
-      | List t -> aux pos t
-      | Tuple l -> List.iter (aux pos) l
-      | Constr c ->
-          f pos c;
-          List.iter (fun (_, t) -> aux pos t) c.params
-      | Arrow (p, t) ->
-          aux pos t;
-          List.iter (fun (_, _, t) -> aux (not pos) t) p
-      | EVar _ -> if pos then has_var_pos := true else has_var_neg := true
-      | Link _ -> assert false
-  in
-  aux true t;
-  (!has_var_neg, !has_var_pos)
