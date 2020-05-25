@@ -13,6 +13,6 @@ test:
 	@echo
 	@echo
 	@echo "***** Performance tests *****"
-	@./performance.liq
+	@../src/liquidsoap ../libs/pervasives.liq --force-start ./performance.liq
 
 include $(top_srcdir)/Makefile.rules
