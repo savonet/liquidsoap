@@ -49,7 +49,7 @@ type watcher = {
     stype:source_t ->
     is_output:bool ->
     id:string ->
-    content_kind:Frame.content_kind ->
+    ctype:Frame.content_type ->
     clock_id:string ->
     clock_sync_mode:clock_sync_mode ->
     unit;
@@ -65,10 +65,30 @@ type watcher = {
   after_output : unit -> unit;
 }
 
+module Kind : sig
+  (** Description of how many of a channel type does an operator want. *)
+  type format = Frame.multiplicity =
+    | Fixed of int  (** exactly [n] channels *)
+    | At_least of int  (** at least [n] channels *)
+
+  type formats = (format, format, format) Frame.fields
+  type t
+
+  val to_string : t -> string
+  val of_formats : formats -> t
+  val set_audio : t -> int -> t
+  val set_video : t -> int -> t
+  val set_midi : t -> int -> t
+
+  exception Conflict of string * string
+
+  val unify : t -> t -> unit
+end
+
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> object
 
        (** {1 Naming} *)
@@ -135,13 +155,16 @@ class virtual source :
 
        (** {1 Streaming} *)
 
-       (** What kind of content does this source produce. *)
-       method kind : Frame.content_kind
+       method kind_var : Kind.t
 
-       (** Frame currently being filled. *)
-       val memo : Frame.t
+       (** Choose your kind by adjusting to your children sources or whatever. *)
+       method private set_kind : unit
 
-       method get_memo : Frame.t
+       (** What type of content does this source produce. *)
+       method ctype : Frame.content_type
+
+       (** Retrieve the frame currently being filled. *)
+       method memo : Frame.t
 
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int
@@ -197,7 +220,7 @@ class virtual source :
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> object
        inherit source
 
@@ -223,7 +246,7 @@ and virtual active_source :
 (* This is for defining a source which has children *)
 class virtual operator :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> source list
   -> object
        inherit source
@@ -233,7 +256,7 @@ class virtual operator :
  * and outputting it. *)
 class virtual active_operator :
   ?name:string
-  -> Frame.content_kind
+  -> Kind.formats
   -> source list
   -> object
        inherit active_source

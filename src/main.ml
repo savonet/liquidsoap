@@ -143,11 +143,8 @@ let lang_doc name =
 let process_request s =
   load_libs ();
   secondary_task := true;
-  let kind =
-    { Frame.audio = Frame.Any; Frame.video = Frame.Any; Frame.midi = Frame.Any }
-  in
-  let req = Request.create ~kind s in
-  match Request.resolve req 20. with
+  let req = Request.create s in
+  match Request.resolve ~ctype:None req 20. with
     | Request.Failed ->
         Printf.printf "Request resolution failed.\n";
         Request.destroy req;

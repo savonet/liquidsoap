@@ -24,9 +24,10 @@ open Source
 open Complex
 
 class fir ~kind (source : source) freq beta numcoeffs =
-  let channels = AFrame.channels_of_kind kind in
   object (self)
-    inherit operator ~name:"fir_filter" kind [source]
+    inherit operator ~name:"fir_filter" kind [source] as super
+
+    method private channels = self#ctype.Frame.audio
 
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
@@ -40,7 +41,11 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     val mutable gain = 0.
 
-    val mutable xv = Array.make_matrix channels numcoeffs 0.
+    val mutable xv = [||]
+
+    method wake_up a =
+      super#wake_up a;
+      xv <- Array.make_matrix self#channels numcoeffs 0.
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.
@@ -160,7 +165,8 @@ class fir ~kind (source : source) freq beta numcoeffs =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.fir"
     [
       ( "frequency",
@@ -174,7 +180,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Low-pass FIR filter."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, beta, num, src =
         ( Lang.to_float (f "frequency"),
@@ -182,4 +188,4 @@ let () =
           Lang.to_int (f "coeffs"),
           Lang.to_source (f "") )
       in
-      new fir ~kind src freq beta num)
+      (new fir ~kind src freq beta num :> Source.source))

@@ -44,126 +44,96 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let log_error = ref (fun _ -> ()) in
-  let samplerate = Frame.audio_of_seconds 1. in
-  let channels = AFrame.channels_of_kind kind in
   let abg_max_len = Frame.audio_of_seconds max in
   let replay_delay = Frame.audio_of_seconds replay_delay in
-  let samplesize = ref 16 in
-  let converter =
-    ref (Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize:!samplesize)
-  in
-  let samplerate = ref samplerate in
   let resampler = Decoder_utils.samplerate_converter () in
   let len = match data_len with x when x < 0 -> None | l -> Some l in
-  let header =
-    Bytes.unsafe_of_string
-      (Wav_aiff.wav_header ~channels ~sample_rate:!samplerate ?len
-         ~sample_size:16 ())
-  in
-  let on_start push =
-    Process_handler.really_write header push;
-    `Continue
-  in
-  let abg = Generator.create ~log ~kind ~log_overfull `Audio in
+  let abg = Generator.create ~log ~log_overfull `Audio in
   let mutex = Mutex.create () in
   let replay_pending = ref [] in
   let next_stop = ref `Nothing in
   let header_read = ref false in
   let bytes = Bytes.create Utils.pagesize in
-  let on_stdout pull =
-    if not !header_read then (
-      let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
-      header_read := true;
-      Tutils.mutexify mutex
-        (fun () ->
-          if Wav_aiff.channels wav <> channels then
-            failwith "Invalid channels from pipe process!";
-          samplesize := Wav_aiff.sample_size wav;
-          samplerate := Wav_aiff.sample_rate wav;
-          converter :=
-            Decoder_utils.from_iff ~format:`Wav ~channels
-              ~samplesize:!samplesize)
-        ();
-      `Reschedule Tutils.Non_blocking )
-    else (
-      let len = pull bytes 0 Utils.pagesize in
-      let data = !converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
-      let data = resampler ~samplerate:!samplerate data in
-      let len = Audio.length data in
-      let buffered = Generator.length abg in
-      Generator.put_audio abg data 0 len;
-      let to_replay =
-        Tutils.mutexify mutex
-          (fun () ->
-            let pending = !replay_pending in
-            let to_replay, pending =
-              List.fold_left
-                (fun ((pos, b), cur) (pos', b') ->
-                  if pos' + len > replay_delay then (
-                    if pos > 0 then
-                      log
-                        "Cannot replay multiple element at once.. Picking up \
-                         the most recent";
-                    if pos > 0 && pos < pos' then ((pos, b), cur)
-                    else ((pos', b'), cur) )
-                  else ((pos, b), (pos' + len, b') :: cur))
-                ((-1, `Nothing), [])
-                pending
-            in
-            replay_pending := pending;
-            to_replay)
-          ()
-      in
-      begin
-        match to_replay with
-        | -1, _ -> ()
-        | _, `Break_and_metadata m ->
-            Generator.add_metadata abg m;
-            Generator.add_break abg
-        | _, `Metadata m -> Generator.add_metadata abg m
-        | _, `Break -> Generator.add_break abg
-        | _ -> ()
-      end;
-      if abg_max_len < buffered + len then
-        `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
-      else `Continue )
-  in
-  let bytes = Bytes.create Utils.pagesize in
-  let on_stderr reader =
-    let len = reader bytes 0 Utils.pagesize in
-    !log_error (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
-    `Continue
-  in
-  let on_stop =
-    Tutils.mutexify mutex (fun e ->
-        let ret = !next_stop in
-        next_stop := `Nothing;
-        header_read := false;
-        let should_restart =
-          match e with
-            | `Status s when s <> Unix.WEXITED 0 -> restart_on_error
-            | `Exception _ -> restart_on_error
-            | _ -> true
-        in
-        match (should_restart, ret) with
-          | false, _ -> false
-          | _, `Sleep -> false
-          | _, `Break_and_metadata m ->
-              Generator.add_metadata abg m;
-              Generator.add_break abg;
-              true
-          | _, `Metadata m ->
-              Generator.add_metadata abg m;
-              true
-          | _, `Break ->
-              Generator.add_break abg;
-              true
-          | _, `Nothing -> restart)
-  in
   object (self)
-    inherit source ~name:"pipe" kind
+    inherit source ~name:"pipe" kind as super
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
+
+    method private channels = self#ctype.Frame.audio
+
+    val mutable samplesize = 16
+
+    val mutable samplerate = Frame.audio_of_seconds 1.
+
+    (* Filled in by wake_up. *)
+    val mutable converter = fun _ -> assert false
+
+    method private header =
+      Bytes.unsafe_of_string
+        (Wav_aiff.wav_header ~channels:self#channels ~sample_rate:samplerate
+           ?len ~sample_size:16 ())
+
+    method private on_start push =
+      Process_handler.really_write self#header push;
+      `Continue
+
+    method private on_stdout pull =
+      if not !header_read then (
+        let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
+        header_read := true;
+        Tutils.mutexify mutex
+          (fun () ->
+            if Wav_aiff.channels wav <> self#channels then
+              failwith "Invalid channels from pipe process!";
+            samplesize <- Wav_aiff.sample_size wav;
+            samplerate <- Wav_aiff.sample_rate wav;
+            converter <-
+              Decoder_utils.from_iff ~format:`Wav ~channels:self#channels
+                ~samplesize)
+          ();
+        `Reschedule Tutils.Non_blocking )
+      else (
+        let len = pull bytes 0 Utils.pagesize in
+        let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
+        let data = resampler ~samplerate data in
+        let len = Audio.length data in
+        let buffered = Generator.length abg in
+        Generator.put_audio abg data 0 len;
+        let to_replay =
+          Tutils.mutexify mutex
+            (fun () ->
+              let pending = !replay_pending in
+              let to_replay, pending =
+                List.fold_left
+                  (fun ((pos, b), cur) (pos', b') ->
+                    if pos' + len > replay_delay then (
+                      if pos > 0 then
+                        log
+                          "Cannot replay multiple element at once.. Picking up \
+                           the most recent";
+                      if pos > 0 && pos < pos' then ((pos, b), cur)
+                      else ((pos', b'), cur) )
+                    else ((pos, b), (pos' + len, b') :: cur))
+                  ((-1, `Nothing), [])
+                  pending
+              in
+              replay_pending := pending;
+              to_replay)
+            ()
+        in
+        begin
+          match to_replay with
+          | -1, _ -> ()
+          | _, `Break_and_metadata m ->
+              Generator.add_metadata abg m;
+              Generator.add_break abg
+          | _, `Metadata m -> Generator.add_metadata abg m
+          | _, `Break -> Generator.add_break abg
+          | _ -> ()
+        end;
+        if abg_max_len < buffered + len then
+          `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
+        else `Continue )
 
     val mutable handler = None
 
@@ -176,7 +146,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     method private get_to_write =
       if source#is_ready then (
-        let tmp = Frame.create kind in
+        let tmp = Frame.create self#ctype in
         source#get tmp;
         self#slave_tick;
         let buf = AFrame.content tmp in
@@ -234,6 +204,37 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
           `Continue )
       with Queue.Empty -> `Continue
 
+    method private on_stderr reader =
+      let len = reader bytes 0 Utils.pagesize in
+      !log_error (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
+      `Continue
+
+    method private on_stop =
+      Tutils.mutexify mutex (fun e ->
+          let ret = !next_stop in
+          next_stop := `Nothing;
+          header_read := false;
+          let should_restart =
+            match e with
+              | `Status s when s <> Unix.WEXITED 0 -> restart_on_error
+              | `Exception _ -> restart_on_error
+              | _ -> true
+          in
+          match (should_restart, ret) with
+            | false, _ -> false
+            | _, `Sleep -> false
+            | _, `Break_and_metadata m ->
+                Generator.add_metadata abg m;
+                Generator.add_break abg;
+                true
+            | _, `Metadata m ->
+                Generator.add_metadata abg m;
+                true
+            | _, `Break ->
+                Generator.add_break abg;
+                true
+            | _, `Nothing -> restart)
+
     method private slave_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output
@@ -246,17 +247,20 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
       Clock.unify slave_clock source#clock;
       Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
-    method wake_up _ =
-      source#get_ready [(self :> source)];
+    method wake_up a =
+      super#wake_up a;
+      converter <-
+        Decoder_utils.from_iff ~format:`Wav ~channels:self#channels ~samplesize;
 
+      source#get_ready [(self :> source)];
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#debug "%s";
       handler <-
         Some
-          (Process_handler.run ~on_stop ~on_start ~on_stdout
-             ~on_stdin:self#on_stdin ~priority:Tutils.Blocking ~on_stderr ~log
-             process)
+          (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
+             ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
+             ~priority:Tutils.Blocking ~on_stderr:self#on_stderr ~log process)
 
     method abort_track = source#abort_track
 
@@ -272,76 +276,74 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         ()
   end
 
-let return_t = Lang.kind_type_of_kind_format Lang.audio_any
-
-let proto =
-  [
-    ("process", Lang.string_t, None, Some "Process used to pipe data to.");
-    ( "replay_delay",
-      Lang.float_t,
-      Some (Lang.float (-1.)),
-      Some
-        "Replay track marks and metadata from the input source on the output \
-         after a given delay. If negative (default) close and flush the \
-         process on each track and metadata to get an exact timing." );
-    ( "data_length",
-      Lang.int_t,
-      Some (Lang.int (-1)),
-      Some
-        "Length passed in the WAV data chunk. Data is streamed so no the \
-         consuming program should process it as it comes. Some program operate \
-         better when this value is set to `0`, some other when it is set to \
-         the maximum length allowed by the WAV specs. Use any negative value \
-         to set to maximum length." );
-    ( "buffer",
-      Lang.float_t,
-      Some (Lang.float 1.),
-      Some "Duration of the pre-buffered data." );
-    ( "max",
-      Lang.float_t,
-      Some (Lang.float 10.),
-      Some "Maximum duration of the buffered data." );
-    ( "log_overfull",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Log when the source's buffer is overfull." );
-    ( "restart",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Restart process when exited." );
-    ( "restart_on_error",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      Some "Restart process when exited with error." );
-    ("", Lang.source_t return_t, None, None);
-  ]
-
-let pipe p kind =
-  let f v = List.assoc v p in
-  let ( process,
-        replay_delay,
-        data_len,
-        bufferize,
-        max,
-        log_overfull,
-        restart,
-        restart_on_error,
-        src ) =
-    ( Lang.to_string (f "process"),
-      Lang.to_float (f "replay_delay"),
-      Lang.to_int (f "data_length"),
-      Lang.to_float (f "buffer"),
-      Lang.to_float (f "max"),
-      Lang.to_bool (f "log_overfull"),
-      Lang.to_bool (f "restart"),
-      Lang.to_bool (f "restart_on_error"),
-      Lang.to_source (f "") )
-  in
-  ( new pipe
-      ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
-      ~restart_on_error ~process src
-    :> source )
-
 let () =
-  Lang.add_operator "pipe" proto ~return_t ~category:Lang.SoundProcessing
-    ~descr:"Process audio signal through a given process stdin/stdout." pipe
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "pipe"
+    [
+      ("process", Lang.string_t, None, Some "Process used to pipe data to.");
+      ( "replay_delay",
+        Lang.float_t,
+        Some (Lang.float (-1.)),
+        Some
+          "Replay track marks and metadata from the input source on the output \
+           after a given delay. If negative (default) close and flush the \
+           process on each track and metadata to get an exact timing." );
+      ( "data_length",
+        Lang.int_t,
+        Some (Lang.int (-1)),
+        Some
+          "Length passed in the WAV data chunk. Data is streamed so no the \
+           consuming program should process it as it comes. Some program \
+           operate better when this value is set to `0`, some other when it is \
+           set to the maximum length allowed by the WAV specs. Use any \
+           negative value to set to maximum length." );
+      ( "buffer",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Duration of the pre-buffered data." );
+      ( "max",
+        Lang.float_t,
+        Some (Lang.float 10.),
+        Some "Maximum duration of the buffered data." );
+      ( "log_overfull",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Log when the source's buffer is overfull." );
+      ( "restart",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Restart process when exited." );
+      ( "restart_on_error",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Restart process when exited with error." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.SoundProcessing
+    ~descr:"Process audio signal through a given process stdin/stdout."
+    (fun p ->
+      let f v = List.assoc v p in
+      let ( process,
+            replay_delay,
+            data_len,
+            bufferize,
+            max,
+            log_overfull,
+            restart,
+            restart_on_error,
+            src ) =
+        ( Lang.to_string (f "process"),
+          Lang.to_float (f "replay_delay"),
+          Lang.to_int (f "data_length"),
+          Lang.to_float (f "buffer"),
+          Lang.to_float (f "max"),
+          Lang.to_bool (f "log_overfull"),
+          Lang.to_bool (f "restart"),
+          Lang.to_bool (f "restart_on_error"),
+          Lang.to_source (f "") )
+      in
+      ( new pipe
+          ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
+          ~restart_on_error ~process src
+        :> source ))

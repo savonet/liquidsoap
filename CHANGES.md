@@ -88,6 +88,8 @@ Changed:
 - Use getters for parameters of synthesizer sources (#1036).
 - Renamed `empty` to `fail`.
 - Restored `request.dynamic` (#1213).
+- Requests are not typed anymore: their type is fixed at resolution time.
+- Deprecated `request.create.raw`, you should use `request.create` instead.
 
 Fixed:
 

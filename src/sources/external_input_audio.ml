@@ -34,7 +34,7 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
-  let abg = Generator.create ~log ~log_overfull ~kind `Audio in
+  let abg = Generator.create ~log ~log_overfull `Audio in
   let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
   let on_data reader =
@@ -86,6 +86,8 @@ let proto =
   ]
 
 let () =
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.rawaudio" ~category:Lang.Input
     ~descr:"Stream raw PCM data from an external application."
     ( proto
@@ -93,18 +95,13 @@ let () =
         ("channels", Lang.int_t, Some (Lang.int 2), Some "Number of channels.");
         ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.");
       ] )
-    ~return_t:(Lang.kind_type_of_kind_format Lang.audio_any)
-    (fun p kind ->
+    ~return_t
+    (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let channels = Lang.to_int (List.assoc "channels" p) in
-      if not (Frame.mul_eq_int kind.Frame.audio channels) then
-        raise
-          (Lang_errors.Invalid_value
-             ( List.assoc "channels" p,
-               "Incompatible number of channels, please use a conversion \
-                operator." ));
+      let kind = { kind with Frame.audio = Lang.Fixed channels } in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
       let resampler = Decoder_utils.samplerate_converter () in
       let convert =
@@ -120,9 +117,11 @@ let () =
         :> Source.source ))
 
 let () =
+  let kind = Lang.audio_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.wav" ~category:Lang.Input
-    ~descr:"Stream WAV data from an external application." proto
-    ~return_t:(Lang.kind_type_of_kind_format Lang.audio_any) (fun p kind ->
+    ~descr:"Stream WAV data from an external application." proto ~return_t
+    (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

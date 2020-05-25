@@ -26,20 +26,25 @@ let bytes_per_sample = 2
 
 class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   source =
-  let channels = AFrame.channels_of_kind kind in
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
-  let blank () =
-    Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
-  in
   object (self)
     inherit
       Output.output
         ~infallible ~on_stop ~on_start ~content_kind:kind ~name:"output.jack"
           ~output_kind:"output.jack" source true as super
 
-    inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
+    inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
+
+    method wake_up a =
+      super#wake_up a;
+      let blank () =
+        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+      in
+      ioring#init blank
+
+    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -60,7 +65,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
             let dev =
               Bjack.open_t ~rate:samples_per_second
                 ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:0
-                ~output_channels:channels ~flags:[] ?server_name
+                ~output_channels:self#channels ~flags:[] ?server_name
                 ~ringbuffer_size:
                   (nb_blocks * samples_per_frame * bytes_per_sample)
                 ~client_name:self#id ()
@@ -97,7 +102,8 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let kind = Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.jack" ~active:true
     ( Output.proto
     @ [
@@ -116,7 +122,7 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k ~category:Lang.Output ~descr:"Output stream to jack."
-    (fun p kind ->
+    (fun p ->
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
@@ -124,11 +130,11 @@ let () =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       ( new output
           ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server

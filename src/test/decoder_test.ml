@@ -19,40 +19,40 @@ let () =
 
 let () =
   assert (
-    Decoder.can_decode_kind
+    Decoder.can_decode_type
       { audio = 2; video = 0; midi = 0 }
-      { audio = Succ (Succ Zero); video = Zero; midi = Zero } );
+      { audio = 2; video = 0; midi = 0 } );
   assert (
-    Decoder.can_decode_kind
+    Decoder.can_decode_type
       { audio = 1; video = 0; midi = 0 }
-      { audio = Succ (Succ Zero); video = Zero; midi = Zero } );
+      { audio = 2; video = 0; midi = 0 } );
   assert (
-    Decoder.can_decode_kind
+    Decoder.can_decode_type
       { audio = 6; video = 0; midi = 0 }
-      { audio = Succ (Succ Zero); video = Zero; midi = Zero } );
+      { audio = 2; video = 0; midi = 0 } );
   assert (
     not
-      (Decoder.can_decode_kind
+      (Decoder.can_decode_type
          { audio = 1; video = 0; midi = 0 }
-         { audio = Succ (Succ Zero); video = Succ Zero; midi = Zero }) );
+         { audio = 2; video = 1; midi = 0 }) );
   assert (
-    Decoder.can_decode_kind
+    Decoder.can_decode_type
       { audio = 1; video = 1; midi = 0 }
-      { audio = Succ (Succ Zero); video = Succ Zero; midi = Zero } );
+      { audio = 2; video = 1; midi = 0 } );
   assert (
     not
-      (Decoder.can_decode_kind
+      (Decoder.can_decode_type
          { audio = 1; video = 0; midi = 0 }
-         { audio = Succ (Succ Zero); video = Any; midi = Succ Zero }) );
+         { audio = 2; video = 0; midi = 1 }) );
   assert (
-    Decoder.can_decode_kind
+    Decoder.can_decode_type
       { audio = 2; video = 1; midi = 1 }
-      { audio = Succ (Succ Zero); video = Zero; midi = Zero } );
+      { audio = 2; video = 0; midi = 0 } );
   assert (
-    Decoder.can_decode_kind
+    Decoder.can_decode_type
       { audio = 2; video = 1; midi = 1 }
-      { audio = Succ (Succ Zero); video = Any; midi = Any } );
+      { audio = 2; video = 1; midi = 1 } );
   assert (
-    Decoder.can_decode_kind
+    Decoder.can_decode_type
       { audio = 2; video = 1; midi = 0 }
-      { audio = Zero; video = Succ Zero; midi = Zero } )
+      { audio = 0; video = 1; midi = 0 } )

@@ -39,9 +39,8 @@ class append ~kind ~insert_missing ~merge source f =
               if insert_missing && m = None then Some (Hashtbl.create 10) else m
             with
               | Some m when Utils.hashtbl_get m "liq_append" <> Some "false" ->
-                  let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
                   let append =
-                    Lang.to_source (Lang.apply ~t f [("", Lang.metadata m)])
+                    Lang.to_source (Lang.apply f [("", Lang.metadata m)])
                   in
                   self#register append;
                   if finished then
@@ -142,7 +141,8 @@ class append ~kind ~insert_missing ~merge source f =
   end
 
 let register =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "append"
     [
       ( "merge",
@@ -166,7 +166,7 @@ let register =
     ~descr:
       "Append an extra track to every track. Set the metadata 'liq_append' to \
        'false' to inhibit appending on one track."
-    (fun p kind ->
+    (fun p ->
       let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
       let insert_missing = Lang.to_bool (Lang.assoc "insert_missing" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in

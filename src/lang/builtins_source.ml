@@ -89,8 +89,8 @@ let () =
 
 let () =
   let s_t =
-    let v = Lang.any_t in
-    Lang.source_t (Lang.frame_kind_t ~audio:v ~video:v ~midi:v)
+    let kind = Lang.any in
+    Lang.source_t (Lang.kind_type_of_kind_format kind)
   in
   add_builtin "source.init" ~cat:Liq
     ~descr:
@@ -108,7 +108,7 @@ let () =
          *   this trick to compare active sources and passive ones... *)
         Clock.force_init (fun x -> List.exists (fun y -> Oo.id x = Oo.id y) l)
       in
-      Lang.list ~t:s_t (List.map (fun x -> Lang.source (x :> Source.source)) l))
+      Lang.list (List.map (fun x -> Lang.source (x :> Source.source)) l))
 
 let () =
   let log = Log.make ["source"; "dump"] in

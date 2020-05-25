@@ -49,11 +49,11 @@ class map ~kind source f =
       done
   end
 
-let to_fun_float f x =
-  Lang.to_float (Lang.apply ~t:Lang.float_t f [("", Lang.float x)])
+let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "audio.map"
     [
       ("", Lang.fun_t [(false, "", Lang.float_t)] Lang.float_t, None, None);
@@ -62,7 +62,7 @@ let () =
     ~return_t:k ~descr:"Map a function to all audio samples. This is SLOW!"
     ~category:Lang.SoundProcessing
     ~flags:[Lang.Hidden] (* It works well but is probably useless. *)
-    (fun p kind ->
+    (fun p ->
       let f = to_fun_float (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
       new map ~kind src f)

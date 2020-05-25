@@ -231,8 +231,15 @@ def register_flow(~server="",~user="default",~password="default",
   on_metadata(metadata,s)
 end
 
-# Deprecated: this function has been replaced by fail.
+# Deprecated: this function has been replaced by `fail`.
 # @flag hidden
 def empty(~id="")
   fail()
+end
+
+# Deprecated: use `request.create` instead.
+# @flag hidden
+def request.create.raw(~indicators=[], ~persistent=false, uri)
+  deprecated("request.create.raw", "request.create")
+  request.create(indicators=indicators, persistent=persistent, uri)
 end

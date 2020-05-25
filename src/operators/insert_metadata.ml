@@ -84,13 +84,14 @@ class insert_metadata ~kind source =
   end
 
 let () =
-  let kind = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   let return_t =
     Lang.product_t
       (Lang.fun_t
          [(true, "new_track", Lang.bool_t); (false, "", Lang.metadata_t)]
          Lang.unit_t)
-      (Lang.source_t kind)
+      (Lang.source_t k)
   in
   Lang.add_builtin "insert_metadata"
     ~category:(Lang.string_of_category Lang.TrackProcessing)
@@ -104,24 +105,18 @@ let () =
         Lang.string_t,
         Some (Lang.string ""),
         Some "Force the value of the source ID." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t k, None, None);
     ]
     return_t
-    (fun p t ->
+    (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
       let id = Lang.to_string (List.assoc "id" p) in
-      let _, t = Lang.of_product_t t in
-      let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new insert_metadata ~kind s in
       if id <> "" then s#set_id id;
       let f =
         Lang.val_fun
-          [
-            ("new_track", "new_track", Lang.bool_t, Some (Lang.bool false));
-            ("", "", Lang.metadata_t, None);
-          ]
-          ~ret_t:Lang.unit_t
-          (fun p _ ->
+          [("new_track", "new_track", Some (Lang.bool false)); ("", "", None)]
+          (fun p ->
             let m = Lang.to_metadata (List.assoc "" p) in
             let new_track = Lang.to_bool (List.assoc "new_track" p) in
             s#insert_metadata new_track m;

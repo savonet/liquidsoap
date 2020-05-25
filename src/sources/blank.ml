@@ -66,9 +66,8 @@ class blank ~kind duration =
   end
 
 let () =
-  let return_t =
-    Lang.kind_type_of_kind_format (Lang.Unconstrained (Lang.univ_t ()))
-  in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "blank" ~category:Lang.Input
     ~descr:"Produce silence and blank images." ~return_t
     [
@@ -79,7 +78,7 @@ let () =
           "Duration of blank tracks in seconds, Negative value means forever."
       );
     ]
-    (fun p kind ->
+    (fun p ->
       let d = Lang.to_float (List.assoc "duration" p) in
       (new blank ~kind d :> source))
 
@@ -104,14 +103,9 @@ let fail kind = (new fail ~kind :> source)
 let empty = fail
 
 let () =
-  let audio = Lang.univ_t () in
-  let video = Lang.univ_t () in
-  let midi = Lang.univ_t () in
-  let return_t =
-    Lang.kind_type_of_kind_format
-      (Lang.Unconstrained (Lang.frame_kind_t ~audio ~video ~midi))
-  in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "fail" ~category:Lang.Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
-    ~return_t [] (fun _ kind -> (new fail ~kind :> source))
+    ~return_t [] (fun _ -> (new fail ~kind :> source))

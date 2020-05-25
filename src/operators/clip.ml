@@ -47,14 +47,15 @@ class clip ~kind (source : source) =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "clip"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:
       "Clip samples, i.e. ensure that all values are between -1 and 1: values \
        lower than -1 become -1 and values higher than 1 become 1."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       new clip ~kind src)

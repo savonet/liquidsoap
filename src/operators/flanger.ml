@@ -26,9 +26,10 @@ let pi = acos (-1.)
 
 class flanger ~kind (source : source) delay freq feedback phase =
   let past_len = Frame.audio_of_seconds delay in
-  let channels = AFrame.channels_of_kind kind in
-  object
-    inherit operator ~name:"flanger" kind [source]
+  object (self)
+    inherit operator ~name:"flanger" kind [source] as super
+
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 
@@ -42,7 +43,11 @@ class flanger ~kind (source : source) delay freq feedback phase =
 
     method abort_track = source#abort_track
 
-    val past = Audio.make channels past_len 0.
+    val mutable past = Audio.make 0 0 0.
+
+    method wake_up a =
+      super#wake_up a;
+      past <- Audio.make self#channels past_len 0.
 
     val mutable past_pos = 0
 
@@ -76,7 +81,8 @@ class flanger ~kind (source : source) delay freq feedback phase =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "flanger"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
@@ -95,7 +101,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Flanger effect."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let duration, freq, feedback, phase, src =
         ( Lang.to_float (f "delay"),
@@ -105,4 +111,4 @@ let () =
           Lang.to_source (f "") )
       in
       let feedback () = Audio.lin_of_dB (feedback ()) in
-      new flanger ~kind src duration freq feedback phase)
+      (new flanger ~kind src duration freq feedback phase :> Source.source))

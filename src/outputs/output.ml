@@ -171,20 +171,20 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
       if is_started then (
         (* Complete filling of the frame *)
         let get_count = ref 0 in
-        while Frame.is_partial memo && self#is_ready do
+        while Frame.is_partial self#memo && self#is_ready do
           incr get_count;
           if !get_count > Lazy.force Frame.size then
             self#log#severe
               "Warning: there may be an infinite sequence of empty tracks!";
-          source#get memo
+          source#get self#memo
         done;
         List.iter
           (fun (_, m) -> self#add_metadata m)
-          (Frame.get_all_metadata memo);
+          (Frame.get_all_metadata self#memo);
 
         (* Output that frame if it has some data *)
-        if Frame.position memo > 0 then self#output_send memo;
-        if Frame.is_partial memo then (
+        if Frame.position self#memo > 0 then self#output_send self#memo;
+        if Frame.is_partial self#memo then (
           self#log#important "Source failed (no more tracks) stopping output...";
           request_stop <- true ) );
       self#may_stop
@@ -217,18 +217,19 @@ class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.dummy" ~active:true
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:Lang.Output ~descr:"Dummy output for debugging purposes."
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start = List.assoc "on_start" p in
       let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply ~t:Lang.unit_t on_start []) in
-      let on_stop () = ignore (Lang.apply ~t:Lang.unit_t on_stop []) in
+      let on_start () = ignore (Lang.apply on_start []) in
+      let on_stop () = ignore (Lang.apply on_stop []) in
       ( new dummy
           ~kind ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p)
         :> Source.source ))

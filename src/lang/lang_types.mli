@@ -26,10 +26,11 @@ type pos = Lexing.position * Lexing.position
 
 val print_single_pos : Lexing.position -> string
 val print_pos : ?prefix:string -> pos -> string
+val print_pos_opt : ?prefix:string -> pos option -> string
 
 type variance = Covariant | Contravariant | Invariant
 type ground = ..
-type ground += Bool | Int | String | Float
+type ground += Bool | Int | String | Float | Request
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
@@ -50,7 +51,6 @@ and descr =
   | Tuple of t list
   | Zero
   | Succ of t
-  | Any
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t
@@ -88,4 +88,3 @@ val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 val fresh : constraints:constraints -> level:int -> pos:pos option -> t
 val fresh_evar : level:int -> pos:pos option -> t
-val iter_constr : (bool -> constructed -> unit) -> t -> bool * bool

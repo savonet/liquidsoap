@@ -1,3 +1,5 @@
+#!../src/liquidsoap ../libs/pervasives.liq
+
 %include "test.liq"
 
 # GH1170 was a tricky bug: we were checking on [is_ready]
