@@ -57,6 +57,6 @@ end
 # Best practice is to run all manual tests
 # through this one.
 def test.check(f) =
-  thread.run(delay=0.,f)
+  thread.run(delay=0.1,f)
   output.dummy(blank())
 end
