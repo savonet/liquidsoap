@@ -70,6 +70,10 @@ let print_pos ?(prefix = "at ") (start, stop) =
     Printf.sprintf "%sline %d char %d - line %d char %d" prefix lstart cstart
       lstop cstop
 
+let print_pos_opt ?prefix = function
+  | Some pos -> print_pos ?prefix pos
+  | None -> "unknown position"
+
 (** Ground types *)
 
 type ground = ..

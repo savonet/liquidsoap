@@ -80,7 +80,7 @@ module Kind : sig
   val set_video : t -> int -> t
   val set_midi : t -> int -> t
 
-  exception Conflict
+  exception Conflict of string * string
 
   val unify : t -> t -> unit
 end

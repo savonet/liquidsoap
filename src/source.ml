@@ -244,7 +244,7 @@ module Kind = struct
 
   (* = (format, format, format) Frame.fields *)
 
-  exception Conflict
+  exception Conflict of string * string
 
   (** Multiplicities with variables, used for unification. *)
   module Multiplicity = struct
@@ -279,6 +279,8 @@ module Kind = struct
         | Succ m -> occurs x m
         | Zero -> false
         | Var y -> x == y
+
+    exception Conflict
 
     (** Unify kinds. *)
     let rec unify m n =
@@ -347,9 +349,11 @@ module Kind = struct
     }
 
   let unify k k' =
-    Multiplicity.unify k.Frame.audio k'.Frame.audio;
-    Multiplicity.unify k.Frame.video k'.Frame.video;
-    Multiplicity.unify k.Frame.midi k'.Frame.midi
+    try
+      Multiplicity.unify k.Frame.audio k'.Frame.audio;
+      Multiplicity.unify k.Frame.video k'.Frame.video;
+      Multiplicity.unify k.Frame.midi k'.Frame.midi
+    with Multiplicity.Conflict -> raise (Conflict (to_string k, to_string k'))
 end
 
 (** {1 Sources} *)

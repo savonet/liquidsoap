@@ -298,6 +298,8 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
       | Source.Clock_conflict (a, b) ->
           raise (Lang_errors.Clock_conflict (pos, a, b))
       | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
+      | Source.Kind.Conflict (a, b) ->
+          raise (Lang_errors.Kind_conflict (pos, a, b))
   in
   let return_t = Term.source_t ~active return_t in
   let category = string_of_category category in

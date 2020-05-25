@@ -247,7 +247,11 @@ let () =
       let args = abuffer_args channels in
       let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
       let kind = Lang.audio_n channels in
-      let s = Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) in
+      let s =
+        try Ffmpeg_filter_io.(new audio_output ~name ~kind source_val)
+        with Source.Kind.Conflict (a, b) ->
+          raise (Lang_errors.Kind_conflict (source_val.Lang.pos, a, b))
+      in
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));

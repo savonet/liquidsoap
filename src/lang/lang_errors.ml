@@ -28,6 +28,7 @@ exception Invalid_value of Term.V.value * string
 
 exception Clock_conflict of (T.pos option * string * string)
 exception Clock_loop of (T.pos option * string * string)
+exception Kind_conflict of (T.pos option * string * string)
 
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
@@ -145,6 +146,10 @@ let report lexbuf f =
       | Clock_loop (pos, a, b) ->
           error_header 11 (T.print_pos (Utils.get_some pos));
           Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@." a b;
+          raise Error
+      | Kind_conflict (pos, a, b) ->
+          error_header 10 (T.print_pos_opt pos);
+          Format.printf "Source kinds don't match@ (%s vs@ %s).@]@." a b;
           raise Error
       | Lang_values.Unsupported_format (pos, fmt) ->
           let pos = T.print_pos pos in
