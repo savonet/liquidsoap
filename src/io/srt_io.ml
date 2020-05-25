@@ -443,16 +443,6 @@ let () =
         ignore (Lang.apply (List.assoc "on_disconnect" p) [])
       in
       let format = Lang.to_string (List.assoc "content_type" p) in
-      (* TODO: why did we do that if we don't use the stream_decoder? *)
-      (*
-      ( match Decoder.get_stream_decoder format ctype with
-        | None ->
-            raise
-              (Lang_errors.Invalid_value
-                 ( List.assoc "content_type" p,
-                   "Couldn't find a decoder for this format" ))
-        | _ -> () );
-      *)
       ( new input
           ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
           ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
