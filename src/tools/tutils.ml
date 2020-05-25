@@ -200,8 +200,12 @@ let started = ref false
 let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () -> !started)
 
+let scheduler_pre_shutdown_atom =
+  Dtools.Init.at_stop ~name:"Scheduler pre-shutdown" (fun () -> ())
+
 let scheduler_shutdown_atom =
-  Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
+  Dtools.Init.make ~name:"Scheduler shutdown"
+    ~after:[scheduler_pre_shutdown_atom] (fun () ->
       log#important "Shutting down scheduler...";
       Duppy.stop scheduler;
       log#important "Scheduler shut down.";

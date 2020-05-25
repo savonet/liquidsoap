@@ -2,6 +2,7 @@
 %include "test.liq"
 
 set("log.level",4)
+set("ffmpeg.log.level",4)
 set("frame.audio.samplerate",48000)
 
 out = "files/test.wav"
@@ -16,9 +17,9 @@ s = once(s)
 
 clock.assign_new(sync='none',[s])
 
-output.udp(fallible=true,@FORMAT@,s)
+output.udp(id="output",port=5001,host="localhost",fallible=true,@FORMAT@,s)
 
-s = input.srt(buffer=0.1,clock_safe=false)
+s = input.udp(id="input",port=5001,host="localhost",buffer=0.1,"application/ffmpeg")
 
 s = (s:source(1,0,0)) 
 

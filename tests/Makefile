@@ -17,7 +17,7 @@ test:
 
 performance: performance.liq
 	@echo "***** Performance tests *****"
-	@./performance.liq
+	@../src/liquidsoap ../libs/pervasives.liq --force-start ./performance.liq
 
 perf:
 	perf record --call-graph=dwarf -- ../src/liquidsoap ../libs/pervasives.liq performance.liq

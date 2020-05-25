@@ -170,5 +170,5 @@ let () =
     (Dtools.Init.at_start (fun () ->
          ignore (Tutils.create main () "gstreamer_main_loop")));
   ignore
-    (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] (fun () ->
+    (Dtools.Init.make ~before:[Tutils.scheduler_pre_shutdown_atom] (fun () ->
          Gstreamer.Loop.quit loop))

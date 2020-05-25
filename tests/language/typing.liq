@@ -28,6 +28,7 @@ def f() =
     # f(0)
     # f(f)
   end
+  ignore(apply)
   
   # The level checks forbid abusive generalization.
   # id' : ('a)->'a
@@ -39,6 +40,7 @@ def f() =
     end
     f2(x)
   end
+  ignore(id')
   
   # Testing generalization of recursive functions
   def rec recid(x)
@@ -97,6 +99,7 @@ def f() =
   # Now let's test ad-hoc polymorphism.
   
   echo = fun(x) -> system("echo #{quote(string_of(x))}")
+  ignore(echo)
   
   ignore("bla")
   ignore((1,3.12))
@@ -118,6 +121,7 @@ def f() =
   def sum_eq(a,b)
     a+b == a
   end
+  ignore(sum_eq)
   
   test.pass()
 end

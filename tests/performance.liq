@@ -1,4 +1,6 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../src/liquidsoap ../libs/pervasives.liq --force-start
+
+%include "test.liq"
 
 def time(name, f)
   print("Computing #{name}...")
@@ -31,3 +33,5 @@ def erathostenes(n)
 end
 
 time("Erathostenes (recursive)", {erathostenes(10000)})
+
+exit(0)

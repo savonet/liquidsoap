@@ -696,5 +696,6 @@ module Make (Runner : Runner_t) = struct
       not !secondary_task
     then (
       cleanup ();
-      Printf.printf "No output defined, nothing to do.\n" )
+      Printf.printf "No output defined, nothing to do.\n";
+      exit 1 )
 end

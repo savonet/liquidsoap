@@ -1,5 +1,8 @@
 (** Constants describing configuration options of liquidsoap. *)
 
+(** String describing the OS *)
+val host : string
+
 (** String describing the version. *)
 val version : string
 

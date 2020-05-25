@@ -1,5 +1,6 @@
 # End test successfully.
 def test.pass()
+  print("Test passed!")
   shutdown()
 end
 
@@ -11,6 +12,7 @@ end
 
 # End test with signal 2
 def test.skip()
+  print("Test skipped..")
   exit(2)
 end
 
@@ -55,6 +57,6 @@ end
 # Best practice is to run all manual tests
 # through this one.
 def test.check(f) =
-  thread.run(delay=0.,f)
+  thread.run(delay=0.1,f)
   output.dummy(blank())
 end

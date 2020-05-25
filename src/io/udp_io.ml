@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let max_packet_size = if Configure.host = "osx" then 9216 else 65535
+
 class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
   ~encoder_factory source =
   object (self)
@@ -44,7 +46,14 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
       socket_send <-
         Some
           (fun msg off len ->
-            Unix.sendto socket (Bytes.of_string msg) off len [] portaddr);
+            let msg = Bytes.of_string msg in
+            let rec f pos =
+              if off + pos < len then (
+                let len = min (len - pos) max_packet_size in
+                let len = Unix.sendto socket msg (off + pos) len [] portaddr in
+                f (pos + len) )
+            in
+            f 0);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
 
     method private output_reset =
