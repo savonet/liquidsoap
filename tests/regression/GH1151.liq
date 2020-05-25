@@ -9,6 +9,4 @@ def f() =
   end
 end
 
-thread.run(delay=0.,f)
-
-output.dummy(blank())
+test.check(f)
