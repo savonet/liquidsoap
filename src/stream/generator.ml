@@ -713,9 +713,9 @@ module From_audio_video_plus = struct
 
   type t = {
     lock : Mutex.t;
-    (* The kind of fed data must always be the same. This is fixed by the first
+    (* The type of fed data must always be the same. This is fixed by the first
        filled frame. *)
-    mutable kind : Frame.content_type option;
+    mutable ctype : Frame.content_type option;
     mutable error : bool;
     overfull : overfull option;
     gen : Super.t;
@@ -728,7 +728,7 @@ module From_audio_video_plus = struct
   let create ?(lock = Mutex.create ()) ?overfull ~log ~log_overfull mode =
     {
       lock;
-      kind = None;
+      ctype = None;
       error = false;
       overfull;
       log;
@@ -761,10 +761,10 @@ module From_audio_video_plus = struct
         let breaks = Frame.breaks frame in
         Super.fill t.gen frame;
         let c = frame.Frame.content in
-        match t.kind with
-          | None -> t.kind <- Some (Frame.type_of_content c)
-          | Some kind ->
-              if Frame.type_of_content c <> kind then (
+        match t.ctype with
+          | None -> t.ctype <- Some (Frame.type_of_content c)
+          | Some ctype ->
+              if Frame.type_of_content c <> ctype then (
                 t.log "Incorrect stream type!";
                 t.error <- true;
                 Super.clear t.gen;
