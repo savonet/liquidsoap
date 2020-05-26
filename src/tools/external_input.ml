@@ -63,6 +63,22 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
           | _ -> restart_on_error
       in
       let log = self#log#important "%s" in
+      let command =
+        if self#ctype.Frame.video = 0 then command
+        else (
+          let w, h = Source.Kind.video_size self#kind_var in
+          let command =
+            Str.global_replace
+              (Str.regexp "LIQ_VIDEO_WIDTH")
+              (string_of_int w) command
+          in
+          let command =
+            Str.global_replace
+              (Str.regexp "LIQ_VIDEO_HEIGHT")
+              (string_of_int h) command
+          in
+          command )
+      in
       process <-
         Some
           (Process_handler.run ~priority:Tutils.Blocking ~on_stop ~on_stdout

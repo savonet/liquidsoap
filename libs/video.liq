@@ -45,9 +45,9 @@ def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
   input = (input : string)
   ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
   cmd = "#{ffmpeg} #{input} -f avi \
-         -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
-               force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
-               #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\",\
+         -vf \"scale=LIQ_VIDEO_WIDTH:LIQ_VIDEO_HEIGHT:\
+               force_original_aspect_ratio=decrease,pad=LIQ_VIDEO_WIDTH:\
+               LIQ_VIDEO_HEIGHT:(ow-iw)/2:(oh-ih)/2\",\
                format=yuv420p,fps=fps=#{video.frame.rate()} \
          -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
          -ar #{audio.samplerate()} pipe:1"
