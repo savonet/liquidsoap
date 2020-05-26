@@ -190,11 +190,9 @@ let () =
                 Clock.unify s#clock (Clock.create_known (clock :> Clock.clock))
               with
                 | Source.Clock_conflict (a, b) ->
-                    raise
-                      (Lang_errors.Clock_conflict (s.Lang.t.Lang_types.pos, a, b))
+                    raise (Lang_errors.Clock_conflict (s.Lang.pos, a, b))
                 | Source.Clock_loop (a, b) ->
-                    raise
-                      (Lang_errors.Clock_loop (s.Lang.t.Lang_types.pos, a, b)))
+                    raise (Lang_errors.Clock_loop (s.Lang.pos, a, b)))
             sources;
           Lang.unit
   in

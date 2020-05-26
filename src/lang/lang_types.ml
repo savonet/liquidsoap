@@ -706,7 +706,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Ground _ | Zero | Any -> l
+      | Ground _ | Zero -> l
       | Succ t | List t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Meth (_, (g, t), u) ->
@@ -744,7 +744,7 @@ let copy_with (subst : Subst.t) t =
           if !debug then
             assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
           cp (Meth (l, (g, aux t), aux u))
-      | Zero | Any -> cp t.descr
+      | Zero -> cp t.descr
       | Succ t -> cp (Succ (aux t))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))

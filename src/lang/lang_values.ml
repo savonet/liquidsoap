@@ -501,7 +501,7 @@ module V = struct
       | Meth (l', y, _) when l' = l -> y
       | Meth (_, _, x) -> invoke x l
       | _ -> failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
-    
+
   (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
   let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
@@ -518,7 +518,7 @@ let builtins_env = ref []
 let default_environment () = !builtins_env
 
 let default_typing_environment () =
-  List.map (fun (x, (g, v)) -> (x, (g, v.V.t))) (default_environment ())
+  List.map (fun (x, (t, _)) -> (x, t)) !builtins_env
 
 let add_builtin ?(override = false) ?(register = true) ?doc name (g, v) =
   if register then builtins#register ?doc (String.concat "." name) (g, v);
@@ -551,12 +551,7 @@ let _ =
           | l :: ll ->
               let v = V.invokes xv (List.rev prefix) in
               let lv = aux (l :: prefix) ll in
-              {
-                V.t =
-                  T.make
-                    (T.Meth (l, ((if ll = [] then g else []), lv.V.t), v.V.t));
-                value = V.Meth (l, lv, v);
-              }
+              { V.pos = None; value = V.Meth (l, lv, v) }
           | [] -> v
         in
         builtins_env := (x, (g0, aux [] ll)) :: !builtins_env
@@ -586,7 +581,8 @@ let add_module name =
           ignore (V.invoke e l);
           failwith ("Module " ^ String.concat "." name ^ " already exists")
         with _ -> () ) );
-  add_builtin ~register:false name ([], { V.t = T.make T.unit; value = V.unit })
+  add_builtin ~register:false name
+    (([], T.make T.unit), { V.pos = None; value = V.unit })
 
 (* Builtins are only used for documentation now. *)
 let builtins = (builtins :> Doc.item)
@@ -1034,7 +1030,7 @@ and apply f l =
 
 let eval ?env tm =
   let env = match env with Some env -> env | None -> default_environment () in
-  let env = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) env in
+  let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
   eval ~env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
@@ -1078,21 +1074,22 @@ let toplevel_add (doc, params) pat ~t v =
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
   List.iter
-    (fun (x, v) -> add_builtin ~override:true ~doc [x] ((generalized,t), v))
+    (fun (x, v) -> add_builtin ~override:true ~doc [x] ((generalized, t), v))
     (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
     | Let { doc = comment; gen = generalized; pat; def; body } ->
+        let def_t = def.t in
         let def = eval def in
-        toplevel_add comment pat ~t:(generalized, def.V.t) def;
+        toplevel_add comment pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
-            (T.print ~generalized def.V.t);
+            (T.print ~generalized def_t);
         if interactive then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." (string_of_pat pat)
             (T.pp_type_generalized generalized)
-            def.V.t (V.print_value def);
+            def_t (V.print_value def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->
         ignore
@@ -1102,5 +1099,5 @@ let rec eval_toplevel ?(interactive = false) t =
     | _ ->
         let v = eval t in
         if interactive && t.term <> unit then
-          Format.printf "- : %a = %s@." T.pp_type ty (V.print_value v);
+          Format.printf "- : %a = %s@." T.pp_type t.t (V.print_value v);
         v

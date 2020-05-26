@@ -221,7 +221,7 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   List.iter
     (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
-  Term.add_builtin ~doc (String.split_on_char '.' name) ((generalized,t), value)
+  Term.add_builtin ~doc (String.split_on_char '.' name) ((generalized, t), value)
 
 let add_module name = Term.add_module (String.split_on_char '.' name)
 
@@ -383,6 +383,7 @@ let iter_sources f v =
                   | Tuple l -> List.exists aux l
                   | Ref r -> aux !r
                   | Fun _ | FFI _ -> true
+                  | Meth (_, v, t) -> aux v || aux t
               in
               aux v
             in
