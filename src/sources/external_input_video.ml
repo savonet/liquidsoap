@@ -36,11 +36,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
   let log_ref = ref (fun _ -> ()) in
   let log_error = ref (fun _ -> ()) in
   let log x = !log_ref x in
-  let abg =
-    Generator.create ~log ~log_overfull
-      (* (if kind.Frame.audio = Frame.Zero then `Video else `Both) *)
-      `Both
-  in
+  let abg = Generator.create ~log ~log_overfull `Both in
   (* Maximal difference between audio and video in seconds before a warning. *)
   let vadiff = 10. in
   let last_vadiff_warning = ref 0. in
@@ -93,6 +89,8 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
+      if self#ctype.Frame.audio = 0 then Generator.set_mode abg `Video;
+      Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."
         ( match Generator.mode abg with
           | `Video -> "video"
@@ -141,7 +139,6 @@ let () =
       let width = ref None in
       let height = ref None in
       let audio_converter = ref None in
-      let video_converter = ref None in
       let video_scaler = Video_converter.scaler () in
       let read_header read =
         (* Reset the state. *)
@@ -149,7 +146,6 @@ let () =
         width := None;
         height := None;
         audio_converter := None;
-        video_converter := None;
         let h, _ = Avi.Read.headers_simple read in
         let check = function
           | `Video (fmt, w, h, fps) ->
@@ -166,32 +162,7 @@ let () =
                      "Wrong video rate (%f instead of %d). Support for \
                       timestretching should be added some day in the future."
                      fps
-                     (Lazy.force Frame.video_rate));
-              let converter data =
-                let video_format = Option.get !video_format in
-                let of_string s =
-                  match video_format with
-                    | `RGB24 -> Image.YUV420.of_RGB24_string s w
-                    | `I420 ->
-                        (* TODO: can there be stride in avi videos? *)
-                        let h = String.length s * 4 / 6 / w in
-                        Image.YUV420.of_YUV420_string s w h
-                in
-                let src = of_string data in
-                let in_width = Video.Image.width src in
-                let in_height = Video.Image.height src in
-                let out_width = Lazy.force Frame.video_width in
-                let out_height = Lazy.force Frame.video_height in
-                if
-                  out_width = in_width && out_height = in_height
-                  && video_format = `I420
-                then src
-                else (
-                  let dst = Video.Image.create out_width out_height in
-                  video_scaler src dst;
-                  dst )
-              in
-              video_converter := Some converter
+                     (Lazy.force Frame.video_rate))
           | `Audio (channels, samplerate) ->
               if !audio_converter <> None then
                 failwith "Only one audio track is supported for now.";
@@ -222,7 +193,31 @@ let () =
                   (Printf.sprintf "Wrong video frame size (%d instead of %d)"
                      (String.length data)
                      (width * height * 3));
-              let data = (Option.get !video_converter) data in
+              let convert data =
+                let of_string s =
+                  match video_format with
+                    | `RGB24 -> Image.YUV420.of_RGB24_string s width
+                    | `I420 ->
+                        (* TODO: can there be stride in avi videos? *)
+                        let height = String.length s * 4 / 6 / width in
+                        Image.YUV420.of_YUV420_string s width height
+                in
+                let src = of_string data in
+                let in_width = Video.Image.width src in
+                let in_height = Video.Image.height src in
+                let out_width, out_height =
+                  (Generator.content_type abg).Frame.video.(0)
+                in
+                if
+                  out_width = in_width && out_height = in_height
+                  && video_format = `I420
+                then src
+                else (
+                  let dst = Video.Image.create out_width out_height in
+                  video_scaler src dst;
+                  dst )
+              in
+              let data = convert data in
               Generator.put_video abg [| Video.single data |] 0 1
           | `Frame (`Audio, _, data) ->
               let converter = Utils.get_some !audio_converter in
