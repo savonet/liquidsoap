@@ -39,10 +39,7 @@ let () =
        number>\")`, `(\"exception\",\"<exception description>\")`, \
        `(\"timeout\",\"<run time>\")`."
     [
-      ( "env",
-        Lang.list_t env_t,
-        Some (Lang.list ~t:env_t []),
-        Some "Process environment" );
+      ("env", Lang.list_t env_t, Some (Lang.list []), Some "Process environment");
       ( "inherit_env",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -51,13 +48,13 @@ let () =
       );
       ( "rwdirs",
         path_t,
-        Some (Lang.list ~t:Lang.string_t [Lang.string "default"]),
+        Some (Lang.list [Lang.string "default"]),
         Some
           "Read/write directories for sandboxing. `\"default\"` expands to \
            sandbox default." );
       ( "rodirs",
         path_t,
-        Some (Lang.list ~t:Lang.string_t [Lang.string "default"]),
+        Some (Lang.list [Lang.string "default"]),
         Some
           "Read-only directories for sandboxing. `\"default\"` expands to \
            sandbox default." );
@@ -168,7 +165,7 @@ let () =
         (-1., Some (`Status (Unix.close_process_full p)))
       in
       let asynchronous () =
-        let out_pipe, in_pipe = Unix.pipe () in
+        let out_pipe, in_pipe = Unix.pipe ~cloexec:true () in
         Tutils.finalize
           ~k:(fun () ->
             ignore (Unix.close in_pipe);

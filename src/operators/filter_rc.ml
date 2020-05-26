@@ -25,11 +25,12 @@ open Source
 type mode = Low_pass | High_pass
 
 class filter ~kind (source : source) rc wet mode =
-  let channels = AFrame.channels_of_kind kind in
   let rate = float (Lazy.force Frame.audio_rate) in
   let dt = 1. /. rate in
-  object
-    inherit operator ~name:"filter.rc" kind [source]
+  object (self)
+    inherit operator ~name:"filter.rc" kind [source] as super
+
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 
@@ -42,6 +43,15 @@ class filter ~kind (source : source) rc wet mode =
     method is_ready = source#is_ready
 
     method abort_track = source#abort_track
+
+    val mutable prev = [||]
+
+    val mutable prev_in = [||]
+
+    method wake_up a =
+      super#wake_up a;
+      prev <- Array.make self#channels 0.;
+      prev_in <- Array.make self#channels 0.
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -57,8 +67,6 @@ class filter ~kind (source : source) rc wet mode =
       let alpha' = 1. -. alpha in
       let wet = wet () in
       let wet' = 1. -. wet in
-      let prev = Array.make channels 0. in
-      let prev_in = Array.make channels 0. in
       match mode with
         | Low_pass ->
             let alpha = dt /. (rc +. dt) in
@@ -82,7 +90,8 @@ class filter ~kind (source : source) rc wet mode =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.rc"
     [
       ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");
@@ -102,7 +111,7 @@ let () =
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"First-order filter (RC filter)."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let rc, wet, mode, src =
         ( Lang.to_float_getter (f "rc"),
@@ -118,4 +127,4 @@ let () =
               raise
                 (Lang_errors.Invalid_value (mode, "valid values are low|high"))
       in
-      new filter ~kind src rc wet mode)
+      (new filter ~kind src rc wet mode :> Source.source))

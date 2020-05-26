@@ -35,18 +35,6 @@ def metadata.float_getter(init, m, s)
   metadata.getter(init, float_of_string, m, s)
 end
 
-# Read metadata from a file.
-# @category System
-# @param URI of the file for which the metadata should be read.
-def file.metadata(file)
-  r = request.create(file)
-  if request.resolve(r) then
-    request.metadata(r)
-  else
-    []
-  end
-end
-
 # Obtain cover-art for a file. An empty string is returned in case there is no
 # such information.
 # @category System

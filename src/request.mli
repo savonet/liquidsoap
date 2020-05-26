@@ -36,26 +36,16 @@ val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
   * which are devices for obtaining a local file from an URI. *)
 type t
 
-(** For media requests,
-  * resolving includes testing that the file can actually be decoded
-  * into a stream of the expected kind. *)
+(** Create a request. *)
 val create :
-  kind:Frame.content_kind ->
   ?metadata:(string * string) list ->
   ?persistent:bool ->
   ?indicators:indicator list ->
   string ->
   t
 
-val create_raw :
-  ?metadata:(string * string) list ->
-  ?persistent:bool ->
-  ?indicators:indicator list ->
-  string ->
-  t
-
-(** Return the kind of a media request, None for raw requests. *)
-val kind : t -> Frame.content_kind option
+(** Return the type of a media request, None for raw requests. *)
+val ctype : t -> Frame.content_type option
 
 (** Return the request's initial uri. *)
 val initial_uri : t -> string
@@ -108,10 +98,16 @@ val is_static : string -> bool
   * audio file, or simply because there was no enough time left. *)
 type resolve_flag = Resolved | Failed | Timeout
 
-(** [resolve request timeout] tries to resolve the request within [timeout]
-  * seconds. If resolving succeeds, [is_ready request] is true and you
-  * can get a filename. *)
-val resolve : t -> float -> resolve_flag
+(** Read the metadata for the toplevel indicator of the request. This is usually
+    performed automatically by [resolve] so that you do not have to use this,
+    excepting when the [ctype] is [None]. *)
+val read_metadata : t -> unit
+
+(** [resolve ?ctype request timeout] tries to resolve the request within
+    [timeout] seconds. It finds a decoder for the request which produces content
+    type [ctype], unless this is set to [None]. If resolving succeeds, [is_ready
+    request] is true and you can get a filename. *)
+val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
 
 (** [is_ready r] if there's an available local filename. It can be true even if
   * the resolving hasn't been run, if the initial URI was already a local
@@ -170,7 +166,7 @@ val duration : string -> float
 
 (** Return a decoder if the file has been resolved, guaranteed to have
   * available data to deliver. *)
-val get_decoder : t -> Decoder.file_decoder option
+val get_decoder : t -> Decoder.file_decoder_ops option
 
 (** {1 Plugs}
   * Respectively for computing duration,

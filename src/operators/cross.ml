@@ -32,9 +32,10 @@ let finalise_slave_clock slave_clock source =
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   ~minimum_length ~conservative ~active transition =
-  let channels = float (AFrame.channels_of_kind kind) in
   object (self)
     inherit source ~name:"cross" kind as super
+
+    method private channels = float self#ctype.Frame.audio
 
     method stype = Source.Fallible
 
@@ -71,11 +72,10 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
 
     val mutable after_metadata = None
 
-    (* An audio frame for intermediate computations.
-     * It is used to buffer the end and beginnings of tracks.
-     * Its past metadata should mimick that of the main stream in order
-     * to avoid metadata duplication. *)
-    val buf_frame = Frame.create kind
+    (* An audio frame for intermediate computations. It is used to buffer the
+       end and beginnings of tracks. Its past metadata should mimick that of the
+       main stream in order to avoid metadata duplication. *)
+    val mutable buf_frame = Frame.dummy
 
     method private reset_analysis =
       gen_before <- Generator.create ();
@@ -112,7 +112,9 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             s#leave ~dynamic:true (self :> source);
             transition_source <- None
 
-    method private wake_up _ =
+    method private wake_up a =
+      super#wake_up a;
+      buf_frame <- Frame.create self#ctype;
       source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
       Lang.iter_sources
@@ -345,10 +347,11 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     (* Sum up analysis and build the transition *)
     method private create_transition =
       let db_after =
-        Audio.dB_of_lin (sqrt (rms_after /. float rmsi_after /. channels))
+        Audio.dB_of_lin (sqrt (rms_after /. float rmsi_after /. self#channels))
       in
       let db_before =
-        Audio.dB_of_lin (sqrt (rms_before /. float rmsi_before /. channels))
+        Audio.dB_of_lin
+          (sqrt (rms_before /. float rmsi_before /. self#channels))
       in
       let compound =
         Clock.collect_after (fun () ->
@@ -380,8 +383,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                   ("", Lang.source b);
                 ]
               in
-              let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-              Lang.to_source (Lang.apply ~t transition params)
+              Lang.to_source (Lang.apply transition params)
             in
             let compound =
               self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
@@ -426,7 +428,8 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~audio:1 ()) in
+  let kind = Lang.any_with ~audio:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "cross"
     [
       ( "duration",
@@ -494,7 +497,7 @@ let () =
        track with the beginning of the next track, using a transition function \
        depending on the relative power of the signal before and after the end \
        of track."
-    (fun p kind ->
+    (fun p ->
       let duration = Lang.to_float (List.assoc "duration" p) in
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)

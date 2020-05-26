@@ -2,16 +2,19 @@ test = ()
 
 # End test successfully.
 def test.pass()
+  print("Test passed!")
   shutdown()
 end
 
 # End test with a failure.
 def test.fail()
+  print("Test failed!")
   exit(1)
 end
 
 # End test with signal 2
 def test.skip()
+  print("Test skipped..")
   exit(2)
 end
 
@@ -50,4 +53,12 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
   end
 
   on_track(id="check_non_repeating",check,s)
+end
+
+# Asynchronous test handler with dummy output
+# Best practice is to run all manual tests
+# through this one.
+def test.check(f) =
+  thread.run(delay=0.1,f)
+  output.dummy(blank())
 end

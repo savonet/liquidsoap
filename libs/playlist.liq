@@ -121,7 +121,7 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       def add_prefix(file) = prefix^file end
       list.map(add_prefix, files)
     else
-      pl = request.create.raw(playlist_uri)
+      pl = request.create(playlist_uri)
       result =
         if request.resolve(timeout=timeout, pl) then
           pl = request.filename(pl)

@@ -91,13 +91,15 @@ let mk_encoder ~ffmpeg ~options output =
   let audio_stream =
     Utils.maybe
       (fun audio_codec ->
-        let src_samplerate = Frame.audio_of_seconds 1. in
-        let src_audio_time_base = Ffmpeg_utils.audio_time_base () in
+        let src_samplerate = Lazy.force Frame.audio_rate in
+        let src_liq_internal_audio_time_base =
+          { Avutil.num = 1; den = src_samplerate }
+        in
         let src_channels = ffmpeg.Ffmpeg_format.channels in
         let src_channel_layout = get_channel_layout src_channels in
 
         let target_samplerate = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
-        let target_audio_time_base =
+        let target_liq_internal_audio_time_base =
           { Avutil.num = 1; den = target_samplerate }
         in
         let target_channels = ffmpeg.Ffmpeg_format.channels in
@@ -118,7 +120,7 @@ let mk_encoder ~ffmpeg ~options output =
 
         let stream =
           Av.new_audio_stream ~sample_rate:target_samplerate
-            ~time_base:target_audio_time_base
+            ~time_base:target_liq_internal_audio_time_base
             ~channel_layout:target_channel_layout
             ~sample_format:target_sample_format ~opts ~codec:audio_codec output
         in
@@ -156,7 +158,7 @@ let mk_encoder ~ffmpeg ~options output =
             let write_frame frame =
               let frame_pts =
                 Ffmpeg_utils.convert_pts ~src:frame_time_base
-                  ~dst:target_audio_time_base !pts
+                  ~dst:target_liq_internal_audio_time_base !pts
               in
               pts := Int64.succ !pts;
               Avutil.frame_set_pts frame (Some frame_pts);
@@ -172,7 +174,8 @@ let mk_encoder ~ffmpeg ~options output =
             in
             let filter_in, filter_out =
               Avfilter.Utils.convert_audio ~in_params
-                ~in_time_base:target_audio_time_base ~out_frame_size ()
+                ~in_time_base:target_liq_internal_audio_time_base
+                ~out_frame_size ()
             in
             let rec flush () =
               try
@@ -186,11 +189,13 @@ let mk_encoder ~ffmpeg ~options output =
         in
 
         let cb frame start len =
-          let pcm = Audio.sub (AFrame.content frame) start len in
+          let astart = Frame.audio_of_master start in
+          let alen = Frame.audio_of_master len in
+          let pcm = Audio.sub (AFrame.content frame) astart alen in
           let aframe = Resampler.convert resampler pcm in
           let frame_pts =
-            Ffmpeg_utils.convert_pts ~src:src_audio_time_base
-              ~dst:target_audio_time_base (Frame.pts frame)
+            Ffmpeg_utils.convert_pts ~src:src_liq_internal_audio_time_base
+              ~dst:target_liq_internal_audio_time_base (Frame.pts frame)
           in
           Avutil.frame_set_pts aframe (Some frame_pts);
           write_frame aframe
@@ -204,13 +209,17 @@ let mk_encoder ~ffmpeg ~options output =
       (fun video_codec ->
         let pixel_aspect = { Avutil.num = 1; den = 1 } in
 
-        let src_video_time_base = Ffmpeg_utils.video_time_base () in
         let src_fps = Lazy.force Frame.video_rate in
+        let src_liq_internal_video_time_base =
+          { Avutil.num = 1; den = src_fps }
+        in
         let src_width = Lazy.force Frame.video_width in
         let src_height = Lazy.force Frame.video_height in
 
         let target_fps = Lazy.force ffmpeg.Ffmpeg_format.framerate in
-        let target_video_time_base = { Avutil.num = 1; den = target_fps } in
+        let target_liq_internal_video_time_base =
+          { Avutil.num = 1; den = target_fps }
+        in
         let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
         let target_height = Lazy.force ffmpeg.Ffmpeg_format.height in
 
@@ -231,7 +240,7 @@ let mk_encoder ~ffmpeg ~options output =
         Hashtbl.iter (Hashtbl.add opts) options;
 
         let stream =
-          Av.new_video_stream ~time_base:target_video_time_base
+          Av.new_video_stream ~time_base:target_liq_internal_video_time_base
             ~pixel_format:`Yuv420p
             ~frame_rate:{ Avutil.num = target_fps; den = 1 }
             ~width:target_width ~height:target_height ~opts ~codec:video_codec
@@ -253,16 +262,14 @@ let mk_encoder ~ffmpeg ~options output =
           options;
 
         let target_pts = ref 0L in
-        let fps_converter =
-          Ffmpeg_utils.fps_converter ~width:target_width ~height:target_height
-            ~pixel_format:`Yuv420p ~time_base:src_video_time_base ~pixel_aspect
-            ~fps:src_fps ~target_fps (fun frame ->
-              let frame_pts =
-                (Ffmpeg_utils.convert_pts ~src:src_video_time_base
-                   ~dst:target_video_time_base)
-                  !target_pts
-              in
-              Avutil.frame_set_pts frame (Some frame_pts);
+        let converter =
+          Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
+            ~pixel_format:`Yuv420p ~time_base:src_liq_internal_video_time_base
+            ~pixel_aspect ~source_fps:src_fps ~target_fps ()
+        in
+        let fps_converter frame =
+          Ffmpeg_utils.Fps.convert converter frame (fun frame ->
+              Avutil.frame_set_pts frame (Some !target_pts);
               target_pts := Int64.succ !target_pts;
               Av.write_frame stream frame)
         in

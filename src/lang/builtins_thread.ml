@@ -63,7 +63,7 @@ let () =
           events = [`Delay delay];
           handler =
             (fun _ ->
-              let delay = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
+              let delay = Lang.to_float (Lang.apply f []) in
               if delay >= 0. then [task delay] else []);
         }
       in
@@ -81,7 +81,7 @@ let () =
       let v = List.assoc "" p in
       match v.Lang.value with
         | Lang.Fun (p, args, env, body) ->
-            let fn (args : Lang.full_env) t =
+            let fn args =
               Tutils.mutexify m
                 (fun () ->
                   let args =
@@ -91,11 +91,11 @@ let () =
                   let v =
                     { v with Lang.value = Lang.Fun ([], [], env, body) }
                   in
-                  Lang.apply ~t v [])
+                  Lang.apply v [])
                 ()
             in
             { v with Lang.value = Lang.FFI (p, args, fn) }
         | Lang.FFI (p, args, fn) ->
-            let fn args t = Tutils.mutexify m (fun () -> fn args t) () in
+            let fn args = Tutils.mutexify m (fun () -> fn args) () in
             { v with Lang.value = Lang.FFI (p, args, fn) }
         | _ -> v)

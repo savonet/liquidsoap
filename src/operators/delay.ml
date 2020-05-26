@@ -58,7 +58,8 @@ class delay ~kind ~initial (source : source) delay =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "delay"
     [
       ( "initial",
@@ -77,7 +78,7 @@ let () =
     ~descr:
       "Prevents the child from being ready again too fast after a end of track"
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let f n = Lang.assoc "" n p in
       let d = Lang.to_float (f 1) in
       let s = Lang.to_source (f 2) in

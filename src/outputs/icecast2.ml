@@ -258,7 +258,7 @@ let proto kind =
         Some "Callback executed when connection stops." );
       ( "on_error",
         Lang.fun_t [(false, "", Lang.string_t)] Lang.float_t,
-        Some (Lang.val_cst_fun [("", Lang.string_t, None)] (Lang.float 3.)),
+        Some (Lang.val_cst_fun [("", None)] (Lang.float 3.)),
         Some
           "Callback executed when an error happens. The callback receives a \
            string representation of the error that occured and returns a \
@@ -267,10 +267,7 @@ let proto kind =
       ("public", Lang.bool_t, Some (Lang.bool true), None);
       ( "headers",
         Lang.metadata_t,
-        Some
-          (Lang.list
-             ~t:(Lang.product_t Lang.string_t Lang.string_t)
-             [user_agent]),
+        Some (Lang.list [user_agent]),
         Some "Additional headers." );
       ( "dumpfile",
         Lang.string_t,
@@ -287,11 +284,11 @@ class output ~kind p =
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
   let on_error = List.assoc "on_error" p in
-  let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
-  let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
+  let on_connect () = ignore (Lang.apply on_connect []) in
+  let on_disconnect () = ignore (Lang.apply on_disconnect []) in
   let on_error error =
     let msg = Printexc.to_string error in
-    Lang.to_float (Lang.apply ~t:Lang.unit_t on_error [("", Lang.string msg)])
+    Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
   in
   let data = encoder_data p in
   let chunked = Lang.to_bool (List.assoc "chunked" p) in
@@ -368,11 +365,11 @@ class output ~kind p =
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let host = s "host" in
   let port = e Lang.to_int "port" in
@@ -602,8 +599,8 @@ class output ~kind p =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.icecast" ~active:true ~category:Lang.Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    (proto return_t) ~return_t (fun p kind ->
-      (new output ~kind p :> Source.source))
+    (proto return_t) ~return_t (fun p -> (new output ~kind p :> Source.source))

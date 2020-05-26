@@ -29,7 +29,10 @@ doc/content/protocols.md
 autodoc/
 *.annot
 tests/threesines/
-tests/flactest/
+tests/media/files/
+tests/media/test_encoder.liq
+tests/media/test_stream_audio.liq
+tests/media/test_stream_video.liq
 src/test/readavi
 src/test/simplelex_test
 src/test/strings_test
@@ -37,6 +40,7 @@ src/test/JSON_parse
 src/test/is_url
 src/test/timezone
 src/test/id3v2_test
+src/test/decoder_test
 src/test/generator_test
 *.conflicts
 liquidsoap.config

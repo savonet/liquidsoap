@@ -34,13 +34,11 @@ audio_converters = \
 	$(if $(W_FFMPEG_SWRESAMPLE),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
-	converters/video_converter.ml \
 	converters/video/native_video_converter.ml \
 	$(if $(W_GAVL),converters/video/gavl_converter.ml) \
 	$(if $(W_FFMPEG_SWSCALE),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
-	decoder/metadata_decoder.ml \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
@@ -227,11 +225,13 @@ builtins = lang/lang_builtins.ml \
            $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
-	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
+	tools/log.ml $(tools) $(stream) \
 	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
-	decoder/decoder.ml request.ml tools/server.ml \
-        source.ml clock.ml tools/rutils.ml \
-	playlist_parser.ml $(encoder_formats) encoder.ml \
+        converters/video_converter.ml converters/audio_converter.ml \
+	decoder/decoder_utils.ml decoder/decoder.ml \
+        request.ml tools/server.ml \
+        source.ml clock.ml playlist_parser.ml \
+	$(encoder_formats) encoder.ml \
 	tools/server_builtins.ml \
 	$(if $(W_SDL),tools/sdl_utils.ml) \
 	$(if $(W_LASTFM),tools/liqfm.ml) \

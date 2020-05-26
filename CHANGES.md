@@ -40,6 +40,7 @@ New:
 - Add `source.dump` (#1036).
 - Add `stereo` and `synth` protocols (#1036).
 - Add `video.add_text.ffmpeg`.
+- Added support for `file:///path/to/file` and `file:/path/to/file`protocols.
 - Add support for records and methods (#1197).
 - Rename `unsafe.single.infallible` to `single.infallible`.
 
@@ -53,6 +54,7 @@ Changed:
 - Re-implemented switch-derived operators (`fallback`, `rotate`, `random`) as
   scripted operators, removed `track_sensitive` argument from `rotate` and
   `random` as it does not have a sound meaning for them. 
+- Added optional exit `code` to `shutdown`.
 - Renamed `verb` argument info `method` in `output.icecast`.
 - Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).
@@ -87,13 +89,18 @@ Changed:
 - Allow crossfading for video (#1132, #1135).
 - Use getters for parameters of synthesizer sources (#1036).
 - Renamed `empty` to `fail`.
+- Restored `request.dynamic` (#1213).
+- Requests are not typed anymore: their type is fixed at resolution time.
+- Deprecated `request.create.raw`, you should use `request.create` instead.
 
 Fixed:
 
+- Set `cloexec` on all relevant Unix calls (#1192).
 - Fix implementation of recursive functions (#934).
 - Make `blank()` source unavailable past is expected duration (#668).
 - Remove `video.add_text.gstreamer` shade in background (#1190).
 - Improve the quality of `video.add_text.gd` (#1188).
+- Exit with non-zero code on errors.
 
 1.4.2 (03-05-2020)
 =====

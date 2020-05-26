@@ -96,7 +96,7 @@ let () =
         ~validate:(fun s ->
           try ignore (Scanf.sscanf s "%S" (fun s -> s))
           with _ -> raise (Var.Invalid_value (s ^ " is not a string")));
-      Lang.val_fun [] ~ret_t:Lang.string_t (fun _ _ -> Lang.string !v))
+      Lang.val_fun [] (fun _ -> Lang.string !v))
 
 let () =
   add_builtin "interactive.float" ~cat:Interaction
@@ -114,7 +114,7 @@ let () =
         ~validate:(fun s ->
           try ignore (float_of_string s)
           with _ -> raise (Var.Invalid_value (s ^ " is not a float")));
-      Lang.val_fun [] ~ret_t:Lang.float_t (fun _ _ -> Lang.float !v))
+      Lang.val_fun [] (fun _ -> Lang.float !v))
 
 let () =
   add_builtin "interactive.bool" ~cat:Interaction
@@ -132,4 +132,4 @@ let () =
         ~validate:(fun s ->
           if s <> "true" && s <> "false" then
             raise (Var.Invalid_value (s ^ " is not a boolean")));
-      Lang.val_fun [] ~ret_t:Lang.bool_t (fun _ _ -> Lang.bool !v))
+      Lang.val_fun [] (fun _ -> Lang.bool !v))

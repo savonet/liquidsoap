@@ -150,7 +150,8 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
 
 (** Lang interface *)
 
-let return_t = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ())
+let kind = Lang.any_with ~video:1 ()
+let return_t = Lang.kind_type_of_kind_format kind
 
 (* TODO: share more with fade.ml *)
 let proto =
@@ -290,7 +291,7 @@ let () =
     ~descr:
       "Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used \
        to set the duration for a specific track (float in seconds)."
-    (fun p kind ->
+    (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
       new fade_in ~kind ~meta d f t s);
@@ -304,7 +305,7 @@ let () =
     ~descr:
       "Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to \
        set the duration for a specific track (float in seconds)."
-    (fun p kind ->
+    (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
       new fade_out ~kind ~meta d f t s)

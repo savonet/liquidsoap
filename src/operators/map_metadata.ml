@@ -39,9 +39,7 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
     method self_sync = source#self_sync
 
     method private rewrite m =
-      let m' =
-        Lang.apply ~t:Lang.metadata_t rewrite_f [("", Lang.metadata m)]
-      in
+      let m' = Lang.apply rewrite_f [("", Lang.metadata m)] in
       let replace_val v =
         let x, y = Lang.to_product v in
         let x = Lang.to_string x and y = Lang.to_string y in
@@ -75,7 +73,8 @@ class map_metadata ~kind source rewrite_f insert_missing update strip =
   end
 
 let register =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "map_metadata"
     [
       ( "",
@@ -109,7 +108,7 @@ let register =
     ]
     ~category:Lang.TrackProcessing
     ~descr:"Rewrite metadata on the fly using a function." ~return_t
-    (fun p kind ->
+    (fun p ->
       let source = Lang.to_source (Lang.assoc "" 2 p) in
       let f = Lang.assoc "" 1 p in
       let update = Lang.to_bool (List.assoc "update" p) in

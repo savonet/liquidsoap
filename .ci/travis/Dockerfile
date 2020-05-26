@@ -14,6 +14,8 @@ ARG TRAVIS_BUILD_NUMBER
 
 USER root
 
+RUN apt-get update && apt-get -y install ffmpeg gstreamer1.0-libav gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-plugins-bad
+
 USER opam
 
 WORKDIR /tmp/liquidsoap-full
@@ -27,7 +29,7 @@ RUN eval $(opam config env) && git pull && make clean && make update && \
      ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
                  --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
                  --with-camomile-data-dir=/usr/share/liquidsoap/camomile && \
-     make clean && make && cd liquidsoap && make doc
+     make clean && make && cd liquidsoap && make test && make doc
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 

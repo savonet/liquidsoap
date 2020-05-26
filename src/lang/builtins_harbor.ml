@@ -87,9 +87,9 @@ module Make (Harbor : T) = struct
               (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
               headers
           in
-          let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l in
+          let l = Lang.list l in
           let resp =
-            Lang.apply ~t:resp_t f
+            Lang.apply f
               [
                 ("", Lang.string uri);
                 ("headers", l);

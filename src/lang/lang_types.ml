@@ -74,10 +74,14 @@ let print_pos ?(prefix = "at ") (start, stop) =
     Printf.sprintf "%sline %d char %d - line %d char %d" prefix lstart cstart
       lstop cstop
 
+let print_pos_opt ?prefix = function
+  | Some pos -> print_pos ?prefix pos
+  | None -> "unknown position"
+
 (** Ground types *)
 
 type ground = ..
-type ground += Bool | Int | String | Float
+type ground += Bool | Int | String | Float | Request
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
@@ -90,6 +94,7 @@ let () =
     | Bool -> Some "bool"
     | Int -> Some "int"
     | Float -> Some "float"
+    | Request -> Some "request"
     | _ -> None)
 
 let print_ground v =
@@ -134,7 +139,6 @@ and descr =
   | Meth of string * scheme * t
   | Zero
   | Succ of t
-  | Any
   | Arrow of (bool * string * t) list * t
   | EVar of var (* type variable *)
   | Link of t
@@ -255,7 +259,6 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
         | Zero -> `Zero
-        | Any -> `Any
         | Succ t -> `Succ (repr g t)
         | Constr { name; params } ->
             `Constr (name, List.map (fun (l, t) -> (l, repr g t)) params)
@@ -585,7 +588,7 @@ let rec occur_check a b =
         occur_check a t;
         occur_check a u
     | Succ t -> occur_check a t
-    | Zero | Any -> ()
+    | Zero -> ()
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
@@ -848,11 +851,13 @@ let rec ( <: ) a b =
                   try (* TODO use variance info *)
                       h1 <: h2
                   with Error (a, b) ->
+                    let bt = Printexc.get_raw_backtrace () in
                     let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
-                    raise
+                    Printexc.raise_with_backtrace
                       (Error
                          ( `Constr (c1.name, pre @ [(v, a)] @ post),
                            `Constr (c1.name, pre @ [(v, b)] @ post) ))
+                      bt
                 end;
                 aux ((v, `Ellipsis) :: pre) t1 t2
             | [], [] -> ()
@@ -878,12 +883,8 @@ let rec ( <: ) a b =
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
     | Zero, Zero -> ()
-    | Zero, Any -> ()
     | Succ t1, Succ t2 -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`Succ a, `Succ b)) )
-    | Succ t1, Any -> (
-        try t1 <: b with Error (a, b) -> raise (Error (`Succ a, b)) )
-    | Any, Any -> ()
     | Arrow (l12, t), Arrow (l, t') ->
         (* Here, it must be that l12 = l1@l2
          * where l1 is essentially l modulo order
@@ -937,7 +938,6 @@ let rec ( <: ) a b =
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false )
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
-    | EVar (_, _), Any -> ()
     | EVar (_, _), Succ b' -> (
         (* This could be optimized to process a bunch of succ all at once.
          * But it doesn't matter. The point is that binding might fail,
@@ -1018,33 +1018,3 @@ let ( <: ) a b =
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
-
-(** {1 Misc} *)
-
-(** Iterate over all constructed types, giving info about their positivity, and
-    return [true] if there is a var, because it might be instantiated by a ground
-    type later. *)
-let iter_constr f t =
-  let has_var_pos = ref false in
-  let has_var_neg = ref false in
-  let rec aux pos t =
-    let t = deref t in
-    match t.descr with
-      | Ground _ -> ()
-      | Succ _ | Zero | Any -> ()
-      | List t -> aux pos t
-      | Tuple l -> List.iter (aux pos) l
-      | Meth (_, (_, t), u) ->
-          aux pos t;
-          aux pos u
-      | Constr c ->
-          f pos c;
-          List.iter (fun (_, t) -> aux pos t) c.params
-      | Arrow (p, t) ->
-          aux pos t;
-          List.iter (fun (_, _, t) -> aux (not pos) t) p
-      | EVar _ -> if pos then has_var_pos := true else has_var_neg := true
-      | Link _ -> assert false
-  in
-  aux true t;
-  (!has_var_neg, !has_var_pos)
