@@ -7,8 +7,8 @@ set("log.level", 4)
 s = video.external.testsrc()
 # s = single("../../src/test.mp4")
 source.set.video.size(100,100,s)
-s = mksafe(s)
+# s = mksafe(s)
 
-output.graphics(s)
+output.graphics(fallible=true, s)
 
 # thread.run(delay=1., {test.pass(); shutdown()})

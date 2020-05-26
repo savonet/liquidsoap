@@ -120,6 +120,7 @@ let video_channels = delayed_conf conf_video_channels
 let midi_channels = delayed_conf conf_midi_channels
 let video_width = delayed_conf conf_video_width
 let video_height = delayed_conf conf_video_height
+let video_size () = (!!video_width, !!video_height)
 let audio_rate = delayed_conf conf_audio_samplerate
 let video_rate = delayed_conf conf_video_framerate
 
@@ -221,7 +222,7 @@ type multiplicity = Fixed of int | At_least of int
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
 
 (** Precise description of the channel types for the current track. *)
-type content_type = (int, int, int) fields
+type content_type = (int, (int * int) array, int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
 
@@ -234,13 +235,6 @@ and midi_t = MIDI.buffer
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]..
   * TODO this is the other way around... it's correct in Lang, phew! *)
-
-let type_of_content c =
-  {
-    audio = Array.length c.audio;
-    video = Array.length c.video;
-    midi = Array.length c.midi;
-  }
 
 let mul_of_int n = Fixed n
 
@@ -257,7 +251,8 @@ let string_of_content_kind k =
     (string_of_mul k.video) (string_of_mul k.midi)
 
 let string_of_content_type k =
-  Printf.sprintf "{audio=%d;video=%d;midi=%d}" k.audio k.video k.midi
+  Printf.sprintf "{audio=%d;video=%d;midi=%d}" k.audio (Array.length k.video)
+    k.midi
 
 (* Frames *)
 
@@ -278,42 +273,42 @@ type t = {
   mutable breaks : int list;
   (* Metadata can be put anywhere in the stream. *)
   mutable metadata : (int * metadata) list;
+  ctype : content_type;
   mutable content : content;
 }
 
 (** Create a content chunk. All chunks have the same size. *)
-let create_content content_type =
+let create_content ctype =
   {
     audio =
-      Array.init content_type.audio (fun _ ->
+      Array.init ctype.audio (fun _ ->
           Audio.Mono.create (audio_of_master !!size));
     video =
-      Array.init content_type.video (fun _ ->
-          Video.make (video_of_master !!size) !!video_width !!video_height);
-    midi =
-      Array.init content_type.midi (fun _ ->
-          MIDI.create (midi_of_master !!size));
+      Array.map
+        (fun (w, h) -> Video.make (video_of_master !!size) w h)
+        ctype.video;
+    midi = Array.init ctype.midi (fun _ -> MIDI.create (midi_of_master !!size));
   }
 
 let create ctype =
-  { pts = 0L; breaks = []; metadata = []; content = create_content ctype }
+  {
+    ctype;
+    pts = 0L;
+    breaks = [];
+    metadata = [];
+    content = create_content ctype;
+  }
 
 let dummy =
   {
+    ctype = { audio = 0; video = [||]; midi = 0 };
     pts = 0L;
     breaks = [];
     metadata = [];
     content = { audio = [||]; video = [||]; midi = [||] };
   }
 
-let content_type { content } =
-  let { audio; video; midi } = content in
-  {
-    audio = Array.length audio;
-    video = Array.length video;
-    midi = Array.length midi;
-  }
-
+let content_type frame = frame.ctype
 let audio { content; _ } = content.audio
 let set_audio frame audio = frame.content <- { frame.content with audio }
 let video { content; _ } = content.video

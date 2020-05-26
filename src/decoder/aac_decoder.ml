@@ -157,7 +157,7 @@ let file_type filename =
       in
       log#info "Libfaad recognizes %S as AAC (%dHz,%d channels)." filename rate
         channels;
-      Some { Frame.audio = channels; video = 0; midi = 0 })
+      Some { Frame.audio = channels; video = [||]; midi = 0 })
 
 let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder
@@ -230,7 +230,7 @@ let file_type filename =
       let rate, channels = Faad.Mp4.init mp4 dec track in
       log#info "Libfaad recognizes %S as MP4 (%dHz,%d channels)." filename rate
         channels;
-      Some { Frame.audio = channels; video = 0; midi = 0 })
+      Some { Frame.audio = channels; video = [||]; midi = 0 })
 
 let mp4_mime_types =
   Dtools.Conf.list

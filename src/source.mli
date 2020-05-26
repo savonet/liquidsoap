@@ -81,9 +81,6 @@ module Kind : sig
   val set_midi : t -> int -> t
   val set_video_size : t -> int * int -> t
 
-  (** Size of the first video channel. *)
-  val video_size : t -> int * int
-
   exception Conflict of string * string
 
   val unify : t -> t -> unit

@@ -64,7 +64,7 @@ let () =
       priority = (fun () -> 1);
       file_extensions = (fun () -> Some ["mid"]);
       mime_types = (fun () -> None);
-      file_type = (fun _ -> Some Frame.{ audio = 0; video = 0; midi = 1 });
+      file_type = (fun _ -> Some Frame.{ audio = 0; video = [||]; midi = 1 });
       file_decoder =
         Some (fun ~metadata:_ ~ctype:_ filename -> decoder filename);
       stream_decoder = None;

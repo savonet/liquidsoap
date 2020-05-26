@@ -35,7 +35,7 @@ type multiplicity = Fixed of int | At_least of int
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
 
 (** Content type of a frame: number of channels for audio, video and MIDI. *)
-type content_type = (int, int, int) fields
+type content_type = (int, (int * int) array, int) fields
 
 (** Actual content of a frame. *)
 type content = (audio_t array, video_t array, midi_t array) fields
@@ -71,6 +71,7 @@ type t = {
   mutable breaks : int list;
   (* Metadata along with the time they occur. *)
   mutable metadata : (int * metadata) list;
+  ctype : content_type;
   mutable content : content;
 }
 
@@ -178,7 +179,6 @@ val get_chunk : t -> t -> unit
 (** Compatibilities between content kinds, types and values: [sub a b] is [true]
     when [b] is more permissive than [a]. *)
 
-val type_of_content : content -> content_type
 val mul_of_int : int -> multiplicity
 val succ_mul : multiplicity -> multiplicity
 val string_of_content_kind : content_kind -> string
@@ -208,6 +208,9 @@ val video_width : int Lazy.t
 
 (** Height of video images. *)
 val video_height : int Lazy.t
+
+(** Size of video images. *)
+val video_size : unit -> int * int
 
 (** Rate of audio (in samples per second). *)
 val audio_rate : int Lazy.t

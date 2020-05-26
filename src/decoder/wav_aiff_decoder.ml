@@ -145,7 +145,7 @@ let file_type filename =
                  moment..";
               0
       in
-      Some { Frame.video = 0; midi = 0; audio = channels })
+      Some { Frame.video = [||]; midi = 0; audio = channels })
 
 let wav_mime_types =
   Dtools.Conf.list

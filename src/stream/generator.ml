@@ -759,17 +759,16 @@ module From_audio_video_plus = struct
       (fun () ->
         let p = Frame.position frame in
         let breaks = Frame.breaks frame in
-        Super.fill t.gen frame;
-        let c = frame.Frame.content in
-        match t.ctype with
-          | None -> t.ctype <- Some (Frame.type_of_content c)
+        ( match t.ctype with
+          | None -> t.ctype <- Some (Frame.content_type frame)
           | Some ctype ->
-              if Frame.type_of_content c <> ctype then (
+              if Frame.content_type frame <> ctype then (
                 t.log "Incorrect stream type!";
                 t.error <- true;
                 Super.clear t.gen;
                 Frame.clear_from frame p;
-                Frame.set_breaks frame (p :: breaks) ))
+                Frame.set_breaks frame (p :: breaks) ) );
+        Super.fill t.gen frame)
       ()
 
   let remove t len = Tutils.mutexify t.lock (Super.remove t.gen) len

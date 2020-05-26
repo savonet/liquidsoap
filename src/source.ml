@@ -249,16 +249,19 @@ module Kind = struct
   (** Parameters for channels. *)
   module type MultiplicityParam = sig
     type t
+    type var
 
     (** Create a parameter. *)
-    val create : unit -> t
+    val create : unit -> var
 
     (** Fill unknowns in a parameter with default values. *)
-    val close : t -> unit
+    val close : var -> unit
+
+    val get : var -> t
 
     (** Unify two parameters. Raises [Multiplicity_conflict] in case of
         conflict. *)
-    val unify : t -> t -> unit
+    val unify : var -> var -> unit
   end
 
   (** Multiplicities with variables, used for unification. *)
@@ -267,7 +270,7 @@ module Kind = struct
     type 'a var = 'a option ref
 
     (** Multiplicity with variables. *)
-    type t = Var of t var | Zero | Succ of P.t * t
+    type t = Var of t var | Zero | Succ of P.var * t
 
     let fresh_var () = Var (ref None)
     let rec int = function 0 -> Zero | n -> Succ (P.create (), int (n - 1))
@@ -330,17 +333,19 @@ module Kind = struct
     (** Compute a multiplicity from a closed kind. *)
     let rec get m =
       match unvar m with
-        | Succ (_, m) -> 1 + get m
-        | Zero -> 0
+        | Succ (p, m) -> P.get p :: get m
+        | Zero -> []
         | Var _ -> assert false
   end
 
   (** Dummy channel parameters. *)
   module UnitParam = struct
     type t = unit
+    type var = unit
 
     let create () = ()
     let close () = ()
+    let get () = ()
     let unify () () = ()
   end
 
@@ -354,7 +359,8 @@ module Kind = struct
 
   (** Unifiable parameters. *)
   module VarParam (P : Param) = struct
-    type t = Val of P.t | Var of t option ref
+    type t = P.t
+    type var = Val of P.t | Var of var option ref
 
     let rec unvar = function Var { contents = Some p } -> unvar p | p -> p
     let get p = match unvar p with Val v -> v | _ -> assert false
@@ -413,9 +419,9 @@ module Kind = struct
     VMultiplicity.close (Lazy.force Frame.video_channels) kind.Frame.video;
     MMultiplicity.close (Lazy.force Frame.midi_channels) kind.Frame.midi;
     {
-      Frame.audio = AMultiplicity.get kind.Frame.audio;
-      video = VMultiplicity.get kind.Frame.video;
-      midi = MMultiplicity.get kind.Frame.midi;
+      Frame.audio = List.length (AMultiplicity.get kind.Frame.audio);
+      video = Array.of_list (VMultiplicity.get kind.Frame.video);
+      midi = List.length (MMultiplicity.get kind.Frame.midi);
     }
 
   let set_video_size kind (w, h) =
@@ -424,11 +430,6 @@ module Kind = struct
       Frame.video =
         VMultiplicity.Succ (VVideoParam.Val (w, h), VMultiplicity.fresh_var ());
     }
-
-  let video_size kind =
-    match VMultiplicity.unvar kind.Frame.video with
-      | VMultiplicity.Succ (p, _) -> VVideoParam.get p
-      | _ -> raise Not_found
 
   let unify k k' =
     try
@@ -579,8 +580,8 @@ class virtual operator ?(name = "src") kind sources =
             let ct = Kind.get self#kind_var in
             self#log#info "Kind %s becomes %s." kind_string
               (Frame.string_of_content_type ct);
-            if ct.Frame.video > 0 then (
-              let w, h = Kind.video_size self#kind_var in
+            if Array.length ct.Frame.video > 0 then (
+              let w, h = ct.Frame.video.(0) in
               self#log#info "Video size is %dx%d." w h );
             ctype <- Some ct;
             ct

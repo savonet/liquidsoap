@@ -151,7 +151,8 @@ let () =
       file_type =
         (fun filename ->
           if Decoder.get_image_file_decoder filename <> None then
-            Some Frame.{ audio = 0; video = 1; midi = 0 }
+            Some
+              Frame.{ audio = 0; video = [| Frame.video_size () |]; midi = 0 }
           else None);
       file_decoder =
         Some

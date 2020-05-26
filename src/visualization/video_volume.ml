@@ -84,7 +84,11 @@ class visu ~kind source =
        * not even be a content layer of the right type to look at. *)
       if len > 0 then (
         (* Add a video channel to the frame contents. *)
-        let vFrame = Frame.(create { audio = 0; video = 1; midi = 0 }) in
+        let vFrame =
+          Frame.(
+            create
+              { audio = 0; video = [| self#ctype.Frame.video.(0) |]; midi = 0 })
+        in
         Frame.(
           frame.content <- { frame.content with video = vFrame.content.video });
 

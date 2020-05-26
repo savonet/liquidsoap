@@ -235,7 +235,8 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     in
     ext_ok || mime_ok )
 
-let can_decode_type decoded_type target_type =
+let can_decode_type (decoded_type : Frame.content_type)
+    (target_type : Frame.content_type) =
   let can_convert_audio audio =
     audio = 0
     || Audio_converter.Channel_layout.(
@@ -255,20 +256,22 @@ let can_decode_type decoded_type target_type =
         let audio =
           if can_convert_audio audio then audio else decoded_type.Frame.audio
         in
-        let video = if video = 0 then 0 else decoded_type.Frame.video in
+        let video =
+          if Array.length video = 0 then [||] else decoded_type.Frame.video
+        in
         let midi = if midi = 0 then 0 else decoded_type.Frame.midi in
         target_type = { Frame.audio; video; midi }
 
-let decoder_modes ctype =
+let decoder_modes (ctype : Frame.content_type) =
   let audio = ctype.Frame.audio in
   let video = ctype.Frame.video in
   let midi = ctype.Frame.midi in
-  if audio = 0 && video = 0 && midi = 0 then []
-  else if audio = 0 && video = 0 && midi > 0 then [`Midi]
+  if audio = 0 && Array.length video = 0 && midi = 0 then []
+  else if audio = 0 && Array.length video = 0 && midi > 0 then [`Midi]
   else if midi <> 0 then []
-  else if audio > 0 && video > 0 then [`Audio_video]
-  else if audio > 0 && video = 0 then [`Audio; `Audio_video]
-  else if audio = 0 && video > 0 then [`Video; `Audio_video]
+  else if audio > 0 && Array.length video > 0 then [`Audio_video]
+  else if audio > 0 && Array.length video = 0 then [`Audio; `Audio_video]
+  else if audio = 0 && Array.length video > 0 then [`Video; `Audio_video]
   else []
 
 exception Found of (string * Frame.content_type * decoder_specs)
@@ -414,9 +417,11 @@ let get_stream_decoder ~ctype mime =
 let mk_buffer ~ctype generator =
   let mode =
     match ctype with
-      | { Frame.audio; video } when audio > 0 && video > 0 -> `Both
-      | { Frame.audio; video } when audio > 0 && video = 0 -> `Audio
-      | { Frame.audio; video } when audio = 0 && video > 0 -> `Video
+      | { Frame.audio; video } when audio > 0 && Array.length video > 0 -> `Both
+      | { Frame.audio; video } when audio > 0 && Array.length video = 0 ->
+          `Audio
+      | { Frame.audio; video } when audio = 0 && Array.length video > 0 ->
+          `Video
       | _ -> failwith "Invalid type for buffer!"
   in
 

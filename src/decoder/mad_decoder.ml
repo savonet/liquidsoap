@@ -157,7 +157,7 @@ let file_type filename =
         "Libmad recognizes %S as mpeg audio (layer %s, %ikbps, %dHz, %d \
          channels)."
         filename layer (f.Mad.bitrate / 1000) f.Mad.samplerate f.Mad.channels;
-      Some { Frame.audio = f.Mad.channels; video = 0; midi = 0 })
+      Some { Frame.audio = f.Mad.channels; video = [||]; midi = 0 })
 
 let create_file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder

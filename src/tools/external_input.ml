@@ -64,9 +64,9 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
       in
       let log = self#log#important "%s" in
       let command =
-        if self#ctype.Frame.video = 0 then command
+        if Array.length self#ctype.Frame.video = 0 then command
         else (
-          let w, h = Source.Kind.video_size self#kind_var in
+          let w, h = self#ctype.Frame.video.(0) in
           let command =
             Str.global_replace
               (Str.regexp "LIQ_VIDEO_WIDTH")

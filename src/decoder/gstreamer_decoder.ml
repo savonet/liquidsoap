@@ -190,7 +190,7 @@ let priority =
 
 let create_file_decoder filename content_type ctype =
   let mode =
-    match (content_type.Frame.video, content_type.Frame.audio) with
+    match (Array.length content_type.Frame.video, content_type.Frame.audio) with
       | 0, _ -> `Audio
       | _, 0 -> `Video
       | _, _ -> `Both
@@ -256,9 +256,9 @@ let get_type ~channels filename =
           let _, state, _ = Gstreamer.Element.get_state bin in
           if state = Gstreamer.Element.State_paused then (
             log#debug "File %s has video." filename;
-            1 )
-          else 0)
-    with Gstreamer.Failed -> 0
+            [| Frame.video_size () |] )
+          else [||])
+    with Gstreamer.Failed -> [||]
   in
   { Frame.video; audio; midi = 0 }
 

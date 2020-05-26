@@ -28,14 +28,12 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
 
     val mutable sleep = false
 
-    method private size = Source.Kind.video_size self#kind_var
-
     method output_stop = sleep <- true
 
     method output_start =
       Graphics.open_graph "";
       Graphics.set_window_title "Liquidsoap";
-      let w, h = self#size in
+      let w, h = self#ctype.Frame.video.(0) in
       Graphics.resize_window w h;
       sleep <- false
 

@@ -100,7 +100,7 @@ let test_ctype f filename =
   else
     Some
       {
-        Frame.video = 0;
+        Frame.video = [||];
         midi = 0;
         (* TODO: this is not perfect *)
         audio = (if ret < 0 then Lazy.force Frame.audio_channels else ret);
@@ -151,7 +151,7 @@ let external_input_oblivious process filename prebuf =
   let input = { Decoder.read; tell = None; length = None; lseek = None } in
   (* TODO: is this really what we want for audio channels? *)
   let ctype =
-    Frame.{ audio = Lazy.force Frame.audio_channels; video = 0; midi = 0 }
+    Frame.{ audio = Lazy.force Frame.audio_channels; video = [||]; midi = 0 }
   in
   let gen = Generator.create ~log_overfull:false ~log:(log#info "%s") `Audio in
   let buffer = Decoder.mk_buffer ~ctype gen in

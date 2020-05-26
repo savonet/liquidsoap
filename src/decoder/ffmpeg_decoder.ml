@@ -303,13 +303,14 @@ let get_type ~url container =
       let codec_name =
         Avcodec.Video.string_of_id (Avcodec.Video.get_params_id codec)
       in
-      ( 1,
+      ( [| (width, height) |],
         Printf.sprintf "video: {codec: %s, %dx%d, %s}" codec_name width height
           pixel_format
         :: descr )
-    with Avutil.Error _ -> (0, descr)
+    with Avutil.Error _ -> ([||], descr)
   in
-  if audio == 0 && video == 0 then failwith "No valid stream found in file.";
+  if audio = 0 && Array.length video = 0 then
+    failwith "No valid stream found in file.";
   log#info "ffmpeg recognizes %S as: %s." url
     (String.concat ", " (List.rev descr));
   { Frame.audio; video; midi = 0 }

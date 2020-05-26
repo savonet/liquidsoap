@@ -231,8 +231,15 @@ let file_type filename =
               let info, _ = Ogg_demuxer.audio_info decoder t in
               info.Ogg_demuxer.channels
       in
-      let video = if tracks.Ogg_demuxer.video_track <> None then 1 else 0 in
-      log#info "File %S recognized as audio=%d video=%d." filename audio video;
+      let video =
+        match tracks.Ogg_demuxer.video_track with
+          | Some track ->
+              let info = fst (Ogg_demuxer.video_info decoder track) in
+              [| (info.Ogg_demuxer.width, info.Ogg_demuxer.height) |]
+          | None -> [||]
+      in
+      log#info "File %S recognized as audio=%d video=%d." filename audio
+        (Array.length video);
       Some { Frame.audio; video; midi = 0 })
 
 let mime_types =
