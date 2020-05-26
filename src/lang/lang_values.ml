@@ -493,8 +493,6 @@ module V = struct
             (print_term x)
       | Fun _ | FFI _ -> "<fun>"
 
-  let map_env f (env : env) = List.map (fun (s, v) -> (s, f v)) env
-
   (** Find a method in a value. *)
   let rec invoke x l =
     match x.value with
@@ -514,22 +512,22 @@ let builtins : (((int * T.constraints) list * T.t) * V.value) Plug.plug =
   Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
 
 (* Environment for builtins. *)
-let builtins_env = ref []
+let builtins_env : (string * (T.scheme * V.value)) list ref = ref []
 let default_environment () = !builtins_env
 
 let default_typing_environment () =
   List.map (fun (x, (t, _)) -> (x, t)) !builtins_env
 
-let add_builtin ?(override = false) ?(register = true) ?doc name (g, v) =
-  if register then builtins#register ?doc (String.concat "." name) (g, v);
+let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
+  if register then builtins#register ?doc (String.concat "." name) ((g, t), v);
   match name with
     | [name] ->
         (* Don't allow overriding builtins. *)
         if (not override) && List.mem_assoc name !builtins_env then
           failwith ("Trying to override builtin " ^ name);
-        builtins_env := (name, (g, v)) :: !builtins_env
+        builtins_env := (name, ((g, t), v)) :: !builtins_env
     | x :: ll ->
-        let g0, xv =
+        let (g0, t0), xv =
           try List.assoc x !builtins_env
           with Not_found -> failwith ("Could not find builtin variable " ^ x)
         in
@@ -550,11 +548,16 @@ let _ =
         let rec aux prefix = function
           | l :: ll ->
               let v = V.invokes xv (List.rev prefix) in
-              let lv = aux (l :: prefix) ll in
-              { V.pos = None; value = V.Meth (l, lv, v) }
-          | [] -> v
+              let vg, vt = T.invokes t0 (List.rev prefix) in
+              let lvt, lv = aux (l :: prefix) ll in
+              let t =
+                T.make (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
+              in
+              (t, { V.pos = None; value = V.Meth (l, lv, v) })
+          | [] -> (t, v)
         in
-        builtins_env := (x, (g0, aux [] ll)) :: !builtins_env
+        let t, v = aux [] ll in
+        builtins_env := (x, ((g0, t), v)) :: !builtins_env
     | [] -> assert false
 
 let has_builtin name = builtins#is_registered name
@@ -840,6 +843,8 @@ let check ?(ignored = false) e =
   let print_toplevel = !Configure.display_types in
   try
     let env = default_typing_environment () in
+    (* Printf.printf "Typing env\n%!"; *)
+    (* List.iter (fun (x,(g,t)) -> Printf.printf "%s : %s\n%!" x (T.print ~generalized:g t)) env; *)
     check ~print_toplevel ~level:(List.length env) ~env e;
     if print_toplevel && (T.deref e.t).T.descr <> T.unit then
       add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t);

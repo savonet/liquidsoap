@@ -183,6 +183,21 @@ let rec hide_meth l a =
     | Meth (l', t, u) -> { a with descr = Meth (l', t, hide_meth l u) }
     | _ -> a
 
+let rec invoke t l =
+  match (deref t).descr with
+    | Meth (l', t, _) when l = l' -> t
+    | Meth (_, _, t) -> invoke t l
+    | _ -> assert false
+
+let rec invokes t = function
+  | l :: ll ->
+      let g, t = invoke t l in
+      if ll = [] then (g, t)
+      else (
+        assert (g = []);
+        invokes t ll )
+  | [] -> ([], t)
+
 (** Given a strictly positive integer, generate a name in [a-z]+:
   * a, b, ... z, aa, ab, ... az, ba, ... *)
 let name =

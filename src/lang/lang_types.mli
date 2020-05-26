@@ -86,6 +86,8 @@ exception Unsatisfied_constraint of constr * t
 val bind : t -> t -> unit
 val deref : t -> t
 val demeth : t -> t
+val invoke : t -> string -> scheme
+val invokes : t -> string list -> scheme
 val filter_vars : (t -> bool) -> t -> var list
 val copy_with : Subst.t -> t -> t
 val instantiate : level:int -> generalized:var list -> t -> t
