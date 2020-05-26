@@ -79,13 +79,14 @@ module Kind : sig
   val set_audio : t -> int -> t
   val set_video : t -> int -> t
   val set_midi : t -> int -> t
+  val set_video_size : t -> int * int -> t
+
+  (** Size of the first video channel. *)
+  val video_size : t -> int * int
 
   exception Conflict of string * string
 
   val unify : t -> t -> unit
-
-  (** Size of the first video channel. *)
-  val video_size : t -> int * int
 end
 
 (** The [source] use is to send data frames through the [get] method. *)

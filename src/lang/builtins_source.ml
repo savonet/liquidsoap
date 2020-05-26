@@ -141,3 +141,23 @@ let () =
       log#info "Source dumped.";
       fo#leave s;
       Lang.unit)
+
+(****** Setting parameters ******)
+let () =
+  let kind = Lang.any_with ~video:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
+  add_builtin "source.set.video.size" ~cat:Liq
+    ~descr:"Set the size of the video produced by a source."
+    [
+      ("", Lang.int_t, None, Some "Width.");
+      ("", Lang.int_t, None, Some "Height.");
+      ("", Lang.source_t k, None, None);
+    ]
+    Lang.unit_t
+    (fun p ->
+      let width = Lang.to_int (Lang.assoc "" 1 p) in
+      let height = Lang.to_int (Lang.assoc "" 2 p) in
+      let s = Lang.to_source (Lang.assoc "" 3 p) in
+      Source.Kind.unify s#kind_var
+        (Source.Kind.set_video_size s#kind_var (width, height));
+      Lang.unit)

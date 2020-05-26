@@ -20,9 +20,7 @@
  *****************************************************************************)
 
 class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
-  let video_width = Lazy.force Frame.video_width in
-  let video_height = Lazy.force Frame.video_height in
-  object
+  object (self)
     inherit
       Output.output
         ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start
@@ -30,12 +28,15 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
 
     val mutable sleep = false
 
+    method private size = Source.Kind.video_size self#kind_var
+
     method output_stop = sleep <- true
 
     method output_start =
       Graphics.open_graph "";
       Graphics.set_window_title "Liquidsoap";
-      Graphics.resize_window video_width video_height;
+      let w, h = self#size in
+      Graphics.resize_window w h;
       sleep <- false
 
     method output_send buf =

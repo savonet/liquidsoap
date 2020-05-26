@@ -412,6 +412,12 @@ module Kind = struct
       midi = MMultiplicity.get kind.Frame.midi;
     }
 
+  let set_video_size kind (w, h) =
+    {
+      kind with
+      Frame.video = VMultiplicity.Succ (Val (w, h), VMultiplicity.fresh_var ());
+    }
+
   let video_size kind =
     match kind.Frame.video with
       | VMultiplicity.Succ (p, _) -> VVideoParam.get p
