@@ -321,7 +321,11 @@ module Kind = struct
             P.close p;
             close (default - 1) m
         | Zero -> ()
-        | Var x -> x := Some (int (max 0 default))
+        | Var x ->
+            let m = int (max 0 default) in
+            (* We need to close it in order to close parameters for channels. *)
+            close 0 m;
+            x := Some m
 
     (** Compute a multiplicity from a closed kind. *)
     let rec get m =
@@ -344,6 +348,7 @@ module Kind = struct
   module type Param = sig
     type t
 
+    (** Default value. *)
     val default : unit -> t
   end
 
@@ -352,7 +357,7 @@ module Kind = struct
     type t = Val of P.t | Var of t option ref
 
     let rec unvar = function Var { contents = Some p } -> unvar p | p -> p
-    let get = function Val v -> v | _ -> assert false
+    let get p = match unvar p with Val v -> v | _ -> assert false
     let create () = Var (ref None)
 
     let close p =
@@ -366,6 +371,7 @@ module Kind = struct
         | _, _ -> raise Multiplicity_conflict
   end
 
+  (** Parameters for video channels. *)
   module VideoParam = struct
     (** Size of the video. *)
     type t = int * int
@@ -415,11 +421,12 @@ module Kind = struct
   let set_video_size kind (w, h) =
     {
       kind with
-      Frame.video = VMultiplicity.Succ (Val (w, h), VMultiplicity.fresh_var ());
+      Frame.video =
+        VMultiplicity.Succ (VVideoParam.Val (w, h), VMultiplicity.fresh_var ());
     }
 
   let video_size kind =
-    match kind.Frame.video with
+    match VMultiplicity.unvar kind.Frame.video with
       | VMultiplicity.Succ (p, _) -> VVideoParam.get p
       | _ -> raise Not_found
 
@@ -570,8 +577,11 @@ class virtual operator ?(name = "src") kind sources =
                default values for channels, which can be overridden by the
                script... *)
             let ct = Kind.get self#kind_var in
-            self#log#info "Kind %s becomes %s" kind_string
+            self#log#info "Kind %s becomes %s." kind_string
               (Frame.string_of_content_type ct);
+            if ct.Frame.video > 0 then (
+              let w, h = Kind.video_size self#kind_var in
+              self#log#info "Video size is %dx%d." w h );
             ctype <- Some ct;
             ct
 
