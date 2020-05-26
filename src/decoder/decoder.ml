@@ -260,7 +260,10 @@ let can_decode_type (decoded_type : Frame.content_type)
           if Array.length video = 0 then [||] else decoded_type.Frame.video
         in
         let midi = if midi = 0 then 0 else decoded_type.Frame.midi in
-        target_type = { Frame.audio; video; midi }
+        target_type.Frame.audio = audio
+        && Array.length target_type.Frame.video = Array.length video
+        && (* we can always resize *)
+        target_type.Frame.midi = midi
 
 let decoder_modes (ctype : Frame.content_type) =
   let audio = ctype.Frame.audio in
