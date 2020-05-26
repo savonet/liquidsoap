@@ -83,6 +83,9 @@ module Kind : sig
   exception Conflict of string * string
 
   val unify : t -> t -> unit
+
+  (** Size of the first video channel. *)
+  val video_size : t -> int * int
 end
 
 (** The [source] use is to send data frames through the [get] method. *)

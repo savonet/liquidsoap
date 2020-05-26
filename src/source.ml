@@ -242,20 +242,35 @@ module Kind = struct
   (** Formats for every channels. *)
   type formats = Frame.content_kind
 
-  (* = (format, format, format) Frame.fields *)
+  (* Raised internally on unification errors when unifying multiplicities. The
+     publically exported exception is [Conflict] defined below. *)
+  exception Multiplicity_conflict
 
-  exception Conflict of string * string
+  (** Parameters for channels. *)
+  module type MultiplicityParam = sig
+    type t
+
+    (** Create a parameter. *)
+    val create : unit -> t
+
+    (** Fill unknowns in a parameter with default values. *)
+    val close : t -> unit
+
+    (** Unify two parameters. Raises [Multiplicity_conflict] in case of
+        conflict. *)
+    val unify : t -> t -> unit
+  end
 
   (** Multiplicities with variables, used for unification. *)
-  module Multiplicity = struct
+  module Multiplicity (P : MultiplicityParam) = struct
     (** Multiplicity variable. *)
     type 'a var = 'a option ref
 
     (** Multiplicity with variables. *)
-    type t = Var of t var | Zero | Succ of t
+    type t = Var of t var | Zero | Succ of P.t * t
 
     let fresh_var () = Var (ref None)
-    let rec int = function 0 -> Zero | n -> Succ (int (n - 1))
+    let rec int = function 0 -> Zero | n -> Succ (P.create (), int (n - 1))
 
     (* Remove variable pointers. *)
     let rec unvar = function
@@ -265,7 +280,7 @@ module Kind = struct
     let to_string m =
       let rec aux m =
         match unvar m with
-          | Succ m ->
+          | Succ (_, m) ->
               let n, b = aux m in
               (n + 1, b)
           | Zero -> (0, false)
@@ -276,84 +291,138 @@ module Kind = struct
 
     let rec occurs x m =
       match unvar m with
-        | Succ m -> occurs x m
+        | Succ (_, m) -> occurs x m
         | Zero -> false
         | Var y -> x == y
-
-    exception Conflict
 
     (** Unify kinds. *)
     let rec unify m n =
       match (unvar m, unvar n) with
-        | Succ m, Succ n -> unify m n
+        | Succ (p, m), Succ (q, n) ->
+            P.unify p q;
+            unify m n
         | Zero, Zero -> ()
         | Var x, Var y when x == y -> ()
         | Var x, n ->
-            if occurs x n then raise Conflict;
+            if occurs x n then raise Multiplicity_conflict;
             x := Some n
         | m, (Var _ as n) -> unify n m
-        | _, _ -> raise Conflict
+        | _, _ -> raise Multiplicity_conflict
 
     let rec of_format = function
       | Fixed 0 -> Zero
-      | Fixed n -> Succ (of_format (Fixed (n - 1)))
+      | Fixed n -> Succ (P.create (), of_format (Fixed (n - 1)))
       | At_least 0 -> fresh_var ()
-      | At_least n -> Succ (of_format (At_least (n - 1)))
+      | At_least n -> Succ (P.create (), of_format (At_least (n - 1)))
 
     let rec close default m =
       match unvar m with
-        | Succ m -> close (default - 1) m
+        | Succ (p, m) ->
+            P.close p;
+            close (default - 1) m
         | Zero -> ()
         | Var x -> x := Some (int (max 0 default))
 
-    (** Compute a multiplicity from a multiplicity with variables. *)
-    let rec get default m =
+    (** Compute a multiplicity from a closed kind. *)
+    let rec get m =
       match unvar m with
-        | Succ m -> 1 + get default m
+        | Succ (_, m) -> 1 + get m
         | Zero -> 0
         | Var _ -> assert false
   end
 
-  type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
+  (** Dummy channel parameters. *)
+  module UnitParam = struct
+    type t = unit
+
+    let create () = ()
+    let close () = ()
+    let unify () () = ()
+  end
+
+  (** Information describing a channel. *)
+  module type Param = sig
+    type t
+
+    val default : unit -> t
+  end
+
+  (** Unifiable parameters. *)
+  module VarParam (P : Param) = struct
+    type t = Val of P.t | Var of t option ref
+
+    let rec unvar = function Var { contents = Some p } -> unvar p | p -> p
+    let get = function Val v -> v | _ -> assert false
+    let create () = Var (ref None)
+
+    let close p =
+      match unvar p with Var x -> x := Some (Val (P.default ())) | Val _ -> ()
+
+    let unify p q =
+      match (unvar p, unvar q) with
+        | Var x, Var y when x == y -> ()
+        | Var x, q -> x := Some q
+        | p, Var y -> y := Some p
+        | _, _ -> raise Multiplicity_conflict
+  end
+
+  module VideoParam = struct
+    (** Size of the video. *)
+    type t = int * int
+
+    let default () : t =
+      (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
+  end
+
+  module VVideoParam = VarParam (VideoParam)
+  module AMultiplicity = Multiplicity (UnitParam)
+  module VMultiplicity = Multiplicity (VVideoParam)
+  module MMultiplicity = Multiplicity (UnitParam)
+
+  exception Conflict of string * string
+
+  type t = (AMultiplicity.t, VMultiplicity.t, MMultiplicity.t) Frame.fields
 
   let to_string k =
     Printf.sprintf "{audio=%s;video=%s;midi=%s}"
-      (Multiplicity.to_string k.Frame.audio)
-      (Multiplicity.to_string k.Frame.video)
-      (Multiplicity.to_string k.Frame.midi)
+      (AMultiplicity.to_string k.Frame.audio)
+      (VMultiplicity.to_string k.Frame.video)
+      (MMultiplicity.to_string k.Frame.midi)
 
-  let set_audio kind n = { kind with Frame.audio = Multiplicity.int n }
-  let set_video kind n = { kind with Frame.video = Multiplicity.int n }
-  let set_midi kind n = { kind with Frame.midi = Multiplicity.int n }
+  let set_audio kind n = { kind with Frame.audio = AMultiplicity.int n }
+  let set_video kind n = { kind with Frame.video = VMultiplicity.int n }
+  let set_midi kind n = { kind with Frame.midi = MMultiplicity.int n }
 
-  let map_kind f kind =
+  let of_formats kind =
     {
-      Frame.audio = f kind.Frame.audio;
-      video = f kind.Frame.video;
-      midi = f kind.Frame.midi;
+      Frame.audio = AMultiplicity.of_format kind.Frame.audio;
+      video = VMultiplicity.of_format kind.Frame.video;
+      midi = MMultiplicity.of_format kind.Frame.midi;
     }
-
-  let of_formats kind = map_kind Multiplicity.of_format kind
 
   (** Compute a multiplicity from a multiplicity with variables. The [close]
       parameter indicates whether we should fix the value of variables. *)
   let get (kind : t) : Frame.content_type =
-    let get default m =
-      Multiplicity.close default m;
-      Multiplicity.get default m
-    in
+    AMultiplicity.close (Lazy.force Frame.audio_channels) kind.Frame.audio;
+    VMultiplicity.close (Lazy.force Frame.video_channels) kind.Frame.video;
+    MMultiplicity.close (Lazy.force Frame.midi_channels) kind.Frame.midi;
     {
-      Frame.audio = get (Lazy.force Frame.audio_channels) kind.Frame.audio;
-      video = get (Lazy.force Frame.video_channels) kind.Frame.video;
-      midi = get (Lazy.force Frame.midi_channels) kind.Frame.midi;
+      Frame.audio = AMultiplicity.get kind.Frame.audio;
+      video = VMultiplicity.get kind.Frame.video;
+      midi = MMultiplicity.get kind.Frame.midi;
     }
+
+  let video_size kind =
+    match kind.Frame.video with
+      | VMultiplicity.Succ (p, _) -> VVideoParam.get p
+      | _ -> raise Not_found
 
   let unify k k' =
     try
-      Multiplicity.unify k.Frame.audio k'.Frame.audio;
-      Multiplicity.unify k.Frame.video k'.Frame.video;
-      Multiplicity.unify k.Frame.midi k'.Frame.midi
-    with Multiplicity.Conflict -> raise (Conflict (to_string k, to_string k'))
+      AMultiplicity.unify k.Frame.audio k'.Frame.audio;
+      VMultiplicity.unify k.Frame.video k'.Frame.video;
+      MMultiplicity.unify k.Frame.midi k'.Frame.midi
+    with Multiplicity_conflict -> raise (Conflict (to_string k, to_string k'))
 end
 
 (** {1 Sources} *)
