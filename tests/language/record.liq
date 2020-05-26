@@ -1,4 +1,4 @@
-#!../src/liquidsoap -i ../libs/pervasives.liq
+#!../../src/liquidsoap -i ../../libs/pervasives.liq
 
 success = ref(true)
 
@@ -24,6 +24,7 @@ let r.f = ()
 let r.f.variant = 7
 let r.f = r.f.variant
 # let r = {{ r | f = r.f.variant }}
+ignore(r)
 
 # A resetable counter
 
