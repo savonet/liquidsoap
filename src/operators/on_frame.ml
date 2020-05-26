@@ -38,11 +38,12 @@ class on_frame ~kind f s =
 
     method private get_frame ab =
       s#get ab;
-      ignore (Lang.apply ~t:Lang.unit_t f [])
+      ignore (Lang.apply f [])
   end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "on_frame"
     [
       ( "",
@@ -51,11 +52,11 @@ let () =
         Some
           "Function called on every frame. It should be fast because it is \
            executed in the main streaming thread." );
-      ("", Lang.source_t kind, None, None);
+      ("", Lang.source_t k, None, None);
     ]
     ~category:Lang.TrackProcessing ~descr:"Call a given handler on every frame."
-    ~return_t:kind
-    (fun p kind ->
+    ~return_t:k
+    (fun p ->
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       new on_frame ~kind f s)
