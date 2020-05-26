@@ -38,7 +38,7 @@ let () =
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let resolver name =
-        let ret = Lang.apply ~t:Lang.metadata_t f [("", Lang.string name)] in
+        let ret = Lang.apply f [("", Lang.string name)] in
         let ret = Lang.to_list ret in
         let ret = List.map Lang.to_product ret in
         let ret =
@@ -81,7 +81,7 @@ let () =
             | Some pwd -> ("pwd", Lang.string pwd) :: args
             | None -> args
         in
-        let ret = Lang.to_list (Lang.apply ~t:playlist_t fn args) in
+        let ret = Lang.to_list (Lang.apply fn args) in
         if ret = [] then raise Not_found;
         List.map
           (fun el ->
@@ -94,7 +94,7 @@ let () =
       Lang.unit)
 
 let () =
-  let log_p = [("", "", Lang.string_t, None)] in
+  let log_p = [("", "", None)] in
   let log_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t in
   let protocol_t =
     Lang.fun_t
@@ -149,15 +149,13 @@ let () =
       let syntax = Lang.to_string (List.assoc "syntax" p) in
       Lang.add_protocol ~syntax ~doc ~static name (fun arg ~log timeout ->
           let log =
-            Lang.val_fun log_p ~ret_t:Lang.unit_t (fun p _ ->
+            Lang.val_fun log_p (fun p ->
                 let v = List.assoc "" p in
                 log (Lang.to_string v);
                 Lang.unit)
           in
           let l =
-            Lang.apply
-              ~t:(Lang.list_t Lang.string_t)
-              f
+            Lang.apply f
               [
                 ("rlog", log);
                 ("maxtime", Lang.float timeout);

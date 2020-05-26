@@ -231,16 +231,15 @@ def register_flow(~server="",~user="default",~password="default",
   on_metadata(metadata,s)
 end
 
-# @flag hidden
-def request.dynamic(~id="",~conservative=false,~default_duration=30.,
-                    ~length=10.,~timeout=20.,fn) =
-  deprecated("request.dynamic", "request.dynamic.list")
-  request.dynamic.list(id=id,conservative=conservative,default_duration=default_duration,
-                   length=length,timeout=timeout,fun () -> [fn()])
-end
-
-# Deprecated: this function has been replaced by fail.
+# Deprecated: this function has been replaced by `fail`.
 # @flag hidden
 def empty(~id="")
   fail()
+end
+
+# Deprecated: use `request.create` instead.
+# @flag hidden
+def request.create.raw(~indicators=[], ~persistent=false, uri)
+  deprecated("request.create.raw", "request.create")
+  request.create(indicators=indicators, persistent=persistent, uri)
 end

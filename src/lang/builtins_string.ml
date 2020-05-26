@@ -73,18 +73,13 @@ let register_escape_fun ~name ~descr ~escape ~escape_char =
     Buffer.contents b
   in
   let special_chars =
-    Lang.list ~t:Lang.string_t
-      (List.map Lang.string (List.map (String.make 1) special_chars))
+    Lang.list (List.map Lang.string (List.map (String.make 1) special_chars))
   in
-  let escape_char p _ =
+  let escape_char p =
     let v = List.assoc "" p in
     Lang.string (escape_char (Lang.to_string v).[0])
   in
-  let escape_char =
-    Lang.val_fun
-      [("", "", Lang.string_t, None)]
-      ~ret_t:Lang.string_t escape_char
-  in
+  let escape_char = Lang.val_fun [("", "", None)] escape_char in
   add_builtin name ~cat:String ~descr
     [
       ( "special_chars",
@@ -111,8 +106,7 @@ let register_escape_fun ~name ~descr ~escape ~escape_char =
       let special_char c = List.mem c special_chars in
       let f = List.assoc "escape_char" p in
       let escape_char c =
-        Lang.to_string
-          (Lang.apply f ~t:Lang.string_t [("", Lang.string (String.make 1 c))])
+        Lang.to_string (Lang.apply f [("", Lang.string (String.make 1 c))])
       in
       Lang.string (escape ~special_char ~escape_char s))
 
@@ -143,7 +137,7 @@ let () =
       let sep = Lang.to_string (List.assoc "separator" p) in
       let string = Lang.to_string (List.assoc "" p) in
       let rex = Pcre.regexp sep in
-      Lang.list ~t:Lang.string_t (List.map Lang.string (Pcre.split ~rex string)))
+      Lang.list (List.map Lang.string (Pcre.split ~rex string)))
 
 let () =
   add_builtin "string.extract" ~cat:String
@@ -171,12 +165,10 @@ let () =
         in
         let l = extract [] 1 in
         Lang.list
-          ~t:(Lang.product_t Lang.string_t Lang.string_t)
           (List.map
              (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
              l)
-      with Not_found ->
-        Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) [])
+      with Not_found -> Lang.list [])
 
 let () =
   add_builtin "string.match" ~cat:String
@@ -328,7 +320,7 @@ let () =
       let string = Lang.to_string (Lang.assoc "" 2 p) in
       let subst = Lang.assoc "" 1 p in
       let subst s =
-        let ret = Lang.apply ~t:Lang.string_t subst [("", Lang.string s)] in
+        let ret = Lang.apply subst [("", Lang.string s)] in
         Lang.to_string ret
       in
       let rex = Pcre.regexp pattern in

@@ -180,11 +180,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                             | _ -> c.source
                         in
                         let s =
-                          let t =
-                            Lang.source_t (Lang.kind_type_of_frame_kind kind)
-                          in
                           Lang.to_source
-                            (Lang.apply ~t c.transition
+                            (Lang.apply c.transition
                                [
                                  ("", Lang.source old_source);
                                  ("", Lang.source new_source);
@@ -260,14 +257,12 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
 (** Common tools for Lang bindings of switch operators *)
 
-let default_transition k =
-  let t = Lang.source_t (Lang.kind_type_of_frame_kind k) in
-  Lang.val_fun [("", "x", t, None); ("", "y", t, None)] ~ret_t:t (fun e _ ->
-      List.assoc "y" e)
+let default_transition =
+  Lang.val_fun [("", "x", None); ("", "y", None)] (fun e -> List.assoc "y" e)
 
 (** Switch: switch according to user-defined predicates. *)
 
-let satisfied f = Lang.to_bool (Lang.apply ~t:Lang.bool_t f [])
+let satisfied f = Lang.to_bool (Lang.apply f [])
 
 let trivially_true = function
   | {
@@ -320,7 +315,8 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   Lang.add_operator "switch" ~category:Lang.TrackProcessing
     ~descr:
@@ -357,11 +353,11 @@ let () =
        in
        ( "transitions",
          Lang.list_t transition_t,
-         Some (Lang.list ~t:transition_t []),
+         Some (Lang.list []),
          Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
       ( "single",
         Lang.list_t Lang.bool_t,
-        Some (Lang.list ~t:Lang.bool_t []),
+        Some (Lang.list []),
         Some
           "Forbid the selection of a branch for two tracks in a row. The empty \
            list stands for `[false,...,false]`." );
@@ -371,7 +367,7 @@ let () =
         Some "Sources with the predicate telling when they can be played." );
     ]
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let children =
         List.map
           (fun p ->
@@ -388,8 +384,7 @@ let () =
           raise
             (Lang_errors.Invalid_value
                (List.assoc "transitions" p, "Too many transitions"));
-        if ltr < l then
-          tr @ List.init (l - ltr) (fun _ -> default_transition kind)
+        if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
         else tr
       in
       let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in

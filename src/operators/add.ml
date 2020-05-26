@@ -33,8 +33,8 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
   =
-  object
-    inherit operator ~name:"add" kind (List.map snd sources)
+  object (self)
+    inherit operator ~name:"add" kind (List.map snd sources) as super
 
     (* We want the sources at the beginning of the list to
      * have their metadatas copied to the output stream, so direction
@@ -73,9 +73,14 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
      * wanted, even if they end a track -- this is quite needed. There is an
      * exception when there is only one active source, then the end of tracks
      * are not hidden anymore, which is useful for transitions, for example. *)
-    val tmp = Frame.create kind
+    val mutable tmp = Frame.dummy
+
+    method wake_up a =
+      super#wake_up a;
+      tmp <- Frame.create self#ctype
 
     method private get_frame buf =
+      let tmp = tmp in
       (* Compute the list of ready sources, and their total weight *)
       let weight, sources =
         List.fold_left
@@ -147,12 +152,11 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
 let () =
   (* TODO: add on midi chans also. *)
   let kind =
-    Lang.Constrained
-      {
-        Frame.audio = Lang.At_least 0;
-        video = Lang.At_least 0;
-        midi = Lang.Fixed 0;
-      }
+    {
+      Frame.audio = Lang.At_least 0;
+      video = Lang.At_least 0;
+      midi = Lang.Fixed 0;
+    }
   in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "add" ~category:Lang.SoundProcessing
@@ -163,14 +167,14 @@ let () =
       ("normalize", Lang.bool_t, Some (Lang.bool true), None);
       ( "weights",
         Lang.list_t Lang.float_t,
-        Some (Lang.list ~t:Lang.int_t []),
+        Some (Lang.list []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
            for the homogeneous distribution." );
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
     ~return_t:kind_t
-    (fun p kind ->
+    (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
@@ -185,11 +189,12 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      new add
-        ~kind ~renorm
-        (List.map2 (fun w s -> (w, s)) weights sources)
-        (fun _ -> ())
-        (fun _ buf tmp -> Video.Image.add tmp buf))
+      ( new add
+          ~kind ~renorm
+          (List.map2 (fun w s -> (w, s)) weights sources)
+          (fun _ -> ())
+          (fun _ buf tmp -> Video.Image.add tmp buf)
+        :> Source.source ))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -217,7 +222,7 @@ let () =
       ("normalize", Lang.bool_t, Some (Lang.bool true), None);
       ( "weights",
         Lang.list_t Lang.float_t,
-        Some (Lang.list ~t:Lang.int_t []),
+        Some (Lang.list []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
            for the homogeneous distribution." );
@@ -228,7 +233,7 @@ let () =
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
     ~return_t:kind_t
-    (fun p kind ->
+    (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
         List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
@@ -264,7 +269,8 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      new add
-        ~kind ~renorm
-        (List.map2 (fun w s -> (w, s)) weights sources)
-        video_init video_loop)
+      ( new add
+          ~kind ~renorm
+          (List.map2 (fun w s -> (w, s)) weights sources)
+          video_init video_loop
+        :> Source.source ))

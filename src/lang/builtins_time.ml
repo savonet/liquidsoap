@@ -48,7 +48,7 @@ let () =
     Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()));
   let t = Lang.univ_t () in
   let execute cb tm =
-    Lang.apply cb ~t
+    Lang.apply cb
       [
         ("sec", Lang.int tm.Unix.tm_sec);
         ("min", Lang.int tm.Unix.tm_min);
@@ -106,7 +106,5 @@ let () =
         else 0
       in
       let frame_position = Lazy.force Frame.duration *. float ticks in
-      let in_frame_position =
-        Frame.seconds_of_master (Frame.position s#get_memo)
-      in
+      let in_frame_position = Frame.seconds_of_master (Frame.position s#memo) in
       Lang.float (frame_position +. in_frame_position))

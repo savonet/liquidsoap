@@ -37,13 +37,21 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
 
     method self_sync = source#self_sync
 
-    (* The tmp_frame is intended to be filled by the underlying
-     * source. Content untouched by the converter are replaced by
-     * by content from the calling frame. Touched content get their
-     * own layer. *)
-    val mutable tmp_frame = Frame.create source#kind
+    val mutable tmp_frame = None
 
-    method private tmp_frame = tmp_frame
+    (* The tmp_frame is intended to be filled by the underlying source. Content
+       untouched by the converter are replaced by by content from the calling
+       frame. Touched content get their own layer. *)
+    method private tmp_frame =
+      match tmp_frame with
+        | Some tmp_frame -> tmp_frame
+        | None ->
+            (* We need to delay the creation of the frame in order not to evaluate
+               the kind too early (the user has to have a chance of setting the
+               default number of channels). *)
+            let frame = Frame.create source#ctype in
+            tmp_frame <- Some frame;
+            frame
 
     method private copy_frame src dst =
       Frame.set_pts dst (Frame.pts src);

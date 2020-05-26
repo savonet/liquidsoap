@@ -58,7 +58,7 @@ class on_offset ~kind ~force ~offset ~override f s =
         Int64.to_float elapsed /. float (Lazy.force Frame.master_rate)
       in
       ignore
-        (Lang.apply ~t:Lang.unit_t f
+        (Lang.apply f
            [("", Lang.float pos); ("", Lang.metadata latest_metadata)]);
       executed <- true
 
@@ -92,7 +92,8 @@ class on_offset ~kind ~force ~offset ~override f s =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "on_offset"
     [
       ( "offset",
@@ -130,7 +131,7 @@ let () =
       "Call a given handler when position in track is equal or more than a \
        given amount of time."
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let offset = Lang.to_float (List.assoc "offset" p) in
       let force = Lang.to_bool (List.assoc "force" p) in
       let override = Lang.to_string (List.assoc "override" p) in

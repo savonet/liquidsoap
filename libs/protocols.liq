@@ -86,7 +86,7 @@ def process_protocol(~rlog,~maxtime,arg)
   if uri == "" then
     resolve("")
   else
-    r = request.create.raw(uri)
+    r = request.create(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,r) then
       res = resolve(request.filename(r))
@@ -446,7 +446,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     end
   end
 
-  r = request.create.raw(arg)
+  r = request.create(arg)
   delay = maxtime - gettimeofday()
   if request.resolve(timeout=delay,r) then
     filename = request.filename(r)
@@ -472,7 +472,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
 
     uri = process_uri(extname="wav",uri=filename,cmd)
 
-    wav_r = request.create.raw(uri)
+    wav_r = request.create(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,wav_r) then
       request.destroy(wav_r)
@@ -682,7 +682,7 @@ def file_protocol(~rlog,~maxtime,arg) =
       segments
     end
 
-  [string.concat(separator="/",segments)]
+  [url.decode(string.concat(separator="/",segments))]
 end
 
 add_protocol(static=true, temporary=false, "file", file_protocol,

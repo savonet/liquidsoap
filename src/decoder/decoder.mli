@@ -71,7 +71,7 @@ type image_decoder = file -> Video.Image.t
 
 type file_decoder =
   metadata:Frame.metadata ->
-  kind:Frame.content_kind ->
+  ctype:Frame.content_type ->
   string ->
   file_decoder_ops
 
@@ -106,29 +106,29 @@ val test_file :
 
 (** Test if we can decode for a given kind. This include cases where we
     know how to convert channel layout. *)
-val can_decode_kind : Frame.content_type -> Frame.content_kind -> bool
+val can_decode_type : Frame.content_type -> Frame.content_type -> bool
 
 val get_file_decoder :
   metadata:Frame.metadata ->
-  kind:Frame.content_kind ->
+  ctype:Frame.content_type ->
   string ->
   (string * (unit -> file_decoder_ops)) option
 
 val get_stream_decoder :
-  kind:Frame.content_kind -> string -> stream_decoder option
+  ctype:Frame.content_type -> string -> stream_decoder option
 
 val image_file_decoders : (file -> Video.Image.t option) Plug.plug
 val get_image_file_decoder : file -> Video.Image.t option
 
 (* Initialize a decoding buffer *)
-val mk_buffer : kind:Frame.content_kind -> G.t -> buffer
+val mk_buffer : ctype:Frame.content_type -> G.t -> buffer
 
 (* Create a file decoder when remaning time is known. *)
 val file_decoder :
   filename:string ->
   close:(unit -> unit) ->
   remaining:(unit -> int) ->
-  kind:Frame.content_kind ->
+  ctype:Frame.content_type ->
   decoder ->
   file_decoder_ops
 
@@ -137,6 +137,6 @@ val file_decoder :
    the decoding process. *)
 val opaque_file_decoder :
   filename:string ->
-  kind:Frame.content_kind ->
+  ctype:Frame.content_type ->
   (input -> decoder) ->
   file_decoder_ops

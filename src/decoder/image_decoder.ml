@@ -155,7 +155,7 @@ let () =
           else None);
       file_decoder =
         Some
-          (fun ~metadata ~kind:_ filename ->
+          (fun ~metadata ~ctype:_ filename ->
             let img =
               Utils.get_some (Decoder.get_image_file_decoder filename)
             in

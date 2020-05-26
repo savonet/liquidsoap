@@ -28,7 +28,6 @@ type t = Frame.t
 let sot = audio_of_master
 let tos = master_of_audio
 let content b = b.content.audio
-let channels_of_kind k = (type_of_kind k).Frame.audio
 
 let to_s16le b =
   let fpcm = content b in

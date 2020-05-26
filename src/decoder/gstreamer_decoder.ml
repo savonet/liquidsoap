@@ -188,7 +188,7 @@ let priority =
     ~p:(Decoder.conf_priorities#plug "gstreamer")
     "Priority for the GStreamer decoder" ~d:0
 
-let create_file_decoder filename content_type kind =
+let create_file_decoder filename content_type ctype =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
       | 0, _ -> `Audio
@@ -210,7 +210,7 @@ let create_file_decoder filename content_type kind =
     in
     duration - pos
   in
-  Decoder.file_decoder ~filename ~close ~kind ~remaining decoder
+  Decoder.file_decoder ~filename ~close ~ctype ~remaining decoder
 
 (** Get the type of a file's content. For now it is a bit imprecise:
   * we always pretend that audio content has the expected number of
@@ -262,13 +262,10 @@ let get_type ~channels filename =
   in
   { Frame.video; audio; midi = 0 }
 
-let file_decoder ~metadata:_ ~kind filename =
-  let channels =
-    (* Get the default expected number of audio channels *)
-    AFrame.channels_of_kind kind
-  in
+let file_decoder ~metadata:_ ~ctype filename =
+  let channels = ctype.Frame.audio in
   let content_type = get_type ~channels filename in
-  create_file_decoder filename content_type kind
+  create_file_decoder filename content_type ctype
 
 let () =
   Decoder.decoders#register "GSTREAMER"

@@ -3,8 +3,12 @@
 
 %include "test.liq"
 
-if url.split("abc?a=aa&b=&c=cc") == ("abc",[("a","aa"),("b",""),("c","cc")]) then
-  test.pass()
-else
-  test.fail()
+def f() =
+  if url.split("abc?a=aa&b=&c=cc") == ("abc",[("a","aa"),("b",""),("c","cc")]) then
+    test.pass()
+  else
+    test.fail()
+  end
 end
+
+test.check(f)

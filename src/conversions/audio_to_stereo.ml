@@ -31,7 +31,7 @@
 
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
 class basic ~kind source =
-  object
+  object (self)
     inherit Source.operator kind [source] ~name:"audio_to_stereo"
 
     inherit
@@ -49,6 +49,9 @@ class basic ~kind source =
               | audio -> Array.sub audio 0 2
           in
           Frame.set_audio frame audio)
+
+    method set_kind =
+      Source.Kind.unify self#kind_var (Source.Kind.set_audio source#kind_var 2)
   end
 
 let () =
@@ -59,6 +62,6 @@ let () =
     ~descr:"Convert any kind of audio source into a stereo source."
     ~return_t:output_kind
     [("", Lang.source_t input_kind, None, None)]
-    (fun p kind ->
-      let s = new basic ~kind (Lang.to_source (List.assoc "" p)) in
+    (fun p ->
+      let s = new basic ~kind:Lang.any (Lang.to_source (List.assoc "" p)) in
       (s :> Source.source))

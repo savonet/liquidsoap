@@ -259,8 +259,8 @@ let priority =
     ~p:(Decoder.conf_priorities#plug "ogg")
     "Priority for the OGG decoder" ~d:1
 
-let create_file_decoder ~metadata:_ ~kind filename =
-  Decoder.opaque_file_decoder ~filename ~kind
+let create_file_decoder ~metadata:_ ~ctype filename =
+  Decoder.opaque_file_decoder ~filename ~ctype
     (create_decoder ~merge_tracks:true `File)
 
 let () =

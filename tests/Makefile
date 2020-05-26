@@ -6,13 +6,21 @@ SUBDIRS = fixme media language regression
 top_srcdir = ..
 
 test:
-	@$(MAKE) -C language test
-	@$(MAKE) -C media test
-	@$(MAKE) -C regression test
+	@$(MAKE) -C language $@
+	@$(MAKE) -C streams $@
+	@$(MAKE) -C media $@
+	@$(MAKE) -C regression $@
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 	@echo
 	@echo
+	$(MAKE) performance
+
+performance: performance.liq
 	@echo "***** Performance tests *****"
-	@./performance.liq
+	@../src/liquidsoap ../libs/pervasives.liq --force-start ./performance.liq
+
+perf:
+	perf record --call-graph=dwarf -- ../src/liquidsoap ../libs/pervasives.liq performance.liq
+	perf report
 
 include $(top_srcdir)/Makefile.rules

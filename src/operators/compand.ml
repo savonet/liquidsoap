@@ -54,14 +54,15 @@ class compand ~kind (source : source) mu =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "compand"
     [
       ("mu", Lang.float_t, Some (Lang.float 1.), None);
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Compand the signal"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
       new compand ~kind src mu)

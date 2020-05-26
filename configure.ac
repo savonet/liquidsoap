@@ -56,7 +56,28 @@ AC_CONFIG_HEADERS([config.h:config.h.in])
 # Include it
 CFLAGS="$CFLAGS -I\$(top_srcdir)"
 
+AC_CANONICAL_HOST
+
+build_os=""
+
+# Detect the target system
+case "${host_os}" in
+    linux*)
+        build_os="linux"
+        ;;
+    cygwin*|mingw*)
+        build_os="windows"
+        ;;
+    darwin*)
+        build_os="osx"
+        ;;
+    *)
+        AC_MSG_ERROR(["OS $host_os is not supported"])
+        ;;
+esac
+
 cat > src/configure.ml << _BLAH_
+let host = "$build_os"
 let version = "$version"
 let git_commit = "$git_commit"
 let git_snapshot = $git_snapshot

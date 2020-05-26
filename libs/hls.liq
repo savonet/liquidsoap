@@ -10,7 +10,7 @@ def input.hls(~id="",~reload=10.,uri)
   playlist_uri = ref uri
 
   def load_playlist () =
-    pl = request.create.raw(!playlist_uri)
+    pl = request.create(!playlist_uri)
     if request.resolve(pl) then
       pl = request.filename(pl)
 
@@ -61,7 +61,7 @@ def input.hls(~id="",~reload=10.,uri)
   end
 
   def find_stream () =
-    pl = request.create.raw(!playlist_uri)
+    pl = request.create(!playlist_uri)
     if request.resolve(pl) then
       plfile = request.filename(pl)
 

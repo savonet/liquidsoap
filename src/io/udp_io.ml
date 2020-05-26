@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let max_packet_size = if Configure.host = "osx" then 9216 else 65535
+
 class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
   ~encoder_factory source =
   object (self)
@@ -44,7 +46,14 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
       socket_send <-
         Some
           (fun msg off len ->
-            Unix.sendto socket (Bytes.of_string msg) off len [] portaddr);
+            let msg = Bytes.of_string msg in
+            let rec f pos =
+              if off + pos < len then (
+                let len = min (len - pos) max_packet_size in
+                let len = Unix.sendto socket msg (off + pos) len [] portaddr in
+                f (pos + len) )
+            in
+            f 0);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
 
     method private output_reset =
@@ -69,19 +78,19 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
+class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
   let max_ticks = 2 * Frame.master_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   object (self)
-    inherit Source.source ~name:"input.udp" kind
+    inherit Source.source ~name:"input.udp" kind as super
 
     inherit
       Generated.source
-        (Generator.create ~log ~kind ~log_overfull
-           ~overfull:(`Drop_old max_ticks) `Undefined)
+        (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
+           `Undefined)
         ~empty_on_abort:false ~bufferize
 
     inherit
@@ -95,6 +104,14 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
     val mutable kill_feeding = None
 
     val mutable wait_feeding = None
+
+    val mutable decoder_factory = None
+
+    method private decoder_factory = Option.get decoder_factory
+
+    method private wake_up a =
+      super#wake_up a;
+      decoder_factory <- Some (get_stream_decoder self#ctype)
 
     method private start =
       begin
@@ -144,8 +161,8 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
       try
         (* Feeding loop. *)
-        let decoder = decoder_factory input in
-        let buffer = Decoder.mk_buffer ~kind generator in
+        let decoder = self#decoder_factory input in
+        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
         while true do
           if should_stop () then failwith "stop";
           decoder.Decoder.decode buffer
@@ -167,7 +184,8 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize ~log_overfull =
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.udp" ~active:true
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:Lang.Output ~flags:[Lang.Experimental]
@@ -179,17 +197,17 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k
-    (fun p kind ->
+    (fun p ->
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_start =
         let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       let on_stop =
         let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+        fun () -> ignore (Lang.apply f [])
       in
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in
@@ -209,7 +227,8 @@ let () =
         :> Source.source ))
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.udp" ~active:true
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:Lang.Input ~flags:[Lang.Experimental]
@@ -227,19 +246,22 @@ let () =
       ("", Lang.string_t, None, Some "Mime type.");
     ]
     ~return_t:k
-    (fun p kind ->
+    (fun p ->
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in
       let hostname = Lang.to_string (List.assoc "host" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let mime = Lang.to_string (Lang.assoc "" 1 p) in
-      match Decoder.get_stream_decoder ~kind mime with
-        | None ->
-            raise
-              (Lang_errors.Invalid_value
-                 (Lang.assoc "" 1 p, "Cannot get a stream decoder for this MIME"))
-        | Some decoder_factory ->
-            ( new input
-                ~kind ~hostname ~port ~bufferize ~log_overfull ~decoder_factory
-              :> Source.source ))
+      let get_stream_decoder ctype =
+        match Decoder.get_stream_decoder ~ctype mime with
+          | None ->
+              raise
+                (Lang_errors.Invalid_value
+                   ( Lang.assoc "" 1 p,
+                     "Cannot get a stream decoder for this MIME" ))
+          | Some decoder_factory -> decoder_factory
+      in
+      ( new input
+          ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
+        :> Source.source ))

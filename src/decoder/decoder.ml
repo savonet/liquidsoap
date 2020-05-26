@@ -95,7 +95,7 @@ type file_decoder_ops = {
 
 type file_decoder =
   metadata:Frame.metadata ->
-  kind:Frame.content_kind ->
+  ctype:Frame.content_type ->
   string ->
   file_decoder_ops
 
@@ -235,7 +235,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     in
     ext_ok || mime_ok )
 
-let can_decode_kind decoded_type target_kind =
+let can_decode_type decoded_type target_type =
   let can_convert_audio audio =
     audio = 0
     || Audio_converter.Channel_layout.(
@@ -247,9 +247,9 @@ let can_decode_kind decoded_type target_kind =
            true
          with Unsupported -> false)
   in
-  match Frame.type_of_kind target_kind with
+  match target_type with
     (* Either we can decode straight away. *)
-    | _ when Frame.type_has_kind decoded_type target_kind -> true
+    | _ when decoded_type = target_type -> true
     (* Or we can convert audio and/or drop video and midi *)
     | { Frame.audio; video; midi } ->
         let audio =
@@ -257,27 +257,25 @@ let can_decode_kind decoded_type target_kind =
         in
         let video = if video = 0 then 0 else decoded_type.Frame.video in
         let midi = if midi = 0 then 0 else decoded_type.Frame.midi in
-        Frame.type_has_kind { Frame.audio; video; midi } target_kind
+        target_type = { Frame.audio; video; midi }
 
-let decoder_modes kind =
-  Frame.(
-    match (kind.audio, kind.video, kind.midi) with
-      | Succ _, Succ _, Zero -> [`Audio_video]
-      | Succ _, _, Zero -> [`Audio; `Audio_video]
-      | _, Succ _, Zero -> [`Video; `Audio_video]
-      (* Now entering the annoying part. *)
-      | Any, Any, Zero -> [`Audio_video]
-      | Any, Zero, Zero -> [`Audio; `Audio_video]
-      | Zero, Any, Zero -> [`Video; `Audio_video]
-      | Zero, Zero, Zero -> []
-      | Zero, Zero, _ -> [`Midi]
-      | _ -> [])
+let decoder_modes ctype =
+  let audio = ctype.Frame.audio in
+  let video = ctype.Frame.video in
+  let midi = ctype.Frame.midi in
+  if audio = 0 && video = 0 && midi = 0 then []
+  else if audio = 0 && video = 0 && midi > 0 then [`Midi]
+  else if midi <> 0 then []
+  else if audio > 0 && video > 0 then [`Audio_video]
+  else if audio > 0 && video = 0 then [`Audio; `Audio_video]
+  else if audio = 0 && video > 0 then [`Video; `Audio_video]
+  else []
 
 exception Found of (string * Frame.content_type * decoder_specs)
 
 (** Get a valid decoder creator for [filename]. *)
-let get_file_decoder ~metadata ~kind filename =
-  let modes = decoder_modes kind in
+let get_file_decoder ~metadata ~ctype filename =
+  let modes = decoder_modes ctype in
   let decoders =
     List.filter
       (fun (name, specs) ->
@@ -309,7 +307,7 @@ let get_file_decoder ~metadata ~kind filename =
           try
             match specs.file_type filename with
               | Some decoded_type ->
-                  if can_decode_kind decoded_type kind then
+                  if can_decode_type decoded_type ctype then
                     raise (Found (name, decoded_type, specs))
                   else
                     log#info
@@ -327,19 +325,19 @@ let get_file_decoder ~metadata ~kind filename =
                 log#info "%s" bt)
         decoders;
       log#important "Available decoders cannot decode %S as %s" filename
-        (Frame.string_of_content_kind kind);
+        (Frame.string_of_content_type ctype);
       None
     with Found (name, decoded_type, specs) ->
       log#info
         "Selected decoder %s for file %S with expected kind %s and detected \
          content %s"
         name filename
-        (Frame.string_of_content_kind kind)
+        (Frame.string_of_content_type ctype)
         (Frame.string_of_content_type decoded_type);
       Some
         ( name,
-          fun () -> (Utils.get_some specs.file_decoder) ~metadata ~kind filename
-        ) )
+          fun () ->
+            (Utils.get_some specs.file_decoder) ~metadata ~ctype filename ) )
 
 (** Get a valid image decoder creator for [filename]. *)
 let get_image_file_decoder filename =
@@ -365,8 +363,8 @@ let get_image_file_decoder filename =
     !ans
   with Exit -> !ans
 
-let get_stream_decoder ~kind mime =
-  let modes = decoder_modes kind in
+let get_stream_decoder ~ctype mime =
+  let modes = decoder_modes ctype in
   let decoders =
     List.filter
       (fun (_, specs) ->
@@ -392,7 +390,7 @@ let get_stream_decoder ~kind mime =
       "Unable to find a decoder for stream mime-type %s with expected content \
        %s!"
       mime
-      (Frame.string_of_content_kind kind);
+      (Frame.string_of_content_type ctype);
     None )
   else (
     let decoders =
@@ -408,16 +406,14 @@ let get_stream_decoder ~kind mime =
     let name, decoder = List.hd decoders in
     log#info "Selected decoder %s for mime-type %s with expected content %s"
       name mime
-      (Frame.string_of_content_kind kind);
+      (Frame.string_of_content_type ctype);
     Some ((Utils.get_some decoder.stream_decoder) mime) )
 
 (** {1 Helpers for defining decoders} *)
 
-let mk_buffer ~kind generator =
-  let content_type = Frame.type_of_kind kind in
-
+let mk_buffer ~ctype generator =
   let mode =
-    match content_type with
+    match ctype with
       | { Frame.audio; video } when audio > 0 && video > 0 -> `Both
       | { Frame.audio; video } when audio > 0 && video = 0 -> `Audio
       | { Frame.audio; video } when audio = 0 && video > 0 -> `Video
@@ -430,7 +426,7 @@ let mk_buffer ~kind generator =
     if mode <> `Video then (
       let resampler = Decoder_utils.samplerate_converter () in
       let channel_converter =
-        Decoder_utils.channels_converter content_type.Frame.audio
+        Decoder_utils.channels_converter ctype.Frame.audio
       in
       fun ?pts ~samplerate data ->
         let data = resampler ~samplerate data in
@@ -498,14 +494,14 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   in
   { fill; fseek; close }
 
-let file_decoder ~filename ~close ~remaining ~kind decoder =
+let file_decoder ~filename ~close ~remaining ~ctype decoder =
   let generator =
-    G.create ~log_overfull:false ~log:(log#info "%s") ~kind `Undefined
+    G.create ~log_overfull:false ~log:(log#info "%s") `Undefined
   in
-  let buffer = mk_buffer ~kind generator in
+  let buffer = mk_buffer ~ctype generator in
   mk_decoder ~filename ~close ~remaining ~buffer decoder
 
-let opaque_file_decoder ~filename ~kind create_decoder =
+let opaque_file_decoder ~filename ~ctype create_decoder =
   let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0 in
 
   let file_size = (Unix.stat filename).Unix.st_size in
@@ -527,9 +523,9 @@ let opaque_file_decoder ~filename ~kind create_decoder =
   in
 
   let generator =
-    G.create ~log:(log#info "%s") ~log_overfull:false ~kind `Undefined
+    G.create ~log:(log#info "%s") ~log_overfull:false `Undefined
   in
-  let buffer = mk_buffer ~kind generator in
+  let buffer = mk_buffer ~ctype generator in
   let decoder = create_decoder input in
 
   let out_ticks = ref 0 in

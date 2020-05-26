@@ -11,9 +11,13 @@ def test(x, y)
   end
 end
 
-test(getenv("BLAXXX"),"")
-test(file.is_directory("/"), true)
-test(file.is_directory("~"), true)
-test(file.is_directory("XXX"), false)
+def f() =
+  test(getenv("BLAXXX"),"")
+  test(file.is_directory("/"), true)
+  test(file.is_directory("~"), true)
+  test(file.is_directory("XXX"), false)
 
-if !success then test.pass() else test.fail() end
+  if !success then test.pass() else test.fail() end
+end
+
+test.check(f)

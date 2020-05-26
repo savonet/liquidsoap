@@ -163,8 +163,8 @@ let wav_priority =
     ~p:(Decoder.conf_priorities#plug "wav")
     "Priority for the WAV decoder" ~d:1
 
-let create_file_decoder ~metadata:_ ~kind filename =
-  Decoder.opaque_file_decoder ~filename ~kind (create ?header:None)
+let create_file_decoder ~metadata:_ ~ctype filename =
+  Decoder.opaque_file_decoder ~filename ~ctype (create ?header:None)
 
 let () =
   Decoder.decoders#register "WAV" ~sdoc:"Decode file or streams as WAV."
