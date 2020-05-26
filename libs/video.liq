@@ -68,7 +68,7 @@ end
 # @flag extra
 def video.external.testsrc(~id="video.external.testsrc",~restart=true,~restart_on_error=false,~buffer=0.2,~max=10.,~framerate=0)
   framerate = if framerate <= 0 then video.frame.rate() else framerate end
-  cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{framerate} \
+  cmd = "-f lavfi -i testsrc=size=LIQ_VIDEO_WIDTHxLIQ_VIDEO_HEIGHT:rate=#{framerate} \
          -f lavfi -i sine=frequency=440:beep_factor=2:sample_rate=#{audio.samplerate()}"
 
   input.external.ffmpeg(id=id,restart=restart,
