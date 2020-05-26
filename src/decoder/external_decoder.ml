@@ -116,7 +116,7 @@ let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
       file_type = (fun filename -> test_ctype test filename);
       file_decoder =
         Some (fun ~metadata:_ ~ctype filename -> create process ctype filename);
-      stream_decoder = Some (fun _ -> create_stream process);
+      stream_decoder = Some (fun ~mime:_ ~ctype:_ -> create_stream process);
     };
 
   let duration filename =

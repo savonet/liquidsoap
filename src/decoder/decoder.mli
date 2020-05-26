@@ -91,7 +91,8 @@ type decoder_specs = {
   file_type : string -> Frame.content_type option;
   file_decoder : file_decoder option;
   (* First argument is the full mime-type. *)
-  stream_decoder : (string -> stream_decoder) option;
+  stream_decoder :
+    (mime:string -> ctype:Frame.content_type -> stream_decoder) option;
 }
 
 val decoders : decoder_specs Plug.plug

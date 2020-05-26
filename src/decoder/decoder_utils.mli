@@ -38,7 +38,7 @@ val from_iff :
 type channels_converter = Frame.audio_t array -> Frame.audio_t array
 
 val channels_converter : int -> channels_converter
-val video_scale : unit -> Video.Image.t -> Video.Image.t
+val video_scale : int -> int -> Video.Image.t -> Video.Image.t
 
 type fps = { num : int; den : int }
 

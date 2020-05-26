@@ -173,7 +173,7 @@ let () =
       mime_types = (fun () -> Some aac_mime_types#get);
       file_type;
       file_decoder = Some file_decoder;
-      stream_decoder = Some (fun _ -> create_decoder);
+      stream_decoder = Some (fun ~mime:_ ~ctype:_ -> create_decoder);
     }
 
 (* Mp4 decoding. *)
@@ -263,7 +263,7 @@ let () =
       mime_types = (fun () -> Some mp4_mime_types#get);
       file_type;
       file_decoder = Some file_decoder;
-      stream_decoder = Some (fun _ -> create_decoder);
+      stream_decoder = Some (fun ~mime:_ ~ctype:_ -> create_decoder);
     }
 
 let log = Log.make ["metadata"; "mp4"]

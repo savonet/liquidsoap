@@ -115,7 +115,8 @@ type decoder_specs = {
   mime_types : unit -> string list option;
   file_type : string -> Frame.content_type option;
   file_decoder : file_decoder option;
-  stream_decoder : (string -> stream_decoder) option;
+  stream_decoder :
+    (mime:string -> ctype:Frame.content_type -> stream_decoder) option;
 }
 
 (** Plugins might define various decoders. In order to be accessed,
@@ -413,7 +414,7 @@ let get_stream_decoder ~ctype mime =
     log#info "Selected decoder %s for mime-type %s with expected content %s"
       name mime
       (Frame.string_of_content_type ctype);
-    Some ((Utils.get_some decoder.stream_decoder) mime) )
+    Some ((Utils.get_some decoder.stream_decoder) ~mime ~ctype) )
 
 (** {1 Helpers for defining decoders} *)
 
@@ -446,7 +447,10 @@ let mk_buffer ~ctype generator =
   let put_video =
     if mode <> `Audio then (
       let video_resample = Decoder_utils.video_resample () in
-      let video_scale = Decoder_utils.video_scale () in
+      let video_scale =
+        let w, h = ctype.Frame.video.(0) in
+        Decoder_utils.video_scale w h
+      in
       let out_freq =
         Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
       in
@@ -474,8 +478,9 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
           decoder.decode buffer
         done
       with e ->
+        let bt = Printexc.get_backtrace () in
         log#info "Decoding %S ended: %s." filename (Printexc.to_string e);
-        log#debug "%s" (Printexc.get_backtrace ());
+        log#debug "%s" bt;
         decoding_done := true;
         if conf_debug#get then raise e );
 

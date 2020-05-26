@@ -175,7 +175,7 @@ let () =
       mime_types = (fun () -> Some wav_mime_types#get);
       file_type;
       file_decoder = Some create_file_decoder;
-      stream_decoder = Some (fun _ -> create ?header:None);
+      stream_decoder = Some (fun ~mime:_ ~ctype:_ -> create ?header:None);
     }
 
 let aiff_mime_types =
@@ -204,7 +204,7 @@ let () =
       mime_types = (fun () -> Some aiff_mime_types#get);
       file_type;
       file_decoder = Some create_file_decoder;
-      stream_decoder = Some (fun _ -> create ?header:None);
+      stream_decoder = Some (fun ~mime:_ ~ctype:_ -> create ?header:None);
     }
 
 let () =
@@ -236,5 +236,6 @@ let () =
       mime_types = (fun () -> Some basic_mime_types#get);
       file_type = (fun _ -> None);
       file_decoder = None;
-      stream_decoder = Some (fun _ -> create ~header:(`Wav, 8, 2, 8000, -1));
+      stream_decoder =
+        Some (fun ~mime:_ ~ctype:_ -> create ~header:(`Wav, 8, 2, 8000, -1));
     }

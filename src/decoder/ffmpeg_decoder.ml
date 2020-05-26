@@ -139,14 +139,13 @@ let mk_audio_decoder container =
       buffer.Decoder.put_audio ?pts:(Some pts) ~samplerate:target_sample_rate
         content )
 
-let mk_video_decoder container =
+let mk_video_decoder ~ctype container =
   let idx, stream, codec = Av.find_best_video_stream container in
   let pixel_format = Avcodec.Video.get_pixel_format codec in
   let width = Avcodec.Video.get_width codec in
   let height = Avcodec.Video.get_height codec in
   let target_fps = Lazy.force Frame.video_rate in
-  let target_width = Lazy.force Frame.video_width in
-  let target_height = Lazy.force Frame.video_height in
+  let target_width, target_height = ctype.Frame.video.(0) in
   let scaler =
     Scaler.create [] width height pixel_format target_width target_height
       `Yuv420p
@@ -220,7 +219,7 @@ let duration file =
       let duration = Av.get_input_duration container ~format:`Millisecond in
       Int64.to_float duration /. 1000.)
 
-let create_decoder fname =
+let create_decoder ~ctype fname =
   let duration = duration fname in
   let remaining = ref duration in
   let m = Mutex.create () in
@@ -254,7 +253,7 @@ let create_decoder fname =
   in
   let video =
     try
-      let idx, stream, decoder = mk_video_decoder container in
+      let idx, stream, decoder = mk_video_decoder ~ctype container in
       Some
         ( idx,
           stream,
@@ -272,7 +271,7 @@ let create_decoder fname =
     get_remaining )
 
 let create_file_decoder ~metadata:_ ~ctype filename =
-  let decoder, close, remaining = create_decoder filename in
+  let decoder, close, remaining = create_decoder ~ctype filename in
   Decoder.file_decoder ~filename ~close ~remaining ~ctype decoder
 
 (* Get the type of an input container. *)
@@ -321,7 +320,7 @@ let get_file_type filename =
     ~k:(fun () -> Av.close container)
     (fun () -> get_type ~url:filename container)
 
-let create_stream_decoder _ input =
+let create_stream_decoder ~mime:_ ~ctype input =
   let read = input.Decoder.read in
   let seek_input =
     match input.Decoder.lseek with
@@ -333,7 +332,7 @@ let create_stream_decoder _ input =
     try Some (mk_audio_decoder container) with Avutil.Error _ -> None
   in
   let video =
-    try Some (mk_video_decoder container) with Avutil.Error _ -> None
+    try Some (mk_video_decoder ~ctype container) with Avutil.Error _ -> None
   in
   {
     Decoder.seek = seek ~audio ~video;

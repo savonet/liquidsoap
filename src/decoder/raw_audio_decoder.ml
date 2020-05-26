@@ -155,7 +155,7 @@ let () =
       file_decoder = None;
       stream_decoder =
         Some
-          (fun mime ->
+          (fun ~mime ~ctype:_ ->
             let format = Utils.get_some (parse_mime mime) in
             create ~format);
     }
