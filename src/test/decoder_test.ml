@@ -20,39 +20,39 @@ let () =
 let () =
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 0; midi = 0 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = 2; video = [||]; midi = 0 }
+      { audio = 2; video = [||]; midi = 0 } );
   assert (
     Decoder.can_decode_type
-      { audio = 1; video = 0; midi = 0 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = 1; video = [||]; midi = 0 }
+      { audio = 2; video = [||]; midi = 0 } );
   assert (
     Decoder.can_decode_type
-      { audio = 6; video = 0; midi = 0 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = 6; video = [||]; midi = 0 }
+      { audio = 2; video = [||]; midi = 0 } );
   assert (
     not
       (Decoder.can_decode_type
-         { audio = 1; video = 0; midi = 0 }
-         { audio = 2; video = 1; midi = 0 }) );
+         { audio = 1; video = [||]; midi = 0 }
+         { audio = 2; video = [| (1920, 1080) |]; midi = 0 }) );
   assert (
     Decoder.can_decode_type
-      { audio = 1; video = 1; midi = 0 }
-      { audio = 2; video = 1; midi = 0 } );
+      { audio = 1; video = [| (1920, 1080) |]; midi = 0 }
+      { audio = 2; video = [| (1920, 1080) |]; midi = 0 } );
   assert (
     not
       (Decoder.can_decode_type
-         { audio = 1; video = 0; midi = 0 }
-         { audio = 2; video = 0; midi = 1 }) );
+         { audio = 1; video = [||]; midi = 0 }
+         { audio = 2; video = [||]; midi = 1 }) );
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 1; midi = 1 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = 2; video = [| (1920, 1080) |]; midi = 1 }
+      { audio = 2; video = [||]; midi = 0 } );
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 1; midi = 1 }
-      { audio = 2; video = 1; midi = 1 } );
+      { audio = 2; video = [| (1920, 1080) |]; midi = 1 }
+      { audio = 2; video = [| (1920, 1080) |]; midi = 1 } );
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 1; midi = 0 }
-      { audio = 0; video = 1; midi = 0 } )
+      { audio = 2; video = [| (1920, 1080) |]; midi = 0 }
+      { audio = 0; video = [| (1920, 1080) |]; midi = 0 } )
