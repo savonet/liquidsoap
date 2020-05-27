@@ -523,7 +523,7 @@ let from_file ?parse_only ~ns ~lib filename =
   close_in ic
 
 let load_libs ?parse_only () =
-  let dir = Configure.libs_dir in
+  let dir = Configure.liq_libs_dir in
   let file = Filename.concat dir "pervasives.liq" in
   if Sys.file_exists file then
     from_file ?parse_only ~ns:(Some file) ~lib:true file
