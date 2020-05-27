@@ -276,11 +276,11 @@ let () =
     ~return_t
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
-      let width = Lazy.force Frame.video_width in
-      let height = Lazy.force Frame.video_height in
-      let buflen = width * height * 3 in
-      let buf = Bytes.create buflen in
       let on_data abg reader =
+        let width, height = (Generator.content_type abg).Frame.video.(0) in
+        let buflen = width * height * 3 in
+        (* TODO: it would be good to avoid allocating this each time. *)
+        let buf = Bytes.create buflen in
         let ret = reader buf 0 buflen in
         let data =
           Image.YUV420.of_YUV420_string
