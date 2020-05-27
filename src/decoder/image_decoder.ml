@@ -78,7 +78,7 @@ let off_string iw ih ox oy =
   let oy = f ((frame_h - ih) / 2) frame_h oy in
   (ox, oy)
 
-let create_decoder ~metadata img =
+let create_decoder ~ctype ~metadata img =
   (* Dimensions. *)
   let img_w, img_h = Video.Image.dimensions img in
   let width = try Hashtbl.find metadata "width" with Not_found -> "" in
@@ -98,11 +98,8 @@ let create_decoder ~metadata img =
         img' )
     in
     let img =
-      let img' =
-        Video.Image.create
-          (Lazy.force Frame.video_width)
-          (Lazy.force Frame.video_height)
-      in
+      let w, h = ctype.Frame.video.(0) in
+      let img' = Video.Image.create w h in
       Video.Image.blank img';
       Image.YUV420.fill_alpha img' 0;
       Video.Image.add img img' ~x:off_x ~y:off_y;
@@ -156,10 +153,10 @@ let () =
           else None);
       file_decoder =
         Some
-          (fun ~metadata ~ctype:_ filename ->
+          (fun ~metadata ~ctype filename ->
             let img =
               Utils.get_some (Decoder.get_image_file_decoder filename)
             in
-            create_decoder ~metadata img);
+            create_decoder ~ctype ~metadata img);
       stream_decoder = None;
     }

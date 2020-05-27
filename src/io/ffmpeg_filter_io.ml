@@ -96,21 +96,27 @@ class video_output ~name val_source =
   let content_kind =
     Frame.{ audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
   in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
-  let converter =
-    ToVideoFrame.create [] width height `Yuv420p width height `Yuv420p
-  in
   let noop () = () in
-  object
+  object (self)
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind ~name
-          ~output_kind:"ffmpeg.filter.input" val_source true
+          ~output_kind:"ffmpeg.filter.input" val_source true as super
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
 
     method set_input fn = input <- fn
+
+    val mutable converter = None
+
+    method private converter = Option.get converter
+
+    method private wake_up a =
+      super#wake_up a;
+      let width, height = self#ctype.Frame.video.(0) in
+      converter <-
+        Some
+          (ToVideoFrame.create [] width height `Yuv420p width height `Yuv420p)
 
     method output_start = ()
 
@@ -128,7 +134,7 @@ class video_output ~name val_source =
         let sy = Image.YUV420.y_stride f in
         let s = Image.YUV420.uv_stride f in
         let vdata = [| (y, sy); (u, s); (v, s) |] in
-        let vframe = ToVideoFrame.convert converter vdata in
+        let vframe = ToVideoFrame.convert self#converter vdata in
         Avutil.frame_set_pts vframe (Some (Frame.pts memo));
         input vframe
       done

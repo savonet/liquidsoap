@@ -25,8 +25,6 @@
 open Tsdl
 
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
-  let video_width = Lazy.force Frame.video_width in
-  let video_height = Lazy.force Frame.video_height in
   let () = Sdl_utils.init [Sdl.Init.video] in
   object (self)
     inherit
@@ -43,8 +41,8 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
         Some
           (Sdl_utils.check
              (fun () ->
-               Sdl.create_window "Liquidsoap" ~w:video_width ~h:video_height
-                 Sdl.Window.windowed)
+               let w, h = self#ctype.Frame.video.(0) in
+               Sdl.create_window "Liquidsoap" ~w ~h Sdl.Window.windowed)
              ());
       self#log#info "Initialized SDL video surface."
 

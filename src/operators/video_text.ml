@@ -25,8 +25,6 @@ open Source
 class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
   (source : source) =
   let () = init () in
-  (* let video_height = Lazy.force Frame.video_height in *)
-  let video_width = Lazy.force Frame.video_width in
   object (self)
     inherit operator ~name:"video.add_text" kind [source]
 
@@ -101,9 +99,10 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
                 if pos_x <> -tfw then
                   Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
                 pos_x <- pos_x - speed;
-                if pos_x < -tfw then
+                if pos_x < -tfw then (
+                  let video_width, _ = self#ctype.Frame.video.(0) in
                   if cycle then pos_x <- video_width
-                  else pos_x <- -tfw (* avoid overflows *) )
+                  else pos_x <- -tfw (* avoid overflows *) ) )
             done
   end
 
