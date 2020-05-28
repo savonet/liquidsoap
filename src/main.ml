@@ -472,7 +472,7 @@ let options =
         Arg.Clear pervasives,
         Printf.sprintf
           "Do not load pervasives script libraries (i.e., %s/*.liq)."
-          Configure.libs_dir );
+          Configure.liq_libs_dir );
       (["-i"], Arg.Set Configure.display_types, "Display infered types.");
       ( ["--version"],
         Arg.Unit

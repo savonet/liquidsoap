@@ -62,9 +62,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
           (Printf.sprintf "Unrecognized options: %s"
              (Ffmpeg_format.string_of_options opts));
       let content_type = Ffmpeg_decoder.get_type ~url input in
-      let ctype = self#ctype in
-      (* TODO: this is too restrictive, we should at least be able to resize *)
-      if content_type <> ctype then
+      if not (Decoder.can_decode_type content_type self#ctype) then
         failwith
           (Printf.sprintf "url %S cannot produce content of type %s" url
              (Frame.string_of_content_type self#ctype));

@@ -412,8 +412,7 @@ module Kind = struct
       midi = MMultiplicity.of_format kind.Frame.midi;
     }
 
-  (** Compute a multiplicity from a multiplicity with variables. The [close]
-      parameter indicates whether we should fix the value of variables. *)
+  (** Compute a multiplicity from a multiplicity with variables. *)
   let get (kind : t) : Frame.content_type =
     AMultiplicity.close (Lazy.force Frame.audio_channels) kind.Frame.audio;
     VMultiplicity.close (Lazy.force Frame.video_channels) kind.Frame.video;
