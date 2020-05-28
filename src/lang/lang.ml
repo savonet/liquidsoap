@@ -54,9 +54,7 @@ let list_t t = T.make (T.List t)
 let of_list_t t =
   match (T.deref t).T.descr with T.List t -> t | _ -> assert false
 
-let ref_t t =
-  T.make (T.Constr { T.name = "ref"; T.params = [(T.Invariant, t)] })
-
+let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
