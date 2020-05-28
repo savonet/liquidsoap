@@ -20,6 +20,7 @@ def f() =
   t(!n, 5)
   s = ref("a")
   s := "b"
+  t(!s, "b")
   f = ref(id)
   f := incr
 
