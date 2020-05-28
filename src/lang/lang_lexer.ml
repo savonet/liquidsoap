@@ -155,7 +155,7 @@ let rec token lexbuf =
         let n = String.index matched '<' in
         let r = String.rindex matched '>' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE (Filename.concat Configure.libs_dir file)
+        PP_INCLUDE (Filename.concat Configure.liq_libs_dir file)
     | "%define" -> PP_DEFINE
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF

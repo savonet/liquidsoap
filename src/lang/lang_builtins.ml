@@ -63,7 +63,7 @@ let () =
         Lang.(Ground (Ground.String str))
         Lang.string_t)
     [
-      ("libdir", "library directory", Configure.libs_dir);
+      ("libdir", "library directory", Configure.liq_libs_dir);
       ("bindir", "Internal script directory", Configure.bin_dir);
       ("rundir", "PID file directory", Configure.rundir);
       ("logdir", "logging directory", Configure.logdir);
