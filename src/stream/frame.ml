@@ -282,17 +282,15 @@ type t = {
 }
 
 (** Create a content chunk. All chunks have the same size. *)
-let create_content content_type =
+let create_content ctype =
   {
     audio =
-      Array.init content_type.audio (fun _ ->
+      Array.init ctype.audio (fun _ ->
           Audio.Mono.create (audio_of_master !!size));
     video =
-      Array.init content_type.video (fun _ ->
+      Array.init ctype.video (fun _ ->
           Video.make (video_of_master !!size) !!video_width !!video_height);
-    midi =
-      Array.init content_type.midi (fun _ ->
-          MIDI.create (midi_of_master !!size));
+    midi = Array.init ctype.midi (fun _ -> MIDI.create (midi_of_master !!size));
   }
 
 let create ctype =

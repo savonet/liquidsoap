@@ -737,6 +737,13 @@ module From_audio_video_plus = struct
       map_meta = (fun x -> x);
     }
 
+  let content_type t = Tutils.mutexify t.lock (fun () -> Option.get t.ctype) ()
+
+  let set_content_type t =
+    Tutils.mutexify t.lock (fun ctype ->
+        assert (t.ctype = None);
+        t.ctype <- Some ctype)
+
   let mode t = Tutils.mutexify t.lock Super.mode t.gen
   let set_mode t mode = Tutils.mutexify t.lock (Super.set_mode t.gen) mode
   let audio_length t = Tutils.mutexify t.lock Super.audio_length t.gen
@@ -816,6 +823,12 @@ module From_audio_video_plus = struct
   let feed_from_frame ?mode t frame =
     Tutils.mutexify t.lock
       (fun () ->
+        ( match t.ctype with
+          | None -> t.ctype <- Some (Frame.content_type frame)
+          | Some ctype ->
+              if Frame.content_type frame <> ctype then (
+                t.log "Incorrect stream type!";
+                t.error <- true ) );
         if t.error then (
           Super.clear t.gen;
           t.error <- false;
