@@ -91,6 +91,8 @@ Changed:
 - Restored `request.dynamic` (#1213).
 - Requests are not typed anymore: their type is fixed at resolution time.
 - Deprecated `request.create.raw`, you should use `request.create` instead.
+- Reference setting and access are now handled as normal builtins instead of in
+  the kernel.
 
 Fixed:
 
