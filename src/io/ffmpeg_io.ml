@@ -72,7 +72,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
         with Avutil.Error _ -> None
       in
       let video =
-        try Some (Ffmpeg_decoder.mk_video_decoder ~ctype input)
+        try Some (Ffmpeg_decoder.mk_video_decoder ~ctype:self#ctype input)
         with Avutil.Error _ -> None
       in
       Ffmpeg_decoder.mk_decoder ~audio ~video ~container:input
