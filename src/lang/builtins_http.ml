@@ -37,10 +37,7 @@ let add_http_request http name descr request =
   let params =
     params
     @ [
-        ( "headers",
-          headers_t,
-          Some (Lang.list ~t:header_t []),
-          Some "Additional headers." );
+        ("headers", headers_t, Some (Lang.list []), Some "Additional headers.");
         ( "timeout",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -91,7 +88,7 @@ let add_http_request http name descr request =
           (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
           headers
       in
-      let headers = Lang.list ~t:header_t headers in
+      let headers = Lang.list headers in
       Lang.tuple [status; headers; Lang.string data])
 
 let () =

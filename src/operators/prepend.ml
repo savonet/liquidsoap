@@ -34,7 +34,7 @@ class prepend ~kind ~merge source f =
             (* We're at the beginning of a track.
              * Let's peek one sample of data and read its metadata. *)
             (* TODO how does that play with caching ? *)
-            let peek = Frame.create kind in
+            let peek = Frame.create self#ctype in
             let peekpos = AFrame.size () - 1 in
             AFrame.add_break peek peekpos;
             source#get peek;
@@ -46,11 +46,7 @@ class prepend ~kind ~merge source f =
                   | Some m ->
                       ( Utils.hashtbl_get m "liq_prepend" = Some "false",
                         Lang.metadata m )
-                  | None ->
-                      ( false,
-                        Lang.list
-                          ~t:(Lang.product_t Lang.string_t Lang.string_t)
-                          [] )
+                  | None -> (false, Lang.list [])
               in
               if inhibit then (
                 self#log#info
@@ -59,8 +55,7 @@ class prepend ~kind ~merge source f =
                 state <- `Buffer peek;
                 self#get_frame buf )
               else (
-                let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-                let prepend = Lang.to_source (Lang.apply ~t f [("", lang_m)]) in
+                let prepend = Lang.to_source (Lang.apply f [("", lang_m)]) in
                 self#register prepend;
                 if not prepend#is_ready then (
                   self#log#important "Candidate to prepending not ready. Abort!";
@@ -146,7 +141,8 @@ class prepend ~kind ~merge source f =
   end
 
 let register =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "prepend"
     [
       ( "merge",
@@ -168,7 +164,7 @@ let register =
       ( "Prepend an extra track before every track. "
       ^ "Set the metadata 'liq_prepend' to 'false' to "
       ^ "inhibit prepending on one track." )
-    (fun p kind ->
+    (fun p ->
       let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in

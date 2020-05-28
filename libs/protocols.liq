@@ -86,7 +86,7 @@ def process_protocol(~rlog,~maxtime,arg)
   if uri == "" then
     resolve("")
   else
-    r = request.create.raw(uri)
+    r = request.create(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,r) then
       res = resolve(request.filename(r))
@@ -446,7 +446,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     end
   end
 
-  r = request.create.raw(arg)
+  r = request.create(arg)
   delay = maxtime - gettimeofday()
   if request.resolve(timeout=delay,r) then
     filename = request.filename(r)
@@ -472,7 +472,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
 
     uri = process_uri(extname="wav",uri=filename,cmd)
 
-    wav_r = request.create.raw(uri)
+    wav_r = request.create(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,wav_r) then
       request.destroy(wav_r)
@@ -665,3 +665,26 @@ end
 add_protocol(static=true, temporary=true, "synth", synth_protocol,
 doc="Syntesize audio. Parameters are optional.",
 syntax="synth:shape=sine,frequency=440.,duration=10.")
+
+# File protocol
+# @flag hidden
+def file_protocol(~rlog,~maxtime,arg) =
+  path = list.nth(default="", string.split(separator=":",arg), 1)
+  segments = string.split(separator="/",path)
+
+  segments =
+    if list.length(segments) > 3 and
+       list.nth(default="foo",segments,0) == "" and
+       list.nth(default="foo",segments,1) == ""
+    then
+      list.tl(list.tl(segments))
+    else
+      segments
+    end
+
+  [url.decode(string.concat(separator="/",segments))]
+end
+
+add_protocol(static=true, temporary=false, "file", file_protocol,
+             doc="File protocol. Only local files are supported",
+             syntax="file:///path/to/file")

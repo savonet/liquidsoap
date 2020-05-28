@@ -81,7 +81,7 @@ module Transport = struct
   let read { ctx } buf ofs len = SecureTransport.read ctx buf ofs len
 
   let accept sock =
-    let sock, caller = Unix.accept sock in
+    let sock, caller = Unix.accept ~cloexec:true sock in
     let ctx =
       SecureTransport.init SecureTransport.Server SecureTransport.Stream
     in

@@ -37,8 +37,9 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
   let log_error = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let abg =
-    Generator.create ~log ~kind ~log_overfull
-      (if kind.Frame.audio = Frame.Zero then `Video else `Both)
+    Generator.create ~log ~log_overfull
+      (* (if kind.Frame.audio = Frame.Zero then `Video else `Both) *)
+      `Both
   in
   (* Maximal difference between audio and video in seconds before a warning. *)
   let vadiff = 10. in
@@ -105,7 +106,8 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
 let log = Log.make ["input"; "external"; "video"]
 
 let () =
-  let return_t = Lang.kind_type_of_kind_format Lang.audio_video_any in
+  let kind = Lang.audio_video_any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.avi" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
@@ -133,7 +135,7 @@ let () =
       ("", Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let video_format = ref None in
       let width = ref None in
@@ -190,14 +192,15 @@ let () =
                   dst )
               in
               video_converter := Some converter
-          | `Audio (channels, audio_src_rate) ->
-              let audio_src_rate = float audio_src_rate in
+          | `Audio (channels, samplerate) ->
               if !audio_converter <> None then
                 failwith "Only one audio track is supported for now.";
+              let resampler = Decoder_utils.samplerate_converter () in
+              let converter =
+                Decoder_utils.from_iff ~format:`Wav ~channels ~samplesize:16
+              in
               audio_converter :=
-                Some
-                  (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
-                     ~audio_src_rate)
+                Some (fun data -> resampler ~samplerate (converter data))
         in
         List.iter check h;
         `Continue
@@ -224,11 +227,14 @@ let () =
           | `Frame (`Audio, _, data) ->
               let converter = Utils.get_some !audio_converter in
               let data = converter data in
+              (*
               if kind.Frame.audio = Frame.Zero then
                 log#info
                   "Received audio data whereas the type indicates that there \
                    are no audio channels, ingoring it."
-              else Generator.put_audio abg data 0 (Audio.length data)
+              else
+              *)
+              Generator.put_audio abg data 0 (Audio.length data)
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -244,7 +250,8 @@ let () =
 (***** raw video *****)
 
 let () =
-  let return_t = Lang.kind_type_of_kind_format Lang.video_only in
+  let kind = Lang.video_only in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Stream data from an external application."
@@ -272,7 +279,7 @@ let () =
       ("", Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in

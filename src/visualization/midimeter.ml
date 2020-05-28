@@ -59,13 +59,14 @@ class midimeter ~kind source =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "midimeter"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.Visualization
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Display midi events."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       (new midimeter ~kind src :> Source.source))

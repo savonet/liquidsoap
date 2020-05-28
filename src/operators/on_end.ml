@@ -50,7 +50,7 @@ class on_end ~kind ~delay f s =
         (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab)
       then (
         ignore
-          (Lang.apply ~t:Lang.unit_t f
+          (Lang.apply f
              [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
         executed <- true );
       if Frame.is_partial ab then (
@@ -59,7 +59,8 @@ class on_end ~kind ~delay f s =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "on_end"
     [
       ( "delay",
@@ -84,7 +85,7 @@ let () =
       "Call a given handler when there is less than a given amount of time \
        remaining before then end of track."
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let delay = Lang.to_float_getter (List.assoc "delay" p) in
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in

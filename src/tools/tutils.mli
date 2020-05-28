@@ -33,7 +33,8 @@ val create : ('a -> unit) -> 'a -> string -> Thread.t
 
 val main : unit -> unit
 val has_started : unit -> bool
-val shutdown : unit -> unit
+val shutdown : int -> unit
+val exit_code : unit -> int
 
 (** Special exception allowed for "clean" termination of Tutils threads.
   * All other exceptions are reported as bugs. *)
@@ -54,6 +55,12 @@ type priority =
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
+(* Atom used to hook up tasks to be executed before
+   the scheduler shutdown. *)
+val scheduler_pre_shutdown_atom : Dtools.Init.t
+
+(* Atom used to hook up tasks to be executed before/after
+   the scheduler shutdown. *)
 val scheduler_shutdown_atom : Dtools.Init.t
 
 (** {1 Misc} *)

@@ -26,16 +26,22 @@ open Source
 
 class compress ~kind (source : source) attack release threshold ratio knee
   rms_window gain =
-  let channels = AFrame.channels_of_kind kind in
   let samplerate = Lazy.force Frame.audio_rate in
-  object
-    inherit operator ~name:"compress" kind [source]
+  object (self)
+    inherit operator ~name:"compress" kind [source] as super
 
-    val effect =
-      new Audio.Effect.compress
-        ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ())
-        ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ()) channels
-        samplerate
+    method private channels = self#ctype.Frame.audio
+
+    val mutable effect = None
+
+    method private wake_up a =
+      super#wake_up a;
+      effect <-
+        Some
+          (new Audio.Effect.compress
+             ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ())
+             ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ())
+             self#channels samplerate)
 
     method stype = source#stype
 
@@ -55,6 +61,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
       let b = AFrame.content buf in
       let pos = AFrame.position buf in
       let len = pos - ofs in
+      let effect = Option.get effect in
       effect#set_gain (gain ());
       effect#set_attack (attack ());
       effect#set_release (release ());
@@ -67,8 +74,8 @@ class compress ~kind (source : source) attack release threshold ratio knee
       if AFrame.is_partial buf then effect#reset
   end
 
-(* The five first variables ('a,'b...) are used for getters. *)
-let k = Lang.kind_type_of_kind_format Lang.any
+let kind = Lang.any
+let k = Lang.kind_type_of_kind_format kind
 
 let proto =
   [
@@ -99,7 +106,7 @@ let proto =
     ("", Lang.source_t k, None, None);
   ]
 
-let compress p kind =
+let compress p =
   let f v = List.assoc v p in
   let attack, release, threshold, ratio, knee, rmsw, gain, src =
     ( Lang.to_float_getter (f "attack"),

@@ -1,9 +1,7 @@
 open Id3v2
 
 let () =
-  let fname =
-    if Array.length Sys.argv > 1 then Sys.argv.(1) else "../test.mp3"
-  in
+  let fname = if Array.length Sys.argv > 1 then Sys.argv.(1) else "test.mp3" in
   if not (Sys.file_exists fname) then (
     Printf.printf "File %s not found, exiting." fname;
     exit 0 );

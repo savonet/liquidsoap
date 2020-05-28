@@ -278,7 +278,6 @@ module From_audio_video_plus : sig
   val create :
     ?lock:Mutex.t ->
     ?overfull:overfull ->
-    kind:Frame.content_kind ->
     log:(string -> unit) ->
     log_overfull:bool ->
     mode ->

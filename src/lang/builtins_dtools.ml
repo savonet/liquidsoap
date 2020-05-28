@@ -48,11 +48,11 @@ let () =
         Some "Settings description" );
       ( "on_change",
         Lang.fun_t [(false, "", univ)] Lang.unit_t,
-        Some (Lang.val_cst_fun [("", univ, None)] Lang.unit),
+        Some (Lang.val_cst_fun [("", None)] Lang.unit),
         Some "Callback executed when the setting is changed." );
       ( "validate",
         Lang.fun_t [(false, "", univ)] Lang.bool_t,
-        Some (Lang.val_cst_fun [("", univ, None)] (Lang.bool true)),
+        Some (Lang.val_cst_fun [("", None)] (Lang.bool true)),
         Some "Callback executed to validate a new value." );
       ("", Lang.string_t, None, Some "Setting key");
       ("", univ, None, Some "Setting initial value");
@@ -63,8 +63,8 @@ let () =
       let descr = Lang.to_string (List.assoc "descr" p) in
       let descr = if descr = "" then [] else [descr] in
       let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let validate = Lang.to_fun ~t:Lang.bool_t (List.assoc "validate" p) in
-      let on_change = Lang.to_fun ~t:Lang.unit_t (List.assoc "on_change" p) in
+      let validate = Lang.to_fun (List.assoc "validate" p) in
+      let on_change = Lang.to_fun (List.assoc "on_change" p) in
       let v = Lang.assoc "" 2 p in
       let make to_value b ?p ?l ?comments name =
         let conf = b ?p ?l ?comments name in
@@ -83,9 +83,7 @@ let () =
               make Lang.float (Dtools.Conf.float ~d:s)
           | Lang.List l ->
               let l = List.map Lang.to_string l in
-              let to_value l =
-                Lang.list ~t:Lang.string_t (List.map Lang.string l)
-              in
+              let to_value l = Lang.list (List.map Lang.string l) in
               make to_value (Dtools.Conf.list ~d:l)
           | Lang.Tuple [] -> Dtools.Conf.void
           | _ -> assert false
@@ -197,6 +195,5 @@ let () =
             Lang.float (get Dtools.Conf.as_float path s)
         | Lang.List l ->
             let l = List.map Lang.to_string l in
-            Lang.list ~t:Lang.string_t
-              (List.map Lang.string (get Dtools.Conf.as_list path l))
+            Lang.list (List.map Lang.string (get Dtools.Conf.as_list path l))
         | _ -> assert false)

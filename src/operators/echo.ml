@@ -23,9 +23,10 @@
 open Source
 
 class echo ~kind (source : source) delay feedback ping_pong =
-  let channels = AFrame.channels_of_kind kind in
-  object
-    inherit operator ~name:"echo" kind [source]
+  object (self)
+    inherit operator ~name:"echo" kind [source] as super
+
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 
@@ -39,10 +40,15 @@ class echo ~kind (source : source) delay feedback ping_pong =
 
     method abort_track = source#abort_track
 
-    val effect =
-      Audio.Effect.delay channels
-        (Lazy.force Frame.audio_rate)
-        ~ping_pong (delay ()) (feedback ())
+    val mutable effect = None
+
+    method private wake_up a =
+      super#wake_up a;
+      effect <-
+        Some
+          (Audio.Effect.delay self#channels
+             (Lazy.force Frame.audio_rate)
+             ~ping_pong (delay ()) (feedback ()))
 
     val mutable past_pos = 0
 
@@ -51,13 +57,15 @@ class echo ~kind (source : source) delay feedback ping_pong =
       source#get buf;
       let b = AFrame.content buf in
       let position = AFrame.position buf in
+      let effect = Option.get effect in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
       effect#process (Audio.sub b offset (position - offset))
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "echo"
     [
       ( "delay",
@@ -75,7 +83,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Add echo."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let duration, feedback, pp, src =
         ( Lang.to_float_getter (f "delay"),

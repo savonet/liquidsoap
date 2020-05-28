@@ -143,11 +143,8 @@ let lang_doc name =
 let process_request s =
   load_libs ();
   secondary_task := true;
-  let kind =
-    { Frame.audio = Frame.Any; Frame.video = Frame.Any; Frame.midi = Frame.Any }
-  in
-  let req = Request.create ~kind s in
-  match Request.resolve req 20. with
+  let req = Request.create s in
+  match Request.resolve ~ctype:None req 20. with
     | Request.Failed ->
         Printf.printf "Request resolution failed.\n";
         Request.destroy req;
@@ -475,7 +472,7 @@ let options =
         Arg.Clear pervasives,
         Printf.sprintf
           "Do not load pervasives script libraries (i.e., %s/*.liq)."
-          Configure.libs_dir );
+          Configure.liq_libs_dir );
       (["-i"], Arg.Set Configure.display_types, "Display infered types.");
       ( ["--version"],
         Arg.Unit
@@ -624,6 +621,8 @@ module Make (Runner : Runner_t) = struct
       cleanup_final ()
     in
     let after_stop () =
+      let code = Tutils.exit_code () in
+      if code <> 0 then exit code;
       if !Configure.restart then (
         log#important "Restarting...";
         Unix.execv Sys.executable_name Sys.argv )
@@ -640,7 +639,7 @@ module Make (Runner : Runner_t) = struct
        * since dtools doesn't do it. *)
       if Sys.win32 then
         Sys.set_signal Sys.sigint
-          (Sys.Signal_handle (fun _ -> Tutils.shutdown ()));
+          (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
 
       (* TODO if start fails (e.g. invalid password or mountpoint) it
        *   raises an exception and dtools catches it so we don't get
@@ -654,7 +653,8 @@ module Make (Runner : Runner_t) = struct
          ~before:[Tutils.scheduler_shutdown_atom]
          cleanup_threads);
     ignore (Dtools.Init.make ~before:[Dtools.Log.stop] cleanup_final);
-    ignore (Dtools.Init.make ~after:[Dtools.Init.stop] after_stop);
+    (* Note: [Dtools.Log.stop] is executed _after_ [Dtools.Init.stop] *)
+    ignore (Dtools.Init.make ~after:[Dtools.Log.stop] after_stop);
     startup ();
     if !interactive then (
       load_libs ();
@@ -696,5 +696,6 @@ module Make (Runner : Runner_t) = struct
       not !secondary_task
     then (
       cleanup ();
-      Printf.printf "No output defined, nothing to do.\n" )
+      Printf.printf "No output defined, nothing to do.\n";
+      exit 1 )
 end

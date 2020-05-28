@@ -83,9 +83,9 @@ let allow_streaming_errors =
 let leave (s : active_source) =
   try s#leave (s :> source)
   with e ->
+    let bt = Printexc.get_backtrace () in
     log#severe "Error when leaving output %s: %s!" s#id (Printexc.to_string e);
-    List.iter (log#important "%s")
-      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
+    List.iter (log#important "%s") (Pcre.split ~pat:"\n" bt)
 
 (** {1 Clock implementation}
   * One could think of several clocks for isolated parts of a script.
@@ -288,10 +288,10 @@ class clock ?(sync = `Auto) id =
               s#output;
               (e, s :: a)
             with exn ->
+              let bt = Printexc.get_backtrace () in
               log#severe "Source %s failed while streaming: %s!" s#id
                 (Printexc.to_string exn);
-              List.iter (log#important "%s")
-                (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()));
+              List.iter (log#important "%s") (Pcre.split ~pat:"\n" bt);
               leave s;
               (s :: e, a))
           ([], []) active
@@ -310,7 +310,7 @@ class clock ?(sync = `Auto) id =
          * In any case, we can't just raise an exception here, otherwise
          * the streaming thread (method private run) will die and won't
          * be able to leave all sources. *)
-        if not allow_streaming_errors#get then Tutils.shutdown () );
+        if not allow_streaming_errors#get then Tutils.shutdown 1 );
       round <- round + 1;
       List.iter (fun s -> s#after_output) active
 
@@ -348,10 +348,10 @@ class clock ?(sync = `Auto) id =
                 s#get_ready [(s :> source)];
                 `Woken_up s
               with e ->
+                let bt = Printexc.get_backtrace () in
                 log#severe "Error when starting %s: %s!" s#id
                   (Printexc.to_string e);
-                List.iter (log#important "%s")
-                  (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()));
+                List.iter (log#important "%s") (Pcre.split ~pat:"\n" bt);
                 leave s;
                 `Error s)
             to_start
@@ -365,10 +365,10 @@ class clock ?(sync = `Auto) id =
                     s#output_get_ready;
                     `Started s
                   with e ->
+                    let bt = Printexc.get_backtrace () in
                     log#severe "Error when starting output %s: %s!" s#id
                       (Printexc.to_string e);
-                    List.iter (log#important "%s")
-                      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()));
+                    List.iter (log#important "%s") (Pcre.split ~pat:"\n" bt);
                     leave s;
                     `Error s ))
             to_start
@@ -399,7 +399,7 @@ class clock ?(sync = `Auto) id =
               (leaving, errors))
             ()
         in
-        if !started <> `Yes && errors <> [] then Tutils.shutdown ();
+        if !started <> `Yes && errors <> [] then Tutils.shutdown 1;
         if leaving <> [] then (
           log#info "Stopping %d sources..." (List.length leaving);
           List.iter (fun (s : active_source) -> leave s) leaving );

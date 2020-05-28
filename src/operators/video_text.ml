@@ -108,7 +108,8 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
   end
 
 let register name init render_text =
-  let k = Lang.kind_type_of_kind_format (Lang.any_with ~video:1 ()) in
+  let kind = Lang.any_with ~video:1 () in
+  let k = Lang.kind_type_of_kind_format kind in
   let add_operator op =
     Lang.add_operator op
       [
@@ -144,7 +145,7 @@ let register name init render_text =
         ("", Lang.source_t k, None, None);
       ]
       ~return_t:k ~category:Lang.VideoProcessing ~descr:"Display a text."
-      (fun p kind ->
+      (fun p ->
         let f v = List.assoc v p in
         let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
           ( Lang.to_string (f "font"),

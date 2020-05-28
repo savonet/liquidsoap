@@ -45,7 +45,7 @@ let () =
     (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let f () = ignore (Lang.apply f [] ~t:Lang.unit_t) in
+      let f () = ignore (Lang.apply f []) in
       Profiler.time name f ();
       Lang.unit)
 

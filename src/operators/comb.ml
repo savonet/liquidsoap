@@ -26,9 +26,8 @@ open Source
 
 class comb ~kind (source : source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
-  let channels = AFrame.channels_of_kind kind in
-  object
-    inherit operator ~name:"comb" kind [source]
+  object (self)
+    inherit operator ~name:"comb" kind [source] as super
 
     method stype = source#stype
 
@@ -42,7 +41,13 @@ class comb ~kind (source : source) delay feedback =
 
     method abort_track = source#abort_track
 
-    val past = Audio.make channels past_len 0.
+    method private channels = self#ctype.Frame.audio
+
+    val mutable past = Audio.make 0 0 0.
+
+    method private wake_up s =
+      super#wake_up s;
+      past <- Audio.make self#channels past_len 0.
 
     val mutable past_pos = 0
 
@@ -63,7 +68,8 @@ class comb ~kind (source : source) delay feedback =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "comb"
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
@@ -74,7 +80,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"Comb filter."
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let duration, feedback, src =
         ( Lang.to_float (f "delay"),

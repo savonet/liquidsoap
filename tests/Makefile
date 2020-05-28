@@ -1,24 +1,26 @@
-.PHONY: test flactest
+.PHONY: test
 
-DISTFILES = Makefile $(wildcard *.liq) $(wildcard *.pl)
-LIQ = $(sort $(filter-out test.liq, $(wildcard *.liq)))
-TESTS = $(basename $(LIQ))
+DISTFILES = Makefile $(wildcard *.sh) $(wildcard *.liq) $(wildcard *.pl)
+SUBDIRS = fixme media language regression
 
 top_srcdir = ..
 
-test: flactest $(TESTS)
+test:
+	@$(MAKE) -C language $@
+	@$(MAKE) -C streams $@
+	@$(MAKE) -C media $@
+	@$(MAKE) -C regression $@
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
+	@echo
+	@echo
+	$(MAKE) performance
 
-%: %.liq
-	@./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q $(top_srcdir)/libs/pervasives.liq -" $<
+performance: performance.liq
+	@echo "***** Performance tests *****"
+	@../src/liquidsoap ../libs/pervasives.liq --force-start ./performance.liq
 
-flactest: flactest/a.flac
-MKFLAC=$(top_srcdir)/src/liquidsoap  --no-pervasives -q $(top_srcdir)/libs/pervasives.liq \
-          "clock.assign_new(sync='none',[ \
-          output.file(%flac,'$$fname',fallible=true,on_stop=shutdown, \
-          once(sine(duration=2.)))])"
-flactest/a.flac: $(top_srcdir)/src/liquidsoap Makefile
-	mkdir -p flactest
-	fname=$@ ; $(MKFLAC)
+perf:
+	perf record --call-graph=dwarf -- ../src/liquidsoap ../libs/pervasives.liq performance.liq
+	perf report
 
 include $(top_srcdir)/Makefile.rules
