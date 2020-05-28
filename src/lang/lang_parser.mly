@@ -254,7 +254,7 @@ expr:
   | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | varlist                          { mk ~pos:$loc (List $1) }
-  | REF expr                         { mk ~pos:$loc (Ref $2) }
+  | REF expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "ref"), ["", $2])) }
   | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "ref.get"), ["", $2])) }
   | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var "ref.set"), ["", $1; "", $3])) }
   | MP3 app_opt                      { mk_enc ~pos:$loc (Lang_mp3.make_cbr $2) }

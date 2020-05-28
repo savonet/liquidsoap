@@ -120,6 +120,7 @@ let product a b = tuple [a; b]
 let list l = mk (List l)
 let source s = mk (Source s)
 let request r = mk (Ground (Request r))
+let reference x = mk (Ref x)
 
 let val_fun p f =
   let p' = List.map (fun (l, x, d) -> (l, x, d)) p in
@@ -314,7 +315,6 @@ let iter_sources f v =
     match v.Term.term with
       | Term.Ground _ | Term.Encoder _ -> ()
       | Term.List l -> List.iter (iter_term env) l
-      | Term.Ref a -> iter_term env a
       | Term.Tuple l -> List.iter (iter_term env) l
       | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
           iter_term env a;

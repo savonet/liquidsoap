@@ -24,6 +24,14 @@ open Lang_builtins
 
 let () =
   let a = Lang.univ_t () in
+  add_builtin "ref" ~cat:Liq
+    ~descr:"Create a reference, i.e. a value which can be modified."
+    [("", a, None, None)] (Lang.ref_t a) (fun p ->
+      let x = List.assoc "" p in
+      Lang.reference (ref x))
+
+let () =
+  let a = Lang.univ_t () in
   add_builtin "ref.get" ~cat:Liq ~descr:"Retrieve the contents of a reference."
     [("", Lang.ref_t a, None, None)]
     a
