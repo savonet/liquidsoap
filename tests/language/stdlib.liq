@@ -4,7 +4,7 @@
 
 success = ref(true)
 
-def test(x, y)
+def t(x, y)
   if x != y then
     print("Failure: got #{x} instead of #{y}")
     success := false
@@ -12,10 +12,10 @@ def test(x, y)
 end
 
 def f() =
-  test(getenv("BLAXXX"),"")
-  test(file.is_directory("/"), true)
-  test(file.is_directory("~"), true)
-  test(file.is_directory("XXX"), false)
+  t(getenv("BLAXXX"),"")
+  t(file.is_directory("/"), true)
+  t(file.is_directory("~"), true)
+  t(file.is_directory("XXX"), false)
 
   if !success then test.pass() else test.fail() end
 end

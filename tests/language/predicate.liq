@@ -24,23 +24,23 @@ def predicate.from(n)
   end
 end
 
-def test(x, y)
+def t(x, y)
   if x != y then
     print("Failure: got #{x} instead of #{y}")
     success := false
   end
 end
 
-def testl(p, l)
-  test(predicate.to_list(4, p), l)
+def tl(p, l)
+  t(predicate.to_list(4, p), l)
 end
 
 def f() =
-  testl(predicate.nth(2), [false,false,true,false])
-  testl(predicate.from(2), [false,false,true,true])
-  testl(predicate.activates(predicate.from(2)), [false,false,true,false])
-  testl(predicate.changes(predicate.nth(2)), [false,true,true,false])
-  testl(predicate.once(predicate.from(2)), [false,false,true,false])
+  tl(predicate.nth(2), [false,false,true,false])
+  tl(predicate.from(2), [false,false,true,true])
+  tl(predicate.activates(predicate.from(2)), [false,false,true,false])
+  tl(predicate.changes(predicate.nth(2)), [false,true,true,false])
+  tl(predicate.once(predicate.from(2)), [false,false,true,false])
 
   if !success then test.pass() else test.fail() end
 end
