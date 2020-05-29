@@ -322,8 +322,7 @@ let iter_sources f v =
           iter_term env a;
           iter_term env b
       | Term.Invoke (a, _) -> iter_term env a
-      | Term.Let { Term.def = a; body = b; _ }
-      | Term.Seq (a, b)
+      | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
           iter_term env a;
           iter_term env b
       | Term.Var v -> (
