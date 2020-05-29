@@ -804,25 +804,29 @@ exception Type_Error of explanation
 let print_type_error error_header (flipped, ta, tb, a, b) =
   error_header
     (match ta.pos with None -> "At unknown position" | Some p -> print_pos p);
-  let inferred_pos a =
-    let dpos = (deref a).pos in
-    if a.pos = dpos then ""
-    else (
-      match dpos with
-        | None -> ""
-        | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")" )
-  in
-  let ta, tb, a, b = if flipped then (tb, ta, b, a) else (ta, tb, a, b) in
-  Format.printf "this value has type@.@[<2>  %a@]%s@ " print_repr a
-    (inferred_pos ta);
-  Format.printf "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
-    (if flipped then "super" else "sub")
-    ( match tb.pos with
-      | None -> ""
-      | Some p ->
-          Printf.sprintf " the type of the value at %s" (print_pos ~prefix:"" p)
-      )
-    print_repr b (inferred_pos tb)
+  match b with
+    | `Meth (l, ([], `Ellipsis), `Ellipsis) ->
+        Format.printf "this value does not have a field %s.@]@." l
+    | _ ->
+        let inferred_pos a =
+          let dpos = (deref a).pos in
+          if a.pos = dpos then ""
+          else (
+            match dpos with
+              | None -> ""
+              | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")" )
+        in
+        let ta, tb, a, b = if flipped then (tb, ta, b, a) else (ta, tb, a, b) in
+        Format.printf "this value has type@.@[<2>  %a@]%s@ " print_repr a
+          (inferred_pos ta);
+        Format.printf "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
+          (if flipped then "super" else "sub")
+          ( match tb.pos with
+            | None -> ""
+            | Some p ->
+                Printf.sprintf " the type of the value at %s"
+                  (print_pos ~prefix:"" p) )
+          print_repr b (inferred_pos tb)
 
 let doc_of_type ~generalized t =
   let margin = Format.pp_get_margin Format.str_formatter () in
