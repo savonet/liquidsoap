@@ -36,7 +36,6 @@ let () =
       "output";
       "os";
       "playlist";
-      "ref";
       "reopen";
       "request";
       "request.dynamic";

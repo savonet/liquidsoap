@@ -1,7 +1,9 @@
+#!../../src/liquidsoap ../../libs/builtins.liq
+
 %include "test.liq"
 
-count = ref 1
-fail = ref false
+count = ref(1)
+fail = ref(false)
 
 def echo(s)
   # system("echo "^quote(s))
