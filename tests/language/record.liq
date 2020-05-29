@@ -11,36 +11,39 @@ def t(x, y)
   end
 end
 
-# Basic checks
-r = {{ 2 | a = 8 , b = 12 , f = fun(x) -> 2 * x }}
-t(1+r, 3)
-t(r.b, 12)
-t(r.a, 8)
-t(r.f(5), 10)
+def f() =
+  # Basic checks
+  r = {{ 2 | a = 8 , b = 12 , f = fun(x) -> 2 * x }}
+  t(1+r, 3)
+  t(r.b, 12)
+  t(r.a, 8)
+  t(r.f(5), 10)
 
-# Test overriding with subfields
-r = ()
-let r.f = ()
-let r.f.variant = 7
-let r.f = r.f.variant
-# let r = {{ r | f = r.f.variant }}
-ignore(r)
+  # Test overriding with subfields
+  r = ()
+  let r.f = ()
+  let r.f.variant = 7
+  let r.f = r.f.variant
+  # let r = {{ r | f = r.f.variant }}
+  ignore(r)
 
-# A resetable counter
+  # A resetable counter
+  n = ref(0)
+  def counter()
+    n := !n + 1
+    !n
+  end
+  def counter.reset()
+    n := 0
+  end
 
-n = ref(0)
-def counter()
-  n := !n + 1
-  !n
+  ignore(counter())
+  ignore(counter())
+  t(counter(), 3)
+  counter.reset()
+  t(counter(), 1)
+
+  if !success then test.pass() else test.fail() end
 end
-def counter.reset()
-  n := 0
-end
 
-ignore(counter())
-ignore(counter())
-t(counter(), 3)
-counter.reset()
-t(counter(), 1)
-
-if !success then test.pass() else test.fail() end
+test.check(f)
