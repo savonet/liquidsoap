@@ -54,6 +54,7 @@ let list_t t = T.make (T.List t)
 let of_list_t t =
   match (T.deref t).T.descr with T.List t -> t | _ -> assert false
 
+let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
@@ -119,6 +120,7 @@ let product a b = tuple [a; b]
 let list l = mk (List l)
 let source s = mk (Source s)
 let request r = mk (Ground (Request r))
+let reference x = mk (Ref x)
 
 let val_fun p f =
   let p' = List.map (fun (l, x, d) -> (l, x, d)) p in
@@ -315,7 +317,6 @@ let iter_sources f v =
     match v.Term.term with
       | Term.Ground _ | Term.Encoder _ -> ()
       | Term.List l -> List.iter (iter_term env) l
-      | Term.Ref a | Term.Get a -> iter_term env a
       | Term.Tuple l -> List.iter (iter_term env) l
       | Term.Meth (_, a, b) ->
           iter_term env a;
@@ -323,7 +324,6 @@ let iter_sources f v =
       | Term.Invoke (a, _) -> iter_term env a
       | Term.Let { Term.def = a; body = b; _ }
       | Term.Seq (a, b)
-      | Term.Set (a, b) ->
           iter_term env a;
           iter_term env b
       | Term.Var v -> (
@@ -474,6 +474,8 @@ let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
 
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
+
+let to_ref t = match t.value with Ref r -> r | _ -> assert false
 
 let to_metadata_list t =
   let pop v =

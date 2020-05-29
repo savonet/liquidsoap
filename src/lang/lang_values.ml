@@ -208,9 +208,6 @@ and in_term =
   | Tuple of term list
   | Meth of string * term * term
   | Invoke of term * string
-  | Ref of term
-  | Get of term
-  | Set of term * term
   | Let of let_t
   | Var of string
   | Seq of term * term
@@ -233,10 +230,10 @@ and pattern =
 let unit = Tuple []
 
 (* Only used for printing very simple functions. *)
-let rec is_ground x =
+let is_ground x =
   match x.term with
     | Ground _ | Encoder _ -> true
-    | Ref x -> is_ground x
+    (* | Ref x -> is_ground x *)
     | _ -> false
 
 (** Print terms, (almost) assuming they are in normal form. *)
@@ -249,7 +246,6 @@ let rec print_term v =
     | Meth (l, v, e) ->
         "{{ " ^ print_term e ^ " | " ^ l ^ " = " ^ print_term v ^ " }}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
-    | Ref a -> Printf.sprintf "ref(%s)" (print_term a)
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
     | Var s -> s
@@ -261,7 +257,7 @@ let rec print_term v =
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
-    | Let _ | Seq _ | Get _ | Set _ -> assert false
+    | Let _ | Seq _ -> assert false
 
 let rec string_of_pat = function
   | PVar x -> x
@@ -275,10 +271,9 @@ let rec free_vars tm =
   match tm.term with
     | Ground _ | Encoder _ -> Vars.empty
     | Var x -> Vars.singleton x
-    | Ref r | Get r -> free_vars r
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
-    | Seq (a, b) | Set (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
     | Invoke (e, _) -> free_vars e
     | List l ->
@@ -325,12 +320,9 @@ let check_unused ~lib tm =
     match tm.term with
       | Var s -> Vars.remove s v
       | Ground _ | Encoder _ -> v
-      | Ref r -> check v r
-      | Get r -> check v r
       | Tuple l -> List.fold_left (fun a -> check a) v l
       | Meth (_, f, e) -> check (check v e) f
       | Invoke (e, _) -> check v e
-      | Set (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b
       | List l -> List.fold_left (fun x y -> check x y) v l
       | App (hd, l) ->
@@ -393,8 +385,6 @@ let rec map_types f gen tm =
   in
   match tm.term with
     | Ground _ | Encoder _ | Var _ -> { tm with t = f gen tm.t }
-    | Ref r -> { t = f gen tm.t; term = Ref (map_types f gen r) }
-    | Get r -> { t = f gen tm.t; term = Get (map_types f gen r) }
     | Tuple l -> { t = f gen tm.t; term = Tuple (List.map (map_types f gen) l) }
     | Meth (l, x, e) ->
         {
@@ -404,8 +394,6 @@ let rec map_types f gen tm =
     | Invoke (e, l) -> { t = f gen tm.t; term = Invoke (map_types f gen e, l) }
     | Seq (a, b) ->
         { t = f gen tm.t; term = Seq (map_types f gen a, map_types f gen b) }
-    | Set (a, b) ->
-        { t = f gen tm.t; term = Set (map_types f gen a, map_types f gen b) }
     | List l -> { t = f gen tm.t; term = List (List.map (map_types f gen) l) }
     | App (hd, l) ->
         {
@@ -734,17 +722,6 @@ let rec check ?(print_toplevel = false) ~level ~env e =
                 x
         in
         e.t >: aux a.t
-    | Ref a ->
-        check ~level ~env a;
-        e.t >: ref_t ~pos ~level a.t
-    | Get a ->
-        check ~level ~env a;
-        a.t <: ref_t ~pos ~level e.t
-    | Set (a, b) ->
-        check ~level ~env a;
-        check ~level ~env b;
-        a.t <: ref_t ~pos ~level b.t;
-        e.t >: mk T.unit
     | Seq (a, b) ->
         check ~env ~level a;
         if not (can_ignore a.t) then raise (Ignored a);
@@ -929,15 +906,6 @@ let rec eval ~env tm =
             | _ -> failwith ("Fatal error: invoked method " ^ l ^ " not found")
         in
         aux (eval ~env t)
-    | Ref v -> mk (V.Ref (ref (eval ~env v)))
-    | Get r -> (
-        match (eval ~env r).V.value with V.Ref r -> !r | _ -> assert false )
-    | Set (r, v) -> (
-        match (eval ~env r).V.value with
-          | V.Ref r ->
-              r := eval ~env v;
-              mk V.unit
-          | _ -> assert false )
     | Let { pat; def = v; body = b; _ } ->
         let v = eval ~env v in
         let env =
