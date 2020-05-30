@@ -452,7 +452,7 @@ class clock ?(sync = `Auto) id =
   * only the first part is done within critical section.
   *
   * The last trick is that we start with a fake task (after_collect_tasks=1)
-  * to avoid that the initial parsing of files triggers collect and thus
+  * to make sure that the initial parsing of files does not triggers collect and thus
   * a too early initialization of outputs (before daemonization). Main is
   * in charge of finishing that virtual task and trigger the initial
   * collect. *)
