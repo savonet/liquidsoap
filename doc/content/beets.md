@@ -174,6 +174,7 @@ end
 add_protocol("beets", beets_protocol)
 ```
 
+Before cleaning files created by `file.temp`:
 `beet random` returns only one track matching the query, remember ?
 We can add `-t 60` to the query,
 so it will return at most one hour of music matching the query.
@@ -195,3 +196,16 @@ Also Beets tends to fill the last minutes with short songs,
 therefore short songs are picked more frequently than others.
 You can mitigate these two problems by reloading before the playlist end,
 by increasing `60` decreasing `3600`.
+
+Another downside of this technique is that it creates a different playlist file
+each time we reload the playlist.
+After a while, your `/tmp` will be filled of files like `beetsplaylistXXXX123.m3u8`.
+On UNIX we can add a cleanup function that regularly calls `find -delete`:
+
+```liquidsoap
+exec_at(freq=3600., pred={ true },
+  fun () -> list.iter(fun(msg) -> log(msg, label="playlists_cleaner"),
+    get_process_lines("find /tmp -iname beetsplaylist*m3u8 -mtime +0 -delete"),
+  )
+)
+```
