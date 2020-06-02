@@ -1041,7 +1041,8 @@ let toplevel_add (doc, params) pat ~t v =
   in
   List.iter
     (fun (s, _) ->
-      Printf.eprintf "WARNING: Unused @param %S for %s!\n" s (string_of_pat pat))
+      Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
+        (string_of_pat pat) (T.print_pos_opt v.V.pos))
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
   List.iter
