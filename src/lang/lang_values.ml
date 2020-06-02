@@ -820,8 +820,6 @@ let check ?(ignored = false) e =
   let print_toplevel = !Configure.display_types in
   try
     let env = default_typing_environment () in
-    (* Printf.printf "Typing env\n%!"; *)
-    (* List.iter (fun (x,(g,t)) -> Printf.printf "%s : %s\n%!" x (T.print ~generalized:g t)) env; *)
     check ~print_toplevel ~level:(List.length env) ~env e;
     if print_toplevel && (T.deref e.t).T.descr <> T.unit then
       add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t);
