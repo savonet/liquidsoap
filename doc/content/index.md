@@ -64,6 +64,6 @@ applications using the Python module for controlling a running liquidsoap:
 `liguidsoap` (distributed with liquidsoap) and `soapbox` (another project of 
 Savonet).
 
-Liquidsoap doesn't do any database or website stuff. It won't index your audio files, it won't allow your users to score songs on the web, etc. However, liquidsoap makes the interfacing with other tools easy, since it can call an external application (reading from the database) to get audio tracks, another one (updating last-played information) to notify that some file has been successfully played. The simplest example of this is [bubble](bubble.html), RadioPi also has a more complex system of its own along these lines.
+Liquidsoap doesn't do any database or website stuff. It won't index your audio files, it won't allow your users to score songs on the web, etc. However, liquidsoap makes the interfacing with other tools easy, since it can call an external application (reading from the database) to get audio tracks, another one (updating last-played information) to notify that some file has been successfully played. An example of this is [Beets](beets.html), RadioPi also has a more complex system of its own along these lines.
 
 

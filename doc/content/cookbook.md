@@ -177,17 +177,19 @@ request.dynamic.list(
         get_process_lines("cat "^quote("playlist.pls")))] })
 ```
 
-Of course a more interesting behaviour is obtained with a more interesting program than `cat`.
+Of course a more interesting behaviour is obtained with a more interesting program than `cat`, see [Beets](beet.html) for example.
 
-Another way of using an external program is to define a new protocol which uses it to resolve URIs. `add_protocol` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program, that's how we use [bubble](bubble.html) for example:
+Another way of using an external program is to define a new protocol which uses it to resolve URIs. `add_protocol` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program ; it is another way to integrate [Beets](beet.html), for example:
 
 ```liquidsoap
-add_protocol("bubble",
-  fun (arg,delay) ->
-    get_process_lines("/usr/bin/bubble-query "^quote(arg)))
+add_protocol("beets", fun(~rlog,~maxtime,arg) ->
+  get_process_lines(
+    "/home/me/path/to/beet random -f '$path' #{arg}"
+  )
+)
 ```
 
-When resolving the URI `bubble:artist="seed"`, liquidsoap will call the function, which will call `bubble-query 'artist="seed"'` which will output 10 lines, one URI per line.
+When resolving the URI `beets:David Bowie`, liquidsoap will call the function, which will call `beet random -f '$path' David Bowie` which will output the path to a David Bowie song.
 
 Dynamic input with harbor
 -------------------------
