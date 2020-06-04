@@ -147,6 +147,8 @@ and var = int * constraints
 
 and scheme = var list * t
 
+type env = (string * scheme) list
+
 let unit = Tuple []
 
 type repr =

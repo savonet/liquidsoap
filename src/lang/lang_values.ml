@@ -636,7 +636,7 @@ let rec type_of_pat ~level ~pos = function
  * [level] should be the sum of the lengths of [env] and [builtins],
  * that is the size of the typing context, that is the number of surrounding
  * abstractions. *)
-let rec check ?(print_toplevel = false) ~level ~env e =
+let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
   (* The role of this function is not only to type-check but also to assign
    * meaningful levels to type variables, and unify the types of
    * all occurrences of the same variable, since the parser does not do it. *)
