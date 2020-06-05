@@ -530,17 +530,6 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         (* x.l1.l2.l3 = v means
            x = (x where l1 = (x.l1 where l2 = (x.l1.l2 where l3 = v)))
         *)
-        (*
-let _ =
-  let x = "x" in
-  let v = "v" in
-  let rec aux prefix = function
-    | l::ll -> Printf.sprintf "%s.%s where (%s = %s)" x (String.concat "." (List.rev prefix)) l (aux (l::prefix) ll)
-    | [] -> v
-  in
-  let ll = ["l1"; "l2"; "l3"] in
-  Printf.sprintf "%s = %s" x (aux [] ll)
-    *)
         let rec aux prefix = function
           | l :: ll ->
               let v = V.invokes xv (List.rev prefix) in
