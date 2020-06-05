@@ -543,7 +543,8 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
               let vg, vt = T.invokes t0 (List.rev prefix) in
               let lvt, lv = aux (l :: prefix) ll in
               let t =
-                T.make (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
+                T.make ~pos:vt.T.pos
+                  (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
               in
               (t, { V.pos = None; value = V.Meth (l, lv, v) })
           | [] -> (t, v)
