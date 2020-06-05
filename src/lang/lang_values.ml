@@ -1044,7 +1044,6 @@ let eval ?env tm =
     evaluation of the next scripts. Also try to generate a structured
     documentation from the source code. *)
 let toplevel_add (doc, params) pat ~t v =
-  Printf.printf "add: %s\n%!" (string_of_pat pat);
   let generalized, t = t in
   let ptypes = match (T.deref t).T.descr with T.Arrow (p, _) -> p | _ -> [] in
   let pvalues =
