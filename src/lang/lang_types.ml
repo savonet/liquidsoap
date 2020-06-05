@@ -189,7 +189,7 @@ let rec invoke t l =
   match (deref t).descr with
     | Meth (l', t, _) when l = l' -> t
     | Meth (_, _, t) -> invoke t l
-    | _ -> assert false
+    | _ -> raise Not_found
 
 let rec invokes t = function
   | l :: ll ->
@@ -199,6 +199,21 @@ let rec invokes t = function
         assert (g = []);
         invokes t ll )
   | [] -> ([], t)
+
+let meth ?pos ?level l v t = make ?pos ?level (Meth (l, v, t))
+
+let rec meths ?pos ?level l v t =
+  match l with
+    | [] -> assert false
+    | [l] -> meth ?pos ?level l v t
+    | l :: ll ->
+        let tl =
+          let g, tl = invoke t l in
+          assert (g = []);
+          tl
+        in
+        let v = meths ?pos ?level ll v tl in
+        meth ?pos ?level l ([], v) t
 
 (** Given a strictly positive integer, generate a name in [a-z]+:
   * a, b, ... z, aa, ab, ... az, ba, ... *)

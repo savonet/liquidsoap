@@ -81,16 +81,37 @@ val doc_of_type : generalized:var list -> t -> Doc.item
 
 exception Occur_check of t * t
 
+(** [occur_check x t] ensures that a variable [x] does not occur in [t]. Raises
+    [Occur_check] if it is the case. *)
 val occur_check : t -> t -> unit
 
 exception Unsatisfied_constraint of constr * t
 
+(** [bind x t] assigns a value [t] to a variable [x]. *)
 val bind : t -> t -> unit
+
+(** Remove links in a type: this function should always be called before
+    matching on types. *)
 val deref : t -> t
+
+(** Add a method to a type. *)
+val meth : ?pos:pos option -> ?level:int -> string -> scheme -> t -> t
+
+(** Add a submethod to a type. *)
+val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
+
+(** Remove all methods in a type. *)
 val demeth : t -> t
+
+(** Type of a method in a type. *)
 val invoke : t -> string -> scheme
+
+(** Type of a submethod in a type. *)
 val invokes : t -> string list -> scheme
+
+(** Find all the free variables satisfying a predicate. *)
 val filter_vars : (t -> bool) -> t -> var list
+
 val copy_with : Subst.t -> t -> t
 val instantiate : level:int -> generalized:var list -> t -> t
 val generalizable : level:int -> t -> var list

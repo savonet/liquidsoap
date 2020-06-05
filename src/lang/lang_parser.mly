@@ -45,28 +45,8 @@
   let mk_let ~pos (doc,pat,def) body =
     mk ~pos (Let { doc ; pat ; gen = [] ; def ; body })
 
-  let mk_let ~pos (doc,pat,def) body =
-    match pat with
-    | PVar x when String.contains x '.' ->
-       let x = String.split_on_char '.' x in
-       let ll = List.tl x in
-       let x  = List.hd x in
-       let rec aux prefix = function
-         | l::ll ->
-            let rec invokes x = function
-              | l::ll -> invokes (mk ~pos (Invoke (x, l))) ll
-              | [] -> x
-            in
-            let x = invokes (mk ~pos (Var x)) (List.rev prefix) in
-            let lv = aux (l::prefix) ll in
-            mk ~pos (Meth (l, lv, x))
-         | [] -> def
-       in
-       mk_let ~pos (doc, PVar x, aux [] ll) body
-    | _ -> mk_let ~pos (doc, pat, def) body
-
   let mk_rec_fun ~pos pat args body =
-    let name = match pat with PVar name -> name | _ -> assert false in
+    let name = match pat with PVar [name] -> name | _ -> assert false in
     let bound = List.map (fun (_,x,_,_) -> x) args in
     let bound = name::bound in
     let fv = Lang_values.free_vars ~bound body in
@@ -404,22 +384,22 @@ bindvar:
   | UNDERSCORE { "_" }
 
 pattern:
-  | bindvar { PVar $1 }
+  | bindvar { PVar [$1] }
   | LPAR pattern_list RPAR { PTuple $2 }
 
 subfield:
-  | VAR DOT in_subfield { $1^"."^$3 }
+  | VAR DOT in_subfield { $1::$3 }
 
 in_subfield:
-  | VAR { $1 }
-  | VAR DOT in_subfield { $1^"."^$3 }
+  | VAR { [$1] }
+  | VAR DOT in_subfield { $1::$3 }
 
 pattern_list:
   | pattern COMMA pattern { [$1;$3] }
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | bindvar GETS expr { (Doc.none (),[]),PVar $1,$3 }
+  | bindvar GETS expr { (Doc.none (),[]),PVar [$1],$3 }
   | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
   | LET subfield GETS expr { (Doc.none (),[]),PVar $2,$4 }
   | DEF pattern g exprs END {
@@ -434,16 +414,16 @@ binding:
   /* We don't handle recursive fields for now... */
   | DEF REC VARLPAR arglist RPAR g exprs END {
       let doc = $1 in
-      let pat = PVar $3 in
+      let pat = PVar [$3] in
       let arglist = $4 in
       let body = mk_rec_fun ~pos:$loc pat arglist $7 in
       doc,pat,body
     }
 
 varlpar:
-  | VARLPAR         { $1 }
-  | VAR DOT varlpar { $1^"."^$3 }
-  | REF DOT varlpar { "ref."^$3 }
+  | VARLPAR         { [$1] }
+  | VAR DOT varlpar { $1::$3 }
+  | REF DOT varlpar { "ref"::$3 }
 
 arglist:
   |                   { [] }

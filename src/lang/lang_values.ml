@@ -224,7 +224,7 @@ and in_term =
 (* A recursive function, the first string is the name of the recursive
    variable. *)
 and pattern =
-  | PVar of string  (** a variable *)
+  | PVar of string list  (** a field *)
   | PTuple of pattern list  (** a tuple *)
 
 let unit = Tuple []
@@ -260,12 +260,20 @@ let rec print_term v =
     | Let _ | Seq _ -> assert false
 
 let rec string_of_pat = function
-  | PVar x -> x
+  | PVar l -> String.concat "." l
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
 
 let rec free_vars_pat = function
-  | PVar var -> Vars.singleton var
+  | PVar [] -> assert false
+  | PVar [_] -> Vars.empty
+  | PVar (x :: _) -> Vars.singleton x
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
+
+let rec bound_vars_pat = function
+  | PVar [] -> assert false
+  | PVar [x] -> Vars.singleton x
+  | PVar _ -> Vars.empty
+  | PTuple l -> List.fold_left Vars.union Vars.empty (List.map bound_vars_pat l)
 
 let rec free_vars tm =
   match tm.term with
@@ -285,7 +293,7 @@ let rec free_vars tm =
     | RFun (_, fv, _, _) | Fun (fv, _, _) -> fv
     | Let l ->
         Vars.union (free_vars l.def)
-          (Vars.diff (free_vars l.body) (free_vars_pat l.pat))
+          (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
 
 let free_vars ?bound body =
   match bound with
@@ -350,9 +358,9 @@ let check_unused ~lib tm =
           Vars.union masked v
       | Let { pat; def; body; _ } ->
           let v = check v def in
-          let fvpat = free_vars_pat pat in
-          let mask = Vars.inter v fvpat in
-          let v = Vars.union v fvpat in
+          let bvpat = bound_vars_pat pat in
+          let mask = Vars.inter v bvpat in
+          let v = Vars.union v bvpat in
           let v = check ~toplevel v body in
           if
             (* Do not check for anything at toplevel in libraries *)
@@ -370,7 +378,7 @@ let check_unused ~lib tm =
                   then (
                     let start_pos = fst (Utils.get_some tm.t.T.pos) in
                     raise (Unused_variable (s, start_pos)) ))
-              fvpat;
+              bvpat;
           Vars.union v mask
   in
   (* Unused free variables may remain *)
@@ -801,7 +809,20 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
         in
         let penv, pa = type_of_pat ~level ~pos pat in
         def.t <: pa;
-        let penv = List.map (fun (x, a) -> (x, (generalized, a))) penv in
+        let penv =
+          List.map
+            (fun (ll, a) ->
+              match ll with
+                | [] -> assert false
+                | [x] -> (x, (generalized, a))
+                | l :: ll -> (
+                    try
+                      let g, t = List.assoc l env in
+                      (l, (g, T.meths ~pos ~level ll (generalized, a) t))
+                    with Not_found ->
+                      raise (Unbound (pos, String.concat "." (l :: ll))) ))
+            penv
+        in
         let env = penv @ env in
         l.gen <- generalized;
         if print_toplevel then
@@ -906,9 +927,24 @@ let rec eval ~env tm =
         aux (eval ~env t)
     | Let { pat; def = v; body = b; _ } ->
         let v = eval ~env v in
-        let env =
-          List.map (fun (x, v) -> (x, Lazy.from_val v)) (eval_pat pat v) @ env
+        let penv =
+          List.map
+            (fun (ll, v) ->
+              match ll with
+                | [] -> assert false
+                | [x] -> (x, Lazy.from_val v)
+                | l :: ll ->
+                    let rec meths ll v t =
+                      match ll with
+                        | [] -> assert false
+                        | [l] -> mk (V.Meth (l, v, t))
+                        | l :: ll ->
+                            mk (V.Meth (l, meths ll v (V.invoke t l), t))
+                    in
+                    (l, lazy (meths ll v (Lazy.force (List.assoc l env)))))
+            (eval_pat pat v)
         in
+        let env = penv @ env in
         eval ~env b
     | Fun (fv, p, body) ->
         let p, env = prepare_fun fv p env in
@@ -916,7 +952,7 @@ let rec eval ~env tm =
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun fv p env in
         let rec v () =
-          let env = (x, Lazy.from_fun (fun () -> v ())) :: env in
+          let env = (x, Lazy.from_fun v) :: env in
           { V.pos = tm.t.T.pos; value = V.Fun (p, [], env, body) }
         in
         v ()
@@ -1008,6 +1044,7 @@ let eval ?env tm =
     evaluation of the next scripts. Also try to generate a structured
     documentation from the source code. *)
 let toplevel_add (doc, params) pat ~t v =
+  Printf.printf "add: %s\n%!" (string_of_pat pat);
   let generalized, t = t in
   let ptypes = match (T.deref t).T.descr with T.Arrow (p, _) -> p | _ -> [] in
   let pvalues =
@@ -1046,7 +1083,7 @@ let toplevel_add (doc, params) pat ~t v =
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
   List.iter
-    (fun (x, v) -> add_builtin ~override:true ~doc [x] ((generalized, t), v))
+    (fun (x, v) -> add_builtin ~override:true ~doc x ((generalized, t), v))
     (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
