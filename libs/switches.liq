@@ -86,11 +86,6 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
   fallback(id=id, track_sensitive=true, list.add(s, sources))
 end
 
-# TODO: this is ugly, use better naming conventions...
-random_int = random.int
-random_float = random.float
-random_bool = random.bool
-
 # At the beginning of every track, select a random ready child.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
@@ -99,7 +94,7 @@ random_bool = random.bool
 # @param ~transition_length Maximun transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child the probability that it is selected.
-def random(~id="", ~override="liq_transition_length", ~replay_metadata=true,
+def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=true,
            ~transition_length=5., ~transitions=[],
            ~weights=[], sources) =
   weights = list.map(to_int_getter, weights)
@@ -167,7 +162,3 @@ def random(~id="", ~override="liq_transition_length", ~replay_metadata=true,
 
   fallback(id=id, track_sensitive=true, list.add(s, sources))
 end
-
-let random.int = random_int
-let random.float = random_float
-let random.bool = random_bool

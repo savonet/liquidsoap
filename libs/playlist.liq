@@ -1,5 +1,3 @@
-let playlist_parse = playlist.parse
-
 # Play a list of files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -85,8 +83,6 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   {{ s | reload = reload }}
 end
 
-let playlist_list = playlist.list
-
 # Read a playlist or a directory, play all files and stop. It returns a pair
 # `(reload,source)` where `reload` is a function of type `(?uri:string)->unit`
 # that can be used to reload the source and `source` is the actual source. The
@@ -162,8 +158,6 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
   {{ s | reload = reload }}
 end
 
-playlist_reloadable = playlist.reloadable
-
 # Read a playlist or a directory and play all files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -180,7 +174,7 @@ playlist_reloadable = playlist.reloadable
 # @param ~reload_mode Unit of the reload parameter, either "never" (never reload the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is changed).
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
-def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
+def replaces playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
 
   reload_mode = if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds" else reload_mode end
   uri = ref(uri)
@@ -230,7 +224,3 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
 
   s
 end
-
-let playlist.list = playlist_list
-let playlist.parse = playlist_parse
-let playlist.reloadable = playlist_reloadable

@@ -103,6 +103,9 @@ val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
 (** Remove all methods in a type. *)
 val demeth : t -> t
 
+(** Put the methods of the first type around the second type. *)
+val remeth : t -> t -> t
+
 (** Type of a method in a type. *)
 val invoke : t -> string -> scheme
 

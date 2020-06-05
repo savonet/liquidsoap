@@ -4,16 +4,14 @@
 # @param ~delay Delay (in seconds) after which the thread should be lauched.
 # @param ~every How often (in seconds) the thread should be run (negative means once).
 # @param f Function to execute.
-def thread.run(~fast=true, ~delay=0., ~every=float_getter(-1.), f)
+def replaces thread.run(~fast=true, ~delay=0., ~every=float_getter(-1.), f)
   every = to_float_getter(every)
   def f() =
     ignore(f() == ())
     every()
   end
-  thread.run_recurrent(fast=fast, delay=delay, f)
+  thread.run.recurrent(fast=fast, delay=delay, f)
 end
-
-let thread.run.recurrent = thread.run_recurrent
 
 # Execute a given action when a predicate is true.
 # @category System

@@ -179,6 +179,12 @@ let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, _, t) -> demeth t | _ -> t
 
+let rec remeth t u =
+  let t = deref t in
+  match t.descr with
+    | Meth (l, v, t) -> { t with descr = Meth (l, v, remeth t u) }
+    | _ -> u
+
 let rec hide_meth l a =
   match (deref a).descr with
     | Meth (l', _, u) when l' = l -> hide_meth l u

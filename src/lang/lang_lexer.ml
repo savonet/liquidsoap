@@ -161,6 +161,7 @@ let rec token lexbuf =
     | eof -> EOF
     | "ref" -> REF
     | "def" -> PP_DEF
+    | "replaces" -> REPLACES
     | "let" -> LET
     | "fun" -> FUN
     | "rec" -> REC

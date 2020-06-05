@@ -1,8 +1,6 @@
 # TODO: use a record to push........
 let request.queue = ()
 
-let request_dynamic_list = request.dynamic.list
-
 # Play request dynamically created by a given function.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -13,11 +11,9 @@ let request_dynamic_list = request.dynamic.list
 # @param ~retry_delay Retry after a given time (in seconds) when callback returns an empty list.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param f Function producing requests.
-def request.dynamic(~id="", ~available={true}, ~retry_delay=0.1, ~conservative=false, ~default_duration=30., ~length=10., ~timeout=20., f) =
+def replaces request.dynamic(~id="", ~available={true}, ~retry_delay=0.1, ~conservative=false, ~default_duration=30., ~length=10., ~timeout=20., f) =
   request.dynamic.list(id=id, available=available, retry_delay=retry_delay, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, {[f()]})
 end
-
-let request.dynamic.list = request_dynamic_list
 
 # Play a queue of uris. Returns a function to push new uris in the queue as well as the resulting source.
 # @category Source / Track Processing
@@ -67,6 +63,6 @@ end
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
-def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
+def replaces request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
   snd(request.queue.pushable(id=id, conservative=conservative, default_duration=default_duration, interactive=interactive, length=length, queue=queue, timeout=timeout))
 end
