@@ -503,9 +503,9 @@ module V = struct
 
   let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
 
-  let remeth t u =
+  let rec remeth t u =
     match t.value with
-      | Meth (l, v, t) -> { t with value = Meth (l, v, u) }
+      | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
       | _ -> u
 end
 
