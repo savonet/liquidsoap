@@ -207,13 +207,9 @@ let rec meths ?pos ?level l v t =
     | [] -> assert false
     | [l] -> meth ?pos ?level l v t
     | l :: ll ->
-        let tl =
-          let g, tl = invoke t l in
-          assert (g = []);
-          tl
-        in
+        let g, tl = invoke t l in
         let v = meths ?pos ?level ll v tl in
-        meth ?pos ?level l ([], v) t
+        meth ?pos ?level l (g, v) t
 
 (** Given a strictly positive integer, generate a name in [a-z]+:
   * a, b, ... z, aa, ab, ... az, ba, ... *)
