@@ -47,24 +47,25 @@ Expressions
 -----------
 You can form expressions by using:
 
-* Constants and variable identifiers. Identifiers start with an alphabetic character or an underscore, followed by alphanumerics, underscores, dots and quotes: `[A-Z a-z _][A-Z a-z 0-9 _.']*`.
-* Lists and pairs: `[expr,expr,...]` and `(expr,expr)`.
-* Comparison of values is done using `expr == expr` and its negation is `expr != expr`. Most other usual operations are available, allowing usual things like `1+1 < 11`.
-* Application `f(x,y)` of arguments to a function. Application of labeled parameters is as follows: `f(x,foo=1,y,bar="baz")`. The interest of labels is that the order of two parameters doesn't matter as long as they have different labels.
-* Anonymous functions: `fun (arglist) -> expr`. Some arguments might have a label or an optional value. For example, the definition of a function with two named parameters, the second one being optional with default value `13` is as follows: `fun (~foo,~bar=13) -> ...`.
-* Definitions using def-end: `def pi = 3.14 end` defining a ground value, `def source(x) = wrap2(wrap1(x)) end` defining a function. The `=` is optional, you may prefer multi-line definitions without it. The arguments of a defined function are specified in the same way as for anonymous functions.
-* Shorter definitions using the equality: `pi = 3.14`. This is never an assignment, only a new local definition!
-* Conditionals `if expr then expr else expr end`, or more generally ```
+- Constants and variable identifiers. Identifiers start with an alphabetic character or an underscore, followed by alphanumerics, underscores, dots and quotes: `[A-Z a-z _][A-Z a-z 0-9 _.']*`.
+- Lists and pairs: `[expr,expr,...]` and `(expr,expr)`.
+- Records: `{a = 4 , b = "toto"}`
+- Comparison of values is done using `expr == expr` and its negation is `expr != expr`. Most other usual operations are available, allowing usual things like `1+1 < 11`.
+- Application `f(x,y)` of arguments to a function. Application of labeled parameters is as follows: `f(x,foo=1,y,bar="baz")`. The interest of labels is that the order of two parameters doesn't matter as long as they have different labels.
+- Anonymous functions: `fun (arglist) -> expr`. Some arguments might have a label or an optional value. For example, the definition of a function with two named parameters, the second one being optional with default value `13` is as follows: `fun (~foo,~bar=13) -> ...`.
+- Definitions using def-end: `def pi = 3.14 end` defining a ground value, `def source(x) = wrap2(wrap1(x)) end` defining a function. The `=` is optional, you may prefer multi-line definitions without it. The arguments of a defined function are specified in the same way as for anonymous functions.
+- Shorter definitions using the equality: `pi = 3.14`. This is never an assignment, only a new local definition!
+- Conditionals `if expr then expr else expr end`, or more generally ```
 if expr then expr (elsif expr then expr)* (else expr)? end```
 . The `else` block can be omitted if the purpose of the conditional is not to compute a value (*e.g.* an integer or a list of strings) but only to have a side effect (*e.g.* printing something in one case, not doing anything in the other).
-* Sequencing: expressions may be sequenced, just juxtapose them. Usually one puts one expression per line. Optionally, they can be separated by a semicolon. The evaluation of a sequence triggers that of all of its sub-expressions, its value is that of the last sub-expression. Accordingly, the type of a sequence is that of its last sub-expression.
-* Variable references are defined as: `reference = ref "some string"`. New values can be set via: `reference := "new value"`. The contents of a reference can be retrieved by `!reference`.
-* Parenthesis can be used to delimit explicitly expressions. In some places where only expressions can be written, as opposed to sequences of expressions, the `begin .. end` block can be used to explicitly form a simple expression from a sequence. This notably happens with the simple form of definitions without `def .. end`, and in the body of anonymous functions. For example `fun (x) -> f1(x) ; f2(x)` will be read as `(fun (x) -> f1(x)) ; f2(x)` not as `fun (x) -> begin f1(x) ; f2(x) end`.
-* Code blocks: `{ expr }` is a shortcut for `fun () -> expr`.
+- Sequencing: expressions may be sequenced, just juxtapose them. Usually one puts one expression per line. Optionally, they can be separated by a semicolon. The evaluation of a sequence triggers that of all of its sub-expressions, its value is that of the last sub-expression. Accordingly, the type of a sequence is that of its last sub-expression.
+- Variable references are defined as: `reference = ref "some string"`. New values can be set via: `reference := "new value"`. The contents of a reference can be retrieved by `!reference`.
+- Parenthesis can be used to delimit explicitly expressions. In some places where only expressions can be written, as opposed to sequences of expressions, the `begin .. end` block can be used to explicitly form a simple expression from a sequence. This notably happens with the simple form of definitions without `def .. end`, and in the body of anonymous functions. For example `fun (x) -> f1(x) ; f2(x)` will be read as `(fun (x) -> f1(x)) ; f2(x)` not as `fun (x) -> begin f1(x) ; f2(x) end`.
+- Code blocks: `{ expr }` is a shortcut for `fun () -> expr`.
 
-**No assignment, only definitions.** `x = expr` doesn't modify `x`, it just defines a new `x`. The expression ```
-(x = s1 ; def y = x = s2 ; (x,s3) end ; (y,x))```
- evaluates to `((s2,s3),s1)`.
+**No assignment, only definitions.** `x = expr` doesn't modify `x`, it just
+defines a new `x`. The expression `(x = s1 ; def y = x = s2 ; (x,s3) end ;
+(y,x))` evaluates to `((s2,s3),s1)`.
 
 **Function.** The return value of a function is the evaluation of its body where parameters have been substituted by their values. Accordingly, the type of the body is the return type of the function. If the body is a sequence, the return value will thus be its last expression, and the return type its type.
 
@@ -163,6 +164,7 @@ switch([
 
 Includes
 --------
+
 You can include other files,
 to compose complex configurations from
 multiple blocks of utility or configuration directives.

@@ -82,7 +82,7 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   end
 
   # Return
-  {{ s | reload = reload }}
+  s.{reload = reload}
 end
 
 let playlist_list = playlist.list
@@ -159,7 +159,7 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
     s.reload(load_playlist())
   end
 
-  {{ s | reload = reload }}
+  s.{reload = reload}
 end
 
 playlist_reloadable = playlist.reloadable

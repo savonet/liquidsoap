@@ -13,7 +13,7 @@ end
 
 def f() =
   # Basic checks
-  r = {{ 2 | a = 8 , b = 12 , f = fun(x) -> 2 * x }}
+  r = 2.{ a = 8 , b = 12 , f = fun(x) -> 2 * x }
   t(1+r, 3)
   t(r.b, 12)
   t(r.a, 8)

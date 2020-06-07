@@ -205,8 +205,6 @@ let rec token lexbuf =
     | ']' -> RBRA
     | '(' -> LPAR
     | ')' -> RPAR
-    | "{{" -> LCURR
-    | "}}" -> RCURR
     | '{' -> LCUR
     | '}' -> RCUR
     | ',' -> COMMA
