@@ -243,6 +243,11 @@ exprs:
   | binding exprs            { mk_let ~pos:$loc($1) $1 $2 }
   | binding SEQ exprs        { mk_let ~pos:$loc($1) $1 $3 }
 
+/* Sequences of expressions without bindings */
+exprss:
+  | expr { $1 }
+  | expr SEQ exprss { mk ~pos:$loc (Seq ($1,$3)) }
+
 /* General expressions. */
 expr:
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ; $2 }
@@ -285,7 +290,7 @@ expr:
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
-  | LCUR expr RCUR                   { mk_fun ~pos:$loc [] $2 }
+  | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | IF exprs THEN exprs if_elsif END { let cond = $2 in
                                        let then_b = mk_fun ~pos:($startpos($3),$endpos($4)) [] $4 in
                                        let else_b = $5 in

@@ -13,7 +13,11 @@
 %include "test.liq"
 
 r = ref false
-pred = { v=!r ; r:=false ; v }
+def pred () =
+  v = !r
+  r := false
+  v
+end
 thread.run(delay=2., { r := true })
 
 mixer = fallback(id="mixer", track_sensitive=false,
