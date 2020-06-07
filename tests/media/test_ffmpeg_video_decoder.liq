@@ -7,14 +7,14 @@ set("frame.video.framerate",45)
 
 set("decoder.decoders",["FFMPEG"])
 
-file = argv(default="",1)
+fname = argv(default="",1)
 out = "files/test.mp4"
 
 if file.exists(out) then
   file.unlink(out)
 end
 
-s = (single(file):source(0,1,0))
+s = (single(fname):source(0,1,0))
 
 s = once(s)
 

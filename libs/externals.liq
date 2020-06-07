@@ -127,15 +127,15 @@ def enable_external_flac_decoder() =
   if file.which(flac) != "" then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
     flac_p = "#{flac} -d -c -"
-    def test_flac(file) =
+    def test_flac(fname) =
       if file.which(metaflac) != "" then
         channels = list.hd(default="",
                            get_process_lines("#{metaflac} \
-                                              --show-channels #{string.quote(file)}"))
+                                              --show-channels #{string.quote(fname)}"))
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
-        if string.match(pattern="flac",file) then
+        if string.match(pattern="flac",fname) then
           # We do not know the number of audio channels
           # so setting to -1
           (-1)
@@ -154,9 +154,9 @@ def enable_external_flac_decoder() =
   if file.which(metaflac) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FLAC metadata \
                 resolver.")
-    def flac_meta(file)
+    def flac_meta(fname)
       ret = get_process_lines("#{metaflac} --export-tags-to=- \
-                   #{string.quote(file)}")
+                   #{string.quote(fname)}")
       ret = list.map(string.split(separator="="),ret)
       # Could be made better..
       def f(l',l)=

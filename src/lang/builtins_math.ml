@@ -22,14 +22,14 @@
 
 open Lang_builtins
 
+let () = Lang.add_module "random"
+
 let () =
   let add op name descr =
     let t = Lang.float_t in
     add_builtin name ~cat:Math ~descr [("", t, None, None)] t (fun p ->
-        match p with
-          | [("", { Lang.value = Lang.(Ground (Ground.Float a)); _ })] ->
-              Lang.float (op a)
-          | _ -> assert false)
+        let a = Lang.to_float (List.assoc "" p) in
+        Lang.float (op a))
   in
   add sqrt "sqrt" "Square root.";
   add exp "exp" "Exponential.";
@@ -88,6 +88,7 @@ let () =
   let register_op doc name op_int op_float =
     add_builtin name ~cat:Math ~descr:(Printf.sprintf "%s of numbers." doc)
       [("", t, None, None); ("", t, None, None)] t (fun p ->
+        let p = List.map (fun (l, v) -> (l, Lang.demeth v)) p in
         match p with
           | [
            ("", { Lang.value = Lang.(Ground (Ground.Int a)); _ });

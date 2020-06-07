@@ -1,6 +1,6 @@
-# Read a list of files, play all files and stop. It returns a pair
-# `(reload,source)` where `reload` is a function of type `([string])->unit`
-# that can be used to reload the source and `source` is the actual source.
+let playlist_parse = playlist.parse
+
+# Play a list of files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~check_next Function used to filter next tracks. A candidate track is only validated if the function returns true on it. The function is called before resolution, hence metadata will only be available for requests corresponding to local files. This is typically used to avoid repetitions, but be careful: if the function rejects all attempts, the playlist will enter into a consuming loop and stop playing anything.
@@ -13,7 +13,7 @@
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
-def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~on_done={()}, ~timeout=20., playlist)
+def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~on_done={()}, ~timeout=20., playlist)
   mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
 
   # Original playlist when loaded
@@ -72,7 +72,7 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
   end
 
   # Instantiate the source
-  source = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
+  s = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
 
   # The reload function
   def reload(p) =
@@ -82,8 +82,10 @@ def playlist.list.reloadable(~id="playlist.list.reloadable", ~check_next=fun(_)-
   end
 
   # Return
-  (reload,source)
+  s.{reload = reload}
 end
+
+let playlist_list = playlist.list
 
 # Read a playlist or a directory, play all files and stop. It returns a pair
 # `(reload,source)` where `reload` is a function of type `(?uri:string)->unit`
@@ -119,11 +121,11 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       def add_prefix(file) = prefix^file end
       list.map(add_prefix, files)
     else
-      playlist = request.create(playlist_uri)
+      pl = request.create(playlist_uri)
       result =
-        if request.resolve(timeout=timeout, playlist) then
-          playlist = request.filename(playlist)
-          files = playlist.parse(mime=mime_type, playlist)
+        if request.resolve(timeout=timeout, pl) then
+          pl = request.filename(pl)
+          files = playlist.parse(mime=mime_type, pl)
           def file_request(el) =
             let (meta, file) = el
             file = prefix^file
@@ -140,13 +142,13 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
           log.important(label=id, "Couldn't read playlist: request resolution failed.")
           []
         end
-      request.destroy(playlist)
+      request.destroy(pl)
       result
     end
   end
 
   # Create the source
-  let (reload, source) = playlist.list.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, load_playlist())
+  s = playlist.list(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, load_playlist())
 
   # The reload function
   def reload(~uri="") =
@@ -154,28 +156,13 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       playlist_uri := uri
     end
     log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
-    reload(load_playlist())
+    s.reload(load_playlist())
   end
 
-  (reload, source)
+  s.{reload = reload}
 end
 
-# Play a list of files.
-# @category Source / Input
-# @param ~id Force the value of the source ID.
-# @param ~check_next Function used to filter next tracks. A candidate track is only validated if the function returns true on it. The function is called before resolution, hence metadata will only be available for requests corresponding to local files. This is typically used to avoid repetitions, but be careful: if the function rejects all attempts, the playlist will enter into a consuming loop and stop playing anything.
-# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
-# @param ~default_duration When unknown, assume this duration (in sec.) for files.
-# @param ~length How much audio (in sec.) should be queued in advance.
-# @param ~loop Loop on the playlist.
-# @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
-# @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
-# @param ~timeout Timeout (in sec.) for a single download.
-# @param playlist List of files.
-def playlist.list(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~timeout=20., playlist)
-  rs = playlist.list.reloadable(id=id, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, timeout=timeout, playlist)
-  snd(rs)
-end
+playlist_reloadable = playlist.reloadable
 
 # Read a playlist or a directory and play all files.
 # @category Source / Input
@@ -214,8 +201,8 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
     end
   end
 
-  let (reloader, s) = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
-  def reloader (~uri="") = reloader (uri=uri); on_reload () end
+  s = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
+  def reloader (~uri="") = s.reload(uri=uri); on_reload () end
   rreloader := {reloader()}
 
   # Set up reloading for seconds and watch
@@ -243,3 +230,7 @@ def playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_dur
 
   s
 end
+
+let playlist.list = playlist_list
+let playlist.parse = playlist_parse
+let playlist.reloadable = playlist_reloadable

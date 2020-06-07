@@ -1,7 +1,5 @@
 #!../src/liquidsoap ../libs/pervasives.liq --force-start
 
-%include "test.liq"
-
 def time(name, f)
   print("Computing #{name}...")
   t = gettimeofday()

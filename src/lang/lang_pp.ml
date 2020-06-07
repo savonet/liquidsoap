@@ -85,16 +85,15 @@ let eval_ifdefs tokenizer =
         | _ -> skip ()
     in
     match tokenizer () with
-      | (Lang_parser.PP_IFDEF, _ | Lang_parser.PP_IFNDEF, _) as tok -> (
-          match tokenizer () with
-            | Lang_parser.VAR v, _ ->
-                let test =
-                  if fst tok = Lang_parser.PP_IFDEF then fun x -> x else not
-                in
-                (* XXX Less natural meaning than the original one. *)
-                if test (Lang_values.builtins#is_registered v) then go_on ()
-                else skip ()
-            | _ -> failwith "expected a variable after %ifdef" )
+      | (Lang_parser.PP_IFDEF v, _ | Lang_parser.PP_IFNDEF v, _) as tok ->
+          let test =
+            match fst tok with
+              | Lang_parser.PP_IFDEF _ -> fun x -> x
+              | Lang_parser.PP_IFNDEF _ -> not
+              | _ -> assert false
+          in
+          (* XXX Less natural meaning than the original one. *)
+          if test (Lang_values.has_builtin v) then go_on () else skip ()
       | (Lang_parser.PP_IFENCODER, _ | Lang_parser.PP_IFNENCODER, _) as tok ->
           let fmt = get_encoder_format tokenizer in
           let has_enc =

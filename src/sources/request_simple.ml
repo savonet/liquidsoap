@@ -88,7 +88,7 @@ let () =
 let () =
   let kind = Lang.any in
   let t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "unsafe.single.infallible" ~category:Lang.Input
+  Lang.add_operator "single.infallible" ~category:Lang.Input
     ~flags:[Lang.Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \

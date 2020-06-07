@@ -1,3 +1,8 @@
+# TODO: use a record to push........
+let request.queue = ()
+
+let request_dynamic_list = request.dynamic.list
+
 # Play request dynamically created by a given function.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -11,6 +16,8 @@
 def request.dynamic(~id="", ~available={true}, ~retry_delay=0.1, ~conservative=false, ~default_duration=30., ~length=10., ~timeout=20., f) =
   request.dynamic.list(id=id, available=available, retry_delay=retry_delay, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, {[f()]})
 end
+
+let request.dynamic.list = request_dynamic_list
 
 # Play a queue of uris. Returns a function to push new uris in the queue as well as the resulting source.
 # @category Source / Track Processing

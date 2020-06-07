@@ -42,6 +42,8 @@ New:
 - Add `video.add_text.ffmpeg`.
 - Added support for `file:///path/to/file` and `file:/path/to/file`protocols.
 - Added configure option to specify internal library install path (#1211).
+- Add support for records and methods (#1197).
+- Rename `unsafe.single.infallible` to `single.infallible`.
 
 Changed:
 

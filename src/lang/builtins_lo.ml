@@ -23,6 +23,8 @@
 open Extralib
 module S = LO.Server
 
+let () = Lang.add_module "osc"
+
 let conf_osc =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "osc")

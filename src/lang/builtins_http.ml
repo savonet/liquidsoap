@@ -22,6 +22,10 @@
 
 open Lang_builtins
 
+let () =
+  Lang.add_module "http";
+  Lang.add_module "harbor"
+
 type request = Get | Post | Put | Head | Delete
 
 let add_http_request http name descr request =

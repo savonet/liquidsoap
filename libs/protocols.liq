@@ -39,14 +39,7 @@ register(name="Inherit Environment",
 # See say: protocol for an example.
 # @flag hidden
 def process_protocol(~rlog,~maxtime,arg)
-  log = log(label="protocol.process")
-
-  def log(~level,s) =
-    rlog(s)
-    log(level=level,s)
-  end
-
-  log(level=4,"Processing #{arg}")
+  log.info("Processing #{arg}")
 
   x = string.split(separator=":",arg)
   uri = string.concat(separator=":",list.tl(x))

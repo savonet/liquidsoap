@@ -58,6 +58,7 @@ and in_value = Lang_values.V.in_value =
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
+  | Meth of string * value * value
   | Ref of value ref
   | Fun of
       (string * string * value option) list * env * lazy_env * Lang_values.term
@@ -65,6 +66,8 @@ and in_value = Lang_values.V.in_value =
       default value), parameters already passed to the function, closure and
       value. *)
   | FFI of (string * string * value option) list * env * (env -> value)
+
+val demeth : value -> value
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -121,6 +124,9 @@ val add_builtin_base :
   in_value ->
   t ->
   unit
+
+(** Declare a new module. *)
+val add_module : string -> unit
 
 (** Category of an operator. *)
 type category =
