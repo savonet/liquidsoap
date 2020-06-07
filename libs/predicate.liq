@@ -1,3 +1,5 @@
+predicate = ()
+
 # Detect when a predicate becomes true.
 # @category Liquidsoap
 # @flag extra

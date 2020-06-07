@@ -23,6 +23,7 @@
 open Source
 open Lilv
 
+let () = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]
 
 let conf_lilv =

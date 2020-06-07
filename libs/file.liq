@@ -21,8 +21,8 @@ end
 %ifdef file.mime
 # Alias of file.mime (because it is available)
 # @category System
-def file.mime_default(file)
-  file.mime(file)
+def file.mime_default(fname)
+  file.mime(fname)
 end
 %endif
 
@@ -31,20 +31,20 @@ end
 # can be found.
 # @category System
 # @param file The file to test
-def get_mime(file) =
-  def file_method(file) =
+def get_mime(fname) =
+  def file_method(fname) =
     if test_process("which file") then
-      list.hd(default="",get_process_lines("file -b --mime-type #{string.quote(file)}"))
+      list.hd(default="",get_process_lines("file -b --mime-type #{string.quote(fname)}"))
     else
       ""
     end
   end
   # First try mime method
-  ret = file.mime_default(file)
+  ret = file.mime_default(fname)
   if ret != "" then
     ret
   else
     # Now try file method
-    file_method(file)
+    file_method(fname)
   end
 end

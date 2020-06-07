@@ -64,6 +64,7 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
   end
 
 let () =
+  Lang.add_module "filter.iir.eq";
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.iir.eq.lowshelf"

@@ -22,6 +22,8 @@
 
 open Builtins_http
 
+let () = Lang.add_module "https"
+
 let () =
   let add_http_request = add_http_request (module Https) in
   add_http_request "https.get"

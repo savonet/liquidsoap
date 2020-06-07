@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/pervasives.liq
 
 %include "test.liq"
 
@@ -11,11 +11,18 @@ def t(x, y)
   end
 end
 
+def id(x) = x end
+def incr(n) = n + 1 end
+
 def f() =
-  t(getenv("BLAXXX"),"")
-  t(file.is_directory("/"), true)
-  t(file.is_directory("~"), true)
-  t(file.is_directory("XXX"), false)
+  n = ref(0)
+  n := 5
+  t(!n, 5)
+  s = ref("a")
+  s := "b"
+  t(!s, "b")
+  f = ref(id)
+  f := incr
 
   if !success then test.pass() else test.fail() end
 end

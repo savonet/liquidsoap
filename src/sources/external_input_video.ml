@@ -36,11 +36,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
   let log_ref = ref (fun _ -> ()) in
   let log_error = ref (fun _ -> ()) in
   let log x = !log_ref x in
-  let abg =
-    Generator.create ~log ~log_overfull
-      (* (if kind.Frame.audio = Frame.Zero then `Video else `Both) *)
-      `Both
-  in
+  let abg = Generator.create ~log ~log_overfull `Both in
   (* Maximal difference between audio and video in seconds before a warning. *)
   let vadiff = 10. in
   let last_vadiff_warning = ref 0. in
@@ -93,6 +89,8 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
+      if self#ctype.Frame.audio = 0 then Generator.set_mode abg `Video;
+      Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."
         ( match Generator.mode abg with
           | `Video -> "video"

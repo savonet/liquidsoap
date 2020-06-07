@@ -63,7 +63,7 @@ let () =
         Lang.(Ground (Ground.String str))
         Lang.string_t)
     [
-      ("libdir", "library directory", Configure.libs_dir);
+      ("libdir", "library directory", Configure.liq_libs_dir);
       ("bindir", "Internal script directory", Configure.bin_dir);
       ("rundir", "PID file directory", Configure.rundir);
       ("logdir", "logging directory", Configure.logdir);
@@ -150,8 +150,7 @@ let () =
         | Some v -> Lang.string (Lang.print_value v))
 
 let () =
-  add_builtin "clock.assign_new" ~cat:Liq
-    ~descr:"Create a new clock and assign it to a list of sources."
+  let proto =
     [
       ( "id",
         Lang.string_t,
@@ -163,44 +162,73 @@ let () =
         Lang.string_t,
         Some (Lang.string "auto"),
         Some
-          "Synchronization mode. One of: `\"auto\"`, `\"cpu\"`, or `\"none\"`."
-      );
-      ( "",
-        Lang.list_t (Lang.source_t (Lang.univ_t ())),
-        None,
-        Some "List of sources to which the new clock will be assigned" );
+          "Synchronization mode. One of: `\"auto\"`, `\"cpu\"`, or `\"none\"`. \
+           Defaults to `\"auto\"`, which synchronizes with the CPU clock if \
+           none of the active sources are attached to their own clock (e.g. \
+           ALSA input, etc). `\"cpu\"` always synchronizes with the CPU clock. \
+           `\"none\"` removes all synchronization control." );
     ]
+  in
+  let assign id sync l =
+    match l with
+      | [] -> Lang.unit
+      | hd :: _ as sources ->
+          let id = if id = "" then (Lang.to_source hd)#id else id in
+          let sync =
+            match Lang.to_string sync with
+              | s when s = "auto" -> `Auto
+              | s when s = "cpu" -> `CPU
+              | s when s = "none" -> `None
+              | _ ->
+                  raise (Lang_errors.Invalid_value (sync, "Invalid sync value"))
+          in
+          let clock = new Clock.clock ~sync id in
+          List.iter
+            (fun s ->
+              try
+                let s = Lang.to_source s in
+                Clock.unify s#clock (Clock.create_known (clock :> Clock.clock))
+              with
+                | Source.Clock_conflict (a, b) ->
+                    raise (Lang_errors.Clock_conflict (s.Lang.pos, a, b))
+                | Source.Clock_loop (a, b) ->
+                    raise (Lang_errors.Clock_loop (s.Lang.pos, a, b)))
+            sources;
+          Lang.unit
+  in
+  add_builtin "clock" ~cat:Liq
+    ~descr:
+      "Assign a new clock to the given source (and to other time-dependent \
+       sources) and return the source. It is a conveniency wrapper around \
+       `clock.assign_new`, allowing more concise scripts in some cases."
+    ( proto
+    @ [
+        ( "",
+          Lang.source_t (Lang.univ_t ()),
+          None,
+          Some "Source to which the new clock will be assigned." );
+      ] )
     Lang.unit_t
     (fun p ->
-      match Lang.to_list (List.assoc "" p) with
-        | [] -> Lang.unit
-        | hd :: _ as sources ->
-            let sync = List.assoc "sync" p in
-            let sync =
-              match Lang.to_string sync with
-                | s when s = "auto" -> `Auto
-                | s when s = "cpu" -> `CPU
-                | s when s = "none" -> `None
-                | _ ->
-                    raise
-                      (Lang_errors.Invalid_value (sync, "Invalid sync value"))
-            in
-            let id = Lang.to_string (List.assoc "id" p) in
-            let id = if id = "" then (Lang.to_source hd)#id else id in
-            let clock = new Clock.clock ~sync id in
-            List.iter
-              (fun s ->
-                try
-                  let s = Lang.to_source s in
-                  Clock.unify s#clock
-                    (Clock.create_known (clock :> Clock.clock))
-                with
-                  | Source.Clock_conflict (a, b) ->
-                      raise (Lang_errors.Clock_conflict (s.Lang.pos, a, b))
-                  | Source.Clock_loop (a, b) ->
-                      raise (Lang_errors.Clock_loop (s.Lang.pos, a, b)))
-              sources;
-            Lang.unit)
+      let id = Lang.to_string (List.assoc "id" p) in
+      let sync = List.assoc "sync" p in
+      let s = List.assoc "" p in
+      assign id sync [s]);
+  add_builtin "clock.assign_new" ~cat:Liq
+    ~descr:"Create a new clock and assign it to a list of sources."
+    ( proto
+    @ [
+        ( "",
+          Lang.list_t (Lang.source_t (Lang.univ_t ())),
+          None,
+          Some "List of sources to which the new clock will be assigned." );
+      ] )
+    Lang.unit_t
+    (fun p ->
+      let id = Lang.to_string (List.assoc "id" p) in
+      let sync = List.assoc "sync" p in
+      let l = Lang.to_list (List.assoc "" p) in
+      assign id sync l)
 
 let () =
   add_builtin "clock.unify" ~cat:Liq

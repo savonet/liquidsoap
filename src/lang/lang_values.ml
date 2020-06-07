@@ -206,9 +206,8 @@ and in_term =
   | Encoder of Encoder.format
   | List of term list
   | Tuple of term list
-  | Ref of term
-  | Get of term
-  | Set of term * term
+  | Meth of string * term * term
+  | Invoke of term * string
   | Let of let_t
   | Var of string
   | Seq of term * term
@@ -225,16 +224,16 @@ and in_term =
 (* A recursive function, the first string is the name of the recursive
    variable. *)
 and pattern =
-  | PVar of string  (** a variable *)
+  | PVar of string list  (** a field *)
   | PTuple of pattern list  (** a tuple *)
 
 let unit = Tuple []
 
 (* Only used for printing very simple functions. *)
-let rec is_ground x =
+let is_ground x =
   match x.term with
     | Ground _ | Encoder _ -> true
-    | Ref x -> is_ground x
+    (* | Ref x -> is_ground x *)
     | _ -> false
 
 (** Print terms, (almost) assuming they are in normal form. *)
@@ -244,7 +243,8 @@ let rec print_term v =
     | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
-    | Ref a -> Printf.sprintf "ref(%s)" (print_term a)
+    | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
+    | Invoke (e, l) -> print_term e ^ "." ^ l
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
     | Var s -> s
@@ -252,28 +252,37 @@ let rec print_term v =
         let tl =
           List.map
             (fun (lbl, v) ->
-              (if lbl = "" then "" else lbl ^ "=") ^ print_term v)
+              (if lbl = "" then "" else lbl ^ " = ") ^ print_term v)
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
-    | Let _ | Seq _ | Get _ | Set _ -> assert false
+    | Let _ | Seq _ -> assert false
 
 let rec string_of_pat = function
-  | PVar x -> x
+  | PVar l -> String.concat "." l
   | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
 
 let rec free_vars_pat = function
-  | PVar var -> Vars.singleton var
+  | PVar [] -> assert false
+  | PVar [_] -> Vars.empty
+  | PVar (x :: _) -> Vars.singleton x
   | PTuple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
+
+let rec bound_vars_pat = function
+  | PVar [] -> assert false
+  | PVar [x] -> Vars.singleton x
+  | PVar _ -> Vars.empty
+  | PTuple l -> List.fold_left Vars.union Vars.empty (List.map bound_vars_pat l)
 
 let rec free_vars tm =
   match tm.term with
     | Ground _ | Encoder _ -> Vars.empty
     | Var x -> Vars.singleton x
-    | Ref r | Get r -> free_vars r
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
-    | Seq (a, b) | Set (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
+    | Invoke (e, _) -> free_vars e
     | List l ->
         List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
     | App (hd, l) ->
@@ -283,7 +292,7 @@ let rec free_vars tm =
     | RFun (_, fv, _, _) | Fun (fv, _, _) -> fv
     | Let l ->
         Vars.union (free_vars l.def)
-          (Vars.diff (free_vars l.body) (free_vars_pat l.pat))
+          (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
 
 let free_vars ?bound body =
   match bound with
@@ -318,10 +327,9 @@ let check_unused ~lib tm =
     match tm.term with
       | Var s -> Vars.remove s v
       | Ground _ | Encoder _ -> v
-      | Ref r -> check v r
-      | Get r -> check v r
       | Tuple l -> List.fold_left (fun a -> check a) v l
-      | Set (a, b) -> check (check v a) b
+      | Meth (_, f, e) -> check (check v e) f
+      | Invoke (e, _) -> check v e
       | Seq (a, b) -> check ~toplevel (check v a) b
       | List l -> List.fold_left (fun x y -> check x y) v l
       | App (hd, l) ->
@@ -349,9 +357,9 @@ let check_unused ~lib tm =
           Vars.union masked v
       | Let { pat; def; body; _ } ->
           let v = check v def in
-          let fvpat = free_vars_pat pat in
-          let mask = Vars.inter v fvpat in
-          let v = Vars.union v fvpat in
+          let bvpat = bound_vars_pat pat in
+          let mask = Vars.inter v bvpat in
+          let v = Vars.union v bvpat in
           let v = check ~toplevel v body in
           if
             (* Do not check for anything at toplevel in libraries *)
@@ -369,7 +377,7 @@ let check_unused ~lib tm =
                   then (
                     let start_pos = fst (Utils.get_some tm.t.T.pos) in
                     raise (Unused_variable (s, start_pos)) ))
-              fvpat;
+              bvpat;
           Vars.union v mask
   in
   (* Unused free variables may remain *)
@@ -377,20 +385,22 @@ let check_unused ~lib tm =
 
 (** Maps a function on all types occurring in a term.
   * Ignores variable generalizations. *)
-let rec map_types f (gen : 'a list) tm =
+let rec map_types f gen tm =
   let aux = function
     | lbl, var, t, None -> (lbl, var, f gen t, None)
     | lbl, var, t, Some tm -> (lbl, var, f gen t, Some (map_types f gen tm))
   in
   match tm.term with
     | Ground _ | Encoder _ | Var _ -> { tm with t = f gen tm.t }
-    | Ref r -> { t = f gen tm.t; term = Ref (map_types f gen r) }
-    | Get r -> { t = f gen tm.t; term = Get (map_types f gen r) }
     | Tuple l -> { t = f gen tm.t; term = Tuple (List.map (map_types f gen) l) }
+    | Meth (l, x, e) ->
+        {
+          t = f gen tm.t;
+          term = Meth (l, map_types f gen x, map_types f gen e);
+        }
+    | Invoke (e, l) -> { t = f gen tm.t; term = Invoke (map_types f gen e, l) }
     | Seq (a, b) ->
         { t = f gen tm.t; term = Seq (map_types f gen a, map_types f gen b) }
-    | Set (a, b) ->
-        { t = f gen tm.t; term = Set (map_types f gen a, map_types f gen b) }
     | List l -> { t = f gen tm.t; term = List (List.map (map_types f gen) l) }
     | App (hd, l) ->
         {
@@ -435,6 +445,10 @@ module V = struct
     | Encoder of Encoder.format
     | List of value list
     | Tuple of value list
+    (* TODO: It would be better to have a list of methods associated to each
+       value than a constructor here. However, I am keeping as is for now because
+       implementation is safer this way. *)
+    | Meth of string * value * value
     | Ref of value ref
         (** The first environment contains the parameters already passed to the
         function. Next parameters will be inserted between that and the second
@@ -458,6 +472,7 @@ module V = struct
       | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
       | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
+      | Meth (l, v, e) -> print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
       | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
       | Fun (l, _, _, x) when is_ground x ->
           let f (label, _, value) =
@@ -472,10 +487,17 @@ module V = struct
             (print_term x)
       | Fun _ | FFI _ -> "<fun>"
 
-  let map_env f (env : env) = List.map (fun (s, v) -> (s, f v)) env
+  (** Find a method in a value. *)
+  let rec invoke x l =
+    match x.value with
+      | Meth (l', y, _) when l' = l -> y
+      | Meth (_, _, x) -> invoke x l
+      | _ -> failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
 
-  let map_lazy_env f (env : lazy_env) =
-    List.map (fun (s, v) -> (s, Lazy.from_fun (fun () -> f Lazy.force v))) env
+  (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
+  let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
+
+  let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
 end
 
 (** {2 Built-in values and toplevel definitions} *)
@@ -483,7 +505,75 @@ end
 let builtins : (((int * T.constraints) list * T.t) * V.value) Plug.plug =
   Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
 
-(* {2 Type checking/inference} *)
+(* Environment for builtins. *)
+let builtins_env : (string * (T.scheme * V.value)) list ref = ref []
+let default_environment () = !builtins_env
+
+let default_typing_environment () =
+  List.map (fun (x, (t, _)) -> (x, t)) !builtins_env
+
+let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
+  if register then builtins#register ?doc (String.concat "." name) ((g, t), v);
+  match name with
+    | [name] ->
+        (* Don't allow overriding builtins. *)
+        if (not override) && List.mem_assoc name !builtins_env then
+          failwith ("Trying to override builtin " ^ name);
+        builtins_env := (name, ((g, t), v)) :: !builtins_env
+    | x :: ll ->
+        let (g0, t0), xv =
+          try List.assoc x !builtins_env
+          with Not_found -> failwith ("Could not find builtin variable " ^ x)
+        in
+        (* x.l1.l2.l3 = v means
+           x = (x where l1 = (x.l1 where l2 = (x.l1.l2 where l3 = v)))
+        *)
+        let rec aux prefix = function
+          | l :: ll ->
+              let v = V.invokes xv (List.rev prefix) in
+              let vg, vt = T.invokes t0 (List.rev prefix) in
+              let lvt, lv = aux (l :: prefix) ll in
+              let t =
+                T.make (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
+              in
+              (t, { V.pos = None; value = V.Meth (l, lv, v) })
+          | [] -> (t, v)
+        in
+        let t, v = aux [] ll in
+        builtins_env := (x, ((g0, t), v)) :: !builtins_env
+    | [] -> assert false
+
+let has_builtin name = builtins#is_registered name
+
+(** Declare a module. *)
+let add_module name =
+  (* Ensure that it does not already exist. *)
+  ( match name with
+    | [] -> assert false
+    | [x] ->
+        if List.mem_assoc x !builtins_env then
+          failwith ("Module " ^ String.concat "." name ^ " already declared")
+    | x :: mm -> (
+        let mm = List.rev mm in
+        let l = List.hd mm in
+        let mm = List.rev (List.tl mm) in
+        let e =
+          try V.invokes (snd (List.assoc x !builtins_env)) mm
+          with _ ->
+            failwith
+              ("Could not find the parent module of " ^ String.concat "." name)
+        in
+        try
+          ignore (V.invoke e l);
+          failwith ("Module " ^ String.concat "." name ^ " already exists")
+        with _ -> () ) );
+  add_builtin ~register:false name
+    (([], T.make T.unit), { V.pos = None; value = V.unit })
+
+(* Builtins are only used for documentation now. *)
+let builtins = (builtins :> Doc.item)
+
+(** {2 Type checking/inference} *)
 
 let ( <: ) = T.( <: )
 let ( >: ) = T.( >: )
@@ -494,6 +584,9 @@ let rec value_restriction t =
     | Fun _ -> true
     | RFun _ -> true
     | List l | Tuple l -> List.for_all value_restriction l
+    | Meth (_, t, u) -> value_restriction t && value_restriction u
+    (* | Invoke (t, _) -> value_restriction t *)
+    | Ground _ -> true
     | _ -> false
 
 exception Unbound of T.pos option * string
@@ -538,7 +631,7 @@ let rec type_of_pat ~level ~pos = function
  * [level] should be the sum of the lengths of [env] and [builtins],
  * that is the size of the typing context, that is the number of surrounding
  * abstractions. *)
-let rec check ?(print_toplevel = false) ~level ~env e =
+let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
   (* The role of this function is not only to type-check but also to assign
    * meaningful levels to type variables, and unify the types of
    * all occurrences of the same variable, since the parser does not do it. *)
@@ -604,17 +697,26 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
-    | Ref a ->
-        check ~level ~env a;
-        e.t >: ref_t ~pos ~level a.t
-    | Get a ->
-        check ~level ~env a;
-        a.t <: ref_t ~pos ~level e.t
-    | Set (a, b) ->
+    | Meth (l, a, b) ->
         check ~level ~env a;
         check ~level ~env b;
-        a.t <: ref_t ~pos ~level b.t;
-        e.t >: mk T.unit
+        e.t >: mk (T.Meth (l, (T.generalizable ~level a.t, a.t), b.t))
+    | Invoke (a, l) ->
+        check ~level ~env a;
+        let rec aux t =
+          match (T.deref t).T.descr with
+            | T.Meth (l', (generalized, b), c) ->
+                if l = l' then T.instantiate ~level ~generalized b else aux c
+            | _ ->
+                (* We did not find the method, the type we will infer is not the
+                   most general one (no generalization), but this is safe and
+                   enough for records. *)
+                let x = T.fresh_evar ~level ~pos in
+                let y = T.fresh_evar ~level ~pos in
+                t <: mk (T.Meth (l, ([], x), y));
+                x
+        in
+        e.t >: aux a.t
     | Seq (a, b) ->
         check ~env ~level a;
         if not (can_ignore a.t) then raise (Ignored a);
@@ -628,7 +730,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
          * it for better error messages. Otherwise generate its type
          * and unify -- in that case the optionality can't be guessed
          * and mandatory is the default. *)
-        match (T.deref a.t).T.descr with
+        match (T.demeth a.t).T.descr with
           | T.Arrow (ap, t) ->
               (* Find in l the first arg labeled lbl,
                * return it together with the remaining of the list. *)
@@ -668,10 +770,7 @@ let rec check ?(print_toplevel = false) ~level ~env e =
     | Var var ->
         let generalized, orig =
           try List.assoc var env
-          with Not_found -> (
-            match builtins#get var with
-              | Some ((g, t), _) -> (g, t)
-              | None -> raise (Unbound (e.t.T.pos, var)) )
+          with Not_found -> raise (Unbound (e.t.T.pos, var))
         in
         e.t >: T.instantiate ~level ~generalized orig;
         if Lazy.force debug then
@@ -697,7 +796,20 @@ let rec check ?(print_toplevel = false) ~level ~env e =
         in
         let penv, pa = type_of_pat ~level ~pos pat in
         def.t <: pa;
-        let penv = List.map (fun (x, a) -> (x, (generalized, a))) penv in
+        let penv =
+          List.map
+            (fun (ll, a) ->
+              match ll with
+                | [] -> assert false
+                | [x] -> (x, (generalized, a))
+                | l :: ll -> (
+                    try
+                      let g, t = List.assoc l env in
+                      (l, (g, T.meths ~pos ~level ll (generalized, a) t))
+                    with Not_found ->
+                      raise (Unbound (pos, String.concat "." (l :: ll))) ))
+            penv
+        in
         let env = penv @ env in
         l.gen <- generalized;
         if print_toplevel then
@@ -715,7 +827,8 @@ let rec check ?(print_toplevel = false) ~level ~env e =
 let check ?(ignored = false) e =
   let print_toplevel = !Configure.display_types in
   try
-    check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e;
+    let env = default_typing_environment () in
+    check ~print_toplevel ~level:(List.length env) ~env e;
     if print_toplevel && (T.deref e.t).T.descr <> T.unit then
       add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t);
     if ignored && not (can_ignore e.t) then raise (Ignored e);
@@ -790,20 +903,35 @@ let rec eval ~env tm =
     | Encoder x -> mk (V.Encoder x)
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
-    | Ref v -> mk (V.Ref (ref (eval ~env v)))
-    | Get r -> (
-        match (eval ~env r).V.value with V.Ref r -> !r | _ -> assert false )
-    | Set (r, v) -> (
-        match (eval ~env r).V.value with
-          | V.Ref r ->
-              r := eval ~env v;
-              mk V.unit
-          | _ -> assert false )
+    | Meth (l, u, v) -> mk (V.Meth (l, eval ~env u, eval ~env v))
+    | Invoke (t, l) ->
+        let rec aux t =
+          match t.V.value with
+            | V.Meth (l', t, _) when l = l' -> t
+            | V.Meth (_, _, t) -> aux t
+            | _ -> failwith ("Fatal error: invoked method " ^ l ^ " not found")
+        in
+        aux (eval ~env t)
     | Let { pat; def = v; body = b; _ } ->
         let v = eval ~env v in
-        let env =
-          List.map (fun (x, v) -> (x, Lazy.from_val v)) (eval_pat pat v) @ env
+        let penv =
+          List.map
+            (fun (ll, v) ->
+              match ll with
+                | [] -> assert false
+                | [x] -> (x, Lazy.from_val v)
+                | l :: ll ->
+                    let rec meths ll v t =
+                      match ll with
+                        | [] -> assert false
+                        | [l] -> mk (V.Meth (l, v, t))
+                        | l :: ll ->
+                            mk (V.Meth (l, meths ll v (V.invoke t l), t))
+                    in
+                    (l, lazy (meths ll v (Lazy.force (List.assoc l env)))))
+            (eval_pat pat v)
         in
+        let env = penv @ env in
         eval ~env b
     | Fun (fv, p, body) ->
         let p, env = prepare_fun fv p env in
@@ -811,7 +939,7 @@ let rec eval ~env tm =
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun fv p env in
         let rec v () =
-          let env = (x, Lazy.from_fun (fun () -> v ())) :: env in
+          let env = (x, Lazy.from_fun v) :: env in
           { V.pos = tm.t.T.pos; value = V.Fun (p, [], env, body) }
         in
         v ()
@@ -848,7 +976,7 @@ and apply f l =
      together with a rewrapping function for creating a closure in case of
      partial application. *)
   let p, pe, f, rewrap =
-    match f.V.value with
+    match (V.demeth f).V.value with
       | V.Fun (p, pe, e, body) ->
           ( p,
             pe,
@@ -894,8 +1022,9 @@ and apply f l =
        FFI-made value and a position is needed. *)
     { v with V.pos } )
 
-let eval ~env tm =
-  let env = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) env in
+let eval ?env tm =
+  let env = match env with Some env -> env | None -> default_environment () in
+  let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
   eval ~env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
@@ -935,23 +1064,22 @@ let toplevel_add (doc, params) pat ~t v =
   in
   List.iter
     (fun (s, _) ->
-      Printf.eprintf "WARNING: Unused @param %S for %s!\n" s (string_of_pat pat))
+      Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
+        (string_of_pat pat) (T.print_pos_opt v.V.pos))
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
   List.iter
-    (fun (x, v) -> builtins#register ~doc x ((generalized, t), v))
+    (fun (x, v) -> add_builtin ~override:true ~doc x ((generalized, t), v))
     (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
     | Let { doc = comment; gen = generalized; pat; def; body } ->
-        let env = builtins#get_all in
-        let env = List.map (fun (x, (_, v)) -> (x, v)) env in
         let def_t = def.t in
-        let def = eval ~env def in
+        let def = eval def in
         toplevel_add comment pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
-          Printf.eprintf "Added toplevel %s : %s\n" (string_of_pat pat)
+          Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (T.print ~generalized def_t);
         if interactive then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." (string_of_pat pat)
@@ -964,10 +1092,7 @@ let rec eval_toplevel ?(interactive = false) t =
            if v.V.pos = None then { v with V.pos = a.t.T.pos } else v);
         eval_toplevel ~interactive b
     | _ ->
-        let env = builtins#get_all in
-        let env = List.map (fun (x, (_, v)) -> (x, v)) env in
-        let ty = t.t in
-        let v = eval ~env t in
+        let v = eval t in
         if interactive && t.term <> unit then
-          Format.printf "- : %a = %s@." T.pp_type ty (V.print_value v);
+          Format.printf "- : %a = %s@." T.pp_type t.t (V.print_value v);
         v

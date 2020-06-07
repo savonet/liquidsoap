@@ -1,3 +1,5 @@
+fade = ()
+
 # Make a fade function based on a source's clock.
 # @category Math
 # @param ~type Fade shape. One of: "sin", "exp", "log", "lin"
@@ -290,8 +292,8 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
               ~default=(fun (a,b) -> sequence([a, b])),
               ~high=-15., ~medium=-32., ~margin=4.,
               ~minimum=(-1.),~width=2.,~conservative=true,s)
-  fade.out = fade.out(type="sin",duration=fade_out)
-  fade.in  = fade.in(type="sin",duration=fade_in)
+  let fade.out = fade.out(type="sin",duration=fade_out)
+  let fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])
   log = log(label="crossfade")
 

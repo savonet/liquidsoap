@@ -19,20 +19,20 @@ end
 # @category Interaction
 # @flag extra
 # @param init Initial value.
-# @param metadata Metadata on which the value should be updated.
+# @param m Metadata on which the value should be updated.
 # @param s Source containing the metadata.
-def metadata.string_getter(init, metadata, s)
-  metadata.getter(init, fun (v) -> v, metadata, s)
+def metadata.string_getter(init, m, s)
+  metadata.getter(init, fun (v) -> v, m, s)
 end
 
 # Create a float getter from a metadata: this is a float, whose value can be changed with a metadata.
 # @category Interaction
 # @flag extra
 # @param init Initial value.
-# @param metadata Metadata on which the value should be updated.
+# @param m Metadata on which the value should be updated.
 # @param s Source containing the metadata.
-def metadata.float_getter(init, metadata, s)
-  metadata.getter(init, float_of_string, metadata, s)
+def metadata.float_getter(init, m, s)
+  metadata.getter(init, float_of_string, m, s)
 end
 
 # Obtain cover-art for a file. An empty string is returned in case there is no
@@ -40,8 +40,8 @@ end
 # @category System
 # @flag extra
 # @param file File from which the cover should be obtained
-def file.cover(~id="file.cover", file)
-  m = file.metadata(file)
+def file.cover(~id="file.cover", fname)
+  m = file.metadata(fname)
   m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
   if list.mem_assoc("coverart", m) or list.mem_assoc("metadata_block_picture", m)then
     # We are likely to have an ogg/vorbis file
@@ -72,7 +72,7 @@ def file.cover(~id="file.cover", file)
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
         log.debug(label=id, "APIC not found for #{file}, trying builtin tag reader.")
-        file.mp3.metadata(file)
+        file.mp3.metadata(fname)
       end
     apic = list.assoc(default="", "apic", m)
     if apic == "" then

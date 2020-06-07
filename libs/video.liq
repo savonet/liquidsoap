@@ -38,13 +38,13 @@ end
 # @param ~restart_on_error restart on exit with error.
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
-# @param input ffmpeg options specifying the input
+# @param inputopts ffmpeg options specifying the input
 def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
                           ~restart=true,~restart_on_error=false,
-                          ~buffer=0.2,~max=10.,input)
-  input = (input : string)
+                          ~buffer=0.2,~max=10.,inputopts)
+  inputopts = (inputopts : string)
   ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
-  cmd = "#{ffmpeg} #{input} -f avi \
+  cmd = "#{ffmpeg} #{inputopts} -f avi \
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
                #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\",\
@@ -91,9 +91,9 @@ end
 def output.external.ffmpeg(~id="", ~show_command=false, ~flush=false, ~fallible=false, 
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
-                           ~start=true, output, s)
-  output = (output : string)
-  cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{output}"
+                           ~start=true, outputopts, s)
+  outputopts = (outputopts : string)
+  cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{outputopts}"
   if show_command then log.important(label="output.external.ffmpeg", "command: #{cmd}") end
   output.external(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
                   reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, %avi, cmd, s)
@@ -125,6 +125,8 @@ def output.file.hls.ffmpeg(~id="", ~flush=false, ~fallible=false,
                          reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
 end
 
+let output.file.dash = ()
+
 # Output an MPEG-DASH playlist using ffmpeg
 # @category Output
 # @flag extra
@@ -149,6 +151,9 @@ def output.file.dash.ffmpeg(~id="", ~flush=false, ~fallible=false,
   cmd = "-map 0 -map 0 -c:a libfdk_aac -c:v libx264 -b:v:0 800k -b:v:1 300k -s:v:1 #{width}x#{height} -profile:v:1 baseline -profile:v:0 main -bf 1 -keyint_min 120 -g 120 -sc_threshold 0 -b_strategy 0 -ar:a:1 #{samplerate} -use_timeline 1 -use_template 1 -window_size 5 -adaptation_sets \"id=0,streams=v id=1,streams=a\" -f dash #{directory}/#{playlist}"
   output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay, reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, show_command=true, cmd, s)
 end
+
+let output.youtube = ()
+let output.youtube.live = ()
 
 # Stream to youtube.
 # @category Output
@@ -197,18 +202,18 @@ def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, tex
 end
 %endif
 
-video.add_text = video.add_text.native
+let video.add_text.best = video.add_text.native
 
 %ifdef video.add_text.sdl
-video.add_text = video.add_text.sdl
+let video.add_text.best = video.add_text.sdl
 %endif
 
 %ifdef video.add_text.gstreamer
-video.add_text = video.add_text.gstreamer
+let video.add_text.best = video.add_text.gstreamer
 %endif
 
 %ifdef video.add_text.gd
-video.add_text = video.add_text.gd
+let video.add_text.best = video.add_text.gd
 %endif
 
 # Display a text using the first available operator in: gd, gstreamer, sdl or native
@@ -226,8 +231,9 @@ video.add_text = video.add_text.gd
 def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
                    ~metadata="",~size=18,~speed=70,~x=10,~y=10,
                    d,s) =
-  video.add_text(id=id,cycle=cycle,font=font,
+  video.add_text.best(id=id,cycle=cycle,font=font,
      metadata=metadata,size=size,
      speed=speed,x=x,y=y,d,s)
 end
 
+#TODO: unhide specialized implementations of video.add_text

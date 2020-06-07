@@ -51,7 +51,7 @@ annotate:nick="alice",message="for bob":/some/track/uri```
 
 
 The extra metadata can then be synthesized in the audio stream, or merged into the standard metadata fields, or used on a rich web interface...
-It is also possible to add a new protocol from the script, as it is done with [bubble](bubble.html) for getting songs from a database query.
+It is also possible to add a new protocol from the script, as it is done with [Beets](beets.html) for getting songs from a database query.
 
 Currently supported formats
 ---------------------------

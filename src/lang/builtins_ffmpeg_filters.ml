@@ -22,6 +22,12 @@
 
 open Lang_builtins
 
+let () =
+  Lang.add_module "ffmpeg";
+  Lang.add_module "ffmpeg.filter";
+  Lang.add_module "ffmpeg.filter.audio";
+  Lang.add_module "ffmpeg.filter.video"
+
 type 'a input = 'a Avfilter.input
 type 'a output = 'a Avfilter.output
 type 'a setter = 'a -> unit

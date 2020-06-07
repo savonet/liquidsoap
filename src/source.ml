@@ -335,8 +335,7 @@ module Kind = struct
 
   let of_formats kind = map_kind Multiplicity.of_format kind
 
-  (** Compute a multiplicity from a multiplicity with variables. The [close]
-      parameter indicates whether we should fix the value of variables. *)
+  (** Compute a multiplicity from a multiplicity with variables. *)
   let get (kind : t) : Frame.content_type =
     let get default m =
       Multiplicity.close default m;

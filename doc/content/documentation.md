@@ -70,7 +70,7 @@ Specific tutorials
 
 User scripts
 ------------
-* [Bubble](bubble.html): a simple example of a database interface as a custom protocol.
+* [Beets](beets.html): an example of a music database integration.
 * [Geekradio](geekradio.html)
 * [RadioPi](radiopi.html)
 * [Frequence3](frequence3.html)

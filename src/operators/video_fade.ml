@@ -22,6 +22,8 @@
 
 open Source
 
+let () = Lang.add_module "video.fade"
+
 (** Fade-in at the beginning of every track.
   * The [duration] is in seconds. *)
 class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source

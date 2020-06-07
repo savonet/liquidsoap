@@ -54,6 +54,7 @@ let list_t t = T.make (T.List t)
 let of_list_t t =
   match (T.deref t).T.descr with T.List t -> t | _ -> assert false
 
+let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
@@ -119,6 +120,7 @@ let product a b = tuple [a; b]
 let list l = mk (List l)
 let source s = mk (Source s)
 let request r = mk (Ground (Request r))
+let reference x = mk (Ref x)
 
 let val_fun p f =
   let p' = List.map (fun (l, x, d) -> (l, x, d)) p in
@@ -207,9 +209,9 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
     }
   in
   let generalized = T.filter_vars (fun _ -> true) t in
-  Term.builtins#register
+  Term.add_builtin
     ~doc:(to_plugin_doc category flags descr proto return_t)
-    name
+    (String.split_on_char '.' name)
     ((generalized, t), value)
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
@@ -221,7 +223,9 @@ let add_builtin_base ~category ~descr ?(flags = []) name value t =
   List.iter
     (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
-  Term.builtins#register ~doc name ((generalized, t), value)
+  Term.add_builtin ~doc (String.split_on_char '.' name) ((generalized, t), value)
+
+let add_module name = Term.add_module (String.split_on_char '.' name)
 
 (** Specialized version for operators, that is builtins returning sources. *)
 
@@ -313,11 +317,12 @@ let iter_sources f v =
     match v.Term.term with
       | Term.Ground _ | Term.Encoder _ -> ()
       | Term.List l -> List.iter (iter_term env) l
-      | Term.Ref a | Term.Get a -> iter_term env a
       | Term.Tuple l -> List.iter (iter_term env) l
-      | Term.Let { Term.def = a; body = b; _ }
-      | Term.Seq (a, b)
-      | Term.Set (a, b) ->
+      | Term.Meth (_, a, b) ->
+          iter_term env a;
+          iter_term env b
+      | Term.Invoke (a, _) -> iter_term env a
+      | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
           iter_term env a;
           iter_term env b
       | Term.Var v -> (
@@ -346,6 +351,9 @@ let iter_sources f v =
       | Ground _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
+      | Meth (_, a, b) ->
+          iter_value a;
+          iter_value b
       | Fun (proto, pe, env, body) ->
           (* The following is necessarily imprecise: we might see sources that
              will be unused in the execution of the function. *)
@@ -374,6 +382,7 @@ let iter_sources f v =
                   | Tuple l -> List.exists aux l
                   | Ref r -> aux !r
                   | Fun _ | FFI _ -> true
+                  | Meth (_, v, t) -> aux v || aux t
               in
               aux v
             in
@@ -391,11 +400,13 @@ let apply f p = Clock.collect_after (fun () -> Term.apply f p)
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-let to_bool t = match t.value with Ground (Bool b) -> b | _ -> assert false
+let to_unit t = match (demeth t).value with Tuple [] -> () | _ -> assert false
+
+let to_bool t =
+  match (demeth t).value with Ground (Bool b) -> b | _ -> assert false
 
 let to_bool_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
@@ -405,15 +416,15 @@ let to_bool_getter t =
     | _ -> assert false
 
 let to_fun f =
-  match f.value with
+  match (demeth f).value with
     | Fun _ | FFI _ -> fun args -> apply f args
     | _ -> assert false
 
 let to_string t =
-  match t.value with Ground (String s) -> s | _ -> assert false
+  match (demeth t).value with Ground (String s) -> s | _ -> assert false
 
 let to_string_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
@@ -422,10 +433,11 @@ let to_string_getter t =
             | _ -> assert false )
     | _ -> assert false
 
-let to_float t = match t.value with Ground (Float s) -> s | _ -> assert false
+let to_float t =
+  match (demeth t).value with Ground (Float s) -> s | _ -> assert false
 
 let to_float_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
@@ -434,16 +446,20 @@ let to_float_getter t =
             | _ -> assert false )
     | _ -> assert false
 
-let to_source t = match t.value with Source s -> s | _ -> assert false
-let to_format t = match t.value with Encoder f -> f | _ -> assert false
+let to_source t =
+  match (demeth t).value with Source s -> s | _ -> assert false
+
+let to_format t =
+  match (demeth t).value with Encoder f -> f | _ -> assert false
 
 let to_request t =
-  match t.value with Ground (Request x) -> x | _ -> assert false
+  match (demeth t).value with Ground (Request r) -> r | _ -> assert false
 
-let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
+let to_int t =
+  match (demeth t).value with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
-  match t.value with
+  match (demeth t).value with
     | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
@@ -452,11 +468,13 @@ let to_int_getter t =
             | _ -> assert false )
     | _ -> assert false
 
-let to_list t = match t.value with List l -> l | _ -> assert false
-let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
+let to_list t = match (demeth t).value with List l -> l | _ -> assert false
+let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
 
 let to_product t =
-  match t.value with Tuple [a; b] -> (a, b) | _ -> assert false
+  match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
+
+let to_ref t = match t.value with Ref r -> r | _ -> assert false
 
 let to_metadata_list t =
   let pop v =
@@ -487,11 +505,15 @@ let rec assoc label n = function
 
 let type_and_run ~lib ast =
   Clock.collect_after (fun () ->
+      if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
       (* Type checking *)
       Term.check ~ignored:true ast;
 
+      if Lazy.force Term.debug then
+        Printf.eprintf "Checking for unused variables...\n%!";
       (* Check for unused variables, relies on types *)
       Term.check_unused ~lib ast;
+      if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
       ignore (Term.eval_toplevel ast))
 
 let mk_expr ~pwd processor lexbuf =
@@ -523,7 +545,7 @@ let from_file ?parse_only ~ns ~lib filename =
   close_in ic
 
 let load_libs ?parse_only () =
-  let dir = Configure.libs_dir in
+  let dir = Configure.liq_libs_dir in
   let file = Filename.concat dir "pervasives.liq" in
   if Sys.file_exists file then
     from_file ?parse_only ~ns:(Some file) ~lib:true file
@@ -545,8 +567,7 @@ let eval s =
     let expr = mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf in
     Clock.collect_after (fun () ->
         Term.check ~ignored:false expr;
-        let env = List.map (fun (x, (_, v)) -> (x, v)) Term.builtins#get_all in
-        Some (Term.eval ~env expr))
+        Some (Term.eval expr))
   with e ->
     Printf.eprintf "Evaluating %S failed: %s!" s (Printexc.to_string e);
     None

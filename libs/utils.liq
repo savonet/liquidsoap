@@ -39,21 +39,21 @@ end
 # output. The only exception is AO: it is the default output after dummy, so the
 # input will be a dummy when AO is used for output.
 
-output.prefered=output.dummy
+let output.prefered=output.dummy
 %ifdef output.ao
-  output.prefered=output.ao
+  let output.prefered=output.ao
 %endif
 %ifdef output.alsa
-  output.prefered=output.alsa
+  let output.prefered=output.alsa
 %endif
 %ifdef output.oss
-  output.prefered=output.oss
+  let output.prefered=output.oss
 %endif
 %ifdef output.portaudio
-  output.prefered = output.portaudio
+  let output.prefered = output.portaudio
 %endif
 %ifdef output.pulseaudio
-  output.prefered=output.pulseaudio
+  let output.prefered=output.pulseaudio
 %endif
 # Output to local audio card using the first available driver in pulseaudio,
 # portaudio, oss, alsa, ao, dummy.
@@ -276,16 +276,6 @@ end
 #             `{10h-10h30}`.
 def at(pred,s)
   switch([(pred,s)])
-end
-
-# Assign a new clock to the given source (and to other time-dependent sources)
-# and return the source. It is a conveniency wrapper around clock.assign_new(),
-# allowing more concise scripts in some cases.
-# @category Liquidsoap
-# @param ~sync Synchronization mode. One of: `"auto"`, `"cpu"`, or `"none"`. Defaults to `"auto"`, which synchronizes with the CPU clock if none of the active sources are attached to their own clock (e.g. ALSA input, etc). `"cpu"` always synchronizes with the CPU clock. `"none"` removes all synchronization control.
-def clock(~sync="auto",~id="",s)
-  clock.assign_new(sync=sync,id=id,[s])
-  s
 end
 
 # Create a log of clock times for all the clocks initially present. The log is

@@ -6,7 +6,7 @@ set("frame.audio.samplerate",48000)
 
 set("decoder.priorities.ffmpeg",-1)
 
-file = argv(default="",1)
+fname = argv(default="",1)
 out = "files/test.wav"
 
 if file.exists(out) then
@@ -18,14 +18,14 @@ digests = [
   ("files/@wav(stereo).wav", "64ffd09001bee5fc98e0dbaf0aff983f")
 ] 
 
-s = (single(file):source(1,0,0))
+s = (single(fname):source(1,0,0))
 
 s = once(s)
 
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  recorded_digest = list.assoc(default="", file, digests)
+  recorded_digest = list.assoc(default="", fname, digests)
   pass_digest =
     if recorded_digest != "" then
       recorded_digest == file.digest(out)

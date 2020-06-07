@@ -8,8 +8,4 @@ s = add(normalize=true,[
 ])
 
 output.dummy(s)
-
-thread.run(delay=3.,{
-  test.pass()
-  shutdown()
-})
+thread.run(delay=3., {test.pass(); shutdown()})

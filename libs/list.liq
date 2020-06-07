@@ -30,8 +30,11 @@ end
 
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
 # @category List
-def rec list.nth(~default, l, n)
-  list.case(l, default, fun (x, l) -> if n == 0 then x else list.nth(default=default, l, n-1) end)
+def list.nth(~default, l, n) =
+  def rec aux(l, n)
+    list.case(l, default, fun (x, l) -> if n == 0 then x else aux(l, n-1) end)
+  end
+  aux(l, n)
 end
 
 # Determing whether a list is empty or not.
@@ -54,25 +57,34 @@ end
 
 # Check whether an element belongs to a list.
 # @category List
-def rec list.mem(x, l)
-  list.case(l, false, fun (y, l) -> x == y or list.mem(x, l))
+def list.mem(x, l)
+  def rec aux(l)
+    list.case(l, false, fun (y, l) -> x == y or aux(l))
+  end
+  aux(l)
 end
 
 # Call a function on every element of a list.
 # @category List
-def rec list.iter(f, l)
-  list.case(l, (), fun (x, l) -> begin f(x); list.iter(f, l) end)
+def list.iter(f, l)
+  def rec aux(l)
+    list.case(l, (), fun (x, l) -> begin f(x); aux(l) end)
+  end
+  aux(l)
 end
 
 # Map a function on every element of a list.
 # @category List
-def rec list.map(f, l)
-  list.case(l, [], fun (x, l) -> list.cons(f(x), list.map(f, l)))
+def list.map(f, l)
+  def rec aux(l)
+    list.case(l, [], fun (x, l) -> list.cons(f(x), aux(l)))
+  end
+  aux(l)
 end
 
 # Map a function on every element of a list, along with its index.
 # @category List
-def rec list.mapi(f, l)
+def list.mapi(f, l)
   n = ref(0)
   def f(x) =
     i = !n
@@ -86,8 +98,11 @@ end
 # @category List
 # @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.
 # @param x Initial value x1, to be updated by successive calls of `f(x,e)`.
-def rec list.fold(f, x, l)
-  list.case(l, x, fun (e, l) -> list.fold(f, f(x, e), l))
+def list.fold(f, x, l)
+  def rec aux(x, l)
+    list.case(l, x, fun (e, l) -> aux(f(x, e), l))
+  end
+  aux(x, l)
 end
 
 # Fold a function on every element of a list. Similar to `list.fold` but
@@ -140,54 +155,66 @@ end
 # Associate a value to a key in an association list.
 # @category List
 # @param ~default Value returned if the key is not found
-def rec list.assoc(~default, key, l)
-  def f(x, l)
-    let (k, v) = x
-    if k == key then v else list.assoc(default=default, key, l) end
+def list.assoc(~default, key, l)
+  def rec aux(l)
+    def f(x, l)
+      let (k, v) = x
+      if k == key then v else aux(l) end
+    end
+    list.case(l, default, f)
   end
-  list.case(l, default, f)
+  aux(l)
 end
 
 # Remove the first pair from an associative list.
 # @category List
 # @param key Key of pair to be removed.
 # @param l List of pairs (key,value).
-def rec list.remove_assoc(key, l)
-  def f(x, l)
-    let (k, v) = x
-    if k == key then l else list.cons((k,v), list.remove_assoc(key, l)) end
+def list.remove_assoc(key, l)
+  def rec aux(l)
+    def f(x, l)
+      let (k, v) = x
+      if k == key then l else list.cons((k,v), aux(l)) end
+    end
+    list.case(l, [], f)
   end
-  list.case(l, [], f)
+  aux(l)
 end
 
 # Check that a predicate is satisfied for every element in a list.
 # @category List
 # @param p Predicate.
 # @param l List.
-def rec list.for_all(p, l)
-  def f(x, l)
-    if not p(x) then
-      false
-    else
-      list.for_all(p, l)
+def list.for_all(p, l)
+  def rec aux(l)
+    def f(x, l)
+      if not p(x) then
+        false
+      else
+        aux(l)
+      end
     end
+    list.case(l, true, f)
   end
-  list.case(l, true, f)
+  aux(l)
 end
 
 # Check that a predicate is satisfied for some element in a list.
 # @category List
 # @param p Predicate.
 # @param l List.
-def rec list.exists(p, l)
-  def f(x, l)
-    if p(x) then
-      true
-    else
-      list.exists(p, l)
+def list.exists(p, l)
+  def rec aux(l)
+    def f(x, l)
+      if p(x) then
+        true
+      else
+        aux(l)
+      end
     end
+    list.case(l, false, f)
   end
-  list.case(l, false, f)
+  aux(l)
 end
 
 # First element satisfying a predicate.
@@ -195,15 +222,18 @@ end
 # @param ~default Returned value when the predicate is not found.
 # @param p Predicate.
 # @param l List.
-def rec list.find(~default, p, l)
-  list.case(l, default, fun(x, l) -> if p(x) then x else list.find(default=default, p, l) end)
+def list.find(~default, p, l)
+  def rec aux(l)
+    list.case(l, default, fun(x, l) -> if p(x) then x else aux(l) end)
+  end
+  aux(l)
 end
 
 # First index where a predicate is satisfied.
 # @category List
 # @param p Predicate.
 # @param l List.
-def rec list.index(p, l)
+def list.index(p, l)
   list.ind(l, 0, fun (x, l, r) -> if p(x) then 0 else r+1 end)
 end
 

@@ -22,36 +22,30 @@
 
 open Lang_builtins
 
-let () = Lang.add_module "profiler"
+let () =
+  let a = Lang.univ_t () in
+  add_builtin "ref" ~cat:Liq
+    ~descr:"Create a reference, i.e. a value which can be modified."
+    [("", a, None, None)] (Lang.ref_t a) (fun p ->
+      let x = List.assoc "" p in
+      Lang.reference (ref x))
 
 let () =
-  add_builtin "profiler.enable" ~cat:Liq ~descr:"Record profiling statistics."
-    [] Lang.unit_t (fun _ ->
-      Lang_values.profile := true;
-      Lang.unit)
+  let a = Lang.univ_t () in
+  add_builtin "ref.get" ~cat:Liq ~descr:"Retrieve the contents of a reference."
+    [("", Lang.ref_t a, None, None)]
+    a
+    (fun p ->
+      let r = Lang.to_ref (List.assoc "" p) in
+      !r)
 
 let () =
-  add_builtin "profiler.disable" ~cat:Liq ~descr:"Record profiling statistics."
-    [] Lang.unit_t (fun _ ->
-      Lang_values.profile := false;
-      Lang.unit)
-
-let () =
-  add_builtin "profiler.run" ~cat:Liq
-    ~descr:"Time a function with the profiler."
-    [
-      ("", Lang.string_t, None, Some "Name of the profiled function.");
-      ("", Lang.fun_t [] Lang.unit_t, None, Some "Function to profile.");
-    ]
+  let a = Lang.univ_t () in
+  add_builtin "ref.set" ~cat:Liq ~descr:"Set the value of a reference."
+    [("", Lang.ref_t a, None, None); ("", a, None, None)]
     Lang.unit_t
     (fun p ->
-      let name = Lang.to_string (Lang.assoc "" 1 p) in
-      let f = Lang.assoc "" 2 p in
-      let f () = ignore (Lang.apply f []) in
-      Profiler.time name f ();
+      let r = Lang.to_ref (Lang.assoc "" 1 p) in
+      let v = Lang.assoc "" 2 p in
+      r := v;
       Lang.unit)
-
-let () =
-  Lang.add_module "profiler.stats";
-  add_builtin "profiler.stats.string" ~cat:Liq ~descr:"Profiling statistics." []
-    Lang.string_t (fun _ -> Lang.string (Profiler.stats ()))

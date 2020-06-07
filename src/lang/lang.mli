@@ -58,6 +58,7 @@ and in_value = Lang_values.V.in_value =
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
+  | Meth of string * value * value
   | Ref of value ref
   | Fun of
       (string * string * value option) list * env * lazy_env * Lang_values.term
@@ -65,6 +66,8 @@ and in_value = Lang_values.V.in_value =
       default value), parameters already passed to the function, closure and
       value. *)
   | FFI of (string * string * value option) list * env * (env -> value)
+
+val demeth : value -> value
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -121,6 +124,9 @@ val add_builtin_base :
   in_value ->
   t ->
   unit
+
+(** Declare a new module. *)
+val add_module : string -> unit
 
 (** Category of an operator. *)
 type category =
@@ -203,6 +209,7 @@ val to_int_getter : value -> unit -> int
 val to_list : value -> value list
 val to_product : value -> value * value
 val to_tuple : value -> value list
+val to_ref : value -> value ref
 val to_metadata_list : value -> (string * string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
@@ -225,6 +232,7 @@ val tuple_t : t list -> t
 val of_tuple_t : t -> t list
 val list_t : t -> t
 val of_list_t : t -> t
+val ref_t : t -> t
 val zero_t : t
 val succ_t : t -> t
 val n_t : int -> t
@@ -270,6 +278,7 @@ val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value
 val tuple : value list -> value
+val reference : value ref -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. *)
