@@ -245,8 +245,7 @@ let rec print_term v =
     | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
-    | Meth (l, v, e) ->
-        "{{ " ^ print_term e ^ " | " ^ l ^ " = " ^ print_term v ^ " }}"
+    | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
@@ -255,7 +254,7 @@ let rec print_term v =
         let tl =
           List.map
             (fun (lbl, v) ->
-              (if lbl = "" then "" else lbl ^ "=") ^ print_term v)
+              (if lbl = "" then "" else lbl ^ " = ") ^ print_term v)
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
@@ -475,8 +474,7 @@ module V = struct
       | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
       | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
-      | Meth (l, v, e) ->
-          "{{" ^ print_value e ^ " | " ^ l ^ " = " ^ print_value v ^ "}}"
+      | Meth (l, v, e) -> print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
       | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
       | Fun (l, _, _, x) when is_ground x ->
           let f (label, _, value) =
@@ -546,7 +544,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                 T.make ~pos:vt.T.pos
                   (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
               in
-              (t, { V.pos = None; value = V.Meth (l, lv, v) })
+              (t, { V.pos = v.V.pos; value = V.Meth (l, lv, v) })
           | [] -> (t, v)
         in
         let t, v = aux [] ll in

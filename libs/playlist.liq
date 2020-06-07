@@ -80,7 +80,7 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   end
 
   # Return
-  {{ s | reload = reload }}
+  s.{reload = reload}
 end
 
 # Read a playlist or a directory, play all files and stop. It returns a pair
@@ -155,7 +155,7 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
     s.reload(load_playlist())
   end
 
-  {{ s | reload = reload }}
+  s.{reload = reload}
 end
 
 # Read a playlist or a directory and play all files.

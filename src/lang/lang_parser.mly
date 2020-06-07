@@ -182,8 +182,8 @@
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
-%token LPAR RPAR COMMA SEQ SEQSEQ COLON PIPE DOT
-%token LBRA RBRA LCUR RCUR LCURR RCURR
+%token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
+%token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token <string> BIN0
 %token <string> BIN1
@@ -244,6 +244,11 @@ exprs:
   | binding exprs            { mk_let ~pos:$loc($1) $1 $2 }
   | binding SEQ exprs        { mk_let ~pos:$loc($1) $1 $3 }
 
+/* Sequences of expressions without bindings */
+exprss:
+  | expr { $1 }
+  | expr SEQ exprss { mk ~pos:$loc (Seq ($1,$3)) }
+
 /* General expressions. */
 expr:
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ; $2 }
@@ -276,9 +281,9 @@ expr:
   | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
-  | LCURR expr PIPE record RCURR     { $4 ~pos:$loc $2 }
-  | LCURR record RCURR               { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
-  | LCURR RCURR                      { mk ~pos:$loc (Tuple []) }
+  | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
+  | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
+  | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
   | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
   | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:$loc (Invoke ($1, $3)), $4)) }
   | REF DOT VARLPAR app_list RPAR    { mk ~pos:$loc (App (mk ~pos:$loc (Invoke (mk ~pos:$loc($1) (Var "ref"), $3)), $4)) }
@@ -286,7 +291,7 @@ expr:
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
-  | LCUR exprs RCUR                  { mk_fun ~pos:$loc [] $2 }
+  | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | IF exprs THEN exprs if_elsif END { let cond = $2 in
                                        let then_b = mk_fun ~pos:($startpos($3),$endpos($4)) [] $4 in
                                        let else_b = $5 in
