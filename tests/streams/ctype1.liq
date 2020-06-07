@@ -16,4 +16,9 @@ s = mean(sine(id="sine"))
 s = add([s , f()])
 
 output.dummy(s)
-thread.run(delay=1., {test.pass(); shutdown()})
+
+def kill() =
+  test.pass()
+  shutdown()
+end
+thread.run(delay=1., kill)
