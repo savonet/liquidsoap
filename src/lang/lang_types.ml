@@ -412,14 +412,15 @@ let print_repr f t =
           let m = aux m in
           (* Put latest addition last. *)
           let m = List.rev m in
-          Format.fprintf f "@[<3>{{ ";
+          (* First print the main value. *)
           let vars =
             if t = `Tuple [] then vars
             else (
-              let vars = print ~par:false vars t in
-              Format.fprintf f " | ";
+              let vars = print ~par:true vars t in
+              Format.fprintf f ".";
               vars )
           in
+          Format.fprintf f "@[<1>{";
           let vars =
             if m = [] then vars
             else (
@@ -432,25 +433,24 @@ let print_repr f t =
               in
               let rec aux vars = function
                 | [(l, (g, t))] ->
-                    Format.fprintf f "%s = %s" l (gen g);
+                    Format.fprintf f "%s : %s" l (gen g);
                     print ~par:true vars t
                 | (l, (g, t)) :: m ->
-                    Format.fprintf f "%s = %s" l (gen g);
+                    Format.fprintf f "%s : %s" l (gen g);
                     let vars = print ~par:false vars t in
-                    Format.fprintf f " ,@ ";
+                    Format.fprintf f ",@ ";
                     aux vars m
                 | [] -> assert false
               in
               aux vars m )
           in
-          Format.fprintf f " }}@]";
+          Format.fprintf f "}@]";
           vars )
         else (
-          Format.fprintf f "{{ ";
-          let vars = print ~par:false vars b in
-          Format.fprintf f " | %s = " l;
+          let vars = print ~par:true vars b in
+          Format.fprintf f ".{%s = " l;
           let vars = print ~par:false vars a in
-          Format.fprintf f " }}";
+          Format.fprintf f "}";
           vars )
     | `List t ->
         Format.fprintf f "@[<1>[";

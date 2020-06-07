@@ -243,8 +243,7 @@ let rec print_term v =
     | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
-    | Meth (l, v, e) ->
-        "{{ " ^ print_term e ^ " | " ^ l ^ " = " ^ print_term v ^ " }}"
+    | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ "=" ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
@@ -473,8 +472,7 @@ module V = struct
       | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
       | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
-      | Meth (l, v, e) ->
-          "{{" ^ print_value e ^ " | " ^ l ^ " = " ^ print_value v ^ "}}"
+      | Meth (l, v, e) -> print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
       | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
       | Fun (l, _, _, x) when is_ground x ->
           let f (label, _, value) =
