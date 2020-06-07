@@ -33,7 +33,10 @@ let add_http_request http name descr request =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let status_t = Lang.tuple_t [Lang.string_t; Lang.int_t; Lang.string_t] in
-  let request_return_t = Lang.tuple_t [status_t; headers_t; Lang.string_t] in
+  let request_return_t =
+    Lang.record_t
+      [("status", status_t); ("headers", headers_t); ("data", Lang.string_t)]
+  in
   let params =
     if List.mem request [Get; Head; Delete] then []
     else [("data", Lang.string_t, Some (Lang.string ""), Some "POST data.")]
@@ -93,18 +96,13 @@ let add_http_request http name descr request =
           headers
       in
       let headers = Lang.list headers in
-      Lang.tuple [status; headers; Lang.string data])
+      Lang.record
+        [("status", status); ("headers", headers); ("data", Lang.string data)])
 
 let () =
   let add_http_request = add_http_request (module Http) in
-  add_http_request "http.get"
-    "Perform a full Http GET request and return `(status,headers,data)`." Get;
-  add_http_request "http.post"
-    "Perform a full Http POST request and return `(status,headers,data)`." Post;
-  add_http_request "http.put"
-    "Perform a full Http PUT request and return `(status,headers,data)`." Put;
-  add_http_request "http.head"
-    "Perform a full Http HEAD request and return `(status,headers,data)`." Head;
-  add_http_request "http.delete"
-    "Perform a full Http DELETE request and return `(status,headers,data)`."
-    Delete
+  add_http_request "http.get" "Perform a full Http GET request." Get;
+  add_http_request "http.post" "Perform a full Http POST request`." Post;
+  add_http_request "http.put" "Perform a full Http PUT request." Put;
+  add_http_request "http.head" "Perform a full Http HEAD request." Head;
+  add_http_request "http.delete" "Perform a full Http DELETE request." Delete

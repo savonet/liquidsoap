@@ -42,6 +42,10 @@ let string_t = ground_t T.String
 let tuple_t l = T.make (T.Tuple l)
 let product_t a b = tuple_t [a; b]
 
+let rec record_t = function
+  | [] -> unit_t
+  | (l, t) :: r -> T.meth l ([], t) (record_t r)
+
 let of_tuple_t t =
   match (T.deref t).T.descr with T.Tuple l -> l | _ -> assert false
 
@@ -118,6 +122,11 @@ let string i = mk (Ground (String i))
 let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
 let list l = mk (List l)
+
+let rec record = function
+  | [] -> unit
+  | (l, v) :: r -> mk (Meth (l, v, record r))
+
 let source s = mk (Source s)
 let request r = mk (Ground (Request r))
 let reference x = mk (Ref x)

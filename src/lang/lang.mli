@@ -230,6 +230,7 @@ val product_t : t -> t -> t
 val of_product_t : t -> t * t
 val tuple_t : t list -> t
 val of_tuple_t : t -> t list
+val record_t : (string * t) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
 val ref_t : t -> t
@@ -278,6 +279,7 @@ val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value
 val tuple : value list -> value
+val record : (string * value) list -> value
 val reference : value ref -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
