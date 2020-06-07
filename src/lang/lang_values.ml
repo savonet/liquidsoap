@@ -243,7 +243,7 @@ let rec print_term v =
     | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
-    | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ "=" ^ print_term v ^ "}"
+    | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
@@ -252,7 +252,7 @@ let rec print_term v =
         let tl =
           List.map
             (fun (lbl, v) ->
-              (if lbl = "" then "" else lbl ^ "=") ^ print_term v)
+              (if lbl = "" then "" else lbl ^ " = ") ^ print_term v)
             tl
         in
         print_term hd ^ "(" ^ String.concat "," tl ^ ")"
