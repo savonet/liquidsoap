@@ -815,8 +815,7 @@ type explanation = bool * t * t * repr * repr
 exception Type_Error of explanation
 
 let print_type_error error_header (flipped, ta, tb, a, b) =
-  error_header
-    (match ta.pos with None -> "At unknown position" | Some p -> print_pos p);
+  error_header (print_pos_opt ta.pos);
   match b with
     | `Meth (l, ([], `Ellipsis), `Ellipsis) ->
         Format.printf "this value does not have a field %s.@]@." l

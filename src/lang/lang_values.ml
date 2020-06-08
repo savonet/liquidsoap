@@ -534,9 +534,10 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
               let vg, vt = T.invokes t0 (List.rev prefix) in
               let lvt, lv = aux (l :: prefix) ll in
               let t =
-                T.make (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
+                T.make ~pos:t.T.pos
+                  (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
               in
-              (t, { V.pos = None; value = V.Meth (l, lv, v) })
+              (t, { V.pos = v.V.pos; value = V.Meth (l, lv, v) })
           | [] -> (t, v)
         in
         let t, v = aux [] ll in
@@ -713,7 +714,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
                    enough for records. *)
                 let x = T.fresh_evar ~level ~pos in
                 let y = T.fresh_evar ~level ~pos in
-                t <: mk (T.Meth (l, ([], x), y));
+                { t with T.pos } <: mk (T.Meth (l, ([], x), y));
                 x
         in
         e.t >: aux a.t

@@ -284,8 +284,8 @@ expr:
   | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
   | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
-  | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:$loc (Invoke ($1, $3)), $4)) }
-  | REF DOT VARLPAR app_list RPAR    { mk ~pos:$loc (App (mk ~pos:$loc (Invoke (mk ~pos:$loc($1) (Var "ref"), $3)), $4)) }
+  | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)), $4)) }
+  | REF DOT VARLPAR app_list RPAR    { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke (mk ~pos:$loc($1) (Var "ref"), $3)), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
