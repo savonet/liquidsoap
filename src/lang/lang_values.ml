@@ -1103,17 +1103,15 @@ let toplevel_add (doc, params) pat ~t v =
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
     | Let { doc = comment; gen = generalized; replace; pat; def; body } ->
-        let def_t = def.t in
-        let def = eval def in
-        let def =
-          if not replace then def
+        let def_t, def =
+          if not replace then (def.t, eval def)
           else (
             match pat with
               | PVar [] -> assert false
               | PVar (x :: l) ->
-                  let _, old = List.assoc x (default_environment ()) in
+                  let old_t, old = List.assoc x (default_environment ()) in
                   let old = V.invokes old l in
-                  V.remeth old def
+                  (T.remeth (snd old_t) def.t, V.remeth old (eval def))
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now" )
         in
