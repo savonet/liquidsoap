@@ -589,6 +589,8 @@ let print ?generalized t : string =
   Format.fprintf Format.str_formatter "@?";
   Format.flush_str_formatter ()
 
+let print_scheme (g, t) = print ~generalized:g t
+
 let fresh_evar =
   let fresh_id =
     let c = ref 0 in

@@ -1118,8 +1118,10 @@ let rec eval_toplevel ?(interactive = false) t =
               | PVar [] -> assert false
               | PVar (x :: l) ->
                   let old_t, old = List.assoc x (default_environment ()) in
+                  let old_t = snd old_t in
+                  let old_t = snd (T.invokes old_t l) in
                   let old = V.invokes old l in
-                  (T.remeth (snd old_t) def.t, V.remeth old (eval def))
+                  (T.remeth old_t def.t, V.remeth old (eval def))
               | PTuple _ ->
                   failwith "TODO: cannot replace toplevel tuples for now" )
         in
