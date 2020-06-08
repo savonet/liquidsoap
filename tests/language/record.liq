@@ -35,6 +35,8 @@ def f() =
   let r.a.b = 5
   let replaces r.a = 2
   ignore(r.a.b)
+  def replaces r.a (x) = 2*x end
+  ignore(r.a.b)
 
   # A resetable counter
   n = ref(0)
