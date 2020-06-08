@@ -19,7 +19,7 @@ end
 
 let request.dynamic.list = request_dynamic_list
 
-# Play a queue of uris. Returns a function to push new uris in the queue as well as the resulting source.
+# Play a queue of uris.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
@@ -28,7 +28,7 @@ let request.dynamic.list = request_dynamic_list
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
-def request.queue.pushable(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
+def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
   queue = ref(queue)
   def next()
     reqs = !queue
@@ -55,18 +55,5 @@ def request.queue.pushable(~id="", ~conservative=false, ~default_duration=30., ~
     def skip(_) = source.skip(s); "Done." end
     server.register(namespace=namespace, description="Skip current song.", usage="skip", "skip", skip)
   end
-  (push, s)
-end
-
-# Play a queue of uris. This function is mainly meant to be controlled over telnet.
-# @category Source / Track Processing
-# @param ~id Force the value of the source ID.
-# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
-# @param ~default_duration When unknown, assume this duration (in sec.) for files.
-# @param ~interactive Should the queue be controllable via telnet?
-# @param ~length How much audio (in sec.) should be queued in advance.
-# @param ~queue Initial queue of requests.
-# @param ~timeout Timeout (in sec.) for a single download.
-def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
-  snd(request.queue.pushable(id=id, conservative=conservative, default_duration=default_duration, interactive=interactive, length=length, queue=queue, timeout=timeout))
+  s.{push=push}
 end
