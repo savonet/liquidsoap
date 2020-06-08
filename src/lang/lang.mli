@@ -58,7 +58,7 @@ and in_value = Lang_values.V.in_value =
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
-  | Meth of string * value * value
+  | Meth of value * value Lang_values.SMap.t
   | Ref of value ref
   | Fun of
       (string * string * value option) list * env * lazy_env * Lang_values.term

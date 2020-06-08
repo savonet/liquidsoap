@@ -351,9 +351,9 @@ let iter_sources f v =
       | Ground _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
-      | Meth (_, a, b) ->
+      | Meth (a, m) ->
           iter_value a;
-          iter_value b
+          Term.SMap.iter (fun _ -> iter_value) m
       | Fun (proto, pe, env, body) ->
           (* The following is necessarily imprecise: we might see sources that
              will be unused in the execution of the function. *)
@@ -382,7 +382,8 @@ let iter_sources f v =
                   | Tuple l -> List.exists aux l
                   | Ref r -> aux !r
                   | Fun _ | FFI _ -> true
-                  | Meth (_, v, t) -> aux v || aux t
+                  | Meth (t, m) ->
+                      aux t || Term.SMap.fold (fun _ t b -> b || aux t) m false
               in
               aux v
             in

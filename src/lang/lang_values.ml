@@ -430,6 +430,12 @@ let rec map_types f gen tm =
               };
         }
 
+module SMap = Map.Make (struct
+  type t = string
+
+  let compare x y = compare (x : string) (y : string)
+end)
+
 (** Values are untyped normal forms of terms. *)
 module V = struct
   type value = { pos : T.pos option; value : in_value }
@@ -445,10 +451,7 @@ module V = struct
     | Encoder of Encoder.format
     | List of value list
     | Tuple of value list
-    (* TODO: It would be better to have a list of methods associated to each
-       value than a constructor here. However, I am keeping as is for now because
-       implementation is safer this way. *)
-    | Meth of string * value * value
+    | Meth of value * value SMap.t
     | Ref of value ref
         (** The first environment contains the parameters already passed to the
         function. Next parameters will be inserted between that and the second
@@ -472,7 +475,14 @@ module V = struct
       | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
       | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
-      | Meth (l, v, e) -> print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
+      | Meth (e, m) ->
+          let m =
+            SMap.fold
+              (fun l v s ->
+                (if s = "" then "" else ", ") ^ l ^ "=" ^ print_value v)
+              m ""
+          in
+          print_value e ^ ".{" ^ m ^ "}"
       | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
       | Fun (l, _, _, x) when is_ground x ->
           let f (label, _, value) =
@@ -490,14 +500,18 @@ module V = struct
   (** Find a method in a value. *)
   let rec invoke x l =
     match x.value with
-      | Meth (l', y, _) when l' = l -> y
-      | Meth (_, _, x) -> invoke x l
+      | Meth (x, m) -> ( try SMap.find l m with Not_found -> invoke x l )
       | _ -> failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
 
   (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
   let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
-  let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
+  let meth x l v : in_value =
+    match x.value with
+      | Meth (x, m) -> Meth (x, SMap.add l v m)
+      | _ -> Meth (x, SMap.singleton l v)
+
+  let rec demeth v = match v.value with Meth (v, _) -> demeth v | _ -> v
 end
 
 (** {2 Built-in values and toplevel definitions} *)
@@ -537,7 +551,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                 T.make ~pos:t.T.pos
                   (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
               in
-              (t, { V.pos = v.V.pos; value = V.Meth (l, lv, v) })
+              (t, { V.pos = v.V.pos; value = V.meth v l lv })
           | [] -> (t, v)
         in
         let t, v = aux [] ll in
@@ -904,12 +918,11 @@ let rec eval ~env tm =
     | Encoder x -> mk (V.Encoder x)
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
-    | Meth (l, u, v) -> mk (V.Meth (l, eval ~env u, eval ~env v))
+    | Meth (l, u, v) -> mk (V.meth (eval ~env v) l (eval ~env u))
     | Invoke (t, l) ->
         let rec aux t =
           match t.V.value with
-            | V.Meth (l', t, _) when l = l' -> t
-            | V.Meth (_, _, t) -> aux t
+            | V.Meth (t, m) -> ( try SMap.find l m with Not_found -> aux t )
             | _ -> failwith ("Fatal error: invoked method " ^ l ^ " not found")
         in
         aux (eval ~env t)
@@ -925,9 +938,8 @@ let rec eval ~env tm =
                     let rec meths ll v t =
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk (V.Meth (l, v, t))
-                        | l :: ll ->
-                            mk (V.Meth (l, meths ll v (V.invoke t l), t))
+                        | [l] -> mk (V.meth t l v)
+                        | l :: ll -> mk (V.meth t l (meths ll v (V.invoke t l)))
                     in
                     (l, lazy (meths ll v (Lazy.force (List.assoc l env)))))
             (eval_pat pat v)
