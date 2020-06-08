@@ -26,21 +26,23 @@ open Request_source
 exception Invalid_URI of string
 
 (** [r] must resolve and be always ready. *)
-class unqueued ~kind r =
+class unqueued ~kind request =
   object (self)
     inherit Request_source.unqueued ~name:"single" ~kind as super
 
     method wake_up x =
-      let uri = Request.initial_uri r in
+      let uri = Request.initial_uri request in
       self#log#important "%S is static, resolving once for all..." uri;
-      if Request.Resolved <> Request.resolve r 60. then raise (Invalid_URI uri);
-      let filename = Utils.get_some (Request.get_filename r) in
+      if
+        Request.Resolved <> Request.resolve ~ctype:(Some self#ctype) request 60.
+      then raise (Invalid_URI uri);
+      let filename = Utils.get_some (Request.get_filename request) in
       if String.length filename < 15 then self#set_id filename;
       super#wake_up x
 
     method stype = Infallible
 
-    method get_next_file = Some r
+    method get_next_file = Some request
   end
 
 class queued ~kind uri length default_duration timeout conservative =
@@ -59,6 +61,8 @@ class queued ~kind uri length default_duration timeout conservative =
 let log = Log.make ["single"]
 
 let () =
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "single" ~category:Lang.Input
     ~descr:
       "Loop on a request. It never fails if the request is static, meaning \
@@ -70,29 +74,28 @@ let () =
          Some (Lang.bool false),
          Some "Enforce fallibility of the request." )
     :: queued_proto )
-    ~return_t:(Lang.univ_t ())
-    (fun p kind ->
+    ~return_t
+    (fun p ->
       let val_uri = List.assoc "" p in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let l, d, t, c = extract_queued_params p in
       let uri = Lang.to_string val_uri in
       if (not fallible) && Request.is_static uri then (
-        let r = Request.create ~kind ~persistent:true uri in
-        (new unqueued ~kind r :> source) )
+        let request = Request.create ~persistent:true uri in
+        (new unqueued ~kind request :> source) )
       else (new queued uri ~kind l d t c :> source))
 
 let () =
-  let k = Lang.univ_t () in
-  Lang.add_operator "unsafe.single.infallible" ~category:Lang.Input
+  let kind = Lang.any in
+  let t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "single.infallible" ~category:Lang.Input
     ~flags:[Lang.Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
        WARNING: if used uncarefully, it can crash your application!"
-    [("", Lang.request_t k, None, None)]
-    ~return_t:k
-    (fun p kind ->
-      let r = Lang.to_request (List.assoc "" p) in
-      (new unqueued ~kind r :> source))
+    [("", Lang.request_t, None, None)] ~return_t:t (fun p ->
+      let request = Lang.to_request (List.assoc "" p) in
+      (new unqueued ~kind request :> source))
 
 class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   default_duration timeout conservative =
@@ -118,9 +121,8 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
     method private get_next_requests =
       try
         if available () then (
-          let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
           let reqs =
-            List.map Lang.to_request (Lang.to_list (Lang.apply ~t f []))
+            List.map Lang.to_request (Lang.to_list (Lang.apply f []))
           in
           List.iter
             (fun req -> Request.set_root_metadata req "source" self#id)
@@ -147,10 +149,11 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "request.dynamic.list" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    ( ("", Lang.fun_t [] (Lang.list_t (Lang.request_t k)), None, None)
+    ( ("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
     :: ( "retry_delay",
          Lang.float_getter_t (),
          Some (Lang.float 0.1),
@@ -164,8 +167,8 @@ let () =
            "Whether some new requests are available (when set to false, it \
             stops after current playing request)." )
     :: queued_proto )
-    ~return_t:k
-    (fun p kind ->
+    ~return_t:t
+    (fun p ->
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in

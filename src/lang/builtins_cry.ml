@@ -22,6 +22,7 @@
 
 open Lang_builtins
 
+let () = Lang.add_module "icy"
 let log = Log.make ["icy"; "update_metadata"]
 
 let () =
@@ -53,7 +54,7 @@ let () =
         Some "Encoding used to send metadata, default (UTF-8) if empty." );
       ( "headers",
         Lang.metadata_t,
-        Some (Lang.list ~t:Lang.metadata_t [user_agent]),
+        Some (Lang.list [user_agent]),
         Some "Additional headers." );
       ("", Lang.metadata_t, None, None);
     ]

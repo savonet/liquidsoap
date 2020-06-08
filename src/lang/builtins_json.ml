@@ -23,8 +23,7 @@
 let log = Log.make ["lang"; "json"]
 
 let rec to_json_compact v =
-  (* Utils.escape implements
-   * JSON's escaping RFC. *)
+  (* Utils.escape implements JSON's escaping RFC. *)
   let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s in
   match v.Lang.value with
     (* JSON specs do not allow a trailing . *)
@@ -36,11 +35,6 @@ let rec to_json_compact v =
     | Lang.List l -> (
         try
           (* Convert (string*'a) list to object *)
-          let t = v.Lang.t in
-          let t = Lang.of_list_t t in
-          let t, _ = Lang.of_product_t t in
-          let compare = Lang_types.( <: ) in
-          ignore (compare t Lang.string_t);
           let l =
             List.map
               (fun x ->
@@ -53,45 +47,47 @@ let rec to_json_compact v =
           Printf.sprintf "[%s]" (String.concat "," (List.map to_json_compact l))
         )
     | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
+    | Lang.Meth _ -> failwith "TODO: JSON of field not yet implemented"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
-    | Lang.Request _ -> "\"<request>\""
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
 let rec to_json_pp f v =
   match v.Lang.value with
     | Lang.List l -> (
-        try
-          (* Convert (string*'a) list to object *)
-          let t = v.Lang.t in
-          let t = Lang.of_list_t t in
-          let t, _ = Lang.of_product_t t in
-          let compare = Lang_types.( <: ) in
-          ignore (compare t Lang.string_t);
-          let print f l =
-            let len = List.length l in
-            let f pos x =
-              let x, y = Lang.to_product x in
-              if pos != len - 1 then
-                Format.fprintf f "%a: %a,@;<1 0>" to_json_pp x to_json_pp y
-              else Format.fprintf f "%a: %a" to_json_pp x to_json_pp y;
-              pos + 1
-            in
-            ignore (List.fold_left f 0 l)
-          in
-          Format.fprintf f "@[{@;<1 1>@[%a@]@;<1 0>}@]" print l
-        with _ ->
-          let print f l =
-            let len = List.length l in
-            let f pos x =
-              if pos < len - 1 then Format.fprintf f "%a,@;<1 0>" to_json_pp x
-              else Format.fprintf f "%a" to_json_pp x;
-              pos + 1
-            in
-            ignore (List.fold_left f 0 l)
-          in
-          Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l )
+        match l with
+          | {
+              Lang.value =
+                Lang.Tuple
+                  [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; _];
+            }
+            :: _ ->
+              (* Convert (string*'a) list to object *)
+              let print f l =
+                let len = List.length l in
+                let f pos x =
+                  let x, y = Lang.to_product x in
+                  if pos != len - 1 then
+                    Format.fprintf f "%a: %a,@;<1 0>" to_json_pp x to_json_pp y
+                  else Format.fprintf f "%a: %a" to_json_pp x to_json_pp y;
+                  pos + 1
+                in
+                ignore (List.fold_left f 0 l)
+              in
+              Format.fprintf f "@[{@;<1 1>@[%a@]@;<1 0>}@]" print l
+          | _ ->
+              let print f l =
+                let len = List.length l in
+                let f pos x =
+                  if pos < len - 1 then
+                    Format.fprintf f "%a,@;<1 0>" to_json_pp x
+                  else Format.fprintf f "%a" to_json_pp x;
+                  pos + 1
+                in
+                ignore (List.fold_left f 0 l)
+              in
+              Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l )
     | Lang.Tuple l ->
         Format.fprintf f "@[[@;<1 1>@[";
         let rec aux = function
@@ -140,57 +136,47 @@ let () =
     | Failed -> Some "Liquidsoap count not parse JSON string"
     | _ -> None)
 
-(* We compare the default's type with
- * the parsed json value and return if they match..
- * This comes with json_of in Lang_builtins.. *)
-let rec of_json t j =
-  let ( <: ) = Lang_types.( <: ) in
-  let f x =
-    try
-      ignore (x <: t);
-      true
-    with _ -> false
-  in
-  match j with
-    | `Null when f Lang.unit_t -> Lang.unit
-    | `Bool b when f Lang.bool_t -> Lang.bool b
-    (* JSON specs do not differenciate between ints
-     * and floats. Therefore, we should parse int as
-     * floats when required.. *)
-    | `Int i when f Lang.int_t -> Lang.int i
-    | `Int i when f Lang.float_t -> Lang.float (float_of_int i)
-    | `String s when f Lang.string_t -> Lang.string s
-    | `Float x when f Lang.float_t -> Lang.float x
-    | `List l -> (
-        try
-          (* First, try to parse as a list. *)
-          let t = Lang.of_list_t t in
-          let l = List.map (of_json t) l in
-          Lang.list ~t l
-        with _ -> (
-          (* Otherwise try to parse as product. *)
-            match l with
-            | [j; j'] ->
-                let t, t' = Lang.of_product_t t in
-                Lang.product (of_json t j) (of_json t' j')
-            | _ -> raise Failed ) )
-    | `Assoc l ->
-        (* Try to convert the object to a list of pairs, dropping fields
-         * that cannot be parsed.
-         * This requires the target type to be [(string*'a)],
-         * currently it won't work if it is [?T] which would be
-         * obtained with of_json(default=[],...). *)
-        let lt = Lang.of_list_t t in
-        let t, t' = Lang.of_product_t lt in
-        ignore (Lang.string_t <: t);
+(* We compare the default's type with the parsed json value and return if they
+   match. This comes with json_of in Lang_builtins. *)
+let rec of_json d j =
+  match (d.Lang.value, j) with
+    | Lang.Tuple [], `Null -> Lang.unit
+    | Lang.Ground (Lang.Ground.Bool _), `Bool b ->
+        Lang.bool b
+        (* JSON specs do not differenciate between ints
+         * and floats. Therefore, we should parse int as
+         * floats when required.. *)
+    | Lang.Ground (Lang.Ground.Int _), `Int i -> Lang.int i
+    | Lang.Ground (Lang.Ground.Float _), `Int i -> Lang.float (float_of_int i)
+    | Lang.Ground (Lang.Ground.String _), `String s -> Lang.string s
+    | Lang.Ground (Lang.Ground.Float _), `Float x -> Lang.float x
+    | Lang.List [], `List [] -> Lang.list []
+    | Lang.List (d :: _), `List l ->
+        (* TODO: we could also try with other elements of the default list... *)
+        let l = List.map (of_json d) l in
+        Lang.list l
+    | Lang.Tuple [d1; d2], `List [j1; j2] ->
+        Lang.product (of_json d1 j1) (of_json d2 j2)
+    | ( Lang.List
+          ({
+             Lang.value =
+               Lang.Tuple
+                 [{ Lang.value = Lang.Ground (Lang.Ground.String _) }; d];
+           }
+          :: _),
+        `Assoc l ) ->
+        (* Try to convert the object to a list of pairs, dropping fields that
+           cannot be parsed.  This requires the target type to be [(string*'a)],
+           currently it won't work if it is [?T] which would be obtained with
+           of_json(default=[],...). *)
         let l =
           List.fold_left
             (fun cur (x, y) ->
-              try Lang.product (Lang.string x) (of_json t' y) :: cur
+              try Lang.product (Lang.string x) (of_json d y) :: cur
               with _ -> cur)
             [] l
         in
-        Lang.list ~t:lt l
+        Lang.list l
     | _ -> raise Failed
 
 let () =
@@ -220,7 +206,7 @@ let () =
       let s = Lang.to_string (List.assoc "" p) in
       try
         let json = Configure.JSON.from_string s in
-        of_json default.Lang.t json
+        of_json default json
       with e ->
         log#info "JSON parsing failed: %s" (Printexc.to_string e);
         default)

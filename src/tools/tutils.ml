@@ -49,9 +49,10 @@ let generic_queues =
     ~comments:
       [
         "Number of event queues accepting any kind of task.";
-        "There should at least be one. Having more can be useful to avoid that";
-        "trivial request resolutions (local files) are not delayed because of";
-        "a stalled download. But N stalled download can block N queues anyway.";
+        "There should at least be one. Having more can be useful to make sure";
+        "that trivial request resolutions (local files) are not delayed";
+        "because of a stalled download. But N stalled download can block";
+        "N queues anyway.";
       ]
 
 let fast_queues =
@@ -200,8 +201,12 @@ let started = ref false
 let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () -> !started)
 
+let scheduler_pre_shutdown_atom =
+  Dtools.Init.at_stop ~name:"Scheduler pre-shutdown" (fun () -> ())
+
 let scheduler_shutdown_atom =
-  Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
+  Dtools.Init.make ~name:"Scheduler shutdown"
+    ~after:[scheduler_pre_shutdown_atom] (fun () ->
       log#important "Shutting down scheduler...";
       Duppy.stop scheduler;
       log#important "Scheduler shut down.";
@@ -223,9 +228,9 @@ let new_queue ?priorities ~name () =
         | None -> Duppy.queue scheduler ~log:qlog name
         | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
     with e ->
+      let bt = Printexc.get_backtrace () in
       log#severe "Queue %s crashed with exception %s\n%s" name
-        (Printexc.to_string e)
-        (Printexc.get_backtrace ());
+        (Printexc.to_string e) bt;
       log#critical
         "PANIC: Liquidsoap has crashed, exiting.,\n\
          Please report at: savonet-users@lists.sf.net";
@@ -261,8 +266,8 @@ let () =
   * Never use that when logging to stdout: it would just loop! *)
 let start_forwarding () =
   let reopen fd =
-    let i, o = Unix.pipe () in
-    Unix.dup2 o fd;
+    let i, o = Unix.pipe ~cloexec:true () in
+    Unix.dup2 ~cloexec:true o fd;
     Unix.close o;
     Unix.set_close_on_exec i;
     i
@@ -364,13 +369,17 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
-let run = ref true
+let run = ref `Run
 
-let main () = wait no_problem lock (fun () -> not (!run && !uncaught = None))
+let main () =
+  wait no_problem lock (fun () -> not (!run = `Run && !uncaught = None))
 
-let shutdown () =
-  run := false;
-  Condition.signal no_problem
+let shutdown code =
+  if !run = `Run then (
+    run := `Exit code;
+    Condition.signal no_problem )
+
+let exit_code () = match !run with `Exit code -> code | _ -> 0
 
 (** Thread-safe lazy cell. *)
 let lazy_cell f =

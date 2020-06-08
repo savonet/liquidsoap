@@ -72,7 +72,8 @@ def auth(user,password) =
   # The script will return the string 
   # "true" of "false"
   #
-  # First call the script
+  # First call the script. Make sure to apply proper escaping
+  # of the arguments to prevent command injection!
   ret = get_process_lines("/path/to/script \
          --user=#{user} --password=#{password}")
   # Then get the first line of its output

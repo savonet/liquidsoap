@@ -1,3 +1,25 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2019 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+
+ *****************************************************************************)
+
 let log = Log.make ["ffmpeg"]
 
 let () =
@@ -56,66 +78,93 @@ let () =
          Avutil.Log.set_level verbosity;
          Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s))))
 
-let fps_converter ~width ~height ~pixel_format ~time_base ~pixel_aspect
-    ~target_fps cb =
-  let config = Avfilter.init () in
-  let _buffer =
-    let args =
-      [
-        `Pair ("video_size", `String (Printf.sprintf "%dx%d" width height));
-        `Pair ("pix_fmt", `String (Avutil.Pixel_format.to_string pixel_format));
-        `Pair ("time_base", `Rational time_base);
-        `Pair ("pixel_aspect", `Rational pixel_aspect);
-      ]
-    in
-    Avfilter.attach ~name:"buffer" ~args Avfilter.buffer config
-  in
-  let fps =
-    match
-      List.find_opt (fun { Avfilter.name } -> name = "fps") Avfilter.filters
-    with
-      | Some fps -> fps
-      | None -> failwith "Could not find fps ffmpeg filter!"
-  in
-  let fps =
-    let args = [`Pair ("fps", `Int target_fps)] in
-    Avfilter.attach ~name:"fps" ~args fps config
-  in
-  let _buffersink =
-    Avfilter.attach ~name:"buffersink" Avfilter.buffersink config
-  in
-  Avfilter.link
-    (List.hd Avfilter.(_buffer.io.outputs.video))
-    (List.hd Avfilter.(fps.io.inputs.video));
-  Avfilter.link
-    (List.hd Avfilter.(fps.io.outputs.video))
-    (List.hd Avfilter.(_buffersink.io.inputs.video));
-  let graph = Avfilter.launch config in
-  let _, input = List.hd Avfilter.(graph.inputs.video) in
-  let _, output = List.hd Avfilter.(graph.outputs.video) in
-  fun frame ->
-    input frame;
-    let rec flush () =
-      try
-        cb (output.Avfilter.handler ());
-        flush ()
-      with Avutil.Error `Eagain -> ()
-    in
-    flush ()
+module Fps = struct
+  type t = ([ `Video ] Avfilter.input * [ `Video ] Avfilter.output) option
 
-(* Source fps is not always known so it is optional here. *)
-let fps_converter ~width ~height ~pixel_format ~time_base ~pixel_aspect ?fps
-    ~target_fps cb =
-  match fps with
-    | Some f when f = target_fps -> fun frame -> cb frame
-    | _ ->
-        fps_converter ~width ~height ~pixel_format ~time_base ~pixel_aspect
-          ~target_fps cb
+  let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
+      ~target_fps () =
+    let config = Avfilter.init () in
+    let _buffer =
+      let args =
+        [
+          `Pair ("video_size", `String (Printf.sprintf "%dx%d" width height));
+          `Pair ("pix_fmt", `String (Avutil.Pixel_format.to_string pixel_format));
+          `Pair ("time_base", `Rational time_base);
+          `Pair ("pixel_aspect", `Rational pixel_aspect);
+        ]
+      in
+      let args =
+        match source_fps with
+          | None -> args
+          | Some fps ->
+              `Pair ("frame_rate", `Rational { Avutil.num = fps; den = 1 })
+              :: args
+      in
+      Avfilter.attach ~name:"buffer" ~args Avfilter.buffer config
+    in
+    let fps =
+      match
+        List.find_opt (fun { Avfilter.name } -> name = "fps") Avfilter.filters
+      with
+        | Some fps -> fps
+        | None -> failwith "Could not find fps ffmpeg filter!"
+    in
+    let fps =
+      let args =
+        [`Pair ("fps", `Rational { Avutil.num = target_fps; den = 1 })]
+      in
+      Avfilter.attach ~name:"fps" ~args fps config
+    in
+    let _buffersink =
+      Avfilter.attach ~name:"buffersink" Avfilter.buffersink config
+    in
+    Avfilter.link
+      (List.hd Avfilter.(_buffer.io.outputs.video))
+      (List.hd Avfilter.(fps.io.inputs.video));
+    Avfilter.link
+      (List.hd Avfilter.(fps.io.outputs.video))
+      (List.hd Avfilter.(_buffersink.io.inputs.video));
+    let graph = Avfilter.launch config in
+    let _, input = List.hd Avfilter.(graph.inputs.video) in
+    let _, output = List.hd Avfilter.(graph.outputs.video) in
+    (input, output)
 
-let audio_time_base () =
+  (* Source fps is not always known so it is optional here. *)
+  let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
+      ~target_fps () =
+    match source_fps with
+      | Some f when f = target_fps -> None
+      | _ ->
+          Some
+            (init ~width ~height ~pixel_format ~time_base ~pixel_aspect
+               ?source_fps ~target_fps ())
+
+  let convert converter frame cb =
+    match converter with
+      | None -> cb frame
+      | Some (input, output) ->
+          input frame;
+          let rec flush () =
+            try
+              cb (output.Avfilter.handler ());
+              flush ()
+            with Avutil.Error `Eagain -> ()
+          in
+          flush ()
+end
+
+(* The following two are meant to be used for liq internally only!
+   In particular, we accept a time base with several video frames per
+   unit, i.e. time base = 3/60 with fps = 60 and liq internal frame
+   holding 3 video frames per frame. This is because, internally, we
+   gather frame additively and only care on liq frame synchronization,
+   dropping all video frames contained in a liq frame that is out of
+   sync. *)
+
+let liq_internal_audio_time_base () =
   { Avutil.num = AFrame.size (); den = Lazy.force Frame.audio_rate }
 
-let video_time_base () =
+let liq_internal_video_time_base () =
   { Avutil.num = VFrame.size (); den = Lazy.force Frame.video_rate }
 
 let convert_pts ~src ~dst pts =

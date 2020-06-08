@@ -229,6 +229,132 @@ let rec forget var subclock =
     | Link ({ contents = Unknown (sources, clocks) } as r) ->
         r := Unknown (sources, List.filter (( <> ) subclock) clocks)
 
+(** Kind with variables in order to unify kinds. *)
+module Kind = struct
+  (* These two types should be only in Frame eventually. Not doing this now in
+     order to minimize the diff. *)
+
+  (** Description of how many of a channel type does an operator want. *)
+  type format = Frame.multiplicity =
+    | Fixed of int  (** exactly [n] channels *)
+    | At_least of int  (** at least [n] channels *)
+
+  (** Formats for every channels. *)
+  type formats = Frame.content_kind
+
+  (* = (format, format, format) Frame.fields *)
+
+  exception Conflict of string * string
+
+  (** Multiplicities with variables, used for unification. *)
+  module Multiplicity = struct
+    (** Multiplicity variable. *)
+    type 'a var = 'a option ref
+
+    (** Multiplicity with variables. *)
+    type t = Var of t var | Zero | Succ of t
+
+    let fresh_var () = Var (ref None)
+    let rec int = function 0 -> Zero | n -> Succ (int (n - 1))
+
+    (* Remove variable pointers. *)
+    let rec unvar = function
+      | Var v as m -> ( match !v with Some m -> unvar m | None -> m )
+      | (Succ _ | Zero) as m -> m
+
+    let to_string m =
+      let rec aux m =
+        match unvar m with
+          | Succ m ->
+              let n, b = aux m in
+              (n + 1, b)
+          | Zero -> (0, false)
+          | Var _ -> (0, true)
+      in
+      let n, b = aux m in
+      string_of_int n ^ if b then "+" else ""
+
+    let rec occurs x m =
+      match unvar m with
+        | Succ m -> occurs x m
+        | Zero -> false
+        | Var y -> x == y
+
+    exception Conflict
+
+    (** Unify kinds. *)
+    let rec unify m n =
+      match (unvar m, unvar n) with
+        | Succ m, Succ n -> unify m n
+        | Zero, Zero -> ()
+        | Var x, Var y when x == y -> ()
+        | Var x, n ->
+            if occurs x n then raise Conflict;
+            x := Some n
+        | m, (Var _ as n) -> unify n m
+        | _, _ -> raise Conflict
+
+    let rec of_format = function
+      | Fixed 0 -> Zero
+      | Fixed n -> Succ (of_format (Fixed (n - 1)))
+      | At_least 0 -> fresh_var ()
+      | At_least n -> Succ (of_format (At_least (n - 1)))
+
+    let rec close default m =
+      match unvar m with
+        | Succ m -> close (default - 1) m
+        | Zero -> ()
+        | Var x -> x := Some (int (max 0 default))
+
+    (** Compute a multiplicity from a multiplicity with variables. *)
+    let rec get default m =
+      match unvar m with
+        | Succ m -> 1 + get default m
+        | Zero -> 0
+        | Var _ -> assert false
+  end
+
+  type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
+
+  let to_string k =
+    Printf.sprintf "{audio=%s;video=%s;midi=%s}"
+      (Multiplicity.to_string k.Frame.audio)
+      (Multiplicity.to_string k.Frame.video)
+      (Multiplicity.to_string k.Frame.midi)
+
+  let set_audio kind n = { kind with Frame.audio = Multiplicity.int n }
+  let set_video kind n = { kind with Frame.video = Multiplicity.int n }
+  let set_midi kind n = { kind with Frame.midi = Multiplicity.int n }
+
+  let map_kind f kind =
+    {
+      Frame.audio = f kind.Frame.audio;
+      video = f kind.Frame.video;
+      midi = f kind.Frame.midi;
+    }
+
+  let of_formats kind = map_kind Multiplicity.of_format kind
+
+  (** Compute a multiplicity from a multiplicity with variables. *)
+  let get (kind : t) : Frame.content_type =
+    let get default m =
+      Multiplicity.close default m;
+      Multiplicity.get default m
+    in
+    {
+      Frame.audio = get (Lazy.force Frame.audio_channels) kind.Frame.audio;
+      video = get (Lazy.force Frame.video_channels) kind.Frame.video;
+      midi = get (Lazy.force Frame.midi_channels) kind.Frame.midi;
+    }
+
+  let unify k k' =
+    try
+      Multiplicity.unify k.Frame.audio k'.Frame.audio;
+      Multiplicity.unify k.Frame.video k'.Frame.video;
+      Multiplicity.unify k.Frame.midi k'.Frame.midi
+    with Multiplicity.Conflict -> raise (Conflict (to_string k, to_string k'))
+end
+
 (** {1 Sources} *)
 
 (** Instrumentation. *)
@@ -241,7 +367,7 @@ type watcher = {
     stype:source_t ->
     is_output:bool ->
     id:string ->
-    content_kind:Frame.content_kind ->
+    ctype:Frame.content_type ->
     clock_id:string ->
     clock_sync_mode:clock_sync_mode ->
     unit;
@@ -272,7 +398,7 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
-class virtual operator ?(name = "src") content_kind sources =
+class virtual operator ?(name = "src") kind sources =
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -345,6 +471,39 @@ class virtual operator ?(name = "src") content_kind sources =
       List.iter (fun s -> unify self#clock s#clock) sources
 
     initializer self#set_clock
+
+    val kind_var = Kind.of_formats kind
+
+    (* Kinds now use the same mechanism as clocks: we unify with the children
+       sources by default. *)
+    method kind_var = kind_var
+
+    val mutable ctype = None
+
+    (* Check that functions are accessed in a sane order. *)
+    val mutable accessed_kind = false
+
+    (* Content type. *)
+    method ctype =
+      match ctype with
+        | Some ctype -> ctype
+        | None ->
+            accessed_kind <- true;
+            let kind_string = Kind.to_string self#kind_var in
+            (* The computation cannot be performed too early beacuse it can use
+               default values for channels, which can be overridden by the
+               script... *)
+            let ct = Kind.get self#kind_var in
+            self#log#info "Kind %s becomes %s" kind_string
+              (Frame.string_of_content_type ct);
+            ctype <- Some ct;
+            ct
+
+    method private set_kind =
+      assert (not accessed_kind);
+      List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources
+
+    initializer self#set_kind
 
     (** Startup/shutdown.
     *
@@ -463,7 +622,7 @@ class virtual operator ?(name = "src") content_kind sources =
       in
       self#iter_watchers (fun w ->
           w.get_ready ~stype:self#stype ~is_output:self#is_output ~id:self#id
-            ~content_kind:self#kind ~clock_id ~clock_sync_mode)
+            ~ctype:self#ctype ~clock_id ~clock_sync_mode)
 
     (* Release the source, which will shutdown if possible.
      * The current implementation makes it dangerous to call #leave from
@@ -498,7 +657,7 @@ class virtual operator ?(name = "src") content_kind sources =
     (** Two methods called for initialization and shutdown of the source *)
     method private wake_up activation =
       self#log#info "Content kind is %s."
-        (Frame.string_of_content_kind content_kind);
+        (Frame.string_of_content_type self#ctype);
       let activation = (self :> operator) :: activation in
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
 
@@ -506,8 +665,6 @@ class virtual operator ?(name = "src") content_kind sources =
       List.iter (fun s -> s#leave ?dynamic:None (self :> operator)) sources
 
     (** Streaming *)
-
-    method kind = content_kind
 
     (* Number of frames left in the current track:
      * -1 means Infinity, time unit is the frame. *)
@@ -530,10 +687,18 @@ class virtual operator ?(name = "src") content_kind sources =
      * to be played if there's anything like a file. *)
     method virtual abort_track : unit
 
-    (* In caching mode, remember what has been given during the current tick *)
-    val memo = Frame.create content_kind
+    (* In caching mode, remember what has been given during the current
+       tick. The generation is defered until we actually have computed the kind
+       by unfication. *)
+    val mutable memo = None
 
-    method get_memo = memo
+    method memo =
+      match memo with
+        | Some memo -> memo
+        | None ->
+            let m = Frame.create self#ctype in
+            memo <- Some m;
+            m
 
     method private instrumented_get_frame buf =
       if watchers = [] then self#get_frame buf
@@ -592,6 +757,7 @@ class virtual operator ?(name = "src") content_kind sources =
             self#log#severe "#get_frame didn't add exactly one break!";
             assert false ) )
       else (
+        let memo = self#memo in
         try Frame.get_chunk buf memo
         with Frame.No_chunk ->
           if not self#is_ready then silent_end_track ()
@@ -624,7 +790,7 @@ class virtual operator ?(name = "src") content_kind sources =
       self#iter_watchers (fun w -> w.after_output ())
 
     (* Reset the cache frame *)
-    method advance = Frame.advance memo
+    method advance = Frame.advance self#memo
 
     (** Utils. *)
 
@@ -632,7 +798,7 @@ class virtual operator ?(name = "src") content_kind sources =
     * in the metadatas of the request. *)
     method private create_request ?(metadata = []) =
       let metadata = ("source", self#id) :: metadata in
-      Request.create ~metadata ~kind:content_kind
+      Request.create ~metadata
   end
 
 (** Entry-point sources, which need to actively perform some task. *)

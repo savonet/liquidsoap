@@ -22,6 +22,32 @@
 
 open Lang_parser
 
+module String = struct
+  include String
+
+  (** Find character satisfying a predicate from a particular index. *)
+  let indexp_from s n p =
+    let l = String.length s in
+    let n = ref n in
+    try
+      while !n < l do
+        if p s.[!n] then raise Exit;
+        incr n
+      done;
+      raise Not_found
+    with Exit -> !n
+
+  let rindexp s p =
+    let n = ref (String.length s - 1) in
+    try
+      while !n >= 0 do
+        if p s.[!n] then raise Exit;
+        decr n
+      done;
+      raise Not_found
+    with Exit -> !n
+end
+
 let parse_time t =
   let g sub n =
     let s = Pcre.get_substring sub n in
@@ -68,11 +94,9 @@ let var_underscore = [%sedlex.regexp? '_', Plus '_']
 let var_lit =
   [%sedlex.regexp?
     ( var_underscore
-    | Star '_', var_char, Star (var_char | decimal_digit | '_' | '.' | '\'') )]
+    | Star '_', var_char, Star (var_char | decimal_digit | '_' | '\'') )]
 
-let var_ref =
-  [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '.' | '\'')]
-
+let var_ref = [%sedlex.regexp? "ref", Plus (var_char | decimal_digit | '\'')]
 let var = [%sedlex.regexp? var_lit | so | math | other_math]
 
 let time =
@@ -107,8 +131,16 @@ let rec token lexbuf =
         let doc = Pcre.split ~pat:"\n" doc in
         PP_COMMENT doc
     | '\n' -> PP_ENDL
-    | "%ifdef" -> PP_IFDEF
-    | "%ifndef" -> PP_IFNDEF
+    | "%ifdef", Plus ' ', var, Star ("" | '.', var) ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n = String.indexp_from matched 6 (fun c -> c <> ' ') in
+        let r = String.rindexp matched (fun c -> c <> ' ') in
+        PP_IFDEF (String.sub matched n (r - n + 1))
+    | "%ifndef", Plus ' ', var, Star ("" | '.', var) ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n = String.indexp_from matched 7 (fun c -> c <> ' ') in
+        let r = String.rindexp matched (fun c -> c <> ' ') in
+        PP_IFNDEF (String.sub matched n (r - n + 1))
     | "%ifencoder" -> PP_IFENCODER
     | "%ifnencoder" -> PP_IFNENCODER
     | "%endif" -> PP_ENDIF
@@ -123,10 +155,11 @@ let rec token lexbuf =
         let n = String.index matched '<' in
         let r = String.rindex matched '>' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE (Filename.concat Configure.libs_dir file)
+        PP_INCLUDE (Filename.concat Configure.liq_libs_dir file)
     | "%define" -> PP_DEFINE
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
+    | "ref" -> REF
     | "def" -> PP_DEF
     | "let" -> LET
     | "fun" -> FUN
@@ -166,6 +199,7 @@ let rec token lexbuf =
     | "%mp3.fxp" -> SHINE
     | "%shine" -> SHINE
     | "%fdkaac" -> FDKAAC
+    | '.' -> DOT
     | '[' -> LBRA
     | ']' -> RBRA
     | '(' -> LPAR
@@ -188,7 +222,6 @@ let rec token lexbuf =
     | "mod" -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
     | "*" -> TIMES
     | var_ref -> VAR (Sedlexing.Utf8.lexeme lexbuf)
-    | "ref" -> REF
     | "!" -> GET
     | ":=" -> SET
     | '_' -> UNDERSCORE

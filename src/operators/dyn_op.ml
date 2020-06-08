@@ -52,14 +52,11 @@ class dynamic ~kind ~delay ~infallible ~track_sensitive f =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
         (Tutils.mutexify source_lock (fun () ->
-             let kind = Lang.kind_type_of_frame_kind kind in
-             let s =
-               Lang.to_source
-                 (Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [])
-             in
+             let s = Lang.to_source (Lang.apply f []) in
              match source with
                | Some s' when s' == s -> ()
                | _ ->
+                   Source.Kind.unify s#kind_var self#kind_var;
                    Clock.unify s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;
@@ -115,7 +112,8 @@ class dynamic ~kind ~delay ~infallible ~track_sensitive f =
   end
 
 let () =
-  let k = Lang.univ_t () in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "source.dynamic"
     [
       ( "delay",
@@ -138,7 +136,7 @@ let () =
     ]
     ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
-    (fun p kind ->
+    (fun p ->
       let delay =
         Frame.master_of_seconds (Lang.to_float (List.assoc "delay" p))
       in

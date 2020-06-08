@@ -78,7 +78,7 @@ let off_string iw ih ox oy =
   let oy = f ((frame_h - ih) / 2) frame_h oy in
   (ox, oy)
 
-let create_decoder metadata img =
+let create_decoder ~metadata img =
   (* Dimensions. *)
   let img_w, img_h = Video.Image.dimensions img in
   let width = try Hashtbl.find metadata "width" with Not_found -> "" in
@@ -142,15 +142,23 @@ let create_decoder metadata img =
   { Decoder.fill; fseek = (fun _ -> 0); close }
 
 let () =
-  Decoder.file_decoders#register "Image" ~sdoc:"Decoder for static images."
-    (fun ~metadata filename kind ->
-      let ctype = { Frame.video = 1; audio = 0; midi = 0 } in
-      try
-        if not (Frame.type_has_kind ctype kind) then raise Exit;
-        let img =
-          match Decoder.get_image_file_decoder filename with
-            | Some img -> img
-            | None -> failwith "Could not decode image file."
-        in
-        Some (fun () -> create_decoder metadata img)
-      with _ -> None)
+  Decoder.decoders#register "Image" ~sdoc:"Decoder for static images."
+    {
+      Decoder.media_type = `Video;
+      priority = (fun () -> 1);
+      file_extensions = (fun () -> None);
+      mime_types = (fun () -> None);
+      file_type =
+        (fun filename ->
+          if Decoder.get_image_file_decoder filename <> None then
+            Some Frame.{ audio = 0; video = 1; midi = 0 }
+          else None);
+      file_decoder =
+        Some
+          (fun ~metadata ~ctype:_ filename ->
+            let img =
+              Utils.get_some (Decoder.get_image_file_decoder filename)
+            in
+            create_decoder ~metadata img);
+      stream_decoder = None;
+    }

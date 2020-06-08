@@ -125,19 +125,23 @@ class dssi ~kind ?chan plugin descr outputs params source =
         done
   end
 
+let () =
+  Lang.add_module "dssi";
+  Lang.add_module "synth.dssi";
+  Lang.add_module "synth.dssi.all"
+
 let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
   let chans = Array.length outputs in
-  let k =
-    Lang.kind_type_of_kind_format
-      (Lang.Constrained
-         {
-           Frame.audio = Lang.Fixed chans;
-           video = Lang.At_least 0;
-           midi = Lang.Fixed 1;
-         })
+  let kind =
+    {
+      Frame.audio = Lang.Fixed chans;
+      video = Lang.At_least 0;
+      midi = Lang.Fixed 1;
+    }
   in
+  let k = Lang.kind_type_of_kind_format kind in
   let liq_params = liq_params in
   Lang.add_operator
     ( "synth.dssi."
@@ -152,28 +156,27 @@ let register_descr plugin_name descr_n descr outputs =
     @ [("", Lang.source_t k, None, None)] )
     ~return_t:k ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let chan = Lang.to_int (f "channel") in
       let source = Lang.to_source (f "") in
       let params = params p in
       new dssi ~kind plugin_name descr_n outputs params ~chan source);
-  let k =
-    Lang.kind_type_of_kind_format
-      (Lang.Constrained
-         {
-           Frame.audio = Lang.Fixed chans;
-           video = Lang.At_least 0;
-           midi = Lang.Fixed all_chans;
-         })
+  let kind =
+    {
+      Frame.audio = Lang.Fixed chans;
+      video = Lang.At_least 0;
+      midi = Lang.Fixed all_chans;
+    }
   in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator
     ( "synth.all.dssi."
     ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
     (liq_params @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.SoundSynthesis ~flags:[]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let source = Lang.to_source (f "") in
       let params = params p in
@@ -243,7 +246,7 @@ let () =
     ~category:(Lang.string_of_category Lang.SoundSynthesis)
     ~descr:"Resgister a DSSI plugin."
     [("", Lang.string_t, None, Some "Path of the DSSI plugin file.")]
-    Lang.unit_t (fun p _ ->
+    Lang.unit_t (fun p ->
       dssi_init ();
       let fname = Lang.to_string (List.assoc "" p) in
       register_plugin ~log_errors:true fname;

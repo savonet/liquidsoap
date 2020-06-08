@@ -42,7 +42,8 @@ class infallible ~kind i (source : source) =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "source.infallible"
     [
       ( "infallible",
@@ -57,7 +58,7 @@ let () =
        this disables fallibility checks for the source, and is mostly reserved \
        for use in the standard library."
     ~flags:[Lang.Hidden]
-    (fun p kind ->
+    (fun p ->
       let i = Lang.to_bool (List.assoc "infallible" p) in
       let s = Lang.to_source (List.assoc "" p) in
       new infallible ~kind i s)

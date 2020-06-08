@@ -5,7 +5,7 @@ use strict ;
 my $liquidsoap = "../src/liquidsoap";
 die unless -f $liquidsoap ;
 
-$liquidsoap = "$liquidsoap -c";
+$liquidsoap = "$liquidsoap ../libs/pervasives.liq -c";
 
 sub section {
   print "\n*** $_[0] ***\n\n" ;
@@ -46,13 +46,9 @@ incorrect('fun(x)->x(snd(x))');
 
 section("SUBTYPING");
 incorrect('(1:unit)');
-correct('ignore(((blank():source(1,1,1)):source(*,*,*)))');
-incorrect('((blank():source(*,*,*)):source(1,1,1))');
 # Next one requires the inference of a subtype (fixed vs. variable arity)
 correct('ignore(audio_to_stereo(add([])))');
 correct('ignore((blank():source(audio=1,video=1,midi=1)))');
-correct('ignore((blank():source(*+1,0,0)))');
-correct('ignore((blank():source(1+*,0,0)))');
 
 section("CONSTRAINTS");
 incorrect('"bl"+"a"');

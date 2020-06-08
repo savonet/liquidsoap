@@ -24,6 +24,7 @@ open Lang_builtins
 open Extralib
 
 let log = Log.make ["lang.file"]
+let () = Lang.add_module "file"
 
 let () =
   add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
@@ -124,9 +125,7 @@ let () =
        File is done reading when function returns the empty string `\"\"`."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      let mk_fn fn =
-        Lang.val_fun [] ~ret_t:Lang.string_t (fun _ _ -> Lang.string (fn ()))
-      in
+      let mk_fn fn = Lang.val_fun [] (fun _ -> Lang.string (fn ())) in
       try
         let ic = ref (Some (open_in_bin f)) in
         let buflen = Utils.pagesize in
@@ -189,10 +188,10 @@ let () =
       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
       let fname = Utils.home_unrelate fname in
       let f = List.assoc_nth "" 1 p in
-      let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
+      let f () = ignore (Lang.apply f []) in
       let watch = !Configure.file_watcher in
       let unwatch = watch [`Modify] fname f in
-      Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
+      Lang.val_fun [] (fun _ ->
           unwatch ();
           Lang.unit))
 
@@ -243,9 +242,26 @@ let () =
         if absolute then List.map (Filename.concat dir) files else files
       in
       let files = List.map Lang.string files in
-      Lang.list ~t:Lang.string_t files)
+      Lang.list files)
+
+let () =
+  add_builtin "file.metadata" ~cat:Sys
+    [("", Lang.string_t, None, Some "Read metadata from a file.")]
+    Lang.metadata_t
+    ~descr:"Call a function when a file is modified. Returns unwatch function."
+    (fun p ->
+      let uri = Lang.to_string (List.assoc "" p) in
+      let r = Request.create uri in
+      if Request.resolve ~ctype:None r 30. = Request.Resolved then (
+        Request.read_metadata r;
+        Lang.metadata (Request.get_all_metadata r) )
+      else Lang.metadata (Hashtbl.create 0))
 
 (************** Paths ********************)
+
+let () =
+  Lang.add_module "path";
+  Lang.add_module "path.home"
 
 let () =
   add_builtin "path.home.unrelate" ~cat:Sys [("", Lang.string_t, None, None)]
@@ -285,6 +301,8 @@ let () =
 
 (************** MP3 ********************)
 
+let () = Lang.add_module "file.mp3"
+
 let () =
   add_builtin "file.mp3.metadata" ~cat:Sys
     [
@@ -310,7 +328,6 @@ let () =
           []
       in
       Lang.list
-        ~t:(Lang.product_t Lang.string_t Lang.string_t)
         (List.map
            (fun (l, v) -> Lang.product (Lang.string l) (Lang.string v))
            ans))
@@ -344,3 +361,12 @@ let () =
       let file = Lang.to_string (List.assoc "" p) in
       Lang.string
         (try Utils.which ~path:Configure.path file with Not_found -> ""))
+
+let () =
+  add_builtin "file.digest" ~cat:Sys
+    ~descr:"Return a digest for the given file."
+    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+      let file = Lang.to_string (List.assoc "" p) in
+      if Sys.file_exists file then
+        Lang.string (Digest.to_hex (Digest.file file))
+      else Lang.string "")

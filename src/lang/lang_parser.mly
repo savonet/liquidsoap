@@ -42,8 +42,11 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
+  let mk_let ~pos (doc,pat,def) body =
+    mk ~pos (Let { doc ; pat ; gen = [] ; def ; body })
+
   let mk_rec_fun ~pos pat args body =
-    let name = match pat with PVar name -> name | _ -> assert false in
+    let name = match pat with PVar [name] -> name | _ -> assert false in
     let bound = List.map (fun (_,x,_,_) -> x) args in
     let bound = name::bound in
     let fv = Lang_values.free_vars ~bound body in
@@ -122,9 +125,7 @@
 
   let mk_var_mult bin mul =
     if bin <> "+" then raise Parsing.Parse_error else
-      let mul = Frame.mul_of_int mul in
-      let mul = Frame.add_mul Frame.Any mul in
-      Lang_values.type_of_mul ~pos:None ~level:(-1) mul
+      Lang_values.type_of_mul ~pos:None ~level:(-1) (Frame.At_least mul)
 
   let mk_ty ~pos name args =
     match name with
@@ -180,7 +181,7 @@
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
-%token LPAR RPAR COMMA SEQ SEQSEQ COLON
+%token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token <string> BIN0
@@ -192,7 +193,8 @@
 %token UNDERSCORE
 %token NOT
 %token REF GET SET
-%token PP_IFDEF PP_IFNDEF PP_IFENCODER PP_IFNENCODER PP_ENDIF
+%token<string> PP_IFDEF PP_IFNDEF
+%token PP_IFENCODER PP_IFNENCODER PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
@@ -206,6 +208,7 @@
 %left BIN2 MINUS
 %left BIN3 TIMES
 %nonassoc GET          /* (!x)+2 */
+%left DOT
 
 
 /* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg */
@@ -236,12 +239,14 @@ exprs:
   | expr s                   { $1 }
   | expr exprs               { mk ~pos:$loc (Seq ($1,$2)) }
   | expr SEQ exprs           { mk ~pos:$loc (Seq ($1,$3)) }
-  | binding s                { let doc,pat,def = $1 in
-                               mk ~pos:$loc (Let { doc ; pat ; gen = [] ; def=def ; body = mk ~pos:$loc unit }) }
-  | binding exprs            { let doc,pat,def = $1 in
-                               mk ~pos:$loc (Let { doc ; pat ; gen = [] ; def ; body = $2 }) }
-  | binding SEQ exprs        { let doc,pat,def = $1 in
-                               mk ~pos:$loc (Let { doc ; pat ; gen = [] ; def ; body = $3 }) }
+  | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
+  | binding exprs            { mk_let ~pos:$loc($1) $1 $2 }
+  | binding SEQ exprs        { mk_let ~pos:$loc($1) $1 $3 }
+
+/* Sequences of expressions without bindings */
+exprss:
+  | expr { $1 }
+  | expr SEQ exprss { mk ~pos:$loc (Seq ($1,$3)) }
 
 /* General expressions. */
 expr:
@@ -255,10 +260,11 @@ expr:
   | BOOL                             { mk ~pos:$loc (Ground (Bool $1)) }
   | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
+  | VAR                              { mk ~pos:$loc (Var $1) }
   | varlist                          { mk ~pos:$loc (List $1) }
-  | REF expr                         { mk ~pos:$loc (Ref $2) }
-  | GET expr                         { mk ~pos:$loc (Get $2) }
-  | expr SET expr                    { mk ~pos:$loc (Set ($1,$3)) }
+  | REF expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "ref"), ["", $2])) }
+  | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }
+  | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($1) (Var "ref"), "set")), ["", $1; "", $3])) }
   | MP3 app_opt                      { mk_enc ~pos:$loc (Lang_mp3.make_cbr $2) }
   | MP3_VBR app_opt                  { mk_enc ~pos:$loc (Lang_mp3.make_vbr $2) }
   | MP3_ABR app_opt                  { mk_enc ~pos:$loc (Lang_mp3.make_abr $2) }
@@ -274,12 +280,17 @@ expr:
   | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
-  | VAR                              { mk ~pos:$loc (Var $1) }
+  | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
+  | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
+  | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
+  | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
+  | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)), $4)) }
+  | REF DOT VARLPAR app_list RPAR    { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke (mk ~pos:$loc($1) (Var "ref"), $3)), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
-  | LCUR exprs RCUR                  { mk_fun ~pos:$loc [] $2 }
+  | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | IF exprs THEN exprs if_elsif END { let cond = $2 in
                                        let then_b = mk_fun ~pos:($startpos($3),$endpos($4)) [] $4 in
                                        let else_b = $5 in
@@ -327,7 +338,6 @@ ty:
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty_tuple RPAR        { Lang_types.make (Lang_types.Tuple $2) }
   | INT                       { Lang_values.type_of_int $1 }
-  | TIMES                     { Lang_values.any_t }
   | TIMES BIN2 INT            { mk_var_mult $2 $3 }
   | INT BIN2 TIMES            { mk_var_mult $2 $1 }
   | LPAR argsty RPAR YIELDS ty{ Lang_types.make (Lang_types.Arrow ($2,$5)) }
@@ -379,32 +389,46 @@ bindvar:
   | UNDERSCORE { "_" }
 
 pattern:
-  | bindvar { PVar $1 }
+  | bindvar { PVar [$1] }
   | LPAR pattern_list RPAR { PTuple $2 }
+
+subfield:
+  | VAR DOT in_subfield { $1::$3 }
+
+in_subfield:
+  | VAR { [$1] }
+  | VAR DOT in_subfield { $1::$3 }
 
 pattern_list:
   | pattern COMMA pattern { [$1;$3] }
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | bindvar GETS expr { (Doc.none (),[]),PVar $1,$3 }
+  | bindvar GETS expr { (Doc.none (),[]),PVar [$1],$3 }
   | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
+  | LET subfield GETS expr { (Doc.none (),[]),PVar $2,$4 }
   | DEF pattern g exprs END {
       let body = $4 in
       $1,$2,body
     }
-  | DEF VARLPAR arglist RPAR g exprs END {
+  | DEF varlpar arglist RPAR g exprs END {
       let arglist = $3 in
       let body = mk_fun ~pos:$loc arglist $6 in
       $1,PVar $2,body
-    }
+        }
+  /* We don't handle recursive fields for now... */
   | DEF REC VARLPAR arglist RPAR g exprs END {
       let doc = $1 in
-      let pat = PVar $3 in
+      let pat = PVar [$3] in
       let arglist = $4 in
       let body = mk_rec_fun ~pos:$loc pat arglist $7 in
       doc,pat,body
     }
+
+varlpar:
+  | VARLPAR         { [$1] }
+  | VAR DOT varlpar { $1::$3 }
+  | REF DOT varlpar { "ref"::$3 }
 
 arglist:
   |                   { [] }
@@ -466,3 +490,7 @@ ffmpeg_list:
 ffmpeg_opt:
   | %prec no_app { [] }
   | LPAR ffmpeg_list RPAR { $2 }
+
+record:
+  | VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($1, $3, e)) }
+  | record COMMA VAR GETS expr { fun ~pos e -> mk ~pos (Meth ($3, $5, $1 ~pos e)) }

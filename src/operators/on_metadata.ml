@@ -43,12 +43,13 @@ class on_metadata ~kind f s =
         (fun (i, m) ->
           if i >= p then (
             self#log#debug "Got metadata at position %d: calling handler..." i;
-            ignore (Lang.apply ~t:Lang.unit_t f [("", Lang.metadata m)]) ))
+            ignore (Lang.apply f [("", Lang.metadata m)]) ))
         (Frame.get_all_metadata ab)
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "on_metadata"
     [
       ( "",
@@ -65,7 +66,7 @@ let () =
     ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on metadata packets." ~return_t
-    (fun p kind ->
+    (fun p ->
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       new on_metadata ~kind f s)

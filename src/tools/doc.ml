@@ -45,7 +45,9 @@ class item ?(sort = true) (doc : string) =
   end
 
 let trivial ?sort s = new item ?sort s
-let none ?sort () = trivial ?sort "No documentation available."
+let no_doc = "No documentation available."
+let none ?sort () = trivial ?sort no_doc
+let is_none i = i#get_doc no_doc
 
 (** Two functions which print out an [item], used for liquidsoap to generate
   * (part of) its own documentation: *)

@@ -23,6 +23,8 @@
 open Extralib
 module S = LO.Server
 
+let () = Lang.add_module "osc"
+
 let conf_osc =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "osc")
@@ -91,14 +93,14 @@ let register name osc_t liq_t =
     [
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Initial value.");
-    ] (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path." (fun p _ ->
+    ] (Lang.fun_t [] liq_t) ~descr:"Read from an OSC path." (fun p ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
       let v = ref v in
       let handle vv = v := val_array vv in
       add_handler path osc_t handle;
       start_server ();
-      Lang.val_fun [] ~ret_t:liq_t (fun _ _ -> !v));
+      Lang.val_fun [] (fun _ -> !v));
   Lang.add_builtin ("osc.on_" ^ name) ~category:"Interaction"
     [
       ("", Lang.string_t, None, Some "OSC path.");
@@ -108,12 +110,12 @@ let register name osc_t liq_t =
         Some "Callback function." );
     ]
     Lang.unit_t ~descr:"Register a callback on OSC messages."
-    (fun p _ ->
+    (fun p ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let handle v =
         let v = val_array v in
-        ignore (Lang.apply ~t:Lang.unit_t f [("", v)])
+        ignore (Lang.apply f [("", v)])
       in
       add_handler path osc_t handle;
       start_server ();
@@ -124,7 +126,7 @@ let register name osc_t liq_t =
       ("port", Lang.int_t, None, Some "OSC client port.");
       ("", Lang.string_t, None, Some "OSC path.");
       ("", liq_t, None, Some "Value to send.");
-    ] Lang.unit_t ~descr:"Send a value to an OSC client." (fun p _ ->
+    ] Lang.unit_t ~descr:"Send a value to an OSC client." (fun p ->
       let host = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
       let path = Lang.to_string (Lang.assoc "" 1 p) in

@@ -43,6 +43,8 @@ module Pipeline = struct
     Printf.sprintf "videoconvert ! videoscale add-borders=%B ! videorate"
       add_borders
 
+  let decode_video () = Printf.sprintf "decodebin ! %s" (convert_video ())
+
   let audio_format channels =
     let rate = Lazy.force Frame.audio_rate in
     Printf.sprintf
@@ -92,8 +94,6 @@ module Pipeline = struct
     Printf.sprintf
       "appsink name=\"%s\" drop=%B sync=%B max-buffers=%d caps=\"%s\"" name drop
       sync max_buffers (video_format ())
-
-  let decode_video () = Printf.sprintf "decodebin ! %s" (convert_video ())
 end
 
 let render_image pipeline =
@@ -169,4 +169,6 @@ let () =
   ignore
     (Dtools.Init.at_start (fun () ->
          ignore (Tutils.create main () "gstreamer_main_loop")));
-  ignore (Dtools.Init.at_stop (fun () -> Gstreamer.Loop.quit loop))
+  ignore
+    (Dtools.Init.make ~before:[Tutils.scheduler_pre_shutdown_atom] (fun () ->
+         Gstreamer.Loop.quit loop))

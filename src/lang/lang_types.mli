@@ -26,10 +26,11 @@ type pos = Lexing.position * Lexing.position
 
 val print_single_pos : Lexing.position -> string
 val print_pos : ?prefix:string -> pos -> string
+val print_pos_opt : ?prefix:string -> pos option -> string
 
 type variance = Covariant | Contravariant | Invariant
 type ground = ..
-type ground += Bool | Int | String | Float
+type ground += Bool | Int | String | Float | Request
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
@@ -48,36 +49,72 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
+  | Meth of string * scheme * t
   | Zero
   | Succ of t
-  | Any
   | Arrow of (bool * string * t) list * t
-  | EVar of int * constraints
+  | EVar of var
   | Link of t
+
+and var = int * constraints
+
+and scheme = var list * t
+
+type env = (string * scheme) list
+
+module Subst : sig
+  type subst
+
+  val of_seq : (var * t) Seq.t -> subst
+  val filter : (var -> t -> bool) -> subst -> subst
+
+  type t = subst
+end
 
 val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
 val pp_type : Format.formatter -> t -> unit
-
-val pp_type_generalized :
-  (int * constraints) list -> Format.formatter -> t -> unit
-
-val print : ?generalized:(int * constraints) list -> t -> string
-val doc_of_type : generalized:(int * constraints) list -> t -> Doc.item
+val pp_type_generalized : var list -> Format.formatter -> t -> unit
+val print : ?generalized:var list -> t -> string
+val doc_of_type : generalized:var list -> t -> Doc.item
 
 exception Occur_check of t * t
 
+(** [occur_check x t] ensures that a variable [x] does not occur in [t]. Raises
+    [Occur_check] if it is the case. *)
 val occur_check : t -> t -> unit
 
 exception Unsatisfied_constraint of constr * t
 
+(** [bind x t] assigns a value [t] to a variable [x]. *)
 val bind : t -> t -> unit
+
+(** Remove links in a type: this function should always be called before
+    matching on types. *)
 val deref : t -> t
-val filter_vars : (t -> bool) -> t -> (int * constraints) list
-val copy_with : ((int * constraints) * t) list -> t -> t
-val instantiate : level:int -> generalized:(int * constraints) list -> t -> t
-val generalizable : level:int -> t -> (int * constraints) list
+
+(** Add a method to a type. *)
+val meth : ?pos:pos option -> ?level:int -> string -> scheme -> t -> t
+
+(** Add a submethod to a type. *)
+val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
+
+(** Remove all methods in a type. *)
+val demeth : t -> t
+
+(** Type of a method in a type. *)
+val invoke : t -> string -> scheme
+
+(** Type of a submethod in a type. *)
+val invokes : t -> string list -> scheme
+
+(** Find all the free variables satisfying a predicate. *)
+val filter_vars : (t -> bool) -> t -> var list
+
+val copy_with : Subst.t -> t -> t
+val instantiate : level:int -> generalized:var list -> t -> t
+val generalizable : level:int -> t -> var list
 
 type explanation
 
@@ -88,4 +125,3 @@ val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 val fresh : constraints:constraints -> level:int -> pos:pos option -> t
 val fresh_evar : level:int -> pos:pos option -> t
-val iter_constr : (bool -> constructed -> unit) -> t -> bool * bool

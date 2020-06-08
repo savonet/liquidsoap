@@ -34,13 +34,11 @@ audio_converters = \
 	$(if $(W_FFMPEG_SWRESAMPLE),converters/audio/ffmpeg_audio_converter.ml)
 
 video_converters = \
-	converters/video_converter.ml \
 	converters/video/native_video_converter.ml \
 	$(if $(W_GAVL),converters/video/gavl_converter.ml) \
 	$(if $(W_FFMPEG_SWSCALE),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
-	decoder/metadata_decoder.ml \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
@@ -84,14 +82,14 @@ sources = \
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
 	operators/on_metadata.ml operators/store_metadata.ml \
-	operators/on_track.ml operators/on_end.ml operators/delay.ml \
+	operators/on_track.ml operators/on_end.ml operators/on_frame.ml operators/delay.ml \
 	operators/max_duration.ml operators/sequence.ml operators/add.ml \
 	operators/cross.ml operators/infallible.ml \
-	operators/compress_exp.ml operators/pitch.ml operators/pipe.ml \
+	operators/pitch.ml operators/pipe.ml operators/filter.ml \
 	operators/fir_filter.ml operators/iir_filter.ml operators/filter_rc.ml \
 	operators/biquad_filter.ml operators/cuepoint.ml \
 	operators/map_op.ml operators/flanger.ml operators/comb.ml \
-	operators/compress.ml operators/clip.ml operators/filter.ml \
+	operators/compress.ml operators/compress_exp.ml operators/clip.ml \
 	operators/amplify.ml operators/normalize.ml operators/echo.ml \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
 	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
@@ -206,7 +204,7 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml) \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
-builtins = lang/lang_builtins.ml \
+builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_http.ml \
@@ -227,11 +225,13 @@ builtins = lang/lang_builtins.ml \
            $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
-	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
+	tools/log.ml $(tools) $(stream) \
 	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
-	decoder/decoder.ml request.ml tools/server.ml \
-        source.ml clock.ml tools/rutils.ml \
-	playlist_parser.ml $(encoder_formats) encoder.ml \
+        converters/video_converter.ml converters/audio_converter.ml \
+	decoder/decoder_utils.ml decoder/decoder.ml \
+        request.ml tools/server.ml \
+        source.ml clock.ml playlist_parser.ml \
+	$(encoder_formats) encoder.ml \
 	tools/server_builtins.ml \
 	$(if $(W_SDL),tools/sdl_utils.ml) \
 	$(if $(W_LASTFM),tools/liqfm.ml) \
@@ -240,7 +240,7 @@ liquidsoap_sources= \
 liquidsoap_sources += \
 	lang/lang_types.ml lang/profiler.ml lang/lang_values.ml \
 	$(lang_encoders) lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml \
+	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml lang/modules.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \

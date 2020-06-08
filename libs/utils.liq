@@ -39,21 +39,21 @@ end
 # output. The only exception is AO: it is the default output after dummy, so the
 # input will be a dummy when AO is used for output.
 
-output.prefered=output.dummy
+let output.prefered=output.dummy
 %ifdef output.ao
-  output.prefered=output.ao
+  let output.prefered=output.ao
 %endif
 %ifdef output.alsa
-  output.prefered=output.alsa
+  let output.prefered=output.alsa
 %endif
 %ifdef output.oss
-  output.prefered=output.oss
+  let output.prefered=output.oss
 %endif
 %ifdef output.portaudio
-  output.prefered = output.portaudio
+  let output.prefered = output.portaudio
 %endif
 %ifdef output.pulseaudio
-  output.prefered=output.pulseaudio
+  let output.prefered=output.pulseaudio
 %endif
 # Output to local audio card using the first available driver in pulseaudio,
 # portaudio, oss, alsa, ao, dummy.
@@ -160,38 +160,6 @@ def getenv(s) =
   list.assoc(default="",s,environment())
 end
 
-# Perform a shell call and return its output.
-# @category System
-# @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
-# @param ~env Process environment
-# @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
-# @param command Command to run
-def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  let (stdout, _, _) = run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)
-  stdout
-end
-
-# Perform a shell call and return the list of its output lines.
-# @category System
-# @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
-# @param ~env Process environment
-# @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
-# @param command Command to run
-def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  string.split(separator="\r?\n",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
-end
-
-# Return true if process exited with 0 code.
-# @category System
-# @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
-# @param ~env Process environment
-# @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
-# @param command Command to test
-def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  let (_, _, status) = run_process(timeout=timeout,env=env,command)
-  status == ("exit","0")
-end
-
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
 # [("arg","bar"),("arg2","bar2")].
 # @category String
@@ -279,58 +247,6 @@ def server.rms(~id="",s) =
   s
 end
 
-# Read some value from standard input (console).
-# @category System
-# @param ~hide Hide typed characters (for passwords).
-def read(~hide=false)
-  if hide then
-    system("stty -echo")
-  end
-  s = list.hd(default="",get_process_lines("read BLA && echo $BLA"))
-  if hide then
-    system("stty echo")
-  end
-  print("")
-  s
-end
-
-# Dummy implementation of file.mime
-# @category System
-def file.mime_default(_)
-  ""
-end
-%ifdef file.mime
-# Alias of file.mime (because it is available)
-# @category System
-def file.mime_default(file)
-  file.mime(file)
-end
-%endif
-
-# Generic mime test. First try to use file.mime if it exist.  Otherwise try to
-# get the value using the file binary. Returns "" (empty string) if no value
-# can be found.
-# @category System
-# @param file The file to test
-def get_mime(file) =
-  def file_method(file) =
-    if test_process("which file") then
-      list.hd(default="",get_process_lines("file -b --mime-type #{string.quote(file)}"))
-    else
-      ""
-    end
-  end
-  # First try mime method
-  ret = file.mime_default(file)
-  if ret != "" then
-    ret
-  else
-    # Now try file method
-    file_method(file)
-  end
-end
-
-
 # Remove low frequencies often produced by microphones.
 # @category Source / Sound Processing
 # @param s The input source.
@@ -362,16 +278,6 @@ def at(pred,s)
   switch([(pred,s)])
 end
 
-# Assign a new clock to the given source (and to other time-dependent sources)
-# and return the source. It is a conveniency wrapper around clock.assign_new(),
-# allowing more concise scripts in some cases.
-# @category Liquidsoap
-# @param ~sync Synchronization mode. One of: `"auto"`, `"cpu"`, or `"none"`. Defaults to `"auto"`, which synchronizes with the CPU clock if none of the active sources are attached to their own clock (e.g. ALSA input, etc). `"cpu"` always synchronizes with the CPU clock. `"none"` removes all synchronization control.
-def clock(~sync="auto",~id="",s)
-  clock.assign_new(sync=sync,id=id,[s])
-  s
-end
-
 # Create a log of clock times for all the clocks initially present. The log is
 # in a simple format which you can directly use with gnuplot.
 # @category Liquidsoap
@@ -390,10 +296,9 @@ def clock.log(~delay=0., ~every=1., logfile)
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
     status = list.map(fun (c) -> status[c], clocks)
     ignore(file.write(append=true, data="#{string.concat(separator=' ', status)}", logfile))
-    every
   end
   delay = if delay <= 0. then 0. else delay end
-  thread.run.recurrent(delay=delay, report)
+  thread.run(delay=delay, every=every, report)
 end
 
 # Skip track when detecting a blank.
@@ -553,21 +458,6 @@ end
 def server.broadcast(x) =
   broadcast = snd(snd(x))
   broadcast()
-end
-
-# Read the whole contents of a file.
-# @category System
-def file.contents(f) =
-  fn = file.read(f)
-  def rec f(cur) =
-    s = fn()
-    if s == "" then
-      cur
-    else
-      f("#{cur}#{s}")
-    end
-  end
-  f("")
 end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).

@@ -83,7 +83,8 @@ class max_duration ~kind ~override_meta ~duration source =
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "max_duration"
     [
       ( "override",
@@ -96,7 +97,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.TrackProcessing ~descr:"Limit source duration" ~return_t
-    (fun p kind ->
+    (fun p ->
       let override_meta = Lang.to_string (List.assoc "override" p) in
       let duration =
         Frame.master_of_seconds (Lang.to_float (Lang.assoc "" 1 p))

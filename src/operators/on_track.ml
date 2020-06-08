@@ -44,17 +44,17 @@ class on_track ~kind f s =
       if not called then (
         let m =
           match Frame.get_metadata ab p with
-            | None ->
-                Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
+            | None -> Lang.list []
             | Some m -> Lang.metadata m
         in
-        ignore (Lang.apply ~t:Lang.unit_t f [("", m)]);
+        ignore (Lang.apply f [("", m)]);
         called <- true );
       if Frame.is_partial ab then called <- false
   end
 
 let () =
-  let return_t = Lang.univ_t () in
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "on_track"
     [
       ( "",
@@ -73,7 +73,7 @@ let () =
     ]
     ~category:Lang.TrackProcessing ~descr:"Call a given handler on new tracks."
     ~return_t
-    (fun p kind ->
+    (fun p ->
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       new on_track ~kind f s)

@@ -401,10 +401,10 @@ let start_socket () =
   let bind_addr = Unix.ADDR_UNIX socket_path in
   let rights = conf_socket_perms#get in
   let max_conn = 10 in
-  let sock = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+  let sock = Unix.socket ~cloexec:true Unix.PF_UNIX Unix.SOCK_STREAM 0 in
   let rec incoming _ =
     ( try
-        let socket, caller = Unix.accept sock in
+        let socket, caller = Unix.accept ~cloexec:true sock in
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
@@ -448,7 +448,7 @@ let start_telnet () =
   let bind_addr_inet = Unix.inet_addr_of_string conf_telnet_bind_addr#get in
   let bind_addr = Unix.ADDR_INET (bind_addr_inet, port) in
   let max_conn = 10 in
-  let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+  let sock = Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_STREAM 0 in
   let () =
     (* The socket has to be closed for restart to work, and this has to be
        done after duppy has stopped using it. *)
@@ -462,7 +462,7 @@ let start_telnet () =
   Unix.setsockopt sock Unix.TCP_NODELAY true;
   let rec incoming _ =
     ( try
-        let socket, caller = Unix.accept sock in
+        let socket, caller = Unix.accept ~cloexec:true sock in
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in

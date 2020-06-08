@@ -23,7 +23,7 @@
 open Source
 
 class mean ~kind source =
-  object
+  object (self)
     inherit operator kind [source] ~name:"mean"
 
     inherit
@@ -43,6 +43,9 @@ class mean ~kind source =
                   0. tmp_frame.content.audio
                 /. channels)
           done)
+
+    method set_kind =
+      Source.Kind.unify self#kind_var (Source.Kind.set_audio source#kind_var 1)
   end
 
 let () =
@@ -57,6 +60,6 @@ let () =
     [("", Lang.source_t in_kind, None, None)]
     ~return_t:out_kind ~category:Lang.Conversions
     ~descr:"Produce mono audio by taking the mean of all audio channels."
-    (fun p kind ->
+    (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      (new mean ~kind s :> Source.source))
+      (new mean ~kind:Lang.any s :> Source.source))

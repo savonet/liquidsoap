@@ -5,12 +5,12 @@
 # @param uri Playlist URI
 # @flag experimental
 def input.hls(~id="",~reload=10.,uri)
-  playlist = ref []
+  playlistr = ref []
   sequence = ref 0
   playlist_uri = ref uri
 
   def load_playlist () =
-    pl = request.create.raw(!playlist_uri)
+    pl = request.create(!playlist_uri)
     if request.resolve(pl) then
       pl = request.filename(pl)
 
@@ -30,7 +30,7 @@ def input.hls(~id="",~reload=10.,uri)
 
       files = list.mapi(file_request,files)
 
-      let (first_idx, _) = list.hd(default=(-1,""),!playlist)
+      let (first_idx, _) = list.hd(default=(-1,""),!playlistr)
 
       def add_file(playlist, file) =
         let (idx,_) = file
@@ -41,19 +41,18 @@ def input.hls(~id="",~reload=10.,uri)
         end
       end
 
-      playlist := list.fold(add_file, !playlist, files)
+      playlistr := list.fold(add_file, !playlistr, files)
     else
       log.severe(label=id,"Couldn't read playlist: request resolution failed.")
-      playlist := []
+      playlistr := []
     end
     request.destroy(pl)
-    reload
   end
 
   def rec next () =
-    if list.length(!playlist) > 0 then
-      let (_,ret) = list.hd(default=(1,""),!playlist)
-      playlist := list.tl(!playlist)
+    if list.length(!playlistr) > 0 then
+      let (_,ret) = list.hd(default=(1,""),!playlistr)
+      playlistr := list.tl(!playlistr)
       sequence := !sequence + 1
       [request.create(ret)]
     else
@@ -62,7 +61,7 @@ def input.hls(~id="",~reload=10.,uri)
   end
 
   def find_stream () =
-    pl = request.create.raw(!playlist_uri)
+    pl = request.create(!playlist_uri)
     if request.resolve(pl) then
       plfile = request.filename(pl)
 
@@ -81,13 +80,13 @@ def input.hls(~id="",~reload=10.,uri)
 
   source = merge_tracks(source)
 
-  thread.run.recurrent(load_playlist)
+  thread.run(every=reload, load_playlist)
 
   source
 end
 
 # @flag hidden
-def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
+def output.harbor.hls_base(~id,~fallible,~on_start,~on_stop,~streams_info,
                            ~playlist,~segment_name,~segment_duration,
                            ~segments,~segments_overhead,~encode_metadata,
                            ~persist,~persist_at,~on_file_change,~start,
@@ -99,8 +98,8 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
       file.temp_dir("hls","")
     end
 
-  def content_type(file) =
-    ext = file.extension(file)
+  def content_type(fname) =
+    ext = file.extension(fname)
     if ext == ".m3u8" then
       "application/x-mpegURL"
     else
@@ -154,7 +153,7 @@ def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encod
   def serve(~port,~path,~content_type,dir) =
     harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
-  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,encode_metadata=encode_metadata,
+  output.harbor.hls_base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,encode_metadata=encode_metadata,
                          segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
@@ -193,7 +192,7 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
   def serve(~port,~path,~content_type,dir) =
     harbor.https.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
-  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
+  output.harbor.hls_base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,encode_metadata=encode_metadata,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,

@@ -10,6 +10,7 @@ New:
 - Added LV2 support (#906).
 - Added `string.nth` (#970).
 - Added `string.binary.to_int` (#970).
+- Added `string.hex_of_int`.
 - Added `file.ls` (#1011).
 - Added native id3v2 tag parser, as well as associated function
   `file.mp3.metadata`, `file.mp3.parse_apic` and `file.cover` (#987).
@@ -17,7 +18,6 @@ New:
 - Added new functions for lists: `lists.exists`, `list.for_all`, `list.init`,
   `list.ind`, `list.index`, `list.last`.
 - Added `request.id`.
-- Added `retry_delay` argument to `request.dynamic.list` (#1169).
 - Added a profiler for the language. It can be enabled with `profiler.enable` and
   the results are obtained with `profiler.stats.string` (#1027).
 - Added `gtts` protocol to use Google TTS (#1034).
@@ -40,6 +40,11 @@ New:
 - Add `source.dump` (#1036).
 - Add `stereo` and `synth` protocols (#1036).
 - Add `source.infallible`.
+- Add `video.add_text.ffmpeg`.
+- Added support for `file:///path/to/file` and `file:/path/to/file`protocols.
+- Added configure option to specify internal library install path (#1211).
+- Add support for records and methods (#1197).
+- Rename `unsafe.single.infallible` to `single.infallible`.
 
 Changed:
 
@@ -48,14 +53,10 @@ Changed:
   the default safe behavior. (#1012)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
-- Renamed `request.dynamic` to `request.dynamic.list` and updated its
-  callback function type to return an array of requests, making possible
-  to return multiple requests at once but, more importantly,
-  to return `[]` when no next requests are available. (#1169)
-- Deprecated `request.dynamic`.
 - Re-implemented switch-derived operators (`fallback`, `rotate`, `random`) as
   scripted operators, removed `track_sensitive` argument from `rotate` and
   `random` as it does not have a sound meaning for them. 
+- Added optional exit `code` to `shutdown`.
 - Renamed `verb` argument info `method` in `output.icecast`.
 - Simplified `add` behavior, also fixing an clock issue (#668).
 - Switch to more efficient callback API for decoders (#979).
@@ -84,22 +85,51 @@ Changed:
 - Vumeter is now implemented in Liquidsoap (#1103).
 - Change `input.http` and `input.https` `url` parameter into a string getter
   (#1084).
-- Add `audio/flac` as mime for flac (#1143).
 - Added `path.home.unrelate`.
 - Use getters for arguments of `video.add_image` (#1176).
 - Generalize `audio_to_stereo` to video frames and those without audio.
 - Allow crossfading for video (#1132, #1135).
 - Use getters for parameters of synthesizer sources (#1036).
 - Renamed `empty` to `fail`.
+- Restored `request.dynamic` (#1213).
+- Requests are not typed anymore: their type is fixed at resolution time.
+- Deprecated `request.create.raw`, you should use `request.create` instead.
+- Reference setting and access are now handled as normal builtins instead of in
+  the kernel.
 
 Fixed:
 
+- Set `cloexec` on all relevant Unix calls (#1192).
 - Fix implementation of recursive functions (#934).
-- Fix implementation of `rotate` (#1129).
-- Fix opam install error with some bash-completion configuration (#980).
 - Make `blank()` source unavailable past is expected duration (#668).
+- Remove `video.add_text.gstreamer` shade in background (#1190).
+- Improve the quality of `video.add_text.gd` (#1188).
+- Exit with non-zero code on errors.
+
+1.4.2 (03-05-2020)
+=====
+
+New:
+
+- Added `retry_delay` argument to `request.dynamic` (#1169).
+- Renamed `request.dynamic` to `request.dynamic.list` and updated its
+  callback function type to return an array of requests, making possible
+  to return multiple requests at once but, more importantly,
+  to return `[]` when no next requests are available. (#1169)
+
+Changed:
+
+- Set `audio/flac` as mime for flac (#1143).
+- Deprecated `request.dynamic`.
+
+Fixed:
+
+- Fixed errors when installing bash-completion files (#1095)
+- Fixed failures in `extract-replaygain` script (#1125)
 - Do not crash when loading playlists using `~/path/to/..` paths.
-- Fixed implementation details with `cross` operator.
+- Set set_default_verify_paths for SSL (#450)
+- Use 443 as default port for https (#1127)
+- Fix implementation of `rotate` (#1129).
 - Register audio/opus mime type for ogg decoding (#1089)
 - Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
 - Accept 24 bits per sample in %flac encoder (#1073).
@@ -107,6 +137,7 @@ Fixed:
 - Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
 - Fix `cross()` fallability.
 - Fix decoder remaining time when decoding is done (#1159)
+- Fixed crash when cleaning up `output.hls`
 - Fix `get_process_lines` regexp logic (#1151)
 
 1.4.1 (18-02-2020)
@@ -152,6 +183,7 @@ New:
 - Added `output.youtube.live.ffmpeg`.
 - Added `output.file.hls.ffmpeg`.
 - Added `reopen` telnet command in `output.external`.
+- Added `on_frame` (#886).
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
 - Added `video.add_text.native`.

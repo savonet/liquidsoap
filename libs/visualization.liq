@@ -23,6 +23,6 @@ def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s)
     if scroll then bar := !bar ^ "\n" end
     print(newline=false, !bar)
   end
-  thread.run.recurrent(fast=true, {display (); window})
+  thread.run(fast=true, every=window, display)
   s
 end

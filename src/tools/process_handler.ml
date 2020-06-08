@@ -141,7 +141,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
   let create () =
     log "Starting process";
     let p = open_process command env in
-    let out_pipe, in_pipe = Unix.pipe () in
+    let out_pipe, in_pipe = Unix.pipe ~cloexec:true () in
     let process =
       { in_pipe; out_pipe; p; priority; stopped = false; status = None }
     in
@@ -226,9 +226,8 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     let wrap f x =
       try f x
       with exn ->
-        (* We print backtrace here because the wrapping make us loose it afterward. *)
-        log (Printexc.get_backtrace ());
-        raise (Wrapped exn)
+        let bt = Printexc.get_raw_backtrace () in
+        Printexc.raise_with_backtrace (Wrapped exn) bt
     in
     let on_stdout = wrap (with_default (fun _ -> `Continue) on_stdout) in
     let on_stderr = wrap (with_default (fun _ -> `Continue) on_stderr) in
@@ -288,11 +287,11 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           t.process <- None;
           restart_decision (on_stop (`Status status))
       | e -> (
+          let bt = Printexc.get_backtrace () in
           let f e =
             log
               (Printf.sprintf "Error while running process: %s\n%s"
-                 (Printexc.to_string e)
-                 (Printexc.get_backtrace ()))
+                 (Printexc.to_string e) bt)
           in
           match e with
             | Wrapped e ->

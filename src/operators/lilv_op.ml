@@ -23,13 +23,20 @@
 open Source
 open Lilv
 
+let () = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]
 
 let conf_lilv =
   Dtools.Conf.void ~p:(Utils.conf#plug "lilv") "Lilv Configuration"
 
 let conf_enable =
-  Dtools.Conf.bool ~p:(conf_lilv#plug "enable") ~d:true "Enable LV2 plugins"
+  let d =
+    try
+      let venv = Unix.getenv "LIQ_LILV" in
+      venv = "1" || venv = "true"
+    with Not_found -> true
+  in
+  Dtools.Conf.bool ~p:(conf_lilv#plug "enable") ~d "Enable LV2 plugins"
 
 class virtual base ~kind source =
   object
@@ -70,16 +77,22 @@ let constant_data len x =
 
 (** A mono LV2 plugin: a plugin is created for each channel. *)
 class lilv_mono ~kind (source : source) plugin input output params =
-  object
-    inherit base ~kind source
+  object (self)
+    inherit base ~kind source as super
 
     method self_sync = source#self_sync
 
-    val inst =
-      Array.init (AFrame.channels_of_kind kind) (fun _ ->
-          Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate)))
+    val mutable inst = None
 
-    initializer Array.iter Plugin.Instance.activate inst
+    method wake_up a =
+      super#wake_up a;
+      let i =
+        Array.init self#ctype.Frame.audio (fun _ ->
+            Plugin.instantiate plugin
+              (float_of_int (Lazy.force Frame.audio_rate)))
+      in
+      Array.iter Plugin.Instance.activate i;
+      inst <- Some i
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -88,6 +101,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
       let chans = Array.length b in
       let position = AFrame.position buf in
       let len = position - offset in
+      let inst = Option.get inst in
       for c = 0 to chans - 1 do
         Plugin.Instance.connect_port_float inst.(c) input
           (Audio.Mono.sub b.(c) offset len);
@@ -103,10 +117,14 @@ class lilv_mono ~kind (source : source) plugin input output params =
   end
 
 class lilv ~kind (source : source) plugin inputs outputs params =
-  object
+  object (self)
     inherit base ~kind source
 
     method self_sync = source#self_sync
+
+    method set_kind =
+      Source.Kind.unify self#kind_var
+        (Source.Kind.set_audio source#kind_var (Array.length outputs))
 
     val inst =
       Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
@@ -298,9 +316,10 @@ let register_plugin plugin =
   let no = Array.length outputs in
   let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_plugin plugin in
-  let input_t =
-    Lang.kind_type_of_kind_format (if mono then Lang.any else Lang.audio_n ni)
+  let input_kind =
+    if mono then Lang.any else { Lang.any with Frame.audio = Lang.Fixed ni }
   in
+  let input_t = Lang.kind_type_of_kind_format input_kind in
   let liq_params =
     liq_params
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
@@ -321,24 +340,34 @@ let register_plugin plugin =
   let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
   let return_t =
     if mono then input_t
-    else
-      (* TODO: do we really need a fresh variable here? *)
-      Lang.kind_type_of_kind_format (Lang.audio_n no)
+    else if ni = 0 then Lang.kind_type_of_kind_format (Lang.audio_n no)
+    else (
+      let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
+      Lang.frame_kind_t ~audio:(Lang.n_t no) ~video ~midi )
   in
   Lang.add_operator
     ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))
     liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[] ~descr
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
       let params = params p in
-      if ni = 0 then new lilv_nosource ~kind plugin outputs params
+      if ni = 0 then
+        new lilv_nosource ~kind:(Lang.audio_n no) plugin outputs params
       else if no = 0 then
-        new lilv_noout ~kind (Utils.get_some source) plugin inputs params
+        (* TODO: can we really use such a type? *)
+        ( new lilv_noout
+            ~kind:(Lang.audio_n 0) (Utils.get_some source) plugin inputs params
+          :> Source.source )
       else if mono then
-        new lilv_mono
-          ~kind (Utils.get_some source) plugin inputs.(0) outputs.(0) params
-      else new lilv ~kind (Utils.get_some source) plugin inputs outputs params)
+        ( new lilv_mono
+            ~kind:Lang.any (Utils.get_some source) plugin inputs.(0) outputs.(0)
+            params
+          :> Source.source )
+      else
+        ( new lilv
+            ~kind:Lang.any (Utils.get_some source) plugin inputs outputs params
+          :> Source.source ))
 
 let register_plugins () =
   let world = World.create () in

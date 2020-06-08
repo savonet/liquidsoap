@@ -25,12 +25,13 @@ open Source
 type mode = RMS | Peak
 
 class window ~kind mode duration source =
-  let channels = AFrame.channels_of_kind kind in
-  object
+  object (self)
     inherit
       operator
         kind [source]
-        ~name:(match mode with RMS -> "rms" | Peak -> "peak")
+        ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
+
+    method private channels = self#ctype.Frame.audio
 
     method stype = source#stype
 
@@ -45,13 +46,19 @@ class window ~kind mode duration source =
     method self_sync = source#self_sync
 
     (** Accumulator (e.g. sum of squares). *)
-    val acc = Array.make channels 0.
+    val mutable acc = [||]
 
     (** Duration of the accumlated data. *)
     val mutable acc_dur = 0
 
     (** Last computed value (rms or peak). *)
-    val mutable value = Array.make channels 0.
+    val mutable value = [||]
+
+    method wake_up a =
+      super#wake_up a;
+      let channels = self#channels in
+      acc <- Array.make channels 0.;
+      value <- Array.make channels 0.
 
     val m = Mutex.create ()
 
@@ -66,7 +73,7 @@ class window ~kind mode duration source =
         let position = AFrame.position buf in
         let buf = AFrame.content buf in
         for i = offset to position - 1 do
-          for c = 0 to channels - 1 do
+          for c = 0 to self#channels - 1 do
             let x = buf.(c).{i} in
             match mode with
               | RMS -> acc.(c) <- acc.(c) +. (x *. x)
@@ -76,7 +83,7 @@ class window ~kind mode duration source =
           if acc_dur >= duration then (
             let dur = float acc_dur in
             let value' =
-              Array.init channels (fun i ->
+              Array.init self#channels (fun i ->
                   match mode with
                     | RMS ->
                         let v = sqrt (acc.(i) /. dur) in
@@ -92,8 +99,8 @@ class window ~kind mode duration source =
         done )
   end
 
-let declare mode suffix format fun_ret_t f_ans =
-  let k = Lang.kind_type_of_kind_format format in
+let declare mode suffix kind fun_ret_t f_ans =
+  let k = Lang.kind_type_of_kind_format kind in
   let return_t = Lang.product_t (Lang.fun_t [] fun_ret_t) (Lang.source_t k) in
   let name = match mode with RMS -> "rms" | Peak -> "peak" in
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
@@ -121,16 +128,14 @@ let declare mode suffix format fun_ret_t f_ans =
       ("", Lang.source_t k, None, None);
     ]
     return_t
-    (fun p t ->
+    (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let id = Lang.to_string (f "id") in
       let duration = Lang.to_float_getter (f "duration") in
-      let _, t = Lang.of_product_t t in
-      let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new window ~kind mode duration src in
       if id <> "" then s#set_id id;
-      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun _ _ -> f_ans s#value) in
+      let f = Lang.val_fun [] (fun _ -> f_ans s#value) in
       Lang.product f (Lang.source (s :> Source.source)))
 
 let () =

@@ -11,8 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [debian_testing, debian_stable, ubuntu_bionic, ubuntu_eoan, ubuntu_focal]
+        os: [debian_testing, debian_stable, ubuntu_eoan, ubuntu_focal]
     steps:
     - uses: actions/checkout@v2
-    - name: Build and test
+    - name: Build
+      run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions:${{ matrix.os }} -f .ci/github/Dockerfile.deps
+    - name: Run tests
       run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -f .ci/github/Dockerfile

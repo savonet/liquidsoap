@@ -1,5 +1,8 @@
 (** Constants describing configuration options of liquidsoap. *)
 
+(** String describing the OS *)
+val host : string
+
 (** String describing the version. *)
 val version : string
 
@@ -19,7 +22,7 @@ val var_script : string ref
 val subst_vars : string -> string
 
 (** Where to look for standard .liq scripts to include *)
-val libs_dir : string
+val liq_libs_dir : string
 
 (** Directories where to search for libraries.. *)
 val findlib_path : string list

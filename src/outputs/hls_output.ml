@@ -38,10 +38,10 @@ let hls_proto kind =
   let default_name =
     Lang.val_fun
       [
-        ("position", "position", Lang.int_t, None);
-        ("extname", "extname", Lang.string_t, None);
-        ("", "", Lang.string_t, None);
-      ] ~ret_t:Lang.string_t (fun p _ ->
+        ("position", "position", None);
+        ("extname", "extname", None);
+        ("", "", None);
+      ] (fun p ->
         let position = Lang.to_int (List.assoc "position" p) in
         let extname = Lang.to_string (List.assoc "extname" p) in
         let sname = Lang.to_string (List.assoc "" p) in
@@ -95,10 +95,7 @@ let hls_proto kind =
         Lang.fun_t
           [(false, "state", Lang.string_t); (false, "", Lang.string_t)]
           Lang.unit_t,
-        Some
-          (Lang.val_cst_fun
-             [("state", Lang.string_t, None); ("", Lang.string_t, None)]
-             Lang.unit),
+        Some (Lang.val_cst_fun [("state", None); ("", None)] Lang.unit),
         Some
           "Callback executed when a file changes. `state` is one of: \
            `\"opened\"`, `\"closed\"` or `\"deleted\"`, second argument is \
@@ -106,7 +103,7 @@ let hls_proto kind =
            (`\"close\"` state and remove when `\"deleted\"`." );
       ( "streams_info",
         Lang.list_t stream_info_t,
-        Some (Lang.list ~t:stream_info_t []),
+        Some (Lang.list []),
         Some
           "Additional information about the streams. Should be a list of the \
            form: `[(stream_name, (bandwidth, codec, extname)]`. See RFC 6381 \
@@ -167,18 +164,18 @@ let string_of_file_state = function
 class hls_output p =
   let on_start =
     let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let encode_metadata = Lang.to_bool (List.assoc "encode_metadata" p) in
   let on_stop =
     let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+    fun () -> ignore (Lang.apply f [])
   in
   let on_file_change =
     let f = List.assoc "on_file_change" p in
     fun ~state fname ->
       ignore
-        (Lang.apply ~t:Lang.unit_t f
+        (Lang.apply f
            [
              ("state", Lang.string (string_of_file_state state));
              ("", Lang.string fname);
@@ -304,9 +301,7 @@ class hls_output p =
   in
   let segment_master_duration = segment_ticks * Lazy.force Frame.size in
   let segment_duration = Frame.seconds_of_master segment_master_duration in
-  let segment_name =
-    Lang.to_fun ~t:Lang.string_t (List.assoc "segment_name" p)
-  in
+  let segment_name = Lang.to_fun (List.assoc "segment_name" p) in
   let segment_name ~position ~extname sname =
     Lang.to_string
       (segment_name
@@ -583,4 +578,4 @@ let () =
     ~return_t ~category:Lang.Output
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
-       directory." (fun p _ -> (new hls_output p :> Source.source))
+       directory." (fun p -> (new hls_output p :> Source.source))

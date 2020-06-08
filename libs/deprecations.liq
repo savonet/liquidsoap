@@ -20,6 +20,15 @@ register(name="[DEPRECATED] Harbor bind_addr",
          descr="IP addresses on which the harbor should listen.",
          on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")
 
+# @flag hidden
+def on_change_video_samplerate(r) =
+  deprecated("frame.video.samplerate", "frame.video.framerate")
+  set("frame.video.framerate",r)
+end
+
+register(name="[DEPRECATED] Framerate",
+         on_change=on_change_video_samplerate,"frame.video.samplerate",25)
+
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag hidden
 def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
@@ -72,6 +81,8 @@ def which(f)
   deprecated("which", "file.which")
   file.which(f)
 end
+
+base64 = ()
 
 # Deprecated: this function has been replaced by `string.base64.decode`.
 # @flag hidden
@@ -222,16 +233,15 @@ def register_flow(~server="",~user="default",~password="default",
   on_metadata(metadata,s)
 end
 
-# @flag hidden
-def request.dynamic(~id="",~conservative=false,~default_duration=30.,
-                    ~length=10.,~timeout=20.,fn) =
-  deprecated("request.dynamic", "request.dynamic.list")
-  request.dynamic.list(id=id,conservative=conservative,default_duration=default_duration,
-                   length=length,timeout=timeout,fun () -> [fn()])
-end
-
-# Deprecated: this function has been replaced by fail.
+# Deprecated: this function has been replaced by `fail`.
 # @flag hidden
 def empty(~id="")
   fail()
+end
+
+# Deprecated: use `request.create` instead.
+# @flag hidden
+def request.create.raw(~indicators=[], ~persistent=false, uri)
+  deprecated("request.create.raw", "request.create")
+  request.create(indicators=indicators, persistent=persistent, uri)
 end

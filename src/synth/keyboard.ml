@@ -64,7 +64,7 @@ class keyboard ~kind =
 
     method self_sync = false
 
-    method output = if AFrame.is_partial memo then self#get_frame memo
+    method output = if AFrame.is_partial self#memo then self#get_frame self#memo
 
     val mutable ev = MIDI.create (MFrame.size ())
 
@@ -138,16 +138,15 @@ class keyboard ~kind =
   end
 
 let () =
-  Lang.add_operator "input.keyboard" []
-    ~return_t:
-      (Lang.kind_type_of_kind_format
-         (Lang.Constrained
-            {
-              Frame.audio = Lang.At_least 0;
-              video = Lang.Fixed 0;
-              midi = Lang.At_least 1;
-            }))
-    ~category:Lang.Input
+  let kind =
+    {
+      Frame.audio = Lang.At_least 0;
+      video = Lang.Fixed 0;
+      midi = Lang.At_least 1;
+    }
+  in
+  let return_t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "input.keyboard" [] ~return_t ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]
-    ~descr:"Play notes from the keyboard."
-    (fun _ kind -> (new keyboard ~kind :> Source.source))
+    ~descr:"Play notes from the keyboard." (fun _ ->
+      (new keyboard ~kind :> Source.source))

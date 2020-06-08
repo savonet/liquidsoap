@@ -53,7 +53,8 @@ class map ~kind source delay random freeze =
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "sleeper"
     [
       ( "delay",
@@ -76,7 +77,7 @@ let () =
     ~descr:"Sleep at each frame. Useful for emulating network delays, etc."
     ~category:Lang.SoundProcessing
     ~flags:[Lang.Hidden; Lang.Experimental]
-    (fun p kind ->
+    (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
       let delay = AFrame.duration () *. delay in
       let random = Lang.to_float (List.assoc "random" p) in

@@ -18,7 +18,7 @@ module SecureTransport_transport :
         | Unix.ADDR_UNIX _ -> Unix.PF_UNIX
         | Unix.ADDR_INET (_, _) -> Unix.PF_INET
     in
-    let sock = Unix.socket domain Unix.SOCK_STREAM 0 in
+    let sock = Unix.socket ~cloexec:true domain Unix.SOCK_STREAM 0 in
     begin
       try Unix.connect sock sockaddr
       with exn ->

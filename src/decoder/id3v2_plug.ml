@@ -44,8 +44,8 @@ let get_tags fname =
   try
     if
       not
-        (Decoder.test_file ~mimes:mime_types#get ~extensions:file_extensions#get
-           ~log fname)
+        (Decoder.test_file ~log ~mimes:mime_types#get
+           ~extensions:file_extensions#get fname)
     then raise Id3v2.Invalid;
     let ic = open_in fname in
     Tutils.finalize
@@ -54,8 +54,9 @@ let get_tags fname =
   with
     | Id3v2.Invalid -> []
     | e ->
+        let bt = Printexc.get_backtrace () in
         log#info "Error while decoding file tags: %s" (Printexc.to_string e);
-        log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
+        log#info "Backtrace:\n%s" bt;
         raise Not_found
 
 let () = Request.mresolvers#register "ID3V2" get_tags

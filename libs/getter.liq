@@ -1,3 +1,5 @@
+getter = ()
+
 # Convert an int getter to a float getter.
 # @category Math
 def getter.float_of_int(x)

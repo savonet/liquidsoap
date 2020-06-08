@@ -28,8 +28,8 @@
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
 
 (** Multiplicity of a field, used in types to impose constraints on channels
-    (empty, variable, at least k, etc.). *)
-type multiplicity = Any | Zero | Succ of multiplicity
+    (fixed, at least k, etc.). *)
+type multiplicity = Fixed of int | At_least of int
 
 (** Multiplicity of each field of a frame. *)
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
@@ -79,10 +79,11 @@ type t = {
 (** All units are in ticks (master clock). *)
 
 (** Create a frame of a given content type. *)
-val create_type : content_type -> t
+val create : content_type -> t
 
-(** Create a frame of given content kind. *)
-val create : content_kind -> t
+(** A dummy frame which should never written to or read from. This is however
+    useful as a placeholder before initialization of references. *)
+val dummy : t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
@@ -177,15 +178,9 @@ val get_chunk : t -> t -> unit
 (** Compatibilities between content kinds, types and values: [sub a b] is [true]
     when [b] is more permissive than [a]. *)
 
-val mul_sub_mul : multiplicity -> multiplicity -> bool
-val int_sub_mul : int -> multiplicity -> bool
-val mul_eq_int : multiplicity -> int -> bool
-val kind_sub_kind : content_kind -> content_kind -> bool
-val type_has_kind : content_type -> content_kind -> bool
 val type_of_content : content -> content_type
-val type_of_kind : content_kind -> content_type
 val mul_of_int : int -> multiplicity
-val add_mul : multiplicity -> multiplicity -> multiplicity
+val succ_mul : multiplicity -> multiplicity
 val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string
 

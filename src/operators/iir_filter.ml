@@ -28,10 +28,11 @@ type filter_family = Butterworth | Resonator
 
 class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   qfactor =
-  let channels = AFrame.channels_of_kind kind in
   let rate = float (Frame.audio_of_seconds 1.) in
   object (self)
     inherit operator ~name:"iir_filter" kind [source]
+
+    method private channels = self#ctype.Frame.audio
 
     (* Params *)
     val raw_alpha1 = freq1 /. rate
@@ -88,6 +89,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
     self#log#info "Alpha 1: %.013f (warped: %.013f)" raw_alpha1 warped_alpha1;
     self#log#info "Alpha 2: %.013f (warped: %.013f)" raw_alpha2 warped_alpha2;
     self#log#info "Q: %.013f" qfactor;
+    let channels = self#channels in
     let cor a = { re = a; im = 0. }
     and ( +~ ), ( -~ ), ( *~ ), ( /~ ) =
       (Complex.add, Complex.sub, Complex.mul, Complex.div)
@@ -438,7 +440,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
         done;
         !result
       in
-      for c = 0 to channels - 1 do
+      for c = 0 to self#channels - 1 do
         let xvc = xv.(c) in
         let yvc = yv.(c) in
         let bc = b.(c) in
@@ -456,7 +458,11 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   end
 
 let () =
-  let k = Lang.kind_type_of_kind_format Lang.any in
+  Lang.add_module "filter.iir";
+  Lang.add_module "filter.iir.butterworth";
+  Lang.add_module "filter.iir.resonator";
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.iir.butterworth.high"
     [
       ("frequency", Lang.float_t, None, Some "Corner frequency");
@@ -464,7 +470,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, order, src =
         ( Lang.to_float (f "frequency"),
@@ -479,7 +485,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, order, src =
         ( Lang.to_float (f "frequency"),
@@ -495,7 +501,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
         ( Lang.to_float (f "frequency1"),
@@ -512,7 +518,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq1, freq2, order, src =
         ( Lang.to_float (f "frequency1"),
@@ -528,7 +534,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =
         ( Lang.to_float (f "frequency"),
@@ -543,7 +549,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =
         ( Lang.to_float (f "frequency"),
@@ -558,7 +564,7 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing ~descr:"IIR filter"
-    (fun p kind ->
+    (fun p ->
       let f v = List.assoc v p in
       let freq, q, src =
         ( Lang.to_float (f "frequency"),
