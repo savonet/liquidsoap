@@ -1060,12 +1060,20 @@ let eval ?env tm =
     documentation from the source code. *)
 let toplevel_add (doc, params) pat ~t v =
   let generalized, t = t in
-  let ptypes = match (T.deref t).T.descr with T.Arrow (p, _) -> p | _ -> [] in
-  let pvalues =
-    match v.V.value with
-      | V.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+  let rec ptypes t =
+    match (T.deref t).T.descr with
+      | T.Arrow (p, _) -> p
+      | T.Meth (_, _, t) -> ptypes t
       | _ -> []
   in
+  let ptypes = ptypes t in
+  let rec pvalues v =
+    match v.V.value with
+      | V.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+      | V.Meth (_, _, v) -> pvalues v
+      | _ -> []
+  in
+  let pvalues = pvalues v in
   let params, _ =
     List.fold_left
       (fun (params, pvalues) (_, label, t) ->
