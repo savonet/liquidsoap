@@ -236,7 +236,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
   in
-  let uvar g level i c =
+  let uvar g level (i, c) =
     let constr_symbols, c = split_constr c in
     let rec index n = function
       | v :: tl ->
@@ -282,7 +282,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Meth (l, (g', u), v) ->
             let gen =
               List.map
-                (fun (i, c) -> match uvar g' t.level i c with `UVar ic -> ic)
+                (fun ic -> match uvar (g' @ g) t.level ic with `UVar ic -> ic)
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
@@ -295,7 +295,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
         | EVar (i, c) ->
-            if List.exists (fun (j, _) -> j = i) g then uvar g t.level i c
+            if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
         | Link t -> repr g t )
   in
