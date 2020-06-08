@@ -383,53 +383,6 @@ let check_unused ~lib tm =
   (* Unused free variables may remain *)
   ignore (check ~toplevel:true Vars.empty tm)
 
-(** Maps a function on all types occurring in a term.
-  * Ignores variable generalizations. *)
-let rec map_types f gen tm =
-  let aux = function
-    | lbl, var, t, None -> (lbl, var, f gen t, None)
-    | lbl, var, t, Some tm -> (lbl, var, f gen t, Some (map_types f gen tm))
-  in
-  match tm.term with
-    | Ground _ | Encoder _ | Var _ -> { tm with t = f gen tm.t }
-    | Tuple l -> { t = f gen tm.t; term = Tuple (List.map (map_types f gen) l) }
-    | Meth (l, x, e) ->
-        {
-          t = f gen tm.t;
-          term = Meth (l, map_types f gen x, map_types f gen e);
-        }
-    | Invoke (e, l) -> { t = f gen tm.t; term = Invoke (map_types f gen e, l) }
-    | Seq (a, b) ->
-        { t = f gen tm.t; term = Seq (map_types f gen a, map_types f gen b) }
-    | List l -> { t = f gen tm.t; term = List (List.map (map_types f gen) l) }
-    | App (hd, l) ->
-        {
-          t = f gen tm.t;
-          term =
-            App
-              ( map_types f gen hd,
-                List.map (fun (lbl, v) -> (lbl, map_types f gen v)) l );
-        }
-    | Fun (fv, p, v) ->
-        { t = f gen tm.t; term = Fun (fv, List.map aux p, map_types f gen v) }
-    | RFun (x, fv, p, v) ->
-        {
-          t = f gen tm.t;
-          term = RFun (x, fv, List.map aux p, map_types f gen v);
-        }
-    | Let l ->
-        let gen' = l.gen @ gen in
-        {
-          t = f gen tm.t;
-          term =
-            Let
-              {
-                l with
-                def = map_types f gen' l.def;
-                body = map_types f gen l.body;
-              };
-        }
-
 (** Values are untyped normal forms of terms. *)
 module V = struct
   type value = { pos : T.pos option; value : in_value }
@@ -534,9 +487,10 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
               let vg, vt = T.invokes t0 (List.rev prefix) in
               let lvt, lv = aux (l :: prefix) ll in
               let t =
-                T.make (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
+                T.make ~pos:t.T.pos
+                  (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
               in
-              (t, { V.pos = None; value = V.Meth (l, lv, v) })
+              (t, { V.pos = v.V.pos; value = V.Meth (l, lv, v) })
           | [] -> (t, v)
         in
         let t, v = aux [] ll in
@@ -713,7 +667,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
                    enough for records. *)
                 let x = T.fresh_evar ~level ~pos in
                 let y = T.fresh_evar ~level ~pos in
-                t <: mk (T.Meth (l, ([], x), y));
+                { t with T.pos } <: mk (T.Meth (l, ([], x), y));
                 x
         in
         e.t >: aux a.t

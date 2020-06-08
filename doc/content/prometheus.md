@@ -5,6 +5,7 @@ When compiled with optional support for [mirage/prometheus](https://github.com/m
 `liquidsoap` can export [prometheus](https://prometheus.io/) metrics. 
 
 The basic settings to enable exports are:
+
 ```liquidsoap
 # Prometheus settings
 set("prometheus.server",true)
@@ -19,11 +20,13 @@ Basic operators
 ---------------
 
 The 3 basic operators are:
+
 * `prometheus.counter`
 * `prometheus.gauge`
 * `prometheus.summary`
 
 They share a similar type and API, which is as follows:
+
 ```liquidsoap
 (help : string,
  ?namespace : string,
@@ -36,6 +39,7 @@ They share a similar type and API, which is as follows:
 
 This type can be a little confusing. Here's how it works:
 1. First, one has to create a metric factory of a given type. For instance:
+
 ```liquidsoap
 is_playing_metric = prometheus.gauge(labels=["source"],"liquidsoap_is_playing")
 ```
@@ -45,6 +49,7 @@ playlist = playlist(id="playlist", ...)
 set_playlist_is_playing = is_playing_metric(label_values=["radio"])
 ```
 The returned function is a setter for this metric, i.e.
+
 * For `gauge` metrics, it sets the gauge value
 * For `counter` metrics, it increases the counter value
 * For `summary` metrics, it registers an observation
@@ -70,11 +75,13 @@ thread.run.recurrent(delay=0.,check_if_ready(set_playlist_is_playing, playlist))
 
 The `prometheus.latency` operator provides prometheus metrics describing the internal latency of a given
 source. It is fairly easy to use:
+
 ```liquidsoap
 s = (...)
 prometheus.latency(s)
 ```
 The metrics are computed over a sliding window that can be defined as a parameter of the operator. Exported metrics are:
+
 ```
 # Input metrics:
 liquidsoap_input_latency{...} <value>
@@ -93,11 +100,13 @@ liquidsoap_overall_peak_latency{...} <value>
 ```
 
 The 3 different groups of values are:
+
 * **input**: metrics related to the time it takes to generate audio data
 * **output**: metrics related to the time it takes to output (encode and send) audio data
 * **overall**: the sum of all previous two groups
 
 Each group of metrics is divided into 3 subsets:
+
 * Mean latency value over the sliding window
 * Max latency value over the sliding window
 * Peak latency since start
@@ -118,6 +127,7 @@ OCaml specific metrics
 ----------------------
 
 The prometheus binding used by `liquidsoap` also exports default OCaml-related metrics. They are as follows:
+
 ```
 ocaml_gc_allocated_bytes <value>
 ocaml_gc_compactions <value>
