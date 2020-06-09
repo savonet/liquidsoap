@@ -139,7 +139,7 @@ let report lexbuf f =
       | Clock_conflict (pos, a, b) ->
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
-          error_header 10 (T.print_pos (Utils.get_some pos));
+          error_header 10 (T.print_pos_opt pos);
           Format.printf "A source cannot belong to two clocks (%s,@ %s).@]@." a
             b;
           raise Error

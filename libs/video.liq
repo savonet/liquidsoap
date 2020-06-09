@@ -209,11 +209,11 @@ let video.add_text.best = video.add_text.sdl
 %endif
 
 %ifdef video.add_text.gstreamer
-let video.add_text.best = video.add_text.gstreamer
+let replaces video.add_text.best = video.add_text.gstreamer
 %endif
 
 %ifdef video.add_text.gd
-let video.add_text.best = video.add_text.gd
+let replaces video.add_text.best = video.add_text.gd
 %endif
 
 # Display a text using the first available operator in: gd, gstreamer, sdl or native
@@ -228,12 +228,10 @@ let video.add_text.best = video.add_text.gd
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.add_text(~id="",~color=16777215,~cycle=true,~font="",
+def replaces video.add_text(~id="",~color=16777215,~cycle=true,~font="",
                    ~metadata="",~size=18,~speed=70,~x=10,~y=10,
                    d,s) =
   video.add_text.best(id=id,cycle=cycle,font=font,
      metadata=metadata,size=size,
      speed=speed,x=x,y=y,d,s)
 end
-
-#TODO: unhide specialized implementations of video.add_text

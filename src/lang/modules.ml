@@ -26,6 +26,7 @@ let () =
   List.iter Lang.add_module
     [
       "audio";
+      "clock";
       "configure";
       "encoder";
       "input";
