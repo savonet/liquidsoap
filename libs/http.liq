@@ -90,7 +90,7 @@ end
 let harbor.http.static = ()
 
 # @flag hidden
-def harbor.http.static_base(serve,~content_type,~basepath,~port,~headers,directory) =
+def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directory) =
   basepath =
     if string.sub(basepath,start=0,length=1) != "/" then
       "/#{basepath}"
@@ -156,8 +156,8 @@ content_type = file.mime
 # @param ~headers Default response headers.
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
-def harbor.http.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static_base(harbor.http.register,content_type=content_type,basepath=path,port=port,headers=headers,directory)
+def replaces harbor.http.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
+  harbor.http.static.base(harbor.http.register,content_type=content_type,basepath=path,port=port,headers=headers,directory)
 end
 
 %ifdef harbor.https.register
@@ -169,6 +169,6 @@ end
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
 def harbor.https.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static_base(harbor.http.register,basepath=path,content_type=content_type,port=port,headers=headers,directory)
+  harbor.http.static.base(harbor.http.register,basepath=path,content_type=content_type,port=port,headers=headers,directory)
 end
 %endif

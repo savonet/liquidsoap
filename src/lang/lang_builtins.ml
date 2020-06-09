@@ -196,24 +196,6 @@ let () =
             sources;
           Lang.unit
   in
-  add_builtin "clock" ~cat:Liq
-    ~descr:
-      "Assign a new clock to the given source (and to other time-dependent \
-       sources) and return the source. It is a conveniency wrapper around \
-       `clock.assign_new`, allowing more concise scripts in some cases."
-    ( proto
-    @ [
-        ( "",
-          Lang.source_t (Lang.univ_t ()),
-          None,
-          Some "Source to which the new clock will be assigned." );
-      ] )
-    Lang.unit_t
-    (fun p ->
-      let id = Lang.to_string (List.assoc "id" p) in
-      let sync = List.assoc "sync" p in
-      let s = List.assoc "" p in
-      assign id sync [s]);
   add_builtin "clock.assign_new" ~cat:Liq
     ~descr:"Create a new clock and assign it to a list of sources."
     ( proto

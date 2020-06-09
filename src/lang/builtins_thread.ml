@@ -22,10 +22,12 @@
 
 open Lang_builtins
 
-let () = Lang.add_module "thread"
+let () =
+  Lang.add_module "thread";
+  Lang.add_module "thread.run"
 
 let () =
-  add_builtin "thread.run_recurrent" ~cat:Control
+  add_builtin "thread.run.recurrent" ~cat:Control
     [
       ( "fast",
         Lang.bool_t,

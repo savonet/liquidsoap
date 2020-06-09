@@ -195,6 +195,8 @@ type term = { mutable t : T.t; term : in_term }
 
 and let_t = {
   doc : Doc.item * (string * string) list;
+  replace : bool;
+  (* whether the definition replaces a previously existing one (keeping methods) *)
   pat : pattern;
   mutable gen : (int * T.constraints) list;
   def : term;
@@ -451,6 +453,11 @@ module V = struct
   let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
   let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
+
+  let rec remeth t u =
+    match t.value with
+      | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
+      | _ -> u
 end
 
 (** {2 Built-in values and toplevel definitions} *)
@@ -730,7 +737,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
         if Lazy.force debug then
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n" var
             (T.deref e.t).T.level (T.print orig) (T.print e.t)
-    | Let ({ pat; def; body; _ } as l) ->
+    | Let ({ pat; replace; def; body; _ } as l) ->
         check ~level ~env def;
         let generalized =
           if value_restriction def then (
@@ -755,10 +762,18 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
             (fun (ll, a) ->
               match ll with
                 | [] -> assert false
-                | [x] -> (x, (generalized, a))
+                | [x] ->
+                    let a =
+                      if replace then T.remeth (snd (List.assoc x env)) a else a
+                    in
+                    (x, (generalized, a))
                 | l :: ll -> (
                     try
                       let g, t = List.assoc l env in
+                      let a =
+                        (* If we are replacing the value, we keep the previous methods. *)
+                        if replace then T.remeth (snd (T.invokes t ll)) a else a
+                      in
                       (l, (g, T.meths ~pos ~level ll (generalized, a) t))
                     with Not_found ->
                       raise (Unbound (pos, String.concat "." (l :: ll))) ))
@@ -866,15 +881,21 @@ let rec eval ~env tm =
             | _ -> failwith ("Fatal error: invoked method " ^ l ^ " not found")
         in
         aux (eval ~env t)
-    | Let { pat; def = v; body = b; _ } ->
+    | Let { pat; replace; def = v; body = b; _ } ->
         let v = eval ~env v in
         let penv =
           List.map
             (fun (ll, v) ->
               match ll with
                 | [] -> assert false
-                | [x] -> (x, Lazy.from_val v)
+                | [x] ->
+                    let v () =
+                      if replace then V.remeth (Lazy.force (List.assoc x env)) v
+                      else v
+                    in
+                    (x, Lazy.from_fun v)
                 | l :: ll ->
+                    (* Add method ll with value v to t *)
                     let rec meths ll v t =
                       match ll with
                         | [] -> assert false
@@ -882,7 +903,15 @@ let rec eval ~env tm =
                         | l :: ll ->
                             mk (V.Meth (l, meths ll v (V.invoke t l), t))
                     in
-                    (l, lazy (meths ll v (Lazy.force (List.assoc l env)))))
+                    let v () =
+                      let t = Lazy.force (List.assoc l env) in
+                      let v =
+                        (* When replacing, keep previous methods. *)
+                        if replace then V.remeth (V.invokes t ll) v else v
+                      in
+                      meths ll v t
+                    in
+                    (l, Lazy.from_fun v))
             (eval_pat pat v)
         in
         let env = penv @ env in
@@ -986,12 +1015,20 @@ let eval ?env tm =
     documentation from the source code. *)
 let toplevel_add (doc, params) pat ~t v =
   let generalized, t = t in
-  let ptypes = match (T.deref t).T.descr with T.Arrow (p, _) -> p | _ -> [] in
-  let pvalues =
-    match v.V.value with
-      | V.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+  let rec ptypes t =
+    match (T.deref t).T.descr with
+      | T.Arrow (p, _) -> p
+      | T.Meth (_, _, t) -> ptypes t
       | _ -> []
   in
+  let ptypes = ptypes t in
+  let rec pvalues v =
+    match v.V.value with
+      | V.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+      | V.Meth (_, _, v) -> pvalues v
+      | _ -> []
+  in
+  let pvalues = pvalues v in
   let params, _ =
     List.fold_left
       (fun (params, pvalues) (_, label, t) ->
@@ -1028,9 +1065,21 @@ let toplevel_add (doc, params) pat ~t v =
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
-    | Let { doc = comment; gen = generalized; pat; def; body } ->
-        let def_t = def.t in
-        let def = eval def in
+    | Let { doc = comment; gen = generalized; replace; pat; def; body } ->
+        let def_t, def =
+          if not replace then (def.t, eval def)
+          else (
+            match pat with
+              | PVar [] -> assert false
+              | PVar (x :: l) ->
+                  let old_t, old = List.assoc x (default_environment ()) in
+                  let old_t = snd old_t in
+                  let old_t = snd (T.invokes old_t l) in
+                  let old = V.invokes old l in
+                  (T.remeth old_t def.t, V.remeth old (eval def))
+              | PTuple _ ->
+                  failwith "TODO: cannot replace toplevel tuples for now" )
+        in
         toplevel_add comment pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)

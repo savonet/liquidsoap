@@ -85,8 +85,10 @@ def input.hls(~id="",~reload=10.,uri)
   source
 end
 
+let output.harbor.hls = ()
+
 # @flag hidden
-def output.harbor.hls_base(~id,~fallible,~on_start,~on_stop,~streams_info,
+def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
                            ~playlist,~segment_name,~segment_duration,
                            ~segments,~segments_overhead,~encode_metadata,
                            ~persist,~persist_at,~on_file_change,~start,
@@ -145,7 +147,7 @@ end
 # @param ~path Base path for hls URIs.
 # @param ~tmpdir Directory for generated files.
 # @param formats List of specifications for each stream: (name, format).
-def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encode_metadata=false,
+def replaces output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encode_metadata=false,
                       ~segment_duration=10.,~segments=15,~segments_overhead=10,~streams_info=[],~tmpdir="",
                       ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                       ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",~on_file_change=(fun (~state=_,_) -> ()),
@@ -153,7 +155,7 @@ def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encod
   def serve(~port,~path,~content_type,dir) =
     harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
-  output.harbor.hls_base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,encode_metadata=encode_metadata,
+  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,encode_metadata=encode_metadata,
                          segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
@@ -192,7 +194,7 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
   def serve(~port,~path,~content_type,dir) =
     harbor.https.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
-  output.harbor.hls_base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
+  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,encode_metadata=encode_metadata,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
