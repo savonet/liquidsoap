@@ -195,8 +195,8 @@ end
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 def server.insert_metadata(~id="",s) =
-  x = insert_metadata(id=id,s)
-  let (insert, s) = x
+  s = insert_metadata(id=id,s)
+  insert = s.insert_metadata
   def insert(s) =
     l = string.split(separator='([^=]+\\s*=\\s*"(\\"|[^"])*")\\s*,\\s*',s)
     def f(l,x) =
@@ -449,8 +449,8 @@ def overlap_sources(~id="",~normalize=false,
   source = add(id=id,normalize=normalize,weights=weights,sources)
 
   # Set send_to_main_source
-  let (f,s) = insert_metadata(source)
-  send_to_main_source := fun (m) -> f(m)
+  s = insert_metadata(source)
+  send_to_main_source := fun (m) -> s.insert_metadata(m)
   s
 end
 
@@ -477,14 +477,14 @@ end
 # @category Source / Track Processing
 def chop(~duration=float_getter(3.),~metadata=[],s) =
   duration=to_float_getter(duration)
-  let (insert, s) = insert_metadata(s)
+  s = insert_metadata(s)
 
   # Track time in the source's context:
   start_time = ref 0.
   def f() =
     if duration () <= source.time(s) - !start_time then
       start_time := source.time(s)
-      insert(new_track=true, metadata)
+      s.insert_metadata(new_track=true, metadata)
     end
     1.
   end
