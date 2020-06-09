@@ -130,7 +130,7 @@ let list l = mk (List l)
 
 let rec meth v0 = function
   | [] -> v0
-  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
+  | (l, v) :: r -> mk (Term.V.meth (meth v0 r) l v)
 
 let record = meth unit
 let source s = mk (Source s)
