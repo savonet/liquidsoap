@@ -1,12 +1,6 @@
 #!../src/liquidsoap ../libs/pervasives.liq --force-start
 
-def time(name, f)
-  print("Computing #{name}...")
-  t = gettimeofday()
-  f()
-  t' = gettimeofday()
-  print("Computing #{name} took #{t'-t} seconds.")
-end
+%include "performance.liq"
 
 def erathostenes(n)
   l = list.init(n-2, fun (i) -> i+2)

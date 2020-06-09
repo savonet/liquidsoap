@@ -10,17 +10,8 @@ test:
 	@$(MAKE) -C streams $@
 	@$(MAKE) -C media $@
 	@$(MAKE) -C regression $@
-	@./run_test.sh /usr/bin/perl ./type_errors.pl
 	@echo
 	@echo
-	$(MAKE) performance
-
-performance: performance.liq
-	@echo "***** Performance tests *****"
-	@../src/liquidsoap ../libs/pervasives.liq --force-start ./performance.liq
-
-perf:
-	perf record --call-graph=dwarf -- ../src/liquidsoap ../libs/pervasives.liq performance.liq
-	perf report
+	@$(MAKE) -C performance $@
 
 include $(top_srcdir)/Makefile.rules

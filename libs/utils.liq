@@ -234,10 +234,10 @@ end
 # @category Source / Visualization
 # @param ~id Force the value of the source ID.
 def server.rms(~id="",s) =
-  let (rms, s) = rms(id=id,s)
+  let s = rms(id=id,s)
   id = source.id(s)
   def rms(_) =
-    rms = rms()
+    rms = s.rms()
     "#{rms}"
   end
   server.register(namespace="#{id}",

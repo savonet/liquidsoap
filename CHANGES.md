@@ -95,6 +95,8 @@ Changed:
 - Deprecated `request.create.raw`, you should use `request.create` instead.
 - Reference setting and access are now handled as normal builtins instead of in
   the kernel.
+- Use records as return type of `http.*`, `https.*`, `rms`, `peak` and
+  `request.queue` (#1234).
 
 Fixed:
 
