@@ -27,6 +27,7 @@ module Ground = Term.Ground
 open Ground
 
 type t = T.t
+type scheme = T.scheme
 type pos = T.pos
 
 let log = Log.make ["lang"]
@@ -41,6 +42,14 @@ let bool_t = ground_t T.Bool
 let string_t = ground_t T.String
 let tuple_t l = T.make (T.Tuple l)
 let product_t a b = tuple_t [a; b]
+
+let rec record_t = function
+  | [] -> unit_t
+  | (l, t) :: r -> T.meth l ([], t) (record_t r)
+
+let rec method_t t0 = function
+  | [] -> t0
+  | (l, t) :: r -> T.meth l t (method_t t0 r)
 
 let of_tuple_t t =
   match (T.deref t).T.descr with T.Tuple l -> l | _ -> assert false
@@ -118,6 +127,12 @@ let string i = mk (Ground (String i))
 let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
 let list l = mk (List l)
+
+let rec meth v0 = function
+  | [] -> v0
+  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
+
+let record = meth unit
 let source s = mk (Source s)
 let request r = mk (Ground (Request r))
 let reference x = mk (Ref x)

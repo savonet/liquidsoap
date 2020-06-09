@@ -8,9 +8,9 @@
 def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s)
   screen_width = 80
   bar_width = screen_width
-  let (f,s) = rms(duration=window, s)
+  let s = rms(duration=window, s)
   def display()
-    v = dB_of_lin(f())
+    v = dB_of_lin(s.rms())
     x = (v - rms_min) / (rms_max - rms_min)
     x = if x < 0. then 0. else x end
     x = if x > 1. then 1. else x end

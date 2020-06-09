@@ -100,20 +100,19 @@ class window ~kind mode duration source =
   end
 
 let declare mode suffix kind fun_ret_t f_ans =
-  let k = Lang.kind_type_of_kind_format kind in
-  let return_t = Lang.product_t (Lang.fun_t [] fun_ret_t) (Lang.source_t k) in
   let name = match mode with RMS -> "rms" | Peak -> "peak" in
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
+  let k = Lang.kind_type_of_kind_format kind in
+  let return_t =
+    Lang.method_t (Lang.source_t k) [(name, ([], Lang.fun_t [] fun_ret_t))]
+  in
   Lang.add_builtin (name ^ suffix)
     ~category:(Lang.string_of_category Lang.Visualization)
     ~descr:
       ( "Get current " ^ doc
-      ^ " of the source. Returns a pair `(f,s)` where s is a new source and \
-         `f` is a function of type `() -> float` and returns the current " ^ doc
-      ^ " of the source, with `0.0 <= " ^ doc
-      ^ " <= 1.0`. Some operators like `amplify` and `compress` can produce \
-         amplitudes greater than 1.0 if misconfigured, inducing clipping in \
-         the output." )
+      ^ " of the source. Returns the source with a method to compute the \
+         current " ^ doc ^ " of the source, with `0.0 <= " ^ doc ^ " <= 1.0`."
+      )
     [
       ( "id",
         Lang.string_t,
@@ -136,7 +135,8 @@ let declare mode suffix kind fun_ret_t f_ans =
       let s = new window ~kind mode duration src in
       if id <> "" then s#set_id id;
       let f = Lang.val_fun [] (fun _ -> f_ans s#value) in
-      Lang.product f (Lang.source (s :> Source.source)))
+      let s = Lang.source (s :> Source.source) in
+      Lang.meth s [(name, f)])
 
 let () =
   let mean value =

@@ -157,9 +157,8 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
 
   def head_mime(~name, ret) =
     def get_mime() =
-      let ((_, code, _), headers, _) = ret
-      if 200 <= code and code < 300 then
-        headers["content-type"]
+      if 200 <= ret.status_code and ret.status_code < 300 then
+        ret.headers["content-type"]
       else
         log(level=3,"Failed to fetch mime-type for #{uri}.")
         log(level=4,"Request response: #{ret}")

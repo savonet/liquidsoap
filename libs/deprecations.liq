@@ -151,8 +151,8 @@ def register_flow(~server="",~user="default",~password="default",
   # If the server is "", we get the server from sf.net
   server =
     if server == "" then
-      let ((_,code,_),_,data) = http.get("http://liquidsoap.info/flows_server")
-      if code == 200 then
+      let data = http.get("http://liquidsoap.info/flows_server")
+      if data.status_code == 200 then
         data
       else
         # If sf is down, we use the hardcoded server
@@ -194,11 +194,10 @@ def register_flow(~server="",~user="default",~password="default",
 
     # TODO: do something with errors!
     answer = http.get(url)
-    let ((protocol, code, desc), headers, data) = answer
-    log(level=4,"Response status: #{protocol} #{code} #{desc}")
+    log(level=4,"Response status: #{answer.protocol_version} #{answer.status_code} #{answer.status_message}")
     log(level=4,"Response headers:")
-    list.iter(log_arg,headers)
-    log(level=4,"Response content: #{data}")
+    list.iter(log_arg, answer.headers)
+    log(level=4,"Response content: #{answer}")
   end
 
   # Register radio
