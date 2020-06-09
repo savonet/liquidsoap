@@ -952,9 +952,11 @@ let rec eval ~env tm =
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
-                      let v = meths ll v t in
-                      (* When replacing, keep previous methods. *)
-                      if replace then V.remeth (V.invokes t ll) v else v
+                      let v =
+                        (* When replacing, keep previous methods. *)
+                        if replace then V.remeth (V.invokes t ll) v else v
+                      in
+                      meths ll v t
                     in
                     (l, Lazy.from_fun v))
             (eval_pat pat v)
