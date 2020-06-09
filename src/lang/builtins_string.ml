@@ -135,9 +135,8 @@ let () =
 let () =
   add_builtin "string.split" ~cat:String
     ~descr:
-      "Split a string at 'separator'. \n\
-       Perl compatible regular expressions are recognized. Hence, special \
-       characters should be escaped."
+      "Split a string at 'separator'. Perl compatible regular expressions are \
+       recognized. Hence, special characters should be escaped."
     [("separator", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     (Lang.list_t Lang.string_t) (fun p ->
       let sep = Lang.to_string (List.assoc "separator" p) in
@@ -148,12 +147,10 @@ let () =
 let () =
   add_builtin "string.extract" ~cat:String
     ~descr:
-      "Extract substrings from a string. \n\
-       Perl compatible regular expressions are recognized. Hence, special \
-       characters should be escaped. \n\
-       Returns a list of (index,value).\n\
-       If the list does not have a pair associated to some index, it means \
-       that the corresponding pattern was not found."
+      "Extract substrings from a string. Perl compatible regular expressions \
+       are recognized. Hence, special characters should be escaped. Returns a \
+       list of (index,value). If the list does not have a pair associated to \
+       some index, it means that the corresponding pattern was not found."
     [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.metadata_t (fun p ->
       let pattern = Lang.to_string (List.assoc "pattern" p) in
