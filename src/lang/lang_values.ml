@@ -296,10 +296,8 @@ let rec free_vars tm =
         Vars.union (free_vars l.def)
           (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
 
-let free_vars ?bound body =
-  match bound with
-    | None -> free_vars body
-    | Some s -> List.fold_left (fun v x -> Vars.remove x v) (free_vars body) s
+let free_vars ?(bound = []) body =
+  Vars.diff (free_vars body) (Vars.of_list bound)
 
 (** Values which can be ignored (and will thus not raise a warning if
    ignored). *)
@@ -309,6 +307,7 @@ let can_ignore t =
     | T.EVar _ -> true
     | _ -> false
 
+(* TODO: what about functions with methods? *)
 let is_fun t = match (T.deref t).T.descr with T.Arrow _ -> true | _ -> false
 
 let is_source t =
