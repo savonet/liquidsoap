@@ -383,53 +383,6 @@ let check_unused ~lib tm =
   (* Unused free variables may remain *)
   ignore (check ~toplevel:true Vars.empty tm)
 
-(** Maps a function on all types occurring in a term.
-  * Ignores variable generalizations. *)
-let rec map_types f gen tm =
-  let aux = function
-    | lbl, var, t, None -> (lbl, var, f gen t, None)
-    | lbl, var, t, Some tm -> (lbl, var, f gen t, Some (map_types f gen tm))
-  in
-  match tm.term with
-    | Ground _ | Encoder _ | Var _ -> { tm with t = f gen tm.t }
-    | Tuple l -> { t = f gen tm.t; term = Tuple (List.map (map_types f gen) l) }
-    | Meth (l, x, e) ->
-        {
-          t = f gen tm.t;
-          term = Meth (l, map_types f gen x, map_types f gen e);
-        }
-    | Invoke (e, l) -> { t = f gen tm.t; term = Invoke (map_types f gen e, l) }
-    | Seq (a, b) ->
-        { t = f gen tm.t; term = Seq (map_types f gen a, map_types f gen b) }
-    | List l -> { t = f gen tm.t; term = List (List.map (map_types f gen) l) }
-    | App (hd, l) ->
-        {
-          t = f gen tm.t;
-          term =
-            App
-              ( map_types f gen hd,
-                List.map (fun (lbl, v) -> (lbl, map_types f gen v)) l );
-        }
-    | Fun (fv, p, v) ->
-        { t = f gen tm.t; term = Fun (fv, List.map aux p, map_types f gen v) }
-    | RFun (x, fv, p, v) ->
-        {
-          t = f gen tm.t;
-          term = RFun (x, fv, List.map aux p, map_types f gen v);
-        }
-    | Let l ->
-        let gen' = l.gen @ gen in
-        {
-          t = f gen tm.t;
-          term =
-            Let
-              {
-                l with
-                def = map_types f gen' l.def;
-                body = map_types f gen l.body;
-              };
-        }
-
 module SMap = Map.Make (struct
   type t = string
 
