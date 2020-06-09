@@ -200,12 +200,11 @@ def server.insert_metadata(~id="",s) =
   def insert(s) =
     l = string.split(separator='([^=]+\\s*=\\s*"(\\"|[^"])*")\\s*,\\s*',s)
     def f(l,x) =
-      sub = fun (s) -> string.replace(pattern='\\"',fun (_) -> '"',s)
+      def sub(s) = string.replace(pattern='\\"',fun (_) -> '"',s) end
       if x != "" then
         ret = string.extract(pattern='([^=]+)\\s*=\\s*"((?:\\"|[^"])*)"',x)
         if ret["1"] != "" then
-          list.append(l,[(ret["1"],
-                          sub(ret["2"]))])
+          list.append(l, [(ret["1"], sub(ret["2"]))])
         else
           l
         end
@@ -218,8 +217,7 @@ def server.insert_metadata(~id="",s) =
       insert(meta)
       "Done"
     else
-      "Syntax error or no metadata given. \
-       Use key1=\"val1\",key2=\"val2\",.."
+      "Syntax error or no metadata given. Use key1=\"val1\",key2=\"val2\",.."
     end
   end
   id = source.id(s)
