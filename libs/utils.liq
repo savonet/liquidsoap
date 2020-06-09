@@ -198,7 +198,9 @@ def server.insert_metadata(~id="",s) =
   s = insert_metadata(id=id,s)
   insert = s.insert_metadata
   def insert(s) =
-    l = string.split(separator='([^=]+\\s*=\\s*"(\\"|[^"])*")\\s*,\\s*',s)
+    #TODO: we don't split as expected if one string contains a comma, but this
+    #is difficult to achieve with regexps
+    l = string.split(separator=',',s)
     def f(l,x) =
       def sub(s) = string.replace(pattern='\\"',fun (_) -> '"',s) end
       if x != "" then
