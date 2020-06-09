@@ -97,6 +97,8 @@ Changed:
   the kernel.
 - Use records as return type of `http.*`, `https.*`, `rms`, `peak` and
   `request.queue` (#1234).
+- Indices of groups returned by `string.extract` are now integers instead of
+  strings (#1240).
 
 Fixed:
 
