@@ -87,19 +87,24 @@ let () =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
   let return_t =
-    Lang.product_t
-      (Lang.fun_t
-         [(true, "new_track", Lang.bool_t); (false, "", Lang.metadata_t)]
-         Lang.unit_t)
-      (Lang.source_t k)
+    Lang.method_t (Lang.source_t k)
+      [
+        ( "insert_metadata",
+          ( [],
+            Lang.fun_t
+              [(true, "new_track", Lang.bool_t); (false, "", Lang.metadata_t)]
+              Lang.unit_t ) );
+      ]
   in
+
   Lang.add_builtin "insert_metadata"
     ~category:(Lang.string_of_category Lang.TrackProcessing)
     ~descr:
-      "Dynamically insert metadata in a stream. Returns a pair `(f,s)` where s \
-       is a new source and `f` is a function of type \
-       `(?new_track,metadata)->unit`, used to insert metadata in `s`. `f` also \
-       inserts a new track with the given metadata if passed `new_track=true`."
+      "Dynamically insert metadata in a stream. Returns the source decorated \
+       with a method `insert_metadata` which is a function of type \
+       `(?new_track,metadata)->unit`, used to insert metadata in the source. \
+       This function also inserts a new track with the given metadata if \
+       passed `new_track=true`."
     [
       ( "id",
         Lang.string_t,
@@ -122,7 +127,7 @@ let () =
             s#insert_metadata new_track m;
             Lang.unit)
       in
-      Lang.product f (Lang.source (s :> Source.source)))
+      Lang.meth (Lang.source (s :> Source.source)) [("insert_metadata", f)])
 
 (** Insert metadata at the beginning if none is set. Currently used by the
    switch classes. *)
