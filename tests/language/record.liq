@@ -1,4 +1,4 @@
-#!../../src/liquidsoap -i ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/pervasives.liq
 
 success = ref(true)
 
@@ -27,8 +27,16 @@ def f() =
   let r.f = ()
   let r.f.variant = 7
   let r.f = r.f.variant
-  # let r = {{ r | f = r.f.variant }}
   ignore(r)
+
+  # Test replacing subfields
+  r = ()
+  let r.a = ()
+  let r.a.b = 5
+  let replaces r.a = 2
+  ignore(r.a.b)
+  def replaces r.a (x) = 2*x end
+  ignore(r.a.b)
 
   # A resetable counter
   n = ref(0)

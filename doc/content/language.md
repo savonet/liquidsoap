@@ -168,7 +168,25 @@ x = 4.{a = "bla"}
 ```
 
 then `x` behaves as the integer `4` (for instance, we can compute `x + 3`) but
-it also has a method `a`, which can be called with `x.a`.
+it also has a method `a`, which can be called with `x.a`. We can add a new field
+with
+
+```liquidsoap
+let x.b = true
+```
+
+or
+
+```liquidsoap
+def x.f (z) = 2*z end
+```
+
+There is also a dedicated syntax to change the main value without changing the
+methods:
+
+```liquidsoap
+let replaces x = 5
+```
 
 Types
 -----

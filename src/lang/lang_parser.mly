@@ -42,8 +42,8 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
-  let mk_let ~pos (doc,pat,def) body =
-    mk ~pos (Let { doc ; pat ; gen = [] ; def ; body })
+  let mk_let ~pos (doc,replace,pat,def) body =
+    mk ~pos (Let { doc ; replace ; pat ; gen = [] ; def ; body })
 
   let mk_rec_fun ~pos pat args body =
     let name = match pat with PVar [name] -> name | _ -> assert false in
@@ -178,6 +178,7 @@
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
 %token <Doc.item * (string*string) list> DEF
+%token REPLACES
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
@@ -404,17 +405,17 @@ pattern_list:
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | bindvar GETS expr { (Doc.none (),[]),PVar [$1],$3 }
-  | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
-  | LET subfield GETS expr { (Doc.none (),[]),PVar $2,$4 }
-  | DEF pattern g exprs END {
-      let body = $4 in
-      $1,$2,body
+  | bindvar GETS expr { (Doc.none (),[]),false,PVar [$1],$3 }
+  | LET replaces pattern GETS expr { (Doc.none (),[]),$2,$3,$5 }
+  | LET replaces subfield GETS expr { (Doc.none (),[]),$2,PVar $3,$5 }
+  | DEF replaces pattern g exprs END {
+      let body = $5 in
+      $1,$2,$3,body
     }
-  | DEF varlpar arglist RPAR g exprs END {
-      let arglist = $3 in
-      let body = mk_fun ~pos:$loc arglist $6 in
-      $1,PVar $2,body
+  | DEF replaces varlpar arglist RPAR g exprs END {
+      let arglist = $4 in
+      let body = mk_fun ~pos:$loc arglist $7 in
+      $1,$2,PVar $3,body
         }
   /* We don't handle recursive fields for now... */
   | DEF REC VARLPAR arglist RPAR g exprs END {
@@ -422,8 +423,12 @@ binding:
       let pat = PVar [$3] in
       let arglist = $4 in
       let body = mk_rec_fun ~pos:$loc pat arglist $7 in
-      doc,pat,body
+      doc,false,pat,body
     }
+
+replaces:
+  | { false }
+  | REPLACES { true }
 
 varlpar:
   | VARLPAR         { [$1] }
