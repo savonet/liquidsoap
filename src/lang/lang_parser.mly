@@ -288,8 +288,8 @@ expr:
   | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)), $4)) }
   | REF DOT VARLPAR app_list RPAR    { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke (mk ~pos:$loc($1) (Var "ref"), $3)), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
-  | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", $2; "", mk ~pos:$loc($1) (Var $1)])) }
-  | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", $4; "", mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3))])) }
+  | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:$loc($1) (Var $1); "", $2])) }
+  | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)); "", $4])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }

@@ -15,7 +15,7 @@ def input.hls(~id="",~reload=10.,uri)
       pl = request.filename(pl)
 
       m = string.extract(pattern="#EXT-X-MEDIA-SEQUENCE:(\\d+)",file.contents(pl))
-      pl_sequence = list.assoc(default="","1",m)
+      pl_sequence = list.assoc(default="",1,m)
       log.info(label=id,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
 
@@ -66,7 +66,7 @@ def input.hls(~id="",~reload=10.,uri)
       plfile = request.filename(pl)
 
       m = string.extract(pattern="#EXT-X-STREAM-INF[^\\n]*\\n([^\\r\\n]*)\\r?\\n",file.contents(plfile))
-      playlist_uri := list.assoc(default=!playlist_uri,"1",m)
+      playlist_uri := list.assoc(default=!playlist_uri,1,m)
 
       if not (string.contains(substring="/", !playlist_uri)) then
         playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ !playlist_uri

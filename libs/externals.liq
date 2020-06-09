@@ -83,7 +83,7 @@ def enable_external_mpc_decoder() =
       # Otherwise test file extension
       ret = string.extract(pattern='\\.(.+)$',file)
       if list.length(ret) != 0 then
-        ext = ret["1"]
+        ext = ret[1]
         if list.mem(ext,mpc_filexts) then
           get_channels(file)
         else
@@ -213,7 +213,7 @@ def enable_external_faad_decoder() =
       # Otherwise test file extension
       ret = string.extract(pattern='\\.(.+)$',file)
       if list.length(ret) != 0 then
-        ext = ret["1"]
+        ext = ret[1]
         list.mem(ext,aac_filexts)
       else
         false
@@ -237,7 +237,7 @@ def enable_external_faad_decoder() =
             # contain aac audio data..
             "-1"
           else
-            ret["1"]
+            ret[1]
           end
         int_of_string(default=(-1),ret)
       else
@@ -254,7 +254,7 @@ def enable_external_faad_decoder() =
         def get_meta(l,s)=
           ret = string.extract(pattern="^(\\w+):\\s(.+)$",s)
           if list.length(ret) > 0 then
-            list.append([(ret["1"],ret["2"])],l)
+            list.append([(ret[1],ret[2])],l)
           else
             l
           end

@@ -181,9 +181,9 @@ end
 # @param uri Url to split
 def url.split(uri) =
   ret = string.extract(pattern="([^\\?]*)\\?(.*)",uri)
-  args = ret["2"]
+  args = ret[2]
   if args != "" then
-    (ret["1"],url.split_args(ret["2"]))
+    (ret[1],url.split_args(ret[2]))
   else
     (uri,[])
   end
@@ -205,8 +205,8 @@ def server.insert_metadata(~id="",s) =
       def sub(s) = string.replace(pattern='\\"',fun (_) -> '"',s) end
       if x != "" then
         ret = string.extract(pattern='([^=]+)\\s*=\\s*"((?:\\"|[^"])*)"',x)
-        if ret["1"] != "" then
-          list.append(l, [(ret["1"], sub(ret["2"]))])
+        if ret[1] != "" then
+          list.append(l, [(ret[1], sub(ret[2]))])
         else
           l
         end

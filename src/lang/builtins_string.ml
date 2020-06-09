@@ -152,7 +152,8 @@ let () =
        list of (index,value). If the list does not have a pair associated to \
        some index, it means that the corresponding pattern was not found."
     [("pattern", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
-    Lang.metadata_t (fun p ->
+    (Lang.list_t (Lang.product_t Lang.int_t Lang.string_t))
+    (fun p ->
       let pattern = Lang.to_string (List.assoc "pattern" p) in
       let string = Lang.to_string (List.assoc "" p) in
       let rex = Pcre.regexp pattern in
@@ -161,16 +162,13 @@ let () =
         let n = Pcre.num_of_subs sub in
         let rec extract l i =
           if i < n then (
-            try
-              extract (l @ [(string_of_int i, Pcre.get_substring sub i)]) (i + 1)
+            try extract (l @ [(i, Pcre.get_substring sub i)]) (i + 1)
             with Not_found -> extract l (i + 1) )
           else l
         in
         let l = extract [] 1 in
         Lang.list
-          (List.map
-             (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
-             l)
+          (List.map (fun (x, y) -> Lang.product (Lang.int x) (Lang.string y)) l)
       with Not_found -> Lang.list [])
 
 let () =
