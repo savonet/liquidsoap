@@ -29,7 +29,7 @@ let () =
     [("", Lang.string_t, None, Some "Description of the error.")]
     (Lang.univ_t ()) (fun p ->
       let s = Lang.to_string (Lang.assoc "" 1 p) in
-      raise (Lang_values.Runtime_error (None, s)))
+      raise (Lang_values.Runtime_error ([], s)))
 
 let () =
   let a = Lang.univ_t () in

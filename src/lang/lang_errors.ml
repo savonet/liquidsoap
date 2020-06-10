@@ -160,7 +160,7 @@ let report lexbuf f =
             (Encoder.string_of_format fmt);
           raise Error
       | Lang_values.Runtime_error (pos, e) ->
-          let pos = T.print_pos_opt pos in
+          let pos = T.print_pos_list pos in
           error_header 13 pos;
           Format.printf "Uncaught runtime error:@ %s@]@." e;
           raise Error

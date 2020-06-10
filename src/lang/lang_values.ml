@@ -31,7 +31,7 @@ exception Parse_error of (pos * string)
 exception Unsupported_format of (pos * Encoder.format)
 
 (** An error at runtime. *)
-exception Runtime_error of pos option * string
+exception Runtime_error of pos list * string
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
@@ -982,11 +982,19 @@ and apply f l =
       | V.FFI (p, pe, f) ->
           ( p,
             pe,
-            (fun pe ->
-              try f (List.rev pe)
-              with Runtime_error (None, e) -> raise (Runtime_error (pos, e))),
+            (fun pe -> f (List.rev pe)),
             fun p pe -> mk ~pos:pos_f (V.FFI (p, pe, f)) )
       | _ -> assert false
+  in
+  (* Record error positions. *)
+  let f pe =
+    try f pe
+    with Runtime_error (poss, e) -> (
+      let bt = Printexc.get_raw_backtrace () in
+      match pos with
+        | Some pos ->
+            Printexc.raise_with_backtrace (Runtime_error (pos :: poss, e)) bt
+        | None -> Printexc.raise_with_backtrace (Runtime_error (poss, e)) bt )
   in
   let pe, p =
     List.fold_left
