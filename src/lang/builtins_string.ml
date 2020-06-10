@@ -160,11 +160,11 @@ let () =
       try
         let sub = Pcre.exec ~rex string in
         let n = Pcre.num_of_subs sub in
-        let rec extract l i =
+        let rec extract acc i =
           if i < n then (
-            try extract (l @ [(i, Pcre.get_substring sub i)]) (i + 1)
-            with Not_found -> extract l (i + 1) )
-          else l
+            try extract ((i, Pcre.get_substring sub i) :: acc) (i + 1)
+            with Not_found -> extract acc (i + 1) )
+          else List.rev acc
         in
         let l = extract [] 1 in
         Lang.list
