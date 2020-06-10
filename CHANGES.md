@@ -44,8 +44,8 @@ New:
 - Added configure option to specify internal library install path (#1211).
 - Add support for records and methods (#1197).
 - Rename `unsafe.single.infallible` to `single.infallible`.
-- Add support for errors with `error.*`.
-- Add support for optional values with `maybe.*`.
+- Add support for errors with `error.*` (#1242).
+- Add support for optional values with `maybe.*` (#1242).
 
 Changed:
 
