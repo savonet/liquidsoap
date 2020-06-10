@@ -22,12 +22,13 @@
 
 (** Values in the Liquidsoap language. *)
 
+type pos = Lang_types.pos
+
 (** A parsing error. *)
-exception Parse_error of ((Lexing.position * Lexing.position) * string)
+exception Parse_error of (pos * string)
 
 (** Unsupported format *)
-exception
-  Unsupported_format of ((Lexing.position * Lexing.position) * Encoder.format)
+exception Unsupported_format of (pos * Encoder.format)
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
