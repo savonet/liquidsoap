@@ -102,7 +102,7 @@ which will return an annotated request, finally resulting in your file
 with the extra `replay_gain` metadata.
 
 Prepending `replay_gain:` is easy if you are using a script
-behind some `request.dynamic` operator. If you are using the
+behind some `request.dynamic.list` operator. If you are using the
 `playlist` operator, you can use its `prefix` parameter.
 
 

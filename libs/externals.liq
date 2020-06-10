@@ -38,7 +38,7 @@ def enable_external_ffmpeg_decoder() =
     list.assoc(default=0,"channels",stream)
   end
 
-  if which(ffmpeg) != "" and which (ffprobe) != "" then
+  if file.which(ffmpeg) != "" and file.which (ffprobe) != "" then
    log(label="external.decoder","Enabling FFMPEG decoder")
     add_decoder(
       name="FFMPEG",
@@ -95,7 +95,7 @@ def enable_external_mpc_decoder() =
     end
   end
 
-  if which(mpcdec) != "" then
+  if file.which(mpcdec) != "" then
     log(label="external.decoder","Enabling MPCDEC external decoder.")
     mpcdec_p = fun(f) -> "#{mpcdec} #{string.quote(f)} -"
     add_oblivious_decoder(name="MPCDEC",description="Decode files using the mpcdec \
@@ -124,18 +124,18 @@ def enable_external_flac_decoder() =
   flac = get(default="flac#{exe_ext}","decoder.external.flac.path")
   metaflac = get(default="metaflac#{exe_ext}","decoder.external.metaflac.path")
 
-  if which(flac) != "" then
+  if file.which(flac) != "" then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
     flac_p = "#{flac} -d -c -"
-    def test_flac(file) =
-      if which(metaflac) != "" then
+    def test_flac(fname) =
+      if file.which(metaflac) != "" then
         channels = list.hd(default="",
                            get_process_lines("#{metaflac} \
-                                              --show-channels #{string.quote(file)}"))
+                                              --show-channels #{string.quote(fname)}"))
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
-        if string.match(pattern="flac",file) then
+        if string.match(pattern="flac",fname) then
           # We do not know the number of audio channels
           # so setting to -1
           (-1)
@@ -146,17 +146,17 @@ def enable_external_flac_decoder() =
       end
     end
     add_decoder(name="EXTERNAL_FLAC",description="Decode files using the flac \
-                decoder binary.", mimes=["audio/x-flac"], test=test_flac,flac_p)
+                decoder binary.", mimes=["audio/flac", "audio/x-flac"], test=test_flac,flac_p)
   else
     log(label="decoder.external","Did not find flac binary, please adjust using the \"decoder.external.flac.path\" setting.")
   end
 
-  if which(metaflac) != "" then
+  if file.which(metaflac) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FLAC metadata \
                 resolver.")
-    def flac_meta(file)
+    def flac_meta(fname)
       ret = get_process_lines("#{metaflac} --export-tags-to=- \
-                   #{string.quote(file)}")
+                   #{string.quote(fname)}")
       ret = list.map(string.split(separator="="),ret)
       # Could be made better..
       def f(l',l)=
@@ -221,7 +221,7 @@ def enable_external_faad_decoder() =
     end
   end
 
-  if which(faad) != "" then
+  if file.which(faad) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FAAD decoder and \
                  metadata resolver.")
     faad_p = (fun (f) -> "#{faad} -w #{string.quote(f)}")
@@ -283,6 +283,7 @@ def string_of_metadata(m)
 end
 
 # Use X On Screen Display to display metadata info.
+# @flag extra
 # @param ~color    Color of the text.
 # @param ~position Position of the text (top|middle|bottom).
 # @param ~font     Font used (xfontsel is your friend...)
@@ -301,6 +302,7 @@ def osd_metadata(~color="green",~position="top",
 end
 
 # Use notify to display metadata info.
+# @flag extra
 # @param ~urgency Urgency (low|normal|critical).
 # @param ~icon    Icon filename or stock icon to display.
 # @param ~time    Timeout in milliseconds.
@@ -317,6 +319,7 @@ end
 
 %ifdef input.external.wav
 # Stream data from mplayer
+# @flag extra
 # @category Source / Input
 # @param s data URI.
 # @param ~restart restart on exit.

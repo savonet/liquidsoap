@@ -24,21 +24,16 @@
 
 (* TODO: is it the right place for this ? *)
 val audio_conf : Dtools.Conf.ut
-
 val converter_conf : Dtools.Conf.ut
 
-module Samplerate :
-sig
+module Samplerate : sig
   exception Invalid_data
 
   type converter = float -> Frame.audio_t -> Frame.audio_t
-
   type converter_plug = unit -> converter
-
   type t
 
   val samplerate_conf : Dtools.Conf.ut
-
   val converters : converter_plug Plug.plug
 
   (** [create chan_nb] creates a converter. *)
@@ -50,3 +45,27 @@ sig
   val resample : t -> float -> Frame.audio_t array -> Frame.audio_t array
 end
 
+module Channel_layout : sig
+  exception Unsupported
+  exception Invalid_data
+
+  type layout = [ `Mono | `Stereo | `Five_point_one ]
+
+  type converter =
+    layout -> layout -> Frame.audio_t array -> Frame.audio_t array
+
+  type t
+
+  val channels_of_layout : layout -> int
+  val layout_of_channels : int -> layout
+  val channel_layout_conf : Dtools.Conf.ut
+  val converters : converter Plug.plug
+
+  (** [create src dst] creates a converter. *)
+  val create : layout -> layout -> t
+
+  (** [convert converter data]: converts input data to the destination layout.
+      Raises [Invalid_data] if input layout does not match the layout passed
+      as [create]. *)
+  val convert : t -> Frame.audio_t array -> Frame.audio_t array
+end

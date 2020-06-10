@@ -23,7 +23,7 @@
 (** The request is actually the file abstraction in liquidsoap, used
   * whenever possible. *)
 
-type metadata = (string,string) Hashtbl.t
+type metadata = (string, string) Hashtbl.t
 
 (** An indicator is a resource location (URI),
   * when meaningful, it can be declared as temporary if liquidsoap
@@ -36,23 +36,16 @@ val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
   * which are devices for obtaining a local file from an URI. *)
 type t
 
-(** For media requests,
-  * resolving includes testing that the file can actually be decoded
-  * into a stream of the expected kind. *)
+(** Create a request. *)
 val create :
-  kind:Frame.content_kind ->
-  ?metadata:((string*string) list) ->
+  ?metadata:(string * string) list ->
   ?persistent:bool ->
-  ?indicators:(indicator list) -> string ->
-  t
-val create_raw :
-  ?metadata:((string*string) list) ->
-  ?persistent:bool ->
-  ?indicators:(indicator list) -> string ->
+  ?indicators:indicator list ->
+  string ->
   t
 
-(** Return the kind of a media request, None for raw requests. *)
-val kind : t -> Frame.content_kind option
+(** Return the type of a media request, None for raw requests. *)
+val ctype : t -> Frame.content_type option
 
 (** Return the request's initial uri. *)
 val initial_uri : t -> string
@@ -70,7 +63,6 @@ val destroy : ?force:bool -> t -> unit
 (** Called at exit, for cleaning temporary files
   * and destroying all the requests, even persistent ones. *)
 val clean : unit -> unit
-
 
 (** Every request has an ID, and you can find a request from its ID. *)
 
@@ -95,12 +87,8 @@ val resolving_requests : unit -> int list
   * At each step [protocol.resolve first_uri timeout] is called,
   * and the function is expected to push the new URIs in the request. *)
 
-type resolver = string -> log:(string->unit) -> float -> indicator list
-
-type protocol = {
-  resolve : resolver ;
-  static : bool
-}
+type resolver = string -> log:(string -> unit) -> float -> indicator list
+type protocol = { resolve : resolver; static : bool }
 
 (** A static request [r] is such that every resolving leads to the same file.
   * Sometimes, it allows removing useless destroy/create/resolve. *)
@@ -110,10 +98,16 @@ val is_static : string -> bool
   * audio file, or simply because there was no enough time left. *)
 type resolve_flag = Resolved | Failed | Timeout
 
-(** [resolve request timeout] tries to resolve the request within [timeout]
-  * seconds. If resolving succeeds, [is_ready request] is true and you
-  * can get a filename. *)
-val resolve : t -> float -> resolve_flag
+(** Read the metadata for the toplevel indicator of the request. This is usually
+    performed automatically by [resolve] so that you do not have to use this,
+    excepting when the [ctype] is [None]. *)
+val read_metadata : t -> unit
+
+(** [resolve ?ctype request timeout] tries to resolve the request within
+    [timeout] seconds. It finds a decoder for the request which produces content
+    type [ctype], unless this is set to [None]. If resolving succeeds, [is_ready
+    request] is true and you can get a filename. *)
+val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
 
 (** [is_ready r] if there's an available local filename. It can be true even if
   * the resolving hasn't been run, if the initial URI was already a local
@@ -149,7 +143,8 @@ val get_all_metadata : t -> metadata
 (** {1 Logging}
   * Every request has a separate log in which its history can be written. *)
 
-type log = (Unix.tm*string) Queue.t
+type log = (Unix.tm * string) Queue.t
+
 val string_of_log : log -> string
 val add_log : t -> string -> unit
 val get_log : t -> log
@@ -171,7 +166,7 @@ val duration : string -> float
 
 (** Return a decoder if the file has been resolved, guaranteed to have
   * available data to deliver. *)
-val get_decoder : t -> Decoder.file_decoder option
+val get_decoder : t -> Decoder.file_decoder_ops option
 
 (** {1 Plugs}
   * Respectively for computing duration,
@@ -181,5 +176,5 @@ val get_decoder : t -> Decoder.file_decoder option
   * occur immediately after request resolution. *)
 
 val dresolvers : (string -> float) Plug.plug
-val mresolvers : (string -> (string*string) list) Plug.plug
+val mresolvers : (string -> (string * string) list) Plug.plug
 val protocols : protocol Plug.plug

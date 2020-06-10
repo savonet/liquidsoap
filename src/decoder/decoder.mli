@@ -25,68 +25,118 @@ val log : Log.t
 type file = string
 type stream = string
 
-type input =
-  { read : bytes -> int -> int -> int;
-    (* Seek to an absolute position in bytes.
-     * Returns the current position after seeking
-     * or raises [No_seek] if no seek operation
-     * is available. *)
-    lseek : (int -> int) option ;
-    tell : (unit -> int) option ;
-    length : (unit -> int) option }
+type input = {
+  read : bytes -> int -> int -> int;
+  (* Seek to an absolute position in bytes.
+   * Returns the current position after seeking
+   * or raises [No_seek] if no seek operation
+   * is available. *)
+  lseek : (int -> int) option;
+  tell : (unit -> int) option;
+  length : (unit -> int) option;
+}
 
-type 'a decoder =
-  { decode : 'a -> unit;
-    (* [seek x]: Skip [x] master ticks.
-     * Returns the number of ticks atcually skiped. *)
-    seek : int -> int }
-type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
+module G = Generator.From_audio_video_plus
+
+type fps = Decoder_utils.fps = { num : int; den : int }
+
+(* Buffer passed to decoder. This wraps around
+   regular buffer, adding:
+    - Implicit resampling
+    - Implicit audio channel conversion
+    - Implicit video resize
+    - Implicit fps conversion
+    - Implicit content drop *)
+type buffer = {
+  generator : G.t;
+  put_audio : ?pts:Int64.t -> samplerate:int -> Frame.audio_t array -> unit;
+  put_video : ?pts:Int64.t -> fps:fps -> Frame.video_t array -> unit;
+}
+
+type decoder = {
+  decode : buffer -> unit;
+  (* [seek x]: Skip [x] master ticks.
+   * Returns the number of ticks atcually skiped. *)
+  seek : int -> int;
+}
+
+type file_decoder_ops = {
+  fill : Frame.t -> int;
+  fseek : int -> int;
+  close : unit -> unit;
+}
+
+type stream_decoder = input -> decoder
+type image_decoder = file -> Video.Image.t
+
 type file_decoder =
-  { fill : Frame.t -> int;
-    fseek : int -> int;
-    close : unit -> unit; }
+  metadata:Frame.metadata ->
+  ctype:Frame.content_type ->
+  string ->
+  file_decoder_ops
 
-val file_decoders :
-  (metadata:Frame.metadata -> file -> Frame.content_kind ->
-     (unit -> file_decoder) option)
-  Plug.plug
-val image_file_decoders : (file -> Video.Image.t option) Plug.plug
-val stream_decoders :
-  (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
+type decoder_specs = {
+  media_type : [ `Audio | `Video | `Audio_video | `Midi ];
+  priority : unit -> int;
+  (* None means accept all file extensions. *)
+  file_extensions : unit -> string list option;
+  (* Mime types are parsed up-to the first ;
+   * so a file with mime-type foo/bar; bla
+   * matches mime-type foo/bar. Furthermore,
+   * for streams, a stream with mime foo/bar<whatever>
+   * matches mime-type foo/bar. 
+   * None means accept all mime-types. *)
+  mime_types : unit -> string list option;
+  (* None means no decodable content for that file. *)
+  file_type : string -> Frame.content_type option;
+  file_decoder : file_decoder option;
+  (* First argument is the full mime-type. *)
+  stream_decoder : (string -> stream_decoder) option;
+}
 
-val conf_decoder         : Dtools.Conf.ut
-val conf_mime_types      : Dtools.Conf.ut
+val decoders : decoder_specs Plug.plug
+val conf_decoder : Dtools.Conf.ut
+val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
+val conf_priorities : Dtools.Conf.ut
 
 (** Test file extension and mime if available *)
-val test_file : ?log:Log.t ->
-                mimes:string list ->
-                extensions:string list ->
-                string -> bool
+val test_file :
+  ?log:Log.t -> ?mimes:string list -> ?extensions:string list -> string -> bool
+
+(** Test if we can decode for a given kind. This include cases where we
+    know how to convert channel layout. *)
+val can_decode_type : Frame.content_type -> Frame.content_type -> bool
 
 val get_file_decoder :
-  metadata:Frame.metadata -> file -> Frame.content_kind ->
-  (string * (unit -> file_decoder)) option
-val get_image_file_decoder : file -> Video.Image.t option
+  metadata:Frame.metadata ->
+  ctype:Frame.content_type ->
+  string ->
+  (string * (unit -> file_decoder_ops)) option
+
 val get_stream_decoder :
-  file -> Frame.content_kind -> stream_decoder option
+  ctype:Frame.content_type -> string -> stream_decoder option
 
-module Buffered :
-  functor (Generator : Generator.S) ->
-    sig
-      (* This is the most recent API. [file_decoder]
-       * below uses it and might be deprecated at some
-       * point in the future. *)
-      val make_file_decoder : filename:string ->
-           close:(unit -> unit) ->
-           kind:Frame.content_kind ->
-           remaining:(Frame.t -> int -> int) ->
-           Generator.t decoder -> Generator.t -> file_decoder
+val image_file_decoders : (file -> Video.Image.t option) Plug.plug
+val get_image_file_decoder : file -> Video.Image.t option
 
-      val file_decoder :
-        file ->
-        Frame.content_kind ->
-        (input -> Generator.t decoder) ->
-        Generator.t ->
-        file_decoder
-    end
+(* Initialize a decoding buffer *)
+val mk_buffer : ctype:Frame.content_type -> G.t -> buffer
+
+(* Create a file decoder when remaning time is known. *)
+val file_decoder :
+  filename:string ->
+  close:(unit -> unit) ->
+  remaining:(unit -> int) ->
+  ctype:Frame.content_type ->
+  decoder ->
+  file_decoder_ops
+
+(* Create a file decoder when remaining time is not know,
+   in which case it is estimated from consumed bytes during
+   the decoding process. *)
+val opaque_file_decoder :
+  filename:string ->
+  ctype:Frame.content_type ->
+  (input -> decoder) ->
+  file_decoder_ops

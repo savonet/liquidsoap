@@ -33,7 +33,7 @@ Libraries not developed by Savonet are:
 - gd4o
 - ocaml-pcre
 - ocaml-magic
-- ocaml-sdl
+- tsdl / tsdl-ttf / tsdl-image
 - yojson
 
 ### Mandatory dependencies:
@@ -68,7 +68,7 @@ Libraries not developed by Savonet are:
 | ocaml-dssi          | @dssi_version_descr@                 | DSSI sound synthesis                          |
 | ocaml-faad          | @faad_version_descr@                 | AAC stream decoding                           |
 | ocaml-fdkaac        | @fdkaac_version_descr@               | AAC(+) encoding                               |
-| ocaml-ffmpeg        | @ffmpeg_version_descr@               | Video conversion using the ffmpeg library     | 
+| ocaml-ffmpeg        | @ffmpeg_avutil_version_descr@        | Audio and video tools from the ffmpeg library | 
 | ocaml-flac          | @flac_version_descr@                 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        | @frei0r_version_descr@               | Frei0r plugins                                |
 | ocaml-gavl          | @gavl_version_descr@                 | Video conversion using the gavl library       |
@@ -84,16 +84,19 @@ Libraries not developed by Savonet are:
 | ocaml-opus          | @opus_version_descr@                 | Ogg/Opus codec                                |
 | ocaml-portaudio     | @portaudio_version_descr@            | Portaudio I/O                                 |
 | ocaml-pulseaudio    | @pulseaudio_version_descr@           | PulseAudio I/O                                |
-| ocaml-sdl           | @sdl_version_descr@                  | Display, font & image support                 |
 | ocaml-shine         | @shine_version_descr@                | Fixed-point MP3 encoding                      |
 | ocaml-soundtouch    | @soundtouch_version_descr@           | Libsoundtouch's audio effects                 |
 | ocaml-speex         | @speex_version_descr@                | Ogg/Speex codec                               |
+| ocaml-srt           | @srt_version_descr@                  | SRT I/O                                       |
 | ocaml-ssl           | @ssl_version_descr@                  | SSL/https support                             |
 | ocaml-taglib        | @taglib_version_descr@               | MP3ID3 metadata access                        |
 | ocaml-theora        | @theora_version_descr@               | Ogg/Theora codec                              |
 | ocaml-vorbis        | @vorbis_version_descr@               | Ogg/Vorbis codec                              |
 | ocaml-xmlplaylist   | @xmlplaylist_version_descr@          | XML-based playlist formats                    |
 | osx-secure-transport| @osx_secure_transport_version_descr@ | SSL/https support via OSX's SecureTransport   |
+| tsdl                | @tsdl_version_descr@                 | Display videos                                |
+| tsdl-image          | @tsdl_image_version_descr@           | Load images                                   |
+| tsdl-tff            | @tsdl_ttf_version_descr@             | Render fonts                                  |
 | yojson              | @yojson_version_descr@               | Parsing JSON data (of_json function)          |
 
 ### Runtime optional dependencies:

@@ -1,3 +1,5 @@
+fade = ()
+
 # Make a fade function based on a source's clock.
 # @category Math
 # @param ~type Fade shape. One of: "sin", "exp", "log", "lin"
@@ -44,9 +46,13 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
       lin_shape
     end
 
-  start_time = source.time(s)
+  start_time = ref (-1.)
   def fade() =
-    t = source.time(s) - start_time
+    if !start_time < 0. then
+      start_time := source.time(s)
+    end
+
+    t = source.time(s) - !start_time
     if t >= duration then
       on_done ()
       stop
@@ -60,6 +66,15 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
   end
 
   fade
+end
+
+# Scale source during fading.
+# @category Source / Sound Processing
+# @flag hidden
+def fade.scale(~id="fade.scale", x, s)
+  s = amplify(id=id, override="", x, s)
+  s = video.opacity(id=id, x, s)
+  s
 end
 
 # Fade the end of tracks.
@@ -111,7 +126,7 @@ def fade.out(~id="fade.out",~duration=3.,
   delay = fun () -> !duration
   s = on_end(delay=delay,start_fade,s)
   s = on_track(stop_fade,s)
-  amplify(id=id,override="",apply,s)
+  fade.scale(id=id,apply,s)
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -166,23 +181,28 @@ def fade.skip(~id="fade.skip",~duration=5.,
 
   s = on_metadata(update_fade,s)  
   s = on_track(stop_fade,s)
-  amplify(id=id,override="",apply,s)
+  fade.scale(id=id,apply,s)
 end
 
 # Fade a stream to silence.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.final(~id="fade.out",~duration=3.,
-             ~override_duration="liq_fade_out",
-             ~override_type="liq_fade_type",
-             ~type="lin",s) =
-  max_duration(id=id,duration,
-    fade.out(duration=duration,override_duration=override_duration,
-             override_type=override_type,type=type,s))
+def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
+  fn = mkfade(start=1.,stop=0.,type=type,duration=duration,s)
+  should_play = ref true
+
+  def fn() =
+    v = fn()
+    if v == 0. then
+      should_play := false
+    end
+    v
+  end
+
+  s = fade.scale(id=id,fn,s)
+  switch(track_sensitive=false,[({!should_play},s)])
 end
 
 
@@ -227,23 +247,17 @@ def fade.in(~id="fade.in",~duration=3.,
   s = on_metadata(update_fade,s)
   s = on_track(start_fade,s)
 
-  amplify(id=id,override="",apply,s)
+  fade.scale(id=id,apply,s)
 end
 
 # Fade the beginning of a stream.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.initial(~id="fade.in",~duration=3.,
-            ~override_duration="liq_fade_initial",
-            ~override_type="liq_fade_type",
-            ~type="lin",s) =
-  map_first_track(id=id,
-    fade.in(duration=duration,override_duration=override_duration,
-            override_type=override_type,type=type),s)
+def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
+  fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
+  fade.scale(id=id,fn,s)
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in
@@ -278,8 +292,8 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
               ~default=(fun (a,b) -> sequence([a, b])),
               ~high=-15., ~medium=-32., ~margin=4.,
               ~minimum=(-1.),~width=2.,~conservative=true,s)
-  fade.out = fade.out(type="sin",duration=fade_out)
-  fade.in  = fade.in(type="sin",duration=fade_in)
+  let fade.out = fade.out(type="sin",duration=fade_out)
+  let fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])
   log = log(label="crossfade")
 
@@ -361,6 +375,7 @@ end
 # normal stream is available and when the special stream gets added on top of
 # it.
 # @category Source / Track Processing
+# @flag extra
 # @param ~delay   Delay before starting the special source.
 # @param ~p       Portion of amplitude of the normal source in the mix.
 # @param ~normal  The normal source, which could be called the carrier too.
@@ -374,7 +389,7 @@ def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
       fn = !fn
       fn()
     end
-    amplify(override="",v,s)
+    fade.scale(v,s)
   end
 
   special_volume = ref fun () -> 0.

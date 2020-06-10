@@ -22,46 +22,50 @@
 
 open Source
 
-class compress ~kind (source:source) mu =
-object
-  inherit operator ~name:"compress" kind [source]
+class compress ~kind (source : source) mu =
+  object
+    inherit operator ~name:"compress" kind [source]
 
-  method stype = source#stype
+    method stype = source#stype
 
-  method remaining = source#remaining
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
-  method seek = source#seek
+    method remaining = source#remaining
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
+    method is_ready = source#is_ready
+
+    method abort_track = source#abort_track
+
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf offset in
-        for c = 0 to Array.length b - 1 do
-          let b_c = b.(c) in
-          for i = offset to AFrame.position buf - 1 do
-            let x = b_c.{i} in
-            let sign = if x < 0. then -1. else 1. in
-            b_c.{i} <- sign *. (1. -. (1. -. abs_float x) ** mu)
-            done
+      let b = AFrame.content buf in
+      for c = 0 to Array.length b - 1 do
+        let b_c = b.(c) in
+        for i = offset to AFrame.position buf - 1 do
+          let x = b_c.{i} in
+          let sign = if x < 0. then -1. else 1. in
+          b_c.{i} <- sign *. (1. -. ((1. -. abs_float x) ** mu))
         done
-end
+      done
+  end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  Lang.add_operator "compress.exponential"
-    ~category:Lang.SoundProcessing
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "compress.exponential" ~category:Lang.SoundProcessing
     ~descr:"Exponential compressor."
     [
-      "mu", Lang.float_t, Some (Lang.float 2.),
-      Some "Exponential compression factor, typically greater than 1." ;
-      "", Lang.source_t kind, None, None
+      ( "mu",
+        Lang.float_t,
+        Some (Lang.float 2.),
+        Some "Exponential compression factor, typically greater than 1." );
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~kind:(Lang.Unconstrained kind)
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let mu, src =
-         Lang.to_float (f "mu"),
-         Lang.to_source (f "")
-       in
-         new compress ~kind src mu)
+    ~return_t
+    (fun p ->
+      let f v = List.assoc v p in
+      let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
+      new compress ~kind src mu)

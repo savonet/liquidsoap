@@ -5,12 +5,12 @@
 # @param uri Playlist URI
 # @flag experimental
 def input.hls(~id="",~reload=10.,uri)
-  playlist = ref []
+  playlistr = ref []
   sequence = ref 0
   playlist_uri = ref uri
 
   def load_playlist () =
-    pl = request.create.raw(!playlist_uri)
+    pl = request.create(!playlist_uri)
     if request.resolve(pl) then
       pl = request.filename(pl)
 
@@ -30,7 +30,7 @@ def input.hls(~id="",~reload=10.,uri)
 
       files = list.mapi(file_request,files)
 
-      let (first_idx, _) = list.hd(default=(-1,""),!playlist)
+      let (first_idx, _) = list.hd(default=(-1,""),!playlistr)
 
       def add_file(playlist, file) =
         let (idx,_) = file
@@ -41,30 +41,27 @@ def input.hls(~id="",~reload=10.,uri)
         end
       end
 
-      playlist := list.fold(add_file, !playlist, files)
+      playlistr := list.fold(add_file, !playlistr, files)
     else
       log.severe(label=id,"Couldn't read playlist: request resolution failed.")
-      playlist := []
+      playlistr := []
     end
     request.destroy(pl)
-    reload
   end
 
   def rec next () =
-    file =
-      if list.length(!playlist) > 0 then
-        let (_,ret) = list.hd(default=(1,""),!playlist)
-        playlist := list.tl(!playlist)
-        sequence := !sequence + 1
-        ret
-      else
-        ""
-      end
-    request.create(file)
+    if list.length(!playlistr) > 0 then
+      let (_,ret) = list.hd(default=(1,""),!playlistr)
+      playlistr := list.tl(!playlistr)
+      sequence := !sequence + 1
+      [request.create(ret)]
+    else
+      []
+    end
   end
 
   def find_stream () =
-    pl = request.create.raw(!playlist_uri)
+    pl = request.create(!playlist_uri)
     if request.resolve(pl) then
       plfile = request.filename(pl)
 
@@ -79,14 +76,16 @@ def input.hls(~id="",~reload=10.,uri)
   end
   find_stream ()
 
-  source = request.dynamic(id=id,default_duration=0.5,length=5.,next)
+  source = request.dynamic.list(id=id,default_duration=0.5,length=5.,next)
 
   source = merge_tracks(source)
 
-  add_timeout(0., load_playlist)
+  thread.run(every=reload, load_playlist)
 
   source
 end
+
+let output.harbor.hls = ()
 
 # @flag hidden
 def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
@@ -101,8 +100,8 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
       file.temp_dir("hls","")
     end
 
-  def content_type(file) =
-    ext = file.extension(file)
+  def content_type(fname) =
+    ext = file.extension(fname)
     if ext == ".m3u8" then
       "application/x-mpegURL"
     else
@@ -148,7 +147,7 @@ end
 # @param ~path Base path for hls URIs.
 # @param ~tmpdir Directory for generated files.
 # @param formats List of specifications for each stream: (name, format).
-def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encode_metadata=false,
+def replaces output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},~encode_metadata=false,
                       ~segment_duration=10.,~segments=15,~segments_overhead=10,~streams_info=[],~tmpdir="",
                       ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                       ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",~on_file_change=(fun (~state=_,_) -> ()),

@@ -22,67 +22,81 @@
 
 open Source
 
-class echo ~kind (source:source) delay feedback ping_pong =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
-object
-  inherit operator ~name:"echo" kind [source]
+class echo ~kind (source : source) delay feedback ping_pong =
+  object (self)
+    inherit operator ~name:"echo" kind [source] as super
 
-  method stype = source#stype
-  method remaining = source#remaining
-  method seek = source#seek
-  method is_ready = source#is_ready
-  method abort_track = source#abort_track
+    method private channels = self#ctype.Frame.audio
 
-  val effect =
-    Audio.Effect.delay
-      channels
-      (Lazy.force Frame.audio_rate)
-      ~ping_pong
-      (delay ())
-      (feedback ())
+    method stype = source#stype
 
-  val mutable past_pos = 0
+    method remaining = source#remaining
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
-      source#get buf ;
-      let b = AFrame.content buf offset in
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    method is_ready = source#is_ready
+
+    method abort_track = source#abort_track
+
+    val mutable effect = None
+
+    method private wake_up a =
+      super#wake_up a;
+      effect <-
+        Some
+          (Audio.Effect.delay self#channels
+             (Lazy.force Frame.audio_rate)
+             ~ping_pong (delay ()) (feedback ()))
+
+    val mutable past_pos = 0
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      source#get buf;
+      let b = AFrame.content buf in
       let position = AFrame.position buf in
+      let effect = Option.get effect in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
       effect#process (Audio.sub b offset (position - offset))
-end
+  end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.any_fixed in
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "echo"
-    [ "delay", Lang.float_getter_t 1, Some (Lang.float 0.5), Some "Delay in seconds.";
-
-      "feedback",
-      Lang.float_getter_t 2,
-      Some (Lang.float (-6.)), Some "Feedback coefficient in dB (negative).";
-
-      "ping_pong",
-      Lang.bool_t,
-      Some (Lang.bool false), Some "Use ping-pong delay.";
-
-      "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.SoundProcessing
-    ~descr:"Add echo."
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let duration, feedback, pp, src =
-         Lang.to_float_getter (f "delay"),
-         Lang.to_float_getter (f "feedback"),
-         Lang.to_bool (f "ping_pong"),
-         Lang.to_source (f "")
-       in
-       let feedback =
-         (* Check the initial value, wrap the getter with a converter. *)
-         if feedback () > 0. then
-           raise (Lang_errors.Invalid_value (f "feedback",
-                                      "feedback should be negative"));
-         fun () -> Audio.lin_of_dB (feedback ())
-       in
-         new echo ~kind src duration feedback pp)
+    [
+      ( "delay",
+        Lang.float_getter_t (),
+        Some (Lang.float 0.5),
+        Some "Delay in seconds." );
+      ( "feedback",
+        Lang.float_getter_t (),
+        Some (Lang.float (-6.)),
+        Some "Feedback coefficient in dB (negative)." );
+      ( "ping_pong",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Use ping-pong delay." );
+      ("", Lang.source_t k, None, None);
+    ]
+    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Add echo."
+    (fun p ->
+      let f v = List.assoc v p in
+      let duration, feedback, pp, src =
+        ( Lang.to_float_getter (f "delay"),
+          Lang.to_float_getter (f "feedback"),
+          Lang.to_bool (f "ping_pong"),
+          Lang.to_source (f "") )
+      in
+      let feedback =
+        (* Check the initial value, wrap the getter with a converter. *)
+        if feedback () > 0. then
+          raise
+            (Lang_errors.Invalid_value
+               (f "feedback", "feedback should be negative"));
+        fun () -> Audio.lin_of_dB (feedback ())
+      in
+      new echo ~kind src duration feedback pp)

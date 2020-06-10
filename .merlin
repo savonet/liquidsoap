@@ -1,4 +1,4 @@
 S src/**
 B src/**
 B +threads
-PKG pcre dtools duppy mm ladspa bjack gstreamer lilv sedlex menhirLib alsa samplerate ffmpeg taglib mad ogg vorbis flac theora frei0r sdl
+PKG pcre dtools duppy mm ladspa bjack gstreamer lilv sedlex menhirLib alsa samplerate ffmpeg taglib mad ogg vorbis flac theora frei0r tsdl tsdl_image tsdl_ttf shine flac srt faad ao cry soundtouch lo prometeus pulseaudio portaudio

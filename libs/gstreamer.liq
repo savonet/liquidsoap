@@ -2,6 +2,7 @@
 
 # Stream from a video4linux 2 input device, such as a webcam.
 # @category Source / Input
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~device V4L2 device to use.
 # @param ~on_error Callback executed when an error happens.
@@ -12,6 +13,7 @@ end
 
 # Stream from a video4linux 2 input device, such as a webcam.
 # @category Source / Input
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~device V4L2 device to use.
 # @param ~on_error Callback executed when an error happens.
@@ -21,8 +23,12 @@ def input.v4l2_with_audio(~id="",~device="/dev/video0",~on_error=fun(_)->3.)
   input.gstreamer.audio_video(id=id, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline, on_error=on_error)
 end
 
+let gstreamer = ()
+let gstreamer.single = ()
+
 # Play a single audio file using GStreamer.
 # @category Source / Input
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the file to be played.
@@ -34,6 +40,7 @@ end
 
 # Play an http live stream.
 # @category Source / Input
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
@@ -47,6 +54,7 @@ end
 
 # Play an audio-only http live stream.
 # @category Source / Input
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
@@ -58,6 +66,7 @@ end
 
 # Encode an x264 video file using gstreamer
 # @category Source / Output
+# @flag extra
 # @param fname Encoded file name
 # @param source Source
 def gstreamer.encode_x264_avi(fname, source)
@@ -66,6 +75,7 @@ end
 
 # Encode jpeg video file using gstreamer
 # @category Source / Output
+# @flag extra
 # @param fname Encoded file name
 # @param source Source
 def gstreamer.encode_jpeg_avi(fname, source)
@@ -74,11 +84,14 @@ end
 
 # Encode a mp3 file using gstreamer
 # @category Source / Output
+# @flag extra
 # @param fname Encoded file name
 # @param source Source
 def gstreamer.encode_mp3(fname, source)
   output.gstreamer.audio(pipeline="audioconvert ! lamemp3enc ! filesink location=\"#{fname}\"", source)
 end
+
+let gstreamer.rtp = ()
 
 # Broadcast a video in RTP. In order to play it, save the following in `xxx.sdp`
 # and use `vlc xxx.sdp`:
@@ -89,6 +102,7 @@ end
 # a=rtpmap:96 MP4V-ES/90000
 # ```
 # @category Source / Output
+# @flag extra
 def gstreamer.rtp.mpeg4(~host="127.0.0.1",~port=5000,source)
   output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{host} port=#{port}", source)
 end
@@ -102,6 +116,7 @@ end
 # @param ~key Secret key
 # @param source Source to stream
 # @category Source / Output
+# @flag extra
 def output.youtube.live(~id="",
   ~video_bitrate=2000,
   ~audio_encoder="fdkaacenc",
@@ -118,5 +133,16 @@ def output.youtube.live(~id="",
 
   output.gstreamer.audio_video(id=id,video_pipeline=video_pipeline,
     audio_pipeline=audio_pipeline,pipeline=pipeline,source)
+end
+
+let video.testsrc = ()
+
+# Test audio-video source using GStreamer.
+# @category Source / Input
+# @flag extra
+def video.testsrc.gstreamer(~id="")
+  video_pipeline="videotestsrc"
+  audio_pipeline="audiotestsrc"
+  input.gstreamer.audio_video(id=id,video_pipeline=video_pipeline, audio_pipeline=audio_pipeline)
 end
 %endif

@@ -15,7 +15,7 @@ Welcome to Liquidsoap's documentation!
 
    content/advanced
    content/blank
-   content/bubble
+   content/beets
    content/build
    content/clocks
    content/complete_case

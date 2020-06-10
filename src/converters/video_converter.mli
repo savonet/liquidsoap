@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
- (* Video format converters *)
+(* Video format converters *)
 
 (** Plugin to add video-related configuration keys. *)
 val video_converter_conf : Dtools.Conf.ut
@@ -30,10 +30,14 @@ val video_converter_conf : Dtools.Conf.ut
   * raises Not_found if no conversion routine
   * was found *)
 type converter = proportional:bool -> Image.Generic.t -> Image.Generic.t -> unit
+
 (** A converter plugin is a name, a list of input formats,
   * a list of output formats,
   * a fonction to create a converter. *)
-type converter_plug = (Image.Generic.Pixel.format list)*(Image.Generic.Pixel.format list)*(unit->converter)
+type converter_plug =
+  Image.Generic.Pixel.format list
+  * Image.Generic.Pixel.format list
+  * (unit -> converter)
 
 (** Plugin to register new converters. *)
 val video_converters : converter_plug Plug.plug
@@ -43,6 +47,12 @@ val video_converters : converter_plug Plug.plug
   * to destination format. Proportional scale
   * is implicitely set via global configuration key
   * for now. Returns a conversion function: frame -> frame -> unit. *)
-val find_converter : Image.Generic.Pixel.format -> Image.Generic.Pixel.format -> (Image.Generic.t -> Image.Generic.t -> unit)
+val find_converter :
+  Image.Generic.Pixel.format ->
+  Image.Generic.Pixel.format ->
+  Image.Generic.t ->
+  Image.Generic.t ->
+  unit
 
-val scaler : unit -> ?proportional:bool -> Video.Image.t -> Video.Image.t -> unit
+val scaler :
+  unit -> ?proportional:bool -> Video.Image.t -> Video.Image.t -> unit

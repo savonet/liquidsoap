@@ -22,20 +22,22 @@
 
 (** External audio samplerate conversion utilities. *)
 
-let log = Log.make ["audio";"converter"]
+let log = Log.make ["audio"; "converter"]
 
 (* TODO: is it the right place for this ? *)
 let audio_conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "audio") "Audio settings"
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "audio")
+    "Audio settings"
     ~comments:["Options related to audio."]
 
 let converter_conf =
-  Dtools.Conf.void ~p:(audio_conf#plug "converter") "Conversion settings"
+  Dtools.Conf.void
+    ~p:(audio_conf#plug "converter")
+    "Conversion settings"
     ~comments:["Options related to audio conversion."]
 
-module Samplerate=
-struct
-
+module Samplerate = struct
   exception Invalid_data
 
   (** A converter takes a convertion ratio (output samplerate / input
@@ -43,20 +45,24 @@ struct
   type converter = float -> Frame.audio_t -> Frame.audio_t
 
   type converter_plug = unit -> converter
-
   type t = converter array
 
   let samplerate_conf =
-    Dtools.Conf.void ~p:(converter_conf#plug "samplerate")
+    Dtools.Conf.void
+      ~p:(converter_conf#plug "samplerate")
       "Samplerate conversion settings"
       ~comments:["Options related to samplerate conversion."]
 
   let converters_conf =
-    Dtools.Conf.list ~p:(samplerate_conf#plug "converters")
+    Dtools.Conf.list
+      ~p:(samplerate_conf#plug "converters")
       "Preferred samplerate converters"
       ~d:["ffmpeg"; "libsamplerate"; "native"]
-      ~comments:["Preferred samplerate converter. The native converter is always \
-                  available."]
+      ~comments:
+        [
+          "Preferred samplerate converter. The native converter is always \
+           available.";
+        ]
 
   let converters : converter_plug Plug.plug =
     Plug.create "samplerate converters"
@@ -65,16 +71,12 @@ struct
   let create channels =
     let converter =
       let rec f = function
-        | conv::l ->
-          (
-            match converters#get conv with
-            | Some v -> v
-            | None -> f l
-          )
+        | conv :: l -> (
+            match converters#get conv with Some v -> v | None -> f l )
         | [] ->
-          (* This should never come up since the native converter is always
-             available. *)
-          assert false
+            (* This should never come up since the native converter is always
+               available. *)
+            assert false
       in
       f converters_conf#get
     in
@@ -82,22 +84,84 @@ struct
 
   let resample conv ratio data =
     if Array.length conv <> Array.length data then raise Invalid_data;
-    let convert i b =
-      if ratio = 1. then b
-      else conv.(i) ratio b
-    in
+    let convert i b = if ratio = 1. then b else conv.(i) ratio b in
     Array.mapi convert data
 
   (** Log which converter is used at start. *)
   let () =
     ignore
-      (Dtools.Init.at_start
-         (fun () ->
-            let rec f = function
-              | conv::_ when converters#get conv <> None ->
-                log#important "Using samplerate converter: %s." conv;
-              | _::l -> f l
-              | [] -> assert false
-            in
-         f converters_conf#get))
+      (Dtools.Init.at_start (fun () ->
+           let rec f = function
+             | conv :: _ when converters#get conv <> None ->
+                 log#important "Using samplerate converter: %s." conv
+             | _ :: l -> f l
+             | [] -> assert false
+           in
+           f converters_conf#get))
+end
+
+module Channel_layout = struct
+  exception Unsupported
+  exception Invalid_data
+
+  type layout = [ `Mono | `Stereo | `Five_point_one ]
+
+  type converter =
+    layout -> layout -> Frame.audio_t array -> Frame.audio_t array
+
+  type t = {
+    src : layout;
+    converter : Frame.audio_t array -> Frame.audio_t array;
+  }
+
+  let channel_layout_conf =
+    Dtools.Conf.void
+      ~p:(converter_conf#plug "channel_layout")
+      "Channel layout conversion settings"
+      ~comments:["Options related to channel layout conversion."]
+
+  let converters_conf =
+    Dtools.Conf.list
+      ~p:(channel_layout_conf#plug "converters")
+      "Preferred samplerate converters" ~d:["native"]
+      ~comments:
+        [
+          "Preferred chanel layout converter. The native converter is always \
+           available.";
+        ]
+
+  let converters : converter Plug.plug =
+    Plug.create "channel layout converters"
+      ~doc:"Methods for converting channel layouts."
+
+  let create src dst =
+    let converter =
+      if src = dst then fun _ _ x -> x
+      else (
+        let rec f = function
+          | conv :: l -> (
+              match converters#get conv with Some v -> v | None -> f l )
+          | [] ->
+              (* This should never come up since the native converter is always
+                 available. *)
+              assert false
+        in
+        f converters_conf#get )
+    in
+    { src; converter = converter src dst }
+
+  let channels_of_layout = function
+    | `Mono -> 1
+    | `Stereo -> 2
+    | `Five_point_one -> 6
+
+  let layout_of_channels = function
+    | 1 -> `Mono
+    | 2 -> `Stereo
+    | 6 -> `Five_point_one
+    | _ -> raise Unsupported
+
+  let convert { src; converter } input =
+    if Array.length input != channels_of_layout src then raise Invalid_data;
+    converter input
 end

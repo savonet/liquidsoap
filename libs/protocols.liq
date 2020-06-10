@@ -39,14 +39,7 @@ register(name="Inherit Environment",
 # See say: protocol for an example.
 # @flag hidden
 def process_protocol(~rlog,~maxtime,arg)
-  log = log(label="protocol.process")
-
-  def log(~level,s) =
-    rlog(s)
-    log(level=level,s)
-  end
-
-  log(level=4,"Processing #{arg}")
+  log.info("Processing #{arg}")
 
   x = string.split(separator=":",arg)
   uri = string.concat(separator=":",list.tl(x))
@@ -86,7 +79,7 @@ def process_protocol(~rlog,~maxtime,arg)
   if uri == "" then
     resolve("")
   else
-    r = request.create.raw(uri)
+    r = request.create(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,r) then
       res = resolve(request.filename(r))
@@ -164,9 +157,8 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
 
   def head_mime(~name, ret) =
     def get_mime() =
-      let ((_, code, _), headers, _) = ret
-      if 200 <= code and code < 300 then
-        headers["content-type"]
+      if 200 <= ret.status_code and ret.status_code < 300 then
+        ret.headers["content-type"]
       else
         log(level=3,"Failed to fetch mime-type for #{uri}.")
         log(level=4,"Request response: #{ret}")
@@ -204,7 +196,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     elsif list.mem(mime,["application/ogg", "application/x-ogg",
                          "audio/x-ogg", "audio/ogg", "video/ogg"]) then
       "ogg"
-    elsif mime == "audio/x-flac" then
+    elsif list.mem(mime, ["audio/flac", "audio/x-flac"]) then
       "flac"
     elsif list.mem(mime,["audio/mp4", "application/mp4"]) then
       "mp4"
@@ -446,7 +438,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     end
   end
 
-  r = request.create.raw(arg)
+  r = request.create(arg)
   delay = maxtime - gettimeofday()
   if request.resolve(timeout=delay,r) then
     filename = request.filename(r)
@@ -472,7 +464,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
 
     uri = process_uri(extname="wav",uri=filename,cmd)
 
-    wav_r = request.create.raw(uri)
+    wav_r = request.create(uri)
     delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,wav_r) then
       request.destroy(wav_r)
@@ -490,27 +482,46 @@ add_protocol("ffmpeg",ffmpeg_protocol,
              doc="Decode any file to wave using ffmpeg",
              syntax="ffmpeg:uri")
 
+# Register stereo protocol which converts a file to stereo (currently decodes as
+# wav).
+# @flag hidden
+def stereo_protocol(~rlog, ~maxtime, arg)
+  file = file.temp("liq-stereo", ".wav")
+  source.dump(%wav, file, audio_to_stereo(once(single(arg))))
+  [file]
+end
+add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
+
 register(name="Text2wave protocol settings","protocol.text2wave",())
 register(name="Text2wave path","protocol.text2wave.path","text2wave")
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
 def text2wave_protocol(~rlog,~maxtime,arg) =
-  binary = get(default="text2wave","protocol.text2wave.path")
-  [process_uri(extname="wav","echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
+  binary = get(default="text2wave", "protocol.text2wave.path")
+  [process_uri(extname="wav", "echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
-             syntax="text2wav2:Text to read")
+             syntax="text2wave:Text to read")
 
-register(name="Say protocol settings","protocol.say",())
-register(name="Sox path","protocol.say.sox_path","sox")
+register(name="gTTS protocol settings", "protocol.gtts",())
+register(name="gtts-cli binary path", "protocol.gtts.path", "gtts-cli")
+
+# Register the gtts: protocol using gtts
+# @flag hidden
+def gtts_protocol(~rlog,~maxtime,arg) =
+  binary = get(default="gtts-cli","protocol.gtts.path")
+  [process_uri(extname="mp3","#{binary} -o $(output) #{string.quote(arg)}")]
+end
+add_protocol(static=true,"gtts",gtts_protocol,
+             doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
+             syntax="gtts:Text to read")
 
 # Register the legacy say: protocol using text2wave and sox
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
-  sox = get(default="sox","protocol.say.sox_path")
-  [process_uri(extname="wav",uri="text2wave:#{arg}","#{sox} $(input) -c 2 $(output)")]
+  ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",
@@ -601,3 +612,71 @@ add_protocol(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
                   Result might be mono, needs aws binary in the path.",
              syntax="polly:Text to read")
+
+# Protocol to synthesize audio.
+# @flag hidden
+def synth_protocol(~rlog,~maxtime,text) =
+  log.debug(label="synth", "Synthesizing request: #{text}")
+  args = string.split(separator=",", text)
+  args = list.map(string.split(separator="="), args)
+  if list.exists(fun(l)-> list.length(l) != 2, args) then
+    []
+  else
+    args = list.map(fun(l) -> (list.hd(default="",l), list.hd(default="",list.tl(l))), args)
+    shape = ref("sine")
+    duration = ref(10.)
+    frequency = ref(440.)
+    def set(p)
+      let (k,v) = p
+      if k == "duration" then duration := float_of_string(v)
+      elsif k == "frequency" then frequency := float_of_string(v)
+      elsif k == "shape" then shape := v
+      end
+    end
+    list.iter(set, args)
+    def synth(s)
+      file = file.temp("liq-synth",".wav")
+      log.info(label="synth", "Synthesizing #{!shape} in #{file}.")
+      source.dump(%wav, file, once(s))
+      [file]
+    end
+    if !shape == "sine" then
+      synth(sine(duration=!duration, !frequency))
+    elsif !shape == "saw" then
+      synth(saw(duration=!duration, !frequency))
+    elsif !shape == "square" then
+      synth(square(duration=!duration, !frequency))
+    elsif !shape == "blank" then
+      synth(blank(duration=!duration))
+    else
+      []
+    end
+  end
+end
+
+add_protocol(static=true, temporary=true, "synth", synth_protocol,
+doc="Syntesize audio. Parameters are optional.",
+syntax="synth:shape=sine,frequency=440.,duration=10.")
+
+# File protocol
+# @flag hidden
+def file_protocol(~rlog,~maxtime,arg) =
+  path = list.nth(default="", string.split(separator=":",arg), 1)
+  segments = string.split(separator="/",path)
+
+  segments =
+    if list.length(segments) > 3 and
+       list.nth(default="foo",segments,0) == "" and
+       list.nth(default="foo",segments,1) == ""
+    then
+      list.tl(list.tl(segments))
+    else
+      segments
+    end
+
+  [url.decode(string.concat(separator="/",segments))]
+end
+
+add_protocol(static=true, temporary=false, "file", file_protocol,
+             doc="File protocol. Only local files are supported",
+             syntax="file:///path/to/file")

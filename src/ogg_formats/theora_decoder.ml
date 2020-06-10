@@ -20,5 +20,4 @@
 
  *****************************************************************************)
 
-let () = Ogg_demuxer_theora_decoder.register () 
-
+let () = Ogg_demuxer_theora_decoder.register ()

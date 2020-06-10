@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Log.make ["decoder";"ppm"]
+let log = Log.make ["decoder"; "ppm"]
 
 let load_image fname =
   let ic = open_in_bin fname in
@@ -32,7 +32,6 @@ let load_image fname =
 
 let () =
   Decoder.image_file_decoders#register "ppm"
-    ~sdoc:"Native decoding of PPM images."
-    (fun filename ->
+    ~sdoc:"Native decoding of PPM images." (fun filename ->
       let img = load_image filename in
       Some img)

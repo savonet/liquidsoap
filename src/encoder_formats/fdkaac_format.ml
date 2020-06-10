@@ -20,58 +20,23 @@
 
  *****************************************************************************)
 
-type mpeg2_aac =
-  [
-     | `AAC_LC
-     | `HE_AAC
-     | `HE_AAC_v2
-  ]
-
-type mpeg4_aac =
-  [
-     | mpeg2_aac
-     | `AAC_LD
-     | `AAC_ELD
-  ]
-
-type aot =
-  [
-     | `Mpeg_4 of mpeg4_aac
-     | `Mpeg_2 of mpeg2_aac
-  ]
-
-type bandwidth =
-  [
-    | `Auto
-    | `Fixed of int
-  ]
-
-type bitrate_mode =
-  [
-     | `Constant
-     | `Variable of int
-  ]
-
-type transmux =
-  [
-     | `Raw
-     | `Adif
-     | `Adts
-     | `Latm
-     | `Latm_out_of_band
-     | `Loas
-  ]
+type mpeg2_aac = [ `AAC_LC | `HE_AAC | `HE_AAC_v2 ]
+type mpeg4_aac = [ mpeg2_aac | `AAC_LD | `AAC_ELD ]
+type aot = [ `Mpeg_4 of mpeg4_aac | `Mpeg_2 of mpeg2_aac ]
+type bandwidth = [ `Auto | `Fixed of int ]
+type bitrate_mode = [ `Constant | `Variable of int ]
+type transmux = [ `Raw | `Adif | `Adts | `Latm | `Latm_out_of_band | `Loas ]
 
 type t = {
-  afterburner    : bool;
-  aot            : aot;
-  bandwidth      : bandwidth;
-  bitrate_mode   : bitrate_mode;
-  bitrate        : int;
-  channels       : int;
-  samplerate     : int Lazy.t;
-  sbr_mode       : bool;
-  transmux       : transmux
+  afterburner : bool;
+  aot : aot;
+  bandwidth : bandwidth;
+  bitrate_mode : bitrate_mode;
+  bitrate : int;
+  channels : int;
+  samplerate : int Lazy.t;
+  sbr_mode : bool;
+  transmux : transmux;
 }
 
 let string_of_aot = function
@@ -116,11 +81,12 @@ let to_string m =
   let br_info =
     match m.bitrate_mode with
       | `Variable vbr -> Printf.sprintf "vbr=%d" vbr
-      | `Constant     -> Printf.sprintf "bitrate=%d" m.bitrate
+      | `Constant -> Printf.sprintf "bitrate=%d" m.bitrate
   in
-  Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,\
-                           samplerate=%d,sbr_mode=%b,transmux=%S)"
+  Printf.sprintf
+    "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,samplerate=%d,sbr_mode=%b,transmux=%S)"
     m.afterburner (string_of_aot m.aot) br_info m.channels
-    (Lazy.force m.samplerate) m.sbr_mode (string_of_transmux m.transmux)
+    (Lazy.force m.samplerate) m.sbr_mode
+    (string_of_transmux m.transmux)
 
 let bitrate m = m.bitrate * 1000

@@ -30,9 +30,11 @@
   the needed threads: that function will sleep until a thread
   raises an exception. *)
 val create : ('a -> unit) -> 'a -> string -> Thread.t
+
 val main : unit -> unit
 val has_started : unit -> bool
-val shutdown : unit -> unit
+val shutdown : int -> unit
+val exit_code : unit -> int
 
 (** Special exception allowed for "clean" termination of Tutils threads.
   * All other exceptions are reported as bugs. *)
@@ -46,13 +48,19 @@ val join_all : unit -> unit
 
 (** Priorities for the different scheduler usages. *)
 type priority =
-  | Blocking       (** For example a last.fm submission. *)
-  | Maybe_blocking (** Request resolutions vary a lot. *)
-  | Non_blocking   (** Non-blocking tasks like the server. *)
+  | Blocking  (** For example a last.fm submission. *)
+  | Maybe_blocking  (** Request resolutions vary a lot. *)
+  | Non_blocking  (** Non-blocking tasks like the server. *)
 
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
+(* Atom used to hook up tasks to be executed before
+   the scheduler shutdown. *)
+val scheduler_pre_shutdown_atom : Dtools.Init.t
+
+(* Atom used to hook up tasks to be executed before/after
+   the scheduler shutdown. *)
 val scheduler_shutdown_atom : Dtools.Init.t
 
 (** {1 Misc} *)
@@ -62,16 +70,15 @@ val scheduler_shutdown_atom : Dtools.Init.t
   * and after the call. *)
 val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 
-(** Make a function work in critical section, protected by a given lock. *) 
-val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
+(** Make a function work in critical section, protected by a given lock. *)
+val mutexify : Mutex.t -> ('a -> 'b) -> 'a -> 'b
 
 exception Timeout of float
 
-type event = [
-  | `Read of Unix.file_descr
+type event =
+  [ `Read of Unix.file_descr
   | `Write of Unix.file_descr
-  | `Both of Unix.file_descr
-]
+  | `Both of Unix.file_descr ]
 
 (* Wait some events: [`Read socket], [`Write socket] or [`Both timeout]
  * Raises [Timeout elapsed_time] if timeout is reached. *)
@@ -88,7 +95,7 @@ val finalize : k:(unit -> unit) -> (unit -> 'a) -> 'a
 val seems_locked : Mutex.t -> bool
 
 (** Thread-safe equivalent to Lazy.from_fun. *)
-val lazy_cell : (unit -> 'a) -> (unit -> 'a)
+val lazy_cell : (unit -> 'a) -> unit -> 'a
 
 (** Preemptive stoppable thread.
   *
@@ -100,5 +107,6 @@ val lazy_cell : (unit -> 'a) -> (unit -> 'a)
   * called to request that the thread stops, and the second to wait
   * that it has effectively stopped. *)
 val stoppable_thread :
-     (((unit -> bool) * (unit -> unit)) -> unit) -> string ->
-     (unit -> unit) * (unit -> unit)
+  ((unit -> bool) * (unit -> unit) -> unit) ->
+  string ->
+  (unit -> unit) * (unit -> unit)

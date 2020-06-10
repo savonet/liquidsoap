@@ -1,12 +1,12 @@
 .PHONY: md doc upload all-subdirs
 
 SUBDIRS = content
-DISTFILES = liquidsoap.1.md.in Makefile template.html snippet.html
+DISTFILES = liquidsoap.1.md.in liquidsoap.1.md Makefile template.html snippet.html conf.py index.rst language.dtd liquidsoap.xml
 DISTDIRS = orig
 LIQUIDSOAP = ../src/liquidsoap
 PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
-MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/settings.md
+MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/reference-extras.md content/settings.md
 HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
 PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
@@ -35,13 +35,16 @@ pdf/%.pdf: content/%.md language.dtd
 	@$(PANDOC) $< -o $@
 
 content/protocols.md: $(LIQUIDSOAP)
-	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-protocols-md > $@
+	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-protocols-md > $@
 
 content/reference.md: $(LIQUIDSOAP)
-	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-functions-md > $@
+	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-functions-md > $@
+
+content/reference-extras.md: $(LIQUIDSOAP)
+	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --list-extra-functions-md > $@
 
 content/settings.md: $(LIQUIDSOAP)
-	$(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --conf-descr-md > $@
+	PAGER=none $(LIQUIDSOAP) --no-pervasives ../libs/pervasives.liq --conf-descr-md > $@
 
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
@@ -56,7 +59,7 @@ doc-install:
 	fi
 
 clean-local:
-	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
+	rm -rf html pdf content/reference.md content/reference-extras.md content/protocols.md content/settings.md
 
 $(LIQUIDSOAP):
 	@echo "Liquidsoap does not seem to be built. You have to build it before."

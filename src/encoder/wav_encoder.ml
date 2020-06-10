@@ -28,34 +28,33 @@ let encoder wav =
   let channels = wav.channels in
   let sample_rate = Lazy.force wav.samplerate in
   let sample_size = wav.samplesize in
-  let ratio =
-    (float sample_rate) /. (float (Lazy.force Frame.audio_rate))
-  in
+  let ratio = float sample_rate /. float (Lazy.force Frame.audio_rate) in
   let converter = Audio_converter.Samplerate.create channels in
-  let len = 
+  let len =
     match wav.duration with
       | None -> None
-      | Some d -> 
-          Some (
-            int_of_float (d *. (float channels) *. 
-                               (float sample_rate) *.
-                               (float sample_size) /. 8.))
+      | Some d ->
+          Some
+            (int_of_float
+               ( d *. float channels *. float sample_rate *. float sample_size
+               /. 8. ))
   in
   let header =
     Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
   in
   let need_header = ref wav.header in
   let encode frame start len =
-    let start = Frame.audio_of_master start in
-    let b = AFrame.content_of_type ~channels frame start in
+    let b = AFrame.content frame in
     let len = Frame.audio_of_master len in
     (* Resample if needed. *)
-    let b,start,len =
-      if ratio = 1. then
-        b,start,len
-      else
-        let b = Audio_converter.Samplerate.resample converter ratio (Audio.sub b start len) in
-        b,0,Audio.length b
+    let b, start, len =
+      if ratio = 1. then (b, start, len)
+      else (
+        let b =
+          Audio_converter.Samplerate.resample converter ratio
+            (Audio.sub b start len)
+        in
+        (b, 0, Audio.length b) )
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
@@ -68,22 +67,19 @@ let encoder wav =
     in
     of_audio (Audio.sub b start len) s 0;
     let s = Bytes.unsafe_to_string s in
-    if !need_header then begin
-      need_header := false ;
-      header ^ s
-    end else
-      s
+    if !need_header then (
+      need_header := false;
+      Strings.of_list [header; s] )
+    else Strings.of_string s
   in
-    {
-     Encoder.
-      insert_metadata = (fun _ -> ()) ;
-      encode = encode ;
-      header = Some header ;
-      stop = (fun () -> "")
-    }
+  {
+    Encoder.insert_metadata = (fun _ -> ());
+    encode;
+    header = Strings.of_string header;
+    stop = (fun () -> Strings.empty);
+  }
 
 let () =
-  Encoder.plug#register "WAV"
-    (function
-       | Encoder.WAV w -> Some (fun _ _ -> encoder w)
-       | _ -> None)
+  Encoder.plug#register "WAV" (function
+    | Encoder.WAV w -> Some (fun _ _ -> encoder w)
+    | _ -> None)

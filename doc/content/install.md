@@ -79,6 +79,11 @@ These packages are available for quick testing of `liquidsoap` on certain Debian
 and Ubuntu distributions. However, we do not recommend them yet for production 
 purposes.
 
+**Please note** We cannot guarantee that any of the distribution below will remain
+available at all time and we reserve the right to purge old versions of the packages
+at any time. If you plan on using some of these packages for any sort of production
+use, make sure to copy them and use your own distribution channels.
+
 Here's how to install:
 
 * First install the repository signing key:
@@ -98,19 +103,20 @@ Here's how to install:
 [sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
-**debian/stretch:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list.d/liquidsoap.list
-```
-
 **ubuntu/bionic:**
 ```
+[sudo] add-apt-repository ppa:sergey-dryabzhinsky/ffmpeg
 [sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
-**ubuntu/disco:**
+**ubuntu/eoan:**
 ```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu disco main >> /etc/apt/sources.list.d/liquidsoap.list
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu eoan main >> /etc/apt/sources.list.d/liquidsoap.list
+```
+
+**ubuntu/focal:**
+```
+[sudo] echo deb http://deb.liquidsoap.info/ubuntu focal main >> /etc/apt/sources.list.d/liquidsoap.list
 ```
 
 You can now see the list of available packages:

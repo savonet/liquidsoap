@@ -21,12 +21,11 @@
 
  *****************************************************************************)
 
-module SecureTransport_harbor =
-struct
+module SecureTransport_harbor = struct
   include Harbor_secure_transport
+
   let name = "https"
 end
 
-module SecureTransport = Builtins_harbor.Make(SecureTransport_harbor)
-
+module SecureTransport = Builtins_harbor.Make (SecureTransport_harbor)
 include SecureTransport

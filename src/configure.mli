@@ -1,5 +1,8 @@
 (** Constants describing configuration options of liquidsoap. *)
 
+(** String describing the OS *)
+val host : string
+
 (** String describing the version. *)
 val version : string
 
@@ -7,6 +10,7 @@ val restart : bool ref
 
 (** Is this build a git snapshot ? *)
 val git_commit : string
+
 val git_snapshot : bool
 
 (** String describing the software. *)
@@ -14,10 +18,11 @@ val vendor : string
 
 (** Substitution of configured variables *)
 val var_script : string ref
+
 val subst_vars : string -> string
 
 (** Where to look for standard .liq scripts to include *)
-val libs_dir : string
+val liq_libs_dir : string
 
 (** Directories where to search for libraries.. *)
 val findlib_path : string list
@@ -34,6 +39,7 @@ val path : string list
 (** Helper for all things that need to be
   * executed before script parsing. *)
 val at_init : (unit -> unit) -> unit
+
 val run_init : unit -> unit
 
 (** Executable extension. *)
@@ -50,12 +56,13 @@ val requests_max_id : int
 
 (** Magic mime detection *)
 val file_mime : (string -> string) option
-val data_mime : (?len:int -> string -> string) option
 
+val data_mime : (?len:int -> string -> string) option
 val requests_table_size : int
 
 (** Configured directories. Typically /var/(run|log)/liquidsoap. *)
 val rundir : string
+
 val logdir : string
 
 (** Display inferred types. *)
@@ -74,4 +81,4 @@ val libs_versions : string
 val file_watcher : File_watcher.watch ref
 
 (** JSON parser. *)
-module JSON : (module type of JSON)
+module JSON : module type of JSON

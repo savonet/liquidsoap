@@ -21,13 +21,14 @@
 
  *****************************************************************************)
 
-module SecureTransport_output =
-struct
+module SecureTransport_output = struct
   include Harbor_secure_transport.Transport
+
   let source_name = "output.harbor.secure_transport"
-  let source_description = "Encode and output the stream using the SecureTransport OSX harbor server."
+
+  let source_description =
+    "Encode and output the stream using the SecureTransport OSX harbor server."
 end
 
-module SecureTransport = Harbor_output.Make(SecureTransport_output)
-
+module SecureTransport = Harbor_output.Make (SecureTransport_output)
 include SecureTransport

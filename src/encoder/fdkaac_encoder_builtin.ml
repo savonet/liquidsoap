@@ -22,7 +22,6 @@
 
 (** Builtin Fdkaac encoder *)
 
-module Register = Fdkaac_encoder.Register(Fdkaac)
+module Register = Fdkaac_encoder.Register (Fdkaac)
 
-let () =
- Register.register_encoder "AAC/fdkaac/builtin"
+let () = Register.register_encoder "AAC/fdkaac/builtin"
