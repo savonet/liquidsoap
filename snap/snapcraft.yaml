@@ -1,6 +1,4 @@
-name: liquidsoap # you probably want to 'snapcraft register <name>'
-base: core18
-version: '1.4.0'
+name: liquidsoap
 summary: Swiss-army knife for multimedia streaming
 description: |
   Liquidsoap is a powerful and flexible language for describing your
@@ -9,7 +7,9 @@ description: |
   transforming streams. But liquidsoap is still very light and easy to
   use, in the Unix tradition of simple strong components working
   together.
+version: '1.4.0'
 
+base: core18
 grade: stable
 confinement: devmode # use 'strict' once you have the right plugs and slots
 
@@ -17,4 +17,59 @@ parts:
   liquidsoap:
     plugin: autotools
     source: https://github.com/savonet/liquidsoap/releases/download/1.4.0/liquidsoap-1.4.0.tar.bz2
-    build-packages: [ocaml]
+    build-packages:
+      - pkg-config
+      - ocaml-nox
+      - ocaml-findlib
+      - libcry-ocaml-dev
+      - libogg-ocaml-dev
+      - libvorbis-ocaml-dev
+      - libmad-ocaml-dev
+      - libdtools-ocaml-dev
+      - libtaglib-ocaml-dev
+      - libcamomile-ocaml-dev
+      - festival
+      - fonts-liberation
+      - libxml-dom-perl
+      - libao-ocaml-dev
+      - libduppy-ocaml-dev
+      - libalsa-ocaml-dev
+      - libpcre-ocaml-dev
+      - sox
+      - libsoundtouch-ocaml-dev
+      - libinotify-ocaml-dev
+      - liblastfm-ocaml-dev
+      - libspeex-ocaml-dev
+      - libgavl-ocaml-dev
+      - libtheora-ocaml-dev
+      - libportaudio-ocaml-dev
+      - libpulse-ocaml-dev
+      - libladspa-ocaml-dev
+      - libsamplerate-ocaml-dev
+      - libxmlplaylist-ocaml-dev
+      - libmagic-ocaml-dev
+      - libbjack-ocaml-dev
+      - libsdl-ocaml-dev
+      - libfaad-ocaml-dev
+      - libmm-ocaml-dev
+      - libflac-ocaml-dev
+      - libopus-ocaml-dev
+      - libfrei0r-ocaml-dev
+      - libshine-ocaml-dev
+      - libvoaacenc-ocaml-dev
+      - libmp3lame-ocaml-dev
+      - libdssi-ocaml-dev
+      - liblo-ocaml-dev
+      - libcamlimages-ocaml-dev
+      - libyojson-ocaml-dev
+      - libgstreamer-ocaml-dev
+    configflags:
+      - --prefix=/usr
+apps:
+  liquidsoap:
+    command: bin/liquidsoap
+    plugs:
+      - alsa
+      - network
+      - network-bind
+      - pulseaudio
