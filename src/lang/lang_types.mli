@@ -49,6 +49,7 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
+  | Maybe of t
   | Meth of string * scheme * t
   | Zero
   | Succ of t

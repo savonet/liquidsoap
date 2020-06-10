@@ -63,6 +63,7 @@ let list_t t = T.make (T.List t)
 let of_list_t t =
   match (T.deref t).T.descr with T.List t -> t | _ -> assert false
 
+let maybe_t t = T.make (T.Maybe t)
 let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
@@ -127,6 +128,7 @@ let string i = mk (Ground (String i))
 let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
 let list l = mk (List l)
+let nothing = mk Nothing
 
 let rec meth v0 = function
   | [] -> v0
@@ -333,6 +335,7 @@ let iter_sources f v =
       | Term.Ground _ | Term.Encoder _ -> ()
       | Term.List l -> List.iter (iter_term env) l
       | Term.Tuple l -> List.iter (iter_term env) l
+      | Term.Nothing -> ()
       | Term.Meth (_, a, b) ->
           iter_term env a;
           iter_term env b
@@ -366,6 +369,7 @@ let iter_sources f v =
       | Ground _ | Encoder _ -> ()
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
+      | Nothing -> ()
       | Meth (_, a, b) ->
           iter_value a;
           iter_value b
@@ -392,7 +396,7 @@ let iter_sources f v =
               let rec aux v =
                 match v.value with
                   | Source _ -> true
-                  | Ground _ | Encoder _ -> false
+                  | Ground _ | Encoder _ | Nothing -> false
                   | List l -> List.exists aux l
                   | Tuple l -> List.exists aux l
                   | Ref r -> aux !r
@@ -485,6 +489,7 @@ let to_int_getter t =
 
 let to_list t = match (demeth t).value with List l -> l | _ -> assert false
 let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
+let to_option t = match (demeth t).value with Nothing -> None | _ -> Some t
 
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false

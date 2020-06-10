@@ -212,6 +212,7 @@ and in_term =
   | Encoder of Encoder.format
   | List of term list
   | Tuple of term list
+  | Nothing
   | Meth of string * term * term
   | Invoke of term * string
   | Let of let_t
@@ -249,6 +250,7 @@ let rec print_term v =
     | Encoder e -> Encoder.string_of_format e
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
+    | Nothing -> "nothing"
     | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
@@ -286,6 +288,7 @@ let rec free_vars tm =
     | Var x -> Vars.singleton x
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
+    | Nothing -> Vars.empty
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
     | Invoke (e, _) -> free_vars e
@@ -333,6 +336,7 @@ let check_unused ~lib tm =
       | Var s -> Vars.remove s v
       | Ground _ | Encoder _ -> v
       | Tuple l -> List.fold_left (fun a -> check a) v l
+      | Nothing -> v
       | Meth (_, f, e) -> check (check v e) f
       | Invoke (e, _) -> check v e
       | Seq (a, b) -> check ~toplevel (check v a) b
@@ -403,6 +407,7 @@ module V = struct
     | Encoder of Encoder.format
     | List of value list
     | Tuple of value list
+    | Nothing
     (* TODO: It would be better to have a list of methods associated to each
        value than a constructor here. However, I am keeping as is for now because
        implementation is safer this way. *)
@@ -430,6 +435,7 @@ module V = struct
       | List l -> "[" ^ String.concat ", " (List.map print_value l) ^ "]"
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
       | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
+      | Nothing -> "nothing"
       | Meth (l, v, e) -> print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
       | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
       | Fun (l, _, _, x) when is_ground x ->
@@ -547,6 +553,7 @@ let rec value_restriction t =
     | Var _ -> true
     | Fun _ -> true
     | RFun _ -> true
+    | Nothing -> true
     | List l | Tuple l -> List.for_all value_restriction l
     | Meth (_, t, u) -> value_restriction t && value_restriction u
     (* | Invoke (t, _) -> value_restriction t *)
@@ -661,6 +668,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
+    | Nothing -> e.t >: mk (T.Maybe (T.fresh_evar ~level ~pos))
     | Meth (l, a, b) ->
         check ~level ~env a;
         check ~level ~env b;
@@ -875,6 +883,7 @@ let rec eval ~env tm =
     | Encoder x -> mk (V.Encoder x)
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
+    | Nothing -> mk V.Nothing
     | Meth (l, u, v) -> mk (V.Meth (l, eval ~env u, eval ~env v))
     | Invoke (t, l) ->
         let rec aux t =
