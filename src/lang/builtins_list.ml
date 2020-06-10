@@ -38,15 +38,15 @@ let () =
     ]
     Lang.string_t
     (fun p ->
-      let l =
-        List.map
-          (fun p ->
-            let a, b = Lang.to_product p in
-            (a, Lang.to_string b))
-          (Lang.to_list (Lang.assoc "" 1 p))
-      in
+      let l = List.map Lang.to_product (Lang.to_list (Lang.assoc "" 1 p)) in
       let k = Lang.assoc "" 2 p in
-      Lang.string (try List.assoc k l with _ -> ""))
+      let ans =
+        try
+          Lang.to_string
+            (snd (List.find (fun (k', _) -> Lang.compare_values k k' = 0) l))
+        with _ -> ""
+      in
+      Lang.string ans)
 
 let () =
   let a = Lang.univ_t () in
