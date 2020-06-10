@@ -73,9 +73,8 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
       in
       if Frame.is_partial ab then state <- `Idle;
       match video_content with
-        | None -> ()
         | Some (rgb, off, len) ->
-            let rgb = rgb.(0) in
+            let rgb = Frame_content.Video.get_data rgb in
             if count < length then
               for i = 0 to min (len - 1) (length - count - 1) do
                 let m = fade (count + i) in
@@ -83,6 +82,7 @@ class fade_in ~kind ?(meta = "liq_video_fade_in") duration fader fadefun source
               done;
             if state <> `Idle then
               state <- `Play (fade, fadefun, length, count + len)
+        | _ -> ()
   end
 
 (** Fade-out after every frame. *)
@@ -135,22 +135,22 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
 
       (* Do the actual processing of video samples *)
       match video_content with
-        | None -> ()
         | Some (rgb, off, len) -> (
             (* Process the buffer *)
               match if n >= 0 && n < length then Some n else None with
               | Some n ->
-                  let rgb = rgb.(0) in
+                  let rgb = Frame_content.Video.get_data rgb in
                   for i = 0 to len - 1 do
                     let m = fade (n - i) in
                     fadefun (Video.get rgb (off + i)) m
                   done
               | None -> () )
+        | _ -> ()
   end
 
 (** Lang interface *)
 
-let kind = Lang.any_with ~video:1 ()
+let kind = { Frame.audio = `Any; video = Frame.video_yuv420p; midi = `Any }
 let return_t = Lang.kind_type_of_kind_format kind
 
 (* TODO: share more with fade.ml *)

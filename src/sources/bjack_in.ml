@@ -42,8 +42,6 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
         Clock.unify self#clock
           (Clock.create_known (bjack_clock () :> Clock.clock))
 
-    method private channels = self#ctype.Frame.audio
-
     method private wake_up l =
       active_source#wake_up l;
       (* We need to know the number of channels to intialize the ioring. We
@@ -111,7 +109,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
     method private get_frame buf =
       assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
-      let fbuf = AFrame.content buf in
+      let fbuf = AFrame.pcm buf in
       Audio.S16LE.to_audio
         (Bytes.unsafe_to_string buffer)
         0
@@ -128,7 +126,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   end
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.jack"
     [

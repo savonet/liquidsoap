@@ -46,9 +46,6 @@ class chord ~kind metadata_name (source : source) =
   object (self)
     inherit operator ~name:"chord" kind [source]
 
-    method set_kind =
-      Source.Kind.unify self#kind_var (Source.Kind.set_midi source#kind_var 1)
-
     method stype = source#stype
 
     method remaining = source#remaining
@@ -66,7 +63,7 @@ class chord ~kind metadata_name (source : source) =
     method private get_frame buf =
       let offset = MFrame.position buf in
       source#get buf;
-      let m = MFrame.content buf in
+      let m = MFrame.midi buf in
       let pos = MFrame.position buf in
       let meta = MFrame.get_all_metadata buf in
       let meta = List.filter (fun (p, _) -> offset <= p && p < pos) meta in
@@ -125,7 +122,10 @@ class chord ~kind metadata_name (source : source) =
 let () =
   (* TODO: is this really the type we want to give to it? *)
   let in_k = Lang.kind_type_of_kind_format Lang.any in
-  let out_k = Lang.kind_type_of_kind_format (Lang.any_with ~midi:1 ()) in
+  let out_k =
+    Lang.kind_type_of_kind_format
+      { Frame.audio = `Any; video = `Any; midi = Frame.midi_n 1 }
+  in
   Lang.add_operator "midi.chord"
     [
       ( "metadata",

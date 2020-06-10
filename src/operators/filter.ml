@@ -29,8 +29,6 @@ class filter ~kind (source : source) freq q wet mode =
   object (self)
     inherit operator ~name:"filter" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method remaining = source#remaining
@@ -71,7 +69,7 @@ class filter ~kind (source : source) freq q wet mode =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let freq = freq () in
       let q = q () in

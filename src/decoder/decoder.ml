@@ -61,8 +61,9 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : G.t;
-  put_audio : ?pts:Int64.t -> samplerate:int -> Frame.audio_t array -> unit;
-  put_video : ?pts:Int64.t -> fps:fps -> Frame.video_t array -> unit;
+  put_audio :
+    ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
+  put_video : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
 }
 
 type decoder = {
@@ -235,17 +236,22 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     in
     ext_ok || mime_ok )
 
+let channel_layout audio =
+  match Frame_content.Audio.get_params audio with [c] -> c | _ -> assert false
+
+let none = Frame_content.None.params
+
 let can_decode_type decoded_type target_type =
   let can_convert_audio audio =
-    audio = 0
+    audio = none
     || Audio_converter.Channel_layout.(
          try
            ignore
              (create
-                (layout_of_channels decoded_type.Frame.audio)
-                (layout_of_channels audio));
+                (channel_layout decoded_type.Frame.audio)
+                (channel_layout audio));
            true
-         with Unsupported -> false)
+         with _ -> false)
   in
   match target_type with
     (* Either we can decode straight away. *)
@@ -255,21 +261,24 @@ let can_decode_type decoded_type target_type =
         let audio =
           if can_convert_audio audio then audio else decoded_type.Frame.audio
         in
-        let video = if video = 0 then 0 else decoded_type.Frame.video in
-        let midi = if midi = 0 then 0 else decoded_type.Frame.midi in
+        let video = if video = none then none else decoded_type.Frame.video in
+        let midi = if midi = none then none else decoded_type.Frame.midi in
         target_type = { Frame.audio; video; midi }
 
-let decoder_modes ctype =
-  let audio = ctype.Frame.audio in
-  let video = ctype.Frame.video in
-  let midi = ctype.Frame.midi in
-  if audio = 0 && video = 0 && midi = 0 then []
-  else if audio = 0 && video = 0 && midi > 0 then [`Midi]
-  else if midi <> 0 then []
-  else if audio > 0 && video > 0 then [`Audio_video]
-  else if audio > 0 && video = 0 then [`Audio; `Audio_video]
-  else if audio = 0 && video > 0 then [`Video; `Audio_video]
-  else []
+let decoder_modes = function
+  | Frame.{ audio; video; midi }
+    when audio <> none && video <> none && midi = none ->
+      [`Audio_video]
+  | Frame.{ audio; video; midi }
+    when audio <> none && video = none && midi = none ->
+      [`Audio; `Audio_video]
+  | Frame.{ audio; video; midi }
+    when audio = none && video <> none && midi = none ->
+      [`Video; `Audio_video]
+  | Frame.{ audio; video; midi }
+    when audio = none && video = none && midi <> none ->
+      [`Midi]
+  | _ -> []
 
 exception Found of (string * Frame.content_type * decoder_specs)
 
@@ -414,9 +423,9 @@ let get_stream_decoder ~ctype mime =
 let mk_buffer ~ctype generator =
   let mode =
     match ctype with
-      | { Frame.audio; video } when audio > 0 && video > 0 -> `Both
-      | { Frame.audio; video } when audio > 0 && video = 0 -> `Audio
-      | { Frame.audio; video } when audio = 0 && video > 0 -> `Video
+      | Frame.{ audio; video } when audio <> none && video <> none -> `Both
+      | Frame.{ audio; video } when audio <> none && video = none -> `Audio
+      | Frame.{ audio; video } when audio = none && video <> none -> `Video
       | _ -> failwith "Invalid type for buffer!"
   in
 
@@ -426,12 +435,14 @@ let mk_buffer ~ctype generator =
     if mode <> `Video then (
       let resampler = Decoder_utils.samplerate_converter () in
       let channel_converter =
-        Decoder_utils.channels_converter ctype.Frame.audio
+        Decoder_utils.channels_converter (channel_layout ctype.Frame.audio)
       in
       fun ?pts ~samplerate data ->
         let data = resampler ~samplerate data in
         let data = channel_converter data in
-        G.put_audio ?pts generator data 0 (Audio.length data) )
+        let len = Audio.length data in
+        let data = Frame_content.Audio.lift_data data in
+        G.put_audio ?pts generator data 0 len )
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
 
@@ -443,9 +454,11 @@ let mk_buffer ~ctype generator =
         Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
       in
       fun ?pts ~fps data ->
-        let data = Array.map (Array.map video_scale) data in
+        let data = Array.map video_scale data in
         let data = video_resample ~in_freq:fps ~out_freq data in
-        G.put_video ?pts generator data 0 (Video.length data.(0)) )
+        let len = Video.length data in
+        let data = Frame_content.Video.lift_data data in
+        G.put_video ?pts generator data 0 len )
     else fun ?pts:_ ~fps:_ _ -> ()
   in
 

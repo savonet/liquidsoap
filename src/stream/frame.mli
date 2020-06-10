@@ -24,30 +24,28 @@
 
 (** {2 Frame definitions} *)
 
-(** A frame contains fields which hold audio, video and MIDI data. *)
-type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
+open Frame_content
 
-(** Multiplicity of a field, used in types to impose constraints on channels
-    (fixed, at least k, etc.). *)
-type multiplicity = Fixed of int | At_least of int
+type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
-(** Multiplicity of each field of a frame. *)
-type content_kind = (multiplicity, multiplicity, multiplicity) fields
+(** High-level description of the content. *)
+type kind = [ `None | `Any | `Internal | `Format of format | `Params of params ]
 
-(** Content type of a frame: number of channels for audio, video and MIDI. *)
-type content_type = (int, int, int) fields
+(* Some common kind. Audio is PCM, video YUV420p *)
+val audio_pcm : kind
+val audio_n : int -> kind
+val audio_stereo : kind
+val audio_mono : kind
+val video_yuv420p : kind
+val midi_native : kind
+val midi_n : int -> kind
 
-(** Actual content of a frame. *)
-type content = (audio_t array, video_t array, midi_t array) fields
+type content_kind = kind fields
 
-(** Audio data. *)
-and audio_t = Audio.Mono.buffer
+(** Precise description of the channel types for the current track. *)
+type content_type = params fields
 
-(** Video data. *)
-and video_t = Video.t
-
-(** MIDI data. *)
-and midi_t = MIDI.buffer
+type content = data fields
 
 (** [blit_content c1 o1 c2 o2 l] copies [l] data from [c1] starting at offset
     [o1] into [c2] starting at offset [o2]. All numerical values are in
@@ -89,22 +87,22 @@ val dummy : t
 val content_type : t -> content_type
 
 (** Get a frame's audio content. *)
-val audio : t -> audio_t array
+val audio : t -> data
 
 (** Set a frame's audio content. *)
-val set_audio : t -> audio_t array -> unit
+val set_audio : t -> data -> unit
 
 (** Get a frame's video content. *)
-val video : t -> video_t array
+val video : t -> data
 
 (** Set a frame's video content. *)
-val set_video : t -> video_t array -> unit
+val set_video : t -> data -> unit
 
 (** Get a frame's midi content. *)
-val midi : t -> midi_t array
+val midi : t -> data
 
 (** Set a frame's midi content. *)
-val set_midi : t -> midi_t array -> unit
+val set_midi : t -> data -> unit
 
 (** Position of the end of the last chunk of the frame (i.e. the offset of the
     end of the frame). *)
@@ -179,8 +177,7 @@ val get_chunk : t -> t -> unit
     when [b] is more permissive than [a]. *)
 
 val type_of_content : content -> content_type
-val mul_of_int : int -> multiplicity
-val succ_mul : multiplicity -> multiplicity
+val string_of_kind : kind -> string
 val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string
 
@@ -197,8 +194,8 @@ val allow_lazy_config_eval : unit -> unit
 (** Default number of audio channels. *)
 val audio_channels : int Lazy.t
 
-(** Default number of video channels. *)
-val video_channels : int Lazy.t
+(** Is video enabled? *)
+val video_enabled : bool Lazy.t
 
 (** Default number of MIDI channels. *)
 val midi_channels : int Lazy.t

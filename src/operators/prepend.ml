@@ -65,8 +65,8 @@ class prepend ~kind ~merge source f =
                 self#get_frame buf ) )
         | `Buffer peek ->
             let p = AFrame.position buf in
-            let pcm = AFrame.content buf in
-            let peek_pcm = AFrame.content peek in
+            let pcm = AFrame.pcm buf in
+            let peek_pcm = AFrame.pcm peek in
             let peekpos = AFrame.size () - 1 in
             for i = 0 to Array.length pcm - 1 do
               pcm.(i).{p} <- peek_pcm.(i).{peekpos}

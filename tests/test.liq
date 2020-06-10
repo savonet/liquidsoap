@@ -1,3 +1,5 @@
+set("log.level",4)
+
 test = ()
 
 # End test successfully.

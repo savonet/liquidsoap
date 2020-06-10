@@ -35,19 +35,28 @@ let mk_tokenizer ?(fname = "") lexbuf =
 
 (* TODO: also parse optional arguments? *)
 let get_encoder_format tokenizer =
-  let ogg_item = function
+  let ogg_audio_item = function
     | Lang_parser.VORBIS -> Lang_vorbis.make []
     | Lang_parser.VORBIS_CBR -> Lang_vorbis.make_cbr []
     | Lang_parser.VORBIS_ABR -> Lang_vorbis.make_abr []
-    | Lang_parser.THEORA -> Lang_theora.make []
     | Lang_parser.SPEEX -> Lang_speex.make []
     | Lang_parser.OPUS -> Lang_opus.make []
     | Lang_parser.FLAC -> Lang_flac.make_ogg []
     | _ -> failwith "ogg format expected"
   in
-  let is_ogg_item token =
+  let is_ogg_audio_item token =
     try
-      let _ = ogg_item token in
+      let _ = ogg_audio_item token in
+      true
+    with _ -> false
+  in
+  let ogg_video_item = function
+    | Lang_parser.THEORA -> Lang_theora.make []
+    | _ -> failwith "ogg format expected"
+  in
+  let is_ogg_video_item token =
+    try
+      let _ = ogg_video_item token in
       true
     with _ -> false
   in
@@ -62,9 +71,12 @@ let get_encoder_format tokenizer =
     | Lang_parser.EXTERNAL -> Lang_external_encoder.make []
     | Lang_parser.GSTREAMER -> Lang_gstreamer.make []
     | Lang_parser.WAV -> Lang_wav.make []
-    | ogg when is_ogg_item ogg ->
-        let ogg = ogg_item ogg in
-        Encoder.Ogg [ogg]
+    | ogg when is_ogg_audio_item ogg ->
+        let audio = ogg_audio_item ogg in
+        Encoder.Ogg { Ogg_format.audio = Some audio; video = None }
+    | ogg when is_ogg_video_item ogg ->
+        let video = ogg_video_item ogg in
+        Encoder.Ogg { Ogg_format.audio = None; video = Some video }
     (* TODO *)
     (* | Lang_parser.OGG -> Lang_encoders.mk ... [] *)
     | _ -> failwith "expected an encoding format after %ifencoder"

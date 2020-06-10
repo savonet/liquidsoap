@@ -86,7 +86,7 @@ class audio_output ~name ~kind val_source =
     method output_reset = ()
 
     method output_send memo =
-      let pcm = AFrame.content memo in
+      let pcm = AFrame.pcm memo in
       let aframe = self#convert pcm in
       Avutil.frame_set_pts aframe (Some (Frame.pts memo));
       input aframe
@@ -94,7 +94,7 @@ class audio_output ~name ~kind val_source =
 
 class video_output ~name val_source =
   let content_kind =
-    Frame.{ audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
+    Frame.{ audio = `None; video = Frame.video_yuv420p; midi = `None }
   in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
@@ -119,9 +119,8 @@ class video_output ~name val_source =
     method output_reset = ()
 
     method output_send memo =
-      let vbuf = VFrame.content memo in
+      let vbuf = VFrame.yuv420p memo in
       let vlen = VFrame.position memo in
-      let vbuf = vbuf.(0) in
       for i = 0 to 0 + vlen - 1 do
         let f = Video.get vbuf i in
         let y, u, v = Image.YUV420.data f in
@@ -171,7 +170,8 @@ class audio_input ~bufferize kind =
         {
           format = `Dbl;
           rate = out_samplerate;
-          channels = self#ctype.Frame.audio;
+          channels =
+            Frame_content.Audio.channels_of_params self#ctype.Frame.audio;
         }
       in
       let mk_converter () =
@@ -220,7 +220,9 @@ class audio_input ~bufferize kind =
               (Ffmpeg_utils.convert_pts ~src ~dst)
               (Avutil.frame_pts frame)
           in
-          Generator.put_audio ?pts generator pcm 0 (Audio.length pcm);
+          Generator.put_audio ?pts generator
+            (Frame_content.Audio.lift_data pcm)
+            0 (Audio.length pcm);
           f ()
         with Avutil.Error `Eagain -> ()
       in
@@ -313,8 +315,9 @@ class video_input ~bufferize kind =
               | _ -> assert false
           in
           let content = Video.single img in
-          Generator.put_video ?pts generator [| content |] 0
-            (Video.length content);
+          Generator.put_video ?pts generator
+            (Frame_content.Video.lift_data content)
+            0 (Video.length content);
           f ()
         with Avutil.Error `Eagain -> ()
       in

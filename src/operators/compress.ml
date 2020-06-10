@@ -30,8 +30,6 @@ class compress ~kind (source : source) attack release threshold ratio knee
   object (self)
     inherit operator ~name:"compress" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable effect = None
 
     method private wake_up a =
@@ -58,7 +56,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
     method private get_frame buf =
       let ofs = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let pos = AFrame.position buf in
       let len = pos - ofs in
       let effect = Option.get effect in

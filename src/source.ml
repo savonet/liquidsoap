@@ -232,128 +232,86 @@ let rec forget var subclock =
 
 (** Kind with variables in order to unify kinds. *)
 module Kind = struct
-  (* These two types should be only in Frame eventually. Not doing this now in
-     order to minimize the diff. *)
-
-  (** Description of how many of a channel type does an operator want. *)
-  type format = Frame.multiplicity =
-    | Fixed of int  (** exactly [n] channels *)
-    | At_least of int  (** at least [n] channels *)
-
-  (** Formats for every channels. *)
-  type formats = Frame.content_kind
-
-  (* = (format, format, format) Frame.fields *)
+  open Frame
 
   exception Conflict of string * string
 
-  (** Multiplicities with variables, used for unification. *)
-  module Multiplicity = struct
-    (** Multiplicity variable. *)
-    type 'a var = 'a option ref
+  type t = Frame.kind Unifier.t fields
 
-    (** Multiplicity with variables. *)
-    type t = Var of t var | Zero | Succ of t
+  let deref = Unifier.deref
 
-    let fresh_var () = Var (ref None)
-    let rec int = function 0 -> Zero | n -> Succ (int (n - 1))
+  let of_kind { audio; video; midi } =
+    let f = Unifier.make in
+    { audio = f audio; video = f video; midi = f midi }
 
-    (* Remove variable pointers. *)
-    let rec unvar = function
-      | Var v as m -> ( match !v with Some m -> unvar m | None -> m )
-      | (Succ _ | Zero) as m -> m
+  let set_audio { video; midi } audio =
+    { Frame.audio = Unifier.make audio; video; midi }
 
-    let to_string m =
-      let rec aux m =
-        match unvar m with
-          | Succ m ->
-              let n, b = aux m in
-              (n + 1, b)
-          | Zero -> (0, false)
-          | Var _ -> (0, true)
-      in
-      let n, b = aux m in
-      string_of_int n ^ if b then "+" else ""
+  let set_video { audio; midi } video =
+    { Frame.audio; video = Unifier.make video; midi }
 
-    let rec occurs x m =
-      match unvar m with
-        | Succ m -> occurs x m
-        | Zero -> false
-        | Var y -> x == y
+  let set_midi { audio; video } midi =
+    { Frame.audio; video; midi = Unifier.make midi }
 
-    exception Conflict
-
-    (** Unify kinds. *)
-    let rec unify m n =
-      match (unvar m, unvar n) with
-        | Succ m, Succ n -> unify m n
-        | Zero, Zero -> ()
-        | Var x, Var y when x == y -> ()
-        | Var x, n ->
-            if occurs x n then raise Conflict;
-            x := Some n
-        | m, (Var _ as n) -> unify n m
-        | _, _ -> raise Conflict
-
-    let rec of_format = function
-      | Fixed 0 -> Zero
-      | Fixed n -> Succ (of_format (Fixed (n - 1)))
-      | At_least 0 -> fresh_var ()
-      | At_least n -> Succ (of_format (At_least (n - 1)))
-
-    let rec close default m =
-      match unvar m with
-        | Succ m -> close (default - 1) m
-        | Zero -> ()
-        | Var x -> x := Some (int (max 0 default))
-
-    (** Compute a multiplicity from a multiplicity with variables. *)
-    let rec get default m =
-      match unvar m with
-        | Succ m -> 1 + get default m
-        | Zero -> 0
-        | Var _ -> assert false
-  end
-
-  type t = (Multiplicity.t, Multiplicity.t, Multiplicity.t) Frame.fields
-
-  let to_string k =
-    Printf.sprintf "{audio=%s;video=%s;midi=%s}"
-      (Multiplicity.to_string k.Frame.audio)
-      (Multiplicity.to_string k.Frame.video)
-      (Multiplicity.to_string k.Frame.midi)
-
-  let set_audio kind n = { kind with Frame.audio = Multiplicity.int n }
-  let set_video kind n = { kind with Frame.video = Multiplicity.int n }
-  let set_midi kind n = { kind with Frame.midi = Multiplicity.int n }
-
-  let map_kind f kind =
-    {
-      Frame.audio = f kind.Frame.audio;
-      video = f kind.Frame.video;
-      midi = f kind.Frame.midi;
-    }
-
-  let of_formats kind = map_kind Multiplicity.of_format kind
-
-  (** Compute a multiplicity from a multiplicity with variables. *)
-  let get (kind : t) : Frame.content_type =
-    let get default m =
-      Multiplicity.close default m;
-      Multiplicity.get default m
+  let content_type { audio; video; midi } =
+    let get t v =
+      match deref v with
+        | `None -> Frame_content.None.params
+        | `Internal | `Any -> (
+            match t with
+              | `Audio -> Frame_content.default_audio ()
+              | `Video -> Frame_content.default_video ()
+              | `Midi -> Frame_content.default_midi () )
+        | `Params p -> p
+        | `Format f -> Frame_content.default_params f
     in
     {
-      Frame.audio = get (Lazy.force Frame.audio_channels) kind.Frame.audio;
-      video = get (Lazy.force Frame.video_channels) kind.Frame.video;
-      midi = get (Lazy.force Frame.midi_channels) kind.Frame.midi;
+      Frame.audio = get `Audio audio;
+      video = get `Video video;
+      midi = get `Midi midi;
     }
 
-  let unify k k' =
+  let to_string { audio; video; midi } =
+    Frame.string_of_content_kind
+      { Frame.audio = deref audio; video = deref video; midi = deref midi }
+
+  let unify_kind k k' =
+    let to_s k = Frame.string_of_kind (deref k) in
     try
-      Multiplicity.unify k.Frame.audio k'.Frame.audio;
-      Multiplicity.unify k.Frame.video k'.Frame.video;
-      Multiplicity.unify k.Frame.midi k'.Frame.midi
-    with Multiplicity.Conflict -> raise (Conflict (to_string k, to_string k'))
+      match (deref k, deref k') with
+        (* None *)
+        | `None, `None -> ()
+        (* Formats *)
+        | `Format f, `Format f' when f = f' -> Unifier.(k <-- k')
+        (* Params *)
+        | `Params p, `Params p' -> Frame_content.merge p p'
+        (* Format/params *)
+        | `Format f, `Params p when Frame_content.format p = f ->
+            Unifier.(k <-- k')
+        | `Params p, `Format f when Frame_content.format p = f ->
+            Unifier.(k' <-- k)
+        (* `Internal/'a *)
+        | `Internal, `Internal -> Unifier.(k <-- k')
+        | `Internal, `Format f when Frame_content.is_internal f ->
+            Unifier.(k <-- k')
+        | `Internal, `Params p when Frame_content.(is_internal (format p)) ->
+            Unifier.(k <-- k')
+        | `Internal, `None -> Unifier.(k <-- k')
+        | `Format f, `Internal when Frame_content.is_internal f ->
+            Unifier.(k' <-- k)
+        | `Params p, `Internal when Frame_content.(is_internal (format p)) ->
+            Unifier.(k' <-- k)
+        | `None, `Internal -> Unifier.(k' <-- k)
+        (* Any/'a *)
+        | `Any, _ -> Unifier.(k <-- k')
+        | _, `Any -> Unifier.(k' <-- k)
+        | _ -> assert false
+    with _ -> raise (Conflict (to_s k, to_s k'))
+
+  let unify k k' =
+    unify_kind k.audio k'.audio;
+    unify_kind k.video k'.video;
+    unify_kind k.midi k'.midi
 end
 
 (** {1 Sources} *)
@@ -399,7 +357,18 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
-class virtual operator ?(name = "src") kind sources =
+class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
+  sources =
+  let out_kind = Kind.of_kind out_kind in
+  let f kind (fn, el) = match el with None -> kind | Some v -> fn kind v in
+  let in_kind =
+    List.fold_left f out_kind
+      [
+        (Kind.set_audio, audio_in);
+        (Kind.set_video, video_in);
+        (Kind.set_midi, midi_in);
+      ]
+  in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -473,38 +442,26 @@ class virtual operator ?(name = "src") kind sources =
 
     initializer self#set_clock
 
-    val kind_var = Kind.of_formats kind
+    method kind = out_kind
 
-    (* Kinds now use the same mechanism as clocks: we unify with the children
-       sources by default. *)
-    method kind_var = kind_var
+    initializer List.iter (fun s -> Kind.unify s#kind in_kind) sources
 
     val mutable ctype = None
-
-    (* Check that functions are accessed in a sane order. *)
-    val mutable accessed_kind = false
 
     (* Content type. *)
     method ctype =
       match ctype with
         | Some ctype -> ctype
         | None ->
-            accessed_kind <- true;
-            let kind_string = Kind.to_string self#kind_var in
-            (* The computation cannot be performed too early beacuse it can use
-               default values for channels, which can be overridden by the
-               script... *)
-            let ct = Kind.get self#kind_var in
-            self#log#info "Kind %s becomes %s" kind_string
+            let ct = Kind.content_type self#kind in
+            self#log#debug "Content kind: %s, content type: %s"
+              (Kind.to_string self#kind)
               (Frame.string_of_content_type ct);
             ctype <- Some ct;
             ct
 
-    method private set_kind =
-      assert (not accessed_kind);
-      List.iter (fun s -> Kind.unify self#kind_var s#kind_var) sources
-
-    initializer self#set_kind
+    method private channels =
+      Frame_content.Audio.channels_of_params self#ctype.Frame.audio
 
     (** Startup/shutdown.
     *
@@ -604,7 +561,8 @@ class virtual operator ?(name = "src") kind sources =
     method get_ready ?(dynamic = false) (activation : operator list) =
       if log == source_log then self#create_log;
       if static_activations = [] && dynamic_activations = [] then (
-        source_log#info "Source %s gets up." id;
+        source_log#info "Source %s gets up with content kind: %s." id
+          (Kind.to_string self#kind);
         self#wake_up activation;
         if commands <> [] then (
           assert (ns = []);
@@ -657,7 +615,7 @@ class virtual operator ?(name = "src") kind sources =
 
     (** Two methods called for initialization and shutdown of the source *)
     method private wake_up activation =
-      self#log#info "Content kind is %s."
+      self#log#info "Content type is %s."
         (Frame.string_of_content_type self#ctype);
       let activation = (self :> operator) :: activation in
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
@@ -803,9 +761,10 @@ class virtual operator ?(name = "src") kind sources =
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?name content_kind sources =
+and virtual active_operator ?name ?audio_in ?video_in ?midi_in content_kind
+  sources =
   object (self)
-    inherit operator ?name content_kind sources
+    inherit operator ?name ?audio_in ?video_in ?midi_in content_kind sources
 
     initializer
     has_outputs := true;
@@ -833,14 +792,14 @@ and virtual active_operator ?name content_kind sources =
 
 (** Shortcuts for defining sources with no children *)
 
-class virtual source ?name content_kind =
+class virtual source ?name ?audio_in ?video_in ?midi_in content_kind =
   object
-    inherit operator ?name content_kind []
+    inherit operator ?name ?audio_in ?video_in ?midi_in content_kind []
   end
 
-class virtual active_source ?name content_kind =
+class virtual active_source ?name ?audio_in ?video_in ?midi_in content_kind =
   object
-    inherit active_operator ?name content_kind []
+    inherit active_operator ?name ?audio_in ?video_in ?midi_in content_kind []
   end
 
 (** Specialized shortcuts *)

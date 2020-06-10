@@ -177,7 +177,7 @@ io = io/udp_io.ml \
 tools = tools/extralib.ml tools/JSON.ml \
 	tools/stringView.ml tools/strings.ml \
         tools/utils.ml tools/doc.ml tools/plug.ml \
-	tools/rqueue.ml \
+	tools/rqueue.ml tools/unifier.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
@@ -191,9 +191,10 @@ tools = tools/extralib.ml tools/JSON.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml) \
 	$(if $(W_PROMETHEUS),tools/liq_prometheus.ml)
 
-stream =stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
-	stream/generator.ml \
-	$(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
+stream = stream/frame_settings.ml stream/frame_content.ml \
+         stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
+         stream/generator.ml \
+         $(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 
 visualization = \
 	visualization/midimeter.ml \
@@ -226,9 +227,9 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
-	tools/log.ml $(tools) $(stream) \
+	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
 	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
-        converters/video_converter.ml converters/audio_converter.ml \
+        converters/video_converter.ml \
 	decoder/decoder_utils.ml decoder/decoder.ml \
         tools/liq_time.ml $(if $(W_POSIX_TIME2),tools/liq_posix_time.ml) \
         request.ml tools/server.ml \

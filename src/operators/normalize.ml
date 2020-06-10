@@ -31,8 +31,6 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
   object (self)
     inherit operator ~name:"normalize" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     (** Current squares of RMS. *)
     val mutable rms = [||]
 
@@ -67,7 +65,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let rmst = rmst () in
       let kup = kup () in
       let kdown = kdown () in

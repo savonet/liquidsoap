@@ -1,3 +1,5 @@
+#!../../src/liquidsoap ../../libs/pervasives.liq
+
 %include "test.liq"
 
 # We want:

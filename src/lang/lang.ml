@@ -66,11 +66,6 @@ let of_list_t t =
 let nullable_t t = T.make (T.Nullable t)
 let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
-let zero_t = Term.zero_t
-let succ_t t = Term.succ_t t
-let rec n_t n = if n = 0 then zero_t else succ_t (n_t (n - 1))
-let add_t = Term.add_t
-let type_of_int = Term.type_of_int
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
 let getter_t a = univ_t ~constraints:[T.Getter a] ()
 let string_getter_t () = getter_t T.String
@@ -83,38 +78,43 @@ let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 let request_t = Term.request_t ()
+let kind_t k = Term.kind_t k
+let kind_none_t = Term.kind_t `None
+let empty = { Frame.audio = `None; video = `None; midi = `None }
+let any = { Frame.audio = `Any; video = `Any; midi = `Any }
 
-type lang_kind_format = Source.Kind.format = Fixed of int | At_least of int
-type lang_kind_formats = Source.Kind.formats
+let audio_video_internal =
+  { Frame.audio = `Internal; video = `Internal; midi = `None }
 
-let any = { Frame.audio = At_least 0; video = At_least 0; midi = At_least 0 }
-let empty = { Frame.audio = Fixed 0; video = Fixed 0; midi = Fixed 0 }
+let audio_pcm = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any }
 
-let any_with ?(audio = 0) ?(video = 0) ?(midi = 0) () =
-  { Frame.audio = At_least audio; video = At_least video; midi = At_least midi }
+let audio_params p =
+  {
+    Frame.audio = `Params (Frame_content.Audio.lift_params p);
+    video = `Any;
+    midi = `Any;
+  }
 
-let audio_any = { Frame.audio = At_least 1; video = Fixed 0; midi = Fixed 0 }
-let audio_n n = { Frame.audio = Fixed n; video = Fixed 0; midi = Fixed 0 }
-let audio_mono = audio_n 1
-let audio_stereo = audio_n 2
-let video_only = { Frame.audio = Fixed 0; video = Fixed 1; midi = Fixed 0 }
-let video = { Frame.audio = At_least 0; video = Fixed 1; midi = At_least 0 }
+let audio_n n = { Frame.audio = Frame.audio_n n; video = `Any; midi = `Any }
+let audio_mono = audio_params [`Mono]
+let audio_stereo = audio_params [`Stereo]
 
-let audio_video_any =
-  { Frame.audio = At_least 0; video = At_least 0; midi = Fixed 0 }
+let video_yuv420p =
+  { Frame.audio = `Any; video = Frame.video_yuv420p; midi = `Any }
 
-let video_n n = { Frame.audio = Fixed 0; video = Fixed n; midi = Fixed 0 }
-let midi_n n = { Frame.audio = Fixed 0; video = Fixed 0; midi = Fixed n }
-let midi_only = midi_n 1
+let midi = { Frame.audio = `Any; video = `Any; midi = Frame.midi_native }
+
+let midi_n n =
+  {
+    Frame.audio = `Any;
+    video = `Any;
+    midi = `Params (Frame_content.Midi.lift_params [`Channels n]);
+  }
 
 let kind_type_of_kind_format fields =
-  let aux = function
-    | Fixed i -> type_of_int i
-    | At_least i -> Term.add_t i (univ_t ())
-  in
-  let audio = aux fields.Frame.audio in
-  let video = aux fields.Frame.video in
-  let midi = aux fields.Frame.midi in
+  let audio = Term.kind_t fields.Frame.audio in
+  let video = Term.kind_t fields.Frame.video in
+  let midi = Term.kind_t fields.Frame.midi in
   frame_kind_t ~audio ~video ~midi
 
 (** Value construction *)

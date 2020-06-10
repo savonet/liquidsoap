@@ -44,7 +44,7 @@ let encoder flac meta =
   let enc = Flac.Encoder.create ~comments p cb in
   let enc = ref enc in
   let encode frame start len =
-    let b = AFrame.content frame in
+    let b = AFrame.pcm frame in
     let len = Frame.audio_of_master len in
     let b, start, len =
       if src_freq <> dst_freq then (

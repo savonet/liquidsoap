@@ -81,9 +81,8 @@ class dssi ~kind ?chan plugin descr outputs params source =
         source#get buf;
         Frame.position buf
       in
-      let content = buf.Frame.content in
-      let b = content.Frame.audio in
-      let evs = content.Frame.midi in
+      let b = AFrame.pcm buf in
+      let evs = MFrame.midi buf in
       (* Now convert everything to audio samples. *)
       let offset = Frame.audio_of_master offset in
       let position = Frame.audio_of_master position in
@@ -135,11 +134,7 @@ let register_descr plugin_name descr_n descr outputs =
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
   let chans = Array.length outputs in
   let kind =
-    {
-      Frame.audio = Lang.Fixed chans;
-      video = Lang.At_least 0;
-      midi = Lang.Fixed 1;
-    }
+    { Frame.audio = Frame.audio_n chans; video = `Any; midi = Frame.midi_n 1 }
   in
   let k = Lang.kind_type_of_kind_format kind in
   let liq_params = liq_params in
@@ -164,9 +159,9 @@ let register_descr plugin_name descr_n descr outputs =
       new dssi ~kind plugin_name descr_n outputs params ~chan source);
   let kind =
     {
-      Frame.audio = Lang.Fixed chans;
-      video = Lang.At_least 0;
-      midi = Lang.Fixed all_chans;
+      Frame.audio = Frame.audio_n chans;
+      video = `Any;
+      midi = Frame.midi_n all_chans;
     }
   in
   let k = Lang.kind_type_of_kind_format kind in

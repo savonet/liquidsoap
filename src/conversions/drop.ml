@@ -20,23 +20,19 @@
 
  *****************************************************************************)
 
-class drop ?(audio = false) ?(video = false) ?(midi = false) ~kind ~name source
-  =
-  object (self)
-    inherit Source.operator kind [source] ~name
+class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
+  let f x = if x then Some `None else None in
+  let audio_in = f audio in
+  let video_in = f video in
+  let midi_in = f midi in
+  object
+    inherit Source.operator ?audio_in ?video_in ?midi_in Lang.any [source] ~name
 
     inherit
       Conversion.base
         ~audio ~video ~midi
         ~converter:(fun ~frame:_ _ -> ())
         source
-
-    method set_kind =
-      let kind = source#kind_var in
-      let kind = if audio then Source.Kind.set_audio kind 0 else kind in
-      let kind = if video then Source.Kind.set_video kind 0 else kind in
-      let kind = if midi then Source.Kind.set_midi kind 0 else kind in
-      Source.Kind.unify self#kind_var kind
   end
 
 let () =
@@ -49,26 +45,24 @@ let () =
           | `Audio ->
               ( "drop_audio",
                 "Drop all audio content of a stream.",
-                Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi,
+                Lang.frame_kind_t ~audio:(Lang.kind_t `None) ~video ~midi,
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
-                  new drop ~kind:Lang.any ~audio:true ~name:"drop_audio" source
-              )
+                  new drop ~audio:true ~name:"drop_audio" source )
           | `Video ->
               ( "drop_video",
                 "Drop all video content of a stream.",
-                Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi,
+                Lang.frame_kind_t ~audio ~video:(Lang.kind_t `None) ~midi,
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
-                  new drop ~kind:Lang.any ~video:true ~name:"drop_video" source
-              )
+                  new drop ~video:true ~name:"drop_video" source )
           | `Midi ->
               ( "drop_midi",
                 "Drop all midi content of a stream.",
-                Lang.frame_kind_t ~audio ~video ~midi:Lang.zero_t,
+                Lang.frame_kind_t ~audio ~video ~midi:(Lang.kind_t `None),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
-                  new drop ~kind:Lang.any ~midi:true ~name:"drop_midi" source )
+                  new drop ~midi:true ~name:"drop_midi" source )
       in
       Lang.add_operator name ~category:Lang.Conversions ~descr ~return_t:output
         [("", Lang.source_t input, None, None)]

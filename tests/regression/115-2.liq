@@ -1,3 +1,4 @@
+#!../../src/liquidsoap ../../libs/pervasives.liq
 %include "test.liq"
 
 sa = sine()

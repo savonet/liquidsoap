@@ -171,7 +171,7 @@ let mk_video_decoder container =
     decoder_pts := Int64.succ !decoder_pts;
     buffer.Decoder.put_video ?pts:(Some pts)
       ~fps:{ Decoder.num = target_fps; den = 1 }
-      [| content |]
+      content
   in
   let converter =
     Ffmpeg_utils.Fps.init ~width ~height ~pixel_format ~time_base ~pixel_aspect
@@ -303,16 +303,26 @@ let get_type ~url container =
       let codec_name =
         Avcodec.Video.string_of_id (Avcodec.Video.get_params_id codec)
       in
-      ( 1,
+      ( true,
         Printf.sprintf "video: {codec: %s, %dx%d, %s}" codec_name width height
           pixel_format
         :: descr )
-    with Avutil.Error _ -> (0, descr)
+    with Avutil.Error _ -> (false, descr)
   in
-  if audio == 0 && video == 0 then failwith "No valid stream found in file.";
+  if audio == 0 && not video then failwith "No valid stream found in file.";
+  let audio =
+    if audio == 0 then Frame_content.None.params
+    else
+      Frame_content.Audio.lift_params
+        [Audio_converter.Channel_layout.layout_of_channels audio]
+  in
+  let video =
+    if video then Frame_content.Video.lift_params []
+    else Frame_content.None.params
+  in
   log#info "ffmpeg recognizes %S as: %s." url
     (String.concat ", " (List.rev descr));
-  { Frame.audio; video; midi = 0 }
+  { Frame.audio; video; midi = Frame_content.None.params }
 
 let get_file_type filename =
   let container = Av.open_input filename in

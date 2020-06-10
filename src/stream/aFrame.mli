@@ -54,8 +54,12 @@ val set_all_metadata : t -> (int * metadata) list -> unit
 
 (** {2 Helpers} *)
 
-(** Get audio contents *)
-val content : t -> Frame.audio_t array
+(** Get audio contents. Raises [Not_found] if frame has no audio data. *)
+val content : t -> Frame_content.data
+
+(** Get PCM content. Raises [Frame_content.Invalid] 
+  * if frame content is not pcm. *)
+val pcm : t -> Frame_content.Audio.data
 
 (** Same as [content] with [offset=0], converted to s16le. *)
 val to_s16le : t -> string

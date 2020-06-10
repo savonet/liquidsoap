@@ -61,8 +61,6 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   object (self)
     inherit operator ~name:"pitch" kind [source]
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable ring = None
 
     method ring : Ringbuffer.t =
@@ -93,7 +91,7 @@ class pitch ~kind every length freq_min freq_max (source : source) =
 
     method private get_frame buf =
       source#get buf;
-      let buf = AFrame.content buf in
+      let buf = AFrame.pcm buf in
       let ring = self#ring in
       let databuf = self#databuf in
       Ringbuffer.write ring buf;

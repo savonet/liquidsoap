@@ -126,7 +126,7 @@ module Register (Fdkaac : Fdkaac_t) = struct
     let n = Utils.pagesize in
     let buf = Strings.Mutable.empty () in
     let encode frame start len =
-      let b = AFrame.content frame in
+      let b = AFrame.pcm frame in
       let len = Frame.audio_of_master len in
       let b, start, len =
         if src_freq <> dst_freq then (

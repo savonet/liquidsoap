@@ -122,7 +122,12 @@ let file_type filename =
       in
       log#info "Libflac recognizes %S as FLAC (%dHz,%d channels)." filename rate
         channels;
-      Some { Frame.audio = channels; video = 0; midi = 0 })
+      Some
+        {
+          Frame.audio = Frame_content.Audio.params_of_channels channels;
+          video = Frame_content.None.params;
+          midi = Frame_content.None.params;
+        })
 
 let file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype create_decoder

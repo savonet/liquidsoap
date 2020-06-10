@@ -58,7 +58,7 @@ class dyn ~kind f =
              match l with
                | [] -> ()
                | [s] ->
-                   Source.Kind.unify s#kind_var self#kind_var;
+                   Source.Kind.unify s#kind self#kind;
                    Clock.unify s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;

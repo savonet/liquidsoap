@@ -32,8 +32,6 @@ class vumeter ~kind source =
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method is_ready = source#is_ready
@@ -88,7 +86,7 @@ class vumeter ~kind source =
         AFrame.position buf
       in
       if offset < end_pos then (
-        let content = AFrame.content buf in
+        let content = AFrame.pcm buf in
         for i = offset to AFrame.position buf - 1 do
           self#add_vol
             (Array.map
@@ -125,7 +123,7 @@ class vumeter ~kind source =
 
 let () =
   let kind = Lang.any_with ~audio:1 () in
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "visu.volume"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.Visualization

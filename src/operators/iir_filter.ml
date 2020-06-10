@@ -32,8 +32,6 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   object (self)
     inherit operator ~name:"iir_filter" kind [source]
 
-    method private channels = self#ctype.Frame.audio
-
     (* Params *)
     val raw_alpha1 = freq1 /. rate
 
@@ -429,7 +427,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let v_len = Array.length xv.(0) in
       let coeffs_len = Array.length xcoeffs in
       let fold_left2 init v coeffs l =

@@ -1,5 +1,4 @@
 (*****************************************************************************
-
   Liquidsoap, a programmable audio stream generator.
   Copyright 2003-2019 Savonet team
 
@@ -104,40 +103,45 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
             s#get buffer;
             let already = Frame.position buffer in
             let c = w /. weight in
-            if c <> 1. && renorm then
-              Audio.amplify c
-                (Audio.sub (Frame.audio buffer)
-                   (Frame.audio_of_master offset)
-                   (Frame.audio_of_master (already - offset)));
+            if c <> 1. && renorm then (
+              try
+                Audio.amplify c
+                  (Audio.sub (AFrame.pcm buffer)
+                     (Frame.audio_of_master offset)
+                     (Frame.audio_of_master (already - offset)))
+              with Frame_content.Invalid -> () );
             if rank > 0 then (
               (* The region grows, make sure it is clean before adding.
                * TODO the same should be done for video. *)
-              if already > end_offset then
-                Audio.clear
-                  (Audio.sub (Frame.audio buf)
-                     (Frame.audio_of_master end_offset)
-                     (Frame.audio_of_master (already - end_offset)));
+              ( try
+                  if already > end_offset then
+                    Audio.clear
+                      (Audio.sub (AFrame.pcm buf)
+                         (Frame.audio_of_master end_offset)
+                         (Frame.audio_of_master (already - end_offset)));
 
-              (* Add to the main buffer. *)
-              Audio.add
-                (Audio.sub (Frame.audio buf) offset (already - offset))
-                (Audio.sub (Frame.audio tmp) offset (already - offset));
-              let vbuf = Frame.video buf in
-              let vtmp = Frame.video tmp in
-              let ( ! ) = Frame.video_of_master in
-              for c = 0 to Array.length vbuf - 1 do
+                  (* Add to the main buffer. *)
+                  Audio.add
+                    (Audio.sub (AFrame.pcm buf) offset (already - offset))
+                    (Audio.sub (AFrame.pcm tmp) offset (already - offset))
+                with Frame_content.Invalid -> () );
+
+              try
+                let vbuf = VFrame.yuv420p buf in
+                let vtmp = VFrame.yuv420p tmp in
+                let ( ! ) = Frame.video_of_master in
                 for i = !offset to !already - 1 do
-                  video_loop rank (Video.get vbuf.(c) i) (Video.get vtmp.(c) i)
+                  video_loop rank (Video.get vbuf i) (Video.get vtmp i)
                 done
-              done )
+              with Frame_content.Invalid -> () )
             else (
-              let vbuf = Frame.video buf in
-              let ( ! ) = Frame.video_of_master in
-              for c = 0 to Array.length vbuf - 1 do
+              try
+                let vbuf = VFrame.yuv420p buf in
+                let ( ! ) = Frame.video_of_master in
                 for i = !offset to !already - 1 do
-                  video_init (Video.get vbuf.(c) i)
+                  video_init (Video.get vbuf i)
                 done
-              done );
+              with Frame_content.Invalid -> () );
             (rank + 1, max end_offset already))
           (0, offset) sources
       in
@@ -150,14 +154,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
   end
 
 let () =
-  (* TODO: add on midi chans also. *)
-  let kind =
-    {
-      Frame.audio = Lang.At_least 0;
-      video = Lang.At_least 0;
-      midi = Lang.Fixed 0;
-    }
-  in
+  let kind = Lang.audio_video_internal in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "add" ~category:Lang.SoundProcessing
     ~descr:
@@ -214,7 +211,7 @@ let tile_pos n =
   horiz (n / 2) (n - (n / 2))
 
 let () =
-  let kind = Lang.any_with ~video:1 () in
+  let kind = Lang.video_yuv420p in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.tile" ~category:Lang.VideoProcessing
     ~descr:"Tile sources (same as add but produces tiles of videos)."

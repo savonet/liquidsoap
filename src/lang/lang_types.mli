@@ -31,12 +31,19 @@ val print_pos_list : ?prefix:string -> pos list -> string
 
 type variance = Covariant | Contravariant | Invariant
 type ground = ..
-type ground += Bool | Int | String | Float | Request
+
+type ground +=
+  | Bool
+  | Int
+  | String
+  | Float
+  | Request
+  | Kind of Frame_content.params
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
 
-type constr = Num | Ord | Getter of ground | Dtools
+type constr = Num | Ord | Getter of ground | Dtools | InternalMedia
 type constraints = constr list
 
 val print_constr : constr -> string
@@ -52,8 +59,6 @@ and descr =
   | Tuple of t list
   | Nullable of t
   | Meth of string * scheme * t
-  | Zero
-  | Succ of t
   | Arrow of (bool * string * t) list * t
   | EVar of var
   | Link of t

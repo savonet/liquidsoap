@@ -197,8 +197,6 @@ module AdaptativeBuffer = struct
     object (self)
       inherit Source.source kind ~name:"buffer.adaptative_producer"
 
-      method private channels = self#ctype.Frame.audio
-
       method stype = Source.Fallible
 
       method self_sync = false
@@ -266,7 +264,7 @@ module AdaptativeBuffer = struct
             let len = Lazy.force Frame.size - ofs in
             let aofs = Frame.audio_of_master ofs in
             let alen = Frame.audio_of_master len in
-            let buf = AFrame.content frame in
+            let buf = AFrame.pcm frame in
             let salen = scale alen in
             fill buf aofs alen salen;
             Frame.add_break frame (ofs + len);
@@ -294,13 +292,11 @@ module AdaptativeBuffer = struct
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     ~kind source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
-    object (self)
+    object
       inherit
         Output.output
           ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
             ~on_stop source_val autostart
-
-      method private channels = self#ctype.Frame.audio
 
       method output_reset = ()
 
@@ -316,7 +312,7 @@ module AdaptativeBuffer = struct
               c.abort <- false;
               source#abort_track );
             let len = AFrame.position frame in
-            let buf = AFrame.content frame in
+            let buf = AFrame.pcm frame in
             if RB.write_space c.rb < len then (
               (* Not enough write space, let's drop some data. *)
               let n = len - RB.write_space c.rb in
@@ -351,7 +347,7 @@ module AdaptativeBuffer = struct
 end
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "buffer.adaptative"
     ( Output.proto

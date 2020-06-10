@@ -42,7 +42,7 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
     let data = converter (Bytes.sub_string buf 0 ret) in
     let len = Audio.length data in
     let buffered = Generator.length abg in
-    Generator.put_audio abg data 0 len;
+    Generator.put_audio abg (Frame_content.Audio.lift_data data) 0 len;
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue
@@ -86,7 +86,7 @@ let proto =
   ]
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.rawaudio" ~category:Lang.Input
     ~descr:"Stream raw PCM data from an external application."
@@ -100,8 +100,16 @@ let () =
       let command = Lang.to_string (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
-      let channels = Lang.to_int (List.assoc "channels" p) in
-      let kind = { kind with Frame.audio = Lang.Fixed channels } in
+      let channels_v = List.assoc "channels" p in
+      let channels = Lang.to_int channels_v in
+      let channel_layout =
+        try Audio_converter.Channel_layout.layout_of_channels channels
+        with _ ->
+          raise
+            (Lang_errors.Invalid_value
+               (channels_v, "unsupported number of channels"))
+      in
+      let kind = Lang.audio_params [channel_layout] in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
       let resampler = Decoder_utils.samplerate_converter () in
       let convert =
@@ -117,7 +125,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.wav" ~category:Lang.Input
     ~descr:"Stream WAV data from an external application." proto ~return_t

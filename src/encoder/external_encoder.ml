@@ -112,7 +112,7 @@ let encoder id ext =
           ~samplerate:(Lazy.force ext.samplerate)
           ~converter frame start len
       else (
-        let b = AFrame.content frame in
+        let b = AFrame.pcm frame in
         let len = Frame.audio_of_master len in
         (* Resample if needed. *)
         let b, start, len =

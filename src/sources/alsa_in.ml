@@ -36,11 +36,9 @@ class mic ~kind ~clock_safe device =
   object (self)
     inherit active_source ~name:"input.alsa" kind as active_source
 
-    inherit [Frame.audio_t array] IoRing.input ~nb_blocks as ioring
+    inherit [Frame_content.Audio.data] IoRing.input ~nb_blocks as ioring
 
     val mutable initialized = false
-
-    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       active_source#set_clock;
@@ -71,7 +69,7 @@ class mic ~kind ~clock_safe device =
     val mutable sample_freq = Lazy.force Frame.audio_rate
 
     val mutable read_fun =
-      fun pcm (buf : Frame.audio_t array) ofs len ->
+      fun pcm (buf : Frame_content.Audio.data) ofs len ->
         Pcm.readn_float_ba pcm (Audio.sub buf ofs len)
 
     val mutable device = None
@@ -147,7 +145,7 @@ class mic ~kind ~clock_safe device =
     method get_frame buf =
       assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
-      let fbuf = AFrame.content buf in
+      let fbuf = AFrame.pcm buf in
       for c = 0 to Array.length fbuf - 1 do
         Audio.Mono.blit
           (Audio.Mono.sub buffer.(c) 0 buffer_length)

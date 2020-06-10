@@ -38,7 +38,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.alsa" source start as super
 
-    inherit [Frame.audio_t array] IoRing.output ~nb_blocks as ioring
+    inherit [Frame_content.Audio.data] IoRing.output ~nb_blocks as ioring
 
     val mutable initialized = false
 
@@ -46,8 +46,6 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
       super#wake_up a;
       let blank () = Audio.make self#channels buffer_length 0. in
       ioring#init blank
-
-    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -150,7 +148,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         else raise e
 
     method output_send buf =
-      let buf = AFrame.content buf in
+      let buf = AFrame.pcm buf in
       let ratio = float alsa_rate /. float samples_per_second in
       let buf =
         Audio_converter.Samplerate.resample self#samplerate_converter ratio buf

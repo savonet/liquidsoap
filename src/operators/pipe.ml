@@ -59,8 +59,6 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable samplesize = 16
 
     val mutable samplerate = Frame.audio_of_seconds 1.
@@ -98,7 +96,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let data = resampler ~samplerate data in
         let len = Audio.length data in
         let buffered = Generator.length abg in
-        Generator.put_audio abg data 0 len;
+        Generator.put_audio abg (Frame_content.Audio.lift_data data) 0 len;
         let to_replay =
           Tutils.mutexify mutex
             (fun () ->
@@ -149,7 +147,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let tmp = Frame.create self#ctype in
         source#get tmp;
         self#slave_tick;
-        let buf = AFrame.content tmp in
+        let buf = AFrame.pcm tmp in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in
@@ -277,7 +275,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   end
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "pipe"
     [

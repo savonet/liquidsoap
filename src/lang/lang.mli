@@ -154,38 +154,26 @@ val string_of_category : category -> string
 (** Get a string representation of a [doc_flag]. *)
 val string_of_flag : doc_flag -> string
 
-(** Description of how many channels of given type an operator requires. *)
-type lang_kind_format = Source.Kind.format =
-  | Fixed of int  (** exactly [n] channels *)
-  | At_least of int  (** a fixed number of channels which is at least [n] *)
+val empty : Frame.content_kind
+val any : Frame.content_kind
+val audio_video_internal : Frame.content_kind
 
-(** Description of all the channels an operator requires. *)
-type lang_kind_formats = Source.Kind.formats
+(* Audio (PCM format) *)
+val audio_pcm : Frame.content_kind
+val audio_params : Frame_content.Audio.param list -> Frame.content_kind
+val audio_n : int -> Frame.content_kind
+val audio_mono : Frame.content_kind
+val audio_stereo : Frame.content_kind
 
-val any : lang_kind_formats
+(* Video *)
+val video_yuv420p : Frame.content_kind
 
-val any_with :
-  ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_formats
+(* Midi *)
+val midi : Frame.content_kind
+val midi_n : int -> Frame.content_kind
 
-val empty : lang_kind_formats
-val audio_any : lang_kind_formats
-val audio_mono : lang_kind_formats
-val audio_stereo : lang_kind_formats
-val audio_n : int -> lang_kind_formats
-
-(** One video channel only. *)
-val video_only : lang_kind_formats
-
-(** [n] video channels only. *)
-val video_n : int -> lang_kind_formats
-
-(** One video channel, anything for other channels. *)
-val video : lang_kind_formats
-
-val midi_n : int -> lang_kind_formats
-val midi_only : lang_kind_formats
-val audio_video_any : lang_kind_formats
-val kind_type_of_kind_format : lang_kind_formats -> t
+(* Conversion to format *)
+val kind_type_of_kind_format : Frame.content_kind -> t
 
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
@@ -245,17 +233,14 @@ val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
-val zero_t : t
-val succ_t : t -> t
-val n_t : int -> t
-val add_t : int -> t -> t
-val type_of_int : int -> t
 val request_t : t
 val source_t : t -> t
 val of_source_t : t -> t
 val format_t : t -> t
+val kind_t : Frame.kind -> t
+val kind_none_t : t
 val frame_kind_t : audio:t -> video:t -> midi:t -> t
-val of_frame_kind_t : t -> (t, t, t) Frame.fields
+val of_frame_kind_t : t -> t Frame.fields
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].

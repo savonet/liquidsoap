@@ -41,7 +41,7 @@ class pan ~kind (source : source) phi phi_0 =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let buffer = AFrame.content buf in
+      let buffer = AFrame.pcm buf in
       (* Degrees to radians + half field. *)
       let phi_0 = phi_0 () *. Utils.pi /. 360. in
       (* Map -1 / 1 to radians. *)

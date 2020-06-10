@@ -186,8 +186,6 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable started = false
 
     method self_sync = started
@@ -274,11 +272,10 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       let el = self#get_element in
       try
         if not (Frame.is_partial frame) then (
-          let content = frame.Frame.content in
           let len = Lazy.force Frame.size in
           let duration = Gstreamer_utils.time_of_master len in
           if has_audio then (
-            let pcm = content.Frame.audio in
+            let pcm = AFrame.pcm frame in
             assert (Array.length pcm = self#channels);
             let len = Frame.audio_of_master len in
             let data = Bytes.create (2 * self#channels * len) in
@@ -286,7 +283,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
               (Utils.get_some el.audio) data 0 (Bytes.length data) );
           if has_video then (
-            let buf = content.Frame.video.(0) in
+            let buf = VFrame.yuv420p frame in
             for i = 0 to Video.length buf - 1 do
               let img = Video.get buf i in
               let y, u, v = Image.YUV420.data img in
@@ -339,7 +336,7 @@ let () =
   Lang.add_module "input.gstreamer"
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any } in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio" ~active:true
     (output_proto ~return_t ~pipeline:"autoaudiosink")
@@ -369,7 +366,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.any_with ~video:1 () in
+  let kind = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any } in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.video" ~active:true
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
@@ -399,7 +396,9 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.any_with ~audio:1 ~video:1 () in
+  let kind =
+    { Frame.audio = Frame.audio_pcm; video = Frame.video_yuv420p; midi = `Any }
+  in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio_video" ~active:true
     ( output_proto ~return_t ~pipeline:""
@@ -501,8 +500,6 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       ~descr:"Restart gstreamer pipeline state to paused" (fun _ ->
         self#restart;
         "Done. Task will complete asynchronously.")
-
-    method private channels = self#ctype.Frame.audio
 
     method stype = Source.Fallible
 
@@ -616,7 +613,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         let len = String.length b / (2 * self#channels) in
         let buf = Audio.create self#channels len in
         Audio.S16LE.to_audio b 0 (Audio.sub buf 0 len);
-        Generator.put_audio gen buf 0 len
+        Generator.put_audio gen (Frame_content.Audio.lift_data buf) 0 len
       done
 
     method private fill_video video =
@@ -627,7 +624,9 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
             (Image.Data.round 4 (width / 2))
         in
         let stream = Video.single img in
-        Generator.put_video gen [| stream |] 0 (Video.length stream)
+        Generator.put_video gen
+          (Frame_content.Video.lift_data stream)
+          0 (Video.length stream)
       done
 
     method get_frame frame =
@@ -685,9 +684,9 @@ let input_proto =
 let () =
   let kind =
     {
-      Frame.audio (* TODO: be more flexible on audio *) = Lang.Fixed 2;
-      video = Lang.Fixed 1;
-      midi = Lang.Fixed 0;
+      Frame.audio (* TODO: be more flexible on audio *) = Frame.audio_stereo;
+      video = Frame.video_yuv420p;
+      midi = `None;
     }
   in
   let return_t = Lang.kind_type_of_kind_format kind in
@@ -724,7 +723,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   let proto =
     input_proto
@@ -742,7 +741,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.video_n 1 in
+  let kind = Lang.video_yuv420p in
   let return_t = Lang.kind_type_of_kind_format kind in
   let proto =
     input_proto

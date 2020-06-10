@@ -18,41 +18,47 @@ let () =
     channel_layout_converter
 
 let () =
+  let none = Frame_content.None.params in
+  let mono = Frame_content.Audio.lift_params [`Mono] in
+  let stereo = Frame_content.Audio.lift_params [`Stereo] in
+  let five_point_one = Frame_content.Audio.lift_params [`Five_point_one] in
+  let yuv420p = Frame_content.Video.lift_params [] in
+  let midi = Frame_content.Midi.lift_params [`Channels 1] in
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 0; midi = 0 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = stereo; video = none; midi = none }
+      { audio = stereo; video = none; midi = none } );
   assert (
     Decoder.can_decode_type
-      { audio = 1; video = 0; midi = 0 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = mono; video = none; midi = none }
+      { audio = stereo; video = none; midi = none } );
   assert (
     Decoder.can_decode_type
-      { audio = 6; video = 0; midi = 0 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = five_point_one; video = none; midi = none }
+      { audio = stereo; video = none; midi = none } );
   assert (
     not
       (Decoder.can_decode_type
-         { audio = 1; video = 0; midi = 0 }
-         { audio = 2; video = 1; midi = 0 }) );
+         { audio = mono; video = none; midi = none }
+         { audio = stereo; video = yuv420p; midi = none }) );
   assert (
     Decoder.can_decode_type
-      { audio = 1; video = 1; midi = 0 }
-      { audio = 2; video = 1; midi = 0 } );
+      { audio = mono; video = yuv420p; midi = none }
+      { audio = stereo; video = yuv420p; midi = none } );
   assert (
     not
       (Decoder.can_decode_type
-         { audio = 1; video = 0; midi = 0 }
-         { audio = 2; video = 0; midi = 1 }) );
+         { audio = mono; video = none; midi = none }
+         { audio = stereo; video = none; midi }) );
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 1; midi = 1 }
-      { audio = 2; video = 0; midi = 0 } );
+      { audio = stereo; video = yuv420p; midi }
+      { audio = stereo; video = none; midi = none } );
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 1; midi = 1 }
-      { audio = 2; video = 1; midi = 1 } );
+      { audio = stereo; video = yuv420p; midi }
+      { audio = stereo; video = yuv420p; midi } );
   assert (
     Decoder.can_decode_type
-      { audio = 2; video = 1; midi = 0 }
-      { audio = 0; video = 1; midi = 0 } )
+      { audio = stereo; video = yuv420p; midi = none }
+      { audio = none; video = yuv420p; midi = none } )

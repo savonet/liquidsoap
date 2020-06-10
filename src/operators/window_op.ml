@@ -31,8 +31,6 @@ class window ~kind mode duration source =
         kind [source]
         ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method is_ready = source#is_ready
@@ -71,7 +69,7 @@ class window ~kind mode duration source =
       if duration > 0. then (
         let duration = Frame.audio_of_seconds duration in
         let position = AFrame.position buf in
-        let buf = AFrame.content buf in
+        let buf = AFrame.pcm buf in
         for i = offset to position - 1 do
           for c = 0 to self#channels - 1 do
             let x = buf.(c).{i} in
@@ -147,13 +145,8 @@ let () =
   let stereo value =
     Lang.product (Lang.float value.(0)) (Lang.float value.(1))
   in
+  let kind = { Frame.audio = Frame.audio_stereo; video = `Any; midi = `Any } in
   declare RMS "" Lang.any Lang.float_t mean;
-  declare RMS ".stereo"
-    (Lang.any_with ~audio:2 ())
-    (Lang.product_t Lang.float_t Lang.float_t)
-    stereo;
+  declare RMS ".stereo" kind (Lang.product_t Lang.float_t Lang.float_t) stereo;
   declare Peak "" Lang.any Lang.float_t mean;
-  declare Peak ".stereo"
-    (Lang.any_with ~audio:2 ())
-    (Lang.product_t Lang.float_t Lang.float_t)
-    stereo
+  declare Peak ".stereo" kind (Lang.product_t Lang.float_t Lang.float_t) stereo

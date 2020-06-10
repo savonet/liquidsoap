@@ -63,8 +63,6 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
           ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source
           start as super
 
-    method private channels = self#ctype.Frame.audio
-
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -101,7 +99,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
 
     method output_send memo =
       let stream = Utils.get_some stream in
-      let buf = AFrame.content memo in
+      let buf = AFrame.pcm memo in
       self#handle "write_stream" (fun () ->
           let len = Audio.length buf in
           (* TODO: non-interleaved format does not seem to be supported here *)
@@ -125,8 +123,6 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
       Start_stop.input
         ~content_kind:kind ~source_kind:"portaudio" ~name:"portaudio_in"
           ~on_start ~on_stop ~fallible ~autostart:start as super
-
-    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -162,7 +158,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
     method input frame =
       assert (0 = AFrame.position frame);
       let stream = Utils.get_some stream in
-      let buf = AFrame.content frame in
+      let buf = AFrame.pcm frame in
       self#handle "read_stream" (fun () ->
           let len = Audio.length buf in
           let ibuf =
@@ -183,7 +179,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.portaudio" ~active:true
     ( Output.proto

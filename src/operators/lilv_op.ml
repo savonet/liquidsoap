@@ -97,7 +97,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let chans = Array.length b in
       let position = AFrame.position buf in
       let len = position - offset in
@@ -122,10 +122,6 @@ class lilv ~kind (source : source) plugin inputs outputs params =
 
     method self_sync = source#self_sync
 
-    method set_kind =
-      Source.Kind.unify self#kind_var
-        (Source.Kind.set_audio source#kind_var (Array.length outputs))
-
     val inst =
       Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
 
@@ -134,7 +130,7 @@ class lilv ~kind (source : source) plugin inputs outputs params =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let len = position - offset in
       List.iter
@@ -157,7 +153,7 @@ class lilv ~kind (source : source) plugin inputs outputs params =
         Plugin.Instance.run inst len )
       else (
         (* We have to change channels. *)
-        let d = AFrame.content buf in
+        let d = AFrame.pcm buf in
         for c = 0 to Array.length b - 1 do
           Plugin.Instance.connect_port_float inst inputs.(c)
             (Audio.Mono.sub b.(c) offset len)
@@ -188,7 +184,7 @@ class lilv_nosource ~kind plugin outputs params =
         must_fail <- false )
       else (
         let offset = AFrame.position buf in
-        let b = AFrame.content buf in
+        let b = AFrame.pcm buf in
         let chans = Array.length b in
         let position = AFrame.size () in
         let len = position - offset in
@@ -217,7 +213,7 @@ class lilv_noout ~kind source plugin inputs params =
 
     method private get_frame buf =
       let offset = AFrame.position buf in
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let chans = Array.length b in
       let position = AFrame.size () in
       let len = position - offset in
@@ -314,11 +310,8 @@ let register_plugin plugin =
   let inputs, outputs = get_audio_ports plugin in
   let ni = Array.length inputs in
   let no = Array.length outputs in
-  let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_plugin plugin in
-  let input_kind =
-    if mono then Lang.any else { Lang.any with Frame.audio = Lang.Fixed ni }
-  in
+  let input_kind = Lang.audio_n ni in
   let input_t = Lang.kind_type_of_kind_format input_kind in
   let liq_params =
     liq_params
@@ -339,11 +332,8 @@ let register_plugin plugin =
   in
   let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
   let return_t =
-    if mono then input_t
-    else if ni = 0 then Lang.kind_type_of_kind_format (Lang.audio_n no)
-    else (
-      let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
-      Lang.frame_kind_t ~audio:(Lang.n_t no) ~video ~midi )
+    let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
+    Lang.frame_kind_t ~audio:(Lang.n_t no) ~video ~midi
   in
   Lang.add_operator
     ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))

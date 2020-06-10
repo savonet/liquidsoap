@@ -45,7 +45,7 @@ class merge ~kind (source : source) out =
 
     method private get_frame buf =
       source#get buf;
-      let m = MFrame.content buf in
+      let m = MFrame.midi buf in
       for c = 0 to Array.length m - 1 do
         MIDI.merge m.(out) m.(c);
         if c <> out then MIDI.clear_all m.(c)
@@ -58,12 +58,12 @@ class remove ~kind (source : source) t =
 
     method private get_frame buf =
       source#get buf;
-      let m = MFrame.content buf in
+      let m = MFrame.midi buf in
       List.iter (fun c -> if c < Array.length m then MIDI.clear_all m.(c)) t
   end
 
 let () =
-  let kind = Lang.any_with ~midi:1 () in
+  let kind = { Frame.audio = `Any; video = `Any; midi = Frame.midi_native } in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "midi.merge_all"
     [
@@ -79,7 +79,7 @@ let () =
       new merge ~kind src out)
 
 let () =
-  let kind = Lang.any_with ~midi:1 () in
+  let kind = { Frame.audio = `Any; video = `Any; midi = Frame.midi_native } in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "midi.remove"
     [

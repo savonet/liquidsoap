@@ -34,8 +34,6 @@ class visu ~kind source =
   object (self)
     inherit operator ~name:"video.volume" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method is_ready = source#is_ready
@@ -84,12 +82,20 @@ class visu ~kind source =
        * not even be a content layer of the right type to look at. *)
       if len > 0 then (
         (* Add a video channel to the frame contents. *)
-        let vFrame = Frame.(create { audio = 0; video = 1; midi = 0 }) in
+        let vFrame =
+          Frame.(
+            create
+              {
+                audio = Frame_content.None.params;
+                video = Frame_content.Video.lift_params [];
+                midi = Frame_content.None.params;
+              })
+        in
         Frame.(
           frame.content <- { frame.content with video = vFrame.content.video });
 
         (* Feed the volume buffer. *)
-        let acontent = AFrame.content frame in
+        let acontent = AFrame.pcm frame in
         for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
           self#add_vol
             (Array.map
@@ -102,7 +108,7 @@ class visu ~kind source =
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float self#channels in
-        let buf = Frame.(frame.content.video.(0)) in
+        let buf = VFrame.yuv420p frame in
         let start = Frame.video_of_master offset in
         let stop = start + Frame.video_of_master len in
         let line img c p q =
@@ -150,7 +156,7 @@ class visu ~kind source =
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 ~video:1 () in
+  let kind = Lang.audio_mono in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]

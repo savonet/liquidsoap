@@ -89,7 +89,8 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
-      if self#ctype.Frame.audio = 0 then Generator.set_mode abg `Video;
+      if self#ctype.Frame.audio = Frame_content.None.params then
+        Generator.set_mode abg `Video;
       Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."
         ( match Generator.mode abg with
@@ -104,7 +105,9 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
 let log = Log.make ["input"; "external"; "video"]
 
 let () =
-  let kind = Lang.audio_video_any in
+  let kind =
+    { Frame.audio = Frame.audio_pcm; video = Frame.video_yuv420p; midi = `None }
+  in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.avi" ~category:Lang.Input
     ~flags:[Lang.Experimental]
@@ -221,18 +224,15 @@ let () =
                      (String.length data)
                      (width * height * 3));
               let data = (Option.get !video_converter) data in
-              Generator.put_video abg [| Video.single data |] 0 1
+              Generator.put_video abg
+                (Frame_content.Video.lift_data (Video.single data))
+                0 1
           | `Frame (`Audio, _, data) ->
               let converter = Utils.get_some !audio_converter in
               let data = converter data in
-              (*
-              if kind.Frame.audio = Frame.Zero then
-                log#info
-                  "Received audio data whereas the type indicates that there \
-                   are no audio channels, ingoring it."
-              else
-              *)
-              Generator.put_audio abg data 0 (Audio.length data)
+              Generator.put_audio abg
+                (Frame_content.Audio.lift_data data)
+                0 (Audio.length data)
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -248,7 +248,7 @@ let () =
 (***** raw video *****)
 
 let () =
-  let kind = Lang.video_only in
+  let kind = Lang.video_yuv420p in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
     ~flags:[Lang.Experimental]
@@ -292,7 +292,9 @@ let () =
         in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
-        Generator.put_video abg [| Video.single data |] 0 1
+        Generator.put_video abg
+          (Frame_content.Video.lift_data (Video.single data))
+          0 1
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

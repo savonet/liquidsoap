@@ -20,6 +20,10 @@ val set_metadata : t -> int -> metadata -> unit
 val get_metadata : t -> int -> metadata option
 val get_all_metadata : t -> (int * metadata) list
 
-(** Get the MIDI tracks at a given position, assuming that the frame
-  * already contains only MIDI starting at this point. *)
-val content : t -> Frame.midi_t array
+(** Get the MIDI content. Raises [Not_found] if frame has
+    no midi content. *)
+val content : t -> Frame_content.data
+
+(** Get the MIDI content in [Midi] format. Raises [Frame_content.Invalid]
+  * if content is not [Midi] and [Not_found] if frame has no midi content. *)
+val midi : t -> Frame_content.Midi.data

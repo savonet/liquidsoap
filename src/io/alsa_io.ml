@@ -37,9 +37,7 @@ class virtual base dev mode =
   object (self)
     method virtual log : Log.t
 
-    method virtual ctype : Frame.content_type
-
-    method private channels = self#ctype.Frame.audio
+    method virtual channels : int
 
     val mutable alsa_rate = -1
 
@@ -182,8 +180,6 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
 
     inherit base dev [Pcm.Playback]
 
-    method private channels = self#ctype.Frame.audio
-
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -206,7 +202,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
 
     method output_send memo =
       let pcm = Utils.get_some pcm in
-      let buf = AFrame.content memo in
+      let buf = AFrame.pcm memo in
       let buf =
         if alsa_rate = samples_per_second then buf
         else
@@ -264,7 +260,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     (* TODO: convert samplerate *)
     method private input frame =
       let pcm = Utils.get_some pcm in
-      let buf = AFrame.content frame in
+      let buf = AFrame.pcm frame in
       try
         let r = ref 0 in
         while !r < samples_per_frame do
@@ -292,7 +288,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.alsa" ~active:true
     ( Output.proto
@@ -341,7 +337,7 @@ let () =
           :> Source.source ))
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.alsa" ~active:true
     ( Start_stop.input_proto

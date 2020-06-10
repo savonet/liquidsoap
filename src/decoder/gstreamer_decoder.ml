@@ -139,7 +139,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       let img = Image.YUV420.make_data width height buf y_stride uv_stride in
       let stream = Video.single img in
       let fps = { Decoder.num = Lazy.force Frame.video_rate; den = 1 } in
-      buffer.Decoder.put_video ~fps [| stream |] );
+      buffer.Decoder.put_video ~fps stream );
     GU.flush ~log gst.bin
   in
   let seek off =
@@ -188,14 +188,18 @@ let priority =
     ~p:(Decoder.conf_priorities#plug "gstreamer")
     "Priority for the GStreamer decoder" ~d:0
 
+let channels { Frame.audio } =
+  if audio = Frame_content.None.params then 0
+  else Frame_content.Audio.channels_of_params audio
+
 let create_file_decoder filename content_type ctype =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
-      | 0, _ -> `Audio
-      | _, 0 -> `Video
+      | video, _ when video = Frame_content.None.params -> `Audio
+      | _, audio when audio = Frame_content.None.params -> `Video
       | _, _ -> `Both
   in
-  let channels = content_type.Frame.audio in
+  let channels = channels content_type in
   let decoder, close, bin =
     create_decoder ~channels ~merge_tracks:true ~mode `File filename
   in
@@ -260,10 +264,20 @@ let get_type ~channels filename =
           else 0)
     with Gstreamer.Failed -> 0
   in
-  { Frame.video; audio; midi = 0 }
+  let audio =
+    if audio = 0 then Frame_content.None.params
+    else
+      Frame_content.Audio.lift_params
+        [Audio_converter.Channel_layout.layout_of_channels audio]
+  in
+  let video =
+    if video = 0 then Frame_content.None.params
+    else Frame_content.Video.lift_params []
+  in
+  { Frame.video; audio; midi = Frame_content.None.params }
 
 let file_decoder ~metadata:_ ~ctype filename =
-  let channels = ctype.Frame.audio in
+  let channels = channels ctype in
   let content_type = get_type ~channels filename in
   create_file_decoder filename content_type ctype
 

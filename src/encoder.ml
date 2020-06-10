@@ -34,66 +34,52 @@ type format =
   | External of External_encoder_format.t
   | GStreamer of Gstreamer_format.t
 
+let audio_kind n =
+  let audio =
+    if n = 0 then `None
+    else
+      `Params
+        (Frame_content.Audio.lift_params
+           [Audio_converter.Channel_layout.layout_of_channels n])
+  in
+  { Frame.audio; video = `None; midi = `None }
+
+let audio_video_kind n =
+  {
+    (audio_kind n) with
+    Frame.video = `Params (Frame_content.Video.lift_params []);
+  }
+
 let kind_of_format = function
-  | WAV w ->
-      { Frame.audio = w.Wav_format.channels; Frame.video = 0; Frame.midi = 0 }
-  | AVI a ->
-      { Frame.audio = a.Avi_format.channels; Frame.video = 1; Frame.midi = 0 }
-  | MP3 m ->
-      {
-        Frame.audio = (if m.Mp3_format.stereo then 2 else 1);
-        Frame.video = 0;
-        Frame.midi = 0;
-      }
-  | Shine m ->
-      { Frame.audio = m.Shine_format.channels; Frame.video = 0; Frame.midi = 0 }
-  | Flac m ->
-      { Frame.audio = m.Flac_format.channels; Frame.video = 0; Frame.midi = 0 }
+  | WAV w -> audio_kind w.Wav_format.channels
+  | AVI a -> audio_video_kind a.Avi_format.channels
+  | MP3 m -> audio_kind (if m.Mp3_format.stereo then 2 else 1)
+  | Shine m -> audio_kind m.Shine_format.channels
+  | Flac m -> audio_kind m.Flac_format.channels
   | Ffmpeg m ->
       let channels = m.Ffmpeg_format.channels in
-      let video = if m.Ffmpeg_format.video_codec = None then 0 else 1 in
-      { Frame.audio = channels; video; midi = 0 }
-  | FdkAacEnc m ->
-      {
-        Frame.audio = m.Fdkaac_format.channels;
-        Frame.video = 0;
-        Frame.midi = 0;
-      }
-  | Ogg l ->
-      List.fold_left
-        (fun k -> function
-          | Ogg_format.Vorbis { Vorbis_format.channels = n; _ } ->
-              { k with Frame.audio = k.Frame.audio + n }
-          | Ogg_format.Opus { Opus_format.channels = n; _ } ->
-              { k with Frame.audio = k.Frame.audio + n }
-          | Ogg_format.Flac { Flac_format.channels = n; _ } ->
-              { k with Frame.audio = k.Frame.audio + n }
-          | Ogg_format.Theora _ -> { k with Frame.video = k.Frame.video + 1 }
-          | Ogg_format.Speex { Speex_format.stereo; _ } ->
-              let n = if stereo then 2 else 1 in
-              { k with Frame.audio = k.Frame.audio + n })
-        { Frame.audio = 0; Frame.video = 0; Frame.midi = 0 }
-        l
+      if m.Ffmpeg_format.video_codec = None then audio_kind channels
+      else audio_video_kind channels
+  | FdkAacEnc m -> audio_kind m.Fdkaac_format.channels
+  | Ogg { Ogg_format.audio; video } ->
+      let channels =
+        match audio with
+          | Some (Ogg_format.Vorbis { Vorbis_format.channels = n; _ })
+          | Some (Ogg_format.Opus { Opus_format.channels = n; _ })
+          | Some (Ogg_format.Flac { Flac_format.channels = n; _ }) ->
+              n
+          | Some (Ogg_format.Speex { Speex_format.stereo; _ }) ->
+              if stereo then 2 else 1
+          | None -> 0
+      in
+      if video = None then audio_kind channels else audio_video_kind channels
   | External e ->
-      {
-        Frame.audio = e.External_encoder_format.channels;
-        Frame.video = (if e.External_encoder_format.video then 1 else 0);
-        Frame.midi = 0;
-      }
-  | GStreamer e ->
-      {
-        Frame.audio = Gstreamer_format.audio_channels e;
-        Frame.video = Gstreamer_format.video_channels e;
-        Frame.midi = 0;
-      }
-
-let kind_of_format f =
-  let k = kind_of_format f in
-  {
-    Frame.audio = Frame.mul_of_int k.Frame.audio;
-    Frame.video = Frame.mul_of_int k.Frame.video;
-    Frame.midi = Frame.mul_of_int k.Frame.midi;
-  }
+      let channels = e.External_encoder_format.channels in
+      if e.External_encoder_format.video then audio_video_kind channels
+      else audio_kind channels
+  | GStreamer ({ Gstreamer_format.has_video } as gst) ->
+      let channels = Gstreamer_format.audio_channels gst in
+      if has_video then audio_video_kind channels else audio_kind channels
 
 let string_of_format = function
   | WAV w -> Wav_format.to_string w
@@ -120,11 +106,6 @@ let iso_base_file_media_file_format = function
         | `Mpeg_2 `AAC_LC -> "mp4a.67"
         | `Mpeg_2 `HE_AAC -> "mp4a.67" (* TODO: check this *)
         | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *) )
-  | Ogg [Ogg_format.Speex _] -> "speex"
-  | Ogg [Ogg_format.Vorbis _] -> "vorbis"
-  | Ogg [Ogg_format.Flac _] -> "flac"
-  | Ogg [Ogg_format.Theora _] -> "theora"
-  | Ogg [Ogg_format.Opus _] -> "opus"
   | _ -> raise Not_found
 
 (** Proposed extension for files. *)

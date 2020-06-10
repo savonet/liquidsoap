@@ -41,8 +41,6 @@ class comb ~kind (source : source) delay feedback =
 
     method abort_track = source#abort_track
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable past = Audio.make 0 0 0.
 
     method private wake_up s =
@@ -54,7 +52,7 @@ class comb ~kind (source : source) delay feedback =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let feedback = feedback () in
       for i = offset to position - 1 do

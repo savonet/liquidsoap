@@ -35,8 +35,6 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   object (self)
     inherit source ~name:"cross" kind as super
 
-    method private channels = float self#ctype.Frame.audio
-
     method stype = Source.Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
@@ -282,13 +280,12 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       in
       self#save_last_metadata `Before buf_frame;
       self#update_cross_length buf_frame start;
-      let content = buf_frame.Frame.content in
       Generator.feed gen_before
         ~metadata:(Frame.get_all_metadata buf_frame)
-        content start (stop - start);
+        buf_frame.Frame.content start (stop - start);
 
       (* Analyze them *)
-      let pcm = content.Frame.audio in
+      let pcm = AFrame.pcm buf_frame in
       for i = start to stop - 1 do
         let squares =
           Array.fold_left
@@ -318,13 +315,12 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
           source#get buf_frame;
           Frame.position buf_frame
         in
-        let content = buf_frame.Frame.content in
         Generator.feed gen_after
           ~metadata:(Frame.get_all_metadata buf_frame)
-          content start (stop - start);
+          buf_frame.Frame.content start (stop - start);
         let after_len = Generator.length gen_after in
         if after_len <= rms_width then (
-          let pcm = content.Frame.audio in
+          let pcm = AFrame.pcm buf_frame in
           for i = start to stop - 1 do
             let squares =
               Array.fold_left
@@ -347,11 +343,12 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     (* Sum up analysis and build the transition *)
     method private create_transition =
       let db_after =
-        Audio.dB_of_lin (sqrt (rms_after /. float rmsi_after /. self#channels))
+        Audio.dB_of_lin
+          (sqrt (rms_after /. float rmsi_after /. float self#channels))
       in
       let db_before =
         Audio.dB_of_lin
-          (sqrt (rms_before /. float rmsi_before /. self#channels))
+          (sqrt (rms_before /. float rmsi_before /. float self#channels))
       in
       let compound =
         Clock.collect_after (fun () ->
@@ -428,7 +425,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "cross"
     [

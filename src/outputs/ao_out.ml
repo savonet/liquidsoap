@@ -48,8 +48,6 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
       in
       ioring#init blank
 
-    method private channels = self#ctype.Frame.audio
-
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -93,7 +91,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
     method output_send wav =
       if not (Frame.is_partial wav) then (
         let push data =
-          let pcm = AFrame.content wav in
+          let pcm = AFrame.pcm wav in
           assert (Array.length pcm = self#channels);
           Audio.S16LE.of_audio pcm data 0
         in
@@ -103,7 +101,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao" ~active:true
     ( Output.proto
