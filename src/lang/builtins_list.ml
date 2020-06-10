@@ -42,10 +42,10 @@ let () =
         List.map
           (fun p ->
             let a, b = Lang.to_product p in
-            (Lang.to_string a, Lang.to_string b))
+            (a, Lang.to_string b))
           (Lang.to_list (Lang.assoc "" 1 p))
       in
-      let k = Lang.to_string (Lang.assoc "" 2 p) in
+      let k = Lang.assoc "" 2 p in
       Lang.string (try List.assoc k l with _ -> ""))
 
 let () =
