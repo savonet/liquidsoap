@@ -234,7 +234,7 @@ end
 # @param l List.
 def list.find(~default=maybe.nothing(), p, l)
   def rec aux(l)
-    list.case(l, {maybe.raise(default, "no default value for list.find")}, fun(x, l) -> if p(x) then x else aux(l) end)
+    list.dcase(l, {maybe.raise(default, "no default value for list.find")}, fun(x, l) -> if p(x) then x else aux(l) end)
   end
   aux(l)
 end
