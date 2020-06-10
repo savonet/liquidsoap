@@ -14,6 +14,7 @@ end
 def f() =
   t(list.hd(default=0,[]), 0)
   t(list.hd(default=0,[5,6]), 5)
+  t(error.catch({list.hd([])}, fun (_) -> 9), 9)
   t(list.tl([]), [])
   t(list.tl([4,5,6]), [5,6])
   t(list.nth(default=1,[4],5), 1)
