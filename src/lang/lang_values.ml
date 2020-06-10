@@ -30,6 +30,9 @@ exception Parse_error of (pos * string)
 (** Unsupported format *)
 exception Unsupported_format of (pos * Encoder.format)
 
+(** An error at runtime. *)
+exception Runtime_error of pos option * string
+
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
 
@@ -970,7 +973,9 @@ and apply f l =
       | V.FFI (p, pe, f) ->
           ( p,
             pe,
-            (fun pe -> f (List.rev pe)),
+            (fun pe ->
+              try f (List.rev pe)
+              with Runtime_error (None, e) -> raise (Runtime_error (pos, e))),
             fun p pe -> mk ~pos:pos_f (V.FFI (p, pe, f)) )
       | _ -> assert false
   in

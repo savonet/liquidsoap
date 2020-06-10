@@ -159,6 +159,11 @@ let report lexbuf f =
              dependency.@]@."
             (Encoder.string_of_format fmt);
           raise Error
+      | Lang_values.Runtime_error (pos, e) ->
+          let pos = T.print_pos_opt pos in
+          error_header 13 pos;
+          Format.printf "Uncaught runtime error:@ %s@]@." e;
+          raise Error
       | Sedlexing.MalFormed -> print_error 13 "Malformed file."
       | End_of_file -> raise End_of_file
       | e ->
