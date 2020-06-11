@@ -863,7 +863,10 @@ let rec eval ~env tm =
           let k = Source.Kind.of_formats k in
           match v with
             | V.Source s -> Source.Kind.unify s#kind_var k
-            | _ -> assert false )
+            | _ ->
+                failwith
+                  ( "Interal error at " ^ T.print_pos_opt tm.t.T.pos
+                  ^ ": term has type source but is not a source" ) )
       | _ -> () );
     { V.pos = tm.t.T.pos; V.value = v }
   in
@@ -878,7 +881,10 @@ let rec eval ~env tm =
           match t.V.value with
             | V.Meth (l', t, _) when l = l' -> t
             | V.Meth (_, _, t) -> aux t
-            | _ -> failwith ("Fatal error: invoked method " ^ l ^ " not found")
+            | _ ->
+                failwith
+                  ( "Internal error at " ^ T.print_pos_opt tm.t.T.pos
+                  ^ ": invoked method " ^ l ^ " not found" )
         in
         aux (eval ~env t)
     | Let { pat; replace; def = v; body = b; _ } ->
