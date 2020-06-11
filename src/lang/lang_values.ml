@@ -24,6 +24,9 @@
 
 type pos = Lang_types.pos
 
+(** An internal error. Those should not happen in theory... *)
+exception Internal_error of (pos list * string)
+
 (** A parsing error. *)
 exception Parse_error of (pos * string)
 
@@ -874,7 +877,12 @@ let rec eval ~env tm =
           let k = Source.Kind.of_formats k in
           match v with
             | V.Source s -> Source.Kind.unify s#kind_var k
-            | _ -> assert false )
+            | _ ->
+                raise
+                  (Internal_error
+                     ( Option.to_list tm.t.T.pos,
+                       "term has type source but is not a source: "
+                       ^ V.print_value { V.pos = tm.t.T.pos; V.value = v } )) )
       | _ -> () );
     { V.pos = tm.t.T.pos; V.value = v }
   in
@@ -890,7 +898,11 @@ let rec eval ~env tm =
           match t.V.value with
             | V.Meth (l', t, _) when l = l' -> t
             | V.Meth (_, _, t) -> aux t
-            | _ -> failwith ("Fatal error: invoked method " ^ l ^ " not found")
+            | _ ->
+                raise
+                  (Internal_error
+                     ( Option.to_list tm.t.T.pos,
+                       "invoked method " ^ l ^ " not found" ))
         in
         aux (eval ~env t)
     | Let { pat; replace; def = v; body = b; _ } ->
@@ -909,11 +921,13 @@ let rec eval ~env tm =
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
+                      let mk ~pos value = { V.pos; value } in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk (V.Meth (l, v, t))
+                        | [l] -> mk ~pos:tm.t.T.pos (V.Meth (l, v, t))
                         | l :: ll ->
-                            mk (V.Meth (l, meths ll v (V.invoke t l), t))
+                            mk ~pos:t.V.pos
+                              (V.Meth (l, meths ll v (V.invoke t l), t))
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
@@ -988,13 +1002,11 @@ and apply f l =
   in
   (* Record error positions. *)
   let f pe =
-    try f pe
-    with Runtime_error (poss, e) -> (
-      let bt = Printexc.get_raw_backtrace () in
-      match pos with
-        | Some pos ->
-            Printexc.raise_with_backtrace (Runtime_error (pos :: poss, e)) bt
-        | None -> Printexc.raise_with_backtrace (Runtime_error (poss, e)) bt )
+    try f pe with
+      | Runtime_error (poss, e) ->
+          raise (Runtime_error (Option.to_list pos @ poss, e))
+      | Internal_error (poss, e) ->
+          raise (Internal_error (Option.to_list pos @ poss, e))
   in
   let pe, p =
     List.fold_left

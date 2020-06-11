@@ -159,9 +159,14 @@ let report lexbuf f =
              dependency.@]@."
             (Encoder.string_of_format fmt);
           raise Error
+      | Lang_values.Internal_error (pos, e) ->
+          let pos = T.print_pos_list pos in
+          (* Bad luck, error 13 should never have happened. *)
+          error_header 13 pos;
+          Format.printf "Internal error: %s@]@." e
       | Lang_values.Runtime_error (pos, e) ->
           let pos = T.print_pos_list pos in
-          error_header 13 pos;
+          error_header 14 pos;
           Format.printf "Uncaught runtime error:@ %s@]@." e;
           raise Error
       | Sedlexing.MalFormed -> print_error 13 "Malformed file."

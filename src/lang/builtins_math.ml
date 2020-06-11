@@ -57,31 +57,25 @@ let () =
       "Integer remainder. If y is not zero, x == (x / y) * y + x mod y, and \
        abs(x mod y) <= abs(y)-1." [("", t, None, None); ("", t, None, None)] t
     (fun p ->
-      match p with
-        | [
-         ("", { Lang.value = Lang.(Ground (Ground.Int a)); _ });
-         ("", { Lang.value = Lang.(Ground (Ground.Int b)); _ });
-        ] ->
-            Lang.int (a mod b)
-        | _ -> assert false)
+      let a = Lang.to_int (Lang.assoc "" 1 p) in
+      let b = Lang.to_int (Lang.assoc "" 2 p) in
+      Lang.int (a mod b))
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
-    [("", t, None, None)] t (function
-    | [("", { Lang.value = Lang.(Ground (Ground.Int i)); _ })] -> Lang.int ~-i
-    | [("", { Lang.value = Lang.(Ground (Ground.Float i)); _ })] ->
-        Lang.float ~-.i
-    | _ -> assert false)
+    [("", t, None, None)] t (fun p ->
+      match Lang.to_num (List.assoc "" p) with
+        | `Int i -> Lang.int ~-i
+        | `Float i -> Lang.float ~-.i)
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   add_builtin "abs" ~cat:Math ~descr:"Absolute value." [("", t, None, None)] t
     (fun p ->
-      match (snd (List.hd p)).Lang.value with
-        | Lang.(Ground (Ground.Int i)) -> Lang.int (abs i)
-        | Lang.(Ground (Ground.Float i)) -> Lang.float (abs_float i)
-        | _ -> assert false)
+      match Lang.to_num (List.assoc "" p) with
+        | `Int i -> Lang.int (abs i)
+        | `Float i -> Lang.float (abs_float i))
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
@@ -89,17 +83,11 @@ let () =
     add_builtin name ~cat:Math ~descr:(Printf.sprintf "%s of numbers." doc)
       [("", t, None, None); ("", t, None, None)] t (fun p ->
         let p = List.map (fun (l, v) -> (l, Lang.demeth v)) p in
-        match p with
-          | [
-           ("", { Lang.value = Lang.(Ground (Ground.Int a)); _ });
-           ("", { Lang.value = Lang.(Ground (Ground.Int b)); _ });
-          ] ->
-              Lang.int (op_int a b)
-          | [
-           ("", { Lang.value = Lang.(Ground (Ground.Float a)); _ });
-           ("", { Lang.value = Lang.(Ground (Ground.Float b)); _ });
-          ] ->
-              Lang.float (op_float a b)
+        let a = Lang.to_num (Lang.assoc "" 1 p) in
+        let b = Lang.to_num (Lang.assoc "" 2 p) in
+        match (a, b) with
+          | `Int a, `Int b -> Lang.int (op_int a b)
+          | `Float a, `Float b -> Lang.float (op_float a b)
           | _ -> assert false)
   in
   register_op "Multiplication" "*" ( * ) ( *. );

@@ -11,7 +11,7 @@ test: $(TESTS)
 	@$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq $<
 
 big-record.liq:
-	@echo "Generate big-record.liq..."
+	@echo "Generating big-record.liq..."
 	@echo "#!../src/liquidsoap ../libs/pervasives.liq --force-start" > $@
 	@echo '%include "performance.liq"' >> $@
 	@echo "def sum () =" >> $@
