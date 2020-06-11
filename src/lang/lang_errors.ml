@@ -163,7 +163,8 @@ let report lexbuf f =
           let pos = T.print_pos_list pos in
           (* Bad luck, error 13 should never have happened. *)
           error_header 13 pos;
-          Format.printf "Internal error: %s@]@." e
+          Format.printf "Internal error: %s@]@." e;
+          raise Error
       | Lang_values.Runtime_error (pos, e) ->
           let pos = T.print_pos_list pos in
           error_header 14 pos;
