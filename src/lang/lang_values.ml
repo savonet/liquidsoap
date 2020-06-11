@@ -870,7 +870,8 @@ let rec eval ~env tm =
                 raise
                   (Internal_error
                      ( Option.to_list tm.t.T.pos,
-                       "term has type source but is not a source" )) )
+                       "term has type source but is not a source: "
+                       ^ V.print_value { V.pos = tm.t.T.pos; V.value = v } )) )
       | _ -> () );
     { V.pos = tm.t.T.pos; V.value = v }
   in
