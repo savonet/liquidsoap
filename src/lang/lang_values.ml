@@ -24,6 +24,9 @@
 
 type pos = Lang_types.pos
 
+(** An internal error. Those should not happen in theory... *)
+exception Internal_error of (pos list * string)
+
 (** A parsing error. *)
 exception Parse_error of (pos * string)
 
@@ -864,9 +867,10 @@ let rec eval ~env tm =
           match v with
             | V.Source s -> Source.Kind.unify s#kind_var k
             | _ ->
-                failwith
-                  ( "Interal error at " ^ T.print_pos_opt tm.t.T.pos
-                  ^ ": term has type source but is not a source" ) )
+                raise
+                  (Internal_error
+                     ( Option.to_list tm.t.T.pos,
+                       "term has type source but is not a source" )) )
       | _ -> () );
     { V.pos = tm.t.T.pos; V.value = v }
   in
@@ -882,9 +886,10 @@ let rec eval ~env tm =
             | V.Meth (l', t, _) when l = l' -> t
             | V.Meth (_, _, t) -> aux t
             | _ ->
-                failwith
-                  ( "Internal error at " ^ T.print_pos_opt tm.t.T.pos
-                  ^ ": invoked method " ^ l ^ " not found" )
+                raise
+                  (Internal_error
+                     ( Option.to_list tm.t.T.pos,
+                       "invoked method " ^ l ^ " not found" ))
         in
         aux (eval ~env t)
     | Let { pat; replace; def = v; body = b; _ } ->
@@ -979,6 +984,11 @@ and apply f l =
             (fun pe -> f (List.rev pe)),
             fun p pe -> mk ~pos:pos_f (V.FFI (p, pe, f)) )
       | _ -> assert false
+  in
+  let f pe =
+    try f pe
+    with Internal_error (poss, e) ->
+      raise (Internal_error (Option.to_list pos @ poss, e))
   in
   let pe, p =
     List.fold_left

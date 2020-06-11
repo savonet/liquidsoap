@@ -27,6 +27,7 @@ type pos = Lexing.position * Lexing.position
 val print_single_pos : Lexing.position -> string
 val print_pos : ?prefix:string -> pos -> string
 val print_pos_opt : ?prefix:string -> pos option -> string
+val print_pos_list : ?prefix:string -> pos list -> string
 
 type variance = Covariant | Contravariant | Invariant
 type ground = ..
