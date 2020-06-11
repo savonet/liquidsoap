@@ -483,6 +483,12 @@ let to_int_getter t =
             | _ -> assert false )
     | _ -> assert false
 
+let to_num t =
+  match (demeth t).value with
+    | Ground (Int n) -> `Int n
+    | Ground (Float x) -> `Float x
+    | _ -> assert false
+
 let to_list t = match (demeth t).value with List l -> l | _ -> assert false
 let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
 
