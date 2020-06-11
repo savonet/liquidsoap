@@ -909,11 +909,13 @@ let rec eval ~env tm =
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
+                      let mk ~pos value = { V.pos; value } in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk (V.Meth (l, v, t))
+                        | [l] -> mk ~pos:tm.t.T.pos (V.Meth (l, v, t))
                         | l :: ll ->
-                            mk (V.Meth (l, meths ll v (V.invoke t l), t))
+                            mk ~pos:t.V.pos
+                              (V.Meth (l, meths ll v (V.invoke t l), t))
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
