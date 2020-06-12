@@ -15,7 +15,7 @@ def input.hls(~id="",~reload=10.,uri)
       pl = request.filename(pl)
 
       m = string.extract(pattern="#EXT-X-MEDIA-SEQUENCE:(\\d+)",file.contents(pl))
-      pl_sequence = list.assoc(default="",1,m)
+      pl_sequence = m[1]
       log.info(label=id,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
 
