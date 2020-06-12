@@ -100,6 +100,8 @@ Changed:
   `request.queue` (#1234).
 - Indices of groups returned by `string.extract` are now integers instead of
   strings (#1240).
+- Generalize the `l[k]` notation so that the key `k` can be of any type (on
+  which we know how to compare).
 
 Fixed:
 
