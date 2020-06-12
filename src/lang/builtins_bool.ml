@@ -22,42 +22,12 @@
 
 open Lang_builtins
 
-let compare_value a b =
-  let rec aux = function
-    | Lang.(Ground (Ground.Float a)), Lang.(Ground (Ground.Float b)) ->
-        compare a b
-    | Lang.(Ground (Ground.Int a)), Lang.(Ground (Ground.Int b)) -> compare a b
-    | Lang.(Ground (Ground.String a)), Lang.(Ground (Ground.String b)) ->
-        compare a b
-    | Lang.(Ground (Ground.Bool a)), Lang.(Ground (Ground.Bool b)) ->
-        compare a b
-    | Lang.(Ground a), Lang.(Ground b) ->
-        compare (Lang.Ground.to_string a) (Lang.Ground.to_string b)
-    | Lang.Tuple l, Lang.Tuple m ->
-        List.fold_left2
-          (fun cmp a b ->
-            if cmp <> 0 then cmp else aux (a.Lang.value, b.Lang.value))
-          0 l m
-    | Lang.List l1, Lang.List l2 ->
-        let rec cmp = function
-          | [], [] -> 0
-          | [], _ -> -1
-          | _, [] -> 1
-          | h1 :: l1, h2 :: l2 ->
-              let c = aux (h1.Lang.value, h2.Lang.value) in
-              if c = 0 then cmp (l1, l2) else c
-        in
-        cmp (l1, l2)
-    | _ -> assert false
-  in
-  aux (a.Lang.value, b.Lang.value)
-
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Ord] () in
   let register_op name op =
     add_builtin name ~cat:Bool ~descr:"Comparison of comparable values."
       [("", t, None, None); ("", t, None, None)] Lang.bool_t (function
-      | [("", a); ("", b)] -> Lang.bool (op (compare_value a b))
+      | [("", a); ("", b)] -> Lang.bool (op (Lang.compare_values a b))
       | _ -> assert false)
   in
   register_op "==" (fun c -> c = 0);

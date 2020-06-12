@@ -44,6 +44,7 @@ New:
 - Added configure option to specify internal library install path (#1211).
 - Add support for records and methods (#1197).
 - Rename `unsafe.single.infallible` to `single.infallible`.
+- Add `list.indexed`.
 
 Changed:
 
@@ -97,6 +98,10 @@ Changed:
   the kernel.
 - Use records as return type of `http.*`, `https.*`, `rms`, `peak` and
   `request.queue` (#1234).
+- Indices of groups returned by `string.extract` are now integers instead of
+  strings (#1240).
+- Generalize the `l[k]` notation so that the key `k` can be of any type (on
+  which we know how to compare).
 
 Fixed:
 

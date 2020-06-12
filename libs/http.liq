@@ -1,3 +1,4 @@
+
 # Set of HTTP utils.
 
 %include "http_codes.liq"
@@ -106,8 +107,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
     if list.length(ret) == 0 then
       http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
     else
-      let (_,match) = list.hd(default=("1","foo"),ret)
-      match = string.trim(match)
+      match = string.trim(ret[1])
 
       fname = path.concat(directory, match)
       if file.exists(fname) then
