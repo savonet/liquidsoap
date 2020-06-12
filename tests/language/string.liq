@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/pervasives.liq
 
 %include "test.liq"
 
@@ -33,6 +33,9 @@ def f() =
   t(string.contains(substring="bc","acbd"), false)
   t(string.binary.to_int(little_endian=true,"abcd"),0x64636261)
   t(string.binary.to_int(little_endian=false,"abcd"),0x61626364)
+  s = string.extract(pattern="([^=]*)=(.*)", "ab=cde")
+  t(s[1], "ab")
+  t(s[2], "cde")
   
   if !success then test.pass() else test.fail() end
 end

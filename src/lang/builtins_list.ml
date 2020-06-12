@@ -25,21 +25,26 @@ open Lang_builtins
 let () = Lang.add_module "list"
 
 let () =
+  let a = Lang.univ_t ~constraints:[Lang_types.Ord] () in
   add_builtin "_[_]" ~cat:List
     ~descr:
       "l[k] returns the first v such that (k,v) is in the list l (or \"\" if \
        no such v exists)."
-    [("", Lang.string_t, None, None); ("", Lang.metadata_t, None, None)]
-    Lang.string_t (fun p ->
-      let k = Lang.to_string (Lang.assoc "" 1 p) in
-      let l =
-        List.map
-          (fun p ->
-            let a, b = Lang.to_product p in
-            (Lang.to_string a, Lang.to_string b))
-          (Lang.to_list (Lang.assoc "" 2 p))
+    [
+      ("", Lang.list_t (Lang.product_t a Lang.string_t), None, None);
+      ("", a, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let l = List.map Lang.to_product (Lang.to_list (Lang.assoc "" 1 p)) in
+      let k = Lang.assoc "" 2 p in
+      let ans =
+        try
+          Lang.to_string
+            (snd (List.find (fun (k', _) -> Lang.compare_values k k' = 0) l))
+        with _ -> ""
       in
-      Lang.string (try List.assoc k l with _ -> ""))
+      Lang.string ans)
 
 let () =
   let a = Lang.univ_t () in

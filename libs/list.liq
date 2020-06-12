@@ -104,6 +104,13 @@ def list.mapi(f, l)
   list.map(f, l)
 end
 
+# Add indices to every element of a list, so that it can be accessed with the
+# notation `l[n]`.
+# @category List
+def list.indexed(l)
+  list.mapi(fun(i, x) -> (i,x), l)
+end
+
 # Fold a function on every element of a list: `list.fold(f,x1,[e1,..,en]) is f(...f(f(x1,e1),e2)...,en)`.
 # @category List
 # @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.

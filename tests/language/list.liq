@@ -52,6 +52,11 @@ def f() =
   end
   t(list.find(default=42,even,[1,3,5]), 42)
   t(list.find(even,[1,3,4,5,6]), 4)
+  l = list.indexed(["a","b","c"])
+  t(l[1], "b")
+  l = [(1,"a"),(2,"b"),(3,"c")]
+  t(l[2],"b")
+  t(l[27],"")
   
   if !success then test.pass() else test.fail() end
 end
