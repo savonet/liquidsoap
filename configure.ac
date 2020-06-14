@@ -361,6 +361,11 @@ AC_CHECK_OCAML_BINDING([graphics])
 AC_CHECK_OCAML_BINDING([bytes],[],[1])
 
 #
+# Posix-time
+#
+AC_CHECK_OCAML_BINDING([posix-time2])
+
+#
 # PCRE
 #
 
@@ -1129,6 +1134,7 @@ cat <<EOMSG
    - magic             : $w_MAGIC
    - SecureTransport   : $w_OSX_SECURE_TRANSPORT
    - ssl               : $w_SSL
+   - posix-time2       : $w_POSIX_TIME2
    - windows service   : $w_WINSVC
    - yojson            : $w_YOJSON
 
@@ -1228,6 +1234,7 @@ variables {
   sdl-enabled: $b_TSDL
   sdl-image-enabled: $b_TSDL_IMAGE
   sdl-ttf-enabled: $b_TSDL_TTF
+  posix-time2-enabled: $b_POSIX_TIME2
   gd-enabled: $b_GD
   inotify-enabled: $b_INOTIFY
   lo-enabled: $b_LO
