@@ -45,6 +45,7 @@ New:
 - Add support for records and methods (#1197).
 - Rename `unsafe.single.infallible` to `single.infallible`.
 - Add `list.indexed`.
+- Added optional support for high-resolution time and latency control on POSIX systems (#1050).
 
 Changed:
 
