@@ -40,7 +40,8 @@ module Ground : sig
   type t += Bool of bool | Int of int | String of string | Float of float
 
   type content = Lang_values.Ground.content = {
-    descr : string;
+    descr : unit -> string;
+    compare : t -> int;
     typ : Lang_types.ground;
   }
 
@@ -65,9 +66,9 @@ and in_value = Lang_values.V.in_value =
   | Ref of value ref
   | Fun of
       (string * string * value option) list * env * lazy_env * Lang_values.term
-      (** A function with given arguments (argument label, argument variable,
-      default value), parameters already passed to the function, closure and
-      value. *)
+  (* A function with given arguments (argument label, argument variable,
+     default value), parameters already passed to the function, closure and
+     value. *)
   | FFI of (string * string * value option) list * env * (env -> value)
 
 val demeth : value -> value
@@ -341,6 +342,8 @@ module type AbstractDef = sig
   type content
 
   val name : string
+  val descr : content -> string
+  val compare : content -> content -> int
 end
 
 module MkAbstract (Def : AbstractDef) :

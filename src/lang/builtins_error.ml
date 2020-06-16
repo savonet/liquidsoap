@@ -22,7 +22,27 @@
 
 open Lang_builtins
 
+module Error = Lang.MkAbstract (struct
+  type content = string
+
+  let name = "error"
+  let descr = Printf.sprintf "error(type=%s)"
+  let compare = Stdlib.compare
+end)
+
 let () = Lang.add_module "error"
+
+let () =
+  add_builtin "error.register" ~cat:Liq
+    ~descr:"Return an error of the given type"
+    [("", Lang.string_t, None, Some "Type of the error")] Error.t (fun p ->
+      let s = Lang.to_string (List.assoc "" p) in
+      Error.to_value s)
+
+let () =
+  add_builtin "error.type" ~cat:Liq ~descr:"Get the type of an error"
+    [("", Error.t, None, None)] Lang.string_t (fun p ->
+      Lang.string (Error.of_value (List.assoc "" p)))
 
 let () =
   add_builtin "error.raise" ~cat:Liq ~descr:"Raise an error."

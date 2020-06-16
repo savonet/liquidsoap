@@ -163,7 +163,7 @@ module Vars = Set.Make (String)
 
 module Ground = struct
   type t = ..
-  type content = { descr : string; typ : T.ground }
+  type content = { descr : unit -> string; compare : t -> int; typ : T.ground }
 
   let handlers = Queue.create ()
   let register fn = Queue.add fn handlers
@@ -178,8 +178,9 @@ module Ground = struct
       assert false
     with Found c -> c
 
-  let to_string (v : t) = (find v).descr
+  let to_string (v : t) = (find v).descr ()
   let to_type (v : t) = (find v).typ
+  let compare (v : t) = (find v).compare
 
   type t +=
     | Bool of bool
@@ -190,11 +191,66 @@ module Ground = struct
 
   let () =
     register (function
-      | Bool b -> Some { descr = string_of_bool b; typ = T.Bool }
-      | Int i -> Some { descr = string_of_int i; typ = T.Int }
-      | String s -> Some { descr = Printf.sprintf "%S" s; typ = T.String }
-      | Float f -> Some { descr = string_of_float f; typ = T.Float }
-      | Request _ -> Some { descr = "<request>"; typ = T.Request }
+      | Bool b ->
+          let compare = function
+            | Bool b' -> Stdlib.compare b b'
+            | _ -> assert false
+          in
+          Some { descr = (fun () -> string_of_bool b); compare; typ = T.Bool }
+      | Int i ->
+          let compare = function
+            | Int i' -> Stdlib.compare i i'
+            | _ -> assert false
+          in
+          Some { descr = (fun () -> string_of_int i); compare; typ = T.Int }
+      | String s ->
+          let compare = function
+            | String s' -> Stdlib.compare s s'
+            | _ -> assert false
+          in
+          Some
+            {
+              descr = (fun () -> Printf.sprintf "%S" s);
+              compare;
+              typ = T.String;
+            }
+      | Float f ->
+          let compare = function
+            | Float f' -> Stdlib.compare f f'
+            | _ -> assert false
+          in
+          Some { descr = (fun () -> string_of_float f); compare; typ = T.Float }
+      | Request r ->
+          let descr () = Printf.sprintf "<request(id=%d)>" (Request.get_id r) in
+          let compare = function
+            | Request r' ->
+                Stdlib.compare (Request.get_id r) (Request.get_id r')
+            | _ -> assert false
+          in
+          Some { descr; compare; typ = T.Request }
+      | _ -> None)
+end
+
+module type GroundDef = sig
+  type content
+
+  val descr : content -> string
+  val compare : content -> content -> int
+  val typ : T.ground
+end
+
+module MkGround (D : GroundDef) = struct
+  type Ground.t += Ground of D.content
+
+  let () =
+    Ground.register (function
+      | Ground v ->
+          let descr () = D.descr v in
+          let compare = function
+            | Ground v' -> D.compare v v'
+            | _ -> assert false
+          in
+          Some { Ground.typ = D.typ; compare; descr }
       | _ -> None)
 end
 

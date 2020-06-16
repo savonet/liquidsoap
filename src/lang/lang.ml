@@ -162,11 +162,7 @@ let metadata m =
 
 let compare_values a b =
   let rec aux = function
-    | Ground (Ground.Float a), Ground (Ground.Float b) -> compare a b
-    | Ground (Ground.Int a), Ground (Ground.Int b) -> compare a b
-    | Ground (Ground.String a), Ground (Ground.String b) -> compare a b
-    | Ground (Ground.Bool a), Ground (Ground.Bool b) -> compare a b
-    | Ground a, Ground b -> compare (Ground.to_string a) (Ground.to_string b)
+    | Ground a, Ground b -> Ground.compare a b
     | Tuple l, Tuple m ->
         List.fold_left2
           (fun cmp a b -> if cmp <> 0 then cmp else aux (a.value, b.value))
@@ -318,7 +314,7 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
       | "", "" -> 0
       | _, "" -> -1
       | "", _ -> 1
-      | x, y -> compare x y
+      | x, y -> Stdlib.compare x y
   in
   let proto =
     let t = T.make (T.Ground T.String) in
@@ -702,6 +698,8 @@ module type AbstractDef = sig
   type content
 
   val name : string
+  val descr : content -> string
+  val compare : content -> content -> int
 end
 
 module L = Lang_values
@@ -713,7 +711,12 @@ module MkAbstract (Def : AbstractDef) = struct
 
   let () =
     G.register (function
-      | Value _ -> Some { G.descr = Def.name; typ = Type }
+      | Value v ->
+          let compare = function
+            | Value v' -> Def.compare v v'
+            | _ -> assert false
+          in
+          Some { G.descr = (fun () -> Def.descr v); compare; typ = Type }
       | _ -> None);
 
     Lang_types.register_ground_printer (function
