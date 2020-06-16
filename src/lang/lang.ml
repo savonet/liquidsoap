@@ -392,7 +392,12 @@ let iter_sources f v =
       | List l -> List.iter iter_value l
       | Tuple l -> List.iter iter_value l
       | Meth (_, a, b) ->
-          iter_value a;
+          (* WARNING: we assume that there are no sources in methods. Otherwise,
+             since fields are defined by overriding previous values, the checking
+             ends up being quadratic and unusable in practice with out large
+             standard library, see #1247. *)
+          (* iter_value a; *)
+          ignore a;
           iter_value b
       | Fun (proto, pe, env, body) ->
           (* The following is necessarily imprecise: we might see sources that
