@@ -94,6 +94,7 @@ Libraries not developed by Savonet are:
 | ocaml-vorbis        | @vorbis_version_descr@               | Ogg/Vorbis codec                              |
 | ocaml-xmlplaylist   | @xmlplaylist_version_descr@          | XML-based playlist formats                    |
 | osx-secure-transport| @osx_secure_transport_version_descr@ | SSL/https support via OSX's SecureTransport   |
+| posix-time2         | @posix_time2_version_descr@          | High-resolution time/latency                  |
 | tsdl                | @tsdl_version_descr@                 | Display videos                                |
 | tsdl-image          | @tsdl_image_version_descr@           | Load images                                   |
 | tsdl-tff            | @tsdl_ttf_version_descr@             | Render fonts                                  |
