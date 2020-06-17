@@ -31,6 +31,11 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
+  add_builtin "maybe.something" ~cat:Liq ~descr:"Something."
+    [("", a, None, None)] (Lang.maybe_t a) (List.assoc "")
+
+let () =
+  let a = Lang.univ_t () in
   add_builtin "maybe.case" ~cat:Liq ~flags:[Lang.Hidden]
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
