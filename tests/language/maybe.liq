@@ -7,7 +7,7 @@ def f() =
     test.fail()
   end
 
-  if (maybe.something("foo") ?? "bla") != "foo" then
+  if (maybe.some("foo") ?? "bla") != "foo" then
     test.fail()
   end
 

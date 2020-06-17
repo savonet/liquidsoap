@@ -25,14 +25,14 @@ open Lang_builtins
 let () = Lang.add_module "maybe"
 
 let () =
-  add_builtin "maybe.nothing" ~cat:Liq ~descr:"Nothing." []
+  add_builtin "maybe.null" ~cat:Liq ~descr:"Null value." []
     (Lang.maybe_t (Lang.univ_t ()))
     (fun _ -> Lang.nothing)
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "maybe.something" ~cat:Liq ~descr:"Something."
-    [("", a, None, None)] (Lang.maybe_t a) (List.assoc "")
+  add_builtin "maybe.some" ~cat:Liq ~descr:"Something." [("", a, None, None)]
+    (Lang.maybe_t a) (List.assoc "")
 
 let () =
   let a = Lang.univ_t () in

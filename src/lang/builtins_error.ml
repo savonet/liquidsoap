@@ -42,7 +42,7 @@ let () = Lang.add_module "error"
 
 let () =
   add_builtin "error.register" ~cat:Liq
-    ~descr:"Register an error of the given Kind"
+    ~descr:"Register an error of the given kind"
     [("", Lang.string_t, None, Some "Kind of the error")] Error.t (fun p ->
       let kind = Lang.to_string (List.assoc "" p) in
       Error.to_value { kind; msg = None })

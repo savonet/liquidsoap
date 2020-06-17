@@ -1062,7 +1062,7 @@ and apply f l =
   let f pe =
     try f pe with
       | Runtime_error err ->
-          raise (Runtime_error { err with pos = Option.to_list pos })
+          raise (Runtime_error { err with pos = Option.to_list pos @ err.pos })
       | Internal_error (poss, e) ->
           raise (Internal_error (Option.to_list pos @ poss, e))
   in
