@@ -45,7 +45,7 @@
           (while not-indented
             (forward-line -1)
             ; Indent as much as the last end
-            (if (looking-at "^[ \t]*\\(end\\|%endif\\)")
+            (if (looking-at "^[ \t]*\\(end\\|%endif\\|done\\)")
                 (progn
                   (setq cur-indent (current-indentation))
                   (setq not-indented nil))
