@@ -39,60 +39,53 @@ end
 # output. The only exception is AO: it is the default output after dummy, so the
 # input will be a dummy when AO is used for output.
 
-let output.prefered=output.dummy
+let replaces output=output.dummy
 %ifdef output.ao
-  let output.prefered=output.ao
+  let replaces output=output.ao
 %endif
 %ifdef output.alsa
-  let output.prefered=output.alsa
+  let replaces output=output.alsa
 %endif
 %ifdef output.oss
-  let output.prefered=output.oss
+  let replaces output=output.oss
 %endif
 %ifdef output.portaudio
-  let output.prefered = output.portaudio
+  let replaces output=output.portaudio
 %endif
 %ifdef output.pulseaudio
-  let output.prefered=output.pulseaudio
+  let replaces output=output.pulseaudio
 %endif
 # Output to local audio card using the first available driver in pulseaudio,
 # portaudio, oss, alsa, ao, dummy.
 # @category Source / Output
-def output.prefered(~id="",~fallible=false,
-                    ~on_start={()},~on_stop={()},~start=true,s)
-  output.prefered(id=id,fallible=fallible,
-                  start=start,on_start=on_start,on_stop=on_stop,
-                  s)
+def replaces output(~id="",~fallible=false,
+           ~on_start={()},~on_stop={()},~start=true,s)
+  output(id=id,fallible=fallible,
+         start=start,on_start=on_start,on_stop=on_stop,
+         s)
 end
 
-def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
   blank(id=id)
 end
 %ifdef input.alsa
-  in = input.alsa
+  let replaces input = input.alsa
 %endif
 %ifdef input.oss
-  in = input.oss
+  let replaces input = input.oss
 %endif
 %ifdef input.portaudio
-  in = input.portaudio
+  let replaces input = input.portaudio
 %endif
 %ifdef input.pulseaudio
-  in = input.pulseaudio
+  let replaces input = input.pulseaudio
 %endif
+
 # Create a source from the first available input driver in pulseaudio,
 # portaudio, oss, alsa, blank.
 # @category Source / Input
-def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
-  in(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
-end
-
-# Output a stream using the `output.prefered` operator. The input source does
-# not need to be infallible, blank will just be played during failures.
-# @param s the source to output
-# @category Source / Output
-def out(s)
-  output.prefered(mksafe(s))
+def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+  input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
 
 # Special track insensitive fallback that always skips current song before
