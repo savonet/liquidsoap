@@ -16,7 +16,7 @@ end
 # @category List
 # @param ~default Default value if key does not exist.
 def list.hd(~default=maybe.nothing(), l)
-  list.dcase(l, {default ?? error.raise(error.nothing, "no default value for list.hd")}, fun (x, _) -> x)
+  list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.hd")}, fun (x, _) -> x)
 end
 
 # Return the list without its first element.
@@ -42,7 +42,7 @@ end
 # @category List
 def list.nth(~default=maybe.nothing(), l, n) =
   def rec aux(l, n)
-    list.dcase(l, {default ?? error.raise(error.nothing, "no default value for list.nth")}, fun (x, l) -> if n == 0 then x else aux(l, n-1) end)
+    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.nth")}, fun (x, l) -> if n == 0 then x else aux(l, n-1) end)
   end
   aux(l, n)
 end
@@ -178,7 +178,7 @@ def list.assoc(~default=maybe.nothing(), key, l)
       let (k, v) = x
       if k == key then v else aux(l) end
     end
-    list.dcase(l, {default ?? error.raise(error.nothing, "no default value for list.assoc")}, f)
+    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.assoc")}, f)
   end
   aux(l)
 end
@@ -241,7 +241,7 @@ end
 # @param l List.
 def list.find(~default=maybe.nothing(), p, l)
   def rec aux(l)
-    list.dcase(l, {default ?? error.raise(error.nothing, "no default value for list.find")}, fun(x, l) -> if p(x) then x else aux(l) end)
+    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.find")}, fun(x, l) -> if p(x) then x else aux(l) end)
   end
   aux(l)
 end

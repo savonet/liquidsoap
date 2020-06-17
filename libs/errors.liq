@@ -1,1 +1,1 @@
-let error.nothing = error.register("nothing")
+let error.not_found = error.register("nothing")
