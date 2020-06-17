@@ -203,6 +203,7 @@
 %token <string list> PP_COMMENT
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
+%nonassoc LBAR         /* (x | y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc REF          /* ref (1+2) */
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
@@ -211,7 +212,6 @@
 %left BIN2 MINUS
 %left BIN3 TIMES
 %nonassoc GET          /* (!x)+2 */
-%nonassoc LBAR
 %left DOT
 
 

@@ -3,11 +3,11 @@
 %include "test.liq"
 
 def f() =
-  if maybe.nothing() | "bla" != "bla" then
+  if (maybe.nothing() | "bla") != "bla" then
     test.fail()
   end
 
-  if maybe.something("foo") | "bla" != "foo" then
+  if (maybe.something("foo") | "bla") != "foo" then
     test.fail()
   end
 
