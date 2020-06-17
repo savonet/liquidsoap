@@ -34,7 +34,9 @@ exception Parse_error of (pos * string)
 exception Unsupported_format of (pos * Encoder.format)
 
 (** An error at runtime. *)
-exception Runtime_error of pos list * string
+type runtime_error = { kind : string; msg : string; pos : pos list }
+
+exception Runtime_error of runtime_error
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
@@ -1059,8 +1061,8 @@ and apply f l =
   (* Record error positions. *)
   let f pe =
     try f pe with
-      | Runtime_error (poss, e) ->
-          raise (Runtime_error (Option.to_list pos @ poss, e))
+      | Runtime_error err ->
+          raise (Runtime_error { err with pos = Option.to_list pos })
       | Internal_error (poss, e) ->
           raise (Internal_error (Option.to_list pos @ poss, e))
   in

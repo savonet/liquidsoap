@@ -34,37 +34,51 @@ let () = Lang.add_module "error"
 
 let () =
   add_builtin "error.register" ~cat:Liq
-    ~descr:"Return an error of the given type"
-    [("", Lang.string_t, None, Some "Type of the error")] Error.t (fun p ->
+    ~descr:"Register a new a error of the given Kind"
+    [("", Lang.string_t, None, Some "Kind of the error")] Error.t (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       Error.to_value s)
 
 let () =
-  add_builtin "error.type" ~cat:Liq ~descr:"Get the type of an error"
+  add_builtin "error.kind" ~cat:Liq ~descr:"Get the kind of an error"
     [("", Error.t, None, None)] Lang.string_t (fun p ->
       Lang.string (Error.of_value (List.assoc "" p)))
 
 let () =
   add_builtin "error.raise" ~cat:Liq ~descr:"Raise an error."
-    [("", Lang.string_t, None, Some "Description of the error.")]
-    (Lang.univ_t ()) (fun p ->
-      let s = Lang.to_string (Lang.assoc "" 1 p) in
-      raise (Lang_values.Runtime_error ([], s)))
+    [
+      ("error", Error.t, None, Some "Error kind.");
+      ("", Lang.string_t, None, Some "Description of the error.");
+    ] (Lang.univ_t ()) (fun p ->
+      let kind = Error.of_value (Lang.assoc "error" 1 p) in
+      let msg = Lang.to_string (Lang.assoc "" 1 p) in
+      raise (Lang_values.Runtime_error { Lang_values.kind; msg; pos = [] }))
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "error.catch" ~cat:Liq
+  add_builtin "error.catch" ~cat:Liq ~flags:[Lang.Hidden]
     ~descr:"Execute a function, catching eventual exceptions."
     [
+      ( "errors",
+        Lang.list_t Error.t,
+        None,
+        Some "Kinds of errors to catch. Catches all errors if empty." );
       ("", Lang.fun_t [] a, None, Some "Function to execute.");
       ( "",
-        Lang.fun_t [(false, "", Lang.string_t)] a,
+        Lang.fun_t [(false, "error", Error.t); (false, "", Lang.string_t)] a,
         None,
         Some "Error handler." );
     ]
     a
     (fun p ->
+      let errors =
+        List.map Error.of_value (Lang.to_list (Lang.assoc "errors" 1 p))
+      in
       let f = Lang.to_fun (Lang.assoc "" 1 p) in
       let h = Lang.to_fun (Lang.assoc "" 2 p) in
       try f []
-      with Lang_values.Runtime_error (_, e) -> h [("", Lang.string e)])
+      with
+      | Lang_values.Runtime_error { Lang_values.kind; msg }
+      when List.mem kind errors
+      ->
+        h [("error", Error.to_value kind); ("", Lang.string msg)])
