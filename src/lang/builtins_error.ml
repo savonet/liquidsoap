@@ -82,22 +82,25 @@ let () =
     ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
-        Lang.list_t Error.t,
+        Lang.maybe_t (Lang.list_t Error.t),
         None,
-        Some "Kinds of errors to catch. Catches all errors if empty." );
+        Some "Kinds of errors to catch. Catches all errors if not set." );
       ("", Lang.fun_t [] a, None, Some "Function to execute.");
       ("", Lang.fun_t [(false, "", Error.t)] a, None, Some "Error handler.");
     ]
     a
     (fun p ->
       let errors =
-        List.map Error.of_value (Lang.to_list (Lang.assoc "errors" 1 p))
+        Utils.maybe
+          (fun v -> List.map Error.of_value (Lang.to_list v))
+          (Lang.to_option (Lang.assoc "errors" 1 p))
       in
       let f = Lang.to_fun (Lang.assoc "" 1 p) in
       let h = Lang.to_fun (Lang.assoc "" 2 p) in
       try f []
       with
       | Lang_values.Runtime_error { Lang_values.kind; msg }
-      when errors = [] || List.exists (fun err -> err.kind = kind) errors
+      when errors = None
+           || List.exists (fun err -> err.kind = kind) (Utils.get_some errors)
       ->
         h [("", Error.to_value { kind; msg })])

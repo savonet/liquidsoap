@@ -311,7 +311,7 @@ expr:
   | TRY exprs CATCH bindvar DO exprs END { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, T.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
                                        let handler = mk_fun ~pos:$loc($6) err_arg $6 in
-                                       let errors = mk ~pos:$loc (List []) in
+                                       let errors = mk ~pos:$loc Nothing in
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
                                        let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
                                        mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
