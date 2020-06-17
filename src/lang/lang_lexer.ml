@@ -224,7 +224,7 @@ let rec token lexbuf =
     | "+" | "%" | "^" | "+." | "-." -> BIN2 (Sedlexing.Utf8.lexeme lexbuf)
     | "/" | "*." | "/." -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
     | "mod" -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
-    | "|" -> LBAR
+    | "??" -> COALESCE
     | "*" -> TIMES
     | var_ref -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | "!" -> GET

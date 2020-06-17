@@ -179,7 +179,7 @@
 %token BEGIN END REC GETS TILD QUESTION LET
 %token <Doc.item * (string*string) list> DEF
 %token REPLACES
-%token LBAR
+%token COALESCE
 %token TRY CATCH DO
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
@@ -203,7 +203,7 @@
 %token <string list> PP_COMMENT
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
-%nonassoc LBAR         /* (x | y) == z */
+%nonassoc COALESCE         /* (x | y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc REF          /* ref (1+2) */
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
@@ -296,7 +296,7 @@ expr:
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
-  | expr LBAR expr                   { let maybe = mk ~pos:$loc($1) (Var "maybe") in
+  | expr COALESCE expr               { let maybe = mk ~pos:$loc($1) (Var "maybe") in
                                        let op =  mk ~pos:$loc($1) (Invoke (maybe, "case")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
