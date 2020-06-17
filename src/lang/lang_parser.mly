@@ -200,17 +200,16 @@
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 
-%nonassoc YIELDS       /* fun x -> (x+x) */
-%right SET             /* expr := (expr + expr), expr := (expr := expr) */
-%nonassoc REF          /* ref (1+2) */
-%left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
-%left BIN1
-%nonassoc NOT
-%left BIN2 MINUS
-%left BIN3 TIMES
-%nonassoc GET          /* (!x)+2 */
 %left DOT
-
+%nonassoc GET          /* (!x)+2 */
+%left BIN3 TIMES
+%left BIN2 MINUS
+%nonassoc NOT
+%left BIN1
+%left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
+%nonassoc REF          /* ref (1+2) */
+%right SET             /* expr := (expr + expr), expr := (expr := expr) */
+%nonassoc YIELDS       /* fun x -> (x+x) */
 
 /* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg */
 %nonassoc no_app
