@@ -194,7 +194,7 @@ class clock ?(sync = `Auto) id =
 
     val mutable t0 = time ()
 
-    val mutable ticks = time_zero
+    val mutable ticks = 0L
 
     method private self_sync =
       let new_val =
@@ -211,7 +211,7 @@ class clock ?(sync = `Auto) id =
         | None, false | Some true, false ->
             log#important "Delegating synchronisation to CPU clock";
             t0 <- time ();
-            ticks <- time_zero
+            ticks <- 0L
         | None, true | Some false, true ->
             log#important "Delegating synchronisation to active sources"
         | _ -> ()
@@ -224,10 +224,13 @@ class clock ?(sync = `Auto) id =
       let max_latency = Time.of_float (-.conf_max_latency#get) in
       let last_latency_log = ref (time ()) in
       t0 <- time ();
-      ticks <- time_zero;
+      ticks <- 0L;
       let frame_duration = Time.of_float (Lazy.force Frame.duration) in
       let delay () =
-        t0 |+| (frame_duration |*| (ticks |+| time_unit)) |-| time ()
+        t0
+        |+| ( frame_duration
+            |*| Time.of_float (Int64.to_float (Int64.add ticks 1L)) )
+        |-| time ()
       in
       log#important "Streaming loop starts in %s mode" (sync_descr sync);
       let rec loop () =
@@ -242,14 +245,14 @@ class clock ?(sync = `Auto) id =
             if time_zero |<| rem then sleep rem )
           else (
             incr acc;
-            if rem < max_latency then (
+            if rem |<| max_latency then (
               log#severe "Too much latency! Resetting active sources...";
               List.iter
                 (function
                   | `Active, s when s#is_active -> s#output_reset | _ -> ())
                 outputs;
               t0 <- time ();
-              ticks <- time_zero;
+              ticks <- 0L;
               acc := 0 )
             else if
               (rem |<=| (time_zero |-| time_unit) || !acc >= 100)
@@ -260,7 +263,7 @@ class clock ?(sync = `Auto) id =
                 (Time.to_float (time_zero |-| rem))
                 (if !acc <= 100 then "" else " (we've been late for 100 rounds)");
               acc := 0 ) );
-          ticks <- ticks |+| time_unit;
+          ticks <- Int64.add ticks 1L;
           (* This is where the streaming actually happens: *)
           self#end_tick;
           loop () )
