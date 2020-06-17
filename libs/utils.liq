@@ -50,7 +50,7 @@ let replaces output=output.dummy
   let replaces output=output.oss
 %endif
 %ifdef output.portaudio
-  let replaces eutput=output.portaudio
+  let replaces output=output.portaudio
 %endif
 %ifdef output.pulseaudio
   let replaces output=output.pulseaudio
