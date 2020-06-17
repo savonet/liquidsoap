@@ -35,7 +35,7 @@
     ; cur-indent is the current indetation
     (let ((not-indented t) cur-indent)
       ; De-indent after end
-      (if (looking-at "^[ \t]*\\(end\\|else\\|elsif\\|then\\|%endif\\)")
+      (if (looking-at "^[ \t]*\\(end\\|else\\|elsif\\|then\\|%endif\\|done\\)")
         (progn
           (save-excursion
             (forward-line -1)
@@ -50,7 +50,7 @@
                   (setq cur-indent (current-indentation))
                   (setq not-indented nil))
               ; Increment if we find that we are in a block
-              (if (looking-at "^[ \t]*\\(def\\|if\\|then\\|elsif\\|%ifdef\\|.*=$\\)")
+              (if (looking-at "^[ \t]*\\(def\\|if\\|then\\|elsif\\|%ifdef\\|.*=$\\|for\\|while\\)")
                   (progn
                     (setq cur-indent (+ (current-indentation) liquidsoap-tab-width))
                     (setq not-indented nil))
