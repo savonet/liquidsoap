@@ -3,7 +3,7 @@
 %include "test.liq"
 
 def f() =
-  if (maybe.nothing() ?? "bla") != "bla" then
+  if (maybe.null() ?? "bla") != "bla" then
     test.fail()
   end
 
