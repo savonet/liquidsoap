@@ -34,7 +34,7 @@ exception Parse_error of (pos * string)
 exception Unsupported_format of (pos * Encoder.format)
 
 (** An error at runtime. *)
-type runtime_error = { kind : string; msg : string; pos : pos list }
+type runtime_error = { kind : string; msg : string option; pos : pos list }
 
 exception Runtime_error of runtime_error
 

@@ -31,21 +31,17 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  let b = Lang.univ_t () in
-  add_builtin "maybe.case" ~cat:Liq
+  add_builtin "maybe.case" ~cat:Liq ~flags:[Lang.Hidden]
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
       ("", Lang.maybe_t a, None, Some "Value to reason by case analysis on.");
-      ("", b, None, Some "Value to return in case we have nothing.");
       ( "",
-        Lang.fun_t [(false, "", a)] b,
+        Lang.fun_t [] a,
         None,
-        Some "Value to return in case we have something." );
+        Some "Value to return in case we have nothing." );
     ]
-    b
+    a
     (fun p ->
       let x = Lang.assoc "" 1 p in
       let d = Lang.assoc "" 2 p in
-      let f = Lang.assoc "" 3 p in
-      let f = Lang.to_fun f in
-      match Lang.to_option x with None -> d | Some x -> f [("", x)])
+      match Lang.to_option x with None -> Lang.apply d [] | Some x -> x)

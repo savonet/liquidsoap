@@ -22,36 +22,58 @@
 
 open Lang_builtins
 
-module Error = Lang.MkAbstract (struct
-  type content = string
+type error = { kind : string; msg : string option }
+
+module ErrorDef = struct
+  type content = error
 
   let name = "error"
-  let descr = Printf.sprintf "error(type=%s)"
+
+  let descr { kind; msg } =
+    Printf.sprintf "error(kind=%S,message=%s)" kind
+      (match msg with Some msg -> Printf.sprintf "%S" msg | None -> "none")
+
   let compare = Stdlib.compare
-end)
+end
+
+module Error = Lang.MkAbstract ((ErrorDef : Lang.AbstractDef))
 
 let () = Lang.add_module "error"
 
 let () =
   add_builtin "error.register" ~cat:Liq
-    ~descr:"Register a new a error of the given Kind"
+    ~descr:"Register an error of the given Kind"
     [("", Lang.string_t, None, Some "Kind of the error")] Error.t (fun p ->
-      let s = Lang.to_string (List.assoc "" p) in
-      Error.to_value s)
+      let kind = Lang.to_string (List.assoc "" p) in
+      Error.to_value { kind; msg = None })
 
 let () =
   add_builtin "error.kind" ~cat:Liq ~descr:"Get the kind of an error"
     [("", Error.t, None, None)] Lang.string_t (fun p ->
-      Lang.string (Error.of_value (List.assoc "" p)))
+      Lang.string (Error.of_value (List.assoc "" p)).kind)
+
+let () =
+  add_builtin "error.message" ~cat:Liq ~descr:"Get the message of an error"
+    [("", Error.t, None, None)] (Lang.maybe_t Lang.string_t) (fun p ->
+      match Error.of_value (List.assoc "" p) with
+        | { msg = Some msg } -> Lang.string msg
+        | { msg = None } -> Lang.nothing)
 
 let () =
   add_builtin "error.raise" ~cat:Liq ~descr:"Raise an error."
     [
-      ("error", Error.t, None, Some "Error kind.");
-      ("", Lang.string_t, None, Some "Description of the error.");
-    ] (Lang.univ_t ()) (fun p ->
-      let kind = Error.of_value (Lang.assoc "error" 1 p) in
-      let msg = Lang.to_string (Lang.assoc "" 1 p) in
+      ("", Error.t, None, Some "Error kind.");
+      ( "",
+        Lang.maybe_t Lang.string_t,
+        Some Lang.nothing,
+        Some "Description of the error." );
+    ]
+    (Lang.univ_t ())
+    (fun p ->
+      let { kind } = Error.of_value (Lang.assoc "" 1 p) in
+      let msg =
+        Utils.maybe Lang.to_string (Lang.to_option (Lang.assoc "" 2 p))
+      in
       raise (Lang_values.Runtime_error { Lang_values.kind; msg; pos = [] }))
 
 let () =
@@ -64,10 +86,7 @@ let () =
         None,
         Some "Kinds of errors to catch. Catches all errors if empty." );
       ("", Lang.fun_t [] a, None, Some "Function to execute.");
-      ( "",
-        Lang.fun_t [(false, "error", Error.t); (false, "", Lang.string_t)] a,
-        None,
-        Some "Error handler." );
+      ("", Lang.fun_t [(false, "", Error.t)] a, None, Some "Error handler.");
     ]
     a
     (fun p ->
@@ -79,6 +98,6 @@ let () =
       try f []
       with
       | Lang_values.Runtime_error { Lang_values.kind; msg }
-      when List.mem kind errors
+      when errors = [] || List.exists (fun err -> err.kind = kind) errors
       ->
-        h [("error", Error.to_value kind); ("", Lang.string msg)])
+        h [("", Error.to_value { kind; msg })])
