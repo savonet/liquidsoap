@@ -214,6 +214,11 @@ let rec token lexbuf =
     | "~" -> TILD
     | "?" -> QUESTION
     | "-" -> MINUS
+    | "while" -> WHILE
+    | "for" -> FOR
+    | "to" -> TO
+    | "do" -> DO
+    | "done" -> DONE
     | "not" -> NOT
     | "and" | "or" -> BIN0 (Sedlexing.Utf8.lexeme lexbuf)
     | "!=" | "==" | "<" | "<=" | ">" | ">=" ->

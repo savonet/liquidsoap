@@ -702,3 +702,40 @@ let () =
       print_string v;
       flush stdout;
       Lang.unit)
+
+(** Loops. *)
+
+let () =
+  add_builtin "while" ~cat:Liq ~descr:"A while loop."
+    [
+      ("", Lang.bool_getter_t (), None, Some "Condition guarding the loop.");
+      ("", Lang.fun_t [] Lang.unit_t, None, Some "Function to execute.");
+    ]
+    Lang.unit_t
+    (fun p ->
+      let c = Lang.to_bool_getter (Lang.assoc "" 1 p) in
+      let f = Lang.to_fun (Lang.assoc "" 2 p) in
+      while c () do
+        ignore (f [])
+      done;
+      Lang.unit)
+
+let () =
+  add_builtin "for" ~cat:Liq ~descr:"A for loop."
+    [
+      ("", Lang.int_t, None, Some "First number.");
+      ("", Lang.int_t, None, Some "Last number.");
+      ( "",
+        Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t,
+        None,
+        Some "Function to execute." );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let a = Lang.to_int (Lang.assoc "" 1 p) in
+      let b = Lang.to_int (Lang.assoc "" 2 p) in
+      let f = Lang.to_fun (Lang.assoc "" 3 p) in
+      for i = a to b do
+        ignore (f [("", Lang.int i)])
+      done;
+      Lang.unit)

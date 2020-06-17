@@ -18,10 +18,9 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s)
 
   if substring != "" then
     sublen = string.length(substring)
-    def test(i)
+    for i = 0 to string.length(s)-sublen do
       ans := !ans or (string.sub(s, start=i, length=sublen) == substring)
-    end
-    for(0, string.length(s)-sublen, test)
+    done
   end
 
   !ans
@@ -36,7 +35,9 @@ let string.binary = ()
 def string.binary.to_int(~little_endian=true, s)
   ans = ref(0)
   n = string.length(s)
-  for(0, n-1, fun (i) -> ans := lsl(!ans,8) + string.nth(s, if little_endian then n-1-i else i end))
+  for i = 0 to n-1 do
+    ans := lsl(!ans,8) + string.nth(s, if little_endian then n-1-i else i end)
+  done
   !ans
 end
 

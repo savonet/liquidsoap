@@ -34,13 +34,13 @@ end
 # @flag extra
 # @param p Predicate.
 def predicate.once(p)
-  done = ref(false)
+  finished = ref(false)
   fun () -> begin
-    if !done then
+    if !finished then
       false
     else
       if p() then
-        done := true
+        finished := true
         true
       else
         false
