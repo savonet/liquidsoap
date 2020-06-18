@@ -3,7 +3,7 @@
 
 New:
 
-- Add support for errors with `error.*` (#1242).
+- Add support for errors with `error.*` and `try ... catch` (#1242).
 - Add support for optional values with `null.*` (#1242).
 - Added support for video encoding and decoding using `ffmpeg` (#1038).
 - Added support for ffmpeg filters (#1038).

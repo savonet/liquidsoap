@@ -1,7 +1,7 @@
 #!../../src/liquidsoap ../../libs/pervasives.liq
 
 %include "test.liq"
-  
+
 success = ref(true)
 
 def t(x, y)

@@ -5,8 +5,8 @@
  '(
    ("#.*" . 'font-lock-comment-face)
    ("^\\(%ifdef .*\\|%ifndef .*\\|%ifencoder .*\\|%ifnencoder .*\\|%endif\\|%include\\|%define\\)" . 'font-lock-preprocessor-face)
-   ("\\<\\(fun\\|def\\|rec\\|replaces\\|begin\\|end\\|if\\|then\\|else\\|elsif\\|let\\)\\>\\|->\\|;" . font-lock-keyword-face)
-   ("\\<\\(and\\|or\\|not\\|mod\\|ref\\)\\>\\|:=" . font-lock-builtin-face)
+   ("\\<\\(fun\\|def\\|rec\\|replaces\\|begin\\|end\\|if\\|then\\|else\\|elsif\\|let\\|try\\|catch\\|do\\)\\>\\|->\\|;" . font-lock-keyword-face)
+   ("\\<\\(and\\|or\\|not\\|mod\\|ref\\|??\\)\\>\\|:=" . font-lock-builtin-face)
    ("\\<\\(true\\|false\\)\\>" . font-lock-constant-face)
    ("\\<def[ \t]+\\([^ (]*\\)" 1 'font-lock-function-name-face)
   )
@@ -35,7 +35,7 @@
     ; cur-indent is the current indetation
     (let ((not-indented t) cur-indent)
       ; De-indent after end
-      (if (looking-at "^[ \t]*\\(end\\|else\\|elsif\\|then\\|%endif\\)")
+      (if (looking-at "^[ \t]*\\(end\\|else\\|elsif\\|then\\|%endif\\|try\\|catch\\)")
         (progn
           (save-excursion
             (forward-line -1)
@@ -50,7 +50,7 @@
                   (setq cur-indent (current-indentation))
                   (setq not-indented nil))
               ; Increment if we find that we are in a block
-              (if (looking-at "^[ \t]*\\(def\\|if\\|then\\|elsif\\|%ifdef\\|.*=$\\)")
+              (if (looking-at "^[ \t]*\\(def\\|if\\|then\\|else\\|elsif\\|%ifdef\\|.*=$\\|try\\|catch\\)")
                   (progn
                     (setq cur-indent (+ (current-indentation) liquidsoap-tab-width))
                     (setq not-indented nil))
