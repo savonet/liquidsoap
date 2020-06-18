@@ -10,7 +10,7 @@ def erathostenes(n)
     i = list.hd(default=0, !l)
     p := list.add(i, !p)
     l := list.filter(fun (j) -> j mod i != 0, !l)
-  done
+  end
   list.rev(!p)
 end
 

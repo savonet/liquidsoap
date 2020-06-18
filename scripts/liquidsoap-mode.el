@@ -5,7 +5,7 @@
  '(
    ("#.*" . 'font-lock-comment-face)
    ("^\\(%ifdef .*\\|%ifndef .*\\|%ifencoder .*\\|%ifnencoder .*\\|%endif\\|%include\\|%define\\)" . 'font-lock-preprocessor-face)
-   ("\\<\\(fun\\|def\\|rec\\|replaces\\|begin\\|end\\|if\\|then\\|else\\|elsif\\|let\\|while\\|for\\|to\\|do\\|done\\)\\>\\|->\\|;" . font-lock-keyword-face)
+   ("\\<\\(fun\\|def\\|rec\\|replaces\\|begin\\|end\\|if\\|then\\|else\\|elsif\\|let\\|while\\|for\\|to\\|do\\)\\>\\|->\\|;" . font-lock-keyword-face)
    ("\\<\\(and\\|or\\|not\\|mod\\|ref\\)\\>\\|:=" . font-lock-builtin-face)
    ("\\<\\(true\\|false\\)\\>" . font-lock-constant-face)
    ("\\<def[ \t]+\\([^ (]*\\)" 1 'font-lock-function-name-face)
@@ -35,7 +35,7 @@
     ; cur-indent is the current indetation
     (let ((not-indented t) cur-indent)
       ; De-indent after end
-      (if (looking-at "^[ \t]*\\(end\\|else\\|elsif\\|then\\|%endif\\|done\\)")
+      (if (looking-at "^[ \t]*\\(end\\|else\\|elsif\\|then\\|%endif\\)")
         (progn
           (save-excursion
             (forward-line -1)
@@ -45,7 +45,7 @@
           (while not-indented
             (forward-line -1)
             ; Indent as much as the last end
-            (if (looking-at "^[ \t]*\\(end\\|%endif\\|done\\)")
+            (if (looking-at "^[ \t]*\\(end\\|%endif\\)")
                 (progn
                   (setq cur-indent (current-indentation))
                   (setq not-indented nil))

@@ -218,7 +218,6 @@ let rec token lexbuf =
     | "for" -> FOR
     | "to" -> TO
     | "do" -> DO
-    | "done" -> DONE
     | "not" -> NOT
     | "and" | "or" -> BIN0 (Sedlexing.Utf8.lexeme lexbuf)
     | "!=" | "==" | "<" | "<=" | ">" | ">=" ->

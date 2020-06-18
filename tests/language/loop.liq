@@ -15,13 +15,13 @@ def f() =
   n = ref(1)
   while !n < 10 do
     n := !n * 2
-  done;
+  end
   t(!n, 16)
 
   n = ref(0)
   for i = 0 to 10 do
     n := !n + i
-  done
+  end
   t(!n, 55)
   
   if !success then test.pass() else test.fail() end
