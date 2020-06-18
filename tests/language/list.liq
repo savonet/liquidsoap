@@ -13,13 +13,14 @@ end
   
 def f() =
   t(list.hd(default=0,[]), 0)
-  t(list.hd(default=0,[5,6]), 5)
+  t(list.hd([5,6]), 5)
+  t(try list.hd([]) catch _ do 9 end, 9)
   t(list.tl([]), [])
   t(list.tl([4,5,6]), [5,6])
   t(list.nth(default=1,[4],5), 1)
-  t(list.nth(default=1,[4,5,6,7],2), 6)
+  t(list.nth([4,5,6,7],2), 6)
   t(list.last(default=1,[]), 1)
-  t(list.last(default=1,[12,5,8]), 8)
+  t(list.last([12,5,8]), 8)
   t(list.length([]), 0)
   t(list.length([1,2,3]), 3)
   t(list.length(["a","b"]), 2)
@@ -34,7 +35,7 @@ def f() =
   t(list.append([1,2], [3,4,5]), [1,2,3,4,5])
   t(list.rev([1,2,3]), [3,2,1])
   t(list.assoc(default=0, "", [("a",1),("b",2)]), 0)
-  t(list.assoc(default=0, "b", [("a",1),("b",2)]), 2)
+  t(list.assoc("b", [("a",1),("b",2)]), 2)
   t(list.remove_assoc("a", [("b",2),("a",1),("a",3)]), [("b",2),("a",3)])
   t(list.remove_assoc("c", [("a",1),("b",2)]), [("a",1),("b",2)])
   t(list.for_all(fun (n) -> n > 0, []), true)
@@ -50,7 +51,7 @@ def f() =
     (x/2)*2 == x
   end
   t(list.find(default=42,even,[1,3,5]), 42)
-  t(list.find(default=42,even,[1,3,4,5,6]), 4)
+  t(list.find(even,[1,3,4,5,6]), 4)
   l = list.indexed(["a","b","c"])
   t(l[1], "b")
   l = [(1,"a"),(2,"b"),(3,"c")]

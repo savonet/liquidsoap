@@ -165,6 +165,15 @@ let report lexbuf f =
           error_header 13 pos;
           Format.printf "Internal error: %s@]@." e;
           raise Error
+      | Lang_values.Runtime_error { Lang_values.kind; msg; pos } ->
+          let pos = T.print_pos_list pos in
+          error_header 14 pos;
+          Format.printf "Uncaught runtime error:@ type: %s,@ message: %s@]@."
+            kind
+            ( match msg with
+              | Some msg -> Printf.sprintf "%S" msg
+              | None -> "none" );
+          raise Error
       | Sedlexing.MalFormed -> print_error 13 "Malformed file."
       | End_of_file -> raise End_of_file
       | e ->

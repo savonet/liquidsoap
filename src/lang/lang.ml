@@ -63,6 +63,7 @@ let list_t t = T.make (T.List t)
 let of_list_t t =
   match (T.deref t).T.descr with T.List t -> t | _ -> assert false
 
+let nullable_t t = T.make (T.Nullable t)
 let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
@@ -127,6 +128,7 @@ let string i = mk (Ground (String i))
 let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
 let list l = mk (List l)
+let null = mk Null
 
 let rec meth v0 = function
   | [] -> v0
@@ -160,11 +162,7 @@ let metadata m =
 
 let compare_values a b =
   let rec aux = function
-    | Ground (Ground.Float a), Ground (Ground.Float b) -> compare a b
-    | Ground (Ground.Int a), Ground (Ground.Int b) -> compare a b
-    | Ground (Ground.String a), Ground (Ground.String b) -> compare a b
-    | Ground (Ground.Bool a), Ground (Ground.Bool b) -> compare a b
-    | Ground a, Ground b -> compare (Ground.to_string a) (Ground.to_string b)
+    | Ground a, Ground b -> Ground.compare a b
     | Tuple l, Tuple m ->
         List.fold_left2
           (fun cmp a b -> if cmp <> 0 then cmp else aux (a.value, b.value))
@@ -316,7 +314,7 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
       | "", "" -> 0
       | _, "" -> -1
       | "", _ -> 1
-      | x, y -> compare x y
+      | x, y -> Stdlib.compare x y
   in
   let proto =
     let t = T.make (T.Ground T.String) in
@@ -359,6 +357,7 @@ let iter_sources f v =
       | Term.Ground _ | Term.Encoder _ -> ()
       | Term.List l -> List.iter (iter_term env) l
       | Term.Tuple l -> List.iter (iter_term env) l
+      | Term.Null -> ()
       | Term.Meth (_, a, b) ->
           iter_term env a;
           iter_term env b
@@ -396,6 +395,7 @@ let iter_sources f v =
         | Ground _ | Encoder _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
+        | Null -> ()
         | Meth (_, a, b) ->
             iter_value a;
             iter_value b
@@ -422,7 +422,7 @@ let iter_sources f v =
                 let rec aux v =
                   match v.value with
                     | Source _ -> true
-                    | Ground _ | Encoder _ -> false
+                    | Ground _ | Encoder _ | Null -> false
                     | List l -> List.exists aux l
                     | Tuple l -> List.exists aux l
                     | Ref r -> aux !r
@@ -521,6 +521,7 @@ let to_num t =
 
 let to_list t = match (demeth t).value with List l -> l | _ -> assert false
 let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
+let to_option t = match (demeth t).value with Null -> None | _ -> Some t
 
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
@@ -702,6 +703,8 @@ module type AbstractDef = sig
   type content
 
   val name : string
+  val descr : content -> string
+  val compare : content -> content -> int
 end
 
 module L = Lang_values
@@ -713,7 +716,12 @@ module MkAbstract (Def : AbstractDef) = struct
 
   let () =
     G.register (function
-      | Value _ -> Some { G.descr = Def.name; typ = Type }
+      | Value v ->
+          let compare = function
+            | Value v' -> Def.compare v v'
+            | _ -> assert false
+          in
+          Some { G.descr = (fun () -> Def.descr v); compare; typ = Type }
       | _ -> None);
 
     Lang_types.register_ground_printer (function

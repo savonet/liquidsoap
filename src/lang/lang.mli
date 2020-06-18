@@ -40,7 +40,8 @@ module Ground : sig
   type t += Bool of bool | Int of int | String of string | Float of float
 
   type content = Lang_values.Ground.content = {
-    descr : string;
+    descr : unit -> string;
+    compare : t -> int;
     typ : Lang_types.ground;
   }
 
@@ -60,13 +61,14 @@ and in_value = Lang_values.V.in_value =
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
+  | Null
   | Meth of string * value * value
   | Ref of value ref
   | Fun of
       (string * string * value option) list * env * lazy_env * Lang_values.term
-      (** A function with given arguments (argument label, argument variable,
-      default value), parameters already passed to the function, closure and
-      value. *)
+  (* A function with given arguments (argument label, argument variable,
+     default value), parameters already passed to the function, closure and
+     value. *)
   | FFI of (string * string * value option) list * env * (env -> value)
 
 val demeth : value -> value
@@ -213,6 +215,7 @@ val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_num : value -> [ `Int of int | `Float of float ]
 val to_list : value -> value list
+val to_option : value -> value option
 val to_product : value -> value * value
 val to_tuple : value -> value list
 val to_ref : value -> value ref
@@ -240,6 +243,7 @@ val record_t : (string * t) list -> t
 val method_t : t -> (string * scheme) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
+val nullable_t : t -> t
 val ref_t : t -> t
 val zero_t : t
 val succ_t : t -> t
@@ -282,6 +286,7 @@ val bool : bool -> value
 val float : float -> value
 val string : string -> value
 val list : value list -> value
+val null : value
 val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value
@@ -337,6 +342,8 @@ module type AbstractDef = sig
   type content
 
   val name : string
+  val descr : content -> string
+  val compare : content -> content -> int
 end
 
 module MkAbstract (Def : AbstractDef) :

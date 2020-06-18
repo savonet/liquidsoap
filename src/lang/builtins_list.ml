@@ -25,8 +25,6 @@ open Lang_builtins
 let () = Lang.add_module "list"
 
 let () =
-  (* TODO It would be good to generalize this one but we'd need a way to handle
-     errors. *)
   let a = Lang.univ_t ~constraints:[Lang_types.Ord] () in
   add_builtin "_[_]" ~cat:List
     ~descr:

@@ -47,6 +47,8 @@ module Graph = Lang.MkAbstract (struct
   type content = graph
 
   let name = "ffmpeg.filter.graph"
+  let descr _ = name
+  let compare = Stdlib.compare
 end)
 
 module Audio = Lang.MkAbstract (struct
@@ -55,6 +57,8 @@ module Audio = Lang.MkAbstract (struct
     | `Output of ([ `Attached ], [ `Audio ], [ `Output ]) Avfilter.pad ]
 
   let name = "ffmpeg.filter.audio"
+  let descr _ = name
+  let compare = Stdlib.compare
 end)
 
 module Video = Lang.MkAbstract (struct
@@ -63,6 +67,8 @@ module Video = Lang.MkAbstract (struct
     | `Output of ([ `Attached ], [ `Video ], [ `Output ]) Avfilter.pad ]
 
   let name = "ffmpeg.filter.video"
+  let descr _ = name
+  let compare = Stdlib.compare
 end)
 
 let uniq_name =

@@ -1,12 +1,22 @@
 # Add an element at the top of a list.
 # @category List
-def list.cons(x,l) = list.add(x,l) end
+def list.cons(x,l) =
+  list.add(x,l)
+end
+
+# "Delayed" version of `list.case` where the value on empty list is only
+# evaluated if necessary.
+# @category List
+def list.dcase(l, d, f) =
+  f = list.case(l, d, fun (x,l) -> {f(x,l)})
+  f()
+end
 
 # Return the head (first element) of a list, or `default` if the list is empty.
 # @category List
 # @param ~default Default value if key does not exist.
-def list.hd(~default, l)
-  list.case(l, default, fun (x, _) -> x)
+def list.hd(~default=null(), l)
+  list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.hd")}, fun (x, _) -> x)
 end
 
 # Return the list without its first element.
@@ -30,9 +40,9 @@ end
 
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
 # @category List
-def list.nth(~default, l, n) =
+def list.nth(~default=null(), l, n) =
   def rec aux(l, n)
-    list.case(l, default, fun (x, l) -> if n == 0 then x else aux(l, n-1) end)
+    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.nth")}, fun (x, l) -> if n == 0 then x else aux(l, n-1) end)
   end
   aux(l, n)
 end
@@ -51,7 +61,7 @@ end
 
 # Return the last element of a list.
 # @category list
-def list.last(~default, l)
+def list.last(~default=null(), l)
   list.nth(default=default, l, list.length(l)-1)
 end
 
@@ -162,13 +172,13 @@ end
 # Associate a value to a key in an association list.
 # @category List
 # @param ~default Value returned if the key is not found
-def list.assoc(~default, key, l)
+def list.assoc(~default=null(), key, l)
   def rec aux(l)
     def f(x, l)
       let (k, v) = x
       if k == key then v else aux(l) end
     end
-    list.case(l, default, f)
+    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.assoc")}, f)
   end
   aux(l)
 end
@@ -229,9 +239,9 @@ end
 # @param ~default Returned value when the predicate is not found.
 # @param p Predicate.
 # @param l List.
-def list.find(~default, p, l)
+def list.find(~default=null(), p, l)
   def rec aux(l)
-    list.case(l, default, fun(x, l) -> if p(x) then x else aux(l) end)
+    list.dcase(l, {default ?? error.raise(error.not_found, "no default value for list.find")}, fun(x, l) -> if p(x) then x else aux(l) end)
   end
   aux(l)
 end

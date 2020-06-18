@@ -162,6 +162,9 @@ let rec token lexbuf =
     | "ref" -> REF
     | "def" -> PP_DEF
     | "replaces" -> REPLACES
+    | "try" -> TRY
+    | "catch" -> CATCH
+    | "do" -> DO
     | "let" -> LET
     | "fun" -> FUN
     | "rec" -> REC
@@ -225,6 +228,7 @@ let rec token lexbuf =
     | "+" | "%" | "^" | "+." | "-." -> BIN2 (Sedlexing.Utf8.lexeme lexbuf)
     | "/" | "*." | "/." -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
     | "mod" -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
+    | "??" -> COALESCE
     | "*" -> TIMES
     | var_ref -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | "!" -> GET
