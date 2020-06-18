@@ -746,3 +746,21 @@ let () =
             List.iter (fun x -> ignore (f [("", x)])) l;
             Lang.unit
         | _ -> assert false)
+
+let () =
+  add_builtin "iterator.int" ~cat:Liq ~descr:"Iterator on integers."
+    [
+      ("", Lang.int_t, None, Some "First value.");
+      ("", Lang.int_t, None, Some "Last value (included).");
+    ]
+    (Lang.fun_t [] (Lang.nullable_t Lang.int_t))
+    (fun p ->
+      let a = Lang.to_int (Lang.assoc "" 1 p) in
+      let b = Lang.to_int (Lang.assoc "" 2 p) in
+      let i = ref a in
+      let f _ =
+        let ans = !i in
+        incr i;
+        if ans > b then Lang.null else Lang.int ans
+      in
+      Lang.val_fun [] f)

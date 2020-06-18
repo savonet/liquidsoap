@@ -697,14 +697,10 @@ let rec bind a0 b =
               | Iterable -> (
                   match (demeth b).descr with
                     | Ground Int | List _ -> ()
-                    (*
-                  | Arrow ([], b') ->
-                    (
-                      match (demeth b').descr with
-                      | Nullable _ -> ()
-                      | _ -> raise (Unsatisfied_constraint (Iterable, b))
-                    )
-                  *)
+                    | Arrow ([], b') -> (
+                        match (demeth b').descr with
+                          | Nullable _ -> ()
+                          | _ -> raise (Unsatisfied_constraint (Iterable, b)) )
                     | _ -> raise (Unsatisfied_constraint (Iterable, b)) )
               | Dtools -> (
                   match b.descr with
