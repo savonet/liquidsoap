@@ -1,5 +1,5 @@
-# Determine whether a nullable value is null.
+# Determine whether a nullable value is not null.
 # @category Liquidsoap
-def null.is(x) =
-  null.case(x, {true}, fun (_) -> false)
+def null.defined(x) =
+  null.case(x, {false}, fun (_) -> true)
 end
