@@ -47,7 +47,7 @@ def f() =
     error.raise(e)
     "bla"
   catch err do
-    error.message(err) | "blo"
+    error.message(err) ?? "blo"
   end
   t(ret, "blo")
 
@@ -56,7 +56,7 @@ def f() =
     error.raise(e, "msg");
     "bla"
   catch err do
-    error.message(err) | "blo"
+    error.message(err) ?? "blo"
   end
   t(ret, "msg")
 
