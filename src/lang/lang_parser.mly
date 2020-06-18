@@ -179,6 +179,8 @@
 %token BEGIN END REC GETS TILD QUESTION LET
 %token <Doc.item * (string*string) list> DEF
 %token REPLACES
+%token COALESCE
+%token TRY CATCH DO
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
@@ -201,6 +203,7 @@
 %token <string list> PP_COMMENT
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
+%nonassoc COALESCE         /* (x | y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc REF          /* ref (1+2) */
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
@@ -293,6 +296,25 @@ expr:
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
+  | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
+                                       let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
+                                       let handler = mk_fun ~pos:$loc($3) [] $3 in
+                                       mk ~pos:$loc (App (op, ["",$1;"",handler])) }
+  | TRY exprs CATCH bindvar COLON varlist DO exprs END
+                                     { let fn = mk_fun ~pos:$loc($2) [] $2 in
+                                       let err_arg = ["", $4, T.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
+                                       let errors = mk ~pos:$loc (List $6) in
+                                       let handler =  mk_fun ~pos:$loc($8) err_arg $8 in
+                                       let error_module = mk ~pos:$loc($1) (Var "error") in
+                                       let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
+                                       mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
+  | TRY exprs CATCH bindvar DO exprs END { let fn = mk_fun ~pos:$loc($2) [] $2 in
+                                       let err_arg = ["", $4, T.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
+                                       let handler = mk_fun ~pos:$loc($6) err_arg $6 in
+                                       let errors = mk ~pos:$loc Null in
+                                       let error_module = mk ~pos:$loc($1) (Var "error") in
+                                       let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
+                                       mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
   | IF exprs THEN exprs if_elsif END { let cond = $2 in
                                        let then_b = mk_fun ~pos:($startpos($3),$endpos($4)) [] $4 in
                                        let else_b = $5 in
