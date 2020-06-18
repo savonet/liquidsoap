@@ -745,6 +745,16 @@ let () =
         | Lang.List l ->
             List.iter (fun x -> ignore (f [("", x)])) l;
             Lang.unit
+        | Lang.Fun _ | Lang.FFI _ ->
+            let l = Lang.to_fun l in
+            let rec aux () =
+              match Lang.to_option (l []) with
+                | Some n ->
+                    ignore (f [("", n)]);
+                    aux ()
+                | None -> Lang.unit
+            in
+            aux ()
         | _ -> assert false)
 
 let () =

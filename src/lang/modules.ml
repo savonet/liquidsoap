@@ -32,6 +32,7 @@ let () =
       "input";
       "input.external";
       "liquidsoap";
+      "iterator";
       "metadata";
       "midi";
       "output";

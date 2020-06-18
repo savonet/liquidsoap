@@ -207,6 +207,7 @@
 %nonassoc COALESCE         /* (x | y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc REF          /* ref (1+2) */
+%right DOTDOT
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
 %nonassoc NOT
@@ -299,7 +300,7 @@ expr:
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
   | FOR VAR IN expr DO exprs END     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
-  /* | expr DOTDOT expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var "iterator.int"), ["", $1; "", $3])) } */
+  | expr DOTDOT expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
   | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
