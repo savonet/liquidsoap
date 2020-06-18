@@ -1,4 +1,4 @@
-%include "errors.liq"
+%include "error.liq"
 %include "audio.liq"
 %include "ref.liq"
 %include "list.liq"
