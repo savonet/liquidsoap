@@ -358,12 +358,13 @@ let strip_newlines tokenizer =
       | None -> (
           match tokenizer () with
             | Lang_parser.PP_ENDL, _ -> token ()
-            | (Lang_parser.VAR _, _) as v ->
+            | (Lang_parser.VAR _, _ | Lang_parser.IN, _) as v ->
                 state := Some v;
                 token ()
             | x -> x )
       | Some ((Lang_parser.VAR var, _) as v) -> inject_varlpar var v
       | Some ((Lang_parser.UNDERSCORE, _) as v) -> inject_varlpar "_" v
+      | Some ((Lang_parser.IN, _) as v) -> inject_varlpar "in" v
       | Some x ->
           state := None;
           x

@@ -723,8 +723,7 @@ let () =
 let () =
   add_builtin "for" ~cat:Liq ~descr:"A for loop."
     [
-      ("", Lang.int_t, None, Some "First number.");
-      ("", Lang.int_t, None, Some "Last number.");
+      ("", Lang.int_t, None, Some "Number of iterations.");
       ( "",
         Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t,
         None,
@@ -732,10 +731,9 @@ let () =
     ]
     Lang.unit_t
     (fun p ->
-      let a = Lang.to_int (Lang.assoc "" 1 p) in
-      let b = Lang.to_int (Lang.assoc "" 2 p) in
-      let f = Lang.to_fun (Lang.assoc "" 3 p) in
-      for i = a to b do
+      let n = Lang.to_int (Lang.assoc "" 1 p) in
+      let f = Lang.to_fun (Lang.assoc "" 2 p) in
+      for i = 0 to n - 1 do
         ignore (f [("", Lang.int i)])
       done;
       Lang.unit)

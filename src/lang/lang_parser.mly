@@ -199,7 +199,7 @@
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
-%token WHILE FOR TO DO
+%token WHILE FOR IN DO
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
@@ -295,8 +295,7 @@ expr:
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
-  | FOR VAR GETS expr TO expr DO exprs END
-                                     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", $6; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $8])) }
+  | FOR VAR IN expr DO exprs END     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
   | IF exprs THEN exprs if_elsif END { let cond = $2 in
                                        let then_b = mk_fun ~pos:($startpos($3),$endpos($4)) [] $4 in
                                        let else_b = $5 in
@@ -402,7 +401,7 @@ subfield:
   | VAR DOT in_subfield { $1::$3 }
 
 in_subfield:
-  | VAR { [$1] }
+  | var { [$1] }
   | VAR DOT in_subfield { $1::$3 }
 
 pattern_list:
@@ -435,6 +434,10 @@ replaces:
   | { false }
   | REPLACES { true }
 
+var:
+  | VAR { $1 }
+  | IN  { "in" }
+
 varlpar:
   | VARLPAR         { [$1] }
   | VAR DOT varlpar { $1::$3 }
@@ -445,8 +448,8 @@ arglist:
   | arg               { [$1] }
   | arg COMMA arglist { $1::$3 }
 arg:
-  | TILD VAR opt { $2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3 }
-  | TILD VAR GETS UNDERSCORE opt { $2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5 }
+  | TILD var opt { $2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3 }
+  | TILD var GETS UNDERSCORE opt { $2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5 }
   | bindvar opt  { "", $1, T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)), $2 }
 opt:
   | GETS expr { Some $2 }

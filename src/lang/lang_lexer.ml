@@ -216,7 +216,7 @@ let rec token lexbuf =
     | "-" -> MINUS
     | "while" -> WHILE
     | "for" -> FOR
-    | "to" -> TO
+    | "in" -> IN
     | "do" -> DO
     | "not" -> NOT
     | "and" | "or" -> BIN0 (Sedlexing.Utf8.lexeme lexbuf)
