@@ -351,6 +351,7 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
 let static_analysis_failed = ref []
 
 let iter_sources f v =
+  let itered_values = ref [] in
   let rec iter_term env v =
     match v.Term.term with
       | Term.Ground _ | Term.Encoder _ -> ()
@@ -385,54 +386,58 @@ let iter_sources f v =
               match v with Some v -> iter_term env v | None -> ())
             proto
   and iter_value v =
-    match v.value with
-      | Source s -> f s
-      | Ground _ | Encoder _ -> ()
-      | List l -> List.iter iter_value l
-      | Tuple l -> List.iter iter_value l
-      | Null -> ()
-      | Meth (_, a, b) ->
-          iter_value a;
-          iter_value b
-      | Fun (proto, pe, env, body) ->
-          (* The following is necessarily imprecise: we might see sources that
-             will be unused in the execution of the function. *)
-          iter_term env body;
-          List.iter (fun (_, v) -> iter_value v) pe;
-          List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-      | FFI (proto, pe, _) ->
-          List.iter (fun (_, v) -> iter_value v) pe;
-          List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-      | Ref r ->
-          if List.memq r !static_analysis_failed then ()
-          else (
-            (* Do not walk inside references, otherwise the list of "contained"
-               sources may change from one time to the next, which makes it
-               impossible to avoid ill-balanced activations. Not walking inside
-               references does not break things more than they are already:
-               detecting sharing in presence of references to sources cannot be
-               done statically anyway. We display a fat log message to warn
-               about this risky situation. *)
-            let may_have_source =
-              let rec aux v =
-                match v.value with
-                  | Source _ -> true
-                  | Ground _ | Encoder _ | Null -> false
-                  | List l -> List.exists aux l
-                  | Tuple l -> List.exists aux l
-                  | Ref r -> aux !r
-                  | Fun _ | FFI _ -> true
-                  | Meth (_, v, t) -> aux v || aux t
+    if not (List.memq v !itered_values) then (
+      (* We need to avoid checking the same value multiple times, otherwise we
+         get an exponential blowup, see #1247. *)
+      itered_values := v :: !itered_values;
+      match v.value with
+        | Source s -> f s
+        | Ground _ | Encoder _ -> ()
+        | List l -> List.iter iter_value l
+        | Tuple l -> List.iter iter_value l
+        | Null -> ()
+        | Meth (_, a, b) ->
+            iter_value a;
+            iter_value b
+        | Fun (proto, pe, env, body) ->
+            (* The following is necessarily imprecise: we might see sources that
+               will be unused in the execution of the function. *)
+            iter_term env body;
+            List.iter (fun (_, v) -> iter_value v) pe;
+            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+        | FFI (proto, pe, _) ->
+            List.iter (fun (_, v) -> iter_value v) pe;
+            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
+        | Ref r ->
+            if List.memq r !static_analysis_failed then ()
+            else (
+              (* Do not walk inside references, otherwise the list of "contained"
+                 sources may change from one time to the next, which makes it
+                 impossible to avoid ill-balanced activations. Not walking inside
+                 references does not break things more than they are already:
+                 detecting sharing in presence of references to sources cannot be
+                 done statically anyway. We display a fat log message to warn
+                 about this risky situation. *)
+              let may_have_source =
+                let rec aux v =
+                  match v.value with
+                    | Source _ -> true
+                    | Ground _ | Encoder _ | Null -> false
+                    | List l -> List.exists aux l
+                    | Tuple l -> List.exists aux l
+                    | Ref r -> aux !r
+                    | Fun _ | FFI _ -> true
+                    | Meth (_, v, t) -> aux v || aux t
+                in
+                aux v
               in
-              aux v
-            in
-            static_analysis_failed := r :: !static_analysis_failed;
-            if may_have_source then
-              log#severe
-                "WARNING! Found a reference, potentially containing sources, \
-                 inside a dynamic source-producing function. Static analysis \
-                 cannot be performed: make sure you are not sharing sources \
-                 contained in references!" )
+              static_analysis_failed := r :: !static_analysis_failed;
+              if may_have_source then
+                log#severe
+                  "WARNING! Found a reference, potentially containing sources, \
+                   inside a dynamic source-producing function. Static analysis \
+                   cannot be performed: make sure you are not sharing sources \
+                   contained in references!" ) )
   in
   iter_value v
 
