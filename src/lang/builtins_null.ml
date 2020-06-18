@@ -38,7 +38,7 @@ let () =
   add_builtin "null.case" ~cat:Liq
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
-      ("", Lang.nullable_t b, None, Some "Value to reason by case analysis on.");
+      ("", Lang.nullable_t a, None, Some "Value to reason by case analysis on.");
       ( "",
         Lang.fun_t [] b,
         None,

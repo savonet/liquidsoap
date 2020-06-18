@@ -2,14 +2,15 @@
 
 %include "test.liq"
 
-def f() =
-  if (null() ?? "bla") != "bla" then
-    test.fail()
-  end
+def t(x,y) =
+  if x != y then test.fail() end
+end
 
-  if (null("foo") ?? "bla") != "foo" then
-    test.fail()
-  end
+def f() =
+  t(null() ?? "bla", "bla")
+  t(null("foo") ?? "bla", "foo")
+  t(null.case(null(),{true},fun (_) -> false),true)
+  t(null.case("x",{true}, fun(_) -> false),false)
 
   test.pass()
 end
