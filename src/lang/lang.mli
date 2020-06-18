@@ -61,7 +61,7 @@ and in_value = Lang_values.V.in_value =
   | Encoder of Encoder.format
   | List of value list
   | Tuple of value list
-  | Nothing
+  | Null
   | Meth of string * value * value
   | Ref of value ref
   | Fun of
@@ -243,7 +243,7 @@ val record_t : (string * t) list -> t
 val method_t : t -> (string * scheme) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
-val maybe_t : t -> t
+val nullable_t : t -> t
 val ref_t : t -> t
 val zero_t : t
 val succ_t : t -> t
@@ -286,7 +286,7 @@ val bool : bool -> value
 val float : float -> value
 val string : string -> value
 val list : value list -> value
-val nothing : value
+val null : value
 val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value

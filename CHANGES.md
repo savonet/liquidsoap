@@ -4,7 +4,7 @@
 New:
 
 - Add support for errors with `error.*` (#1242).
-- Add support for optional values with `maybe.*` (#1242).
+- Add support for optional values with `null.*` (#1242).
 - Added support for video encoding and decoding using `ffmpeg` (#1038).
 - Added support for ffmpeg filters (#1038).
 - Added `output.url` for encoders that support handling data output (currently only `%ffmpeg`) (#1038).

@@ -54,18 +54,18 @@ let () =
 
 let () =
   add_builtin "error.message" ~cat:Liq ~descr:"Get the message of an error"
-    [("", Error.t, None, None)] (Lang.maybe_t Lang.string_t) (fun p ->
+    [("", Error.t, None, None)] (Lang.nullable_t Lang.string_t) (fun p ->
       match Error.of_value (List.assoc "" p) with
         | { msg = Some msg } -> Lang.string msg
-        | { msg = None } -> Lang.nothing)
+        | { msg = None } -> Lang.null)
 
 let () =
   add_builtin "error.raise" ~cat:Liq ~descr:"Raise an error."
     [
       ("", Error.t, None, Some "Error kind.");
       ( "",
-        Lang.maybe_t Lang.string_t,
-        Some Lang.nothing,
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some "Description of the error." );
     ]
     (Lang.univ_t ())
@@ -82,7 +82,7 @@ let () =
     ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
-        Lang.maybe_t (Lang.list_t Error.t),
+        Lang.nullable_t (Lang.list_t Error.t),
         None,
         Some "Kinds of errors to catch. Catches all errors if not set." );
       ("", Lang.fun_t [] a, None, Some "Function to execute.");

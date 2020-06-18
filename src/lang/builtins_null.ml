@@ -22,24 +22,45 @@
 
 open Lang_builtins
 
-let () = Lang.add_module "maybe"
-
 let () =
-  add_builtin "maybe.null" ~cat:Liq ~descr:"Null value." []
-    (Lang.maybe_t (Lang.univ_t ()))
-    (fun _ -> Lang.nothing)
+  let a = Lang.univ_t () in
+  add_builtin "null" ~cat:Liq ~descr:"Create a nullable value."
+    [("", Lang.nullable_t a, Some Lang.null, Some "Value to make nullable.")]
+    (Lang.nullable_t a)
+    (fun p ->
+      match Lang.to_option (List.assoc "" p) with
+        | Some x -> x
+        | None -> Lang.null)
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "maybe.some" ~cat:Liq ~descr:"Something." [("", a, None, None)]
-    (Lang.maybe_t a) (List.assoc "")
-
-let () =
-  let a = Lang.univ_t () in
-  add_builtin "maybe.case" ~cat:Liq ~flags:[Lang.Hidden]
+  let b = Lang.univ_t () in
+  add_builtin "null.case" ~cat:Liq
     ~descr:"Return a result dending on whether a value is nothing or not."
     [
-      ("", Lang.maybe_t a, None, Some "Value to reason by case analysis on.");
+      ("", Lang.nullable_t b, None, Some "Value to reason by case analysis on.");
+      ( "",
+        Lang.fun_t [] b,
+        None,
+        Some "Value to return in case we have nothing." );
+      ( "",
+        Lang.fun_t [(false, "", a)] b,
+        None,
+        Some "Value to return in case we have something." );
+    ]
+    b
+    (fun p ->
+      let x = Lang.assoc "" 1 p in
+      let d = Lang.to_fun (Lang.assoc "" 2 p) in
+      let f = Lang.to_fun (Lang.assoc "" 3 p) in
+      match Lang.to_option x with None -> d [] | Some x -> f [("", x)])
+
+let () =
+  let a = Lang.univ_t () in
+  add_builtin "null.default" ~cat:Liq
+    ~descr:"Return a result dending on whether a value is nothing or not."
+    [
+      ("", Lang.nullable_t a, None, Some "Value to reason by case analysis on.");
       ( "",
         Lang.fun_t [] a,
         None,

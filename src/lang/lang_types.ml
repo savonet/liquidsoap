@@ -141,7 +141,7 @@ and descr =
   | Ground of ground
   | List of t
   | Tuple of t list
-  | Maybe of t
+  | Nullable of t
   | Meth of string * scheme * t
   | Zero
   | Succ of t
@@ -162,7 +162,7 @@ type repr =
   | `Ground of ground
   | `List of repr
   | `Tuple of repr list
-  | `Maybe of repr
+  | `Nullable of repr
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Zero
   | `Succ of repr
@@ -292,7 +292,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | Ground g -> `Ground g
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
-        | Maybe t -> `Maybe (repr g t)
+        | Nullable t -> `Nullable (repr g t)
         | Meth (l, (g', u), v) ->
             let gen =
               List.map
@@ -406,7 +406,7 @@ let print_repr f t =
         let vars = aux vars l in
         if par then Format.fprintf f ")@]" else Format.fprintf f "@]";
         vars
-    | `Maybe t ->
+    | `Nullable t ->
         let vars = print ~par:true vars t in
         Format.fprintf f "?";
         vars
@@ -631,7 +631,7 @@ let rec occur_check a b =
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
-    | Maybe t -> occur_check a t
+    | Nullable t -> occur_check a t
     | Meth (_, (_, t), u) ->
         (* We assume that a is not a generalized variable of t. *)
         occur_check a t;
@@ -756,7 +756,7 @@ let filter_vars f t =
     let t = deref t in
     match t.descr with
       | Ground _ | Zero -> l
-      | Succ t | List t | Maybe t -> aux l t
+      | Succ t | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Meth (_, (g, t), u) ->
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
@@ -787,7 +787,7 @@ let copy_with (subst : Subst.t) t =
           cp (Constr { c with params })
       | Ground _ -> cp t.descr
       | List t -> cp (List (aux t))
-      | Maybe t -> cp (Maybe (aux t))
+      | Nullable t -> cp (Nullable (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
       | Meth (l, (g, t), u) ->
           (* We assume that we don't substitute generalized variables. *)
@@ -920,8 +920,9 @@ let rec ( <: ) a b =
         aux [] c1.params c2.params
     | List t1, List t2 -> (
         try t1 <: t2 with Error (a, b) -> raise (Error (`List a, `List b)) )
-    | Maybe t1, Maybe t2 -> (
-        try t1 <: t2 with Error (a, b) -> raise (Error (`Maybe a, `Maybe b)) )
+    | Nullable t1, Nullable t2 -> (
+        try t1 <: t2
+        with Error (a, b) -> raise (Error (`Nullable a, `Nullable b)) )
     | Tuple l, Tuple m ->
         if List.length l <> List.length m then (
           let l = List.map (fun _ -> `Ellipsis) l in
@@ -1020,8 +1021,8 @@ let rec ( <: ) a b =
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)) )
-    | _, Maybe t2 -> (
-        try a <: t2 with Error (a, b) -> raise (Error (a, `Maybe b)) )
+    | _, Nullable t2 -> (
+        try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)) )
     | _, Meth (l2, (g2, t2), u2) ->
         let rec aux a =
           match (deref a).descr with

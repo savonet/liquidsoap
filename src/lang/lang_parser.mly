@@ -296,8 +296,8 @@ expr:
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
-  | expr COALESCE expr               { let maybe = mk ~pos:$loc($1) (Var "maybe") in
-                                       let op =  mk ~pos:$loc($1) (Invoke (maybe, "case")) in
+  | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
+                                       let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
   | TRY exprs CATCH bindvar COLON varlist DO exprs END
@@ -311,7 +311,7 @@ expr:
   | TRY exprs CATCH bindvar DO exprs END { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, T.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
                                        let handler = mk_fun ~pos:$loc($6) err_arg $6 in
-                                       let errors = mk ~pos:$loc Nothing in
+                                       let errors = mk ~pos:$loc Null in
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
                                        let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
                                        mk ~pos:$loc (App (op, ["errors", errors; "", fn; "", handler])) }
