@@ -723,7 +723,10 @@ let () =
 let () =
   add_builtin "for" ~cat:Liq ~descr:"A for loop."
     [
-      ("", Lang.int_t, None, Some "Number of iterations.");
+      ( "",
+        Lang.univ_t ~constraints:[Lang_types.Iterable] (),
+        None,
+        Some "Values to iterate on." );
       ( "",
         Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t,
         None,
@@ -731,9 +734,15 @@ let () =
     ]
     Lang.unit_t
     (fun p ->
-      let n = Lang.to_int (Lang.assoc "" 1 p) in
+      let l = Lang.assoc "" 1 p in
       let f = Lang.to_fun (Lang.assoc "" 2 p) in
-      for i = 0 to n - 1 do
-        ignore (f [("", Lang.int i)])
-      done;
-      Lang.unit)
+      match (Lang.demeth l).Lang.value with
+        | Lang.Ground (Lang.Ground.Int n) ->
+            for i = 0 to n - 1 do
+              ignore (f [("", Lang.int i)])
+            done;
+            Lang.unit
+        | Lang.List l ->
+            List.iter (fun x -> ignore (f [("", x)])) l;
+            Lang.unit
+        | _ -> assert false)

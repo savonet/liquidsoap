@@ -343,7 +343,7 @@ let strip_newlines tokenizer =
             state := None;
             let startp = fst (snd v) in
             (Lang_parser.VARLPAR var, (startp, endp))
-        | Lang_parser.LBRA, (_, endp) ->
+        | Lang_parser.LBRA, (_, endp) when var <> "in" ->
             state := None;
             let startp = fst (snd v) in
             (Lang_parser.VARLBRA var, (startp, endp))
