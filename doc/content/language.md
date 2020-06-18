@@ -95,7 +95,9 @@ You can form expressions by using
   without `def .. end`, and in the body of anonymous functions, for example `fun
   (x) -> f1(x) ; f2(x)` will be read as `(fun (x) -> f1(x)) ; f2(x)` not as `fun
   (x) -> begin f1(x) ; f2(x) end`,
-- _code blocks_: `{ expr }` is a shortcut for `fun () -> expr`.
+- _code blocks_: `{ expr }` is a shortcut for `fun () -> expr`,
+- _loops_: the syntax for "for" and "while" loops is `for i = first to last do
+  expr end` or `while cond do expr end`.
 
 ### Assignments
 
