@@ -722,7 +722,7 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin "for" ~cat:Liq ~descr:"A for loop."
+  add_builtin "for" ~cat:Liq ~descr:"A for loop." ~flags:[Lang.Hidden]
     [
       ("", Lang.fun_t [] (Lang.nullable_t a), None, Some "Values to iterate on.");
       ( "",
@@ -745,6 +745,7 @@ let () =
 
 let () =
   add_builtin "iterator.int" ~cat:Liq ~descr:"Iterator on integers."
+    ~flags:[Lang.Hidden]
     [
       ("", Lang.int_t, None, Some "First value.");
       ("", Lang.int_t, None, Some "Last value (included).");
