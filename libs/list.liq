@@ -276,3 +276,13 @@ end
 def list.filter_assoc(k,l)
   list.filter(fun (el) -> fst(el) == k, l)
 end
+
+# Create an iterator over the elements of a list.
+# @category List
+def list.iterator(l)
+  l = ref(l)
+  def f()
+    list.case(!l, null(), fun (x,t) -> begin l := t; x end)
+  end
+  f
+end

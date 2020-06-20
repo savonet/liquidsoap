@@ -112,13 +112,12 @@ let print_ground v =
 
 (** Type constraints *)
 
-type constr = Num | Ord | Iterable | Getter of ground | Dtools
+type constr = Num | Ord | Getter of ground | Dtools
 type constraints = constr list
 
 let print_constr = function
   | Num -> "a number type"
   | Ord -> "an orderable type"
-  | Iterable -> "an iterable type"
   | Getter t ->
       let t = print_ground t in
       if !pretty_getters then Printf.sprintf "{%s}" t
@@ -694,14 +693,6 @@ let rec bind a0 b =
                       | _ -> raise (Unsatisfied_constraint (Ord, b))
                   in
                   check b
-              | Iterable -> (
-                  match (demeth b).descr with
-                    | Ground Int | List _ -> ()
-                    | Arrow ([], b') -> (
-                        match (demeth b').descr with
-                          | Nullable _ -> ()
-                          | _ -> raise (Unsatisfied_constraint (Iterable, b)) )
-                    | _ -> raise (Unsatisfied_constraint (Iterable, b)) )
               | Dtools -> (
                   match b.descr with
                     | Ground g ->

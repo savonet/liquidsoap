@@ -721,41 +721,27 @@ let () =
       Lang.unit)
 
 let () =
+  let a = Lang.univ_t () in
   add_builtin "for" ~cat:Liq ~descr:"A for loop."
     [
+      ("", Lang.fun_t [] (Lang.nullable_t a), None, Some "Values to iterate on.");
       ( "",
-        Lang.univ_t ~constraints:[Lang_types.Iterable] (),
-        None,
-        Some "Values to iterate on." );
-      ( "",
-        Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t,
+        Lang.fun_t [(false, "", a)] Lang.unit_t,
         None,
         Some "Function to execute." );
     ]
     Lang.unit_t
     (fun p ->
-      let l = Lang.assoc "" 1 p in
+      let i = Lang.to_fun (Lang.assoc "" 1 p) in
       let f = Lang.to_fun (Lang.assoc "" 2 p) in
-      match (Lang.demeth l).Lang.value with
-        | Lang.Ground (Lang.Ground.Int n) ->
-            for i = 0 to n - 1 do
-              ignore (f [("", Lang.int i)])
-            done;
-            Lang.unit
-        | Lang.List l ->
-            List.iter (fun x -> ignore (f [("", x)])) l;
-            Lang.unit
-        | Lang.Fun _ | Lang.FFI _ ->
-            let l = Lang.to_fun l in
-            let rec aux () =
-              match Lang.to_option (l []) with
-                | Some n ->
-                    ignore (f [("", n)]);
-                    aux ()
-                | None -> Lang.unit
-            in
-            aux ()
-        | _ -> assert false)
+      let rec aux () =
+        match Lang.to_option (i []) with
+          | Some i ->
+              ignore (f [("", i)]);
+              aux ()
+          | None -> Lang.unit
+      in
+      aux ())
 
 let () =
   add_builtin "iterator.int" ~cat:Liq ~descr:"Iterator on integers."

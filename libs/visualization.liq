@@ -17,8 +17,8 @@ def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s)
     n = int_of_float(x * float_of_int(bar_width))
     bar = ref("")
     if not scroll then bar := "\r" end
-    for i in n do bar := !bar ^ "=" end
-    for i in bar_width - n do bar := !bar ^ "." end
+    for i in 0 .. n-1 do bar := !bar ^ "=" end
+    for i in 0 .. bar_width-n-1 do bar := !bar ^ "." end
     bar := !bar ^ " " ^ string_of(v)
     if scroll then bar := !bar ^ "\n" end
     print(newline=false, !bar)
