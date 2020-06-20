@@ -2,10 +2,10 @@
 
 use strict ;
 
-my $liquidsoap = "../src/liquidsoap";
+my $liquidsoap = "../../src/liquidsoap";
 die unless -f $liquidsoap ;
 
-$liquidsoap = "$liquidsoap ../libs/pervasives.liq -c";
+$liquidsoap = "$liquidsoap ../../libs/pervasives.liq -c";
 
 sub section {
   print "\n*** $_[0] ***\n\n" ;
