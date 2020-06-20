@@ -112,7 +112,7 @@ let print_ground v =
 
 (** Type constraints *)
 
-type constr = Num | Ord | Getter of ground | Dtools
+type constr = Num | Ord | Getter of ground | Dtools | Non_null
 type constraints = constr list
 
 let print_constr = function
@@ -123,6 +123,7 @@ let print_constr = function
       if !pretty_getters then Printf.sprintf "{%s}" t
       else Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "unit, bool, int, float, string or [string]"
+  | Non_null -> "a non-nullable type"
 
 (** Types *)
 
@@ -710,6 +711,13 @@ let rec bind a0 b =
                         if not (List.mem Dtools c) then
                           b.descr <- EVar (j, Dtools :: c)
                     | _ -> raise (Unsatisfied_constraint (Dtools, b)) )
+              | Non_null -> (
+                  match (demeth b).descr with
+                    | Nullable t -> raise (Unsatisfied_constraint (Non_null, t))
+                    | EVar (j, c) ->
+                        if List.mem Non_null c then ()
+                        else b.descr <- EVar (j, Non_null :: c)
+                    | _ -> () )
               | Num -> (
                   match (demeth b).descr with
                     | Ground g ->

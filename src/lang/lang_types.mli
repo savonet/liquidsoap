@@ -36,7 +36,7 @@ type ground += Bool | Int | String | Float | Request
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
 
-type constr = Num | Ord | Getter of ground | Dtools
+type constr = Num | Ord | Getter of ground | Dtools | Non_null
 type constraints = constr list
 
 val print_constr : constr -> string

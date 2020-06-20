@@ -12,6 +12,12 @@ def f() =
   t(null.case(null(),{true},fun (_) -> false),true)
   t(null.case("x",{true}, fun(_) -> false),false)
 
+  def g(x) =
+    null.valued(x)
+  end
+
+  ignore(g(123))
+ 
   test.pass()
 end
 

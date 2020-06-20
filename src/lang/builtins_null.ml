@@ -33,6 +33,12 @@ let () =
         | None -> Lang.null)
 
 let () =
+  let a = Lang.univ_t ~constraints:[Lang_types.Non_null] () in
+  add_builtin "null.valued" ~cat:Liq ~descr:"Create a not-nullable value."
+    [("", a, None, Some "Value to make not-nullable.")]
+    a (List.assoc "")
+
+let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
   add_builtin "null.case" ~cat:Liq

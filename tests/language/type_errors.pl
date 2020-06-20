@@ -2,10 +2,10 @@
 
 use strict ;
 
-my $liquidsoap = "../src/liquidsoap";
+my $liquidsoap = "../../src/liquidsoap";
 die unless -f $liquidsoap ;
 
-$liquidsoap = "$liquidsoap ../libs/pervasives.liq -c";
+$liquidsoap = "$liquidsoap ../../libs/pervasives.liq -c";
 
 sub section {
   print "\n*** $_[0] ***\n\n" ;
@@ -75,6 +75,8 @@ incorrect('fallback(transitions=[fun(x,y)->0])');
 correct('f=fallback(transitions=[fun(x,y,a=2)->x])');
 incorrect('fallback(transitions=[fun(x,y)->y+1])');
 correct('x=fun(f)->f(3) y=x(fun(f,u="1")->u) ignore(y)');
+incorrect('def f(x) = null.valued(x) end ; f(null(123))');
+correct('def f(x) = null.valued(x) end ; f(123)');
 
 section("CONTENT KIND");
 incorrect('output.file(%vorbis(stereo),"foo",mean(blank()))');
