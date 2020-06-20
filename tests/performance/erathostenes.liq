@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq --force-start
+#!../../src/liquidsoap ../../libs/pervasives.liq --force-start
 
 %include "performance.liq"
 
@@ -6,11 +6,11 @@ def erathostenes(n)
   l = list.init(n-2, fun (i) -> i+2)
   l = ref(l)
   p = ref([])
-  while({not list.is_empty(!l)}, fun () -> begin
+  while not list.is_empty(!l) do
     i = list.hd(default=0, !l)
     p := list.add(i, !p)
     l := list.filter(fun (j) -> j mod i != 0, !l)
-  end)
+  end
   list.rev(!p)
 end
 

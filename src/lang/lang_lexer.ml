@@ -204,6 +204,7 @@ let rec token lexbuf =
     | "%shine" -> SHINE
     | "%fdkaac" -> FDKAAC
     | '.' -> DOT
+    | ".." -> DOTDOT
     | '[' -> LBRA
     | ']' -> RBRA
     | '(' -> LPAR
@@ -217,6 +218,10 @@ let rec token lexbuf =
     | "~" -> TILD
     | "?" -> QUESTION
     | "-" -> MINUS
+    | "while" -> WHILE
+    | "for" -> FOR
+    | "in" -> IN
+    | "do" -> DO
     | "not" -> NOT
     | "and" | "or" -> BIN0 (Sedlexing.Utf8.lexeme lexbuf)
     | "!=" | "==" | "<" | "<=" | ">" | ">=" ->

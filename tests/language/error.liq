@@ -27,7 +27,7 @@ def f() =
   # Works as expected with no errors
   ret = try
     4
-  catch _: [e] do
+  catch _ in [e] do
     5
   end
 
@@ -69,10 +69,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch err: [e'] do
+      catch err in [e'] do
         "blo"
       end
-    catch err: [e] do
+    catch err in [e] do
       "gni"
     end
   t(ret, "gni")
@@ -83,10 +83,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch err: [] do
+      catch err in [] do
         "blo"
       end
-    catch err: [e] do
+    catch err in [e] do
       "gni"
     end
   t(ret, "gni")
@@ -97,10 +97,10 @@ def f() =
       try
         error.raise(e, "msg");
         "bla"
-      catch err: [e, e'] do
+      catch err in [e, e'] do
         "blo"
       end
-    catch err: [e] do
+    catch err in [e] do
       "gni"
     end
   t(ret, "blo")

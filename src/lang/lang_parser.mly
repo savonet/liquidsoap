@@ -201,11 +201,13 @@
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
+%token WHILE FOR IN DOTDOT
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
 %nonassoc COALESCE         /* (x | y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc REF          /* ref (1+2) */
+%right DOTDOT
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
 %nonassoc NOT
@@ -296,11 +298,14 @@ expr:
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
+  | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
+  | FOR VAR IN expr DO exprs END     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
+  | expr DOTDOT expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
   | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
                                        mk ~pos:$loc (App (op, ["",$1;"",handler])) }
-  | TRY exprs CATCH bindvar COLON varlist DO exprs END
+  | TRY exprs CATCH bindvar IN varlist DO exprs END
                                      { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, T.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
                                        let errors = mk ~pos:$loc (List $6) in
@@ -420,7 +425,7 @@ subfield:
   | VAR DOT in_subfield { $1::$3 }
 
 in_subfield:
-  | VAR { [$1] }
+  | var { [$1] }
   | VAR DOT in_subfield { $1::$3 }
 
 pattern_list:
@@ -453,6 +458,10 @@ replaces:
   | { false }
   | REPLACES { true }
 
+var:
+  | VAR { $1 }
+  | IN  { "in" }
+
 varlpar:
   | VARLPAR         { [$1] }
   | VAR DOT varlpar { $1::$3 }
@@ -463,8 +472,8 @@ arglist:
   | arg               { [$1] }
   | arg COMMA arglist { $1::$3 }
 arg:
-  | TILD VAR opt { $2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3 }
-  | TILD VAR GETS UNDERSCORE opt { $2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5 }
+  | TILD var opt { $2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3 }
+  | TILD var GETS UNDERSCORE opt { $2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5 }
   | bindvar opt  { "", $1, T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)), $2 }
 opt:
   | GETS expr { Some $2 }

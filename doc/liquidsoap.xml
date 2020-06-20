@@ -26,6 +26,9 @@
       <item>then</item>
       <item>else</item>
       <item>elsif</item>
+      <item>while</item>
+      <item>for</item>
+      <item>in</item>
       <item>try</item>
       <item>catch</item>
       <item>do</item>

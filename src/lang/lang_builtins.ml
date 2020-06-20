@@ -702,3 +702,62 @@ let () =
       print_string v;
       flush stdout;
       Lang.unit)
+
+(** Loops. *)
+
+let () =
+  add_builtin "while" ~cat:Liq ~descr:"A while loop."
+    [
+      ("", Lang.bool_getter_t (), None, Some "Condition guarding the loop.");
+      ("", Lang.fun_t [] Lang.unit_t, None, Some "Function to execute.");
+    ]
+    Lang.unit_t
+    (fun p ->
+      let c = Lang.to_bool_getter (Lang.assoc "" 1 p) in
+      let f = Lang.to_fun (Lang.assoc "" 2 p) in
+      while c () do
+        ignore (f [])
+      done;
+      Lang.unit)
+
+let () =
+  let a = Lang.univ_t () in
+  add_builtin "for" ~cat:Liq ~descr:"A for loop." ~flags:[Lang.Hidden]
+    [
+      ("", Lang.fun_t [] (Lang.nullable_t a), None, Some "Values to iterate on.");
+      ( "",
+        Lang.fun_t [(false, "", a)] Lang.unit_t,
+        None,
+        Some "Function to execute." );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let i = Lang.to_fun (Lang.assoc "" 1 p) in
+      let f = Lang.to_fun (Lang.assoc "" 2 p) in
+      let rec aux () =
+        match Lang.to_option (i []) with
+          | Some i ->
+              ignore (f [("", i)]);
+              aux ()
+          | None -> Lang.unit
+      in
+      aux ())
+
+let () =
+  add_builtin "iterator.int" ~cat:Liq ~descr:"Iterator on integers."
+    ~flags:[Lang.Hidden]
+    [
+      ("", Lang.int_t, None, Some "First value.");
+      ("", Lang.int_t, None, Some "Last value (included).");
+    ]
+    (Lang.fun_t [] (Lang.nullable_t Lang.int_t))
+    (fun p ->
+      let a = Lang.to_int (Lang.assoc "" 1 p) in
+      let b = Lang.to_int (Lang.assoc "" 2 p) in
+      let i = ref a in
+      let f _ =
+        let ans = !i in
+        incr i;
+        if ans > b then Lang.null else Lang.int ans
+      in
+      Lang.val_fun [] f)
