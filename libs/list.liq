@@ -60,7 +60,7 @@ def list.length(l)
 end
 
 # Return the last element of a list.
-# @category list
+# @category List
 def list.last(~default=null(), l)
   list.nth(default=default, l, list.length(l)-1)
 end
