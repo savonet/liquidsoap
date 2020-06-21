@@ -159,7 +159,6 @@ let rec token lexbuf =
     | "%define" -> PP_DEFINE
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
-    | "ref" -> REF
     | "def" -> PP_DEF
     | "replaces" -> REPLACES
     | "try" -> TRY

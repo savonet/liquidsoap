@@ -30,8 +30,8 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
            ~transition_length=5., ~transitions=[],
            ~weights=[], sources) =
   weights = list.map(to_int_getter, weights)
-  picked_index = ref -1
-  tracks_played = ref 0
+  picked_index = ref(-1)
+  tracks_played = ref(0)
   default_weight = fun () -> 1
 
   def pick() =
@@ -99,7 +99,7 @@ def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=
            ~weights=[], sources) =
   weights = list.map(to_int_getter, weights)
   default_weight = fun () -> 1
-  next_index = ref -1
+  next_index = ref(-1)
 
   def pick() =
     def available_weighted_sources(cur, s) =

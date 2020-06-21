@@ -12,7 +12,7 @@
 
 %include "test.liq"
 
-r = ref false
+r = ref(false)
 def pred () =
   v = !r
   r := false
