@@ -46,7 +46,7 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
       lin_shape
     end
 
-  start_time = ref (-1.)
+  start_time = ref(-1.)
   def fade() =
     if !start_time < 0. then
       start_time := source.time(s)
@@ -89,10 +89,10 @@ def fade.out(~id="fade.out",~duration=3.,
              ~override_type="liq_fade_type",
              ~type="lin",s) =
   log = log(label=source.id(s),level=4)
-  fn = ref (fun () -> 1.)
-  type = ref type
-  duration = ref duration
-  start_time = ref (-1.)
+  fn = ref(fun () -> 1.)
+  type = ref(type)
+  duration = ref(duration)
+  start_time = ref(-1.)
 
   def start_fade(d,_) =
     log("Fading out with #{d}s remaining..")
@@ -142,9 +142,9 @@ def fade.skip(~id="fade.skip",~duration=5.,
              ~override_skip="liq_skip_meta",
              ~type="lin",s) =
   log = log(label=source.id(s),level=4)
-  fn = ref (fun () -> 1.)
-  type = ref type
-  duration = ref duration  
+  fn = ref(fun () -> 1.)
+  type = ref(type)
+  duration = ref(duration)
 
   def apply() =
     fn = !fn
@@ -191,7 +191,7 @@ end
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
   fn = mkfade(start=1.,stop=0.,type=type,duration=duration,s)
-  should_play = ref true
+  should_play = ref(true)
 
   def fn() =
     v = fn()
@@ -218,9 +218,9 @@ def fade.in(~id="fade.in",~duration=3.,
             ~override_type="liq_fade_type",
             ~type="lin",s) =
   log = log(label=source.id(s),level=4)
-  fn = ref (fun () -> 0.)
-  duration = ref duration
-  type = ref type
+  fn = ref(fun () -> 0.)
+  duration = ref(duration)
+  type = ref(type)
 
   def apply() =
     fn = !fn
@@ -382,7 +382,7 @@ end
 # @param ~special The special source.
 def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
   p = to_float_getter(p)
-  last_p = ref p()
+  last_p = ref(p())
 
   def c(fn,s) =
     def v() =
@@ -392,10 +392,10 @@ def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
     fade.scale(v,s)
   end
 
-  special_volume = ref fun () -> 0.
+  special_volume = ref(fun () -> 0.)
   special = c(special_volume,special)
 
-  normal_volume = ref fun () -> 1.
+  normal_volume = ref(fun () -> 1.)
   normal = c(normal_volume,normal)
 
   def to_special(b,special) =

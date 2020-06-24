@@ -5,7 +5,7 @@
 # makes sure we don't have such regression in the
 # future.
 
-track_count = ref 0
+track_count = ref(0)
 
 s = single("../media/files/audio/@flac(stereo).flac")
 

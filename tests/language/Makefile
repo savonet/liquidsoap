@@ -5,7 +5,7 @@ TESTS = $(filter-out test, $(basename $(LIQ)))
 DISTFILES = Makefile $(LIQ)
 top_srcdir = $(shell realpath ../..)
 
-test: type_errors $(TESTS)
+test: $(TESTS) type_errors
 
 %: %.liq
 	@../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" language/$<

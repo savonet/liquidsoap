@@ -4,7 +4,7 @@
 
 %include "test.liq"
 
-success = ref true
+success = ref(true)
 
 def t(d,x) =
   y = of_json(default=d,json_of(x))
