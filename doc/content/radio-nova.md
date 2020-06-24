@@ -33,8 +33,8 @@ nova = insert_metadata(id="nova",
 
 # This string references will be used to keed track
 # of previous metadata
-title = ref "unknown title"
-artist = ref "unknown artist"
+title = ref("unknown title")
+artist = ref("unknown artist")
 
 # Capitalize and lowercase
 def cap(s)

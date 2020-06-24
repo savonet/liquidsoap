@@ -85,7 +85,7 @@ You can form expressions by using
   semicolon, the evaluation of a sequence triggers that of all of its
   sub-expressions, its value is that of the last sub-expression, accordingly,
   the type of a sequence is that of its last sub-expression),
-- variable references are defined as: `r = ref "some string"`, new
+- variable references are defined as: `r = ref("some string")`, new
   values can be set via: `reference := "new value"`, the contents of a reference
   can be retrieved by `!reference`,
 - _parenthesis_ can be used to delimit explicitly expressions: in some places

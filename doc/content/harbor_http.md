@@ -151,7 +151,7 @@ fecth/set the metadata of a source. For instance,
 using the [JSON export function](json.html) `json_of`:
 
 ```liquidsoap
-meta = ref []
+meta = ref([])
 
 # s = some source
 
