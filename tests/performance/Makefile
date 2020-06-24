@@ -17,7 +17,7 @@ big-record.liq:
 	@echo "def sum () =" >> $@
 	@echo "r = ()" >> $@
 	@for i in `seq 5000`; do echo "let r.a$$i = $$i"; done >> $@
-	@echo "n = ref 0" >> $@
+	@echo "n = ref(0)" >> $@
 	@for i in `seq 5000`; do echo "n := !n + r.a$$i"; done >> $@
 	@echo "end" >> $@
 	@echo 'time("sum of fields", sum)' >> $@

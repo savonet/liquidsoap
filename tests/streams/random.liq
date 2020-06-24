@@ -5,7 +5,7 @@
 # Track selection 2 -> s1 not ready, s2 ready -> switch to s2
 # Track selection 3 -> s1 ready, s2 with weight 0 -> switch to s1
 
-selected = ref []
+selected = ref([])
 
 s1 = blank(duration=0.04)
 
@@ -15,11 +15,11 @@ end
 
 s1 = map_metadata(m1,s1)
 
-s1_ready = ref true
+s1_ready = ref(true)
 
 s1 = switch(id="s1",[({!s1_ready},s1)])
 
-s1_weight = ref 1
+s1_weight = ref(1)
 
 s2 = blank(duration=0.04)
 
@@ -29,13 +29,13 @@ end
 
 s2 = map_metadata(id="s2",m2,s2)
 
-s2_ready = ref false
+s2_ready = ref(false)
 
 s2 = switch(id="s2",[({!s2_ready},s2)])
 
-s2_weight = ref 1
+s2_weight = ref(1)
 
-round = ref 1
+round = ref(1)
 
 def f(m) =
   if !round == 1 then

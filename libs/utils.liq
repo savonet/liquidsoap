@@ -324,7 +324,7 @@ end
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
 def rotate.merge(~id="",~transitions=[],~weights=[],sources)
-  ready = ref true
+  ready = ref(true)
   duration = get(default=0.04,"frame.duration")
 
   def to_first(old,new) =
@@ -382,7 +382,7 @@ end
 def overlap_sources(~id="",~normalize=false,
                     ~start_next="liq_start_next",
                     ~weights=[],sources) =
-  position = ref 0
+  position = ref(0)
   length   = list.length(sources)
 
   def current_position() =
@@ -391,8 +391,8 @@ def overlap_sources(~id="",~normalize=false,
     pos
   end
 
-  ready_list = list.map(fun (_) -> ref false,sources)
-  grab_ready = list.nth(default=ref false,ready_list)
+  ready_list = list.map(fun (_) -> ref(false),sources)
+  grab_ready = list.nth(default=ref(false),ready_list)
 
   def set_ready(pos,b) =
     is_ready = grab_ready(pos)
@@ -417,7 +417,7 @@ def overlap_sources(~id="",~normalize=false,
   sources = list.mapi(disable,sources)
 
   # Relay metadata from all sources
-  send_to_main_source = ref fun (_) -> ()
+  send_to_main_source = ref(fun (_) -> ())
 
   def relay_metadata(m) =
     fn = !send_to_main_source
@@ -473,7 +473,7 @@ def chop(~duration=float_getter(3.),~metadata=[],s) =
   s = insert_metadata(s)
 
   # Track time in the source's context:
-  start_time = ref 0.
+  start_time = ref(0.)
   def f() =
     if duration () <= source.time(s) - !start_time then
       start_time := source.time(s)

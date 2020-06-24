@@ -159,7 +159,6 @@ let rec token lexbuf =
     | "%define" -> PP_DEFINE
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
-    | "ref" -> REF
     | "def" -> PP_DEF
     | "replaces" -> REPLACES
     | "try" -> TRY
@@ -204,7 +203,6 @@ let rec token lexbuf =
     | "%shine" -> SHINE
     | "%fdkaac" -> FDKAAC
     | '.' -> DOT
-    | ".." -> DOTDOT
     | '[' -> LBRA
     | ']' -> RBRA
     | '(' -> LPAR
@@ -221,6 +219,7 @@ let rec token lexbuf =
     | "while" -> WHILE
     | "for" -> FOR
     | "in" -> IN
+    | "to" -> TO
     | "do" -> DO
     | "not" -> NOT
     | "open" -> OPEN
