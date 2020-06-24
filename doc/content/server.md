@@ -176,7 +176,7 @@ In the following, we define two commands:
 ```liquidsoap
 c = server.condition()
 
-value = ref ""
+value = ref("")
 
 def wait(_) =
   def rec fn () =

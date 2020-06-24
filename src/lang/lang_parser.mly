@@ -180,7 +180,7 @@
 %token <Doc.item * (string*string) list> DEF
 %token REPLACES
 %token COALESCE
-%token TRY CATCH DO
+%token TRY CATCH IN DO
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
@@ -195,19 +195,18 @@
 %token MINUS UMINUS
 %token UNDERSCORE
 %token NOT
-%token REF GET SET
+%token GET SET
 %token<string> PP_IFDEF PP_IFNDEF
 %token PP_IFENCODER PP_IFNENCODER PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
-%token WHILE FOR IN DOTDOT
+%token WHILE FOR TO
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
 %nonassoc COALESCE         /* (x | y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
-%nonassoc REF          /* ref (1+2) */
-%right DOTDOT
+%nonassoc TO
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
 %nonassoc NOT
@@ -270,7 +269,6 @@ expr:
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | varlist                          { mk ~pos:$loc (List $1) }
-  | REF expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "ref"), ["", $2])) }
   | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }
   | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($1) (Var "ref"), "set")), ["", $1; "", $3])) }
   | MP3 app_opt                      { mk_enc ~pos:$loc (Lang_mp3.make_cbr $2) }
@@ -293,7 +291,6 @@ expr:
   | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
   | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
   | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)), $4)) }
-  | REF DOT VARLPAR app_list RPAR    { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke (mk ~pos:$loc($1) (Var "ref"), $3)), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:$loc($1) (Var $1); "", $2])) }
   | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)); "", $4])) }
@@ -301,8 +298,8 @@ expr:
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
-  | FOR VAR IN expr DO exprs END     { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
-  | expr DOTDOT expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
+  | FOR VAR GETS expr DO exprs END   { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), None] $6])) }
+  | expr TO expr                     { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($2) (Var "iterator"), "int")), ["", $1; "", $3])) }
   | expr COALESCE expr               { let null = mk ~pos:$loc($1) (Var "null") in
                                        let op =  mk ~pos:$loc($1) (Invoke (null, "default")) in
                                        let handler = mk_fun ~pos:$loc($3) [] $3 in
@@ -370,7 +367,6 @@ expr:
 ty:
   | VAR                       { mk_ty ~pos:$loc $1 [] }
   | VARLPAR ty_args RPAR      { mk_ty ~pos:$loc $1 $2 }
-  | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some $loc) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty_tuple RPAR        { Lang_types.make (Lang_types.Tuple $2) }
   | INT                       { Lang_values.type_of_int $1 }
@@ -472,7 +468,6 @@ var:
 varlpar:
   | VARLPAR         { [$1] }
   | VAR DOT varlpar { $1::$3 }
-  | REF DOT varlpar { "ref"::$3 }
 
 arglist:
   |                   { [] }

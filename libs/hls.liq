@@ -5,9 +5,9 @@
 # @param uri Playlist URI
 # @flag experimental
 def input.hls(~id="",~reload=10.,uri)
-  playlistr = ref []
-  sequence = ref 0
-  playlist_uri = ref uri
+  playlistr = ref([])
+  sequence = ref(0)
+  playlist_uri = ref(uri)
 
   def load_playlist () =
     pl = request.create(!playlist_uri)

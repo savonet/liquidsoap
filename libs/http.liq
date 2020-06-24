@@ -30,11 +30,11 @@ def http_response(~protocol="HTTP/1.1",
     else
       headers
     end
-  resp = ref
+  resp = ref(
     "#{protocol} #{code} #{status}\r\n\
      #{headers}\
      \r\n\
-     #{data}"
+     #{data}")
   def resp () =
     ret = !resp
     resp := ""
@@ -76,7 +76,7 @@ def http_response_stream(
     "#{protocol} #{code} #{status}\r\n\
      #{headers}\
      \r\n"
-  head_sent = ref false
+  head_sent = ref(false)
   def resp () =
     if !head_sent then
       data()

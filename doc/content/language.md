@@ -85,7 +85,7 @@ You can form expressions by using
   semicolon, the evaluation of a sequence triggers that of all of its
   sub-expressions, its value is that of the last sub-expression, accordingly,
   the type of a sequence is that of its last sub-expression),
-- variable references are defined as: `r = ref "some string"`, new
+- variable references are defined as: `r = ref("some string")`, new
   values can be set via: `reference := "new value"`, the contents of a reference
   can be retrieved by `!reference`,
 - _parenthesis_ can be used to delimit explicitly expressions: in some places
@@ -96,7 +96,7 @@ You can form expressions by using
   (x) -> f1(x) ; f2(x)` will be read as `(fun (x) -> f1(x)) ; f2(x)` not as `fun
   (x) -> begin f1(x) ; f2(x) end`,
 - _code blocks_: `{ expr }` is a shortcut for `fun () -> expr`,
-- _loops_: the syntax for "for" and "while" loops is `for i in first .. last do
+- _loops_: the syntax for "for" and "while" loops is `for i = first to last do
   expr end` or `while cond do expr end`.
 
 ### Assignments

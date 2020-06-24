@@ -22,7 +22,7 @@ New here's the code:
 
 ```liquidsoap
 # First, we create a list referencing the dynamic sources:
-dyn_sources = ref []
+dyn_sources = ref([])
 
 # This is our icecast output.
 # It is a partial application: the source needs to be given!

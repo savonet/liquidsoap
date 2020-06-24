@@ -107,6 +107,8 @@ Changed:
   strings (#1240).
 - Generalize the `l[k]` notation so that the key `k` can be of any type (on
   which we know how to compare).
+- `ref` is not a keyword anymore: this means that `ref x` is not accepted
+  anymore, you need to write `ref(x)` (#1254).
 
 Fixed:
 
