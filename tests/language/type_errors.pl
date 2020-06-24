@@ -44,6 +44,9 @@ incorrect('(1,1)==("1",1)');
 incorrect('1==request.create("")');
 incorrect('fun(x)->x(snd(x))');
 
+correct('true ? "foo" : "bar"');
+incorrect('false ? true : "bar"');
+
 section("SUBTYPING");
 incorrect('(1:unit)');
 # Next one requires the inference of a subtype (fixed vs. variable arity)
