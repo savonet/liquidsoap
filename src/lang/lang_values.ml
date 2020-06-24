@@ -1201,8 +1201,9 @@ let rec eval_toplevel ?(interactive = false) t =
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (T.print ~generalized def_t);
-        if interactive then
-          Format.printf "@[<2>%s :@ %a =@ %s@]@." (string_of_pat pat)
+        let var = string_of_pat pat in
+        if interactive && var <> "_" then
+          Format.printf "@[<2>%s :@ %a =@ %s@]@." var
             (T.pp_type_generalized generalized)
             def_t (V.print_value def);
         eval_toplevel ~interactive body

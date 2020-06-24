@@ -57,6 +57,15 @@ def f() =
   l = [(1,"a"),(2,"b"),(3,"c")]
   t(l[2],"b")
   t(l[27],"")
+  t([1, ...[2,3,4], ...[5,6], 7], [1,2,3,4,5,6,7])
+
+  let [x,y] = [1,2,3]
+  t(x, 1)
+  t(y, 2)
+
+  let [x,_,...z] = [1,2,3]
+  t(x, 1)
+  t(z, [3])
   
   if !success then test.pass() else test.fail() end
 end

@@ -203,6 +203,7 @@ let rec token lexbuf =
     | "%shine" -> SHINE
     | "%fdkaac" -> FDKAAC
     | '.' -> DOT
+    | "..." -> DOTDOTDOT
     | '[' -> LBRA
     | ']' -> RBRA
     | '(' -> LPAR
