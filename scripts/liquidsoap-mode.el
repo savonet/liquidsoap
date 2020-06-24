@@ -5,7 +5,7 @@
  '(
    ("#.*" . 'font-lock-comment-face)
    ("^\\(%ifdef .*\\|%ifndef .*\\|%ifencoder .*\\|%ifnencoder .*\\|%endif\\|%include\\|%define\\)" . 'font-lock-preprocessor-face)
-   ("\\<\\(fun\\|def\\|rec\\|replaces\\|begin\\|end\\|if\\|then\\|else\\|elsif\\|let\\|try\\|catch\\|while\\|for\\|in\\|do\\)\\>\\|->\\|;" . font-lock-keyword-face)
+   ("\\<\\(fun\\|def\\|rec\\|replaces\\|begin\\|end\\|if\\|then\\|else\\|elsif\\|let\\|try\\|catch\\|while\\|for\\|in\\|do\\|open\\)\\>\\|->\\|;" . font-lock-keyword-face)
    ("\\<\\(and\\|or\\|not\\|mod\\|ref\\|??\\)\\>\\|:=" . font-lock-builtin-face)
    ("\\<\\(true\\|false\\)\\>" . font-lock-constant-face)
    ("\\<def[ \t]+\\([^ (]*\\)" 1 'font-lock-function-name-face)
