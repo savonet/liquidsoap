@@ -215,6 +215,8 @@
 %left BIN3 TIMES
 %nonassoc GET          /* (!x)+2 */
 %left DOT
+%nonassoc QUESTION    /* x ? y : z */
+%nonassoc COLON
 
 
 /* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg */
@@ -325,6 +327,11 @@ expr:
                                        let else_b = $5 in
                                        let op = mk ~pos:$loc($1) (Var "if") in
                                        mk ~pos:$loc (App (op, ["", cond; "else", else_b; "then", then_b])) }
+  | expr QUESTION expr COLON expr    { let cond = $1 in
+                                       let then_b = mk_fun ~pos:$loc($3) [] $3 in
+                                       let else_b = mk_fun ~pos:$loc($5) [] $5 in
+                                       let op = mk ~pos:$loc($1) (Var "if") in
+                                       mk ~pos:$loc (App (op, ["", cond; "else", else_b; "then", then_b])) } 
   | SERVER_WAIT exprs THEN exprs END { let condition = $2 in
                                        let op = mk ~pos:$loc (Var "server.wait") in
                                        let after = mk_fun ~pos:$loc($4) [] $4 in

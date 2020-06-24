@@ -47,6 +47,9 @@ def f() =
 
   t("15",{ list.remove(2,[2]) == [] })
 
+  t("16", { "bla" == true ? "bla" : "foo" })
+  t("17", { "foo" == false ? "bla" : "foo" })
+
   if !fail then test.fail() else test.pass() end
 end
 
