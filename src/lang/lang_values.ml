@@ -315,7 +315,7 @@ let rec print_term v =
     | Null -> "null"
     | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
-    | Open (m, e) -> "open " ^ print_term m ^ " in " ^ print_term e
+    | Open (m, e) -> "open " ^ print_term m ^ " " ^ print_term e
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
     | Var s -> s
