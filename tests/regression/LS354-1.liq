@@ -4,7 +4,7 @@ s = on_track(
      fun(_)-> begin test.pass(); shutdown() end,
      blank(duration=1.))
 
-r = ref false
+r = ref(false)
 d = source.dynamic({ if !r then [s] else [] end })
 
 output.dummy(mksafe(d))

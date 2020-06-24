@@ -7,7 +7,7 @@
 # Track selection 2 -> s1 ready, s2 ready, s3 ready -> switch to s1
 # Bug appears when it switches to s3 again on step 2
 
-selected = ref []
+selected = ref([])
 
 s1 = blank(duration=0.04)
 
@@ -17,7 +17,7 @@ end
 
 s1 = map_metadata(id="s1",m1,s1)
 
-s2_ready = ref false
+s2_ready = ref(false)
 
 s2 = switch(id="s2",[({!s2_ready},blank(duration=0.04))])
 

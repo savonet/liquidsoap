@@ -195,7 +195,7 @@
 %token MINUS UMINUS
 %token UNDERSCORE
 %token NOT
-%token REF GET SET
+%token GET SET
 %token<string> PP_IFDEF PP_IFNDEF
 %token PP_IFENCODER PP_IFNENCODER PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE
@@ -206,7 +206,6 @@
 %nonassoc YIELDS       /* fun x -> (x+x) */
 %nonassoc COALESCE         /* (x | y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
-%nonassoc REF          /* ref (1+2) */
 %nonassoc TO
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
@@ -268,7 +267,6 @@ expr:
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | varlist                          { mk ~pos:$loc (List $1) }
-  | REF expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "ref"), ["", $2])) }
   | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }
   | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($1) (Var "ref"), "set")), ["", $1; "", $3])) }
   | MP3 app_opt                      { mk_enc ~pos:$loc (Lang_mp3.make_cbr $2) }
@@ -291,7 +289,6 @@ expr:
   | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
   | expr DOT VAR                     { mk ~pos:$loc (Invoke ($1, $3)) }
   | expr DOT VARLPAR app_list RPAR   { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)), $4)) }
-  | REF DOT VARLPAR app_list RPAR    { mk ~pos:$loc (App (mk ~pos:($startpos($1),$endpos($3)) (Invoke (mk ~pos:$loc($1) (Var "ref"), $3)), $4)) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:$loc($1) (Var $1); "", $2])) }
   | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:($startpos($1),$endpos($3)) (Invoke ($1, $3)); "", $4])) }
@@ -363,7 +360,6 @@ expr:
 ty:
   | VAR                       { mk_ty ~pos:$loc $1 [] }
   | VARLPAR ty_args RPAR      { mk_ty ~pos:$loc $1 $2 }
-  | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some $loc) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty_tuple RPAR        { Lang_types.make (Lang_types.Tuple $2) }
   | INT                       { Lang_values.type_of_int $1 }
@@ -465,7 +461,6 @@ var:
 varlpar:
   | VARLPAR         { [$1] }
   | VAR DOT varlpar { $1::$3 }
-  | REF DOT varlpar { "ref"::$3 }
 
 arglist:
   |                   { [] }
