@@ -96,7 +96,7 @@ You can form expressions by using
   (x) -> f1(x) ; f2(x)` will be read as `(fun (x) -> f1(x)) ; f2(x)` not as `fun
   (x) -> begin f1(x) ; f2(x) end`,
 - _code blocks_: `{ expr }` is a shortcut for `fun () -> expr`,
-- _loops_: the syntax for "for" and "while" loops is `for i in first .. last do
+- _loops_: the syntax for "for" and "while" loops is `for i = first to last do
   expr end` or `while cond do expr end`.
 
 ### Assignments

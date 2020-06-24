@@ -28,9 +28,10 @@
       <item>elsif</item>
       <item>while</item>
       <item>for</item>
-      <item>in</item>
+      <item>to</item>
       <item>try</item>
       <item>catch</item>
+      <item>in</item>
       <item>do</item>
     </list>
 

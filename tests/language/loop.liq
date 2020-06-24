@@ -19,19 +19,19 @@ def f() =
   t(!n, 16)
 
   n = ref(0)
-  for i in 0 .. 10 do
+  for i = 0 to 10 do
     n := !n + i
   end
   t(!n, 55)
 
   n = ref(0)
-  for i in list.iterator([0,1,2,3,4,5,6,7,8,9,10]) do
+  for i = list.iterator([0,1,2,3,4,5,6,7,8,9,10]) do
     n := !n + i
   end
   t(!n, 55)
 
   s = ref("")
-  for i in list.iterator(["a","b","c"]) do
+  for i = list.iterator(["a","b","c"]) do
     s := !s ^ i
   end
   t(!s, "abc")
