@@ -29,9 +29,10 @@ open Frame_content
 type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
 (** High-level description of the content. *)
-type kind = [ `None | `Any | `Internal | `Format of format | `Params of params ]
+type kind = [ `Any | `Internal | `Format of format | `Params of params ]
 
 (* Some common kind. Audio is PCM, video YUV420p *)
+val none : kind
 val audio_pcm : kind
 val audio_n : int -> kind
 val audio_stereo : kind

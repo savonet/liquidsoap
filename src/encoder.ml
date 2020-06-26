@@ -36,13 +36,13 @@ type format =
 
 let audio_kind n =
   let audio =
-    if n = 0 then `None
+    if n = 0 then Frame.none
     else
       `Params
         (Frame_content.Audio.lift_params
            [Audio_converter.Channel_layout.layout_of_channels n])
   in
-  { Frame.audio; video = `None; midi = `None }
+  { Frame.audio; video = Frame.none; midi = Frame.none }
 
 let audio_video_kind n =
   {

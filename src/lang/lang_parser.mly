@@ -182,7 +182,6 @@
         | ("", "any")::[] -> Lang_types.fresh_evar ~level:(-1) ~pos:None
         | ("", "internal")::[] -> Lang_types.fresh ~constraints:[Lang_types.InternalMedia]
                                            ~level:(-1) ~pos:None
-        | ("", "none")::[] -> Lang_types.make (Lang_types.(Ground (Kind Frame_content.None.params)))
         | param::params ->
             let mk_param (label, value) =
               Frame_content.params_of_string label value

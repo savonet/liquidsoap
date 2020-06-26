@@ -94,7 +94,7 @@ class audio_output ~name ~kind val_source =
 
 class video_output ~name val_source =
   let content_kind =
-    Frame.{ audio = `None; video = Frame.video_yuv420p; midi = `None }
+    Frame.{ audio = none; video = video_yuv420p; midi = none }
   in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in

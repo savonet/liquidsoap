@@ -117,12 +117,12 @@ val format_of_string : string -> format
 
 (** Internal content types. *)
 
+(* None content type is abstract and only used
+   via its params and data. *)
 module None : sig
-  include Content
-
-  val format : Contents.format
   val data : Contents.data
   val params : Contents.params
+  val is_params : Contents.params -> bool
 end
 
 module Audio : sig

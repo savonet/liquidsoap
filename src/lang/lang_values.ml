@@ -90,14 +90,9 @@ let kind_t ?pos ?level kind =
       ~level:(-1)
   in
   let mk_kind k = T.make ?pos ?level (T.Ground (T.Kind k)) in
-  let none = mk_kind Frame_content.None.params in
   match kind with
     | `Any -> evar ()
     | `Internal -> evar ~constraints:[Lang_types.InternalMedia] ()
-    (* None is represented by the ground type Frame_content.None.params *)
-    | `None -> none
-    | `Format f when Frame_content.None.is_format f -> none
-    | `Params p when Frame_content.None.is_params p -> none
     | `Format f ->
         T.make ?pos ?level
           (T.Constr

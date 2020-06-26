@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 class drop ?(audio = false) ?(video = false) ?(midi = false) ~name source =
-  let f x = if x then Some `None else None in
+  let f x = if x then Some Frame.none else None in
   let audio_in = f audio in
   let video_in = f video in
   let midi_in = f midi in
@@ -45,21 +45,21 @@ let () =
           | `Audio ->
               ( "drop_audio",
                 "Drop all audio content of a stream.",
-                Lang.frame_kind_t ~audio:(Lang.kind_t `None) ~video ~midi,
+                Lang.frame_kind_t ~audio:(Lang.kind_t Frame.none) ~video ~midi,
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~audio:true ~name:"drop_audio" source )
           | `Video ->
               ( "drop_video",
                 "Drop all video content of a stream.",
-                Lang.frame_kind_t ~audio ~video:(Lang.kind_t `None) ~midi,
+                Lang.frame_kind_t ~audio ~video:(Lang.kind_t Frame.none) ~midi,
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~video:true ~name:"drop_video" source )
           | `Midi ->
               ( "drop_midi",
                 "Drop all midi content of a stream.",
-                Lang.frame_kind_t ~audio ~video ~midi:(Lang.kind_t `None),
+                Lang.frame_kind_t ~audio ~video ~midi:(Lang.kind_t Frame.none),
                 fun p ->
                   let source = Lang.to_source (List.assoc "" p) in
                   new drop ~midi:true ~name:"drop_midi" source )

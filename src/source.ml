@@ -256,7 +256,6 @@ module Kind = struct
   let content_type { audio; video; midi } =
     let get t v =
       match deref v with
-        | `None -> Frame_content.None.params
         | `Internal | `Any -> (
             match t with
               | `Audio -> Frame_content.default_audio ()
@@ -279,8 +278,6 @@ module Kind = struct
     let to_s k = Frame.string_of_kind (deref k) in
     try
       match (deref k, deref k') with
-        (* None *)
-        | `None, `None -> ()
         (* Formats *)
         | `Format f, `Format f' when f = f' -> Unifier.(k <-- k')
         (* Params *)
@@ -296,12 +293,10 @@ module Kind = struct
             Unifier.(k <-- k')
         | `Internal, `Params p when Frame_content.(is_internal (format p)) ->
             Unifier.(k <-- k')
-        | `Internal, `None -> Unifier.(k <-- k')
         | `Format f, `Internal when Frame_content.is_internal f ->
             Unifier.(k' <-- k)
         | `Params p, `Internal when Frame_content.(is_internal (format p)) ->
             Unifier.(k' <-- k)
-        | `None, `Internal -> Unifier.(k' <-- k)
         (* Any/'a *)
         | `Any, _ -> Unifier.(k <-- k')
         | _, `Any -> Unifier.(k' <-- k)

@@ -107,9 +107,7 @@ let () =
     | Int -> Some "int"
     | Float -> Some "float"
     | Request -> Some "request"
-    | Kind p ->
-        if p = Frame_content.None.params then Some "none"
-        else Some (Frame_content.string_of_params p)
+    | Kind p -> Some (Frame_content.string_of_params p)
     | _ -> None)
 
 let print_ground v =
@@ -358,39 +356,41 @@ let print_repr f t =
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
   let rec print ~par vars : repr -> DS.t = function
-    | `Constr (name, params) ->
+    | `Constr ("stream_kind", params) -> (
         (* Let's assume that stream_kind occurs only inside a source
          * or format type -- this should be pretty much true with the
          * current API -- and simplify the printing by labeling its
          * parameters and omitting the stream_kind(...) to avoid
          * source(stream_kind(pcm(stereo),none,none)). *)
-        if name = "stream_kind" then (
           match params with
-            | [(_, a); (_, v); (_, m)] ->
-                let first, has_ellipsis, vars =
-                  List.fold_left
-                    (fun (first, has_ellipsis, vars) (lbl, t) ->
-                      if t = `Ellipsis then (false, true, vars)
-                      else (
-                        if not first then Format.fprintf f ",@ ";
-                        Format.fprintf f "%s=" lbl;
-                        let vars = print ~par:false vars t in
-                        (false, has_ellipsis, vars) ))
-                    (true, false, vars)
-                    [("audio", a); ("video", v); ("midi", m)]
-                in
-                if not has_ellipsis then vars
-                else (
-                  if not first then Format.fprintf f ",@,";
-                  print ~par:false vars `Range_Ellipsis )
-            | _ -> assert false )
-        else (
-          Format.open_box (1 + String.length name);
-          Format.fprintf f "%s(" name;
-          let vars = print_list vars params in
-          Format.fprintf f ")";
-          Format.close_box ();
-          vars )
+          | [(_, a); (_, v); (_, m)] ->
+              let first, has_ellipsis, vars =
+                List.fold_left
+                  (fun (first, has_ellipsis, vars) (lbl, t) ->
+                    if t = `Ellipsis then (false, true, vars)
+                    else (
+                      if not first then Format.fprintf f ",@ ";
+                      Format.fprintf f "%s=" lbl;
+                      let vars = print ~par:false vars t in
+                      (false, has_ellipsis, vars) ))
+                  (true, false, vars)
+                  [("audio", a); ("video", v); ("midi", m)]
+              in
+              if not has_ellipsis then vars
+              else (
+                if not first then Format.fprintf f ",@,";
+                print ~par:false vars `Range_Ellipsis )
+          | _ -> assert false )
+    | `Constr ("none", _) ->
+        Format.fprintf f "none";
+        vars
+    | `Constr (name, params) ->
+        Format.open_box (1 + String.length name);
+        Format.fprintf f "%s(" name;
+        let vars = print_list vars params in
+        Format.fprintf f ")";
+        Format.close_box ();
+        vars
     | `Ground g ->
         Format.fprintf f "%s" (print_ground g);
         vars

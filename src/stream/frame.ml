@@ -28,13 +28,15 @@ open Frame_content
 type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
 (** High-level description of the content. *)
-type kind = [ `None | `Any | `Internal | `Format of format | `Params of params ]
+type kind = [ `Any | `Internal | `Format of format | `Params of params ]
+
+let none = `Params Frame_content.None.params
 
 let audio_pcm =
   `Format (Frame_content.Audio.lift_format Frame_content.Audio.format)
 
 let audio_n = function
-  | 0 -> `None
+  | 0 -> none
   | c ->
       `Params
         (Frame_content.Audio.lift_params
@@ -74,7 +76,6 @@ let string_of_params p =
     | s -> Printf.sprintf "%s(%s)" (Frame_content.string_of_format format) s
 
 let string_of_kind = function
-  | `None -> "none"
   | `Any -> "any"
   | `Internal -> "internal"
   | `Params p -> string_of_params p

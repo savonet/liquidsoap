@@ -683,11 +683,8 @@ let input_proto =
 
 let () =
   let kind =
-    {
-      Frame.audio (* TODO: be more flexible on audio *) = Frame.audio_stereo;
-      video = Frame.video_yuv420p;
-      midi = `None;
-    }
+    (* TODO: be more flexible on audio *)
+    Frame.{ audio = audio_stereo; video = video_yuv420p; midi = none }
   in
   let return_t = Lang.kind_type_of_kind_format kind in
   let proto =

@@ -177,10 +177,10 @@ let () =
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Audio in
-      let main_kind = Frame.{ kind with video = `None; midi = `None } in
+      let main_kind = Frame.{ kind with video = none; midi = none } in
       let aux_source = List.assoc "video" p in
       let aux_content = `Video in
-      let aux_kind = Frame.{ kind with audio = `None; midi = `None } in
+      let aux_kind = Frame.{ kind with audio = none; midi = none } in
       Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind:Lang.any
         ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
         ())
@@ -209,10 +209,10 @@ let () =
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Video in
-      let main_kind = Frame.{ kind with audio = `None; midi = `None } in
+      let main_kind = Frame.{ kind with audio = none; midi = none } in
       let aux_source = List.assoc "audio" p in
       let aux_content = `Audio in
-      let aux_kind = Frame.{ kind with video = `None; midi = `None } in
+      let aux_kind = Frame.{ kind with video = none; midi = none } in
       Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind:Lang.any
         ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
         ())
