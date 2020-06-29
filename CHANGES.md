@@ -1,3 +1,10 @@
+1.4.3 (unreleased)
+=====
+
+Fixed:
+
+- Fixed exponential memory usage in clock unification algorithm (#1272).
+
 1.4.2 (03-05-2020)
 =====
 
