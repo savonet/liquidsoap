@@ -37,19 +37,19 @@ let () =
       Lang.unit)
 
 let () =
+  let a = Lang.univ_t () in
   add_builtin "profiler.run" ~cat:Liq
     ~descr:"Time a function with the profiler."
     [
       ("", Lang.string_t, None, Some "Name of the profiled function.");
-      ("", Lang.fun_t [] Lang.unit_t, None, Some "Function to profile.");
+      ("", Lang.fun_t [] a, None, Some "Function to profile.");
     ]
-    Lang.unit_t
+    a
     (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let f () = ignore (Lang.apply f []) in
-      Profiler.time name f ();
-      Lang.unit)
+      let f () = Lang.apply f [] in
+      Profiler.time name f ())
 
 let () =
   Lang.add_module "profiler.stats";
