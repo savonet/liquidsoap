@@ -54,6 +54,13 @@ def f() =
   counter.reset()
   t(counter(), 1)
 
+  # Open
+
+  r = ()
+  def r.f(n) = 2*n end
+  open r
+  t(f(3), 6)
+
   if !success then test.pass() else test.fail() end
 end
 

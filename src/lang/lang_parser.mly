@@ -182,6 +182,7 @@
 %token COALESCE
 %token TRY CATCH IN DO
 %token IF THEN ELSE ELSIF
+%token OPEN
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
@@ -244,11 +245,10 @@ g: | {} | GETS {}
 
 exprs:
   | expr s                   { $1 }
-  | expr exprs               { mk ~pos:$loc (Seq ($1,$2)) }
-  | expr SEQ exprs           { mk ~pos:$loc (Seq ($1,$3)) }
+  | expr s exprs             { mk ~pos:$loc (Seq ($1,$3)) }
   | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
-  | binding exprs            { mk_let ~pos:$loc($1) $1 $2 }
-  | binding SEQ exprs        { mk_let ~pos:$loc($1) $1 $3 }
+  | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
+  | OPEN expr s exprs        { mk ~pos:$loc (Open ($2,$4)) }
 
 /* Sequences of expressions without bindings */
 exprss:

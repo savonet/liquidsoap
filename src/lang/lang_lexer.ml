@@ -222,6 +222,7 @@ let rec token lexbuf =
     | "to" -> TO
     | "do" -> DO
     | "not" -> NOT
+    | "open" -> OPEN
     | "and" | "or" -> BIN0 (Sedlexing.Utf8.lexeme lexbuf)
     | "!=" | "==" | "<" | "<=" | ">" | ">=" ->
         BIN1 (Sedlexing.Utf8.lexeme lexbuf)

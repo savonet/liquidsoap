@@ -276,6 +276,7 @@ and in_term =
   | Null
   | Meth of string * term * term
   | Invoke of term * string
+  | Open of term * term
   | Let of let_t
   | Var of string
   | Seq of term * term
@@ -314,6 +315,7 @@ let rec print_term v =
     | Null -> "null"
     | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
+    | Open (m, e) -> "open " ^ print_term m ^ " " ^ print_term e
     | Fun (_, [], v) when is_ground v -> "{" ^ print_term v ^ "}"
     | Fun _ | RFun _ -> "<fun>"
     | Var s -> s
@@ -353,6 +355,7 @@ let rec free_vars tm =
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
     | Invoke (e, _) -> free_vars e
+    | Open (a, b) -> Vars.union (free_vars a) (free_vars b)
     | List l ->
         List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
     | App (hd, l) ->
@@ -400,6 +403,7 @@ let check_unused ~lib tm =
       | Null -> v
       | Meth (_, f, e) -> check (check v e) f
       | Invoke (e, _) -> check v e
+      | Open (a, b) -> check (check v a) b
       | Seq (a, b) -> check ~toplevel (check v a) b
       | List l -> List.fold_left (fun x y -> check x y) v l
       | App (hd, l) ->
@@ -750,6 +754,17 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
                 x
         in
         e.t >: aux a.t
+    | Open (a, b) ->
+        check ~level ~env a;
+        a.t <: mk T.unit;
+        let rec aux env t =
+          match (T.deref t).T.descr with
+            | T.Meth (l, (g, u), t) -> aux ((l, (g, u)) :: env) t
+            | _ -> env
+        in
+        let env = aux env a.t in
+        check ~level ~env b;
+        e.t >: b.t
     | Seq (a, b) ->
         check ~env ~level a;
         if not (can_ignore a.t) then raise (Ignored a);
@@ -963,6 +978,16 @@ let rec eval ~env tm =
                        "invoked method " ^ l ^ " not found" ))
         in
         aux (eval ~env t)
+    | Open (t, u) ->
+        let t = eval ~env t in
+        let rec aux env t =
+          match t.V.value with
+            | V.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
+            | V.Tuple [] -> env
+            | _ -> assert false
+        in
+        let env = aux env t in
+        eval ~env u
     | Let { pat; replace; def = v; body = b; _ } ->
         let v = eval ~env v in
         let penv =
