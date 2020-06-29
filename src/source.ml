@@ -205,13 +205,14 @@ let rec unify a b =
     | Known s, Known s' ->
         if s <> s' then
           raise (Clock_conflict (variable_to_string a, variable_to_string b))
+    | Link ra, Link rb when ra == rb -> ()
     | ( Link ({ contents = Unknown (sa, ca) } as ra),
         Link ({ contents = Unknown (sb, cb) } as rb) ) ->
-        (* TODO perhaps optimize ca@cb *)
         occurs_check a b;
         let merge =
-          (* Using List.rev_append to remain tail-recursive, see #1108. *)
-          Link (ref (Unknown (List.rev_append sa sb, List.rev_append ca cb)))
+          let s = List.sort_uniq Stdlib.compare (List.rev_append sa sb) in
+          let sc = List.sort_uniq Stdlib.compare (List.rev_append ca cb) in
+          Link (ref (Unknown (s, sc)))
         in
         ra := Same_as merge;
         rb := Same_as merge
