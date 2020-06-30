@@ -2,7 +2,7 @@
 
 %include "performance.liq"
 
-n = 500000
+n = 100000
 l = list.init_right(n, fun(i) -> if i mod 2 == 0 then i/2 else n/2-i/2 end)
 
 def compare (x,y)
