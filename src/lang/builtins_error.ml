@@ -74,7 +74,9 @@ let () =
       let msg =
         Utils.maybe Lang.to_string (Lang.to_option (Lang.assoc "" 2 p))
       in
-      raise (Lang_values.Runtime_error { Lang_values.kind; msg; pos = [] }))
+      raise
+        (Lang_values.Runtime_error
+           { Lang_values.kind; msg; pos = Lang.current_pos () }))
 
 let () =
   let a = Lang.univ_t () in

@@ -1083,16 +1083,6 @@ and apply ~pos f l =
             fun p pe -> V.FFI (p, pe, f) )
       | _ -> assert false
   in
-  (* Record error positions. *)
-  (*
-  let f pe =
-    try f pe with
-      | Runtime_error err ->
-          raise (Runtime_error { err with pos = Option.to_list pos @ err.pos })
-      | Internal_error (poss, e) ->
-          raise (Internal_error (Option.to_list pos @ poss, e))
-  in
-  *)
   let pe, p =
     List.fold_left
       (fun (pe, p) (lbl, v) ->
