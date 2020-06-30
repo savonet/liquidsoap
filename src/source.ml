@@ -874,6 +874,12 @@ module Clock_variables = struct
   let to_string = variable_to_string
   let create_unknown = create_unknown
   let create_known = create_known
+
+  let subclocks v =
+    match deref v with
+      | Link { contents = Unknown (s, sc) } -> sc
+      | _ -> assert false
+
   let unify = unify
   let forget = forget
   let get v = match deref v with Known c -> c | _ -> assert false

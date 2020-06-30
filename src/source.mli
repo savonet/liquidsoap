@@ -317,4 +317,5 @@ module Clock_variables : sig
   val forget : clock_variable -> clock_variable -> unit
   val get : clock_variable -> clock
   val is_known : clock_variable -> bool
+  val subclocks : clock_variable -> clock_variable list
 end
