@@ -423,6 +423,7 @@ let () =
           raise
             (Lang_errors.Invalid_value
                ( List.assoc "bind_address" p,
+                 Lang.current_pos (),
                  Printf.sprintf "Invalid address: %s" (Printexc.to_string exn)
                ))
       in
@@ -653,7 +654,9 @@ let () =
         with Not_found ->
           raise
             (Lang_errors.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               ( fmt,
+                 Lang.current_pos (),
+                 "Cannot get a stream encoder for that format" ))
       in
       ( new output
           ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
