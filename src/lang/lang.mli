@@ -49,13 +49,11 @@ module Ground : sig
   val to_string : t -> string
 end
 
-type value = Lang_values.V.value = { pos : pos option; value : in_value }
-
-and env = (string * value) list
+type env = (string * value) list
 
 and lazy_env = (string * value Lazy.t) list
 
-and in_value = Lang_values.V.in_value =
+and value = Lang_values.V.value =
   | Ground of Ground.t
   | Source of Source.source
   | Encoder of Encoder.format
@@ -128,7 +126,7 @@ val add_builtin_base :
   descr:string ->
   ?flags:doc_flag list ->
   string ->
-  in_value ->
+  value ->
   t ->
   unit
 
@@ -198,6 +196,9 @@ val add_operator :
   return_t:t ->
   (env -> Source.source) ->
   unit
+
+(** Current position: can be used by FFI. *)
+val current_pos : unit -> Lang_values.pos list
 
 (** {2 Manipulation of values} *)
 

@@ -71,7 +71,7 @@ let add_metric metric_name create register set =
           if List.length labels <> List.length label_names then
             raise
               (Lang_errors.Invalid_value
-                 (labels_v, "Not enough labels provided!"));
+                 (labels_v, Lang.current_pos (), "Not Enough labels provided!"));
           let m = register m labels in
           Lang.val_fun [("", "", None)] (fun p ->
               let v = Lang.to_float (List.assoc "" p) in
@@ -223,6 +223,6 @@ let () =
           if List.length labels <> List.length label_names then
             raise
               (Lang_errors.Invalid_value
-                 (labels_v, "Not enough labels provided!"));
+                 (labels_v, Lang.current_pos (), "Not enough labels provided!"));
           source_monitor ~label_names ~labels ~window ~prefix s;
           Lang.unit))

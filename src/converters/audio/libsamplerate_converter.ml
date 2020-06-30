@@ -52,6 +52,7 @@ let quality_of_string v =
         raise
           (Lang_errors.Invalid_value
              ( Lang.string v,
+               Lang_values.current_pos (),
                "libsamplerate quality must be one of: \"best\", \"medium\", \
                 \"fast\", \"zero_order\", \"linear\"." ))
 

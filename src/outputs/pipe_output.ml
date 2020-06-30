@@ -29,7 +29,8 @@ let encoder_factory ?format format_val =
   try Encoder.get_factory format
   with Not_found ->
     raise
-      (Lang_errors.Invalid_value (format_val, "Unsupported encoding format"))
+      (Lang_errors.Invalid_value
+         (format_val, Lang.current_pos (), "Unsupported encoding format"))
 
 class virtual base ~kind ~source ~name p =
   let e f v = f (List.assoc v p) in
@@ -102,7 +103,9 @@ class url_output p =
     if not (Encoder.url_output format) then
       raise
         (Lang_errors.Invalid_value
-           (format_val, "Encoding format does not support output url!"))
+           ( format_val,
+             Lang.current_pos (),
+             "Encoding format does not support output url!" ))
   in
   let format = Encoder.with_url_output format url in
   let kind = Encoder.kind_of_format format in

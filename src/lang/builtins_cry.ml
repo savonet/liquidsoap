@@ -100,7 +100,9 @@ let () =
           | _ ->
               raise
                 (Lang_errors.Invalid_value
-                   (v, "protocol should be one of: 'icy', 'http' or 'https'."))
+                   ( v,
+                     Lang.current_pos (),
+                     "Protocol should be one of: 'icy', 'http' or 'https'." ))
       in
       let mount =
         match protocol with

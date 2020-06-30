@@ -23,12 +23,14 @@
 module Term = Lang_values
 module T = Lang_types
 
-(** Runtime error, should eventually disappear. *)
-exception Invalid_value of Term.V.value * string
+type pos = Lang_values.pos list
 
-exception Clock_conflict of (T.pos option * string * string)
-exception Clock_loop of (T.pos option * string * string)
-exception Kind_conflict of (T.pos option * string * string)
+(** Runtime error, should eventually disappear. *)
+exception Invalid_value of Term.V.value * pos * string
+
+exception Clock_conflict of (pos * string * string)
+exception Clock_loop of (pos * string * string)
+exception Kind_conflict of (pos * string * string)
 
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
@@ -125,8 +127,8 @@ let report lexbuf f =
             ( if lbl = "" then "unlabeled argument"
             else Format.sprintf "argument labeled %S" lbl );
           raise Error
-      | Invalid_value (v, msg) ->
-          error_header 7 (T.print_pos (Utils.get_some v.Term.V.pos));
+      | Invalid_value (_, pos, msg) ->
+          error_header 7 (T.print_pos_list pos);
           Format.printf "Invalid value:@ %s@]@." msg;
           raise Error
       | Lang_encoders.Error (v, s) ->
@@ -139,16 +141,16 @@ let report lexbuf f =
       | Clock_conflict (pos, a, b) ->
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
-          error_header 10 (T.print_pos_opt pos);
+          error_header 10 (T.print_pos_list pos);
           Format.printf "A source cannot belong to two clocks (%s,@ %s).@]@." a
             b;
           raise Error
       | Clock_loop (pos, a, b) ->
-          error_header 11 (T.print_pos (Utils.get_some pos));
+          error_header 11 (T.print_pos_list pos);
           Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@." a b;
           raise Error
       | Kind_conflict (pos, a, b) ->
-          error_header 10 (T.print_pos_opt pos);
+          error_header 10 (T.print_pos_list pos);
           Format.printf "Source kinds don't match@ (%s vs@ %s).@]@." a b;
           raise Error
       | Lang_values.Unsupported_format (pos, fmt) ->

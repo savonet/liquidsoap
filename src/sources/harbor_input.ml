@@ -181,6 +181,7 @@ module Make (Harbor : T) = struct
             raise
               (Lang_errors.Invalid_value
                  ( List.assoc "" p,
+                   Lang.current_pos (),
                    (* TODO: raise two script values ? *)
                    let port = Lang.to_int (List.assoc "port" p) in
                    Printf.sprintf
@@ -367,19 +368,14 @@ module Make (Harbor : T) = struct
           else Printf.sprintf "/%s" mountpoint
         in
         let trivially_false = function
-          | {
-              Lang.value =
-                Lang.Fun
-                  ( _,
-                    _,
-                    _,
-                    {
-                      Lang_values.term =
-                        Lang_values.(Ground (Ground.Bool false));
-                      _;
-                    } );
-              _;
-            } ->
+          | Lang.Fun
+              ( _,
+                _,
+                _,
+                {
+                  Lang_values.term = Lang_values.(Ground (Ground.Bool false));
+                  _;
+                } ) ->
               true
           | _ -> false
         in
@@ -446,6 +442,7 @@ module Make (Harbor : T) = struct
           raise
             (Lang_errors.Invalid_value
                ( List.assoc "max" p,
+                 Lang.current_pos (),
                  "Maximum buffering inferior to pre-buffered data" ));
         let on_connect l =
           let l =

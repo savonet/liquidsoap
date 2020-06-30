@@ -459,14 +459,12 @@ let check_unused ~lib tm =
 
 (** Values are untyped normal forms of terms. *)
 module V = struct
-  type value = { pos : T.pos option; value : in_value }
-
-  and env = (string * value) list
+  type env = (string * value) list
 
   (* Some values have to be lazy in the environment because of recursive functions. *)
   and lazy_env = (string * value Lazy.t) list
 
-  and in_value =
+  and value =
     | Ground of Ground.t
     | Source of Source.source
     | Encoder of Encoder.format
@@ -486,14 +484,14 @@ module V = struct
        doesn't capture anything in the environment. *)
     | FFI of (string * string * value option) list * env * (env -> value)
 
-  let unit : in_value = Tuple []
+  let unit : value = Tuple []
 
   let string_of_float f =
     let s = string_of_float f in
     if s.[String.length s - 1] = '.' then s ^ "0" else s
 
-  let rec print_value v =
-    match v.value with
+  let rec print_value (v : value) =
+    match v with
       | Ground g -> Ground.to_string g
       | Source _ -> "<source>"
       | Encoder e -> Encoder.string_of_format e
@@ -517,8 +515,8 @@ module V = struct
       | Fun _ | FFI _ -> "<fun>"
 
   (** Find a method in a value. *)
-  let rec invoke x l =
-    match x.value with
+  let rec invoke (x : value) l =
+    match x with
       | Meth (l', y, _) when l' = l -> y
       | Meth (_, _, x) -> invoke x l
       | _ -> failwith ("Could not find method " ^ l ^ " of " ^ print_value x)
@@ -526,12 +524,11 @@ module V = struct
   (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
   let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
-  let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
+  let rec demeth (v : value) =
+    match v with Meth (_, _, v) -> demeth v | _ -> v
 
-  let rec remeth t u =
-    match t.value with
-      | Meth (l, v, t) -> { t with value = Meth (l, v, remeth t u) }
-      | _ -> u
+  let rec remeth t u : value =
+    match (t : value) with Meth (l, v, t) -> Meth (l, v, remeth t u) | _ -> u
 end
 
 (** {2 Built-in values and toplevel definitions} *)
@@ -571,7 +568,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                 T.make ~pos:t.T.pos
                   (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
               in
-              (t, { V.pos = v.V.pos; value = V.Meth (l, lv, v) })
+              (t, V.Meth (l, lv, v))
           | [] -> (t, v)
         in
         let t, v = aux [] ll in
@@ -602,8 +599,7 @@ let add_module name =
           ignore (V.invoke e l);
           failwith ("Module " ^ String.concat "." name ^ " already exists")
         with _ -> () ) );
-  add_builtin ~register:false name
-    (([], T.make T.unit), { V.pos = None; value = V.unit })
+  add_builtin ~register:false name (([], T.make T.unit), V.unit)
 
 (* Builtins are only used for documentation now. *)
 let builtins = (builtins :> Doc.item)
@@ -913,13 +909,16 @@ let eval_pat pat v =
   let rec aux env pat v =
     match (pat, v) with
       | PVar x, v -> (x, v) :: env
-      | PTuple pl, { V.value = V.Tuple l } -> List.fold_left2 aux env pl l
+      | PTuple pl, V.Tuple l -> List.fold_left2 aux env pl l
       | _ -> assert false
   in
   aux [] pat v
 
-let rec eval ~env tm =
+let current_pos = ref []
+
+let rec eval ~pos ~env tm =
   let env = (env : V.lazy_env) in
+  let eval ?(pos = pos) ?(env = env) tm = eval ~pos ~env tm in
   let prepare_fun fv p env =
     (* Unlike OCaml we always evaluate default values, and we do that early. I
        think the only reason is homogeneity with FFI, which are declared with
@@ -927,7 +926,7 @@ let rec eval ~env tm =
     let p =
       List.map
         (function
-          | lbl, var, _, Some v -> (lbl, var, Some (eval ~env v))
+          | lbl, var, _, Some v -> (lbl, var, Some (eval v))
           | lbl, var, _, None -> (lbl, var, None))
         p
     in
@@ -965,20 +964,20 @@ let rec eval ~env tm =
                   (Internal_error
                      ( Option.to_list tm.t.T.pos,
                        "term has type source but is not a source: "
-                       ^ V.print_value { V.pos = tm.t.T.pos; V.value = v } )) )
+                       ^ V.print_value v )) )
       | _ -> () );
-    { V.pos = tm.t.T.pos; V.value = v }
+    v
   in
   match tm.term with
     | Ground g -> mk (V.Ground g)
     | Encoder x -> mk (V.Encoder x)
-    | List l -> mk (V.List (List.map (eval ~env) l))
-    | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
+    | List l -> mk (V.List (List.map (eval ~pos ~env) l))
+    | Tuple l -> mk (V.Tuple (List.map (fun a -> eval a) l))
     | Null -> mk V.Null
-    | Meth (l, u, v) -> mk (V.Meth (l, eval ~env u, eval ~env v))
+    | Meth (l, u, v) -> mk (V.Meth (l, eval u, eval v))
     | Invoke (t, l) ->
         let rec aux t =
-          match t.V.value with
+          match t with
             | V.Meth (l', t, _) when l = l' -> t
             | V.Meth (_, _, t) -> aux t
             | _ ->
@@ -987,11 +986,11 @@ let rec eval ~env tm =
                      ( Option.to_list tm.t.T.pos,
                        "invoked method " ^ l ^ " not found" ))
         in
-        aux (eval ~env t)
+        aux (eval t)
     | Open (t, u) ->
-        let t = eval ~env t in
+        let t = eval t in
         let rec aux env t =
-          match t.V.value with
+          match t with
             | V.Meth (l, v, t) -> aux ((l, Lazy.from_val v) :: env) t
             | V.Tuple [] -> env
             | _ -> assert false
@@ -999,7 +998,7 @@ let rec eval ~env tm =
         let env = aux env t in
         eval ~env u
     | Let { pat; replace; def = v; body = b; _ } ->
-        let v = eval ~env v in
+        let v = eval v in
         let penv =
           List.map
             (fun (ll, v) ->
@@ -1014,13 +1013,10 @@ let rec eval ~env tm =
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
-                      let mk ~pos value = { V.pos; value } in
                       match ll with
                         | [] -> assert false
-                        | [l] -> mk ~pos:tm.t.T.pos (V.Meth (l, v, t))
-                        | l :: ll ->
-                            mk ~pos:t.V.pos
-                              (V.Meth (l, meths ll v (V.invoke t l), t))
+                        | [l] -> V.Meth (l, v, t)
+                        | l :: ll -> V.Meth (l, meths ll v (V.invoke t l), t)
                     in
                     let v () =
                       let t = Lazy.force (List.assoc l env) in
@@ -1042,16 +1038,17 @@ let rec eval ~env tm =
         let p, env = prepare_fun fv p env in
         let rec v () =
           let env = (x, Lazy.from_fun v) :: env in
-          { V.pos = tm.t.T.pos; value = V.Fun (p, [], env, body) }
+          V.Fun (p, [], env, body)
         in
         v ()
     | Var var -> lookup env var
     | Seq (a, b) ->
-        ignore (eval ~env a);
-        eval ~env b
+        ignore (eval a);
+        eval b
     | App (f, l) ->
+        let pos = match tm.t.T.pos with Some p -> p :: pos | None -> pos in
         let ans () =
-          apply (eval ~env f) (List.map (fun (l, t) -> (l, eval ~env t)) l)
+          apply ~pos (eval f) (List.map (fun (l, t) -> (l, eval t)) l)
         in
         if !profile then (
           match f.term with
@@ -1059,41 +1056,35 @@ let rec eval ~env tm =
             | _ -> ans () )
         else ans ()
 
-and apply f l =
-  let rec pos = function
-    | [(_, v)] -> (
-        match (f.V.pos, v.V.pos) with
-          | Some (p, _), Some (_, q) -> Some (p, q)
-          | Some pos, None -> Some pos
-          | None, Some pos -> Some pos
-          | None, None -> None )
-    | _ :: l -> pos l
-    | [] -> f.V.pos
-  in
-  (* Position of the whole application. *)
-  let pos = pos l in
-  let pos_f = f.V.pos in
-  let mk ~pos v = { pos; V.value = v } in
+and apply ~pos f l =
+  current_pos := pos;
   (* Extract the components of the function, whether it's explicit or foreign,
      together with a rewrapping function for creating a closure in case of
      partial application. *)
   let p, pe, f, rewrap =
-    match (V.demeth f).V.value with
+    match V.demeth f with
       | V.Fun (p, pe, e, body) ->
           ( p,
             pe,
             (fun pe ->
               let pe = List.map (fun (x, gv) -> (x, Lazy.from_val gv)) pe in
-              eval ~env:(List.rev_append pe e) body),
-            fun p pe -> mk ~pos:pos_f (V.Fun (p, pe, e, body)) )
+              eval ~pos ~env:(List.rev_append pe e) body),
+            fun p pe -> V.Fun (p, pe, e, body) )
       | V.FFI (p, pe, f) ->
           ( p,
             pe,
-            (fun pe -> f (List.rev pe)),
-            fun p pe -> mk ~pos:pos_f (V.FFI (p, pe, f)) )
+            (fun pe ->
+              (* Set current position in case it is needed by FFI. *)
+              let old_pos = !current_pos in
+              current_pos := pos;
+              let ans = f (List.rev pe) in
+              current_pos := old_pos;
+              ans),
+            fun p pe -> V.FFI (p, pe, f) )
       | _ -> assert false
   in
   (* Record error positions. *)
+  (*
   let f pe =
     try f pe with
       | Runtime_error err ->
@@ -1101,6 +1092,7 @@ and apply f l =
       | Internal_error (poss, e) ->
           raise (Internal_error (Option.to_list pos @ poss, e))
   in
+  *)
   let pe, p =
     List.fold_left
       (fun (pe, p) (lbl, v) ->
@@ -1113,29 +1105,16 @@ and apply f l =
     rewrap p pe
   else (
     let pe =
-      List.fold_left
-        (fun pe (_, var, v) ->
-          ( var,
-            (* Set the position information on FFI's default values. Cf. r5008:
-               if an Invalid_value is raised on a default value, which happens
-               with the mount/name params of output.icecast.*, the printing of
-               the error should succeed at getting a position information. *)
-            let v = Utils.get_some v in
-            { v with V.pos } )
-          :: pe)
-        pe p
+      List.fold_left (fun pe (_, var, v) -> (var, Option.get v) :: pe) pe p
     in
-    let v = f pe in
-    (* Similarly here, the result of an FFI call should have some position
-       information. For example, if we build a fallible source and pass it to an
-       operator that expects an infallible one, an error is issued about that
-       FFI-made value and a position is needed. *)
-    { v with V.pos } )
+    f pe )
+
+let current_pos () = !current_pos
 
 let eval ?env tm =
   let env = match env with Some env -> env | None -> default_environment () in
   let env = List.map (fun (x, (_, v)) -> (x, Lazy.from_val v)) env in
-  eval ~env tm
+  eval ~pos:[] ~env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured
@@ -1150,7 +1129,7 @@ let toplevel_add (doc, params) pat ~t v =
   in
   let ptypes = ptypes t in
   let rec pvalues v =
-    match v.V.value with
+    match v with
       | V.Fun (p, _, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
       | V.Meth (_, _, v) -> pvalues v
       | _ -> []
@@ -1182,8 +1161,7 @@ let toplevel_add (doc, params) pat ~t v =
   in
   List.iter
     (fun (s, _) ->
-      Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
-        (string_of_pat pat) (T.print_pos_opt v.V.pos))
+      Printf.eprintf "WARNING: Unused @param %S for %s\n" s (string_of_pat pat))
     params;
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
   List.iter
@@ -1218,9 +1196,7 @@ let rec eval_toplevel ?(interactive = false) t =
             def_t (V.print_value def);
         eval_toplevel ~interactive body
     | Seq (a, b) ->
-        ignore
-          (let v = eval_toplevel a in
-           if v.V.pos = None then { v with V.pos = a.t.T.pos } else v);
+        ignore (eval_toplevel a);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in

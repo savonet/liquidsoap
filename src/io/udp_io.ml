@@ -218,7 +218,9 @@ let () =
         with Not_found ->
           raise
             (Lang_errors.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               ( fmt,
+                 Lang.current_pos (),
+                 "Cannot get a stream encoder for that format" ))
       in
       let source = Lang.assoc "" 2 p in
       ( new output
@@ -259,6 +261,7 @@ let () =
               raise
                 (Lang_errors.Invalid_value
                    ( Lang.assoc "" 1 p,
+                     Lang.current_pos (),
                      "Cannot get a stream decoder for this MIME" ))
           | Some decoder_factory -> decoder_factory
       in

@@ -196,6 +196,7 @@ let () =
                 raise
                   (Lang_errors.Invalid_value
                      ( Lang.string format,
+                       Lang.current_pos (),
                        "Could not find ffmpeg input format with that name" )) )
       in
       let opts = Hashtbl.create 10 in

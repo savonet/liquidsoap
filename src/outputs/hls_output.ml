@@ -189,7 +189,9 @@ class hls_output p =
     then
       raise
         (Lang_errors.Invalid_value
-           (Lang.assoc "" 1 p, "The target directory does not exist"))
+           ( Lang.assoc "" 1 p,
+             Lang.current_pos (),
+             "The target directory does not exist" ))
   in
   let persist = Lang.to_bool (List.assoc "persist" p) in
   let persist_at =
@@ -204,6 +206,7 @@ class hls_output p =
         raise
           (Lang_errors.Invalid_value
              ( Lang.assoc "persist_at" 1 p,
+               Lang.current_pos (),
                Printf.sprintf
                  "Error while creating directory %S for persisting state: %s"
                  dir (Printexc.to_string exn) )) )
@@ -230,7 +233,7 @@ class hls_output p =
     if l = [] then
       raise
         (Lang_errors.Invalid_value
-           (streams, "The list of streams cannot be empty"));
+           (streams, Lang.current_pos (), "The list of streams cannot be empty"));
     l
   in
   let streams =
@@ -241,7 +244,9 @@ class hls_output p =
       let hls_encoder_factory =
         try Encoder.get_factory hls_format
         with Not_found ->
-          raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))
+          raise
+            (Lang_errors.Invalid_value
+               (fmt, Lang.current_pos (), "Unsupported format"))
       in
       let hls_encoder =
         hls_encoder_factory hls_name Meta_format.empty_metadata
@@ -255,6 +260,7 @@ class hls_output p =
               raise
                 (Lang_errors.Invalid_value
                    ( fmt,
+                     Lang.current_pos (),
                      "Bandwidth cannot be inferred from codec, please specify \
                       it in `streams_info`" ))
           in
@@ -264,6 +270,7 @@ class hls_output p =
               raise
                 (Lang_errors.Invalid_value
                    ( fmt,
+                     Lang.current_pos (),
                      "Codec cannot be inferred from codec, please specify it \
                       in `streams_info`" ))
           in
@@ -273,6 +280,7 @@ class hls_output p =
               raise
                 (Lang_errors.Invalid_value
                    ( fmt,
+                     Lang.current_pos (),
                      "File extension cannot be inferred from codec, please \
                       specify it in `streams_info`" ))
           in

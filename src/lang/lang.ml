@@ -119,40 +119,36 @@ let kind_type_of_kind_format fields =
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value }
-let unit = mk unit
-let int i = mk (Ground (Int i))
-let bool i = mk (Ground (Bool i))
-let float i = mk (Ground (Float i))
-let string i = mk (Ground (String i))
-let tuple l = mk (Tuple l)
+let current_pos = Term.current_pos
+let unit = unit
+let int i = Ground (Int i)
+let bool i = Ground (Bool i)
+let float i = Ground (Float i)
+let string i = Ground (String i)
+let tuple l = Tuple l
 let product a b = tuple [a; b]
-let list l = mk (List l)
-let null = mk Null
-
-let rec meth v0 = function
-  | [] -> v0
-  | (l, v) :: r -> mk (Meth (l, v, meth v0 r))
-
+let list l = List l
+let null = Null
+let rec meth v0 = function [] -> v0 | (l, v) :: r -> Meth (l, v, meth v0 r)
 let record = meth unit
-let source s = mk (Source s)
-let request r = mk (Ground (Request r))
-let reference x = mk (Ref x)
-let val_fun p f = mk (FFI (p, [], f))
+let source s = Source s
+let request r = Ground (Request r)
+let reference x = Ref x
+let val_fun p f = FFI (p, [], f)
 
 let val_cst_fun p c =
   let p' = List.map (fun (l, d) -> (l, l, d)) p in
-  let f t tm = mk (Fun (p', [], [], { Term.t; Term.term = tm })) in
+  let f t tm = Fun (p', [], [], { Term.t; Term.term = tm }) in
   let mkg t = T.make (T.Ground t) in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
-  match c.value with
+  match c with
     | Tuple [] -> f (T.make T.unit) Term.unit
     | Ground (Int i) -> f (mkg T.Int) (Term.Ground (Term.Ground.Int i))
     | Ground (Bool i) -> f (mkg T.Bool) (Term.Ground (Term.Ground.Bool i))
     | Ground (Float i) -> f (mkg T.Float) (Term.Ground (Term.Ground.Float i))
     | Ground (String i) -> f (mkg T.String) (Term.Ground (Term.Ground.String i))
-    | _ -> mk (FFI (p', [], fun _ -> c))
+    | _ -> FFI (p', [], fun _ -> c)
 
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
@@ -162,7 +158,7 @@ let compare_values a b =
     | Ground a, Ground b -> Ground.compare a b
     | Tuple l, Tuple m ->
         List.fold_left2
-          (fun cmp a b -> if cmp <> 0 then cmp else aux (a.value, b.value))
+          (fun cmp a b -> if cmp <> 0 then cmp else aux (a, b))
           0 l m
     | List l1, List l2 ->
         let rec cmp = function
@@ -170,13 +166,13 @@ let compare_values a b =
           | [], _ -> -1
           | _, [] -> 1
           | h1 :: l1, h2 :: l2 ->
-              let c = aux (h1.value, h2.value) in
+              let c = aux (h1, h2) in
               if c = 0 then cmp (l1, l2) else c
         in
         cmp (l1, l2)
     | _ -> assert false
   in
-  aux (a.value, b.value)
+  aux (a, b)
 
 (** Helpers for defining protocols. *)
 
@@ -237,11 +233,7 @@ let to_plugin_doc category flags main_doc proto return_t =
 let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
   let t = builtin_type proto return_t in
   let value =
-    {
-      pos = None;
-      value =
-        FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f);
-    }
+    FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, [], f)
   in
   let generalized = T.filter_vars (fun _ -> true) t in
   Term.add_builtin
@@ -251,7 +243,6 @@ let add_builtin ~category ~descr ?(flags = []) name proto return_t f =
 
 let add_builtin_base ~category ~descr ?(flags = []) name value t =
   let doc = new Doc.item ~sort:false descr in
-  let value = { pos = t.T.pos; value } in
   let generalized = T.filter_vars (fun _ -> true) t in
   doc#add_subsection "_category" (Doc.trivial category);
   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
@@ -317,22 +308,22 @@ let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
     let t = T.make (T.Ground T.String) in
     ( "id",
       t,
-      Some { pos = t.T.pos; value = Ground (String "") },
+      Some (Ground (String "")),
       Some "Force the value of the source ID." )
     :: List.stable_sort compare proto
   in
   let f env =
     let src : Source.source = f env in
     let id =
-      match (List.assoc "id" env).value with
+      match List.assoc "id" env with
         | Ground (String s) -> s
         | _ -> assert false
     in
     if id <> "" then src#set_id id;
-    { pos = None; value = Source src }
+    Source src
   in
   let f env =
-    let pos = None in
+    let pos = current_pos () in
     try f env with
       | Source.Clock_conflict (a, b) ->
           raise (Lang_errors.Clock_conflict (pos, a, b))
@@ -390,7 +381,7 @@ let iter_sources f v =
       (* We need to avoid checking the same value multiple times, otherwise we
          get an exponential blowup, see #1247. *)
       itered_values := v :: !itered_values;
-      match v.value with
+      match v with
         | Source s -> f s
         | Ground _ | Encoder _ -> ()
         | List l -> List.iter iter_value l
@@ -420,7 +411,7 @@ let iter_sources f v =
                  about this risky situation. *)
               let may_have_source =
                 let rec aux v =
-                  match v.value with
+                  match v with
                     | Source _ -> true
                     | Ground _ | Encoder _ | Null -> false
                     | List l -> List.exists aux l
@@ -441,92 +432,77 @@ let iter_sources f v =
   in
   iter_value v
 
-let apply f p = Clock.collect_after (fun () -> Term.apply f p)
+let apply f p = Clock.collect_after (fun () -> Term.apply ~pos:[] f p)
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match (demeth t).value with Tuple [] -> () | _ -> assert false
-
-let to_bool t =
-  match (demeth t).value with Ground (Bool b) -> b | _ -> assert false
+let to_unit t = match demeth t with Tuple [] -> () | _ -> assert false
+let to_bool t = match demeth t with Ground (Bool b) -> b | _ -> assert false
 
 let to_bool_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Bool b) -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Bool b) -> b
-            | _ -> assert false )
+          match apply t [] with Ground (Bool b) -> b | _ -> assert false )
     | _ -> assert false
 
 let to_fun f =
-  match (demeth f).value with
+  match demeth f with
     | Fun _ | FFI _ -> fun args -> apply f args
     | _ -> assert false
 
 let to_string t =
-  match (demeth t).value with Ground (String s) -> s | _ -> assert false
+  match demeth t with Ground (String s) -> s | _ -> assert false
 
 let to_string_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (String s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (String s) -> s
-            | _ -> assert false )
+          match apply t [] with Ground (String s) -> s | _ -> assert false )
     | _ -> assert false
 
-let to_float t =
-  match (demeth t).value with Ground (Float s) -> s | _ -> assert false
+let to_float t = match demeth t with Ground (Float s) -> s | _ -> assert false
 
 let to_float_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Float s) -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Float s) -> s
-            | _ -> assert false )
+          match apply t [] with Ground (Float s) -> s | _ -> assert false )
     | _ -> assert false
 
-let to_source t =
-  match (demeth t).value with Source s -> s | _ -> assert false
-
-let to_format t =
-  match (demeth t).value with Encoder f -> f | _ -> assert false
+let to_source t = match demeth t with Source s -> s | _ -> assert false
+let to_format t = match demeth t with Encoder f -> f | _ -> assert false
 
 let to_request t =
-  match (demeth t).value with Ground (Request r) -> r | _ -> assert false
+  match demeth t with Ground (Request r) -> r | _ -> assert false
 
-let to_int t =
-  match (demeth t).value with Ground (Int s) -> s | _ -> assert false
+let to_int t = match demeth t with Ground (Int s) -> s | _ -> assert false
 
 let to_int_getter t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Int n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Int n) -> n
-            | _ -> assert false )
+          match apply t [] with Ground (Int n) -> n | _ -> assert false )
     | _ -> assert false
 
 let to_num t =
-  match (demeth t).value with
+  match demeth t with
     | Ground (Int n) -> `Int n
     | Ground (Float x) -> `Float x
     | _ -> assert false
 
-let to_list t = match (demeth t).value with List l -> l | _ -> assert false
-let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
-let to_option t = match (demeth t).value with Null -> None | _ -> Some t
+let to_list t = match demeth t with List l -> l | _ -> assert false
+let to_tuple t = match demeth t with Tuple l -> l | _ -> assert false
+let to_option t = match demeth t with Null -> None | _ -> Some t
 
 let to_product t =
-  match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false
+  match demeth t with Tuple [a; b] -> (a, b) | _ -> assert false
 
-let to_ref t = match t.value with Ref r -> r | _ -> assert false
+let to_ref t = match t with Ref r -> r | _ -> assert false
 
 let to_metadata_list t =
   let pop v =
@@ -729,8 +705,6 @@ module MkAbstract (Def : AbstractDef) = struct
       | _ -> None)
 
   let t = ground_t Type
-  let to_value c = mk (L.V.Ground (Value c))
-
-  let of_value t =
-    match t.value with L.V.Ground (Value c) -> c | _ -> assert false
+  let to_value c = L.V.Ground (Value c)
+  let of_value t = match t with L.V.Ground (Value c) -> c | _ -> assert false
 end

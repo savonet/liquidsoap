@@ -58,7 +58,9 @@ let scale_mode_of_arg x =
     List.iter f scale_modes;
     raise
       (Lang_errors.Invalid_value
-         (Lang.string x, "gavl scale mode must be one of: " ^ scale_args))
+         ( Lang.string x,
+           Lang.current_pos (),
+           "gavl scale mode must be one of: " ^ scale_args ))
   with Internal m -> m
 
 let conf_scale_mode =

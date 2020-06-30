@@ -96,7 +96,7 @@ let () =
         if feedback () > 0. then
           raise
             (Lang_errors.Invalid_value
-               (f "feedback", "feedback should be negative"));
+               (f "feedback", Lang.current_pos (), "feedback should be negative"));
         fun () -> Audio.lin_of_dB (feedback ())
       in
       new echo ~kind src duration feedback pp)

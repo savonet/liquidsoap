@@ -120,6 +120,7 @@ let get_config graph =
         raise
           (Lang_errors.Invalid_value
              ( graph,
+               Lang.current_pos (),
                "Graph variables cannot be used outside of ffmpeg.filter.create!"
              ))
 
@@ -262,7 +263,7 @@ let () =
       let s =
         try Ffmpeg_filter_io.(new audio_output ~name ~kind source_val)
         with Source.Kind.Conflict (a, b) ->
-          raise (Lang_errors.Kind_conflict (source_val.Lang.pos, a, b))
+          raise (Lang_errors.Kind_conflict (Lang.current_pos (), a, b))
       in
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);

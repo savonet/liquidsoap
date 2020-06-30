@@ -109,7 +109,10 @@ let () =
           | _ ->
               raise
                 (Lang_errors.Invalid_value
-                   (v, "should be one of: \"default\", \"true\" or \"false\""))
+                   ( v,
+                     Lang.current_pos (),
+                     "network should be one of: \"default\", \"true\" or \
+                      \"false\"" ))
       in
       let inherit_env = Lang.to_bool (List.assoc "inherit_env" p) in
       let env = if env = [] && inherit_env then Utils.environment () else env in

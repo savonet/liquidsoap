@@ -125,6 +125,9 @@ let () =
           | "high" -> High_pass
           | _ ->
               raise
-                (Lang_errors.Invalid_value (mode, "valid values are low|high"))
+                (Lang_errors.Invalid_value
+                   ( mode,
+                     Lang.current_pos (),
+                     "valid values for mode are low|high" ))
       in
       (new filter ~kind src rc wet mode :> Source.source))

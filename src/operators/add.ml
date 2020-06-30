@@ -188,6 +188,7 @@ let () =
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
+               Lang.current_pos (),
                "there should be as many weights as sources" ));
       ( new add
           ~kind ~renorm
@@ -268,6 +269,7 @@ let () =
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
+               Lang.current_pos (),
                "there should be as many weights as sources" ));
       ( new add
           ~kind ~renorm

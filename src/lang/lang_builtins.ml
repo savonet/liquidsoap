@@ -180,7 +180,9 @@ let () =
               | s when s = "cpu" -> `CPU
               | s when s = "none" -> `None
               | _ ->
-                  raise (Lang_errors.Invalid_value (sync, "Invalid sync value"))
+                  raise
+                    (Lang_errors.Invalid_value
+                       (sync, Lang.current_pos (), "Invalid sync value"))
           in
           let clock = new Clock.clock ~sync id in
           List.iter
@@ -190,9 +192,10 @@ let () =
                 Clock.unify s#clock (Clock.create_known (clock :> Clock.clock))
               with
                 | Source.Clock_conflict (a, b) ->
-                    raise (Lang_errors.Clock_conflict (s.Lang.pos, a, b))
+                    raise
+                      (Lang_errors.Clock_conflict (Lang.current_pos (), a, b))
                 | Source.Clock_loop (a, b) ->
-                    raise (Lang_errors.Clock_loop (s.Lang.pos, a, b)))
+                    raise (Lang_errors.Clock_loop (Lang.current_pos (), a, b)))
             sources;
           Lang.unit
   in
@@ -227,9 +230,9 @@ let () =
               Lang.unit
       with
         | Source.Clock_conflict (a, b) ->
-            raise (Lang_errors.Clock_conflict (l.Lang.pos, a, b))
+            raise (Lang_errors.Clock_conflict (Lang.current_pos (), a, b))
         | Source.Clock_loop (a, b) ->
-            raise (Lang_errors.Clock_loop (l.Lang.pos, a, b)))
+            raise (Lang_errors.Clock_loop (Lang.current_pos (), a, b)))
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
@@ -694,7 +697,7 @@ let () =
       let nl = Lang.to_bool (List.assoc "newline" p) in
       let v = List.assoc "" p in
       let v =
-        match v.Lang.value with
+        match v with
           | Lang.(Ground (Ground.String s)) -> s
           | _ -> Lang.print_value v
       in

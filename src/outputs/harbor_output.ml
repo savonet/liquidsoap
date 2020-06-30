@@ -318,12 +318,14 @@ module Make (T : T) = struct
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "buffer" p,
+               Lang.current_pos (),
                "Maximum buffering inferior to chunk length" ))
       else ();
       if burst > buflen then
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "buffer" p,
+               Lang.current_pos (),
                "Maximum buffering inferior to burst length" ))
       else ()
     in
@@ -348,18 +350,12 @@ module Make (T : T) = struct
     let default_password = s "password" in
     (* Cf sources/harbor_input.ml *)
     let trivially_false = function
-      | {
-          Lang.value =
-            Lang.Fun
-              ( _,
-                _,
-                _,
-                {
-                  Lang_values.term = Lang_values.(Ground (Ground.Bool false));
-                  _;
-                } );
-          _;
-        } ->
+      | Lang.Fun
+          ( _,
+            _,
+            _,
+            { Lang_values.term = Lang_values.(Ground (Ground.Bool false)); _ }
+          ) ->
           true
       | _ -> false
     in

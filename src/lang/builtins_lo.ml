@@ -133,7 +133,7 @@ let register name osc_t liq_t =
       let v = Lang.assoc "" 2 p in
       let address = LO.Address.create host port in
       let osc_val v =
-        match v.Lang.value with
+        match v with
           | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
           | Lang.(Ground (Ground.String s)) -> [`String s]
           | Lang.(Ground (Ground.Float x)) -> [`Float x]

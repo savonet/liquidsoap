@@ -649,6 +649,7 @@ module Make (Config : Config_t) = struct
                 raise
                   (Lang_errors.Invalid_value
                      ( s,
+                       Lang.current_pos (),
                        "valid values are 'random', 'randomize', 'normal' and \
                         'first'" ))
         in
@@ -679,6 +680,7 @@ module Make (Config : Config_t) = struct
           raise
             (Lang_errors.Invalid_value
                ( List.assoc "max" p,
+                 Lang.current_pos (),
                  "Maximum buffering inferior to pre-buffered data" ));
         let on_connect l =
           let l =

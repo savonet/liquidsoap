@@ -139,6 +139,8 @@ let () =
           | _ ->
               raise
                 (Lang_errors.Invalid_value
-                   (mode, "valid values are low|high|band|notch"))
+                   ( mode,
+                     Lang.current_pos (),
+                     "valid values for mode are low|high|band|notch" ))
       in
       (new filter ~kind src freq q wet mode :> Source.source))

@@ -265,15 +265,11 @@ let default_transition =
 let satisfied f = Lang.to_bool (Lang.apply f [])
 
 let trivially_true = function
-  | {
-      Lang.value =
-        Lang.Fun
-          ( _,
-            _,
-            _,
-            { Lang_values.term = Lang_values.(Ground (Ground.Bool true)); _ } );
-      _;
-    } ->
+  | Lang.Fun
+      ( _,
+        _,
+        _,
+        { Lang_values.term = Lang_values.(Ground (Ground.Bool true)); _ } ) ->
       true
   | _ -> false
 
@@ -383,7 +379,9 @@ let () =
         if ltr > l then
           raise
             (Lang_errors.Invalid_value
-               (List.assoc "transitions" p, "Too many transitions"));
+               ( List.assoc "transitions" p,
+                 Lang.current_pos (),
+                 "Too many transitions" ));
         if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
         else tr
       in
@@ -411,6 +409,7 @@ let () =
           raise
             (Lang_errors.Invalid_value
                ( List.assoc "single" p,
+                 Lang.current_pos (),
                  "there should be exactly one flag per children" ))
       in
       new lang_switch

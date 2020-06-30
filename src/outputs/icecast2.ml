@@ -302,7 +302,10 @@ class output ~kind p =
         | _ ->
             raise
               (Lang_errors.Invalid_value
-                 (m, "Valid values are: 'source' 'put' or 'post'."))
+                 ( m,
+                   Lang.current_pos (),
+                   "Valid values for method are: \"source\", \"put\" or \
+                    \"post\"." ))
     in
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
@@ -312,7 +315,10 @@ class output ~kind p =
       | _ ->
           raise
             (Lang_errors.Invalid_value
-               (v, "Valid values are 'http' (icecast) and 'icy' (shoutcast)"))
+               ( v,
+                 Lang.current_pos (),
+                 "Valid values for protocol are \"http\" (icecast) and \"icy\" \
+                  (shoutcast)" ))
   in
   let icy_metadata =
     let v = List.assoc "icy_metadata" p in
@@ -324,7 +330,10 @@ class output ~kind p =
         | _ ->
             raise
               (Lang_errors.Invalid_value
-                 (v, "Valid values are 'guess', 'true' or 'false'"))
+                 ( v,
+                   Lang.current_pos (),
+                   "Valid values for icy_metadata are \"guess\", \"true\" or \
+                    \"false\"" ))
     in
     match (data.format, icy) with
       | _, `True -> true
@@ -336,8 +345,9 @@ class output ~kind p =
           raise
             (Lang_errors.Invalid_value
                ( List.assoc "icy_metadata" p,
+                 Lang.current_pos (),
                  "Could not guess icy_metadata for this format, please specify \
-                  either 'true' or 'false'." ))
+                  either \"true\" or \"false\"." ))
   in
   let out_enc =
     match Lang.to_string (List.assoc "encoding" p) with
@@ -354,6 +364,7 @@ class output ~kind p =
           raise
             (Lang_errors.Invalid_value
                ( List.assoc "mount" p,
+                 Lang.current_pos (),
                  "Either name or mount must be defined for icecast sources." ))
       | Cry.Icy, name, _ when name = no_name ->
           (Cry.Icy_id icy_id, Printf.sprintf "sc#%i" icy_id)

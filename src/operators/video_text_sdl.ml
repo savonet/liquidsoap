@@ -30,7 +30,9 @@ let init () =
 let get_font font size =
   try Sdl_utils.check (Ttf.open_font font) size
   with e ->
-    raise (Lang_errors.Invalid_value (Lang.string font, Printexc.to_string e))
+    raise
+      (Lang_errors.Invalid_value
+         (Lang.string font, Lang.current_pos (), Printexc.to_string e))
 
 let render_text ~font ~size text =
   let text = if text = "" then " " else text in

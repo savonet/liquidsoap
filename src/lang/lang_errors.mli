@@ -20,12 +20,14 @@
 
  *****************************************************************************)
 
-(** Runtime error, should eventually disappear. *)
-exception Invalid_value of Lang_values.V.value * string
+type pos = Lang_values.pos list
 
-exception Clock_conflict of (Lang_types.pos option * string * string)
-exception Clock_loop of (Lang_types.pos option * string * string)
-exception Kind_conflict of (Lang_types.pos option * string * string)
+(** Runtime error, should eventually disappear. *)
+exception Invalid_value of Lang_values.V.value * pos * string
+
+exception Clock_conflict of (pos * string * string)
+exception Clock_loop of (pos * string * string)
+exception Kind_conflict of (pos * string * string)
 
 (** Exception raised by report_error after an error has been displayed.
   * Unknown errors are re-raised, so that their content is not totally lost. *)
