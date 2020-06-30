@@ -931,7 +931,17 @@ let rec eval ~env tm =
           | lbl, var, _, None -> (lbl, var, None))
         p
     in
-    let env = List.filter (fun (x, _) -> Vars.mem x fv) env in
+    (* Keep only once the variables we might use in the environment. *)
+    let env =
+      let fv = ref fv in
+      let mem x =
+        if Vars.mem x !fv then (
+          fv := Vars.remove x !fv;
+          true )
+        else false
+      in
+      List.filter (fun (x, _) -> mem x) env
+    in
     (p, env)
   in
   let mk v =
