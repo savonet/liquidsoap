@@ -10,7 +10,7 @@ let () =
      works as expected. *)
   unify c2 c2;
   assert (subclocks c2 = [c1]);
-  (* Make sure subclocks don't get dubplicated during inification. *)
+  (* Make sure subclocks don't get duplicated during inification. *)
   unify c2 c3;
   assert (subclocks c2 = [c1]);
   assert (subclocks c3 = [c1])
