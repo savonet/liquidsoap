@@ -37,6 +37,28 @@
           (T.print kind) ;
       { t = kind ; term = e }
 
+  let append_list ~pos x v =
+    match x, v with
+      | `Expr x, `List l ->
+         `List (x::l)
+      | `Expr x, `App v ->
+         let list = mk ~pos (Var "list") in
+         let op =  mk ~pos (Invoke (list, "add")) in
+         `App (mk ~pos (App (op, ["", x; "", v])))
+      | `Ellipsis x, `App v ->
+         let list = mk ~pos (Var "list") in
+         let op =  mk ~pos (Invoke (list, "append")) in
+         `App (mk ~pos (App (op, ["", x; "", v])))
+      | `Ellipsis x, `List l ->
+         let list = mk ~pos (Var "list") in
+         let op =  mk ~pos (Invoke (list, "append")) in
+         let l = mk ~pos (List l) in
+         `App (mk ~pos (App (op, ["", x; "", l])))
+
+  let mk_list ~pos = function
+    | `List l -> mk ~pos (List l)
+    | `App a -> a
+
   let mk_fun ~pos args body =
     let bound = List.map (fun (_,x,_,_) -> x) args in
     let fv = Lang_values.free_vars ~bound body in
@@ -44,6 +66,34 @@
 
   let mk_let ~pos (doc,replace,pat,def) body =
     mk ~pos (Let { doc ; replace ; pat ; gen = [] ; def ; body })
+
+  let mk_list_let ~pos ((vars, dots), def) body =
+    let list_var_name = "_" in
+    let list_var () = mk ~pos (Var list_var_name) in
+    let mk_let ~pos var def body =
+       mk_let ~pos ((Doc.none (), []), false, PVar [var], def) body
+    in
+    let body =
+      match dots with
+        | None -> body
+        | Some var ->
+            mk_let ~pos var (list_var ()) body
+    in
+    let body =
+      List.fold_left (fun body var ->
+        let list = mk ~pos (Var "list") in
+        let tl = mk ~pos (Invoke (list, "tl")) in
+        let tl = mk ~pos (App (tl, ["", (list_var ())])) in
+        let body = mk_let ~pos list_var_name tl body in
+        if var = "_" then body else (
+          let list = mk ~pos (Var "list") in
+          let hd = mk ~pos (Invoke (list, "hd")) in
+          let hd = mk ~pos (App (hd, ["", (list_var ())])) in
+          mk_let ~pos var hd body
+      )) body (List.rev vars)
+    in
+    mk_let ~pos list_var_name def body
+    
 
   let mk_rec_fun ~pos pat args body =
     let name = match pat with PVar [name] -> name | _ -> assert false in
@@ -182,11 +232,13 @@
 %token COALESCE
 %token TRY CATCH IN DO
 %token IF THEN ELSE ELSIF
+%token OPEN
 %token SERVER_WAIT
 %token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
+%token DOTDOTDOT
 %token <string> BIN0
 %token <string> BIN1
 %token <string> BIN2
@@ -243,12 +295,13 @@ s: | {} | SEQ  {}
 g: | {} | GETS {}
 
 exprs:
+  | OPEN expr s exprs        { mk ~pos:$loc (Open ($2,$4)) }
   | expr s                   { $1 }
-  | expr exprs               { mk ~pos:$loc (Seq ($1,$2)) }
-  | expr SEQ exprs           { mk ~pos:$loc (Seq ($1,$3)) }
+  | expr s exprs             { mk ~pos:$loc (Seq ($1,$3)) }
   | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
-  | binding exprs            { mk_let ~pos:$loc($1) $1 $2 }
-  | binding SEQ exprs        { mk_let ~pos:$loc($1) $1 $3 }
+  | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
+  | list_binding s           { mk_list_let ~pos:$loc $1 (mk ~pos:$loc unit) }
+  | list_binding s exprs     { mk_list_let ~pos:$loc $1 $3 }
 
 /* Sequences of expressions without bindings */
 exprss:
@@ -268,7 +321,7 @@ expr:
   | FLOAT                            { mk ~pos:$loc (Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (Ground (String $1)) }
   | VAR                              { mk ~pos:$loc (Var $1) }
-  | varlist                          { mk ~pos:$loc (List $1) }
+  | varlist                          { mk_list ~pos:$loc $1 }
   | GET expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Invoke (mk ~pos:$loc($1) (Var "ref"), "get")), ["", $2])) }
   | expr SET expr                    { mk ~pos:$loc (App (mk ~pos:$loc($2) (Invoke (mk ~pos:$loc($1) (Var "ref"), "set")), ["", $1; "", $3])) }
   | MP3 app_opt                      { mk_enc ~pos:$loc (Lang_mp3.make_cbr $2) }
@@ -307,7 +360,7 @@ expr:
   | TRY exprs CATCH bindvar IN varlist DO exprs END
                                      { let fn = mk_fun ~pos:$loc($2) [] $2 in
                                        let err_arg = ["", $4, T.fresh_evar ~level:(-1) ~pos:(Some $loc($4)), None] in
-                                       let errors = mk ~pos:$loc (List $6) in
+                                       let errors = mk_list ~pos:$loc $6 in
                                        let handler =  mk_fun ~pos:$loc($8) err_arg $8 in
                                        let error_module = mk ~pos:$loc($1) (Var "error") in
                                        let op = mk ~pos:$loc($1) (Invoke (error_module, "catch")) in
@@ -400,9 +453,14 @@ argsty:
 varlist:
   | LBRA inner_list RBRA { $2 }
 inner_list:
-  | expr COMMA inner_list  { $1::$3 }
-  | expr                   { [$1] }
-  |                        { [] }
+  | inner_list_item COMMA inner_list
+                          { append_list ~pos:$loc $1 $3 }
+  | inner_list_item       { append_list ~pos:$loc $1 (`List []) }
+  |                       { `List [] }
+
+inner_list_item:
+  | DOTDOTDOT expr { `Ellipsis $2 }
+  | expr           { `Expr $1 }
 
 inner_tuple:
   | expr COMMA expr { [$1;$3] }
@@ -456,6 +514,14 @@ binding:
       let body = mk_rec_fun ~pos:$loc pat arglist $7 in
       doc,false,pat,body
     }
+
+list_binding:
+  | LET LBRA list_bind RBRA GETS expr { $3,$6 }
+
+list_bind:
+  | bindvar COMMA list_bind { $1::(fst $3), snd $3 }
+  | DOTDOTDOT var           { [], Some $2 }
+  | bindvar                 { [$1], None }
 
 replaces:
   | { false }

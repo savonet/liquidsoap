@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd"
+[
+    <!ENTITY IDENT "[a-zA-Z][a-zA-Z0-9_\.]*">
+]>
+<language name="Liquidsoap"
+          extensions="*.liq"
+          mimetype="text/x-liquidsoap"
+          section="Sources"
+          version="6"
+          priority="10"
+          kateversion="2.4"
+          author="Samuel Mimram (smimram@gmail.com)"
+          license="LGPL" >
+
+  <highlighting>
+    <list name="Keywords">
+      <item>def</item>
+      <item>replaces</item>
+      <item>rec</item>
+      <item>let</item>
+      <item>fun</item>
+      <item>begin</item>
+      <item>end</item>
+      <item>if</item>
+      <item>then</item>
+      <item>else</item>
+      <item>elsif</item>
+      <item>while</item>
+      <item>for</item>
+      <item>in</item>
+      <item>try</item>
+      <item>catch</item>
+      <item>do</item>
+      <item>open</item>
+    </list>
+
+    <list name="Operators">
+      <item>==</item>
+      <item>and</item>
+      <item>or</item>
+      <item>not</item>
+      <item>ref</item>
+      <item>!</item>
+    </list>
+
+    <list name="Booleans">
+      <item>true</item>
+      <item>false</item>
+    </list>
+
+    <list name="Types">
+      <item>bool</item>
+      <item>int</item>
+      <item>float</item>
+      <item>string</item>
+    </list>
+
+    <list name="Annotation">
+      <item>@param</item>
+      <item>@category</item>
+      <item>@flag</item>
+    </list>
+
+    <contexts>
+      <context name="Default" lineEndContext="#stay" attribute="Normal">
+        <!-- Comments. -->
+        <RegExpr String="#!.*$" context="#stay" attribute="SheBang" />
+        <RegExpr String="#.*$"  context="#stay" attribute="Comment" />
+
+        <!-- Preprocessor. -->
+        <RegExpr String="^%.*$" context="#stay" firstNonSpace="true" attribute="Directive"/>
+
+        <!-- Strings. -->
+        <DetectChar char="&quot;" context="String" attribute="String" />
+
+        <!-- Identifiers and keywords. -->
+        <keyword String="Keywords"                 context="#stay" attribute="Keyword" />
+        <keyword String="Operators"                context="#stay" attribute="Operator" />
+        <keyword String="Booleans"                 context="#stay" attribute="Boolean" />
+        <!-- <keyword String="Types"                    context="#stay" attribute="Type" /> -->
+        <keyword String="Annotation"               context="#stay" attribute="Annotation" />
+        <RegExpr String="%[a-zA-Z0-9]+"            context="#stay" attribute="Format" />
+        <RegExpr String="&IDENT;\("                context="IsFunction" attribute="Function" lookAhead="true" />
+        <RegExpr String="~&IDENT;"                 context="#stay" attribute="Label" />
+        <RegExpr String="&IDENT;="                 context="IsLabel" attribute="Label" lookAhead="true" />
+        <RegExpr String="&IDENT;"                  context="#stay" attribute="Identifier" />
+
+        <!-- Numeric constants. -->
+        <RegExpr String="0x[0-9a-f]+" context="#stay" attribute="Hexadecimal" />
+        <RegExpr String="-?[0-9]+\.[0-9]*" context="#stay" attribute="Float" />
+        <RegExpr String="-?[0-9]+" context="#stay" attribute="Decimal" />
+      </context>
+
+      <context name="IsFunction" lineEndContext="#pop" attribute="Function">
+        <RegExpr attribute="Function" context="#pop" String="&IDENT;" />
+      </context>
+      <context name="IsLabel" lineEndContext="#pop" attribute="Label">
+        <RegExpr attribute="Label" context="#pop" String="&IDENT;" />
+      </context>
+
+      <context name="String" lineEndContext="#stay" attribute="String">
+        <DetectChar char="&quot;" context="#pop" attribute="String" />
+      </context>
+    </contexts>
+
+    <itemDatas>
+      <itemData name="Code"                    defStyleNum="dsNormal"   />
+      <itemData name="Identifier"              defStyleNum="dsNormal"   />
+      <itemData name="Keyword"                 defStyleNum="dsKeyword"  />
+      <itemData name="Operator"                defStyleNum="dsKeyword" />
+      <!-- <itemData name="Function"                defStyleNum="dsFunction" /> -->
+      <!-- <itemData name="Type"                    defStyleNum="dsDataType" /> -->
+      <itemData name="Function"                defStyleNum="dsDataType" />
+      <itemData name="Label"                   defStyleNum="dsVariable" />
+
+      <itemData name="Decimal"                 defStyleNum="dsDecVal"   />
+      <itemData name="Boolean"                 defStyleNum="dsDecVal"   />
+      <itemData name="Hexadecimal"             defStyleNum="dsBaseN"   />
+      <itemData name="Float"                   defStyleNum="dsFloat"    />
+      <itemData name="String"                  defStyleNum="dsString"   />
+
+      <itemData name="Directive"               defStyleNum="dsOthers"   />
+      <itemData name="SheBang"                 defStyleNum="dsOthers"   />
+      <itemData name="Format"                  defStyleNum="dsOthers"   />
+
+      <itemData name="Comment"                 defStyleNum="dsComment"  />
+      <itemData name="Annotation"              defStyleNum="dsAnnotation" />
+    </itemDatas>
+  </highlighting>
+
+  <general>
+    <keywords casesensitive="true" />
+    <comments>
+      <comment name="singleLine" start="#"/>
+    </comments>
+  </general>
+</language>
+<!-- kate: space-indent on; indent-width 2; replace-tabs on; -->

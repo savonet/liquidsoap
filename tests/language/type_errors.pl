@@ -31,6 +31,10 @@ section("LISTS");
 incorrect('ignore([4,"x"])');
 correct('ignore([input.harbor("foo"), sine()])');
 correct('ignore([sine(), input.harbor("foo")])');
+correct('ignore([1, ...[2,3,4], ...[5,6], 7])');
+correct('let [x,y,...z] = [1,2]');
+incorrect('let [] = [1,2]');
+incorrect('let [...z, x, ...t] = [1,2]');
 
 section("BASIC");
 incorrect('[1]==["1"]');
