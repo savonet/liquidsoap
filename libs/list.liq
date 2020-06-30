@@ -38,6 +38,23 @@ def list.init(n, f)
   if n < 0 then [] else aux(0) end
 end
 
+# Initialize a list. Similar to `list.init` but iterates from the right of the
+# list. It should be slightly more efficient.
+# @category List
+# @param n Number of elements in the list.
+# @param f Function such that `f i` is the `i`th element.
+def list.init_right(n, f)
+  def rec aux(i, l)
+    l = list.add(f(i), l)
+    if i == 0 then
+      l
+    else
+      aux(i-1, l)
+    end
+  end
+  aux(n-1, [])
+end
+
 # Get the n-th element of a list (the first element is at position 0), or `default` if element does not exist.
 # @category List
 def list.nth(~default=null(), l, n) =
