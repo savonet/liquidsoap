@@ -6,8 +6,7 @@ MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
 # This looks like a bug..
 ARG DOCKER_TAG
 ARG GITHUB_SHA
-ARG GITHUB_HEAD_REF
-ARG GITHUB_RUN_NUMBER
+ARG BRANCH
 
 USER root
 
@@ -21,4 +20,4 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN ./build-deb.sh "$GITHUB_SHA" "$GITHUB_HEAD_REF" "$DOCKER_TAG" "$GITHUB_RUN_NUMBER"
+RUN ./build-deb.sh "$GITHUB_SHA" "$BRANCH" "$DOCKER_TAG"
