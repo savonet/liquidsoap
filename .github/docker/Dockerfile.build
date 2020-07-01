@@ -18,7 +18,7 @@ WORKDIR /tmp/liquidsoap-full
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout master && git pull && \
      git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA && \
-     ./.ci/checkout-deps.sh && \
+     ./.github/scripts/checkout-deps.sh && \
      cd .. && ./bootstrap && \
      export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
      ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
