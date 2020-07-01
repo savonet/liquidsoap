@@ -41,6 +41,9 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
+# We're only exporting the sha-tagged .deb as artifact.
+echo "##[set-output name=filename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${BUILD_NUMBER}~${RELEASE}_amd64.deb"
+
 TAG=`echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g'`
 
 LIQ_PACKAGE="liquidsoap-${TAG}"
