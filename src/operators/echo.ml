@@ -44,7 +44,7 @@ class echo ~kind (source : source) delay feedback ping_pong =
       super#wake_up a;
       effect <-
         Some
-          (Audio.Effect.delay self#channels
+          (Audio.Effect.delay self#audio_channels
              (Lazy.force Frame.audio_rate)
              ~ping_pong (delay ()) (feedback ()))
 

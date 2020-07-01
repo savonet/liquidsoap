@@ -43,7 +43,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     method wake_up a =
       super#wake_up a;
-      xv <- Array.make_matrix self#channels numcoeffs 0.
+      xv <- Array.make_matrix self#audio_channels numcoeffs 0.
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.

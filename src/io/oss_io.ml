@@ -58,7 +58,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
       fd <- Some descr;
       force set_format descr 16;
-      force set_channels descr self#channels;
+      force set_channels descr self#audio_channels;
       force set_rate descr samples_per_second
 
     method close_device =
@@ -111,7 +111,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       let descr = Unix.openfile dev [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o400 in
       fd <- Some descr;
       force set_format descr 16;
-      force set_channels descr self#channels;
+      force set_channels descr self#audio_channels;
       force set_rate descr samples_per_second
 
     method private stop = self#close_device

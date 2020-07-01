@@ -67,13 +67,14 @@ class pitch ~kind every length freq_min freq_max (source : source) =
       match ring with
         | Some ring -> ring
         | None ->
-            let r = Ringbuffer.create self#channels (2 * length) in
+            let r = Ringbuffer.create self#audio_channels (2 * length) in
             ring <- Some r;
             r
 
     (** Array used to get data to analyze. *)
     method databuf =
-      Lazy.force (Lazy.from_fun (fun () -> Audio.create self#channels length))
+      Lazy.force
+        (Lazy.from_fun (fun () -> Audio.create self#audio_channels length))
 
     val mutable computations = -1
 

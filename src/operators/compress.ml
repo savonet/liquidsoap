@@ -39,7 +39,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
           (new Audio.Effect.compress
              ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ())
              ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ())
-             self#channels samplerate)
+             self#audio_channels samplerate)
 
     method stype = source#stype
 

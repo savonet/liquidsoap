@@ -51,7 +51,7 @@ class filter ~kind (source : source) freq q wet mode =
 
     method wake_up a =
       super#wake_up a;
-      let channels = self#channels in
+      let channels = self#audio_channels in
       low <- Array.make channels 0.;
       high <- Array.make channels 0.;
       band <- Array.make channels 0.;

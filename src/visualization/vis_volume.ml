@@ -59,14 +59,14 @@ class vumeter ~kind source =
 
     method private wake_up act =
       super#wake_up act;
-      vol <- Array.init self#channels (fun _ -> Array.make backpoints 0.);
-      cur_rms <- Array.make self#channels 0.;
+      vol <- Array.init self#audio_channels (fun _ -> Array.make backpoints 0.);
+      cur_rms <- Array.make self#audio_channels 0.;
       Graphics.open_graph "";
       Graphics.set_window_title "Liquidsoap's volume";
       Graphics.auto_synchronize false
 
     method private add_vol v =
-      let channels = self#channels in
+      let channels = self#audio_channels in
       for c = 0 to channels - 1 do
         cur_rms.(c) <- cur_rms.(c) +. v.(c)
       done;
@@ -79,7 +79,7 @@ class vumeter ~kind source =
         pos <- (pos + 1) mod backpoints )
 
     method private get_frame buf =
-      let channels = self#channels in
+      let channels = self#audio_channels in
       let offset = AFrame.position buf in
       let end_pos =
         source#get buf;

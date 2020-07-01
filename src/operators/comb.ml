@@ -45,7 +45,7 @@ class comb ~kind (source : source) delay feedback =
 
     method private wake_up s =
       super#wake_up s;
-      past <- Audio.make self#channels past_len 0.
+      past <- Audio.make self#audio_channels past_len 0.
 
     val mutable past_pos = 0
 

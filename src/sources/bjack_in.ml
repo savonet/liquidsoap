@@ -47,7 +47,9 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
       (* We need to know the number of channels to intialize the ioring. We
            defer this until the kind is known. *)
       let blank () =
-        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+        Bytes.make
+          (samples_per_frame * self#audio_channels * bytes_per_sample)
+          '0'
       in
       ioring#init blank
 
@@ -83,7 +85,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
             let dev =
               Bjack.open_t ~rate:samples_per_second
                 ~bits_per_sample:(bytes_per_sample * 8)
-                ~input_channels:self#channels ~output_channels:0 ~flags:[]
+                ~input_channels:self#audio_channels ~output_channels:0 ~flags:[]
                 ?server_name
                 ~ringbuffer_size:
                   (nb_blocks * samples_per_frame * bytes_per_sample)

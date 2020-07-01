@@ -35,7 +35,8 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
         | None ->
             let e =
               new Audio.Effect.biquad_filter
-                self#channels samplerate filter_type ~gain:db_gain freq fparam
+                self#audio_channels samplerate filter_type ~gain:db_gain freq
+                fparam
             in
             effect <- Some e;
             e

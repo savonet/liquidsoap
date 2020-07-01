@@ -37,7 +37,7 @@ class virtual base dev mode =
   object (self)
     method virtual log : Log.t
 
-    method virtual channels : int
+    method virtual audio_channels : int
 
     val mutable alsa_rate = -1
 
@@ -96,7 +96,7 @@ class virtual base dev mode =
               write <-
                 (fun pcm buf ofs len ->
                   let sbuf =
-                    Array.init self#channels (fun _ ->
+                    Array.init self#audio_channels (fun _ ->
                         Bytes.make (2 * len) (Char.chr 0))
                   in
                   for c = 0 to Audio.channels buf - 1 do
@@ -108,7 +108,7 @@ class virtual base dev mode =
               read <-
                 (fun pcm buf ofs len ->
                   let sbuf =
-                    Array.init self#channels (fun _ ->
+                    Array.init self#audio_channels (fun _ ->
                         Bytes.make (2 * len) (Char.chr 0))
                   in
                   let r = Pcm.readn pcm sbuf 0 len in
@@ -119,7 +119,7 @@ class virtual base dev mode =
                       (Audio.sub [| buf.(c) |] ofs len)
                   done;
                   r) ) );
-        handle "channels" (Pcm.set_channels dev params) self#channels;
+        handle "channels" (Pcm.set_channels dev params) self#audio_channels;
         let rate =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
@@ -192,7 +192,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
       match samplerate_converter with
         | Some samplerate_converter -> samplerate_converter
         | None ->
-            let sc = Audio_converter.Samplerate.create self#channels in
+            let sc = Audio_converter.Samplerate.create self#audio_channels in
             samplerate_converter <- Some sc;
             sc
 

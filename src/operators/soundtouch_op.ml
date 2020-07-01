@@ -35,7 +35,8 @@ class soundtouch ~kind (source : source) rate tempo pitch =
     method wake_up a =
       super#wake_up a;
       databuf <- Frame.create self#ctype;
-      st <- Some (Soundtouch.make self#channels (Lazy.force Frame.audio_rate));
+      st <-
+        Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
       self#log#important "Using soundtouch %s."
         (Soundtouch.get_version_string (Option.get st))
 
@@ -80,10 +81,10 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       if available > 0 then (
         let tmp =
           Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-            (self#channels * available)
+            (self#audio_channels * available)
         in
         ignore (Soundtouch.get_samples_ba st tmp);
-        let tmp = Audio.deinterleave self#channels tmp in
+        let tmp = Audio.deinterleave self#audio_channels tmp in
         Generator.put_audio abg (Frame_content.Audio.lift_data tmp) 0 available
         );
       if AFrame.is_partial databuf then Generator.add_break abg;

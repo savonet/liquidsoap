@@ -75,7 +75,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
         {
           sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = self#channels;
+          sample_chans = self#audio_channels;
         }
       in
       stream <-
@@ -162,7 +162,7 @@ class input ~kind p =
         {
           sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = self#channels;
+          sample_chans = self#audio_channels;
         }
       in
       stream <-
@@ -180,14 +180,15 @@ class input ~kind p =
       let len = AFrame.size () in
       let ibuf =
         Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-          (self#channels * len)
+          (self#audio_channels * len)
       in
       let buf = AFrame.pcm frame in
       Simple.read_ba stream ibuf;
-      for c = 0 to self#channels - 1 do
+      for c = 0 to self#audio_channels - 1 do
         let bufc = buf.(c) in
         for i = 0 to len - 1 do
-          bufc.{i} <- Bigarray.Array1.unsafe_get ibuf ((i * self#channels) + c)
+          bufc.{i} <-
+            Bigarray.Array1.unsafe_get ibuf ((i * self#audio_channels) + c)
         done
       done;
       AFrame.add_break frame (AFrame.size ())

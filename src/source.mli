@@ -153,7 +153,7 @@ class virtual source :
        method ctype : Frame.content_type
 
        (** This method fails when content is not PCM. *)
-       method private channels : int
+       method private audio_channels : int
 
        (** Retrieve the frame currently being filled. *)
        method memo : Frame.t

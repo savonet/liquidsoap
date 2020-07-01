@@ -50,7 +50,7 @@ class mic ~kind ~clock_safe device =
 
     method private wake_up l =
       active_source#wake_up l;
-      let blank () = Audio.make self#channels buffer_length 0. in
+      let blank () = Audio.make self#audio_channels buffer_length 0. in
       ioring#init blank
 
     method private sleep =
@@ -115,7 +115,7 @@ class mic ~kind ~clock_safe device =
                  resampled in the future)."
                 sample_freq
                 (Lazy.force Frame.audio_rate);
-            Pcm.set_channels dev params self#channels;
+            Pcm.set_channels dev params self#audio_channels;
             Pcm.set_params dev params;
             Pcm.prepare dev;
             device <- Some dev;

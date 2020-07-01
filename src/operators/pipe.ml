@@ -68,8 +68,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     method private header =
       Bytes.unsafe_of_string
-        (Wav_aiff.wav_header ~channels:self#channels ~sample_rate:samplerate
-           ?len ~sample_size:16 ())
+        (Wav_aiff.wav_header ~channels:self#audio_channels
+           ~sample_rate:samplerate ?len ~sample_size:16 ())
 
     method private on_start push =
       Process_handler.really_write self#header push;
@@ -81,12 +81,12 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         header_read := true;
         Tutils.mutexify mutex
           (fun () ->
-            if Wav_aiff.channels wav <> self#channels then
+            if Wav_aiff.channels wav <> self#audio_channels then
               failwith "Invalid channels from pipe process!";
             samplesize <- Wav_aiff.sample_size wav;
             samplerate <- Wav_aiff.sample_rate wav;
             converter <-
-              Decoder_utils.from_iff ~format:`Wav ~channels:self#channels
+              Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
                 ~samplesize)
           ();
         `Reschedule Tutils.Non_blocking )
@@ -248,7 +248,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
     method wake_up a =
       super#wake_up a;
       converter <-
-        Decoder_utils.from_iff ~format:`Wav ~channels:self#channels ~samplesize;
+        Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
+          ~samplesize;
 
       source#get_ready [(self :> source)];
       (* Now we can create the log function *)

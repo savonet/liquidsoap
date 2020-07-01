@@ -48,8 +48,8 @@ class filter ~kind (source : source) rc wet mode =
 
     method wake_up a =
       super#wake_up a;
-      prev <- Array.make self#channels 0.;
-      prev_in <- Array.make self#channels 0.
+      prev <- Array.make self#audio_channels 0.;
+      prev_in <- Array.make self#audio_channels 0.
 
     method private get_frame buf =
       let offset = AFrame.position buf in

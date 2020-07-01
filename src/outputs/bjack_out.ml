@@ -40,7 +40,9 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
     method wake_up a =
       super#wake_up a;
       let blank () =
-        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+        Bytes.make
+          (samples_per_frame * self#audio_channels * bytes_per_sample)
+          '0'
       in
       ioring#init blank
 
@@ -63,7 +65,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
             let dev =
               Bjack.open_t ~rate:samples_per_second
                 ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:0
-                ~output_channels:self#channels ~flags:[] ?server_name
+                ~output_channels:self#audio_channels ~flags:[] ?server_name
                 ~ringbuffer_size:
                   (nb_blocks * samples_per_frame * bytes_per_sample)
                 ~client_name:self#id ()

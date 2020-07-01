@@ -344,11 +344,11 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     method private create_transition =
       let db_after =
         Audio.dB_of_lin
-          (sqrt (rms_after /. float rmsi_after /. float self#channels))
+          (sqrt (rms_after /. float rmsi_after /. float self#audio_channels))
       in
       let db_before =
         Audio.dB_of_lin
-          (sqrt (rms_before /. float rmsi_before /. float self#channels))
+          (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
       in
       let compound =
         Clock.collect_after (fun () ->

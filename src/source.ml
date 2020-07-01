@@ -455,7 +455,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             ctype <- Some ct;
             ct
 
-    method private channels =
+    method private audio_channels =
       Frame_content.Audio.channels_of_format self#ctype.Frame.audio
 
     (** Startup/shutdown.

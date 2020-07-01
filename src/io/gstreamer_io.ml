@@ -234,7 +234,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       let pipeline =
         if has_audio then
           Printf.sprintf "%s ! %s %s"
-            (GU.Pipeline.audio_src ~channels:self#channels ~block:blocking
+            (GU.Pipeline.audio_src ~channels:self#audio_channels ~block:blocking
                "audio_src")
             audio_pipeline pipeline
         else pipeline
@@ -276,9 +276,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
           let duration = Gstreamer_utils.time_of_master len in
           if has_audio then (
             let pcm = AFrame.pcm frame in
-            assert (Array.length pcm = self#channels);
+            assert (Array.length pcm = self#audio_channels);
             let len = Frame.audio_of_master len in
-            let data = Bytes.create (2 * self#channels * len) in
+            let data = Bytes.create (2 * self#audio_channels * len) in
             Audio.S16LE.of_audio pcm data 0;
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
               (Utils.get_some el.audio) data 0 (Bytes.length data) );
@@ -562,7 +562,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
           Printf.sprintf "%s %s ! %s ! %s" (pipeline ())
             (Utils.get_some audio_pipeline ())
             (GU.Pipeline.decode_audio ())
-            (GU.Pipeline.audio_sink ~channels:self#channels "audio_sink")
+            (GU.Pipeline.audio_sink ~channels:self#audio_channels "audio_sink")
         else pipeline ()
       in
       let pipeline =
@@ -610,8 +610,8 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
     method private fill_audio audio =
       while audio.pending () > 0 && not self#is_generator_at_max do
         let b = audio.pull () in
-        let len = String.length b / (2 * self#channels) in
-        let buf = Audio.create self#channels len in
+        let len = String.length b / (2 * self#audio_channels) in
+        let buf = Audio.create self#audio_channels len in
         Audio.S16LE.to_audio b 0 (Audio.sub buf 0 len);
         Generator.put_audio gen (Frame_content.Audio.lift_data buf) 0 len
       done

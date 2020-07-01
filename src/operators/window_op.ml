@@ -54,7 +54,7 @@ class window ~kind mode duration source =
 
     method wake_up a =
       super#wake_up a;
-      let channels = self#channels in
+      let channels = self#audio_channels in
       acc <- Array.make channels 0.;
       value <- Array.make channels 0.
 
@@ -71,7 +71,7 @@ class window ~kind mode duration source =
         let position = AFrame.position buf in
         let buf = AFrame.pcm buf in
         for i = offset to position - 1 do
-          for c = 0 to self#channels - 1 do
+          for c = 0 to self#audio_channels - 1 do
             let x = buf.(c).{i} in
             match mode with
               | RMS -> acc.(c) <- acc.(c) +. (x *. x)
@@ -81,7 +81,7 @@ class window ~kind mode duration source =
           if acc_dur >= duration then (
             let dur = float acc_dur in
             let value' =
-              Array.init self#channels (fun i ->
+              Array.init self#audio_channels (fun i ->
                   match mode with
                     | RMS ->
                         let v = sqrt (acc.(i) /. dur) in
