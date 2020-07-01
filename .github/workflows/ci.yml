@@ -3,38 +3,101 @@ on:
   pull_request:
   push:
     branches:
-      - master    
+      - master
 
 jobs:
-  build:
+  cancel_previous_run:
     runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.4.0
+        with:
+          access_token: ${{ github.token }}
+
+  get_branch_name:
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.branch_name.outputs.branch }}
+      is_release: ${{ steps.branch_name.outputs.is_release }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Extract branch name
+        shell: bash
+        run: .github/scripts/branch-name.sh
+        id: branch_name
+
+  build_posix:
+    runs-on: ubuntu-latest
+    needs: get_branch_name
     strategy:
       fail-fast: false
       matrix:
         os: [debian_stable, debian_testing, ubuntu_eoan, ubuntu_focal]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Build
-      run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:${{ matrix.os }} -f .github/docker/Dockerfile.build
-    - name: Run tests
-      run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -f .github/docker/Dockerfile.test
-    - name: Build debian package
-      run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA --build-arg GITHUB_HEAD_REF --build-arg GITHUB_RUN_NUMBER -t savonet/liquidsoap-github-actions-deb:${{ matrix.os }}  -f .github/docker/Dockerfile.deb
-      id: build_deb
-    - name: Fetch debian package
-      run: .github/scripts/get-deb.sh ${{ matrix.os }}
-    - name: Upload debian packages artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: ${{ steps.build_deb.outputs.filename }}
-        path: debian/pkgs/${{ matrix.os }}/${{ steps.build_deb.outputs.filename }}
-    - name: Upload debian packages to S3
-      uses: jakejarvis/s3-sync-action@master
-      with:
-        args: --acl public-read --follow-symlinks
-      env:
-        AWS_S3_BUCKET: deb.liquidsoap.info
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        SOURCE_DIR: debian
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build
+        run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:${{ matrix.os }} -f .github/docker/Dockerfile.build
+      - name: Run tests
+        run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} -f .github/docker/Dockerfile.test
+      - name: Build debian package
+        run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA --build-arg BRANCH=${{ needs.get_branch_name.outputs.branch }} -t savonet/liquidsoap-github-actions-deb:${{ matrix.os }}  -f .github/docker/Dockerfile.deb
+        id: build_deb
+      - name: Fetch debian package
+        run: .github/scripts/get-deb.sh ${{ matrix.os }}
+      - name: Upload debian packages artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.build_deb.outputs.basename }}
+          path: debian/pkgs/${{ matrix.os }}/${{ steps.build_deb.outputs.basename }}.deb
+
+  build_win32:
+    runs-on: ubuntu-latest
+    needs: get_branch_name
+    strategy:
+      fail-fast: false
+      matrix:
+        system: [x86, x64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build
+        run: .github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.get_branch_name.outputs.branch }}
+        id: build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.build.outputs.basename }}
+          path: ${{ steps.build.outputs.basename }}.zip
+
+  update_release:
+    runs-on: ubuntu-latest
+    needs: [get_branch_name, build_posix, build_win32]
+    if: ${{ needs.get_branch_name.output.is_release }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Tag commit
+        uses: savonet/latest-tag@any-context
+        with:
+          description: Liquidsoap ${{ needs.get_branch_name.outputs.branch }}
+          tag-name: ${{ needs.get_branch_name.outputs.branch }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download all artifact
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: List assets to upload
+        run: echo "##[set-output name=assets;]$(find artifacts -type f | xargs)"
+        id: list_assets
+      - name: Upload assets to release
+        uses: meeDamian/github-release@2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.get_branch_name.outputs.branch }}
+          files:  ${{ steps.list_assets.outputs.assets }}
+          prerelease: true
+          gzip: false
+          allow_override: true

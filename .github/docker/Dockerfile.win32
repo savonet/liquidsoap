@@ -20,6 +20,7 @@ RUN eval `opam config env` && cd /tmp/liquidsoap && \
   ./configure --enable-custom-path --host=$HOST OCAMLFIND_TOOLCHAIN=windows && \
   env OCAMLFIND_TOOLCHAIN=windows make
 
-RUN eval `opam config env` && mkdir /tmp/win32 && mv /tmp/liquidsoap/.github/win32 /tmp/win32/liquidsoap-$BUILD && \
-  cd /tmp/win32/liquidsoap-$BUILD && cp /tmp/liquidsoap/src/liquidsoap.exe . && cp /tmp/liquidsoap/libs/*.liq libs && \
-  cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile .
+RUN eval `opam config env` && mv /tmp/liquidsoap/.github/win32 /tmp/liquidsoap-$BUILD && \
+  cd /tmp/liquidsoap-$BUILD && cp /tmp/liquidsoap/src/liquidsoap.exe . && cp /tmp/liquidsoap/libs/*.liq libs && \
+  cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile . && \
+  cd .. && zip -r liquidsoap-$BUILD.zip liquidsoap-$BUILD
