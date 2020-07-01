@@ -1,0 +1,25 @@
+ARG IMAGE
+FROM $IMAGE
+
+ARG RELEASE
+ARG BUILD
+ARG HOST
+
+WORKDIR /tmp
+
+USER opam
+
+ENV CC ""
+
+RUN eval `opam config env` && opam update && opam reinstall -y `echo $OPAM_DEPS | sed -e 's#,# #g'`
+
+RUN git clone --recursive https://github.com/savonet/liquidsoap.git && \
+    cd liquidsoap && git fetch origin $RELEASE && git checkout $RELEASE && ./bootstrap
+
+RUN eval `opam config env` && cd /tmp/liquidsoap && \
+  ./configure --enable-custom-path --host=$HOST OCAMLFIND_TOOLCHAIN=windows && \
+  env OCAMLFIND_TOOLCHAIN=windows make
+
+RUN eval `opam config env` && mkdir /tmp/win32 && mv /tmp/liquidsoap/.github/win32 /tmp/win32/liquidsoap-$BUILD && \
+  cd /tmp/win32/liquidsoap-$BUILD && cp /tmp/liquidsoap/src/liquidsoap.exe . && cp /tmp/liquidsoap/libs/*.liq libs && \
+  cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile .

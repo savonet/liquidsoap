@@ -1,0 +1,26 @@
+name: Windows build
+on:
+  pull_request:
+  push:
+    branches:
+      - master    
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: false
+    strategy:
+      fail-fast: false
+      matrix:
+        system: [x86, x64]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Build
+      run: .github/scripts/build-win32.sh ${{ matrix.system }}
+      id: build
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ steps.build.outputs.path }}
+        path: win32
