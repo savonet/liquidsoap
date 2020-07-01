@@ -69,8 +69,8 @@ let () =
           Some
             Frame.
               {
-                audio = Frame_content.None.params;
-                video = Frame_content.None.params;
+                audio = Frame_content.None.format;
+                video = Frame_content.None.format;
                 midi = Frame_content.Midi.lift_params [`Channels 1];
               });
       file_decoder =

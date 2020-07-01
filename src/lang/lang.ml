@@ -90,7 +90,7 @@ let audio_pcm = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any }
 
 let audio_params p =
   {
-    Frame.audio = `Params (Frame_content.Audio.lift_params p);
+    Frame.audio = `Format (Frame_content.Audio.lift_params p);
     video = `Any;
     midi = `Any;
   }
@@ -108,7 +108,7 @@ let midi_n n =
   {
     Frame.audio = `Any;
     video = `Any;
-    midi = `Params (Frame_content.Midi.lift_params [`Channels n]);
+    midi = `Format (Frame_content.Midi.lift_params [`Channels n]);
   }
 
 let kind_type_of_kind_format fields =

@@ -154,9 +154,9 @@ let () =
             Some
               Frame.
                 {
-                  audio = Frame_content.None.params;
+                  audio = Frame_content.None.format;
                   video = Frame_content.Video.lift_params [];
-                  midi = Frame_content.None.params;
+                  midi = Frame_content.None.format;
                 }
           else None);
       file_decoder =

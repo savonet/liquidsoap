@@ -61,7 +61,7 @@ let debug =
    complicated (e.g. dtools) in order not to impact performances. *)
 let profile = ref false
 
-(** {2 Kinds} *)
+(** {2 Formats} *)
 
 (* In a sense this could move to Lang_types, but I like to keep that
     part free of some specificities of liquidsoap, as much as possible. *)
@@ -89,24 +89,24 @@ let kind_t ?pos ?level kind =
       ~pos:(match pos with None -> None | Some pos -> pos)
       ~level:(-1)
   in
-  let mk_kind k = T.make ?pos ?level (T.Ground (T.Kind k)) in
+  let mk_format f = T.make ?pos ?level (T.Ground (T.Format f)) in
   match kind with
     | `Any -> evar ()
     | `Internal -> evar ~constraints:[Lang_types.InternalMedia] ()
-    | `Format f ->
+    | `Kind k ->
         T.make ?pos ?level
           (T.Constr
              {
-               T.name = Frame_content.string_of_format f;
+               T.name = Frame_content.string_of_kind k;
                T.params = [(T.Covariant, evar ())];
              })
-    | `Params p ->
-        let f = Frame_content.format p in
+    | `Format f ->
+        let k = Frame_content.kind f in
         T.make ?pos ?level
           (T.Constr
              {
-               T.name = Frame_content.string_of_format f;
-               T.params = [(T.Covariant, mk_kind p)];
+               T.name = Frame_content.string_of_kind k;
+               T.params = [(T.Covariant, mk_format f)];
              })
 
 let of_frame_kind_t t =
@@ -953,15 +953,15 @@ let rec eval ~env tm =
           let k =
             match of_frame_kind_t k with
               | {
-               Frame.audio = { T.descr = T.Ground (T.Kind audio) };
-               video = { T.descr = T.Ground (T.Kind video) };
-               midi = { T.descr = T.Ground (T.Kind midi) };
+               Frame.audio = { T.descr = T.Ground (T.Format audio) };
+               video = { T.descr = T.Ground (T.Format video) };
+               midi = { T.descr = T.Ground (T.Format midi) };
               } ->
                   Source.Kind.of_kind
                     {
-                      Frame.audio = `Params audio;
-                      video = `Params video;
-                      midi = `Params midi;
+                      Frame.audio = `Format audio;
+                      video = `Format video;
+                      midi = `Format midi;
                     }
               | _ -> assert false
           in

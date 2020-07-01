@@ -239,7 +239,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
 let channel_layout audio =
   match Frame_content.Audio.get_params audio with [c] -> c | _ -> assert false
 
-let none = Frame_content.None.params
+let none = Frame_content.None.format
 
 let can_decode_type decoded_type target_type =
   let can_convert_audio audio =

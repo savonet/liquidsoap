@@ -26,13 +26,13 @@
 exception Invalid
 
 module Contents : sig
+  type kind
   type format
-  type params
   type data
 end
 
 module type ContentSpecs = sig
-  type format
+  type kind
   type param
   type data
 
@@ -49,15 +49,15 @@ module type ContentSpecs = sig
   val merge : param list -> param list -> param list
   val string_of_param : param -> string
 
-  (* Format: [param_of_string "label" "value"] *)
+  (* [param_of_string "label" "value"] *)
   val param_of_string : string -> string -> param option
 
-  (** Format *)
+  (** Kind *)
 
-  val format : format
-  val default_params : format -> param list
-  val string_of_format : format -> string
-  val format_of_string : string -> format option
+  val kind : kind
+  val default_params : kind -> param list
+  val string_of_kind : kind -> string
+  val kind_of_string : string -> kind option
 end
 
 module type Content = sig
@@ -69,51 +69,51 @@ module type Content = sig
   val lift_data : data -> Contents.data
   val get_data : Contents.data -> data
 
-  (** Params *)
-
-  val is_params : Contents.params -> bool
-  val lift_params : param list -> Contents.params
-  val get_params : Contents.params -> param list
-
   (** Format *)
 
   val is_format : Contents.format -> bool
-  val lift_format : format -> Contents.format
-  val get_format : Contents.format -> format
+  val lift_params : param list -> Contents.format
+  val get_params : Contents.format -> param list
+
+  (** Kind *)
+
+  val is_kind : Contents.kind -> bool
+  val lift_kind : kind -> Contents.kind
+  val get_kind : Contents.kind -> kind
 end
 
 module MkContent (C : ContentSpecs) :
   Content
-    with type format = C.format
+    with type kind = C.kind
      and type param = C.param
      and type data = C.data
 
-type params = Contents.params
-type data = Contents.data
 type format = Contents.format
+type kind = Contents.kind
+type data = Contents.data
 
 (** Data *)
 
-val make : params -> data
+val make : format -> data
 val blit : data -> int -> data -> int -> int -> unit
 val bytes : data -> int
 val copy : data -> data
 
-(** Params *)
-
-val params : data -> params
-val merge : params -> params -> unit
-val string_of_params : params -> string
-
-(* Format: [params_of_string "label" "value"] *)
-val params_of_string : string -> string -> params
-
 (** Format *)
 
-val format : params -> format
-val default_params : format -> params
+val format : data -> format
+val merge : format -> format -> unit
 val string_of_format : format -> string
-val format_of_string : string -> format
+
+(* [format_of_param "label" "value"] *)
+val format_of_param : string -> string -> format
+
+(** Kind *)
+
+val kind : format -> kind
+val default_format : kind -> format
+val string_of_kind : kind -> string
+val kind_of_string : string -> kind
 
 (** Internal content types. *)
 
@@ -121,30 +121,30 @@ val format_of_string : string -> format
    via its params and data. *)
 module None : sig
   val data : Contents.data
-  val params : Contents.params
-  val is_params : Contents.params -> bool
+  val format : Contents.format
+  val is_format : Contents.format -> bool
 end
 
 module Audio : sig
   include
     Content
-      with type format = [ `Pcm ]
+      with type kind = [ `Pcm ]
        and type param = [ `Mono | `Stereo | `Five_point_one ]
        and type data = Audio.Mono.buffer array
 
-  val channels_of_params : Contents.params -> int
-  val params_of_channels : int -> Contents.params
+  val channels_of_format : Contents.format -> int
+  val format_of_channels : int -> Contents.format
 end
 
-module Video : Content with type format = [ `Yuv420p ] and type data = Video.t
+module Video : Content with type kind = [ `Yuv420p ] and type data = Video.t
 
 module Midi :
   Content
-    with type format = [ `Midi ]
+    with type kind = [ `Midi ]
      and type param = [ `Channels of int ]
      and type data = MIDI.Multitrack.buffer
 
-val default_audio : unit -> Contents.params
-val default_video : unit -> Contents.params
-val default_midi : unit -> Contents.params
-val is_internal : format -> bool
+val default_audio : unit -> Contents.format
+val default_video : unit -> Contents.format
+val default_midi : unit -> Contents.format
+val is_internal : kind -> bool

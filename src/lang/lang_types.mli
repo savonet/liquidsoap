@@ -38,7 +38,7 @@ type ground +=
   | String
   | Float
   | Request
-  | Kind of Frame_content.params
+  | Format of Frame_content.format
 
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string

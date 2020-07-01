@@ -189,14 +189,14 @@ let priority =
     "Priority for the GStreamer decoder" ~d:0
 
 let channels { Frame.audio } =
-  if audio = Frame_content.None.params then 0
-  else Frame_content.Audio.channels_of_params audio
+  if audio = Frame_content.None.format then 0
+  else Frame_content.Audio.channels_of_format audio
 
 let create_file_decoder filename content_type ctype =
   let mode =
     match (content_type.Frame.video, content_type.Frame.audio) with
-      | video, _ when video = Frame_content.None.params -> `Audio
-      | _, audio when audio = Frame_content.None.params -> `Video
+      | video, _ when video = Frame_content.None.format -> `Audio
+      | _, audio when audio = Frame_content.None.format -> `Video
       | _, _ -> `Both
   in
   let channels = channels content_type in
@@ -265,16 +265,16 @@ let get_type ~channels filename =
     with Gstreamer.Failed -> 0
   in
   let audio =
-    if audio = 0 then Frame_content.None.params
+    if audio = 0 then Frame_content.None.format
     else
       Frame_content.Audio.lift_params
         [Audio_converter.Channel_layout.layout_of_channels audio]
   in
   let video =
-    if video = 0 then Frame_content.None.params
+    if video = 0 then Frame_content.None.format
     else Frame_content.Video.lift_params []
   in
-  { Frame.video; audio; midi = Frame_content.None.params }
+  { Frame.video; audio; midi = Frame_content.None.format }
 
 let file_decoder ~metadata:_ ~ctype filename =
   let channels = channels ctype in

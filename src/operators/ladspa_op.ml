@@ -103,7 +103,7 @@ class ladspa_mono (source : source) plugin descr input output params =
       let d = Descriptor.descriptor p descr in
       let i =
         Array.init
-          (Frame_content.Audio.channels_of_params self#ctype.Frame.audio)
+          (Frame_content.Audio.channels_of_format self#ctype.Frame.audio)
           (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
       in
       Array.iter Descriptor.activate i;

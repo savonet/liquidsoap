@@ -38,7 +38,7 @@ let audio_kind n =
   let audio =
     if n = 0 then Frame.none
     else
-      `Params
+      `Format
         (Frame_content.Audio.lift_params
            [Audio_converter.Channel_layout.layout_of_channels n])
   in
@@ -47,7 +47,7 @@ let audio_kind n =
 let audio_video_kind n =
   {
     (audio_kind n) with
-    Frame.video = `Params (Frame_content.Video.lift_params []);
+    Frame.video = `Format (Frame_content.Video.lift_params []);
   }
 
 let kind_of_format = function

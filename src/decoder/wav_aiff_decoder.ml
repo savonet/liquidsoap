@@ -147,8 +147,8 @@ let file_type filename =
       in
       Some
         {
-          Frame.video = Frame_content.None.params;
-          midi = Frame_content.None.params;
+          Frame.video = Frame_content.None.format;
+          midi = Frame_content.None.format;
           audio =
             Frame_content.Audio.lift_params
               [Audio_converter.Channel_layout.layout_of_channels channels];

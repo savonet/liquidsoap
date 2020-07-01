@@ -89,7 +89,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
       (* Now we can create the log function *)
       log_ref := self#log#info "%s";
       log_error := self#log#severe "%s";
-      if self#ctype.Frame.audio = Frame_content.None.params then
+      if self#ctype.Frame.audio = Frame_content.None.format then
         Generator.set_mode abg `Video;
       Generator.set_content_type abg self#ctype;
       self#log#debug "Generator mode: %s."

@@ -261,8 +261,8 @@ module Kind = struct
               | `Audio -> Frame_content.default_audio ()
               | `Video -> Frame_content.default_video ()
               | `Midi -> Frame_content.default_midi () )
-        | `Params p -> p
-        | `Format f -> Frame_content.default_params f
+        | `Format f -> f
+        | `Kind k -> Frame_content.default_format k
     in
     {
       Frame.audio = get `Audio audio;
@@ -279,23 +279,23 @@ module Kind = struct
     try
       match (deref k, deref k') with
         (* Formats *)
-        | `Format f, `Format f' when f = f' -> Unifier.(k <-- k')
+        | `Kind ki, `Kind ki' when ki = ki' -> Unifier.(k <-- k')
         (* Params *)
-        | `Params p, `Params p' -> Frame_content.merge p p'
+        | `Format f, `Format f' -> Frame_content.merge f f'
         (* Format/params *)
-        | `Format f, `Params p when Frame_content.format p = f ->
+        | `Kind ki, `Format f when Frame_content.kind f = ki ->
             Unifier.(k <-- k')
-        | `Params p, `Format f when Frame_content.format p = f ->
+        | `Format f, `Kind ki when Frame_content.kind f = ki ->
             Unifier.(k' <-- k)
         (* `Internal/'a *)
         | `Internal, `Internal -> Unifier.(k <-- k')
-        | `Internal, `Format f when Frame_content.is_internal f ->
+        | `Internal, `Kind ki when Frame_content.is_internal ki ->
             Unifier.(k <-- k')
-        | `Internal, `Params p when Frame_content.(is_internal (format p)) ->
+        | `Internal, `Format f when Frame_content.(is_internal (kind f)) ->
             Unifier.(k <-- k')
-        | `Format f, `Internal when Frame_content.is_internal f ->
+        | `Kind ki, `Internal when Frame_content.is_internal ki ->
             Unifier.(k' <-- k)
-        | `Params p, `Internal when Frame_content.(is_internal (format p)) ->
+        | `Format f, `Internal when Frame_content.(is_internal (kind f)) ->
             Unifier.(k' <-- k)
         (* Any/'a *)
         | `Any, _ -> Unifier.(k <-- k')
@@ -456,7 +456,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             ct
 
     method private channels =
-      Frame_content.Audio.channels_of_params self#ctype.Frame.audio
+      Frame_content.Audio.channels_of_format self#ctype.Frame.audio
 
     (** Startup/shutdown.
     *
@@ -831,7 +831,7 @@ module Clock_variables = struct
 
   let subclocks v =
     match deref v with
-      | Link { contents = Unknown (s, sc) } -> sc
+      | Link { contents = Unknown (_, sc) } -> sc
       | _ -> assert false
 
   let unify = unify

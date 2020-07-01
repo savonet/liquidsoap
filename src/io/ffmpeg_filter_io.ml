@@ -171,7 +171,7 @@ class audio_input ~bufferize kind =
           format = `Dbl;
           rate = out_samplerate;
           channels =
-            Frame_content.Audio.channels_of_params self#ctype.Frame.audio;
+            Frame_content.Audio.channels_of_format self#ctype.Frame.audio;
         }
       in
       let mk_converter () =

@@ -93,7 +93,7 @@ type ground +=
   | String
   | Float
   | Request
-  | Kind of Frame_content.params
+  | Format of Frame_content.format
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
@@ -107,7 +107,7 @@ let () =
     | Int -> Some "int"
     | Float -> Some "float"
     | Request -> Some "request"
-    | Kind p -> Some (Frame_content.string_of_params p)
+    | Format p -> Some (Frame_content.string_of_format p)
     | _ -> None)
 
 let print_ground v =
@@ -383,6 +383,9 @@ let print_repr f t =
           | _ -> assert false )
     | `Constr ("none", _) ->
         Format.fprintf f "none";
+        vars
+    | `Constr (_, [(_, `Ground (Format format))]) ->
+        Format.fprintf f "%s" (Frame_content.string_of_format format);
         vars
     | `Constr (name, params) ->
         Format.open_box (1 + String.length name);
@@ -696,14 +699,14 @@ let rec bind a0 b =
               | InternalMedia -> (
                   let is_internal name =
                     try
-                      let format = Frame_content.format_of_string name in
-                      Frame_content.is_internal format
+                      let kind = Frame_content.kind_of_string name in
+                      Frame_content.is_internal kind
                     with Frame_content.Invalid -> false
                   in
                   match b.descr with
                     | Constr { name } when is_internal name -> ()
-                    | Ground (Kind p)
-                      when Frame_content.(is_internal (format p)) ->
+                    | Ground (Format f)
+                      when Frame_content.(is_internal (kind f)) ->
                         ()
                     | EVar (j, c) ->
                         if List.mem InternalMedia c then ()
@@ -987,7 +990,7 @@ let rec ( <: ) a b =
             | Error (`Arrow (p, t), t') ->
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false )
-    | Ground (Kind k), Ground (Kind k') -> (
+    | Ground (Format k), Ground (Format k') -> (
         try Frame_content.merge k k' with _ -> raise (Error (repr a, repr b)) )
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
     | EVar _, _ -> (

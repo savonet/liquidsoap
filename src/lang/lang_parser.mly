@@ -173,23 +173,23 @@
     let args = List.map (fun x -> "", mk ~pos (Ground (Int x))) [a;b;c] in
       mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
-  let mk_kind ~pos (format, params) =
+  let mk_kind ~pos (kind, params) =
     try
-      let f = Frame_content.format_of_string format in
+      let k = Frame_content.kind_of_string kind in
       match params with
         | [] -> 
-            Lang_values.kind_t (`Format f)
+            Lang_values.kind_t (`Kind k)
         | ("", "any")::[] -> Lang_types.fresh_evar ~level:(-1) ~pos:None
         | ("", "internal")::[] -> Lang_types.fresh ~constraints:[Lang_types.InternalMedia]
                                            ~level:(-1) ~pos:None
         | param::params ->
-            let mk_param (label, value) =
-              Frame_content.params_of_string label value
+            let mk_format (label, value) =
+              Frame_content.format_of_param label value
             in
-            let p = mk_param param in
-            List.iter (fun param -> Frame_content.merge p (mk_param param)) params;
-            assert(f = Frame_content.format p);
-            Lang_values.kind_t (`Params p)
+            let f = mk_format param in
+            List.iter (fun param -> Frame_content.merge f (mk_format param)) params;
+            assert(k = Frame_content.kind f);
+            Lang_values.kind_t (`Format f)
     with _ -> raise (Parse_error (pos, "Unknown type constructor."))
 
   let mk_source_ty ~pos name args =

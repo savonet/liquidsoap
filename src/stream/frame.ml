@@ -28,35 +28,35 @@ open Frame_content
 type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
 (** High-level description of the content. *)
-type kind = [ `Any | `Internal | `Format of format | `Params of params ]
+type kind =
+  [ `Any
+  | `Internal
+  | `Kind of Frame_content.kind
+  | `Format of Frame_content.format ]
 
-let none = `Params Frame_content.None.params
-
-let audio_pcm =
-  `Format (Frame_content.Audio.lift_format Frame_content.Audio.format)
+let none = `Format Frame_content.None.format
+let audio_pcm = `Kind (Frame_content.Audio.lift_kind Frame_content.Audio.kind)
 
 let audio_n = function
   | 0 -> none
   | c ->
-      `Params
+      `Format
         (Frame_content.Audio.lift_params
            [Audio_converter.Channel_layout.layout_of_channels c])
 
-let audio_mono = `Params (Frame_content.Audio.lift_params [`Mono])
-let audio_stereo = `Params (Frame_content.Audio.lift_params [`Stereo])
+let audio_mono = `Format (Frame_content.Audio.lift_params [`Mono])
+let audio_stereo = `Format (Frame_content.Audio.lift_params [`Stereo])
 
 let video_yuv420p =
-  `Format (Frame_content.Video.lift_format Frame_content.Video.format)
+  `Kind (Frame_content.Video.lift_kind Frame_content.Video.kind)
 
-let midi_native =
-  `Format (Frame_content.Midi.lift_format Frame_content.Midi.format)
-
-let midi_n c = `Params (Frame_content.Midi.lift_params [`Channels c])
+let midi_native = `Kind (Frame_content.Midi.lift_kind Frame_content.Midi.kind)
+let midi_n c = `Format (Frame_content.Midi.lift_params [`Channels c])
 
 type content_kind = kind fields
 
 (** Precise description of the channel types for the current track. *)
-type content_type = params fields
+type content_type = format fields
 
 type content = data fields
 
@@ -67,25 +67,20 @@ type content = data fields
 let map_fields fn c =
   { audio = fn c.audio; video = fn c.video; midi = fn c.midi }
 
-let type_of_content = map_fields params
-
-let string_of_params p =
-  let format = Frame_content.format p in
-  match Frame_content.string_of_params p with
-    | "" -> Frame_content.string_of_format format
-    | s -> Printf.sprintf "%s(%s)" (Frame_content.string_of_format format) s
+let type_of_content = map_fields format
+let string_of_format = string_of_format
 
 let string_of_kind = function
   | `Any -> "any"
   | `Internal -> "internal"
-  | `Params p -> string_of_params p
   | `Format f -> string_of_format f
+  | `Kind k -> string_of_kind k
 
 let string_of_fields fn { audio; video; midi } =
   Printf.sprintf "{audio=%s,video=%s,midi=%s}" (fn audio) (fn video) (fn midi)
 
 let string_of_content_kind = string_of_fields string_of_kind
-let string_of_content_type = string_of_fields string_of_params
+let string_of_content_type = string_of_fields string_of_format
 
 (* Frames *)
 
@@ -124,7 +119,7 @@ let dummy =
     content = { audio = data; video = data; midi = data };
   }
 
-let content_type { content } = map_fields params content
+let content_type { content } = map_fields format content
 let audio { content; _ } = content.audio
 let set_audio frame audio = frame.content <- { frame.content with audio }
 let video { content; _ } = content.video

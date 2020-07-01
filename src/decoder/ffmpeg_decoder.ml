@@ -311,18 +311,18 @@ let get_type ~url container =
   in
   if audio == 0 && not video then failwith "No valid stream found in file.";
   let audio =
-    if audio == 0 then Frame_content.None.params
+    if audio == 0 then Frame_content.None.format
     else
       Frame_content.Audio.lift_params
         [Audio_converter.Channel_layout.layout_of_channels audio]
   in
   let video =
     if video then Frame_content.Video.lift_params []
-    else Frame_content.None.params
+    else Frame_content.None.format
   in
   log#info "ffmpeg recognizes %S as: %s." url
     (String.concat ", " (List.rev descr));
-  { Frame.audio; video; midi = Frame_content.None.params }
+  { Frame.audio; video; midi = Frame_content.None.format }
 
 let get_file_type filename =
   let container = Av.open_input filename in

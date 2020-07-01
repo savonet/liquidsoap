@@ -234,16 +234,16 @@ let file_type filename =
       let video = if tracks.Ogg_demuxer.video_track <> None then 1 else 0 in
       log#info "File %S recognized as audio=%d video=%d." filename audio video;
       let audio =
-        if audio = 0 then Frame_content.None.params
+        if audio = 0 then Frame_content.None.format
         else
           Frame_content.Audio.lift_params
             [Audio_converter.Channel_layout.layout_of_channels audio]
       in
       let video =
-        if video = 0 then Frame_content.None.params
+        if video = 0 then Frame_content.None.format
         else Frame_content.Video.lift_params []
       in
-      Some { Frame.audio; video; midi = Frame_content.None.params })
+      Some { Frame.audio; video; midi = Frame_content.None.format })
 
 let mime_types =
   Dtools.Conf.list

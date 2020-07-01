@@ -18,7 +18,7 @@ let () =
     channel_layout_converter
 
 let () =
-  let none = Frame_content.None.params in
+  let none = Frame_content.None.format in
   let mono = Frame_content.Audio.lift_params [`Mono] in
   let stereo = Frame_content.Audio.lift_params [`Stereo] in
   let five_point_one = Frame_content.Audio.lift_params [`Five_point_one] in

@@ -104,8 +104,8 @@ let test_ctype f filename =
   else
     Some
       {
-        Frame.video = Frame_content.None.params;
-        midi = Frame_content.None.params;
+        Frame.video = Frame_content.None.format;
+        midi = Frame_content.None.format;
         (* TODO: this is not perfect *)
         audio =
           ( if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
@@ -159,8 +159,8 @@ let external_input_oblivious process filename prebuf =
   let ctype =
     {
       Frame.audio = audio_n (Lazy.force Frame.audio_channels);
-      video = Frame_content.None.params;
-      midi = Frame_content.None.params;
+      video = Frame_content.None.format;
+      midi = Frame_content.None.format;
     }
   in
   let gen = Generator.create ~log_overfull:false ~log:(log#info "%s") `Audio in
