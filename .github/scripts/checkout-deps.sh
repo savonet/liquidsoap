@@ -1,7 +1,7 @@
 #!/bin/sh
 
 CWD=`dirname $0`
-BASEDIR=`cd $CWD/../.. && pwd`
+BASEDIR=`cd $CWD/../../.. && pwd`
 
 git log --pretty=format:%b origin/master..HEAD | grep '^DEPS=' | cut -d'=' -f 2  | tr ":" "\n" | while read i; do \
   MODULE=`echo "$i" | cut -d'#' -f 1`
