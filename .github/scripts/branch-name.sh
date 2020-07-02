@@ -2,6 +2,8 @@
 
 set -e
 
+env
+
 if [ -n "${GITHUB_HEAD_REF}" ]; then
   BRANCH=${GITHUB_HEAD_REF#refs/heads/}
 else
