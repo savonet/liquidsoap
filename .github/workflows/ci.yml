@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches:
-      - v1.4.3-pre-release
+      - master
 
 jobs:
   cancel_previous_run:
