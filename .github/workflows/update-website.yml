@@ -13,7 +13,7 @@ jobs:
         with:
           access_token: ${{ github.token }}
       - name: Build website
-        run: .github/scripts/build-website.sh
+        run: ./.github/scripts/build-website.sh
       - name: Push content
         if: success()
         uses: crazy-max/ghaction-github-pages@v2
