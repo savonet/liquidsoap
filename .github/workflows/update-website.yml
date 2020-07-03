@@ -1,0 +1,26 @@
+name: Update website
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  update_website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.4.0
+        with:
+          access_token: ${{ github.token }}
+      - name: Build website
+        run: .github/scripts/build-website.sh
+      - name: Push content
+        if: success()
+        uses: crazy-max/ghaction-github-pages@v2
+        with:
+          repo: savonet/savonet.github.io
+          target_branch: master
+          build_dir: html
+          fqdn: www.liquidsoap.info
+        env:
+          GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
