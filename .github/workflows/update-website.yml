@@ -12,8 +12,10 @@ jobs:
         uses: styfle/cancel-workflow-action@0.4.0
         with:
           access_token: ${{ github.token }}
+      - name: Checkout code
+        uses: actions/checkout@v2
       - name: Build website
-        run: ./.github/scripts/build-website.sh
+        run: .github/scripts/build-website.sh
       - name: Push content
         if: success()
         uses: crazy-max/ghaction-github-pages@v2
