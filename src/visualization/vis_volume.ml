@@ -32,8 +32,6 @@ class vumeter ~kind source =
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method is_ready = source#is_ready
@@ -61,14 +59,14 @@ class vumeter ~kind source =
 
     method private wake_up act =
       super#wake_up act;
-      vol <- Array.init self#channels (fun _ -> Array.make backpoints 0.);
-      cur_rms <- Array.make self#channels 0.;
+      vol <- Array.init self#audio_channels (fun _ -> Array.make backpoints 0.);
+      cur_rms <- Array.make self#audio_channels 0.;
       Graphics.open_graph "";
       Graphics.set_window_title "Liquidsoap's volume";
       Graphics.auto_synchronize false
 
     method private add_vol v =
-      let channels = self#channels in
+      let channels = self#audio_channels in
       for c = 0 to channels - 1 do
         cur_rms.(c) <- cur_rms.(c) +. v.(c)
       done;
@@ -81,14 +79,14 @@ class vumeter ~kind source =
         pos <- (pos + 1) mod backpoints )
 
     method private get_frame buf =
-      let channels = self#channels in
+      let channels = self#audio_channels in
       let offset = AFrame.position buf in
       let end_pos =
         source#get buf;
         AFrame.position buf
       in
       if offset < end_pos then (
-        let content = AFrame.content buf in
+        let content = AFrame.pcm buf in
         for i = offset to AFrame.position buf - 1 do
           self#add_vol
             (Array.map
@@ -125,7 +123,7 @@ class vumeter ~kind source =
 
 let () =
   let kind = Lang.any_with ~audio:1 () in
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "visu.volume"
     [("", Lang.source_t k, None, None)]
     ~return_t:k ~category:Lang.Visualization

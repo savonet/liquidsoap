@@ -40,9 +40,11 @@ class effect ~name ~kind effect (source : source) =
 
     method private get_frame buf =
       match VFrame.get_content buf source with
-        | None -> ()
-        | Some (rgb, offset, length) ->
-            Array.iter (fun rgb -> Video.iter effect rgb offset length) rgb
+        | Some (rgb, offset, length) -> (
+            try
+              Video.iter effect (Frame_content.Video.get_data rgb) offset length
+            with Frame_content.Invalid -> () )
+        | _ -> ()
   end
 
 let kind = Lang.any

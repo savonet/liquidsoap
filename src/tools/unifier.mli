@@ -20,33 +20,9 @@
 
  *****************************************************************************)
 
-type t = {
-  channels : int;
-  audio : string option;
-  has_video : bool;
-  video : string option;
-  muxer : string option;
-  metadata : string;
-  pipeline : string option;
-  log : int;
-}
+type 'a t
 
-let audio_channels { channels; audio } = if audio <> None then channels else 0
-
-let to_string m =
-  let pipeline l name value =
-    Utils.some_or l
-      (Utils.maybe (fun value -> Printf.sprintf "%s=%S" name value :: l) value)
-  in
-  Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%slog=%d)"
-    (String.concat ","
-       (pipeline
-          (pipeline
-             (pipeline
-                [Printf.sprintf "channels=%d" m.channels]
-                "audio" m.audio)
-             "video" m.video)
-          "muxer" m.muxer))
-    m.metadata m.has_video
-    (Utils.some_or "" (Utils.maybe (Printf.sprintf "pipeline=%S,") m.pipeline))
-    m.log
+val make : 'a -> 'a t
+val deref : 'a t -> 'a
+val set : 'a t -> 'a -> unit
+val ( <-- ) : 'a t -> 'a t -> unit

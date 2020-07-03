@@ -27,8 +27,6 @@ class fir ~kind (source : source) freq beta numcoeffs =
   object (self)
     inherit operator ~name:"fir_filter" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
 
@@ -45,7 +43,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
 
     method wake_up a =
       super#wake_up a;
-      xv <- Array.make_matrix self#channels numcoeffs 0.
+      xv <- Array.make_matrix self#audio_channels numcoeffs 0.
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.
@@ -140,7 +138,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let shift a =
         for i = 0 to Array.length a - 2 do
           a.(i) <- a.(i + 1)

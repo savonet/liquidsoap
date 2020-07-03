@@ -48,8 +48,8 @@ module type S_Asio = sig
   val fill : t -> Frame.t -> unit
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : ?sync:bool -> t -> unit
-  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
-  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
@@ -335,16 +335,16 @@ end
       and, finally, a chunk of 4-. *)
 module From_audio_video = struct
   type mode = [ `Audio | `Video | `Both | `Undefined ]
-  type 'a content = { pts : int64; data : 'a array }
+  type 'a content = { pts : int64; data : 'a }
 
   type t = {
     mutable mode : mode;
     mutable current_audio_pts : int64;
-    current_audio : Frame.audio_t content Generator.t;
-    audio : Frame.audio_t content Generator.t;
+    current_audio : Frame_content.data content Generator.t;
+    audio : Frame_content.data content Generator.t;
     mutable current_video_pts : int64;
-    current_video : Frame.video_t content Generator.t;
-    video : Frame.video_t content Generator.t;
+    current_video : Frame_content.data content Generator.t;
+    video : Frame_content.data content Generator.t;
     mutable metadata : (int * Frame.metadata) list;
     mutable breaks : int list;
   }
@@ -377,21 +377,13 @@ module From_audio_video = struct
   let buffered_length t = max (audio_length t) (video_length t)
 
   let audio_size t =
-    let float_size = 8 in
-    let track_size (t : Frame.audio_t) = Audio.Mono.length t * float_size in
-    let audio_size { data } =
-      Array.fold_left (fun n t -> n + track_size t) 0 data
-    in
     Queue.fold
-      (fun n a -> n + audio_size (Generator.chunk_data a))
+      (fun n a -> n + Frame_content.bytes (Generator.chunk_data a).data)
       0 t.audio.Generator.buffers
 
   let video_size t =
-    let buffer_size { data } =
-      Array.fold_left (fun n v -> n + Video.size v) 0 data
-    in
     Queue.fold
-      (fun n a -> n + buffer_size (Generator.chunk_data a))
+      (fun n a -> n + Frame_content.bytes (Generator.chunk_data a).data)
       0 t.video.Generator.buffers
 
   let size t = audio_size t + video_size t
@@ -547,7 +539,7 @@ module From_audio_video = struct
       | `Audio ->
           t.current_video_pts <-
             put_frames ~pts ~current_pts:t.current_video_pts t.current_video
-              [||] 0 l
+              Frame_content.None.data 0 l
       | `Both -> ()
       | _ -> assert false
     end;
@@ -568,7 +560,7 @@ module From_audio_video = struct
       | `Video ->
           t.current_audio_pts <-
             put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio
-              [||] 0 l
+              Frame_content.None.data 0 l
       | _ -> ()
     end;
     sync_content t
@@ -592,14 +584,13 @@ module From_audio_video = struct
     (* Feed all content layers into the generator. *)
     let pts = Frame.pts frame in
     let mode = match mode with Some mode -> mode | None -> t.mode in
-    let content = frame.Frame.content in
 
     match mode with
-      | `Audio -> put_audio ~pts t content.Frame.audio 0 (AFrame.size ())
-      | `Video -> put_video ~pts t content.Frame.video 0 (VFrame.size ())
+      | `Audio -> put_audio ~pts t (AFrame.content frame) 0 (AFrame.size ())
+      | `Video -> put_video ~pts t (VFrame.content frame) 0 (VFrame.size ())
       | `Both ->
-          put_audio ~pts t content.Frame.audio 0 (AFrame.size ());
-          put_video ~pts t content.Frame.video 0 (VFrame.size ())
+          put_audio ~pts t (AFrame.content frame) 0 (AFrame.size ());
+          put_video ~pts t (VFrame.content frame) 0 (VFrame.size ())
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -619,6 +610,7 @@ module From_audio_video = struct
     advance t len
 
   let fill t frame =
+    let mode = mode t in
     let fpos = Frame.position frame in
     let size = Lazy.force Frame.size in
     let remaining =
@@ -652,27 +644,26 @@ module From_audio_video = struct
              * after which vpos' is not the position of a video frame. *)
             assert (apos' = vpos');
             let fpos = fpos + apos' in
-            let dst = frame.Frame.content in
             let l = min al vl in
-            Array.iter2
-              (fun v v' ->
-                let ( ! ) = Frame.video_of_master in
-                (* How many samples should we output:
-                 * the number of samples expected in total after this
-                 * blit round, minus those that have been outputted before.
-                 * When everything is aligned, this is the same as [!l]. *)
-                let l = !(vpos' + l) - !vpos' in
-                Video.blit v !vpos v' !fpos l)
-              vblk dst.Frame.video;
-            Array.iter2
-              (fun a a' ->
-                let ( ! ) = Frame.audio_of_master in
-                (* Same as above, even if in practice everything
-                 * will always be aligned on the audio side. *)
-                let l = !(apos' + l) - !apos' in
-                Audio.Mono.blit (Audio.Mono.sub a !apos l)
-                  (Audio.Mono.sub a' !fpos l))
-              ablk dst.Frame.audio;
+
+            if mode = `Both || mode = `Video then (
+              let ( ! ) = Frame.video_of_master in
+              (* How many samples should we output:
+               * the number of samples expected in total after this
+               * blit round, minus those that have been outputted before.
+               * When everything is aligned, this is the same as [!l]. *)
+              let l = !(vpos' + l) - !vpos' in
+              Frame_content.blit vblk vpos (VFrame.content frame) fpos
+                (Frame.master_of_video l) );
+
+            if mode = `Both || mode = `Audio then (
+              let ( ! ) = Frame.audio_of_master in
+              (* Same as above, even if in practice everything
+               * will always be aligned on the audio side. *)
+              let l = !(apos' + l) - !apos' in
+              Frame_content.blit ablk apos (AFrame.content frame) fpos
+                (Frame.master_of_audio l) );
+
             if al = vl then blit audio video
             else if al > vl then
               blit ((ablk, apos + vl, apos' + vl, al - vl) :: audio) video

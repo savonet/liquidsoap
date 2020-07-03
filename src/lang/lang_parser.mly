@@ -173,11 +173,45 @@
     let args = List.map (fun x -> "", mk ~pos (Ground (Int x))) [a;b;c] in
       mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
-  let mk_var_mult bin mul =
-    if bin <> "+" then raise Parsing.Parse_error else
-      Lang_values.type_of_mul ~pos:None ~level:(-1) (Frame.At_least mul)
+  let mk_kind ~pos (kind, params) =
+    try
+      let k = Frame_content.kind_of_string kind in
+      match params with
+        | [] -> 
+            Lang_values.kind_t (`Kind k)
+        | ("", "any")::[] -> Lang_types.fresh_evar ~level:(-1) ~pos:None
+        | ("", "internal")::[] -> Lang_types.fresh ~constraints:[Lang_types.InternalMedia]
+                                           ~level:(-1) ~pos:None
+        | param::params ->
+            let mk_format (label, value) =
+              Frame_content.format_of_param label value
+            in
+            let f = mk_format param in
+            List.iter (fun param -> Frame_content.merge f (mk_format param)) params;
+            assert(k = Frame_content.kind f);
+            Lang_values.kind_t (`Format f)
+    with _ -> raise (Parse_error (pos, "Unknown type constructor."))
 
-  let mk_ty ~pos name args =
+  let mk_source_ty ~pos name args =
+    if name <> "source" && name <> "active_source" then
+      raise (Parse_error (pos, "Unknown type constructor."));
+
+    let args = List.sort (fun (x,_) (y,_) -> Stdlib.compare x y) args in
+
+    let audio, video, midi =
+      match args with
+        | [("audio", audio); ("midi", midi); ("video", video)] -> audio, video, midi
+        | _  -> raise (Parse_error (pos, "Unknown type constructor."))
+    in
+
+    let audio = mk_kind ~pos audio in
+    let video = mk_kind ~pos video in
+    let midi = mk_kind ~pos midi in
+
+    Lang_values.source_t ~active:(name <> "source")
+      (Lang_values.frame_kind_t audio video midi)
+
+  let mk_ty ~pos name =
     match name with
       | "_" -> Lang_types.fresh_evar ~level:(-1) ~pos:None
       | "unit" -> Lang_types.make Lang_types.unit
@@ -185,33 +219,7 @@
       | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
       | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
       | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
-      | "source" | "active_source" ->
-          (* TODO less confusion in hiding the stream_kind constructed type *)
-          (* TODO print position in error message *)
-          let audio,video,midi =
-            match args with
-              | ["",a;"",v;"",m] -> a,v,m
-              | l when List.length l > 3 ->
-                  raise (Parse_error (pos, "Invalid type parameters."))
-              | l ->
-                  List.iter
-                    (fun (lbl,_) ->
-                      if not (List.mem lbl ["audio";"video";"midi"]) then
-                        raise (Parse_error (pos,
-                                            "Invalid type parameters.")))
-                    l ;
-                  let assoc x =
-                    try List.assoc x l with
-                      | Not_found ->
-                          Lang_types.fresh_evar ~level:(-1) ~pos:None
-                  in
-                    assoc "audio", assoc "video", assoc "midi"
-          in
-            Lang_values.source_t
-              ~active:(name <> "source")
-              (Lang_values.frame_kind_t audio video midi)
       | _ -> raise (Parse_error (pos, "Unknown type constructor."))
-
 %}
 
 %token <string> VAR
@@ -335,8 +343,12 @@ expr:
   | GSTREAMER app_opt                { mk_enc ~pos:$loc (Lang_gstreamer.make ~pos:$loc $2) }
   | WAV app_opt                      { mk_enc ~pos:$loc (Lang_wav.make $2) }
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
-  | OGG LPAR ogg_items RPAR          { mk_enc ~pos:$loc (Encoder.Ogg $3) }
-  | top_level_ogg_item               { mk_enc ~pos:$loc (Encoder.Ogg [$1]) }
+  | OGG LPAR ogg_audio_item COMMA ogg_video_item RPAR { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $3; video = Some $5}) }
+  | OGG LPAR ogg_video_item COMMA ogg_audio_item RPAR { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $5; video = Some $3}) }
+  | OGG LPAR ogg_audio_item RPAR     { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $3; video = None}) }
+  | OGG LPAR ogg_video_item RPAR     { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = None; video = Some $3}) }
+  | top_level_ogg_audio_item         { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = Some $1; video = None}) }
+  | ogg_video_item                   { mk_enc ~pos:$loc (Encoder.Ogg {Ogg_format.audio = None; video = Some $1}) }
   | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
@@ -392,18 +404,18 @@ expr:
                                        mk ~pos:$loc (App (op, ["",after;"",data])) }
   | SERVER_READ expr COLON VAR THEN exprs END {
                                        let marker = $2 in
-                                       let arg = mk_ty ~pos:$loc($4) "string" [] in
+                                       let arg = mk_ty ~pos:$loc($4) "string" in
                                        let after = mk_fun ~pos:$loc($6) ["",$4,arg,None] $6 in
                                        let op = mk ~pos:$loc (Var "server.read") in
                                        mk ~pos:$loc (App (op, ["",after;"",marker])) }
   | SERVER_READCHARS expr COLON VAR THEN exprs END {
                                        let len = $2 in
-                                       let arg = mk_ty ~pos:$loc($4) "string" [] in
+                                       let arg = mk_ty ~pos:$loc($4) "string" in
                                        let after = mk_fun ~pos:$loc($6) ["",$4,arg,None] $6 in
                                        let op = mk ~pos:$loc (Var "server.readchars") in
                                        mk ~pos:$loc (App (op, ["",after;"",len])) }
   | SERVER_READLINE VAR THEN exprs END {
-                                       let arg = mk_ty ~pos:$loc($4) "string" [] in
+                                       let arg = mk_ty ~pos:$loc($4) "string" in
                                        let after = mk_fun ~pos:$loc($4) ["",$2,arg,None] $4 in
                                        let op = mk ~pos:$loc (Var "server.readline") in
                                        mk ~pos:$loc (App (op, ["",after])) }
@@ -418,27 +430,32 @@ expr:
   | TIME                           { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
 ty:
-  | VAR                       { mk_ty ~pos:$loc $1 [] }
-  | VARLPAR ty_args RPAR      { mk_ty ~pos:$loc $1 $2 }
-  | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
-  | LPAR ty_tuple RPAR        { Lang_types.make (Lang_types.Tuple $2) }
-  | INT                       { Lang_values.type_of_int $1 }
-  | TIMES BIN2 INT            { mk_var_mult $2 $3 }
-  | INT BIN2 TIMES            { mk_var_mult $2 $1 }
-  | LPAR argsty RPAR YIELDS ty{ Lang_types.make (Lang_types.Arrow ($2,$5)) }
+  | VAR                        { mk_ty ~pos:$loc $1 }
+  | LBRA ty RBRA               { Lang_types.make (Lang_types.List $2) }
+  | LPAR ty_tuple RPAR         { Lang_types.make (Lang_types.Tuple $2) }
+  | LPAR argsty RPAR YIELDS ty { Lang_types.make (Lang_types.Arrow ($2,$5)) }
+  | ty_source                  { $1 }
+
+ty_source:
+  | VARLPAR VAR GETS ty_content COMMA VAR GETS ty_content COMMA VAR GETS ty_content RPAR
+                               { mk_source_ty ~pos:$loc $1 [($2,$4);($6,$8);($10,$12)] }
+
+ty_content:
+  | VAR                           { $1, [] }
+  | VARLPAR ty_content_args RPAR  { $1, $2 }
+
+ty_content_args:
+  |                                      { [] }
+  | ty_content_arg                       { [$1] }
+  | ty_content_arg COMMA ty_content_args { $1::$3 }
+
+ty_content_arg:
+  | VAR          { "",$1 }
+  | VAR GETS VAR { $1,$3 }
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }
   | ty TIMES ty_tuple { $1::$3 }
-
-ty_args:
-  |                      { [] }
-  | ty_arg               { [$1] }
-  | ty_arg COMMA ty_args { $1::$3 }
-
-ty_arg:
-  | ty { "",$1 }
-  | VAR GETS ty { $1,$3 }
 
 argty:
   | ty                    { false,"",$1 }
@@ -561,19 +578,19 @@ app_opt:
   | %prec no_app { [] }
   | LPAR app_list RPAR { $2 }
 
-ogg_items:
-  | ogg_item { [$1] }
-  | ogg_item COMMA ogg_items { $1::$3 }
-top_level_ogg_item:
+top_level_ogg_audio_item:
   | VORBIS app_opt     { Lang_vorbis.make $2 }
   | VORBIS_CBR app_opt { Lang_vorbis.make_cbr $2 }
   | VORBIS_ABR app_opt { Lang_vorbis.make_abr $2 }
-  | THEORA app_opt     { Lang_theora.make $2 }
   | SPEEX app_opt      { Lang_speex.make $2 }
   | OPUS app_opt       { Lang_opus.make $2 }
-ogg_item:
-  | FLAC app_opt       { Lang_flac.make_ogg $2 }
-  | top_level_ogg_item { $1 }
+
+ogg_audio_item:
+  | FLAC app_opt             { Lang_flac.make_ogg $2 }
+  | top_level_ogg_audio_item { $1 }
+
+ogg_video_item:
+  | THEORA app_opt     { Lang_theora.make $2 }
 
 ffmpeg_param:
   | STRING GETS expr { $1,$3 }

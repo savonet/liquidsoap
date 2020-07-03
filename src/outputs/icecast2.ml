@@ -83,12 +83,12 @@ module Icecast = struct
           samplerate = Some (Lazy.force m.External_encoder_format.samplerate);
           channels = Some m.External_encoder_format.channels;
         }
-    | Encoder.GStreamer m ->
+    | Encoder.GStreamer gst ->
         {
           quality = None;
           bitrate = None;
           samplerate = None;
-          channels = Some (Gstreamer_format.audio_channels m);
+          channels = Some (Gstreamer_format.audio_channels gst);
         }
     | Encoder.Flac m ->
         {
@@ -118,47 +118,44 @@ module Icecast = struct
           samplerate = Some (Lazy.force m.Avi_format.samplerate);
           channels = Some m.Avi_format.channels;
         }
-    | Encoder.Ogg o -> (
-        match o with
-          | [
-           Ogg_format.Vorbis
-             {
-               Vorbis_format.channels = n;
-               mode = Vorbis_format.VBR q;
-               samplerate = s;
-               _;
-             };
-          ] ->
+    | Encoder.Ogg { Ogg_format.audio; _ } -> (
+        match audio with
+          | Some
+              (Ogg_format.Vorbis
+                {
+                  Vorbis_format.channels = n;
+                  mode = Vorbis_format.VBR q;
+                  samplerate = s;
+                  _;
+                }) ->
               {
                 quality = Some (string_of_float q);
                 bitrate = None;
                 samplerate = Some (Lazy.force s);
                 channels = Some n;
               }
-          | [
-           Ogg_format.Vorbis
-             {
-               Vorbis_format.channels = n;
-               mode = Vorbis_format.ABR (_, b, _);
-               samplerate = s;
-               _;
-             };
-          ] ->
+          | Some
+              (Ogg_format.Vorbis
+                {
+                  Vorbis_format.channels = n;
+                  mode = Vorbis_format.ABR (_, b, _);
+                  samplerate = s;
+                  _;
+                }) ->
               {
                 quality = None;
                 bitrate = b;
                 samplerate = Some (Lazy.force s);
                 channels = Some n;
               }
-          | [
-           Ogg_format.Vorbis
-             {
-               Vorbis_format.channels = n;
-               mode = Vorbis_format.CBR b;
-               samplerate = s;
-               _;
-             };
-          ] ->
+          | Some
+              (Ogg_format.Vorbis
+                {
+                  Vorbis_format.channels = n;
+                  mode = Vorbis_format.CBR b;
+                  samplerate = s;
+                  _;
+                }) ->
               {
                 quality = None;
                 bitrate = Some b;

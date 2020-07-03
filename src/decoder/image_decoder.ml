@@ -119,7 +119,7 @@ let create_decoder ~metadata img =
   let duration = ref duration in
   let close () = () in
   let fill frame =
-    let video = (VFrame.content frame).(0) in
+    let video = VFrame.yuv420p frame in
     let start = VFrame.next_sample_position frame in
     let stop =
       if !duration = -1 then VFrame.size frame
@@ -151,7 +151,13 @@ let () =
       file_type =
         (fun filename ->
           if Decoder.get_image_file_decoder filename <> None then
-            Some Frame.{ audio = 0; video = 1; midi = 0 }
+            Some
+              Frame.
+                {
+                  audio = Frame_content.None.format;
+                  video = Frame_content.Video.lift_params [];
+                  midi = Frame_content.None.format;
+                }
           else None);
       file_decoder =
         Some

@@ -66,7 +66,7 @@ class frei0r_filter ~kind ~name bgra instance params (source : source) =
         | None -> ()
         | Some (rgb, offset, length) ->
             params ();
-            let rgb = rgb.(0) in
+            let rgb = Frame_content.Video.get_data rgb in
             for i = offset to offset + length - 1 do
               (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
               let img = Video.get rgb i in
@@ -134,8 +134,8 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
              * because there's usually only one image per video frame. *)
             assert (offset = offset');
             let length = min length length' in
-            let rgb = rgb.(0) in
-            let rgb' = rgb'.(0) in
+            let rgb = Frame_content.Video.get_data rgb in
+            let rgb' = Frame_content.Video.get_data rgb' in
             for i = offset to offset + length - 1 do
               (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
               let img = Video.get rgb i in
@@ -184,8 +184,7 @@ class frei0r_source ~kind ~name bgra instance params =
         params ();
         let start = VFrame.position frame in
         let stop = VFrame.size () in
-        let rgb = VFrame.content frame in
-        let rgb = rgb.(0) in
+        let rgb = VFrame.yuv420p frame in
         for i = start to stop - 1 do
           let img = Video.get rgb i in
           let img = Image.YUV420.to_RGBA32 img in
@@ -312,9 +311,7 @@ let register_plugin fname =
       | Frei0r.Mixer3 -> (3, 1)
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
-  let kind =
-    if inputs = 0 then Lang.video_only else Lang.any_with ~video:1 ()
-  in
+  let kind = Lang.video_yuv420p in
   let return_t = Lang.kind_type_of_kind_format kind in
   let liq_params, params = params plugin info in
   let liq_params =

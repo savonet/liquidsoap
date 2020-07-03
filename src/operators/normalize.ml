@@ -31,8 +31,6 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
   object (self)
     inherit operator ~name:"normalize" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     (** Current squares of RMS. *)
     val mutable rms = [||]
 
@@ -47,7 +45,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
 
     method wake_up a =
       super#wake_up a;
-      let channels = self#channels in
+      let channels = self#audio_channels in
       rms <- Array.make channels 0.;
       v <- Array.make channels 1.;
       vold <- Array.make channels 1.
@@ -67,7 +65,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let rmst = rmst () in
       let kup = kup () in
       let kdown = kdown () in
@@ -75,7 +73,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
       let gmin = gmin () in
       let gmax = gmax () in
       for i = offset to AFrame.position buf - 1 do
-        for c = 0 to self#channels - 1 do
+        for c = 0 to self#audio_channels - 1 do
           let bc = b.(c) in
           let x = bc.{i} in
           rms.(c) <- rms.(c) +. (x *. x);
@@ -103,7 +101,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
               end ;
               *)
           (* TODO: do all the computations in dB? *)
-          for c = 0 to self#channels - 1 do
+          for c = 0 to self#audio_channels - 1 do
             let r = sqrt (rms.(c) /. float_of_int rmsi) in
             if r > threshold then
               if r *. v.(c) > rmst then
@@ -118,7 +116,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
 
       (* Reset values if it is the end of the track. *)
       if AFrame.is_partial buf then (
-        for c = 0 to self#channels - 1 do
+        for c = 0 to self#audio_channels - 1 do
           vold.(c) <- 1.;
           v.(c) <- 1.;
           rms.(c) <- 0.

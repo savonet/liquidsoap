@@ -63,8 +63,6 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
           ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source
           start as super
 
-    method private channels = self#ctype.Frame.audio
-
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -79,8 +77,8 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
       self#handle "open_default_stream" (fun () ->
           stream <-
             Some
-              (Portaudio.open_default_stream 0 self#channels samples_per_second
-                 buflen));
+              (Portaudio.open_default_stream 0 self#audio_channels
+                 samples_per_second buflen));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Utils.get_some stream))
 
@@ -101,7 +99,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
 
     method output_send memo =
       let stream = Utils.get_some stream in
-      let buf = AFrame.content memo in
+      let buf = AFrame.pcm memo in
       self#handle "write_stream" (fun () ->
           let len = Audio.length buf in
           (* TODO: non-interleaved format does not seem to be supported here *)
@@ -126,8 +124,6 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
         ~content_kind:kind ~source_kind:"portaudio" ~name:"portaudio_in"
           ~on_start ~on_stop ~fallible ~autostart:start as super
 
-    method private channels = self#ctype.Frame.audio
-
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -146,8 +142,8 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
       self#handle "open_default_stream" (fun () ->
           stream <-
             Some
-              (Portaudio.open_default_stream self#channels 0 samples_per_second
-                 buflen));
+              (Portaudio.open_default_stream self#audio_channels 0
+                 samples_per_second buflen));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Utils.get_some stream))
 
@@ -162,28 +158,28 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
     method input frame =
       assert (0 = AFrame.position frame);
       let stream = Utils.get_some stream in
-      let buf = AFrame.content frame in
+      let buf = AFrame.pcm frame in
       self#handle "read_stream" (fun () ->
           let len = Audio.length buf in
           let ibuf =
             Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-              (self#channels * len)
+              (self#audio_channels * len)
           in
           Portaudio.read_stream_ba stream
             (Bigarray.genarray_of_array1 ibuf)
             0 len;
-          for c = 0 to self#channels - 1 do
+          for c = 0 to self#audio_channels - 1 do
             let bufc = buf.(c) in
             for i = 0 to len - 1 do
               bufc.{i} <-
-                Bigarray.Array1.unsafe_get ibuf ((i * self#channels) + c)
+                Bigarray.Array1.unsafe_get ibuf ((i * self#audio_channels) + c)
             done
           done);
       AFrame.add_break frame (AFrame.size ())
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.portaudio" ~active:true
     ( Output.proto

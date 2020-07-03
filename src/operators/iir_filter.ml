@@ -32,8 +32,6 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
   object (self)
     inherit operator ~name:"iir_filter" kind [source]
 
-    method private channels = self#ctype.Frame.audio
-
     (* Params *)
     val raw_alpha1 = freq1 /. rate
 
@@ -89,7 +87,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
     self#log#info "Alpha 1: %.013f (warped: %.013f)" raw_alpha1 warped_alpha1;
     self#log#info "Alpha 2: %.013f (warped: %.013f)" raw_alpha2 warped_alpha2;
     self#log#info "Q: %.013f" qfactor;
-    let channels = self#channels in
+    let channels = self#audio_channels in
     let cor a = { re = a; im = 0. }
     and ( +~ ), ( -~ ), ( *~ ), ( /~ ) =
       (Complex.add, Complex.sub, Complex.mul, Complex.div)
@@ -429,7 +427,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let v_len = Array.length xv.(0) in
       let coeffs_len = Array.length xcoeffs in
       let fold_left2 init v coeffs l =
@@ -440,7 +438,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
         done;
         !result
       in
-      for c = 0 to self#channels - 1 do
+      for c = 0 to self#audio_channels - 1 do
         let xvc = xv.(c) in
         let yvc = yv.(c) in
         let bc = b.(c) in

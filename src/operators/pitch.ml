@@ -61,21 +61,20 @@ class pitch ~kind every length freq_min freq_max (source : source) =
   object (self)
     inherit operator ~name:"pitch" kind [source]
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable ring = None
 
     method ring : Ringbuffer.t =
       match ring with
         | Some ring -> ring
         | None ->
-            let r = Ringbuffer.create self#channels (2 * length) in
+            let r = Ringbuffer.create self#audio_channels (2 * length) in
             ring <- Some r;
             r
 
     (** Array used to get data to analyze. *)
     method databuf =
-      Lazy.force (Lazy.from_fun (fun () -> Audio.create self#channels length))
+      Lazy.force
+        (Lazy.from_fun (fun () -> Audio.create self#audio_channels length))
 
     val mutable computations = -1
 
@@ -93,7 +92,7 @@ class pitch ~kind every length freq_min freq_max (source : source) =
 
     method private get_frame buf =
       source#get buf;
-      let buf = AFrame.content buf in
+      let buf = AFrame.pcm buf in
       let ring = self#ring in
       let databuf = self#databuf in
       Ringbuffer.write ring buf;

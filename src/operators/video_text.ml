@@ -73,9 +73,8 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
 
     method private get_frame ab =
       match VFrame.get_content ab source with
-        | None -> ()
         | Some (rgb, off, len) ->
-            let rgb = rgb.(0) in
+            let rgb = Frame_content.Video.get_data rgb in
             let tf = self#get_text_frame in
             let tfw = Video.Image.width tf in
             let text =
@@ -105,10 +104,11 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
                   if cycle then pos_x <- video_width
                   else pos_x <- -tfw (* avoid overflows *) )
             done
+        | _ -> ()
   end
 
 let register name init render_text =
-  let kind = Lang.any_with ~video:1 () in
+  let kind = { Frame.audio = `Any; video = Frame.video_yuv420p; midi = `Any } in
   let k = Lang.kind_type_of_kind_format kind in
   let add_operator op =
     Lang.add_operator op

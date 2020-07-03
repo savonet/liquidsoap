@@ -226,8 +226,8 @@ let buffer_args () =
   ]
 
 let () =
-  let audio_t = Lang.(source_t (kind_type_of_kind_format audio_any)) in
-  let video_t = Lang.(source_t (kind_type_of_kind_format video_only)) in
+  let audio_t = Lang.(source_t (kind_type_of_kind_format Lang.audio_pcm)) in
+  let video_t = Lang.(source_t (kind_type_of_kind_format Lang.video_yuv420p)) in
 
   let output_base_proto =
     [
@@ -268,7 +268,7 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));
 
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
     ~descr:"Return an audio source from a filter's output" ~return_t
@@ -306,7 +306,7 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
       Video.to_value (`Output (List.hd Avfilter.(_buffer.io.outputs.video))));
 
-  let kind = Lang.video_only in
+  let kind = Lang.video_yuv420p in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
     ~descr:"Return a video source from a filter's output" ~return_t

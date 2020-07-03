@@ -44,11 +44,11 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
     method wake_up a =
       super#wake_up a;
       let blank () =
-        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+        Bytes.make
+          (samples_per_frame * self#audio_channels * bytes_per_sample)
+          '0'
       in
       ioring#init blank
-
-    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -71,10 +71,10 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
             in
             let dev =
               self#log#important "Opening %s (%d channels)..." driver.Ao.name
-                self#channels;
+                self#audio_channels;
               open_live ~driver ~options ?channels_matrix
                 ~rate:samples_per_second ~bits:(bytes_per_sample * 8)
-                ~channels:self#channels ()
+                ~channels:self#audio_channels ()
             in
             device <- Some dev;
             dev
@@ -93,8 +93,8 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
     method output_send wav =
       if not (Frame.is_partial wav) then (
         let push data =
-          let pcm = AFrame.content wav in
-          assert (Array.length pcm = self#channels);
+          let pcm = AFrame.pcm wav in
+          assert (Array.length pcm = self#audio_channels);
           Audio.S16LE.of_audio pcm data 0
         in
         ioring#put_block push )
@@ -103,7 +103,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao" ~active:true
     ( Output.proto

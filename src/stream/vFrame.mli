@@ -55,9 +55,12 @@ val add_break : t -> int -> unit
   * and returns the produced chunk of video content.
   * It is possible that a successful filling produced audio samples
   * but no video sample. *)
-val get_content : Frame.t -> Source.source -> (Video.t array * int * int) option
+val get_content :
+  Frame.t -> Source.source -> (Frame_content.data * int * int) option
 
-(** Get video contents for access after a given offset.
-  * This requires that the frame currently has a purely video layer
-  * at this position, until the end of the frame. *)
-val content : t -> Video.t array
+(** Get video contents. Raises [Not_found] is frame has no video *)
+val content : t -> Frame_content.data
+
+(** Get yuv420p video content. Raises [Frame_content.Invalid] if video
+  * content is not yuv420p and [Not_found] if frame has no video content. *)
+val yuv420p : t -> Frame_content.Video.data

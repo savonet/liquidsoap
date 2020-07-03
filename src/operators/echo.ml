@@ -26,8 +26,6 @@ class echo ~kind (source : source) delay feedback ping_pong =
   object (self)
     inherit operator ~name:"echo" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method remaining = source#remaining
@@ -46,7 +44,7 @@ class echo ~kind (source : source) delay feedback ping_pong =
       super#wake_up a;
       effect <-
         Some
-          (Audio.Effect.delay self#channels
+          (Audio.Effect.delay self#audio_channels
              (Lazy.force Frame.audio_rate)
              ~ping_pong (delay ()) (feedback ()))
 
@@ -55,7 +53,7 @@ class echo ~kind (source : source) delay feedback ping_pong =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let effect = Option.get effect in
       effect#set_delay (delay ());

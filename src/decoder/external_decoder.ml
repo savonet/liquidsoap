@@ -91,6 +91,10 @@ let create_stream process input =
   Gc.finalise close ret;
   ret
 
+let audio_n n =
+  Frame_content.Audio.lift_params
+    [Audio_converter.Channel_layout.layout_of_channels n]
+
 let test_ctype f filename =
   (* 0 = file rejected,
    * n<0 = file accepted, unknown number of audio channels,
@@ -100,10 +104,12 @@ let test_ctype f filename =
   else
     Some
       {
-        Frame.video = 0;
-        midi = 0;
+        Frame.video = Frame_content.None.format;
+        midi = Frame_content.None.format;
         (* TODO: this is not perfect *)
-        audio = (if ret < 0 then Lazy.force Frame.audio_channels else ret);
+        audio =
+          ( if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
+          else audio_n ret );
       }
 
 let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
@@ -151,7 +157,11 @@ let external_input_oblivious process filename prebuf =
   let input = { Decoder.read; tell = None; length = None; lseek = None } in
   (* TODO: is this really what we want for audio channels? *)
   let ctype =
-    Frame.{ audio = Lazy.force Frame.audio_channels; video = 0; midi = 0 }
+    {
+      Frame.audio = audio_n (Lazy.force Frame.audio_channels);
+      video = Frame_content.None.format;
+      midi = Frame_content.None.format;
+    }
   in
   let gen = Generator.create ~log_overfull:false ~log:(log#info "%s") `Audio in
   let buffer = Decoder.mk_buffer ~ctype gen in

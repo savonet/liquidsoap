@@ -23,19 +23,20 @@
 (** OGG encoder *)
 
 type track = {
-  encode : Ogg_muxer.t -> nativeint -> Frame.content -> int -> int -> unit;
+  encode : Ogg_muxer.t -> nativeint -> Frame.t -> int -> int -> unit;
   reset : Ogg_muxer.t -> Meta_format.export_metadata -> nativeint;
   mutable id : nativeint option;
 }
 
-let encoders = Hashtbl.create 3
+let audio_encoders = Hashtbl.create 3
+let theora_encoder = ref None
 
 (** Helper to encode audio *)
 let encode_audio ~channels ~src_freq ~dst_freq () =
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   (* start and len are in master ticks. *)
-  let encode encoder id content start len =
-    let b = content.Frame.audio in
+  let encode encoder id frame start len =
+    let b = AFrame.pcm frame in
     let start = Frame.audio_of_master start in
     let len = Frame.audio_of_master len in
     let buf, start, len =
@@ -56,13 +57,12 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
   encode
 
 (** Helper to encode video. *)
-let encode_video encoder id content start len =
-  let data = content.Frame.video in
+let encode_video encoder id frame start len =
+  let data = VFrame.yuv420p frame in
   let start = Frame.video_of_master start in
   let len = Frame.video_of_master len in
   let data =
-    Ogg_muxer.Video_data
-      { Ogg_muxer.data = data.(0); offset = start; length = len }
+    Ogg_muxer.Video_data { Ogg_muxer.data; offset = start; length = len }
   in
   Ogg_muxer.encode encoder id data
 
@@ -70,31 +70,36 @@ let encoder_name = function
   | Ogg_format.Vorbis _ -> "vorbis"
   | Ogg_format.Opus _ -> "opus"
   | Ogg_format.Flac _ -> "flac"
-  | Ogg_format.Theora _ -> "theora"
   | Ogg_format.Speex _ -> "speex"
 
-let get_encoder tr =
-  let name = encoder_name tr in
-  try Hashtbl.find encoders name
+let get_encoder name =
+  try Hashtbl.find audio_encoders name
   with Not_found ->
     Ogg_muxer.log#important "Could not find any %s encoder." name;
     raise Not_found
 
-let encoder ogg =
-  let check_track t =
-    let (_ : Ogg_format.item -> track) = get_encoder t in
-    ()
-  in
-  List.iter check_track ogg;
+let encoder { Ogg_format.audio; video } =
+  ignore (Utils.maybe (fun p -> get_encoder (encoder_name p)) audio);
+  ignore (Utils.maybe (fun _ -> get_encoder "theora") video);
   fun name meta ->
+    let tracks = [] in
+    let tracks =
+      match audio with
+        | Some params ->
+            let enc = get_encoder (encoder_name params) in
+            enc params :: tracks
+        | None -> tracks
+    in
+    let tracks =
+      match video with
+        | Some params ->
+            let enc = Utils.get_some !theora_encoder in
+            enc params :: tracks
+        | None -> tracks
+    in
     (* We add a skeleton only
      * if there are more than one stream for now. *)
-    let skeleton = List.length ogg > 1 in
-    let create_track cur tr =
-      let create = get_encoder tr in
-      create tr :: cur
-    in
-    let tracks = List.fold_left create_track [] ogg in
+    let skeleton = List.length tracks > 1 in
     let ogg_enc = Ogg_muxer.create ~skeleton name in
     let rec enc =
       { Encoder.insert_metadata; encode; header = Strings.empty; stop }
@@ -113,9 +118,8 @@ let encoder ogg =
       if Ogg_muxer.state ogg_enc <> Ogg_muxer.Streaming then (
         streams_start ();
         enc.Encoder.header <- Ogg_muxer.get_header ogg_enc );
-      let content = frame.Frame.content in
       let f track =
-        track.encode ogg_enc (Utils.get_some track.id) content start len
+        track.encode ogg_enc (Utils.get_some track.id) frame start len
       in
       List.iter f tracks;
       Ogg_muxer.get_data ogg_enc

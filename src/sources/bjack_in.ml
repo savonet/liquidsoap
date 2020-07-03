@@ -42,14 +42,14 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
         Clock.unify self#clock
           (Clock.create_known (bjack_clock () :> Clock.clock))
 
-    method private channels = self#ctype.Frame.audio
-
     method private wake_up l =
       active_source#wake_up l;
       (* We need to know the number of channels to intialize the ioring. We
            defer this until the kind is known. *)
       let blank () =
-        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+        Bytes.make
+          (samples_per_frame * self#audio_channels * bytes_per_sample)
+          '0'
       in
       ioring#init blank
 
@@ -85,7 +85,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
             let dev =
               Bjack.open_t ~rate:samples_per_second
                 ~bits_per_sample:(bytes_per_sample * 8)
-                ~input_channels:self#channels ~output_channels:0 ~flags:[]
+                ~input_channels:self#audio_channels ~output_channels:0 ~flags:[]
                 ?server_name
                 ~ringbuffer_size:
                   (nb_blocks * samples_per_frame * bytes_per_sample)
@@ -111,7 +111,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
     method private get_frame buf =
       assert (0 = AFrame.position buf);
       let buffer = ioring#get_block in
-      let fbuf = AFrame.content buf in
+      let fbuf = AFrame.pcm buf in
       Audio.S16LE.to_audio
         (Bytes.unsafe_to_string buffer)
         0
@@ -128,7 +128,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   end
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.jack"
     [

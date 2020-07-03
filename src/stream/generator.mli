@@ -175,8 +175,8 @@ module type S_Asio = sig
   val fill : t -> Frame.t -> unit
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : ?sync:bool -> t -> unit
-  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
-  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
@@ -246,11 +246,11 @@ module From_audio_video : sig
 
   (* [put_audio ?pts buffer data offset length]: offset and length
    * are in samples ! *)
-  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
 
   (* [put_video ?pts buffer data offset length]: offset and length
    * are in samples ! *)
-  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
 
   (** Feed from a frame, only copying data according to the mode.
       Defaults to the generator's mode. *)
@@ -300,11 +300,11 @@ module From_audio_video_plus : sig
 
   (* [put_audio ?pts buffer data offset length]:
    * offset and length are in audio samples! *)
-  val put_audio : ?pts:int64 -> t -> Frame.audio_t array -> int -> int -> unit
+  val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
 
   (* [put_video buffer data offset length]:
    * offset and length are in video samples! *)
-  val put_video : ?pts:int64 -> t -> Frame.video_t array -> int -> int -> unit
+  val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val feed_from_frame : ?mode:mode -> t -> Frame.t -> unit
   val fill : t -> Frame.t -> unit
   val remove : t -> int -> unit

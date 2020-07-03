@@ -28,8 +28,6 @@ class soundtouch ~kind (source : source) rate tempo pitch =
   object (self)
     inherit operator ~name:"soundtouch" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable st = None
 
     val mutable databuf = Frame.dummy
@@ -37,7 +35,8 @@ class soundtouch ~kind (source : source) rate tempo pitch =
     method wake_up a =
       super#wake_up a;
       databuf <- Frame.create self#ctype;
-      st <- Some (Soundtouch.make self#channels (Lazy.force Frame.audio_rate));
+      st <-
+        Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
       self#log#important "Using soundtouch %s."
         (Soundtouch.get_version_string (Option.get st))
 
@@ -75,18 +74,19 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       Soundtouch.set_pitch st (pitch ());
       AFrame.clear databuf;
       source#get databuf;
-      let db = AFrame.content databuf in
+      let db = AFrame.pcm databuf in
       let db = Audio.interleave db in
       Soundtouch.put_samples_ba st db;
       let available = Soundtouch.get_available_samples st in
       if available > 0 then (
         let tmp =
           Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-            (self#channels * available)
+            (self#audio_channels * available)
         in
         ignore (Soundtouch.get_samples_ba st tmp);
-        let tmp = Audio.deinterleave self#channels tmp in
-        Generator.put_audio abg tmp 0 available );
+        let tmp = Audio.deinterleave self#audio_channels tmp in
+        Generator.put_audio abg (Frame_content.Audio.lift_data tmp) 0 available
+        );
       if AFrame.is_partial databuf then Generator.add_break abg;
 
       (* It's almost impossible to know where to add metadata,
@@ -106,7 +106,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
 
 let () =
   (* TODO: could we keep the video in some cases? *)
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "soundtouch"
     [

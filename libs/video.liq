@@ -56,7 +56,7 @@ def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
 
   (input.external.avi(id=id,restart=restart,
                       restart_on_error=restart_on_error,
-                      buffer=buffer,max=max,cmd):source(audio=2,video=1,midi=0))
+                      buffer=buffer,max=max,cmd):source(audio=pcm(stereo),video=yuv420p,midi=none))
 end
 
 # ffmpeg's test source video (useful for testing and debugging).

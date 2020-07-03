@@ -29,8 +29,6 @@ class flanger ~kind (source : source) delay freq feedback phase =
   object (self)
     inherit operator ~name:"flanger" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method remaining = source#remaining
@@ -47,7 +45,7 @@ class flanger ~kind (source : source) delay freq feedback phase =
 
     method wake_up a =
       super#wake_up a;
-      past <- Audio.make self#channels past_len 0.
+      past <- Audio.make self#audio_channels past_len 0.
 
     val mutable past_pos = 0
 
@@ -57,7 +55,7 @@ class flanger ~kind (source : source) delay freq feedback phase =
       let feedback = feedback () in
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let d_omega = 2. *. pi *. freq () /. float (Frame.audio_of_seconds 1.) in
       for i = offset to position - 1 do

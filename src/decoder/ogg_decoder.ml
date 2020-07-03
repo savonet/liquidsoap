@@ -165,7 +165,7 @@ let create_decoder ?(merge_tracks = false) source input =
             den = info.Ogg_demuxer.fps_denominator;
           }
         in
-        buffer.Decoder.put_video ~fps [| Video.single rgb |]
+        buffer.Decoder.put_video ~fps (Video.single rgb)
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then
@@ -233,7 +233,17 @@ let file_type filename =
       in
       let video = if tracks.Ogg_demuxer.video_track <> None then 1 else 0 in
       log#info "File %S recognized as audio=%d video=%d." filename audio video;
-      Some { Frame.audio; video; midi = 0 })
+      let audio =
+        if audio = 0 then Frame_content.None.format
+        else
+          Frame_content.Audio.lift_params
+            [Audio_converter.Channel_layout.layout_of_channels audio]
+      in
+      let video =
+        if video = 0 then Frame_content.None.format
+        else Frame_content.Video.lift_params []
+      in
+      Some { Frame.audio; video; midi = Frame_content.None.format })
 
 let mime_types =
   Dtools.Conf.list

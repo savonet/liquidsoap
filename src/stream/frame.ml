@@ -20,244 +20,67 @@
 
  *****************************************************************************)
 
-(** Configuration entries *)
-
-module Conf = Dtools.Conf
-
-let conf =
-  Conf.void
-    ~p:(Configure.conf#plug "frame")
-    "Frame format"
-    ~comments:
-      [
-        "Settings for the data representation in frames, which are the";
-        "elementary packets of which streams are made.";
-      ]
-
-let conf_duration =
-  Conf.float ~p:(conf#plug "duration") ~d:0.04
-    "Tentative frame duration in seconds"
-    ~comments:
-      [
-        "Audio samplerate and video frame rate constrain the possible frame \
-         durations.";
-        "This setting is used as a hint for the duration, when \
-         'frame.audio.size'";
-        "is not provided.";
-        "Tweaking frame duration is tricky but needed when dealing with latency";
-        "or getting soundcard I/O correctly synchronized with liquidsoap.";
-      ]
-
-(* Audio *)
-let conf_audio = Conf.void ~p:(conf#plug "audio") "Audio (PCM) format"
-
-let conf_audio_samplerate =
-  Conf.int ~p:(conf_audio#plug "samplerate") ~d:44100 "Samplerate"
-
-let conf_audio_channels =
-  Conf.int ~p:(conf_audio#plug "channels") ~d:2 "Default number of channels"
-
-let conf_audio_size =
-  Conf.int ~p:(conf_audio#plug "size")
-    "Tentative frame duration in audio samples"
-    ~comments:
-      [
-        "Audio samplerate and video frame rate constrain the possible frame \
-         durations.";
-        "This setting is used as a hint for the duration, overriding";
-        "'frame.duration'.";
-        "Tweaking frame duration is tricky but needed when dealing with latency";
-        "or getting soundcard I/O correctly synchronized with liquidsoap.";
-      ]
-
-(* Video *)
-let conf_video = Conf.void ~p:(conf#plug "video") "Video format"
-
-let conf_video_framerate =
-  Conf.int ~p:(conf_video#plug "framerate") ~d:25 "Frame rate"
-
-let conf_video_channels =
-  Conf.int ~p:(conf_video#plug "channels") ~d:0 "Default number of channels"
-
-let conf_video_width =
-  Conf.int ~p:(conf_video#plug "width") ~d:1280 "Image width"
-
-let conf_video_height =
-  Conf.int ~p:(conf_video#plug "height") ~d:720 "Image height"
-
-(* MIDI *)
-let conf_midi = Conf.void ~p:(conf#plug "midi") "MIDI parameters"
-
-let conf_midi_channels =
-  Conf.int ~p:(conf_midi#plug "channels") ~d:0 "Default number of channels"
-
-(** Format parameters *)
-
-(* The user can set some parameters in the initial configuration script.
- * Once we start working with them, changing them again is dangerous.
- * Since Dtools doesn't allow that, below is a trick to read the settings
- * only once. Later changes will never be taken into account. *)
-
-(* This variable prevents forcing the value of a lazy configuration
- * item before the user gets a chance to override the default. *)
-let lazy_config_eval = ref false
-let allow_lazy_config_eval () = lazy_config_eval := true
-let delayed f = lazy (f ())
-
-let delayed_conf x =
-  delayed (fun () ->
-      assert !lazy_config_eval;
-      x#get)
-
-let ( !! ) = Lazy.force
-
-(** The channel numbers are only defaults, used when channel numbers
-  * cannot be inferred / are not forced from the context.
-  * I'm currently unsure how much they are really useful. *)
-
-let audio_channels = delayed_conf conf_audio_channels
-let video_channels = delayed_conf conf_video_channels
-let midi_channels = delayed_conf conf_midi_channels
-let video_width = delayed_conf conf_video_width
-let video_height = delayed_conf conf_video_height
-let audio_rate = delayed_conf conf_audio_samplerate
-let video_rate = delayed_conf conf_video_framerate
-
-(* TODO: midi rate is assumed to be the same as audio,
- *   so we should not have two different values *)
-let midi_rate = delayed_conf conf_audio_samplerate
-
-(** Greatest common divisor. *)
-let rec gcd a b =
-  match compare a b with
-    | 0 (* a=b *) -> a
-    | 1 (* a>b *) -> gcd (a - b) b
-    | _ (* a<b *) -> gcd a (b - a)
-
-(** Least common multiplier. *)
-let lcm a b = a / gcd a b * b
-
-(* divide early to avoid overflow *)
-
-(** [upper_multiple k m] is the least multiple of [k] that is [>=m]. *)
-let upper_multiple k m = if m mod k = 0 then m else (1 + (m / k)) * k
-
-(** The master clock is the slowest possible that can convert to both
-  * the audio and video clocks. *)
-let master_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
-
-(** Precompute those ratios to avoid too large integers below. *)
-let m_o_a = delayed (fun () -> !!master_rate / !!audio_rate)
-
-let m_o_v = delayed (fun () -> !!master_rate / !!video_rate)
-let master_of_audio a = a * !!m_o_a
-let master_of_video v = v * !!m_o_v
-
-(* TODO: for now MIDI rate is the same as audio rate. *)
-let master_of_midi = master_of_audio
-let audio_of_master m = m / !!m_o_a
-let video_of_master m = m / !!m_o_v
-
-(* TODO: for now MIDI rate is the same as audio rate. *)
-let midi_of_master = audio_of_master
-let master_of_seconds d = int_of_float (d *. float !!master_rate)
-let audio_of_seconds d = int_of_float (d *. float !!audio_rate)
-let video_of_seconds d = int_of_float (d *. float !!video_rate)
-let seconds_of_master d = float d /. float !!master_rate
-let seconds_of_audio d = float d /. float !!audio_rate
-let seconds_of_video d = float d /. float !!video_rate
-let log = Log.make ["frame"]
-
-(** The frame size (in master ticks) should allow for an integer
-  * number of samples of all types (audio, video).
-  * With audio@44100Hz and video@25Hz, ticks=samples and one video
-  * sample takes 1764 ticks: we need frames of size N*1764. *)
-let size =
-  delayed (fun () ->
-      let audio = !!audio_rate in
-      let video = !!video_rate in
-      let master = !!master_rate in
-      let granularity = lcm (master / audio) (master / video) in
-      let target =
-        log#important "Using %dHz audio, %dHz video, %dHz master." audio video
-          master;
-        log#important
-          "Frame size must be a multiple of %d ticks = %d audio samples = %d \
-           video samples."
-          granularity
-          (audio_of_master granularity)
-          (video_of_master granularity);
-        try
-          let d = conf_audio_size#get in
-          log#important
-            "Targetting 'frame.audio.size': %d audio samples = %d ticks." d
-            (master_of_audio d);
-          master_of_audio d
-        with Conf.Undefined _ ->
-          log#important
-            "Targetting 'frame.duration': %.2fs = %d audio samples = %d ticks."
-            conf_duration#get
-            (audio_of_seconds conf_duration#get)
-            (master_of_seconds conf_duration#get);
-          master_of_seconds conf_duration#get
-      in
-      let s = upper_multiple granularity (max 1 target) in
-      log#important
-        "Frames last %.2fs = %d audio samples = %d video samples = %d ticks."
-        (seconds_of_master s) (audio_of_master s) (video_of_master s) s;
-      s)
-
-let duration = delayed (fun () -> float !!size /. float !!master_rate)
+include Frame_settings
+open Frame_content
 
 (** Data types *)
 
-type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c }
-type multiplicity = Fixed of int | At_least of int
+type 'a fields = { audio : 'a; video : 'a; midi : 'a }
 
-(** High-level, abstract and imprecise stream content type.
-  * This controls a changing content type.
-  * Currently there is no fine-grained control of the audio and
-  * video sample rates and sizes, they are global. *)
-type content_kind = (multiplicity, multiplicity, multiplicity) fields
+(** High-level description of the content. *)
+type kind =
+  [ `Any
+  | `Internal
+  | `Kind of Frame_content.kind
+  | `Format of Frame_content.format ]
+
+let none = `Format Frame_content.None.format
+let audio_pcm = `Kind (Frame_content.Audio.lift_kind Frame_content.Audio.kind)
+
+let audio_n = function
+  | 0 -> none
+  | c ->
+      `Format
+        (Frame_content.Audio.lift_params
+           [Audio_converter.Channel_layout.layout_of_channels c])
+
+let audio_mono = `Format (Frame_content.Audio.lift_params [`Mono])
+let audio_stereo = `Format (Frame_content.Audio.lift_params [`Stereo])
+
+let video_yuv420p =
+  `Kind (Frame_content.Video.lift_kind Frame_content.Video.kind)
+
+let midi_native = `Kind (Frame_content.Midi.lift_kind Frame_content.Midi.kind)
+let midi_n c = `Format (Frame_content.Midi.lift_params [`Channels c])
+
+type content_kind = kind fields
 
 (** Precise description of the channel types for the current track. *)
-type content_type = (int, int, int) fields
+type content_type = format fields
 
-type content = (audio_t array, video_t array, midi_t array) fields
-
-and audio_t = Audio.Mono.buffer
-
-and video_t = Video.t
-
-and midi_t = MIDI.buffer
+type content = data fields
 
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]..
   * TODO this is the other way around... it's correct in Lang, phew! *)
 
-let type_of_content c =
-  {
-    audio = Array.length c.audio;
-    video = Array.length c.video;
-    midi = Array.length c.midi;
-  }
+let map_fields fn c =
+  { audio = fn c.audio; video = fn c.video; midi = fn c.midi }
 
-let mul_of_int n = Fixed n
+let type_of_content = map_fields format
+let string_of_format = string_of_format
 
-let succ_mul = function
-  | Fixed n -> Fixed (n + 1)
-  | At_least n -> At_least (n + 1)
+let string_of_kind = function
+  | `Any -> "any"
+  | `Internal -> "internal"
+  | `Format f -> string_of_format f
+  | `Kind k -> string_of_kind k
 
-let string_of_mul = function
-  | Fixed n -> string_of_int n
-  | At_least n -> string_of_int n ^ "+"
+let string_of_fields fn { audio; video; midi } =
+  Printf.sprintf "{audio=%s,video=%s,midi=%s}" (fn audio) (fn video) (fn midi)
 
-let string_of_content_kind k =
-  Printf.sprintf "{audio=%s;video=%s;midi=%s}" (string_of_mul k.audio)
-    (string_of_mul k.video) (string_of_mul k.midi)
-
-let string_of_content_type k =
-  Printf.sprintf "{audio=%d;video=%d;midi=%d}" k.audio k.video k.midi
+let string_of_content_kind = string_of_fields string_of_kind
+let string_of_content_type = string_of_fields string_of_format
 
 (* Frames *)
 
@@ -282,36 +105,21 @@ type t = {
 }
 
 (** Create a content chunk. All chunks have the same size. *)
-let create_content ctype =
-  {
-    audio =
-      Array.init ctype.audio (fun _ ->
-          Audio.Mono.create (audio_of_master !!size));
-    video =
-      Array.init ctype.video (fun _ ->
-          Video.make (video_of_master !!size) !!video_width !!video_height);
-    midi = Array.init ctype.midi (fun _ -> MIDI.create (midi_of_master !!size));
-  }
+let create_content = map_fields make
 
 let create ctype =
   { pts = 0L; breaks = []; metadata = []; content = create_content ctype }
 
 let dummy =
+  let data = Frame_content.None.data in
   {
     pts = 0L;
     breaks = [];
     metadata = [];
-    content = { audio = [||]; video = [||]; midi = [||] };
+    content = { audio = data; video = data; midi = data };
   }
 
-let content_type { content } =
-  let { audio; video; midi } = content in
-  {
-    audio = Array.length audio;
-    video = Array.length video;
-    midi = Array.length midi;
-  }
-
+let content_type { content } = map_fields format content
 let audio { content; _ } = content.audio
 let set_audio frame audio = frame.content <- { frame.content with audio }
 let video { content; _ } = content.video
@@ -376,26 +184,10 @@ let get_past_metadata b =
   try Some (List.assoc (-1) b.metadata) with Not_found -> None
 
 let blit_content src src_pos dst dst_pos len =
-  Array.iter2
-    (fun a a' ->
-      if a != a' then (
-        let ( ! ) = audio_of_master in
-        Audio.Mono.blit
-          (Audio.Mono.sub a !src_pos !len)
-          (Audio.Mono.sub a' !dst_pos !len) ))
-    src.audio dst.audio;
-  Array.iter2
-    (fun v v' ->
-      if v != v' then (
-        let ( ! ) = video_of_master in
-        Video.blit v !src_pos v' !dst_pos !len ))
-    src.video dst.video;
-  Array.iter2
-    (fun m m' ->
-      if m != m' then (
-        let ( ! ) = midi_of_master in
-        MIDI.blit m !src_pos m' !dst_pos !len ))
-    src.midi dst.midi
+  let blit src dst = blit src src_pos dst dst_pos len in
+  blit src.audio dst.audio;
+  blit src.video dst.video;
+  blit src.midi dst.midi
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
@@ -463,9 +255,4 @@ let get_chunk ab from =
   in
   aux 0 (List.rev from.breaks)
 
-let copy content =
-  {
-    audio = Array.map Audio.Mono.copy content.audio;
-    video = Array.map Video.copy content.video;
-    midi = Array.map MIDI.copy content.midi;
-  }
+let copy = map_fields copy

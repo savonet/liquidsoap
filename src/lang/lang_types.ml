@@ -86,7 +86,14 @@ let rec print_pos_list ?prefix = function
 (** Ground types *)
 
 type ground = ..
-type ground += Bool | Int | String | Float | Request
+
+type ground +=
+  | Bool
+  | Int
+  | String
+  | Float
+  | Request
+  | Format of Frame_content.format
 
 let ground_printers = Queue.create ()
 let register_ground_printer fn = Queue.add fn ground_printers
@@ -100,6 +107,7 @@ let () =
     | Int -> Some "int"
     | Float -> Some "float"
     | Request -> Some "request"
+    | Format p -> Some (Frame_content.string_of_format p)
     | _ -> None)
 
 let print_ground v =
@@ -112,7 +120,7 @@ let print_ground v =
 
 (** Type constraints *)
 
-type constr = Num | Ord | Getter of ground | Dtools
+type constr = Num | Ord | Getter of ground | Dtools | InternalMedia
 type constraints = constr list
 
 let print_constr = function
@@ -123,6 +131,7 @@ let print_constr = function
       if !pretty_getters then Printf.sprintf "{%s}" t
       else Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "unit, bool, int, float, string or [string]"
+  | InternalMedia -> "an internal media type (none, pcm, yuv420p or midi)"
 
 (** Types *)
 
@@ -143,8 +152,6 @@ and descr =
   | Tuple of t list
   | Nullable of t
   | Meth of string * scheme * t
-  | Zero
-  | Succ of t
   | Arrow of (bool * string * t) list * t
   | EVar of var (* type variable *)
   | Link of t
@@ -164,9 +171,6 @@ type repr =
   | `Tuple of repr list
   | `Nullable of repr
   | `Meth of string * ((string * constraints) list * repr) * repr
-  | `Zero
-  | `Succ of repr
-  | `Any
   | `Arrow of (bool * string * repr) list * repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
@@ -300,8 +304,6 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
                 (List.sort_uniq compare g')
             in
             `Meth (l, (gen, repr (g' @ g) u), repr g v)
-        | Zero -> `Zero
-        | Succ t -> `Succ (repr g t)
         | Constr { name; params } ->
             `Constr (name, List.map (fun (l, t) -> (l, repr g t)) params)
         | Arrow (args, t) ->
@@ -354,39 +356,44 @@ let print_repr f t =
    * The [par] params tells whether (..)->.. should be surrounded by
    * parenthesis or not. *)
   let rec print ~par vars : repr -> DS.t = function
-    | `Constr (name, params) ->
+    | `Constr ("stream_kind", params) -> (
         (* Let's assume that stream_kind occurs only inside a source
          * or format type -- this should be pretty much true with the
          * current API -- and simplify the printing by labeling its
          * parameters and omitting the stream_kind(...) to avoid
-         * source(stream_kind(2,0,0)). *)
-        if name = "stream_kind" then (
+         * source(stream_kind(pcm(stereo),none,none)). *)
           match params with
-            | [(_, a); (_, v); (_, m)] ->
-                let first, has_ellipsis, vars =
-                  List.fold_left
-                    (fun (first, has_ellipsis, vars) (lbl, t) ->
-                      if t = `Ellipsis then (false, true, vars)
-                      else (
-                        if not first then Format.fprintf f ",@ ";
-                        Format.fprintf f "%s=" lbl;
-                        let vars = print ~par:false vars t in
-                        (false, has_ellipsis, vars) ))
-                    (true, false, vars)
-                    [("audio", a); ("video", v); ("midi", m)]
-                in
-                if not has_ellipsis then vars
-                else (
-                  if not first then Format.fprintf f ",@,";
-                  print ~par:false vars `Range_Ellipsis )
-            | _ -> assert false )
-        else (
-          Format.open_box (1 + String.length name);
-          Format.fprintf f "%s(" name;
-          let vars = print_list vars params in
-          Format.fprintf f ")";
-          Format.close_box ();
-          vars )
+          | [(_, a); (_, v); (_, m)] ->
+              let first, has_ellipsis, vars =
+                List.fold_left
+                  (fun (first, has_ellipsis, vars) (lbl, t) ->
+                    if t = `Ellipsis then (false, true, vars)
+                    else (
+                      if not first then Format.fprintf f ",@ ";
+                      Format.fprintf f "%s=" lbl;
+                      let vars = print ~par:false vars t in
+                      (false, has_ellipsis, vars) ))
+                  (true, false, vars)
+                  [("audio", a); ("video", v); ("midi", m)]
+              in
+              if not has_ellipsis then vars
+              else (
+                if not first then Format.fprintf f ",@,";
+                print ~par:false vars `Range_Ellipsis )
+          | _ -> assert false )
+    | `Constr ("none", _) ->
+        Format.fprintf f "none";
+        vars
+    | `Constr (_, [(_, `Ground (Format format))]) ->
+        Format.fprintf f "%s" (Frame_content.string_of_format format);
+        vars
+    | `Constr (name, params) ->
+        Format.open_box (1 + String.length name);
+        Format.fprintf f "%s(" name;
+        let vars = print_list vars params in
+        Format.fprintf f ")";
+        Format.close_box ();
+        vars
     | `Ground g ->
         Format.fprintf f "%s" (print_ground g);
         vars
@@ -475,25 +482,6 @@ let print_repr f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "]@]";
         vars
-    | `Any ->
-        Format.fprintf f "*";
-        vars
-    | (`Zero | `Succ _) as t ->
-        let rec aux n = function
-          | `Succ t -> aux (n + 1) t
-          | `Zero ->
-              Format.fprintf f "%d" n;
-              vars
-          | t ->
-              if t = `Ellipsis then (
-                Format.fprintf f "%d+" n;
-                print ~par vars t )
-              else (
-                let vars = print ~par vars t in
-                Format.fprintf f "+%d" n;
-                vars )
-        in
-        aux 0 t
     | `EVar (_, [Getter a]) when !pretty_getters ->
         Format.fprintf f "?{%s}" (print_ground a);
         vars
@@ -636,8 +624,6 @@ let rec occur_check a b =
         (* We assume that a is not a generalized variable of t. *)
         occur_check a t;
         occur_check a u
-    | Succ t -> occur_check a t
-    | Zero -> ()
     | Arrow (p, t) ->
         List.iter (fun (_, _, t) -> occur_check a t) p;
         occur_check a t
@@ -710,6 +696,22 @@ let rec bind a0 b =
                         if not (List.mem Dtools c) then
                           b.descr <- EVar (j, Dtools :: c)
                     | _ -> raise (Unsatisfied_constraint (Dtools, b)) )
+              | InternalMedia -> (
+                  let is_internal name =
+                    try
+                      let kind = Frame_content.kind_of_string name in
+                      Frame_content.is_internal kind
+                    with Frame_content.Invalid -> false
+                  in
+                  match b.descr with
+                    | Constr { name } when is_internal name -> ()
+                    | Ground (Format f)
+                      when Frame_content.(is_internal (kind f)) ->
+                        ()
+                    | EVar (j, c) ->
+                        if List.mem InternalMedia c then ()
+                        else b.descr <- EVar (j, InternalMedia :: c)
+                    | _ -> raise (Unsatisfied_constraint (InternalMedia, b)) )
               | Num -> (
                   match (demeth b).descr with
                     | Ground g ->
@@ -755,8 +757,8 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
-      | Ground _ | Zero -> l
-      | Succ t | List t | Nullable t -> aux l t
+      | Ground _ -> l
+      | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Meth (_, (g, t), u) ->
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
@@ -794,8 +796,6 @@ let copy_with (subst : Subst.t) t =
           if !debug then
             assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
           cp (Meth (l, (g, aux t), aux u))
-      | Zero -> cp t.descr
-      | Succ t -> cp (Succ (aux t))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
       | Link t ->
@@ -938,9 +938,6 @@ let rec ( <: ) a b =
               let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
-    | Zero, Zero -> ()
-    | Succ t1, Succ t2 -> (
-        try t1 <: t2 with Error (a, b) -> raise (Error (`Succ a, `Succ b)) )
     | Arrow (l12, t), Arrow (l, t') ->
         (* Here, it must be that l12 = l1@l2
          * where l1 is essentially l modulo order
@@ -993,24 +990,9 @@ let rec ( <: ) a b =
             | Error (`Arrow (p, t), t') ->
                 raise (Error (`Arrow (l1 @ p, t), `Arrow (l1, t')))
             | Error _ -> assert false )
+    | Ground (Format k), Ground (Format k') -> (
+        try Frame_content.merge k k' with _ -> raise (Error (repr a, repr b)) )
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
-    | EVar (_, _), Succ b' -> (
-        (* This could be optimized to process a bunch of succ all at once.
-         * But it doesn't matter. The point is that binding might fail,
-         * and is too abusive anyway. *)
-        let a' = fresh_evar ~level:a.level ~pos:None in
-        begin
-          try bind a (make ~pos:a.pos (Succ a'))
-          with Unsatisfied_constraint _ -> raise (Error (repr a, repr b))
-        end;
-        try a' <: b' with Error (a', b') -> raise (Error (`Succ a', `Succ b')) )
-    | Succ a', EVar (_, _) -> (
-        let b' = fresh_evar ~level:b.level ~pos:None in
-        begin
-          try bind b (make ~pos:b.pos (Succ b'))
-          with Unsatisfied_constraint _ -> raise (Error (repr a, repr b))
-        end;
-        try a' <: b' with Error (a', b') -> raise (Error (`Succ a', `Succ b')) )
     | EVar _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->

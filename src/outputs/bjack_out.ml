@@ -40,11 +40,11 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
     method wake_up a =
       super#wake_up a;
       let blank () =
-        Bytes.make (samples_per_frame * self#channels * bytes_per_sample) '0'
+        Bytes.make
+          (samples_per_frame * self#audio_channels * bytes_per_sample)
+          '0'
       in
       ioring#init blank
-
-    method private channels = self#ctype.Frame.audio
 
     method private set_clock =
       super#set_clock;
@@ -65,7 +65,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
             let dev =
               Bjack.open_t ~rate:samples_per_second
                 ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:0
-                ~output_channels:self#channels ~flags:[] ?server_name
+                ~output_channels:self#audio_channels ~flags:[] ?server_name
                 ~ringbuffer_size:
                   (nb_blocks * samples_per_frame * bytes_per_sample)
                 ~client_name:self#id ()
@@ -95,14 +95,14 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
         | None -> ()
 
     method output_send wav =
-      let push data = Audio.S16LE.of_audio (AFrame.content wav) data 0 in
+      let push data = Audio.S16LE.of_audio (AFrame.pcm wav) data 0 in
       ioring#put_block push
 
     method output_reset = ()
   end
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.jack" ~active:true
     ( Output.proto

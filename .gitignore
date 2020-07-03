@@ -37,6 +37,7 @@ src/test/readavi
 src/test/*_test
 src/test/JSON_parse
 src/test/is_url
+src/test/unifier_test
 src/test/timezone
 src/test/ID3
 src/test/meth

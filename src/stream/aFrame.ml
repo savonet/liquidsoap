@@ -28,9 +28,10 @@ type t = Frame.t
 let sot = audio_of_master
 let tos = master_of_audio
 let content b = b.content.audio
+let pcm b = Frame_content.Audio.get_data (content b)
 
 let to_s16le b =
-  let fpcm = content b in
+  let fpcm = pcm b in
   assert (Audio.channels fpcm = 2);
   Audio.S16LE.make fpcm
 
@@ -59,10 +60,10 @@ let set_all_metadata t l =
 
 let free_metadata = free_metadata
 let free_all_metadata = free_all_metadata
-let blankify b off len = Audio.clear (Audio.sub (content b) off len)
-let multiply b off len c = Audio.amplify c (Audio.sub (content b) off len)
+let blankify b off len = Audio.clear (Audio.sub (pcm b) off len)
+let multiply b off len c = Audio.amplify c (Audio.sub (pcm b) off len)
 
 let add b1 off1 b2 off2 len =
-  Audio.add (Audio.sub (content b1) off1 len) (Audio.sub (content b2) off2 len)
+  Audio.add (Audio.sub (pcm b1) off1 len) (Audio.sub (pcm b2) off2 len)
 
-let rms b off len = Audio.Analyze.rms (Audio.sub (content b) off len)
+let rms b off len = Audio.Analyze.rms (Audio.sub (pcm b) off len)

@@ -38,7 +38,7 @@ class midimeter ~kind source =
 
     method get_frame buf =
       source#get buf;
-      let m = MFrame.content buf in
+      let m = MFrame.midi buf in
       (* Printf.printf "len: %d\n%!" (List.length (MIDI.data m.(0))); *)
       for c = 0 to Array.length m - 1 do
         List.iter

@@ -27,8 +27,6 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
   object (self)
     inherit operator ~name:"biquad_filter" kind [source]
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable effect = None
 
     method effect =
@@ -37,7 +35,8 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
         | None ->
             let e =
               new Audio.Effect.biquad_filter
-                self#channels samplerate filter_type ~gain:db_gain freq fparam
+                self#audio_channels samplerate filter_type ~gain:db_gain freq
+                fparam
             in
             effect <- Some e;
             e
@@ -57,7 +56,7 @@ class biquad ~kind (source : source) filter_type freq fparam db_gain =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let pos = AFrame.position buf in
       let len = pos - offset in
       self#effect#process (Audio.sub b offset len)

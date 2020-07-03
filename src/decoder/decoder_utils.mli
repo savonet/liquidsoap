@@ -23,11 +23,11 @@
 (** Resampling module for any Frame.content *)
 
 type samplerate_converter =
-  samplerate:int -> Frame.audio_t array -> Frame.audio_t array
+  samplerate:int -> Frame_content.Audio.data -> Frame_content.Audio.data
 
 val samplerate_converter : unit -> samplerate_converter
 
-type wav_converter = string -> Frame.audio_t array
+type wav_converter = string -> Frame_content.Audio.data
 
 (** samplesize is in bits.
     Formats: unsigned 8 bit (u8) or
@@ -35,9 +35,11 @@ type wav_converter = string -> Frame.audio_t array
 val from_iff :
   format:Wav_aiff.format -> channels:int -> samplesize:int -> wav_converter
 
-type channels_converter = Frame.audio_t array -> Frame.audio_t array
+type channels_converter = Frame_content.Audio.data -> Frame_content.Audio.data
 
-val channels_converter : int -> channels_converter
+val channels_converter :
+  Audio_converter.Channel_layout.layout -> channels_converter
+
 val video_scale : unit -> Video.Image.t -> Video.Image.t
 
 type fps = { num : int; den : int }
@@ -46,5 +48,5 @@ val video_resample :
   unit ->
   in_freq:fps ->
   out_freq:fps ->
-  Frame.video_t array ->
-  Frame.video_t array
+  Frame_content.Video.data ->
+  Frame_content.Video.data

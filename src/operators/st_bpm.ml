@@ -45,7 +45,8 @@ class bpm ~kind (source : source) cb every =
       super#wake_up a;
       bpm <-
         Some
-          (Soundtouch.BPM.make self#ctype.Frame.audio
+          (Soundtouch.BPM.make
+             (Frame_content.Audio.channels_of_format self#ctype.Frame.audio)
              (Lazy.force Frame.audio_rate))
 
     val mutable n = 0
@@ -55,7 +56,7 @@ class bpm ~kind (source : source) cb every =
       let offset = AFrame.position buf in
       source#get buf;
       let len = AFrame.position buf - offset in
-      let buf = AFrame.content buf in
+      let buf = AFrame.pcm buf in
       let ibuf = Audio.interleave (Audio.sub buf offset len) in
       Soundtouch.BPM.put_samples_ba bpm ibuf;
       n <- n + len;

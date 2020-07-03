@@ -20,33 +20,25 @@
 
  *****************************************************************************)
 
-type t = {
-  channels : int;
-  audio : string option;
-  has_video : bool;
-  video : string option;
-  muxer : string option;
-  metadata : string;
-  pipeline : string option;
-  log : int;
-}
+(* Simple unification module for variables with no unknown value *)
 
-let audio_channels { channels; audio } = if audio <> None then channels else 0
+type 'a t = [ `Value of 'a | `Link of 'a t ref ]
 
-let to_string m =
-  let pipeline l name value =
-    Utils.some_or l
-      (Utils.maybe (fun value -> Printf.sprintf "%s=%S" name value :: l) value)
+let make v = `Link (ref (`Value v))
+let rec deref x = match x with `Value v -> v | `Link x -> deref !x
+
+let set x v =
+  let rec f x = match !x with `Value _ -> x := `Value v | `Link x -> f x in
+  match x with `Value _ -> assert false | `Link x -> f x
+
+let ( <-- ) x x' =
+  let rec f x x' =
+    match (!x, !x') with
+      | `Link x, _ -> f x x'
+      | _, `Link x' -> f x x'
+      | _ when x != x' -> x := `Link x'
+      | _ -> ()
   in
-  Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%slog=%d)"
-    (String.concat ","
-       (pipeline
-          (pipeline
-             (pipeline
-                [Printf.sprintf "channels=%d" m.channels]
-                "audio" m.audio)
-             "video" m.video)
-          "muxer" m.muxer))
-    m.metadata m.has_video
-    (Utils.some_or "" (Utils.maybe (Printf.sprintf "pipeline=%S,") m.pipeline))
-    m.log
+  match (x, x') with
+    | `Value _, _ | _, `Value _ -> assert false
+    | `Link x, `Link x' -> f x x'

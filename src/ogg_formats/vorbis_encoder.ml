@@ -119,4 +119,4 @@ let create_vorbis = function
       { Ogg_encoder.reset; encode; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.encoders "vorbis" create_vorbis
+let () = Hashtbl.add Ogg_encoder.audio_encoders "vorbis" create_vorbis

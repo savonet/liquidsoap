@@ -182,7 +182,7 @@ module Register (Lame : Lame_t) = struct
       sync enc;
       let channels = if mp3.Mp3_format.stereo then 2 else 1 in
       let encode frame start len =
-        let b = AFrame.content frame in
+        let b = AFrame.pcm frame in
         let len = Frame.audio_of_master len in
         position := !position + len;
         if mp3.Mp3_format.msg <> "" && !position > msg_interval then (

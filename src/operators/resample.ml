@@ -118,7 +118,7 @@ class resample ~kind ~active ~ratio (source : source) =
       let content =
         let start = Frame.audio_of_master start in
         let stop = Frame.audio_of_master stop in
-        let content = AFrame.content frame in
+        let content = AFrame.pcm frame in
         let converter =
           match converter with
             | Some c -> c
@@ -134,7 +134,11 @@ class resample ~kind ~active ~ratio (source : source) =
           Audio_converter.Samplerate.resample converter ratio
             (Audio.sub content start len)
         in
-        { Frame.audio = pcm; video = [||]; midi = [||] }
+        {
+          Frame.audio = Frame_content.Audio.lift_data pcm;
+          video = Frame_content.None.data;
+          midi = Frame_content.None.data;
+        }
       in
       let convert x = int_of_float (float x *. ratio) in
       let metadata =
@@ -163,7 +167,7 @@ class resample ~kind ~active ~ratio (source : source) =
   end
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "stretch" (* TODO better name *)
     [

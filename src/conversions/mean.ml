@@ -22,9 +22,10 @@
 
 open Source
 
-class mean ~kind source =
-  object (self)
-    inherit operator kind [source] ~name:"mean"
+class mean source =
+  object
+    inherit
+      operator ~audio_in:Frame.audio_pcm Lang.audio_mono [source] ~name:"mean"
 
     inherit
       Conversion.base
@@ -33,28 +34,26 @@ class mean ~kind source =
           (* Compute the mean of audio channels *)
           let start = Frame.position frame in
           let len = Frame.position tmp_frame - start in
-          let channels = float (Array.length Frame.(tmp_frame.content.audio)) in
+          let content = AFrame.pcm frame in
+          let tmp_content = AFrame.pcm tmp_frame in
+          let channels = float (Array.length tmp_content) in
           let ( ! ) = Frame.audio_of_master in
           for i = !start to !(start + len) - 1 do
-            Frame.(
-              frame.content.audio.(0).{i} <-
-                Array.fold_left
-                  (fun m b -> m +. b.{i})
-                  0. tmp_frame.content.audio
-                /. channels)
-          done)
-
-    method set_kind =
-      Source.Kind.unify self#kind_var (Source.Kind.set_audio source#kind_var 1)
+            content.(0).{i} <-
+              Array.fold_left (fun m b -> m +. b.{i}) 0. tmp_content /. channels
+          done;
+          Frame.set_audio frame (Frame_content.Audio.lift_data content))
   end
 
 let () =
-  let in_kind = Lang.kind_type_of_kind_format Lang.any in
+  let in_kind =
+    Lang.frame_kind_t
+      ~audio:(Lang.kind_t Frame.audio_pcm)
+      ~video:(Lang.univ_t ()) ~midi:(Lang.univ_t ())
+  in
   let out_kind =
-    let { Frame.audio = _; video = v; midi = m } =
-      Lang.of_frame_kind_t in_kind
-    in
-    Lang.frame_kind_t ~audio:(Lang.succ_t Lang.zero_t) ~video:v ~midi:m
+    let { Frame.video; midi } = Lang.of_frame_kind_t in_kind in
+    Lang.frame_kind_t ~audio:(Lang.kind_t Frame.audio_mono) ~video ~midi
   in
   Lang.add_operator "mean"
     [("", Lang.source_t in_kind, None, None)]
@@ -62,4 +61,4 @@ let () =
     ~descr:"Produce mono audio by taking the mean of all audio channels."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      (new mean ~kind:Lang.any s :> Source.source))
+      (new mean s :> Source.source))

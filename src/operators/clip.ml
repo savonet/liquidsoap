@@ -41,7 +41,7 @@ class clip ~kind (source : source) =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       Audio.clip (Audio.sub b offset (position - offset))
   end

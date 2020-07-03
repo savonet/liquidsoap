@@ -66,19 +66,10 @@ type watcher = {
 }
 
 module Kind : sig
-  (** Description of how many of a channel type does an operator want. *)
-  type format = Frame.multiplicity =
-    | Fixed of int  (** exactly [n] channels *)
-    | At_least of int  (** at least [n] channels *)
-
-  type formats = (format, format, format) Frame.fields
   type t
 
+  val of_kind : Frame.content_kind -> t
   val to_string : t -> string
-  val of_formats : formats -> t
-  val set_audio : t -> int -> t
-  val set_video : t -> int -> t
-  val set_midi : t -> int -> t
 
   exception Conflict of string * string
 
@@ -88,7 +79,10 @@ end
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?name:string
-  -> Kind.formats
+  -> ?audio_in:Frame.kind
+  -> ?video_in:Frame.kind
+  -> ?midi_in:Frame.kind
+  -> Frame.content_kind
   -> object
 
        (** {1 Naming} *)
@@ -98,12 +92,10 @@ class virtual source :
 
        method set_id : ?definitive:bool -> string -> unit
 
-       (** {1 Liveness type}
-    *
-    * [stype] is the liveness type, telling whether a scheduler is
-    * fallible or not, i.e. [get] will never fail.
-    * It is defined by each operator based on its sources' types. *)
-
+       (* {1 Liveness type}
+          [stype] is the liveness type, telling whether a scheduler is
+          fallible or not, i.e. [get] will never fail.
+          It is defined by each operator based on its sources' types. *)
        method virtual stype : source_t
 
        (** {1 Init/shutdown} *)
@@ -155,13 +147,13 @@ class virtual source :
 
        (** {1 Streaming} *)
 
-       method kind_var : Kind.t
-
-       (** Choose your kind by adjusting to your children sources or whatever. *)
-       method private set_kind : unit
+       method kind : Kind.t
 
        (** What type of content does this source produce. *)
        method ctype : Frame.content_type
+
+       (** This method fails when content is not PCM. *)
+       method private audio_channels : int
 
        (** Retrieve the frame currently being filled. *)
        method memo : Frame.t
@@ -220,7 +212,10 @@ class virtual source :
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
   ?name:string
-  -> Kind.formats
+  -> ?audio_in:Frame.kind
+  -> ?video_in:Frame.kind
+  -> ?midi_in:Frame.kind
+  -> Frame.content_kind
   -> object
        inherit source
 
@@ -246,7 +241,10 @@ and virtual active_source :
 (* This is for defining a source which has children *)
 class virtual operator :
   ?name:string
-  -> Kind.formats
+  -> ?audio_in:Frame.kind
+  -> ?video_in:Frame.kind
+  -> ?midi_in:Frame.kind
+  -> Frame.content_kind
   -> source list
   -> object
        inherit source
@@ -256,7 +254,10 @@ class virtual operator :
  * and outputting it. *)
 class virtual active_operator :
   ?name:string
-  -> Kind.formats
+  -> ?audio_in:Frame.kind
+  -> ?video_in:Frame.kind
+  -> ?midi_in:Frame.kind
+  -> Frame.content_kind
   -> source list
   -> object
        inherit active_source

@@ -20,23 +20,25 @@
 
  *****************************************************************************)
 
-type item =
+type audio =
   | Speex of Speex_format.t
   | Vorbis of Vorbis_format.t
   | Flac of Flac_format.t
-  | Theora of Theora_format.t
   | Opus of Opus_format.t
 
-type t = item list
+let string_of_audio = function
+  | Vorbis v -> Vorbis_format.to_string v
+  | Flac v -> Flac_format.to_string v
+  | Speex s -> Speex_format.to_string s
+  | Opus o -> Opus_format.to_string o
 
-let to_string l =
-  Printf.sprintf "%%ogg(%s)"
-    (String.concat ","
-       (List.map
-          (function
-            | Vorbis v -> Vorbis_format.to_string v
-            | Flac v -> Flac_format.to_string v
-            | Theora t -> Theora_format.to_string t
-            | Speex s -> Speex_format.to_string s
-            | Opus o -> Opus_format.to_string o)
-          l))
+type video = Theora_format.t
+
+let string_of_video = Theora_format.to_string
+
+type t = { audio : audio option; video : video option }
+
+let to_string { audio; video } =
+  let l = match video with Some e -> [string_of_video e] | None -> [] in
+  let l = match audio with Some e -> string_of_audio e :: l | None -> [] in
+  Printf.sprintf "%%ogg(%s)" (String.concat "," l)

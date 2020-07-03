@@ -44,8 +44,6 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
         ~infallible ~on_stop ~on_start ~content_kind:kind ~name
           ~output_kind:"output.oss" val_source start as super
 
-    method private channels = self#ctype.Frame.audio
-
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -60,7 +58,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
       fd <- Some descr;
       force set_format descr 16;
-      force set_channels descr self#channels;
+      force set_channels descr self#audio_channels;
       force set_rate descr samples_per_second
 
     method close_device =
@@ -80,7 +78,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
 
     method output_send memo =
       let fd = Utils.get_some fd in
-      let buf = AFrame.content memo in
+      let buf = AFrame.pcm memo in
       let r = Audio.S16LE.size (Audio.channels buf) (Audio.length buf) in
       let s = Bytes.create r in
       Audio.S16LE.of_audio buf s 0;
@@ -103,8 +101,6 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         Clock.unify self#clock
           (Clock.create_known (get_clock () :> Clock.clock))
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable fd = None
 
     method self_sync = fd <> None
@@ -115,7 +111,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       let descr = Unix.openfile dev [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o400 in
       fd <- Some descr;
       force set_format descr 16;
-      force set_channels descr self#channels;
+      force set_channels descr self#audio_channels;
       force set_rate descr samples_per_second
 
     method private stop = self#close_device
@@ -131,7 +127,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method input frame =
       assert (0 = AFrame.position frame);
       let fd = Utils.get_some fd in
-      let buf = AFrame.content frame in
+      let buf = AFrame.pcm frame in
       let len = 2 * Array.length buf * Audio.Mono.length buf.(0) in
       let s = Bytes.create len in
       let r = Unix.read fd s 0 len in
@@ -142,7 +138,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.oss" ~active:true
     ( Output.proto
@@ -177,7 +173,7 @@ let () =
       ( new output
           ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
         :> Source.source ));
-  let k = Lang.kind_type_of_kind_format Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "input.oss" ~active:true
     ( Start_stop.input_proto
     @ [

@@ -42,7 +42,7 @@ module Samplerate = struct
 
   (** A converter takes a convertion ratio (output samplerate / input
       samplerate), an audio buffer, and returns a resampled buffer. *)
-  type converter = float -> Frame.audio_t -> Frame.audio_t
+  type converter = float -> Audio.Mono.buffer -> Audio.Mono.buffer
 
   type converter_plug = unit -> converter
   type t = converter array
@@ -107,11 +107,11 @@ module Channel_layout = struct
   type layout = [ `Mono | `Stereo | `Five_point_one ]
 
   type converter =
-    layout -> layout -> Frame.audio_t array -> Frame.audio_t array
+    layout -> layout -> Frame_content.Audio.data -> Frame_content.Audio.data
 
   type t = {
     src : layout;
-    converter : Frame.audio_t array -> Frame.audio_t array;
+    converter : Frame_content.Audio.data -> Frame_content.Audio.data;
   }
 
   let channel_layout_conf =

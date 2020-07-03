@@ -128,8 +128,7 @@ class keyboard ~kind =
 
     method private get_frame frame =
       assert (0 = MFrame.position frame);
-      let m = frame.Frame.content in
-      let m = m.Frame.midi in
+      let m = MFrame.midi frame in
       let t = self#get_events in
       for c = 0 to Array.length m - 1 do
         MIDI.blit_all m.(c) t
@@ -138,13 +137,7 @@ class keyboard ~kind =
   end
 
 let () =
-  let kind =
-    {
-      Frame.audio = Lang.At_least 0;
-      video = Lang.Fixed 0;
-      midi = Lang.At_least 1;
-    }
-  in
+  let kind = Lang.midi_n 1 in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.keyboard" [] ~return_t ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]

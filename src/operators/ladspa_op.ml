@@ -45,9 +45,9 @@ let port_t d p =
   else if Descriptor.port_is_integer d p then Int
   else Float
 
-class virtual base ~kind source =
+class virtual base ~channels source =
   object
-    inherit operator ~name:"ladspa" kind [source]
+    inherit operator ~name:"ladspa" (Lang.audio_n channels) [source]
 
     method stype = source#stype
 
@@ -62,9 +62,9 @@ class virtual base ~kind source =
     method abort_track = source#abort_track
   end
 
-class virtual base_nosource ~kind =
+class virtual base_nosource ~channels =
   object
-    inherit source ~name:"ladspa" kind
+    inherit source ~name:"ladspa" (Lang.audio_n channels)
 
     method stype = Infallible
 
@@ -91,9 +91,9 @@ let instantiate d samplerate =
   ans
 
 (* A plugin is created for each channel. *)
-class ladspa_mono ~kind (source : source) plugin descr input output params =
+class ladspa_mono (source : source) plugin descr input output params =
   object (self)
-    inherit base ~kind source as super
+    inherit base ~channels:1 source as super
 
     val mutable inst = None
 
@@ -102,8 +102,9 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
       let p = Plugin.load plugin in
       let d = Descriptor.descriptor p descr in
       let i =
-        Array.init self#ctype.Frame.audio (fun _ ->
-            instantiate d (Lazy.force Frame.audio_rate))
+        Array.init
+          (Frame_content.Audio.channels_of_format self#ctype.Frame.audio)
+          (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
       in
       Array.iter Descriptor.activate i;
       inst <- Some i
@@ -111,7 +112,7 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let len = position - offset in
       let inst = Option.get inst in
@@ -126,9 +127,9 @@ class ladspa_mono ~kind (source : source) plugin descr input output params =
       done
   end
 
-class ladspa ~kind (source : source) plugin descr inputs outputs params =
-  object (self)
-    inherit base ~kind source
+class ladspa (source : source) plugin descr inputs outputs params =
+  object
+    inherit base ~channels:(Array.length outputs) source
 
     val inst =
       let p = Plugin.load plugin in
@@ -137,14 +138,10 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
 
     initializer Descriptor.activate inst
 
-    method set_kind =
-      Source.Kind.unify self#kind_var
-        (Source.Kind.set_audio source#kind_var (Array.length outputs))
-
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let len = position - offset in
       List.iter (fun (p, v) -> Descriptor.set_control_port inst p (v ())) params;
@@ -158,7 +155,7 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
         Descriptor.run inst len )
       else (
         (* We have to change channels. *)
-        let d = AFrame.content buf in
+        let d = AFrame.pcm buf in
         for c = 0 to Array.length b - 1 do
           Descriptor.connect_port inst inputs.(c)
             (Audio.Mono.sub b.(c) offset len)
@@ -170,9 +167,9 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
         Descriptor.run inst len )
   end
 
-class ladspa_nosource ~kind plugin descr outputs params =
+class ladspa_nosource plugin descr outputs params =
   object
-    inherit base_nosource ~kind
+    inherit base_nosource ~channels:(Array.length outputs)
 
     val inst =
       let p = Plugin.load plugin in
@@ -187,7 +184,7 @@ class ladspa_nosource ~kind plugin descr outputs params =
         must_fail <- false )
       else (
         let offset = AFrame.position buf in
-        let b = AFrame.content buf in
+        let b = AFrame.pcm buf in
         let position = AFrame.size () in
         let len = position - offset in
         List.iter
@@ -306,11 +303,8 @@ let params_of_descr d =
 let register_descr plugin_name descr_n d inputs outputs =
   let ni = Array.length inputs in
   let no = Array.length outputs in
-  let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
-  let input_kind =
-    if mono then Lang.any else { Lang.any with Frame.audio = Lang.Fixed ni }
-  in
+  let input_kind = Lang.audio_n ni in
   let input_t = Lang.kind_type_of_kind_format input_kind in
   let liq_params =
     liq_params
@@ -320,11 +314,8 @@ let register_descr plugin_name descr_n d inputs outputs =
   let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
   let return_t =
-    if mono then input_t
-    else if ni = 0 then Lang.kind_type_of_kind_format (Lang.audio_n no)
-    else (
-      let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
-      Lang.frame_kind_t ~audio:(Lang.n_t no) ~video ~midi )
+    let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
+    Lang.frame_kind_t ~audio:(Lang.kind_t (Frame.audio_n no)) ~video ~midi
   in
   Lang.add_operator
     ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d))
@@ -333,18 +324,15 @@ let register_descr plugin_name descr_n d inputs outputs =
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
       let params = params p in
-      if ni = 0 then (
-        let kind = Lang.audio_n no in
-        new ladspa_nosource ~kind plugin_name descr_n outputs params )
-      else if mono then
+      if ni = 0 then new ladspa_nosource plugin_name descr_n outputs params
+      else if ni = 1 && no = 1 then
         ( new ladspa_mono
-            ~kind:Lang.any (Utils.get_some source) plugin_name descr_n
-            inputs.(0) outputs.(0) params
+            (Utils.get_some source) plugin_name descr_n inputs.(0) outputs.(0)
+            params
           :> Source.source )
       else
         ( new ladspa
-            ~kind:Lang.any (Utils.get_some source) plugin_name descr_n inputs
-            outputs params
+            (Utils.get_some source) plugin_name descr_n inputs outputs params
           :> Source.source ))
 
 let register_descr plugin_name descr_n d inputs outputs =

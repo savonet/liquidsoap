@@ -18,7 +18,7 @@ digests = [
   ("files/@wav(stereo).wav", "64ffd09001bee5fc98e0dbaf0aff983f")
 ] 
 
-s = (single(fname):source(1,0,0))
+s = single(fname)
 
 s = once(s)
 

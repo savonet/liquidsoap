@@ -23,7 +23,7 @@
 (** General classes for streaming files. *)
 
 class virtual unqueued :
-  kind:Source.Kind.formats
+  kind:Frame.content_kind
   -> name:string
   -> object
        (** [get_next_file] is the only thing you've got to define,
@@ -46,7 +46,7 @@ class virtual unqueued :
      end
 
 class virtual queued :
-  kind:Source.Kind.formats
+  kind:Frame.content_kind
   -> name:string
   -> ?length:float
   -> ?default_duration:float

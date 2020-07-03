@@ -70,14 +70,12 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     val mutable stream = None
 
-    method private channels = self#ctype.Frame.audio
-
     method open_device =
       let ss =
         {
           sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = self#channels;
+          sample_chans = self#audio_channels;
         }
       in
       stream <-
@@ -102,7 +100,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
 
     method output_send memo =
       let stream = Utils.get_some stream in
-      let buf = AFrame.content memo in
+      let buf = AFrame.pcm memo in
       let chans = Array.length buf in
       let len = Audio.length buf in
       let buf' =
@@ -143,8 +141,6 @@ class input ~kind p =
 
     inherit base ~client ~device
 
-    method private channels = self#ctype.Frame.audio
-
     method private set_clock =
       super#set_clock;
       if clock_safe then
@@ -166,7 +162,7 @@ class input ~kind p =
         {
           sample_format = Sample_format_float32le;
           sample_rate = samples_per_second;
-          sample_chans = self#channels;
+          sample_chans = self#audio_channels;
         }
       in
       stream <-
@@ -184,21 +180,22 @@ class input ~kind p =
       let len = AFrame.size () in
       let ibuf =
         Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout
-          (self#channels * len)
+          (self#audio_channels * len)
       in
-      let buf = AFrame.content frame in
+      let buf = AFrame.pcm frame in
       Simple.read_ba stream ibuf;
-      for c = 0 to self#channels - 1 do
+      for c = 0 to self#audio_channels - 1 do
         let bufc = buf.(c) in
         for i = 0 to len - 1 do
-          bufc.{i} <- Bigarray.Array1.unsafe_get ibuf ((i * self#channels) + c)
+          bufc.{i} <-
+            Bigarray.Array1.unsafe_get ibuf ((i * self#audio_channels) + c)
         done
       done;
       AFrame.add_break frame (AFrame.size ())
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   let proto =
     [

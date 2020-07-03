@@ -13,7 +13,7 @@ if file.exists(out) then
   file.unlink(out)
 end
 
-s = (single(fname):source(1,0,0))
+s = single(fname)
 
 s = once(s)
 

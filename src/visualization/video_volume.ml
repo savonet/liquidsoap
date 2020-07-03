@@ -34,8 +34,6 @@ class visu ~kind source =
   object (self)
     inherit operator ~name:"video.volume" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method is_ready = source#is_ready
@@ -59,16 +57,16 @@ class visu ~kind source =
 
     method wake_up a =
       super#wake_up a;
-      vol <- Array.init self#channels (fun _ -> Array.make backpoints 0.);
-      cur_rms <- Array.make self#channels 0.
+      vol <- Array.init self#audio_channels (fun _ -> Array.make backpoints 0.);
+      cur_rms <- Array.make self#audio_channels 0.
 
     method private add_vol v =
-      for c = 0 to self#channels - 1 do
+      for c = 0 to self#audio_channels - 1 do
         cur_rms.(c) <- cur_rms.(c) +. v.(c)
       done;
       group <- (group + 1) mod group_size;
       if group = 0 then (
-        for c = 0 to self#channels - 1 do
+        for c = 0 to self#audio_channels - 1 do
           vol.(c).(pos) <- sqrt (cur_rms.(c) /. f_group_size);
           cur_rms.(c) <- 0.
         done;
@@ -84,12 +82,20 @@ class visu ~kind source =
        * not even be a content layer of the right type to look at. *)
       if len > 0 then (
         (* Add a video channel to the frame contents. *)
-        let vFrame = Frame.(create { audio = 0; video = 1; midi = 0 }) in
+        let vFrame =
+          Frame.(
+            create
+              {
+                audio = Frame_content.None.format;
+                video = Frame_content.Video.lift_params [];
+                midi = Frame_content.None.format;
+              })
+        in
         Frame.(
           frame.content <- { frame.content with video = vFrame.content.video });
 
         (* Feed the volume buffer. *)
-        let acontent = AFrame.content frame in
+        let acontent = AFrame.pcm frame in
         for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
           self#add_vol
             (Array.map
@@ -101,8 +107,8 @@ class visu ~kind source =
 
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
-        let volheight = float height /. float self#channels in
-        let buf = Frame.(frame.content.video.(0)) in
+        let volheight = float height /. float self#audio_channels in
+        let buf = VFrame.yuv420p frame in
         let start = Frame.video_of_master offset in
         let stop = start + Frame.video_of_master len in
         let line img c p q =
@@ -119,10 +125,10 @@ class visu ~kind source =
         for f = start to stop - 1 do
           let buf = Video.get buf f in
           Video.Image.blank buf;
-          for i = 0 to self#channels - 1 do
+          for i = 0 to self#audio_channels - 1 do
             let y = int_of_float (volheight *. float i) in
             line buf (90, 90, 90, 0xff) (0, y) (width - 1, y);
-            for chan = 0 to self#channels - 1 do
+            for chan = 0 to self#audio_channels - 1 do
               let vol = vol.(chan) in
               let chan_height = int_of_float (volheight *. float chan) in
               let x0 = 0 in
@@ -150,7 +156,7 @@ class visu ~kind source =
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 ~video:1 () in
+  let kind = Lang.audio_mono in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]

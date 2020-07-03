@@ -48,25 +48,28 @@ class blank ~kind duration =
         if remaining < 0 then Lazy.force Frame.size - position
         else min remaining (Lazy.force Frame.size - position)
       in
-      let content = ab.Frame.content in
       let video_pos = Frame.video_of_master position in
       (* Audio *)
-      Audio.clear
-        (Audio.sub content.Frame.audio
-           (Frame.audio_of_master position)
-           (Frame.audio_of_master length));
+      ( try
+          Audio.clear
+            (Audio.sub (AFrame.pcm ab)
+               (Frame.audio_of_master position)
+               (Frame.audio_of_master length))
+        with Frame_content.Invalid -> () );
 
       (* Video *)
-      Array.iter
-        (fun a -> Video.blank a video_pos (Frame.video_of_master length))
-        content.Frame.video;
+      ( try
+          Video.blank (VFrame.yuv420p ab) video_pos
+            (Frame.video_of_master length)
+        with Frame_content.Invalid -> () );
+
       Frame.add_break ab (position + length);
       if Frame.is_partial ab then remaining <- ticks
       else if remaining > 0 then remaining <- remaining - length
   end
 
 let () =
-  let kind = Lang.any in
+  let kind = Lang.audio_video_internal in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "blank" ~category:Lang.Input
     ~descr:"Produce silence and blank images." ~return_t

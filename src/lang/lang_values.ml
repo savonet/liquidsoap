@@ -61,7 +61,7 @@ let debug =
    complicated (e.g. dtools) in order not to impact performances. *)
 let profile = ref false
 
-(** {2 Kinds} *)
+(** {2 Formats} *)
 
 (* In a sense this could move to Lang_types, but I like to keep that
     part free of some specificities of liquidsoap, as much as possible. *)
@@ -72,14 +72,8 @@ let ref_t ?pos ?level t =
   T.make ?pos ?level
     (T.Constr { T.name = "ref"; T.params = [(T.Invariant, t)] })
 
-let zero_t = T.make T.Zero
-let succ_t t = T.make (T.Succ t)
-let rec add_t n m = if n = 0 then m else succ_t (add_t (n - 1) m)
-let type_of_int n = add_t n zero_t
-
-(** A frame kind type is a purely abstract type representing a frame kind.
-  * The parameters [audio,video,midi] are intended to be multiplicity types,
-  * i.e. types of the form Succ*(Zero|Any). *)
+(** A frame kind type is a purely abstract type representing a
+    frame kind. *)
 let frame_kind_t ?pos ?level audio video midi =
   T.make ?pos ?level
     (T.Constr
@@ -88,6 +82,32 @@ let frame_kind_t ?pos ?level audio video midi =
          T.params =
            [(T.Covariant, audio); (T.Covariant, video); (T.Covariant, midi)];
        })
+
+let kind_t ?pos ?level kind =
+  let evar ?(constraints = []) () =
+    T.fresh ~constraints
+      ~pos:(match pos with None -> None | Some pos -> pos)
+      ~level:(-1)
+  in
+  let mk_format f = T.make ?pos ?level (T.Ground (T.Format f)) in
+  match kind with
+    | `Any -> evar ()
+    | `Internal -> evar ~constraints:[Lang_types.InternalMedia] ()
+    | `Kind k ->
+        T.make ?pos ?level
+          (T.Constr
+             {
+               T.name = Frame_content.string_of_kind k;
+               T.params = [(T.Covariant, evar ())];
+             })
+    | `Format f ->
+        let k = Frame_content.kind f in
+        T.make ?pos ?level
+          (T.Constr
+             {
+               T.name = Frame_content.string_of_kind k;
+               T.params = [(T.Covariant, mk_format f)];
+             })
 
 let of_frame_kind_t t =
   match (T.deref t).T.descr with
@@ -98,9 +118,9 @@ let of_frame_kind_t t =
         } ->
         { Frame.audio; video; midi }
     | T.EVar (_, _) ->
-        let audio = type_of_int (Lazy.force Frame.audio_channels) in
-        let video = type_of_int (Lazy.force Frame.video_channels) in
-        let midi = type_of_int (Lazy.force Frame.midi_channels) in
+        let audio = kind_t `Any in
+        let video = kind_t `Any in
+        let midi = kind_t `Any in
         T.bind t (frame_kind_t audio video midi);
         { Frame.audio; video; midi }
     | _ -> assert false
@@ -123,30 +143,11 @@ let of_source_t t =
 
 let request_t ?pos ?level () = T.make ?pos ?level (T.Ground T.Request)
 
-let rec type_of_mul ~pos ~level m =
-  T.make ~pos ~level
-    ( match m with
-      | Frame.Fixed 0 -> T.Zero
-      | Frame.Fixed n -> T.Succ (type_of_mul ~pos ~level (Frame.Fixed (n - 1)))
-      | Frame.At_least 0 -> (T.fresh_evar ~pos ~level).T.descr
-      | Frame.At_least n ->
-          T.Succ (type_of_mul ~pos ~level (Frame.At_least (n - 1))) )
-
-let rec mul_of_type t =
-  match (T.deref t).T.descr with
-    | T.Zero -> Frame.Fixed 0
-    | T.Succ t -> (
-        match mul_of_type t with
-          | Frame.Fixed n -> Frame.Fixed (n + 1)
-          | Frame.At_least n -> Frame.At_least (n + 1) )
-    | T.EVar _ -> Frame.At_least 0
-    | _ -> assert false
-
 let type_of_format ~pos ~level f =
   let kind = Encoder.kind_of_format f in
-  let audio = type_of_mul ~pos ~level kind.Frame.audio in
-  let video = type_of_mul ~pos ~level kind.Frame.video in
-  let midi = type_of_mul ~pos ~level kind.Frame.midi in
+  let audio = kind_t ~pos ~level kind.Frame.audio in
+  let video = kind_t ~pos ~level kind.Frame.video in
+  let midi = kind_t ~pos ~level kind.Frame.midi in
   format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
 
 (** {2 Terms} *)
@@ -949,17 +950,23 @@ let rec eval ~env tm =
          the typing. *)
       match (T.deref tm.t).T.descr with
       | T.Constr { T.name = "source"; params = [(T.Invariant, k)] } -> (
-          let k = of_frame_kind_t k in
           let k =
-            {
-              Frame.audio = mul_of_type k.Frame.audio;
-              video = mul_of_type k.Frame.video;
-              midi = mul_of_type k.Frame.midi;
-            }
+            match of_frame_kind_t k with
+              | {
+               Frame.audio = { T.descr = T.Ground (T.Format audio) };
+               video = { T.descr = T.Ground (T.Format video) };
+               midi = { T.descr = T.Ground (T.Format midi) };
+              } ->
+                  Source.Kind.of_kind
+                    {
+                      Frame.audio = `Format audio;
+                      video = `Format video;
+                      midi = `Format midi;
+                    }
+              | _ -> assert false
           in
-          let k = Source.Kind.of_formats k in
           match v with
-            | V.Source s -> Source.Kind.unify s#kind_var k
+            | V.Source s -> Source.Kind.unify s#kind k
             | _ ->
                 raise
                   (Internal_error

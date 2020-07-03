@@ -21,7 +21,7 @@
 *****************************************************************************)
 
 type samplerate_converter =
-  samplerate:int -> Frame.audio_t array -> Frame.audio_t array
+  samplerate:int -> Frame_content.Audio.data -> Frame_content.Audio.data
 
 let samplerate_converter () =
   let state = ref None in
@@ -40,7 +40,7 @@ let samplerate_converter () =
           state := Some (converter, _channels);
           Audio_converter.Samplerate.resample converter ratio audio_buf
 
-type wav_converter = string -> Frame.audio_t array
+type wav_converter = string -> Frame_content.Audio.data
 
 let from_iff ~format ~channels ~samplesize =
   let sample_bytes = samplesize / 8 in
@@ -67,10 +67,9 @@ let from_iff ~format ~channels ~samplesize =
     to_audio src 0 dst;
     dst
 
-type channels_converter = Frame.audio_t array -> Frame.audio_t array
+type channels_converter = Frame_content.Audio.data -> Frame_content.Audio.data
 
-let channels_converter channels =
-  let dst = Audio_converter.Channel_layout.layout_of_channels channels in
+let channels_converter dst =
   let converter = ref None in
   fun data ->
     let _src = Array.length data in
@@ -130,20 +129,15 @@ let video_resample ~in_freq ~out_freq =
 
 let video_resample () =
   let state = ref None in
-  let exec resampler data =
-    Array.mapi (fun idx chan -> resampler.(idx) chan 0 (Array.length chan)) data
-  in
+  let exec resampler data = resampler data 0 (Array.length data) in
   fun ~in_freq ~out_freq data ->
     if in_freq = out_freq then data
     else (
-      let l = Array.length data in
       match !state with
-        | Some (resampler, n, _in_freq, _out_freq)
-          when n = l && in_freq = _in_freq && out_freq = _out_freq ->
+        | Some (resampler, _in_freq, _out_freq)
+          when in_freq = _in_freq && out_freq = _out_freq ->
             exec resampler data
         | _ ->
-            let resampler =
-              Array.init l (fun _ -> video_resample ~in_freq ~out_freq)
-            in
-            state := Some (resampler, l, in_freq, out_freq);
+            let resampler = video_resample ~in_freq ~out_freq in
+            state := Some (resampler, in_freq, out_freq);
             exec resampler data )

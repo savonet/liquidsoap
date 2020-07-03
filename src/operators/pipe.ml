@@ -59,8 +59,6 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
-    method private channels = self#ctype.Frame.audio
-
     val mutable samplesize = 16
 
     val mutable samplerate = Frame.audio_of_seconds 1.
@@ -70,8 +68,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
 
     method private header =
       Bytes.unsafe_of_string
-        (Wav_aiff.wav_header ~channels:self#channels ~sample_rate:samplerate
-           ?len ~sample_size:16 ())
+        (Wav_aiff.wav_header ~channels:self#audio_channels
+           ~sample_rate:samplerate ?len ~sample_size:16 ())
 
     method private on_start push =
       Process_handler.really_write self#header push;
@@ -83,12 +81,12 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         header_read := true;
         Tutils.mutexify mutex
           (fun () ->
-            if Wav_aiff.channels wav <> self#channels then
+            if Wav_aiff.channels wav <> self#audio_channels then
               failwith "Invalid channels from pipe process!";
             samplesize <- Wav_aiff.sample_size wav;
             samplerate <- Wav_aiff.sample_rate wav;
             converter <-
-              Decoder_utils.from_iff ~format:`Wav ~channels:self#channels
+              Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
                 ~samplesize)
           ();
         `Reschedule Tutils.Non_blocking )
@@ -98,7 +96,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let data = resampler ~samplerate data in
         let len = Audio.length data in
         let buffered = Generator.length abg in
-        Generator.put_audio abg data 0 len;
+        Generator.put_audio abg (Frame_content.Audio.lift_data data) 0 len;
         let to_replay =
           Tutils.mutexify mutex
             (fun () ->
@@ -149,7 +147,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let tmp = Frame.create self#ctype in
         source#get tmp;
         self#slave_tick;
-        let buf = AFrame.content tmp in
+        let buf = AFrame.pcm tmp in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in
@@ -250,7 +248,8 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
     method wake_up a =
       super#wake_up a;
       converter <-
-        Decoder_utils.from_iff ~format:`Wav ~channels:self#channels ~samplesize;
+        Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
+          ~samplesize;
 
       source#get_ready [(self :> source)];
       (* Now we can create the log function *)
@@ -277,7 +276,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   end
 
 let () =
-  let kind = Lang.audio_any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "pipe"
     [

@@ -145,7 +145,14 @@ let file_type filename =
                  moment..";
               0
       in
-      Some { Frame.video = 0; midi = 0; audio = channels })
+      Some
+        {
+          Frame.video = Frame_content.None.format;
+          midi = Frame_content.None.format;
+          audio =
+            Frame_content.Audio.lift_params
+              [Audio_converter.Channel_layout.layout_of_channels channels];
+        })
 
 let wav_mime_types =
   Dtools.Conf.list

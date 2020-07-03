@@ -30,8 +30,6 @@ class filter ~kind (source : source) rc wet mode =
   object (self)
     inherit operator ~name:"filter.rc" kind [source] as super
 
-    method private channels = self#ctype.Frame.audio
-
     method stype = source#stype
 
     method remaining = source#remaining
@@ -50,13 +48,13 @@ class filter ~kind (source : source) rc wet mode =
 
     method wake_up a =
       super#wake_up a;
-      prev <- Array.make self#channels 0.;
-      prev_in <- Array.make self#channels 0.
+      prev <- Array.make self#audio_channels 0.;
+      prev_in <- Array.make self#audio_channels 0.
 
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.content buf in
+      let b = AFrame.pcm buf in
       let position = AFrame.position buf in
       let rc = rc () in
       let alpha =

@@ -4,8 +4,9 @@ OCAML_CFLAGS = -I ../lang -I ../stream -I ../converters -I ../converters/audio/ 
 OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
 		extralib.cmx stringView.cmx strings.cmx utils.cmx log.cmx tutils.cmx \
 		file_watcher_mtime.cmx dyntools.cmx JSON.cmx configure.cmx http.cmx id3v2.cmx \
-		stream/frame.cmx avi.cmx vFrame.cmx aFrame.cmx generator.cmx doc.cmx plug.cmx \
-                audio_converter.cmx video_converter.cmx decoder_utils.cmx decoder.cmx \
+                doc.cmx plug.cmx audio_converter.cmx video_converter.cmx unifier.cmx \
+		stream/frame_settings.cmx stream/frame_content.cmx stream/frame.cmx avi.cmx \
+                vFrame.cmx aFrame.cmx generator.cmx decoder_utils.cmx decoder.cmx \
 		lang_types.cmx pool.cmx request.cmx server.cmx source.cmx ../tools/unix_c.o
 
 all: $(TESTS)

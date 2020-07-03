@@ -120,8 +120,7 @@ class keyboard ~kind velocity =
 
     method get_frame frame =
       assert (0 = MFrame.position frame);
-      let m = frame.Frame.content in
-      let m = m.Frame.midi in
+      let m = MFrame.midi frame in
       let t =
         let ans = MIDI.create (MFrame.size ()) in
         Sdl.pump_events ();
@@ -162,13 +161,7 @@ class keyboard ~kind velocity =
   end
 
 let () =
-  let kind =
-    {
-      Frame.audio = Lang.At_least 0;
-      video = Lang.Fixed 0;
-      midi = Lang.At_least 1;
-    }
-  in
+  let kind = Lang.midi in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.keyboard.sdl"
     [

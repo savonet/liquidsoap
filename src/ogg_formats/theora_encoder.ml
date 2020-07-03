@@ -158,14 +158,12 @@ let create_encoder ~theora ~metadata () =
     end_of_stream;
   }
 
-let create_theora = function
-  | Ogg_format.Theora theora ->
-      let reset ogg_enc m =
-        let metadata = Utils.list_of_metadata (Meta_format.to_metadata m) in
-        let enc = create_encoder ~theora ~metadata () in
-        Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc
-      in
-      { Ogg_encoder.encode = Ogg_encoder.encode_video; reset; id = None }
-  | _ -> assert false
+let create_theora theora =
+  let reset ogg_enc m =
+    let metadata = Utils.list_of_metadata (Meta_format.to_metadata m) in
+    let enc = create_encoder ~theora ~metadata () in
+    Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc
+  in
+  { Ogg_encoder.encode = Ogg_encoder.encode_video; reset; id = None }
 
-let () = Hashtbl.add Ogg_encoder.encoders "theora" create_theora
+let () = Ogg_encoder.theora_encoder := Some create_theora
