@@ -1,4 +1,4 @@
-# Liquidsoap 1.5.0
+# Liquidsoap 2.0.0
 
 ## Forewords
 
