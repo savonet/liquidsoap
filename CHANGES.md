@@ -4,6 +4,7 @@
 Fixed:
 
 - Fixed exponential memory usage in clock unification algorithm (#1272).
+- Fixed rotate source order (#1279).
 
 1.4.2 (03-05-2020)
 =====
