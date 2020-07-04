@@ -475,9 +475,6 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
 
     val mutable tracks_played = 1
 
-    (* Annihilate the reversal in #select once for all. *)
-    val children = List.rev children
-
     method private select =
       let children_count = List.length children in
       try
@@ -500,6 +497,7 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
               if s.source#is_ready then (Some s :: l, n + 1) else (None :: l, n))
             ([], 0) children
         in
+        let ready_list = List.rev ready_list in
 
         if ready_count = 0 then raise (Found None);
 
