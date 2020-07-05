@@ -20,40 +20,54 @@
 
  *****************************************************************************)
 
+type watched_files = {
+  file : string;
+  callback : unit -> unit;
+  mutable mtime : float;
+}
+
 let launched = ref false
 let watched = ref []
 let m = Mutex.create ()
 let file_mtime file = (Unix.stat file).Unix.st_mtime
 
-let rec watchdog () =
-  let handler =
-    Tutils.mutexify m (fun _ ->
-        watched :=
-          List.map
-            (fun (file, mtime, f) ->
-              let mtime' = try file_mtime file with _ -> mtime in
-              if mtime' <> mtime then f ();
-              (file, mtime', f))
-            !watched;
-        [watchdog ()])
-  in
-  { Duppy.Task.priority = Tutils.Maybe_blocking; events = [`Delay 1.]; handler }
+let rec handler _ =
+  Tutils.mutexify m
+    (fun () ->
+      List.iter
+        (fun ({ file; callback; mtime } as w) ->
+          let mtime' = try file_mtime file with _ -> mtime in
+          if mtime' <> mtime then callback ();
+          w.mtime <- mtime')
+        !watched;
+      [
+        {
+          Duppy.Task.priority = Tutils.Maybe_blocking;
+          events = [`Delay 1.];
+          handler;
+        };
+      ])
+    ()
 
 let watch : File_watcher.watch =
- fun e file f ->
+ fun e file callback ->
   if List.mem `Modify e then
     Tutils.mutexify m
       (fun () ->
         if not !launched then begin
           launched := true;
-          Duppy.Task.add Tutils.scheduler (watchdog ())
+          Duppy.Task.add Tutils.scheduler
+            {
+              Duppy.Task.priority = Tutils.Maybe_blocking;
+              events = [`Delay 1.];
+              handler;
+            }
         end;
         let mtime = try file_mtime file with _ -> 0. in
-        watched := (file, mtime, f) :: !watched;
+        watched := { file; mtime; callback } :: !watched;
         let unwatch =
           Tutils.mutexify m (fun () ->
-              watched :=
-                List.filter (fun (fname, _, _) -> fname <> file) !watched)
+              watched := List.filter (fun w -> w.file <> file) !watched)
         in
         unwatch)
       ()
