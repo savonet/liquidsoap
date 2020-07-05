@@ -122,7 +122,7 @@ class vumeter ~kind source =
   end
 
 let () =
-  let kind = Lang.any_with ~audio:1 () in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "visu.volume"
     [("", Lang.source_t k, None, None)]
