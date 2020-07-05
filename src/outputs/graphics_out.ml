@@ -39,10 +39,7 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
       sleep <- false
 
     method output_send buf =
-      let rgb =
-        let c = buf.Frame.content in
-        Video.get c.Frame.video.(0) 0
-      in
+      let rgb = Video.get (VFrame.yuv420p buf) 0 in
       let img = Video.Image.to_int_image rgb in
       let img = Graphics.make_image img in
       Graphics.draw_image img 0 0
@@ -51,7 +48,7 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
   end
 
 let () =
-  let kind = Lang.video in
+  let kind = Lang.video_yuv420p in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.graphics" ~active:true
     (Output.proto @ [("", Lang.source_t k, None, None)])
