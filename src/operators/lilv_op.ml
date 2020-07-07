@@ -87,7 +87,9 @@ class lilv_mono ~kind (source : source) plugin input output params =
     method wake_up a =
       super#wake_up a;
       let i =
-        Array.init self#ctype.Frame.audio (fun _ ->
+        Array.init
+          (Frame_content.Audio.channels_of_format self#ctype.Frame.audio)
+          (fun _ ->
             Plugin.instantiate plugin
               (float_of_int (Lazy.force Frame.audio_rate)))
       in
@@ -117,7 +119,7 @@ class lilv_mono ~kind (source : source) plugin input output params =
   end
 
 class lilv ~kind (source : source) plugin inputs outputs params =
-  object (self)
+  object
     inherit base ~kind source
 
     method self_sync = source#self_sync
@@ -311,6 +313,7 @@ let register_plugin plugin =
   let ni = Array.length inputs in
   let no = Array.length outputs in
   let liq_params, params = params_of_plugin plugin in
+  let mono = ni = 1 && no = 1 in
   let input_kind = Lang.audio_n ni in
   let input_t = Lang.kind_type_of_kind_format input_kind in
   let liq_params =
@@ -333,7 +336,7 @@ let register_plugin plugin =
   let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
   let return_t =
     let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
-    Lang.frame_kind_t ~audio:(Lang.n_t no) ~video ~midi
+    Lang.frame_kind_t ~audio:(Lang.kind_t (Frame.audio_n no)) ~video ~midi
   in
   Lang.add_operator
     ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))
