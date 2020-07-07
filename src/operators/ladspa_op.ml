@@ -337,7 +337,12 @@ let register_descr plugin_name descr_n d inputs outputs =
 
 let register_descr plugin_name descr_n d inputs outputs =
   (* We do not register plugins without outputs for now. *)
-  if outputs <> [||] then register_descr plugin_name descr_n d inputs outputs
+  try
+    if outputs <> [||] then register_descr plugin_name descr_n d inputs outputs
+  with Audio_converter.Channel_layout.Unsupported ->
+    log#info
+      "Could not register LADSPA plugin %s: unhandled number of channels."
+      plugin_name
 
 (** Get input and output ports. *)
 let get_audio_ports d =

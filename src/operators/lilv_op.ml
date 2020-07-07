@@ -362,6 +362,12 @@ let register_plugin plugin =
             ~kind:Lang.any (Utils.get_some source) plugin inputs outputs params
           :> Source.source ))
 
+let register_plugin plugin =
+  try register_plugin plugin
+  with Audio_converter.Channel_layout.Unsupported ->
+    log#info "Could not register Lilv plugin %s: unhandled number of channels."
+      (Plugin.name plugin)
+
 let register_plugins () =
   let world = World.create () in
   World.load_all world;
