@@ -149,7 +149,7 @@ let () =
       file_extensions = (fun () -> None);
       mime_types = (fun () -> None);
       file_type =
-        (fun filename ->
+        (fun ~ctype:_ filename ->
           if Decoder.get_image_file_decoder filename <> None then
             Some
               Frame.

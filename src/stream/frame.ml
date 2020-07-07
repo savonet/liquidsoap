@@ -136,6 +136,9 @@ let set_breaks b breaks = b.breaks <- breaks
 let add_break b br = b.breaks <- br :: b.breaks
 
 let clear (b : t) =
+  Frame_content.clear b.content.audio;
+  Frame_content.clear b.content.video;
+  Frame_content.clear b.content.midi;
   b.breaks <- [];
   b.metadata <- []
 
@@ -145,6 +148,9 @@ let clear_from (b : t) pos =
 
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b =
+  Frame_content.clear b.content.audio;
+  Frame_content.clear b.content.video;
+  Frame_content.clear b.content.midi;
   b.pts <- Int64.succ b.pts;
   b.breaks <- [];
   let max a (p, m) =

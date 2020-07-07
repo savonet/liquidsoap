@@ -65,7 +65,7 @@ let () =
       file_extensions = (fun () -> Some ["mid"]);
       mime_types = (fun () -> None);
       file_type =
-        (fun _ ->
+        (fun ~ctype:_ _ ->
           Some
             Frame.
               {

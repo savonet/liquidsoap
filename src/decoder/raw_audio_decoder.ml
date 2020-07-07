@@ -92,7 +92,7 @@ let create ~format input =
     let bytes = input.Decoder.read buf 0 bytes_to_get in
     if bytes = 0 then raise End_of_stream;
     let content = converter (Bytes.sub_string buf 0 bytes) in
-    buffer.Decoder.put_audio ~samplerate:format.samplerate content
+    buffer.Decoder.put_pcm ~samplerate:format.samplerate content
   in
   (* TODO *)
   let seek _ = 0 in
@@ -151,11 +151,11 @@ let () =
       priority = (fun () -> 1);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> Some ["audio/x-raw"]);
-      file_type = (fun _ -> None);
+      file_type = (fun ~ctype:_ _ -> None);
       file_decoder = None;
       stream_decoder =
         Some
-          (fun mime ->
+          (fun ~ctype:_ mime ->
             let format = Utils.get_some (parse_mime mime) in
             create ~format);
     }

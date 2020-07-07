@@ -154,7 +154,7 @@ let create_decoder ?(merge_tracks = false) source input =
         else raise Ogg_demuxer.End_of_stream;
       let audio_feed track buf =
         let info, _ = Ogg_demuxer.audio_info decoder track in
-        buffer.Decoder.put_audio ~samplerate:info.Ogg_demuxer.sample_rate buf
+        buffer.Decoder.put_pcm ~samplerate:info.Ogg_demuxer.sample_rate buf
       in
       let video_feed track buf =
         let info, _ = Ogg_demuxer.video_info decoder track in
@@ -165,7 +165,7 @@ let create_decoder ?(merge_tracks = false) source input =
             den = info.Ogg_demuxer.fps_denominator;
           }
         in
-        buffer.Decoder.put_video ~fps (Video.single rgb)
+        buffer.Decoder.put_yuv420p ~fps (Video.single rgb)
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then
@@ -218,7 +218,7 @@ let create_decoder ?(merge_tracks = false) source input =
 
 (** File decoder *)
 
-let file_type filename =
+let file_type ~ctype:_ filename =
   let decoder, fd = Ogg_demuxer.init_from_file ~log:demuxer_log filename in
   let tracks = Ogg_demuxer.get_standard_tracks decoder in
   Tutils.finalize
@@ -283,7 +283,7 @@ let () =
       mime_types = (fun () -> Some mime_types#get);
       file_type;
       file_decoder = Some create_file_decoder;
-      stream_decoder = Some (fun _ -> create_decoder `Stream);
+      stream_decoder = Some (fun ~ctype:_ _ -> create_decoder `Stream);
     }
 
 (** Metadata *)

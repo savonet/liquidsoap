@@ -210,14 +210,14 @@ class audio_input ~bufferize kind =
     method private flush_buffer =
       let output = Utils.get_some output in
       let src = Avfilter.(time_base output.context) in
-      let dst = Ffmpeg_utils.liq_internal_audio_time_base () in
+      let dst = Ffmpeg_utils.liq_frame_time_base () in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
           let pcm = self#convert frame in
           let pts =
             Utils.maybe
-              (Ffmpeg_utils.convert_pts ~src ~dst)
+              (Ffmpeg_utils.convert_time_base ~src ~dst)
               (Avutil.frame_pts frame)
           in
           Generator.put_audio ?pts generator
@@ -299,13 +299,13 @@ class video_input ~bufferize kind =
     method private flush_buffer =
       let output = Utils.get_some output in
       let src = Avfilter.(time_base output.context) in
-      let dst = Ffmpeg_utils.liq_internal_video_time_base () in
+      let dst = Ffmpeg_utils.liq_frame_time_base () in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
           let pts =
             Utils.maybe
-              (Ffmpeg_utils.convert_pts ~src ~dst)
+              (Ffmpeg_utils.convert_time_base ~src ~dst)
               (Avutil.frame_pts frame)
           in
           let img =

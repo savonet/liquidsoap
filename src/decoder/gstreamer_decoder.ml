@@ -122,7 +122,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       let buf = Audio.create channels len in
       Audio.S16LE.to_audio b 0 buf;
       let samplerate = Lazy.force Frame.audio_rate in
-      buffer.Decoder.put_audio ~samplerate buf );
+      buffer.Decoder.put_pcm ~samplerate buf );
     if decode_video then (
       let _, state, _ = Gstreamer.Element.get_state gst.bin in
       if state <> Gstreamer.Element.State_playing then
@@ -139,7 +139,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       let img = Image.YUV420.make_data width height buf y_stride uv_stride in
       let stream = Video.single img in
       let fps = { Decoder.num = Lazy.force Frame.video_rate; den = 1 } in
-      buffer.Decoder.put_video ~fps stream );
+      buffer.Decoder.put_yuv420p ~fps stream );
     GU.flush ~log gst.bin
   in
   let seek off =
@@ -290,7 +290,7 @@ let () =
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type =
-        (fun filename ->
+        (fun ~ctype:_ filename ->
           let channels = Lazy.force Frame.audio_channels in
           Some (get_type ~channels filename));
       file_decoder = Some file_decoder;

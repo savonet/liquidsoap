@@ -80,7 +80,7 @@ let create_decoder input =
               let data = Audio.of_array data in
               let len = try Audio.length data with _ -> 0 in
               processed := Int64.add !processed (Int64.of_int len);
-              buffer.Decoder.put_audio ~samplerate data)
+              buffer.Decoder.put_pcm ~samplerate data)
         in
         match Flac.Decoder.state decoder c with
           | `Search_for_metadata | `Read_metadata | `Search_for_frame_sync
@@ -142,9 +142,9 @@ let () =
       priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
-      file_type;
+      file_type = (fun ~ctype:_ filename -> file_type filename);
       file_decoder = Some file_decoder;
-      stream_decoder = Some (fun _ -> create_decoder);
+      stream_decoder = Some (fun ~ctype:_ _ -> create_decoder);
     }
 
 let log = Log.make ["metadata"; "flac"]

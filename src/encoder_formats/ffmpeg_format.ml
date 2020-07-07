@@ -23,6 +23,7 @@
 type opt_val = [ `String of string | `Int of int | `Float of float ]
 type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
+type codec = [ `Copy | `Encode of string ]
 
 type t = {
   format : string option;
@@ -32,9 +33,9 @@ type t = {
   framerate : int Lazy.t;
   width : int Lazy.t;
   height : int Lazy.t;
-  audio_codec : string option;
+  audio_codec : codec option;
   audio_opts : opts;
-  video_codec : string option;
+  video_codec : codec option;
   video_opts : opts;
   other_opts : opts;
 }
@@ -62,7 +63,8 @@ let to_string m =
   let opts =
     match m.video_codec with
       | None -> opts
-      | Some c ->
+      | Some `Copy -> "%audio(codec=copy)" :: opts
+      | Some (`Encode c) ->
           let video_opts = Hashtbl.copy m.video_opts in
           Hashtbl.add video_opts "codec" (`String c);
           Hashtbl.add video_opts "framerate" (`Int (Lazy.force m.framerate));
@@ -73,7 +75,8 @@ let to_string m =
   let opts =
     match m.audio_codec with
       | None -> opts
-      | Some c ->
+      | Some `Copy -> "%video(codec=copy)" :: opts
+      | Some (`Encode c) ->
           let audio_opts = Hashtbl.copy m.audio_opts in
           Hashtbl.add audio_opts "codec" (`String c);
           Hashtbl.add audio_opts "channels" (`Int m.channels);

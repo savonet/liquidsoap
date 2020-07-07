@@ -73,11 +73,18 @@ let ffmpeg_gen params =
                 { f with Ffmpeg_format.video_codec = None; channels = 0 }
         in
         parse_args ~mode f l
+    | ("codec", { term = Var s; _ }) :: l when s = "copy" ->
+        let f =
+          match mode with
+            | `Audio -> { f with Ffmpeg_format.audio_codec = Some `Copy }
+            | `Video -> { f with Ffmpeg_format.video_codec = Some `Copy }
+        in
+        parse_args ~mode f l
     | ("codec", { term = Ground (String c); _ }) :: l ->
         let f =
           match mode with
-            | `Audio -> { f with Ffmpeg_format.audio_codec = Some c }
-            | `Video -> { f with Ffmpeg_format.video_codec = Some c }
+            | `Audio -> { f with Ffmpeg_format.audio_codec = Some (`Encode c) }
+            | `Video -> { f with Ffmpeg_format.video_codec = Some (`Encode c) }
         in
         parse_args ~mode f l
     | (k, { term = Ground (String s); _ }) :: l ->

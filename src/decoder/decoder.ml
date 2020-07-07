@@ -61,9 +61,8 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : G.t;
-  put_audio :
-    ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
-  put_video : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
+  put_pcm : ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
+  put_yuv420p : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
 }
 
 type decoder = {
@@ -114,9 +113,9 @@ type decoder_specs = {
   priority : unit -> int;
   file_extensions : unit -> string list option;
   mime_types : unit -> string list option;
-  file_type : string -> Frame.content_type option;
+  file_type : ctype:Frame.content_type -> string -> Frame.content_type option;
   file_decoder : file_decoder option;
-  stream_decoder : (string -> stream_decoder) option;
+  stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;
 }
 
 (** Plugins might define various decoders. In order to be accessed,
@@ -314,7 +313,7 @@ let get_file_decoder ~metadata ~ctype filename =
       List.iter
         (fun (name, specs) ->
           try
-            match specs.file_type filename with
+            match specs.file_type ~ctype filename with
               | Some decoded_type ->
                   if can_decode_type decoded_type ctype then
                     raise (Found (name, decoded_type, specs))
@@ -416,7 +415,7 @@ let get_stream_decoder ~ctype mime =
     log#info "Selected decoder %s for mime-type %s with expected content %s"
       name mime
       (Frame.string_of_content_type ctype);
-    Some ((Utils.get_some decoder.stream_decoder) mime) )
+    Some ((Utils.get_some decoder.stream_decoder ~ctype) mime) )
 
 (** {1 Helpers for defining decoders} *)
 
@@ -431,22 +430,22 @@ let mk_buffer ~ctype generator =
 
   G.set_mode generator mode;
 
-  let put_audio =
+  let put_pcm =
     if mode <> `Video then (
       let resampler = Decoder_utils.samplerate_converter () in
-      let channel_converter =
+      let channel_converter () =
         Decoder_utils.channels_converter (channel_layout ctype.Frame.audio)
       in
       fun ?pts ~samplerate data ->
         let data = resampler ~samplerate data in
-        let data = channel_converter data in
+        let data = channel_converter () data in
         let len = Audio.length data in
         let data = Frame_content.Audio.lift_data data in
         G.put_audio ?pts generator data 0 len )
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
 
-  let put_video =
+  let put_yuv420p =
     if mode <> `Audio then (
       let video_resample = Decoder_utils.video_resample () in
       let video_scale = Decoder_utils.video_scale () in
@@ -462,7 +461,7 @@ let mk_buffer ~ctype generator =
     else fun ?pts:_ ~fps:_ _ -> ()
   in
 
-  { generator; put_audio; put_video }
+  { generator; put_pcm; put_yuv420p }
 
 let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   let prebuf = Frame.master_of_seconds 0.5 in

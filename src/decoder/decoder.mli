@@ -49,9 +49,8 @@ type fps = Decoder_utils.fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : G.t;
-  put_audio :
-    ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
-  put_video : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
+  put_pcm : ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
+  put_yuv420p : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
 }
 
 type decoder = {
@@ -89,10 +88,10 @@ type decoder_specs = {
    * None means accept all mime-types. *)
   mime_types : unit -> string list option;
   (* None means no decodable content for that file. *)
-  file_type : string -> Frame.content_type option;
+  file_type : ctype:Frame.content_type -> string -> Frame.content_type option;
   file_decoder : file_decoder option;
-  (* First argument is the full mime-type. *)
-  stream_decoder : (string -> stream_decoder) option;
+  (* String argument is the full mime-type. *)
+  stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;
 }
 
 val decoders : decoder_specs Plug.plug
