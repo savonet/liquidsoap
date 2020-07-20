@@ -604,7 +604,7 @@ let rec invokes t = function
             (Printf.sprintf
                "Internal error: trying to invoke methods %s of a value of type \
                 %s (%s) which contains generalized variables (%s)"
-               (String.concat "." (l :: ll))
+               (String.concat "." ll)
                (print_scheme (g, t))
                (print_pos_opt t.pos)
                (String.concat ", "
