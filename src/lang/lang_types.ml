@@ -185,7 +185,7 @@ let dummy = make ~pos:None (EVar (-1, []))
     type. *)
 let rec deref t = match t.descr with Link x -> deref x | _ -> t
 
-(** Remove methods. This function also remove links. *)
+(** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, _, t) -> demeth t | _ -> t
@@ -207,15 +207,6 @@ let rec invoke t l =
     | Meth (l', t, _) when l = l' -> t
     | Meth (_, _, t) -> invoke t l
     | _ -> raise Not_found
-
-let rec invokes t = function
-  | l :: ll ->
-      let g, t = invoke t l in
-      if ll = [] then (g, t)
-      else (
-        assert (g = []);
-        invokes t ll )
-  | [] -> ([], t)
 
 let meth ?pos ?level l v t = make ?pos ?level (Meth (l, v, t))
 
@@ -602,6 +593,24 @@ let fresh_evar =
     { pos; level; descr = EVar (fresh_id (), constraints) }
   in
   f
+
+let rec invokes t = function
+  | l :: ll ->
+      let g, t = invoke t l in
+      if ll = [] then (g, t)
+      else (
+        if g <> [] then
+          failwith
+            (Printf.sprintf
+               "Internal error: trying to invoke methods %s of a value of type \
+                %s (%s) which contains generalized variables (%s)"
+               (String.concat "." (l :: ll))
+               (print_scheme (g, t))
+               (print_pos_opt t.pos)
+               (String.concat ", "
+                  (List.map (fun x -> print_scheme (g, make (EVar x))) g)));
+        invokes t ll )
+  | [] -> ([], t)
 
 (** {1 Assignation} *)
 
