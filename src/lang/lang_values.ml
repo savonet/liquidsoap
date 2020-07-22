@@ -710,27 +710,21 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
   match e.term with
     | Ground g -> e.t >: mkg (Ground.to_type g)
     | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
-    | List l ->
+    | List l -> (
         List.iter (fun x -> check ~level ~env x) l;
-
-        (* We first try to compute the sup of types of elements in the list,
-           which will give us the type of the list. *)
-        let tsup =
-          List.fold_left
-            (fun sup e ->
-              try
-                e.t >: sup;
-                e.t
-              with T.Type_Error _ ->
-                if Lazy.force debug then
-                  Printf.eprintf
-                    "Ignoring type error to compute a sup of list element types.\n";
-                e.t <: sup;
-                sup)
-            (T.fresh_evar ~level ~pos) l
-        in
-        e.t >: mk (T.List tsup);
-        List.iter (fun item -> item.t <: tsup) l
+        try
+          let a = T.fresh_evar ~level ~pos in
+          List.iter (fun e -> e.t <: a) l;
+          e.t >: mk (T.List a)
+        with T.Type_Error _ ->
+          (* If this fails, we try to remove methods, so that a method in the first element of a list does not require all subsequent elements to have the same method. *)
+          let a = T.fresh_evar ~level ~pos in
+          List.iter
+            (fun e ->
+              T.demeth e.t <: a;
+              e.t <: a)
+            l;
+          e.t >: mk (T.List a) )
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
