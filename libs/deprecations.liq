@@ -31,7 +31,7 @@ register(name="[DEPRECATED] Framerate",
 
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag hidden
-def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
+def replaces input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                    ~restart=true,~restart_on_error=false,
                    ~samplerate=44100,cmd) =
   deprecated("input.external", "input.external.rawaudio")
