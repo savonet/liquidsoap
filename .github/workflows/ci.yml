@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Extract branch name
         shell: bash
         run: .github/scripts/branch-name.sh
@@ -37,6 +39,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Build
         run: docker build . --build-arg DOCKER_TAG=${{ matrix.os }} --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:${{ matrix.os }} -f .github/docker/Dockerfile.build
       - name: Run tests
@@ -62,6 +66,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Build
         run: .github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.get_branch_name.outputs.branch }}
         id: build
@@ -78,6 +84,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
       - name: Tag commit
         uses: savonet/latest-tag@any-context
         with:
