@@ -1015,30 +1015,27 @@ let rec ( <: ) a b =
           raise (Error (repr a, repr b)) )
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)) )
-    | _, Meth (l2, (g2, t2), u2) ->
-        let rec aux a =
-          match (deref a).descr with
-            | Meth (l1, (g1, t1), u1) ->
-                if l1 = l2 then (
-                  try
-                    (* TODO: we should perform proper type scheme subtyping, but
-                       this is a good approximation for now... *)
-                    instantiate ~level:(-1) ~generalized:g1 t1
-                    <: instantiate ~level:(-1) ~generalized:g2 t2
-                  with Error (a, b) ->
-                    (* TODO: it would be better to keep generalized variables
-                       here and below *)
-                    raise
-                      (Error
-                         ( `Meth (l1, ([], a), `Ellipsis),
-                           `Meth (l2, ([], b), `Ellipsis) )) )
-                else aux u1
-            | EVar _ -> a <: b
-            | _ ->
-                raise (Error (repr a, `Meth (l2, ([], `Ellipsis), `Ellipsis)))
-        in
-        aux a;
-        a <: hide_meth l2 u2
+    | _, Meth (l, (g2, t2), u2) -> (
+        try
+          let g1, t1 = invoke a l in
+          try
+            (* TODO: we should perform proper type scheme subtyping, but this is
+               a good approximation for now... *)
+            instantiate ~level:(-1) ~generalized:g1 t1
+            <: instantiate ~level:(-1) ~generalized:g2 t2;
+            a <: hide_meth l u2
+          with Error (a, b) ->
+            (* TODO: it would be better to keep generalized variables here and
+               below *)
+            raise
+              (Error
+                 (`Meth (l, ([], a), `Ellipsis), `Meth (l, ([], b), `Ellipsis)))
+        with Not_found -> (
+          let a' = demeth a in
+          match a'.descr with
+            | EVar _ -> a' <: b
+            | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))) )
+        )
     | Meth (l, _, u1), _ -> hide_meth l u1 <: b
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
