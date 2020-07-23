@@ -749,8 +749,23 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
         in
         List.iter
           (fun e ->
+            (* Version of demeth which goes inside constructors with positive
+               types to avoid the problem of methods in, e.g., lists of
+               pairs. Ideally, we should compute the common methods recursively
+               in the types above, but this is left for later... *)
+            let rec demeth t =
+              let mk descr = { t with T.descr } in
+              match t.T.descr with
+                | T.Meth (_, _, t) -> demeth t
+                | T.Link t -> demeth t
+                | T.List t -> mk (T.List (demeth t))
+                | T.Tuple l -> mk (T.Tuple (List.map demeth l))
+                | T.Nullable t -> mk (T.Nullable (demeth t))
+                | T.Arrow (a, t) -> mk (T.Arrow (a, demeth t))
+                | T.Ground _ | T.Constr _ | T.EVar _ -> t
+            in
             (* We demeth in order not to force methods which are not in common. *)
-            T.demeth e.t <: T.demeth a;
+            demeth e.t <: demeth a;
             e.t <: a)
           l;
         e.t >: mk (T.List a)
