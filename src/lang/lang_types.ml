@@ -649,6 +649,7 @@ let rec occur_check a b =
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
 let rec bind a0 b =
+  (* if !debug then Printf.eprintf "%s := %s\n%!" (print a0) (print b); *)
   let a = deref a0 in
   let b = deref b in
   if b == a then ()
@@ -903,7 +904,7 @@ let constr_sub x y =
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explaination. *)
 let rec ( <: ) a b =
-  if !debug then Printf.eprintf "%s <: %s\n" (print a) (print b);
+  if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
   match ((deref a).descr, (deref b).descr) with
     | Constr c1, Constr c2 when constr_sub c1.name c2.name ->
         let rec aux pre p1 p2 =
