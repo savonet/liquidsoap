@@ -720,9 +720,14 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
               | Meth (l, _, e') -> (l, T.invoke e.t l) :: methods e'
               | _ -> []
           in
-          let inter l1 l2 = List.filter (fun x -> List.mem x l2) l1 in
-          let l = List.map methods l in
-          match l with m :: l -> List.fold_left inter m l | [] -> []
+          let method_names e = List.map fst (methods e) in
+          match l with
+            | e :: ee ->
+                let ee = List.map method_names ee in
+                List.filter
+                  (fun (l, _) -> List.for_all (List.mem l) ee)
+                  (methods e)
+            | [] -> []
         in
         let a = T.fresh_evar ~level ~pos in
         List.iter
@@ -731,7 +736,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
         List.iter
           (fun e ->
             (* We demeth in order not to force methods which are not in common. *)
-            T.demeth e.t <: a;
+            T.demeth e.t <: T.demeth a;
             e.t <: a)
           l;
         e.t >: mk (T.List a)
