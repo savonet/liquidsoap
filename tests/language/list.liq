@@ -67,6 +67,10 @@ def f() =
   let [x,_,...z] = [1,2,3]
   t(x, 1)
   t(z, [3])
+
+  # Ensure that common methods are kept and others are forgotten
+  l = [ "a".{b = true, k = 0} , "b".{b = true, l = 1} ]
+  t(list.for_all(fun (x) -> x.b, l), true)
   
   if !success then test.pass() else test.fail() end
 end

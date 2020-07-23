@@ -710,21 +710,31 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
   match e.term with
     | Ground g -> e.t >: mkg (Ground.to_type g)
     | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
-    | List l -> (
+    | List l ->
         List.iter (fun x -> check ~level ~env x) l;
-        try
-          let a = T.fresh_evar ~level ~pos in
-          List.iter (fun e -> e.t <: a) l;
-          e.t >: mk (T.List a)
-        with T.Type_Error _ ->
-          (* If this fails, we try to remove methods, so that a method in the first element of a list does not require all subsequent elements to have the same method. *)
-          let a = T.fresh_evar ~level ~pos in
-          List.iter
-            (fun e ->
-              T.demeth e.t <: a;
-              e.t <: a)
-            l;
-          e.t >: mk (T.List a) )
+        (* Compute common methods. *)
+        let m =
+          (* All the methods of a term. *)
+          let rec methods e =
+            match e.term with
+              | Meth (l, _, e') -> (l, T.invoke e.t l) :: methods e'
+              | _ -> []
+          in
+          let inter l1 l2 = List.filter (fun x -> List.mem x l2) l1 in
+          let l = List.map methods l in
+          match l with m :: l -> List.fold_left inter m l | [] -> []
+        in
+        let a = T.fresh_evar ~level ~pos in
+        List.iter
+          (fun (l, t) -> a <: T.make (T.Meth (l, t, T.fresh_evar ~level ~pos)))
+          m;
+        List.iter
+          (fun e ->
+            (* We demeth in order not to force methods which are not in common. *)
+            T.demeth e.t <: a;
+            e.t <: a)
+          l;
+        e.t >: mk (T.List a)
     | Tuple l ->
         List.iter (fun a -> check ~level ~env a) l;
         e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
