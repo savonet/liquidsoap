@@ -712,27 +712,41 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
     | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
     | List l ->
         List.iter (fun x -> check ~level ~env x) l;
-        (* Compute common methods. *)
-        let m =
-          (* All the methods of a term. *)
-          let rec methods e =
-            match e.term with
-              | Meth (l, _, e') -> (l, T.invoke e.t l) :: methods e'
-              | _ -> []
-          in
-          let method_names e = List.map fst (methods e) in
-          match l with
-            | e :: ee ->
-                let ee = List.map method_names ee in
-                List.filter
-                  (fun (l, _) -> List.for_all (List.mem l) ee)
-                  (methods e)
-            | [] -> []
-        in
         let a = T.fresh_evar ~level ~pos in
-        List.iter
-          (fun (l, t) -> a <: T.make (T.Meth (l, t, T.fresh_evar ~level ~pos)))
-          m;
+        (* Ensure that we have common methods. *)
+        let () =
+          (* Common methods. *)
+          let m =
+            (* All the methods of a term. *)
+            let rec methods e =
+              match e.term with
+                | Meth (l, _, e') -> (l, T.invoke e.t l) :: methods e'
+                | _ -> []
+            in
+            let method_names e = List.map fst (methods e) in
+            match l with
+              | e :: ee ->
+                  let ee = List.map method_names ee in
+                  List.filter
+                    (fun (l, _) -> List.for_all (List.mem l) ee)
+                    (methods e)
+              | [] -> []
+          in
+          List.iter
+            (fun (l, t) ->
+              a <: T.make (T.Meth (l, t, T.fresh_evar ~level ~pos)))
+            m
+        in
+        (* Allow lists to contain both active sources and sources. *)
+        let () =
+          let is_source e =
+            match (T.demeth e.t).T.descr with
+              | T.Constr c -> c.T.name = "source"
+              | _ -> false
+          in
+          if List.exists is_source l then
+            a <: source_t ~level ~pos (T.fresh_evar ~level ~pos)
+        in
         List.iter
           (fun e ->
             (* We demeth in order not to force methods which are not in common. *)

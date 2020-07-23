@@ -71,6 +71,8 @@ def f() =
   # Ensure that common methods are kept and others are forgotten
   l = [ "a".{b = true, k = 0} , "b".{b = true, l = 1} ]
   t(list.for_all(fun (x) -> x.b, l), true)
+  # Ensure that we can have active sources and sources
+  ignore([input(), blank()])
   
   if !success then test.pass() else test.fail() end
 end
