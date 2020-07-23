@@ -1033,7 +1033,7 @@ let rec ( <: ) a b =
                          ( `Meth (l1, ([], a), `Ellipsis),
                            `Meth (l2, ([], b), `Ellipsis) )) )
                 else aux u1
-            | EVar _ -> failwith "TODO"
+            | EVar _ -> a <: b
             | _ ->
                 raise (Error (repr a, `Meth (l2, ([], `Ellipsis), `Ellipsis)))
         in
