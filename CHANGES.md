@@ -110,6 +110,7 @@ Changed:
   which we know how to compare).
 - `ref` is not a keyword anymore: this means that `ref x` is not accepted
   anymore, you need to write `ref(x)` (#1254).
+- Renamed `file.unlink` to `file.remove`.
 
 Fixed:
 

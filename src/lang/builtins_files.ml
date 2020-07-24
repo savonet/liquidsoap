@@ -48,7 +48,7 @@ let () =
            (Lang.to_string (List.assoc "" p))))
 
 let () =
-  add_builtin "file.unlink" ~cat:Sys ~descr:"Remove a file."
+  add_builtin "file.remove" ~cat:Sys ~descr:"Remove a file."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
         Unix.unlink (Lang.to_string (List.assoc "" p));

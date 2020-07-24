@@ -71,7 +71,7 @@ def process_protocol(~rlog,~maxtime,arg)
       log.info("Standard output:\n#{stdout}")
       log.info("Error output:\n#{stderr}")
       log.info("Removing #{output}.")
-      file.unlink(output)
+      file.remove(output)
       []
     end
   end

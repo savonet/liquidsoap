@@ -268,3 +268,10 @@ def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
   deprecated("in", "input")
   input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
+
+# Deprecated: use `file.remove` instead.
+# @flag hidden
+def file.unlink(filename)
+  deprecated("file.unlink", "file.remove")
+  file.remove(filename)
+end
