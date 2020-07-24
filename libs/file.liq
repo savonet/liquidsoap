@@ -1,3 +1,7 @@
+# Error raised when a problem occurred when accessing files.
+# @category System
+let file.error = error.register("file")
+
 # Read the whole contents of a file.
 # @category System
 def file.contents(f) =

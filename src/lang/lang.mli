@@ -292,7 +292,8 @@ val val_cst_fun : (string * value option) list -> value -> value
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
 
-(** {2 Errors raised by other modules} *)
+(** Raise an error. *)
+val error : ?pos:pos list -> ?message:string -> string -> 'a
 
 (** {2 Main script evaluation} *)
 
