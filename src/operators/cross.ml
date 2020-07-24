@@ -334,9 +334,11 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
           done );
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
-        if not (AFrame.is_partial buf_frame) then (
+        if AFrame.is_partial buf_frame then Generator.add_break gen_after
+        else begin
           self#slave_tick;
-          if after_len < before_len then f () )
+          if after_len < before_len then f ()
+        end
       in
       f ()
 
