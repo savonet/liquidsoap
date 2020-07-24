@@ -174,6 +174,9 @@ let compare_values a b =
               if c = 0 then cmp (l1, l2) else c
         in
         cmp (l1, l2)
+    | Null, Null -> 0
+    | Null, _ -> -1
+    | _, Null -> 1
     | _ -> assert false
   in
   aux (a.value, b.value)

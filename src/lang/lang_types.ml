@@ -686,6 +686,7 @@ let rec bind a0 b =
                           else b.descr <- EVar (j, Ord :: c)
                       | Tuple l -> List.iter (fun b -> check b) l
                       | List b -> check b
+                      | Nullable b -> check b
                       | _ -> raise (Unsatisfied_constraint (Ord, b))
                   in
                   check b
