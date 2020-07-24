@@ -142,8 +142,11 @@ let () =
         in
         mk_fn fn
       with e ->
-        log#important "Error while reading file %S: %s" f (Printexc.to_string e);
-        mk_fn (fun () -> ""))
+        let message =
+          Printf.sprintf "The file %s could not be read: %s" f
+            (Printexc.to_string e)
+        in
+        Lang.error ~message "file")
 
 let () =
   add_builtin "file.write" ~cat:Sys
@@ -173,8 +176,11 @@ let () =
         close_out oc;
         Lang.bool true
       with e ->
-        log#important "Error while writing file %S: %s" f (Printexc.to_string e);
-        Lang.bool false)
+        let message =
+          Printf.sprintf "The file %s could not be written: %s" f
+            (Printexc.to_string e)
+        in
+        Lang.error ~message "file")
 
 let () =
   add_builtin "file.watch" ~cat:Sys
@@ -355,12 +361,12 @@ let () =
   add_builtin "file.which" ~cat:Sys
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
-       using directories from the PATH environment variable and returns \"\" \
+       using directories from the PATH environment variable and returns `null` \
        if it could not find one." [("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
-      Lang.string
-        (try Utils.which ~path:Configure.path file with Not_found -> ""))
+      try Lang.string (Utils.which ~path:Configure.path file)
+      with Not_found -> Lang.string "")
 
 let () =
   add_builtin "file.digest" ~cat:Sys
@@ -369,4 +375,6 @@ let () =
       let file = Lang.to_string (List.assoc "" p) in
       if Sys.file_exists file then
         Lang.string (Digest.to_hex (Digest.file file))
-      else Lang.string "")
+      else (
+        let message = Printf.sprintf "The file %s does not exist." file in
+        Lang.error ~message "file" ))
