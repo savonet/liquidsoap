@@ -361,7 +361,7 @@ let () =
   add_builtin "file.which" ~cat:Sys
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
-       using directories from the PATH environment variable and returns `null` \
+       using directories from the PATH environment variable and returns \"\" \
        if it could not find one." [("", Lang.string_t, None, None)]
     Lang.string_t (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
