@@ -430,13 +430,14 @@ let print_repr f t =
           let m = List.rev m in
           (* First print the main value. *)
           let vars =
-            if t = `Tuple [] then vars
+            if t = `Tuple [] then (
+              Format.fprintf f "@,@[<hv 2>{@,";
+              vars )
             else (
               let vars = print ~par:true vars t in
-              Format.fprintf f ".";
+              Format.fprintf f "@,@[<hv 2>.{@,";
               vars )
           in
-          Format.fprintf f "@[<1>{";
           let vars =
             if m = [] then vars
             else (
