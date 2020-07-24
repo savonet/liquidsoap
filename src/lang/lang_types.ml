@@ -461,7 +461,7 @@ let print_repr f t =
               in
               aux vars m )
           in
-          Format.fprintf f "}@]";
+          Format.fprintf f "@]@,}";
           vars )
         else (
           let vars = print ~par:true vars b in
