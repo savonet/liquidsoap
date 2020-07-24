@@ -502,7 +502,26 @@ module V = struct
       | Ref a -> Printf.sprintf "ref(%s)" (print_value !a)
       | Tuple l -> "(" ^ String.concat ", " (List.map print_value l) ^ ")"
       | Null -> "null"
-      | Meth (l, v, e) -> print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
+      | Meth (l, v, e) when Lazy.force debug ->
+          print_value e ^ ".{" ^ l ^ "=" ^ print_value v ^ "}"
+      | Meth _ ->
+          let rec split e =
+            match e.value with
+              | Meth (l, v, e) ->
+                  let m, e = split e in
+                  ((l, v) :: m, e)
+              | _ -> ([], e)
+          in
+          let m, e = split v in
+          let m =
+            List.rev m
+            |> List.map (fun (l, v) -> l ^ " = " ^ print_value v)
+            |> String.concat ", "
+          in
+          let e =
+            match e.value with Tuple [] -> "" | _ -> print_value e ^ "."
+          in
+          e ^ "{" ^ m ^ "}"
       | Fun ([], _, _, x) when is_ground x -> "{" ^ print_term x ^ "}"
       | Fun (l, _, _, x) when is_ground x ->
           let f (label, _, value) =
