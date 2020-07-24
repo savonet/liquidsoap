@@ -264,7 +264,7 @@
 %token WHILE FOR TO
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
-%nonassoc COALESCE         /* (x | y) == z */
+%nonassoc COALESCE     /* (x ?? y) == z */
 %right SET             /* expr := (expr + expr), expr := (expr := expr) */
 %nonassoc TO
 %left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
