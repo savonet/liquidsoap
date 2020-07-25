@@ -176,7 +176,7 @@ end
 # Fade a stream to silence.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~duration Duration of the fading.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
   fn = mkfade(start=1.,stop=0.,type=type,duration=duration,s)
@@ -190,7 +190,7 @@ def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
     v
   end
 
-  s = amplify(id=id,fn,s)
+  s = amplify(id=id,override="",fn,s)
   switch(track_sensitive=false,[({!should_play},s)])
 end
 
@@ -242,11 +242,11 @@ end
 # Fade the beginning of a stream.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~duration Duration of the fading.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
   fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
-  amplify(id=id,fn,s)
+  amplify(id=id,override="",fn,s)
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in
