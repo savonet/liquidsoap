@@ -274,4 +274,34 @@ end
 def file.unlink(filename)
   deprecated("file.unlink", "file.remove")
   file.remove(filename)
+
+# Deprecated: was designed for transitions only and is not
+# needed anymore
+# @flag hidden
+def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
+  deprecated("fade.final", "fade.out")
+
+  fn = mkfade(start=1.,stop=0.,type=type,duration=duration,s)
+  should_play = ref(true)
+
+  def fn() =
+    v = fn()
+    if v == 0. then
+      should_play := false
+    end
+    v
+  end
+
+  s = fade.scale(id=id,fn,s)
+  switch(track_sensitive=false,[({!should_play},s)])
+end
+
+# Deprecated: was designed for transitions only and is not
+# needed anymore
+# @flag hidden
+def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
+  deprecated("fade.initial", "fade.in")  
+
+  fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
+  fade.scale(id=id,fn,s)
 end
