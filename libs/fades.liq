@@ -72,7 +72,7 @@ end
 # @category Source / Sound Processing
 # @flag hidden
 def fade.scale(~id="fade.scale", x, s)
-  s = amplify(id=id, override="", x, s)
+  s = amplify(id=id, override=null(), x, s)
   s = video.opacity(id=id, x, s)
   s
 end

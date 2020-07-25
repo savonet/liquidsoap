@@ -77,7 +77,7 @@ let () =
     [
       ("", Lang.float_getter_t (), None, Some "Multiplicative factor.");
       ( "override",
-        Lang.string_t,
+        Lang.nullable_t Lang.string_t,
         Some (Lang.string "liq_amplify"),
         Some
           "Specify the name of a metadata field that, when present and \
@@ -85,8 +85,7 @@ let () =
            track. Well-formed values are floats in decimal notation (e.g. \
            `0.7`) which are taken as normal/linear multiplicative factors; \
            values can be passed in decibels with the suffix `dB` (e.g. `-8.2 \
-           dB`, but the spaces do not matter). Set to empty string `\"\"` to \
-           disable." );
+           dB`, but the spaces do not matter)." );
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing
@@ -94,6 +93,6 @@ let () =
     (fun p ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
-      let o = Lang.to_string (Lang.assoc "override" 1 p) in
-      let o = if o = "" then None else Some (String.lowercase_ascii o) in
+      let o = Lang.to_option (Lang.assoc "override" 1 p) in
+      let o = Utils.maybe Lang.to_string o in
       new amplify ~kind s o c)
