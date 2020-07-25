@@ -395,7 +395,7 @@ let is_source t =
 
 exception Unused_variable of (string * Lexing.position)
 
-let check_unused ~lib tm =
+let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
     match tm.term with
       | Var s -> Vars.remove s v
@@ -451,7 +451,7 @@ let check_unused ~lib tm =
                     && not (can_ignore def.t || (toplevel && is_fun def.t))
                   then (
                     let start_pos = fst (Utils.get_some tm.t.T.pos) in
-                    raise (Unused_variable (s, start_pos)) ))
+                    throw (Unused_variable (s, start_pos)) ))
               bvpat;
           Vars.union v mask
   in
@@ -687,7 +687,7 @@ let rec type_of_pat ~level ~pos = function
  * [level] should be the sum of the lengths of [env] and [builtins],
  * that is the size of the typing context, that is the number of surrounding
  * abstractions. *)
-let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
+let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
   (* The role of this function is not only to type-check but also to assign
    * meaningful levels to type variables, and unify the types of
    * all occurrences of the same variable, since the parser does not do it. *)
@@ -702,7 +702,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
   let mk t = T.make ~level ~pos t in
   let mkg t = mk (T.Ground t) in
   let check_fun ~proto ~env e body =
-    let base_check = check ~level ~env in
+    let base_check = check ~throw ~level ~env in
     let proto_t, env, level =
       List.fold_left
         (fun (p, env, level) -> function
@@ -723,14 +723,14 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
         ([], env, level) proto
     in
     let proto_t = List.rev proto_t in
-    check ~level ~env body;
+    check ~throw ~level ~env body;
     e.t >: mk (T.Arrow (proto_t, body.t))
   in
   match e.term with
     | Ground g -> e.t >: mkg (Ground.to_type g)
     | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
     | List l ->
-        List.iter (fun x -> check ~level ~env x) l;
+        List.iter (fun x -> check ~throw ~level ~env x) l;
         let a = T.fresh_evar ~level ~pos in
         (* Ensure that we have common methods. *)
         let () =
@@ -774,15 +774,15 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
           l;
         e.t >: mk (T.List a)
     | Tuple l ->
-        List.iter (fun a -> check ~level ~env a) l;
+        List.iter (fun a -> check ~throw ~level ~env a) l;
         e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
     | Null -> e.t >: mk (T.Nullable (T.fresh_evar ~level ~pos))
     | Meth (l, a, b) ->
-        check ~level ~env a;
-        check ~level ~env b;
+        check ~throw ~level ~env a;
+        check ~throw ~level ~env b;
         e.t >: mk (T.Meth (l, (T.generalizable ~level a.t, a.t), b.t))
     | Invoke (a, l) ->
-        check ~level ~env a;
+        check ~throw ~level ~env a;
         let rec aux t =
           match (T.deref t).T.descr with
             | T.Meth (l', (generalized, b), c) ->
@@ -798,7 +798,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
         in
         e.t >: aux a.t
     | Open (a, b) ->
-        check ~level ~env a;
+        check ~throw ~level ~env a;
         a.t <: mk T.unit;
         let rec aux env t =
           match (T.deref t).T.descr with
@@ -806,16 +806,16 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
             | _ -> env
         in
         let env = aux env a.t in
-        check ~level ~env b;
+        check ~throw ~level ~env b;
         e.t >: b.t
     | Seq (a, b) ->
-        check ~env ~level a;
-        if not (can_ignore a.t) then raise (Ignored a);
-        check ~print_toplevel ~level ~env b;
+        check ~throw ~env ~level a;
+        if not (can_ignore a.t) then throw (Ignored a);
+        check ~print_toplevel ~throw ~level ~env b;
         e.t >: b.t
     | App (a, l) -> (
-        check ~level ~env a;
-        List.iter (fun (_, b) -> check ~env ~level b) l;
+        check ~throw ~level ~env a;
+        List.iter (fun (_, b) -> check ~throw ~env ~level b) l;
 
         (* If [a] is known to have a function type, manually dig through
          * it for better error messages. Otherwise generate its type
@@ -868,7 +868,7 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n" var
             (T.deref e.t).T.level (T.print orig) (T.print e.t)
     | Let ({ pat; replace; def; body; _ } as l) ->
-        check ~level ~env def;
+        check ~throw ~level ~env def;
         let generalized =
           if value_restriction def then (
             let f x t =
@@ -919,18 +919,18 @@ let rec check ?(print_toplevel = false) ~level ~(env : T.env) e =
                  if l >= max then name else name ^ String.make (max - l) ' ')
                 (T.pp_type_generalized generalized)
                 def.t);
-        check ~print_toplevel ~level:(level + 1) ~env body;
+        check ~print_toplevel ~throw ~level:(level + 1) ~env body;
         e.t >: body.t
 
 (* The simple definition for external use. *)
-let check ?(ignored = false) e =
+let check ?(ignored = false) ~throw e =
   let print_toplevel = !Configure.display_types in
   try
     let env = default_typing_environment () in
-    check ~print_toplevel ~level:(List.length env) ~env e;
+    check ~print_toplevel ~throw ~level:(List.length env) ~env e;
     if print_toplevel && (T.deref e.t).T.descr <> T.unit then
       add_task (fun () -> Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t);
-    if ignored && not (can_ignore e.t) then raise (Ignored e);
+    if ignored && not (can_ignore e.t) then throw (Ignored e);
     pop_tasks ()
   with e ->
     let bt = Printexc.get_raw_backtrace () in

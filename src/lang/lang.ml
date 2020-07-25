@@ -561,16 +561,16 @@ let error ?(pos = []) ?message kind =
 
 (** {1 Parsing} *)
 
-let type_and_run ~lib ast =
+let type_and_run ~throw ~lib ast =
   Clock.collect_after (fun () ->
       if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
       (* Type checking *)
-      Term.check ~ignored:true ast;
+      Term.check ~throw ~ignored:true ast;
 
       if Lazy.force Term.debug then
         Printf.eprintf "Checking for unused variables...\n%!";
       (* Check for unused variables, relies on types *)
-      Term.check_unused ~lib ast;
+      Term.check_unused ~throw ~lib ast;
       if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
       ignore (Term.eval_toplevel ast))
 
@@ -592,9 +592,9 @@ let from_in_channel ?(dir = Unix.getcwd ()) ?(parse_only = false) ~ns ~lib
     | None -> ()
   end;
   try
-    Lang_errors.report lexbuf (fun () ->
+    Lang_errors.report lexbuf (fun ~throw () ->
         let expr = mk_expr ~pwd:dir Lang_parser.program lexbuf in
-        if not parse_only then type_and_run ~lib expr)
+        if not parse_only then type_and_run ~throw ~lib expr)
   with Lang_errors.Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
@@ -624,7 +624,8 @@ let eval s =
     let lexbuf = Sedlexing.Utf8.from_string s in
     let expr = mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf in
     Clock.collect_after (fun () ->
-        Term.check ~ignored:false expr;
+        Lang_errors.report lexbuf (fun ~throw () ->
+            Term.check ~throw ~ignored:false expr);
         Some (Term.eval expr))
   with e ->
     Printf.eprintf "Evaluating %S failed: %s!" s (Printexc.to_string e);
@@ -672,12 +673,12 @@ let interactive () =
     Format.printf "# %!";
     if
       try
-        Lang_errors.report lexbuf (fun () ->
+        Lang_errors.report lexbuf (fun ~throw () ->
             let expr =
               mk_expr ~pwd:(Unix.getcwd ()) Lang_parser.interactive lexbuf
             in
-            Term.check ~ignored:false expr;
-            Term.check_unused ~lib:true expr;
+            Term.check ~throw ~ignored:false expr;
+            Term.check_unused ~throw ~lib:true expr;
             Clock.collect_after (fun () ->
                 ignore (Term.eval_toplevel ~interactive:true expr)));
         true
