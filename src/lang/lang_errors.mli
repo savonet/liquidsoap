@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Runtime error, should eventually disappear. *)
-exception Invalid_value of Lang_values.V.value*string
+exception Invalid_value of Lang_values.V.value * string
 
 exception Clock_conflict of (Lang_types.pos option * string * string)
 exception Clock_loop of (Lang_types.pos option * string * string)
@@ -33,4 +33,4 @@ exception Error
 (** Raise errors for warnings. *)
 val strict : bool ref
 
-val report : Sedlexing.lexbuf -> (unit -> unit) -> unit
+val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit
