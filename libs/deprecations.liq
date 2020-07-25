@@ -274,6 +274,7 @@ end
 def file.unlink(filename)
   deprecated("file.unlink", "file.remove")
   file.remove(filename)
+end
 
 # Deprecated: was designed for transitions only and is not
 # needed anymore
