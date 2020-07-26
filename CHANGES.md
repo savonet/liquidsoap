@@ -6,7 +6,8 @@ Fixed:
 - Fixed exponential memory usage in clock unification algorithm (#1272).
 - Fixed rotate source order (#1279).
 - Fixed invalid new track duration in `crossfade` when track ends while buffering (#1074).
-- Make sure warnings do not prevent the script from running (#994)
+- Make sure warnings do not prevent the script from running (#994).
+- Fixed seek implementation in FFMPEG decoder (#1291).
 
 1.4.2 (03-05-2020)
 =====

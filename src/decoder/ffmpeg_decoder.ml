@@ -53,20 +53,19 @@ let duration file =
 exception End_of_file
 
 let create_decoder fname =
-  let remaining = ref (Frame.master_of_seconds (duration fname)) in
+  let duration = Frame.master_of_seconds (duration fname) in
+  let consumed = ref 0 in
   let container = FFmpeg.Av.open_input fname in
   (* Only audio for now *)
   let _, stream, codec = FFmpeg.Av.find_best_audio_stream container in
   let sample_freq = FFmpeg.Avcodec.Audio.get_sample_rate codec in
   let channel_layout = FFmpeg.Avcodec.Audio.get_channel_layout codec in
   let target_sample_rate = Lazy.force Frame.audio_rate in
-  let decr_remaining, get_remaining =
+  let add_consumed, get_remaining =
     let m = Mutex.create () in
-    let decr_remaining =
-      Tutils.mutexify m (fun v -> remaining := !remaining - v)
-    in
-    let get_remaining = Tutils.mutexify m (fun () -> !remaining) in
-    (decr_remaining, get_remaining)
+    let add_consumed = Tutils.mutexify m (fun v -> consumed := !consumed + v) in
+    let get_remaining = Tutils.mutexify m (fun () -> duration - !consumed) in
+    (add_consumed, get_remaining)
   in
   let in_sample_format = ref (FFmpeg.Avcodec.Audio.get_sample_format codec) in
   let mk_converter () =
@@ -85,11 +84,11 @@ let create_decoder fname =
     end;
     let data = Converter.convert !converter frame in
     let consumed = Frame.master_of_audio (Array.length data.(0)) in
-    decr_remaining consumed;
+    add_consumed consumed;
     data
   in
   let seek ticks =
-    let position = Frame.seconds_of_master ticks in
+    let position = Frame.seconds_of_master (!consumed + ticks) in
     let position = Int64.of_float (position *. 1000.) in
     try
       FFmpeg.Av.seek stream `Millisecond position [||];
