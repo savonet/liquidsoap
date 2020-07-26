@@ -322,7 +322,12 @@ let create_decoder ~ctype fname =
   in
   let close () = Av.close container in
   ( {
-      Decoder.seek = seek ~audio ~video;
+      Decoder.seek =
+        (fun ticks ->
+          let ticks =
+            ticks + Frame.master_of_seconds duration - get_remaining ()
+          in
+          seek ~audio ~video ticks);
       decode = mk_decoder ?audio ?video container;
     },
     close,
