@@ -111,6 +111,9 @@ Changed:
 - `ref` is not a keyword anymore: this means that `ref x` is not accepted
   anymore, you need to write `ref(x)` (#1254).
 - Renamed `file.unlink` to `file.remove`.
+- Renamed `http_codes` to `http.codes` and put first member as integer.
+- Renamed `http_response` to `http.response` and `http_response_stream` to
+  `http.response.stream`.
 
 Fixed:
 

@@ -3,16 +3,16 @@
 
 %include "http_codes.liq"
 
-# Create a HTTP response string
+# Create a HTTP response string.
 # @category Interaction
 # @param ~protocol HTTP protocol used.
 # @param ~code Response code.
 # @param ~headers Response headers.
 # @param ~data Response data
-def http_response(~protocol="HTTP/1.1",
+def http.response(~protocol="HTTP/1.1",
                   ~code=200,~headers=[],
                   ~data="") = 
-  status = http_codes[string_of(code)]
+  status = http.codes[code]
   # Set content-length and connection: close
   headers = 
     list.append(headers, 
@@ -43,18 +43,18 @@ def http_response(~protocol="HTTP/1.1",
   resp
 end
 
-# Create a streamed HTTP response
+# Create a streamed HTTP response.
 # @category Interaction
 # @param ~protocol HTTP protocol used.
 # @param ~code Response code.
 # @param ~headers Response headers.
 # @param ~data_len Response length in bytes
 # @param ~data Response data
-def http_response_stream(
+def http.response.stream(
          ~protocol="HTTP/1.1",
          ~code=200,~headers=[],
          ~data_len,~data) =         
-  status = http_codes[string_of(code)]
+  status = http.codes[code]
   # Set content-length and connection: close
   headers =
     list.append(headers,
@@ -105,7 +105,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
     ret = string.extract(pattern="^#{basepath}([^?]*)",uri)
 
     if list.length(ret) == 0 then
-      http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
+      http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
     else
       match = string.trim(ret[1])
 
@@ -121,12 +121,12 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
         end
 
         if method == "OPTIONS" or method == "HEAD" then
-          http_response(protocol=protocol,code=200,headers=responseHeaders)
+          http.response(protocol=protocol,code=200,headers=responseHeaders)
         else
-          http_response_stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(fname),data=file.read(fname))
+          http.response.stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(fname),data=file.read(fname))
         end
       else
-        http_response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
+        http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
       end
     end
   end
