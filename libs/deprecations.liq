@@ -298,11 +298,44 @@ def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
 end
 
 # Deprecated: was designed for transitions only and is not
-# needed anymore
+# needed anymore.
 # @flag hidden
 def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
   deprecated("fade.initial", "fade.in")  
 
   fn = mkfade(start=0.,stop=1.,type=type,duration=duration,s)
   fade.scale(id=id,fn,s)
+end
+
+# Deprecated: use `process.read` instead.
+# @flag hidden
+def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+  deprecated("get_process_output", "process.read")
+
+  stdout = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  string(stdout)
+end
+
+# Deprecated: use `process.read.lines` instead.
+# @flag hidden
+def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+  deprecated("get_process_lines", "process.read.lines")
+
+  process.read.lines(timeout=timeout, env=env, inherit_env=inherit_env, command)
+end
+
+# Deprecated: use `process.test` instead.
+# @flag hidden
+def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+  deprecated("test_process", "process.test")
+
+  process.test(timeout=timeout, env=env, inherit_env=inherit_env, command)
+end
+
+# Deprecated: use `process.run` instead.
+# @flag hidden
+def system(command) =
+  deprecated("system", "process.run")
+
+  process.run(command)
 end

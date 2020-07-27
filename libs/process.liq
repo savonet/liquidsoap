@@ -1,12 +1,12 @@
-# Perform a shell call and return its output.
+# Perform a shell call and return the list of its output lines.
 # @category System
 # @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
 # @param ~env Process environment
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to run
-def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  let (stdout, _, _) = run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)
-  stdout
+def process.read(~timeout=(-1.),~env=[],~inherit_env=true,command)
+  p = process.run(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  p.stdout
 end
 
 # Perform a shell call and return the list of its output lines.
@@ -15,8 +15,9 @@ end
 # @param ~env Process environment
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to run
-def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  string.split(separator="\r?\n",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
+def process.read.lines(~timeout=(-1.),~env=[],~inherit_env=true,command)
+  s = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  string.split(separator="\r?\n", s)
 end
 
 # Return true if process exited with 0 code.
@@ -25,9 +26,9 @@ end
 # @param ~env Process environment
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to test
-def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  let (_, _, status) = run_process(timeout=timeout,env=env,command)
-  status == ("exit","0")
+def process.test(~timeout=(-1.),~env=[],~inherit_env=true,command)
+  p = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  p.status == "exit"
 end
 
 # Read some value from standard input (console).
@@ -35,11 +36,11 @@ end
 # @param ~hide Hide typed characters (for passwords).
 def read(~hide=false)
   if hide then
-    system("stty -echo")
+    process.run("stty -echo")
   end
-  s = list.hd(default="",get_process_lines("read BLA && echo $BLA"))
+  s = list.hd(default="", process.read.lines("read BLA && echo $BLA"))
   if hide then
-    system("stty echo")
+    process.run("stty echo")
   end
   print("")
   s

@@ -30,7 +30,7 @@ def enable_external_ffmpeg_decoder() =
   mime_types = get(default=[],"decoder.mime_types.ffmpeg")
 
   def ffprobe_test(fname) =
-    json = get_process_output("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
+    json = process.read("#{ffprobe} -print_format json -show_streams #{string.quote(fname)}")
     default = [("streams",[[("channels",0)]])]
     data = of_json(default=default,json)
     streams = list.assoc(default=[],"streams",data)
@@ -71,7 +71,7 @@ def enable_external_mpc_decoder() =
     def get_channels(file) =
       int_of_string(
         list.hd(default="",
-          get_process_lines("#{mpcdec} -i #{string.quote(file)} 2>&1 \
+          process.read.lines("#{mpcdec} -i #{string.quote(file)} 2>&1 \
                              | grep channels | cut -d' ' -f 2")))
     end
     # Get the file's mime
@@ -130,7 +130,7 @@ def enable_external_flac_decoder() =
     def test_flac(fname) =
       if file.which(metaflac) != "" then
         channels = list.hd(default="",
-                           get_process_lines("#{metaflac} \
+                           process.read.lines("#{metaflac} \
                                               --show-channels #{string.quote(fname)}"))
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
@@ -155,7 +155,7 @@ def enable_external_flac_decoder() =
     log(label="decoder.external","Enabling EXTERNAL_FLAC metadata \
                 resolver.")
     def flac_meta(fname)
-      ret = get_process_lines("#{metaflac} --export-tags-to=- \
+      ret = process.read.lines("#{metaflac} --export-tags-to=- \
                    #{string.quote(fname)}")
       ret = list.map(string.split(separator="="),ret)
       # Could be made better..
@@ -228,7 +228,7 @@ def enable_external_faad_decoder() =
     def test_faad(file) =
       if faad_test(file) then
         channels = list.hd(default="",
-                           get_process_lines("#{faad} -i #{string.quote(file)} 2>&1 | \
+                           process.read.lines("#{faad} -i #{string.quote(file)} 2>&1 | \
                                               grep 'ch,'"))
         ret = string.extract(pattern=", (\\d) ch,",channels)
         ret =
@@ -248,8 +248,7 @@ def enable_external_faad_decoder() =
                           the faad binary.", test=test_faad, faad_p)
     def faad_meta(file) =
       if faad_test(file) then
-        ret = get_process_lines("#{faad} -i \
-                     #{string.quote(file)} 2>&1")
+        ret = process.read.lines("#{faad} -i #{string.quote(file)} 2>&1")
         # Yea, this is ugly programming (again)!
         def get_meta(l,s)=
           ret = string.extract(pattern="^(\\w+):\\s(.+)$",s)
@@ -296,7 +295,7 @@ def osd_metadata(~color="green",~position="top",
   osd = 'osd_cat -p #{position} --font #{string.quote(font)}'
       ^ ' --color #{color}'
   def feedback(m)
-    system("echo #{string.quote(display(m))} | #{osd} &")
+    ignore(process.run("echo #{string.quote(display(m))} | #{osd} &"))
   end
   on_metadata(feedback,s)
 end
@@ -314,7 +313,7 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
            ~title="Liquidsoap: new track",s)
   send = 'notify-send -i #{icon} -u #{urgency}'
        ^ ' -t #{time} #{string.quote(title)} '
-  on_metadata(fun (m) -> system(send^string.quote(display(m))),s)
+  on_metadata(fun (m) -> ignore(process.run(send^string.quote(display(m)))),s)
 end
 
 %ifdef input.external.wav

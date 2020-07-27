@@ -111,6 +111,8 @@ Changed:
 - `ref` is not a keyword anymore: this means that `ref x` is not accepted
   anymore, you need to write `ref(x)` (#1254).
 - Renamed `file.unlink` to `file.remove`.
+- Deprecated `get_process_output`, `get_process_lines`, `test_process` and
+  `system` in favor of `process.run`, `process.read` and `process.read.lines`.
 
 Fixed:
 

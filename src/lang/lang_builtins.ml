@@ -488,12 +488,6 @@ let () =
       Lang.unit)
 
 let () =
-  add_builtin "system" ~cat:Sys [("", Lang.string_t, None, None)]
-    Lang.unit_t ~descr:"Shell command call." (fun p ->
-      ignore (Unix.system (Lang.to_string (List.assoc "" p)));
-      Lang.unit)
-
-let () =
   add_builtin "getpid" ~cat:Sys [] Lang.int_t ~descr:"Get the process' pid."
     (fun _ -> Lang.int (Unix.getpid ()))
 

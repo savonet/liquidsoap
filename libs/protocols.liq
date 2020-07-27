@@ -63,13 +63,13 @@ def process_protocol(~rlog,~maxtime,arg)
     inherit_env = get(default=true,"protocol.process.inherit_env")
 
     delay = maxtime - gettimeofday()
-    let (stdout,stderr,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
-    if status == ("exit","0") then
+    p = process.read(timeout=delay,env=env,inherit_env=inherit_env,cmd)
+    if p.status == "exit" then
       [output]
     else
-      log.important("Failed to execute #{cmd}: #{status}")
-      log.info("Standard output:\n#{stdout}")
-      log.info("Error output:\n#{stderr}")
+      log.important("Failed to execute #{cmd}: #{p.status}")
+      log.info("Standard output:\n#{p.stdout}")
+      log.info("Error output:\n#{p.stderr}")
       log.info("Removing #{output}.")
       file.remove(output)
       []
@@ -143,14 +143,13 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
   def get_mime() =
     cmd = "#{curl} -sLI -X HEAD #{string.quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
     log(level=4,"Running #{cmd}")
-    ret = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
-    let (stdout,_,(status,code)) = ret
-    if status != "exit" or code != "0" then
+    p = process.read(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
+    if p.status != "exit" or p.signal != 0 then
       log(level=3,"Failed to fetch mime-type for #{uri} via curl.")
-      log(level=4,"Process return status: #{ret}")
+      log(level=4,"Process return status: #{p.status_code}")
       ""
     else
-      lines = string.split(separator="\\n",stdout)
+      lines = string.split(separator="\\n", p.stdout)
       string.case(lower=true,string.trim(list.hd(default="",lines)))
     end
   end
@@ -238,7 +237,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   delay = maxtime - gettimeofday()
   cmd = "#{binary} --get-title --get-filename -- #{string.quote(arg)}"
   log(level=4,"Executing #{cmd}")
-  x = get_process_lines(timeout=delay,cmd)
+  x = process.read.lines(timeout=delay,cmd)
 
   x =
     if list.length(x) >= 2 then
@@ -322,7 +321,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     cmd = "#{ffmpeg} -i #{string.quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
     delay = maxtime - gettimeofday()
     log(level=4,"Executing #{cmd}")
-    lines = get_process_lines(timeout=delay,cmd)
+    lines = process.read.lines(timeout=delay,cmd)
     def f(cur,line) =
       m = string.split(separator="=",line)
       if list.length(m) >= 2 then
