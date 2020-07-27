@@ -793,7 +793,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
                    enough for records. *)
                 let x = T.fresh_evar ~level ~pos in
                 let y = T.fresh_evar ~level ~pos in
-                a.t >: mk (T.Meth (l, ([], x), y));
+                a.t <: mk (T.Meth (l, ([], x), y));
                 x
         in
         e.t >: aux a.t
