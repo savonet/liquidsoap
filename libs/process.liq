@@ -1,4 +1,4 @@
-# Perform a shell call and return the list of its output lines.
+# Perform a shell call and return its output.
 # @category System
 # @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
 # @param ~env Process environment
