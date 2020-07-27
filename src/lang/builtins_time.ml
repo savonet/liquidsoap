@@ -45,10 +45,32 @@ let () =
   add_builtin ~cat:Sys "time"
     ~descr:
       "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
-    Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()));
-  let t = Lang.univ_t () in
-  let execute cb tm =
-    Lang.apply cb
+    Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
+
+(* TODO: this is a duplicate of time above, we should deprecate one... *)
+let () =
+  add_builtin "gettimeofday" ~cat:Sys [] Lang.float_t
+    ~descr:
+      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
+    (fun _ -> Lang.float (Unix.gettimeofday ()))
+
+let () =
+  let time_t =
+    Lang.record_t
+      [
+        ("sec", Lang.int_t);
+        ("min", Lang.int_t);
+        ("hour", Lang.int_t);
+        ("mday", Lang.int_t);
+        ("mon", Lang.int_t);
+        ("year", Lang.int_t);
+        ("wday", Lang.int_t);
+        ("yday", Lang.int_t);
+        ("isdst", Lang.bool_t);
+      ]
+  in
+  let return tm =
+    Lang.record
       [
         ("sec", Lang.int tm.Unix.tm_sec);
         ("min", Lang.int tm.Unix.tm_min);
@@ -61,39 +83,20 @@ let () =
         ("isdst", Lang.bool tm.Unix.tm_isdst);
       ]
   in
-  let fn_t =
-    Lang.fun_t
-      [
-        (false, "sec", Lang.int_t);
-        (false, "min", Lang.int_t);
-        (false, "hour", Lang.int_t);
-        (false, "mday", Lang.int_t);
-        (false, "mon", Lang.int_t);
-        (false, "year", Lang.int_t);
-        (false, "wday", Lang.int_t);
-        (false, "yday", Lang.int_t);
-        (false, "isdst", Lang.bool_t);
-      ]
-      t
-  in
   add_builtin ~cat:Sys "localtime"
     ~descr:
-      "Convert a time in seconds into a date in the local time zone and \
-       execute passed callback with the result. Fields meaning same as POSIX's \
-       `tm struct`. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
-    [("", Lang.float_t, None, None); ("", fn_t, None, None)] t (fun p ->
-      let tm = Unix.localtime (Lang.to_float (Lang.assoc "" 1 p)) in
-      let fn = Lang.assoc "" 2 p in
-      execute fn tm);
+      "Convert a time in seconds into a date in the local time zone. Fields \
+       meaning same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, \
+       i.e. 117 for 2017!" [("", Lang.float_t, None, None)] time_t (fun p ->
+      let tm = Unix.localtime (Lang.to_float (List.assoc "" p)) in
+      return tm);
   add_builtin ~cat:Sys "gmtime"
     ~descr:
-      "Convert a time in seconds into a date in the UTC time zone and execute \
-       passed callback with the result. Fields meaning same as POSIX's `tm \
-       struct`. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
-    [("", Lang.float_t, None, None); ("", fn_t, None, None)] t (fun p ->
-      let tm = Unix.localtime (Lang.to_float (Lang.assoc "" 1 p)) in
-      let fn = Lang.assoc "" 2 p in
-      execute fn tm);
+      "Convert a time in seconds into a date in the UTC time zone. Fields \
+       meaning same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, \
+       i.e. 117 for 2017!" [("", Lang.float_t, None, None)] time_t (fun p ->
+      let tm = Unix.gmtime (Lang.to_float (List.assoc "" p)) in
+      return tm);
   add_builtin ~cat:Liq "source.time"
     ~descr:"Get a source's time, based on its assigned clock"
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
@@ -108,10 +111,3 @@ let () =
       let frame_position = Lazy.force Frame.duration *. float ticks in
       let in_frame_position = Frame.seconds_of_master (Frame.position s#memo) in
       Lang.float (frame_position +. in_frame_position))
-
-(* TODO: this is a duplicate of time above, we should deprecate one... *)
-let () =
-  add_builtin "gettimeofday" ~cat:Sys [] Lang.float_t
-    ~descr:
-      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
-    (fun _ -> Lang.float (Unix.gettimeofday ()))

@@ -114,6 +114,7 @@ Changed:
 - Renamed `http_codes` to `http.codes` and put first member as integer.
 - Renamed `http_response` to `http.response` and `http_response_stream` to
   `http.response.stream`.
+- `localtime` and `gmtime` now return a record.
 
 Fixed:
 
