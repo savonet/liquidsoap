@@ -312,8 +312,7 @@ end
 def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
   deprecated("get_process_output", "process.read")
 
-  p = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
-  p.stdout
+  process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
 end
 
 # Deprecated: use `process.read.lines` instead.
