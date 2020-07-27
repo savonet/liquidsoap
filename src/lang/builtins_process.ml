@@ -64,8 +64,8 @@ let () =
         path_t,
         Some (Lang.list [Lang.string "default"]),
         Some
-          "Read-only directories for sandboxing (sandbox default if not \
-           specified)." );
+          "Read-only directories for sandboxing `\"default\"` expands to \
+           sandbox default." );
       ( "network",
         Lang.nullable_t Lang.bool_t,
         Some Lang.null,
