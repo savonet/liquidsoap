@@ -28,7 +28,7 @@ end
 # @param command Command to test
 def process.test(~timeout=(-1.),~env=[],~inherit_env=true,command)
   p = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
-  p.status == "exit"
+  p.status == "exit" and p.status.code == 0
 end
 
 # Read some value from standard input (console).
