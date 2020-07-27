@@ -27,8 +27,8 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to test
 def process.test(~timeout=(-1.),~env=[],~inherit_env=true,command)
-  p = process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
-  p.status == "exit" and p.status.code == 0
+  p = process.run(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  string(p.status) == "exit" and p.status.code == 0
 end
 
 # Read some value from standard input (console).
