@@ -108,3 +108,10 @@ let () =
       let frame_position = Lazy.force Frame.duration *. float ticks in
       let in_frame_position = Frame.seconds_of_master (Frame.position s#memo) in
       Lang.float (frame_position +. in_frame_position))
+
+(* TODO: this is a duplicate of time above, we should deprecate one... *)
+let () =
+  add_builtin "gettimeofday" ~cat:Sys [] Lang.float_t
+    ~descr:
+      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
+    (fun _ -> Lang.float (Unix.gettimeofday ()))

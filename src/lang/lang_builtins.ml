@@ -498,12 +498,6 @@ let () =
     (fun _ -> Lang.int (Unix.getpid ()))
 
 let () =
-  add_builtin "gettimeofday" ~cat:Sys [] Lang.float_t
-    ~descr:
-      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
-    (fun _ -> Lang.float (Unix.gettimeofday ()))
-
-let () =
   let ss = Lang.product_t Lang.string_t Lang.string_t in
   let ret_t = Lang.list_t ss in
   add_builtin "environment" ~cat:Sys ~descr:"Return the process environment." []
