@@ -63,8 +63,8 @@ def process_protocol(~rlog,~maxtime,arg)
     inherit_env = get(default=true,"protocol.process.inherit_env")
 
     delay = maxtime - gettimeofday()
-    p = process.read(timeout=delay,env=env,inherit_env=inherit_env,cmd)
-    if p.status == "exit" then
+    p = process.run(timeout=delay,env=env,inherit_env=inherit_env,cmd)
+    if "exit" == p.status then
       [output]
     else
       log.important("Failed to execute #{cmd}: #{p.status}")
@@ -143,10 +143,10 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
   def get_mime() =
     cmd = "#{curl} -sLI -X HEAD #{string.quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
     log(level=4,"Running #{cmd}")
-    p = process.read(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
-    if p.status != "exit" or p.signal != 0 then
+    p = process.run(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
+    if "exit" != p.status or p.status.code != 0 then
       log(level=3,"Failed to fetch mime-type for #{uri} via curl.")
-      log(level=4,"Process return status: #{p.status_code}")
+      log(level=4,"Process return status: #{p.status.code}")
       ""
     else
       lines = string.split(separator="\\n", p.stdout)
