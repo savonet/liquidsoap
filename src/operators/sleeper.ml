@@ -61,16 +61,18 @@ let () =
         Lang.float_t,
         Some (Lang.float 1.),
         Some
-          "Amount of time to sleep at each frame, the unit being the frame \
-           length." );
+          "Amount of time to sleep, in seconds per second of produced audio \
+           data." );
       ( "random",
         Lang.float_t,
         Some (Lang.float 0.),
-        Some "Maximal random amount of time added in seconds." );
+        Some "Maximal random amount of time added." );
       ( "freeze",
         Lang.float_t,
         Some (Lang.float (-1.)),
-        Some "Freeze after given amount of time (don't freeze if negative)." );
+        Some
+          "Freeze after given amount of time in seconds (don't freeze if \
+           negative)." );
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k
@@ -79,7 +81,9 @@ let () =
     ~flags:[Lang.Hidden; Lang.Experimental]
     (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
+      let delay = AFrame.duration () *. delay in
       let random = Lang.to_float (List.assoc "random" p) in
+      let random = AFrame.duration () *. random in
       let freeze = Lang.to_float (List.assoc "freeze" p) in
       let src = Lang.to_source (List.assoc "" p) in
       new map ~kind src delay random freeze)
