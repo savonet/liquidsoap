@@ -38,7 +38,7 @@ module BaseCopySpecs = struct
   let param_of_string _ _ = None
 
   let bytes data =
-    List.fold_left (fun c (_, { packet }) -> c + Packet.size packet) 0 !data
+    List.fold_left (fun c (_, { packet }) -> c + Packet.get_size packet) 0 !data
 
   let blit ~pos src src_pos dst dst_pos len =
     let src_start = pos src_pos in

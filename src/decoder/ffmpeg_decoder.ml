@@ -192,12 +192,13 @@ let get_type ~ctype ~url container =
     (Frame.string_of_content_type ctype);
   ctype
 
-let seek ~audio ~video ticks =
-  let position = Frame.seconds_of_master ticks in
-  let position = Int64.of_float (position *. 1000.) in
+let seek ~audio ~video ~target_position ticks =
+  target_position := Frame.seconds_of_master ticks;
+  log#debug "Setting target position to %f" !target_position;
+  let position = Int64.of_float (!target_position *. 1000.) in
   let seek stream =
     try
-      Av.seek stream `Millisecond position [||];
+      Av.seek stream `Millisecond position [| Av.Seek_flag_backward |];
       ticks
     with Avutil.Error _ -> 0
   in
@@ -208,7 +209,7 @@ let seek ~audio ~video ticks =
     | _, Some (`Frame (_, s, _)) -> seek s
     | _ -> raise No_stream
 
-let mk_decoder ?audio ?video container =
+let mk_decoder ?audio ?video ?target_position container =
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
   let pack (idx, stream, decoder) = (idx, [stream], decoder) in
   let ( (audio_frame_idx, audio_frame, audio_frame_decoder),
@@ -225,23 +226,47 @@ let mk_decoder ?audio ?video container =
       | Some (`Packet packet) -> (no_decoder, pack packet)
       | Some (`Frame frame) -> (pack frame, no_decoder)
   in
+  let check_pts stream pts =
+    match (pts, target_position) with
+      | Some pts, Some target_position ->
+          let { Avutil.num; den } = Av.get_time_base stream in
+          let position = Int64.to_float pts *. float num /. float den in
+          if position < !target_position then
+            log#debug
+              "Current position: %f is less than target position: %f, \
+               skipping.."
+              position !target_position;
+          !target_position < position
+      | _ -> true
+  in
   fun buffer ->
-    match
-      Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-        container
-    with
-      | `Audio_frame (i, frame) when i = audio_frame_idx ->
-          audio_frame_decoder ~buffer frame
-      | `Audio_packet (i, packet) when i = audio_packet_idx ->
-          audio_packet_decoder ~buffer packet
-      | `Video_frame (i, frame) when i = video_frame_idx ->
-          video_frame_decoder ~buffer frame
-      | `Video_packet (i, packet) when i = video_packet_idx ->
-          video_packet_decoder ~buffer packet
-      | _ -> ()
-      | exception Avutil.Error `Eof ->
-          Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
-          raise End_of_file
+    let rec f () =
+      match
+        Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
+          container
+      with
+        | `Audio_frame (i, frame) when i = audio_frame_idx ->
+            if check_pts (List.hd audio_frame) (Avutil.frame_pts frame) then
+              audio_frame_decoder ~buffer frame
+            else f ()
+        | `Audio_packet (i, packet) when i = audio_packet_idx ->
+            if check_pts (List.hd audio_packet) (Avcodec.Packet.get_pts packet)
+            then audio_packet_decoder ~buffer packet
+            else f ()
+        | `Video_frame (i, frame) when i = video_frame_idx ->
+            if check_pts (List.hd video_frame) (Avutil.frame_pts frame) then
+              video_frame_decoder ~buffer frame
+            else f ()
+        | `Video_packet (i, packet) when i = video_packet_idx ->
+            if check_pts (List.hd video_packet) (Avcodec.Packet.get_pts packet)
+            then video_packet_decoder ~buffer packet
+            else f ()
+        | _ -> ()
+        | exception Avutil.Error `Eof ->
+            Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
+            raise End_of_file
+    in
+    f ()
 
 let mk_streams ~ctype container =
   let audio =
@@ -321,14 +346,15 @@ let create_decoder ~ctype fname =
       | None -> None
   in
   let close () = Av.close container in
+  let target_position = ref 0. in
   ( {
       Decoder.seek =
         (fun ticks ->
           let ticks =
             ticks + Frame.master_of_seconds duration - get_remaining ()
           in
-          seek ~audio ~video ticks);
-      decode = mk_decoder ?audio ?video container;
+          seek ~audio ~video ~target_position ticks);
+      decode = mk_decoder ?audio ?video ~target_position container;
     },
     close,
     get_remaining )
@@ -345,9 +371,10 @@ let create_stream_decoder ~ctype _ input =
   in
   let container = Av.open_input_stream ?seek:seek_input input.Decoder.read in
   let audio, video = mk_streams ~ctype container in
+  let target_position = ref 0. in
   {
-    Decoder.seek = seek ~audio ~video;
-    decode = mk_decoder ?audio ?video container;
+    Decoder.seek = seek ~audio ~video ~target_position;
+    decode = mk_decoder ?audio ?video ~target_position container;
   }
 
 let get_file_type ~ctype filename =
