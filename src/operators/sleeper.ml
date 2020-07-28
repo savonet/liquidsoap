@@ -66,7 +66,7 @@ let () =
       ( "random",
         Lang.float_t,
         Some (Lang.float 0.),
-        Some "Maximal random amount of time added (unit is frame length)." );
+        Some "Maximal random amount of time added in seconds." );
       ( "freeze",
         Lang.float_t,
         Some (Lang.float (-1.)),
@@ -79,9 +79,7 @@ let () =
     ~flags:[Lang.Hidden; Lang.Experimental]
     (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
-      let delay = AFrame.duration () *. delay in
       let random = Lang.to_float (List.assoc "random" p) in
-      let random = AFrame.duration () *. random in
       let freeze = Lang.to_float (List.assoc "freeze" p) in
       let src = Lang.to_source (List.assoc "" p) in
       new map ~kind src delay random freeze)
