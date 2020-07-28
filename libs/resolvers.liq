@@ -2,12 +2,12 @@
 def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
                        ~delay,file)
   log = log.info(label="extract.replaygain")
-  let (stdout, stderr, status) = run_process("#{extract_replaygain} #{string.quote(file)}")
-  stdout = string.replace(pattern='\\n',fun (_) -> "",stdout)
-  stderr = string.replace(pattern='\\n',fun (_) -> "",stderr)
-  if status == ("exit","0") then
+  p = process.read("#{extract_replaygain} #{string.quote(file)}")
+  stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)
+  if p.status == "exit" then
     stdout
   else
+    stderr = string.replace(pattern='\\n', fun (_) -> "", p.stderr)
     log("Replaygain extraction by #{extract_replaygain} failed with: #{stderr}")
     ""
   end
@@ -46,7 +46,7 @@ def youtube_playlist_parser(~pwd="",url) =
 
   if string.match(pattern="^youtube-pl:",url) then
     uri = list.nth(default="",string.split(separator=":",url),1)
-    list.map(parse_line, get_process_lines("#{binary} -j --flat-playlist #{uri}"))
+    list.map(parse_line, process.read.lines("#{binary} -j --flat-playlist #{uri}"))
   else
     []
   end

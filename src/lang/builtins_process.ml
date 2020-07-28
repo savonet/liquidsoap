@@ -23,21 +23,29 @@
 open Lang_builtins
 
 let log = Log.make ["lang"; "run_process"]
+let () = Lang.add_module "process"
 
 let () =
   let ret_t =
-    Lang.tuple_t
-      [Lang.string_t; Lang.string_t; Lang.product_t Lang.string_t Lang.string_t]
+    Lang.record_t
+      [
+        ("stdout", Lang.string_t);
+        ("stderr", Lang.string_t);
+        ( "status",
+          Lang.method_t Lang.string_t
+            [("code", ([], Lang.int_t)); ("description", ([], Lang.string_t))]
+        );
+      ]
   in
   let env_t = Lang.product_t Lang.string_t Lang.string_t in
   let path_t = Lang.list_t Lang.string_t in
-  add_builtin "run_process" ~cat:Sys
+  add_builtin "process.run" ~cat:Sys
     ~descr:
-      "Run a process in a shell environment. Returns: \
-       `((stdout,stderr,status)` where status is one of: `(\"exit\",\"\")`, \
-       `(\"killed\",\"<signal number>\")`, `(\"stopped\",\"<signal \
-       number>\")`, `(\"exception\",\"<exception description>\")`, \
-       `(\"timeout\",\"<run time>\")`."
+      "Run a process in a shell environment. Returns the standard output, as \
+       well as standard error and status. The status can be \"exit\" (the \
+       status code is set), \"killed\" or \"stopped\" (the status code is the \
+       signal), or \"exception\" (the description is set) or \"timeout\" (the \
+       description is the run time)."
     [
       ("env", Lang.list_t env_t, Some (Lang.list []), Some "Process environment");
       ( "inherit_env",
@@ -56,15 +64,14 @@ let () =
         path_t,
         Some (Lang.list [Lang.string "default"]),
         Some
-          "Read-only directories for sandboxing. `\"default\"` expands to \
+          "Read-only directories for sandboxing `\"default\"` expands to \
            sandbox default." );
       ( "network",
-        Lang.string_t,
-        Some (Lang.string "default"),
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
         Some
-          "Enable or disable network inside sandboxed environment. One of: \
-           `\"default\"`, `\"true\"` or `\"false\"`. `\"default\"` is sandbox \
-           default." );
+          "Enable or disable network inside sandboxed environment (sandbox \
+           default if not specified)." );
       ( "timeout",
         Lang.float_t,
         Some (Lang.float (-1.)),
@@ -101,15 +108,9 @@ let () =
           [] sandbox_ro
       in
       let sandbox_network =
-        let v = List.assoc "network" p in
-        match Lang.to_string v with
-          | "default" -> Sandbox.conf_network#get
-          | "true" -> true
-          | "false" -> false
-          | _ ->
-              raise
-                (Lang_errors.Invalid_value
-                   (v, "should be one of: \"default\", \"true\" or \"false\""))
+        match Lang.to_option (List.assoc "network" p) with
+          | None -> Sandbox.conf_network#get
+          | Some v -> Lang.to_bool v
       in
       let inherit_env = Lang.to_bool (List.assoc "inherit_env" p) in
       let env = if env = [] && inherit_env then Utils.environment () else env in
@@ -126,22 +127,27 @@ let () =
       let on_done (timed_out, status) =
         let stdout = Buffer.contents out_buf in
         let stderr = Buffer.contents err_buf in
-        let status, arg =
+        let status, code, description =
           match (timed_out, status) with
-            | f, _ when 0. <= f -> ("timeout", string_of_float f)
-            | _, Some (`Exception e) -> ("exception", Printexc.to_string e)
+            | f, _ when 0. <= f -> ("timeout", -1, string_of_float f)
+            | _, Some (`Exception e) -> ("exception", -1, Printexc.to_string e)
             | _, Some (`Status s) -> (
                 match s with
-                  | Unix.WEXITED c -> ("exit", string_of_int c)
-                  | Unix.WSIGNALED s -> ("killed", string_of_int s)
-                  | Unix.WSTOPPED s -> ("stopped", string_of_int s) )
+                  | Unix.WEXITED c -> ("exit", c, "")
+                  | Unix.WSIGNALED s -> ("killed", s, "")
+                  | Unix.WSTOPPED s -> ("stopped", s, "") )
             | _ -> assert false
         in
-        Lang.tuple
+        Lang.record
           [
-            Lang.string stdout;
-            Lang.string stderr;
-            Lang.product (Lang.string status) (Lang.string arg);
+            ("stdout", Lang.string stdout);
+            ("stderr", Lang.string stderr);
+            ( "status",
+              Lang.meth (Lang.string status)
+                [
+                  ("code", Lang.int code);
+                  ("description", Lang.string description);
+                ] );
           ]
       in
       let synchronous () =

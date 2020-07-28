@@ -23,7 +23,14 @@
 open Lang_builtins
 
 let () =
-  Lang.add_module "string";
+  add_builtin "string" ~cat:String
+    ~descr:
+      "Ensure that we have a string (useful for removing fields from strings)."
+    [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
+      let s = Lang.to_string (List.assoc "" p) in
+      Lang.string s)
+
+let () =
   Lang.add_module "string.utf8";
   Lang.add_module "string.base64";
   Lang.add_module "url"

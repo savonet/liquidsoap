@@ -37,8 +37,8 @@ end
 # @param file The file to test
 def get_mime(fname) =
   def file_method(fname) =
-    if test_process("which file") then
-      list.hd(default="",get_process_lines("file -b --mime-type #{string.quote(fname)}"))
+    if process.test("which file") then
+      list.hd(default="", process.read.lines("file -b --mime-type #{string.quote(fname)}"))
     else
       ""
     end
