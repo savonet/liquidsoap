@@ -87,11 +87,13 @@ let create_decoder fname =
     add_consumed consumed;
     data
   in
+  let target_position = ref 0. in
   let seek ticks =
-    let position = Frame.seconds_of_master (!consumed + ticks) in
-    let position = Int64.of_float (position *. 1000.) in
+    target_position := Frame.seconds_of_master (!consumed + ticks);
+    let position = Int64.of_float (!target_position *. 1000.) in
     try
-      FFmpeg.Av.seek stream `Millisecond position [||];
+      FFmpeg.Av.seek stream `Millisecond position
+        [| FFmpeg.Av.Seek_flag_backward |];
       ticks
     with FFmpeg.Avutil.Error _ -> 0
   in
@@ -101,10 +103,21 @@ let create_decoder fname =
   in
   let decode gen =
     try
-      let frame = read_frame () in
-      let content = convert frame in
-      G.set_mode gen `Audio;
-      G.put_audio gen content 0 (Array.length content.(0))
+      let rec f () =
+        let frame = read_frame () in
+        let decode () =
+          let content = convert frame in
+          G.set_mode gen `Audio;
+          G.put_audio gen content 0 (Array.length content.(0))
+        in
+        match FFmpeg.Avutil.frame_pts frame with
+          | Some pts ->
+              let { FFmpeg.Avutil.num; den } = FFmpeg.Av.get_time_base stream in
+              let position = Int64.to_float pts *. float num /. float den in
+              if position < !target_position then f () else decode ()
+          | None -> decode ()
+      in
+      f ()
     with FFmpeg.Avutil.Error `Eof ->
       G.add_break gen;
       raise End_of_file
