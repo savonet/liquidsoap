@@ -127,7 +127,7 @@ class dssi ~kind ?chan plugin descr outputs params source =
 let () =
   Lang.add_module "dssi";
   Lang.add_module "synth.dssi";
-  Lang.add_module "synth.dssi.all"
+  Lang.add_module "synth.all.dssi"
 
 let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
