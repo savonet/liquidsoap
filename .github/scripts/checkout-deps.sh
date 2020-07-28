@@ -3,7 +3,7 @@
 CWD=`dirname $0`
 BASEDIR=`cd $CWD/../../.. && pwd`
 
-git log --pretty=format:%b origin/master..HEAD | grep '^DEPS=' | cut -d'=' -f 2  | tr ":" "\n" | while read i; do \
+git log --reverse --pretty=format:%b origin/master..HEAD | grep '^DEPS=' | cut -d'=' -f 2  | tr ":" "\n" | while read i; do \
   MODULE=`echo "$i" | cut -d'#' -f 1`
   COMMIT=`echo "$i" | cut -d'#' -f 2` 
   echo "Checking out dep $MODULE on commit $COMMIT"
