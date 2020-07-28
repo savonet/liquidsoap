@@ -61,16 +61,18 @@ let () =
         Lang.float_t,
         Some (Lang.float 1.),
         Some
-          "Amount of time to sleep at each frame, the unit being the frame \
-           length." );
+          "Amount of time to sleep, in seconds per second of produced audio \
+           data." );
       ( "random",
         Lang.float_t,
         Some (Lang.float 0.),
-        Some "Maximal random amount of time added (unit is frame length)." );
+        Some "Maximal random amount of time added." );
       ( "freeze",
         Lang.float_t,
         Some (Lang.float (-1.)),
-        Some "Freeze after given amount of time (don't freeze if negative)." );
+        Some
+          "Freeze after given amount of time in seconds (don't freeze if \
+           negative)." );
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k

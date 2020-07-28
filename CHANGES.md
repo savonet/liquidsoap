@@ -112,7 +112,12 @@ Changed:
   anymore, you need to write `ref(x)` (#1254).
 - Renamed `file.unlink` to `file.remove`.
 - Deprecated `get_process_output`, `get_process_lines`, `test_process` and
-  `system` in favor of `process.run`, `process.read` and `process.read.lines`.
+  `system` in favor of `process.run`, `process.read`, `process.read.lines` and
+  `process.test`.
+- Renamed `http_codes` to `http.codes` and put first member as integer.
+- Renamed `http_response` to `http.response` and `http_response_stream` to
+  `http.response.stream`.
+- `localtime` and `gmtime` now return a record.
 
 Fixed:
 
