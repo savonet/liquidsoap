@@ -4,6 +4,8 @@
 # was retuning remaining = 0 too early,
 # trigering an early `on_end` call.
 
+set("decoder.decoders",["FLAC"])
+
 s = single("../media/files/audio/@flac(stereo).flac")
 
 def f(rem, _) =

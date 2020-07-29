@@ -109,9 +109,11 @@ let duration file =
     ~k:(fun () -> Av.close container)
     (fun () ->
       let duration = Av.get_input_duration container ~format:`Millisecond in
-      Int64.to_float duration /. 1000.)
+      Utils.maybe (fun d -> Int64.to_float d /. 1000.) duration)
 
-let () = Request.dresolvers#register "FFMPEG" duration
+let () =
+  Request.dresolvers#register "FFMPEG" (fun fname ->
+      match duration fname with None -> raise Not_found | Some d -> d)
 
 let get_tags file =
   let container = Av.open_input file in
@@ -298,18 +300,19 @@ let create_decoder ~ctype fname =
   let set_remaining stream pts =
     Tutils.mutexify m
       (fun () ->
-        match pts with
-          | None -> ()
-          | Some pts ->
+        match (duration, pts) with
+          | None, _ | Some _, None -> ()
+          | Some d, Some pts ->
               let { Avutil.num; den } = Av.get_time_base stream in
               let position =
                 Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
               in
-              remaining := duration -. position)
+              remaining := Some (d -. position))
       ()
   in
   let get_remaining =
-    Tutils.mutexify m (fun () -> Frame.master_of_seconds !remaining)
+    Tutils.mutexify m (fun () ->
+        match !remaining with None -> -1 | Some r -> Frame.master_of_seconds r)
   in
   let container = Av.open_input fname in
   let audio, video = mk_streams ~ctype container in
@@ -350,10 +353,13 @@ let create_decoder ~ctype fname =
   ( {
       Decoder.seek =
         (fun ticks ->
-          let ticks =
-            ticks + Frame.master_of_seconds duration - get_remaining ()
-          in
-          seek ~audio ~video ~target_position ticks);
+          match duration with
+            | None -> -1
+            | Some d ->
+                let ticks =
+                  ticks + Frame.master_of_seconds d - get_remaining ()
+                in
+                seek ~audio ~video ~target_position ticks);
       decode = mk_decoder ?audio ?video ~target_position container;
     },
     close,
