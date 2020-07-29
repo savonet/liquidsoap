@@ -22,27 +22,41 @@
 
 type stereo_mode = Default | Stereo | Joint_stereo
 
-type abr = {
+type bitrate_constraints = {
+  quality : int option;
   min_bitrate : int option;
-  mean_bitrate : int;
+  mean_bitrate : int option;
   max_bitrate : int option;
-  hard_min : bool;
+  hard_min : bool option;
 }
 
-let string_of_abr x =
-  let f v x =
-    match x with Some x -> Printf.sprintf "%s=%i," v x | None -> ""
+let string_of_bitrate_constraints
+    { quality; min_bitrate; mean_bitrate; max_bitrate; hard_min } =
+  let hard_min =
+    Printf.sprintf "hard_min=%s"
+      (match hard_min with None -> "none" | Some b -> string_of_bool b)
   in
-  Printf.sprintf "bitrate=%d,%s%shard_min=%b" x.mean_bitrate
-    (f "min_bitrate" x.min_bitrate)
-    (f "max_bitrate" x.max_bitrate)
-    x.hard_min
+  let f (v, x) =
+    Printf.sprintf "%s=%s" v
+      (match x with Some x -> string_of_int x | None -> "none")
+  in
+  String.concat ","
+    ( List.map f
+        [
+          ("quality", quality);
+          ("bitrate", mean_bitrate);
+          ("min_bitrate", min_bitrate);
+          ("max_bitrate", max_bitrate);
+        ]
+    @ [hard_min] )
 
-type bitrate_control = ABR of abr | VBR of int | CBR of int
+type bitrate_control =
+  | ABR of bitrate_constraints
+  | VBR of bitrate_constraints
+  | CBR of int
 
 let string_of_bitrate_control = function
-  | ABR abr -> string_of_abr abr
-  | VBR q -> Printf.sprintf "quality=%d" q
+  | ABR c | VBR c -> string_of_bitrate_constraints c
   | CBR br -> Printf.sprintf "bitrate=%d" br
 
 type id3v2_export = Meta_format.export_metadata -> string
@@ -76,4 +90,4 @@ let bitrate m =
   match m.bitrate_control with
     | VBR _ -> raise Not_found
     | CBR n -> n * 1000
-    | ABR abr -> abr.mean_bitrate * 1000
+    | ABR c -> Utils.get_some c.mean_bitrate * 1000

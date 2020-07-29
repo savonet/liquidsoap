@@ -53,8 +53,10 @@ module Icecast = struct
         let quality, bitrate =
           match m.Mp3_format.bitrate_control with
             | Mp3_format.CBR x -> (None, Some x)
-            | Mp3_format.ABR x -> (None, Some x.Mp3_format.mean_bitrate)
-            | Mp3_format.VBR q -> (Some (string_of_int q), None)
+            | Mp3_format.ABR x -> (None, x.Mp3_format.mean_bitrate)
+            | Mp3_format.VBR x ->
+                ( Some (string_of_int (Utils.get_some x.Mp3_format.quality)),
+                  None )
         in
         {
           quality;

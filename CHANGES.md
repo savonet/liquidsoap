@@ -1,6 +1,9 @@
 1.4.3 (unreleased)
 =====
 
+New:
+- Allow to set min/max/bitrate in mp3 vbr mode (#1294).
+
 Fixed:
 
 - Fixed exponential memory usage in clock unification algorithm (#1272).
