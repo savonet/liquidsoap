@@ -149,21 +149,32 @@ module Register (Lame : Lame_t) = struct
           | Mp3_format.Stereo -> Lame.set_mode enc Lame.Stereo
           | Mp3_format.Joint_stereo -> Lame.set_mode enc Lame.Joint_stereo );
       begin
+        let apply_constaints enc
+            {
+              Mp3_format.quality;
+              mean_bitrate;
+              min_bitrate;
+              max_bitrate;
+              hard_min;
+            } =
+          let f (s, v) = match v with Some v -> s enc v | None -> () in
+          f (Lame.set_vbr_hard_min, hard_min);
+          List.iter f
+            [
+              (Lame.set_vbr_quality, quality);
+              (Lame.set_vbr_mean_bitrate, mean_bitrate);
+              (Lame.set_vbr_min_bitrate, min_bitrate);
+              (Lame.set_vbr_max_bitrate, max_bitrate);
+            ]
+        in
         match mp3.Mp3_format.bitrate_control with
-        | Mp3_format.VBR quality ->
-            Lame.set_vbr_mode enc Lame.Vbr_mtrh;
-            Lame.set_vbr_quality enc quality
-        | Mp3_format.CBR br -> Lame.set_brate enc br
-        | Mp3_format.ABR abr -> (
-            Lame.set_vbr_mode enc Lame.Vbr_abr;
-            Lame.set_vbr_mean_bitrate enc abr.Mp3_format.mean_bitrate;
-            Lame.set_vbr_hard_min enc abr.Mp3_format.hard_min;
-            ( match abr.Mp3_format.min_bitrate with
-              | Some br -> Lame.set_vbr_min_bitrate enc br
-              | None -> () );
-            match abr.Mp3_format.max_bitrate with
-              | Some br -> Lame.set_vbr_max_bitrate enc br
-              | None -> () )
+          | Mp3_format.VBR c ->
+              Lame.set_vbr_mode enc Lame.Vbr_mtrh;
+              apply_constaints enc c
+          | Mp3_format.CBR br -> Lame.set_brate enc br
+          | Mp3_format.ABR c ->
+              Lame.set_vbr_mode enc Lame.Vbr_abr;
+              apply_constaints enc c
       end;
       Lame.set_out_samplerate enc (Lazy.force mp3.Mp3_format.samplerate);
       Lame.init_params enc;
