@@ -470,9 +470,18 @@ let () =
 let () =
   add_builtin "string_of" ~cat:String
     ~descr:"Return the representation of a value."
-    [("", Lang.univ_t (), None, None)]
+    [
+      ( "fields",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Show toplevel fields around the value." );
+      ("", Lang.univ_t (), None, None);
+    ]
     Lang.string_t
     (fun p ->
-      match List.assoc "" p with
+      let show_fields = Lang.to_bool (List.assoc "fields" p) in
+      let v = List.assoc "" p in
+      let v = if show_fields then v else Lang.demeth v in
+      match v with
         | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
         | v -> Lang.string (Lang.print_value v))
