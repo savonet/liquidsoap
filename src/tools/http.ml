@@ -364,7 +364,7 @@ module Make (Transport : Transport_t) = struct
       let s = Bytes.create rem in
       let n = Transport.read socket s 0 rem in
       Buffer.add_subbytes buf s 0 n;
-      if Buffer.length buf = len then Buffer.contents buf else f ()
+      if n = 0 || Buffer.length buf = len then Buffer.contents buf else f ()
     in
     f ()
 
