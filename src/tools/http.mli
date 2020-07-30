@@ -99,6 +99,7 @@ module type Http_t = sig
   val get :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     connection ->
     uri ->
@@ -109,6 +110,7 @@ module type Http_t = sig
   val post :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     string ->
     connection ->
@@ -120,6 +122,7 @@ module type Http_t = sig
   val put :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     string ->
     connection ->
@@ -131,6 +134,7 @@ module type Http_t = sig
   val head :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     connection ->
     uri ->
@@ -141,6 +145,7 @@ module type Http_t = sig
   val delete :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     connection ->
     uri ->
@@ -159,6 +164,7 @@ module type Http_t = sig
   val full_request :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     uri:uri ->
     request:request ->
