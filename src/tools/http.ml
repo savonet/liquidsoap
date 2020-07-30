@@ -486,7 +486,7 @@ module Make (Transport : Transport_t) = struct
               headers
           with
             | Some _ ->
-                let buf = Buffer.create Utils.pagesize in
+                let buf = Buffer.create 1096 in
                 let rec f () =
                   match read_chunked ~timeout connection with
                     | _, 0 -> Buffer.contents buf
