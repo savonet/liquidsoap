@@ -99,6 +99,7 @@ module type Http_t = sig
   val get :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     connection ->
     uri ->
@@ -107,6 +108,7 @@ module type Http_t = sig
   val post :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     string ->
     connection ->
@@ -116,6 +118,7 @@ module type Http_t = sig
   val put :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     string ->
     connection ->
@@ -125,6 +128,7 @@ module type Http_t = sig
   val head :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     connection ->
     uri ->
@@ -133,6 +137,7 @@ module type Http_t = sig
   val delete :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     connection ->
     uri ->
@@ -146,6 +151,7 @@ module type Http_t = sig
   val full_request :
     ?headers:(string * string) list ->
     ?log:(string -> unit) ->
+    ?http_version:string ->
     timeout:float ->
     uri:uri ->
     request:request ->
@@ -347,22 +353,29 @@ module Make (Transport : Transport_t) = struct
     done;
     Buffer.contents ans
 
+  let really_read ~timeout socket len =
+    let start_time = Unix.gettimeofday () in
+    let buf = Buffer.create len in
+    let rec f () =
+      let now = Unix.gettimeofday () in
+      let remaining = start_time +. timeout -. now in
+      if remaining <= 0. then failwith "timeout!";
+      Transport.wait_for (`Read socket) remaining;
+      let rem = len - Buffer.length buf in
+      let s = Bytes.create rem in
+      let n = Transport.read socket s 0 rem in
+      Buffer.add_subbytes buf s 0 n;
+      if Buffer.length buf = len then Buffer.contents buf else f ()
+    in
+    f ()
+
   (* Read chunked transfer. *)
   let read_chunked ~timeout socket =
     let read = read_crlf ~count:1 ~timeout socket in
     let len = List.hd (Pcre.split ~pat:"[\r]?\n" read) in
     let len = List.hd (Pcre.split ~pat:";" len) in
     let len = int_of_string ("0x" ^ len) in
-    let buf = Buffer.create len in
-    let rec f () =
-      let rem = len - Buffer.length buf in
-      assert (0 < rem);
-      let s = Bytes.create rem in
-      let n = Transport.read socket s 0 rem in
-      Buffer.add_subbytes buf s 0 n;
-      if Buffer.length buf = len then Buffer.contents buf else f ()
-    in
-    let s = f () in
+    let s = really_read socket ~timeout len in
     ignore (read_crlf ~count:1 ~timeout socket);
     (s, len)
 
@@ -407,9 +420,11 @@ module Make (Transport : Transport_t) = struct
 
   let data_of_request = function Post d | Put d -> d | _ -> assert false
 
-  let http_req ?(headers = []) request uri =
+  let http_req ?(headers = []) ?(http_version = "1.0") request uri =
     let req =
-      Printf.sprintf "%s %s HTTP/1.0\r\n" (method_of_request request) uri.path
+      Printf.sprintf "%s %s HTTP/%s\r\n"
+        (method_of_request request)
+        uri.path http_version
     in
     let req =
       match uri.port with
@@ -432,50 +447,66 @@ module Make (Transport : Transport_t) = struct
         (String.length data) data )
     else Printf.sprintf "%s\r\n" req
 
-  let execute ?(headers = []) ?log ~timeout socket action uri =
-    let req = http_req ~headers action uri in
+  let execute ?(headers = []) ?log ?http_version ~timeout socket action uri =
+    let req = http_req ~headers ?http_version action uri in
     request ?log ~timeout socket req
 
-  let get ?headers ?log ~timeout socket uri =
-    execute ?headers ?log ~timeout socket Get uri
+  let get ?headers ?log ?http_version ~timeout socket uri =
+    execute ?headers ?log ?http_version ~timeout socket Get uri
 
-  let head ?headers ?log ~timeout socket uri =
-    execute ?headers ?log ~timeout socket Head uri
+  let head ?headers ?log ?http_version ~timeout socket uri =
+    execute ?headers ?log ?http_version ~timeout socket Head uri
 
-  let delete ?headers ?log ~timeout socket uri =
-    execute ?headers ?log ~timeout socket Delete uri
+  let delete ?headers ?log ?http_version ~timeout socket uri =
+    execute ?headers ?log ?http_version ~timeout socket Delete uri
 
-  let post ?headers ?log ~timeout data socket uri =
-    execute ?headers ?log ~timeout socket (Post data) uri
+  let post ?headers ?log ?http_version ~timeout data socket uri =
+    execute ?headers ?log ?http_version ~timeout socket (Post data) uri
 
-  let put ?headers ?log ~timeout data socket uri =
-    execute ?headers ?log ~timeout socket (Put data) uri
+  let put ?headers ?log ?http_version ~timeout data socket uri =
+    execute ?headers ?log ?http_version ~timeout socket (Put data) uri
 
-  let full_request ?headers ?(log = fun _ -> ()) ~timeout ~uri ~request () =
+  let full_request ?headers ?(log = fun _ -> ()) ?http_version ~timeout ~uri
+      ~request () =
     let port = match uri.port with Some port -> port | None -> default_port in
     let connection = Transport.connect uri.host port in
     Tutils.finalize
       ~k:(fun () -> Transport.disconnect connection)
       (fun () ->
         let execute request =
-          execute ?headers ~log ~timeout connection request uri
+          execute ?headers ~log ?http_version ~timeout connection request uri
         in
         (* We raise an error if the statuses are not correct. *)
         let status, headers = execute request in
-        let max =
-          try
-            let _, len =
-              List.find
-                (fun (l, _) -> String.lowercase_ascii l = "content-length")
-                headers
-            in
-            int_of_string len
-          with _ -> max_int
+        let body =
+          match
+            List.find_opt
+              (fun (l, v) ->
+                String.lowercase_ascii l = "transfer-encoding" && v = "chunked")
+              headers
+          with
+            | Some _ ->
+                let buf = Buffer.create Utils.pagesize in
+                let rec f () =
+                  match read_chunked ~timeout connection with
+                    | _, 0 -> Buffer.contents buf
+                    | c, _ ->
+                        Buffer.add_string buf c;
+                        f ()
+                in
+                f ()
+            | None -> (
+                try
+                  let _, len =
+                    List.find
+                      (fun (l, _) ->
+                        String.lowercase_ascii l = "content-length")
+                      headers
+                  in
+                  really_read ~timeout connection (int_of_string len)
+                with _ -> "" )
         in
-        let ret = read_crlf ~log ~timeout ~max connection in
-        ( status,
-          headers,
-          Pcre.substitute ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret ))
+        (status, headers, body))
 end
 
 module Http_request = Make (Unix_transport)

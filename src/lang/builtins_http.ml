@@ -41,6 +41,10 @@ let add_http_request http name descr request =
           headers_t,
           Some (Lang.list ~t:header_t []),
           Some "Additional headers." );
+        ( "http_version",
+          Lang.string_t,
+          Some (Lang.string "1.0"),
+          Some "Http request version." );
         ( "timeout",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -60,6 +64,7 @@ let add_http_request http name descr request =
         List.map (fun (x, y) -> (Lang.to_string x, Lang.to_string y)) headers
       in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let http_version = Lang.to_string (List.assoc "http_version" p) in
       let url = Lang.to_string (List.assoc "" p) in
       let (x, y, z), headers, data =
         try
@@ -77,7 +82,8 @@ let add_http_request http name descr request =
               | Delete -> Http.Delete
           in
           let log s = log#info "%s" s in
-          Http.full_request ~log ~timeout ~headers ~uri ~request ()
+          Http.full_request ~log ~timeout ~headers ~uri ~request ~http_version
+            ()
         with e ->
           (* Here we return a fake code.. *)
           ( ("Internal error", 999, "Internal error"),

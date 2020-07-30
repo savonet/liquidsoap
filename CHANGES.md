@@ -3,6 +3,7 @@
 
 New:
 - Allow to set min/max/bitrate in mp3 vbr mode (#1294).
+- Added optional `http_version` parameters to `http{s}.*` methods.
 
 Fixed:
 
@@ -11,6 +12,7 @@ Fixed:
 - Fixed invalid new track duration in `crossfade` when track ends while buffering (#1074).
 - Make sure warnings do not prevent the script from running (#994).
 - Fixed seek implementation in FFMPEG decoder (#1291).
+- Fixed `http{s}.*` request body reader (#1300).
 
 1.4.2 (03-05-2020)
 =====
