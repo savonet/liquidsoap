@@ -38,14 +38,14 @@ let conf_log = Dtools.Conf.void ~p:(conf_ffmpeg#plug "log") "Log configuration"
 let conf_verbosity =
   Dtools.Conf.string
     ~p:(conf_log#plug "verbosity")
-    "Verbosity" ~d:"quiet"
+    "Verbosity" ~d:"warning"
     ~comments:
       [
         "Set FFMPEG log level, one of: \"quiet\", \"panic\", \"fatal\"";
         "\"error\", \"warning\", \"info\", \"verbose\" or \"debug\"";
       ]
 
-let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
+let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:3
 
 let conf_scaling_algorithm =
   Dtools.Conf.string
@@ -57,7 +57,6 @@ let conf_scaling_algorithm =
         "\"bilinear\" or \"bicubic\".";
       ]
 
-(*
 let () =
   ignore
     (Dtools.Init.at_start (fun () ->
@@ -78,7 +77,6 @@ let () =
          let level = conf_level#get in
          Avutil.Log.set_level verbosity;
          Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s))))
-*)
 
 module Fps = struct
   type t = ([ `Video ] Avfilter.input * [ `Video ] Avfilter.output) option
