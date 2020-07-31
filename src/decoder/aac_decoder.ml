@@ -123,7 +123,7 @@ let create_decoder input =
           end;
           drop pos;
 
-          buffer.Decoder.put_audio ~samplerate data ));
+          buffer.Decoder.put_pcm ~samplerate data ));
   }
 
 let aac_mime_types =
@@ -143,7 +143,7 @@ let aac_priority =
     "Priority for the AAC decoder" ~d:1
 
 (* Get the number of channels of audio in an AAC file. *)
-let file_type filename =
+let file_type ~ctype:_ filename =
   let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o644 in
   Tutils.finalize
     ~k:(fun () -> Unix.close fd)
@@ -178,7 +178,7 @@ let () =
       mime_types = (fun () -> Some aac_mime_types#get);
       file_type;
       file_decoder = Some file_decoder;
-      stream_decoder = Some (fun _ -> create_decoder);
+      stream_decoder = Some (fun ~ctype:_ _ -> create_decoder);
     }
 
 (* Mp4 decoding. *)
@@ -205,7 +205,7 @@ let create_decoder input =
     begin
       try pos := !pos + Audio.length data with _ -> ()
     end;
-    buffer.Decoder.put_audio ~samplerate data
+    buffer.Decoder.put_pcm ~samplerate data
   in
   let seek ticks =
     try
@@ -224,7 +224,7 @@ let create_decoder input =
   { Decoder.decode; seek }
 
 (* Get the number of channels of audio in an MP4 file. *)
-let file_type filename =
+let file_type ~ctype:_ filename =
   let dec = Faad.create () in
   let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o644 in
   Tutils.finalize
@@ -273,7 +273,7 @@ let () =
       mime_types = (fun () -> Some mp4_mime_types#get);
       file_type;
       file_decoder = Some file_decoder;
-      stream_decoder = Some (fun _ -> create_decoder);
+      stream_decoder = Some (fun ~ctype:_ _ -> create_decoder);
     }
 
 let log = Log.make ["metadata"; "mp4"]

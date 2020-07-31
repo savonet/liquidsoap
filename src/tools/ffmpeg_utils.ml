@@ -57,6 +57,7 @@ let conf_scaling_algorithm =
         "\"bilinear\" or \"bicubic\".";
       ]
 
+(*
 let () =
   ignore
     (Dtools.Init.at_start (fun () ->
@@ -77,6 +78,7 @@ let () =
          let level = conf_level#get in
          Avutil.Log.set_level verbosity;
          Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s))))
+*)
 
 module Fps = struct
   type t = ([ `Video ] Avfilter.input * [ `Video ] Avfilter.output) option
@@ -153,21 +155,16 @@ module Fps = struct
           flush ()
 end
 
-(* The following two are meant to be used for liq internally only!
-   In particular, we accept a time base with several video frames per
-   unit, i.e. time base = 3/60 with fps = 60 and liq internal frame
-   holding 3 video frames per frame. This is because, internally, we
-   gather frame additively and only care on liq frame synchronization,
-   dropping all video frames contained in a liq frame that is out of
-   sync. *)
+let liq_audio_sample_time_base () =
+  { Avutil.num = 1; den = Lazy.force Frame.audio_rate }
 
-let liq_internal_audio_time_base () =
-  { Avutil.num = AFrame.size (); den = Lazy.force Frame.audio_rate }
+let liq_video_sample_time_base () =
+  { Avutil.num = 1; den = Lazy.force Frame.video_rate }
 
-let liq_internal_video_time_base () =
-  { Avutil.num = VFrame.size (); den = Lazy.force Frame.video_rate }
+let liq_frame_time_base () =
+  { Avutil.num = Lazy.force Frame.size; den = Lazy.force Frame.master_rate }
 
-let convert_pts ~src ~dst pts =
+let convert_time_base ~src ~dst pts =
   let num = src.Avutil.num * dst.Avutil.den in
   let den = src.Avutil.den * dst.Avutil.num in
   Int64.div (Int64.mul pts (Int64.of_int num)) (Int64.of_int den)

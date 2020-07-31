@@ -26,18 +26,12 @@ val conf_log : Dtools.Conf.ut
 val conf_verbosity : string Dtools.Conf.t
 val conf_level : int Dtools.Conf.t
 val conf_scaling_algorithm : string Dtools.Conf.t
+val liq_audio_sample_time_base : unit -> Avutil.rational
+val liq_video_sample_time_base : unit -> Avutil.rational
+val liq_frame_time_base : unit -> Avutil.rational
 
-(* The following two are meant to be used for liq internally only!
-   In particular, we accept a time base with several video frames per
-   unit, i.e. time base = 3/60 with fps = 60 and liq internal frame
-   holding 3 video frames per frame. This is because, internally, we
-   gather frame additively and only care on liq frame synchronization,
-   dropping all video frames contained in a liq frame that is out of
-   sync. *)
-
-val liq_internal_audio_time_base : unit -> Avutil.rational
-val liq_internal_video_time_base : unit -> Avutil.rational
-val convert_pts : src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
+val convert_time_base :
+  src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
 
 module Fps : sig
   type t

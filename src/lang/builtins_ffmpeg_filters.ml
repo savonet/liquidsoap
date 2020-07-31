@@ -206,7 +206,7 @@ let abuffer_args channels =
   in
   [
     `Pair ("sample_rate", `Int sample_rate);
-    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_internal_audio_time_base ()));
+    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_frame_time_base ()));
     `Pair ("channels", `Int channels);
     `Pair ("channel_layout", `Int (Avutil.Channel_layout.get_id channel_layout));
     `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id `Dbl));
@@ -218,7 +218,7 @@ let buffer_args () =
   let height = Lazy.force Frame.video_height in
   [
     `Pair ("frame_rate", `Int frame_rate);
-    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_internal_video_time_base ()));
+    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_frame_time_base ()));
     `Pair ("pixel_aspect", `Int 1);
     `Pair ("width", `Int width);
     `Pair ("height", `Int height);

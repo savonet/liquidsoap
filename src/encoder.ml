@@ -57,9 +57,24 @@ let kind_of_format = function
   | Shine m -> audio_kind m.Shine_format.channels
   | Flac m -> audio_kind m.Flac_format.channels
   | Ffmpeg m ->
-      let channels = m.Ffmpeg_format.channels in
-      if m.Ffmpeg_format.video_codec = None then audio_kind channels
-      else audio_video_kind channels
+      let audio =
+        match m.Ffmpeg_format.audio_codec with
+          | None -> Frame.none
+          | Some `Copy -> `Format (Ffmpeg_content.AudioCopy.lift_params [])
+          | Some (`Encode _) ->
+              let channels = m.Ffmpeg_format.channels in
+              assert (channels > 0);
+              `Format
+                (Frame_content.Audio.lift_params
+                   [Audio_converter.Channel_layout.layout_of_channels channels])
+      in
+      let video =
+        match m.Ffmpeg_format.video_codec with
+          | None -> Frame.none
+          | Some `Copy -> `Format (Ffmpeg_content.VideoCopy.lift_params [])
+          | Some (`Encode _) -> `Format (Frame_content.Video.lift_params [])
+      in
+      { Frame.audio; video; midi = Frame.none }
   | FdkAacEnc m -> audio_kind m.Fdkaac_format.channels
   | Ogg { Ogg_format.audio; video } ->
       let channels =

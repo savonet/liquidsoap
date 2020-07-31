@@ -37,6 +37,7 @@ module type ContentSpecs = sig
   val blit : data -> int -> data -> int -> int -> unit
   val bytes : data -> int
   val copy : data -> data
+  val clear : data -> unit
   val params : data -> param list
   val merge : param list -> param list -> param list
   val string_of_param : param -> string
@@ -137,6 +138,7 @@ type data_handler = {
   bytes : unit -> int;
   copy : unit -> data;
   format : unit -> format;
+  clear : unit -> unit;
 }
 
 let data_handlers = Queue.create ()
@@ -161,6 +163,7 @@ let blit src src_ofs dst dst_ofs len =
 let bytes c = (get_data_handler c).bytes ()
 let copy c = (get_data_handler c).copy ()
 let format c = (get_data_handler c).format ()
+let clear c = (get_data_handler c).clear ()
 let kind p = (get_params_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
 let merge p p' = (get_params_handler p).merge p'
@@ -233,6 +236,7 @@ module MkContent (C : ContentSpecs) :
               copy = (fun () -> Data (C.copy d));
               bytes = (fun () -> C.bytes d);
               format = (fun () -> Format (Unifier.make (C.params d)));
+              clear = (fun () -> C.clear d);
             }
       | _ -> None)
 
@@ -255,6 +259,7 @@ module NoneSpecs = struct
   type data = unit
 
   let make _ = ()
+  let clear _ = ()
   let blit _ _ _ _ _ = ()
   let bytes _ = 0
   let copy _ = ()
@@ -335,6 +340,8 @@ module AudioSpecs = struct
   let default_params _ =
     [param_of_channels (Lazy.force Frame_settings.audio_channels)]
 
+  let clear _ = ()
+
   let make l =
     let channels =
       match l with
@@ -372,6 +379,7 @@ module VideoSpecs = struct
 
   let string_of_kind = function `Yuv420p -> "yuv420p"
   let make _ = Video.make (video_of_master !!size) !!video_width !!video_height
+  let clear _ = ()
   let string_of_param _ = assert false
   let param_of_string _ _ = None
   let bytes = Video.size
@@ -426,6 +434,7 @@ module MidiSpecs = struct
   let params m = [`Channels (MIDI.Multitrack.channels m)]
   let kind = `Midi
   let default_params _ = [`Channels (Lazy.force Frame_settings.midi_channels)]
+  let clear _ = ()
 
   let make l =
     let c =

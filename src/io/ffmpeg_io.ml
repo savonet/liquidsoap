@@ -61,21 +61,14 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
         failwith
           (Printf.sprintf "Unrecognized options: %s"
              (Ffmpeg_format.string_of_options opts));
-      let content_type = Ffmpeg_decoder.get_type ~url input in
+      let content_type = Ffmpeg_decoder.get_type ~ctype:self#ctype ~url input in
       if not (Decoder.can_decode_type content_type self#ctype) then
         failwith
           (Printf.sprintf "url %S cannot produce content of type %s" url
              (Frame.string_of_content_type self#ctype));
       container <- Some input;
-      let audio =
-        try Some (Ffmpeg_decoder.mk_audio_decoder input)
-        with Avutil.Error _ -> None
-      in
-      let video =
-        try Some (Ffmpeg_decoder.mk_video_decoder input)
-        with Avutil.Error _ -> None
-      in
-      Ffmpeg_decoder.mk_decoder ~audio ~video ~container:input
+      let audio, video = Ffmpeg_decoder.mk_streams ~ctype:self#ctype input in
+      Ffmpeg_decoder.mk_decoder ?audio ?video input
 
     val mutable kill_feeding = None
 

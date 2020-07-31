@@ -70,7 +70,7 @@ let create ?header input =
       if !remaining <> -1 then remaining := !remaining - bytes;
       if bytes = 0 then raise End_of_stream;
       let content = converter (Bytes.sub_string buf 0 bytes) in
-      buffer.Decoder.put_audio ~samplerate content
+      buffer.Decoder.put_pcm ~samplerate content
   in
   let read_header () =
     let iff_header = Wav_aiff.read_header input_ops input.Decoder.read in
@@ -114,7 +114,7 @@ let create ?header input =
 
 (* File decoding *)
 
-let file_type filename =
+let file_type ~ctype:_ filename =
   let header = Wav_aiff.fopen filename in
   Tutils.finalize
     ~k:(fun () -> Wav_aiff.close header)
@@ -182,7 +182,7 @@ let () =
       mime_types = (fun () -> Some wav_mime_types#get);
       file_type;
       file_decoder = Some create_file_decoder;
-      stream_decoder = Some (fun _ -> create ?header:None);
+      stream_decoder = Some (fun ~ctype:_ _ -> create ?header:None);
     }
 
 let aiff_mime_types =
@@ -211,7 +211,7 @@ let () =
       mime_types = (fun () -> Some aiff_mime_types#get);
       file_type;
       file_decoder = Some create_file_decoder;
-      stream_decoder = Some (fun _ -> create ?header:None);
+      stream_decoder = Some (fun ~ctype:_ _ -> create ?header:None);
     }
 
 let () =
@@ -241,7 +241,8 @@ let () =
       priority = (fun () -> basic_priorities#get);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> Some basic_mime_types#get);
-      file_type = (fun _ -> None);
+      file_type = (fun ~ctype:_ _ -> None);
       file_decoder = None;
-      stream_decoder = Some (fun _ -> create ~header:(`Wav, 8, 2, 8000, -1));
+      stream_decoder =
+        Some (fun ~ctype:_ _ -> create ~header:(`Wav, 8, 2, 8000, -1));
     }

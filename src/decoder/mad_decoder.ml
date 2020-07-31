@@ -101,7 +101,7 @@ let create_decoder input =
       (fun buffer ->
         let data = get_data () in
         let { Mad.samplerate } = get_info () in
-        buffer.Decoder.put_audio ~samplerate data);
+        buffer.Decoder.put_pcm ~samplerate data);
   }
 
 (** Configuration keys for mad. *)
@@ -177,9 +177,9 @@ let () =
       priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
-      file_type;
+      file_type = (fun ~ctype:_ f -> file_type f);
       file_decoder = Some create_file_decoder;
-      stream_decoder = Some (fun _ -> create_decoder);
+      stream_decoder = Some (fun ~ctype:_ _ -> create_decoder);
     }
 
 let check filename =
