@@ -8,14 +8,14 @@ let conf_log = Dtools.Conf.void ~p:(conf_ffmpeg#plug "log") "Log configuration"
 let conf_verbosity =
   Dtools.Conf.string
     ~p:(conf_log#plug "verbosity")
-    "Verbosity" ~d:"quiet"
+    "Verbosity" ~d:"warning"
     ~comments:
       [
         "Set FFMPEG log level, one of: \"quiet\", \"panic\", \"fatal\"";
         "\"error\", \"warning\", \"info\", \"verbose\" or \"debug\"";
       ]
 
-let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
+let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:3
 
 let () =
   ignore

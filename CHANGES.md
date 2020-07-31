@@ -5,6 +5,9 @@ New:
 - Allow to set min/max/bitrate in mp3 vbr mode (#1294).
 - Added optional `http_version` parameters to `http{s}.*` methods.
 
+Change:
+- Fixed default ffmpeg log level.
+
 Fixed:
 
 - Fixed exponential memory usage in clock unification algorithm (#1272).
