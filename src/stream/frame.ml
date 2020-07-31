@@ -554,6 +554,8 @@ let blit src src_pos dst dst_pos len =
 (** Raised by [get_chunk] when no chunk is available. *)
 exception No_chunk
 
+exception Not_equal
+
 (** [get_chunk dst src] gets the (end of) next chunk from [src]
   * (a chunk is a region of a frame between two breaks).
   * Metadata relevant to the copied chunk is copied as well,
@@ -565,10 +567,20 @@ let get_chunk ab from =
     add_break ab i;
     blit from p ab p (i - p);
     (* If the last metadata before [p] differ in [from] and [ab],
-     * copy the one from [from] to [p] in [ab].
-     * Note: equality probably does not make much sense for hash tables,
-     * but even physical equality should work here, it seems.. *)
+     * copy the one from [from] to [p] in [ab]. *)
     begin
+      let is_meta_equal m m' =
+        try
+          if Hashtbl.length m <> Hashtbl.length m' then raise Not_equal;
+          Hashtbl.iter
+            (fun v l ->
+              match Hashtbl.find_opt m' v with
+                | Some l' when l = l' -> ()
+                | _ -> raise Not_equal)
+            m;
+          true
+        with Not_equal -> false
+      in
       let before_p l =
         match
           List.sort
@@ -580,8 +592,9 @@ let get_chunk ab from =
           | x :: _ -> Some (snd x)
       in
       match (before_p from.metadata, before_p ab.metadata) with
-        | Some b, a -> if a <> Some b then set_metadata ab p b
-        | None, _ -> ()
+        | Some b, None -> set_metadata ab p b
+        | Some b, Some a when not (is_meta_equal a b) -> set_metadata ab p b
+        | _ -> ()
     end;
     (* Copy new metadata blocks for this chunk.
      * We exclude blocks at the end of chunk, leaving them to be copied

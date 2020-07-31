@@ -13,6 +13,7 @@ Fixed:
 - Make sure warnings do not prevent the script from running (#994).
 - Fixed seek implementation in FFMPEG decoder (#1291).
 - Fixed `http{s}.*` request body reader (#1300).
+- Fixed duplicate metadata insetion in caching mode (#1241)
 
 1.4.2 (03-05-2020)
 =====
