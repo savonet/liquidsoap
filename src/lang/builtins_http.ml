@@ -28,7 +28,15 @@ let () =
 
 type request = Get | Post | Put | Head | Delete
 
-let add_http_request http name descr request =
+let add_http_error kind =
+  Lang.add_builtin_base ~category:(string_of_category Liq)
+    ~descr:(Printf.sprintf "Base error for %s" kind)
+    (Printf.sprintf "%s.error" kind)
+    (Builtins_error.Error.to_value { Builtins_error.kind; msg = None })
+      .Lang.value Builtins_error.Error.t
+
+let add_http_request http m name descr request =
+  let name = Printf.sprintf "%s.%s" m name in
   let log = Log.make [name] in
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
@@ -93,11 +101,13 @@ let add_http_request http name descr request =
           Http.full_request ~log ~timeout ~headers ~uri ~request ~http_version
             ()
         with e ->
-          (* Here we return a fake code.. *)
-          ( ("Internal error", 999, "Internal error"),
-            [],
-            Printf.sprintf "Error while processing request: %s"
-              (Printexc.to_string e) )
+          raise
+            (Lang_values.Runtime_error
+               {
+                 Lang_values.kind = m;
+                 msg = Some (Printexc.to_string e);
+                 pos = [];
+               })
       in
       let protocol_version = Lang.string protocol_version in
       let status_code = Lang.int status_code in
@@ -117,9 +127,10 @@ let add_http_request http name descr request =
         ])
 
 let () =
+  add_http_error "http";
   let add_http_request = add_http_request (module Http) in
-  add_http_request "http.get" "Perform a full Http GET request." Get;
-  add_http_request "http.post" "Perform a full Http POST request`." Post;
-  add_http_request "http.put" "Perform a full Http PUT request." Put;
-  add_http_request "http.head" "Perform a full Http HEAD request." Head;
-  add_http_request "http.delete" "Perform a full Http DELETE request." Delete
+  add_http_request "http" "get" "Perform a full Http GET request." Get;
+  add_http_request "http" "post" "Perform a full Http POST request`." Post;
+  add_http_request "http" "put" "Perform a full Http PUT request." Put;
+  add_http_request "http" "head" "Perform a full Http HEAD request." Head;
+  add_http_request "http" "delete" "Perform a full Http DELETE request." Delete

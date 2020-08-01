@@ -26,8 +26,10 @@ let () = Lang.add_module "https"
 
 let () =
   let add_http_request = add_http_request (module Https) in
-  add_http_request "https.get" "Perform a full https GET request." Get;
-  add_http_request "https.post" "Perform a full https POST request." Post;
-  add_http_request "https.put" "Perform a full https PUT request." Put;
-  add_http_request "https.head" "Perform a full https HEAD request." Head;
-  add_http_request "https.delete" "Perform a full https DELETE request." Delete
+  add_http_error "https";
+  add_http_request "https" "get" "Perform a full https GET request." Get;
+  add_http_request "https" "post" "Perform a full https POST request." Post;
+  add_http_request "https" "put" "Perform a full https PUT request." Put;
+  add_http_request "https" "head" "Perform a full https HEAD request." Head;
+  add_http_request "https" "delete" "Perform a full https DELETE request."
+    Delete
