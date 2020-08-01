@@ -16,7 +16,23 @@ struct
     Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
     Ssl.set_verify_depth ctx 3;
     ignore (Ssl.set_default_verify_paths ctx);
-    let socket = Ssl.open_connection_with_context ctx socketaddr in
+    let domain =
+      match socketaddr with
+        | Unix.ADDR_UNIX _ -> Unix.PF_UNIX
+        | Unix.ADDR_INET (_, _) -> Unix.PF_INET
+    in
+    let unix_socket = Unix.socket domain Unix.SOCK_STREAM 0 in
+    let socket =
+      try
+        Unix.connect unix_socket socketaddr;
+        let socket = Ssl.embed_socket unix_socket ctx in
+        (try Ssl.set_client_SNI_hostname socket host with _ -> ());
+        Ssl.connect socket;
+        socket
+      with exn ->
+        Unix.close unix_socket;
+        raise exn
+    in
     begin
       match bind_address with
       | None -> ()
