@@ -96,7 +96,17 @@ module AudioSpecs = struct
       sample_rate
 end
 
-module Audio = Frame_content.MkContent (AudioSpecs)
+module Audio = struct
+  include Frame_content.MkContent (AudioSpecs)
+
+  let internal_params () =
+    {
+      AudioSpecs.channel_layout =
+        Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels);
+      sample_format = `Dbl;
+      sample_rate = Lazy.force Frame.audio_rate;
+    }
+end
 
 module VideoSpecs = struct
   include BaseSpecs
@@ -154,4 +164,13 @@ module VideoSpecs = struct
         | Some pf -> Pixel_format.to_string pf )
 end
 
-module Video = Frame_content.MkContent (VideoSpecs)
+module Video = struct
+  include Frame_content.MkContent (VideoSpecs)
+
+  let internal_params () =
+    {
+      VideoSpecs.width = Lazy.force Frame.video_width;
+      height = Lazy.force Frame.video_height;
+      pixel_format = Some `Yuv420p;
+    }
+end

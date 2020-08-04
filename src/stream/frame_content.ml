@@ -20,13 +20,14 @@
 
  *****************************************************************************)
 
-exception Invalid
-
 module Contents = struct
   type format = ..
   type kind = ..
   type data = ..
 end
+
+exception Invalid
+exception Incompatible_format of Contents.format * Contents.format
 
 module type ContentSpecs = sig
   type kind
@@ -166,9 +167,23 @@ let format c = (get_data_handler c).format ()
 let clear c = (get_data_handler c).clear ()
 let kind p = (get_params_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
-let merge p p' = (get_params_handler p).merge p'
-let string_of_kind f = (get_kind_handler f).string_of_kind ()
 let string_of_format k = (get_params_handler k).string_of_format ()
+
+let () =
+  Printexc.register_printer (function
+    | Incompatible_format (f, f') ->
+        Some
+          (Printf.sprintf
+             "Frame_content.Incompatible_format: %s and %s are not compatible \
+              formats!"
+             (string_of_format f) (string_of_format f'))
+    | _ -> None)
+
+let merge p p' =
+  try (get_params_handler p).merge p'
+  with _ -> raise (Incompatible_format (p, p'))
+
+let string_of_kind f = (get_kind_handler f).string_of_kind ()
 
 module MkContent (C : ContentSpecs) :
   Content

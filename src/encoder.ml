@@ -60,8 +60,8 @@ let kind_of_format = function
       let audio =
         match m.Ffmpeg_format.audio_codec with
           | None -> Frame.none
-          | Some `Copy -> `Format (Ffmpeg_copy_content.Audio.lift_params [])
-          | Some (`Raw _) -> `Format (Ffmpeg_raw_content.Audio.lift_params [])
+          | Some `Copy -> `Format Ffmpeg_copy_content.Audio.(lift_params [])
+          | Some (`Raw _) -> `Format Ffmpeg_raw_content.Audio.(lift_params [])
           | Some (`Internal _) ->
               let channels = m.Ffmpeg_format.channels in
               assert (channels > 0);
@@ -72,8 +72,8 @@ let kind_of_format = function
       let video =
         match m.Ffmpeg_format.video_codec with
           | None -> Frame.none
-          | Some `Copy -> `Format (Ffmpeg_copy_content.Video.lift_params [])
-          | Some (`Raw _) -> `Format (Ffmpeg_raw_content.Video.lift_params [])
+          | Some `Copy -> `Format Ffmpeg_copy_content.Video.(lift_params [])
+          | Some (`Raw _) -> `Format Ffmpeg_raw_content.Video.(lift_params [])
           | Some (`Internal _) -> `Format (Frame_content.Video.lift_params [])
       in
       { Frame.audio; video; midi = Frame.none }

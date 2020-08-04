@@ -22,14 +22,17 @@
 
 (** Generic content registration API. *)
 
-(* Raised during any invalid operation below. *)
-exception Invalid
-
 module Contents : sig
   type kind
   type format
   type data
 end
+
+(* Raised during any invalid operation below. *)
+exception Invalid
+
+(* Raised when calling [merge] below. *)
+exception Incompatible_format of Contents.format * Contents.format
 
 module type ContentSpecs = sig
   type kind

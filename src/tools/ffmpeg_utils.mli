@@ -33,6 +33,12 @@ val liq_frame_time_base : unit -> Avutil.rational
 val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
 
+val convert_duration :
+  sample_time_base:Avutil.rational ->
+  duration_time_base:Avutil.rational ->
+  Int64.t option ->
+  int
+
 module Fps : sig
   type t
 

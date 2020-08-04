@@ -98,13 +98,6 @@ let ffmpeg_gen params =
                 { f with Ffmpeg_format.video_codec = Some (`Raw c) }
         in
         parse_args ~format ~mode f l
-    | ("raw_codec", { term = Ground (String c); _ }) :: l ->
-        let f =
-          match mode with
-            | `Audio -> { f with Ffmpeg_format.audio_codec = Some (`Raw c) }
-            | `Video -> { f with Ffmpeg_format.video_codec = Some (`Raw c) }
-        in
-        parse_args ~format ~mode f l
     | (k, { term = Ground (String s); _ }) :: l ->
         ( match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`String s)

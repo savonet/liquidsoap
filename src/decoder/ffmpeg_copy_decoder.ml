@@ -25,39 +25,39 @@
 open Avcodec
 module G = Decoder.G
 
-let mk_decoder ?default_duration ~stream_time_base ~sample_time_base ~lift_data
-    ~put_data params ~buffer packet =
-  let duration =
-    match (Packet.get_duration packet, default_duration) with
-      | Some d, _ ->
-          Ffmpeg_utils.convert_time_base ~src:stream_time_base
-            ~dst:sample_time_base d
-      | None, Some d -> d
-      | None, None -> failwith "Cannot decode packet: duration required!"
-  in
+let mk_decoder ~get_duration ~stream_time_base ~lift_data ~put_data params
+    ~buffer packet =
+  let duration = get_duration (Packet.get_duration packet) in
   let packet =
     { Ffmpeg_copy_content.params; packet; time_base = stream_time_base }
   in
   let data = lift_data (ref [(0, packet)]) in
-  put_data ?pts:None buffer.Decoder.generator data 0 (Int64.to_int duration)
+  put_data ?pts:None buffer.Decoder.generator data 0 duration
 
 let mk_audio_decoder container =
   let idx, stream, params = Av.find_best_audio_stream container in
   let stream_time_base = Av.get_time_base stream in
   let sample_time_base = Ffmpeg_utils.liq_audio_sample_time_base () in
+  let get_duration =
+    Ffmpeg_utils.convert_duration ~duration_time_base:stream_time_base
+      ~sample_time_base
+  in
   let lift_data = Ffmpeg_copy_content.Audio.lift_data in
   ( idx,
     stream,
-    mk_decoder ~stream_time_base ~sample_time_base ~lift_data
-      ~put_data:G.put_audio params )
+    mk_decoder ~get_duration ~lift_data ~stream_time_base ~put_data:G.put_audio
+      params )
 
 let mk_video_decoder container =
   let idx, stream, params = Av.find_best_video_stream container in
   let stream_time_base = Av.get_time_base stream in
   let sample_time_base = Ffmpeg_utils.liq_video_sample_time_base () in
-  let default_duration = 1L in
+  let get_duration =
+    Ffmpeg_utils.convert_duration ~duration_time_base:stream_time_base
+      ~sample_time_base
+  in
   let lift_data = Ffmpeg_copy_content.Video.lift_data in
   ( idx,
     stream,
-    mk_decoder ~default_duration ~stream_time_base ~sample_time_base ~lift_data
-      ~put_data:G.put_video params )
+    mk_decoder ~get_duration ~lift_data ~stream_time_base ~put_data:G.put_video
+      params )

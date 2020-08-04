@@ -22,22 +22,30 @@
 
 (** Decode and read metadata using ffmpeg. *)
 
-open Avutil
 module G = Decoder.G
 
 let mk_audio_decoder container =
   let idx, stream, _ = Av.find_best_audio_stream container in
+  let get_duration =
+    Ffmpeg_utils.convert_duration ~duration_time_base:(Av.get_time_base stream)
+      ~sample_time_base:(Ffmpeg_utils.liq_audio_sample_time_base ())
+  in
   ( idx,
     stream,
     fun ~buffer frame ->
       let data = Ffmpeg_raw_content.Audio.lift_data frame in
-      G.put_audio buffer.Decoder.generator data 0 (Audio.frame_nb_samples frame)
-  )
+      G.put_audio buffer.Decoder.generator data 0
+        (get_duration (Avutil.frame_pkt_duration frame)) )
 
 let mk_video_decoder container =
   let idx, stream, _ = Av.find_best_video_stream container in
+  let get_duration =
+    Ffmpeg_utils.convert_duration ~duration_time_base:(Av.get_time_base stream)
+      ~sample_time_base:(Ffmpeg_utils.liq_video_sample_time_base ())
+  in
   ( idx,
     stream,
     fun ~buffer frame ->
       let data = Ffmpeg_raw_content.Video.lift_data (ref [(0, frame)]) in
-      G.put_video buffer.Decoder.generator data 0 1 )
+      G.put_video buffer.Decoder.generator data 0
+        (get_duration (Avutil.frame_pkt_duration frame)) )

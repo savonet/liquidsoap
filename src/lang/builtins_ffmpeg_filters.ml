@@ -195,39 +195,36 @@ let () =
           input_t output_t (apply_filter ~filter))
       filters)
 
-let abuffer_args channels =
-  let sample_rate = Frame.audio_of_seconds 1. in
-  let channel_layout =
-    try Avutil.Channel_layout.get_default channels
-    with Not_found ->
-      failwith
-        "ffmpeg filter: could not find a default channel configuration for \
-         this number of channels.."
-  in
+let abuffer_args
+    { Ffmpeg_raw_content.AudioSpecs.channel_layout; sample_format; sample_rate }
+    =
   [
     `Pair ("sample_rate", `Int sample_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_frame_time_base ()));
-    `Pair ("channels", `Int channels);
     `Pair ("channel_layout", `Int (Avutil.Channel_layout.get_id channel_layout));
-    `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id `Dbl));
+    `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
   ]
 
-let buffer_args () =
-  let frame_rate = Frame.video_of_seconds 1. in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
+let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
+  let pixel_format = Option.get pixel_format in
   [
-    `Pair ("frame_rate", `Int frame_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_frame_time_base ()));
-    `Pair ("pixel_aspect", `Int 1);
     `Pair ("width", `Int width);
     `Pair ("height", `Int height);
-    `Pair ("pix_fmt", `String "yuv420p");
+    `Pair ("pix_fmt", `String Avutil.Pixel_format.(to_string pixel_format));
   ]
 
 let () =
-  let audio_t = Lang.(source_t (kind_type_of_kind_format Lang.audio_pcm)) in
-  let video_t = Lang.(source_t (kind_type_of_kind_format Lang.video_yuv420p)) in
+  let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.(lift_kind kind) in
+  let raw_video_format = `Kind Ffmpeg_raw_content.Video.(lift_kind kind) in
+  let audio_frame =
+    { Frame.audio = raw_audio_format; video = `Any; midi = `Any }
+  in
+  let video_frame =
+    { Frame.audio = `Any; video = raw_video_format; midi = `Any }
+  in
+  let audio_t = Lang.(source_t (kind_type_of_kind_format audio_frame)) in
+  let video_t = Lang.(source_t (kind_type_of_kind_format video_frame)) in
 
   let output_base_proto =
     [
@@ -240,25 +237,28 @@ let () =
 
   add_builtin ~cat:Liq "ffmpeg.filter.audio.input"
     ~descr:"Attach an audio source to a filter's input"
-    [
-      ( "channels",
-        Lang.int_t,
-        Some (Lang.int 2),
-        Some "Number of audio channels." );
-      ("", Graph.t, None, None);
-      ("", audio_t, None, None);
-    ]
-    Audio.t
-    (fun p ->
+    [("", Graph.t, None, None); ("", audio_t, None, None)] Audio.t (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
-      let channels = Lang.to_int (List.assoc "channels" p) in
+      let ctype = (Lang.to_source source_val)#ctype in
+      let params =
+        match Ffmpeg_raw_content.Audio.get_params ctype.Frame.audio with
+          | [p] -> p
+          | [] ->
+              let p = Ffmpeg_raw_content.Audio.internal_params () in
+              Frame_content.merge ctype.Frame.audio
+                (Ffmpeg_raw_content.Audio.lift_params [p]);
+              p
+          | _ -> assert false
+      in
       let name = uniq_name "abuffer" in
-      let args = abuffer_args channels in
+      let args = abuffer_args params in
       let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
-      let kind = Lang.audio_n channels in
+      let kind =
+        Frame.{ audio = `Format ctype.Frame.audio; video = none; midi = none }
+      in
       let s =
         try Ffmpeg_filter_io.(new audio_output ~name ~kind source_val)
         with Source.Kind.Conflict (a, b) ->
@@ -268,7 +268,14 @@ let () =
       Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
       Audio.to_value (`Output (List.hd Avfilter.(_abuffer.io.outputs.audio))));
 
-  let kind = Lang.audio_pcm in
+  let kind =
+    Frame.
+      {
+        audio = `Format Ffmpeg_raw_content.Audio.(lift_params []);
+        video = none;
+        midi = none;
+      }
+  in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.audio.output" ~category:Lang.Output
     ~descr:"Return an audio source from a filter's output" ~return_t
@@ -298,15 +305,29 @@ let () =
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
       let source_val = Lang.assoc "" 2 p in
+      let ctype = (Lang.to_source source_val)#ctype in
+      let params =
+        match Ffmpeg_raw_content.Video.get_params ctype.Frame.video with
+          | [p] -> p
+          | [] ->
+              let p = Ffmpeg_raw_content.Video.internal_params () in
+              Frame_content.merge ctype.Frame.video
+                (Ffmpeg_raw_content.Video.lift_params [p]);
+              p
+          | _ -> assert false
+      in
       let name = uniq_name "buffer" in
-      let args = buffer_args () in
+      let args = buffer_args params in
       let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
-      let s = Ffmpeg_filter_io.(new video_output ~name source_val) in
+      let kind =
+        Frame.{ audio = none; video = `Format ctype.Frame.audio; midi = none }
+      in
+      let s = Ffmpeg_filter_io.(new video_output ~kind ~name source_val) in
       Queue.add s#clock graph.clocks;
       Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
       Video.to_value (`Output (List.hd Avfilter.(_buffer.io.outputs.video))));
 
-  let kind = Lang.video_yuv420p in
+  let kind = Frame.{ video_frame with audio = none; midi = none } in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
     ~descr:"Return a video source from a filter's output" ~return_t

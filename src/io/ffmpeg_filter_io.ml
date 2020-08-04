@@ -22,21 +22,13 @@
 
 (** Connect sources to FFmpeg filters. *)
 
-module ToAudioFrame =
-  Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
-
-module FromAudioFrame =
-  Swresample.Make (Swresample.Frame) (Swresample.FltPlanarBigArray)
-
-module ToVideoFrame = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
-module FromVideoFrame = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 module Generator = Generator.From_audio_video
 
 (** From the script perspective, the operator sending data to a filter graph
   * is an output. *)
 class audio_output ~name ~kind val_source =
   let noop () = () in
-  object (self)
+  object
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
@@ -46,39 +38,6 @@ class audio_output ~name ~kind val_source =
 
     method set_input fn = input <- fn
 
-    val mutable channels = None
-
-    val mutable converter = None
-
-    method private convert pcm =
-      let in_channels = Array.length pcm in
-      let mk_converter () =
-        channels <- Some in_channels;
-        let channels_layout =
-          try Avutil.Channel_layout.get_default in_channels
-          with Not_found ->
-            failwith
-              "ffmpeg filter: could not find a default channel configuration \
-               for this number of channels.."
-        in
-        let samplerate = Frame.audio_of_seconds 1. in
-        let c =
-          ToAudioFrame.create ~out_sample_format:`Dbl channels_layout samplerate
-            channels_layout samplerate
-        in
-        converter <- Some c;
-        c
-      in
-      let converter =
-        match (converter, channels) with
-          | None, _ -> mk_converter ()
-          | _, Some c when c <> in_channels ->
-              self#log#important "Channels change detected!";
-              mk_converter ()
-          | Some c, _ -> c
-      in
-      ToAudioFrame.convert converter pcm
-
     method output_start = ()
 
     method output_stop = ()
@@ -86,26 +45,19 @@ class audio_output ~name ~kind val_source =
     method output_reset = ()
 
     method output_send memo =
-      let pcm = AFrame.pcm memo in
-      let aframe = self#convert pcm in
+      let aframe =
+        Ffmpeg_raw_content.Audio.get_data Frame.(memo.content.audio)
+      in
       Avutil.frame_set_pts aframe (Some (Frame.pts memo));
       input aframe
   end
 
-class video_output ~name val_source =
-  let content_kind =
-    Frame.{ audio = none; video = video_yuv420p; midi = none }
-  in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
-  let converter =
-    ToVideoFrame.create [] width height `Yuv420p width height `Yuv420p
-  in
+class video_output ~kind ~name val_source =
   let noop () = () in
   object
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind ~name
+        ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
           ~output_kind:"ffmpeg.filter.input" val_source true
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
@@ -119,18 +71,13 @@ class video_output ~name val_source =
     method output_reset = ()
 
     method output_send memo =
-      let vbuf = VFrame.yuv420p memo in
-      let vlen = VFrame.position memo in
-      for i = 0 to 0 + vlen - 1 do
-        let f = Video.get vbuf i in
-        let y, u, v = Image.YUV420.data f in
-        let sy = Image.YUV420.y_stride f in
-        let s = Image.YUV420.uv_stride f in
-        let vdata = [| (y, sy); (u, s); (v, s) |] in
-        let vframe = ToVideoFrame.convert converter vdata in
-        Avutil.frame_set_pts vframe (Some (Frame.pts memo));
-        input vframe
-      done
+      let data = Ffmpeg_raw_content.Video.get_data Frame.(memo.content.video) in
+      let frames = List.sort (fun (x, _) (y, _) -> compare x y) !data in
+      List.iter
+        (fun (_, vframe) ->
+          Avutil.frame_set_pts vframe (Some (Frame.pts memo));
+          input vframe)
+        frames
   end
 
 type audio_config = {
@@ -141,65 +88,30 @@ type audio_config = {
 
 (* Same thing here. *)
 class audio_input ~bufferize kind =
-  let channels_layout channels =
-    try Avutil.Channel_layout.get_default channels
-    with Not_found ->
-      failwith
-        "ffmpeg filter: could not find a default channel configuration for \
-         this number of channels.."
-  in
-  let out_samplerate = Frame.audio_of_seconds 1. in
   let generator = Generator.create `Audio in
   let min_buf = Frame.master_of_seconds bufferize in
+  let format =
+    match kind.Frame.audio with `Format f -> f | _ -> assert false
+  in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
 
     val mutable config = None
 
-    val mutable converter = None
-
-    method private convert frame =
-      let in_config =
-        {
-          format = Avutil.Audio.frame_get_sample_format frame;
-          rate = Avutil.Audio.frame_get_sample_rate frame;
-          channels = Avutil.Audio.frame_get_channels frame;
-        }
-      in
-      let out_config =
-        {
-          format = `Dbl;
-          rate = out_samplerate;
-          channels =
-            Frame_content.Audio.channels_of_format self#ctype.Frame.audio;
-        }
-      in
-      let mk_converter () =
-        config <- Some (in_config, out_config);
-        let c =
-          FromAudioFrame.create ~in_sample_format:in_config.format
-            ~out_sample_format:out_config.format
-            (channels_layout in_config.channels)
-            in_config.rate
-            (channels_layout out_config.channels)
-            out_config.rate
-        in
-        converter <- Some c;
-        c
-      in
-      let converter =
-        match (converter, config) with
-          | None, _ -> mk_converter ()
-          | _, Some c when c <> (in_config, out_config) ->
-              self#log#important "Format change detected!";
-              mk_converter ()
-          | Some c, _ -> c
-      in
-      FromAudioFrame.convert converter frame
-
     val mutable output = None
 
-    method set_output v = output <- Some v
+    method set_output v =
+      let output_format =
+        {
+          Ffmpeg_raw_content.AudioSpecs.channel_layout =
+            Avfilter.(channel_layout v.context);
+          sample_rate = Avfilter.(sample_rate v.context);
+          sample_format = Avfilter.(sample_format v.context);
+        }
+      in
+      Frame_content.merge format
+        (Ffmpeg_raw_content.Audio.lift_params [output_format]);
+      output <- Some v
 
     method self_sync = false
 
@@ -211,18 +123,22 @@ class audio_input ~bufferize kind =
       let output = Option.get output in
       let src = Avfilter.(time_base output.context) in
       let dst = Ffmpeg_utils.liq_frame_time_base () in
+      let sample_time_base = Ffmpeg_utils.liq_audio_sample_time_base () in
+      let get_duration =
+        Ffmpeg_utils.convert_duration ~duration_time_base:src ~sample_time_base
+      in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
-          let pcm = self#convert frame in
           let pts =
             Option.map
               (Ffmpeg_utils.convert_time_base ~src ~dst)
               (Avutil.frame_pts frame)
           in
           Generator.put_audio ?pts generator
-            (Frame_content.Audio.lift_data pcm)
-            0 (Audio.length pcm);
+            (Ffmpeg_raw_content.Audio.lift_data frame)
+            0
+            (get_duration (Avutil.frame_pkt_duration frame));
           f ()
         with Avutil.Error `Eagain -> ()
       in
@@ -249,46 +165,26 @@ type video_config = {
 
 class video_input ~bufferize kind =
   let generator = Generator.create `Video in
-  let target_width = Lazy.force Frame.video_width in
-  let target_height = Lazy.force Frame.video_height in
   let min_buf = Frame.master_of_seconds bufferize in
+  let format =
+    match kind.Frame.video with `Format f -> f | _ -> assert false
+  in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
 
-    val mutable config = None
-
-    val mutable converter = None
-
-    method private convert frame =
-      let in_config =
-        {
-          width = Avutil.Video.frame_get_width frame;
-          height = Avutil.Video.frame_get_height frame;
-          pixel_format = Avutil.Video.frame_get_pixel_format frame;
-        }
-      in
-      let mk_converter () =
-        config <- Some in_config;
-        let c =
-          FromVideoFrame.create [] in_config.width in_config.height
-            in_config.pixel_format target_width target_height `Yuv420p
-        in
-        converter <- Some c;
-        c
-      in
-      let converter =
-        match (converter, config) with
-          | None, _ -> mk_converter ()
-          | _, Some c when c <> in_config ->
-              self#log#important "Format change detected!";
-              mk_converter ()
-          | Some c, _ -> c
-      in
-      FromVideoFrame.convert converter frame
-
     val mutable output = None
 
-    method set_output v = output <- Some v
+    method set_output v =
+      let output_format =
+        {
+          Ffmpeg_raw_content.VideoSpecs.width = Avfilter.(width v.context);
+          height = Avfilter.(height v.context);
+          pixel_format = Some Avfilter.(pixel_format v.context);
+        }
+      in
+      Frame_content.merge format
+        (Ffmpeg_raw_content.Video.lift_params [output_format]);
+      output <- Some v
 
     method self_sync = false
 
@@ -300,6 +196,10 @@ class video_input ~bufferize kind =
       let output = Option.get output in
       let src = Avfilter.(time_base output.context) in
       let dst = Ffmpeg_utils.liq_frame_time_base () in
+      let sample_time_base = Ffmpeg_utils.liq_video_sample_time_base () in
+      let get_duration =
+        Ffmpeg_utils.convert_duration ~duration_time_base:src ~sample_time_base
+      in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
@@ -308,16 +208,11 @@ class video_input ~bufferize kind =
               (Ffmpeg_utils.convert_time_base ~src ~dst)
               (Avutil.frame_pts frame)
           in
-          let img =
-            match self#convert frame with
-              | [| (y, sy); (u, s); (v, _) |] ->
-                  Image.YUV420.make target_width target_height y sy u v s
-              | _ -> assert false
-          in
-          let content = Video.single img in
+          let content = ref [(0, frame)] in
           Generator.put_video ?pts generator
-            (Frame_content.Video.lift_data content)
-            0 (Video.length content);
+            (Ffmpeg_raw_content.Video.lift_data content)
+            0
+            (get_duration (Avutil.frame_pkt_duration frame));
           f ()
         with Avutil.Error `Eagain -> ()
       in
