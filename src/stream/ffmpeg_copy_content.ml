@@ -29,7 +29,7 @@ type 'a packet = {
   time_base : Avutil.rational;
 }
 
-module BaseCopySpecs = struct
+module BaseSpecs = struct
   type kind = [ `Copy ]
   type 'a content = (int * 'a packet) list ref
 
@@ -62,8 +62,8 @@ module BaseCopySpecs = struct
       | _ -> failwith "Incompatible parameters"
 end
 
-module AudioCopySpecs = struct
-  include BaseCopySpecs
+module AudioSpecs = struct
+  include BaseSpecs
 
   type param = {
     id : Audio.id;
@@ -97,10 +97,10 @@ module AudioCopySpecs = struct
       sample_rate
 end
 
-module AudioCopy = Frame_content.MkContent (AudioCopySpecs)
+module Audio = Frame_content.MkContent (AudioSpecs)
 
-module VideoCopySpecs = struct
-  include BaseCopySpecs
+module VideoSpecs = struct
+  include BaseSpecs
 
   type param = {
     id : Video.id;
@@ -137,4 +137,4 @@ module VideoCopySpecs = struct
         | Some pf -> Pixel_format.to_string pf )
 end
 
-module VideoCopy = Frame_content.MkContent (VideoCopySpecs)
+module Video = Frame_content.MkContent (VideoSpecs)

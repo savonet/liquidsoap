@@ -23,7 +23,7 @@
 type opt_val = [ `String of string | `Int of int | `Float of float ]
 type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
-type codec = [ `Copy | `Encode of string ]
+type codec = [ `Copy | `Raw of string | `Internal of string ]
 
 type t = {
   format : string option;
@@ -63,25 +63,35 @@ let to_string m =
   let opts =
     match m.video_codec with
       | None -> opts
-      | Some `Copy -> "%audio(codec=copy)" :: opts
-      | Some (`Encode c) ->
+      | Some `Copy -> "%video.copy" :: opts
+      | Some (`Raw c) | Some (`Internal c) ->
           let video_opts = Hashtbl.copy m.video_opts in
           Hashtbl.add video_opts "codec" (`String c);
           Hashtbl.add video_opts "framerate" (`Int (Lazy.force m.framerate));
           Hashtbl.add video_opts "width" (`Int (Lazy.force m.width));
           Hashtbl.add video_opts "height" (`Int (Lazy.force m.height));
-          Printf.sprintf "%%video(%s)" (string_of_options video_opts) :: opts
+          let name =
+            match m.video_codec with
+              | Some (`Raw _) -> "video.raw"
+              | _ -> "video"
+          in
+          Printf.sprintf "%%%s(%s)" name (string_of_options video_opts) :: opts
   in
   let opts =
     match m.audio_codec with
       | None -> opts
-      | Some `Copy -> "%video(codec=copy)" :: opts
-      | Some (`Encode c) ->
+      | Some `Copy -> "%audio.copy" :: opts
+      | Some (`Raw c) | Some (`Internal c) ->
           let audio_opts = Hashtbl.copy m.audio_opts in
           Hashtbl.add audio_opts "codec" (`String c);
           Hashtbl.add audio_opts "channels" (`Int m.channels);
           Hashtbl.add audio_opts "samplerate" (`Int (Lazy.force m.samplerate));
-          Printf.sprintf "%%audio(%s)" (string_of_options audio_opts) :: opts
+          let name =
+            match m.video_codec with
+              | Some (`Raw _) -> "audio.raw"
+              | _ -> "audio"
+          in
+          Printf.sprintf "%%%s(%s)" name (string_of_options audio_opts) :: opts
   in
   let opts =
     match m.format with

@@ -39,7 +39,7 @@ let () =
                       Ffmpeg_copy_encoder.mk_stream_copy ~sample_time_base
                         ~convert_pos:Frame.audio_of_master
                         ~get_data:(fun frame ->
-                          Ffmpeg_content.AudioCopy.get_data
+                          Ffmpeg_copy_content.Audio.get_data
                             Frame.(frame.content.audio))
                 | _ -> Ffmpeg_internal_encoder.mk_audio
             in
@@ -53,7 +53,7 @@ let () =
                       Ffmpeg_copy_encoder.mk_stream_copy ~sample_time_base
                         ~convert_pos:Frame.video_of_master
                         ~get_data:(fun frame ->
-                          Ffmpeg_content.VideoCopy.get_data
+                          Ffmpeg_copy_content.Video.get_data
                             Frame.(frame.content.video))
                 | _ -> Ffmpeg_internal_encoder.mk_video
             in

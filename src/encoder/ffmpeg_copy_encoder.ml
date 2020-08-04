@@ -28,7 +28,7 @@ let mk_stream_copy ~sample_time_base ~get_data ~convert_pos output =
   let stream = ref None in
 
   let mk_stream frame =
-    let _, { Ffmpeg_content.params } = List.hd !(get_data frame) in
+    let _, { Ffmpeg_copy_content.params } = List.hd !(get_data frame) in
     stream := Some (Av.new_stream_copy ~params output)
   in
 
@@ -43,7 +43,7 @@ let mk_stream_copy ~sample_time_base ~get_data ~convert_pos output =
     in
 
     List.iter
-      (fun (pos, { Ffmpeg_content.packet; time_base }) ->
+      (fun (pos, { Ffmpeg_copy_content.packet; time_base }) ->
         let stream = Option.get !stream in
         if start_pos <= pos && pos < stop_pos then (
           let packet_pts =

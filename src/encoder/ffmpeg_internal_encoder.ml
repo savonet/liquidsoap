@@ -22,10 +22,12 @@
 
 (** FFMPEG internal encoder *)
 
-module Resampler =
+module InternalResampler =
   Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
 
-module Scaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
+module RawResampler = Swresample.Make (Swresample.Frame) (Swresample.Frame)
+module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
+module RawScaler = Swscale.Make (Swscale.Frame) (Swscale.Frame)
 
 (* mk_stream is used for the copy encoder, where stream creation has to be
    delayed until the first packet is passed. This is not needed here. *)
@@ -43,16 +45,14 @@ let get_channel_layout channels =
 let mk_audio ~ffmpeg ~options output =
   let codec =
     match ffmpeg.Ffmpeg_format.audio_codec with
-      | Some (`Encode codec) -> Avcodec.Audio.find_encoder codec
+      | Some (`Raw codec) | Some (`Internal codec) ->
+          Avcodec.Audio.find_encoder codec
       | _ -> assert false
   in
 
-  let src_samplerate = Lazy.force Frame.audio_rate in
-  let src_liq_audio_sample_time_base =
+  let src_liq_audio_sample_time_base src_samplerate =
     { Avutil.num = 1; den = src_samplerate }
   in
-  let src_channels = ffmpeg.Ffmpeg_format.channels in
-  let src_channel_layout = get_channel_layout src_channels in
 
   let target_samplerate = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
   let target_liq_audio_sample_time_base =
@@ -66,9 +66,83 @@ let mk_audio ~ffmpeg ~options output =
   Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.audio_opts;
   Hashtbl.iter (Hashtbl.add opts) options;
 
-  let resampler =
-    Resampler.create ~out_sample_format:target_sample_format src_channel_layout
-      src_samplerate target_channel_layout target_samplerate
+  let internal_converter () =
+    let src_samplerate = Lazy.force Frame.audio_rate in
+    let src_channels = ffmpeg.Ffmpeg_format.channels in
+    let src_channel_layout = get_channel_layout src_channels in
+
+    let resampler =
+      InternalResampler.create ~out_sample_format:target_sample_format
+        src_channel_layout src_samplerate target_channel_layout
+        target_samplerate
+    in
+    fun frame start len ->
+      let astart = Frame.audio_of_master start in
+      let alen = Frame.audio_of_master len in
+      let pcm = Audio.sub (AFrame.pcm frame) astart alen in
+      (InternalResampler.convert resampler pcm, src_samplerate)
+  in
+
+  let raw_converter =
+    let resampler = ref None in
+    let resample frame =
+      let src_samplerate = Avutil.Audio.frame_get_sample_rate frame in
+      let resampler =
+        match !resampler with
+          | Some f -> f
+          | None ->
+              let src_channel_layout =
+                Avutil.Audio.frame_get_channel_layout frame
+              in
+              let src_sample_format =
+                Avutil.Audio.frame_get_sample_format frame
+              in
+              let f =
+                if
+                  src_samplerate <> target_samplerate
+                  || src_channel_layout <> target_channel_layout
+                  || src_sample_format <> target_sample_format
+                then (
+                  let fn =
+                    RawResampler.create ~in_sample_format:src_sample_format
+                      ~out_sample_format:target_sample_format src_channel_layout
+                      src_samplerate target_channel_layout target_samplerate
+                  in
+                  RawResampler.convert fn )
+                else fun f -> f
+              in
+              resampler := Some f;
+              f
+      in
+      (resampler frame, src_samplerate)
+    in
+    fun frame start len ->
+      let astart = Frame.audio_of_master start in
+      let alen = Frame.audio_of_master len in
+      let frame =
+        Ffmpeg_raw_content.Audio.get_data Frame.(frame.content.audio)
+      in
+      let frame =
+        if astart = 0 && alen = Avutil.Audio.frame_nb_samples frame then frame
+        else (
+          let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
+          let sample_format = Avutil.Audio.frame_get_sample_format frame in
+          let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
+          let dst =
+            Avutil.Audio.create_frame sample_format channel_layout sample_rate
+              alen
+          in
+          Avutil.Audio.frame_copy_samples frame astart dst 0 alen;
+          dst )
+      in
+      resample frame
+  in
+
+  let converter =
+    match ffmpeg.Ffmpeg_format.audio_codec with
+      | Some (`Internal _) -> internal_converter ()
+      | Some (`Raw _) -> raw_converter
+      | _ -> assert false
   in
 
   let stream =
@@ -140,12 +214,10 @@ let mk_audio ~ffmpeg ~options output =
   in
 
   let encode frame start len =
-    let astart = Frame.audio_of_master start in
-    let alen = Frame.audio_of_master len in
-    let pcm = Audio.sub (AFrame.pcm frame) astart alen in
-    let aframe = Resampler.convert resampler pcm in
+    let aframe, src_samplerate = converter frame start len in
     let frame_pts =
-      Ffmpeg_utils.convert_time_base ~src:src_liq_audio_sample_time_base
+      Ffmpeg_utils.convert_time_base
+        ~src:(src_liq_audio_sample_time_base src_samplerate)
         ~dst:target_liq_audio_sample_time_base (Frame.pts frame)
     in
     Avutil.frame_set_pts aframe (Some frame_pts);
@@ -157,15 +229,14 @@ let mk_audio ~ffmpeg ~options output =
 let mk_video ~ffmpeg ~options output =
   let codec =
     match ffmpeg.Ffmpeg_format.video_codec with
-      | Some (`Encode codec) -> Avcodec.Video.find_encoder codec
+      | Some (`Raw codec) | Some (`Internal codec) ->
+          Avcodec.Video.find_encoder codec
       | _ -> assert false
   in
   let pixel_aspect = { Avutil.num = 1; den = 1 } in
 
   let src_fps = Lazy.force Frame.video_rate in
   let src_liq_video_sample_time_base = { Avutil.num = 1; den = src_fps } in
-  let src_width = Lazy.force Frame.video_width in
-  let src_height = Lazy.force Frame.video_height in
 
   let target_fps = Lazy.force ffmpeg.Ffmpeg_format.framerate in
   let target_video_sample_time_base = { Avutil.num = 1; den = target_fps } in
@@ -178,10 +249,6 @@ let mk_video ~ffmpeg ~options output =
       | "bilinear" -> Swscale.Bilinear
       | "bicubic" -> Swscale.Bicubic
       | _ -> failwith "Invalid value set for ffmpeg scaling algorithm!"
-  in
-  let scaler =
-    Scaler.create [flag] src_width src_height `Yuv420p target_width
-      target_height `Yuv420p
   in
 
   let opts = Hashtbl.create 10 in
@@ -221,22 +288,86 @@ let mk_video ~ffmpeg ~options output =
         target_pts := Int64.succ !target_pts;
         Av.write_frame stream frame)
   in
+
+  let internal_converter cb =
+    let src_width = Lazy.force Frame.video_width in
+    let src_height = Lazy.force Frame.video_height in
+    let scaler =
+      InternalScaler.create [flag] src_width src_height `Yuv420p target_width
+        target_height `Yuv420p
+    in
+    fun frame start len ->
+      let vstart = Frame.video_of_master start in
+      let vstop = Frame.video_of_master (start + len) in
+      let vbuf = VFrame.yuv420p frame in
+      for i = vstart to vstop - 1 do
+        let f = Video.get vbuf i in
+        let y, u, v = Image.YUV420.data f in
+        let sy = Image.YUV420.y_stride f in
+        let s = Image.YUV420.uv_stride f in
+        let vdata = [| (y, sy); (u, s); (v, s) |] in
+        cb (InternalScaler.convert scaler vdata)
+      done
+  in
+
+  let raw_converter cb =
+    (* TODO *)
+    let target_pixel_format = `Yuv420p in
+    let scaler = ref None in
+    let scale frame =
+      let scaler =
+        match !scaler with
+          | Some f -> f
+          | None ->
+              let src_width = Avutil.Video.frame_get_width frame in
+              let src_height = Avutil.Video.frame_get_height frame in
+              let src_pixel_format =
+                Avutil.Video.frame_get_pixel_format frame
+              in
+              let f =
+                if
+                  src_width <> target_width
+                  || src_height <> target_height
+                  || src_pixel_format <> target_pixel_format
+                then (
+                  let scaler =
+                    RawScaler.create [flag] src_width src_height
+                      src_pixel_format target_width target_height
+                      target_pixel_format
+                  in
+                  RawScaler.convert scaler )
+                else fun f -> f
+              in
+              scaler := Some f;
+              f
+      in
+      scaler frame
+    in
+    fun frame start len ->
+      let vstart = Frame.video_of_master start in
+      let vstop = Frame.video_of_master (start + len) in
+      let data =
+        Ffmpeg_raw_content.Video.get_data Frame.(frame.content.video)
+      in
+      List.iter
+        (fun (pos, frame) ->
+          if vstart <= pos && pos < vstop then cb (scale frame))
+        !data
+  in
+
+  let converter =
+    match ffmpeg.Ffmpeg_format.video_codec with
+      | Some (`Internal _) -> internal_converter
+      | Some (`Raw _) -> raw_converter
+      | _ -> assert false
+  in
+
   let pts = ref 0L in
-  let encode frame start len =
-    let vstart = Frame.video_of_master start in
-    let vlen = Frame.video_of_master len in
-    let vbuf = VFrame.yuv420p frame in
-    for i = vstart to vstart + vlen - 1 do
-      let f = Video.get vbuf i in
-      let y, u, v = Image.YUV420.data f in
-      let sy = Image.YUV420.y_stride f in
-      let s = Image.YUV420.uv_stride f in
-      let vdata = [| (y, sy); (u, s); (v, s) |] in
-      let vframe = Scaler.convert scaler vdata in
-      Avutil.frame_set_pts vframe (Some !pts);
-      pts := Int64.succ !pts;
-      fps_converter vframe
-    done
+  let encode =
+    converter (fun vframe ->
+        Avutil.frame_set_pts vframe (Some !pts);
+        pts := Int64.succ !pts;
+        fps_converter vframe)
   in
 
   { Ffmpeg_encoder_common.mk_stream; encode }

@@ -164,11 +164,15 @@ let get_type ~ctype ~url container =
   let audio =
     match (audio_params, ctype.Frame.audio) with
       | None, _ -> Frame_content.None.format
-      | Some p, format when Ffmpeg_content.AudioCopy.is_format format ->
+      | Some p, format when Ffmpeg_copy_content.Audio.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_content.(
-                 AudioCopy.lift_params [AudioCopySpecs.mk_param p]));
+               Ffmpeg_copy_content.(Audio.lift_params [AudioSpecs.mk_param p]));
+          format
+      | Some p, format when Ffmpeg_raw_content.Audio.is_format format ->
+          ignore
+            (Frame_content.merge format
+               Ffmpeg_raw_content.(Audio.lift_params [AudioSpecs.mk_param p]));
           format
       | Some p, _ ->
           Frame_content.Audio.lift_params
@@ -180,11 +184,15 @@ let get_type ~ctype ~url container =
   let video =
     match (video_params, ctype.Frame.video) with
       | None, _ -> Frame_content.None.format
-      | Some p, format when Ffmpeg_content.VideoCopy.is_format format ->
+      | Some p, format when Ffmpeg_copy_content.Video.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_content.(
-                 VideoCopy.lift_params [VideoCopySpecs.mk_param p]));
+               Ffmpeg_copy_content.(Video.lift_params [VideoSpecs.mk_param p]));
+          format
+      | Some p, format when Ffmpeg_raw_content.Video.is_format format ->
+          ignore
+            (Frame_content.merge format
+               Ffmpeg_raw_content.(Video.lift_params [VideoSpecs.mk_param p]));
           format
       | _ -> Frame_content.Video.lift_params []
   in
@@ -275,8 +283,10 @@ let mk_streams ~ctype container =
     try
       match ctype.Frame.audio with
         | f when Frame_content.None.is_format f -> None
-        | f when Ffmpeg_content.AudioCopy.is_format f ->
+        | f when Ffmpeg_copy_content.Audio.is_format f ->
             Some (`Packet (Ffmpeg_copy_decoder.mk_audio_decoder container))
+        | f when Ffmpeg_raw_content.Audio.is_format f ->
+            Some (`Frame (Ffmpeg_raw_decoder.mk_audio_decoder container))
         | f ->
             let channels = Frame_content.Audio.channels_of_format f in
             Some
@@ -288,8 +298,10 @@ let mk_streams ~ctype container =
     try
       match ctype.Frame.video with
         | f when Frame_content.None.is_format f -> None
-        | f when Ffmpeg_content.VideoCopy.is_format f ->
+        | f when Ffmpeg_copy_content.Video.is_format f ->
             Some (`Packet (Ffmpeg_copy_decoder.mk_video_decoder container))
+        | f when Ffmpeg_raw_content.Video.is_format f ->
+            Some (`Frame (Ffmpeg_raw_decoder.mk_video_decoder container))
         | _ ->
             Some (`Frame (Ffmpeg_internal_decoder.mk_video_decoder container))
     with Avutil.Error _ -> None

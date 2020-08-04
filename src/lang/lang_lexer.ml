@@ -185,7 +185,11 @@ let rec token lexbuf =
     | "%opus" -> OPUS
     | "%flac" -> FLAC
     | "%audio" -> AUDIO
+    | "%audio.raw" -> AUDIO_RAW
+    | "%audio.copy" -> AUDIO_COPY
     | "%video" -> VIDEO
+    | "%video.raw" -> VIDEO_RAW
+    | "%video.copy" -> VIDEO_COPY
     | "%ffmpeg" -> FFMPEG
     | "%vorbis.cbr" -> VORBIS_CBR
     | "%vorbis.abr" -> VORBIS_ABR
