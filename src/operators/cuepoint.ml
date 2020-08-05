@@ -290,8 +290,8 @@ let () =
       let m_cue_in = Lang.to_string (Lang.assoc "cue_in_metadata" 1 p) in
       let m_cue_out = Lang.to_string (Lang.assoc "cue_out_metadata" 1 p) in
       let on_cue_in = Lang.assoc "on_cue_in" 1 p in
-      let on_cue_in () = ignore (Lang.apply ~t:Lang.unit_t on_cue_in []) in
+      let on_cue_in () = ignore (Lang.apply on_cue_in []) in
       let on_cue_out = Lang.assoc "on_cue_out" 1 p in
-      let on_cue_out () = ignore (Lang.apply ~t:Lang.unit_t on_cue_out []) in
+      let on_cue_out () = ignore (Lang.apply on_cue_out []) in
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       new cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out s)
