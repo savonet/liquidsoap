@@ -4,6 +4,7 @@
 New:
 - Allow to set min/max/bitrate in mp3 vbr mode (#1294).
 - Added optional `http_version` parameters to `http{s}.*` methods.
+- Added `on_cue_{in,out}` callbabacks to `cue_cut`
 
 Change:
 - Fixed default ffmpeg log level.
