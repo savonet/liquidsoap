@@ -40,7 +40,8 @@ open Source
 let ( -- ) = Int64.sub
 let ( ++ ) = Int64.add
 
-class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
+class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
+  (source : Source.source) =
   object (self)
     inherit source ~name:"cue_cut" kind as super
 
@@ -156,6 +157,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
 
     method private cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos seek_time =
       self#log#important "Cueing in...";
+      on_cue_in ();
       let seek_pos = Int64.to_int seek_time - delta_pos in
       let seeked_pos = source#seek seek_pos in
       (* Set back original breaks. *)
@@ -217,7 +219,8 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out (source : Source.source) =
       assert (remaining >= 0);
       Frame.set_breaks buf (Utils.remove_one (( = ) new_pos) (Frame.breaks buf));
       Frame.add_break buf (pos + remaining);
-      track_state <- None
+      track_state <- None;
+      on_cue_out ()
 
     method private get_frame buf =
       let breaks = Frame.breaks buf in
@@ -273,10 +276,22 @@ let () =
         Lang.string_t,
         Some (Lang.string "liq_cue_out"),
         Some "Metadata for cue out points." );
+      ( "on_cue_in",
+        Lang.fun_t [] Lang.unit_t,
+        Some (Lang.val_cst_fun [] Lang.unit),
+        Some "Callback to execute on cue in" );
+      ( "on_cue_out",
+        Lang.fun_t [] Lang.unit_t,
+        Some (Lang.val_cst_fun [] Lang.unit),
+        Some "Callback to execute on cue out" );
       ("", Lang.source_t return_t, None, None);
     ]
     (fun p ->
       let m_cue_in = Lang.to_string (Lang.assoc "cue_in_metadata" 1 p) in
       let m_cue_out = Lang.to_string (Lang.assoc "cue_out_metadata" 1 p) in
+      let on_cue_in = Lang.assoc "on_cue_in" 1 p in
+      let on_cue_in () = ignore (Lang.apply ~t:Lang.unit_t on_cue_in []) in
+      let on_cue_out = Lang.assoc "on_cue_out" 1 p in
+      let on_cue_out () = ignore (Lang.apply ~t:Lang.unit_t on_cue_out []) in
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      new cue_cut ~kind ~m_cue_in ~m_cue_out s)
+      new cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out s)
