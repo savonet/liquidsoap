@@ -338,3 +338,46 @@ def system(command) =
 
   process.run(command)
 end
+
+# Deprecated: use `blank.detect` instead
+# @flag hidden
+def on_blank(~id="on_blank", ~max_blank=20., ~min_noise=0.,
+             ~on_noise, ~start_blank=false, ~threshold=(-40.),
+             ~track_sensitive=true, cb, s) =
+  deprecated("on_blank", "blank.detect")
+
+  blank.detect(id=id, max_blank=max_blank, min_noise=min_noise,
+               on_noise=on_noise, start_blank=start_blank, threshold=threshold,
+               track_sensitive=track_sensitive, cb, s)
+end
+
+# Deprecated: use `blank.skip` instead
+# @flag hidden
+def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s) =
+  deprecated("skip_blank", "blank.skip")
+
+  blank.skip(id=id, threshold=threshold, max_blank=max_blank, min_noise=min_noise, track_sensitive=track_sensitive, s)
+end
+
+# Deprecated: use `blank.eat` instead
+# @flag hidden
+def eat_blank(~id="", ~at_beginning=false, ~max_blank=20., ~min_noise=0.,
+              ~start_blank=false, ~threshold=(-40.), ~track_sensitive=true,
+              s) =
+  deprecated("eat_blank", "blank.eat")
+
+  blank.eat(id=id, at_beginning=at_beginning, max_blank=max_blank, min_noise=min_noise,
+            start_blank=start_blank, threshold=threshold, track_sensitive=track_sensitive,
+            s)
+end
+
+# Deprecated: use `blank.strip` instead
+# @flag hidden
+def strip_blank(~id="", ~max_blank=20., ~min_noise=0., ~start_blank=false,
+                ~threshold=(-40.), ~track_sensitive=true, s)
+  deprecated("strip_blank", "blank.strip")
+
+  blank.strip(id=id, max_blank=max_blank, min_noise=min_noise,
+              start_blank=start_blank, threshold=threshold, track_sensitive=track_sensitive,
+              s)
+end

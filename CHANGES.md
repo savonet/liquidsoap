@@ -118,6 +118,7 @@ Changed:
 - Renamed `http_response` to `http.response` and `http_response_stream` to
   `http.response.stream`.
 - `localtime` and `gmtime` now return a record.
+- Deprecated `{eat,strip,skip,on}_blank` in favor of `blank.{eat,strip,skip,detect}`.
 
 Fixed:
 

@@ -54,7 +54,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
     * filled, where [p0] is the position in [s] before filling. *)
     method private check_blank s p0 =
       (* TODO The [p0 > 0] condition may not be fully justified.
-       *      By the way it was absent in [eat_blank]. *)
+       *      By the way it was absent in [blank.eat]. *)
       if AFrame.is_partial s || p0 > 0 then (
         if
           (* Don't bother analyzing the end of this track, jump to the new state. *)
@@ -81,10 +81,10 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
               else if noise_len <> 0 then self#set_state (`Blank 0) )
   end
 
-class on_blank ~kind ~start_blank ~max_blank ~min_noise ~threshold
+class detect ~kind ~start_blank ~max_blank ~min_noise ~threshold
   ~track_sensitive ~on_blank ~on_noise source =
   object (self)
-    inherit operator ~name:"on_blank" kind [source]
+    inherit operator ~name:"blank.detect" kind [source]
 
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
@@ -120,12 +120,12 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     (* Stripping is easy:
      *  - declare yourself as unavailable when the source is silent
      *  - keep pulling data from the source during those times. *)
-    inherit active_operator ~name:"strip_blank" kind [source]
+    inherit active_operator ~name:"blank.strip" kind [source]
 
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
     initializer
-    ns_kind <- "strip_blank";
+    ns_kind <- "blank.strip";
     let status _ = string_of_bool self#in_blank in
     self#register_command "is_stripping"
       ~descr:"Check if the source is stripping." status
@@ -176,7 +176,7 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
     (* Eating blank is trickier than stripping.
      * TODO It requires control over the time flow of the source; we need
      * to force our own clock onto it. *)
-    inherit operator ~name:"eat_blank" kind [source]
+    inherit operator ~name:"blank.eat" kind [source]
 
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
@@ -278,7 +278,7 @@ let extract p =
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
 let () =
-  Lang.add_operator "on_blank" ~return_t ~category:Lang.TrackProcessing
+  Lang.add_operator "blank.detect" ~return_t ~category:Lang.TrackProcessing
     ~descr:"Calls a given handler when detecting a blank."
     ( ( "",
         Lang.fun_t [] Lang.unit_t,
@@ -296,10 +296,10 @@ let () =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      new on_blank
+      new detect
         ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         ~on_blank ~on_noise s);
-  Lang.add_operator "strip_blank" ~active:true ~return_t
+  Lang.add_operator "blank.strip" ~active:true ~return_t
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank." proto
     (fun p ->
@@ -309,7 +309,7 @@ let () =
       ( new strip
           ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s
         :> Source.source ));
-  Lang.add_operator "eat_blank" ~return_t ~category:Lang.TrackProcessing
+  Lang.add_operator "blank.eat" ~return_t ~category:Lang.TrackProcessing
     ~descr:
       "Eat blanks, i.e., drop the contents of the stream until it is not blank \
        anymore."
