@@ -76,7 +76,7 @@ module type Lame_t = sig
   val encode_buffer_float_part :
     encoder -> float array -> float array -> int -> int -> string
 
-  val encode_flush_nogap : encoder -> string
+  val encode_flush : encoder -> string
 end
 
 let bit_at s pos =
@@ -216,7 +216,7 @@ module Register (Lame : Lame_t) = struct
               Printf.sprintf "%s%s" s (encoded ())
           | _ -> encoded ()
       in
-      let stop () = Lame.encode_flush_nogap enc in
+      let stop () = Lame.encode_flush enc in
       let insert_metadata =
         match mp3.id3v2 with
           | Some f -> (
