@@ -1,0 +1,9 @@
+Document: liquidsoap
+Title: Liquidsoap documentation
+Author: The Savonet Team
+Abstract: Liquidsoap documentation
+Section: Network/Communication
+
+Format: HTML
+Index: /usr/share/doc/liquidsoap/html/index.html
+Files: /usr/share/doc/liquidsoap/html/*

@@ -1,0 +1,4 @@
+usr/bin
+etc/init.d
+etc/bash_completion.d
+var/log/liquidsoap

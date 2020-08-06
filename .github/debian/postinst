@@ -1,0 +1,37 @@
+#! /bin/sh
+# postinst script for liquidsoap
+set -e
+
+case "$1" in
+    configure)
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    exit 0
+    ;;
+
+    *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+addgroup --system liquidsoap
+
+# Create the new system account
+adduser --system --disabled-password --disabled-login \
+--home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap
+usermod --append --groups audio liquidsoap
+
+# Add again /usr/share/liquidsoap if user was already created
+if ! test -d /usr/share/liquidsoap; then
+    mkdir /usr/share/liquidsoap
+fi
+
+# Fix directories ownership
+chown liquidsoap:liquidsoap /var/log/liquidsoap
+chown root:root /usr/share/liquidsoap
+
+#DEBHELPER#
+
+exit 0
