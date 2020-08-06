@@ -979,7 +979,7 @@ cat <<EOMSG
    - Ffmpeg            : $w_FFMPEG
    - Flac (native)     : $w_FLAC
    - Flac (ogg)        : $w_FLAC_OGG
-   - Lastfm            : $w_LASTFM
+   - Mp3               : $w_MAD
    - Opus              : $w_OPUS
    - Speex             : $w_SPEEX
    - Theora            : $w_THEORA
