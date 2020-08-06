@@ -102,7 +102,7 @@ module type Lame_t = sig
     string
 
   val encode_flush : encoder -> string
-  val encode_flush_nogap : encoder -> string
+  val encode_flush : encoder -> string
 
   module Id3tag : sig
     val init : encoder -> unit

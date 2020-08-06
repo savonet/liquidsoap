@@ -79,7 +79,7 @@ module type Lame_t = sig
     (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t ->
     string
 
-  val encode_flush_nogap : encoder -> string
+  val encode_flush : encoder -> string
 end
 
 let bit_at s pos =
@@ -234,7 +234,7 @@ module Register (Lame : Lame_t) = struct
               Strings.add s (encoded ())
           | _ -> Strings.of_string (encoded ())
       in
-      let stop () = Strings.of_string (Lame.encode_flush_nogap enc) in
+      let stop () = Strings.of_string (Lame.encode_flush enc) in
       let insert_metadata =
         match mp3.id3v2 with
           | Some f -> (
