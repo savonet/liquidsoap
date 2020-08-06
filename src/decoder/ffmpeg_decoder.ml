@@ -47,13 +47,16 @@ module Buffered = Decoder.Buffered (G)
 
 let mk_audio_decoder ~put_audio container =
   let idx, stream, codec = Av.find_best_audio_stream container in
-  let sample_freq = Avcodec.Audio.get_sample_rate codec in
-  let channel_layout = Avcodec.Audio.get_channel_layout codec in
-  let target_sample_rate = Lazy.force Frame.audio_rate in
+  let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
+  let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
+  let target_sample_rate = Lazy.force Frame.audio_rate in
+  let target_channel_layout =
+    Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
+  in
   let mk_converter () =
-    Converter.create channel_layout ~in_sample_format:!in_sample_format
-      sample_freq channel_layout target_sample_rate
+    Converter.create !in_channel_layout ~in_sample_format:!in_sample_format
+      !in_sample_rate target_channel_layout target_sample_rate
   in
   let converter = ref (mk_converter ()) in
   let decoder_time_base = { Avutil.num = 1; den = target_sample_rate } in
@@ -62,9 +65,19 @@ let mk_audio_decoder ~put_audio container =
   ( idx,
     stream,
     fun frame gen ->
+      let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
+      let frame_in_channel_layout =
+        Avutil.Audio.frame_get_channel_layout frame
+      in
       let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
-      if !in_sample_format <> frame_in_sample_format then (
-        log#important "Sample format change detected!";
+      if
+        !in_sample_rate <> frame_in_sample_rate
+        || !in_channel_layout <> frame_in_channel_layout
+        || !in_sample_format <> frame_in_sample_format
+      then (
+        log#important "Frame format change detected!";
+        in_sample_rate := frame_in_sample_rate;
+        in_channel_layout := frame_in_channel_layout;
         in_sample_format := frame_in_sample_format;
         converter := mk_converter () );
       let content = Converter.convert !converter frame in
