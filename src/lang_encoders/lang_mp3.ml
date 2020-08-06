@@ -188,9 +188,14 @@ let make_abr_vbr ~default params =
       | _ -> assert false
   in
   let mp3 =
+    let is_vbr f =
+      match f.Mp3_format.bitrate_control with
+        | Mp3_format.VBR _ -> true
+        | _ -> false
+    in
     List.fold_left
       (fun f -> function
-        | "quality", ({ term = Ground (Int q); _ } as t) ->
+        | "quality", ({ term = Ground (Int q); _ } as t) when is_vbr f ->
             if q < 0 || q > 9 then
               raise (Error (t, "quality should be in [0..9]"));
             set_quality f (Some q)
@@ -233,7 +238,7 @@ let make_vbr =
       {
         (mp3_base_defaults ()) with
         Mp3_format.bitrate_control =
-          Mp3_format.ABR
+          Mp3_format.VBR
             {
               Mp3_format.quality = Some 4;
               min_bitrate = None;

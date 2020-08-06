@@ -33,22 +33,22 @@ type bitrate_constraints = {
 let string_of_bitrate_constraints
     { quality; min_bitrate; mean_bitrate; max_bitrate; hard_min } =
   let hard_min =
-    Printf.sprintf "hard_min=%s"
-      (match hard_min with None -> "none" | Some b -> string_of_bool b)
+    match hard_min with None -> "" | Some b -> Printf.sprintf "hard_min=%b" b
   in
   let f (v, x) =
-    Printf.sprintf "%s=%s" v
-      (match x with Some x -> string_of_int x | None -> "none")
+    match x with Some x -> Printf.sprintf "%s=%d" v x | None -> ""
   in
   String.concat ","
-    ( List.map f
-        [
-          ("quality", quality);
-          ("bitrate", mean_bitrate);
-          ("min_bitrate", min_bitrate);
-          ("max_bitrate", max_bitrate);
-        ]
-    @ [hard_min] )
+    (List.filter
+       (fun s -> s <> "")
+       ( List.map f
+           [
+             ("quality", quality);
+             ("bitrate", mean_bitrate);
+             ("min_bitrate", min_bitrate);
+             ("max_bitrate", max_bitrate);
+           ]
+       @ [hard_min] ))
 
 type bitrate_control =
   | ABR of bitrate_constraints
