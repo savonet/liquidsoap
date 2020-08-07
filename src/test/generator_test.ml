@@ -35,7 +35,7 @@ let () =
   assert (G.length gen = 4 * frame_size);
 
   (* Add 1---- video (non-monotonic PTS) *)
-  G.put_video ~pts:1L gen [||] 0 video_frame_size;
+  G.put_video ~pts:1L gen data 0 video_frame_size;
   (* Get:
      0----1----2----3----4--> audio
      0----1----2----3----4----> video *)
