@@ -318,9 +318,8 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
           self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
           self#connect
       in
-      if not self#should_stop then (
-        self#close_socket;
-        Poll.add_socket ~mode:`Read self#get_socket on_connect )
+      if not self#should_stop then
+        Poll.add_socket ~mode:`Read self#get_socket on_connect
 
     method private get_frame frame =
       let pos = Frame.position frame in
@@ -339,7 +338,8 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
         done;
         Generator.fill generator frame
       with exn ->
-        self#log#important "Feeding failed: %s" (Printexc.to_string exn);
+        let bt = Printexc.get_backtrace () in
+        self#log#important "Feeding failed: %s\n%s" (Printexc.to_string exn) bt;
         self#close_client;
         Frame.add_break frame pos
 
