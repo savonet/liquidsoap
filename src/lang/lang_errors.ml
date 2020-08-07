@@ -29,6 +29,24 @@ exception Invalid_value of Term.V.value * string
 exception Clock_conflict of (T.pos option * string * string)
 exception Clock_loop of (T.pos option * string * string)
 
+let () =
+  Printexc.register_printer (function
+    | Clock_conflict (pos, a, b) ->
+        let pos = T.print_pos (Utils.get_some pos) in
+        Some
+          (Printf.sprintf
+             "Clock_conflict: At position: %s, a source cannot belong to two \
+              clocks (%s, %s)"
+             pos a b)
+    | Clock_loop (pos, a, b) ->
+        let pos = T.print_pos (Utils.get_some pos) in
+        Some
+          (Printf.sprintf
+             "Clock_loop: At position: %s, cannot unify two nested clocks \
+              (%s,%s)"
+             pos a b)
+    | _ -> None)
+
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)

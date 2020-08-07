@@ -19,6 +19,7 @@ Fixed:
 - Fixed `http{s}.*` request body reader (#1300).
 - Fixed duplicate metadata insertion in caching mode (#1241).
 - Fixed SSL connection error (#1304).
+- Better error reporting for Clock_conflict and Clock_loop errors (#985).
 
 1.4.2 (03-05-2020)
 =====
