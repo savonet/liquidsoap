@@ -50,7 +50,8 @@ let mk_audio_decoder container =
     fun ~buffer frame ->
       let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
       let frame_in_channel_layout =
-        Avutil.Audio.frame_get_channel_layout frame
+        Avutil.Channel_layout.get_default
+          (Avutil.Audio.frame_get_channels frame)
       in
       let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
       if
