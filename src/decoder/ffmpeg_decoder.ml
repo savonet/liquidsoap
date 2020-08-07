@@ -51,9 +51,7 @@ let mk_audio_decoder ~put_audio container =
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
   let target_sample_rate = Lazy.force Frame.audio_rate in
-  let target_channel_layout =
-    Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
-  in
+  let target_channel_layout = Avcodec.Audio.get_channel_layout codec in
   let mk_converter () =
     Converter.create !in_channel_layout ~in_sample_format:!in_sample_format
       !in_sample_rate target_channel_layout target_sample_rate
