@@ -441,7 +441,11 @@ module From_audio_video = struct
             Queue.add (Queue.take chunks) picked;
             pick ~picked ~pos:(pos + l) ~chunks pts
         | Some (chunk, _, _) when pts < chunk.pts -> (pos, true)
-        | _ -> (pos, false)
+        (* Prevent user from submitting non-monotonic PTS. *)
+        | Some (chunk, _, _) when chunk.pts < pts ->
+            pick ~picked ~pos ~chunks pts
+        | None -> (pos, false)
+        | _ -> assert false
     in
 
     let add_audio ~picked ~pos () =
