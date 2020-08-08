@@ -449,17 +449,35 @@ class playlist ~kind ~on_track ~mime ~reload ~random ~check_next ~length
     (** Assume that every URI is valid, it will be checked on queuing. *)
     method private is_valid _ = true
 
+    val mutable watcher = None
+
+    val watcher_m = Mutex.create ()
+
+    method private set_watcher =
+      Tutils.mutexify watcher_m
+        (fun () ->
+          match watcher with
+            | Some _ -> ()
+            | None ->
+                if Http.is_url uri then
+                  self#log#important
+                    "Cannot watch distant playlists, ignoring reload mode."
+                else (
+                  let watch = !Configure.file_watcher in
+                  let unwatch =
+                    watch [`Modify] (Utils.home_unrelate playlist_uri)
+                      (fun () -> self#reload_playlist ~uri:playlist_uri `Other)
+                  in
+                  watcher <- Some unwatch;
+                  self#on_shutdown
+                    (Tutils.mutexify watcher_m (fun () ->
+                         unwatch ();
+                         watcher <- None)) ))
+        ()
+
     method get_ready ?dynamic sl =
       super#get_ready ?dynamic sl;
-      let watch = !Configure.file_watcher in
-      if reload = Watch then
-        if Http.is_url uri then
-          self#log#important
-            "Cannot watch distant playlists, ignoring reload mode."
-        else
-          self#on_shutdown
-            (watch [`Modify] (Utils.home_unrelate playlist_uri) (fun () ->
-                 self#reload_playlist ~uri:playlist_uri `Other))
+      if reload = Watch then self#set_watcher
 
     method private check_next r =
       Lang.to_bool (Lang.apply ~t:Lang.bool_t check_next [("", Lang.request r)])
@@ -504,13 +522,31 @@ class safe_playlist ~kind ~on_track ~mime ~reload ~random ~prefix local_playlist
     (** Nothing queued, hence nothing to expire. *)
     method private expire _ = ()
 
+    val mutable watcher = None
+
+    val watcher_m = Mutex.create ()
+
+    method private set_watcher =
+      Tutils.mutexify watcher_m
+        (fun () ->
+          match watcher with
+            | Some _ -> ()
+            | None ->
+                let watch = !Configure.file_watcher in
+                let unwatch =
+                  watch [`Modify] (Utils.home_unrelate playlist_uri) (fun () ->
+                      self#reload_playlist ~uri:playlist_uri `Other)
+                in
+                watcher <- Some unwatch;
+                self#on_shutdown
+                  (Tutils.mutexify watcher_m (fun () ->
+                       unwatch ();
+                       watcher <- None)))
+        ()
+
     method get_ready ?dynamic sl =
       super#get_ready ?dynamic sl;
-      let watch = !Configure.file_watcher in
-      if reload = Watch then
-        self#on_shutdown
-          (watch [`Modify] (Utils.home_unrelate playlist_uri) (fun () ->
-               self#reload_playlist ~uri:playlist_uri `Other))
+      if reload = Watch then self#set_watcher
   end
 
 let () =
