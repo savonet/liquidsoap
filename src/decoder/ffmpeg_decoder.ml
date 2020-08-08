@@ -277,8 +277,11 @@ let mk_streams ~ctype container =
         | f when Frame_content.None.is_format f -> None
         | f when Ffmpeg_content.AudioCopy.is_format f ->
             Some (`Packet (Ffmpeg_copy_decoder.mk_audio_decoder container))
-        | _ ->
-            Some (`Frame (Ffmpeg_internal_decoder.mk_audio_decoder container))
+        | f ->
+            let channels = Frame_content.Audio.channels_of_format f in
+            Some
+              (`Frame
+                (Ffmpeg_internal_decoder.mk_audio_decoder ~channels container))
     with Avutil.Error _ -> None
   in
   let video =

@@ -30,15 +30,13 @@ module ConverterInput = Swresample.Make (Swresample.Frame)
 module Converter = ConverterInput (Swresample.FltPlanarBigArray)
 module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
-let mk_audio_decoder container =
+let mk_audio_decoder ~channels container =
   let idx, stream, codec = Av.find_best_audio_stream container in
   let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
   let target_sample_rate = Lazy.force Frame.audio_rate in
-  let target_channel_layout =
-    Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
-  in
+  let target_channel_layout = Avutil.Channel_layout.get_default channels in
   let mk_converter () =
     Converter.create !in_channel_layout ~in_sample_format:!in_sample_format
       !in_sample_rate target_channel_layout target_sample_rate
