@@ -119,6 +119,9 @@ Changed:
   `http.response.stream`.
 - `localtime` and `gmtime` now return a record.
 - Deprecated `{eat,strip,skip,on}_blank` in favor of `blank.{eat,strip,skip,detect}`.
+- Deprecated `gettimeofday` in favor or `time`, renamed `localtime` to
+  `time.local` and `gmtime` to `time.utc`, and the argument of these two
+  last functions is now optional.
 
 Fixed:
 
