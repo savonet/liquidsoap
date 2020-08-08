@@ -61,6 +61,10 @@ let add_http_request http m name descr request =
           Lang.string_t,
           Some (Lang.string "1.0"),
           Some "Http request version." );
+        ( "redirect",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Perform redirections if needed." );
         ( "timeout",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -82,9 +86,9 @@ let add_http_request http m name descr request =
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let http_version = Lang.to_string (List.assoc "http_version" p) in
       let url = Lang.to_string (List.assoc "" p) in
+      let redirect = Lang.to_bool (List.assoc "redirect" p) in
       let (protocol_version, status_code, status_message), headers, data =
         try
-          let uri = Http.parse_url url in
           let request =
             match request with
               | Get -> Http.Get
@@ -98,8 +102,21 @@ let add_http_request http m name descr request =
               | Delete -> Http.Delete
           in
           let log s = log#info "%s" s in
-          Http.full_request ~log ~timeout ~headers ~uri ~request ~http_version
-            ()
+          let rec f url =
+            let uri = Http.parse_url url in
+            let ans =
+              Http.full_request ~log ~timeout ~headers ~uri ~request
+                ~http_version ()
+            in
+            let (_, status_code, _), headers, _ = ans in
+            if
+              redirect
+              && (status_code = 301 || status_code = 307)
+              && List.mem_assoc "location" headers
+            then f (List.assoc "location" headers)
+            else ans
+          in
+          f url
         with e ->
           raise
             (Lang_values.Runtime_error
