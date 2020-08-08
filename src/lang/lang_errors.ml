@@ -32,14 +32,14 @@ exception Clock_loop of (T.pos option * string * string)
 let () =
   Printexc.register_printer (function
     | Clock_conflict (pos, a, b) ->
-        let pos = T.print_pos (Utils.get_some pos) in
+        let pos = T.print_pos_opt pos in
         Some
           (Printf.sprintf
              "Clock_conflict: At position: %s, a source cannot belong to two \
               clocks (%s, %s)"
              pos a b)
     | Clock_loop (pos, a, b) ->
-        let pos = T.print_pos (Utils.get_some pos) in
+        let pos = T.print_pos_opt pos in
         Some
           (Printf.sprintf
              "Clock_loop: At position: %s, cannot unify two nested clocks \
@@ -67,21 +67,21 @@ let throw print_error = function
   (* Warnings *)
   | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
       flush_all ();
-      warning_header 1 (T.print_pos (Utils.get_some tm.Term.t.T.pos));
+      warning_header 1 (T.print_pos_opt tm.Term.t.T.pos);
       Format.printf
         "This function application is partial,@ maybe some arguments are \
          missing.@]@.";
       if !strict then raise Error
   | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
       flush_all ();
-      warning_header 2 (T.print_pos (Utils.get_some tm.Term.t.T.pos));
+      warning_header 2 (T.print_pos_opt tm.Term.t.T.pos);
       Format.printf
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
       if !strict then raise Error
   | Term.Ignored tm ->
       flush_all ();
-      warning_header 3 (T.print_pos (Utils.get_some tm.Term.t.T.pos));
+      warning_header 3 (T.print_pos_opt tm.Term.t.T.pos);
       Format.printf "This expression should have type unit.@]@.";
       if !strict then raise Error
   | Term.Unused_variable (s, pos) ->
@@ -102,7 +102,7 @@ let throw print_error = function
       Format.printf "%s@]@." s;
       raise Error
   | Term.Unbound (pos, s) ->
-      let pos = T.print_pos (Utils.get_some pos) in
+      let pos = T.print_pos_opt pos in
       error_header 4 pos;
       Format.printf "Undefined variable %s@]@." s;
       raise Error
@@ -111,8 +111,8 @@ let throw print_error = function
       Lang_types.print_type_error (error_header 5) explain;
       raise Error
   | Term.No_label (f, lbl, first, x) ->
-      let pos_f = T.print_pos (Utils.get_some f.Term.t.T.pos) in
-      let pos_x = T.print_pos (Utils.get_some x.Term.t.T.pos) in
+      let pos_f = T.print_pos_opt f.Term.t.T.pos in
+      let pos_x = T.print_pos_opt x.Term.t.T.pos in
       flush_all ();
       error_header 6 pos_x;
       Format.printf
@@ -123,11 +123,11 @@ let throw print_error = function
         else Format.sprintf "argument labeled %S" lbl );
       raise Error
   | Invalid_value (v, msg) ->
-      error_header 7 (T.print_pos (Utils.get_some v.Term.V.t.T.pos));
+      error_header 7 (T.print_pos_opt v.Term.V.t.T.pos);
       Format.printf "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_encoders.Error (v, s) ->
-      error_header 8 (T.print_pos (Utils.get_some v.Lang_values.t.T.pos));
+      error_header 8 (T.print_pos_opt v.Lang_values.t.T.pos);
       Format.printf "%s@]@." (String.capitalize_ascii s);
       raise Error
   | Failure s ->
@@ -136,11 +136,11 @@ let throw print_error = function
   | Clock_conflict (pos, a, b) ->
       (* TODO better printing of clock errors: we don't have position
        *   information, use the source's ID *)
-      error_header 10 (T.print_pos (Utils.get_some pos));
+      error_header 10 (T.print_pos_opt pos);
       Format.printf "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
       raise Error
   | Clock_loop (pos, a, b) ->
-      error_header 11 (T.print_pos (Utils.get_some pos));
+      error_header 11 (T.print_pos_opt pos);
       Format.printf "Cannot unify two nested clocks (%s,@ %s).@]@." a b;
       raise Error
   | Lang_values.Unsupported_format pos ->
