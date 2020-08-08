@@ -118,9 +118,13 @@ Changed:
 - Renamed `http_response` to `http.response` and `http_response_stream` to
   `http.response.stream`.
 - `localtime` and `gmtime` now return a record.
-- Deprecated `{eat,strip,skip,on}_blank` in favor of `blank.{eat,strip,skip,detect}`.
+- Deprecated `{eat,strip,skip,on}_blank` in favor of
+  `blank.{eat,strip,skip,detect}`.
 - `http{,s}.{get,post,push}` now perform redirections if needed, which can be
   disabled with the `redirect` parameter (#1319).
+- Deprecated `gettimeofday` in favor or `time`, renamed `localtime` to
+  `time.local` and `gmtime` to `time.utc`, and the argument of these two
+  last functions is now optional (#1320).
 
 Fixed:
 

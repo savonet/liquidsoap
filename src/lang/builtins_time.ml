@@ -47,13 +47,6 @@ let () =
       "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
     Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
 
-(* TODO: this is a duplicate of time above, we should deprecate one... *)
-let () =
-  add_builtin "gettimeofday" ~cat:Sys [] Lang.float_t
-    ~descr:
-      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
-    (fun _ -> Lang.float (Unix.gettimeofday ()))
-
 let () =
   let time_t =
     Lang.record_t
@@ -83,20 +76,32 @@ let () =
         ("isdst", Lang.bool tm.Unix.tm_isdst);
       ]
   in
-  add_builtin ~cat:Sys "localtime"
-    ~descr:
-      "Convert a time in seconds into a date in the local time zone. Fields \
-       meaning same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, \
-       i.e. 117 for 2017!" [("", Lang.float_t, None, None)] time_t (fun p ->
-      let tm = Unix.localtime (Lang.to_float (List.assoc "" p)) in
-      return tm);
-  add_builtin ~cat:Sys "gmtime"
-    ~descr:
-      "Convert a time in seconds into a date in the UTC time zone. Fields \
-       meaning same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, \
-       i.e. 117 for 2017!" [("", Lang.float_t, None, None)] time_t (fun p ->
-      let tm = Unix.gmtime (Lang.to_float (List.assoc "" p)) in
-      return tm);
+  let nullable_time v =
+    match Lang.to_option v with
+      | Some v -> Lang.to_float v
+      | None -> Unix.gettimeofday ()
+  in
+  let descr tz =
+    Printf.sprintf
+      "Convert a time in seconds into a date in the %s time zone (current time \
+       is used if no argument is provided). Fields meaning same as POSIX's `tm \
+       struct`. In particular, \"year\" is: year - 1900, i.e. 117 for 2017!"
+      tz
+  in
+  add_builtin ~cat:Sys "time.local" ~descr:(descr "local")
+    [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
+    time_t
+    (fun p ->
+      let t = nullable_time (List.assoc "" p) in
+      return (Unix.localtime t));
+  add_builtin ~cat:Sys "time.utc" ~descr:(descr "UTC")
+    [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
+    time_t
+    (fun p ->
+      let t = nullable_time (List.assoc "" p) in
+      return (Unix.gmtime t))
+
+let () =
   add_builtin ~cat:Liq "source.time"
     ~descr:"Get a source's time, based on its assigned clock"
     [("", Lang.source_t (Lang.univ_t ()), None, None)]

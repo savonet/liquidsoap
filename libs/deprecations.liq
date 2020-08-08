@@ -381,3 +381,24 @@ def strip_blank(~id="", ~max_blank=20., ~min_noise=0., ~start_blank=false,
               start_blank=start_blank, threshold=threshold, track_sensitive=track_sensitive,
               s)
 end
+
+# Deprecated: use `time.local` instead
+# @flag hidden
+def localtime(t)
+  deprecated("localtime", "time.local")
+  time.local(t)
+end
+
+# Deprecated: use `time.utc` instead
+# @flag hidden
+def gmtime(t)
+  deprecated("gmtime", "time.utc")
+  time.utc(t)
+end
+
+# Deprecated: use `time` instead
+# @flag hidden
+def gettimeofday()
+  deprecated("gettimeofday", "time")
+  time()
+end

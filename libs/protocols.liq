@@ -6,7 +6,7 @@ register(name="Replay_gain path","protocol.replay_gain.path","#{configure.bindir
 # Register the replaygain protocol.
 # @flag hidden
 def replaygain_protocol(~rlog,~maxtime,arg)
- delay = maxtime - gettimeofday()
+ delay = maxtime - time()
  # The extraction program
  extract_replaygain =
    get(default="#{configure.bindir}/extract-replaygain","protocol.replay_gain.path")
@@ -62,7 +62,7 @@ def process_protocol(~rlog,~maxtime,arg)
     env = list.map(get_env,env_vars)
     inherit_env = get(default=true,"protocol.process.inherit_env")
 
-    delay = maxtime - gettimeofday()
+    delay = maxtime - time()
     p = process.run(timeout=delay,env=env,inherit_env=inherit_env,cmd)
     if "exit" == p.status then
       [output]
@@ -80,7 +80,7 @@ def process_protocol(~rlog,~maxtime,arg)
     resolve("")
   else
     r = request.create(uri)
-    delay = maxtime - gettimeofday()
+    delay = maxtime - time()
     if request.resolve(timeout=delay,r) then
       res = resolve(request.filename(r))
       request.destroy(r)
@@ -137,7 +137,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
   env = list.map(get_env,env_vars)
   inherit_env = get(default=true,"protocol.process.inherit_env")
 
-  timeout = maxtime - gettimeofday()
+  timeout = maxtime - time()
 
   # First define using curl.
   def get_mime() =
@@ -234,7 +234,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
     log(level=level,s)
   end
 
-  delay = maxtime - gettimeofday()
+  delay = maxtime - time()
   cmd = "#{binary} --get-title --get-filename -- #{string.quote(arg)}"
   log(level=4,"Executing #{cmd}")
   x = process.read.lines(timeout=delay,cmd)
@@ -319,7 +319,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
 
   def parse_metadata(file) =
     cmd = "#{ffmpeg} -i #{string.quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
-    delay = maxtime - gettimeofday()
+    delay = maxtime - time()
     log(level=4,"Executing #{cmd}")
     lines = process.read.lines(timeout=delay,cmd)
     def f(cur,line) =
@@ -340,7 +340,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
       # The extraction program
       extract_replaygain =
         get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
-      delay = maxtime - gettimeofday()
+      delay = maxtime - time()
       ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
       if ret != "" then
         "-af \"volume=#{ret}\""
@@ -438,7 +438,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   end
 
   r = request.create(arg)
-  delay = maxtime - gettimeofday()
+  delay = maxtime - time()
   if request.resolve(timeout=delay,r) then
     filename = request.filename(r)
     m = request.metadata(r)
@@ -464,7 +464,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     uri = process_uri(extname="wav",uri=filename,cmd)
 
     wav_r = request.create(uri)
-    delay = maxtime - gettimeofday()
+    delay = maxtime - time()
     if request.resolve(timeout=delay,wav_r) then
       request.destroy(wav_r)
       ["#{annotate}tmp:#{wav}"]
