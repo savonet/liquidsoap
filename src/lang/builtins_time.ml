@@ -81,21 +81,20 @@ let () =
       | Some v -> Lang.to_float v
       | None -> Unix.gettimeofday ()
   in
-  add_builtin ~cat:Sys "time.local"
-    ~descr:
-      "Convert a time in seconds into a date in the local time zone. Fields \
-       meaning same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, \
-       i.e. 117 for 2017!"
+  let descr tz =
+    Printf.sprintf
+      "Convert a time in seconds into a date in the %s time zone (current time \
+       is used if no argument is provided). Fields meaning same as POSIX's `tm \
+       struct`. In particular, \"year\" is: year - 1900, i.e. 117 for 2017!"
+      tz
+  in
+  add_builtin ~cat:Sys "time.local" ~descr:(descr "local")
     [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
     time_t
     (fun p ->
       let t = nullable_time (List.assoc "" p) in
       return (Unix.localtime t));
-  add_builtin ~cat:Sys "time.utc"
-    ~descr:
-      "Convert a time in seconds into a date in the UTC time zone. Fields \
-       meaning same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, \
-       i.e. 117 for 2017!"
+  add_builtin ~cat:Sys "time.utc" ~descr:(descr "UTC")
     [("", Lang.nullable_t Lang.float_t, Some Lang.null, None)]
     time_t
     (fun p ->
