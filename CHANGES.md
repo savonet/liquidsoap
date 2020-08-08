@@ -119,6 +119,8 @@ Changed:
   `http.response.stream`.
 - `localtime` and `gmtime` now return a record.
 - Deprecated `{eat,strip,skip,on}_blank` in favor of `blank.{eat,strip,skip,detect}`.
+- `http{,s}.{get,post,push}` now perform redirections if needed, which can be
+  disabled with the `redirect` parameter (#1319).
 
 Fixed:
 
