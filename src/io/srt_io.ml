@@ -324,7 +324,7 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
     method private get_frame frame =
       let pos = Frame.position frame in
       try
-        let socket = Utils.get_some client_data in
+        let socket = Option.get client_data in
         let decoder =
           match decoder_data with
             | None ->
