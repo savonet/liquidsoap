@@ -87,7 +87,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
       wait_feeding <- Some wait
 
     method private stop =
-      (Utils.get_some kill_feeding) ();
+      (Option.get kill_feeding) ();
       kill_feeding <- None
 
     method private output_reset =

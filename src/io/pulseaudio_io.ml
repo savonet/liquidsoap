@@ -99,7 +99,7 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
       self#open_device
 
     method output_send memo =
-      let stream = Utils.get_some stream in
+      let stream = Option.get stream in
       let buf = AFrame.pcm memo in
       let chans = Array.length buf in
       let len = Audio.length buf in
@@ -171,12 +171,12 @@ class input ~kind p =
              ~dir:Dir_record ?dev ~sample:ss ())
 
     method private close_device =
-      Pulseaudio.Simple.free (Utils.get_some stream);
+      Pulseaudio.Simple.free (Option.get stream);
       stream <- None
 
     method input frame =
       assert (0 = AFrame.position frame);
-      let stream = Utils.get_some stream in
+      let stream = Option.get stream in
       let len = AFrame.size () in
       let ibuf =
         Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout

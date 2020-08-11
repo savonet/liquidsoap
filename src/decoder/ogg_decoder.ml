@@ -179,11 +179,11 @@ let create_decoder ?(merge_tracks = false) source input =
         else (decode_audio, decode_video)
       in
       if decode_audio then (
-        let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
+        let track = Option.get tracks.Ogg_demuxer.audio_track in
         Ogg_demuxer.decode_audio decoder track (fun buf ->
             audio_feed track (Audio.of_array buf)) );
       if decode_video then (
-        let track = Utils.get_some tracks.Ogg_demuxer.video_track in
+        let track = Option.get tracks.Ogg_demuxer.video_track in
         Ogg_demuxer.decode_video decoder track (video_feed track) )
     with
       (* We catch [Ogg_demuxer.End_of_stream] only if asked to

@@ -410,7 +410,7 @@ module Make (T : T) = struct
       val metadata = { metadata = None; metadata_m = Mutex.create () }
 
       method encode frame ofs len =
-        (Utils.get_some encoder).Encoder.encode frame ofs len
+        (Option.get encoder).Encoder.encode frame ofs len
 
       method insert_metadata m =
         let m = Meta_format.to_metadata m in
@@ -418,7 +418,7 @@ module Make (T : T) = struct
         Tutils.mutexify metadata.metadata_m
           (fun () -> metadata.metadata <- Some m)
           ();
-        (Utils.get_some encoder).Encoder.insert_metadata
+        (Option.get encoder).Encoder.insert_metadata
           (Meta_format.export_metadata m)
 
       method add_client ~protocol ~headers ~uri ~args s =
@@ -444,7 +444,7 @@ module Make (T : T) = struct
             data.format icyheader extra_headers
         in
         let buffer =
-          Strings.Mutable.of_strings (Utils.get_some encoder).Encoder.header
+          Strings.Mutable.of_strings (Option.get encoder).Encoder.header
         in
         let close () = try Harbor.close s with _ -> () in
         let rec client =
@@ -589,7 +589,7 @@ module Make (T : T) = struct
           | None -> ()
 
       method output_stop =
-        ignore ((Utils.get_some encoder).Encoder.stop ());
+        ignore ((Option.get encoder).Encoder.stop ());
         encoder <- None;
         Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
         let new_clients = Queue.create () in

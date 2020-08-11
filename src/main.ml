@@ -161,7 +161,7 @@ let process_request s =
         begin
           try
             Printf.printf "%.2f sec.\n"
-              (Request.duration (Utils.get_some (Request.get_filename req)))
+              (Request.duration (Option.get (Request.get_filename req)))
           with Not_found -> Printf.printf "failed.\n"
         end;
         Request.destroy req

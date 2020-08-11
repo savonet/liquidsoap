@@ -116,7 +116,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       if state <> Gstreamer.Element.State_playing then
         failwith "Not in playing state!";
       let b =
-        Gstreamer.App_sink.pull_buffer_string (Utils.get_some gst.audio_sink)
+        Gstreamer.App_sink.pull_buffer_string (Option.get gst.audio_sink)
       in
       let len = String.length b / (2 * channels) in
       let buf = Audio.create channels len in
@@ -127,9 +127,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       let _, state, _ = Gstreamer.Element.get_state gst.bin in
       if state <> Gstreamer.Element.State_playing then
         failwith "Not in playing state!";
-      let buf =
-        Gstreamer.App_sink.pull_buffer (Utils.get_some gst.video_sink)
-      in
+      let buf = Gstreamer.App_sink.pull_buffer (Option.get gst.video_sink) in
       (* let vm = Gstreamer.Buffer.get_video_meta buf in *)
       let buf = Gstreamer.Buffer.to_data buf in
       (* GStreamer's lines are strided to multiples of 4. *)

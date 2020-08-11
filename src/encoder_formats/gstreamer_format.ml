@@ -35,8 +35,8 @@ let audio_channels { channels; audio } = if audio <> None then channels else 0
 
 let to_string m =
   let pipeline l name value =
-    Utils.some_or l
-      (Utils.maybe (fun value -> Printf.sprintf "%s=%S" name value :: l) value)
+    Option.value ~default:l
+      (Option.map (fun value -> Printf.sprintf "%s=%S" name value :: l) value)
   in
   Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%slog=%d)"
     (String.concat ","
@@ -48,5 +48,6 @@ let to_string m =
              "video" m.video)
           "muxer" m.muxer))
     m.metadata m.has_video
-    (Utils.some_or "" (Utils.maybe (Printf.sprintf "pipeline=%S,") m.pipeline))
+    (Option.value ~default:""
+       (Option.map (Printf.sprintf "pipeline=%S,") m.pipeline))
     m.log

@@ -65,7 +65,7 @@ let init input =
         try
           let seek_time = int_of_float (floor seek_time) in
           let seek_pos = if seek_time > 0 then get_index seek_time else 0 in
-          ignore ((Utils.get_some input.Decoder.lseek) seek_pos);
+          ignore ((Option.get input.Decoder.lseek) seek_pos);
           dec := Mad.openstream input.Decoder.read;
 
           (* Decode one frame to set the decoder to a good reading position

@@ -344,8 +344,8 @@ let get_file_decoder ~metadata ~ctype filename =
         (Frame.string_of_content_type decoded_type);
       Some
         ( name,
-          fun () ->
-            (Utils.get_some specs.file_decoder) ~metadata ~ctype filename ) )
+          fun () -> (Option.get specs.file_decoder) ~metadata ~ctype filename )
+    )
 
 (** Get a valid image decoder creator for [filename]. *)
 let get_image_file_decoder filename =
@@ -415,7 +415,7 @@ let get_stream_decoder ~ctype mime =
     log#info "Selected decoder %s for mime-type %s with expected content %s"
       name mime
       (Frame.string_of_content_type ctype);
-    Some ((Utils.get_some decoder.stream_decoder ~ctype) mime) )
+    Some ((Option.get decoder.stream_decoder ~ctype) mime) )
 
 (** {1 Helpers for defining decoders} *)
 

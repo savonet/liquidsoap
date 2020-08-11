@@ -190,10 +190,10 @@ module MkContent (C : ContentSpecs) :
     Unifier.set l' m;
     Unifier.(l <-- l')
 
-  let kind_of_string s = Utils.maybe (fun p -> Kind p) (C.kind_of_string s)
+  let kind_of_string s = Option.map (fun p -> Kind p) (C.kind_of_string s)
 
   let format_of_string label value =
-    Utils.maybe
+    Option.map
       (fun p -> Format (Unifier.make [p]))
       (C.param_of_string label value)
 

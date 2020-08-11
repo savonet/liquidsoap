@@ -335,7 +335,7 @@ module Make (Config : Config_t) = struct
           self#disconnect
 
       method private disconnect_no_lock =
-        Utils.maydo
+        Option.iter
           (fun (s, _, _) ->
             try
               Http.disconnect s;
@@ -549,7 +549,7 @@ module Make (Config : Config_t) = struct
         wait_polling <- Some wait
 
       method sleep =
-        (Utils.get_some kill_polling) ();
+        (Option.get kill_polling) ();
         kill_polling <- None
     end
 

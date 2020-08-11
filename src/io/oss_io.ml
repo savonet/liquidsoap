@@ -77,7 +77,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
       self#open_device
 
     method output_send memo =
-      let fd = Utils.get_some fd in
+      let fd = Option.get fd in
       let buf = AFrame.pcm memo in
       let r = Audio.S16LE.size (Audio.channels buf) (Audio.length buf) in
       let s = Bytes.create r in
@@ -117,7 +117,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method private stop = self#close_device
 
     method private close_device =
-      Unix.close (Utils.get_some fd);
+      Unix.close (Option.get fd);
       fd <- None
 
     method output_reset =
@@ -126,7 +126,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
     method input frame =
       assert (0 = AFrame.position frame);
-      let fd = Utils.get_some fd in
+      let fd = Option.get fd in
       let buf = AFrame.pcm frame in
       let len = 2 * Array.length buf * Audio.Mono.length buf.(0) in
       let s = Bytes.create len in

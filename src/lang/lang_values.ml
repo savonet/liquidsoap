@@ -450,7 +450,7 @@ let check_unused ~throw ~lib tm =
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && is_fun def.t))
                   then (
-                    let start_pos = fst (Utils.get_some tm.t.T.pos) in
+                    let start_pos = fst (Option.get tm.t.T.pos) in
                     throw (Unused_variable (s, start_pos)) ))
               bvpat;
           Vars.union v mask
@@ -1169,7 +1169,7 @@ and apply f l =
                if an Invalid_value is raised on a default value, which happens
                with the mount/name params of output.icecast.*, the printing of
                the error should succeed at getting a position information. *)
-            let v = Utils.get_some v in
+            let v = Option.get v in
             { v with V.pos } )
           :: pe)
         pe p

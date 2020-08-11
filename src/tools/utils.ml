@@ -20,12 +20,6 @@
 
  *****************************************************************************)
 
-let pi = 4. *. atan 1.
-let get_some = function Some x -> x | None -> assert false
-let maybe f = function Some x -> Some (f x) | None -> None
-let maydo f = function Some x -> f x | None -> ()
-let some_or none = function Some x -> x | None -> none
-
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]
 

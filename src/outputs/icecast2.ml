@@ -55,8 +55,7 @@ module Icecast = struct
             | Mp3_format.CBR x -> (None, Some x)
             | Mp3_format.ABR x -> (None, x.Mp3_format.mean_bitrate)
             | Mp3_format.VBR x ->
-                ( Some (string_of_int (Utils.get_some x.Mp3_format.quality)),
-                  None )
+                (Some (string_of_int (Option.get x.Mp3_format.quality)), None)
         in
         {
           quality;
@@ -583,7 +582,7 @@ class output ~kind p =
       (* In some cases it might be possible to output the remaining data,
        * but it's not worth the trouble. *)
       begin
-        try ignore ((Utils.get_some encoder).Encoder.stop ()) with _ -> ()
+        try ignore ((Option.get encoder).Encoder.stop ()) with _ -> ()
       end;
       encoder <- None;
       begin

@@ -44,7 +44,7 @@ let mk_stream_copy ~sample_time_base ~get_data ~convert_pos output =
 
     List.iter
       (fun (pos, { Ffmpeg_content.packet; time_base }) ->
-        let stream = Utils.get_some !stream in
+        let stream = Option.get !stream in
         if start_pos <= pos && pos < stop_pos then (
           let packet_pts =
             Ffmpeg_utils.convert_time_base ~src:sample_time_base ~dst:time_base

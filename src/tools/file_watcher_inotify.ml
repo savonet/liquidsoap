@@ -27,7 +27,7 @@ let handlers = ref []
 let m = Mutex.create ()
 
 let rec watchdog () =
-  let fd = Utils.get_some !fd in
+  let fd = Option.get !fd in
   let handler =
     Tutils.mutexify m (fun _ ->
         let events = Inotify.read fd in
@@ -47,7 +47,7 @@ let watch : File_watcher.watch =
       if !fd = None then (
         fd := Some (Inotify.create ());
         Duppy.Task.add Tutils.scheduler (watchdog ()) );
-      let fd = Utils.get_some !fd in
+      let fd = Option.get !fd in
       let event_conv = function
         | `Modify ->
             [

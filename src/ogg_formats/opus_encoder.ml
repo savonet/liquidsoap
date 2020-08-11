@@ -47,7 +47,7 @@ let create_encoder ~opus ~comments () =
           end;
           let maybe name value =
             ignore
-              (Utils.maybe
+              (Option.map
                  (fun value -> Opus.Encoder.apply_control (name value) x)
                  value)
           in

@@ -109,7 +109,7 @@ let duration file =
     ~k:(fun () -> Av.close container)
     (fun () ->
       let duration = Av.get_input_duration container ~format:`Millisecond in
-      Utils.maybe (fun d -> Int64.to_float d /. 1000.) duration)
+      Option.map (fun d -> Int64.to_float d /. 1000.) duration)
 
 let () =
   Request.dresolvers#register "FFMPEG" (fun fname ->

@@ -441,7 +441,7 @@ class hls_output p =
       else 0
 
     method private write_pipe s b =
-      let _, oc = Utils.get_some s.hls_oc in
+      let _, oc = Option.get s.hls_oc in
       Strings.iter (output_substring oc) b
 
     method private cleanup_segments =

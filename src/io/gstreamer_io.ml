@@ -220,9 +220,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
                   element <- None;
                   fun () ->
                     if has_audio then
-                      App_src.end_of_stream (Utils.get_some el.audio);
+                      App_src.end_of_stream (Option.get el.audio);
                     if has_video then
-                      App_src.end_of_stream (Utils.get_some el.video);
+                      App_src.end_of_stream (Option.get el.video);
                     ignore (Element.set_state el.bin Element.State_null);
                     ignore (Element.get_state el.bin);
                     GU.flush ~log:self#log el.bin)
@@ -281,7 +281,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             let data = Bytes.create (2 * self#audio_channels * len) in
             Audio.S16LE.of_audio pcm data 0;
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
-              (Utils.get_some el.audio) data 0 (Bytes.length data) );
+              (Option.get el.audio) data 0 (Bytes.length data) );
           if has_video then (
             let buf = VFrame.yuv420p frame in
             for i = 0 to Video.length buf - 1 do
@@ -293,7 +293,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
               in
               Gstreamer.Buffer.set_duration buf duration;
               Gstreamer.Buffer.set_presentation_time buf presentation_time;
-              Gstreamer.App_src.push_buffer (Utils.get_some el.video) buf
+              Gstreamer.App_src.push_buffer (Option.get el.video) buf
             done );
           presentation_time <- Int64.add presentation_time duration;
           GU.flush ~log:self#log
@@ -560,7 +560,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       let pipeline =
         if has_audio then
           Printf.sprintf "%s %s ! %s ! %s" (pipeline ())
-            (Utils.get_some audio_pipeline ())
+            (Option.get audio_pipeline ())
             (GU.Pipeline.decode_audio ())
             (GU.Pipeline.audio_sink ~channels:self#audio_channels "audio_sink")
         else pipeline ()
@@ -568,7 +568,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       let pipeline =
         if has_video then
           Printf.sprintf "%s %s ! %s ! %s" pipeline
-            (Utils.get_some video_pipeline ())
+            (Option.get video_pipeline ())
             (GU.Pipeline.decode_video ())
             (GU.Pipeline.video_sink "video_sink")
         else pipeline

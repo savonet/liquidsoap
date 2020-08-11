@@ -74,15 +74,14 @@ class virtual base ~kind ~source ~name p =
     val mutable reopening = false
 
     method encode frame ofs len =
-      let enc = Utils.get_some encoder in
+      let enc = Option.get encoder in
       enc.Encoder.encode frame ofs len
 
     method virtual write_pipe : string -> int -> int -> unit
 
     method send b = Strings.iter self#write_pipe b
 
-    method insert_metadata m =
-      (Utils.get_some encoder).Encoder.insert_metadata m
+    method insert_metadata m = (Option.get encoder).Encoder.insert_metadata m
   end
 
 (** url output: discard encoded data. *)
@@ -194,7 +193,7 @@ class virtual piped_output ~kind p =
 
     method output_stop =
       if self#is_open then (
-        let flush = (Utils.get_some encoder).Encoder.stop () in
+        let flush = (Option.get encoder).Encoder.stop () in
         self#send flush;
         self#close_pipe );
       super#output_stop
@@ -256,12 +255,12 @@ class virtual chan_output p =
     method open_pipe = chan <- Some self#open_chan
 
     method write_pipe b ofs len =
-      let chan = Utils.get_some chan in
+      let chan = Option.get chan in
       output_substring chan b ofs len;
       if flush then Stdlib.flush chan
 
     method close_pipe =
-      self#close_chan (Utils.get_some chan);
+      self#close_chan (Option.get chan);
       chan <- None
 
     method is_open = chan <> None
@@ -316,7 +315,7 @@ class file_output ~format_val ~kind p =
 
     method close_chan fd =
       close_out fd;
-      self#on_close (Utils.get_some current_filename);
+      self#on_close (Option.get current_filename);
       current_filename <- None
   end
 

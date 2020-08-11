@@ -52,7 +52,7 @@ let encoder ext =
               if ext.audio <> None && ext.video <> None then "muxer." else ""
             in
             let audio_pipeline =
-              Utils.maybe
+              Option.map
                 (fun pipeline ->
                   Printf.sprintf "%s ! queue ! %s ! %s ! %s"
                     (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
@@ -61,7 +61,7 @@ let encoder ext =
                 ext.audio
             in
             let video_pipeline =
-              Utils.maybe
+              Option.map
                 (fun pipeline ->
                   Printf.sprintf "%s ! queue ! %s ! %s ! %s"
                     (GU.Pipeline.video_src ~block:true "video_src")
@@ -76,8 +76,8 @@ let encoder ext =
             in
             Printf.sprintf
               "%s %s %s appsink name=sink sync=false emit-signals=true"
-              (Utils.some_or "" audio_pipeline)
-              (Utils.some_or "" video_pipeline)
+              (Option.value ~default:"" audio_pipeline)
+              (Option.value ~default:"" video_pipeline)
               muxer_pipeline
     in
     log#f ext.log "Gstreamer encoder pipeline: %s" pipeline;
@@ -106,8 +106,8 @@ let encoder ext =
   let stop () =
     let ret =
       if !samples > 0 then (
-        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
-        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
+        Option.iter Gstreamer.App_src.end_of_stream gst.audio_src;
+        Option.iter Gstreamer.App_src.end_of_stream gst.video_src;
         GU.flush ~log gst.bin;
         let buf = Strings.Mutable.empty () in
         begin
@@ -152,9 +152,7 @@ let encoder ext =
       let data = Bytes.create (2 * channels * alen) in
       Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
       Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time
-        ~duration
-        (Utils.get_some gst.audio_src)
-        data 0 (Bytes.length data) );
+        ~duration (Option.get gst.audio_src) data 0 (Bytes.length data) );
     if videochans > 0 then (
       (* Put video. *)
       let vbuf = VFrame.yuv420p frame in
@@ -177,7 +175,7 @@ let encoder ext =
         in
         Gstreamer.Buffer.set_presentation_time buf presentation_time;
         Gstreamer.Buffer.set_duration buf vduration;
-        Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) buf
+        Gstreamer.App_src.push_buffer (Option.get gst.video_src) buf
       done );
     GU.flush ~log gst.bin;
 

@@ -350,16 +350,16 @@ let register_plugin plugin =
       else if no = 0 then
         (* TODO: can we really use such a type? *)
         ( new lilv_noout
-            ~kind:(Lang.audio_n 0) (Utils.get_some source) plugin inputs params
+            ~kind:(Lang.audio_n 0) (Option.get source) plugin inputs params
           :> Source.source )
       else if mono then
         ( new lilv_mono
-            ~kind:Lang.any (Utils.get_some source) plugin inputs.(0) outputs.(0)
+            ~kind:Lang.any (Option.get source) plugin inputs.(0) outputs.(0)
             params
           :> Source.source )
       else
         ( new lilv
-            ~kind:Lang.any (Utils.get_some source) plugin inputs outputs params
+            ~kind:Lang.any (Option.get source) plugin inputs outputs params
           :> Source.source ))
 
 let register_plugin plugin =
