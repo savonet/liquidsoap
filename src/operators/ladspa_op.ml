@@ -327,12 +327,12 @@ let register_descr plugin_name descr_n d inputs outputs =
       if ni = 0 then new ladspa_nosource plugin_name descr_n outputs params
       else if ni = 1 && no = 1 then
         ( new ladspa_mono
-            (Utils.get_some source) plugin_name descr_n inputs.(0) outputs.(0)
+            (Option.get source) plugin_name descr_n inputs.(0) outputs.(0)
             params
           :> Source.source )
       else
         ( new ladspa
-            (Utils.get_some source) plugin_name descr_n inputs outputs params
+            (Option.get source) plugin_name descr_n inputs outputs params
           :> Source.source ))
 
 let register_descr plugin_name descr_n d inputs outputs =

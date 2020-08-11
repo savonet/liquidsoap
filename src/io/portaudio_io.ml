@@ -80,7 +80,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
               (Portaudio.open_default_stream 0 self#audio_channels
                  samples_per_second buflen));
       self#handle "start_stream" (fun () ->
-          Portaudio.start_stream (Utils.get_some stream))
+          Portaudio.start_stream (Option.get stream))
 
     method private close_device =
       match stream with
@@ -98,7 +98,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
       self#open_device
 
     method output_send memo =
-      let stream = Utils.get_some stream in
+      let stream = Option.get stream in
       let buf = AFrame.pcm memo in
       self#handle "write_stream" (fun () ->
           let len = Audio.length buf in
@@ -145,10 +145,10 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
               (Portaudio.open_default_stream self#audio_channels 0
                  samples_per_second buflen));
       self#handle "start_stream" (fun () ->
-          Portaudio.start_stream (Utils.get_some stream))
+          Portaudio.start_stream (Option.get stream))
 
     method private close_device =
-      Portaudio.close_stream (Utils.get_some stream);
+      Portaudio.close_stream (Option.get stream);
       stream <- None
 
     method output_reset =
@@ -157,7 +157,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
 
     method input frame =
       assert (0 = AFrame.position frame);
-      let stream = Utils.get_some stream in
+      let stream = Option.get stream in
       let buf = AFrame.pcm frame in
       self#handle "read_stream" (fun () ->
           let len = Audio.length buf in

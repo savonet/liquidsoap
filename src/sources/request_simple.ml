@@ -36,7 +36,7 @@ class unqueued ~kind request =
       if
         Request.Resolved <> Request.resolve ~ctype:(Some self#ctype) request 60.
       then raise (Invalid_URI uri);
-      let filename = Utils.get_some (Request.get_filename request) in
+      let filename = Option.get (Request.get_filename request) in
       if String.length filename < 15 then self#set_id filename;
       super#wake_up x
 

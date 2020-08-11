@@ -236,14 +236,13 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             self#create_transition;
 
             (* Check if the new source is ready *)
-            if (Utils.get_some transition_source)#is_ready then
-              self#get_frame frame
+            if (Option.get transition_source)#is_ready then self#get_frame frame
             else
               (* If not, finish this track, which requires our callers
                * to wait that we become ready again. *)
               Frame.add_break frame (Frame.position frame)
-        | `After when (Utils.get_some transition_source)#is_ready ->
-            (Utils.get_some transition_source)#get frame;
+        | `After when (Option.get transition_source)#is_ready ->
+            (Option.get transition_source)#get frame;
             needs_tick <- true;
             if Generator.length pending_after = 0 && Frame.is_partial frame then (
               status <- `Idle;
@@ -411,18 +410,17 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       match status with
         | `Before | `Idle -> source#remaining
         | `Limit -> -1
-        | `After -> (Utils.get_some transition_source)#remaining
+        | `After -> (Option.get transition_source)#remaining
 
     method is_ready =
       match status with
         | `Idle | `Before -> source#is_ready
         | `Limit -> true
-        | `After ->
-            (Utils.get_some transition_source)#is_ready || source#is_ready
+        | `After -> (Option.get transition_source)#is_ready || source#is_ready
 
     method abort_track =
-      if status = `After && (Utils.get_some transition_source)#is_ready then
-        (Utils.get_some transition_source)#abort_track
+      if status = `After && (Option.get transition_source)#is_ready then
+        (Option.get transition_source)#abort_track
       else source#abort_track
   end
 

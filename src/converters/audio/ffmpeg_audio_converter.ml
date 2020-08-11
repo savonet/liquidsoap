@@ -33,7 +33,7 @@ let samplerate_converter () =
     if !rs = None || !rs_out_freq <> out_freq then (
       rs := Some (Resampler.create chans in_freq chans out_freq);
       rs_out_freq := out_freq );
-    let rs = Utils.get_some !rs in
+    let rs = Option.get !rs in
     (Resampler.convert rs [| buf |]).(0)
 
 let () =

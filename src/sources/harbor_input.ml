@@ -241,7 +241,7 @@ module Make (Harbor : T) = struct
         ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")
 
       method private disconnect_no_lock =
-        Utils.maydo (fun s -> try Harbor.close s with _ -> ()) relay_socket;
+        Option.iter (fun s -> try Harbor.close s with _ -> ()) relay_socket;
         relay_socket <- None
 
       method private disconnect_with_lock =

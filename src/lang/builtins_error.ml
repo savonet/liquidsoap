@@ -72,7 +72,7 @@ let () =
     (fun p ->
       let { kind } = Error.of_value (Lang.assoc "" 1 p) in
       let msg =
-        Utils.maybe Lang.to_string (Lang.to_option (Lang.assoc "" 2 p))
+        Option.map Lang.to_string (Lang.to_option (Lang.assoc "" 2 p))
       in
       raise (Lang_values.Runtime_error { Lang_values.kind; msg; pos = [] }))
 
@@ -91,7 +91,7 @@ let () =
     a
     (fun p ->
       let errors =
-        Utils.maybe
+        Option.map
           (fun v -> List.map Error.of_value (Lang.to_list v))
           (Lang.to_option (Lang.assoc "errors" 1 p))
       in
@@ -101,6 +101,6 @@ let () =
       with
       | Lang_values.Runtime_error { Lang_values.kind; msg }
       when errors = None
-           || List.exists (fun err -> err.kind = kind) (Utils.get_some errors)
+           || List.exists (fun err -> err.kind = kind) (Option.get errors)
       ->
         h [("", Error.to_value { kind; msg })])

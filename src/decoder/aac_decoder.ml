@@ -104,8 +104,8 @@ let create_decoder input =
       let bytes = int_of_float (rate *. offset) in
       try
         ignore
-          ((Utils.get_some input.Decoder.lseek)
-             ((Utils.get_some input.Decoder.tell) () + bytes));
+          ((Option.get input.Decoder.lseek)
+             ((Option.get input.Decoder.tell) () + bytes));
         Faad.post_sync_reset dec;
         ticks
       with _ -> 0 )

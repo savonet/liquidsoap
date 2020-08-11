@@ -43,7 +43,7 @@ class pan ~kind (source : source) phi phi_0 =
       source#get buf;
       let buffer = AFrame.pcm buf in
       (* Degrees to radians + half field. *)
-      let phi_0 = phi_0 () *. Utils.pi /. 360. in
+      let phi_0 = phi_0 () *. Float.pi /. 360. in
       (* Map -1 / 1 to radians. *)
       let phi = phi () *. phi_0 in
       let gain_left = (tan phi_0 +. tan phi) /. 2. in

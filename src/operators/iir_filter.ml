@@ -37,9 +37,9 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
 
     val raw_alpha2 = freq2 /. rate
 
-    val warped_alpha1 = tan (Utils.pi *. freq1 /. rate) /. Utils.pi
+    val warped_alpha1 = tan (Float.pi *. freq1 /. rate) /. Float.pi
 
-    val warped_alpha2 = tan (Utils.pi *. freq2 /. rate) /. Utils.pi
+    val warped_alpha2 = tan (Float.pi *. freq2 /. rate) /. Float.pi
 
     val mutable gain = 0.
 
@@ -145,8 +145,8 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
           for i = 0 to (2 * order) - 1 do
             let theta =
               match order mod 2 with
-                | 1 -> float_of_int i *. Utils.pi /. float_of_int order
-                | 0 -> (float_of_int i +. 0.5) *. Utils.pi /. float_of_int order
+                | 1 -> float_of_int i *. Float.pi /. float_of_int order
+                | 0 -> (float_of_int i +. 0.5) *. Float.pi /. float_of_int order
                 | _ -> assert false
             in
             self#log#info "%d: %+.013f --> %+.013f %+.013f i." i theta
@@ -155,8 +155,8 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
           done;
 
           (* Normalize *)
-          let w1 = cor (2. *. Utils.pi *. warped_alpha1) in
-          let w2 = cor (2. *. Utils.pi *. warped_alpha2) in
+          let w1 = cor (2. *. Float.pi *. warped_alpha1) in
+          let w2 = cor (2. *. Float.pi *. warped_alpha2) in
           begin
             match filter_type with
             | Band_stop ->
@@ -285,7 +285,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
           zplane_zeros <- [| cor 1.; cor (-1.) |];
 
           (* where we want the peak to be *)
-          let theta = 2. *. Utils.pi *. raw_alpha1 in
+          let theta = 2. *. Float.pi *. raw_alpha1 in
           if qfactor == infinity then (
             self#log#info "Infinite Q factor!";
 
@@ -298,7 +298,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
             let r = exp (cor (-.theta /. (2. *. qfactor)))
             and thm = ref theta
             and th1 = ref 0.
-            and th2 = ref Utils.pi
+            and th2 = ref Float.pi
             and cvg = ref false in
             for i = 0 to 50 do
               let zp = r *~ { re = cos !thm; im = sin !thm } in
@@ -366,7 +366,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
     (* Gain *)
     dc_gain <- evaluate topcoeffs botcoeffs { re = 1.; im = 0. };
     let theta =
-      2. *. Utils.pi *. 0.5 *. (raw_alpha1 +. raw_alpha2)
+      2. *. Float.pi *. 0.5 *. (raw_alpha1 +. raw_alpha2)
       (* jwt for centre freq. *)
     in
     fc_gain <-

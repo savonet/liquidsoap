@@ -79,8 +79,8 @@ let get_encoder name =
     raise Not_found
 
 let encoder { Ogg_format.audio; video } =
-  ignore (Utils.maybe (fun p -> get_encoder (encoder_name p)) audio);
-  ignore (Utils.maybe (fun _ -> get_encoder "theora") video);
+  ignore (Option.map (fun p -> get_encoder (encoder_name p)) audio);
+  ignore (Option.map (fun _ -> get_encoder "theora") video);
   fun name meta ->
     let tracks = [] in
     let tracks =
@@ -93,7 +93,7 @@ let encoder { Ogg_format.audio; video } =
     let tracks =
       match video with
         | Some params ->
-            let enc = Utils.get_some !theora_encoder in
+            let enc = Option.get !theora_encoder in
             enc params :: tracks
         | None -> tracks
     in
@@ -119,7 +119,7 @@ let encoder { Ogg_format.audio; video } =
         streams_start ();
         enc.Encoder.header <- Ogg_muxer.get_header ogg_enc );
       let f track =
-        track.encode ogg_enc (Utils.get_some track.id) frame start len
+        track.encode ogg_enc (Option.get track.id) frame start len
       in
       List.iter f tracks;
       Ogg_muxer.get_data ogg_enc

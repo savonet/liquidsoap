@@ -88,12 +88,12 @@ class virtual unqueued ~kind ~name =
             self#log#debug "Failed to prepare track: no file.";
             false
         | Some req when Request.is_ready req ->
-            assert (Utils.get_some (Request.ctype req) = self#ctype);
+            assert (Option.get (Request.ctype req) = self#ctype);
 
             (* [Request.is_ready] ensures that we can get a filename from the request,
                and it can be decoded. *)
-            let file = Utils.get_some (Request.get_filename req) in
-            let decoder = Utils.get_some (Request.get_decoder req) in
+            let file = Option.get (Request.get_filename req) in
+            let decoder = Option.get (Request.get_decoder req) in
             self#log#important "Prepared %S (RID %d)." file (Request.get_id req);
 
             (* We use this mutex to avoid seeking and filling at the same time.. *)
@@ -256,10 +256,10 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         ();
 
       (* Make sure the task is awake so that it can see our signal. *)
-      Duppy.Async.wake_up (Utils.get_some task);
+      Duppy.Async.wake_up (Option.get task);
       self#log#info "Waiting for feeding task to stop...";
       Tutils.wait state_cond state_lock (fun () -> state = `Sleeping);
-      Duppy.Async.stop (Utils.get_some task);
+      Duppy.Async.stop (Option.get task);
       task <- None;
 
       (* No more feeding task, we can go to sleep. *)
@@ -283,7 +283,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
          exception. *)
       Tutils.mutexify state_lock
         (fun () ->
-          if state = `Running then Duppy.Async.wake_up (Utils.get_some task))
+          if state = `Running then Duppy.Async.wake_up (Option.get task))
         ()
 
     (** A function that returns delays for tasks, making sure that these tasks

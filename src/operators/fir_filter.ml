@@ -64,7 +64,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
       let rec mkcircle n =
         if n < 0 then [||]
         else (
-          let theta = Utils.pi *. float_of_int n /. 1024. in
+          let theta = Float.pi *. float_of_int n /. 1024. in
           Array.append
             (mkcircle (n - 1))
             [| { re = cos theta; im = sin theta } |] )
@@ -78,7 +78,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
       match (f <= f1, f <= f2) with
         | true, _ -> 1.
         | false, true ->
-            0.5 *. (1. +. cos (Utils.pi *. tau /. beta *. (f -. f1)))
+            0.5 *. (1. +. cos (Float.pi *. tau /. beta *. (f -. f1)))
         | false, false -> 0.
     in
     for i = 0 to 1024 do

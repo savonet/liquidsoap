@@ -201,7 +201,7 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
     method output_stop = self#close_device
 
     method output_send memo =
-      let pcm = Utils.get_some pcm in
+      let pcm = Option.get pcm in
       let buf = AFrame.pcm memo in
       let buf =
         if alsa_rate = samples_per_second then buf
@@ -259,7 +259,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
     (* TODO: convert samplerate *)
     method private input frame =
-      let pcm = Utils.get_some pcm in
+      let pcm = Option.get pcm in
       let buf = AFrame.pcm frame in
       try
         let r = ref 0 in

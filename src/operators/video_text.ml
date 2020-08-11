@@ -69,7 +69,7 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
         | Some tf -> tf
         | None ->
             self#render_text cur_text;
-            Utils.get_some text_frame
+            Option.get text_frame
 
     method private get_frame ab =
       match VFrame.get_content ab source with

@@ -529,7 +529,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               log#debug "Hello packet: %s\n%!" s;
               match extract_packet s with
                 | "hello", data ->
-                    let data = Utils.get_some data in
+                    let data = Option.get data in
                     let mime = json_string_of (List.assoc "mime" data) in
                     let user = json_string_of (List.assoc "user" data) in
                     let password =
@@ -576,7 +576,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                             match extract_packet s with
                               | "metadata", data ->
                                   log#debug "Metadata packet: %s\n%!" s;
-                                  let data = Utils.get_some data in
+                                  let data = Option.get data in
                                   let m =
                                     List.map
                                       (fun (l, v) -> (l, json_string_of v))
@@ -662,7 +662,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                           ( if
                             not
                               (List.mem
-                                 (Utils.get_some s#get_mime_type)
+                                 (Option.get s#get_mime_type)
                                  conf_icy_metadata#get)
                           then (
                             log#info

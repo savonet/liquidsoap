@@ -65,13 +65,13 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
       encoder <- None
 
     method private encode frame ofs len =
-      (Utils.get_some encoder).Encoder.encode frame ofs len
+      (Option.get encoder).Encoder.encode frame ofs len
 
     method private insert_metadata m =
-      (Utils.get_some encoder).Encoder.insert_metadata m
+      (Option.get encoder).Encoder.insert_metadata m
 
     method private send data =
-      let socket_send = Utils.get_some socket_send in
+      let socket_send = Option.get socket_send in
       Strings.iter (fun s o l -> ignore (socket_send s o l)) data
   end
 
@@ -126,7 +126,7 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
       wait_feeding <- Some wait
 
     method private stop =
-      (Utils.get_some kill_feeding) ();
+      (Option.get kill_feeding) ();
       kill_feeding <- None
 
     method private output_reset =

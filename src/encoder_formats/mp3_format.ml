@@ -90,4 +90,4 @@ let bitrate m =
   match m.bitrate_control with
     | VBR _ -> raise Not_found
     | CBR n -> n * 1000
-    | ABR c -> Utils.get_some c.mean_bitrate * 1000
+    | ABR c -> Option.get c.mean_bitrate * 1000

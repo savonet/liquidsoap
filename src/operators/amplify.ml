@@ -94,5 +94,5 @@ let () =
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       let o = Lang.to_option (Lang.assoc "override" 1 p) in
-      let o = Utils.maybe Lang.to_string o in
+      let o = Option.map Lang.to_string o in
       new amplify ~kind s o c)

@@ -226,7 +226,7 @@ let () =
                 (Frame_content.Video.lift_data (Video.single data))
                 0 1
           | `Frame (`Audio, _, data) ->
-              let converter = Utils.get_some !audio_converter in
+              let converter = Option.get !audio_converter in
               let data = converter data in
               Generator.put_audio abg
                 (Frame_content.Audio.lift_data data)

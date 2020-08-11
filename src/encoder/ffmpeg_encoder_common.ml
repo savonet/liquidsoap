@@ -46,19 +46,14 @@ let mk_format ffmpeg =
 let encode ~encoder frame start len =
   if not encoder.started then (
     ignore
-      (Utils.maybe (fun { mk_stream } -> mk_stream frame) encoder.audio_stream);
+      (Option.map (fun { mk_stream } -> mk_stream frame) encoder.audio_stream);
     ignore
-      (Utils.maybe (fun { mk_stream } -> mk_stream frame) encoder.video_stream)
-    );
+      (Option.map (fun { mk_stream } -> mk_stream frame) encoder.video_stream) );
   encoder.started <- true;
   ignore
-    (Utils.maybe
-       (fun { encode } -> encode frame start len)
-       encoder.audio_stream);
+    (Option.map (fun { encode } -> encode frame start len) encoder.audio_stream);
   ignore
-    (Utils.maybe
-       (fun { encode } -> encode frame start len)
-       encoder.video_stream)
+    (Option.map (fun { encode } -> encode frame start len) encoder.video_stream)
 
 let insert_metadata ~encoder m =
   let m =
@@ -95,16 +90,16 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
       match ffmpeg.Ffmpeg_format.output with
         | `Stream ->
             if format = None then failwith "format is required!";
-            Av.open_output_stream ~opts:options write (Utils.get_some format)
+            Av.open_output_stream ~opts:options write (Option.get format)
         | `Url url -> Av.open_output ?format ~opts:options url
     in
     let audio_stream =
-      Utils.maybe
+      Option.map
         (fun _ -> mk_audio ~ffmpeg ~options output)
         ffmpeg.Ffmpeg_format.audio_codec
     in
     let video_stream =
-      Utils.maybe
+      Option.map
         (fun _ -> mk_video ~ffmpeg ~options output)
         ffmpeg.Ffmpeg_format.video_codec
     in

@@ -162,9 +162,7 @@ let () =
       file_decoder =
         Some
           (fun ~metadata ~ctype:_ filename ->
-            let img =
-              Utils.get_some (Decoder.get_image_file_decoder filename)
-            in
+            let img = Option.get (Decoder.get_image_file_decoder filename) in
             create_decoder ~metadata img);
       stream_decoder = None;
     }

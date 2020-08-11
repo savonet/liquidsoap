@@ -90,7 +90,7 @@ module WH = struct
     keep.(n - 1) <- Some conv;
     add h conv
 
-  let assoc h fmt = Utils.get_some (snd (find h (fmt, None)))
+  let assoc h fmt = Option.get (snd (find h (fmt, None)))
 end
 
 (* Weak hashtable containing converters already created. *)
