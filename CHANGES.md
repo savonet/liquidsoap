@@ -21,6 +21,7 @@ Fixed:
 - Fixed SSL connection error (#1304).
 - Better error reporting for Clock_conflict and Clock_loop errors (#985).
 - Make sure playlist change watch is only setup once (#1246).
+- Fixed windows service launch (#907).
 
 1.4.2 (03-05-2020)
 =====

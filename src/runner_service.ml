@@ -79,6 +79,8 @@ let () =
         Svc.remove ();
         Printf.printf "Removed %s service\n" S.name
     | `Run -> (
+        let nul = open_out "nul" in
+        Unix.dup2 (Unix.descr_of_out_channel nul) Unix.stdout;
         Dtools.Log.conf_stdout#set false;
         Dtools.Log.conf_file#set true;
         try Svc.run main
