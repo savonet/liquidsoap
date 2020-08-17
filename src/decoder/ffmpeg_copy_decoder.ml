@@ -20,7 +20,7 @@
 
   *****************************************************************************)
 
-(** Decode and read metadata using ffmpeg. *)
+(** Decode ffmpeg packets. *)
 
 open Avcodec
 module G = Decoder.G
@@ -35,7 +35,7 @@ let mk_decoder ~stream_time_base ~mk_param ~lift_data ~put_data params =
       { Ffmpeg_copy_content.params; packet; time_base = stream_time_base }
     in
     let data =
-      { Ffmpeg_copy_content.param = mk_param params; data = [(0, packet)] }
+      { Ffmpeg_content_base.param = mk_param params; data = [(0, packet)] }
     in
     let data = lift_data data in
     put_data ?pts:None buffer.Decoder.generator data 0 duration

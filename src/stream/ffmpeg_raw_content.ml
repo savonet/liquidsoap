@@ -23,17 +23,13 @@
 open Avutil
 
 module BaseSpecs = struct
+  include Ffmpeg_content_base
+
   type kind = [ `Raw ]
 
   let kind = `Raw
-  let default_params _ = []
-
-  let merge l l' =
-    match (l, l') with
-      | [], [p'] -> [p']
-      | [p], [] -> [p]
-      | [p], [p'] when p = p' -> [p]
-      | _ -> failwith "Incompatible parameters"
+  let string_of_kind = function `Raw -> "ffmpeg.raw"
+  let kind_of_string = function "ffmpeg.raw" -> Some `Raw | _ -> None
 end
 
 module AudioSpecs = struct
@@ -45,16 +41,7 @@ module AudioSpecs = struct
     sample_rate : int;
   }
 
-  type data = audio frame
-
-  let make = function
-    | [{ channel_layout; sample_format; sample_rate }] ->
-        Audio.create_frame sample_format channel_layout sample_rate
-          Frame.(audio_of_master (Lazy.force Frame.size))
-    | _ -> assert false
-
-  let clear _ = ()
-  let param_of_string _ _ = None
+  type data = (param, audio frame) content
 
   (* TODO *)
   let bytes _ = 0
@@ -72,22 +59,6 @@ module AudioSpecs = struct
       sample_format = Avcodec.Audio.get_sample_format p;
       sample_rate = Avcodec.Audio.get_sample_rate p;
     }
-
-  let copy src =
-    let dst = make [frame_param src] in
-    frame_copy src dst;
-    dst
-
-  let params frame = [frame_param frame]
-
-  let blit src src_pos dst dst_pos len =
-    let src_pos = Frame.audio_of_master src_pos in
-    let dst_pos = Frame.audio_of_master dst_pos in
-    let len = Frame.audio_of_master len in
-    Audio.frame_copy_samples src src_pos dst dst_pos len
-
-  let string_of_kind = function `Raw -> "ffmpeg.raw"
-  let kind_of_string = function "ffmpeg.raw" -> Some `Raw | _ -> None
 
   let string_of_param { channel_layout; sample_format; sample_rate } =
     Printf.sprintf "channel_layout=%S,sample_format=%S,sample_rate=%d"
@@ -117,26 +88,7 @@ module VideoSpecs = struct
     pixel_format : Avutil.Pixel_format.t option;
   }
 
-  type data = { param : param; mutable data : (int * video frame) list }
-
-  let make = function [param] -> { param; data = [] } | _ -> assert false
-  let clear d = d.data <- []
-  let param_of_string _ _ = None
-
-  let blit src src_pos dst dst_pos len =
-    let src_end = src_pos + len in
-    let data =
-      List.fold_left
-        (fun data (pos, p) ->
-          if src_pos <= pos && pos < src_end then (
-            let pos = dst_pos + (pos - src_pos) in
-            (pos, p) :: data )
-          else data)
-        dst.data src.data
-    in
-    dst.data <- data
-
-  let copy { data; param } = { data; param }
+  type data = (param, video frame) content
 
   (* TODO *)
   let bytes _ = 0
@@ -154,10 +106,6 @@ module VideoSpecs = struct
       height = Avcodec.Video.get_height p;
       pixel_format = Avcodec.Video.get_pixel_format p;
     }
-
-  let params { param } = [param]
-  let string_of_kind = function `Raw -> "ffmpeg.raw"
-  let kind_of_string = function "ffmpeg.raw" -> Some `Raw | _ -> None
 
   let string_of_param { width; height; pixel_format } =
     Printf.sprintf "size=\"%dx%d\",pixel_format=%S)" width height

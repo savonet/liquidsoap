@@ -20,32 +20,38 @@
 
   *****************************************************************************)
 
-(** Decode and read metadata using ffmpeg. *)
+(** Decode raw ffmpeg frames. *)
 
 module G = Decoder.G
 
-let mk_audio_decoder container =
-  let idx, stream, _ = Av.find_best_audio_stream container in
+let mk_decoder ~stream_time_base ~mk_param ~lift_data ~put_data params =
   let get_duration =
-    Ffmpeg_decoder_common.convert_duration ~src:(Av.get_time_base stream)
+    Ffmpeg_decoder_common.convert_duration ~src:stream_time_base
   in
+  fun ~buffer frame ->
+    let duration = get_duration (Avutil.frame_pts frame) in
+    let data =
+      { Ffmpeg_content_base.param = mk_param params; data = [(0, frame)] }
+    in
+    let data = lift_data data in
+    put_data ?pts:None buffer.Decoder.generator data 0 duration
+
+let mk_audio_decoder container =
+  let idx, stream, params = Av.find_best_audio_stream container in
+  let stream_time_base = Av.get_time_base stream in
+  let lift_data = Ffmpeg_raw_content.Audio.lift_data in
+  let mk_param = Ffmpeg_raw_content.AudioSpecs.mk_param in
   ( idx,
     stream,
-    fun ~buffer frame ->
-      let data = Ffmpeg_raw_content.Audio.lift_data frame in
-      G.put_audio buffer.Decoder.generator data 0
-        (get_duration (Avutil.frame_pkt_duration frame)) )
+    mk_decoder ~lift_data ~mk_param ~stream_time_base ~put_data:G.put_audio
+      params )
 
 let mk_video_decoder container =
-  let idx, stream, _ = Av.find_best_video_stream container in
-  let get_duration =
-    Ffmpeg_decoder_common.convert_duration ~src:(Av.get_time_base stream)
-  in
+  let idx, stream, params = Av.find_best_video_stream container in
+  let stream_time_base = Av.get_time_base stream in
+  let lift_data = Ffmpeg_raw_content.Video.lift_data in
+  let mk_param = Ffmpeg_raw_content.VideoSpecs.mk_param in
   ( idx,
     stream,
-    fun ~buffer frame ->
-      let param = Ffmpeg_raw_content.VideoSpecs.frame_param frame in
-      let data = { Ffmpeg_raw_content.VideoSpecs.param; data = [(0, frame)] } in
-      let data = Ffmpeg_raw_content.Video.lift_data data in
-      G.put_video buffer.Decoder.generator data 0
-        (get_duration (Avutil.frame_pkt_duration frame)) )
+    mk_decoder ~mk_param ~lift_data ~stream_time_base ~put_data:G.put_video
+      params )

@@ -50,10 +50,6 @@ let mk_audio ~ffmpeg ~options output =
       | _ -> assert false
   in
 
-  let src_liq_audio_sample_time_base src_samplerate =
-    { Avutil.num = 1; den = src_samplerate }
-  in
-
   let target_samplerate = Lazy.force ffmpeg.Ffmpeg_format.samplerate in
   let target_liq_audio_sample_time_base =
     { Avutil.num = 1; den = target_samplerate }
@@ -80,7 +76,7 @@ let mk_audio ~ffmpeg ~options output =
       let astart = Frame.audio_of_master start in
       let alen = Frame.audio_of_master len in
       let pcm = Audio.sub (AFrame.pcm frame) astart alen in
-      (InternalResampler.convert resampler pcm, src_samplerate)
+      [InternalResampler.convert resampler pcm]
   in
 
   let raw_converter =
@@ -114,28 +110,17 @@ let mk_audio ~ffmpeg ~options output =
               resampler := Some f;
               f
       in
-      (resampler frame, src_samplerate)
+      resampler frame
     in
     fun frame start len ->
-      let astart = Frame.audio_of_master start in
-      let alen = Frame.audio_of_master len in
-      let frame =
-        Ffmpeg_raw_content.Audio.get_data Frame.(frame.content.audio)
+      let frames =
+        Ffmpeg_raw_content.Audio.(get_data Frame.(frame.content.audio))
+          .Ffmpeg_content_base.data
       in
-      let frame =
-        if astart = 0 && alen = Avutil.Audio.frame_nb_samples frame then frame
-        else (
-          let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
-          let sample_format = Avutil.Audio.frame_get_sample_format frame in
-          let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
-          let dst =
-            Avutil.Audio.create_frame sample_format channel_layout sample_rate
-              alen
-          in
-          Avutil.Audio.frame_copy_samples frame astart dst 0 alen;
-          dst )
+      let frames =
+        List.filter (fun (pos, _) -> start <= pos && pos < start + len) frames
       in
-      resample frame
+      List.map (fun (_, frame) -> resample frame) frames
   in
 
   let converter =
@@ -214,14 +199,7 @@ let mk_audio ~ffmpeg ~options output =
   in
 
   let encode frame start len =
-    let aframe, src_samplerate = converter frame start len in
-    let frame_pts =
-      Ffmpeg_utils.convert_time_base
-        ~src:(src_liq_audio_sample_time_base src_samplerate)
-        ~dst:target_liq_audio_sample_time_base (Frame.pts frame)
-    in
-    Avutil.frame_set_pts aframe (Some frame_pts);
-    write_frame aframe
+    List.iter write_frame (converter frame start len)
   in
 
   { Ffmpeg_encoder_common.mk_stream; encode }
@@ -361,12 +339,6 @@ let mk_video ~ffmpeg ~options output =
       | _ -> assert false
   in
 
-  let pts = ref 0L in
-  let encode =
-    converter (fun vframe ->
-        Avutil.frame_set_pts vframe (Some !pts);
-        pts := Int64.succ !pts;
-        fps_converter vframe)
-  in
+  let encode = converter fps_converter in
 
   { Ffmpeg_encoder_common.mk_stream; encode }

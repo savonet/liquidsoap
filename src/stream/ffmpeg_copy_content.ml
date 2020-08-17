@@ -36,42 +36,17 @@ type 'a packet = {
   time_base : Avutil.rational;
 }
 
-type ('a, 'b) content = { param : 'b; mutable data : (int * 'a packet) list }
-
 module BaseSpecs = struct
+  include Ffmpeg_content_base
+
   type kind = [ `Copy ]
 
-  let make = function [param] -> { param; data = [] } | _ -> assert false
-  let clear d = d.data <- []
-  let param_of_string _ _ = None
+  let kind = `Copy
+  let string_of_kind = function `Copy -> "ffmpeg.encoded"
+  let kind_of_string = function "ffmpeg.encoded" -> Some `Copy | _ -> None
 
   let bytes { data } =
     List.fold_left (fun c (_, { packet }) -> c + Packet.get_size packet) 0 data
-
-  let blit src src_pos dst dst_pos len =
-    let src_end = src_pos + len in
-    let data =
-      List.fold_left
-        (fun data (pos, p) ->
-          if src_pos <= pos && pos < src_end then (
-            let pos = dst_pos + (pos - src_pos) in
-            (pos, p) :: data )
-          else data)
-        dst.data src.data
-    in
-    dst.data <- data
-
-  let copy { data; param } = { data; param }
-  let kind = `Copy
-  let default_params _ = []
-  let params { param } = [param]
-
-  let merge l l' =
-    match (l, l') with
-      | [], [p'] -> [p']
-      | [p], [] -> [p]
-      | [p], [p'] when p = p' -> [p]
-      | _ -> failwith "Incompatible parameters"
 end
 
 module AudioSpecs = struct
@@ -84,7 +59,7 @@ module AudioSpecs = struct
     sample_rate : int;
   }
 
-  type data = (audio, param) content
+  type data = (param, audio packet) content
 
   let mk_param params =
     {
@@ -93,9 +68,6 @@ module AudioSpecs = struct
       sample_format = Audio.get_sample_format params;
       sample_rate = Audio.get_sample_rate params;
     }
-
-  let string_of_kind = function `Copy -> "ffmpeg.encoded"
-  let kind_of_string = function "ffmpeg.encoded" -> Some `Copy | _ -> None
 
   let string_of_param { id; channel_layout; sample_format; sample_rate } =
     Printf.sprintf "codec=%S,channel_layout=%S,sample_format=%S,sample_rate=%d"
@@ -118,7 +90,7 @@ module VideoSpecs = struct
     pixel_format : Avutil.Pixel_format.t option;
   }
 
-  type data = (video, param) content
+  type data = (param, video packet) content
 
   let mk_param params =
     {
@@ -128,9 +100,6 @@ module VideoSpecs = struct
       sample_aspect_ratio = Video.get_sample_aspect_ratio params;
       pixel_format = Video.get_pixel_format params;
     }
-
-  let string_of_kind = function `Copy -> "ffmpeg.encoded"
-  let kind_of_string = function "ffmpeg.encoded" -> Some `Copy | _ -> None
 
   let string_of_param { id; width; height; sample_aspect_ratio; pixel_format } =
     Printf.sprintf "codec=%S,size=\"%dx%d\",sample_ratio=%S,pixel_format=%S)"

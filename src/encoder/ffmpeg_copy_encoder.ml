@@ -30,7 +30,7 @@ let mk_stream_copy ~get_data output =
 
   let mk_stream frame =
     let _, { Ffmpeg_copy_content.params } =
-      List.hd (get_data frame).Ffmpeg_copy_content.data
+      List.hd (get_data frame).Ffmpeg_content_base.data
     in
     stream := Some (Av.new_stream_copy ~params output)
   in
@@ -39,10 +39,7 @@ let mk_stream_copy ~get_data output =
 
   let encode frame start len =
     let stop = start + len in
-    let data = (get_data frame).Ffmpeg_copy_content.data in
-    let data =
-      List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
-    in
+    let data = (get_data frame).Ffmpeg_content_base.data in
 
     List.iter
       (fun (pos, { Ffmpeg_copy_content.packet; time_base }) ->

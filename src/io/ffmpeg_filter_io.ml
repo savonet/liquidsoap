@@ -45,11 +45,15 @@ class audio_output ~name ~kind val_source =
     method output_reset = ()
 
     method output_send memo =
-      let aframe =
+      let content =
         Ffmpeg_raw_content.Audio.get_data Frame.(memo.content.audio)
       in
-      Avutil.frame_set_pts aframe (Some (Frame.pts memo));
-      input aframe
+      let frames = content.Ffmpeg_content_base.data in
+      List.iter
+        (fun (_, aframe) ->
+          Avutil.frame_set_pts aframe (Some (Frame.pts memo));
+          input aframe)
+        frames
   end
 
 class video_output ~kind ~name val_source =
@@ -71,11 +75,10 @@ class video_output ~kind ~name val_source =
     method output_reset = ()
 
     method output_send memo =
-      let data =
+      let frames =
         Ffmpeg_raw_content.(
           (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
       in
-      let frames = List.sort (fun (x, _) (y, _) -> compare x y) data in
       List.iter
         (fun (_, vframe) ->
           Avutil.frame_set_pts vframe (Some (Frame.pts memo));
@@ -130,13 +133,20 @@ class audio_input ~bufferize kind =
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
+          let content =
+            {
+              Ffmpeg_content_base.param =
+                Ffmpeg_raw_content.AudioSpecs.frame_param frame;
+              data = [(0, frame)];
+            }
+          in
           let pts =
             Option.map
               (Ffmpeg_utils.convert_time_base ~src ~dst)
               (Avutil.frame_pts frame)
           in
           Generator.put_audio ?pts generator
-            (Ffmpeg_raw_content.Audio.lift_data frame)
+            (Ffmpeg_raw_content.Audio.lift_data content)
             0
             (get_duration (Avutil.frame_pkt_duration frame));
           f ()
