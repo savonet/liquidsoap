@@ -528,11 +528,9 @@ module From_audio_video = struct
 
     pts
 
-  (** Add some audio content. Offset and length are given in audio samples. *)
+  (** Add some audio content. Offset and length are given in master ticks. *)
   let put_audio ?pts t data o l =
     let pts = match pts with Some pts -> pts | None -> t.current_audio_pts in
-    let o = Frame.master_of_audio o in
-    let l = Frame.master_of_audio l in
     t.current_audio_pts <-
       put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio data o l;
     begin
@@ -549,11 +547,9 @@ module From_audio_video = struct
     end;
     sync_content t
 
-  (** Add some video content. Offset and length are given in video samples. *)
+  (** Add some video content. Offset and length are given in master ticks. *)
   let put_video ?pts t data o l =
     let pts = match pts with Some pts -> pts | None -> t.current_video_pts in
-    let o = Frame.master_of_video o in
-    let l = Frame.master_of_video l in
     t.current_video_pts <-
       put_frames ~pts ~current_pts:t.current_video_pts t.current_video data o l;
     begin
@@ -590,11 +586,13 @@ module From_audio_video = struct
     let mode = match mode with Some mode -> mode | None -> t.mode in
 
     match mode with
-      | `Audio -> put_audio ~pts t (AFrame.content frame) 0 (AFrame.size ())
-      | `Video -> put_video ~pts t (VFrame.content frame) 0 (VFrame.size ())
+      | `Audio ->
+          put_audio ~pts t (AFrame.content frame) 0 (Lazy.force Frame.size)
+      | `Video ->
+          put_video ~pts t (VFrame.content frame) 0 (Lazy.force Frame.size)
       | `Both ->
-          put_audio ~pts t (AFrame.content frame) 0 (AFrame.size ());
-          put_video ~pts t (VFrame.content frame) 0 (VFrame.size ())
+          put_audio ~pts t (AFrame.content frame) 0 (Lazy.force Frame.size);
+          put_video ~pts t (VFrame.content frame) 0 (Lazy.force Frame.size)
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -799,7 +797,7 @@ module From_audio_video_plus = struct
           t.error <- false;
           raise Incorrect_stream_type )
         else (
-          check_overfull t (Frame.master_of_audio len);
+          check_overfull t len;
           Super.put_audio ?pts t.gen buf off len ))
       ()
 
@@ -811,7 +809,7 @@ module From_audio_video_plus = struct
           t.error <- false;
           raise Incorrect_stream_type )
         else (
-          check_overfull t (Frame.master_of_video len);
+          check_overfull t len;
           Super.put_video ?pts t.gen buf off len ))
       ()
 

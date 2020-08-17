@@ -153,6 +153,9 @@ module Fps = struct
           flush ()
 end
 
+let liq_master_ticks_time_base () =
+  { Avutil.num = 1; den = Lazy.force Frame.master_rate }
+
 let liq_audio_sample_time_base () =
   { Avutil.num = 1; den = Lazy.force Frame.audio_rate }
 
@@ -166,9 +169,3 @@ let convert_time_base ~src ~dst pts =
   let num = src.Avutil.num * dst.Avutil.den in
   let den = src.Avutil.den * dst.Avutil.num in
   Int64.div (Int64.mul pts (Int64.of_int num)) (Int64.of_int den)
-
-let convert_duration ~sample_time_base ~duration_time_base = function
-  | Some d ->
-      Int64.to_int
-        (convert_time_base ~src:duration_time_base ~dst:sample_time_base d)
-  | None -> failwith "No duration available!"

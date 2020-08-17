@@ -20,30 +20,8 @@
 
   *****************************************************************************)
 
-(** Decode and read metadata using ffmpeg. *)
-
-module G = Decoder.G
-
-let mk_audio_decoder container =
-  let idx, stream, _ = Av.find_best_audio_stream container in
-  let get_duration =
-    Ffmpeg_decoder_common.convert_duration ~src:(Av.get_time_base stream)
-  in
-  ( idx,
-    stream,
-    fun ~buffer frame ->
-      let data = Ffmpeg_raw_content.Audio.lift_data frame in
-      G.put_audio buffer.Decoder.generator data 0
-        (get_duration (Avutil.frame_pkt_duration frame)) )
-
-let mk_video_decoder container =
-  let idx, stream, _ = Av.find_best_video_stream container in
-  let get_duration =
-    Ffmpeg_decoder_common.convert_duration ~src:(Av.get_time_base stream)
-  in
-  ( idx,
-    stream,
-    fun ~buffer frame ->
-      let data = Ffmpeg_raw_content.Video.lift_data (ref [(0, frame)]) in
-      G.put_video buffer.Decoder.generator data 0
-        (get_duration (Avutil.frame_pkt_duration frame)) )
+let convert_duration ~src =
+  let dst = Ffmpeg_utils.liq_master_ticks_time_base () in
+  function
+  | Some d -> Int64.to_int (Ffmpeg_utils.convert_time_base ~src ~dst d)
+  | None -> failwith "No available duration!"

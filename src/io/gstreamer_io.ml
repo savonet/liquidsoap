@@ -613,7 +613,10 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         let len = String.length b / (2 * self#audio_channels) in
         let buf = Audio.create self#audio_channels len in
         Audio.S16LE.to_audio b 0 (Audio.sub buf 0 len);
-        Generator.put_audio gen (Frame_content.Audio.lift_data buf) 0 len
+        Generator.put_audio gen
+          (Frame_content.Audio.lift_data buf)
+          0
+          (Frame.master_of_audio len)
       done
 
     method private fill_video video =
@@ -626,7 +629,8 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         let stream = Video.single img in
         Generator.put_video gen
           (Frame_content.Video.lift_data stream)
-          0 (Video.length stream)
+          0
+          (Frame.master_of_video (Video.length stream))
       done
 
     method get_frame frame =

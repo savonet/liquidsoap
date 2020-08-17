@@ -224,13 +224,14 @@ let () =
               let data = (Option.get !video_converter) data in
               Generator.put_video abg
                 (Frame_content.Video.lift_data (Video.single data))
-                0 1
+                0 (Frame.master_of_video 1)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data = converter data in
               Generator.put_audio abg
                 (Frame_content.Audio.lift_data data)
-                0 (Audio.length data)
+                0
+                (Frame.master_of_audio (Audio.length data))
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -292,7 +293,7 @@ let () =
         (* Img.Effect.flip data; *)
         Generator.put_video abg
           (Frame_content.Video.lift_data (Video.single data))
-          0 1
+          0 (Frame.master_of_video 1)
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

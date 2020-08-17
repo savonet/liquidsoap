@@ -26,18 +26,13 @@ val conf_log : Dtools.Conf.ut
 val conf_verbosity : string Dtools.Conf.t
 val conf_level : int Dtools.Conf.t
 val conf_scaling_algorithm : string Dtools.Conf.t
+val liq_master_ticks_time_base : unit -> Avutil.rational
 val liq_audio_sample_time_base : unit -> Avutil.rational
 val liq_video_sample_time_base : unit -> Avutil.rational
 val liq_frame_time_base : unit -> Avutil.rational
 
 val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
-
-val convert_duration :
-  sample_time_base:Avutil.rational ->
-  duration_time_base:Avutil.rational ->
-  Int64.t option ->
-  int
 
 module Fps : sig
   type t

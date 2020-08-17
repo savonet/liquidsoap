@@ -123,10 +123,7 @@ class audio_input ~bufferize kind =
       let output = Option.get output in
       let src = Avfilter.(time_base output.context) in
       let dst = Ffmpeg_utils.liq_frame_time_base () in
-      let sample_time_base = Ffmpeg_utils.liq_audio_sample_time_base () in
-      let get_duration =
-        Ffmpeg_utils.convert_duration ~duration_time_base:src ~sample_time_base
-      in
+      let get_duration = Ffmpeg_decoder_common.convert_duration ~src in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
@@ -196,10 +193,7 @@ class video_input ~bufferize kind =
       let output = Option.get output in
       let src = Avfilter.(time_base output.context) in
       let dst = Ffmpeg_utils.liq_frame_time_base () in
-      let sample_time_base = Ffmpeg_utils.liq_video_sample_time_base () in
-      let get_duration =
-        Ffmpeg_utils.convert_duration ~duration_time_base:src ~sample_time_base
-      in
+      let get_duration = Ffmpeg_decoder_common.convert_duration ~src in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
