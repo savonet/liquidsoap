@@ -117,21 +117,35 @@ module VideoSpecs = struct
     pixel_format : Avutil.Pixel_format.t option;
   }
 
-  type data = (int * video frame) list ref
+  type data = { param : param; mutable data : (int * video frame) list }
 
-  let make _ = ref []
-  let clear d = d := []
+  let make = function [param] -> { param; data = [] } | _ -> assert false
+  let clear d = d.data <- []
   let param_of_string _ _ = None
 
-  (* TODO *)
-  let bytes data = List.fold_left (fun c _ -> c + 0) 0 !data
-  let copy data = ref !data
+  let blit src src_pos dst dst_pos len =
+    let src_end = src_pos + len in
+    let data =
+      List.fold_left
+        (fun data (pos, p) ->
+          if src_pos <= pos && pos < src_end then (
+            let pos = dst_pos + (pos - src_pos) in
+            (pos, p) :: data )
+          else data)
+        dst.data src.data
+    in
+    dst.data <- data
 
-  let frame_param params =
+  let copy { data; param } = { data; param }
+
+  (* TODO *)
+  let bytes _ = 0
+
+  let frame_param frame =
     {
-      width = Video.frame_get_width params;
-      height = Video.frame_get_height params;
-      pixel_format = Some (Video.frame_get_pixel_format params);
+      width = Video.frame_get_width frame;
+      height = Video.frame_get_height frame;
+      pixel_format = Some (Video.frame_get_pixel_format frame);
     }
 
   let mk_param p =
@@ -141,19 +155,7 @@ module VideoSpecs = struct
       pixel_format = Avcodec.Video.get_pixel_format p;
     }
 
-  let params c =
-    match !c with [] -> [] | (_, frame) :: _ -> [frame_param frame]
-
-  let blit src src_pos dst dst_pos len =
-    let src_start = Frame.video_of_master src_pos in
-    let src_end = Frame.video_of_master (src_pos + len) in
-    List.iter
-      (fun (pos, p) ->
-        if src_start <= pos && pos < src_end then (
-          let pos = dst_pos + (pos - src_pos) in
-          dst := (pos, p) :: !dst ))
-      !src
-
+  let params { param } = [param]
   let string_of_kind = function `Raw -> "ffmpeg.raw"
   let kind_of_string = function "ffmpeg.raw" -> Some `Raw | _ -> None
 

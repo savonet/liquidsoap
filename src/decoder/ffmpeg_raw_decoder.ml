@@ -44,6 +44,8 @@ let mk_video_decoder container =
   ( idx,
     stream,
     fun ~buffer frame ->
-      let data = Ffmpeg_raw_content.Video.lift_data (ref [(0, frame)]) in
+      let param = Ffmpeg_raw_content.VideoSpecs.frame_param frame in
+      let data = { Ffmpeg_raw_content.VideoSpecs.param; data = [(0, frame)] } in
+      let data = Ffmpeg_raw_content.Video.lift_data data in
       G.put_video buffer.Decoder.generator data 0
         (get_duration (Avutil.frame_pkt_duration frame)) )

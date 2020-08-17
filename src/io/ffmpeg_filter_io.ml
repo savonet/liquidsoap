@@ -71,8 +71,11 @@ class video_output ~kind ~name val_source =
     method output_reset = ()
 
     method output_send memo =
-      let data = Ffmpeg_raw_content.Video.get_data Frame.(memo.content.video) in
-      let frames = List.sort (fun (x, _) (y, _) -> compare x y) !data in
+      let data =
+        Ffmpeg_raw_content.(
+          (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
+      in
+      let frames = List.sort (fun (x, _) (y, _) -> compare x y) data in
       List.iter
         (fun (_, vframe) ->
           Avutil.frame_set_pts vframe (Some (Frame.pts memo));
@@ -202,7 +205,10 @@ class video_input ~bufferize kind =
               (Ffmpeg_utils.convert_time_base ~src ~dst)
               (Avutil.frame_pts frame)
           in
-          let content = ref [(0, frame)] in
+          let param = Ffmpeg_raw_content.VideoSpecs.frame_param frame in
+          let content =
+            { Ffmpeg_raw_content.VideoSpecs.param; data = [(0, frame)] }
+          in
           Generator.put_video ?pts generator
             (Ffmpeg_raw_content.Video.lift_data content)
             0

@@ -344,15 +344,14 @@ let mk_video ~ffmpeg ~options output =
       scaler frame
     in
     fun frame start len ->
-      let vstart = Frame.video_of_master start in
-      let vstop = Frame.video_of_master (start + len) in
-      let data =
+      let stop = start + len in
+      let { Ffmpeg_raw_content.VideoSpecs.data } =
         Ffmpeg_raw_content.Video.get_data Frame.(frame.content.video)
       in
       List.iter
         (fun (pos, frame) ->
-          if vstart <= pos && pos < vstop then cb (scale frame))
-        !data
+          if start <= pos && pos < stop then cb (scale frame))
+        data
   in
 
   let converter =

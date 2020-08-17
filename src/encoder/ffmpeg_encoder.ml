@@ -32,13 +32,8 @@ let () =
             let mk_audio =
               match m.Ffmpeg_format.audio_codec with
                 | Some `Copy ->
-                    let sample_time_base =
-                      Ffmpeg_utils.liq_audio_sample_time_base ()
-                    in
                     fun ~ffmpeg:_ ~options:_ ->
-                      Ffmpeg_copy_encoder.mk_stream_copy ~sample_time_base
-                        ~convert_pos:Frame.audio_of_master
-                        ~get_data:(fun frame ->
+                      Ffmpeg_copy_encoder.mk_stream_copy ~get_data:(fun frame ->
                           Ffmpeg_copy_content.Audio.get_data
                             Frame.(frame.content.audio))
                 | _ -> Ffmpeg_internal_encoder.mk_audio
@@ -46,13 +41,8 @@ let () =
             let mk_video =
               match m.Ffmpeg_format.video_codec with
                 | Some `Copy ->
-                    let sample_time_base =
-                      Ffmpeg_utils.liq_video_sample_time_base ()
-                    in
                     fun ~ffmpeg:_ ~options:_ ->
-                      Ffmpeg_copy_encoder.mk_stream_copy ~sample_time_base
-                        ~convert_pos:Frame.video_of_master
-                        ~get_data:(fun frame ->
+                      Ffmpeg_copy_encoder.mk_stream_copy ~get_data:(fun frame ->
                           Ffmpeg_copy_content.Video.get_data
                             Frame.(frame.content.video))
                 | _ -> Ffmpeg_internal_encoder.mk_video

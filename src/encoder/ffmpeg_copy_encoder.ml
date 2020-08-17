@@ -24,31 +24,33 @@
 
 open Avcodec
 
-let mk_stream_copy ~sample_time_base ~get_data ~convert_pos output =
+let mk_stream_copy ~get_data output =
   let stream = ref None in
+  let master_time_base = Ffmpeg_utils.liq_master_ticks_time_base () in
 
   let mk_stream frame =
-    let _, { Ffmpeg_copy_content.params } = List.hd !(get_data frame) in
+    let _, { Ffmpeg_copy_content.params } =
+      List.hd (get_data frame).Ffmpeg_copy_content.data
+    in
     stream := Some (Av.new_stream_copy ~params output)
   in
 
   let position = ref 0L in
 
   let encode frame start len =
-    let start_pos = convert_pos start in
-    let stop_pos = convert_pos (start + len) in
-    let data = get_data frame in
+    let stop = start + len in
+    let data = (get_data frame).Ffmpeg_copy_content.data in
     let data =
-      List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') !data
+      List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
     in
 
     List.iter
       (fun (pos, { Ffmpeg_copy_content.packet; time_base }) ->
         let stream = Option.get !stream in
-        if start_pos <= pos && pos < stop_pos then (
+        if start <= pos && pos < stop then (
           let packet_pts =
-            Ffmpeg_utils.convert_time_base ~src:sample_time_base ~dst:time_base
-              (Int64.add !position (Int64.of_int (pos - start_pos)))
+            Ffmpeg_utils.convert_time_base ~src:master_time_base ~dst:time_base
+              (Int64.add !position (Int64.of_int (pos - start)))
           in
 
           Packet.set_pts packet (Some packet_pts);
@@ -57,6 +59,6 @@ let mk_stream_copy ~sample_time_base ~get_data ~convert_pos output =
           Av.write_packet stream time_base packet ))
       data;
 
-    position := Int64.add !position (Int64.of_int (stop_pos - start_pos))
+    position := Int64.add !position (Int64.of_int len)
   in
   { Ffmpeg_encoder_common.mk_stream; encode }

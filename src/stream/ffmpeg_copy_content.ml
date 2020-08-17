@@ -23,36 +23,48 @@
 open Avutil
 open Avcodec
 
+(* We need to keep track of both the original ['a Avcodec.params]
+   and our internal param type (['b] in [type ('a, 'b) content].
+
+   ['a Avcodec.params] is used to create the encoded stream while
+   our internal param is used to display, compare & unify stream
+   types. *)
+
 type 'a packet = {
   params : 'a Avcodec.params;
   packet : 'a Packet.t;
   time_base : Avutil.rational;
 }
 
+type ('a, 'b) content = { param : 'b; mutable data : (int * 'a packet) list }
+
 module BaseSpecs = struct
   type kind = [ `Copy ]
-  type 'a content = (int * 'a packet) list ref
 
-  let make _ = ref []
-  let clear d = d := []
+  let make = function [param] -> { param; data = [] } | _ -> assert false
+  let clear d = d.data <- []
   let param_of_string _ _ = None
 
-  let bytes data =
-    List.fold_left (fun c (_, { packet }) -> c + Packet.get_size packet) 0 !data
+  let bytes { data } =
+    List.fold_left (fun c (_, { packet }) -> c + Packet.get_size packet) 0 data
 
-  let blit ~pos src src_pos dst dst_pos len =
-    let src_start = pos src_pos in
-    let src_end = pos (src_pos + len) in
-    List.iter
-      (fun (pos, p) ->
-        if src_start <= pos && pos < src_end then (
-          let pos = dst_pos + (pos - src_pos) in
-          dst := (pos, p) :: !dst ))
-      !src
+  let blit src src_pos dst dst_pos len =
+    let src_end = src_pos + len in
+    let data =
+      List.fold_left
+        (fun data (pos, p) ->
+          if src_pos <= pos && pos < src_end then (
+            let pos = dst_pos + (pos - src_pos) in
+            (pos, p) :: data )
+          else data)
+        dst.data src.data
+    in
+    dst.data <- data
 
-  let copy data = ref !data
+  let copy { data; param } = { data; param }
   let kind = `Copy
   let default_params _ = []
+  let params { param } = [param]
 
   let merge l l' =
     match (l, l') with
@@ -72,7 +84,7 @@ module AudioSpecs = struct
     sample_rate : int;
   }
 
-  type data = audio content
+  type data = (audio, param) content
 
   let mk_param params =
     {
@@ -82,10 +94,6 @@ module AudioSpecs = struct
       sample_rate = Audio.get_sample_rate params;
     }
 
-  let params c =
-    match !c with [] -> [] | (_, { params }) :: _ -> [mk_param params]
-
-  let blit = blit ~pos:Frame.audio_of_master
   let string_of_kind = function `Copy -> "ffmpeg.encoded"
   let kind_of_string = function "ffmpeg.encoded" -> Some `Copy | _ -> None
 
@@ -110,7 +118,7 @@ module VideoSpecs = struct
     pixel_format : Avutil.Pixel_format.t option;
   }
 
-  type data = video content
+  type data = (video, param) content
 
   let mk_param params =
     {
@@ -121,10 +129,6 @@ module VideoSpecs = struct
       pixel_format = Video.get_pixel_format params;
     }
 
-  let params c =
-    match !c with [] -> [] | (_, { params }) :: _ -> [mk_param params]
-
-  let blit = blit ~pos:Frame.video_of_master
   let string_of_kind = function `Copy -> "ffmpeg.encoded"
   let kind_of_string = function "ffmpeg.encoded" -> Some `Copy | _ -> None
 
