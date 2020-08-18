@@ -87,7 +87,7 @@ let create_decoder fname =
     add_consumed consumed;
     data
   in
-  let target_position = ref 0. in
+  let target_position = ref min_float in
   let seek ticks =
     target_position := Frame.seconds_of_master (!consumed + ticks);
     let position = Int64.of_float (!target_position *. 1000.) in
