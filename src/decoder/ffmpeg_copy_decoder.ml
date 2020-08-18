@@ -31,11 +31,9 @@ let mk_decoder ~stream_time_base ~mk_param ~lift_data ~put_data params =
   in
   fun ~buffer packet ->
     let duration = get_duration (Packet.get_duration packet) in
-    let packet =
-      { Ffmpeg_copy_content.params; packet; time_base = stream_time_base }
-    in
+    let packet = { Ffmpeg_copy_content.packet; time_base = stream_time_base } in
     let data =
-      { Ffmpeg_content_base.param = mk_param params; data = [(0, packet)] }
+      { Ffmpeg_content_base.params = mk_param params; data = [(0, packet)] }
     in
     let data = lift_data data in
     put_data ?pts:None buffer.Decoder.generator data 0 duration

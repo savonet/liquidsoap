@@ -135,7 +135,7 @@ class audio_input ~bufferize kind =
           let frame = output.Avfilter.handler () in
           let content =
             {
-              Ffmpeg_content_base.param =
+              Ffmpeg_content_base.params =
                 Ffmpeg_raw_content.AudioSpecs.frame_param frame;
               data = [(0, frame)];
             }
@@ -215,9 +215,9 @@ class video_input ~bufferize kind =
               (Ffmpeg_utils.convert_time_base ~src ~dst)
               (Avutil.frame_pts frame)
           in
-          let param = Ffmpeg_raw_content.VideoSpecs.frame_param frame in
+          let params = Ffmpeg_raw_content.VideoSpecs.frame_param frame in
           let content =
-            { Ffmpeg_raw_content.VideoSpecs.param; data = [(0, frame)] }
+            { Ffmpeg_raw_content.VideoSpecs.params; data = [(0, frame)] }
           in
           Generator.put_video ?pts generator
             (Ffmpeg_raw_content.Video.lift_data content)

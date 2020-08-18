@@ -31,7 +31,7 @@ let mk_decoder ~stream_time_base ~mk_param ~lift_data ~put_data params =
   fun ~buffer frame ->
     let duration = get_duration (Avutil.frame_pts frame) in
     let data =
-      { Ffmpeg_content_base.param = mk_param params; data = [(0, frame)] }
+      { Ffmpeg_content_base.params = mk_param params; data = [(0, frame)] }
     in
     let data = lift_data data in
     put_data ?pts:None buffer.Decoder.generator data 0 duration

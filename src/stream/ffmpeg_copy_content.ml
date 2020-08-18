@@ -23,18 +23,7 @@
 open Avutil
 open Avcodec
 
-(* We need to keep track of both the original ['a Avcodec.params]
-   and our internal param type (['b] in [type ('a, 'b) content].
-
-   ['a Avcodec.params] is used to create the encoded stream while
-   our internal param is used to display, compare & unify stream
-   types. *)
-
-type 'a packet = {
-  params : 'a Avcodec.params;
-  packet : 'a Packet.t;
-  time_base : Avutil.rational;
-}
+type 'a packet = { packet : 'a Packet.t; time_base : Avutil.rational }
 
 module BaseSpecs = struct
   include Ffmpeg_content_base
@@ -52,24 +41,17 @@ end
 module AudioSpecs = struct
   include BaseSpecs
 
-  type param = {
-    id : Audio.id;
-    channel_layout : Channel_layout.t;
-    sample_format : Sample_format.t;
-    sample_rate : int;
-  }
-
+  type param = audio Avcodec.params
   type data = (param, audio packet) content
 
-  let mk_param params =
-    {
-      id = Audio.get_params_id params;
-      channel_layout = Audio.get_channel_layout params;
-      sample_format = Audio.get_sample_format params;
-      sample_rate = Audio.get_sample_rate params;
-    }
+  let mk_param params = params
 
-  let string_of_param { id; channel_layout; sample_format; sample_rate } =
+  let string_of_param params =
+    let id = Audio.get_params_id params in
+    let channel_layout = Audio.get_channel_layout params in
+    let sample_format = Audio.get_sample_format params in
+    let sample_rate = Audio.get_sample_rate params in
+
     Printf.sprintf "codec=%S,channel_layout=%S,sample_format=%S,sample_rate=%d"
       (Audio.string_of_id id)
       (Channel_layout.get_description channel_layout)
@@ -82,26 +64,17 @@ module Audio = Frame_content.MkContent (AudioSpecs)
 module VideoSpecs = struct
   include BaseSpecs
 
-  type param = {
-    id : Video.id;
-    width : int;
-    height : int;
-    sample_aspect_ratio : Avutil.rational;
-    pixel_format : Avutil.Pixel_format.t option;
-  }
-
+  type param = video Avcodec.params
   type data = (param, video packet) content
 
-  let mk_param params =
-    {
-      id = Video.get_params_id params;
-      width = Video.get_width params;
-      height = Video.get_height params;
-      sample_aspect_ratio = Video.get_sample_aspect_ratio params;
-      pixel_format = Video.get_pixel_format params;
-    }
+  let mk_param params = params
 
-  let string_of_param { id; width; height; sample_aspect_ratio; pixel_format } =
+  let string_of_param params =
+    let id = Video.get_params_id params in
+    let width = Video.get_width params in
+    let height = Video.get_height params in
+    let sample_aspect_ratio = Video.get_sample_aspect_ratio params in
+    let pixel_format = Video.get_pixel_format params in
     Printf.sprintf "codec=%S,size=\"%dx%d\",sample_ratio=%S,pixel_format=%S)"
       (Video.string_of_id id) width height
       (string_of_rational sample_aspect_ratio)

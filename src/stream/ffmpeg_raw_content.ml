@@ -30,6 +30,13 @@ module BaseSpecs = struct
   let kind = `Raw
   let string_of_kind = function `Raw -> "ffmpeg.raw"
   let kind_of_string = function "ffmpeg.raw" -> Some `Raw | _ -> None
+
+  let merge l l' =
+    match (l, l') with
+      | [], [p'] -> [p']
+      | [p], [] -> [p]
+      | [p], [p'] when p = p' -> [p]
+      | _ -> failwith "Incompatible parameters"
 end
 
 module AudioSpecs = struct

@@ -203,9 +203,10 @@ let get_type ~ctype ~url container =
   ctype
 
 let seek ~audio ~video ~target_position ticks =
-  target_position := Frame.seconds_of_master ticks;
-  log#debug "Setting target position to %f" !target_position;
-  let position = Int64.of_float (!target_position *. 1000.) in
+  let tpos = Frame.seconds_of_master ticks in
+  log#debug "Setting target position to %f" tpos;
+  target_position := Some tpos;
+  let position = Int64.of_float (tpos *. 1000.) in
   let seek stream =
     try
       Av.seek stream `Millisecond position [| Av.Seek_flag_backward |];
@@ -219,7 +220,7 @@ let seek ~audio ~video ~target_position ticks =
     | _, Some (`Frame (_, s, _)) -> seek s
     | _ -> raise No_stream
 
-let mk_decoder ?audio ?video ?target_position container =
+let mk_decoder ?audio ?video ~target_position container =
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
   let pack (idx, stream, decoder) = (idx, [stream], decoder) in
   let ( (audio_frame_idx, audio_frame, audio_frame_decoder),
@@ -237,16 +238,16 @@ let mk_decoder ?audio ?video ?target_position container =
       | Some (`Frame frame) -> (pack frame, no_decoder)
   in
   let check_pts stream pts =
-    match (pts, target_position) with
+    match (pts, !target_position) with
       | Some pts, Some target_position ->
           let { Avutil.num; den } = Av.get_time_base stream in
           let position = Int64.to_float pts *. float num /. float den in
-          if position < !target_position then
+          if position < target_position then
             log#debug
               "Current position: %f is less than target position: %f, \
                skipping.."
-              position !target_position;
-          !target_position < position
+              position target_position;
+          position <= target_position
       | _ -> true
   in
   fun buffer ->
@@ -364,7 +365,7 @@ let create_decoder ~ctype fname =
       | None -> None
   in
   let close () = Av.close container in
-  let target_position = ref 0. in
+  let target_position = ref None in
   ( {
       Decoder.seek =
         (fun ticks ->
@@ -392,7 +393,7 @@ let create_stream_decoder ~ctype _ input =
   in
   let container = Av.open_input_stream ?seek:seek_input input.Decoder.read in
   let audio, video = mk_streams ~ctype container in
-  let target_position = ref 0. in
+  let target_position = ref None in
   {
     Decoder.seek = seek ~audio ~video ~target_position;
     decode = mk_decoder ?audio ?video ~target_position container;

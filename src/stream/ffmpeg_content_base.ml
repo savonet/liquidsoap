@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-type ('a, 'b) content = { param : 'a; mutable data : (int * 'b) list }
+type ('a, 'b) content = { params : 'a; mutable data : (int * 'b) list }
 
-let make = function [param] -> { param; data = [] } | _ -> assert false
+let make = function [params] -> { params; data = [] } | _ -> assert false
 let clear d = d.data <- []
 let param_of_string _ _ = None
 
@@ -39,9 +39,9 @@ let blit src src_pos dst dst_pos len =
   in
   dst.data <- List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
 
-let copy { data; param } = { data; param }
+let copy { data; params } = { data; params }
 let default_params _ = []
-let params { param } = [param]
+let params { params } = [params]
 
 let merge l l' =
   match (l, l') with
