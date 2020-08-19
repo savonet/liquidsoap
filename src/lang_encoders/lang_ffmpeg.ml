@@ -81,8 +81,7 @@ let ffmpeg_gen params =
           match mode with
             | `Audio ->
                 { f with Ffmpeg_format.audio_codec = None; channels = 0 }
-            | `Video ->
-                { f with Ffmpeg_format.video_codec = None; channels = 0 }
+            | `Video -> { f with Ffmpeg_format.video_codec = None }
         in
         parse_args ~format ~mode f l
     | ("codec", { term = Ground (String c); _ }) :: l ->

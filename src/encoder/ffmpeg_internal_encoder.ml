@@ -157,24 +157,24 @@ let mk_audio ~ffmpeg ~options output =
       List.mem `Variable_frame_size (Avcodec.Audio.capabilities codec)
     in
 
-    if variable_frame_size then Av.write_frame stream
+    let stream_time_base = Av.get_time_base stream in
+
+    let nb_samples = ref 0L in
+    let write_frame frame =
+      let frame_pts =
+        Ffmpeg_utils.convert_time_base ~src:target_liq_audio_sample_time_base
+          ~dst:stream_time_base !nb_samples
+      in
+      nb_samples :=
+        Int64.add !nb_samples
+          (Int64.of_int (Avutil.Audio.frame_nb_samples frame));
+      Avutil.frame_set_pts frame (Some frame_pts);
+      Av.write_frame stream frame
+    in
+
+    if variable_frame_size then write_frame
     else (
       let out_frame_size = Av.get_frame_size stream in
-
-      let frame_time_base =
-        { Avutil.num = out_frame_size; den = target_samplerate }
-      in
-
-      let pts = ref 0L in
-      let write_frame frame =
-        let frame_pts =
-          Ffmpeg_utils.convert_time_base ~src:frame_time_base
-            ~dst:target_liq_audio_sample_time_base !pts
-        in
-        pts := Int64.succ !pts;
-        Avutil.frame_set_pts frame (Some frame_pts);
-        Av.write_frame stream frame
-      in
 
       let in_params =
         {
@@ -217,7 +217,7 @@ let mk_video ~ffmpeg ~options output =
   let src_liq_video_sample_time_base = { Avutil.num = 1; den = src_fps } in
 
   let target_fps = Lazy.force ffmpeg.Ffmpeg_format.framerate in
-  let target_video_sample_time_base = { Avutil.num = 1; den = target_fps } in
+  let target_video_frame_time_base = { Avutil.num = 1; den = target_fps } in
   let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
   let target_height = Lazy.force ffmpeg.Ffmpeg_format.height in
 
@@ -234,7 +234,7 @@ let mk_video ~ffmpeg ~options output =
   Hashtbl.iter (Hashtbl.add opts) options;
 
   let stream =
-    Av.new_video_stream ~time_base:target_video_sample_time_base
+    Av.new_video_stream ~time_base:target_video_frame_time_base
       ~pixel_format:`Yuv420p
       ~frame_rate:{ Avutil.num = target_fps; den = 1 }
       ~width:target_width ~height:target_height ~opts ~codec output
@@ -254,16 +254,23 @@ let mk_video ~ffmpeg ~options output =
     (fun l v -> if Hashtbl.mem opts l then Some v else None)
     options;
 
-  let target_pts = ref 0L in
   let converter =
     Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
       ~pixel_format:`Yuv420p ~time_base:src_liq_video_sample_time_base
       ~pixel_aspect ~source_fps:src_fps ~target_fps ()
   in
+
+  let nb_frames = ref 0L in
+  let stream_time_base = Av.get_time_base stream in
+
   let fps_converter frame =
     Ffmpeg_utils.Fps.convert converter frame (fun frame ->
-        Avutil.frame_set_pts frame (Some !target_pts);
-        target_pts := Int64.succ !target_pts;
+        let frame_pts =
+          Ffmpeg_utils.convert_time_base ~src:target_video_frame_time_base
+            ~dst:stream_time_base !nb_frames
+        in
+        Avutil.frame_set_pts frame (Some frame_pts);
+        nb_frames := Int64.succ !nb_frames;
         Av.write_frame stream frame)
   in
 
