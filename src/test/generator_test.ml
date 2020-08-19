@@ -15,10 +15,10 @@ let () =
   assert (G.audio_length gen = (2 * frame_size) + (frame_size / 2));
   assert (G.length gen = 0);
 
-  G.put_video ~pts:0L gen data 0 video_frame_size;
-  G.put_video ~pts:1L gen data 0 video_frame_size;
-  G.put_video ~pts:2L gen data 0 video_frame_size;
-  G.put_video ~pts:3L gen data 0 (2 * video_frame_size);
+  G.put_video ~pts:0L gen data 0 frame_size;
+  G.put_video ~pts:1L gen data 0 frame_size;
+  G.put_video ~pts:2L gen data 0 frame_size;
+  G.put_video ~pts:3L gen data 0 (2 * frame_size);
   assert (G.video_length gen = 5 * frame_size);
   assert (G.audio_length gen = (2 * frame_size) + (frame_size / 2));
   assert (G.length gen = 2 * frame_size);
@@ -33,7 +33,7 @@ let () =
   assert (G.length gen = 4 * frame_size);
 
   (* Add 1---- video (non-monotonic PTS) *)
-  G.put_video ~pts:1L gen data 0 video_frame_size;
+  G.put_video ~pts:1L gen data 0 frame_size;
   (* Get:
      0----1----2----3----4--> audio
      0----1----2----3----4----> video *)
@@ -51,7 +51,7 @@ let () =
   assert (G.length gen = 5 * frame_size);
 
   (* Add 6---- video (discontinuity) *)
-  G.put_video ~pts:6L gen data 0 video_frame_size;
+  G.put_video ~pts:6L gen data 0 frame_size;
   (* Get:
      0----1----2----3----4----> audio
      0----1----2----3----4----6----> video *)
@@ -88,7 +88,7 @@ let () =
   assert (G.length gen = 5 * frame_size);
 
   (* Add 5----6----7----8----9---- video *)
-  G.put_video ~pts:5L gen data 0 (5 * video_frame_size);
+  G.put_video ~pts:5L gen data 0 (5 * frame_size);
   (* Get:
        0----1----2----3----4----7----9--> audio
        0----1----2----3----4----7----9----> video
