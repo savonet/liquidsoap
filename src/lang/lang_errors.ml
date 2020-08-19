@@ -172,8 +172,10 @@ let throw print_error = function
   | Sedlexing.MalFormed -> print_error 13 "Malformed file."
   | End_of_file -> raise End_of_file
   | e ->
-      print_error (-1) "Unknown error";
-      raise e
+      let bt = Printexc.get_backtrace () in
+      error_header (-1) "unknown position";
+      Format.printf "Exception raised: %s@.%s@]@." (Printexc.to_string e) bt;
+      raise Error
 
 let report lexbuf f =
   let print_error idx error =
