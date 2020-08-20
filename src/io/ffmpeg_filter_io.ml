@@ -24,10 +24,16 @@
 
 module Generator = Generator.From_audio_video
 
+let noop () = ()
+
 (** From the script perspective, the operator sending data to a filter graph
   * is an output. *)
 class audio_output ~name ~kind val_source =
-  let noop () = () in
+  let convert_frame_pts =
+    Ffmpeg_utils.(
+      convert_time_base ~src:(liq_frame_time_base ())
+        ~dst:(liq_master_ticks_time_base ()))
+  in
   object
     inherit
       Output.output
@@ -38,26 +44,37 @@ class audio_output ~name ~kind val_source =
 
     method set_input fn = input <- fn
 
-    method output_start = ()
+    val mutable init = lazy ()
+
+    method set_init v = init <- v
+
+    method output_start = Lazy.force init
 
     method output_stop = ()
 
     method output_reset = ()
 
     method output_send memo =
-      let content =
-        Ffmpeg_raw_content.Audio.get_data Frame.(memo.content.audio)
+      let frames =
+        Ffmpeg_raw_content.(
+          (Audio.get_data Frame.(memo.content.audio)).VideoSpecs.data)
       in
-      let frames = content.Ffmpeg_content_base.data in
       List.iter
-        (fun (_, aframe) ->
-          Avutil.frame_set_pts aframe (Some (Frame.pts memo));
+        (fun (pos, aframe) ->
+          let pts =
+            Int64.add (convert_frame_pts (Frame.pts memo)) (Int64.of_int pos)
+          in
+          Avutil.frame_set_pts aframe (Some pts);
           input aframe)
         frames
   end
 
 class video_output ~kind ~name val_source =
-  let noop () = () in
+  let convert_frame_pts =
+    Ffmpeg_utils.(
+      convert_time_base ~src:(liq_frame_time_base ())
+        ~dst:(liq_master_ticks_time_base ()))
+  in
   object
     inherit
       Output.output
@@ -68,7 +85,11 @@ class video_output ~kind ~name val_source =
 
     method set_input fn = input <- fn
 
-    method output_start = ()
+    val mutable init = lazy ()
+
+    method set_init v = init <- v
+
+    method output_start = Lazy.force init
 
     method output_stop = ()
 
@@ -80,8 +101,11 @@ class video_output ~kind ~name val_source =
           (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
       in
       List.iter
-        (fun (_, vframe) ->
-          Avutil.frame_set_pts vframe (Some (Frame.pts memo));
+        (fun (pos, vframe) ->
+          let pts =
+            Int64.add (convert_frame_pts (Frame.pts memo)) (Int64.of_int pos)
+          in
+          Avutil.frame_set_pts vframe (Some pts);
           input vframe)
         frames
   end
@@ -129,7 +153,11 @@ class audio_input ~bufferize kind =
       let output = Option.get output in
       let src = Avfilter.(time_base output.context) in
       let dst = Ffmpeg_utils.liq_frame_time_base () in
-      let get_duration = Ffmpeg_decoder_common.convert_duration ~src in
+      let get_duration frame =
+        let samplerate = float (Avutil.Audio.frame_get_sample_rate frame) in
+        let nb_samples = float (Avutil.Audio.frame_nb_samples frame) in
+        Frame.master_of_seconds (nb_samples /. samplerate)
+      in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
@@ -147,16 +175,27 @@ class audio_input ~bufferize kind =
           in
           Generator.put_audio ?pts generator
             (Ffmpeg_raw_content.Audio.lift_data content)
-            0
-            (get_duration (Avutil.frame_pkt_duration frame));
+            0 (get_duration frame);
           f ()
         with Avutil.Error `Eagain -> ()
       in
       f ()
 
+    val mutable state : [ `Ready | `Not_ready ] = `Not_ready
+
     method is_ready =
-      self#flush_buffer;
-      Generator.length generator > min_buf
+      if output <> None then self#flush_buffer;
+      match state with
+        | `Not_ready ->
+            if Generator.length generator >= min_buf then (
+              state <- `Ready;
+              true )
+            else false
+        | `Ready ->
+            if Generator.length generator > 0 then true
+            else (
+              state <- `Not_ready;
+              false )
 
     method private get_frame frame =
       self#flush_buffer;
@@ -165,6 +204,12 @@ class audio_input ~bufferize kind =
         self#log#important "Buffer emptied..."
 
     method abort_track = ()
+
+    val mutable init = lazy ()
+
+    method set_init v = init <- v
+
+    method output_start = Lazy.force init
   end
 
 type video_config = {
@@ -173,11 +218,14 @@ type video_config = {
   pixel_format : Avutil.Pixel_format.t;
 }
 
-class video_input ~bufferize kind =
+class video_input ~bufferize ~fps kind =
   let generator = Generator.create `Video in
   let min_buf = Frame.master_of_seconds bufferize in
   let format =
     match kind.Frame.video with `Format f -> f | _ -> assert false
+  in
+  let duration =
+    lazy (Frame.master_of_seconds (1. /. float (Lazy.force fps)))
   in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
@@ -206,7 +254,6 @@ class video_input ~bufferize kind =
       let output = Option.get output in
       let src = Avfilter.(time_base output.context) in
       let dst = Ffmpeg_utils.liq_frame_time_base () in
-      let get_duration = Ffmpeg_decoder_common.convert_duration ~src in
       let rec f () =
         try
           let frame = output.Avfilter.handler () in
@@ -221,15 +268,14 @@ class video_input ~bufferize kind =
           in
           Generator.put_video ?pts generator
             (Ffmpeg_raw_content.Video.lift_data content)
-            0
-            (get_duration (Avutil.frame_pkt_duration frame));
+            0 (Lazy.force duration);
           f ()
         with Avutil.Error `Eagain -> ()
       in
       f ()
 
     method is_ready =
-      self#flush_buffer;
+      if output <> None then self#flush_buffer;
       Generator.length generator > min_buf
 
     method private get_frame frame =

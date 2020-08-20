@@ -60,6 +60,19 @@ module AudioSpecs = struct
       sample_rate = Avcodec.Audio.get_sample_rate p;
     }
 
+  let internal_params () =
+    {
+      channel_layout =
+        Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels);
+      sample_format = `Dblp;
+      sample_rate = Lazy.force Frame.audio_rate;
+    }
+
+  let make = function
+    | [] -> { params = internal_params (); data = [] }
+    | [params] -> { params; data = [] }
+    | _ -> assert false
+
   let string_of_param { channel_layout; sample_format; sample_rate } =
     Printf.sprintf "channel_layout=%S,sample_format=%S,sample_rate=%d"
       (Channel_layout.get_description channel_layout)
@@ -67,17 +80,7 @@ module AudioSpecs = struct
       sample_rate
 end
 
-module Audio = struct
-  include Frame_content.MkContent (AudioSpecs)
-
-  let internal_params () =
-    {
-      AudioSpecs.channel_layout =
-        Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels);
-      sample_format = `Dbl;
-      sample_rate = Lazy.force Frame.audio_rate;
-    }
-end
+module Audio = Frame_content.MkContent (AudioSpecs)
 
 module VideoSpecs = struct
   include BaseSpecs
@@ -107,6 +110,18 @@ module VideoSpecs = struct
       pixel_format = Avcodec.Video.get_pixel_format p;
     }
 
+  let internal_params () =
+    {
+      width = Lazy.force Frame.video_width;
+      height = Lazy.force Frame.video_height;
+      pixel_format = Some `Yuv420p;
+    }
+
+  let make = function
+    | [] -> { params = internal_params (); data = [] }
+    | [params] -> { params; data = [] }
+    | _ -> assert false
+
   let string_of_param { width; height; pixel_format } =
     Printf.sprintf "size=\"%dx%d\",pixel_format=%S)" width height
       ( match pixel_format with
@@ -114,13 +129,4 @@ module VideoSpecs = struct
         | Some pf -> Pixel_format.to_string pf )
 end
 
-module Video = struct
-  include Frame_content.MkContent (VideoSpecs)
-
-  let internal_params () =
-    {
-      VideoSpecs.width = Lazy.force Frame.video_width;
-      height = Lazy.force Frame.video_height;
-      pixel_format = Some `Yuv420p;
-    }
-end
+module Video = Frame_content.MkContent (VideoSpecs)

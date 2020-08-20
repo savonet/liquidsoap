@@ -45,6 +45,7 @@ let params { params } = [params]
 
 let merge l l' =
   match (l, l') with
+    | [], [] -> []
     | [], [p'] -> [p']
     | [p], [] -> [p]
     | [p], [p'] when p = p' -> [p]
