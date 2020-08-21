@@ -133,8 +133,8 @@ module Muxer = struct
     let main_kind =
       Frame.
         {
-          audio = (if aux_content = `Audio then none else `Any);
-          video = (if aux_content = `Video then none else `Any);
+          audio = (if main_content = `Audio then `Any else none);
+          video = (if main_content = `Video then `Any else none);
           midi = `Any;
         }
     in
