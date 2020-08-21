@@ -80,7 +80,7 @@ let get_encoder name =
 
 let encoder { Ogg_format.audio; video } =
   ignore (Option.map (fun p -> get_encoder (encoder_name p)) audio);
-  ignore (Option.map (fun _ -> get_encoder "theora") video);
+  ignore (Option.map (fun _ -> assert (!theora_encoder <> None)) video);
   fun name meta ->
     let tracks = [] in
     let tracks =
