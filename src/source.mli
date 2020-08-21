@@ -66,13 +66,15 @@ type watcher = {
 }
 
 module Kind : sig
-  type t
+  type kind
+  type t = kind Frame.fields
 
   val of_kind : Frame.content_kind -> t
   val to_string : t -> string
 
   exception Conflict of string * string
 
+  val unify_kind : kind -> kind -> unit
   val unify : t -> t -> unit
 end
 

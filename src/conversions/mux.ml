@@ -39,7 +39,7 @@ module Muxer = struct
   let proceed control f = Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~kind ~name c =
+  class producer ~name ~kind c =
     object (self)
       inherit Source.source kind ~name
 
@@ -64,7 +64,7 @@ module Muxer = struct
             c.aux_abort <- true)
     end
 
-  class consumer ~producer ~mode ~content ~max_buffer ~pre_buffer ~kind
+  class consumer ~producer ~kind ~mode ~content ~max_buffer ~pre_buffer
     source_val c =
     let prebuf = Frame.master_of_seconds pre_buffer in
     let max_buffer = Frame.master_of_seconds max_buffer in
@@ -117,8 +117,8 @@ module Muxer = struct
                   (Generator.length c.generator - max_buffer) ))
     end
 
-  let create ~name ~pre_buffer ~max_buffer ~kind ~main_kind ~main_source
-      ~main_content ~aux_source ~aux_kind ~aux_content () =
+  let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content
+      ~aux_source ~aux_content () =
     let lock = Mutex.create () in
     let control =
       {
@@ -129,15 +129,45 @@ module Muxer = struct
         aux_abort = false;
       }
     in
-    let producer = new producer ~name ~kind control in
-    ignore
-      (new consumer
-         ~producer ~mode:`Main ~kind:main_kind ~content:main_content main_source
-         ~max_buffer ~pre_buffer control);
-    ignore
-      (new consumer
-         ~producer ~mode:`Aux ~kind:aux_kind ~content:aux_content aux_source
-         ~max_buffer ~pre_buffer control);
+    let producer = new producer ~kind:Lang.any ~name control in
+    let main_kind =
+      Frame.
+        {
+          audio = (if aux_content = `Audio then none else `Any);
+          video = (if aux_content = `Video then none else `Any);
+          midi = `Any;
+        }
+    in
+    let main =
+      new consumer
+        ~producer ~mode:`Main ~kind:main_kind ~content:main_content main_source
+        ~max_buffer ~pre_buffer control
+    in
+    let aux_kind =
+      Frame.
+        {
+          audio = (if aux_content = `Audio then `Any else none);
+          video = (if aux_content = `Video then `Any else none);
+          midi = none;
+        }
+    in
+    let aux =
+      new consumer
+        ~producer ~mode:`Aux ~kind:aux_kind ~content:aux_content aux_source
+        ~max_buffer ~pre_buffer control
+    in
+    let muxed_kind =
+      {
+        Frame.audio =
+          ( if aux_content = `Audio then aux#kind.Frame.audio
+          else main#kind.Frame.audio );
+        video =
+          ( if aux_content = `Video then aux#kind.Frame.video
+          else main#kind.Frame.video );
+        midi = main#kind.Frame.midi;
+      }
+    in
+    Source.Kind.unify muxed_kind producer#kind;
     producer
 end
 
@@ -177,13 +207,10 @@ let () =
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Audio in
-      let main_kind = Frame.{ kind with video = none; midi = none } in
       let aux_source = List.assoc "video" p in
       let aux_content = `Video in
-      let aux_kind = Frame.{ kind with audio = none; midi = none } in
-      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~kind:Lang.any
-        ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
-        ())
+      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~main_source
+        ~main_content ~aux_source ~aux_content ())
 
 let () =
   let kind = Lang.any in
@@ -209,10 +236,7 @@ let () =
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Video in
-      let main_kind = Frame.{ kind with audio = none; midi = none } in
       let aux_source = List.assoc "audio" p in
       let aux_content = `Audio in
-      let aux_kind = Frame.{ kind with video = none; midi = none } in
-      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~kind:Lang.any
-        ~main_source ~main_content ~main_kind ~aux_source ~aux_content ~aux_kind
-        ())
+      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~main_source
+        ~main_content ~aux_source ~aux_content ())
