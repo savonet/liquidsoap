@@ -267,10 +267,15 @@ let () =
           }
       in
       let name = uniq_name "abuffer" in
+      let pos = source_val.Lang.pos in
       let s =
-        try Ffmpeg_filter_io.(new audio_output ~name ~kind source_val)
-        with Source.Kind.Conflict (a, b) ->
-          raise (Lang_errors.Kind_conflict (source_val.Lang.pos, a, b))
+        try Ffmpeg_filter_io.(new audio_output ~name ~kind source_val) with
+          | Source.Clock_conflict (a, b) ->
+              raise (Lang_errors.Clock_conflict (pos, a, b))
+          | Source.Clock_loop (a, b) ->
+              raise (Lang_errors.Clock_loop (pos, a, b))
+          | Source.Kind.Conflict (a, b) ->
+              raise (Lang_errors.Kind_conflict (pos, a, b))
       in
 
       let audio =
@@ -360,10 +365,15 @@ let () =
           }
       in
       let name = uniq_name "buffer" in
+      let pos = source_val.Lang.pos in
       let s =
-        try Ffmpeg_filter_io.(new video_output ~name ~kind source_val)
-        with Source.Kind.Conflict (a, b) ->
-          raise (Lang_errors.Kind_conflict (source_val.Lang.pos, a, b))
+        try Ffmpeg_filter_io.(new video_output ~name ~kind source_val) with
+          | Source.Clock_conflict (a, b) ->
+              raise (Lang_errors.Clock_conflict (pos, a, b))
+          | Source.Clock_loop (a, b) ->
+              raise (Lang_errors.Clock_loop (pos, a, b))
+          | Source.Kind.Conflict (a, b) ->
+              raise (Lang_errors.Kind_conflict (pos, a, b))
       in
 
       let video =
