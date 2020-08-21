@@ -236,7 +236,8 @@ module Kind = struct
 
   exception Conflict of string * string
 
-  type t = Frame.kind Unifier.t fields
+  type kind = Frame.kind Unifier.t
+  type t = kind fields
 
   let deref = Unifier.deref
 
