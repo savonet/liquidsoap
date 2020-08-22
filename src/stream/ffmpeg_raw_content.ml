@@ -45,9 +45,6 @@ module AudioSpecs = struct
 
   type data = (param, audio frame) content
 
-  (* TODO *)
-  let bytes _ = 0
-
   let frame_param { frame } =
     {
       channel_layout = Audio.frame_get_channel_layout frame;
@@ -94,9 +91,6 @@ module VideoSpecs = struct
   }
 
   type data = (param, video frame) content
-
-  (* TODO *)
-  let bytes _ = 0
 
   let frame_param { frame } =
     {

@@ -43,7 +43,6 @@ module type ContentSpecs = sig
 
   val make : param list -> data
   val blit : data -> int -> data -> int -> int -> unit
-  val bytes : data -> int
   val copy : data -> data
   val clear : data -> unit
 
@@ -100,7 +99,6 @@ type data = Contents.data
 
 val make : format -> data
 val blit : data -> int -> data -> int -> int -> unit
-val bytes : data -> int
 val copy : data -> data
 val clear : data -> unit
 

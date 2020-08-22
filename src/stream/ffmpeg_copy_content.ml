@@ -33,9 +33,6 @@ module BaseSpecs = struct
   let kind = `Copy
   let string_of_kind = function `Copy -> "ffmpeg.encoded"
   let kind_of_string = function "ffmpeg.encoded" -> Some `Copy | _ -> None
-
-  let bytes { data } =
-    List.fold_left (fun c (_, { packet }) -> c + Packet.get_size packet) 0 data
 end
 
 module AudioSpecs = struct

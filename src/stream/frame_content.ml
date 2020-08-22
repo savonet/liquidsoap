@@ -36,7 +36,6 @@ module type ContentSpecs = sig
 
   val make : param list -> data
   val blit : data -> int -> data -> int -> int -> unit
-  val bytes : data -> int
   val copy : data -> data
   val clear : data -> unit
   val params : data -> param list
@@ -136,7 +135,6 @@ let format_of_param label value =
 
 type data_handler = {
   blit : int -> data -> int -> int -> unit;
-  bytes : unit -> int;
   copy : unit -> data;
   format : unit -> format;
   clear : unit -> unit;
@@ -161,7 +159,6 @@ let blit src src_ofs dst dst_ofs len =
   let src = get_data_handler src in
   src.blit src_ofs dst dst_ofs len
 
-let bytes c = (get_data_handler c).bytes ()
 let copy c = (get_data_handler c).copy ()
 let format c = (get_data_handler c).format ()
 let clear c = (get_data_handler c).clear ()
@@ -249,7 +246,6 @@ module MkContent (C : ContentSpecs) :
             {
               blit = blit d;
               copy = (fun () -> Data (C.copy d));
-              bytes = (fun () -> C.bytes d);
               format = (fun () -> Format (Unifier.make (C.params d)));
               clear = (fun () -> C.clear d);
             }
@@ -276,7 +272,6 @@ module NoneSpecs = struct
   let make _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
-  let bytes _ = 0
   let copy _ = ()
   let params _ = []
   let merge _ _ = []
@@ -314,11 +309,6 @@ module AudioSpecs = struct
       | [], [] -> []
       | [x], [y] when x = y -> [x]
       | _ -> raise Invalid
-
-  let bytes d =
-    let float_bytes = 8 in
-    let track_bytes t = Audio.Mono.length t * float_bytes in
-    Array.fold_left (fun n t -> n + track_bytes t) 0 d
 
   let blit src src_pos dst dst_pos len =
     Array.iter2
@@ -397,7 +387,6 @@ module VideoSpecs = struct
   let clear _ = ()
   let string_of_param _ = assert false
   let param_of_string _ _ = None
-  let bytes = Video.size
 
   let merge l l' =
     match (l, l') with
@@ -430,7 +419,6 @@ module MidiSpecs = struct
 
   let string_of_kind = function `Midi -> "midi"
   let string_of_param (`Channels c) = Printf.sprintf "midi(channels=%d)" c
-  let bytes _ = failwith "Not implemented!"
 
   let merge l l' =
     match (l, l') with

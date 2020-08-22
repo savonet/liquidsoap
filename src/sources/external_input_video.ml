@@ -76,14 +76,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
            total buffer length: %.02f s"
           (Frame.seconds_of_master (Generator.audio_length abg))
           (Frame.seconds_of_master (Generator.video_length abg))
-          (Frame.seconds_of_master (Generator.length abg)));
-    self#register_command "buffer_size" ~descr:"Show internal buffer size."
-      (fun _ ->
-        Printf.sprintf
-          "audio buffer size: %s\nvideo buffer size: %s\ntotal buffer size: %s"
-          (Utils.string_of_size (Generator.audio_size abg))
-          (Utils.string_of_size (Generator.video_size abg))
-          (Utils.string_of_size (Generator.size abg)))
+          (Frame.seconds_of_master (Generator.length abg)))
 
     method wake_up x =
       (* Now we can create the log function *)

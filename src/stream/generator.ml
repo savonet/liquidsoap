@@ -58,8 +58,6 @@ module Generator = struct
   (** A chunk with given offset and length. *)
   type 'a chunk = 'a * int * int
 
-  let chunk_data ((buf, _, _) : 'a chunk) = buf
-
   (** A buffer is a queue of chunks. *)
   type 'a buffer = 'a chunk Queue.t
 
@@ -375,18 +373,6 @@ module From_audio_video = struct
 
   (** Total buffered length. *)
   let buffered_length t = max (audio_length t) (video_length t)
-
-  let audio_size t =
-    Queue.fold
-      (fun n a -> n + Frame_content.bytes (Generator.chunk_data a).data)
-      0 t.audio.Generator.buffers
-
-  let video_size t =
-    Queue.fold
-      (fun n a -> n + Frame_content.bytes (Generator.chunk_data a).data)
-      0 t.video.Generator.buffers
-
-  let size t = audio_size t + video_size t
 
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining t = match t.breaks with a :: _ -> a | _ -> -1
@@ -712,9 +698,6 @@ module From_audio_video_plus = struct
   let video_length t = Tutils.mutexify t.lock Super.video_length t.gen
   let length t = Tutils.mutexify t.lock Super.length t.gen
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
-  let audio_size t = Tutils.mutexify t.lock Super.audio_size t.gen
-  let video_size t = Tutils.mutexify t.lock Super.video_size t.gen
-  let size t = Tutils.mutexify t.lock Super.size t.gen
   let set_rewrite_metadata t f = t.map_meta <- f
 
   let add_metadata t m =

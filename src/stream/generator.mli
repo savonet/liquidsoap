@@ -225,15 +225,6 @@ module From_audio_video : sig
       unsynced data. *)
   val buffered_length : t -> int
 
-  (** Size of audio data in bytes. *)
-  val audio_size : t -> int
-
-  (** Size of video data in bytes. *)
-  val video_size : t -> int
-
-  (** Size of data in bytes. *)
-  val size : t -> int
-
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   val remaining : t -> int
 
@@ -291,9 +282,6 @@ module From_audio_video_plus : sig
   val video_length : t -> int
   val length : t -> int
   val remaining : t -> int
-  val audio_size : t -> int
-  val video_size : t -> int
-  val size : t -> int
   val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : ?sync:bool -> t -> unit
