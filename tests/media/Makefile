@@ -27,14 +27,14 @@ AUDIO_VIDEO_TEST_FORMATS = \
   @ffmpeg(format=\"mp4\",@audio(codec=\"aac\",channels=2),@video(codec=\"libx264\")).mp4
 
 VIDEO_ONLY_TEST_FORMATS = \
-  @ffmpeg(format=\"mp4\",@audio(codec=none),@video(codec=\"libx264\")).mp4
+  @ffmpeg(format=\"mp4\",@audio.none,@video(codec=\"libx264\")).mp4
 
 VIDEO_TEST_FORMATS = $(AUDIO_VIDEO_TEST_FORMATS) $(VIDEO_ONLY_TEST_FORMATS)
 
 VIDEO_STREAM_TEST_FORMATS = \
   @ffmpeg(format=\"flv\",@audio(codec=\"aac\",channels=1),@video(codec=\"libx264\")).flv \
   @ffmpeg(format=\"flv\",@audio(codec=\"aac\",channels=2),@video(codec=\"libx264\")).flv \
-  @ffmpeg(format=\"flv\",@audio(codec=none),@video(codec=\"libx264\")).flv
+  @ffmpeg(format=\"flv\",@audio.none,@video(codec=\"libx264\")).flv
 
 ENCODED_AUDIO_FILES=$(AUDIO_TEST_FORMATS:%=files/audio/%)
 
@@ -115,7 +115,7 @@ test_ffmpeg_copy_and_encode_decoder: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/
 # See: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/issues/555
 test_gstreamer_video_decoder: $(ENCODED_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_VIDEO_FILES:%="%"); do \
-	  if echo $$i | grep -v 'codec=none' > /dev/null 2>&1; then \
+	  if echo $$i | grep -v 'none' > /dev/null 2>&1; then \
 	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_gstreamer_video_decoder.liq "Gstreamer video decoder test for $$i" || exit; \
           fi \
 	done
