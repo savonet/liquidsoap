@@ -79,7 +79,13 @@ let () =
          Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s))))
 
 module Fps = struct
-  type t = ([ `Video ] Avfilter.input * [ `Video ] Avfilter.output) option
+  type filter = {
+    input : [ `Video ] Avfilter.input;
+    output : [ `Video ] Avfilter.output;
+  }
+
+  type pass_through = Avutil.rational
+  type t = [ `Filter of filter | `Pass_through of pass_through ]
 
   let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
       ~target_fps () =
@@ -127,26 +133,27 @@ module Fps = struct
     let graph = Avfilter.launch config in
     let _, input = List.hd Avfilter.(graph.inputs.video) in
     let _, output = List.hd Avfilter.(graph.outputs.video) in
-    (input, output)
+    { input; output }
 
   (* Source fps is not always known so it is optional here. *)
   let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
       ~target_fps () =
     match source_fps with
-      | Some f when f = target_fps -> None
+      | Some f when f = target_fps -> `Pass_through time_base
       | _ ->
-          Some
+          `Filter
             (init ~width ~height ~pixel_format ~time_base ~pixel_aspect
                ?source_fps ~target_fps ())
 
   let convert converter frame cb =
     match converter with
-      | None -> cb frame
-      | Some (input, output) ->
+      | `Pass_through time_base -> cb ~time_base frame
+      | `Filter { input; output } ->
           input frame;
+          let time_base = Avfilter.(time_base output.context) in
           let rec flush () =
             try
-              cb (output.Avfilter.handler ());
+              cb ~time_base (output.Avfilter.handler ());
               flush ()
             with Avutil.Error `Eagain -> ()
           in

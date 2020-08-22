@@ -49,5 +49,8 @@ module Fps : sig
     t
 
   val convert :
-    t -> [ `Video ] Avutil.frame -> ([ `Video ] Avutil.frame -> unit) -> unit
+    t ->
+    [ `Video ] Avutil.frame ->
+    (time_base:Avutil.rational -> [ `Video ] Avutil.frame -> unit) ->
+    unit
 end

@@ -29,6 +29,8 @@ module RawResampler = Swresample.Make (Swresample.Frame) (Swresample.Frame)
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 module RawScaler = Swscale.Make (Swscale.Frame) (Swscale.Frame)
 
+let log = Log.make ["ffmpeg"; "decoder"; "internal"]
+
 (* mk_stream is used for the copy encoder, where stream creation has to be
    delayed until the first packet is passed. This is not needed here. *)
 let mk_stream _ = ()
@@ -120,7 +122,7 @@ let mk_audio ~ffmpeg ~options output =
       let frames =
         List.filter (fun (pos, _) -> start <= pos && pos < start + len) frames
       in
-      List.map (fun (_, frame) -> resample frame) frames
+      List.map (fun (_, { Ffmpeg_raw_content.frame }) -> resample frame) frames
   in
 
   let converter =
@@ -213,9 +215,6 @@ let mk_video ~ffmpeg ~options output =
   in
   let pixel_aspect = { Avutil.num = 1; den = 1 } in
 
-  let src_fps = Lazy.force Frame.video_rate in
-  let src_liq_video_sample_time_base = { Avutil.num = 1; den = src_fps } in
-
   let target_fps = Lazy.force ffmpeg.Ffmpeg_format.framerate in
   let target_video_frame_time_base = { Avutil.num = 1; den = target_fps } in
   let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
@@ -254,23 +253,43 @@ let mk_video ~ffmpeg ~options output =
     (fun l v -> if Hashtbl.mem opts l then Some v else None)
     options;
 
-  let converter =
-    Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
-      ~pixel_format:`Yuv420p ~time_base:src_liq_video_sample_time_base
-      ~pixel_aspect ~source_fps:src_fps ~target_fps ()
+  let converter = ref None in
+
+  let mk_converter ~pixel_format ~time_base () =
+    let c =
+      Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
+        ~pixel_format ~time_base ~pixel_aspect ~target_fps ()
+    in
+    converter := Some (pixel_format, time_base, c);
+    c
   in
 
-  let nb_frames = ref 0L in
+  let get_converter ~pixel_format ~time_base () =
+    match !converter with
+      | None -> mk_converter ~pixel_format ~time_base ()
+      | Some (p, t, _) when (p, t) <> (pixel_format, time_base) ->
+          log#important "Frame format change detected!";
+          mk_converter ~pixel_format ~time_base ()
+      | Some (_, _, c) -> c
+  in
+
   let stream_time_base = Av.get_time_base stream in
 
-  let fps_converter frame =
-    Ffmpeg_utils.Fps.convert converter frame (fun frame ->
+  let fps_converter ~time_base frame =
+    let converter =
+      get_converter ~time_base
+        ~pixel_format:(Avutil.Video.frame_get_pixel_format frame)
+        ()
+    in
+    Ffmpeg_utils.Fps.convert converter frame (fun ~time_base frame ->
         let frame_pts =
-          Ffmpeg_utils.convert_time_base ~src:target_video_frame_time_base
-            ~dst:stream_time_base !nb_frames
+          Option.map
+            (fun pts ->
+              Ffmpeg_utils.convert_time_base ~src:time_base
+                ~dst:stream_time_base pts)
+            (Avutil.frame_pts frame)
         in
-        Avutil.frame_set_pts frame (Some frame_pts);
-        nb_frames := Int64.succ !nb_frames;
+        Avutil.frame_set_pts frame frame_pts;
         Av.write_frame stream frame)
   in
 
@@ -281,6 +300,8 @@ let mk_video ~ffmpeg ~options output =
       InternalScaler.create [flag] src_width src_height `Yuv420p target_width
         target_height `Yuv420p
     in
+    let nb_frames = ref 0L in
+    let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
     fun frame start len ->
       let vstart = Frame.video_of_master start in
       let vstop = Frame.video_of_master (start + len) in
@@ -291,13 +312,14 @@ let mk_video ~ffmpeg ~options output =
         let sy = Image.YUV420.y_stride f in
         let s = Image.YUV420.uv_stride f in
         let vdata = [| (y, sy); (u, s); (v, s) |] in
-        cb (InternalScaler.convert scaler vdata)
+        let frame = InternalScaler.convert scaler vdata in
+        Avutil.frame_set_pts frame (Some !nb_frames);
+        nb_frames := Int64.succ !nb_frames;
+        cb ~time_base frame
       done
   in
 
   let raw_converter cb =
-    (* TODO *)
-    let target_pixel_format = `Yuv420p in
     let scaler = ref None in
     let scale frame =
       let scaler =
@@ -310,15 +332,11 @@ let mk_video ~ffmpeg ~options output =
                 Avutil.Video.frame_get_pixel_format frame
               in
               let f =
-                if
-                  src_width <> target_width
-                  || src_height <> target_height
-                  || src_pixel_format <> target_pixel_format
-                then (
+                if src_width <> target_width || src_height <> target_height then (
                   let scaler =
                     RawScaler.create [flag] src_width src_height
                       src_pixel_format target_width target_height
-                      target_pixel_format
+                      src_pixel_format
                   in
                   RawScaler.convert scaler )
                 else fun f -> f
@@ -334,8 +352,8 @@ let mk_video ~ffmpeg ~options output =
         Ffmpeg_raw_content.Video.get_data Frame.(frame.content.video)
       in
       List.iter
-        (fun (pos, frame) ->
-          if start <= pos && pos < stop then cb (scale frame))
+        (fun (pos, { Ffmpeg_raw_content.time_base; frame }) ->
+          if start <= pos && pos < stop then cb ~time_base (scale frame))
         data
   in
 

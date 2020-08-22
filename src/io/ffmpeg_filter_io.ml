@@ -60,12 +60,12 @@ class audio_output ~name ~kind val_source =
           (Audio.get_data Frame.(memo.content.audio)).VideoSpecs.data)
       in
       List.iter
-        (fun (pos, aframe) ->
+        (fun (pos, { Ffmpeg_raw_content.frame }) ->
           let pts =
             Int64.add (convert_frame_pts (Frame.pts memo)) (Int64.of_int pos)
           in
-          Avutil.frame_set_pts aframe (Some pts);
-          input aframe)
+          Avutil.frame_set_pts frame (Some pts);
+          input frame)
         frames
   end
 
@@ -101,12 +101,12 @@ class video_output ~kind ~name val_source =
           (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
       in
       List.iter
-        (fun (pos, vframe) ->
+        (fun (pos, { Ffmpeg_raw_content.frame }) ->
           let pts =
             Int64.add (convert_frame_pts (Frame.pts memo)) (Int64.of_int pos)
           in
-          Avutil.frame_set_pts vframe (Some pts);
-          input vframe)
+          Avutil.frame_set_pts frame (Some pts);
+          input frame)
         frames
   end
 
@@ -151,8 +151,8 @@ class audio_input ~bufferize kind =
 
     method private flush_buffer =
       let output = Option.get output in
-      let src = Avfilter.(time_base output.context) in
-      let dst = Ffmpeg_utils.liq_frame_time_base () in
+      let ffmpeg_frame_time_base = Avfilter.(time_base output.context) in
+      let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
       let get_duration frame =
         let samplerate = float (Avutil.Audio.frame_get_sample_rate frame) in
         let nb_samples = float (Avutil.Audio.frame_nb_samples frame) in
@@ -160,7 +160,13 @@ class audio_input ~bufferize kind =
       in
       let rec f () =
         try
-          let frame = output.Avfilter.handler () in
+          let ffmpeg_frame = output.Avfilter.handler () in
+          let frame =
+            {
+              Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
+              frame = ffmpeg_frame;
+            }
+          in
           let content =
             {
               Ffmpeg_content_base.params =
@@ -170,12 +176,14 @@ class audio_input ~bufferize kind =
           in
           let pts =
             Option.map
-              (Ffmpeg_utils.convert_time_base ~src ~dst)
-              (Avutil.frame_pts frame)
+              (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
+                 ~dst:liq_frame_time_base)
+              (Avutil.frame_pts ffmpeg_frame)
           in
           Generator.put_audio ?pts generator
             (Ffmpeg_raw_content.Audio.lift_data content)
-            0 (get_duration frame);
+            0
+            (get_duration ffmpeg_frame);
           f ()
         with Avutil.Error `Eagain -> ()
       in
@@ -252,15 +260,22 @@ class video_input ~bufferize ~fps kind =
 
     method private flush_buffer =
       let output = Option.get output in
-      let src = Avfilter.(time_base output.context) in
-      let dst = Ffmpeg_utils.liq_frame_time_base () in
+      let ffmpeg_frame_time_base = Avfilter.(time_base output.context) in
+      let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
       let rec f () =
         try
-          let frame = output.Avfilter.handler () in
+          let ffmpeg_frame = output.Avfilter.handler () in
+          let frame =
+            {
+              Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
+              frame = ffmpeg_frame;
+            }
+          in
           let pts =
             Option.map
-              (Ffmpeg_utils.convert_time_base ~src ~dst)
-              (Avutil.frame_pts frame)
+              (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
+                 ~dst:liq_frame_time_base)
+              (Avutil.frame_pts ffmpeg_frame)
           in
           let params = Ffmpeg_raw_content.VideoSpecs.frame_param frame in
           let content =
@@ -274,9 +289,21 @@ class video_input ~bufferize ~fps kind =
       in
       f ()
 
+    val mutable state : [ `Ready | `Not_ready ] = `Not_ready
+
     method is_ready =
       if output <> None then self#flush_buffer;
-      Generator.length generator > min_buf
+      match state with
+        | `Not_ready ->
+            if Generator.length generator >= min_buf then (
+              state <- `Ready;
+              true )
+            else false
+        | `Ready ->
+            if Generator.length generator > 0 then true
+            else (
+              state <- `Not_ready;
+              false )
 
     method private get_frame frame =
       self#flush_buffer;

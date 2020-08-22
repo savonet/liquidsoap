@@ -22,6 +22,8 @@
 
 open Avutil
 
+type 'a frame = { time_base : Avutil.rational; frame : 'a Avutil.frame }
+
 module BaseSpecs = struct
   include Ffmpeg_content_base
 
@@ -46,7 +48,7 @@ module AudioSpecs = struct
   (* TODO *)
   let bytes _ = 0
 
-  let frame_param frame =
+  let frame_param { frame } =
     {
       channel_layout = Audio.frame_get_channel_layout frame;
       sample_format = Audio.frame_get_sample_format frame;
@@ -96,7 +98,7 @@ module VideoSpecs = struct
   (* TODO *)
   let bytes _ = 0
 
-  let frame_param frame =
+  let frame_param { frame } =
     {
       width = Video.frame_get_width frame;
       height = Video.frame_get_height frame;
