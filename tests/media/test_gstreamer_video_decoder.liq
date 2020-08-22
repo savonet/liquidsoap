@@ -35,4 +35,4 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="flv",%audio(codec=none),%video(codec="libx264")), out, s)
+output.file(fallible=true, on_stop=on_done, %ffmpeg(format="flv",%audio.none,%video(codec="libx264")), out, s)
