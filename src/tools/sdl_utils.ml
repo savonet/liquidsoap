@@ -55,6 +55,7 @@ module Surface = struct
     let img = Video.Image.create width height in
     ( match fmt with
       | fmt when fmt = Sdl.Pixel.format_rgb888 ->
+          assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
           for j = 0 to height - 1 do
             for i = 0 to width - 1 do
@@ -66,8 +67,10 @@ module Surface = struct
               in
               Video.Image.set_pixel_rgba img i j (r, g, b, a)
             done
-          done
+          done;
+          Sdl.unlock_surface surface
       | fmt when fmt = Sdl.Pixel.format_rgb24 ->
+          assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
           for j = 0 to height - 1 do
             for i = 0 to width - 1 do
@@ -79,8 +82,10 @@ module Surface = struct
               let a = 0xff in
               Video.Image.set_pixel_rgba img i j (r, g, b, a)
             done
-          done
+          done;
+          Sdl.unlock_surface surface
       | fmt when fmt = Sdl.Pixel.format_index8 ->
+          assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
           for j = 0 to height - 1 do
             for i = 0 to width - 1 do
@@ -88,7 +93,8 @@ module Surface = struct
               let a = 0xff in
               Video.Image.set_pixel_rgba img i j (p, p, p, a)
             done
-          done
+          done;
+          Sdl.unlock_surface surface
       | _ ->
           failwith
             ( "img_of_surface: unhandled format "
@@ -101,6 +107,7 @@ module Surface = struct
     let fmt = Sdl.get_surface_format_enum surface in
     match fmt with
       | fmt when fmt = Sdl.Pixel.format_rgb888 ->
+          assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
           for i = 0 to width - 1 do
             for j = 0 to height - 1 do
@@ -110,7 +117,8 @@ module Surface = struct
               pix.{(j * pitch) + (4 * i) + 2} <- r;
               pix.{(j * pitch) + (4 * i) + 3} <- 0xff
             done
-          done
+          done;
+          Sdl.unlock_surface surface
       | _ ->
           failwith
             ( "img_of_surface: unhandled format "
