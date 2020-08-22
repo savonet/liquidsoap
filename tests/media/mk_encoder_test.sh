@@ -5,7 +5,7 @@ BASEDIR=`dirname $0`
 CWD=`cd $BASEDIR && pwd`
 
 FILE=$1
-FORMAT=`echo $FILE | cut -d '.' -f 1 | sed -e "s#@#%#g"`
+FORMAT=`echo $FILE | cut -d '.' -f 1 | sed -e "s#@#%#g" | sed -e 's#DOT#.#g'`
 
 SOURCE=$2
 
