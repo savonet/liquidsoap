@@ -442,7 +442,14 @@ ty_source:
 
 ty_content:
   | VAR                           { $1, [] }
+  | VAR DOT VAR                   { $1 ^ "." ^ $3, [] }
+  | VAR DOT VAR DOT VAR           { $1 ^ "." ^ $3 ^ "." ^ $5, [] }
   | VARLPAR ty_content_args RPAR  { $1, $2 }
+  | VAR DOT VARLPAR ty_content_args RPAR 
+                                  { $1 ^ "." ^ $3, $4 }
+  | VAR DOT VAR DOT VARLPAR ty_content_args RPAR
+                                  { $1 ^ "." ^ $3 ^ "." ^ $5, $6 }
+
 
 ty_content_args:
   |                                      { [] }
@@ -450,8 +457,9 @@ ty_content_args:
   | ty_content_arg COMMA ty_content_args { $1::$3 }
 
 ty_content_arg:
-  | VAR          { "",$1 }
-  | VAR GETS VAR { $1,$3 }
+  | VAR                  { "",$1 }
+  | VAR GETS VAR         { $1,$3 }
+  | VAR GETS INT         { $1,string_of_int $3}
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }
@@ -593,7 +601,7 @@ ogg_video_item:
   | THEORA app_opt     { Lang_theora.make $2 }
 
 ffmpeg_param:
-  | STRING GETS expr { $1,$3 }
+  | STRING GETS expr     { $1,$3 }
   | VAR GETS expr        { $1,$3 }
 ffmpeg_params:
   |                                  { [] }

@@ -134,9 +134,9 @@ class audio_input ~bufferize kind =
       let output_format =
         {
           Ffmpeg_raw_content.AudioSpecs.channel_layout =
-            Avfilter.(channel_layout v.context);
-          sample_rate = Avfilter.(sample_rate v.context);
-          sample_format = Avfilter.(sample_format v.context);
+            Some Avfilter.(channel_layout v.context);
+          sample_rate = Some Avfilter.(sample_rate v.context);
+          sample_format = Some Avfilter.(sample_format v.context);
         }
       in
       Frame_content.merge format
@@ -243,8 +243,8 @@ class video_input ~bufferize ~fps kind =
     method set_output v =
       let output_format =
         {
-          Ffmpeg_raw_content.VideoSpecs.width = Avfilter.(width v.context);
-          height = Avfilter.(height v.context);
+          Ffmpeg_raw_content.VideoSpecs.width = Some Avfilter.(width v.context);
+          height = Some Avfilter.(height v.context);
           pixel_format = Some Avfilter.(pixel_format v.context);
         }
       in

@@ -31,12 +31,13 @@ module BaseSpecs = struct
   type kind = [ `Copy ]
 
   let kind = `Copy
-  let string_of_kind = function `Copy -> "ffmpeg.encoded"
-  let kind_of_string = function "ffmpeg.encoded" -> Some `Copy | _ -> None
 end
 
 module AudioSpecs = struct
   include BaseSpecs
+
+  let string_of_kind = function `Copy -> "ffmpeg.audio.copy"
+  let kind_of_string = function "ffmpeg.audio.copy" -> Some `Copy | _ -> None
 
   type param = audio Avcodec.params
   type data = (param, audio packet) content
@@ -54,12 +55,21 @@ module AudioSpecs = struct
       (Channel_layout.get_description channel_layout)
       (Sample_format.get_name sample_format)
       sample_rate
+
+  let merge_param p p' =
+    assert (p = p');
+    p
+
+  let merge = merge ~merge_param
 end
 
 module Audio = Frame_content.MkContent (AudioSpecs)
 
 module VideoSpecs = struct
   include BaseSpecs
+
+  let string_of_kind = function `Copy -> "ffmpeg.video.copy"
+  let kind_of_string = function "ffmpeg.video.copy" -> Some `Copy | _ -> None
 
   type param = video Avcodec.params
   type data = (param, video packet) content
@@ -78,6 +88,12 @@ module VideoSpecs = struct
       ( match pixel_format with
         | None -> "unknown"
         | Some pf -> Pixel_format.to_string pf )
+
+  let merge_param p p' =
+    assert (p = p');
+    p
+
+  let merge = merge ~merge_param
 end
 
 module Video = Frame_content.MkContent (VideoSpecs)

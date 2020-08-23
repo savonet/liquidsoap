@@ -43,10 +43,10 @@ let copy { data; params } = { data; params }
 let default_params _ = []
 let params { params } = [params]
 
-let merge l l' =
+let merge ~merge_param l l' =
   match (l, l') with
     | [], [] -> []
     | [], [p'] -> [p']
     | [p], [] -> [p]
-    | [p], [p'] when p = p' -> [p]
+    | [p], [p'] -> [merge_param p p']
     | _ -> failwith "Incompatible parameters"

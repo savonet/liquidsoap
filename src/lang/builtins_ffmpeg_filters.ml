@@ -214,19 +214,24 @@ let abuffer_args
     { Ffmpeg_raw_content.AudioSpecs.channel_layout; sample_format; sample_rate }
     =
   [
-    `Pair ("sample_rate", `Int sample_rate);
+    `Pair ("sample_rate", `Int (Option.get sample_rate));
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_master_ticks_time_base ()));
-    `Pair ("channel_layout", `Int (Avutil.Channel_layout.get_id channel_layout));
-    `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
+    `Pair
+      ( "channel_layout",
+        `Int (Avutil.Channel_layout.get_id (Option.get channel_layout)) );
+    `Pair
+      ( "sample_fmt",
+        `Int (Avutil.Sample_format.get_id (Option.get sample_format)) );
   ]
 
 let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
-  let pixel_format = Option.get pixel_format in
   [
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_master_ticks_time_base ()));
-    `Pair ("width", `Int width);
-    `Pair ("height", `Int height);
-    `Pair ("pix_fmt", `String Avutil.Pixel_format.(to_string pixel_format));
+    `Pair ("width", `Int (Option.get width));
+    `Pair ("height", `Int (Option.get height));
+    `Pair
+      ( "pix_fmt",
+        `String Avutil.Pixel_format.(to_string (Option.get pixel_format)) );
   ]
 
 let () =
