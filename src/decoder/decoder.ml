@@ -254,7 +254,7 @@ let can_decode_type decoded_type target_type =
   in
   match target_type with
     (* Either we can decode straight away. *)
-    | _ when decoded_type = target_type -> true
+    | _ when Frame.compatible decoded_type target_type -> true
     (* Or we can convert audio and/or drop video and midi *)
     | { Frame.audio; video; midi } ->
         let audio =
@@ -262,7 +262,7 @@ let can_decode_type decoded_type target_type =
         in
         let video = if video = none then none else decoded_type.Frame.video in
         let midi = if midi = none then none else decoded_type.Frame.midi in
-        target_type = { Frame.audio; video; midi }
+        Frame.compatible target_type { Frame.audio; video; midi }
 
 let decoder_modes = function
   | Frame.{ audio; video; midi }

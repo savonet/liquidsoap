@@ -183,6 +183,7 @@ val type_of_content : content -> content_type
 val string_of_kind : kind -> string
 val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string
+val compatible : content_type -> content_type -> bool
 
 (** {2 Format settings} *)
 

@@ -50,6 +50,7 @@ module type ContentSpecs = sig
 
   val params : data -> param list
   val merge : param list -> param list -> param list
+  val compatible : param list -> param list -> bool
   val string_of_param : param -> string
 
   (* [param_of_string "label" "value"] *)
@@ -106,6 +107,7 @@ val clear : data -> unit
 
 val format : data -> format
 val merge : format -> format -> unit
+val compatible : format -> format -> bool
 val string_of_format : format -> string
 
 (* [format_of_param "label" "value"] *)

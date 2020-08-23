@@ -82,6 +82,11 @@ let string_of_fields fn { audio; video; midi } =
 let string_of_content_kind = string_of_fields string_of_kind
 let string_of_content_type = string_of_fields string_of_format
 
+let compatible c c' =
+  Frame_content.compatible c.audio c'.audio
+  && Frame_content.compatible c.video c'.video
+  && Frame_content.compatible c.midi c'.midi
+
 (* Frames *)
 
 (** A metadata is just a mutable hash table.

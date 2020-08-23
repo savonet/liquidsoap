@@ -88,7 +88,7 @@ class virtual unqueued ~kind ~name =
             self#log#debug "Failed to prepare track: no file.";
             false
         | Some req when Request.is_ready req ->
-            assert (Option.get (Request.ctype req) = self#ctype);
+            assert (Frame.compatible (Option.get (Request.ctype req)) self#ctype);
 
             (* [Request.is_ready] ensures that we can get a filename from the request,
                and it can be decoded. *)

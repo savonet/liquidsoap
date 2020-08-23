@@ -40,6 +40,7 @@ module type ContentSpecs = sig
   val clear : data -> unit
   val params : data -> param list
   val merge : param list -> param list -> param list
+  val compatible : param list -> param list -> bool
   val string_of_param : param -> string
   val param_of_string : string -> string -> param option
   val kind : kind
@@ -102,6 +103,7 @@ type format_handler = {
   make : unit -> data;
   string_of_format : unit -> string;
   merge : format -> unit;
+  compatible : format -> bool;
 }
 
 let format_handlers = Queue.create ()
@@ -180,6 +182,7 @@ let merge p p' =
   try (get_params_handler p).merge p'
   with _ -> raise (Incompatible_format (p, p'))
 
+let compatible p p' = (get_params_handler p).compatible p'
 let string_of_kind f = (get_kind_handler f).string_of_kind ()
 
 module MkContent (C : ContentSpecs) :
@@ -201,6 +204,11 @@ module MkContent (C : ContentSpecs) :
     let m = C.merge (u (Unifier.deref l)) (u (Unifier.deref l')) in
     Unifier.set l' m;
     Unifier.(l <-- l')
+
+  let compatible l l' =
+    match l' with
+      | Format l' -> C.compatible (Unifier.deref l) (Unifier.deref l')
+      | _ -> false
 
   let kind_of_string s = Option.map (fun p -> Kind p) (C.kind_of_string s)
 
@@ -226,6 +234,7 @@ module MkContent (C : ContentSpecs) :
               kind = (fun () -> Kind C.kind);
               make = (fun () -> Data (C.make (Unifier.deref l)));
               merge = (fun l' -> merge l l');
+              compatible = (fun l' -> compatible l l');
               string_of_format =
                 (fun () ->
                   let kind = C.string_of_kind C.kind in
@@ -275,6 +284,7 @@ module NoneSpecs = struct
   let copy _ = ()
   let params _ = []
   let merge _ _ = []
+  let compatible _ _ = true
   let string_of_param _ = assert false
   let param_of_string _ _ = None
   let kind = ()
@@ -309,6 +319,12 @@ module AudioSpecs = struct
       | [], [] -> []
       | [x], [y] when x = y -> [x]
       | _ -> raise Invalid
+
+  let compatible l l' =
+    match (l, l') with
+      | [], _ | _, [] -> true
+      | [p], [p'] when p = p' -> true
+      | _ -> false
 
   let blit src src_pos dst dst_pos len =
     Array.iter2
@@ -394,6 +410,12 @@ module VideoSpecs = struct
       | [x], [y] when x = y -> [x]
       | _ -> raise Invalid
 
+  let compatible l l' =
+    match (l, l') with
+      | [], _ | _, [] -> true
+      | [p], [p'] when p = p' -> true
+      | _ -> false
+
   let blit src src_pos dst dst_pos len =
     let ( ! ) = Frame_settings.video_of_master in
     Video.blit src !src_pos dst !dst_pos !len
@@ -425,6 +447,12 @@ module MidiSpecs = struct
       | [], [] -> []
       | [x], [y] when x = y -> [x]
       | _ -> raise Invalid
+
+  let compatible l l' =
+    match (l, l') with
+      | [], _ | _, [] -> true
+      | [p], [p'] when p = p' -> true
+      | _ -> false
 
   let blit src src_pos dst dst_pos len =
     Array.iter2

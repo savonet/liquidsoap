@@ -716,7 +716,7 @@ module From_audio_video_plus = struct
         match t.ctype with
           | None -> t.ctype <- Some (Frame.type_of_content c)
           | Some ctype ->
-              if Frame.type_of_content c <> ctype then (
+              if not (Frame.compatible (Frame.type_of_content c) ctype) then (
                 t.log "Incorrect stream type!";
                 t.error <- true;
                 Super.clear t.gen;

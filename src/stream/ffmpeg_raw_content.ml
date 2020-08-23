@@ -31,11 +31,13 @@ module BaseSpecs = struct
 
   let kind = `Raw
 
-  let merge_p ~name = function
+  let merge_param ~name = function
     | None, None -> None
     | None, Some p | Some p, None -> Some p
     | Some p, Some p' when p = p' -> Some p
     | _ -> failwith ("Incompatible " ^ name)
+
+  let merge = merge
 end
 
 module AudioSpecs = struct
@@ -122,16 +124,25 @@ module AudioSpecs = struct
             }
       | _ -> None
 
-  let merge_param p p' =
+  let check p p' =
+    let c = function None, _ | _, None -> true | Some p, Some p' -> p = p' in
+    c (p.channel_layout, p'.channel_layout)
+    && c (p.sample_format, p'.sample_format)
+    && c (p.sample_rate, p'.sample_rate)
+
+  let compatible = compatible ~check
+
+  let merge_p p p' =
     {
       channel_layout =
-        merge_p ~name:"channel_layout" (p.channel_layout, p'.channel_layout);
+        merge_param ~name:"channel_layout" (p.channel_layout, p'.channel_layout);
       sample_format =
-        merge_p ~name:"sample_format" (p.sample_format, p'.sample_format);
-      sample_rate = merge_p ~name:"sample_rate" (p.sample_rate, p'.sample_rate);
+        merge_param ~name:"sample_format" (p.sample_format, p'.sample_format);
+      sample_rate =
+        merge_param ~name:"sample_rate" (p.sample_rate, p'.sample_rate);
     }
 
-  let merge = merge ~merge_param
+  let merge = merge ~merge_p ~check
 end
 
 module Audio = Frame_content.MkContent (AudioSpecs)
@@ -215,15 +226,23 @@ module VideoSpecs = struct
             }
       | _ -> None
 
-  let merge_param p p' =
+  let check p p' =
+    let c = function None, _ | _, None -> true | Some p, Some p' -> p = p' in
+    c (p.width, p'.width)
+    && c (p.height, p'.height)
+    && c (p.pixel_format, p'.pixel_format)
+
+  let compatible = compatible ~check
+
+  let merge_p p p' =
     {
-      width = merge_p ~name:"width" (p.width, p'.width);
-      height = merge_p ~name:"height" (p.height, p'.height);
+      width = merge_param ~name:"width" (p.width, p'.width);
+      height = merge_param ~name:"height" (p.height, p'.height);
       pixel_format =
-        merge_p ~name:"pixel_format" (p.pixel_format, p'.pixel_format);
+        merge_param ~name:"pixel_format" (p.pixel_format, p'.pixel_format);
     }
 
-  let merge = merge ~merge_param
+  let merge = merge ~merge_p ~check
 end
 
 module Video = Frame_content.MkContent (VideoSpecs)

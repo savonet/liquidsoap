@@ -56,11 +56,14 @@ module AudioSpecs = struct
       (Sample_format.get_name sample_format)
       sample_rate
 
-  let merge_param p p' =
-    assert (p = p');
-    p
+  let check p p' =
+    Audio.get_params_id p = Audio.get_params_id p'
+    && Audio.get_channel_layout p = Audio.get_channel_layout p'
+    && Audio.get_sample_format p = Audio.get_sample_format p'
+    && Audio.get_sample_rate p = Audio.get_sample_rate p'
 
-  let merge = merge ~merge_param
+  let compatible = compatible ~check
+  let merge = merge ~check ~merge_p:(fun p _ -> p)
 end
 
 module Audio = Frame_content.MkContent (AudioSpecs)
@@ -89,11 +92,15 @@ module VideoSpecs = struct
         | None -> "unknown"
         | Some pf -> Pixel_format.to_string pf )
 
-  let merge_param p p' =
-    assert (p = p');
-    p
+  let check p p' =
+    Video.get_params_id p = Video.get_params_id p'
+    && Video.get_width p = Video.get_width p'
+    && Video.get_height p = Video.get_height p'
+    && Video.get_sample_aspect_ratio p = Video.get_sample_aspect_ratio p'
+    && Video.get_pixel_format p = Video.get_pixel_format p'
 
-  let merge = merge ~merge_param
+  let compatible = compatible ~check
+  let merge = merge ~check ~merge_p:(fun p _ -> p)
 end
 
 module Video = Frame_content.MkContent (VideoSpecs)
