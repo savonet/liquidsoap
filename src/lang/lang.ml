@@ -96,8 +96,10 @@ let audio_params p =
   }
 
 let audio_n n = { Frame.audio = Frame.audio_n n; video = `Any; midi = `Any }
-let audio_mono = audio_params [`Mono]
-let audio_stereo = audio_params [`Stereo]
+let audio_mono = audio_params { Frame_content.Contents.channel_layout = `Mono }
+
+let audio_stereo =
+  audio_params { Frame_content.Contents.channel_layout = `Stereo }
 
 let video_yuv420p =
   { Frame.audio = `Any; video = Frame.video_yuv420p; midi = `Any }
@@ -108,7 +110,9 @@ let midi_n n =
   {
     Frame.audio = `Any;
     video = `Any;
-    midi = `Format (Frame_content.Midi.lift_params [`Channels n]);
+    midi =
+      `Format
+        (Frame_content.Midi.lift_params { Frame_content.Contents.channels = n });
   }
 
 let kind_type_of_kind_format fields =

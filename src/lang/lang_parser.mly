@@ -184,7 +184,7 @@
                                            ~level:(-1) ~pos:None
         | param::params ->
             let mk_format (label, value) =
-              Frame_content.format_of_param label value
+              Frame_content.parse_param label value
             in
             let f = mk_format param in
             List.iter (fun param -> Frame_content.merge f (mk_format param)) params;

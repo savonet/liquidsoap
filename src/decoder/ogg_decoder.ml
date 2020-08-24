@@ -236,12 +236,16 @@ let file_type ~ctype:_ filename =
       let audio =
         if audio = 0 then Frame_content.None.format
         else
-          Frame_content.Audio.lift_params
-            [Audio_converter.Channel_layout.layout_of_channels audio]
+          Frame_content.(
+            Audio.lift_params
+              {
+                Contents.channel_layout =
+                  Audio_converter.Channel_layout.layout_of_channels audio;
+              })
       in
       let video =
         if video = 0 then Frame_content.None.format
-        else Frame_content.Video.lift_params []
+        else Frame_content.(default_format Video.kind)
       in
       Some { Frame.audio; video; midi = Frame_content.None.format })
 

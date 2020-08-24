@@ -213,30 +213,52 @@ let () =
 let abuffer_args
     { Ffmpeg_raw_content.AudioSpecs.channel_layout; sample_format; sample_rate }
     =
+  let default_channel_layout =
+    match
+      Audio_converter.Channel_layout.layout_of_channels
+        (Lazy.force Frame.audio_channels)
+    with
+      | `Five_point_one -> `_5point1
+      | `Mono -> `Mono
+      | `Stereo -> `Stereo
+  in
   [
-    `Pair ("sample_rate", `Int (Option.get sample_rate));
+    `Pair
+      ( "sample_rate",
+        `Int (Option.value ~default:(Lazy.force Frame.audio_rate) sample_rate)
+      );
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_master_ticks_time_base ()));
     `Pair
       ( "channel_layout",
-        `Int (Avutil.Channel_layout.get_id (Option.get channel_layout)) );
+        `Int
+          (Avutil.Channel_layout.get_id
+             (Option.value ~default:default_channel_layout channel_layout)) );
     `Pair
       ( "sample_fmt",
-        `Int (Avutil.Sample_format.get_id (Option.get sample_format)) );
+        `Int
+          (Avutil.Sample_format.get_id
+             (Option.value ~default:`Dbl sample_format)) );
   ]
 
 let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
   [
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_master_ticks_time_base ()));
-    `Pair ("width", `Int (Option.get width));
-    `Pair ("height", `Int (Option.get height));
+    `Pair
+      ( "width",
+        `Int (Option.value ~default:(Lazy.force Frame.video_width) width) );
+    `Pair
+      ( "height",
+        `Int (Option.value ~default:(Lazy.force Frame.video_height) height) );
     `Pair
       ( "pix_fmt",
-        `String Avutil.Pixel_format.(to_string (Option.get pixel_format)) );
+        `String
+          Avutil.Pixel_format.(
+            to_string (Option.value ~default:`Yuv420p pixel_format)) );
   ]
 
 let () =
-  let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.(lift_kind kind) in
-  let raw_video_format = `Kind Ffmpeg_raw_content.Video.(lift_kind kind) in
+  let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
+  let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
   let audio_frame =
     { Frame.audio = raw_audio_format; video = `Any; midi = `Any }
   in
@@ -266,7 +288,11 @@ let () =
       let kind =
         Frame.
           {
-            audio = `Format Ffmpeg_raw_content.Audio.(lift_params []);
+            (* We need to make sure that we are using a format here to
+               ensure that its params are properly unified with the underlying source. *)
+            audio =
+              `Format
+                Ffmpeg_raw_content.Audio.(lift_params (default_params `Raw));
             video = `Any;
             midi = `Any;
           }
@@ -286,16 +312,7 @@ let () =
       let audio =
         lazy
           (let ctype = (Lang.to_source source_val)#ctype in
-           let params =
-             match Ffmpeg_raw_content.Audio.get_params ctype.Frame.audio with
-               | [p] -> p
-               | [] ->
-                   let p = Ffmpeg_raw_content.AudioSpecs.internal_params () in
-                   Frame_content.merge ctype.Frame.audio
-                     (Ffmpeg_raw_content.Audio.lift_params [p]);
-                   p
-               | _ -> assert false
-           in
+           let params = Ffmpeg_raw_content.Audio.get_params ctype.Frame.audio in
            let args = abuffer_args params in
            let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
            Queue.add s#clock graph.clocks;
@@ -327,7 +344,7 @@ let () =
       let kind =
         Frame.
           {
-            audio = `Format Ffmpeg_raw_content.Audio.(lift_params []);
+            audio = `Kind Ffmpeg_raw_content.Audio.kind;
             video = none;
             midi = none;
           }
@@ -364,8 +381,12 @@ let () =
       let kind =
         Frame.
           {
+            (* We need to make sure that we are using a format here to
+               ensure that its params are properly unified with the underlying source. *)
             audio = `Any;
-            video = `Format Ffmpeg_raw_content.Video.(lift_params []);
+            video =
+              `Format
+                Ffmpeg_raw_content.Video.(lift_params (default_params `Raw));
             midi = `Any;
           }
       in
@@ -384,16 +405,7 @@ let () =
       let video =
         lazy
           (let ctype = (Lang.to_source source_val)#ctype in
-           let params =
-             match Ffmpeg_raw_content.Video.get_params ctype.Frame.video with
-               | [p] -> p
-               | [] ->
-                   let p = Ffmpeg_raw_content.VideoSpecs.internal_params () in
-                   Frame_content.merge ctype.Frame.video
-                     (Ffmpeg_raw_content.Video.lift_params [p]);
-                   p
-               | _ -> assert false
-           in
+           let params = Ffmpeg_raw_content.Video.get_params ctype.Frame.video in
            let args = buffer_args params in
            let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
            Queue.add s#clock graph.clocks;
@@ -438,7 +450,7 @@ let () =
         Frame.
           {
             audio = none;
-            video = `Format Ffmpeg_raw_content.Video.(lift_params []);
+            video = `Kind Ffmpeg_raw_content.Video.kind;
             midi = none;
           }
       in

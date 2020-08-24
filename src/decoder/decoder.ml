@@ -236,7 +236,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok )
 
 let channel_layout audio =
-  match Frame_content.Audio.get_params audio with [c] -> c | _ -> assert false
+  Frame_content.(Audio.(get_params audio).Contents.channel_layout)
 
 let none = Frame_content.None.format
 

@@ -15,15 +15,23 @@ let channel_layout_converter src dst =
 let () =
   Frame.allow_lazy_config_eval ();
   Audio_converter.Channel_layout.converters#register "native"
-    channel_layout_converter
+    channel_layout_converter;
+  Frame_settings.conf_video#set true
 
 let () =
   let none = Frame_content.None.format in
-  let mono = Frame_content.Audio.lift_params [`Mono] in
-  let stereo = Frame_content.Audio.lift_params [`Stereo] in
-  let five_point_one = Frame_content.Audio.lift_params [`Five_point_one] in
-  let yuv420p = Frame_content.Video.lift_params [] in
-  let midi = Frame_content.Midi.lift_params [`Channels 1] in
+  let mono =
+    Frame_content.(Audio.lift_params { Contents.channel_layout = `Mono })
+  in
+  let stereo =
+    Frame_content.(Audio.lift_params { Contents.channel_layout = `Stereo })
+  in
+  let five_point_one =
+    Frame_content.(
+      Audio.lift_params { Contents.channel_layout = `Five_point_one })
+  in
+  let yuv420p = Frame_content.default_video () in
+  let midi = Frame_content.(Midi.lift_params { Contents.channels = 1 }) in
   assert (
     Decoder.can_decode_type
       { audio = stereo; video = none; midi = none }

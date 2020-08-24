@@ -87,7 +87,7 @@ class visu ~kind source =
             create
               {
                 audio = Frame_content.None.format;
-                video = Frame_content.Video.lift_params [];
+                video = Frame_content.(default_format Video.kind);
                 midi = Frame_content.None.format;
               })
         in

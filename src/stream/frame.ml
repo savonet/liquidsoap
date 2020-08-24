@@ -34,24 +34,28 @@ type kind =
   | `Kind of Frame_content.kind
   | `Format of Frame_content.format ]
 
-let none = `Format Frame_content.None.format
-let audio_pcm = `Kind (Frame_content.Audio.lift_kind Frame_content.Audio.kind)
+let none = `Format None.format
+let audio_pcm = `Kind Audio.kind
 
 let audio_n = function
   | 0 -> none
   | c ->
       `Format
-        (Frame_content.Audio.lift_params
-           [Audio_converter.Channel_layout.layout_of_channels c])
+        Audio.(
+          lift_params
+            {
+              Contents.channel_layout =
+                Audio_converter.Channel_layout.layout_of_channels c;
+            })
 
-let audio_mono = `Format (Frame_content.Audio.lift_params [`Mono])
-let audio_stereo = `Format (Frame_content.Audio.lift_params [`Stereo])
+let audio_mono = `Format Audio.(lift_params { Contents.channel_layout = `Mono })
 
-let video_yuv420p =
-  `Kind (Frame_content.Video.lift_kind Frame_content.Video.kind)
+let audio_stereo =
+  `Format Audio.(lift_params { Contents.channel_layout = `Stereo })
 
-let midi_native = `Kind (Frame_content.Midi.lift_kind Frame_content.Midi.kind)
-let midi_n c = `Format (Frame_content.Midi.lift_params [`Channels c])
+let video_yuv420p = `Kind Video.kind
+let midi_native = `Kind Midi.kind
+let midi_n c = `Format Midi.(lift_params { Contents.channels = c })
 
 type content_kind = kind fields
 
@@ -110,7 +114,7 @@ type t = {
 }
 
 (** Create a content chunk. All chunks have the same size. *)
-let create_content = map_fields make
+let create_content ctype = map_fields (make ~size:!!size) ctype
 
 let create ctype =
   { pts = 0L; breaks = []; metadata = []; content = create_content ctype }

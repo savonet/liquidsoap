@@ -30,7 +30,7 @@ let mk_stream_copy ~get_data output =
 
   let mk_stream frame =
     let { Ffmpeg_content_base.params } = get_data frame in
-    stream := Some (Av.new_stream_copy ~params output)
+    stream := Some (Av.new_stream_copy ~params:(Option.get params) output)
   in
 
   (* Keep track of latest DTS/PTS in master time_base

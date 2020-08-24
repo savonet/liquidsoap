@@ -167,19 +167,21 @@ let get_type ~ctype ~url container =
       | Some p, format when Ffmpeg_copy_content.Audio.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_copy_content.(Audio.lift_params [AudioSpecs.mk_param p]));
+               Ffmpeg_copy_content.(Audio.lift_params (Some p)));
           format
       | Some p, format when Ffmpeg_raw_content.Audio.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_raw_content.(Audio.lift_params [AudioSpecs.mk_param p]));
+               Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params p)));
           format
       | Some p, _ ->
-          Frame_content.Audio.lift_params
-            [
-              Audio_converter.Channel_layout.layout_of_channels
-                (Avcodec.Audio.get_nb_channels p);
-            ]
+          Frame_content.(
+            Audio.lift_params
+              {
+                Contents.channel_layout =
+                  Audio_converter.Channel_layout.layout_of_channels
+                    (Avcodec.Audio.get_nb_channels p);
+              })
   in
   let video =
     match (video_params, ctype.Frame.video) with
@@ -187,14 +189,14 @@ let get_type ~ctype ~url container =
       | Some p, format when Ffmpeg_copy_content.Video.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_copy_content.(Video.lift_params [VideoSpecs.mk_param p]));
+               Ffmpeg_copy_content.(Video.lift_params (Some p)));
           format
       | Some p, format when Ffmpeg_raw_content.Video.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_raw_content.(Video.lift_params [VideoSpecs.mk_param p]));
+               Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params p)));
           format
-      | _ -> Frame_content.Video.lift_params []
+      | _ -> Frame_content.(default_format Video.kind)
   in
   let ctype = { Frame.audio; video; midi = Frame_content.None.format } in
   log#info "ffmpeg recognizes %S as: %s and content-type: %s." url

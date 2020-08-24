@@ -112,7 +112,7 @@ let () =
             (Lang_errors.Invalid_value
                (channels_v, "unsupported number of channels"))
       in
-      let kind = Lang.audio_params [channel_layout] in
+      let kind = Lang.audio_params { Frame_content.Contents.channel_layout } in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
       let resampler = Decoder_utils.samplerate_converter () in
       let convert =

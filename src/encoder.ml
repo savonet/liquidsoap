@@ -39,15 +39,19 @@ let audio_kind n =
     if n = 0 then Frame.none
     else
       `Format
-        (Frame_content.Audio.lift_params
-           [Audio_converter.Channel_layout.layout_of_channels n])
+        Frame_content.(
+          Audio.lift_params
+            {
+              Contents.channel_layout =
+                Audio_converter.Channel_layout.layout_of_channels n;
+            })
   in
   { Frame.audio; video = Frame.none; midi = Frame.none }
 
 let audio_video_kind n =
   {
     (audio_kind n) with
-    Frame.video = `Format (Frame_content.Video.lift_params []);
+    Frame.video = `Format Frame_content.(default_format Video.kind);
   }
 
 let kind_of_format = function
@@ -60,21 +64,35 @@ let kind_of_format = function
       let audio =
         match m.Ffmpeg_format.audio_codec with
           | None -> Frame.none
-          | Some `Copy -> `Format Ffmpeg_copy_content.Audio.(lift_params [])
-          | Some (`Raw _) -> `Format Ffmpeg_raw_content.Audio.(lift_params [])
+          | Some `Copy ->
+              `Format
+                (Frame_content.default_format Ffmpeg_copy_content.Audio.kind)
+          | Some (`Raw _) ->
+              `Format
+                (Frame_content.default_format Ffmpeg_raw_content.Audio.kind)
           | Some (`Internal _) ->
               let channels = m.Ffmpeg_format.channels in
               assert (channels > 0);
               `Format
-                (Frame_content.Audio.lift_params
-                   [Audio_converter.Channel_layout.layout_of_channels channels])
+                Frame_content.(
+                  Audio.lift_params
+                    {
+                      Contents.channel_layout =
+                        Audio_converter.Channel_layout.layout_of_channels
+                          channels;
+                    })
       in
       let video =
         match m.Ffmpeg_format.video_codec with
           | None -> Frame.none
-          | Some `Copy -> `Format Ffmpeg_copy_content.Video.(lift_params [])
-          | Some (`Raw _) -> `Format Ffmpeg_raw_content.Video.(lift_params [])
-          | Some (`Internal _) -> `Format (Frame_content.Video.lift_params [])
+          | Some `Copy ->
+              `Format
+                (Frame_content.default_format Ffmpeg_copy_content.Video.kind)
+          | Some (`Raw _) ->
+              `Format
+                (Frame_content.default_format Ffmpeg_raw_content.Video.kind)
+          | Some (`Internal _) ->
+              `Format Frame_content.(default_format Video.kind)
       in
       { Frame.audio; video; midi = Frame.none }
   | FdkAacEnc m -> audio_kind m.Fdkaac_format.channels

@@ -22,9 +22,8 @@
 
 type ('a, 'b) content = { params : 'a; mutable data : (int * 'b) list }
 
-let make = function [params] -> { params; data = [] } | _ -> assert false
+let make ~size:_ params = { params; data = [] }
 let clear d = d.data <- []
-let param_of_string _ _ = None
 
 let blit src src_pos dst dst_pos len =
   let src_end = src_pos + len in
@@ -40,17 +39,4 @@ let blit src src_pos dst dst_pos len =
   dst.data <- List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
 
 let copy { data; params } = { data; params }
-let default_params _ = []
-let params { params } = [params]
-
-let merge ~check ~merge_p l l' =
-  match (l, l') with
-    | [], l | l, [] -> l
-    | [p], [p'] when check p p' -> [merge_p p p']
-    | _ -> assert false
-
-let compatible ~check l l' =
-  match (l, l') with
-    | [], _ | _, [] -> true
-    | [p], [p'] -> check p p'
-    | _ -> false
+let params { params } = params

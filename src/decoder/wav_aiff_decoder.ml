@@ -150,8 +150,12 @@ let file_type ~ctype:_ filename =
           Frame.video = Frame_content.None.format;
           midi = Frame_content.None.format;
           audio =
-            Frame_content.Audio.lift_params
-              [Audio_converter.Channel_layout.layout_of_channels channels];
+            Frame_content.(
+              Audio.lift_params
+                {
+                  Contents.channel_layout =
+                    Audio_converter.Channel_layout.layout_of_channels channels;
+                });
         })
 
 let wav_mime_types =

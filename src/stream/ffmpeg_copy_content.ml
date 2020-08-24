@@ -31,6 +31,13 @@ module BaseSpecs = struct
   type kind = [ `Copy ]
 
   let kind = `Copy
+  let parse_param _ _ = None
+
+  let merge ~compatible p p' =
+    match (p, p') with
+      | None, p | p, None -> p
+      | p, p' when compatible p p' -> p
+      | _ -> failwith "Incompatible format!"
 end
 
 module AudioSpecs = struct
@@ -39,34 +46,52 @@ module AudioSpecs = struct
   let string_of_kind = function `Copy -> "ffmpeg.audio.copy"
   let kind_of_string = function "ffmpeg.audio.copy" -> Some `Copy | _ -> None
 
-  type param = audio Avcodec.params
-  type data = (param, audio packet) content
+  type params = audio Avcodec.params option
+  type data = (params, audio packet) content
 
-  let mk_param params = params
+  let string_of_params params =
+    Frame_content.print_optional
+      [
+        ( "codec",
+          Option.map
+            (fun p ->
+              Printf.sprintf "%S" (Audio.string_of_id (Audio.get_params_id p)))
+            params );
+        ( "chanel_layout",
+          Option.map
+            (fun p ->
+              Printf.sprintf "%S"
+                (Channel_layout.get_description (Audio.get_channel_layout p)))
+            params );
+        ( "sample_format",
+          Option.map
+            (fun p ->
+              Printf.sprintf "%S"
+                (Sample_format.get_name (Audio.get_sample_format p)))
+            params );
+        ( "sample_rate",
+          Option.map (fun p -> string_of_int (Audio.get_sample_rate p)) params
+        );
+      ]
 
-  let string_of_param params =
-    let id = Audio.get_params_id params in
-    let channel_layout = Audio.get_channel_layout params in
-    let sample_format = Audio.get_sample_format params in
-    let sample_rate = Audio.get_sample_rate params in
+  let compatible p p' =
+    match (p, p') with
+      | None, _ | _, None -> true
+      | Some p, Some p' ->
+          Audio.get_params_id p = Audio.get_params_id p'
+          && Audio.get_channel_layout p = Audio.get_channel_layout p'
+          && Audio.get_sample_format p = Audio.get_sample_format p'
+          && Audio.get_sample_rate p = Audio.get_sample_rate p'
 
-    Printf.sprintf "codec=%S,channel_layout=%S,sample_format=%S,sample_rate=%d"
-      (Audio.string_of_id id)
-      (Channel_layout.get_description channel_layout)
-      (Sample_format.get_name sample_format)
-      sample_rate
-
-  let check p p' =
-    Audio.get_params_id p = Audio.get_params_id p'
-    && Audio.get_channel_layout p = Audio.get_channel_layout p'
-    && Audio.get_sample_format p = Audio.get_sample_format p'
-    && Audio.get_sample_rate p = Audio.get_sample_rate p'
-
-  let compatible = compatible ~check
-  let merge = merge ~check ~merge_p:(fun p _ -> p)
+  let merge = merge ~compatible
+  let default_params _ = None
 end
 
-module Audio = Frame_content.MkContent (AudioSpecs)
+module Audio = struct
+  include Frame_content.MkContent (AudioSpecs)
+
+  let kind = lift_kind `Copy
+end
 
 module VideoSpecs = struct
   include BaseSpecs
@@ -74,33 +99,46 @@ module VideoSpecs = struct
   let string_of_kind = function `Copy -> "ffmpeg.video.copy"
   let kind_of_string = function "ffmpeg.video.copy" -> Some `Copy | _ -> None
 
-  type param = video Avcodec.params
-  type data = (param, video packet) content
+  type params = video Avcodec.params option
+  type data = (params, video packet) content
 
-  let mk_param params = params
+  let string_of_params params =
+    Frame_content.print_optional
+      [
+        ( "codec",
+          Option.map
+            (fun p ->
+              Printf.sprintf "%S" (Video.string_of_id (Video.get_params_id p)))
+            params );
+        ("width", Option.map (fun p -> string_of_int (Video.get_width p)) params);
+        ( "height",
+          Option.map (fun p -> string_of_int (Video.get_height p)) params );
+        ( "sample_ratio",
+          Option.map
+            (fun p -> string_of_rational (Video.get_sample_aspect_ratio p))
+            params );
+        ( "pixel_format",
+          Option.bind params (fun p ->
+              Option.bind (Video.get_pixel_format p) (fun p ->
+                  Some (Pixel_format.to_string p))) );
+      ]
 
-  let string_of_param params =
-    let id = Video.get_params_id params in
-    let width = Video.get_width params in
-    let height = Video.get_height params in
-    let sample_aspect_ratio = Video.get_sample_aspect_ratio params in
-    let pixel_format = Video.get_pixel_format params in
-    Printf.sprintf "codec=%S,size=\"%dx%d\",sample_ratio=%S,pixel_format=%S)"
-      (Video.string_of_id id) width height
-      (string_of_rational sample_aspect_ratio)
-      ( match pixel_format with
-        | None -> "unknown"
-        | Some pf -> Pixel_format.to_string pf )
+  let compatible p p' =
+    match (p, p') with
+      | None, _ | _, None -> true
+      | Some p, Some p' ->
+          Video.get_params_id p = Video.get_params_id p'
+          && Video.get_width p = Video.get_width p'
+          && Video.get_height p = Video.get_height p'
+          && Video.get_sample_aspect_ratio p = Video.get_sample_aspect_ratio p'
+          && Video.get_pixel_format p = Video.get_pixel_format p'
 
-  let check p p' =
-    Video.get_params_id p = Video.get_params_id p'
-    && Video.get_width p = Video.get_width p'
-    && Video.get_height p = Video.get_height p'
-    && Video.get_sample_aspect_ratio p = Video.get_sample_aspect_ratio p'
-    && Video.get_pixel_format p = Video.get_pixel_format p'
-
-  let compatible = compatible ~check
-  let merge = merge ~check ~merge_p:(fun p _ -> p)
+  let merge = merge ~compatible
+  let default_params _ = None
 end
 
-module Video = Frame_content.MkContent (VideoSpecs)
+module Video = struct
+  include Frame_content.MkContent (VideoSpecs)
+
+  let kind = lift_kind `Copy
+end

@@ -28,17 +28,19 @@ let noop () = ()
 
 (** From the script perspective, the operator sending data to a filter graph
   * is an output. *)
-class audio_output ~name ~kind val_source =
+class audio_output ~name ~kind source_val =
   let convert_frame_pts =
     Ffmpeg_utils.(
       convert_time_base ~src:(liq_frame_time_base ())
         ~dst:(liq_master_ticks_time_base ()))
   in
-  object
+  object (self)
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
-          ~output_kind:"ffmpeg.filter.input" val_source true
+          ~output_kind:"ffmpeg.filter.input" source_val true
+
+    initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
 
     val mutable input = fun _ -> assert false
 
@@ -69,17 +71,19 @@ class audio_output ~name ~kind val_source =
         frames
   end
 
-class video_output ~kind ~name val_source =
+class video_output ~kind ~name source_val =
   let convert_frame_pts =
     Ffmpeg_utils.(
       convert_time_base ~src:(liq_frame_time_base ())
         ~dst:(liq_master_ticks_time_base ()))
   in
-  object
+  object (self)
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
-          ~output_kind:"ffmpeg.filter.input" val_source true
+          ~output_kind:"ffmpeg.filter.input" source_val true
+
+    initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
 
     val mutable input : Swscale.Frame.t -> unit = fun _ -> assert false
 
@@ -120,9 +124,6 @@ type audio_config = {
 class audio_input ~bufferize kind =
   let generator = Generator.create `Audio in
   let min_buf = Frame.master_of_seconds bufferize in
-  let format =
-    match kind.Frame.audio with `Format f -> f | _ -> assert false
-  in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
 
@@ -139,8 +140,8 @@ class audio_input ~bufferize kind =
           sample_format = Some Avfilter.(sample_format v.context);
         }
       in
-      Frame_content.merge format
-        (Ffmpeg_raw_content.Audio.lift_params [output_format]);
+      Frame_content.merge self#ctype.Frame.audio
+        (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
     method self_sync = false
@@ -170,7 +171,7 @@ class audio_input ~bufferize kind =
           let content =
             {
               Ffmpeg_content_base.params =
-                Ffmpeg_raw_content.AudioSpecs.frame_param frame;
+                Ffmpeg_raw_content.AudioSpecs.frame_params frame;
               data = [(0, frame)];
             }
           in
@@ -229,9 +230,6 @@ type video_config = {
 class video_input ~bufferize ~fps kind =
   let generator = Generator.create `Video in
   let min_buf = Frame.master_of_seconds bufferize in
-  let format =
-    match kind.Frame.video with `Format f -> f | _ -> assert false
-  in
   let duration =
     lazy (Frame.master_of_seconds (1. /. float (Lazy.force fps)))
   in
@@ -248,8 +246,8 @@ class video_input ~bufferize ~fps kind =
           pixel_format = Some Avfilter.(pixel_format v.context);
         }
       in
-      Frame_content.merge format
-        (Ffmpeg_raw_content.Video.lift_params [output_format]);
+      Frame_content.merge self#ctype.Frame.video
+        (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 
     method self_sync = false
@@ -277,7 +275,7 @@ class video_input ~bufferize ~fps kind =
                  ~dst:liq_frame_time_base)
               (Avutil.frame_pts ffmpeg_frame)
           in
-          let params = Ffmpeg_raw_content.VideoSpecs.frame_param frame in
+          let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
           let content =
             { Ffmpeg_raw_content.VideoSpecs.params; data = [(0, frame)] }
           in
