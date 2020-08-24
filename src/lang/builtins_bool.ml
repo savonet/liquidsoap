@@ -26,9 +26,10 @@ let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Ord] () in
   let register_op name op =
     add_builtin name ~cat:Bool ~descr:"Comparison of comparable values."
-      [("", t, None, None); ("", t, None, None)] Lang.bool_t (function
-      | [("", a); ("", b)] -> Lang.bool (op (Lang.compare_values a b))
-      | _ -> assert false)
+      [("", t, None, None); ("", t, None, None)] Lang.bool_t (fun p ->
+        let a = Lang.assoc "" 1 p |> Lang.demeth in
+        let b = Lang.assoc "" 2 p |> Lang.demeth in
+        Lang.bool (op (Lang.compare_values a b)))
   in
   register_op "==" (fun c -> c = 0);
   register_op "!=" (fun c -> c <> 0);
