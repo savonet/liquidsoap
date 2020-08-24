@@ -308,6 +308,7 @@ let () =
           | Source.Kind.Conflict (a, b) ->
               raise (Lang_errors.Kind_conflict (pos, a, b))
       in
+      Queue.add s#clock graph.clocks;
 
       let audio =
         lazy
@@ -315,7 +316,6 @@ let () =
            let params = Ffmpeg_raw_content.Audio.get_params ctype.Frame.audio in
            let args = abuffer_args params in
            let _abuffer = Avfilter.attach ~args ~name Avfilter.abuffer config in
-           Queue.add s#clock graph.clocks;
            Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
            List.hd Avfilter.(_abuffer.io.outputs.audio))
       in
@@ -351,6 +351,7 @@ let () =
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let s = new Ffmpeg_filter_io.audio_input ~bufferize kind in
+      Queue.add s#clock graph.clocks;
 
       let pad = Audio.of_value (Lang.assoc "" 2 p) in
       Queue.add
@@ -363,7 +364,6 @@ let () =
              Avfilter.attach ~name Avfilter.abuffersink config
            in
            Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
-           Queue.add s#clock graph.clocks;
            Avfilter.(Hashtbl.add graph.entries.outputs.audio name s#set_output))
           )
         graph.init;
@@ -401,6 +401,7 @@ let () =
           | Source.Kind.Conflict (a, b) ->
               raise (Lang_errors.Kind_conflict (pos, a, b))
       in
+      Queue.add s#clock graph.clocks;
 
       let video =
         lazy
@@ -408,7 +409,6 @@ let () =
            let params = Ffmpeg_raw_content.Video.get_params ctype.Frame.video in
            let args = buffer_args params in
            let _buffer = Avfilter.attach ~args ~name Avfilter.buffer config in
-           Queue.add s#clock graph.clocks;
            Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
            List.hd Avfilter.(_buffer.io.outputs.video))
       in
@@ -456,6 +456,7 @@ let () =
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let s = new Ffmpeg_filter_io.video_input ~bufferize ~fps kind in
+      Queue.add s#clock graph.clocks;
 
       Queue.add
         ( lazy
@@ -481,7 +482,6 @@ let () =
              link
                (List.hd fps.io.outputs.video)
                (List.hd _buffersink.io.inputs.video));
-           Queue.add s#clock graph.clocks;
            Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output))
           )
         graph.init;
@@ -514,6 +514,8 @@ let () =
           }
       in
       let ret = Lang.apply fn [("", Graph.to_value graph)] in
+      let first = Queue.take graph.clocks in
+      Queue.iter (Clock.unify first) graph.clocks;
       Queue.add
         ( lazy
           ( log#info "Initializing graph";
@@ -549,9 +551,7 @@ let () =
                     Hashtbl.find graph.entries.outputs.video name
                   in
                   set_output output)
-                filter.outputs.video);
-            let first = Queue.take graph.clocks in
-            Queue.iter (Clock.unify first) graph.clocks ) )
+                filter.outputs.video) ) )
         graph.init;
       if graph.pending_input = 0 then Queue.iter Lazy.force graph.init;
       graph.config <- None;
