@@ -582,19 +582,27 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         (* x.l1.l2.l3 = v means
            x = (x where l1 = (x.l1 where l2 = (x.l1.l2 where l3 = v)))
         *)
+        (* Inductive step: we compute the new type scheme and value of
+           x.l1...li. The variable prefix contains [li; ...; l1] and the second
+           argument is [li+1; ...; ln]. *)
         let rec aux prefix = function
           | l :: ll ->
-              let v = V.invokes xv (List.rev prefix) in
+              (* Previous type scheme for x.l1...li. *)
               let vg, vt = T.invokes t0 (List.rev prefix) in
-              let lvt, lv = aux (l :: prefix) ll in
-              let t =
-                T.make ~pos:t.T.pos
-                  (T.Meth (l, ((if ll = [] then g else vg), lvt), vt))
-              in
-              (t, { V.pos = v.V.pos; value = V.Meth (l, lv, v) })
-          | [] -> (t, v)
+              (* Previous value of x.l1...li.  *)
+              let v = V.invokes xv (List.rev prefix) in
+              (* Updated value of x.l1...li+1. *)
+              let (lvg, lvt), lv = aux (l :: prefix) ll in
+              (* Updated type for x.l1...li, obtained by changing the type of
+                 the field li+1. *)
+              let t = T.make ~pos:t.T.pos (T.Meth (l, (lvg, lvt), vt)) in
+              (* Update value for x.l1...li. *)
+              let value = V.Meth (l, lv, v) in
+              ((vg, t), { V.pos = v.V.pos; value })
+          | [] -> ((g, t), v)
         in
-        let t, v = aux [] ll in
+        let (g, t), v = aux [] ll in
+        assert (g = []);
         builtins_env := (x, ((g0, t), v)) :: !builtins_env
     | [] -> assert false
 

@@ -598,19 +598,7 @@ let fresh_evar =
 let rec invokes t = function
   | l :: ll ->
       let g, t = invoke t l in
-      if ll = [] then (g, t)
-      else (
-        if g <> [] then
-          failwith
-            (Printf.sprintf
-               "Internal error: trying to invoke methods %s of a value of type \
-                %s (%s) which contains generalized variables (%s)"
-               (String.concat "." ll)
-               (print_scheme (g, t))
-               (print_pos_opt t.pos)
-               (String.concat ", "
-                  (List.map (fun x -> print_scheme (g, make (EVar x))) g)));
-        invokes t ll )
+      if ll = [] then (g, t) else invokes t ll
   | [] -> ([], t)
 
 (** {1 Assignation} *)
