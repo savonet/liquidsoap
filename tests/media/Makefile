@@ -1,9 +1,9 @@
-.PHONY: test_encoder test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder
+.PHONY: test_encoder test_stereo test_mono test_stream_audio test_stream_video test_ffmpeg_filter test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder
 
 DISTFILES = Makefile $(wildcard *.sh) $(wildcard *.liq *.liq.in)
 top_srcdir = $(shell realpath ../..)
 
-test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder # test_stream_audio test_stream_video
+test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_gstreamer_audio_decoder test_gstreamer_video_decoder # test_stream_audio test_stream_video
 
 AUDIO_TEST_FORMATS = \
   @flac(stereo).flac \
@@ -79,6 +79,11 @@ test_stereo: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
 	  if echo $$i | grep -v 'ffmpeg' > /dev/null 2>&1; then \
 	    ../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $$i" media/test_stereo.liq "Stereo decoding test for $$i" || exit; \
 	  fi \
+	done
+
+test_ffmpeg_filter: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
+	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
+	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $<" media/test_ffmpeg_filter.liq "Ffmpeg filter test for $$i" || exit; \
 	done
 
 test_ffmpeg_audio_decoder: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
