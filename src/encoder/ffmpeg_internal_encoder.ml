@@ -338,7 +338,10 @@ let mk_video ~ffmpeg ~options output =
                       src_pixel_format target_width target_height
                       src_pixel_format
                   in
-                  RawScaler.convert scaler )
+                  fun frame ->
+                    let scaled = RawScaler.convert scaler frame in
+                    Avutil.frame_set_pts scaled (Avutil.frame_pts frame);
+                    scaled )
                 else fun f -> f
               in
               scaler := Some f;
