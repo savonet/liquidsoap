@@ -68,7 +68,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
              (Frame.string_of_content_type self#ctype));
       container <- Some input;
       let audio, video = Ffmpeg_decoder.mk_streams ~ctype:self#ctype input in
-      Ffmpeg_decoder.mk_decoder ?audio ?video input
+      Ffmpeg_decoder.mk_decoder ?audio ?video ~target_position:(ref None) input
 
     val mutable kill_feeding = None
 

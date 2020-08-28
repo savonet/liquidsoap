@@ -20,37 +20,23 @@
 
  *****************************************************************************)
 
-val log : Log.t
-val conf_ffmpeg : Dtools.Conf.ut
-val conf_log : Dtools.Conf.ut
-val conf_verbosity : string Dtools.Conf.t
-val conf_level : int Dtools.Conf.t
-val conf_scaling_algorithm : string Dtools.Conf.t
-val liq_master_ticks_time_base : unit -> Avutil.rational
-val liq_audio_sample_time_base : unit -> Avutil.rational
-val liq_video_sample_time_base : unit -> Avutil.rational
-val liq_frame_time_base : unit -> Avutil.rational
+type ('a, 'b) content = { params : 'a; mutable data : (int * 'b) list }
 
-val convert_time_base :
-  src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
+let make ~size:_ params = { params; data = [] }
+let clear d = d.data <- []
 
-module Fps : sig
-  type t
+let blit src src_pos dst dst_pos len =
+  let src_end = src_pos + len in
+  let data =
+    List.fold_left
+      (fun data (pos, p) ->
+        if src_pos <= pos && pos < src_end then (
+          let pos = dst_pos + (pos - src_pos) in
+          (pos, p) :: data )
+        else data)
+      dst.data src.data
+  in
+  dst.data <- List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
 
-  val init :
-    width:int ->
-    height:int ->
-    pixel_format:Avutil.Pixel_format.t ->
-    time_base:Avutil.rational ->
-    pixel_aspect:Avutil.rational ->
-    ?source_fps:int ->
-    target_fps:int ->
-    unit ->
-    t
-
-  val convert :
-    t ->
-    [ `Video ] Avutil.frame ->
-    (time_base:Avutil.rational -> [ `Video ] Avutil.frame -> unit) ->
-    unit
-end
+let copy { data; params } = { data; params }
+let params { params } = params

@@ -42,7 +42,10 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
     let data = converter (Bytes.sub_string buf 0 ret) in
     let len = Audio.length data in
     let buffered = Generator.length abg in
-    Generator.put_audio abg (Frame_content.Audio.lift_data data) 0 len;
+    Generator.put_audio abg
+      (Frame_content.Audio.lift_data data)
+      0
+      (Frame.master_of_audio len);
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue
@@ -109,7 +112,7 @@ let () =
             (Lang_errors.Invalid_value
                (channels_v, "unsupported number of channels"))
       in
-      let kind = Lang.audio_params [channel_layout] in
+      let kind = Lang.audio_params { Frame_content.Contents.channel_layout } in
       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
       let resampler = Decoder_utils.samplerate_converter () in
       let convert =

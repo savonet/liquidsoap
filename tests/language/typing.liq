@@ -1,5 +1,4 @@
-# Check these examples with: liquidsoap --no-libs -i -c typing.liq
-  
+#!../../src/liquidsoap ../../libs/pervasives.liq 
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 
@@ -122,6 +121,12 @@ def f() =
     a+b == a
   end
   ignore(sum_eq)
+
+  (noise():source(audio=pcm,video=yuv420p,midi=none))
+
+  (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.copy,video=ffmpeg.video.copy,midi=midi))
+  (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw,video=ffmpeg.video.raw,midi=midi))
+  (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw(sample_rate=44100),video=ffmpeg.video.raw(pixel_format=yuv420p),midi=midi))
   
   test.pass()
 end

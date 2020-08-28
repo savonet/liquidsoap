@@ -236,7 +236,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok )
 
 let channel_layout audio =
-  match Frame_content.Audio.get_params audio with [c] -> c | _ -> assert false
+  Frame_content.(Audio.(get_params audio).Contents.channel_layout)
 
 let none = Frame_content.None.format
 
@@ -254,7 +254,7 @@ let can_decode_type decoded_type target_type =
   in
   match target_type with
     (* Either we can decode straight away. *)
-    | _ when decoded_type = target_type -> true
+    | _ when Frame.compatible decoded_type target_type -> true
     (* Or we can convert audio and/or drop video and midi *)
     | { Frame.audio; video; midi } ->
         let audio =
@@ -262,7 +262,7 @@ let can_decode_type decoded_type target_type =
         in
         let video = if video = none then none else decoded_type.Frame.video in
         let midi = if midi = none then none else decoded_type.Frame.midi in
-        target_type = { Frame.audio; video; midi }
+        Frame.compatible target_type { Frame.audio; video; midi }
 
 let decoder_modes = function
   | Frame.{ audio; video; midi }
@@ -441,7 +441,7 @@ let mk_buffer ~ctype generator =
         let data = channel_converter () data in
         let len = Audio.length data in
         let data = Frame_content.Audio.lift_data data in
-        G.put_audio ?pts generator data 0 len )
+        G.put_audio ?pts generator data 0 (Frame.master_of_audio len) )
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
 
@@ -457,7 +457,7 @@ let mk_buffer ~ctype generator =
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.length data in
         let data = Frame_content.Video.lift_data data in
-        G.put_video ?pts generator data 0 len )
+        G.put_video ?pts generator data 0 (Frame.master_of_video len) )
     else fun ?pts:_ ~fps:_ _ -> ()
   in
 

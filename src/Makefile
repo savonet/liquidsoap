@@ -42,7 +42,7 @@ decoders = \
 	decoder/wav_aiff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml \
-	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_internal_decoder.ml decoder/ffmpeg_copy_decoder.ml decoder/ffmpeg_decoder.ml) \
+	$(if $(W_FFMPEG_DECODER),decoder/ffmpeg_decoder_common.ml decoder/ffmpeg_internal_decoder.ml decoder/ffmpeg_raw_decoder.ml decoder/ffmpeg_copy_decoder.ml decoder/ffmpeg_decoder.ml) \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
@@ -194,7 +194,8 @@ tools = tools/extralib.ml tools/JSON.ml \
 stream = stream/frame_settings.ml stream/frame_content.ml \
          stream/frame.ml stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
          stream/generator.ml \
-	 $(if $(W_FFMPEG_AVCODEC), stream/ffmpeg_content.ml) \
+	 $(if $(W_FFMPEG_AVCODEC), stream/ffmpeg_content_base.ml stream/ffmpeg_copy_content.ml) \
+         $(if $(W_FFMPEG_DECODER), stream/ffmpeg_raw_content.ml) \
          $(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 
 visualization = \

@@ -164,29 +164,39 @@ let get_type ~ctype ~url container =
   let audio =
     match (audio_params, ctype.Frame.audio) with
       | None, _ -> Frame_content.None.format
-      | Some p, format when Ffmpeg_content.AudioCopy.is_format format ->
+      | Some p, format when Ffmpeg_copy_content.Audio.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_content.(
-                 AudioCopy.lift_params [AudioCopySpecs.mk_param p]));
+               Ffmpeg_copy_content.(Audio.lift_params (Some p)));
+          format
+      | Some p, format when Ffmpeg_raw_content.Audio.is_format format ->
+          ignore
+            (Frame_content.merge format
+               Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params p)));
           format
       | Some p, _ ->
-          Frame_content.Audio.lift_params
-            [
-              Audio_converter.Channel_layout.layout_of_channels
-                (Avcodec.Audio.get_nb_channels p);
-            ]
+          Frame_content.(
+            Audio.lift_params
+              {
+                Contents.channel_layout =
+                  Audio_converter.Channel_layout.layout_of_channels
+                    (Avcodec.Audio.get_nb_channels p);
+              })
   in
   let video =
     match (video_params, ctype.Frame.video) with
       | None, _ -> Frame_content.None.format
-      | Some p, format when Ffmpeg_content.VideoCopy.is_format format ->
+      | Some p, format when Ffmpeg_copy_content.Video.is_format format ->
           ignore
             (Frame_content.merge format
-               Ffmpeg_content.(
-                 VideoCopy.lift_params [VideoCopySpecs.mk_param p]));
+               Ffmpeg_copy_content.(Video.lift_params (Some p)));
           format
-      | _ -> Frame_content.Video.lift_params []
+      | Some p, format when Ffmpeg_raw_content.Video.is_format format ->
+          ignore
+            (Frame_content.merge format
+               Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params p)));
+          format
+      | _ -> Frame_content.(default_format Video.kind)
   in
   let ctype = { Frame.audio; video; midi = Frame_content.None.format } in
   log#info "ffmpeg recognizes %S as: %s and content-type: %s." url
@@ -195,9 +205,10 @@ let get_type ~ctype ~url container =
   ctype
 
 let seek ~audio ~video ~target_position ticks =
-  target_position := Frame.seconds_of_master ticks;
-  log#debug "Setting target position to %f" !target_position;
-  let position = Int64.of_float (!target_position *. 1000.) in
+  let tpos = Frame.seconds_of_master ticks in
+  log#debug "Setting target position to %f" tpos;
+  target_position := Some tpos;
+  let position = Int64.of_float (tpos *. 1000.) in
   let seek stream =
     try
       Av.seek stream `Millisecond position [| Av.Seek_flag_backward |];
@@ -211,7 +222,7 @@ let seek ~audio ~video ~target_position ticks =
     | _, Some (`Frame (_, s, _)) -> seek s
     | _ -> raise No_stream
 
-let mk_decoder ?audio ?video ?target_position container =
+let mk_decoder ?audio ?video ~target_position container =
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
   let pack (idx, stream, decoder) = (idx, [stream], decoder) in
   let ( (audio_frame_idx, audio_frame, audio_frame_decoder),
@@ -229,16 +240,16 @@ let mk_decoder ?audio ?video ?target_position container =
       | Some (`Frame frame) -> (pack frame, no_decoder)
   in
   let check_pts stream pts =
-    match (pts, target_position) with
+    match (pts, !target_position) with
       | Some pts, Some target_position ->
           let { Avutil.num; den } = Av.get_time_base stream in
           let position = Int64.to_float pts *. float num /. float den in
-          if position < !target_position then
+          if position < target_position then
             log#debug
               "Current position: %f is less than target position: %f, \
                skipping.."
-              position !target_position;
-          !target_position < position
+              position target_position;
+          position <= target_position
       | _ -> true
   in
   fun buffer ->
@@ -275,8 +286,10 @@ let mk_streams ~ctype container =
     try
       match ctype.Frame.audio with
         | f when Frame_content.None.is_format f -> None
-        | f when Ffmpeg_content.AudioCopy.is_format f ->
+        | f when Ffmpeg_copy_content.Audio.is_format f ->
             Some (`Packet (Ffmpeg_copy_decoder.mk_audio_decoder container))
+        | f when Ffmpeg_raw_content.Audio.is_format f ->
+            Some (`Frame (Ffmpeg_raw_decoder.mk_audio_decoder container))
         | f ->
             let channels = Frame_content.Audio.channels_of_format f in
             Some
@@ -288,8 +301,10 @@ let mk_streams ~ctype container =
     try
       match ctype.Frame.video with
         | f when Frame_content.None.is_format f -> None
-        | f when Ffmpeg_content.VideoCopy.is_format f ->
+        | f when Ffmpeg_copy_content.Video.is_format f ->
             Some (`Packet (Ffmpeg_copy_decoder.mk_video_decoder container))
+        | f when Ffmpeg_raw_content.Video.is_format f ->
+            Some (`Frame (Ffmpeg_raw_decoder.mk_video_decoder container))
         | _ ->
             Some (`Frame (Ffmpeg_internal_decoder.mk_video_decoder container))
     with Avutil.Error _ -> None
@@ -352,7 +367,7 @@ let create_decoder ~ctype fname =
       | None -> None
   in
   let close () = Av.close container in
-  let target_position = ref 0. in
+  let target_position = ref None in
   ( {
       Decoder.seek =
         (fun ticks ->
@@ -380,7 +395,7 @@ let create_stream_decoder ~ctype _ input =
   in
   let container = Av.open_input_stream ?seek:seek_input input.Decoder.read in
   let audio, video = mk_streams ~ctype container in
-  let target_position = ref 0. in
+  let target_position = ref None in
   {
     Decoder.seek = seek ~audio ~video ~target_position;
     decode = mk_decoder ?audio ?video ~target_position container;

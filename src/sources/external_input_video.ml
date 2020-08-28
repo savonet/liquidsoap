@@ -76,14 +76,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
            total buffer length: %.02f s"
           (Frame.seconds_of_master (Generator.audio_length abg))
           (Frame.seconds_of_master (Generator.video_length abg))
-          (Frame.seconds_of_master (Generator.length abg)));
-    self#register_command "buffer_size" ~descr:"Show internal buffer size."
-      (fun _ ->
-        Printf.sprintf
-          "audio buffer size: %s\nvideo buffer size: %s\ntotal buffer size: %s"
-          (Utils.string_of_size (Generator.audio_size abg))
-          (Utils.string_of_size (Generator.video_size abg))
-          (Utils.string_of_size (Generator.size abg)))
+          (Frame.seconds_of_master (Generator.length abg)))
 
     method wake_up x =
       (* Now we can create the log function *)
@@ -224,13 +217,14 @@ let () =
               let data = (Option.get !video_converter) data in
               Generator.put_video abg
                 (Frame_content.Video.lift_data (Video.single data))
-                0 1
+                0 (Frame.master_of_video 1)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data = converter data in
               Generator.put_audio abg
                 (Frame_content.Audio.lift_data data)
-                0 (Audio.length data)
+                0
+                (Frame.master_of_audio (Audio.length data))
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -292,7 +286,7 @@ let () =
         (* Img.Effect.flip data; *)
         Generator.put_video abg
           (Frame_content.Video.lift_data (Video.single data))
-          0 1
+          0 (Frame.master_of_video 1)
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

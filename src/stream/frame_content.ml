@@ -20,30 +20,47 @@
 
  *****************************************************************************)
 
-exception Invalid
-
 module Contents = struct
   type format = ..
   type kind = ..
   type data = ..
+  type audio_params = { channel_layout : [ `Mono | `Stereo | `Five_point_one ] }
+  type video_params = { width : int option; height : int option }
+  type midi_params = { channels : int }
 end
+
+let merge_param ~name = function
+  | None, None -> None
+  | None, Some p | Some p, None -> Some p
+  | Some p, Some p' when p = p' -> Some p
+  | _ -> failwith ("Incompatible " ^ name)
+
+let print_optional l =
+  String.concat ","
+    (List.fold_left
+       (fun cur (lbl, v) ->
+         match v with None -> cur | Some v -> (lbl ^ "=" ^ v) :: cur)
+       [] l)
+
+exception Invalid
+exception Incompatible_format of Contents.format * Contents.format
 
 module type ContentSpecs = sig
   type kind
-  type param
+  type params
   type data
 
-  val make : param list -> data
+  val make : size:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
-  val bytes : data -> int
   val copy : data -> data
   val clear : data -> unit
-  val params : data -> param list
-  val merge : param list -> param list -> param list
-  val string_of_param : param -> string
-  val param_of_string : string -> string -> param option
+  val params : data -> params
+  val merge : params -> params -> params
+  val compatible : params -> params -> bool
+  val string_of_params : params -> string
+  val parse_param : string -> string -> params option
   val kind : kind
-  val default_params : kind -> param list
+  val default_params : kind -> params
   val string_of_kind : kind -> string
   val kind_of_string : string -> kind option
 end
@@ -55,8 +72,8 @@ module type Content = sig
   val lift_data : data -> Contents.data
   val get_data : Contents.data -> data
   val is_format : Contents.format -> bool
-  val lift_params : param list -> Contents.format
-  val get_params : Contents.format -> param list
+  val lift_params : params -> Contents.format
+  val get_params : Contents.format -> params
   val is_kind : Contents.kind -> bool
   val lift_kind : kind -> Contents.kind
   val get_kind : Contents.kind -> kind
@@ -99,9 +116,10 @@ type format = Contents.format
 
 type format_handler = {
   kind : unit -> kind;
-  make : unit -> data;
+  make : int -> data;
   string_of_format : unit -> string;
   merge : format -> unit;
+  compatible : format -> bool;
 }
 
 let format_handlers = Queue.create ()
@@ -122,7 +140,7 @@ let format_parsers = Queue.create ()
 
 exception Parsed_format of format
 
-let format_of_param label value =
+let parse_param label value =
   try
     Queue.iter
       (fun fn ->
@@ -135,7 +153,6 @@ let format_of_param label value =
 
 type data_handler = {
   blit : int -> data -> int -> int -> unit;
-  bytes : unit -> int;
   copy : unit -> data;
   format : unit -> format;
   clear : unit -> unit;
@@ -154,48 +171,64 @@ let get_data_handler v =
     raise Invalid
   with Found_data h -> h
 
-let make k = (get_params_handler k).make ()
+let make ~size k = (get_params_handler k).make size
 
 let blit src src_ofs dst dst_ofs len =
   let src = get_data_handler src in
   src.blit src_ofs dst dst_ofs len
 
-let bytes c = (get_data_handler c).bytes ()
 let copy c = (get_data_handler c).copy ()
 let format c = (get_data_handler c).format ()
 let clear c = (get_data_handler c).clear ()
 let kind p = (get_params_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
-let merge p p' = (get_params_handler p).merge p'
-let string_of_kind f = (get_kind_handler f).string_of_kind ()
 let string_of_format k = (get_params_handler k).string_of_format ()
+
+let () =
+  Printexc.register_printer (function
+    | Incompatible_format (f, f') ->
+        Some
+          (Printf.sprintf
+             "Frame_content.Incompatible_format: %s and %s are not compatible \
+              formats!"
+             (string_of_format f) (string_of_format f'))
+    | _ -> None)
+
+let merge p p' =
+  try (get_params_handler p).merge p'
+  with _ -> raise (Incompatible_format (p, p'))
+
+let compatible p p' = (get_params_handler p).compatible p'
+let string_of_kind f = (get_kind_handler f).string_of_kind ()
 
 module MkContent (C : ContentSpecs) :
   Content
     with type kind = C.kind
-     and type param = C.param
+     and type params = C.params
      and type data = C.data = struct
   type Contents.kind += Kind of C.kind
-  type Contents.format += Format of C.param list Unifier.t
+  type Contents.format += Format of C.params Unifier.t
   type Contents.data += Data of C.data
 
   let blit src src_ofs dst dst_ofs len =
     let dst = match dst with Data dst -> dst | _ -> raise Invalid in
     C.blit src src_ofs dst dst_ofs len
 
-  let merge l l' =
-    let l' = match l' with Format l' -> l' | _ -> raise Invalid in
-    let u = List.sort_uniq compare in
-    let m = C.merge (u (Unifier.deref l)) (u (Unifier.deref l')) in
-    Unifier.set l' m;
-    Unifier.(l <-- l')
+  let merge p p' =
+    let p' = match p' with Format p' -> p' | _ -> raise Invalid in
+    let m = C.merge (Unifier.deref p) (Unifier.deref p') in
+    Unifier.set p' m;
+    Unifier.(p <-- p')
+
+  let compatible p p' =
+    match p' with
+      | Format p' -> C.compatible (Unifier.deref p) (Unifier.deref p')
+      | _ -> false
 
   let kind_of_string s = Option.map (fun p -> Kind p) (C.kind_of_string s)
 
   let format_of_string label value =
-    Option.map
-      (fun p -> Format (Unifier.make [p]))
-      (C.param_of_string label value)
+    Option.map (fun p -> Format (Unifier.make p)) (C.parse_param label value)
 
   let () =
     register_kind_handler (function
@@ -208,19 +241,17 @@ module MkContent (C : ContentSpecs) :
             }
       | _ -> None);
     register_format_handler (function
-      | Format l ->
+      | Format p ->
           Some
             {
               kind = (fun () -> Kind C.kind);
-              make = (fun () -> Data (C.make (Unifier.deref l)));
-              merge = (fun l' -> merge l l');
+              make = (fun size -> Data (C.make ~size (Unifier.deref p)));
+              merge = (fun p' -> merge p p');
+              compatible = (fun p' -> compatible p p');
               string_of_format =
                 (fun () ->
                   let kind = C.string_of_kind C.kind in
-                  let params =
-                    String.concat ","
-                      (List.map C.string_of_param (Unifier.deref l))
-                  in
+                  let params = C.string_of_params (Unifier.deref p) in
                   match params with
                     | "" -> C.string_of_kind C.kind
                     | _ -> Printf.sprintf "%s(%s)" kind params);
@@ -234,7 +265,6 @@ module MkContent (C : ContentSpecs) :
             {
               blit = blit d;
               copy = (fun () -> Data (C.copy d));
-              bytes = (fun () -> C.bytes d);
               format = (fun () -> Format (Unifier.make (C.params d)));
               clear = (fun () -> C.clear d);
             }
@@ -255,20 +285,20 @@ end
 
 module NoneSpecs = struct
   type kind = unit
-  type param
+  type params = unit
   type data = unit
 
-  let make _ = ()
+  let make ~size:_ _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
-  let bytes _ = 0
   let copy _ = ()
-  let params _ = []
-  let merge _ _ = []
-  let string_of_param _ = assert false
-  let param_of_string _ _ = None
+  let params _ = ()
+  let merge _ _ = ()
+  let compatible _ _ = true
+  let string_of_params _ = ""
+  let parse_param _ _ = None
   let kind = ()
-  let default_params () = []
+  let default_params () = ()
   let string_of_kind () = "none"
   let kind_of_string = function "none" -> Some () | _ -> None
 end
@@ -277,33 +307,30 @@ module None = struct
   include MkContent (NoneSpecs)
 
   let data = lift_data ()
-  let format = lift_params []
+  let format = lift_params ()
 end
 
 module AudioSpecs = struct
   open Frame_settings
+  open Contents
 
   type kind = [ `Pcm ]
-  type param = [ `Mono | `Stereo | `Five_point_one ]
+  type params = Contents.audio_params
   type data = Audio.Mono.buffer array
 
   let string_of_kind = function `Pcm -> "pcm"
 
-  let string_of_param = function
-    | `Mono -> "mono"
-    | `Stereo -> "stereo"
-    | `Five_point_one -> "dolby 5.1"
+  let string_of_params { channel_layout } =
+    match channel_layout with
+      | `Mono -> "mono"
+      | `Stereo -> "stereo"
+      | `Five_point_one -> "dolby 5.1"
 
-  let merge l l' =
-    match (l, l') with
-      | [], [] -> []
-      | [x], [y] when x = y -> [x]
-      | _ -> raise Invalid
+  let merge p p' =
+    assert (p = p');
+    p
 
-  let bytes d =
-    let float_bytes = 8 in
-    let track_bytes t = Audio.Mono.length t * float_bytes in
-    Array.fold_left (fun n t -> n + track_bytes t) 0 d
+  let compatible p p' = p = p'
 
   let blit src src_pos dst dst_pos len =
     Array.iter2
@@ -317,9 +344,9 @@ module AudioSpecs = struct
   let copy d = Array.map Audio.Mono.copy d
 
   let param_of_channels = function
-    | 1 -> `Mono
-    | 2 -> `Stereo
-    | 6 -> `Five_point_one
+    | 1 -> { channel_layout = `Mono }
+    | 2 -> { channel_layout = `Stereo }
+    | 6 -> { channel_layout = `Five_point_one }
     | _ -> raise Invalid
 
   let channels_of_param = function
@@ -327,101 +354,134 @@ module AudioSpecs = struct
     | `Stereo -> 2
     | `Five_point_one -> 6
 
-  let param_of_string label value =
+  let parse_param label value =
     match (label, value) with
-      | "", "mono" -> Some `Mono
-      | "", "stereo" -> Some `Stereo
-      | "", "5.1" -> Some `Five_point_one
+      | "", "mono" -> Some { channel_layout = `Mono }
+      | "", "stereo" -> Some { channel_layout = `Stereo }
+      | "", "5.1" -> Some { channel_layout = `Five_point_one }
       | _ -> None
 
-  let params d = [param_of_channels (Array.length d)]
+  let params d = param_of_channels (Array.length d)
   let kind = `Pcm
 
   let default_params _ =
-    [param_of_channels (Lazy.force Frame_settings.audio_channels)]
+    param_of_channels (Lazy.force Frame_settings.audio_channels)
 
   let clear _ = ()
 
-  let make l =
+  let make ~size { channel_layout } =
     let channels =
-      match l with
-        | [] -> Lazy.force Frame_settings.audio_channels
-        | [p] -> channels_of_param p
-        | _ -> raise Invalid
+      match channel_layout with
+        | `Mono -> 1
+        | `Stereo -> 2
+        | `Five_point_one -> 6
     in
-    Array.init channels (fun _ -> Audio.Mono.create (audio_of_master !!size))
+    Array.init channels (fun _ -> Audio.Mono.create (audio_of_master size))
 
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
 end
 
 module Audio = struct
+  open Contents
   include MkContent (AudioSpecs)
 
+  let kind = lift_kind `Pcm
+
   let format_of_channels = function
-    | 1 -> lift_params [`Mono]
-    | 2 -> lift_params [`Stereo]
-    | 6 -> lift_params [`Five_point_one]
+    | 1 -> lift_params { channel_layout = `Mono }
+    | 2 -> lift_params { channel_layout = `Stereo }
+    | 6 -> lift_params { channel_layout = `Five_point_one }
     | _ -> raise Invalid
 
   let channels_of_format p =
-    match get_params p with
-      | [] -> Lazy.force Frame_settings.audio_channels
-      | [p] -> AudioSpecs.channels_of_param p
-      | _ -> raise Invalid
+    AudioSpecs.(channels_of_param (get_params p).channel_layout)
 end
 
 module VideoSpecs = struct
   open Frame_settings
+  open Contents
 
   type kind = [ `Yuv420p ]
-  type param
+  type params = Contents.video_params
   type data = Video.t
 
   let string_of_kind = function `Yuv420p -> "yuv420p"
-  let make _ = Video.make (video_of_master !!size) !!video_width !!video_height
-  let clear _ = ()
-  let string_of_param _ = assert false
-  let param_of_string _ _ = None
-  let bytes = Video.size
 
-  let merge l l' =
-    match (l, l') with
-      | [], [] -> []
-      | [x], [y] when x = y -> [x]
-      | _ -> raise Invalid
+  let make ~size { width; height } =
+    let width = Option.value ~default:!!video_width width in
+    let height = Option.value ~default:!!video_height height in
+    Video.make (video_of_master size) width height
+
+  let clear _ = ()
+
+  let string_of_params { width; height } =
+    print_optional
+      [
+        ("width", Option.map string_of_int width);
+        ("height", Option.map string_of_int height);
+      ]
+
+  let parse_param label value =
+    match label with
+      | "width" -> Some { width = Some (int_of_string value); height = None }
+      | "height" -> Some { width = None; height = Some (int_of_string value) }
+      | _ -> None
+
+  let merge p p' =
+    {
+      width = merge_param ~name:"width" (p.width, p'.width);
+      height = merge_param ~name:"height" (p.height, p'.height);
+    }
+
+  let compatible p p' = p.width = p'.width && p.height = p'.height
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = Frame_settings.video_of_master in
     Video.blit src !src_pos dst !dst_pos !len
 
   let copy = Video.copy
-  let params _ = []
+
+  let params data =
+    if Array.length data = 0 then { width = None; height = None }
+    else (
+      let i = data.(0) in
+      {
+        width = Some (Video.Image.width i);
+        height = Some (Video.Image.height i);
+      } )
+
   let kind = `Yuv420p
-  let default_params _ = []
+
+  let default_params _ =
+    { width = Some !!video_width; height = Some !!video_height }
 
   let kind_of_string = function
     | "yuv420p" | "video" -> Some `Yuv420p
     | _ -> None
 end
 
-module Video = MkContent (VideoSpecs)
+module Video = struct
+  include MkContent (VideoSpecs)
+
+  let kind = lift_kind `Yuv420p
+end
 
 module MidiSpecs = struct
   open Frame_settings
+  open Contents
 
   type kind = [ `Midi ]
-  type param = [ `Channels of int ]
+  type params = Contents.midi_params
   type data = MIDI.Multitrack.t
 
   let string_of_kind = function `Midi -> "midi"
-  let string_of_param (`Channels c) = Printf.sprintf "midi(channels=%d)" c
-  let bytes _ = failwith "Not implemented!"
+  let string_of_params { channels } = Printf.sprintf "channels=%d" channels
 
-  let merge l l' =
-    match (l, l') with
-      | [], [] -> []
-      | [x], [y] when x = y -> [x]
-      | _ -> raise Invalid
+  let merge p p' =
+    assert (p.channels = p'.channels);
+    p
+
+  let compatible p p' = p.channels = p'.channels
 
   let blit src src_pos dst dst_pos len =
     Array.iter2
@@ -431,41 +491,44 @@ module MidiSpecs = struct
       src dst
 
   let copy m = Array.map MIDI.copy m
-  let params m = [`Channels (MIDI.Multitrack.channels m)]
+  let params m = { channels = MIDI.Multitrack.channels m }
   let kind = `Midi
-  let default_params _ = [`Channels (Lazy.force Frame_settings.midi_channels)]
+  let default_params _ = { channels = Lazy.force Frame_settings.midi_channels }
   let clear _ = ()
 
-  let make l =
-    let c =
-      match l with
-        | [] -> Lazy.force Frame_settings.midi_channels
-        | [`Channels c] -> c
-        | _ -> raise Invalid
-    in
-    MIDI.Multitrack.create c (midi_of_master !!size)
+  let make ~size { channels } =
+    MIDI.Multitrack.create channels (midi_of_master size)
 
   let kind_of_string = function "midi" -> Some `Midi | _ -> None
 
-  let param_of_string label value =
+  let parse_param label value =
     match (label, value) with
-      | "channels", c -> Some (`Channels (int_of_string c))
+      | "channels", c -> Some { channels = int_of_string c }
       | _ | (exception _) -> None
 end
 
-module Midi = MkContent (MidiSpecs)
+module Midi = struct
+  include MkContent (MidiSpecs)
+
+  let kind = lift_kind `Midi
+end
 
 let default_audio () =
   let channels = Lazy.force Frame_settings.audio_channels in
   if channels = 0 then None.format else Audio.format_of_channels channels
 
 let default_video () =
-  if Lazy.force Frame_settings.video_enabled then Video.lift_params []
+  if Lazy.force Frame_settings.video_enabled then
+    Video.lift_params
+      {
+        Contents.width = Some (Lazy.force Frame_settings.video_width);
+        height = Some (Lazy.force Frame_settings.video_height);
+      }
   else None.format
 
 let default_midi () =
   let channels = Lazy.force Frame_settings.midi_channels in
-  if channels = 0 then None.format else Midi.lift_params [`Channels channels]
+  if channels = 0 then None.format else Midi.lift_params { Contents.channels }
 
 let is_internal f =
   None.is_kind f || Audio.is_kind f || Video.is_kind f || Midi.is_kind f

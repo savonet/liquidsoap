@@ -265,12 +265,16 @@ let get_type ~channels filename =
   let audio =
     if audio = 0 then Frame_content.None.format
     else
-      Frame_content.Audio.lift_params
-        [Audio_converter.Channel_layout.layout_of_channels audio]
+      Frame_content.(
+        Audio.lift_params
+          {
+            Contents.channel_layout =
+              Audio_converter.Channel_layout.layout_of_channels audio;
+          })
   in
   let video =
     if video = 0 then Frame_content.None.format
-    else Frame_content.Video.lift_params []
+    else Frame_content.(default_format Video.kind)
   in
   { Frame.video; audio; midi = Frame_content.None.format }
 

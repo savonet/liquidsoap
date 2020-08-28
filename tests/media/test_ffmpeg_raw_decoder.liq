@@ -19,13 +19,10 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  ijson = get_process_output("ffprobe -v quiet -print_format json -show_streams '#{fname}'")
   ojson = get_process_output("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
-  input_format = of_json(default=[("streams", [[("samplerate", "0")]])], ijson)
   output_format = of_json(default=[("streams", [[("samplerate", "0")]])], ojson)
 
-  input_streams = list.assoc(default=[], "streams", input_format)
   output_streams = list.assoc(default=[], "streams", output_format)
 
   params = ["channel_layout", "sample_rate",
@@ -39,14 +36,36 @@ def on_done () =
     list.filter(f, s)
   end
 
-  input_streams = list.map(m, input_streams)
   output_streams = list.map(m, output_streams)
 
-  if input_streams == output_streams then
+  def cmp(c, c') =
+    if c < c' then
+      -1
+    elsif c' < c then
+      1
+    else
+      0
+    end
+  end
+
+  output_streams = list.map(list.sort(cmp), output_streams)
+
+  def cmd_l(l, l') =
+    cmp(list.assoc("codec_name", l), list.assoc("codec_name", l'))
+  end
+
+  output_streams = list.sort(cmd_l, output_streams)
+
+  expected = [
+    [("channel_layout", "stereo"), ("codec_name", "aac"), ("sample_fmt", "fltp"), ("sample_rate", "44100")],
+    [("codec_name", "h264"), ("pix_fmt", "yuv420p")]
+  ]
+
+  if output_streams == expected then
     test.pass()
   else
     test.fail()
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.copy,%video.copy), out, s)
+output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.raw(codec="aac"),%video.raw(codec="libx264")), out, s)

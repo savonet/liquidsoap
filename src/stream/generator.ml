@@ -58,8 +58,6 @@ module Generator = struct
   (** A chunk with given offset and length. *)
   type 'a chunk = 'a * int * int
 
-  let chunk_data ((buf, _, _) : 'a chunk) = buf
-
   (** A buffer is a queue of chunks. *)
   type 'a buffer = 'a chunk Queue.t
 
@@ -376,18 +374,6 @@ module From_audio_video = struct
   (** Total buffered length. *)
   let buffered_length t = max (audio_length t) (video_length t)
 
-  let audio_size t =
-    Queue.fold
-      (fun n a -> n + Frame_content.bytes (Generator.chunk_data a).data)
-      0 t.audio.Generator.buffers
-
-  let video_size t =
-    Queue.fold
-      (fun n a -> n + Frame_content.bytes (Generator.chunk_data a).data)
-      0 t.video.Generator.buffers
-
-  let size t = audio_size t + video_size t
-
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining t = match t.breaks with a :: _ -> a | _ -> -1
 
@@ -528,11 +514,9 @@ module From_audio_video = struct
 
     pts
 
-  (** Add some audio content. Offset and length are given in audio samples. *)
+  (** Add some audio content. Offset and length are given in master ticks. *)
   let put_audio ?pts t data o l =
     let pts = match pts with Some pts -> pts | None -> t.current_audio_pts in
-    let o = Frame.master_of_audio o in
-    let l = Frame.master_of_audio l in
     t.current_audio_pts <-
       put_frames ~pts ~current_pts:t.current_audio_pts t.current_audio data o l;
     begin
@@ -549,11 +533,9 @@ module From_audio_video = struct
     end;
     sync_content t
 
-  (** Add some video content. Offset and length are given in video samples. *)
+  (** Add some video content. Offset and length are given in master ticks. *)
   let put_video ?pts t data o l =
     let pts = match pts with Some pts -> pts | None -> t.current_video_pts in
-    let o = Frame.master_of_video o in
-    let l = Frame.master_of_video l in
     t.current_video_pts <-
       put_frames ~pts ~current_pts:t.current_video_pts t.current_video data o l;
     begin
@@ -590,11 +572,17 @@ module From_audio_video = struct
     let mode = match mode with Some mode -> mode | None -> t.mode in
 
     match mode with
-      | `Audio -> put_audio ~pts t (AFrame.content frame) 0 (AFrame.size ())
-      | `Video -> put_video ~pts t (VFrame.content frame) 0 (VFrame.size ())
+      | `Audio ->
+          put_audio ~pts t
+            (Frame_content.copy (AFrame.content frame))
+            0 (Lazy.force Frame.size)
+      | `Video ->
+          put_video ~pts t (VFrame.content frame) 0 (Lazy.force Frame.size)
       | `Both ->
-          put_audio ~pts t (AFrame.content frame) 0 (AFrame.size ());
-          put_video ~pts t (VFrame.content frame) 0 (VFrame.size ())
+          put_audio ~pts t
+            (Frame_content.copy (AFrame.content frame))
+            0 (Lazy.force Frame.size);
+          put_video ~pts t (VFrame.content frame) 0 (Lazy.force Frame.size)
       | `Undefined -> ()
 
   (* Advance metadata and breaks by [len] ticks. *)
@@ -617,67 +605,32 @@ module From_audio_video = struct
     let mode = mode t in
     let fpos = Frame.position frame in
     let size = Lazy.force Frame.size in
+
     let remaining =
       let l = remaining t in
       if l = -1 then length t else l
     in
+
     let l = min (size - fpos) remaining in
-    let audio =
-      List.map
-        (fun ({ data }, x, y, t) -> (data, x, y, t))
-        (Generator.get t.audio l)
-    in
-    let video =
-      List.map
-        (fun ({ data }, x, y, t) -> (data, x, y, t))
-        (Generator.get t.video l)
-    in
-    (* We got equal durations of audio and video, but segmented differently.
-     * We walk through them and blit them into the frame, possibly creating
-     * several content layers of different types as the numbers of channels
-     * vary. *)
-    let rec blit audio video =
-      match (audio, video) with
-        | [], [] -> Frame.add_break frame (fpos + l)
-        | (ablk, apos, apos', al) :: audio, (vblk, vpos, vpos', vl) :: video ->
-            (* Audio and video destination positions are the same,
-             * however they need be aligned.
-             * At the beginning they are aligned (and zero), but then
-             * we might advance from a few audio samples, which might
-             * not correspond to an integer number of video samples,
-             * after which vpos' is not the position of a video frame. *)
-            assert (apos' = vpos');
-            let fpos = fpos + apos' in
-            let l = min al vl in
 
-            if mode = `Both || mode = `Video then (
-              let ( ! ) = Frame.video_of_master in
-              (* How many samples should we output:
-               * the number of samples expected in total after this
-               * blit round, minus those that have been outputted before.
-               * When everything is aligned, this is the same as [!l]. *)
-              let l = !(vpos' + l) - !vpos' in
-              Frame_content.blit vblk vpos (VFrame.content frame) fpos
-                (Frame.master_of_video l) );
+    if mode = `Both || mode = `Audio then
+      List.iter
+        (fun ({ data }, apos, apos', al) ->
+          Frame_content.blit data apos (AFrame.content frame) (fpos + apos') al)
+        (Generator.get t.audio l);
 
-            if mode = `Both || mode = `Audio then (
-              let ( ! ) = Frame.audio_of_master in
-              (* Same as above, even if in practice everything
-               * will always be aligned on the audio side. *)
-              let l = !(apos' + l) - !apos' in
-              Frame_content.blit ablk apos (AFrame.content frame) fpos
-                (Frame.master_of_audio l) );
+    if mode = `Both || mode = `Video then
+      List.iter
+        (fun ({ data }, vpos, vpos', vl) ->
+          Frame_content.blit data vpos (VFrame.content frame) (fpos + vpos') vl)
+        (Generator.get t.video l);
 
-            if al = vl then blit audio video
-            else if al > vl then
-              blit ((ablk, apos + vl, apos' + vl, al - vl) :: audio) video
-            else blit audio ((vblk, vpos + al, vpos' + al, vl - al) :: video)
-        | _, _ -> assert false
-    in
-    blit audio video;
+    Frame.add_break frame (fpos + l);
+
     List.iter
       (fun (p, m) -> if p < l then Frame.set_metadata frame (fpos + p) m)
       t.metadata;
+
     advance t l;
 
     (* If the frame is partial it must be because of a break in the
@@ -745,9 +698,6 @@ module From_audio_video_plus = struct
   let video_length t = Tutils.mutexify t.lock Super.video_length t.gen
   let length t = Tutils.mutexify t.lock Super.length t.gen
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
-  let audio_size t = Tutils.mutexify t.lock Super.audio_size t.gen
-  let video_size t = Tutils.mutexify t.lock Super.video_size t.gen
-  let size t = Tutils.mutexify t.lock Super.size t.gen
   let set_rewrite_metadata t f = t.map_meta <- f
 
   let add_metadata t m =
@@ -766,7 +716,7 @@ module From_audio_video_plus = struct
         match t.ctype with
           | None -> t.ctype <- Some (Frame.type_of_content c)
           | Some ctype ->
-              if Frame.type_of_content c <> ctype then (
+              if not (Frame.compatible (Frame.type_of_content c) ctype) then (
                 t.log "Incorrect stream type!";
                 t.error <- true;
                 Super.clear t.gen;
@@ -799,7 +749,7 @@ module From_audio_video_plus = struct
           t.error <- false;
           raise Incorrect_stream_type )
         else (
-          check_overfull t (Frame.master_of_audio len);
+          check_overfull t len;
           Super.put_audio ?pts t.gen buf off len ))
       ()
 
@@ -811,7 +761,7 @@ module From_audio_video_plus = struct
           t.error <- false;
           raise Incorrect_stream_type )
         else (
-          check_overfull t (Frame.master_of_video len);
+          check_overfull t len;
           Super.put_video ?pts t.gen buf off len ))
       ()
 

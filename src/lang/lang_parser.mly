@@ -184,7 +184,7 @@
                                            ~level:(-1) ~pos:None
         | param::params ->
             let mk_format (label, value) =
-              Frame_content.format_of_param label value
+              Frame_content.parse_param label value
             in
             let f = mk_format param in
             List.iter (fun param -> Frame_content.merge f (mk_format param)) params;
@@ -231,7 +231,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC AUDIO VIDEO FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
+%token OGG FLAC AUDIO AUDIO_RAW AUDIO_COPY AUDIO_NONE VIDEO VIDEO_RAW VIDEO_COPY VIDEO_NONE FFMPEG OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
@@ -442,7 +442,14 @@ ty_source:
 
 ty_content:
   | VAR                           { $1, [] }
+  | VAR DOT VAR                   { $1 ^ "." ^ $3, [] }
+  | VAR DOT VAR DOT VAR           { $1 ^ "." ^ $3 ^ "." ^ $5, [] }
   | VARLPAR ty_content_args RPAR  { $1, $2 }
+  | VAR DOT VARLPAR ty_content_args RPAR 
+                                  { $1 ^ "." ^ $3, $4 }
+  | VAR DOT VAR DOT VARLPAR ty_content_args RPAR
+                                  { $1 ^ "." ^ $3 ^ "." ^ $5, $6 }
+
 
 ty_content_args:
   |                                      { [] }
@@ -450,8 +457,9 @@ ty_content_args:
   | ty_content_arg COMMA ty_content_args { $1::$3 }
 
 ty_content_arg:
-  | VAR          { "",$1 }
-  | VAR GETS VAR { $1,$3 }
+  | VAR                  { "",$1 }
+  | VAR GETS VAR         { $1,$3 }
+  | VAR GETS INT         { $1,string_of_int $3}
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }
@@ -593,7 +601,7 @@ ogg_video_item:
   | THEORA app_opt     { Lang_theora.make $2 }
 
 ffmpeg_param:
-  | STRING GETS expr { $1,$3 }
+  | STRING GETS expr     { $1,$3 }
   | VAR GETS expr        { $1,$3 }
 ffmpeg_params:
   |                                  { [] }
@@ -601,9 +609,16 @@ ffmpeg_params:
   | ffmpeg_param COMMA ffmpeg_params { $1::$3 }
 
 ffmpeg_list_elem:
-  | AUDIO LPAR ffmpeg_params RPAR { `Audio  $3 }
-  | VIDEO LPAR ffmpeg_params RPAR { `Video  $3 }
-  | ffmpeg_param                  { `Option $1 }
+  | AUDIO_NONE                        { `Audio_none }
+  | AUDIO_COPY                        { `Audio_copy }
+  | AUDIO_RAW LPAR ffmpeg_params RPAR { `Audio_raw $3 }
+  | AUDIO LPAR ffmpeg_params RPAR     { `Audio  $3 }
+  | VIDEO_NONE                        { `Video_none }
+  | VIDEO_COPY                        { `Video_copy }
+  | VIDEO_RAW LPAR ffmpeg_params RPAR { `Video_raw  $3 }
+  | VIDEO LPAR ffmpeg_params RPAR     { `Video  $3 }
+  | ffmpeg_param                      { `Option $1 }
+ 
 ffmpeg_list:
   |                                    { [] }
   | ffmpeg_list_elem                   { [$1] }

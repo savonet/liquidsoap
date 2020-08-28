@@ -92,8 +92,12 @@ let create_stream process input =
   ret
 
 let audio_n n =
-  Frame_content.Audio.lift_params
-    [Audio_converter.Channel_layout.layout_of_channels n]
+  Frame_content.(
+    Audio.lift_params
+      {
+        Contents.channel_layout =
+          Audio_converter.Channel_layout.layout_of_channels n;
+      })
 
 let test_ctype f filename =
   (* 0 = file rejected,

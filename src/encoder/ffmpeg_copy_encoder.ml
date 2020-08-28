@@ -24,39 +24,59 @@
 
 open Avcodec
 
-let mk_stream_copy ~sample_time_base ~get_data ~convert_pos output =
+let mk_stream_copy ~get_data output =
   let stream = ref None in
+  let master_time_base = Ffmpeg_utils.liq_master_ticks_time_base () in
 
   let mk_stream frame =
-    let _, { Ffmpeg_content.params } = List.hd !(get_data frame) in
-    stream := Some (Av.new_stream_copy ~params output)
+    let { Ffmpeg_content_base.params } = get_data frame in
+    stream := Some (Av.new_stream_copy ~params:(Option.get params) output)
   in
 
-  let position = ref 0L in
+  (* Keep track of latest DTS/PTS in master time_base
+     since time_base can change between streams. *)
+  let next_dts = ref None in
+  let next_pts = ref None in
+
+  let to_master_time_base ~time_base v =
+    Ffmpeg_utils.convert_time_base ~src:time_base ~dst:master_time_base v
+  in
+
+  let init ~ts ~time_base v =
+    match !v with
+      | Some _ -> ()
+      | None -> v := Option.map (to_master_time_base ~time_base) ts
+  in
+
+  let add ~duration ~time_base v =
+    match (!v, duration) with
+      | Some p, Some d ->
+          v := Some (Int64.add p (to_master_time_base ~time_base d))
+      | _ -> failwith "Packet missing duration!"
+  in
 
   let encode frame start len =
-    let start_pos = convert_pos start in
-    let stop_pos = convert_pos (start + len) in
-    let data = get_data frame in
-    let data =
-      List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') !data
-    in
+    let stop = start + len in
+    let data = (get_data frame).Ffmpeg_content_base.data in
 
     List.iter
-      (fun (pos, { Ffmpeg_content.packet; time_base }) ->
+      (fun (pos, { Ffmpeg_copy_content.packet; time_base }) ->
         let stream = Option.get !stream in
-        if start_pos <= pos && pos < stop_pos then (
-          let packet_pts =
-            Ffmpeg_utils.convert_time_base ~src:sample_time_base ~dst:time_base
-              (Int64.add !position (Int64.of_int (pos - start_pos)))
-          in
+        if start <= pos && pos < stop then (
+          init ~ts:(Packet.get_dts packet) ~time_base next_dts;
+          init ~ts:(Packet.get_pts packet) ~time_base next_pts;
 
-          Packet.set_pts packet (Some packet_pts);
-          Packet.set_dts packet (Some packet_pts);
+          let duration = Packet.get_duration packet in
 
-          Av.write_packet stream time_base packet ))
-      data;
+          Packet.set_duration packet
+            (Option.map (to_master_time_base ~time_base) duration);
+          Packet.set_pts packet !next_pts;
+          Packet.set_dts packet !next_dts;
 
-    position := Int64.add !position (Int64.of_int (stop_pos - start_pos))
+          add ~duration ~time_base next_dts;
+          add ~duration ~time_base next_pts;
+
+          Av.write_packet stream master_time_base packet ))
+      data
   in
   { Ffmpeg_encoder_common.mk_stream; encode }

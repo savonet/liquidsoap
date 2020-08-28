@@ -225,15 +225,6 @@ module From_audio_video : sig
       unsynced data. *)
   val buffered_length : t -> int
 
-  (** Size of audio data in bytes. *)
-  val audio_size : t -> int
-
-  (** Size of video data in bytes. *)
-  val video_size : t -> int
-
-  (** Size of data in bytes. *)
-  val size : t -> int
-
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   val remaining : t -> int
 
@@ -245,11 +236,11 @@ module From_audio_video : sig
   val add_break : ?sync:bool -> t -> unit
 
   (* [put_audio ?pts buffer data offset length]: offset and length
-   * are in samples ! *)
+   * are in master ticks ! *)
   val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
 
   (* [put_video ?pts buffer data offset length]: offset and length
-   * are in samples ! *)
+   * are in master ticks ! *)
   val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
 
   (** Feed from a frame, only copying data according to the mode.
@@ -291,19 +282,16 @@ module From_audio_video_plus : sig
   val video_length : t -> int
   val length : t -> int
   val remaining : t -> int
-  val audio_size : t -> int
-  val video_size : t -> int
-  val size : t -> int
   val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : ?sync:bool -> t -> unit
 
   (* [put_audio ?pts buffer data offset length]:
-   * offset and length are in audio samples! *)
+   * offset and length are in master ticks! *)
   val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
 
   (* [put_video buffer data offset length]:
-   * offset and length are in video samples! *)
+   * offset and length are in master ticks! *)
   val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val feed_from_frame : ?mode:mode -> t -> Frame.t -> unit
   val fill : t -> Frame.t -> unit
