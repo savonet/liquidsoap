@@ -66,10 +66,12 @@ let kind_of_format = function
           | None -> Frame.none
           | Some `Copy ->
               `Format
-                (Frame_content.default_format Ffmpeg_copy_content.Audio.kind)
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.audio.copy"))
           | Some (`Raw _) ->
               `Format
-                (Frame_content.default_format Ffmpeg_raw_content.Audio.kind)
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.audio.raw"))
           | Some (`Internal _) ->
               let channels = m.Ffmpeg_format.channels in
               assert (channels > 0);
@@ -87,10 +89,12 @@ let kind_of_format = function
           | None -> Frame.none
           | Some `Copy ->
               `Format
-                (Frame_content.default_format Ffmpeg_copy_content.Video.kind)
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.video.copy"))
           | Some (`Raw _) ->
               `Format
-                (Frame_content.default_format Ffmpeg_raw_content.Video.kind)
+                Frame_content.(
+                  default_format (kind_of_string "ffmpeg.video.raw"))
           | Some (`Internal _) ->
               `Format Frame_content.(default_format Video.kind)
       in
