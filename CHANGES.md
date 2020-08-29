@@ -23,6 +23,8 @@ Fixed:
 - Better error reporting for Clock_conflict and Clock_loop errors (#985).
 - Make sure playlist change watch is only setup once (#1246).
 - Fixed windows service launch (#907).
+- Fixed `rotate` not respecting source weights when not used after
+  selecting a source (#1327).
 
 1.4.2 (03-05-2020)
 =====

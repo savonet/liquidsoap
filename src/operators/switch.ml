@@ -469,11 +469,13 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
     inherit
       switch
         ~name ~kind ~override_meta ~transition_length ?replay_meta ~mode
-          (List.map snd children)
+          (List.map snd children) as super
 
     val mutable position = -1
 
-    val mutable tracks_played = 1
+    val mutable track_pending = false
+
+    val mutable tracks_played = 0
 
     method private select =
       let children_count = List.length children in
@@ -485,12 +487,13 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
         if position <> -1 then (
           let weight, s = List.nth children position in
           if s.source#is_ready && tracks_played < weight () then (
-            tracks_played <- tracks_played + 1;
+            track_pending <- true;
             raise (Found (Some s)) ) );
 
         (* Otherwise, select the next source to be played. Respect original
            list order but skip over unavailale sources. *)
-        tracks_played <- 1;
+        tracks_played <- 0;
+        track_pending <- true;
         let ready_list, ready_count =
           List.fold_left
             (fun (l, n) (_, s) ->
@@ -515,6 +518,12 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
       if List.exists (fun (_, s) -> s.source#stype = Infallible) children then
         Infallible
       else Fallible
+
+    method private get_frame buf =
+      if track_pending then (
+        track_pending <- false;
+        tracks_played <- tracks_played + 1 );
+      super#get_frame buf
   end
 
 let () =
