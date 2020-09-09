@@ -222,6 +222,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     | `Options -> "OPTIONS"
     | _ -> assert false
 
+  let string_of_verb_or_source = function
+    | `Source -> "SOURCE"
+    | v -> string_of_verb v
+
   type protocol =
     [ `Http_10
     | `Http_11
@@ -417,6 +421,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let exec_http_auth_check ?args ~login h headers =
     Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
       (http_auth_check ?args ~login headers)
+
+  (* We do not implement anything with this handler for now. *)
+  let handle_asterisk_options_request ~hprotocol:_ ~headers:_ _ =
+    log#info "Returned 405: Method Not Allowed";
+    simple_reply "HTTP/1.0 405 Method Not Allowed\r\nAllow: \r\n\r\n"
 
   let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
     (* ICY request are on port+1 *)
@@ -625,16 +634,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         (http_error_page 500 "Internal Server Error"
            "There was an error processing your request.")
     in
-    let ans_401 () =
-      log#info "Returned 401 for '%s': wrong auth." uri;
-      simple_reply
-        (http_error_page 401 "Authentication Failed"
-           "Wrong Authentication data")
+    let ans_400 s =
+      log#info "Returned 400 for '%s': %s." uri s;
+      simple_reply (http_error_page 400 "Bad Request" s)
     in
     let admin ~icy args =
       let __pa_duppy_0 =
         try Duppy.Monad.return (Hashtbl.find args "mode")
-        with Not_found -> ans_401 ()
+        with Not_found -> ans_400 "unrecognised command"
       in
       Duppy.Monad.bind __pa_duppy_0 (fun mode ->
           match mode with
@@ -646,13 +653,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   mount port;
                 let __pa_duppy_0 =
                   try Duppy.Monad.return (find_source mount port)
-                  with Not_found ->
-                    log#info
-                      "Returned 401 for '%s': No mountpoint '%s' on port %d."
-                      uri mount port;
-                    simple_reply
-                      (http_error_page 401 "Request Failed"
-                         "No such mountpoint")
+                  with Not_found -> ans_400 "Source is not available"
                 in
                 Duppy.Monad.bind __pa_duppy_0 (fun s ->
                     Duppy.Monad.bind
@@ -746,11 +747,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     try
       Hashtbl.iter f handler.http;
       (* Otherwise, try with a standard handler. *)
+      let is_admin s = try String.sub s 0 6 = "/admin" with _ -> false in
       match base_uri with
         (* Icecast *)
         | "/admin/metadata" -> admin ~icy:false args
         (* Shoutcast *)
         | "/admin.cgi" -> admin ~icy:true args
+        | s when is_admin s -> ans_400 "unrecognised command"
         | _ -> ans_404 ()
     with
       | Handled handler ->
@@ -775,13 +778,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
         let lines = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
-        let headers = parse_headers (List.tl lines) in
         let __pa_duppy_0 =
           let s = List.hd lines in
           if icy then parse_icy_request_line ~port h s
           else parse_http_request_line s
         in
         Duppy.Monad.bind __pa_duppy_0 (fun (hmethod, huri, hprotocol) ->
+            log#info "Method: %s, uri: %s, protocol: %s"
+              (string_of_verb_or_source hmethod)
+              huri
+              (string_of_protocol hprotocol);
+            let headers = parse_headers (List.tl lines) in
             let hprotocol =
               try
                 if
@@ -840,6 +847,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | `Source when not icy -> handle_source `Source
               | `Get when hprotocol = `Websocket ->
                   handle_websocket_request ~port h huri headers
+              | `Options when huri = "*" ->
+                  handle_asterisk_options_request ~hprotocol ~headers h
               | (`Get | `Post | `Put | `Delete | `Options | `Head) when not icy
                 ->
                   let len =

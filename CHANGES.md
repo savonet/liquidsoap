@@ -6,9 +6,11 @@ New:
 - Added optional `http_version` parameters to `http{s}.*` methods.
 - Added `on_cue_{in,out}` callbabacks to `cue_cut`
 - Added support for `file:/path/to/file` along with `file:///path/to/file`
+- Implement default `OPTIONS *` handler for harbor input (#1334)
 
 Change:
 - Fixed default ffmpeg log level.
+- Changed default HTTP response for unrecognized harbor `/admin` commands (#1334).
 
 Fixed:
 
