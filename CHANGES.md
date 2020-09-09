@@ -8,9 +8,10 @@ New:
 - Added support for `file:/path/to/file` along with `file:///path/to/file`
 - Implement default `OPTIONS *` handler for harbor input (#1334)
 
-Change:
+Changed:
 - Fixed default ffmpeg log level.
 - Changed default HTTP response for unrecognized harbor `/admin` commands (#1334).
+- Use replay gain metadata when present (#1102).
 
 Fixed:
 
