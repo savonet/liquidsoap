@@ -28,6 +28,7 @@ Fixed:
 - Fixed windows service launch (#907).
 - Fixed `rotate` not respecting source weights when not used after
   selecting a source (#1327).
+- Bring back `{lastfm,librefm}.submit` (#1343).
 
 1.4.2 (03-05-2020)
 =====
