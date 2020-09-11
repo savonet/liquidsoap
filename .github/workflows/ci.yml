@@ -110,3 +110,22 @@ jobs:
           prerelease: true
           gzip: false
           allow_override: true
+
+  build_docker:
+    runs-on: ubuntu-latest
+    needs: [get_branch_name, build_posix]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Download all artifact
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: Get debian testing package
+        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep deb)"
+        id: debian_package
+      - name: Build docker image
+        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }}
