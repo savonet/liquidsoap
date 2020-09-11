@@ -1,4 +1,8 @@
 %ifdef audioscrobbler.submit
+
+librefm = ()
+lastfm = ()
+
 # Submit metadata to libre.fm using the audioscrobbler protocol.
 # @category Interaction
 # @flag extra
