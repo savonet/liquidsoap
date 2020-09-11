@@ -10,6 +10,7 @@ package available for your distribution (not covered by this documentation).
 
 * [Using OPAM](#install-using-opam)
 * [Debian/Ubuntu](#debianubuntu)
+* [Docker](#docker)
 * [Windows](#windows)
 * [From source](#installing-from-source)
 * [Latest development version](#latest-development-version)
@@ -75,61 +76,18 @@ Debian/Ubuntu
 -------------
 
 We generate debian and ubuntu packages automatically as part of our CI workflow.
-These packages are available for quick testing of `liquidsoap` on certain Debian
-and Ubuntu distributions. However, we do not recommend them yet for production 
-purposes.
+Starting with release [1.4.3](https://github.com/savonet/liquidsoap/releases),
+we provide them along with the release. Otherwise, you can visit our
+[github actions](https://github.com/savonet/liquidsoap/actions) to fetch individual
+ones.
 
-**Please note** We cannot guarantee that any of the distribution below will remain
-available at all time and we reserve the right to purge old versions of the packages
-at any time. If you plan on using some of these packages for any sort of production
-use, make sure to copy them and use your own distribution channels.
+Docker
+------
 
-Here's how to install:
-
-* First install the repository signing key:
-```
-[sudo] apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 20D63CCDDD0F62C2
-```
-
-* Then one of the following source:
-
-**debian/stable:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/debian stable main >> /etc/apt/sources.list.d/liquidsoap.list
-```
-
-**debian/testing:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/debian testing main >> /etc/apt/sources.list.d/liquidsoap.list
-```
-
-**debian/stretch:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/debian stretch main >> /etc/apt/sources.list.d/liquidsoap.list
-```
-
-**ubuntu/bionic:**
-```
-[sudo] add-apt-repository ppa:sergey-dryabzhinsky/ffmpeg
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu bionic main >> /etc/apt/sources.list.d/liquidsoap.list
-```
-
-**ubuntu/disco:**
-```
-[sudo] echo deb http://deb.liquidsoap.info/ubuntu disco main >> /etc/apt/sources.list.d/liquidsoap.list
-```
-
-You can now see the list of available packages:
-```
-apt-cache show liquidsoap
-```
-
-Package names are of the form: `liquidsoap-<commit>` and `liquidsoap-<branch>`. For instance,
-to install the latest `master` you can do:
-```
-[sudo] apt-get install liquidsoap-master
-```
-
+We provide production-ready docker images via [Docker hub](https://hub.docker.com/r/savonet/liquidsoap).
+These images contain a minimal `debian/testing` image with the liquidsoap debian package installed.
+Installed packages are those generated during our CI process, not the official debian package! Images are tagged
+by the branch that was used to generate them. 
 
 Windows
 -------
