@@ -1,0 +1,13 @@
+FROM debian:testing-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+USER root
+
+# For libfdk-aac-dev
+RUN sed -e 's#main#main contrib non-free#' -i /etc/apt/sources.list
+
+COPY *debian-testing*deb liquidsoap.deb
+
+RUN apt-get update && apt install -y ./liquidsoap.deb && apt-get clean
+
