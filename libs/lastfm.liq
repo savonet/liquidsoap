@@ -1,17 +1,4 @@
-%ifdef input.lastfm
-# Utility to compose last.fm URIs.
-# @category String
-# @param ~user      Lastfm user
-# @param ~password  Lastfm password
-# @param ~discovery Allow lastfm suggestions
-# @param radio      URI, e.g. user/toots5446/playlist, globaltags/rocksteady.
-def lastfm.uri(~user="",~password="",~discovery=false,
-               radio="globaltags/creative-commons")
-  auth = if user == "" then "" else "#{user}:#{password}@" end
-  discovery = if discovery == true then "1" else "0" end
-  "lastfm://#{auth}#{radio}?discovery=#{discovery}"
-end
-
+%ifdef audioscrobbler.submit
 # Submit metadata to libre.fm using the audioscrobbler protocol.
 # @category Interaction
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
