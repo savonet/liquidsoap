@@ -1,18 +1,4 @@
-%ifdef input.lastfm
-# Utility to compose last.fm URIs.
-# @category String
-# @flag extra
-# @param ~user      Lastfm user
-# @param ~password  Lastfm password
-# @param ~discovery Allow lastfm suggestions
-# @param radio      URI, e.g. user/toots5446/playlist, globaltags/rocksteady.
-def lastfm.uri(~user="",~password="",~discovery=false,
-               radio="globaltags/creative-commons")
-  auth = if user == "" then "" else "#{user}:#{password}@" end
-  discovery = if discovery == true then "1" else "0" end
-  "lastfm://#{auth}#{radio}?discovery=#{discovery}"
-end
-
+%ifdef audioscrobbler.submit
 # Submit metadata to libre.fm using the audioscrobbler protocol.
 # @category Interaction
 # @flag extra
@@ -129,5 +115,4 @@ def lastfm.submit.full(
       host="post.audioscrobbler.com",port=80,
       delay=delay,force=force,s)
 end
-
 %endif
