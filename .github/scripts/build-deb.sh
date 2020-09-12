@@ -6,6 +6,8 @@ GITHUB_SHA=$1
 BRANCH=$2
 DOCKER_TAG=$3
 
+ARCH=`dpkg --print-architecture`
+
 COMMIT_SHORT=`echo "${GITHUB_SHA}" | cut -c-7`
 
 DEBFULLNAME="The Savonet Team"
@@ -38,4 +40,4 @@ mkdir -p "/tmp/debian/pkgs/${DOCKER_TAG}"
 
 cp /tmp/liquidsoap-full/*.deb "/tmp/debian/pkgs/${DOCKER_TAG}"
 
-echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-1_amd64"
+echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-1_$ARCH"
