@@ -135,6 +135,47 @@ Fixed:
 - Improve the quality of `video.add_text.gd` (#1188).
 - Exit with non-zero code on errors.
 
+1.4.3 (14-09-2020)
+=====
+
+Fixed:
+
+- Fixed exponential memory usage in clock unification algorithm (#1272).
+
+1.4.2 (03-05-2020)
+=====
+
+New:
+
+- Added `retry_delay` argument to `request.dynamic` (#1169).
+- Renamed `request.dynamic` to `request.dynamic.list` and updated its
+  callback function type to return an array of requests, making possible
+  to return multiple requests at once but, more importantly,
+  to return `[]` when no next requests are available. (#1169)
+
+Changed:
+
+- Set `audio/flac` as mime for flac (#1143).
+- Deprecated `request.dynamic`.
+
+Fixed:
+
+- Fixed errors when installing bash-completion files (#1095)
+- Fixed failures in `extract-replaygain` script (#1125)
+- Do not crash when loading playlists using `~/path/to/..` paths.
+- Set set_default_verify_paths for SSL (#450)
+- Use 443 as default port for https (#1127)
+- Fix implementation of `rotate` (#1129).
+- Register audio/opus mime type for ogg decoding (#1089)
+- Re-encode name, genre and description in `output.icecast` using the given encoding (#1092)
+- Accept 24 bits per sample in %flac encoder (#1073).
+- Fix rare stack overflow during clock unification (#1108).
+- Prevent metadata inserted via `insert_metadata` from being visible to underlying sources (#1115)
+- Fix `cross()` fallability.
+- Fix decoder remaining time when decoding is done (#1159)
+- Fixed crash when cleaning up `output.hls`
+- Fix `get_process_lines` regexp logic (#1151)
+
 1.4.2 (03-05-2020)
 =====
 
