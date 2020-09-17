@@ -255,11 +255,12 @@ module Make (Transport : Transport_t) = struct
   let args_split s =
     let args = Hashtbl.create 2 in
     let fill_arg arg =
-      let arg = url_decode arg in
       match Pcre.split ~pat:"=" arg with
         | e :: l ->
             (* There should be only arg=value *)
-            List.iter (Hashtbl.replace args e) l
+            List.iter
+              (fun v -> Hashtbl.replace args (url_decode e) (url_decode v))
+              l
         | [] -> ()
     in
     List.iter fill_arg (Pcre.split ~pat:"&" s);

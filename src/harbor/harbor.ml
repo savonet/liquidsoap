@@ -663,7 +663,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                           ( if
                             not
                               (List.mem
-                                 (Option.get s#get_mime_type)
+                                 (Option.value ~default:"" s#get_mime_type)
                                  conf_icy_metadata#get)
                           then (
                             log#info

@@ -134,6 +134,7 @@ Fixed:
 - Remove `video.add_text.gstreamer` shade in background (#1190).
 - Improve the quality of `video.add_text.gd` (#1188).
 - Exit with non-zero code on errors.
+- Fixed parsing of http URI arguments with `=` in them (#1340).
 
 1.4.3 (14-09-2020)
 =====
