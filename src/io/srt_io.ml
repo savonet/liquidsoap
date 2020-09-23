@@ -318,8 +318,9 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
           self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
           self#connect
       in
-      if not self#should_stop then
-        Poll.add_socket ~mode:`Read self#get_socket on_connect
+      if not self#should_stop then (
+        self#close_socket;
+        Poll.add_socket ~mode:`Read self#get_socket on_connect )
 
     method private get_frame frame =
       let pos = Frame.position frame in
