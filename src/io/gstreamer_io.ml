@@ -114,9 +114,9 @@ class virtual ['a, 'b] element_factory ~on_error =
           retry_in
         with exn ->
           let bt = Printexc.get_backtrace () in
-          self#log#important "Error while restarting pipeline: %s"
-            (Printexc.to_string exn);
-          self#log#info "Backtrace: %s" bt;
+          Utils.log_exception ~log:self#log ~bt
+            (Printf.sprintf "Error while restarting pipeline: %s"
+               (Printexc.to_string exn));
           retry_in <- on_error exn;
           self#log#important "Will retry again in %.02f" retry_in;
           Tutils.mutexify restart_m (fun () -> restarting <- false) ();
@@ -301,9 +301,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             el.bin )
       with e ->
         let bt = Printexc.get_backtrace () in
-        self#log#important "Error while processing output data: %s"
-          (Printexc.to_string e);
-        self#log#info "Stacktrace: %s" bt;
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Error while processing output data: %s"
+             (Printexc.to_string e));
         self#on_error e
 
     method output_reset = ()
@@ -655,9 +655,9 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
               self#restart )
         | exn ->
             let bt = Printexc.get_backtrace () in
-            self#log#important "Error while processing input data: %s"
-              (Printexc.to_string exn);
-            self#log#info "Stacktrace: %s" bt;
+            Utils.log_exception ~log:self#log ~bt
+              (Printf.sprintf "Error while processing input data: %s"
+                 (Printexc.to_string exn));
             self#on_error exn
   end
 
