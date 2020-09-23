@@ -159,8 +159,8 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       Gstreamer_utils.master_of_time (Int64.sub new_pos pos)
     with exn ->
       let bt = Printexc.get_backtrace () in
-      log#important "Seek failed: %s" (Printexc.to_string exn);
-      log#info "Backtrace:\n%s" bt;
+      Utils.log_exception ~log ~bt
+        (Printf.sprintf "Seek failed: %s" (Printexc.to_string exn));
       0
   in
   let close () =

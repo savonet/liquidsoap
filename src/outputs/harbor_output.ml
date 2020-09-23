@@ -471,15 +471,19 @@ module Make (T : T) = struct
             data = "";
             on_error =
               (fun e ->
-                ( match e with
-                  | Duppy.Io.Timeout -> self#log#info "Timeout error for %s" ip
-                  | Duppy.Io.Io_error -> self#log#info "I/O error for %s" ip
-                  | Duppy.Io.Unix (c, p, m) ->
-                      self#log#info "Unix error for %s: %s" ip
-                        (Printexc.to_string (Unix.Unix_error (c, p, m)))
-                  | Duppy.Io.Unknown e ->
-                      self#log#debug "%s" (Printexc.to_string e) );
-                self#log#debug "%s" (Printexc.get_backtrace ());
+                let bt = Printexc.get_backtrace () in
+                let msg =
+                  match e with
+                    | Duppy.Io.Timeout ->
+                        Printf.sprintf "Timeout error for %s" ip
+                    | Duppy.Io.Io_error -> Printf.sprintf "I/O error for %s" ip
+                    | Duppy.Io.Unix (c, p, m) ->
+                        Printf.sprintf "Unix error for %s: %s" ip
+                          (Printexc.to_string (Unix.Unix_error (c, p, m)))
+                    | Duppy.Io.Unknown e ->
+                        Printf.sprintf "%s" (Printexc.to_string e)
+                in
+                Utils.log_exception ~log:self#log ~bt msg;
                 self#log#info "Client %s disconnected" ip;
                 Tutils.mutexify client.mutex
                   (fun () ->

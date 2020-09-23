@@ -328,9 +328,9 @@ let get_file_decoder ~metadata ~ctype filename =
             | Found v -> raise (Found v)
             | exn ->
                 let bt = Printexc.get_backtrace () in
-                log#info "Error while checking file's content: %s"
-                  (Printexc.to_string exn);
-                log#info "%s" bt)
+                Utils.log_exception ~log ~bt
+                  (Printf.sprintf "Error while checking file's content: %s"
+                     (Printexc.to_string exn)))
         decoders;
       log#important "Available decoders cannot decode %S as %s" filename
         (Frame.string_of_content_type ctype);
@@ -478,8 +478,10 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
           decoder.decode buffer
         done
       with e ->
-        log#info "Decoding %S ended: %s." filename (Printexc.to_string e);
-        log#debug "%s" (Printexc.get_backtrace ());
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log ~bt
+          (Printf.sprintf "Decoding %S ended: %s." filename
+             (Printexc.to_string e));
         decoding_done := true;
         if conf_debug#get then raise e );
 

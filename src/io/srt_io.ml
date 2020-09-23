@@ -339,7 +339,9 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
         done;
         Generator.fill generator frame
       with exn ->
-        self#log#important "Feeding failed: %s" (Printexc.to_string exn);
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         self#close_client;
         Frame.add_break frame pos
 
