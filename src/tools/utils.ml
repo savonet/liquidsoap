@@ -722,3 +722,11 @@ let string_of_matrix a =
     Strings.Mutable.add ans "\n"
   done;
   Strings.Mutable.to_string ans
+
+(* Util to log exception and backtrace together
+   when log level is set to info and just exception
+   as severe otherwise. Backtrace should be captured as early
+   as possible. *)
+let log_exception ~log ~bt msg =
+  if log#active 4 (* info *) then log#info (Printf.sprintf "%s\n%s" msg bt)
+  else log#severe msg
