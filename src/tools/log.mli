@@ -1,5 +1,6 @@
 type t =
-  < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
+  < active : int -> bool
+  ; f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
   ; critical : 'a. ('a, unit, string, unit) format4 -> 'a
   ; severe : 'a. ('a, unit, string, unit) format4 -> 'a
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a

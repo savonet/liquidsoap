@@ -23,7 +23,8 @@
 (** Logging functions. *)
 
 type t =
-  < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
+  < active : int -> bool
+  ; f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
   ; critical : 'a. ('a, unit, string, unit) format4 -> 'a
   ; severe : 'a. ('a, unit, string, unit) format4 -> 'a
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a
@@ -33,6 +34,9 @@ type t =
 let make path : t =
   let log = Dtools.Log.make path in
   object
+    (** Is that level active (i.e. will it print logs) *)
+    method active lvl = log#active lvl
+
     (** Logging function. *)
     method f : 'a. int -> ('a, unit, string, unit) format4 -> 'a = log#f
 

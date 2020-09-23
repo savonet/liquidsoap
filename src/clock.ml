@@ -83,9 +83,10 @@ let allow_streaming_errors =
 let leave (s : active_source) =
   try s#leave (s :> source)
   with e ->
-    log#severe "Error when leaving output %s: %s!" s#id (Printexc.to_string e);
-    List.iter (log#important "%s")
-      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
+    let bt = Printexc.get_backtrace () in
+    Utils.log_exception ~log ~bt
+      (Printf.sprintf "Error when leaving output %s: %s!" s#id
+         (Printexc.to_string e))
 
 (** {1 Clock implementation}
   * One could think of several clocks for isolated parts of a script.
@@ -288,10 +289,10 @@ class clock ?(sync = `Auto) id =
               s#output;
               (e, s :: a)
             with exn ->
-              log#severe "Source %s failed while streaming: %s!" s#id
-                (Printexc.to_string exn);
-              List.iter (log#important "%s")
-                (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()));
+              let bt = Printexc.get_backtrace () in
+              Utils.log_exception ~log ~bt
+                (Printf.sprintf "Source %s failed while streaming: %s!" s#id
+                   (Printexc.to_string exn));
               leave s;
               (s :: e, a))
           ([], []) active
@@ -348,10 +349,10 @@ class clock ?(sync = `Auto) id =
                 s#get_ready [(s :> source)];
                 `Woken_up s
               with e ->
-                log#severe "Error when starting %s: %s!" s#id
-                  (Printexc.to_string e);
-                List.iter (log#important "%s")
-                  (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()));
+                let bt = Printexc.get_backtrace () in
+                Utils.log_exception ~log ~bt
+                  (Printf.sprintf "Error when starting %s: %s!" s#id
+                     (Printexc.to_string e));
                 leave s;
                 `Error s)
             to_start
@@ -365,10 +366,10 @@ class clock ?(sync = `Auto) id =
                     s#output_get_ready;
                     `Started s
                   with e ->
-                    log#severe "Error when starting output %s: %s!" s#id
-                      (Printexc.to_string e);
-                    List.iter (log#important "%s")
-                      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()));
+                    let bt = Printexc.get_backtrace () in
+                    Utils.log_exception ~log ~bt
+                      (Printf.sprintf "Error when starting output %s: %s!" s#id
+                         (Printexc.to_string e));
                     leave s;
                     `Error s ))
             to_start
