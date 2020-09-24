@@ -110,8 +110,7 @@ let mk_options { Avfilter.options } =
                    (String.concat ", " (List.map string_of_value values)))
           | None, [] -> None
       in
-      let default = Option.map to_value default in
-      let opt = (name, t, default, desc) in
+      let opt = (name, t, Option.map to_value default, desc) in
       let getter p l =
         let v = List.assoc name p in
         let x =
@@ -139,11 +138,23 @@ let mk_options { Avfilter.options } =
               raise
                 (Lang_errors.Invalid_value
                    ( v,
-                     Printf.sprintf "%s must be one of: %s" name
+                     Printf.sprintf "%s should be one of: %s" name
                        (String.concat ", "
                           (List.map (fun (_, v) -> to_string v) values)) ))
           | _ -> () );
-        `Pair (name, `String (to_string x)) :: l
+        let x =
+          match default with
+            | Some v
+              when to_string v = Int64.to_string Int64.max_int
+                   && to_string x = string_of_int max_int ->
+                `Int64 Int64.max_int
+            | Some v
+              when to_string v = Int64.to_string Int64.min_int
+                   && to_string x = string_of_int min_int ->
+                `Int64 Int64.min_int
+            | _ -> `String (to_string x)
+        in
+        `Pair (name, x) :: l
       in
       (opt, getter)
     in
@@ -278,8 +289,9 @@ let () =
       (fun ({ name; description; io } as filter) ->
         let args, args_parser = mk_options filter in
         let input_t =
-          ("", Graph.t, None, None)
-          :: (args @ List.map (fun t -> ("", t, None, None)) (mk_av_t io.inputs))
+          args
+          @ [("", Graph.t, None, None)]
+          @ List.map (fun t -> ("", t, None, None)) (mk_av_t io.inputs)
         in
         let output_t =
           match mk_av_t io.outputs with [x] -> x | l -> Lang.tuple_t l
