@@ -88,6 +88,8 @@ let uniq_name =
   in
   fun name -> Printf.sprintf "%s_%d" name (name_idx name)
 
+exception No_value_for_option
+
 let mk_options { Avfilter.options } =
   Avutil.Options.(
     let mk_opt ~t ~to_string ~to_value ~from_value name help
@@ -110,51 +112,66 @@ let mk_options { Avfilter.options } =
                    (String.concat ", " (List.map string_of_value values)))
           | None, [] -> None
       in
-      let opt = (name, t, Option.map to_value default, desc) in
+      let t, opt_default =
+        match default with
+          | Some v -> (t, Some (to_value v))
+          | None -> (Lang.nullable_t t, Some Lang.null)
+      in
+      let opt = (name, t, opt_default, desc) in
       let getter p l =
-        let v = List.assoc name p in
-        let x =
-          try from_value v
-          with _ -> raise (Lang_errors.Invalid_value (v, "Invalid value"))
-        in
-        ( match min with
-          | Some m when x < m ->
-              raise
-                (Lang_errors.Invalid_value
-                   ( v,
-                     Printf.sprintf "%s must be more than %s" name (to_string m)
-                   ))
-          | _ -> () );
-        ( match max with
-          | Some m when m < x ->
-              raise
-                (Lang_errors.Invalid_value
-                   ( v,
-                     Printf.sprintf "%s must be less than %s" name (to_string m)
-                   ))
-          | _ -> () );
-        ( match values with
-          | _ :: _ when List.find_opt (fun (_, v) -> v = x) values = None ->
-              raise
-                (Lang_errors.Invalid_value
-                   ( v,
-                     Printf.sprintf "%s should be one of: %s" name
-                       (String.concat ", "
-                          (List.map (fun (_, v) -> to_string v) values)) ))
-          | _ -> () );
-        let x =
-          match default with
-            | Some v
-              when to_string v = Int64.to_string Int64.max_int
-                   && to_string x = string_of_int max_int ->
-                `Int64 Int64.max_int
-            | Some v
-              when to_string v = Int64.to_string Int64.min_int
-                   && to_string x = string_of_int min_int ->
-                `Int64 Int64.min_int
-            | _ -> `String (to_string x)
-        in
-        `Pair (name, x) :: l
+        try
+          let v = List.assoc name p in
+          let v =
+            match default with
+              | None -> (
+                  match Lang.to_option v with
+                    | None -> raise No_value_for_option
+                    | Some v -> v )
+              | _ -> v
+          in
+          let x =
+            try from_value v
+            with _ -> raise (Lang_errors.Invalid_value (v, "Invalid value"))
+          in
+          ( match min with
+            | Some m when x < m ->
+                raise
+                  (Lang_errors.Invalid_value
+                     ( v,
+                       Printf.sprintf "%s must be more than %s" name
+                         (to_string m) ))
+            | _ -> () );
+          ( match max with
+            | Some m when m < x ->
+                raise
+                  (Lang_errors.Invalid_value
+                     ( v,
+                       Printf.sprintf "%s must be less than %s" name
+                         (to_string m) ))
+            | _ -> () );
+          ( match values with
+            | _ :: _ when List.find_opt (fun (_, v) -> v = x) values = None ->
+                raise
+                  (Lang_errors.Invalid_value
+                     ( v,
+                       Printf.sprintf "%s should be one of: %s" name
+                         (String.concat ", "
+                            (List.map (fun (_, v) -> to_string v) values)) ))
+            | _ -> () );
+          let x =
+            match default with
+              | Some v
+                when to_string v = Int64.to_string Int64.max_int
+                     && to_string x = string_of_int max_int ->
+                  `Int64 Int64.max_int
+              | Some v
+                when to_string v = Int64.to_string Int64.min_int
+                     && to_string x = string_of_int min_int ->
+                  `Int64 Int64.min_int
+              | _ -> `String (to_string x)
+          in
+          `Pair (name, x) :: l
+        with No_value_for_option -> l
       in
       (opt, getter)
     in
