@@ -20,7 +20,9 @@
 
  *****************************************************************************)
 
-type opt_val = [ `String of string | `Int of int | `Float of float ]
+type opt_val =
+  [ `String of string | `Int of int | `Int64 of int64 | `Float of float ]
+
 type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
 type codec = [ `Copy | `Raw of string | `Internal of string ]
@@ -44,6 +46,7 @@ let string_of_options options =
   let _v = function
     | `String s -> Printf.sprintf "%S" s
     | `Int i -> string_of_int i
+    | `Int64 i -> Int64.to_string i
     | `Float f -> string_of_float f
   in
   String.concat ","

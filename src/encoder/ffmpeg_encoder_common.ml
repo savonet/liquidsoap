@@ -73,7 +73,7 @@ let convert_options opts =
     | `String fmt -> `Int Avutil.Sample_format.(get_id (find fmt))
     | _ -> assert false);
   convert "channel_layout" (function
-    | `String layout -> `Int Avutil.Channel_layout.(get_id (find layout))
+    | `String layout -> `Int64 Avutil.Channel_layout.(get_id (find layout))
     | _ -> assert false)
 
 let encoder ~mk_audio ~mk_video ffmpeg meta =
