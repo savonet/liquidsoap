@@ -139,7 +139,7 @@ let mk_options { Avfilter.options } =
               raise
                 (Lang_errors.Invalid_value
                    ( v,
-                     Printf.sprintf "%s should be one of: %s" name
+                     Printf.sprintf "%s must be one of: %s" name
                        (String.concat ", "
                           (List.map (fun (_, v) -> to_string v) values)) ))
           | _ -> () );
