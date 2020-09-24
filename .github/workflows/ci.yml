@@ -186,7 +186,7 @@ jobs:
   build_docker:
     runs-on: ubuntu-latest
     needs: [get_branch_name, build_docker_amd64, build_docker_arm64]
-    if: ${{ needs.get_branch_name.output.is_release || needs.get_branch_name.output.branch = "master" }}
+    if: ${{ needs.get_branch_name.output.is_release }} || ${{ needs.get_branch_name.output.branch }} = "master"
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
