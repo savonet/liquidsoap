@@ -92,42 +92,56 @@ exception No_value_for_option
 
 let mk_options { Avfilter.options } =
   Avutil.Options.(
-    let mk_opt ~t ~to_string ~to_value ~from_value name help
-        { default; min; max; values } =
+    let mk_opt ~t ~to_string ~from_value name help { default; min; max; values }
+        =
       let desc =
         let string_of_value (name, value) =
           Printf.sprintf "%s (%s)" (to_string value) name
         in
-        match (help, values) with
-          | Some help, _ ->
+        let string_of_values values =
+          String.concat ", " (List.map string_of_value values)
+        in
+        match (help, default, values) with
+          | Some help, None, [] -> Some help
+          | Some help, _, _ ->
+              let values =
+                if values = [] then None
+                else
+                  Some
+                    (Printf.sprintf "possible values: %s"
+                       (string_of_values values))
+              in
+              let default =
+                Option.map
+                  (fun default ->
+                    Printf.sprintf "default: %s" (to_string default))
+                  default
+              in
+              let l =
+                List.fold_left
+                  (fun l -> function Some v -> v :: l | None -> l)
+                  [] [values; default]
+              in
+              Some (Printf.sprintf "%s. (%s)" help (String.concat ", " l))
+          | None, None, _ :: _ ->
               Some
-                ( match values with
-                  | _ :: _ ->
-                      Printf.sprintf "%s. (possible values: %s)" help
-                        (String.concat ", " (List.map string_of_value values))
-                  | [] -> help )
-          | None, _ :: _ ->
+                (Printf.sprintf "Possible values: %s" (string_of_values values))
+          | None, Some v, [] ->
+              Some (Printf.sprintf "Default: %s" (to_string v))
+          | None, Some v, _ :: _ ->
               Some
-                (Printf.sprintf "Possible values: %s"
-                   (String.concat ", " (List.map string_of_value values)))
-          | None, [] -> None
+                (Printf.sprintf "Default: %s, possible values: %s" (to_string v)
+                   (string_of_values values))
+          | None, None, [] -> None
       in
-      let t, opt_default =
-        match default with
-          | Some v -> (t, Some (to_value v))
-          | None -> (Lang.nullable_t t, Some Lang.null)
-      in
-      let opt = (name, t, opt_default, desc) in
+      let opt = (name, Lang.nullable_t t, Some Lang.null, desc) in
       let getter p l =
         try
           let v = List.assoc name p in
           let v =
-            match default with
-              | None -> (
-                  match Lang.to_option v with
-                    | None -> raise No_value_for_option
-                    | Some v -> v )
-              | _ -> v
+            match Lang.to_option v with
+              | None -> raise No_value_for_option
+              | Some v -> v
           in
           let x =
             try from_value v
@@ -176,30 +190,26 @@ let mk_options { Avfilter.options } =
       (opt, getter)
     in
     let mk_opt (p, getter) { name; help; spec } =
-      let mk_opt ~t ~to_string ~to_value ~from_value spec =
-        let opt, get =
-          mk_opt ~t ~to_string ~to_value ~from_value name help spec
-        in
+      let mk_opt ~t ~to_string ~from_value spec =
+        let opt, get = mk_opt ~t ~to_string ~from_value name help spec in
         let getter p l = get p (getter p l) in
         (opt :: p, getter)
       in
       match spec with
         | `Int s ->
-            mk_opt ~t:Lang.int_t ~to_string:string_of_int ~to_value:Lang.int
+            mk_opt ~t:Lang.int_t ~to_string:string_of_int
               ~from_value:Lang.to_int s
         | `Flags s | `Int64 s | `UInt64 s | `Duration s ->
             mk_opt ~t:Lang.int_t ~to_string:Int64.to_string
-              ~to_value:(fun v -> Lang.int (Int64.to_int v))
               ~from_value:(fun v -> Int64.of_int (Lang.to_int v))
               s
         | `Float s | `Double s ->
             mk_opt ~t:Lang.float_t ~to_string:string_of_float
-              ~to_value:Lang.float ~from_value:Lang.to_float s
+              ~from_value:Lang.to_float s
         | `Rational s ->
             let to_string { Avutil.num; den } =
               Printf.sprintf "%i/%i" num den
             in
-            let to_value v = Lang.string (to_string v) in
             let from_value v =
               let x = Lang.to_string v in
               match String.split_on_char '/' x with
@@ -207,9 +217,9 @@ let mk_options { Avfilter.options } =
                     { Avutil.num = int_of_string num; den = int_of_string den }
                 | _ -> assert false
             in
-            mk_opt ~t:Lang.string_t ~to_string ~to_value ~from_value s
+            mk_opt ~t:Lang.string_t ~to_string ~from_value s
         | `Bool s ->
-            mk_opt ~t:Lang.bool_t ~to_string:string_of_bool ~to_value:Lang.bool
+            mk_opt ~t:Lang.bool_t ~to_string:string_of_bool
               ~from_value:Lang.to_bool s
         | `String s
         | `Binary s
@@ -217,26 +227,21 @@ let mk_options { Avfilter.options } =
         | `Image_size s
         | `Video_rate s
         | `Color s ->
-            mk_opt ~t:Lang.string_t
-              ~to_string:(fun x -> x)
-              ~to_value:Lang.string ~from_value:Lang.to_string s
+            mk_opt ~t:Lang.string_t ~to_string:(Printf.sprintf "%S")
+              ~from_value:Lang.to_string s
         | `Pixel_fmt s ->
             mk_opt ~t:Lang.string_t ~to_string:Avutil.Pixel_format.to_string
-              ~to_value:(fun v -> Lang.string (Avutil.Pixel_format.to_string v))
               ~from_value:(fun v ->
                 Avutil.Pixel_format.of_string (Lang.to_string v))
               s
         | `Sample_fmt s ->
             mk_opt ~t:Lang.string_t ~to_string:Avutil.Sample_format.get_name
-              ~to_value:(fun v -> Lang.string (Avutil.Sample_format.get_name v))
               ~from_value:(fun v ->
                 Avutil.Sample_format.find (Lang.to_string v))
               s
         | `Channel_layout s ->
             mk_opt ~t:Lang.string_t
               ~to_string:(Avutil.Channel_layout.get_description ?channels:None)
-              ~to_value:(fun v ->
-                Lang.string (Avutil.Channel_layout.get_description v))
               ~from_value:(fun v ->
                 Avutil.Channel_layout.find (Lang.to_string v))
               s
