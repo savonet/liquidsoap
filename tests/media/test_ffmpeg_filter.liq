@@ -15,8 +15,8 @@ end
 def f(s) =
   def mkfilter(graph) =
     a = ffmpeg.filter.audio.input(graph, s)
-    a = ffmpeg.filter.flanger(graph, a, int_args=[("delay", 10)])
-    a = ffmpeg.filter.highpass(graph, a, int_args=[("frequency", 4000)])
+    a = ffmpeg.filter.flanger(graph, a, delay=10.)
+    a = ffmpeg.filter.highpass(graph, a, frequency=4000.)
     a = ffmpeg.filter.audio.output(graph, a)
 
     v = ffmpeg.filter.video.input(graph, s)

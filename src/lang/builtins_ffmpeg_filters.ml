@@ -88,33 +88,160 @@ let uniq_name =
   in
   fun name -> Printf.sprintf "%s_%d" name (name_idx name)
 
-let mk_args ~t name p =
-  let name = name ^ "_args" in
-  let args = List.assoc name p in
-  let args = Lang.to_list args in
-  let extract_pair extractor v =
-    let label, value = Lang.to_product v in
-    (Lang.to_string label, extractor value)
-  in
-  let extract =
-    match t with
-      | `Int -> fun v -> `Pair (extract_pair (fun v -> `Int (Lang.to_int v)) v)
-      | `Float ->
-          fun v -> `Pair (extract_pair (fun v -> `Float (Lang.to_float v)) v)
-      | `String ->
-          fun v -> `Pair (extract_pair (fun v -> `String (Lang.to_string v)) v)
-      | `Rational ->
-          fun v ->
-            `Pair
-              (extract_pair
-                 (fun v ->
-                   let num, den = Lang.to_product v in
-                   `Rational
-                     { Avutil.num = Lang.to_int num; den = Lang.to_int den })
-                 v)
-      | `Flag -> fun v -> `Flag (Lang.to_string v)
-  in
-  List.map extract args
+exception No_value_for_option
+
+let mk_options { Avfilter.options } =
+  Avutil.Options.(
+    let mk_opt ~t ~to_string ~to_value ~from_value name help
+        { default; min; max; values } =
+      let desc =
+        let string_of_value (name, value) =
+          Printf.sprintf "%s (%s)" (to_string value) name
+        in
+        match (help, values) with
+          | Some help, _ ->
+              Some
+                ( match values with
+                  | _ :: _ ->
+                      Printf.sprintf "%s. (possible values: %s)" help
+                        (String.concat ", " (List.map string_of_value values))
+                  | [] -> help )
+          | None, _ :: _ ->
+              Some
+                (Printf.sprintf "Possible values: %s"
+                   (String.concat ", " (List.map string_of_value values)))
+          | None, [] -> None
+      in
+      let t, opt_default =
+        match default with
+          | Some v -> (t, Some (to_value v))
+          | None -> (Lang.nullable_t t, Some Lang.null)
+      in
+      let opt = (name, t, opt_default, desc) in
+      let getter p l =
+        try
+          let v = List.assoc name p in
+          let v =
+            match default with
+              | None -> (
+                  match Lang.to_option v with
+                    | None -> raise No_value_for_option
+                    | Some v -> v )
+              | _ -> v
+          in
+          let x =
+            try from_value v
+            with _ -> raise (Lang_errors.Invalid_value (v, "Invalid value"))
+          in
+          ( match min with
+            | Some m when x < m ->
+                raise
+                  (Lang_errors.Invalid_value
+                     ( v,
+                       Printf.sprintf "%s must be more than %s" name
+                         (to_string m) ))
+            | _ -> () );
+          ( match max with
+            | Some m when m < x ->
+                raise
+                  (Lang_errors.Invalid_value
+                     ( v,
+                       Printf.sprintf "%s must be less than %s" name
+                         (to_string m) ))
+            | _ -> () );
+          ( match values with
+            | _ :: _ when List.find_opt (fun (_, v) -> v = x) values = None ->
+                raise
+                  (Lang_errors.Invalid_value
+                     ( v,
+                       Printf.sprintf "%s should be one of: %s" name
+                         (String.concat ", "
+                            (List.map (fun (_, v) -> to_string v) values)) ))
+            | _ -> () );
+          let x =
+            match default with
+              | Some v
+                when to_string v = Int64.to_string Int64.max_int
+                     && to_string x = string_of_int max_int ->
+                  `Int64 Int64.max_int
+              | Some v
+                when to_string v = Int64.to_string Int64.min_int
+                     && to_string x = string_of_int min_int ->
+                  `Int64 Int64.min_int
+              | _ -> `String (to_string x)
+          in
+          `Pair (name, x) :: l
+        with No_value_for_option -> l
+      in
+      (opt, getter)
+    in
+    let mk_opt (p, getter) { name; help; spec } =
+      let mk_opt ~t ~to_string ~to_value ~from_value spec =
+        let opt, get =
+          mk_opt ~t ~to_string ~to_value ~from_value name help spec
+        in
+        let getter p l = get p (getter p l) in
+        (opt :: p, getter)
+      in
+      match spec with
+        | `Int s ->
+            mk_opt ~t:Lang.int_t ~to_string:string_of_int ~to_value:Lang.int
+              ~from_value:Lang.to_int s
+        | `Flags s | `Int64 s | `UInt64 s | `Duration s ->
+            mk_opt ~t:Lang.int_t ~to_string:Int64.to_string
+              ~to_value:(fun v -> Lang.int (Int64.to_int v))
+              ~from_value:(fun v -> Int64.of_int (Lang.to_int v))
+              s
+        | `Float s | `Double s ->
+            mk_opt ~t:Lang.float_t ~to_string:string_of_float
+              ~to_value:Lang.float ~from_value:Lang.to_float s
+        | `Rational s ->
+            let to_string { Avutil.num; den } =
+              Printf.sprintf "%i/%i" num den
+            in
+            let to_value v = Lang.string (to_string v) in
+            let from_value v =
+              let x = Lang.to_string v in
+              match String.split_on_char '/' x with
+                | [num; den] ->
+                    { Avutil.num = int_of_string num; den = int_of_string den }
+                | _ -> assert false
+            in
+            mk_opt ~t:Lang.string_t ~to_string ~to_value ~from_value s
+        | `Bool s ->
+            mk_opt ~t:Lang.bool_t ~to_string:string_of_bool ~to_value:Lang.bool
+              ~from_value:Lang.to_bool s
+        | `String s
+        | `Binary s
+        | `Dict s
+        | `Image_size s
+        | `Video_rate s
+        | `Color s ->
+            mk_opt ~t:Lang.string_t
+              ~to_string:(fun x -> x)
+              ~to_value:Lang.string ~from_value:Lang.to_string s
+        | `Pixel_fmt s ->
+            mk_opt ~t:Lang.string_t ~to_string:Avutil.Pixel_format.to_string
+              ~to_value:(fun v -> Lang.string (Avutil.Pixel_format.to_string v))
+              ~from_value:(fun v ->
+                Avutil.Pixel_format.of_string (Lang.to_string v))
+              s
+        | `Sample_fmt s ->
+            mk_opt ~t:Lang.string_t ~to_string:Avutil.Sample_format.get_name
+              ~to_value:(fun v -> Lang.string (Avutil.Sample_format.get_name v))
+              ~from_value:(fun v ->
+                Avutil.Sample_format.find (Lang.to_string v))
+              s
+        | `Channel_layout s ->
+            mk_opt ~t:Lang.string_t
+              ~to_string:(Avutil.Channel_layout.get_description ?channels:None)
+              ~to_value:(fun v ->
+                Lang.string (Avutil.Channel_layout.get_description v))
+              ~from_value:(fun v ->
+                Avutil.Channel_layout.find (Lang.to_string v))
+              s
+    in
+    List.fold_left mk_opt ([], fun _ x -> x) (Avutil.Options.opts options))
 
 let get_config graph =
   let { config; _ } = Graph.of_value graph in
@@ -127,19 +254,13 @@ let get_config graph =
                "Graph variables cannot be used outside of ffmpeg.filter.create!"
              ))
 
-let apply_filter ~filter p =
-  let int_args = mk_args ~t:`Int "int" p in
-  let float_args = mk_args ~t:`Float "float" p in
-  let string_args = mk_args ~t:`String "string" p in
-  let rational_args = mk_args ~t:`Rational "rational" p in
-  let flag_args = mk_args ~t:`Flag "flag" p in
-  let args = int_args @ float_args @ string_args @ rational_args @ flag_args in
+let apply_filter ~args_parser ~filter p =
   Avfilter.(
     let graph_v = Lang.assoc "" 1 p in
     let config = get_config graph_v in
     let graph = Graph.of_value graph_v in
     let name = uniq_name filter.name in
-    let filter = attach ~args ~name filter config in
+    let filter = attach ~args:(args_parser p []) ~name filter config in
     let audio_inputs_c = List.length filter.io.inputs.audio in
     Queue.push
       ( lazy
@@ -181,25 +302,12 @@ let () =
       let video = List.map (fun _ -> Video.t) video in
       audio @ video
     in
-    let args ?t name =
-      let t =
-        match t with
-          | Some t -> Lang.product_t Lang.string_t t
-          | None -> Lang.string_t
-      in
-      (name ^ "_args", Lang.list_t t, Some (Lang.list []), None)
-    in
     List.iter
       (fun ({ name; description; io } as filter) ->
+        let args, args_parser = mk_options filter in
         let input_t =
-          [
-            args ~t:Lang.int_t "int";
-            args ~t:Lang.float_t "float";
-            args ~t:Lang.string_t "string";
-            args ~t:(Lang.product_t Lang.int_t Lang.int_t) "rational";
-            args "flag";
-            ("", Graph.t, None, None);
-          ]
+          args
+          @ [("", Graph.t, None, None)]
           @ List.map (fun t -> ("", t, None, None)) (mk_av_t io.inputs)
         in
         let output_t =
@@ -207,7 +315,8 @@ let () =
         in
         add_builtin ~cat:Liq ("ffmpeg.filter." ^ name)
           ~descr:("Ffmpeg filter: " ^ description)
-          input_t output_t (apply_filter ~filter))
+          input_t output_t
+          (apply_filter ~args_parser ~filter))
       filters)
 
 let abuffer_args
@@ -230,7 +339,7 @@ let abuffer_args
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_master_ticks_time_base ()));
     `Pair
       ( "channel_layout",
-        `Int
+        `Int64
           (Avutil.Channel_layout.get_id
              (Option.value ~default:default_channel_layout channel_layout)) );
     `Pair
