@@ -94,18 +94,18 @@ module Generator = struct
         g.offset <- 0;
         remove g (len - removed) ) )
 
-  (** Feed an item into a generator.
-  * The item is put as such, not copied. *)
+  (* Feed an item into a generator.
+     The item is put as such, not copied. *)
   let put g content ofs len =
     g.length <- g.length + len;
     Queue.add (content, ofs, len) g.buffers
 
   (* Get [size] amount of data from [g].
-     * Returns a list where each element will typically be passed to a blit:
-     * its elements are of the form [b,o,o',l] where [o] is the offset of data
-     * in the block [b], [o'] is the position at which it should be written
-     * (the first position [o'] will always be [0]), and [l] is the length
-     * of data to be taken from that block. *)
+     Returns a list where each element will typically be passed to a blit:
+     its elements are of the form [b,o,o',l] where [o] is the offset of data
+     in the block [b], [o'] is the position at which it should be written
+     (the first position [o'] will always be [0]), and [l] is the length
+     of data to be taken from that block. *)
   let get g size =
     (* The main loop takes the current offset in the output buffer,
      * and iterates on input buffer chunks. *)
