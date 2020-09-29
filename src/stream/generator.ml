@@ -613,17 +613,20 @@ module From_audio_video = struct
 
     let l = min (size - fpos) remaining in
 
+    let audio = Generator.get t.audio l in
+    let video = Generator.get t.video l in
+
     if mode = `Both || mode = `Audio then
       List.iter
         (fun ({ data }, apos, apos', al) ->
           Frame_content.blit data apos (AFrame.content frame) (fpos + apos') al)
-        (Generator.get t.audio l);
+        audio;
 
     if mode = `Both || mode = `Video then
       List.iter
         (fun ({ data }, vpos, vpos', vl) ->
           Frame_content.blit data vpos (VFrame.content frame) (fpos + vpos') vl)
-        (Generator.get t.video l);
+        video;
 
     Frame.add_break frame (fpos + l);
 
@@ -631,7 +634,7 @@ module From_audio_video = struct
       (fun (p, m) -> if p < l then Frame.set_metadata frame (fpos + p) m)
       t.metadata;
 
-    remove t l;
+    advance t l;
 
     (* If the frame is partial it must be because of a break in the
      * generator, or because the generator is emptying.
