@@ -631,7 +631,7 @@ module From_audio_video = struct
       (fun (p, m) -> if p < l then Frame.set_metadata frame (fpos + p) m)
       t.metadata;
 
-    advance t l;
+    remove t l;
 
     (* If the frame is partial it must be because of a break in the
      * generator, or because the generator is emptying.
