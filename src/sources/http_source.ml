@@ -610,7 +610,7 @@ module Make (Config : Config_t) = struct
           Some "Polling delay when trying to connect to the stream." );
         ( "max",
           Lang.float_t,
-          Some (Lang.float 10.),
+          Some (Lang.float 20.),
           Some "Maximum duration of the buffered data." );
         ( "logfile",
           Lang.string_t,
