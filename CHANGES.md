@@ -135,6 +135,7 @@ Fixed:
 - Improve the quality of `video.add_text.gd` (#1188).
 - Exit with non-zero code on errors.
 - Fixed parsing of http URI arguments with `=` in them (#1340).
+- Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 
 1.4.3 (14-09-2020)
 =====

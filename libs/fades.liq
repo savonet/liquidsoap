@@ -93,12 +93,14 @@ def fade.out(~id="fade.out",~duration=3.,
   type = ref(type)
   duration = ref(duration)
   start_time = ref(-1.)
+  started = ref(false)
 
   def start_fade(d,_) =
     log("Fading out with #{d}s remaining..")
     start_time := source.time(s)
     duration = if d < !duration then d else !duration end
     fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)
+    started := true
   end
 
   def apply() =
@@ -107,7 +109,10 @@ def fade.out(~id="fade.out",~duration=3.,
   end
 
   def stop_fade(_) =
-    fn := fun () -> 1.
+    if !started then
+      fn := fun () -> 1.
+      started := false
+    end
   end
 
   def update_fade(m) =
@@ -124,8 +129,8 @@ def fade.out(~id="fade.out",~duration=3.,
 
   s = on_metadata(update_fade,s)
   delay = fun () -> !duration
-  s = on_end(delay=delay,start_fade,s)
   s = on_track(stop_fade,s)
+  s = on_end(delay=delay,start_fade,s)
   fade.scale(id=id,apply,s)
 end
 
