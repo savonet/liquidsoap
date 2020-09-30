@@ -386,14 +386,7 @@ let options =
        warnings in some cases. Currently: unused variables and ignored \
        expressions. " );
   ]
-  (* Unix.fork is not implemented in Win32. *)
-  @ ( if not Sys.win32 then
-      [
-        ( ["-d"; "--daemon"],
-          Arg.Unit (fun _ -> Dtools.Init.conf_daemon#set true),
-          "Run in daemon mode." );
-      ]
-    else [] )
+  @ Dtools.Init.args
   @ [
       ( ["-t"; "--enable-telnet"],
         Arg.Unit (fun _ -> Server.conf_telnet#set true),
