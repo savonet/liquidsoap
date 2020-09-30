@@ -59,20 +59,41 @@ let handler path (data : LO.Message.data array) =
     List.iter (fun f -> f v) h
   with _ -> ()
 
+(* We have to start the server _after_
+   daemonizing. See: savonet/liquidsoap#1365.
+ 
+   There are two cases:
+   - Server is requested before we daemonize (i.e.
+     in a top-level call), start it after daemonization.
+   - Server is requested after we daemonize (i.e. 
+     in a callback), start it immediately. *)
 let server = ref None
+let should_start = ref false
+let started = ref false
+let started_m = Mutex.create ()
 
 let start_server () =
-  if !server = None then (
-    let port = conf_port#get in
-    let s = S.create port handler in
-    server := Some s;
-    ignore
-      (Thread.create
-         (fun () ->
-           while true do
-             S.recv s
-           done)
-         ()) )
+  let port = conf_port#get in
+  let s = S.create port handler in
+  server := Some s;
+  ignore
+    (Thread.create
+       (fun () ->
+         while true do
+           S.recv s
+         done)
+       ())
+
+let _ =
+  Dtools.Init.at_start ~name:"osc.start"
+    (Tutils.mutexify started_m (fun () ->
+         if !should_start && !server = None then start_server ()
+         else started := true))
+
+let start_server =
+  Tutils.mutexify started_m (fun () ->
+      if !started && !server = None then start_server ()
+      else should_start := true)
 
 let _ =
   Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] (fun () ->
