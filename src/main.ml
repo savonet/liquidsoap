@@ -496,7 +496,7 @@ let expand_options options =
       let ta = List.hd (List.rev la) in
       let expand =
         List.map
-          (fun a -> (a, b, if a = ta then "\n" ^ format_doc c else ""))
+          (fun a -> (a, b, if a = ta then "\n" ^ format_doc c else " "))
           la
       in
       l @ expand)
