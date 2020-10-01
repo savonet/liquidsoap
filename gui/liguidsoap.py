@@ -53,7 +53,7 @@ behaviour is hard-coded in the liquidsoap script. You can just see what will be
 played next. (Actually, more could be coming soon, like changing random mode 
 and playlist file...)
 
-Liquidsoap and liguidsoap are copyright (c) 2003-2019 Savonet Team.
+Liquidsoap and liguidsoap are copyright (c) 2003-2020 Savonet Team.
 This is free software, released under the terms of GPL version 2 or higher.
 """)
     box.pack_start(lbl)

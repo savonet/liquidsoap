@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2019 Savonet team
+  Copyright 2003-2020 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -197,8 +197,7 @@ let () =
        ```\n\
        the value returned by `of_json(default=[(\"\",0)], j)` will be \
        `[(\"b\",5)]`: the pair `(\"a\",\"test\")` is not kept because it is \
-       not of type `string * int`."
-    "of_json"
+       not of type `string * int`." "of_json"
     [
       ("default", t, None, Some "Default value if string cannot be parsed.");
       ("", Lang.string_t, None, None);
