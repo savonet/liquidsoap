@@ -22,8 +22,4 @@
 
 (** Default runner. *)
 
-module Runner = struct
-  let options = Main.options
-end
-
-module Main = Main.Make (Runner)
+let () = Main.start ()

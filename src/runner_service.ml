@@ -28,8 +28,8 @@ let text = ref "Powerful streaming service using Liquidsoap"
 let action = ref `None
 let split s = Str.split (Str.regexp " ") s
 
-module Runner : Main.Runner_t = struct
-  let options =
+let () =
+  Main.options :=
     [
       ( ["--install-service"],
         Arg.Unit (fun _ -> action := `Install),
@@ -46,11 +46,9 @@ module Runner : Main.Runner_t = struct
         Arg.Unit (fun _ -> action := `Run),
         "Run windows service (only used by windows service manager)." );
     ]
-    @ Main.options
-end
+    @ !Main.options;
 
-let () =
-  let options = Main.expand_options Runner.options in
+  let options = Main.expand_options !Main.options in
   Arg.parse options (fun _ -> ()) Main.usage;
   Arg.current := 0;
   let args =
@@ -66,10 +64,6 @@ let () =
     let stop = Tutils.shutdown
   end in
   let module Svc = Service.Make (S) in
-  let main () =
-    let module Main = Main.Make (Runner) in
-    ()
-  in
   match !action with
     | `Install ->
         Svc.install ();
@@ -83,7 +77,7 @@ let () =
         Unix.dup2 (Unix.descr_of_out_channel nul) Unix.stdout;
         Dtools.Log.conf_stdout#set false;
         Dtools.Log.conf_file#set true;
-        try Svc.run main
+        try Svc.run Main.start
         with e ->
           Main.log#severe "Error while running service: %s"
             (Printexc.to_string e) )

@@ -96,7 +96,7 @@ let audio_n n =
     Audio.lift_params
       {
         Contents.channel_layout =
-          Audio_converter.Channel_layout.layout_of_channels n;
+          lazy (Audio_converter.Channel_layout.layout_of_channels n);
       })
 
 let test_ctype f filename =

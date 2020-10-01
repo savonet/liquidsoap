@@ -26,7 +26,11 @@ module Contents : sig
   type kind
   type format
   type data
-  type audio_params = { channel_layout : [ `Mono | `Stereo | `Five_point_one ] }
+
+  type audio_params = {
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+  }
+
   type video_params = { width : int Lazy.t option; height : int Lazy.t option }
   type midi_params = { channels : int }
 end

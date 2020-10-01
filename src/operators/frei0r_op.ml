@@ -378,4 +378,5 @@ let register_plugins () =
   in
   List.iter add plugin_dirs
 
-let () = Configure.at_init (fun () -> if frei0r_enable then register_plugins ())
+let () =
+  Lifecycle.before_init (fun () -> if frei0r_enable then register_plugins ())

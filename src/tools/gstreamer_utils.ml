@@ -1,3 +1,27 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2020 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
+
+let log = Log.make ["gstreamer"]
+
 let conf_gstreamer =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "gstreamer")
@@ -18,7 +42,7 @@ let conf_add_borders =
 let add_borders () = conf_add_borders#get
 
 let () =
-  Configure.at_init (fun () ->
+  Lifecycle.on_init (fun () ->
       let debug =
         try int_of_string (Sys.getenv "LIQ_GST_DEBUG_LEVEL") with _ -> 0
       in
@@ -166,9 +190,9 @@ let flush ~log ?(types = [`Error; `Warning; `Info; `State_changed])
 let () =
   let loop = Gstreamer.Loop.create () in
   let main () = Gstreamer.Loop.run loop in
-  ignore
-    (Dtools.Init.at_start (fun () ->
-         ignore (Tutils.create main () "gstreamer_main_loop")));
-  ignore
-    (Dtools.Init.make ~before:[Tutils.scheduler_pre_shutdown_atom] (fun () ->
-         Gstreamer.Loop.quit loop))
+  Lifecycle.on_start (fun () ->
+      log#info "Starting gstreamer event loop";
+      ignore (Tutils.create main () "gstreamer_main_loop"));
+  Lifecycle.on_core_shutdown (fun () ->
+      log#info "Stopping streamer event loop";
+      Gstreamer.Loop.quit loop)

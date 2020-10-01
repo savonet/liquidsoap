@@ -43,7 +43,7 @@ let audio_kind n =
           Audio.lift_params
             {
               Contents.channel_layout =
-                Audio_converter.Channel_layout.layout_of_channels n;
+                lazy (Audio_converter.Channel_layout.layout_of_channels n);
             })
   in
   { Frame.audio; video = Frame.none; midi = Frame.none }
@@ -80,8 +80,9 @@ let kind_of_format = function
                   Audio.lift_params
                     {
                       Contents.channel_layout =
-                        Audio_converter.Channel_layout.layout_of_channels
-                          channels;
+                        lazy
+                          (Audio_converter.Channel_layout.layout_of_channels
+                             channels);
                     })
       in
       let video =

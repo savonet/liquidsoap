@@ -107,16 +107,23 @@ let conf_midi_channels =
 (* This variable prevents forcing the value of a lazy configuration
  * item before the user gets a chance to override the default. *)
 let lazy_config_eval = ref false
-let allow_lazy_config_eval () = lazy_config_eval := true
-let delayed f = lazy (f ())
+let delayed_eval = Queue.create ()
+
+let delayed f =
+  let ret = lazy (f ()) in
+  Queue.push (fun () -> ignore (Lazy.force ret)) delayed_eval;
+  ret
+
+let () =
+  Lifecycle.after_script_parse (fun () ->
+      Queue.iter (fun f -> f ()) delayed_eval)
 
 let delayed_conf ~to_string x =
   delayed (fun () ->
       assert !lazy_config_eval;
       let ret = x#get in
       let routes = List.flatten (conf#routes x#ut) in
-      log#important "frame.%s set to: %s" (String.concat "." routes)
-        (to_string ret);
+      log#info "frame.%s set to: %s" (String.concat "." routes) (to_string ret);
       ret)
 
 let ( !! ) = Lazy.force

@@ -20,11 +20,6 @@
 
  *****************************************************************************)
 
-(** Runner module signature. *)
-module type Runner_t = sig
-  val options : (string list * Arg.spec * string) list
-end
-
 let usage =
   "Usage : liquidsoap [OPTION, SCRIPT or EXPR]...\n\
   \ - SCRIPT for evaluating a liquidsoap script file;\n\
@@ -329,165 +324,170 @@ let format_doc s =
 let log = Log.make ["main"]
 
 let options =
-  [
-    (["-"], Arg.Unit (fun () -> eval `StdIn), "Read script from standard input.");
-    (["-r"], Arg.String process_request, "Process a request.");
-    ( ["-h"],
-      Arg.String lang_doc,
-      "Get help about a scripting value: source, operator, builtin or library \
-       function, etc." );
-    ( ["-c"; "--check"],
-      Arg.Unit
-        (fun () ->
-          secondary_task := true;
-          dont_run := true),
-      "Check and evaluate scripts but do not perform any streaming." );
-    ( ["-cl"; "--check-lib"],
-      Arg.Unit
-        (fun () ->
-          last_item_lib := true;
-          secondary_task := true;
-          dont_run := true),
-      "Like --check but treats all scripts and expressions as libraries, so \
-       that unused toplevel variables are not reported." );
-    ( ["-p"; "--parse-only"],
-      Arg.Unit
-        (fun () ->
-          secondary_task := true;
-          parse_only := true),
-      "Parse scripts but do not type-check and run them." );
-    ( ["-q"; "--quiet"],
-      Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
-      "Do not print log messages on standard output." );
-    ( ["-v"; "--verbose"],
-      Arg.Unit (fun () -> Dtools.Log.conf_stdout#set true),
-      "Print log messages on standard output." );
-    ( ["-f"; "--force-start"],
-      Arg.Unit (fun () -> force_start#set true),
-      "For advanced dynamic uses: force liquidsoap to start even when no \
-       active source is initially defined." );
-    ( ["--debug"],
-      Arg.Unit
-        (fun () -> Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
-      "Print debugging log messages." );
-    ( ["--debug-errors"],
-      Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
-      "Debug errors (show stacktrace instead of printing a message)." );
-    ( ["--debug-lang"],
-      Arg.Unit
-        (fun () ->
-          Lang_types.debug := true;
-          Lang_values.conf_debug#set true),
-      "Debug language implementation." );
-    (["--profile"], Arg.Set Lang_values.profile, "Profile execution.");
-    ( ["--strict"],
-      Arg.Set Lang_errors.strict,
-      "Execute script code in strict mode, issuing fatal errors instead of \
-       warnings in some cases. Currently: unused variables and ignored \
-       expressions. " );
-  ]
-  @ Dtools.Init.args
-  @ [
-      ( ["-t"; "--enable-telnet"],
-        Arg.Unit (fun _ -> Server.conf_telnet#set true),
-        "Enable the telnet server." );
-      ( ["-T"; "--disable-telnet"],
-        Arg.Unit (fun _ -> Server.conf_telnet#set false),
-        "Disable the telnet server." );
-      ( ["-u"; "--enable-unix-socket"],
-        Arg.Unit (fun _ -> Server.conf_socket#set true),
-        "Enable the unix socket." );
-      ( ["-U"; "--disable-unix-socket"],
-        Arg.Unit (fun _ -> Server.conf_socket#set false),
-        "Disable the unix socket." );
-      ( ["--list-plugins-xml"],
-        Arg.Unit
-          (fun () ->
-            secondary_task := true;
-            load_libs ();
-            Utils.kprint_string ~pager:true
-              (Doc.print_xml (Plug.plugs : Doc.item))),
-        Printf.sprintf
-          "List all plugins (builtin scripting values, supported formats and \
-           protocols), output as XML." );
-      ( ["--list-plugins-json"],
-        Arg.Unit
-          (fun () ->
-            secondary_task := true;
-            load_libs ();
-            Utils.kprint_string ~pager:true
-              (Doc.print_json (Plug.plugs : Doc.item))),
-        Printf.sprintf
-          "List all plugins (builtin scripting values, supported formats and \
-           protocols), output as JSON." );
-      ( ["--list-plugins"],
-        Arg.Unit
-          (fun () ->
-            secondary_task := true;
-            load_libs ();
-            Utils.kprint_string ~pager:true (Doc.print (Plug.plugs : Doc.item))),
-        Printf.sprintf
-          "List all plugins (builtin scripting values, supported formats and \
-           protocols)." );
-      ( ["--list-functions"],
-        Arg.Unit
-          (fun () ->
-            secondary_task := true;
-            load_libs ();
-            Utils.kprint_string ~pager:true
-              (Doc.print_functions (Plug.plugs : Doc.item))),
-        Printf.sprintf "List all functions." );
-      ( ["--list-functions-md"],
-        Arg.Unit
-          (fun () ->
-            secondary_task := true;
-            load_libs ();
-            Utils.kprint_string ~pager:true
-              (Doc.print_functions_md ~extra:false (Plug.plugs : Doc.item))),
-        Printf.sprintf "Documentation of all functions in markdown." );
-      ( ["--list-extra-functions-md"],
-        Arg.Unit
-          (fun () ->
-            secondary_task := true;
-            load_libs ();
-            Utils.kprint_string ~pager:true
-              (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
-        Printf.sprintf "Documentation of all extra functions in markdown." );
-      ( ["--list-protocols-md"],
-        Arg.Unit
-          (fun () ->
-            secondary_task := true;
-            load_libs ();
-            Utils.kprint_string ~pager:true
-              (Doc.print_protocols_md (Plug.plugs : Doc.item))),
-        Printf.sprintf "Documentation of all protocols in markdown." );
-      ( ["--no-pervasives"],
-        Arg.Clear pervasives,
-        Printf.sprintf
-          "Do not load pervasives script libraries (i.e., %s/*.liq)."
-          Configure.liq_libs_dir );
-      (["-i"], Arg.Set Configure.display_types, "Display infered types.");
-      ( ["--version"],
-        Arg.Unit
-          (fun () ->
-            Printf.printf
-              "Liquidsoap %s\n\
-               Copyright (c) 2003-2020 Savonet team\n\
-               Liquidsoap is open-source software, released under GNU General \
-               Public License.\n\
-               See <http://liquidsoap.info> for more information.\n"
-              Configure.version;
-            exit 0),
-        "Display liquidsoap's version." );
-      ( ["--interactive"],
-        Arg.Set interactive,
-        "Start an interactive interpreter." );
-      ( ["--"],
-        Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
-        "Stop parsing the command-line and pass subsequent items to the script."
-      );
-    ]
-  @ LiqConf.args Configure.conf
+  ref
+    ( [
+        ( ["-"],
+          Arg.Unit (fun () -> eval `StdIn),
+          "Read script from standard input." );
+        (["-r"], Arg.String process_request, "Process a request.");
+        ( ["-h"],
+          Arg.String lang_doc,
+          "Get help about a scripting value: source, operator, builtin or \
+           library function, etc." );
+        ( ["-c"; "--check"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              dont_run := true),
+          "Check and evaluate scripts but do not perform any streaming." );
+        ( ["-cl"; "--check-lib"],
+          Arg.Unit
+            (fun () ->
+              last_item_lib := true;
+              secondary_task := true;
+              dont_run := true),
+          "Like --check but treats all scripts and expressions as libraries, \
+           so that unused toplevel variables are not reported." );
+        ( ["-p"; "--parse-only"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              parse_only := true),
+          "Parse scripts but do not type-check and run them." );
+        ( ["-q"; "--quiet"],
+          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
+          "Do not print log messages on standard output." );
+        ( ["-v"; "--verbose"],
+          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set true),
+          "Print log messages on standard output." );
+        ( ["-f"; "--force-start"],
+          Arg.Unit (fun () -> force_start#set true),
+          "For advanced dynamic uses: force liquidsoap to start even when no \
+           active source is initially defined." );
+        ( ["--debug"],
+          Arg.Unit
+            (fun () ->
+              Dtools.Log.conf_level#set (max 4 Dtools.Log.conf_level#get)),
+          "Print debugging log messages." );
+        ( ["--debug-errors"],
+          Arg.Unit (fun () -> Lang_values.conf_debug_errors#set true),
+          "Debug errors (show stacktrace instead of printing a message)." );
+        ( ["--debug-lang"],
+          Arg.Unit
+            (fun () ->
+              Lang_types.debug := true;
+              Lang_values.conf_debug#set true),
+          "Debug language implementation." );
+        (["--profile"], Arg.Set Lang_values.profile, "Profile execution.");
+        ( ["--strict"],
+          Arg.Set Lang_errors.strict,
+          "Execute script code in strict mode, issuing fatal errors instead of \
+           warnings in some cases. Currently: unused variables and ignored \
+           expressions. " );
+      ]
+    @ Dtools.Init.args
+    @ [
+        ( ["-t"; "--enable-telnet"],
+          Arg.Unit (fun _ -> Server.conf_telnet#set true),
+          "Enable the telnet server." );
+        ( ["-T"; "--disable-telnet"],
+          Arg.Unit (fun _ -> Server.conf_telnet#set false),
+          "Disable the telnet server." );
+        ( ["-u"; "--enable-unix-socket"],
+          Arg.Unit (fun _ -> Server.conf_socket#set true),
+          "Enable the unix socket." );
+        ( ["-U"; "--disable-unix-socket"],
+          Arg.Unit (fun _ -> Server.conf_socket#set false),
+          "Disable the unix socket." );
+        ( ["--list-plugins-xml"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              load_libs ();
+              Utils.kprint_string ~pager:true
+                (Doc.print_xml (Plug.plugs : Doc.item))),
+          Printf.sprintf
+            "List all plugins (builtin scripting values, supported formats and \
+             protocols), output as XML." );
+        ( ["--list-plugins-json"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              load_libs ();
+              Utils.kprint_string ~pager:true
+                (Doc.print_json (Plug.plugs : Doc.item))),
+          Printf.sprintf
+            "List all plugins (builtin scripting values, supported formats and \
+             protocols), output as JSON." );
+        ( ["--list-plugins"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              load_libs ();
+              Utils.kprint_string ~pager:true
+                (Doc.print (Plug.plugs : Doc.item))),
+          Printf.sprintf
+            "List all plugins (builtin scripting values, supported formats and \
+             protocols)." );
+        ( ["--list-functions"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              load_libs ();
+              Utils.kprint_string ~pager:true
+                (Doc.print_functions (Plug.plugs : Doc.item))),
+          Printf.sprintf "List all functions." );
+        ( ["--list-functions-md"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              load_libs ();
+              Utils.kprint_string ~pager:true
+                (Doc.print_functions_md ~extra:false (Plug.plugs : Doc.item))),
+          Printf.sprintf "Documentation of all functions in markdown." );
+        ( ["--list-extra-functions-md"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              load_libs ();
+              Utils.kprint_string ~pager:true
+                (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
+          Printf.sprintf "Documentation of all extra functions in markdown." );
+        ( ["--list-protocols-md"],
+          Arg.Unit
+            (fun () ->
+              secondary_task := true;
+              load_libs ();
+              Utils.kprint_string ~pager:true
+                (Doc.print_protocols_md (Plug.plugs : Doc.item))),
+          Printf.sprintf "Documentation of all protocols in markdown." );
+        ( ["--no-pervasives"],
+          Arg.Clear pervasives,
+          Printf.sprintf
+            "Do not load pervasives script libraries (i.e., %s/*.liq)."
+            Configure.liq_libs_dir );
+        (["-i"], Arg.Set Configure.display_types, "Display infered types.");
+        ( ["--version"],
+          Arg.Unit
+            (fun () ->
+              Printf.printf
+                "Liquidsoap %s\n\
+                 Copyright (c) 2003-2020 Savonet team\n\
+                 Liquidsoap is open-source software, released under GNU \
+                 General Public License.\n\
+                 See <http://liquidsoap.info> for more information.\n"
+                Configure.version;
+              exit 0),
+          "Display liquidsoap's version." );
+        ( ["--interactive"],
+          Arg.Set interactive,
+          "Start an interactive interpreter." );
+        ( ["--"],
+          Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
+          "Stop parsing the command-line and pass subsequent items to the \
+           script." );
+      ]
+    @ LiqConf.args Configure.conf )
 
 let expand_options options =
   let options = List.sort (fun (x, _, _) (y, _, _) -> compare x y) options in
@@ -502,125 +502,22 @@ let expand_options options =
       l @ expand)
     [] options
 
-module Make (Runner : Runner_t) = struct
-  let () =
-    log#important "Liquidsoap %s" Configure.version;
-    log#important "Using:%s" Configure.libs_versions;
-    if Configure.git_snapshot then
-      List.iter (log#important "%s")
-        [
-          "";
-          "DISCLAIMER: This version of Liquidsoap has been";
-          "compiled from a snapshot of the development code.";
-          "As such, it should not be used in production";
-          "unless you know what you are doing!";
-          "";
-          "We are, however, very interested in any feedback";
-          "about our development code and committed to fix";
-          "issues as soon as possible.";
-          "";
-          "If you are interested in collaborating to";
-          "the development of Liquidsoap, feel free to";
-          "drop us a mail at <savonet-devl@lists.sf.net>";
-          "or to join the slack chat at <http://slack.liquidsoap.info>.";
-          "";
-          "Please send any bug report or feature request";
-          "at <https://github.com/savonet/liquidsoap/issues>.";
-          "";
-          "We hope you enjoy this snapshot build of Liquidsoap!";
-          "";
-        ]
+(** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
+let parse argv l f msg =
+  try Arg.parse_argv argv l f msg with
+    | Arg.Bad msg ->
+        Printf.eprintf "%s" msg;
+        exit 2
+    | Arg.Help msg ->
+        Utils.print_string ~pager:true msg;
+        exit 0
 
-  (** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
-  let parse argv l f msg =
-    try Arg.parse_argv argv l f msg with
-      | Arg.Bad msg ->
-          Printf.eprintf "%s" msg;
-          exit 2
-      | Arg.Help msg ->
-          Utils.print_string ~pager:true msg;
-          exit 0
+let absolute s =
+  if String.length s > 0 && s.[0] <> '/' then Unix.getcwd () ^ "/" ^ s else s
 
-  let absolute s =
-    if String.length s > 0 && s.[0] <> '/' then Unix.getcwd () ^ "/" ^ s else s
-
-  let () = Configure.run_init ()
-
+let () =
   (* Startup *)
-  let startup () =
-    Random.self_init ();
-
-    (* Set the default values. *)
-    Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
-    Dtools.Init.conf_daemon_pidfile#set_d (Some true);
-    Dtools.Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid");
-
-    (* We only allow evaluation of
-     * lazy configuration keys now. *)
-    Frame.allow_lazy_config_eval ();
-
-    (* Parse command-line, and notably load scripts. *)
-    parse Shebang.argv
-      (expand_options Runner.options)
-      (fun s -> eval (`Expr_or_File s))
-      usage;
-    do_eval ~lib:!last_item_lib
-
-  (* When the log/pid paths have their definitive values,
-   * expand substitutions and check directories.
-   * This should be ran just before Dtools init. *)
-  let check_directories () =
-    (* Now that the paths have their definitive value, expand <shortcuts>. *)
-    let subst conf = conf#set (Configure.subst_vars conf#get) in
-    subst Dtools.Init.conf_daemon_pidfile_path;
-    let check_dir conf_path kind =
-      let path = conf_path#get in
-      let dir = Filename.dirname path in
-      if not (Sys.file_exists dir) then (
-        let routes = Configure.conf#routes conf_path#ut in
-        Printf.printf
-          "FATAL ERROR: %s directory %S does not exist.\n\
-           To change it, add the following to your script:\n\
-          \  set(%S, \"<path>\")\n"
-          kind dir
-          (Dtools.Conf.string_of_path (List.hd routes));
-        exit 1 )
-    in
-    if Dtools.Log.conf_file#get then (
-      subst Dtools.Log.conf_file_path;
-      check_dir Dtools.Log.conf_file_path "Log" );
-    if Dtools.Init.conf_daemon#get && Dtools.Init.conf_daemon_pidfile#get then
-      check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
-
-  (* Now that outputs have been defined, we can start the main loop. *)
-  let () =
-    let cleanup_threads () =
-      if !Lang_values.profile then
-        log#important "Profiler stats:\n\n%s" (Profiler.stats ());
-      log#important "Shutdown started!";
-      Clock.stop ();
-      log#important "Waiting for main threads to terminate...";
-      Tutils.join_all ();
-      log#important "Threads terminated."
-    in
-    let cleanup_final () =
-      log#important "Cleaning downloaded files...";
-      Request.clean ();
-      log#important "Freeing memory...";
-      Gc.full_major ()
-    in
-    let cleanup () =
-      cleanup_threads ();
-      cleanup_final ()
-    in
-    let after_stop () =
-      let code = Tutils.exit_code () in
-      if code <> 0 then exit code;
-      if !Configure.restart then (
-        log#important "Restarting...";
-        Unix.execv Sys.executable_name Sys.argv )
-    in
-    let main () =
+  Lifecycle.before_init (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
        * for this: we want Unix EPIPE error and not SIGPIPE, which
        * crashes the program.. *)
@@ -634,61 +531,167 @@ module Make (Runner : Runner_t) = struct
         Sys.set_signal Sys.sigint
           (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
 
-      (* TODO if start fails (e.g. invalid password or mountpoint) it
-       *   raises an exception and dtools catches it so we don't get
-       *   a backtrace (by default at least). *)
-      Clock.start ();
-      Tutils.main ()
-    in
-    (* We join threads, then shutdown duppy, then do the final task. *)
-    ignore
-      (Dtools.Init.make
-         ~before:[Tutils.scheduler_shutdown_atom]
-         cleanup_threads);
-    ignore (Dtools.Init.make ~before:[Dtools.Log.stop] cleanup_final);
-    (* Note: [Dtools.Log.stop] is executed _after_ [Dtools.Init.stop] *)
-    ignore (Dtools.Init.make ~after:[Dtools.Log.stop] after_stop);
-    startup ();
-    if !interactive then (
-      load_libs ();
-      Dtools.Log.conf_stdout#set_d (Some false);
-      Dtools.Log.conf_file#set_d (Some true);
-      let default_log =
-        Filename.temp_file
-          (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ()))
-          ".log"
-      in
-      Dtools.Log.conf_file_path#set_d (Some default_log);
-      Dtools.Log.conf_file#set true;
-      ignore (Dtools.Init.at_stop (fun _ -> Sys.remove default_log));
-      check_directories ();
-      ignore (Thread.create Lang.interactive ());
-      Dtools.Init.init main )
-    else if Source.has_outputs () || force_start#get then
-      if not !dont_run then (
-        check_directories ();
-        let msg_of_err = function
-          | `User -> "root euid (user)"
-          | `Group -> "root guid (group)"
-          | `Both -> "root euid & guid (user & group)"
-        in
-        let on_error e =
-          Printf.eprintf
-            "init: security exit, %s. Override with \
-             set(\"init.allow_root\",true)\n"
-            (msg_of_err e);
-          cleanup ();
-          exit (-1)
-        in
-        try Dtools.Init.init ~prohibit_root:(not allow_root#get) main
-        with Dtools.Init.Root_prohibited e -> on_error e )
-      else cleanup ()
-    else if
-      (* If there's no output and no secondary task has been performed,
-       * warn the user that his scripts didn't define any output. *)
-      not !secondary_task
-    then (
-      cleanup ();
-      Printf.printf "No output defined, nothing to do.\n";
+      log#important "Liquidsoap %s" Configure.version;
+      log#important "Using:%s" Configure.libs_versions;
+      if Configure.git_snapshot then
+        List.iter (log#important "%s")
+          [
+            "";
+            "DISCLAIMER: This version of Liquidsoap has been";
+            "compiled from a snapshot of the development code.";
+            "As such, it should not be used in production";
+            "unless you know what you are doing!";
+            "";
+            "We are, however, very interested in any feedback";
+            "about our development code and committed to fix";
+            "issues as soon as possible.";
+            "";
+            "If you are interested in collaborating to";
+            "the development of Liquidsoap, feel free to";
+            "drop us a mail at <savonet-devl@lists.sf.net>";
+            "or to join the slack chat at <http://slack.liquidsoap.info>.";
+            "";
+            "Please send any bug report or feature request";
+            "at <https://github.com/savonet/liquidsoap/issues>.";
+            "";
+            "We hope you enjoy this snapshot build of Liquidsoap!";
+            "";
+          ]);
+
+  Lifecycle.on_init (fun () ->
+      Random.self_init ();
+
+      (* Set the default values. *)
+      Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
+      Dtools.Init.conf_daemon_pidfile#set_d (Some true);
+      Dtools.Init.conf_daemon_pidfile_path#set_d
+        (Some "<sysrundir>/<script>.pid"));
+
+  Lifecycle.on_script_parse (fun () ->
+      (* Parse command-line, and notably load scripts. *)
+      parse Shebang.argv (expand_options !options)
+        (fun s -> eval (`Expr_or_File s))
+        usage;
+
+      (* Allow frame settings to be evaluated here: *)
+      Frame_settings.lazy_config_eval := true;
+
+      do_eval ~lib:!last_item_lib)
+
+let initial_cleanup () =
+  if !Lang_values.profile then
+    log#important "Profiler stats:\n\n%s" (Profiler.stats ());
+  Clock.stop ();
+  log#important "Waiting for main threads to terminate...";
+  Tutils.join_all ();
+  log#important "Main threads terminated."
+
+let final_cleanup () =
+  log#important "Cleaning downloaded files...";
+  Request.clean ();
+  log#important "Freeing memory...";
+  Gc.full_major ()
+
+let sync_cleanup () =
+  initial_cleanup ();
+  final_cleanup ()
+
+let () =
+  (* Shutdown *)
+  Lifecycle.before_core_shutdown (fun () -> log#important "Shutdown started!");
+
+  Lifecycle.on_core_shutdown initial_cleanup;
+
+  Lifecycle.on_final_cleanup final_cleanup;
+
+  Lifecycle.after_stop (fun () ->
+      let code = Tutils.exit_code () in
+      if code <> 0 then exit code;
+      if !Configure.restart then (
+        log#important "Restarting...";
+        Unix.execv Sys.executable_name Sys.argv ))
+
+(** Main procedure *)
+
+(* When the log/pid paths have their definitive values,
+ * expand substitutions and check directories.
+ * This should be ran just before Dtools init. *)
+let check_directories () =
+  (* Now that the paths have their definitive value, expand <shortcuts>. *)
+  let subst conf = conf#set (Configure.subst_vars conf#get) in
+  subst Dtools.Init.conf_daemon_pidfile_path;
+  let check_dir conf_path kind =
+    let path = conf_path#get in
+    let dir = Filename.dirname path in
+    if not (Sys.file_exists dir) then (
+      let routes = Configure.conf#routes conf_path#ut in
+      Printf.printf
+        "FATAL ERROR: %s directory %S does not exist.\n\
+         To change it, add the following to your script:\n\
+        \  set(%S, \"<path>\")\n"
+        kind dir
+        (Dtools.Conf.string_of_path (List.hd routes));
       exit 1 )
-end
+  in
+  if Dtools.Log.conf_file#get then (
+    subst Dtools.Log.conf_file_path;
+    check_dir Dtools.Log.conf_file_path "Log" );
+  if Dtools.Init.conf_daemon#get && Dtools.Init.conf_daemon_pidfile#get then
+    check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
+
+let () =
+  Lifecycle.on_start (fun () ->
+      let main () =
+        (* TODO if start fails (e.g. invalid password or mountpoint) it
+         *   raises an exception and dtools catches it so we don't get
+         *   a backtrace (by default at least). *)
+        Clock.start ();
+        Tutils.main ()
+      in
+      if !interactive then (
+        load_libs ();
+        Dtools.Log.conf_stdout#set_d (Some false);
+        Dtools.Log.conf_file#set_d (Some true);
+        let default_log =
+          Filename.temp_file
+            (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ()))
+            ".log"
+        in
+        Dtools.Log.conf_file_path#set_d (Some default_log);
+        Dtools.Log.conf_file#set true;
+        Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log);
+        check_directories ();
+        ignore (Thread.create Lang.interactive ());
+        Dtools.Init.init main )
+      else if Source.has_outputs () || force_start#get then
+        if not !dont_run then (
+          check_directories ();
+          let msg_of_err = function
+            | `User -> "root euid (user)"
+            | `Group -> "root guid (group)"
+            | `Both -> "root euid & guid (user & group)"
+          in
+          let on_error e =
+            Printf.eprintf
+              "init: security exit, %s. Override with \
+               set(\"init.allow_root\",true)\n"
+              (msg_of_err e);
+            sync_cleanup ();
+            exit (-1)
+          in
+          try Dtools.Init.init ~prohibit_root:(not allow_root#get) main
+          with Dtools.Init.Root_prohibited e -> on_error e )
+        else sync_cleanup ()
+      else if
+        (* If there's no output and no secondary task has been performed,
+         * warn the user that his scripts didn't define any output. *)
+        not !secondary_task
+      then (
+        sync_cleanup ();
+        Printf.printf "No output defined, nothing to do.\n";
+        exit 1 ))
+
+(* Here we go! *)
+let start () =
+  Dtools.Init.exec Dtools.Log.start;
+  Dtools.Init.exec Lifecycle.init_atom

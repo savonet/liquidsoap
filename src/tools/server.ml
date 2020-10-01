@@ -431,10 +431,9 @@ let start_socket () =
     with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
   Unix.listen sock max_conn;
-  ignore
-    (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom] (fun () ->
-         log#important "Unlink %s" socket_name;
-         Unix.unlink socket_path));
+  Lifecycle.after_scheduler_shutdown (fun () ->
+      log#important "Unlink %s" socket_name;
+      Unix.unlink socket_path);
   Unix.chmod socket_path rights;
   Duppy.Task.add Tutils.scheduler
     {
@@ -452,11 +451,9 @@ let start_telnet () =
   let () =
     (* The socket has to be closed for restart to work, and this has to be
        done after duppy has stopped using it. *)
-    ignore
-      (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom]
-         ~name:"Server shutdown" (fun () ->
-           log#important "Closing socket.";
-           Unix.close sock))
+    Lifecycle.after_scheduler_shutdown (fun () ->
+        log#important "Closing socket.";
+        Unix.close sock)
   in
   (* Set TCP_NODELAY on the socket *)
   Unix.setsockopt sock Unix.TCP_NODELAY true;
@@ -499,7 +496,7 @@ let start () =
     if socket then start_socket () else () )
   else ()
 
-let () = ignore (Dtools.Init.at_start start)
+let () = Lifecycle.on_start start
 
 (* Re-wrap exec for external use *)
 let exec s = try exec s with Exit -> "ERROR: Attempt to exit!"

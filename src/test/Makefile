@@ -2,7 +2,7 @@ TESTS_ML = $(wildcard *.ml)
 TESTS = $(TESTS_ML:.ml=)
 OCAML_CFLAGS = -I ../lang -I ../stream -I ../converters -I ../converters/audio/ -I ../tools  -I ../decoder -I .. $(liquidsoap_ocamlcflags) -thread
 OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
-		extralib.cmx stringView.cmx strings.cmx utils.cmx log.cmx tutils.cmx \
+		extralib.cmx stringView.cmx strings.cmx utils.cmx log.cmx lifecycle.cmx  tutils.cmx \
 		file_watcher_mtime.cmx dyntools.cmx JSON.cmx configure.cmx http.cmx id3v2.cmx \
                 doc.cmx plug.cmx audio_converter.cmx video_converter.cmx unifier.cmx \
 		stream/frame_settings.cmx stream/frame_content.cmx stream/frame.cmx avi.cmx \

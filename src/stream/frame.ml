@@ -45,13 +45,14 @@ let audio_n = function
           lift_params
             {
               Contents.channel_layout =
-                Audio_converter.Channel_layout.layout_of_channels c;
+                lazy (Audio_converter.Channel_layout.layout_of_channels c);
             })
 
-let audio_mono = `Format Audio.(lift_params { Contents.channel_layout = `Mono })
+let audio_mono =
+  `Format Audio.(lift_params { Contents.channel_layout = lazy `Mono })
 
 let audio_stereo =
-  `Format Audio.(lift_params { Contents.channel_layout = `Stereo })
+  `Format Audio.(lift_params { Contents.channel_layout = lazy `Stereo })
 
 let video_yuv420p = `Kind Video.kind
 let midi_native = `Kind Midi.kind

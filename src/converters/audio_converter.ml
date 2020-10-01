@@ -89,15 +89,14 @@ module Samplerate = struct
 
   (** Log which converter is used at start. *)
   let () =
-    ignore
-      (Dtools.Init.at_start (fun () ->
-           let rec f = function
-             | conv :: _ when converters#get conv <> None ->
-                 log#important "Using samplerate converter: %s." conv
-             | _ :: l -> f l
-             | [] -> assert false
-           in
-           f converters_conf#get))
+    Lifecycle.before_start (fun () ->
+        let rec f = function
+          | conv :: _ when converters#get conv <> None ->
+              log#important "Using samplerate converter: %s." conv
+          | _ :: l -> f l
+          | [] -> assert false
+        in
+        f converters_conf#get)
 end
 
 module Channel_layout = struct

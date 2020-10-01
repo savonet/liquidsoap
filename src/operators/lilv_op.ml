@@ -26,17 +26,11 @@ open Lilv
 let () = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]
 
-let conf_lilv =
-  Dtools.Conf.void ~p:(Utils.conf#plug "lilv") "Lilv Configuration"
-
-let conf_enable =
-  let d =
-    try
-      let venv = Unix.getenv "LIQ_LILV" in
-      venv = "1" || venv = "true"
-    with Not_found -> true
-  in
-  Dtools.Conf.bool ~p:(conf_lilv#plug "enable") ~d "Enable LV2 plugins"
+let lilv_enabled =
+  try
+    let venv = Unix.getenv "LIQ_LILV" in
+    venv = "1" || venv = "true"
+  with Not_found -> true
 
 class virtual base ~kind source =
   object
@@ -375,4 +369,4 @@ let register_plugins () =
   Plugins.iter register_plugin (World.plugins world)
 
 let () =
-  Configure.at_init (fun () -> if conf_enable#get then register_plugins ())
+  Lifecycle.before_init (fun () -> if lilv_enabled then register_plugins ())

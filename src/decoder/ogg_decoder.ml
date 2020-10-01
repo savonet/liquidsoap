@@ -240,7 +240,7 @@ let file_type ~ctype:_ filename =
             Audio.lift_params
               {
                 Contents.channel_layout =
-                  Audio_converter.Channel_layout.layout_of_channels audio;
+                  lazy (Audio_converter.Channel_layout.layout_of_channels audio);
               })
       in
       let video =

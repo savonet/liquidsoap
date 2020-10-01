@@ -19,8 +19,8 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  ijson = get_process_output("ffprobe -v quiet -print_format json -show_streams '#{fname}'")
-  ojson = get_process_output("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+  ijson = process.read("ffprobe -v quiet -print_format json -show_streams '#{fname}'")
+  ojson = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
   iformat = of_json(default=[("streams", [[("samplerate", "0")]])], ijson)
   oformat = of_json(default=[("streams", [[("samplerate", "0")]])], ojson)
