@@ -102,6 +102,7 @@ depopts: [
   "ssl"
   "taglib"
   "theora"
+  "sdl-liquidsoap"
   "tsdl"
   "tsdl-image"
   "tsdl-ttf"
@@ -139,6 +140,7 @@ conflicts: [
   "portaudio" {< "0.2.0"}
   "pulseaudio" {< "0.1.4"}
   "samplerate" {< "0.1.5"}
+  "sdl-liquidsoap" {< "2"}
   "shine" {< "0.2.0"}
   "soundtouch" {< "0.1.9"}
   "speex" {< "0.3.0"}
