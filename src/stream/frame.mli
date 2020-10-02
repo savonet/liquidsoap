@@ -199,7 +199,7 @@ val allow_lazy_config_eval : unit -> unit
 val audio_channels : int Lazy.t
 
 (** Is video enabled? *)
-val video_enabled : bool Lazy.t
+val default_video_enabled : bool Lazy.t
 
 (** Default number of MIDI channels. *)
 val midi_channels : int Lazy.t

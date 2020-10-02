@@ -73,8 +73,14 @@ let conf_audio_size =
       ]
 
 (* Video *)
-let conf_video =
-  Conf.bool ~p:(conf#plug "video") ~d:false "Enable video support"
+let conf_video = Conf.void ~p:(conf#plug "video") "Video settings"
+
+let conf_video_default =
+  Conf.bool
+    ~p:(conf_video#plug "default")
+    ~d:false
+    "Set to `true` to force video content even when no video content is \
+     explicitely requested, for instance: `output.dummy(noise())`"
 
 let conf_video_framerate =
   Conf.int ~p:(conf_video#plug "framerate") ~d:25 "Frame rate"
@@ -120,7 +126,10 @@ let ( !! ) = Lazy.force
   * I'm currently unsure how much they are really useful. *)
 
 let audio_channels = delayed_conf ~to_string:string_of_int conf_audio_channels
-let video_enabled = delayed_conf ~to_string:string_of_bool conf_video
+
+let default_video_enabled =
+  delayed_conf ~to_string:string_of_bool conf_video_default
+
 let midi_channels = delayed_conf ~to_string:string_of_int conf_midi_channels
 let video_width = delayed_conf ~to_string:string_of_int conf_video_width
 let video_height = delayed_conf ~to_string:string_of_int conf_video_height

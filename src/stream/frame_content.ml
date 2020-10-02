@@ -518,7 +518,7 @@ let default_audio () =
   if channels = 0 then None.format else Audio.format_of_channels channels
 
 let default_video () =
-  if Lazy.force Frame_settings.video_enabled then
+  if Lazy.force Frame_settings.default_video_enabled then
     Video.lift_params
       {
         Contents.width = Some (Lazy.force Frame_settings.video_width);

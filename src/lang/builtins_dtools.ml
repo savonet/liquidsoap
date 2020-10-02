@@ -123,7 +123,8 @@ let () =
                   | Some "bool" -> "of type bool"
                   | Some "string" -> "of type string"
                   | Some "list" -> "of type [string]"
-                  | _ -> assert false
+                  | Some v -> Printf.sprintf "of type %s" v
+                  | None -> "not assignable"
               in
               let msg =
                 Printf.sprintf "key %S is %s, thus cannot be set to %s" path_s
