@@ -22,6 +22,8 @@
 
 (** Configuration entries *)
 
+let log = Log.make ["frame"]
+
 module Conf = Dtools.Conf
 
 let conf =
@@ -102,10 +104,14 @@ let lazy_config_eval = ref false
 let allow_lazy_config_eval () = lazy_config_eval := true
 let delayed f = lazy (f ())
 
-let delayed_conf x =
+let delayed_conf ~to_string x =
   delayed (fun () ->
       assert !lazy_config_eval;
-      x#get)
+      let ret = x#get in
+      let routes = List.flatten (conf#routes x#ut) in
+      log#important "frame.%s set to: %s" (String.concat "." routes)
+        (to_string ret);
+      ret)
 
 let ( !! ) = Lazy.force
 
@@ -113,17 +119,17 @@ let ( !! ) = Lazy.force
   * cannot be inferred / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
-let audio_channels = delayed_conf conf_audio_channels
-let video_enabled = delayed_conf conf_video
-let midi_channels = delayed_conf conf_midi_channels
-let video_width = delayed_conf conf_video_width
-let video_height = delayed_conf conf_video_height
-let audio_rate = delayed_conf conf_audio_samplerate
-let video_rate = delayed_conf conf_video_framerate
+let audio_channels = delayed_conf ~to_string:string_of_int conf_audio_channels
+let video_enabled = delayed_conf ~to_string:string_of_bool conf_video
+let midi_channels = delayed_conf ~to_string:string_of_int conf_midi_channels
+let video_width = delayed_conf ~to_string:string_of_int conf_video_width
+let video_height = delayed_conf ~to_string:string_of_int conf_video_height
+let audio_rate = delayed_conf ~to_string:string_of_int conf_audio_samplerate
+let video_rate = delayed_conf ~to_string:string_of_int conf_video_framerate
 
 (* TODO: midi rate is assumed to be the same as audio,
  *   so we should not have two different values *)
-let midi_rate = delayed_conf conf_audio_samplerate
+let midi_rate = delayed_conf ~to_string:string_of_int conf_audio_samplerate
 
 (** Greatest common divisor. *)
 let rec gcd a b =
@@ -164,7 +170,6 @@ let video_of_seconds d = int_of_float (d *. float !!video_rate)
 let seconds_of_master d = float d /. float !!master_rate
 let seconds_of_audio d = float d /. float !!audio_rate
 let seconds_of_video d = float d /. float !!video_rate
-let log = Log.make ["frame"]
 
 (** The frame size (in master ticks) should allow for an integer
   * number of samples of all types (audio, video).
