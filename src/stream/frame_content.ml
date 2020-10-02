@@ -25,7 +25,7 @@ module Contents = struct
   type kind = ..
   type data = ..
   type audio_params = { channel_layout : [ `Mono | `Stereo | `Five_point_one ] }
-  type video_params = { width : int option; height : int option }
+  type video_params = { width : int Lazy.t option; height : int Lazy.t option }
   type midi_params = { channels : int }
 end
 
@@ -408,8 +408,8 @@ module VideoSpecs = struct
   let string_of_kind = function `Yuv420p -> "yuv420p"
 
   let make ~size { width; height } =
-    let width = Option.value ~default:!!video_width width in
-    let height = Option.value ~default:!!video_height height in
+    let width = !!(Option.value ~default:video_width width) in
+    let height = !!(Option.value ~default:video_height height) in
     Video.make (video_of_master size) width height
 
   let clear _ = ()
@@ -417,14 +417,16 @@ module VideoSpecs = struct
   let string_of_params { width; height } =
     print_optional
       [
-        ("width", Option.map string_of_int width);
-        ("height", Option.map string_of_int height);
+        ("width", Option.map (fun x -> string_of_int !!x) width);
+        ("height", Option.map (fun x -> string_of_int !!x) height);
       ]
 
   let parse_param label value =
     match label with
-      | "width" -> Some { width = Some (int_of_string value); height = None }
-      | "height" -> Some { width = None; height = Some (int_of_string value) }
+      | "width" ->
+          Some { width = Some (lazy (int_of_string value)); height = None }
+      | "height" ->
+          Some { width = None; height = Some (lazy (int_of_string value)) }
       | _ -> None
 
   let merge p p' =
@@ -446,14 +448,14 @@ module VideoSpecs = struct
     else (
       let i = data.(0) in
       {
-        width = Some (Video.Image.width i);
-        height = Some (Video.Image.height i);
+        width = Some (lazy (Video.Image.width i));
+        height = Some (lazy (Video.Image.height i));
       } )
 
   let kind = `Yuv420p
 
   let default_params _ =
-    { width = Some !!video_width; height = Some !!video_height }
+    { width = Some video_width; height = Some video_height }
 
   let kind_of_string = function
     | "yuv420p" | "video" -> Some `Yuv420p
@@ -521,8 +523,8 @@ let default_video () =
   if Lazy.force Frame_settings.default_video_enabled then
     Video.lift_params
       {
-        Contents.width = Some (Lazy.force Frame_settings.video_width);
-        height = Some (Lazy.force Frame_settings.video_height);
+        Contents.width = Some Frame_settings.video_width;
+        height = Some Frame_settings.video_height;
       }
   else None.format
 

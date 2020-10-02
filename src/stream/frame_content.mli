@@ -27,7 +27,7 @@ module Contents : sig
   type format
   type data
   type audio_params = { channel_layout : [ `Mono | `Stereo | `Five_point_one ] }
-  type video_params = { width : int option; height : int option }
+  type video_params = { width : int Lazy.t option; height : int Lazy.t option }
   type midi_params = { channels : int }
 end
 
