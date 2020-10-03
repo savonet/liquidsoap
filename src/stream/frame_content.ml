@@ -435,7 +435,13 @@ module VideoSpecs = struct
       height = merge_param ~name:"height" (p.height, p'.height);
     }
 
-  let compatible p p' = p.width = p'.width && p.height = p'.height
+  let compatible p p' =
+    let compare = function
+      | None, None -> true
+      | Some _, None | None, Some _ -> false
+      | Some x, Some y -> !!x = !!y
+    in
+    compare (p.width, p'.width) && compare (p.height, p'.height)
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = Frame_settings.video_of_master in

@@ -16,7 +16,7 @@ let () =
   Frame.allow_lazy_config_eval ();
   Audio_converter.Channel_layout.converters#register "native"
     channel_layout_converter;
-  Frame_settings.conf_video#set true
+  Frame_settings.conf_video_default#set true
 
 let () =
   let none = Frame_content.None.format in
