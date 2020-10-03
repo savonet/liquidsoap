@@ -320,7 +320,7 @@ let () =
         in
         add_builtin ~cat:Liq ("ffmpeg.filter." ^ name)
           ~descr:("Ffmpeg filter: " ^ description)
-          input_t output_t
+          ~flags:[Lang.Extra] input_t output_t
           (apply_filter ~args_parser ~filter))
       filters)
 

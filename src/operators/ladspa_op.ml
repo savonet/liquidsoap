@@ -319,7 +319,8 @@ let register_descr plugin_name descr_n d inputs outputs =
   in
   Lang.add_operator
     ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d))
-    liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[] ~descr
+    liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[Lang.Extra]
+    ~descr
     (fun p ->
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in

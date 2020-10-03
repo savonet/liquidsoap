@@ -340,7 +340,8 @@ let register_plugin plugin =
   in
   Lang.add_operator
     ("lv2." ^ Utils.normalize_parameter_string (Plugin.name plugin))
-    liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[] ~descr
+    liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[Lang.Extra]
+    ~descr
     (fun p ->
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
