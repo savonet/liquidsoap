@@ -348,8 +348,29 @@ let () =
             | [x] -> x
             | l -> Lang.tuple_t l
         in
-        add_builtin ~cat:Liq ("ffmpeg.filter." ^ name)
-          ~descr:("Ffmpeg filter: " ^ description)
+        let explanation =
+          String.concat " "
+            ( ( if List.mem `Dynamic_inputs flags then
+                [
+                  "This filter has dynamic inputs: last two arguments are \
+                   lists of audio and video inputs. Total number of inputs is \
+                   determined at runtime.";
+                ]
+              else [] )
+            @
+            if List.mem `Dynamic_outputs flags then
+              [
+                "This filter has dynamic outputs: returned value is a tuple of \
+                 audio and video outputs. Total number of outputs is \
+                 determined at runtime.";
+              ]
+            else [] )
+        in
+        let descr =
+          Printf.sprintf "Ffmpeg filter: %s%s" description
+            (if explanation <> "" then " " ^ explanation else "")
+        in
+        add_builtin ~cat:Liq ("ffmpeg.filter." ^ name) ~descr
           ~flags:[Lang.Extra] input_t output_t
           (apply_filter ~args_parser ~filter))
       filters)

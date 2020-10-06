@@ -88,7 +88,9 @@ For these filters, the operators' signature is a little different. Here's an exa
 ```
 % liquidsoap -h ffmpeg.filter.asplit
 
-Ffmpeg filter: Pass on the audio input to N audio outputs.
+Ffmpeg filter: Pass on the audio input to N audio outputs. This filter has
+dynamic outputs: returned value is a tuple of audio and video outputs. Total
+number of outputs is determined at runtime.
 
 Type: (?outputs : int?, ffmpeg.filter.graph,
  ffmpeg.filter.audio) ->
@@ -107,14 +109,15 @@ Parameters:
  * (unlabeled) : ffmpeg.filter.audio (default: None)
 ```
 
-This filter returns an tuple `(audio, video)` of possible dynamic outputs.
+This filter returns a tuple `(audio, video)` of possible dynamic outputs.
 
 Likewise, with dynamic inputs:
 ```
 % liquidsoap -h ffmpeg.filter.amerge
 
 Ffmpeg filter: Merge two or more audio streams into a single multi-channel
-stream.
+stream. This filter has dynamic inputs: last two arguments are lists of audio
+and video inputs. Total number of inputs is determined at runtime.
 
 Type: (?inputs : int?, ffmpeg.filter.graph,
  [ffmpeg.filter.audio], [ffmpeg.filter.video]) ->
