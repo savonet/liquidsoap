@@ -227,7 +227,8 @@ let mk_options { Avfilter.options } =
         | `Image_size s
         | `Video_rate s
         | `Color s ->
-            mk_opt ~t:Lang.string_t ~to_string:(Printf.sprintf "%S")
+            mk_opt ~t:Lang.string_t
+              ~to_string:(fun x -> x)
               ~from_value:Lang.to_string s
         | `Pixel_fmt s ->
             mk_opt ~t:Lang.string_t ~to_string:Avutil.Pixel_format.to_string
@@ -265,14 +266,28 @@ let apply_filter ~args_parser ~filter p =
     let config = get_config graph_v in
     let graph = Graph.of_value graph_v in
     let name = uniq_name filter.name in
+    let flags = filter.flags in
     let filter = attach ~args:(args_parser p []) ~name filter config in
     let audio_inputs_c = List.length filter.io.inputs.audio in
+    let get_input ~mode ~ofs idx =
+      if List.mem `Dynamic_inputs flags then (
+        let v = Lang.assoc "" (if mode = `Audio then 2 else 3) p in
+        let inputs = Lang.to_list v in
+        if List.length inputs <= idx then
+          raise
+            (Lang_errors.Invalid_value
+               ( v,
+                 Printf.sprintf "Invalid number of input for filter %s"
+                   filter.name ));
+        List.nth inputs idx )
+      else Lang.assoc "" (idx + ofs + 2) p
+    in
     Queue.push
       ( lazy
         ( List.iteri
             (fun idx input ->
               let output =
-                match Audio.of_value (Lang.assoc "" (idx + 2) p) with
+                match Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx) with
                   | `Output output -> Lazy.force output
                   | _ -> assert false
               in
@@ -282,7 +297,8 @@ let apply_filter ~args_parser ~filter p =
             (fun idx input ->
               let output =
                 match
-                  Video.of_value (Lang.assoc "" (audio_inputs_c + idx + 2) p)
+                  Video.of_value
+                    (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
                 with
                   | `Output output -> output
                   | _ -> assert false
@@ -290,33 +306,47 @@ let apply_filter ~args_parser ~filter p =
               link (Lazy.force output) input)
             filter.io.inputs.video ) )
       graph.init;
-    let output =
+    let audio =
       List.map
         (fun p -> Audio.to_value (`Output (lazy p)))
         filter.io.outputs.audio
-      @ List.map
-          (fun p -> Video.to_value (`Output (lazy p)))
-          filter.io.outputs.video
     in
-    match output with [x] -> x | l -> Lang.tuple l)
+    let video =
+      List.map
+        (fun p -> Video.to_value (`Output (lazy p)))
+        filter.io.outputs.video
+    in
+    if List.mem `Dynamic_outputs flags then
+      Lang.tuple [Lang.list audio; Lang.list video]
+    else (match audio @ video with [x] -> x | l -> Lang.tuple l))
 
 let () =
   Avfilter.(
-    let mk_av_t { audio; video } =
-      let audio = List.map (fun _ -> Audio.t) audio in
-      let video = List.map (fun _ -> Video.t) video in
-      audio @ video
+    let mk_av_t ~flags ~mode { audio; video } =
+      match mode with
+        | `Input when List.mem `Dynamic_inputs flags ->
+            [Lang.list_t Audio.t; Lang.list_t Video.t]
+        | `Output when List.mem `Dynamic_outputs flags ->
+            [Lang.list_t Audio.t; Lang.list_t Video.t]
+        | _ ->
+            let audio = List.map (fun _ -> Audio.t) audio in
+            let video = List.map (fun _ -> Video.t) video in
+            audio @ video
     in
     List.iter
-      (fun ({ name; description; io } as filter) ->
+      (fun ({ name; description; io; flags } as filter) ->
         let args, args_parser = mk_options filter in
         let input_t =
           args
           @ [("", Graph.t, None, None)]
-          @ List.map (fun t -> ("", t, None, None)) (mk_av_t io.inputs)
+          @ List.map
+              (fun t -> ("", t, None, None))
+              (mk_av_t ~flags ~mode:`Input io.inputs)
         in
         let output_t =
-          match mk_av_t io.outputs with [x] -> x | l -> Lang.tuple_t l
+          match mk_av_t ~flags ~mode:`Output io.outputs with
+            | [x] -> x
+            | l -> Lang.tuple_t l
         in
         add_builtin ~cat:Liq ("ffmpeg.filter." ^ name)
           ~descr:("Ffmpeg filter: " ^ description)
