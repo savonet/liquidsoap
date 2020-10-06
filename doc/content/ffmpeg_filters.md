@@ -82,7 +82,7 @@ stream, and they can combined into powerful graph processing filters.
 ## Filters with dynamic inputs or outputs
 
 Filters with dynamic inputs or outputs can have multiple inputs or outputs, decided at run-time. Typically, `ffmpeg.filter.split`
-splits a video input into multiple inputs and `ffmpeg.filter.merge` merges multiple video inputs into a single one.
+splits a video stream into multiple streams and `ffmpeg.filter.merge` merges multiple video streams into a single one.
 
 For these filters, the operators' signature is a little different. Here's an example for dynamic outputs:
 ```
@@ -109,7 +109,7 @@ Parameters:
 
 This filter returns an tuple `(audio, video)` of possible dynamic outputs.
 
-Likewise, with dynamic outputs:
+Likewise, with dynamic inputs:
 ```
 % liquidsoap -h ffmpeg.filter.amerge
 
