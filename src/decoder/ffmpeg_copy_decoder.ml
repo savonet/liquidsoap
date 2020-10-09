@@ -38,16 +38,22 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
     let data = lift_data data in
     put_data ?pts:None buffer.Decoder.generator data 0 duration
 
-let mk_audio_decoder container =
+let mk_audio_decoder ~format container =
   let idx, stream, params = Av.find_best_audio_stream container in
+  ignore
+    (Frame_content.merge format
+       Ffmpeg_copy_content.(Audio.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
   let lift_data = Ffmpeg_copy_content.Audio.lift_data in
   ( idx,
     stream,
     mk_decoder ~lift_data ~stream_time_base ~put_data:G.put_audio params )
 
-let mk_video_decoder container =
+let mk_video_decoder ~format container =
   let idx, stream, params = Av.find_best_video_stream container in
+  ignore
+    (Frame_content.merge format
+       Ffmpeg_copy_content.(Video.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
   let lift_data = Ffmpeg_copy_content.Video.lift_data in
   ( idx,

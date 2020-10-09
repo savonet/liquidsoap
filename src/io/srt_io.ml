@@ -779,13 +779,15 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
+      let format_val = Lang.assoc "" 1 p in
+      let format = Lang.to_format format_val in
+      let kind = Encoder.kind_of_format format in
       let encoder_factory =
-        let fmt = Lang.assoc "" 1 p in
-        try Encoder.get_factory (Lang.to_format fmt)
+        try Encoder.get_factory format
         with Not_found ->
           raise
             (Lang_errors.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               (format_val, "Cannot get a stream encoder for that format"))
       in
       match mode with
         | `Caller ->
