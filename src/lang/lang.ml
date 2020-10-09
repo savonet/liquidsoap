@@ -96,10 +96,12 @@ let audio_params p =
   }
 
 let audio_n n = { Frame.audio = Frame.audio_n n; video = `Any; midi = `Any }
-let audio_mono = audio_params { Frame_content.Contents.channel_layout = `Mono }
+
+let audio_mono =
+  audio_params { Frame_content.Contents.channel_layout = lazy `Mono }
 
 let audio_stereo =
-  audio_params { Frame_content.Contents.channel_layout = `Stereo }
+  audio_params { Frame_content.Contents.channel_layout = lazy `Stereo }
 
 let video_yuv420p =
   { Frame.audio = `Any; video = Frame.video_yuv420p; midi = `Any }

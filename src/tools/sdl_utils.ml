@@ -43,9 +43,8 @@ let init l =
   List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l
 
 let () =
-  ignore
-    (Dtools.Init.at_start (fun () ->
-         match !options with Some o -> check Sdl.init o | None -> ()))
+  Lifecycle.on_start (fun () ->
+      match !options with Some o -> check Sdl.init o | None -> ())
 
 module Surface = struct
   let to_img surface =

@@ -43,8 +43,8 @@ let conf_port =
 let server () =
   Server.create ~mode:(`TCP (`Port conf_port#get)) (Server.make ~callback ())
 
-let _ =
-  Dtools.Init.at_start (fun () ->
+let () =
+  Lifecycle.on_start (fun () ->
       if conf_server#get then
         ignore
           (Thread.create

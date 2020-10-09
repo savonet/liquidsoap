@@ -92,33 +92,32 @@ let has_binary =
   lazy (Utils.which_opt ~path:Configure.path conf_binary#get <> None)
 
 let () =
-  ignore
-    (Dtools.Init.at_start (fun () ->
-         if Lazy.force is_docker then (
-           log#important
-             "Running inside a docker container, disabling sandboxing..";
-           conf_sandbox#set "disabled" )
-         else if not (Lazy.force has_binary) then (
-           log#important "Could not find binary %s, disabling sandboxing.."
-             conf_binary#get;
-           conf_sandbox#set "disabled" )
-         else if conf_sandbox#get = "disabled" then
-           log#important "Sandboxing disabled"
-         else (
-           log#important "Sandboxing external processes using bubblewrap at %s"
-             (Utils.which ~path:Configure.path conf_binary#get);
-           log#important "Set environment variables: %s"
-             (String.concat ", "
-                (List.map
-                   (fun (lbl, v) -> Printf.sprintf "%s=%S" lbl v)
-                   (get_setenv ())));
-           log#important "Unset environment variables: %s"
-             (String.concat ", " conf_unsetenv#get);
-           log#important "Network allowed: %b" conf_network#get;
-           log#important "Read-only directories: %s"
-             (String.concat ", " conf_ro#get);
-           log#important "Read/write directories: %s"
-             (String.concat ", " conf_rw#get) )))
+  Lifecycle.before_start (fun () ->
+      if Lazy.force is_docker then (
+        log#important
+          "Running inside a docker container, disabling sandboxing..";
+        conf_sandbox#set "disabled" )
+      else if not (Lazy.force has_binary) then (
+        log#important "Could not find binary %s, disabling sandboxing.."
+          conf_binary#get;
+        conf_sandbox#set "disabled" )
+      else if conf_sandbox#get = "disabled" then
+        log#important "Sandboxing disabled"
+      else (
+        log#important "Sandboxing external processes using bubblewrap at %s"
+          (Utils.which ~path:Configure.path conf_binary#get);
+        log#important "Set environment variables: %s"
+          (String.concat ", "
+             (List.map
+                (fun (lbl, v) -> Printf.sprintf "%s=%S" lbl v)
+                (get_setenv ())));
+        log#important "Unset environment variables: %s"
+          (String.concat ", " conf_unsetenv#get);
+        log#important "Network allowed: %b" conf_network#get;
+        log#important "Read-only directories: %s"
+          (String.concat ", " conf_ro#get);
+        log#important "Read/write directories: %s"
+          (String.concat ", " conf_rw#get) ))
 
 type t = string
 

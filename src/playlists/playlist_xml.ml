@@ -55,5 +55,4 @@ let register mimetype =
   Playlist_parser.parsers#register mimetype
     { Playlist_parser.strict = true; Playlist_parser.parser = tracks }
 
-let () =
-  ignore (Dtools.Init.at_start (fun () -> List.iter register conf_xml#get))
+let () = Lifecycle.on_start (fun () -> List.iter register conf_xml#get)

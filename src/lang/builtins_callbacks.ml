@@ -29,8 +29,7 @@ let () =
     ~descr:"Register a function to be called when Liquidsoap shuts down."
     (fun p ->
       let f = List.assoc "" p in
-      let wrap_f () = ignore (Lang.apply f []) in
-      ignore (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] wrap_f);
+      Lifecycle.before_core_shutdown (fun () -> ignore (Lang.apply f []));
       Lang.unit)
 
 let () =
@@ -41,8 +40,7 @@ let () =
     (fun p ->
       let f = List.assoc "" p in
       let wrap_f () = ignore (Lang.apply f []) in
-      (* TODO: this could happen after duppy and other threads are shut down, is that ok? *)
-      ignore (Dtools.Init.at_start wrap_f);
+      Lifecycle.after_start wrap_f;
       Lang.unit)
 
 let () =

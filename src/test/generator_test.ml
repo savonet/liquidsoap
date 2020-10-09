@@ -1,7 +1,7 @@
 module G = Generator.From_audio_video
 
 let () =
-  Frame.allow_lazy_config_eval ();
+  Frame_settings.lazy_config_eval := true;
   let frame_size = Lazy.force Frame.size in
   let gen = G.create `Both in
   let data = Frame_content.None.data in

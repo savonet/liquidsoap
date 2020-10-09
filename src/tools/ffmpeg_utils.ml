@@ -58,25 +58,24 @@ let conf_scaling_algorithm =
       ]
 
 let () =
-  ignore
-    (Dtools.Init.at_start (fun () ->
-         let verbosity =
-           match conf_verbosity#get with
-             | "quiet" -> `Quiet
-             | "panic" -> `Panic
-             | "fatal" -> `Fatal
-             | "error" -> `Error
-             | "warning" -> `Warning
-             | "info" -> `Info
-             | "verbose" -> `Verbose
-             | "debug" -> `Debug
-             | _ ->
-                 log#severe "Invalid value for \"ffmpeg.log.verbosity\"!";
-                 `Quiet
-         in
-         let level = conf_level#get in
-         Avutil.Log.set_level verbosity;
-         Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s))))
+  Lifecycle.before_start (fun () ->
+      let verbosity =
+        match conf_verbosity#get with
+          | "quiet" -> `Quiet
+          | "panic" -> `Panic
+          | "fatal" -> `Fatal
+          | "error" -> `Error
+          | "warning" -> `Warning
+          | "info" -> `Info
+          | "verbose" -> `Verbose
+          | "debug" -> `Debug
+          | _ ->
+              log#severe "Invalid value for \"ffmpeg.log.verbosity\"!";
+              `Quiet
+      in
+      let level = conf_level#get in
+      Avutil.Log.set_level verbosity;
+      Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s)))
 
 module Fps = struct
   type filter = {

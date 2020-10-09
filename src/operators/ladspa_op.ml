@@ -29,16 +29,16 @@ type t = Float | Int | Bool
 
 let log = Log.make ["LADSPA extension"]
 
-let conf_ladspa =
-  Dtools.Conf.void ~p:(Utils.conf#plug "ladspa") "Lasdpa Configuration"
+let ladspa_enabled =
+  try
+    let venv = Unix.getenv "LIQ_LADSPA" in
+    venv = "1" || venv = "true"
+  with Not_found -> true
 
-let conf_enable =
-  Dtools.Conf.bool ~p:(conf_ladspa#plug "enable") ~d:true "Enable Ladspa "
-
-let conf_dirs =
-  Dtools.Conf.list ~p:(conf_ladspa#plug "dirs")
-    ~d:["/usr/lib64/ladspa"; "/usr/lib/ladspa"; "/usr/local/lib/ladspa"]
-    "Directories to search for plugins"
+let ladspa_dirs =
+  try String.split_on_char ':' (Unix.getenv "LIQ_LADSPA_DIRS")
+  with Not_found ->
+    ["/usr/lib64/ladspa"; "/usr/lib/ladspa"; "/usr/local/lib/ladspa"]
 
 let port_t d p =
   if Descriptor.port_is_boolean d p then Bool
@@ -383,7 +383,7 @@ let register_plugins () =
       log#info "Error while loading directory %s: %s" plugins_dir
         (Unix.error_message e)
   in
-  List.iter add conf_dirs#get
+  List.iter add ladspa_dirs
 
 let () =
-  Configure.at_init (fun () -> if conf_enable#get then register_plugins ())
+  Lifecycle.before_init (fun () -> if ladspa_enabled then register_plugins ())

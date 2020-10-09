@@ -19,7 +19,7 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  ojson = get_process_output("ffprobe -v quiet -print_format json -show_streams '#{out}'")
+  ojson = process.read("ffprobe -v quiet -print_format json -show_streams '#{out}'")
 
   output_format = of_json(default=[("streams", [[("samplerate", "0")]])], ojson)
 

@@ -102,9 +102,6 @@ let subst_vars s =
   List.fold_left
     (fun v (r, s) -> Str.global_replace (Str.regexp r) (s ()) v)
      s !substs
-let init = Dtools.Init.make ~name:"init" (fun () -> ())
-let at_init f = ignore(Dtools.Init.make ~after:[[init]] f)
-let run_init () = Dtools.Init.exec init
 _BLAH_
 
 # This is ugly, I'd like to find a better solution.
@@ -500,7 +497,7 @@ else
   cat >> src/configure.ml <<EOCONF
 let dynlink = true
 let () =
-  at_init (fun () ->
+  Lifecycle.before_init (fun () ->
     Dyntools.load_dynlinks ())
 EOCONF
 fi

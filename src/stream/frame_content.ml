@@ -24,7 +24,11 @@ module Contents = struct
   type format = ..
   type kind = ..
   type data = ..
-  type audio_params = { channel_layout : [ `Mono | `Stereo | `Five_point_one ] }
+
+  type audio_params = {
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+  }
+
   type video_params = { width : int Lazy.t option; height : int Lazy.t option }
   type midi_params = { channels : int }
 end
@@ -321,16 +325,16 @@ module AudioSpecs = struct
   let string_of_kind = function `Pcm -> "pcm"
 
   let string_of_params { channel_layout } =
-    match channel_layout with
+    match !!channel_layout with
       | `Mono -> "mono"
       | `Stereo -> "stereo"
       | `Five_point_one -> "dolby 5.1"
 
   let merge p p' =
-    assert (p = p');
+    assert (!!(p.channel_layout) = !!(p'.channel_layout));
     p
 
-  let compatible p p' = p = p'
+  let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
 
   let blit src src_pos dst dst_pos len =
     Array.iter2
@@ -344,9 +348,9 @@ module AudioSpecs = struct
   let copy d = Array.map Audio.Mono.copy d
 
   let param_of_channels = function
-    | 1 -> { channel_layout = `Mono }
-    | 2 -> { channel_layout = `Stereo }
-    | 6 -> { channel_layout = `Five_point_one }
+    | 1 -> { channel_layout = lazy `Mono }
+    | 2 -> { channel_layout = lazy `Stereo }
+    | 6 -> { channel_layout = lazy `Five_point_one }
     | _ -> raise Invalid
 
   let channels_of_param = function
@@ -356,9 +360,9 @@ module AudioSpecs = struct
 
   let parse_param label value =
     match (label, value) with
-      | "", "mono" -> Some { channel_layout = `Mono }
-      | "", "stereo" -> Some { channel_layout = `Stereo }
-      | "", "5.1" -> Some { channel_layout = `Five_point_one }
+      | "", "mono" -> Some { channel_layout = lazy `Mono }
+      | "", "stereo" -> Some { channel_layout = lazy `Stereo }
+      | "", "5.1" -> Some { channel_layout = lazy `Five_point_one }
       | _ -> None
 
   let params d = param_of_channels (Array.length d)
@@ -371,7 +375,7 @@ module AudioSpecs = struct
 
   let make ~size { channel_layout } =
     let channels =
-      match channel_layout with
+      match !!channel_layout with
         | `Mono -> 1
         | `Stereo -> 2
         | `Five_point_one -> 6
@@ -388,13 +392,13 @@ module Audio = struct
   let kind = lift_kind `Pcm
 
   let format_of_channels = function
-    | 1 -> lift_params { channel_layout = `Mono }
-    | 2 -> lift_params { channel_layout = `Stereo }
-    | 6 -> lift_params { channel_layout = `Five_point_one }
+    | 1 -> lift_params { channel_layout = lazy `Mono }
+    | 2 -> lift_params { channel_layout = lazy `Stereo }
+    | 6 -> lift_params { channel_layout = lazy `Five_point_one }
     | _ -> raise Invalid
 
   let channels_of_format p =
-    AudioSpecs.(channels_of_param (get_params p).channel_layout)
+    AudioSpecs.(channels_of_param (Lazy.force (get_params p).channel_layout))
 end
 
 module VideoSpecs = struct
@@ -459,9 +463,7 @@ module VideoSpecs = struct
       } )
 
   let kind = `Yuv420p
-
-  let default_params _ =
-    { width = Some video_width; height = Some video_height }
+  let default_params _ = { width = None; height = None }
 
   let kind_of_string = function
     | "yuv420p" | "video" -> Some `Yuv420p

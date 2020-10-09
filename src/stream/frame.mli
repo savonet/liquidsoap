@@ -191,10 +191,6 @@ val compatible : content_type -> content_type -> bool
   * cannot be inferred / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
-(** Prevent forcing the value of a lazy configuration value before the user gets
-    a chance to override the default. *)
-val allow_lazy_config_eval : unit -> unit
-
 (** Default number of audio channels. *)
 val audio_channels : int Lazy.t
 

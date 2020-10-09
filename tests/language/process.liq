@@ -7,7 +7,7 @@ def t(x,y) =
 end
 
 def f() =
-  t(process.read("echo -n toto"), "toto")
+  t(process.read("printf toto"), "toto")
   p = process.run("exit 2")
   t(string(p.status), "exit")
   t(p.status.code, 2)

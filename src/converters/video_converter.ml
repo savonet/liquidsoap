@@ -68,14 +68,13 @@ exception Exit of converter
 
 (** Only log preferred decoder availability once at start. *)
 let () =
-  ignore
-    (Dtools.Init.at_start (fun () ->
-         let preferred = preferred_converter_conf#get in
-         match video_converters#get preferred with
-           | None ->
-               log#important "Couldn't find preferred video converter: %s."
-                 preferred
-           | _ -> log#important "Using preferred video converter: %s." preferred))
+  Lifecycle.before_start (fun () ->
+      let preferred = preferred_converter_conf#get in
+      match video_converters#get preferred with
+        | None ->
+            log#important "Couldn't find preferred video converter: %s."
+              preferred
+        | _ -> log#important "Using preferred video converter: %s." preferred)
 
 let find_converter src dst =
   try

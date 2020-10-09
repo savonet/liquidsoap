@@ -46,7 +46,7 @@ let sleep d =
     if time_zero |<| diff then sleep diff
 
 let () =
-  Configure.at_init (fun () ->
+  Lifecycle.on_init (fun () ->
       log#important "Using %s implementation for latency control"
         Time.implementation)
 

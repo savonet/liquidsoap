@@ -236,7 +236,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok )
 
 let channel_layout audio =
-  Frame_content.(Audio.(get_params audio).Contents.channel_layout)
+  Lazy.force Frame_content.(Audio.(get_params audio).Contents.channel_layout)
 
 let none = Frame_content.None.format
 

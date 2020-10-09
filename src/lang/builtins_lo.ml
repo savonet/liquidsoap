@@ -24,6 +24,7 @@ open Extralib
 module S = LO.Server
 
 let () = Lang.add_module "osc"
+let log = Log.make ["osc"]
 
 let conf_osc =
   Dtools.Conf.void
@@ -73,6 +74,7 @@ let started = ref false
 let started_m = Mutex.create ()
 
 let start_server () =
+  log#info "Starting OSC server";
   let port = conf_port#get in
   let s = S.create port handler in
   server := Some s;
@@ -84,24 +86,26 @@ let start_server () =
          done)
        ())
 
-let _ =
-  Dtools.Init.at_start ~name:"osc.start"
+let () =
+  Lifecycle.on_start
     (Tutils.mutexify started_m (fun () ->
          if !should_start && !server = None then start_server ()
          else started := true))
+
+let () =
+  Lifecycle.on_core_shutdown
+    (Tutils.mutexify started_m (fun () ->
+         match !server with
+           | Some s ->
+               log#info "Stopping OSC server";
+               S.stop s;
+               server := None
+           | None -> ()))
 
 let start_server =
   Tutils.mutexify started_m (fun () ->
       if !started && !server = None then start_server ()
       else should_start := true)
-
-let _ =
-  Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] (fun () ->
-      match !server with
-        | Some s ->
-            S.stop s;
-            server := None
-        | None -> ())
 
 let register name osc_t liq_t =
   let val_array vv =

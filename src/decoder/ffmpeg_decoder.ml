@@ -179,8 +179,9 @@ let get_type ~ctype ~url container =
             Audio.lift_params
               {
                 Contents.channel_layout =
-                  Audio_converter.Channel_layout.layout_of_channels
-                    (Avcodec.Audio.get_nb_channels p);
+                  lazy
+                    (Audio_converter.Channel_layout.layout_of_channels
+                       (Avcodec.Audio.get_nb_channels p));
               })
   in
   let video =

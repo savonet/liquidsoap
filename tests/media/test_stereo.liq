@@ -33,7 +33,7 @@ def on_done () =
       true
     end
 
-  json = get_process_output("ffprobe -v quiet -print_format json -show_streams #{out}")
+  json = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
   int_format = of_json(default=[("streams", [[("channels", 0)]])], json)
   stream = list.hd(default=[], list.assoc(default=[], "streams", int_format))

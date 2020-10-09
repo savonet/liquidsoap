@@ -174,7 +174,7 @@ io = io/udp_io.ml \
 	$(if $(W_FFMPEG_LIQ_FILTER),io/ffmpeg_filter_io.ml) \
 	$(if $(W_FFMPEG_AV),io/ffmpeg_io.ml)
 
-tools = tools/extralib.ml tools/JSON.ml \
+tools = tools/extralib.ml tools/JSON.ml tools/lifecycle.ml \
 	tools/stringView.ml tools/strings.ml \
         tools/utils.ml tools/doc.ml tools/plug.ml \
 	tools/rqueue.ml tools/unifier.ml \
