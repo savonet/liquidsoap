@@ -531,6 +531,14 @@ let () =
         Sys.set_signal Sys.sigint
           (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
 
+      Random.self_init ();
+
+      (* Set the default values. *)
+      Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
+      Dtools.Init.conf_daemon_pidfile#set_d (Some true);
+      Dtools.Init.conf_daemon_pidfile_path#set_d
+        (Some "<sysrundir>/<script>.pid");
+
       log#important "Liquidsoap %s" Configure.version;
       log#important "Using:%s" Configure.libs_versions;
       if Configure.git_snapshot then
@@ -558,20 +566,17 @@ let () =
             "";
           ]);
 
-  Lifecycle.on_init (fun () ->
-      Random.self_init ();
-
-      (* Set the default values. *)
-      Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
-      Dtools.Init.conf_daemon_pidfile#set_d (Some true);
-      Dtools.Init.conf_daemon_pidfile_path#set_d
-        (Some "<sysrundir>/<script>.pid"));
-
   Lifecycle.on_script_parse (fun () ->
       (* Parse command-line, and notably load scripts. *)
       parse Shebang.argv (expand_options !options)
         (fun s -> eval (`Expr_or_File s))
         usage;
+
+      (* Now we can start the logs! *)
+      if !secondary_task then (
+        Dtools.Log.conf_stdout#set false;
+        Dtools.Log.conf_file#set false );
+      Dtools.Init.exec Dtools.Log.start;
 
       (* Allow frame settings to be evaluated here: *)
       Frame_settings.lazy_config_eval := true;
@@ -692,6 +697,4 @@ let () =
         exit 1 ))
 
 (* Here we go! *)
-let start () =
-  Dtools.Init.exec Dtools.Log.start;
-  Dtools.Init.exec Lifecycle.init_atom
+let start () = Dtools.Init.exec Lifecycle.init_atom
