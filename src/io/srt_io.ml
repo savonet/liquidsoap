@@ -182,6 +182,12 @@ module Poll = struct
     with
       | Empty -> -1.
       | Srt.Error (`Etimeout, _) -> 0.
+      | exn ->
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "Error while processing SRT socket pool: %s"
+               (Printexc.to_string exn));
+          -1.
 
   let task = Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler process
 
@@ -197,6 +203,16 @@ module Poll = struct
           | `Write -> t.max_write <- t.max_write + 1)
       ();
     Duppy.Async.wake_up task
+
+  let remove_socket ~mode socket =
+    Tutils.mutexify t.m
+      (fun () ->
+        Hashtbl.remove t.handlers socket;
+        Srt.Poll.remove_usock t.p socket;
+        match mode with
+          | `Read -> t.max_read <- t.max_read - 1
+          | `Write -> t.max_write <- t.max_write - 1)
+      ()
 end
 
 let () =
@@ -220,6 +236,8 @@ let mk_socket ~payload_size ~messageapi () =
   Srt.setsockflag s Srt.enforced_encryption conf_enforced_encryption#get;
   s
 
+let close_socket s = Srt.close s
+
 class virtual base =
   let m = Mutex.create () in
   object (self)
@@ -232,6 +250,8 @@ class virtual base =
     val mutable should_stop = false
 
     method private should_stop = self#mutexify (fun () -> should_stop) ()
+
+    method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
   end
 
 class virtual networking_agent =
@@ -245,86 +265,76 @@ class virtual networking_agent =
     method virtual private get_socket : Srt.socket
   end
 
-type caller_state = [ `Idle | `Connecting | `Connected | `Started | `Stopped ]
-
 class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
   ~on_disconnect =
   object (self)
     inherit networking_agent
 
+    method virtual should_stop : bool
+
     val mutable connect_task = None
 
-    val mutable state : caller_state = `Idle
+    val mutable task_should_stop = false
 
     val mutable socket = None
 
-    method private get_socket =
-      self#mutexify
-        (fun () ->
-          match socket with
-            | Some s -> s
-            | None ->
-                let s = mk_socket ~payload_size ~messageapi () in
-                Srt.setsockflag s Srt.sndsyn true;
-                Srt.setsockflag s Srt.rcvsyn true;
-                socket <- Some s;
-                s)
-        ()
-
-    method private close_socket =
-      self#mutexify
-        (fun () ->
-          ignore (Option.map Srt.close socket);
-          socket <- None)
-        ()
+    method private get_socket = self#mutexify (fun () -> Option.get socket) ()
 
     method virtual private log : Log.t
 
     method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
-    method private is s = self#mutexify (fun () -> state = s) ()
-
-    method private is_connected = self#is `Connected
-
-    method private set_state s = self#mutexify (fun () -> state <- s) ()
+    method private is_connected = self#mutexify (fun () -> socket <> None) ()
 
     method private connect_fn () =
-      let socket = self#get_socket in
-      self#set_state `Connecting;
-      try
-        let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
-        let sockaddr = Unix.ADDR_INET (ipaddr, port) in
-        self#log#important "Connecting to srt://%s:%d.." hostname port;
-        Srt.connect socket sockaddr;
-        self#set_state `Connected;
-        self#log#important "Client connected!";
-        !on_connect ();
-        -1.
-      with Srt.Error (_, _) as exn ->
-        self#log#important "Connect failed: %s" (Printexc.to_string exn);
-        !on_disconnect ();
-        if not (self#is `Stopped) then 0. else -1.
+      self#mutexify
+        (fun () ->
+          try
+            let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
+            let sockaddr = Unix.ADDR_INET (ipaddr, port) in
+            self#log#important "Connecting to srt://%s:%d.." hostname port;
+            ignore (Option.map close_socket socket);
+            let s = mk_socket ~payload_size ~messageapi () in
+            Srt.setsockflag s Srt.sndsyn true;
+            Srt.setsockflag s Srt.rcvsyn true;
+            Srt.connect s sockaddr;
+            socket <- Some s;
+            self#log#important "Client connected!";
+            !on_connect ();
+            -1.
+          with exn ->
+            self#log#important "Connect failed: %s" (Printexc.to_string exn);
+            !on_disconnect ();
+            if not task_should_stop then 0. else -1.)
+        ()
 
     method private connect =
-      if not (self#is `Stopped) then (
-        match connect_task with
-          | Some t -> Duppy.Async.wake_up t
-          | None ->
-              let t =
-                Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
-                  self#connect_fn
-              in
-              connect_task <- Some t;
-              Duppy.Async.wake_up t );
-      self#set_state `Started
+      self#mutexify
+        (fun () ->
+          task_should_stop <- false;
+          match connect_task with
+            | Some t -> Duppy.Async.wake_up t
+            | None ->
+                let t =
+                  Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+                    self#connect_fn
+                in
+                connect_task <- Some t;
+                Duppy.Async.wake_up t)
+        ()
 
     method private disconnect =
-      ( match connect_task with
-        | None -> ()
-        | Some t ->
-            Duppy.Async.stop t;
-            connect_task <- None );
-      self#set_state `Stopped
+      self#mutexify
+        (fun () ->
+          ignore (Option.map close_socket socket);
+          socket <- None;
+          task_should_stop <- true;
+          match connect_task with
+            | None -> ()
+            | Some t ->
+                Duppy.Async.stop t;
+                connect_task <- None)
+        ()
   end
 
 class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
@@ -341,21 +351,6 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
     val mutable listening_socket = None
-
-    method private get_listening_socket =
-      self#mutexify
-        (fun () ->
-          match listening_socket with
-            | Some s -> s
-            | None ->
-                let s = mk_socket ~payload_size ~messageapi () in
-                Srt.bind s bind_address;
-                Srt.listen s 1;
-                self#log#info "Setting up socket to listen at %s"
-                  (string_of_address bind_address);
-                listening_socket <- Some s;
-                s)
-        ()
 
     method private is_connected =
       self#mutexify (fun () -> client_data <> None) ()
@@ -390,19 +385,30 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
           self#connect
       in
       if not self#should_stop then
-        Poll.add_socket ~mode:`Read self#get_listening_socket on_connect
+        self#mutexify
+          (fun () ->
+            assert (listening_socket = None);
+            let s = mk_socket ~payload_size ~messageapi () in
+            Srt.bind s bind_address;
+            Srt.listen s 1;
+            Srt.setsockflag s Srt.rcvsyn true;
+            self#log#info "Setting up socket to listen at %s"
+              (string_of_address bind_address);
+            listening_socket <- Some s;
+            Poll.add_socket ~mode:`Read s on_connect)
+          ()
 
     method private disconnect =
       self#mutexify
         (fun () ->
+          ignore (Option.map (fun socket -> close_socket socket) client_data);
+          client_data <- None;
           ignore
             (Option.map
-               (fun socket ->
-                 Srt.close socket;
-                 client_data <- None)
-               client_data);
-          client_data <- None;
-          ignore (Option.map Srt.close listening_socket);
+               (fun s ->
+                 Poll.remove_socket ~mode:`Read s;
+                 close_socket s)
+               listening_socket);
           listening_socket <- None;
           !on_disconnect ())
         ();
@@ -508,6 +514,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
         Utils.log_exception ~log:self#log ~bt
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         self#disconnect;
+        if not self#should_stop then self#connect;
         Frame.add_break frame pos
 
     method private get_clock =
@@ -526,11 +533,11 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
 
     method wake_up act =
       super#wake_up act;
-      self#mutexify (fun () -> should_stop <- false) ();
+      self#set_should_stop false;
       self#connect
 
     method sleep =
-      self#mutexify (fun () -> should_stop <- true) ();
+      self#set_should_stop true;
       self#disconnect;
       super#sleep
   end
@@ -742,8 +749,6 @@ class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
     inherit
       listener
         ~bind_address ~payload_size ~messageapi ~on_connect ~on_disconnect
-
-    method self_sync = false
   end
 
 let () =
