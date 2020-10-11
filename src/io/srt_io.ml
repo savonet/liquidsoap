@@ -23,6 +23,7 @@
 (** SRT input *)
 
 exception Done
+exception Not_connected
 
 module G = Generator
 module Generator = Generator.From_audio_video_plus
@@ -256,7 +257,11 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
 
     val mutable socket = None
 
-    method private get_socket = self#mutexify (fun () -> Option.get socket) ()
+    method private get_socket =
+      self#mutexify
+        (fun () ->
+          match socket with Some s -> s | None -> raise Not_connected)
+        ()
 
     method virtual private log : Log.t
 
@@ -334,7 +339,10 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
       self#mutexify (fun () -> client_data <> None) ()
 
     method private get_socket =
-      self#mutexify (fun () -> Option.get client_data) ()
+      self#mutexify
+        (fun () ->
+          match client_data with Some s -> s | None -> raise Not_connected)
+        ()
 
     method private log_origin s =
       try self#log#info "New connection from %s" (string_of_address s)
@@ -630,34 +638,34 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
 
     method private send_chunk =
       let socket = self#get_socket in
+      let send data =
+        if messageapi then Srt.sendmsg socket data (-1) false
+        else Srt.send socket data
+      in
+      self#mutexify
+        (fun () ->
+          Strings.Mutable.blit buffer 0 tmp 0 payload_size;
+          Strings.Mutable.drop buffer payload_size)
+        ();
+      let rec f = function
+        | pos when pos < payload_size ->
+            let ret = send (Bytes.sub tmp pos (payload_size - pos)) in
+            f (pos + ret)
+        | _ -> ()
+      in
+      f 0
+
+    method private send_chunks =
       try
-        let send data =
-          if messageapi then Srt.sendmsg socket data (-1) false
-          else Srt.send socket data
-        in
-        self#mutexify
-          (fun () ->
-            Strings.Mutable.blit buffer 0 tmp 0 payload_size;
-            Strings.Mutable.drop buffer payload_size)
-          ();
-        let rec f = function
-          | pos when pos < payload_size ->
-              let ret = send (Bytes.sub tmp pos (payload_size - pos)) in
-              f (pos + ret)
-          | _ -> ()
-        in
-        f 0
+        let len = self#mutexify (fun () -> Strings.Mutable.length buffer) in
+        while payload_size <= len () do
+          self#send_chunk
+        done
       with exn ->
         self#log#important "Error while sending client data: %s"
           (Printexc.to_string exn);
         self#disconnect;
-        self#connect
-
-    method private send_chunks =
-      let len = self#mutexify (fun () -> Strings.Mutable.length buffer) in
-      while payload_size <= len () do
-        self#send_chunk
-      done
+        if not self#should_stop then self#connect
 
     method private get_encoder =
       self#mutexify
