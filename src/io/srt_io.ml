@@ -132,35 +132,25 @@ module Poll = struct
   type t = {
     p : Srt.Poll.t;
     m : Mutex.t;
-    mutable max_read : int;
-    mutable max_write : int;
-    handlers : (Srt.socket, Srt.socket -> unit) Hashtbl.t;
+    mutable max_fds : int;
+    handlers : (Srt.socket, Srt.Poll.flag * (Srt.socket -> unit)) Hashtbl.t;
   }
 
   let t =
     let p = Srt.Poll.create () in
     let m = Mutex.create () in
     let handlers = Hashtbl.create 0 in
-    { p; m; max_read = 0; max_write = 0; handlers }
+    { p; m; max_fds = 0; handlers }
 
   let process () =
     try
-      let max_read, max_write =
-        Tutils.mutexify t.m
-          (fun () ->
-            let { max_read; max_write } = t in
-            (max_read, max_write))
-          ()
-      in
-      if max_read = 0 && max_write = 0 then raise Empty;
-      let r, w =
-        Srt.Poll.wait t.p ~max_read ~max_write ~timeout:conf_timeout#get
-      in
+      let max_fds = Tutils.mutexify t.m (fun () -> t.max_fds) () in
+      if max_fds = 0 then raise Empty;
+      let events = Srt.Poll.uwait t.p ~max_fds ~timeout:conf_timeout#get in
       let handlers =
         Tutils.mutexify t.m
           (fun () ->
-            t.max_read <- t.max_read - List.length r;
-            t.max_write <- t.max_write - List.length w;
+            t.max_fds <- t.max_fds - List.length events;
             t.handlers)
           ()
       in
@@ -171,13 +161,13 @@ module Poll = struct
             (Printexc.to_string exn)
       in
       List.iter
-        (fun socket ->
-          Srt.setsockflag socket Srt.sndsyn true;
-          Srt.setsockflag socket Srt.rcvsyn true;
-          Srt.Poll.remove_usock t.p socket;
-          let fn = Hashtbl.find handlers socket in
-          apply fn socket)
-        (r @ w);
+        (fun { Srt.Poll.fd; events } ->
+          Srt.setsockflag fd Srt.sndsyn true;
+          Srt.setsockflag fd Srt.rcvsyn true;
+          Srt.Poll.remove_usock t.p fd;
+          let event, fn = Hashtbl.find handlers fd in
+          if List.mem event events then apply fn fd)
+        events;
       0.
     with
       | Empty -> -1.
@@ -196,23 +186,11 @@ module Poll = struct
     Srt.setsockflag socket Srt.rcvsyn false;
     Tutils.mutexify t.m
       (fun () ->
-        Hashtbl.add t.handlers socket fn;
+        Hashtbl.add t.handlers socket (mode, fn);
         Srt.Poll.add_usock t.p socket (mode :> Srt.Poll.flag);
-        match mode with
-          | `Read -> t.max_read <- t.max_read + 1
-          | `Write -> t.max_write <- t.max_write + 1)
+        t.max_fds <- t.max_fds + 1)
       ();
     Duppy.Async.wake_up task
-
-  let remove_socket ~mode socket =
-    Tutils.mutexify t.m
-      (fun () ->
-        Hashtbl.remove t.handlers socket;
-        Srt.Poll.remove_usock t.p socket;
-        match mode with
-          | `Read -> t.max_read <- t.max_read - 1
-          | `Write -> t.max_write <- t.max_write - 1)
-      ()
 end
 
 let () =
@@ -403,16 +381,10 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
         (fun () ->
           ignore (Option.map (fun socket -> close_socket socket) client_data);
           client_data <- None;
-          ignore
-            (Option.map
-               (fun s ->
-                 Poll.remove_socket ~mode:`Read s;
-                 close_socket s)
-               listening_socket);
+          ignore (Option.map close_socket listening_socket);
           listening_socket <- None;
           !on_disconnect ())
-        ();
-      if not self#should_stop then self#connect
+        ()
   end
 
 class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
