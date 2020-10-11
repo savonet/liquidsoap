@@ -148,27 +148,24 @@ module Poll = struct
       let max_fds = Tutils.mutexify t.m (fun () -> t.max_fds) () in
       if max_fds = 0 then raise Empty;
       let events = Srt.Poll.uwait t.p ~max_fds ~timeout:conf_timeout#get in
-      let handlers =
-        Tutils.mutexify t.m
-          (fun () ->
-            t.max_fds <- t.max_fds - List.length events;
-            t.handlers)
-          ()
-      in
-      let apply fn s =
-        try fn s
-        with exn ->
-          log#important "Error while execiting asynchronous callback: %s"
-            (Printexc.to_string exn)
-      in
-      List.iter
-        (fun { Srt.Poll.fd; events } ->
-          Srt.setsockflag fd Srt.sndsyn true;
-          Srt.setsockflag fd Srt.rcvsyn true;
-          Srt.Poll.remove_usock t.p fd;
-          let event, fn = Hashtbl.find handlers fd in
-          if List.mem event events then apply fn fd)
-        events;
+      Tutils.mutexify t.m
+        (fun () ->
+          let apply fn s =
+            try fn s
+            with exn ->
+              log#important "Error while execiting asynchronous callback: %s"
+                (Printexc.to_string exn)
+          in
+          List.iter
+            (fun { Srt.Poll.fd; events } ->
+              Srt.Poll.remove_usock t.p fd;
+              Srt.setsockflag fd Srt.sndsyn true;
+              Srt.setsockflag fd Srt.rcvsyn true;
+              t.max_fds <- t.max_fds - 1;
+              let event, fn = Hashtbl.find t.handlers fd in
+              if List.mem event events then apply fn fd)
+            events)
+        ();
       0.
     with
       | Empty -> -1.

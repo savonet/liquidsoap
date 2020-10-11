@@ -30,13 +30,17 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
     Ffmpeg_decoder_common.convert_duration ~src:stream_time_base
   in
   fun ~buffer packet ->
-    let duration = get_duration (Packet.get_duration packet) in
-    let packet = { Ffmpeg_copy_content.packet; time_base = stream_time_base } in
-    let data =
-      { Ffmpeg_content_base.params = Some params; data = [(0, packet)] }
-    in
-    let data = lift_data data in
-    put_data ?pts:None buffer.Decoder.generator data 0 duration
+    try
+      let duration = get_duration (Packet.get_duration packet) in
+      let packet =
+        { Ffmpeg_copy_content.packet; time_base = stream_time_base }
+      in
+      let data =
+        { Ffmpeg_content_base.params = Some params; data = [(0, packet)] }
+      in
+      let data = lift_data data in
+      put_data ?pts:None buffer.Decoder.generator data 0 duration
+    with Ffmpeg_decoder_common.No_duration -> ()
 
 let mk_audio_decoder ~format container =
   let idx, stream, params = Av.find_best_audio_stream container in
