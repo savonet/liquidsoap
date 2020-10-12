@@ -341,28 +341,22 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
           match client_data with Some s -> s | None -> raise Not_connected)
         ()
 
-    method private log_origin s =
-      try self#log#info "New connection from %s" (string_of_address s)
-      with exn ->
-        self#log#important "Error while fetching connection source: %s"
-          (Printexc.to_string exn)
-
-    method private handle_client socket =
-      if self#should_stop then raise Done;
-      self#mutexify
-        (fun () ->
-          client_data <- Some socket;
-          !on_connect ())
-        ()
-
     method private connect =
       let on_connect s =
         try
           let client, origin = Srt.accept s in
-          self#log_origin origin;
+          ( try self#log#info "New connection from %s" (string_of_address origin)
+            with exn ->
+              self#log#important "Error while fetching connection source: %s"
+                (Printexc.to_string exn) );
           Srt.setsockflag client Srt.sndsyn true;
           Srt.setsockflag client Srt.rcvsyn true;
-          self#handle_client client
+          if self#should_stop then raise Done;
+          self#mutexify
+            (fun () ->
+              client_data <- Some client;
+              !on_connect ())
+            ()
         with exn ->
           self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
           self#connect
