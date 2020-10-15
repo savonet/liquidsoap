@@ -35,6 +35,7 @@ type t = {
   framerate : int Lazy.t;
   width : int Lazy.t;
   height : int Lazy.t;
+  pixel_format : Avutil.Pixel_format.t;
   audio_codec : codec option;
   audio_opts : opts;
   video_codec : codec option;
