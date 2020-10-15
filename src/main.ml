@@ -576,6 +576,18 @@ let () =
       if !secondary_task then (
         Dtools.Log.conf_stdout#set false;
         Dtools.Log.conf_file#set false );
+
+      if !interactive then (
+        let default_log =
+          Filename.temp_file
+            (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ()))
+            ".log"
+        in
+        Dtools.Log.conf_file_path#set_d (Some default_log);
+        Dtools.Log.conf_file#set true;
+        Dtools.Log.conf_stdout#set false;
+        Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log) );
+
       Dtools.Init.exec Dtools.Log.start;
 
       (* Allow frame settings to be evaluated here: *)
@@ -655,16 +667,6 @@ let () =
       in
       if !interactive then (
         load_libs ();
-        Dtools.Log.conf_stdout#set_d (Some false);
-        Dtools.Log.conf_file#set_d (Some true);
-        let default_log =
-          Filename.temp_file
-            (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ()))
-            ".log"
-        in
-        Dtools.Log.conf_file_path#set_d (Some default_log);
-        Dtools.Log.conf_file#set true;
-        Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log);
         check_directories ();
         ignore (Thread.create Lang.interactive ());
         Dtools.Init.init main )
