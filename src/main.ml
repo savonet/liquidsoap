@@ -518,19 +518,6 @@ let absolute s =
 let () =
   (* Startup *)
   Lifecycle.before_init (fun () ->
-      (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
-       * for this: we want Unix EPIPE error and not SIGPIPE, which
-       * crashes the program.. *)
-      if not Sys.win32 then (
-        Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
-        ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]) );
-
-      (* On Windows we need to initiate shutdown ourselves by catching INT
-       * since dtools doesn't do it. *)
-      if Sys.win32 then
-        Sys.set_signal Sys.sigint
-          (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
-
       Random.self_init ();
 
       (* Set the default values. *)
@@ -659,10 +646,22 @@ let check_directories () =
 let () =
   Lifecycle.on_start (fun () ->
       let main () =
-        (* TODO if start fails (e.g. invalid password or mountpoint) it
-         *   raises an exception and dtools catches it so we don't get
-         *   a backtrace (by default at least). *)
-        Clock.start ();
+        (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
+         * for this: we want Unix EPIPE error and not SIGPIPE, which
+         * crashes the program.. *)
+        if not Sys.win32 then (
+          Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+          ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]) );
+
+        (* On Windows we need to initiate shutdown ourselves by catching INT
+         * since dtools doesn't do it. *)
+        if Sys.win32 then
+          Sys.set_signal Sys.sigint
+            (Sys.Signal_handle (fun _ -> Tutils.shutdown 0))
+            (* TODO if start fails (e.g. invalid password or mountpoint) it
+             *   raises an exception and dtools catches it so we don't get
+             *   a backtrace (by default at least). *)
+            Clock.start ();
         Tutils.main ()
       in
       if !interactive then (
