@@ -657,11 +657,12 @@ let () =
          * since dtools doesn't do it. *)
         if Sys.win32 then
           Sys.set_signal Sys.sigint
-            (Sys.Signal_handle (fun _ -> Tutils.shutdown 0))
-            (* TODO if start fails (e.g. invalid password or mountpoint) it
-             *   raises an exception and dtools catches it so we don't get
-             *   a backtrace (by default at least). *)
-            Clock.start ();
+            (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+
+        (* TODO if start fails (e.g. invalid password or mountpoint) it
+         *   raises an exception and dtools catches it so we don't get
+         *   a backtrace (by default at least). *)
+        Clock.start ();
         Tutils.main ()
       in
       if !interactive then (
