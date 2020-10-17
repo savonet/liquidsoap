@@ -292,7 +292,7 @@ let parse_comments tokenizer =
                   in
                   parse_doc (main, doc_specials @ special, params) lines
               | "argsof" ->
-                  let s, args =
+                  let s, only, except =
                     try
                       let sub =
                         Pcre.exec ~pat:"^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$" s
@@ -302,14 +302,27 @@ let parse_comments tokenizer =
                         List.map String.trim
                           (String.split_on_char ',' (Pcre.get_substring sub 2))
                       in
-                      (s, args)
-                    with Not_found -> (s, [])
+                      let only, except =
+                        List.fold_left
+                          (fun (only, except) v ->
+                            if String.length v > 0 && v.[0] = '!' then
+                              ( only,
+                                String.sub v 1 (String.length s - 1) :: except
+                              )
+                            else (v :: only, except))
+                          ([], []) args
+                      in
+                      (s, only, except)
+                    with Not_found -> (s, [], [])
                   in
                   let doc = Lang_values.builtins#get_subsection s in
                   let args =
                     List.filter
                       (fun (n, _) ->
-                        match args with [] -> true | args -> List.mem n args)
+                        match (only, except) with
+                          | [], except -> not (List.mem n except)
+                          | only, except ->
+                              List.mem n only && not (List.mem n except))
                       (get_args doc)
                   in
                   parse_doc (main, special, args @ params) lines

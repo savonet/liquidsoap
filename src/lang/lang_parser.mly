@@ -25,7 +25,7 @@
   open Lang_values
   open Lang_values.Ground
 
-  let args_of ?(only=[]) ~pos name =
+  let args_of ?(only=[]) ?(except=[]) ~pos name =
     let rec get_args t args =
       let get_arg_type name =
         match t.T.descr with
@@ -84,7 +84,7 @@
     match Lang_values.get_builtin name with
       | Some ((_, t), Lang_values.V.{value = Fun (args, _, _, _)})
       | Some ((_, t), Lang_values.V.{value = FFI (args, _, _)}) ->
-          let args =
+          let filtered_args =
             if only <> [] then
               List.map (fun n ->
                 try List.find (fun (n', _, _) -> n = n') args
@@ -94,7 +94,15 @@
             else
              args
           in
-          get_args t args
+          List.iter (fun n ->
+            match List.find_opt (fun (n', _, _) -> n = n') args with
+              | Some _ -> ()
+              | None -> raise (Parse_error
+                  (pos, Printf.sprintf "Builtin %s does not have an argument named %s" name n))) except;
+          let filtered_args =
+            List.filter (fun (n, _, _) -> not (List.mem n except)) filtered_args
+          in
+          get_args t filtered_args
       | Some _ -> raise (Parse_error
          (pos, Printf.sprintf "Builtin %s is not a function!" name))
       | None -> raise (Parse_error
@@ -647,15 +655,17 @@ arg:
   | ARGS_OF LPAR var RPAR { args_of ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR
                           { args_of ~pos:$loc (String.concat "." $3) }
-  | ARGS_OF LPAR VARLBRA only_list RBRA RPAR { args_of ~pos:$loc ~only:$4 $3 }
-  | ARGS_OF LPAR subfield_lbra only_list RBRA RPAR
-                          { args_of ~pos:$loc (String.concat "." $3) ~only:$4 }
+  | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR { args_of ~pos:$loc ~only:(fst $4) ~except:(snd $4) $3 }
+  | ARGS_OF LPAR subfield_lbra args_of_params RBRA RPAR
+                          { args_of ~pos:$loc (String.concat "." $3) ~only:(fst $4) ~except:(snd $4) }
 opt:
   | GETS expr { Some $2 }
   |           { None }
-only_list:
-  | var                 { [$1] }
-  | var COMMA only_list { $1::$3 }
+args_of_params:
+  | var                          { [$1], [] }
+  | GET var                      { [], [$2] }
+  | var COMMA args_of_params     { $1::(fst $3), (snd $3) }
+  | GET var COMMA args_of_params { (fst $4), $2::(snd $4) }
 subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 in_subfield_lbra:
