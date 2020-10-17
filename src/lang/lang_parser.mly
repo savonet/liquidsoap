@@ -25,9 +25,36 @@
   open Lang_values
   open Lang_values.Ground
 
-  let args_of ?(only=[]) ?(except=[]) ~pos name =
-    let rec get_args t args =
-      let get_arg_type name =
+  let gen_args_of ~only ~except ~pos get_args name =
+    match Lang_values.get_builtin name with
+      | Some ((_, t), Lang_values.V.{value = Fun (args, _, _, _)})
+      | Some ((_, t), Lang_values.V.{value = FFI (args, _, _)}) ->
+          let filtered_args =
+            if only <> [] then
+              List.map (fun n ->
+                try List.find (fun (n', _, _) -> n = n') args
+                with Not_found -> raise (Parse_error
+                  (pos, Printf.sprintf "Builtin %s does not have an argument named %s" name n))
+              ) only
+            else
+             args
+          in
+          List.iter (fun n ->
+            match List.find_opt (fun (n', _, _) -> n = n') args with
+              | Some _ -> ()
+              | None -> raise (Parse_error
+                  (pos, Printf.sprintf "Builtin %s does not have an argument named %s" name n))) except;
+          let filtered_args =
+            List.filter (fun (n, _, _) -> not (List.mem n except)) filtered_args
+          in
+          get_args ~pos t filtered_args
+      | Some _ -> raise (Parse_error
+         (pos, Printf.sprintf "Builtin %s is not a function!" name))
+      | None -> raise (Parse_error
+         (pos, Printf.sprintf "Builtin %s is not registered!" name))
+
+  let args_of, app_of =
+    let rec get_arg_type t name =
         match t.T.descr with
           | T.Arrow (l, _) ->
               let (_, _, t) =
@@ -35,11 +62,16 @@
               in
               t
           | _ -> assert false
-      in
+    and get_args ~pos t args =
       List.map (fun (n, n', v) ->
-        let t = T.make ~pos:(Some pos) (get_arg_type n).T.descr in
-        (n, n', t, Option.map (term_of_value t) v)) args
-    and term_of_value t ({Lang_values.V.value} as v) =
+        let t = T.make ~pos:(Some pos) (get_arg_type t n).T.descr in
+        (n, n', t, Option.map (term_of_value ~pos t) v)) args
+    and get_app ~pos _ args =
+      List.map (fun (n, _, _) ->
+        (n,
+         Lang_values.{t = T.fresh_evar ~level:(-1) ~pos:(Some pos); term = Var n})
+      ) args
+    and term_of_value ~pos t ({Lang_values.V.value} as v) =
       let get_list_type () =
         match t.T.descr with
           | T.List t -> t
@@ -62,17 +94,17 @@
           | Lang_values.V.Encoder e ->
               Lang_values.Encoder e
           | Lang_values.V.List l ->
-              Lang_values.List (List.map (term_of_value (get_list_type ())) l)
+              Lang_values.List (List.map (term_of_value ~pos (get_list_type ())) l)
           | Lang_values.V.Tuple l ->
-              Lang_values.List (List.mapi (fun pos v ->
-                term_of_value (get_tuple_type pos) v) l)
+              Lang_values.List (List.mapi (fun idx v ->
+                term_of_value ~pos (get_tuple_type idx) v) l)
           | Lang_values.V.Null ->
               Lang_values.Null
           | Lang_values.V.Meth (name, v, v') ->
               let t = get_meth_type () in
-              Lang_values.Meth (name, term_of_value t v, term_of_value t v') 
+              Lang_values.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v') 
           | Lang_values.V.Fun (args, [], [], body) ->
-              Lang_values.Fun (Lang_values.free_vars body, get_args t args, body) 
+              Lang_values.Fun (Lang_values.free_vars body, get_args ~pos t args, body) 
           | _ -> raise (Parse_error
              (pos, Printf.sprintf
                 "Value %s cannot be represented as a term"
@@ -81,32 +113,7 @@
       let t = T.make ~pos:(Some pos) t.T.descr in
       {Lang_values.t; term}
     in
-    match Lang_values.get_builtin name with
-      | Some ((_, t), Lang_values.V.{value = Fun (args, _, _, _)})
-      | Some ((_, t), Lang_values.V.{value = FFI (args, _, _)}) ->
-          let filtered_args =
-            if only <> [] then
-              List.map (fun n ->
-                try List.find (fun (n', _, _) -> n = n') args
-                with Not_found -> raise (Parse_error
-                  (pos, Printf.sprintf "Builtin %s does not have an argument named %s" name n))
-              ) only
-            else
-             args
-          in
-          List.iter (fun n ->
-            match List.find_opt (fun (n', _, _) -> n = n') args with
-              | Some _ -> ()
-              | None -> raise (Parse_error
-                  (pos, Printf.sprintf "Builtin %s does not have an argument named %s" name n))) except;
-          let filtered_args =
-            List.filter (fun (n, _, _) -> not (List.mem n except)) filtered_args
-          in
-          get_args t filtered_args
-      | Some _ -> raise (Parse_error
-         (pos, Printf.sprintf "Builtin %s is not a function!" name))
-      | None -> raise (Parse_error
-         (pos, Printf.sprintf "Builtin %s is not registered!" name))
+    gen_args_of get_args, gen_args_of get_app
 
   (** Create a new value with an unknown type. *)
   let mk ~pos e =
@@ -576,12 +583,18 @@ inner_tuple:
   | expr COMMA inner_tuple { $1::$3 }
 
 app_list_elem:
-  | VAR GETS expr { $1,$3 }
-  | expr          { "",$1 }
+  | VAR GETS expr { [$1,$3] }
+  | expr          { ["",$1] }
+  | ARGS_OF LPAR var RPAR        { app_of ~only:[] ~except:[] ~pos:$loc $3 }
+  | ARGS_OF LPAR subfield RPAR
+                                 { app_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }
+  | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR { app_of ~pos:$loc ~only:(fst $4) ~except:(snd $4) $3 }
+  | ARGS_OF LPAR subfield_lbra args_of_params RBRA RPAR
+                                 { app_of ~pos:$loc (String.concat "." $3) ~only:(fst $4) ~except:(snd $4) }
 app_list:
   |                              { [] }
-  | app_list_elem                { [$1] }
-  | app_list_elem COMMA app_list { $1::$3 }
+  | app_list_elem                { $1 }
+  | app_list_elem COMMA app_list { $1@$3 }
 
 bindvar:
   | VAR { $1 }
@@ -652,9 +665,9 @@ arg:
   | TILD var opt { [$2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3] }
   | TILD var GETS UNDERSCORE opt { [$2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5] }
   | bindvar opt  { ["", $1, T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)), $2] }
-  | ARGS_OF LPAR var RPAR { args_of ~pos:$loc $3 }
+  | ARGS_OF LPAR var RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR
-                          { args_of ~pos:$loc (String.concat "." $3) }
+                          { args_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }
   | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR { args_of ~pos:$loc ~only:(fst $4) ~except:(snd $4) $3 }
   | ARGS_OF LPAR subfield_lbra args_of_params RBRA RPAR
                           { args_of ~pos:$loc (String.concat "." $3) ~only:(fst $4) ~except:(snd $4) }
