@@ -2,7 +2,7 @@
 %ifdef output.icecast
 # Output to shoutcast.
 # @category Source / Output
-# @argsof output.icecast[id,start,user,password,host,port,url,genre,name,public,dumpfile,encoding,fallible,on_start,on_stop,on_error,on_connect,on_disconnect,icy_metadata,format]
+# @argsof output.icecast[!headers,!description,!protocol]
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~icy_id Shoutcast source ID. Only supported by Shoutcast v2.
 # @param ~dj Callback to set dj name.
@@ -10,9 +10,7 @@
 # @param s The source to output
 def output.shoutcast(
   %argsof(
-   output.icecast[id,start,user,password,host,port,url,genre,public,name,
-                  dumpfile,encoding,fallible,on_start,on_stop,on_error,
-                  on_connect,on_disconnect,icy_metadata,format]
+   output.icecast[!headers,!description,!protocol]
   ),
   ~icy_reset=true,~icy_id=1,~dj={""},
   ~aim="",~icq="",~irc="",
@@ -34,9 +32,7 @@ def output.shoutcast(
 
   output.icecast(
     %argsof(
-     output.icecast[id,start,user,password,host,port,url,genre,public,name,
-                    dumpfile,encoding,fallible,on_start,on_stop,on_error,
-                    on_connect,on_disconnect,icy_metadata,format]
+     output.icecast[!headers,!description,!protocol]
     ),
     headers=headers,description="UNUSED",protocol="icy",
     e, s)

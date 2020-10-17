@@ -299,15 +299,18 @@ let parse_comments tokenizer =
                       in
                       let s = Pcre.get_substring sub 1 in
                       let args =
-                        List.map String.trim
-                          (String.split_on_char ',' (Pcre.get_substring sub 2))
+                        List.filter
+                          (fun s -> s <> "")
+                          (List.map String.trim
+                             (String.split_on_char ','
+                                (Pcre.get_substring sub 2)))
                       in
                       let only, except =
                         List.fold_left
                           (fun (only, except) v ->
                             if String.length v > 0 && v.[0] = '!' then
                               ( only,
-                                String.sub v 1 (String.length s - 1) :: except
+                                String.sub v 1 (String.length v - 1) :: except
                               )
                             else (v :: only, except))
                           ([], []) args
@@ -319,6 +322,8 @@ let parse_comments tokenizer =
                   let args =
                     List.filter
                       (fun (n, _) ->
+                        n <> ""
+                        &&
                         match (only, except) with
                           | [], except -> not (List.mem n except)
                           | only, except ->

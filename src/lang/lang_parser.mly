@@ -30,14 +30,17 @@
       | Some ((_, t), Lang_values.V.{value = Fun (args, _, _, _)})
       | Some ((_, t), Lang_values.V.{value = FFI (args, _, _)}) ->
           let filtered_args =
+            List.filter (fun (n, _, _) -> n <> "") args
+          in
+          let filtered_args =
             if only <> [] then
               List.map (fun n ->
-                try List.find (fun (n', _, _) -> n = n') args
+                try List.find (fun (n', _, _) -> n = n') filtered_args
                 with Not_found -> raise (Parse_error
                   (pos, Printf.sprintf "Builtin %s does not have an argument named %s" name n))
               ) only
             else
-             args
+             filtered_args
           in
           List.iter (fun n ->
             match List.find_opt (fun (n', _, _) -> n = n') args with
