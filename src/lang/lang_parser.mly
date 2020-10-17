@@ -25,6 +25,81 @@
   open Lang_values
   open Lang_values.Ground
 
+  let args_of ?(only=[]) ~pos name =
+    let rec get_args t args =
+      let get_arg_type name =
+        match t.T.descr with
+          | T.Arrow (l, _) ->
+              let (_, _, t) =
+                List.find (fun (_, n, _) -> n = name) l
+              in
+              t
+          | _ -> assert false
+      in
+      List.map (fun (n, n', v) ->
+        let t = T.make ~pos:(Some pos) (get_arg_type n).T.descr in
+        (n, n', t, Option.map (term_of_value t) v)) args
+    and term_of_value t ({Lang_values.V.value} as v) =
+      let get_list_type () =
+        match t.T.descr with
+          | T.List t -> t
+          | _ -> assert false
+      in
+      let get_tuple_type pos =
+        match t.T.descr with
+          | T.Tuple t -> List.nth t pos
+          | _ -> assert false
+      in
+      let get_meth_type () =
+        match t.T.descr with
+          | T.Meth (_, _, t) -> t
+          | _ -> assert false
+      in
+      let term =
+        match value with
+          | Lang_values.V.Ground g ->  
+              Lang_values.Ground g
+          | Lang_values.V.Encoder e ->
+              Lang_values.Encoder e
+          | Lang_values.V.List l ->
+              Lang_values.List (List.map (term_of_value (get_list_type ())) l)
+          | Lang_values.V.Tuple l ->
+              Lang_values.List (List.mapi (fun pos v ->
+                term_of_value (get_tuple_type pos) v) l)
+          | Lang_values.V.Null ->
+              Lang_values.Null
+          | Lang_values.V.Meth (name, v, v') ->
+              let t = get_meth_type () in
+              Lang_values.Meth (name, term_of_value t v, term_of_value t v') 
+          | Lang_values.V.Fun (args, [], [], body) ->
+              Lang_values.Fun (Lang_values.free_vars body, get_args t args, body) 
+          | _ -> raise (Parse_error
+             (pos, Printf.sprintf
+                "Value %s cannot be represented as a term"
+                  (Lang_values.V.print_value v)))
+      in
+      let t = T.make ~pos:(Some pos) t.T.descr in
+      {Lang_values.t; term}
+    in
+    match Lang_values.get_builtin name with
+      | Some ((_, t), Lang_values.V.{value = Fun (args, _, _, _)})
+      | Some ((_, t), Lang_values.V.{value = FFI (args, _, _)}) ->
+          let args =
+            if only <> [] then
+              List.map (fun n ->
+                try List.find (fun (n', _, _) -> n = n') args
+                with Not_found -> raise (Parse_error
+                  (pos, Printf.sprintf "Builtin %s does not have an argument named %s" name n))
+              ) only
+            else
+             args
+          in
+          get_args t args
+      | Some _ -> raise (Parse_error
+         (pos, Printf.sprintf "Builtin %s is not a function!" name))
+      | None -> raise (Parse_error
+         (pos, Printf.sprintf "Builtin %s is not registered!" name))
+
   (** Create a new value with an unknown type. *)
   let mk ~pos e =
     let kind =
@@ -256,7 +331,8 @@
 %token UNDERSCORE
 %token NOT
 %token GET SET
-%token<string> PP_IFDEF PP_IFNDEF
+%token <string> PP_IFDEF PP_IFNDEF
+%token ARGS_OF
 %token PP_IFENCODER PP_IFNENCODER PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
@@ -561,16 +637,31 @@ varlpar:
   | VAR DOT varlpar { $1::$3 }
 
 arglist:
-  |                   { [] }
-  | arg               { [$1] }
-  | arg COMMA arglist { $1::$3 }
+  |                       { [] }
+  | arg                   { $1 }
+  | arg COMMA arglist     { $1@$3 }
 arg:
-  | TILD var opt { $2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3 }
-  | TILD var GETS UNDERSCORE opt { $2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5 }
-  | bindvar opt  { "", $1, T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)), $2 }
+  | TILD var opt { [$2, $2, T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $3] }
+  | TILD var GETS UNDERSCORE opt { [$2, "_", T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)), $5] }
+  | bindvar opt  { ["", $1, T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)), $2] }
+  | ARGS_OF LPAR var RPAR { args_of ~pos:$loc $3 }
+  | ARGS_OF LPAR subfield RPAR
+                          { args_of ~pos:$loc (String.concat "." $3) }
+  | ARGS_OF LPAR VARLBRA only_list RBRA RPAR { args_of ~pos:$loc ~only:$4 $3 }
+  | ARGS_OF LPAR subfield_lbra only_list RBRA RPAR
+                          { args_of ~pos:$loc (String.concat "." $3) ~only:$4 }
 opt:
   | GETS expr { Some $2 }
   |           { None }
+only_list:
+  |                     { [] }
+  | var                 { [$1] }
+  | var COMMA only_list { $1::$3 }
+subfield_lbra:
+  | VAR DOT in_subfield_lbra { $1::$3 }
+in_subfield_lbra:
+  | VARLBRA { [$1] }
+  | VAR DOT in_subfield { $1::$3 }
 
 if_elsif:
   | ELSIF exprs THEN exprs if_elsif { let cond = $2 in
