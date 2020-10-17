@@ -57,7 +57,8 @@
          (pos, Printf.sprintf "Builtin %s is not registered!" name))
 
   let args_of, app_of =
-    let rec get_arg_type t name =
+    let rec get_args ~pos t args =
+      let get_arg_type t name =
         match t.T.descr with
           | T.Arrow (l, _) ->
               let (_, _, t) =
@@ -65,7 +66,7 @@
               in
               t
           | _ -> assert false
-    and get_args ~pos t args =
+      in
       List.map (fun (n, n', v) ->
         let t = T.make ~pos:(Some pos) (get_arg_type t n).T.descr in
         (n, n', t, Option.map (term_of_value ~pos t) v)) args
@@ -107,6 +108,7 @@
               let t = get_meth_type () in
               Lang_values.Meth (name, term_of_value ~pos t v, term_of_value ~pos t v') 
           | Lang_values.V.Fun (args, [], [], body) ->
+              let body = Lang_values.{body with t = T.make ~pos:(Some pos) body.t.T.descr} in
               Lang_values.Fun (Lang_values.free_vars body, get_args ~pos t args, body) 
           | _ -> raise (Parse_error
              (pos, Printf.sprintf
@@ -114,7 +116,7 @@
                   (Lang_values.V.print_value v)))
       in
       let t = T.make ~pos:(Some pos) t.T.descr in
-      {Lang_values.t; term}
+      Lang_values.({t; term})
     in
     gen_args_of get_args, gen_args_of get_app
 
@@ -686,7 +688,7 @@ subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 in_subfield_lbra:
   | VARLBRA { [$1] }
-  | VAR DOT in_subfield { $1::$3 }
+  | VAR DOT in_subfield_lbra { $1::$3 }
 
 if_elsif:
   | ELSIF exprs THEN exprs if_elsif { let cond = $2 in
