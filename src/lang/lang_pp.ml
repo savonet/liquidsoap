@@ -295,7 +295,7 @@ let parse_comments tokenizer =
                   let s, args =
                     try
                       let sub =
-                        Pcre.exec ~pat:"^\\s*([^\\[]+)\\[([^\\]]*)\\]\\s*$" s
+                        Pcre.exec ~pat:"^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$" s
                       in
                       let s = Pcre.get_substring sub 1 in
                       let args =

@@ -654,7 +654,6 @@ opt:
   | GETS expr { Some $2 }
   |           { None }
 only_list:
-  |                     { [] }
   | var                 { [$1] }
   | var COMMA only_list { $1::$3 }
 subfield_lbra:
