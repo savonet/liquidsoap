@@ -33,15 +33,12 @@ def output.shoutcast(
   s = map_metadata(map,s)
 
   output.icecast(
-    e, format=format, icy_id=icy_id,
-    id=id, headers=headers,
-    start=start,icy_metadata=icy_metadata,
-    on_connect=on_connect, on_disconnect=on_disconnect,
-    host=host, port=port, user=user, password=password,
-    genre=genre, url=url, description="UNUSED",
-    public=public, dumpfile=dumpfile,encoding=encoding,
-    name=name, protocol="icy",on_error=on_error,
-    fallible=fallible,on_start=on_start,on_stop=on_stop,
-    s)
+    %argsof(
+     output.icecast[id,start,user,password,host,port,url,genre,public,name,
+                    dumpfile,encoding,fallible,on_start,on_stop,on_error,
+                    on_connect,on_disconnect,icy_metadata,format]
+    ),
+    headers=headers,description="UNUSED",protocol="icy",
+    e, s)
 end
 %endif
