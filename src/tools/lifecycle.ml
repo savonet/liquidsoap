@@ -1,4 +1,4 @@
-(*****************************************************************************
+(****************************************************************************e
 
   Liquidsoap, a programmable audio stream generator.
   Copyright 2003-2020 Savonet team
@@ -25,15 +25,21 @@ let log = Log.make ["lifecycle"]
 let make_action ?(before = []) ?(after = []) name =
   let on_action = ref (fun () -> log#debug "At stage: %S" name) in
   let atom = Dtools.Init.make ~before ~after ~name (fun () -> !on_action ()) in
-  let before_action f = ignore (Dtools.Init.make ~before:[atom] f) in
+  let wrap f () =
+    try f ()
+    with exn ->
+      Dtools.Init.exec Dtools.Log.stop;
+      raise exn
+  in
+  let before_action f = ignore (Dtools.Init.make ~before:[atom] (wrap f)) in
   let on_action fn =
     let cur = !on_action in
     on_action :=
       fun () ->
         cur ();
-        fn ()
+        (wrap fn) ()
   in
-  let after_action f = ignore (Dtools.Init.make ~after:[atom] f) in
+  let after_action f = ignore (Dtools.Init.make ~after:[atom] (wrap f)) in
   (atom, before_action, on_action, after_action)
 
 (* This atom is explicitely triggered in [Main] *)
