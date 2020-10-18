@@ -13,6 +13,9 @@ def f() =
   end
 
   if g() != "/-true" then test.fail() end
+  if g(dir_sep="gni") != "gni-true" then test.fail() end
+  if g(leading_dot=false) != "/-false" then test.fail() end
+  if g(dir_sep="gni",leading_dot=false) != "gni-false" then test.fail() end
 
   # Add all but leading dot. Add unlabeled argument to test as well
   def g(%argsof(file.extension[!leading_dot]), x) =
@@ -20,11 +23,14 @@ def f() =
   end 
   
   if g("bla") != "/-bla" then test.fail() end
+  if g(dir_sep="gni","bla") != "gni-bla" then test.fail() end
 
   # Add only leading_dot
   def g(%argsof(file.extension[leading_dot]), x) =
     "#{leading_dot}-#{x}"
   end
+
+  if g(leading_dot=false,"bla") != "false-bla" then test.fail() end
 
   # Test argsof call
   def h(~leading_dot=false,~dir_sep="no_dir_sep") =
