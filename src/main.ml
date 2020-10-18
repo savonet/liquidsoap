@@ -575,8 +575,6 @@ let () =
         Dtools.Log.conf_stdout#set false;
         Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log) );
 
-      Dtools.Init.exec Dtools.Log.start;
-
       (* Allow frame settings to be evaluated here: *)
       Frame_settings.lazy_config_eval := true;
 
@@ -659,6 +657,8 @@ let () =
           Sys.set_signal Sys.sigint
             (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
 
+        Dtools.Init.exec Dtools.Log.start;
+
         (* TODO if start fails (e.g. invalid password or mountpoint) it
          *   raises an exception and dtools catches it so we don't get
          *   a backtrace (by default at least). *)
@@ -694,7 +694,7 @@ let () =
          * warn the user that his scripts didn't define any output. *)
         not !secondary_task
       then (
-        sync_cleanup ();
+        final_cleanup ();
         Printf.printf "No output defined, nothing to do.\n";
         exit 1 ))
 
