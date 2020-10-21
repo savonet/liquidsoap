@@ -20,8 +20,10 @@
 
   *****************************************************************************)
 
+exception No_duration
+
 let convert_duration ~src =
   let dst = Ffmpeg_utils.liq_master_ticks_time_base () in
   function
   | Some d -> Int64.to_int (Ffmpeg_utils.convert_time_base ~src ~dst d)
-  | None -> failwith "No available duration!"
+  | None -> raise No_duration

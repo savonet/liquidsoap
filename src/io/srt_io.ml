@@ -23,10 +23,79 @@
 (** SRT input *)
 
 exception Done
+exception Not_connected
 
 module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
+
+let mode_of_value v =
+  match Lang.to_string v with
+    | "listener" -> `Listener
+    | "caller" -> `Caller
+    | _ -> raise (Lang_errors.Invalid_value (v, "Invalid mode!"))
+
+let string_of_mode = function `Listener -> "listener" | `Caller -> "caller"
+
+let common_options ~mode =
+  [
+    ( "mode",
+      Lang.string_t,
+      Some (Lang.string (string_of_mode mode)),
+      Some
+        "Mode to operate on. One of: `\"listener\"` (waits for connection to \
+         come in) or `\"caller\"` (initiate connection to a remote server)" );
+    ( "host",
+      Lang.string_t,
+      Some (Lang.string "localhost"),
+      Some "Address to connect to. Used only in caller mode." );
+    ( "port",
+      Lang.int_t,
+      Some (Lang.int 8000),
+      Some
+        "Port to bind on the local machine (listener mode) or to connect to \
+         (caller mode). The term `port` as used in SRT is occasionally \
+         identical to the term `UDP port`. However SRT offers more flexibility \
+         than UDP because it manages ports as its own resources. For example, \
+         one port may be shared between various services." );
+    ( "bind_address",
+      Lang.string_t,
+      Some (Lang.string "0.0.0.0"),
+      Some "Address to bind on the local machine. Used only in listener mode" );
+    ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
+    ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
+    ( "on_connect",
+      Lang.fun_t [(false, "", Lang.unit_t)] Lang.unit_t,
+      Some (Lang.val_cst_fun [] Lang.unit),
+      Some "Function to execute when connected." );
+    ( "on_disconnect",
+      Lang.fun_t [] Lang.unit_t,
+      Some (Lang.val_cst_fun [] Lang.unit),
+      Some "Function to excecute when disconnected" );
+  ]
+
+let parse_common_options p =
+  let bind_address = Lang.to_string (List.assoc "bind_address" p) in
+  let bind_address =
+    try Unix.inet_addr_of_string bind_address
+    with exn ->
+      raise
+        (Lang_errors.Invalid_value
+           ( List.assoc "bind_address" p,
+             Printf.sprintf "Invalid address: %s" (Printexc.to_string exn) ))
+  in
+  let port = Lang.to_int (List.assoc "port" p) in
+  let bind_address = Unix.ADDR_INET (bind_address, port) in
+  let on_connect = List.assoc "on_connect" p in
+  let on_disconnect = List.assoc "on_disconnect" p in
+  ( mode_of_value (List.assoc "mode" p),
+    Lang.to_string (List.assoc "host" p),
+    Lang.to_int (List.assoc "port" p),
+    bind_address,
+    Lang.to_int (List.assoc "payload_size" p),
+    Lang.to_bool (List.assoc "messageapi" p),
+    ref (fun () -> ignore (Lang.apply on_connect [])),
+    ref (fun () -> ignore (Lang.apply on_disconnect [])) )
 
 let conf_srt =
   Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
@@ -64,56 +133,49 @@ module Poll = struct
   type t = {
     p : Srt.Poll.t;
     m : Mutex.t;
-    mutable max_read : int;
-    mutable max_write : int;
-    handlers : (Srt.socket, Srt.socket -> unit) Hashtbl.t;
+    mutable max_fds : int;
+    handlers : (Srt.socket, Srt.Poll.flag * (Srt.socket -> unit)) Hashtbl.t;
   }
 
   let t =
     let p = Srt.Poll.create () in
     let m = Mutex.create () in
     let handlers = Hashtbl.create 0 in
-    { p; m; max_read = 0; max_write = 0; handlers }
+    { p; m; max_fds = 0; handlers }
 
   let process () =
     try
-      let max_read, max_write =
-        Tutils.mutexify t.m
-          (fun () ->
-            let { max_read; max_write } = t in
-            (max_read, max_write))
-          ()
-      in
-      if max_read = 0 && max_write = 0 then raise Empty;
-      let r, w =
-        Srt.Poll.wait t.p ~max_read ~max_write ~timeout:conf_timeout#get
-      in
-      let handlers =
-        Tutils.mutexify t.m
-          (fun () ->
-            t.max_read <- t.max_read - List.length r;
-            t.max_write <- t.max_write - List.length w;
-            t.handlers)
-          ()
-      in
-      let apply fn s =
-        try fn s
-        with exn ->
-          log#important "Error while execiting asynchronous callback: %s"
-            (Printexc.to_string exn)
-      in
-      List.iter
-        (fun socket ->
-          Srt.setsockflag socket Srt.sndsyn true;
-          Srt.setsockflag socket Srt.rcvsyn true;
-          Srt.Poll.remove_usock t.p socket;
-          let fn = Hashtbl.find handlers socket in
-          apply fn socket)
-        (r @ w);
+      let max_fds = Tutils.mutexify t.m (fun () -> t.max_fds) () in
+      if max_fds = 0 then raise Empty;
+      let events = Srt.Poll.uwait t.p ~max_fds ~timeout:conf_timeout#get in
+      Tutils.mutexify t.m
+        (fun () ->
+          let apply fn s =
+            try fn s
+            with exn ->
+              log#important "Error while execiting asynchronous callback: %s"
+                (Printexc.to_string exn)
+          in
+          List.iter
+            (fun { Srt.Poll.fd; events } ->
+              Srt.Poll.remove_usock t.p fd;
+              Srt.setsockflag fd Srt.sndsyn true;
+              Srt.setsockflag fd Srt.rcvsyn true;
+              t.max_fds <- t.max_fds - 1;
+              let event, fn = Hashtbl.find t.handlers fd in
+              if List.mem event events then apply fn fd)
+            events)
+        ();
       0.
     with
       | Empty -> -1.
       | Srt.Error (`Etimeout, _) -> 0.
+      | exn ->
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "Error while processing SRT socket pool: %s"
+               (Printexc.to_string exn));
+          -1.
 
   let task = Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler process
 
@@ -122,11 +184,9 @@ module Poll = struct
     Srt.setsockflag socket Srt.rcvsyn false;
     Tutils.mutexify t.m
       (fun () ->
-        Hashtbl.add t.handlers socket fn;
+        Hashtbl.add t.handlers socket (mode, fn);
         Srt.Poll.add_usock t.p socket (mode :> Srt.Poll.flag);
-        match mode with
-          | `Read -> t.max_read <- t.max_read + 1
-          | `Write -> t.max_write <- t.max_write + 1)
+        t.max_fds <- t.max_fds + 1)
       ();
     Duppy.Async.wake_up task
 end
@@ -139,63 +199,195 @@ let () =
       Srt.Poll.release Poll.t.Poll.p;
       Srt.cleanup ())
 
-class virtual base ~payload_size ~messageapi =
+let string_of_address = function
+  | Unix.ADDR_UNIX _ -> assert false
+  | Unix.ADDR_INET (addr, port) ->
+      Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
+
+let mk_socket ~payload_size ~messageapi () =
+  let s = Srt.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
+  Srt.setsockflag s Srt.payloadsize payload_size;
+  Srt.setsockflag s Srt.transtype `Live;
+  Srt.setsockflag s Srt.messageapi messageapi;
+  Srt.setsockflag s Srt.enforced_encryption conf_enforced_encryption#get;
+  s
+
+let close_socket s = Srt.close s
+
+class virtual base =
+  let m = Mutex.create () in
   object (self)
-    val mutex = Mutex.create ()
-
-    val mutable socket = None
-
     method virtual id : string
 
     val mutable clock = None
 
-    method private get_clock =
-      match clock with
-        | Some c -> c
-        | None ->
-            let c = new Clock.clock "srt" in
-            clock <- Some c;
-            c
+    method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b = Tutils.mutexify m
 
-    method private string_of_address =
-      function
-      | Unix.ADDR_UNIX _ -> assert false
-      | Unix.ADDR_INET (addr, port) ->
-          Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
+    val mutable should_stop = false
 
-    (* No blocking operation in prepare_socket, plz! *)
-    method virtual private prepare_socket : Srt.socket -> unit
+    method private should_stop = self#mutexify (fun () -> should_stop) ()
+
+    method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
+  end
+
+class virtual networking_agent =
+  object
+    method virtual private connect : unit
+
+    method virtual private disconnect : unit
+
+    method virtual private is_connected : bool
+
+    method virtual private get_socket : Srt.socket
+  end
+
+class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
+  ~on_disconnect =
+  object (self)
+    inherit networking_agent
+
+    method virtual should_stop : bool
+
+    val mutable connect_task = None
+
+    val mutable task_should_stop = false
+
+    val mutable socket = None
 
     method private get_socket =
-      Tutils.mutexify mutex
+      self#mutexify
         (fun () ->
-          match socket with
-            | Some socket -> socket
-            | None ->
-                let s = Srt.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
-                Srt.setsockflag s Srt.payloadsize payload_size;
-                Srt.setsockflag s Srt.transtype `Live;
-                Srt.setsockflag s Srt.messageapi messageapi;
-                Srt.setsockflag s Srt.enforced_encryption
-                  conf_enforced_encryption#get;
-                self#prepare_socket s;
-                socket <- Some s;
-                s)
+          match socket with Some s -> s | None -> raise Not_connected)
         ()
 
-    method private close_socket =
-      Tutils.mutexify mutex
+    method virtual private log : Log.t
+
+    method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
+
+    method private is_connected = self#mutexify (fun () -> socket <> None) ()
+
+    method private connect_fn () =
+      self#mutexify
         (fun () ->
-          match socket with
+          try
+            let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
+            let sockaddr = Unix.ADDR_INET (ipaddr, port) in
+            self#log#important "Connecting to srt://%s:%d.." hostname port;
+            ignore (Option.map close_socket socket);
+            let s = mk_socket ~payload_size ~messageapi () in
+            Srt.setsockflag s Srt.sndsyn true;
+            Srt.setsockflag s Srt.rcvsyn true;
+            Srt.connect s sockaddr;
+            socket <- Some s;
+            self#log#important "Client connected!";
+            !on_connect ();
+            -1.
+          with exn ->
+            self#log#important "Connect failed: %s" (Printexc.to_string exn);
+            !on_disconnect ();
+            if not task_should_stop then 0. else -1.)
+        ()
+
+    method private connect =
+      self#mutexify
+        (fun () ->
+          task_should_stop <- false;
+          match connect_task with
+            | Some t -> Duppy.Async.wake_up t
+            | None ->
+                let t =
+                  Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+                    self#connect_fn
+                in
+                connect_task <- Some t;
+                Duppy.Async.wake_up t)
+        ()
+
+    method private disconnect =
+      self#mutexify
+        (fun () ->
+          ignore (Option.map close_socket socket);
+          socket <- None;
+          task_should_stop <- true;
+          match connect_task with
             | None -> ()
-            | Some s ->
-                Srt.close s;
-                socket <- None)
+            | Some t ->
+                Duppy.Async.stop t;
+                connect_task <- None)
         ()
   end
 
-class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
-  ~on_connect ~on_disconnect ~messageapi ~dump format =
+class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
+  ~on_disconnect =
+  object (self)
+    inherit networking_agent
+
+    val mutable client_data = None
+
+    method virtual log : Log.t
+
+    method virtual should_stop : bool
+
+    method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
+
+    val mutable listening_socket = None
+
+    method private is_connected =
+      self#mutexify (fun () -> client_data <> None) ()
+
+    method private get_socket =
+      self#mutexify
+        (fun () ->
+          match client_data with Some s -> s | None -> raise Not_connected)
+        ()
+
+    method private connect =
+      let on_connect s =
+        try
+          let client, origin = Srt.accept s in
+          ( try self#log#info "New connection from %s" (string_of_address origin)
+            with exn ->
+              self#log#important "Error while fetching connection source: %s"
+                (Printexc.to_string exn) );
+          Srt.setsockflag client Srt.sndsyn true;
+          Srt.setsockflag client Srt.rcvsyn true;
+          if self#should_stop then raise Done;
+          self#mutexify
+            (fun () ->
+              client_data <- Some client;
+              !on_connect ())
+            ()
+        with exn ->
+          self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
+          self#connect
+      in
+      if not self#should_stop then
+        self#mutexify
+          (fun () ->
+            assert (listening_socket = None);
+            let s = mk_socket ~payload_size ~messageapi () in
+            Srt.bind s bind_address;
+            Srt.listen s 1;
+            Srt.setsockflag s Srt.rcvsyn true;
+            self#log#info "Setting up socket to listen at %s"
+              (string_of_address bind_address);
+            listening_socket <- Some s;
+            Poll.add_socket ~mode:`Read s on_connect)
+          ()
+
+    method private disconnect =
+      self#mutexify
+        (fun () ->
+          ignore (Option.map (fun socket -> close_socket socket) client_data);
+          client_data <- None;
+          ignore (Option.map close_socket listening_socket);
+          listening_socket <- None;
+          !on_disconnect ())
+        ()
+  end
+
+class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
+  ~on_disconnect ~payload_size ~dump format =
   let max_ticks = Frame.master_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -204,21 +396,36 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
       `Undefined
   in
   object (self)
-    inherit base ~payload_size ~messageapi
+    inherit networking_agent
+
+    inherit base
 
     inherit Source.source ~name:"input.srt" kind as super
 
-    initializer log_ref := self#log#info "%s"
-
-    val input_mutex = Mutex.create ()
-
-    val mutable client_data = None
-
     val mutable decoder_data = None
 
-    val mutable should_stop = false
-
     val mutable dump_chan = None
+
+    initializer
+    log_ref := self#log#info "%s";
+    let on_connect_cur = !on_connect in
+    (on_connect :=
+       fun () ->
+         Generator.set_mode generator `Undefined;
+         ( match dump with
+           | Some fname -> dump_chan <- Some (open_out_bin fname)
+           | None -> () );
+         on_connect_cur ());
+    let on_disconnect_cur = !on_disconnect in
+    on_disconnect :=
+      fun () ->
+        decoder_data <- None;
+        ( match dump_chan with
+          | Some chan ->
+              close_out_noerr chan;
+              dump_chan <- None
+          | None -> () );
+        on_disconnect_cur ()
 
     method stype = Source.Fallible
 
@@ -228,27 +435,9 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
 
     method abort_track = Generator.add_break generator
 
-    method is_ready =
-      Tutils.mutexify input_mutex
-        (fun () -> not (should_stop || client_data = None))
-        ()
+    method is_ready = (not self#should_stop) && self#is_connected
 
-    method self_sync = client_data <> None
-
-    method private log_origin s =
-      try self#log#info "New connection from %s" (self#string_of_address s)
-      with exn ->
-        self#log#important "Error while fetching connection source: %s"
-          (Printexc.to_string exn)
-
-    method private should_stop =
-      Tutils.mutexify input_mutex (fun () -> should_stop) ()
-
-    method private prepare_socket s =
-      Srt.bind s bind_address;
-      Srt.listen s 1;
-      self#log#info "Setting up socket to listen at %s"
-        (self#string_of_address bind_address)
+    method self_sync = self#is_connected
 
     method private create_decoder socket =
       let create_decoder =
@@ -274,55 +463,10 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
       in
       create_decoder { Decoder.read; tell = None; length = None; lseek = None }
 
-    method private handle_client socket =
-      if self#should_stop then raise Done;
-      Srt.setsockflag socket Srt.sndsyn true;
-      Srt.setsockflag socket Srt.rcvsyn true;
-      Tutils.mutexify input_mutex
-        (fun () ->
-          Generator.set_mode generator `Undefined;
-          client_data <- Some socket;
-          match dump with
-            | Some fname -> dump_chan <- Some (open_out_bin fname)
-            | None -> ())
-        ();
-      on_connect ()
-
-    method private close_client =
-      on_disconnect ();
-      Tutils.mutexify input_mutex
-        (fun () ->
-          match client_data with
-            | None -> ()
-            | Some socket -> (
-                Srt.close socket;
-                decoder_data <- None;
-                client_data <- None;
-                match dump_chan with
-                  | Some chan ->
-                      close_out_noerr chan;
-                      dump_chan <- None
-                  | None -> () ))
-        ();
-      self#connect
-
-    method private connect =
-      let on_connect s =
-        try
-          let client, origin = Srt.accept s in
-          self#log_origin origin;
-          self#handle_client client
-        with exn ->
-          self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
-          self#connect
-      in
-      if not self#should_stop then
-        Poll.add_socket ~mode:`Read self#get_socket on_connect
-
     method private get_frame frame =
       let pos = Frame.position frame in
       try
-        let socket = Option.get client_data in
+        let socket = self#get_socket in
         let decoder =
           match decoder_data with
             | None ->
@@ -340,8 +484,17 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
-        self#close_client;
+        self#disconnect;
+        if not self#should_stop then self#connect;
         Frame.add_break frame pos
+
+    method private get_clock =
+      match clock with
+        | Some c -> c
+        | None ->
+            let c = new Clock.clock "srt" in
+            clock <- Some c;
+            c
 
     method private set_clock =
       super#set_clock;
@@ -351,82 +504,84 @@ class input ~kind ~bind_address ~max ~log_overfull ~payload_size ~clock_safe
 
     method wake_up act =
       super#wake_up act;
-      Tutils.mutexify input_mutex (fun () -> should_stop <- false) ();
+      self#set_should_stop false;
       self#connect
 
     method sleep =
-      Tutils.mutexify input_mutex (fun () -> should_stop <- true) ();
-      self#close_client;
+      self#set_should_stop true;
+      self#disconnect;
       super#sleep
+  end
+
+class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
+  ~clock_safe ~on_connect ~on_disconnect ~messageapi ~dump format =
+  object
+    inherit
+      input_base
+        ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
+          ~on_disconnect ~dump format
+
+    inherit
+      listener
+        ~bind_address ~payload_size ~messageapi ~on_connect ~on_disconnect
+  end
+
+class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
+  ~clock_safe ~on_connect ~on_disconnect ~messageapi ~dump format =
+  object
+    inherit
+      input_base
+        ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
+          ~on_disconnect ~dump format
+
+    inherit
+      caller
+        ~hostname ~port ~payload_size ~messageapi ~on_connect ~on_disconnect
   end
 
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.srt" ~return_t ~category:Lang.Input
-    ~descr:"Start a SRT agent in listener mode to receive and decode a stream."
-    [
-      ( "bind_address",
-        Lang.string_t,
-        Some (Lang.string "0.0.0.0"),
-        Some "Address to bind on the local machine." );
-      ( "port",
-        Lang.int_t,
-        Some (Lang.int 8000),
-        Some
-          "Port to bind on the local machine. The term `port` as used in SRT \
-           is occasionally identical to the term `UDP port`. However SRT \
-           offers more flexibility than UDP because it manages ports as its \
-           own resources. For example, one port may be shared between various \
-           services." );
-      ( "clock_safe",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Force the use of a decicated clock." );
-      ( "on_connect",
-        Lang.fun_t [(false, "", Lang.unit_t)] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Function to execute when a source is connected." );
-      ( "on_disconnect",
-        Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Function to excecute when a stream is disconnected" );
-      ( "max",
-        Lang.float_t,
-        Some (Lang.float 10.),
-        Some "Maximum duration of the buffered data." );
-      ( "log_overfull",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Log when the source's buffer is overfull." );
-      ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
-      ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
-      ( "dump",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some
-          "Dump received data to the given file for debugging. Unused is empty."
-      );
-      ( "content_type",
-        Lang.string_t,
-        Some (Lang.string "application/ffmpeg"),
-        Some
-          "Content-Type (mime type) used to find a decoder for the input \
-           stream." );
-    ]
+    ~descr:"Receive a SRT stream from a distant agent."
+    ( common_options ~mode:`Listener
+    @ [
+        ( "clock_safe",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Force the use of a decicated clock." );
+        ( "max",
+          Lang.float_t,
+          Some (Lang.float 10.),
+          Some "Maximum duration of the buffered data." );
+        ( "log_overfull",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Log when the source's buffer is overfull." );
+        ( "dump",
+          Lang.string_t,
+          Some (Lang.string ""),
+          Some
+            "Dump received data to the given file for debugging. Unused is \
+             empty." );
+        ( "content_type",
+          Lang.string_t,
+          Some (Lang.string "application/ffmpeg"),
+          Some
+            "Content-Type (mime type) used to find a decoder for the input \
+             stream." );
+      ] )
     (fun p ->
-      let bind_address = Lang.to_string (List.assoc "bind_address" p) in
-      let bind_address =
-        try Unix.inet_addr_of_string bind_address
-        with exn ->
-          raise
-            (Lang_errors.Invalid_value
-               ( List.assoc "bind_address" p,
-                 Printf.sprintf "Invalid address: %s" (Printexc.to_string exn)
-               ))
+      let ( mode,
+            hostname,
+            port,
+            bind_address,
+            payload_size,
+            messageapi,
+            on_connect,
+            on_disconnect ) =
+        parse_common_options p
       in
-      let port = Lang.to_int (List.assoc "port" p) in
-      let bind_address = Unix.ADDR_INET (bind_address, port) in
       let dump =
         match Lang.to_string (List.assoc "dump" p) with
           | s when s = "" -> None
@@ -434,85 +589,77 @@ let () =
       in
       let max = Lang.to_float (List.assoc "max" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
-      let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
-      let payload_size = Lang.to_int (List.assoc "payload_size" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-      let on_connect () = ignore (Lang.apply (List.assoc "on_connect" p) []) in
-      let on_disconnect () =
-        ignore (Lang.apply (List.assoc "on_disconnect" p) [])
-      in
       let format = Lang.to_string (List.assoc "content_type" p) in
-      ( new input
-          ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
-        :> Source.source ))
+      match mode with
+        | `Listener ->
+            ( new input_listener
+                ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
+                ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
+              :> Source.source )
+        | `Caller ->
+            ( new input_caller
+                ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
+                ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
+              :> Source.source ))
 
-class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-  ~autostart ~clock_safe ~port ~hostname ~encoder_factory source =
+class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
+  ~infallible ~autostart ~on_connect:_ ~on_disconnect ~encoder_factory source =
+  let buffer = Strings.Mutable.empty () in
+  let tmp = Bytes.create payload_size in
   object (self)
-    inherit base ~payload_size ~messageapi
+    inherit networking_agent
+
+    inherit base
 
     inherit
       Output.encoded
         ~output_kind:"srt" ~content_kind:kind ~on_start ~on_stop ~infallible
-          ~autostart ~name:"output.srt" source as super
-
-    val output_mutex = Mutex.create ()
-
-    val buffer = Strings.Mutable.empty ()
-
-    val tmp = Bytes.create payload_size
+          ~autostart ~name:"output.srt" source
 
     val mutable encoder = None
 
-    val mutable connect_task = None
-
-    val mutable state = `Idle
-
-    method self_sync = state = `Started
-
-    method private is s = Tutils.mutexify output_mutex (fun () -> state = s) ()
-
-    method private prepare_socket socket =
-      Srt.setsockflag socket Srt.sndsyn true;
-      Srt.setsockflag socket Srt.rcvsyn true
+    initializer
+    let on_disconnect_cur = !on_disconnect in
+    on_disconnect :=
+      fun () ->
+        ignore (Strings.Mutable.flush buffer);
+        encoder <- None;
+        on_disconnect_cur ()
 
     method private send_chunk =
       let socket = self#get_socket in
-      try
-        let send data =
-          if messageapi then Srt.sendmsg socket data (-1) false
-          else Srt.send socket data
-        in
-        Tutils.mutexify output_mutex
-          (fun () ->
-            Strings.Mutable.blit buffer 0 tmp 0 payload_size;
-            Strings.Mutable.drop buffer payload_size)
-          ();
-        let rec f = function
-          | pos when pos < payload_size ->
-              let ret = send (Bytes.sub tmp pos (payload_size - pos)) in
-              f (pos + ret)
-          | _ -> ()
-        in
-        f 0
-      with exn ->
-        self#log#important "Error while send client data: %s"
-          (Printexc.to_string exn);
-        self#clear_encoder;
-        self#close_socket;
-        if not (self#is `Stopped) then self#start_connect_task
+      let send data =
+        if messageapi then Srt.sendmsg socket data (-1) false
+        else Srt.send socket data
+      in
+      self#mutexify
+        (fun () ->
+          Strings.Mutable.blit buffer 0 tmp 0 payload_size;
+          Strings.Mutable.drop buffer payload_size)
+        ();
+      let rec f = function
+        | pos when pos < payload_size ->
+            let ret = send (Bytes.sub tmp pos (payload_size - pos)) in
+            f (pos + ret)
+        | _ -> ()
+      in
+      f 0
 
     method private send_chunks =
-      let len =
-        Tutils.mutexify output_mutex (fun () -> Strings.Mutable.length buffer)
-      in
-      while payload_size <= len () do
-        self#send_chunk
-      done
+      try
+        let len = self#mutexify (fun () -> Strings.Mutable.length buffer) in
+        while payload_size <= len () do
+          self#send_chunk
+        done
+      with exn ->
+        self#log#important "Error while sending client data: %s"
+          (Printexc.to_string exn);
+        self#disconnect;
+        if not self#should_stop then self#connect
 
     method private get_encoder =
-      Tutils.mutexify output_mutex
+      self#mutexify
         (fun () ->
           match encoder with
             | Some enc -> enc
@@ -522,122 +669,84 @@ class output ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
                 enc)
         ()
 
-    method private clear_encoder =
-      Tutils.mutexify output_mutex
-        (fun () ->
-          ignore (Strings.Mutable.flush buffer);
-          encoder <- None)
-        ()
-
-    method private connect_fn () =
-      let socket = self#get_socket in
-      Tutils.mutexify output_mutex (fun () -> state <- `Connecting) ();
-      try
-        let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
-        let sockaddr = Unix.ADDR_INET (ipaddr, port) in
-        self#log#important "Connecting to srt://%s:%d.." hostname port;
-        Srt.connect socket sockaddr;
-        Tutils.mutexify output_mutex (fun () -> state <- `Connected) ();
-        self#log#important "Output connected!";
-        -1.
-      with Srt.Error (_, _) as exn ->
-        self#log#important "Connect failed: %s" (Printexc.to_string exn);
-        self#clear_encoder;
-        self#close_socket;
-        if not (self#is `Stopped) then 0. else -1.
-
-    method private start_connect_task =
-      match connect_task with
-        | Some t -> Duppy.Async.wake_up t
-        | None ->
-            let t =
-              Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
-                self#connect_fn
-            in
-            connect_task <- Some t;
-            Duppy.Async.wake_up t
-
-    method private stop_connect_task =
-      match connect_task with
-        | None -> ()
-        | Some t ->
-            Duppy.Async.stop t;
-            connect_task <- None
-
-    method private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (self#get_clock :> Clock.clock))
-
     method private output_start =
-      Tutils.mutexify output_mutex (fun () -> state <- `Started) ();
-      self#start_connect_task
+      self#mutexify (fun () -> should_stop <- false) ();
+      self#connect
 
     method private output_reset =
       self#output_start;
       self#output_stop
 
     method private output_stop =
-      Tutils.mutexify output_mutex (fun () -> state <- `Stopped) ();
-      self#stop_connect_task
+      self#mutexify (fun () -> should_stop <- true) ();
+      self#disconnect
 
     method private encode frame ofs len =
-      if self#is `Connected then self#get_encoder.Encoder.encode frame ofs len
+      if self#is_connected then self#get_encoder.Encoder.encode frame ofs len
       else Strings.empty
 
     method private insert_metadata m =
-      if self#is `Connected then self#get_encoder.Encoder.insert_metadata m
+      if self#is_connected then self#get_encoder.Encoder.insert_metadata m
 
     method private send data =
-      if self#is `Connected then (
-        Tutils.mutexify output_mutex
-          (Strings.Mutable.append_strings buffer)
-          data;
+      if self#is_connected then (
+        self#mutexify (Strings.Mutable.append_strings buffer) data;
         self#send_chunks )
+  end
+
+class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
+  ~infallible ~autostart ~on_connect ~on_disconnect ~port ~hostname
+  ~encoder_factory source =
+  object
+    inherit
+      output_base
+        ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
+          ~autostart ~on_connect ~on_disconnect ~encoder_factory source
+
+    inherit
+      caller
+        ~hostname ~port ~payload_size ~messageapi ~on_connect ~on_disconnect
+  end
+
+class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
+  ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address
+  ~encoder_factory source =
+  object
+    inherit
+      output_base
+        ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
+          ~autostart ~on_connect ~on_disconnect ~encoder_factory source
+
+    inherit
+      listener
+        ~bind_address ~payload_size ~messageapi ~on_connect ~on_disconnect
   end
 
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
-    ~descr:"Send a SRT stream to a distant host."
+    ~descr:"Send a SRT stream to a distant agent."
     ( Output.proto
+    @ common_options ~mode:`Caller
     @ [
-        ( "host",
-          Lang.string_t,
-          Some (Lang.string "localhost"),
-          Some "Address to connect to." );
-        ( "port",
-          Lang.int_t,
-          Some (Lang.int 8000),
-          Some
-            "Port to bind on the local machine. The term `port` as used in SRT \
-             is occasionally identical to the term `UDP port`. However SRT \
-             offers more flexibility than UDP because it manages ports as its \
-             own resources. For example, one port may be shared between \
-             various services." );
-        ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of a decicated clock." );
-        ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
-        ( "messageapi",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Use message api" );
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
       ] )
     (fun p ->
-      let hostname = Lang.to_string (List.assoc "host" p) in
-      let port = Lang.to_int (List.assoc "port" p) in
-      let messageapi = Lang.to_bool (List.assoc "messageapi" p) in
-      let payload_size = Lang.to_int (List.assoc "payload_size" p) in
+      let ( mode,
+            hostname,
+            port,
+            bind_address,
+            payload_size,
+            messageapi,
+            on_connect,
+            on_disconnect ) =
+        parse_common_options p
+      in
       let source = Lang.assoc "" 2 p in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -646,15 +755,26 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
+      let format_val = Lang.assoc "" 1 p in
+      let format = Lang.to_format format_val in
+      let kind = Encoder.kind_of_format format in
       let encoder_factory =
-        let fmt = Lang.assoc "" 1 p in
-        try Encoder.get_factory (Lang.to_format fmt)
+        try Encoder.get_factory format
         with Not_found ->
           raise
             (Lang_errors.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               (format_val, "Cannot get a stream encoder for that format"))
       in
-      ( new output
-          ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
-          ~infallible ~messageapi ~clock_safe ~encoder_factory source
-        :> Source.source ))
+      match mode with
+        | `Caller ->
+            ( new output_caller
+                ~kind ~hostname ~port ~payload_size ~autostart ~on_start
+                ~on_stop ~infallible ~messageapi ~encoder_factory ~on_connect
+                ~on_disconnect source
+              :> Source.source )
+        | `Listener ->
+            ( new output_listener
+                ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
+                ~infallible ~messageapi ~encoder_factory ~on_connect
+                ~on_disconnect source
+              :> Source.source ))

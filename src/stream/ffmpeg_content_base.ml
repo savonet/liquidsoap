@@ -20,12 +20,15 @@
 
  *****************************************************************************)
 
-type ('a, 'b) content = { params : 'a; mutable data : (int * 'b) list }
+type ('a, 'b) content = { mutable params : 'a; mutable data : (int * 'b) list }
 
 let make ~size:_ params = { params; data = [] }
 let clear d = d.data <- []
 
 let blit src src_pos dst dst_pos len =
+  (* No compatibility check here, it's
+     assumed to have been done beforehand. *)
+  dst.params <- src.params;
   let src_end = src_pos + len in
   let data =
     List.fold_left
