@@ -71,7 +71,6 @@ Libraries not developed by Savonet are:
 | ocaml-ffmpeg        |  >= 0.5.0        | Audio and video tools from the ffmpeg library | 
 | ocaml-flac          |  >= 0.2.0                 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        |  >= 0.1.0               | Frei0r plugins                                |
-| ocaml-gavl          |  >= 0.1.4                 | Video conversion using the gavl library       |
 | ocaml-gstreamer     |  >= 0.3.0            | GStreamer input, output and encoding/decoding |
 | ocaml-inotify       |  >= 1.0              | Reloading playlists when changed              |
 | ocaml-ladspa        |  >= 0.2.0               | LADSPA plugins                                |
@@ -87,7 +86,7 @@ Libraries not developed by Savonet are:
 | ocaml-shine         |  >= 0.2.0                | Fixed-point MP3 encoding                      |
 | ocaml-soundtouch    |  >= 0.1.9           | Libsoundtouch's audio effects                 |
 | ocaml-speex         |  >= 0.3.0                | Ogg/Speex codec                               |
-| ocaml-srt           |  >= 0.1.1                  | SRT I/O                                       |
+| ocaml-srt           |  >= 0.1.2                  | SRT I/O                                       |
 | ocaml-ssl           |  >= 0.5.2                  | SSL/https support                             |
 | ocaml-taglib        |  >= 0.3.0               | MP3ID3 metadata access                        |
 | ocaml-theora        |  >= 0.3.1               | Ogg/Theora codec                              |

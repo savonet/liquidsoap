@@ -78,7 +78,6 @@ depopts: [
   "ffmpeg-swscale"
   "flac"
   "frei0r"
-  "gavl"
   "gd"
   "graphics"
   "gstreamer"
@@ -126,7 +125,6 @@ conflicts: [
   "ffmpeg-swscale" {< "0.5.0"}
   "flac" {< "0.2.0"}
   "frei0r" {< "0.1.0"}
-  "gavl" {< "0.1.4"}
   "gstreamer" {< "0.3.0"}
   "inotify" {< "1.0"}
   "ladspa" {< "0.2.0"}

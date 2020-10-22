@@ -71,7 +71,6 @@ Libraries not developed by Savonet are:
 | ocaml-ffmpeg        | @ffmpeg_avutil_version_descr@        | Audio and video tools from the ffmpeg library | 
 | ocaml-flac          | @flac_version_descr@                 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        | @frei0r_version_descr@               | Frei0r plugins                                |
-| ocaml-gavl          | @gavl_version_descr@                 | Video conversion using the gavl library       |
 | ocaml-gstreamer     | @gstreamer_version_descr@            | GStreamer input, output and encoding/decoding |
 | ocaml-inotify       | @inotify_version_descr@              | Reloading playlists when changed              |
 | ocaml-ladspa        | @ladspa_version_descr@               | LADSPA plugins                                |

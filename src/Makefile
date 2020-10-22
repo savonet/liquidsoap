@@ -35,7 +35,6 @@ audio_converters = \
 
 video_converters = \
 	converters/video/native_video_converter.ml \
-	$(if $(W_GAVL),converters/video/gavl_converter.ml) \
 	$(if $(W_FFMPEG_SWSCALE),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
