@@ -28,7 +28,6 @@ module G = Decoder.G
 let log = Log.make ["ffmpeg"; "decoder"; "copy"]
 
 exception Corrupt
-exception Discard
 
 let mk_decoder ~stream_time_base ~lift_data ~put_data params =
   let get_duration =
@@ -44,14 +43,13 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
       if List.mem `Corrupt flags then (
         log#important "Corrupted packet in stream!";
         raise Corrupt );
-      if List.mem `Discard flags then raise Discard;
       let data =
         { Ffmpeg_content_base.params = Some params; data = [(0, packet)] }
       in
       let data = lift_data data in
       put_data ?pts:None buffer.Decoder.generator data 0 duration
     with
-    | Corrupt (* Might want to change that later. *) | Discard
+    | Corrupt (* Might want to change that later. *)
     | Ffmpeg_decoder_common.No_duration
     ->
       ()
