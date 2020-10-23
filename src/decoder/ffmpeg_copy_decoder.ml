@@ -36,13 +36,13 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
   fun ~buffer packet ->
     try
       let duration = get_duration (Packet.get_duration packet) in
-      let packet =
-        { Ffmpeg_copy_content.packet; time_base = stream_time_base }
-      in
       let flags = Packet.get_flags packet in
       if List.mem `Corrupt flags then (
         log#important "Corrupted packet in stream!";
         raise Corrupt );
+      let packet =
+        { Ffmpeg_copy_content.packet; time_base = stream_time_base }
+      in
       let data =
         { Ffmpeg_content_base.params = Some params; data = [(0, packet)] }
       in
