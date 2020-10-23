@@ -34,7 +34,7 @@ let ffmpeg_gen params =
       framerate = Frame.video_rate;
       width = Frame.video_width;
       height = Frame.video_height;
-      pixel_format = `Yuv420p;
+      pixel_format = "yuv420p";
       audio_codec = None;
       video_codec = None;
       audio_opts = Hashtbl.create 0;
@@ -76,12 +76,7 @@ let ffmpeg_gen params =
           l
     | ("pixel_format", { term = Ground (String p); _ }) :: l when mode = `Video
       ->
-        parse_args ~format ~mode
-          {
-            f with
-            Ffmpeg_format.pixel_format = Avutil.Pixel_format.of_string p;
-          }
-          l
+        parse_args ~format ~mode { f with Ffmpeg_format.pixel_format = p } l
     (* Shared options *)
     | ("codec", { term = Ground (String c); _ }) :: l ->
         let f =
