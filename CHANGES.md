@@ -127,6 +127,7 @@ Changed:
   `time.local` and `gmtime` to `time.utc`, and the argument of these two
   last functions is now optional (#1320).
 - Dropped optional `gavl` video converter in favor of `ffmpeg.
+- Remove `persist` argument in `output.*.hls` and use nullable value for `persist_at`.
 
 Fixed:
 

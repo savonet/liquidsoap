@@ -122,7 +122,7 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,~streams_info,
   output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,streams_info=streams_info,
                   playlist=playlist,start=start,segment_name=segment_name,encode_metadata=encode_metadata,
                   segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
-                  persist=persist,persist_at=persist_at,segments_overhead=segments_overhead,tmpdir,formats,s)
+                  persist_at=persist_at,segments_overhead=segments_overhead,tmpdir,formats,s)
 end
 
 # Output the source stream to an HTTP live stream served from the harbor HTTP server.
@@ -133,8 +133,7 @@ end
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~encode_metadata Insert metadata into encoded stream. Note: Some HLS players (in particular android native HLS player) expect a single mpegts stream. Encoding metadata will break that assumption.
-# @param ~persist Persist output accross restart. If enabled, generated files (segments and playlists) are kept on shutdown and the output state at the location given by `persist_at` and used on restart.
-# @param ~persist_at Location of the configuration file used to restart the output when `persist=true`. Relative paths are assumed to be with regard to the directory for generated file.
+# @param ~persist_at Location of the configuration file used to restart the output. Relative paths are assumed to be with regard to the directory for generated file.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
 # @param ~segment_name Segment name. Default: `fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
@@ -151,7 +150,7 @@ def replaces output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={(
                       ~segment_duration=10.,~segments=15,~segments_overhead=10,~streams_info=[],~tmpdir="",
                       ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                       ~start=true,~playlist="stream.m3u8",~port=8000,~path="/",~on_file_change=(fun (~state=_,_) -> ()),
-                      ~headers=[("Access-Control-Allow-Origin","*")],~persist=false,~persist_at="state.config",formats,s)
+                      ~headers=[("Access-Control-Allow-Origin","*")],~persist_at=null(),formats,s)
   def serve(~port,~path,~content_type,dir) =
     harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
   end
@@ -159,7 +158,7 @@ def replaces output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={(
                          segment_duration=segment_duration,segments=segments,on_file_change=on_file_change,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
-                         persist=persist,persist_at=persist_at,serve,formats,s)
+                         persist_at=persist_at,serve,formats,s)
 end
 
 %ifdef harbor.https.static
@@ -171,8 +170,7 @@ end
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~encode_metadata Insert metadata into encoded stream. Note: Some HLS players (in particular android native HLS player) expect a single mpegts stream. Encoding metadata will break that assumption.
-# @param ~persist Persist output accross restart. If enabled, generated files (segments and playlists) are kept on shutdown and the output state at the location given by `persist_at` and used on restart.
-# @param ~persist_at Location of the configuration file used to restart the output when `persist=true`. Relative paths are assumed to be with regard to the directory for generated file.
+# @param ~persist_at Location of the configuration file used to restart the output. Relative paths are assumed to be with regard to the directory for generated file.
 # @param ~playlist Playlist name (m3u8 extension is recommended).
 # @param ~segment_duration Segment duration (in seconds).
 # @param ~segment_name Segment name. Default: `fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"`
@@ -189,7 +187,7 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                             ~segment_duration=10.,~segments=15,~segments_overhead=10,streams_info=[],
                             ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
                             ~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],~tmpdir="",
-                            ~on_file_change=(fun (~state=_,_) -> ()),~start=true,~persist=false,~persist_at="state.config",
+                            ~on_file_change=(fun (~state=_,_) -> ()),~start=true,~persist_at=null(),
                             ~playlist="stream.m3u8",formats,s)
   def serve(~port,~path,~content_type,dir) =
     harbor.https.static(port=port,path=path,content_type=content_type,headers=headers,dir)
@@ -198,6 +196,6 @@ def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                          segment_duration=segment_duration,segments=segments,encode_metadata=encode_metadata,
                          segments_overhead=segments_overhead,segment_name=segment_name,tmpdir=tmpdir,
                          start=start,port=port,path=path,playlist=playlist,streams_info=streams_info,
-                         on_file_change=on_file_change,persist=persist,persist_at=persist_at,serve,formats,s)
+                         on_file_change=on_file_change,persist_at=persist_at,serve,formats,s)
 end
 %endif
