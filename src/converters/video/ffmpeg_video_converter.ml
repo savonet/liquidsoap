@@ -67,7 +67,6 @@ type conv = {
   dst_off : [ `Pixel of int | `Line of int | `Zero ];
 }
 
-(* TODO: share this with Gavl. *)
 module HT = struct
   type t = (bool * fmt * fmt) * conv option
 

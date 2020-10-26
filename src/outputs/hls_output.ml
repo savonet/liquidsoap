@@ -109,20 +109,13 @@ let hls_proto kind =
            form: `[(stream_name, (bandwidth, codec, extname)]`. See RFC 6381 \
            for info about codec. Stream info are required when they cannot be \
            inferred from the encoder." );
-      ( "persist",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some
-          "Persist output accross restart. If enabled, generated files \
-           (segments and playlists) are kept on shutdown and the output state \
-           at the location given by `persist_at` and used on restart." );
       ( "persist_at",
-        Lang.string_t,
-        Some (Lang.string "state.config"),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some
-          "Location of the configuration file used to restart the output when \
-           `persist=true`. Relative paths are assumed to be with regard to the \
-           directory for generated file." );
+          "Location of the configuration file used to restart the output. \
+           Relative paths are assumed to be with regard to the directory for \
+           generated file." );
       ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
         Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t kind)),
@@ -191,22 +184,26 @@ class hls_output p =
         (Lang_errors.Invalid_value
            (Lang.assoc "" 1 p, "The target directory does not exist"))
   in
-  let persist = Lang.to_bool (List.assoc "persist" p) in
   let persist_at =
-    let p = Lang.to_string (List.assoc "persist_at" p) in
-    if Filename.is_relative p then Filename.concat directory p else p
-  in
-  let () =
-    if persist then (
-      let dir = Filename.dirname persist_at in
-      try Utils.mkdir ~perm:0o777 dir
-      with exn ->
-        raise
-          (Lang_errors.Invalid_value
-             ( Lang.assoc "persist_at" 1 p,
-               Printf.sprintf
-                 "Error while creating directory %S for persisting state: %s"
-                 dir (Printexc.to_string exn) )) )
+    Option.map
+      (fun fname ->
+        let fname = Lang.to_string fname in
+        let fname =
+          if Filename.is_relative fname then Filename.concat directory fname
+          else fname
+        in
+        let dir = Filename.dirname fname in
+        ( try Utils.mkdir ~perm:0o777 dir
+          with exn ->
+            raise
+              (Lang_errors.Invalid_value
+                 ( List.assoc "persist_at" p,
+                   Printf.sprintf
+                     "Error while creating directory %S for persisting state: \
+                      %s"
+                     dir (Printexc.to_string exn) )) );
+        fname)
+      (Lang.to_option (List.assoc "persist_at" p))
   in
   let streams_info =
     let streams_info = List.assoc "streams_info" p in
@@ -518,40 +515,42 @@ class hls_output p =
       self#unlink (directory ^^ playlist)
 
     method output_start =
-      if persist && Sys.file_exists persist_at then (
-        try
-          self#log#info "Resuming from saved state";
-          self#read_state;
-          self#toggle_state `Resumed;
-          try Unix.unlink persist_at with _ -> ()
-        with exn ->
-          self#log#info "Failed to resume from saved state: %s"
-            (Printexc.to_string exn);
-          self#toggle_state `Start )
-      else self#toggle_state `Start;
+      ( match persist_at with
+        | Some persist_at when Sys.file_exists persist_at -> (
+            try
+              self#log#info "Resuming from saved state";
+              self#read_state persist_at;
+              self#toggle_state `Resumed;
+              try Unix.unlink persist_at with _ -> ()
+            with exn ->
+              self#log#info "Failed to resume from saved state: %s"
+                (Printexc.to_string exn);
+              self#toggle_state `Start )
+        | _ -> self#toggle_state `Start );
       self#new_segment
 
     method output_stop =
       self#toggle_state `Stop;
       let data = List.map (fun s -> s.hls_encoder.Encoder.stop ()) streams in
       self#send data;
-      if persist then (
-        self#log#info "Saving state to %S.." persist_at;
-        self#push_current_segment;
-        self#write_state )
-      else (
-        self#cleanup_segments;
-        self#cleanup_playlists )
+      match persist_at with
+        | Some persist_at ->
+            self#log#info "Saving state to %S.." persist_at;
+            self#push_current_segment;
+            self#write_state persist_at
+        | None ->
+            self#cleanup_segments;
+            self#cleanup_playlists
 
     method output_reset = self#toggle_state `Restart
 
-    method private write_state =
+    method private write_state persist_at =
       self#log#info "Reading state file at %S.." persist_at;
       let fd = open_out_bin persist_at in
       Marshal.to_channel fd (current_segment, segments) [];
       close_out fd
 
-    method private read_state =
+    method private read_state persist_at =
       let fd = open_in_bin persist_at in
       let c, s = Marshal.from_channel fd in
       close_in fd;

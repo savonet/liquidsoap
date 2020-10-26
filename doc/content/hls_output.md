@@ -49,7 +49,6 @@ output.file.hls(playlist="live.m3u8",
                 segments_overhead=5,
                 segment_name=segment_name,
                 streams_info=streams_info,
-                persist=true,
                 persist_at="/path/to/state.config",
                 "/path/to/hls/directory",
                 streams,
@@ -68,7 +67,7 @@ Let's see what's important here:
   `%mp3`, `%fdkaac`, `%shine`. When using these formats, you do not need to pass an entry for the corresponding stream in this
   list. However, since we're using the `%ffmpeg` encoder to get `MPEG-TS` encapsulated data, we need to add 
   these info for each stream.
-* `persist` and `persist_at` are used to allow liquidsoap to restart while keeping the existing segments and playlists. When
+* `persist_at` is used to allow liquidsoap to restart while keeping the existing segments and playlists. When
   shutting down, liquidsoap stores the current configuration at `persist_at` and uses it to restart the HLS stream when
   restarting.
 * `segments` and `segments_overhead` are used to keep track of the generated segments. Each media playlist will contain

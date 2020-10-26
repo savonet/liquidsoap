@@ -125,7 +125,7 @@ module Channel_layout = struct
       "Preferred samplerate converters" ~d:["native"]
       ~comments:
         [
-          "Preferred chanel layout converter. The native converter is always \
+          "Preferred channel layout converter. The native converter is always \
            available.";
         ]
 

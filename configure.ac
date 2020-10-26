@@ -557,12 +557,6 @@ AC_SUBST(W_FDKAAC_DYN)
 AC_CHECK_OCAML_BINDING([theora],[ogg])
 
 #
-# Gavl
-#
-
-AC_CHECK_OCAML_BINDING([gavl])
-
-#
 # FFMPEG
 #
 
@@ -1110,7 +1104,6 @@ cat <<EOMSG
    - camlimages        : $w_CAMLIMAGES
    - FFmpeg            : $w_FFMPEG_SWSCALE
    - frei0r            : $w_FREI0R
-   - Gavl              : $w_GAVL
    - SDL-image         : $w_TSDL_IMAGE
    - SDL-ttf           : $w_TSDL_TTF
 
@@ -1223,7 +1216,6 @@ variables {
   samplerate-enabled: $b_SAMPLERATE
   soundtouch-enabled: $b_SOUNDTOUCH
   ladspa-enabled: $b_LADSPA
-  gavl-enabled: $b_GAVL
   frei0r-enabled: $b_FREI0R
   camlimages-enabled: $b_CAMLIMAGES
   dssi-enabled: $b_DSSI

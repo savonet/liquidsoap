@@ -78,7 +78,6 @@ depopts: [
   "ffmpeg-swscale"
   "flac"
   "frei0r"
-  "gavl"
   "gd"
   "graphics"
   "gstreamer"
@@ -126,7 +125,6 @@ conflicts: [
   "ffmpeg-swscale" {< "0.5.0"}
   "flac" {< "0.2.0"}
   "frei0r" {< "0.1.0"}
-  "gavl" {< "0.1.4"}
   "gstreamer" {< "0.3.0"}
   "inotify" {< "1.0"}
   "ladspa" {< "0.2.0"}
@@ -144,7 +142,7 @@ conflicts: [
   "shine" {< "0.2.0"}
   "soundtouch" {< "0.1.9"}
   "speex" {< "0.3.0"}
-  "srt" {< "0.1.1"}
+  "srt" {< "0.1.2"}
   "ssl" {< "0.5.2"}
   "taglib" {< "0.3.0"}
   "theora" {< "0.3.1"}

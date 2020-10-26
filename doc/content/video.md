@@ -323,25 +323,3 @@ set("frame.video.samplerate",24)
 
 Using higher values result in higher quality videos produced, but this also
 means more computations to perform!
-
-### Converters
-
-Most videos need to be rescaled to the Liquidsoap internal format. The default
-converter is the GAVL library but you can choose other (such as `native` or
-`ffmpeg`) by
-
-```liquidsoap
-set("video.converter.preferred", "ffmpeg")
-```
-
-If you are using `gavl`, you can change the scaling mode by
-
-```liquidsoap
-set("video.converter.gavl.scale_mode", "quadratic")
-```
-
-Several modes beside `quadratic` are available, use `liquidsoap --conf-descr`
-to discover them. Keep in mind that you should keep a good balance between
-performance and quality!
-
-

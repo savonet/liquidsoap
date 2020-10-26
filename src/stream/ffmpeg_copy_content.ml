@@ -57,7 +57,7 @@ module AudioSpecs = struct
             (fun p ->
               Printf.sprintf "%S" (Audio.string_of_id (Audio.get_params_id p)))
             params );
-        ( "chanel_layout",
+        ( "channel_layout",
           Option.map
             (fun p ->
               Printf.sprintf "%S"

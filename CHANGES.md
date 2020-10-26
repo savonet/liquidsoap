@@ -29,6 +29,7 @@ New:
   Liquidsoap.
 - Added `source.dump`.
 - Added `synth` protocol (#1014).
+- Added listener and caller mode for `input.srt` and `output.srt` (#1377)
 - Added support for `srt.enforced_encryption` setting.
 - Added support for prometheus reporting (#1000)
 - Add `validate` parameter to `register`, which allows to validate a value
@@ -125,6 +126,8 @@ Changed:
 - Deprecated `gettimeofday` in favor or `time`, renamed `localtime` to
   `time.local` and `gmtime` to `time.utc`, and the argument of these two
   last functions is now optional (#1320).
+- Dropped optional `gavl` video converter in favor of `ffmpeg.
+- Remove `persist` argument in `output.*.hls` and use nullable value for `persist_at`.
 
 Fixed:
 

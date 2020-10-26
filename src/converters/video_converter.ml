@@ -40,7 +40,7 @@ let video_converter_conf =
 let preferred_converter_conf =
   Dtools.Conf.string
     ~p:(video_converter_conf#plug "preferred")
-    ~d:"gavl" "Preferred video converter"
+    ~d:"ffmpeg" "Preferred video converter"
 
 let proportional_scale_conf =
   Dtools.Conf.bool

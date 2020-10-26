@@ -288,9 +288,12 @@ let mk_streams ~ctype container =
       match ctype.Frame.audio with
         | f when Frame_content.None.is_format f -> None
         | f when Ffmpeg_copy_content.Audio.is_format f ->
-            Some (`Packet (Ffmpeg_copy_decoder.mk_audio_decoder container))
+            Some
+              (`Packet
+                (Ffmpeg_copy_decoder.mk_audio_decoder ~format:f container))
         | f when Ffmpeg_raw_content.Audio.is_format f ->
-            Some (`Frame (Ffmpeg_raw_decoder.mk_audio_decoder container))
+            Some
+              (`Frame (Ffmpeg_raw_decoder.mk_audio_decoder ~format:f container))
         | f ->
             let channels = Frame_content.Audio.channels_of_format f in
             Some
@@ -303,9 +306,12 @@ let mk_streams ~ctype container =
       match ctype.Frame.video with
         | f when Frame_content.None.is_format f -> None
         | f when Ffmpeg_copy_content.Video.is_format f ->
-            Some (`Packet (Ffmpeg_copy_decoder.mk_video_decoder container))
+            Some
+              (`Packet
+                (Ffmpeg_copy_decoder.mk_video_decoder ~format:f container))
         | f when Ffmpeg_raw_content.Video.is_format f ->
-            Some (`Frame (Ffmpeg_raw_decoder.mk_video_decoder container))
+            Some
+              (`Frame (Ffmpeg_raw_decoder.mk_video_decoder ~format:f container))
         | _ ->
             Some (`Frame (Ffmpeg_internal_decoder.mk_video_decoder container))
     with Avutil.Error _ -> None
