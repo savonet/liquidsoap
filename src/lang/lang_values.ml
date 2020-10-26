@@ -282,13 +282,13 @@ and in_term =
   | Var of string
   | Seq of term * term
   | App of term * (string * term) list
-  | Fun of Vars.t * (string * string * T.t * term option) list * term
   (* [fun ~l1:x1 .. ?li:(xi=defi) .. -> body] =
    * [Fun (V, [(l1,x1,None)..(li,xi,Some defi)..], body)]
    * The first component [V] is the list containing all
    * variables occurring in the function. It is used to
    * restrict the environment captured when a closure is
    * formed. *)
+  | Fun of Vars.t * (string * string * T.t * term option) list * term
   | RFun of string * Vars.t * (string * string * T.t * term option) list * term
 
 (* A recursive function, the first string is the name of the recursive
@@ -479,11 +479,11 @@ module V = struct
        implementation is safer this way. *)
     | Meth of string * value * value
     | Ref of value ref
-        (** The first environment contains the parameters already passed to the
-        function. Next parameters will be inserted between that and the second
-        env which is part of the closure. *)
+    (* The first environment contains the parameters already passed to the
+       function. Next parameters will be inserted between that and the second
+       env which is part of the closure. *)
     | Fun of (string * string * value option) list * env * lazy_env * term
-        (** For a foreign function only the arguments are visible, the closure
+    (* For a foreign function only the arguments are visible, the closure
        doesn't capture anything in the environment. *)
     | FFI of (string * string * value option) list * env * (env -> value)
 
@@ -607,6 +607,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
     | [] -> assert false
 
 let has_builtin name = builtins#is_registered name
+let get_builtin name = builtins#get name
 
 (** Declare a module. *)
 let add_module name =

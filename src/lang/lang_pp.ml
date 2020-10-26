@@ -236,6 +236,8 @@ let expand_string tokenizer =
   in
   token
 
+type doc_type = [ `Full | `Argsof of string list ]
+
 (* Glue the documenting comments to the corresponding PP_DEF (read pre-DEF) *
    and strip out other comments. *)
 let parse_comments tokenizer =
@@ -248,15 +250,87 @@ let parse_comments tokenizer =
         (fun x -> Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
         doc
     in
+    let get_args doc =
+      List.map
+        (fun (n, d) ->
+          let n = if n = "(unlabeled)" then "" else n in
+          let d = d#get_doc in
+          let d = if d <> "(no doc)" then d else "" in
+          (n, d))
+        (List.filter
+           (fun (n, _) -> String.length n = 0 || n.[0] <> '_')
+           doc#get_subsections)
+    in
     let rec parse_doc (main, special, params) = function
       | [] -> (main, special, params)
       | line :: lines -> (
           try
             let sub =
-              Pcre.exec ~pat:"^\\s*@(category|flag|param)\\s*(.*)$" line
+              Pcre.exec ~pat:"^\\s*@(category|docof|flag|param|argsof)\\s*(.*)$"
+                line
             in
             let s = Pcre.get_substring sub 2 in
             match Pcre.get_substring sub 1 with
+              | "docof" ->
+                  let doc = Lang_values.builtins#get_subsection s in
+                  let main_doc = doc#get_doc in
+                  let main =
+                    if main_doc <> "(no doc)" then main_doc :: main else main
+                  in
+                  let params = get_args doc @ params in
+                  let doc_specials =
+                    List.fold_left
+                      (fun cur n ->
+                        try
+                          match (doc#get_subsection n)#get_doc with
+                            | "(no doc)" -> cur
+                            | s when n = "_category" -> `Category s :: cur
+                            | s when n = "_flag" -> `Flag s :: cur
+                            | _ -> assert false
+                        with Not_found -> cur)
+                      [] ["_category"; "_flag"]
+                  in
+                  parse_doc (main, doc_specials @ special, params) lines
+              | "argsof" ->
+                  let s, only, except =
+                    try
+                      let sub =
+                        Pcre.exec ~pat:"^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$" s
+                      in
+                      let s = Pcre.get_substring sub 1 in
+                      let args =
+                        List.filter
+                          (fun s -> s <> "")
+                          (List.map String.trim
+                             (String.split_on_char ','
+                                (Pcre.get_substring sub 2)))
+                      in
+                      let only, except =
+                        List.fold_left
+                          (fun (only, except) v ->
+                            if String.length v > 0 && v.[0] = '!' then
+                              ( only,
+                                String.sub v 1 (String.length v - 1) :: except
+                              )
+                            else (v :: only, except))
+                          ([], []) args
+                      in
+                      (s, only, except)
+                    with Not_found -> (s, [], [])
+                  in
+                  let doc = Lang_values.builtins#get_subsection s in
+                  let args =
+                    List.filter
+                      (fun (n, _) ->
+                        n <> ""
+                        &&
+                        match (only, except) with
+                          | [], except -> not (List.mem n except)
+                          | only, except ->
+                              List.mem n only && not (List.mem n except))
+                      (get_args doc)
+                  in
+                  parse_doc (main, special, args @ params) lines
               | "category" ->
                   parse_doc (main, `Category s :: special, params) lines
               | "flag" -> parse_doc (main, `Flag s :: special, params) lines
