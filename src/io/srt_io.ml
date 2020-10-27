@@ -185,7 +185,7 @@ module Poll = struct
     Tutils.mutexify t.m
       (fun () ->
         Hashtbl.add t.handlers socket (mode, fn);
-        Srt.Poll.add_usock t.p socket (mode :> Srt.Poll.flag);
+        Srt.Poll.add_usock t.p socket [(mode :> Srt.Poll.flag)];
         t.max_fds <- t.max_fds + 1)
       ();
     Duppy.Async.wake_up task
