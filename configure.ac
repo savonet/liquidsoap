@@ -876,7 +876,7 @@ AC_CHECK_OCAML_BINDING([cohttp-lwt-unix])
 AC_CHECK_OCAML_BINDING([prometheus-app],[cohttp-lwt-unix])
 
 # TODO: switch to dune all the way?
-with_srt_types_dir=${with_srt_dir}
+with_srt_constants_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/constants"
 AC_CHECK_OCAML_BINDING([srt.constants],[],[],[],[srt_constants])
 
