@@ -85,49 +85,42 @@ class insert_metadata ~kind source =
 
 let () =
   let kind = Lang.any in
-  let k = Lang.kind_type_of_kind_format kind in
-  let return_t =
-    Lang.method_t (Lang.source_t k)
+  let return_t = Lang.kind_type_of_kind_format kind in
+
+  Lang.add_operator "insert_metadata" ~category:Lang.TrackProcessing
+    ~meth:
       [
         ( "insert_metadata",
           ( [],
             Lang.fun_t
               [(true, "new_track", Lang.bool_t); (false, "", Lang.metadata_t)]
-              Lang.unit_t ) );
+              Lang.unit_t ),
+          fun s ->
+            Lang.val_fun
+              [
+                ("new_track", "new_track", Some (Lang.bool false));
+                ("", "", None);
+              ]
+              (fun p ->
+                let m = Lang.to_metadata (List.assoc "" p) in
+                let new_track = Lang.to_bool (List.assoc "new_track" p) in
+                s#insert_metadata new_track m;
+                Lang.unit) );
       ]
-  in
-
-  Lang.add_builtin "insert_metadata"
-    ~category:(Lang.string_of_category Lang.TrackProcessing)
+    ~return_t
     ~descr:
       "Dynamically insert metadata in a stream. Returns the source decorated \
        with a method `insert_metadata` which is a function of type \
        `(?new_track,metadata)->unit`, used to insert metadata in the source. \
        This function also inserts a new track with the given metadata if \
        passed `new_track=true`."
-    [
-      ( "id",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Force the value of the source ID." );
-      ("", Lang.source_t k, None, None);
-    ]
-    return_t
+    [("", Lang.source_t return_t, None, None)]
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
       let id = Lang.to_string (List.assoc "id" p) in
       let s = new insert_metadata ~kind s in
       if id <> "" then s#set_id id;
-      let f =
-        Lang.val_fun
-          [("new_track", "new_track", Some (Lang.bool false)); ("", "", None)]
-          (fun p ->
-            let m = Lang.to_metadata (List.assoc "" p) in
-            let new_track = Lang.to_bool (List.assoc "new_track" p) in
-            s#insert_metadata new_track m;
-            Lang.unit)
-      in
-      Lang.meth (Lang.source (s :> Source.source)) [("insert_metadata", f)])
+      s)
 
 (** Insert metadata at the beginning if none is set. Currently used by the
    switch classes. *)

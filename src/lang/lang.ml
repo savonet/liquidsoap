@@ -300,59 +300,6 @@ let string_of_category x =
     | Visualization -> "Visualization"
     | Liquidsoap -> "Liquidsoap"
 
-(** An operator is a builtin function that builds a source.
-  * It is registered using the wrapper [add_operator].
-  * Creating the associated function type (and function) requires some work:
-  *  - Specify which content_kind the source will carry:
-  *    a given fixed number of channels, any fixed, a variable number?
-  *  - The content_kind can also be linked to a type variable,
-  *    e.g. the parameter of a format type.
-  * From this high-level description a type is created. Often it will
-  * carry a type constraint.
-  * Once the type has been inferred, the function might be executed,
-  * and at this point the type might still not be known completely
-  * so we have to force its value withing the acceptable range. *)
-
-let add_operator ~category ~descr ?(flags = []) ?(active = false) name proto
-    ~return_t f =
-  let compare (x, _, _, _) (y, _, _, _) =
-    match (x, y) with
-      | "", "" -> 0
-      | _, "" -> -1
-      | "", _ -> 1
-      | x, y -> Stdlib.compare x y
-  in
-  let proto =
-    let t = T.make (T.Ground T.String) in
-    ( "id",
-      t,
-      Some { pos = t.T.pos; value = Ground (String "") },
-      Some "Force the value of the source ID." )
-    :: List.stable_sort compare proto
-  in
-  let f env =
-    let src : Source.source = f env in
-    let id =
-      match (List.assoc "id" env).value with
-        | Ground (String s) -> s
-        | _ -> assert false
-    in
-    if id <> "" then src#set_id id;
-    { pos = None; value = Source src }
-  in
-  let f env =
-    let pos = None in
-    try f env with
-      | Source.Clock_conflict (a, b) ->
-          raise (Lang_errors.Clock_conflict (pos, a, b))
-      | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
-      | Source.Kind.Conflict (a, b) ->
-          raise (Lang_errors.Kind_conflict (pos, a, b))
-  in
-  let return_t = Term.source_t ~active return_t in
-  let category = string_of_category category in
-  add_builtin ~category ~descr ~flags name proto return_t f
-
 (** List of references for which iter_sources had to give up --- see below. *)
 let static_analysis_failed = ref []
 
@@ -747,3 +694,64 @@ module MkAbstract (Def : AbstractDef) = struct
   let of_value t =
     match t.value with L.V.Ground (Value c) -> c | _ -> assert false
 end
+
+(** An operator is a builtin function that builds a source.
+  * It is registered using the wrapper [add_operator].
+  * Creating the associated function type (and function) requires some work:
+  *  - Specify which content_kind the source will carry:
+  *    a given fixed number of channels, any fixed, a variable number?
+  *  - The content_kind can also be linked to a type variable,
+  *    e.g. the parameter of a format type.
+  * From this high-level description a type is created. Often it will
+  * carry a type constraint.
+  * Once the type has been inferred, the function might be executed,
+  * and at this point the type might still not be known completely
+  * so we have to force its value withing the acceptable range. *)
+
+type 'a operator_method = string * scheme * ('a -> value)
+
+let add_operator =
+  let _meth = meth in
+  fun ~category ~descr ?(flags = []) ?(active = false) ?(meth = []) name proto
+      ~return_t f ->
+    let compare (x, _, _, _) (y, _, _, _) =
+      match (x, y) with
+        | "", "" -> 0
+        | _, "" -> -1
+        | "", _ -> 1
+        | x, y -> Stdlib.compare x y
+    in
+    let proto =
+      let t = T.make (T.Ground T.String) in
+      ( "id",
+        t,
+        Some { pos = t.T.pos; value = Ground (String "") },
+        Some "Force the value of the source ID." )
+      :: List.stable_sort compare proto
+    in
+    let f env =
+      let src : < Source.source ; .. > = f env in
+      let id =
+        match (List.assoc "id" env).value with
+          | Ground (String s) -> s
+          | _ -> assert false
+      in
+      if id <> "" then src#set_id id;
+      let v = source (src :> Source.source) in
+      _meth v (List.map (fun (name, _, fn) -> (name, fn src)) meth)
+    in
+    let f env =
+      let pos = None in
+      try f env with
+        | Source.Clock_conflict (a, b) ->
+            raise (Lang_errors.Clock_conflict (pos, a, b))
+        | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
+        | Source.Kind.Conflict (a, b) ->
+            raise (Lang_errors.Kind_conflict (pos, a, b))
+    in
+    let return_t = Term.source_t ~active return_t in
+    let return_t =
+      method_t return_t (List.map (fun (name, typ, _) -> (name, typ)) meth)
+    in
+    let category = string_of_category category in
+    add_builtin ~category ~descr ~flags name proto return_t f

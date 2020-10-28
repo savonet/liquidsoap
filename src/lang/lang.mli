@@ -175,16 +175,19 @@ val midi_n : int -> Frame.content_kind
 (* Conversion to format *)
 val kind_type_of_kind_format : Frame.content_kind -> t
 
+type 'a operator_method = string * scheme * ('a -> value)
+
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
   category:category ->
   descr:string ->
   ?flags:doc_flag list ->
   ?active:bool ->
+  ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   string ->
   proto ->
   return_t:t ->
-  (env -> Source.source) ->
+  (env -> 'a) ->
   unit
 
 (** {2 Manipulation of values} *)
