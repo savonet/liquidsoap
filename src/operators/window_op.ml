@@ -100,41 +100,29 @@ class window ~kind mode duration source =
 let declare mode suffix kind fun_ret_t f_ans =
   let name = match mode with RMS -> "rms" | Peak -> "peak" in
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
-  let k = Lang.kind_type_of_kind_format kind in
-  let return_t =
-    Lang.method_t (Lang.source_t k) [(name, ([], Lang.fun_t [] fun_ret_t))]
-  in
-  Lang.add_builtin (name ^ suffix)
-    ~category:(Lang.string_of_category Lang.Visualization)
+  let return_t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator (name ^ suffix) ~category:Lang.Visualization
+    ~meth:[(name, ([], Lang.fun_t [] fun_ret_t), fun s -> f_ans s#value)]
+    ~return_t
     ~descr:
       ( "Get current " ^ doc
       ^ " of the source. Returns the source with a method to compute the \
          current " ^ doc ^ " of the source, with `0.0 <= " ^ doc ^ " <= 1.0`."
       )
     [
-      ( "id",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Force the value of the source ID." );
       ( "duration",
         Lang.float_getter_t (),
         Some (Lang.float 0.5),
         Some
           "Duration of the window (in seconds). A value <= 0, means that \
            computation should not be performed." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
-    return_t
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      let id = Lang.to_string (f "id") in
       let duration = Lang.to_float_getter (f "duration") in
-      let s = new window ~kind mode duration src in
-      if id <> "" then s#set_id id;
-      let f = Lang.val_fun [] (fun _ -> f_ans s#value) in
-      let s = Lang.source (s :> Source.source) in
-      Lang.meth s [(name, f)])
+      new window ~kind mode duration src)
 
 let () =
   let mean value =
