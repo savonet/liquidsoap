@@ -877,6 +877,10 @@ AC_CHECK_OCAML_BINDING([prometheus-app],[cohttp-lwt-unix])
 
 # TODO: switch to dune all the way?
 with_srt_types_dir=${with_srt_dir}
+liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/constants"
+AC_CHECK_OCAML_BINDING([srt.constants],[],[],[],[srt_constants])
+
+with_srt_types_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/types"
 AC_CHECK_OCAML_BINDING([srt.types],[],[],[],[srt_types])
 
@@ -886,9 +890,9 @@ AC_CHECK_OCAML_BINDING([srt.stubs],[srt.types],[],[],[srt_stubs])
 
 with_srt_stubs_locked_dir=${with_srt_dir}
 liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_srt_dir}/stubs/locked"
-AC_CHECK_OCAML_BINDING([srt.stubs],[],[],[],[srt_stubs_locked])
+AC_CHECK_OCAML_BINDING([srt.stubs.locked],[],[],[],[srt_stubs_locked])
 
-AC_CHECK_OCAML_BINDING([srt],[srt.types srt.stubs srt.stubs.locked])
+AC_CHECK_OCAML_BINDING([srt],[srt.constants srt.types srt.stubs srt.stubs.locked])
 
 AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([gd])
