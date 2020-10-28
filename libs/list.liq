@@ -287,7 +287,7 @@ def list.iterator(l)
   f
 end
 
-# Returns a copy of the given list with an element at a given position. Does nothing if list has less than `index` elements.
+# Returns a copy of the given list with a new element inserted at a given position. Does nothing if list has less than `index` elements.
 # @category List
 # @param index Index to insert at, starting at `0`.
 # @param new_element Element to insert
