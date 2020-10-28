@@ -287,12 +287,16 @@ def list.iterator(l)
   f
 end
 
-# Returns a copy of the given list with a new element inserted at a given position. Does nothing if list has less than `index` elements.
+# Returns a copy of the given list with a new element inserted at a given position. Raises `error.not_found` if the list has less than `index` elements.
 # @category List
 # @param index Index to insert at, starting at `0`.
 # @param new_element Element to insert
 # @param l List to insert into.
 def list.insert(index, new_element, l) =
+  if list.length(l) < index then
+    error.raise(error.not_found, "List should have at least #{index} elemments")
+  end
+
   if index == 0 then
     list.add(new_element, l)
   else

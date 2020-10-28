@@ -52,7 +52,6 @@ def f() =
   t(list.insert(0, 1, [2, 3, 4]), [1, 2, 3, 4])
   t(list.insert(1, 2, [1, 3, 4]), [1, 2, 3, 4])
   t(list.insert(4, 5, [1, 2, 3, 4]), [1, 2, 3, 4, 5])
-  t(list.insert(12, 23, [1, 2, 3]), [1, 2, 3])
   def even(x) =
     (x/2)*2 == x
   end
@@ -78,6 +77,14 @@ def f() =
   t(list.for_all(fun (x) -> x.b, l), true)
   # Ensure that we can have active sources and sources
   ignore([input(), blank()])
+
+  try
+    ignore(list.insert(23, 2, [1, 2, 3]))
+    test.fail()
+  catch err in [error.not_found] do
+    t(error.kind(err), "not_found")
+    t(error.message(err), "List should have at least 23 elemments")    
+  end
   
   if !success then test.pass() else test.fail() end
 end
