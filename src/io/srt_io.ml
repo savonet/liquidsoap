@@ -205,7 +205,7 @@ let string_of_address = function
       Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
 
 let mk_socket ~payload_size ~messageapi () =
-  let s = Srt.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
+  let s = Srt.create_socket () in
   Srt.setsockflag s Srt.payloadsize payload_size;
   Srt.setsockflag s Srt.transtype `Live;
   Srt.setsockflag s Srt.messageapi messageapi;
