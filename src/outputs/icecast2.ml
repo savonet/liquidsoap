@@ -597,8 +597,11 @@ class output ~kind p =
   end
 
 let () =
-  let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.univ_t () in
   Lang.add_operator "output.icecast" ~active:true ~category:Lang.Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    (proto return_t) ~return_t (fun p -> (new output ~kind p :> Source.source))
+    (proto return_t) ~return_t (fun p ->
+      let format_val = Lang.assoc "" 1 p in
+      let format = Lang.to_format format_val in
+      let kind = Encoder.kind_of_format format in
+      (new output ~kind p :> Source.source))
