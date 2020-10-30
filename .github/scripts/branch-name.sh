@@ -9,23 +9,18 @@ else
 fi
 
 echo "Detected branch: ${BRANCH}"
+echo "##[set-output name=branch;]${BRANCH}"
 
 if [[ "${BRANCH}" =~ ^v[0-9] ]]; then
   echo "Branch is release branch"
-  IS_RELEASE=true
+  echo "##[set-output name=is_release;]${IS_RELEASE}"
 else
   echo "Branch is not release branch"
-  IS_RELEASE=
 fi
 
 if [[ "${BRANCH}" = "master" ]] || [[ -n "${IS_RELEASE}" ]]; then
   echo "Branch has a docker release"
-  DOCKER_RELEASE=true
+  echo "##[set-output name=docker_release;]${DOCKER_RELEASE}"
 else
   echo "Branch does not have a docker release"
-  DOCKER_RELEASE=
 fi
-
-echo "##[set-output name=branch;]${BRANCH}"
-echo "##[set-output name=is_release;]${IS_RELEASE}"
-echo "##[set-output name=docker_release;]${DOCKER_RELEASE}"
