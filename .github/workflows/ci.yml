@@ -19,6 +19,7 @@ jobs:
     outputs:
       branch: ${{ steps.branch_name.outputs.branch }}
       is_release: ${{ steps.branch_name.outputs.is_release }}
+      docker_release: ${{ steps.branch_name.outputs.docker_release }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
