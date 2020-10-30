@@ -21,7 +21,8 @@ fi
 
 if [[ "${BRANCH}" = "master" ]] || [[ -n "${IS_RELEASE}" ]]; then
   echo "Branch has a docker release"
-  echo "::set-output name=docker_release::true"
+  echo "::debug::Should set a docker_release here"
+  echo "::set-output name=docker_release::bla"
 else
   echo "Branch does not have a docker release"
 fi
