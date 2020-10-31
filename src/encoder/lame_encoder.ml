@@ -249,7 +249,16 @@ module Register (Lame : Lame_t) = struct
       in
       (* Try to insert initial metadata now.. *)
       insert_metadata metadata;
-      { insert_metadata; encode; header = Strings.empty; stop }
+      let hls =
+        {
+          Encoder.init_encode = (fun f o l -> (None, encode f o l));
+          split_encode = (fun f o l -> `Ok (Strings.empty, encode f o l));
+          codec_attrs = (fun () -> None);
+          bitrate = (fun () -> None);
+          video_size = (fun () -> None);
+        }
+      in
+      { insert_metadata; hls; encode; header = Strings.empty; stop }
     in
     Encoder.plug#register name (function
       | Encoder.MP3 mp3 -> Some (fun _ meta -> mp3_encoder mp3 meta)
