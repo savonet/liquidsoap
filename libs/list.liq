@@ -83,6 +83,18 @@ def list.iter(f, l)
   aux(l)
 end
 
+# Call a function on every element of a list, along with its index
+# @category List
+def list.iteri(f, l)
+  n = ref(0)
+  def rec aux(l)
+    i = !n
+    n := i + 1
+    list.case(l, (), fun (x, l) -> begin f(i, x); aux(l) end)
+  end
+  aux(l)
+end
+
 # Map a function on every element of a list.
 # @category List
 def list.map(f, l)
