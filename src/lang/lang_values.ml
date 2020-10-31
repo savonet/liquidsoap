@@ -374,7 +374,7 @@ let free_vars ?(bound = []) body =
 (** Values which can be ignored (and will thus not raise a warning if
    ignored). *)
 let can_ignore t =
-  match (T.deref t).T.descr with
+  match (T.demeth t).T.descr with
     | T.Tuple [] | T.Constr { T.name = "active_source"; _ } -> true
     | T.EVar _ -> true
     | _ -> false
@@ -383,7 +383,7 @@ let can_ignore t =
 let is_fun t = match (T.deref t).T.descr with T.Arrow _ -> true | _ -> false
 
 let is_source t =
-  match (T.deref t).T.descr with
+  match (T.demeth t).T.descr with
     | T.Constr { T.name = "source"; _ } -> true
     | _ -> false
 
@@ -740,48 +740,13 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
     | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
     | List l ->
         List.iter (fun x -> check ~throw ~level ~env x) l;
-        let a = T.fresh_evar ~level ~pos in
-        (* Ensure that we have common methods. *)
-        let () =
-          (* Common methods. *)
-          let m =
-            (* All the methods of a term. *)
-            let rec methods e =
-              match e.term with
-                | Meth (l, _, e') -> (l, T.invoke e.t l) :: methods e'
-                | _ -> []
-            in
-            let method_names e = List.map fst (methods e) in
-            match l with
-              | e :: ee ->
-                  let ee = List.map method_names ee in
-                  List.filter
-                    (fun (l, _) -> List.for_all (List.mem l) ee)
-                    (methods e)
-              | [] -> []
-          in
-          List.iter
-            (fun (l, t) ->
-              a <: T.make (T.Meth (l, t, T.fresh_evar ~level ~pos)))
-            m
+        let t =
+          List.fold_left
+            (fun t e -> T.min_type ~pos:e.t.T.pos ~level t e.t)
+            (T.fresh_evar ~level ~pos) l
         in
-        (* Allow lists to contain both active sources and sources. *)
-        let () =
-          let is_source e =
-            match (T.demeth e.t).T.descr with
-              | T.Constr c -> c.T.name = "source"
-              | _ -> false
-          in
-          if List.exists is_source l then
-            a <: source_t ~level ~pos (T.fresh_evar ~level ~pos)
-        in
-        List.iter
-          (fun e ->
-            (* We demeth in order not to force methods which are not in common. *)
-            T.demeth e.t <: T.demeth a;
-            e.t <: a)
-          l;
-        e.t >: mk (T.List a)
+        List.iter (fun e -> e.t <: t) l;
+        e.t >: mk (T.List t)
     | Tuple l ->
         List.iter (fun a -> check ~throw ~level ~env a) l;
         e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))

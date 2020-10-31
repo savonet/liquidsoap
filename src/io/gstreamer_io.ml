@@ -481,25 +481,15 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
 
     inherit [string sink, Gstreamer.data sink] element_factory ~on_error
 
-    initializer
-    (rlog := fun s -> self#log#important "%s" s);
-    let change_state s _ =
-      try
-        Printf.sprintf "Done. State change returned: %s"
-          (string_of_state_change (Element.set_state self#get_element.bin s))
-      with e ->
-        Printf.sprintf "Error while changing state: %s\n" (Printexc.to_string e)
-    in
-    self#register_command "pause"
-      ~descr:"Set gstreamer pipeline state to paused"
-      (change_state Element.State_paused);
-    self#register_command "play"
-      ~descr:"Set gstreamer pipeline state to playing"
-      (change_state Element.State_playing);
-    self#register_command "restart"
-      ~descr:"Restart gstreamer pipeline state to paused" (fun _ ->
-        self#restart;
-        "Done. Task will complete asynchronously.")
+    initializer rlog := fun s -> self#log#important "%s" s
+
+    method set_state s = ignore (Element.set_state self#get_element.bin s)
+
+    method pause_cmd = self#set_state Element.State_paused
+
+    method play_cmd = self#set_state Element.State_playing
+
+    method restart_cmd = self#restart
 
     method stype = Source.Fallible
 
@@ -710,7 +700,29 @@ let () =
   in
   Lang.add_operator "input.gstreamer.audio_video" proto ~return_t
     ~category:Lang.Input ~flags:[]
-    ~descr:"Stream audio+video from a GStreamer pipeline." (fun p ->
+    ~meth:
+      [
+        ( "pause",
+          ([], Lang.fun_t [] Lang.unit_t),
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#pause_cmd;
+                Lang.unit) );
+        ( "play",
+          ([], Lang.fun_t [] Lang.unit_t),
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#play_cmd;
+                Lang.unit) );
+        ( "restart",
+          ([], Lang.fun_t [] Lang.unit_t),
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#restart_cmd;
+                Lang.unit) );
+      ]
+    ~descr:"Stream audio+video from a GStreamer pipeline."
+    (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
       let audio_pipeline =
         Lang.to_string_getter (List.assoc "audio_pipeline" p)
@@ -718,10 +730,9 @@ let () =
       let video_pipeline =
         Lang.to_string_getter (List.assoc "video_pipeline" p)
       in
-      ( new audio_video_input
-          p kind
-          (pipeline, Some audio_pipeline, Some video_pipeline)
-        :> Source.source ))
+      new audio_video_input
+        p kind
+        (pipeline, Some audio_pipeline, Some video_pipeline))
 
 let () =
   let kind = Lang.audio_pcm in

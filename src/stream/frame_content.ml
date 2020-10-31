@@ -124,6 +124,7 @@ type format_handler = {
   string_of_format : unit -> string;
   merge : format -> unit;
   compatible : format -> bool;
+  duplicate : unit -> format;
 }
 
 let format_handlers = Queue.create ()
@@ -202,6 +203,7 @@ let merge p p' =
   try (get_params_handler p).merge p'
   with _ -> raise (Incompatible_format (p, p'))
 
+let duplicate p = (get_params_handler p).duplicate ()
 let compatible p p' = (get_params_handler p).compatible p'
 let string_of_kind f = (get_kind_handler f).string_of_kind ()
 
@@ -251,6 +253,7 @@ module MkContent (C : ContentSpecs) :
               kind = (fun () -> Kind C.kind);
               make = (fun size -> Data (C.make ~size (Unifier.deref p)));
               merge = (fun p' -> merge p p');
+              duplicate = (fun () -> Format Unifier.(make (deref p)));
               compatible = (fun p' -> compatible p p');
               string_of_format =
                 (fun () ->

@@ -64,16 +64,10 @@ module Make (Harbor : T) = struct
 
       val mutable logf = None
 
-      initializer
-      ns_kind <- "input.harbor";
-      let stop _ =
-        self#disconnect ~lock:true;
-        "Done"
-      in
-      self#register_command "stop"
-        ~descr:"Stop current source client, if connected." stop;
-      self#register_command "status" ~descr:"Display current status."
-        (Tutils.mutexify relay_m (fun _ ->
+      method stop_cmd = self#disconnect ~lock:true
+
+      method status_cmd =
+        (Tutils.mutexify relay_m (fun () ->
              match relay_socket with
                | Some s ->
                    let s = Harbor.file_descr_of_socket s in
@@ -81,10 +75,10 @@ module Make (Harbor : T) = struct
                      (Utils.name_of_sockaddr
                         ~rev_dns:Harbor_base.conf_revdns#get
                         (Unix.getpeername s))
-               | None -> "no source client connected"));
-      self#register_command "buffer_length" ~usage:"buffer_length"
-        ~descr:"Get the buffer's length, in seconds." (fun _ ->
-          Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
+               | None -> "no source client connected"))
+          ()
+
+      method buffer_length_cmd = Frame.seconds_of_audio self#length
 
       method login : string * (string -> string -> bool) = login
 
@@ -271,6 +265,22 @@ module Make (Harbor : T) = struct
 
   let () =
     Lang.add_operator Harbor.source_name ~return_t:(Lang.univ_t ())
+      ~meth:
+        [
+          ( "stop",
+            ([], Lang.fun_t [] Lang.unit_t),
+            fun s ->
+              Lang.val_fun [] (fun _ ->
+                  s#stop_cmd;
+                  Lang.unit) );
+          ( "status",
+            ([], Lang.fun_t [] Lang.string_t),
+            fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd) );
+          ( "buffer_length",
+            ([], Lang.fun_t [] Lang.float_t),
+            fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd)
+          );
+        ]
       ~category:Lang.Input ~descr:Harbor.source_description
       [
         ( "buffer",
@@ -460,11 +470,10 @@ module Make (Harbor : T) = struct
           ignore (Lang.apply (List.assoc "on_disconnect" p) [])
         in
         let kind = Lang.any in
-        ( new http_input_server
-            ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
-            ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-            ~on_disconnect ~debug ~log_overfull p
-          :> Source.source ))
+        new http_input_server
+          ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
+          ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
+          ~on_disconnect ~debug ~log_overfull p)
 end
 
 module Unix_input = struct

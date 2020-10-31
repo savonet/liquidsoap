@@ -59,7 +59,7 @@ end
 
 s = random(weights=[{!s1_weight}, {!s2_weight}], [s1,s2])
 
-s = on_track(f,s)
+s.on_track(f)
 
 output.dummy(fallible=true, s)
 

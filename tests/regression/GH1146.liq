@@ -17,7 +17,7 @@ def f(_) =
   end
 end
 
-s = on_track(f,s)
+s.on_track(f)
 
 clock.assign_new(sync="none",[s])
 

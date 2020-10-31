@@ -409,8 +409,7 @@ let print_repr f t =
         Format.fprintf f "?";
         vars
     | `Meth (l, (_, a), b) as t ->
-        (* Nice printing. Disable for debugging type inference. *)
-        if true then (
+        if not !debug then (
           (* Find all methods. *)
           let rec aux = function
             | `Meth (l, t, u) ->
@@ -1023,7 +1022,14 @@ let rec ( <: ) a b =
         with Not_found -> (
           let a' = demeth a in
           match a'.descr with
-            | EVar _ -> a' <: b
+            | EVar _ ->
+                a'
+                <: make
+                     (Meth
+                        ( l,
+                          (g2, t2),
+                          fresh ~level:(-1) ~constraints:[] ~pos:None ));
+                a <: b
             | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))) )
         )
     | Meth (l, _, u1), _ -> hide_meth l u1 <: b
@@ -1052,6 +1058,80 @@ let ( >: ) a b =
 
 let ( <: ) a b =
   try a <: b
+  with Error (x, y) ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
+
+let rec duplicate ?pos ?level t =
+  make ?pos ?level
+    ( match (deref t).descr with
+      | Constr c ->
+          Constr
+            {
+              c with
+              params =
+                List.map
+                  (fun (vars, t) -> (vars, duplicate ?pos ?level t))
+                  c.params;
+            }
+      | Ground (Format k) -> Ground (Format (Frame_content.duplicate k))
+      | Ground g -> Ground g
+      | List t -> List (duplicate ?pos ?level t)
+      | Tuple l -> Tuple (List.map (duplicate ?pos ?level) l)
+      | Nullable t -> Nullable (duplicate ?pos ?level t)
+      | Meth (name, (v, g), t) ->
+          Meth (name, (v, duplicate ?pos ?level g), duplicate ?pos ?level t)
+      | Arrow (args, t) ->
+          Arrow
+            ( List.map (fun (b, n, t) -> (b, n, duplicate ?pos ?level t)) args,
+              duplicate ?pos ?level t )
+      | EVar v -> EVar v
+      | Link t -> Link (duplicate ?pos ?level t) )
+
+(** Find the minimal type that is safe to use instead of both
+    left and right hand types. *)
+let rec min_type ?(pos = None) ?(level = -1) a b =
+  try
+    let min a b =
+      try
+        let t = fresh_evar ~level ~pos in
+        duplicate ~pos ~level a <: t;
+        duplicate ~pos ~level b <: t;
+        deref t
+      with _ ->
+        let t = fresh_evar ~level ~pos in
+        duplicate ~pos ~level b <: t;
+        duplicate ~pos ~level a <: t;
+        deref t
+    in
+    match ((deref a).descr, (deref b).descr) with
+      | (Meth _ as da), (Meth _ as db) ->
+          let rec methods m = function
+            | Meth (name, scheme, t) when not (List.mem_assoc name m) ->
+                methods ((name, scheme) :: m) (deref t).descr
+            | _ -> m
+          in
+          let meths_a = methods [] da in
+          let meths_b = methods [] db in
+          let meths =
+            List.fold_left
+              (fun cur (name, (g, t)) ->
+                match List.assoc_opt name meths_b with
+                  | None -> cur
+                  | Some (g', t') -> (
+                      try (name, (g @ g', min_type t t')) :: cur with _ -> cur ))
+              [] meths_a
+          in
+          let t = min (demeth a) (demeth b) in
+          let t =
+            List.fold_left
+              (fun cur (name, s) -> make ~pos ~level (Meth (name, s, cur)))
+              t meths
+          in
+          duplicate ~pos ~level a <: t;
+          duplicate ~pos ~level b <: t;
+          deref t
+      | _ -> min a b
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt

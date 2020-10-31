@@ -23,71 +23,6 @@
 open Lang_builtins
 
 let () =
-  add_builtin "source.skip" ~cat:Liq ~descr:"Skip to the next track."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.unit_t
-    (fun p ->
-      (Lang.to_source (List.assoc "" p))#abort_track;
-      Lang.unit)
-
-let () =
-  add_builtin "source.seek" ~cat:Liq
-    ~descr:
-      "Seek forward, in seconds. Returns the amount of time effectively seeked."
-    [
-      ("", Lang.source_t (Lang.univ_t ()), None, None);
-      ("", Lang.float_t, None, None);
-    ]
-    Lang.float_t
-    (fun p ->
-      let s = Lang.to_source (Lang.assoc "" 1 p) in
-      let time = Lang.to_float (Lang.assoc "" 2 p) in
-      let len = Frame.master_of_seconds time in
-      let ret = s#seek len in
-      Lang.float (Frame.seconds_of_master ret))
-
-let () =
-  add_builtin "source.id" ~cat:Liq ~descr:"Get one source's identifier."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.string_t
-    (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
-
-let () =
-  add_builtin "source.fallible" ~cat:Liq
-    ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.bool_t
-    (fun p ->
-      Lang.bool ((Lang.to_source (List.assoc "" p))#stype == Source.Fallible))
-
-let () =
-  add_builtin "source.is_ready" ~cat:Liq
-    ~descr:"Indicate if a source is ready to stream, or currently streaming."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.bool_t
-    (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#is_ready)
-
-let () =
-  add_builtin "source.remaining" ~cat:Liq
-    ~descr:"Estimation of remaining time in the current track."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.float_t
-    (fun p ->
-      let r = (Lang.to_source (List.assoc "" p))#remaining in
-      let f = if r = -1 then infinity else Frame.seconds_of_master r in
-      Lang.float f)
-
-let () =
-  add_builtin "source.shutdown" ~cat:Liq ~descr:"Desactivate a source."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.unit_t
-    (fun p ->
-      let s = Lang.to_source (List.assoc "" p) in
-      (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-          (s' :> Source.source) = s);
-      Lang.unit)
-
-let () =
   let s_t =
     let kind = Lang.any in
     Lang.source_t (Lang.kind_type_of_kind_format kind)
@@ -96,6 +31,7 @@ let () =
     ~descr:
       "Simultaneously initialize sources, return the sublist of sources that \
        failed to initialize."
+    ~flags:[Lang.Experimental]
     [("", Lang.list_t s_t, None, None)]
     (Lang.list_t s_t)
     (fun p ->

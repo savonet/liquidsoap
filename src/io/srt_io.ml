@@ -535,13 +535,12 @@ let mk_socket ~payload_size ~messageapi () =
 let close_socket s = Srt.close s
 
 class virtual base =
-  let m = Mutex.create () in
   object (self)
     method virtual id : string
 
     val mutable clock = None
 
-    method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b = Tutils.mutexify m
+    method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
     val mutable should_stop = false
 

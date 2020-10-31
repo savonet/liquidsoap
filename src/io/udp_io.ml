@@ -95,7 +95,6 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
     inherit
       Start_stop.async
-        ~source_kind:"udp"
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         ~on_start:ignore ~on_stop:ignore ~autostart:true
 

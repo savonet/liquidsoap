@@ -37,10 +37,10 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
   def pick() =
     tracks_played := 0
 
-    if list.exists(source.is_ready, sources) then
+    if list.exists(fun (s) -> s.is_ready(), sources) then
       def rec f(index) =
         s = list.nth(default=fail(), sources, index)
-        if source.is_ready(s) then
+        if s.is_ready() then
           picked_index := index
         else
           f((index + 1) mod list.length(sources))
@@ -59,7 +59,7 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
       tracks_played := !tracks_played + 1
     end
 
-    s = on_track(f, s)
+    s.on_track(f)
 
     def cond() =
       if !picked_index == -1 then pick() end
@@ -107,7 +107,7 @@ def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=
       weight = list.nth(default=default_weight, weights, index)
 
       let (current_weight, indexes) =
-        if source.is_ready(s) then
+        if s.is_ready() then
           weight = weight()
           indexes = list.add((current_weight, current_weight+weight, index), indexes)
           (current_weight + weight, indexes)
@@ -139,14 +139,14 @@ def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=
     end
  
     next_index := list.fold(pick_source, -1, weighted_indexes)
- end
+  end
 
   def add_condition(index, s) =
     def f(_) =
       next_index := -1
     end 
 
-    s = on_track(f, s)
+    s.on_track(f)
 
     def cond() =
       if !next_index == -1 then pick() end

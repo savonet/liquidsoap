@@ -26,7 +26,7 @@ end
 
 s = rotate(weights=[2,1],[s1,s2])
 
-s = on_track(f,s)
+s.on_track(f)
 
 output.dummy(s)
 
@@ -43,7 +43,6 @@ def on_done () =
   end
 
   shutdown()
-  (-1.)
 end
 
-add_timeout(1., on_done)
+thread.run(delay=1., on_done)

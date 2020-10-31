@@ -75,8 +75,15 @@ def f() =
   # Ensure that common methods are kept and others are forgotten
   l = [ "a".{b = true, k = 0} , "b".{b = true, l = 1} ]
   t(list.for_all(fun (x) -> x.b, l), true)
+
   # Ensure that we can have active sources and sources
   ignore([input(), blank()])
+  ignore([blank(), input()])
+
+  # There used to be a bug where [x] would loose all its methods.
+  x = 1
+  let x.foo = "bla"
+  list.add(x, [(2).{foo = "gni"}])
 
   try
     ignore(list.insert(23, 2, [1, 2, 3]))

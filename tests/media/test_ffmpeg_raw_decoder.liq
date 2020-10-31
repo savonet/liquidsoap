@@ -9,7 +9,7 @@ fname = argv(default="",1)
 out = "files/test.mp4"
 
 if file.exists(out) then
-  file.unlink(out)
+  file.remove(out)
 end
 
 s = single(fname)

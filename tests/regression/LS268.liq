@@ -10,6 +10,6 @@ o = output.dummy(fallible=true,p)
 
 on_shutdown(test.pass)
 
-thread.run(delay=2., { source.shutdown(o) })
+thread.run(delay=2., { o.shutdown() })
 thread.run(delay=3., { ignore(output.dummy(fallible=true,p)) })
 thread.run(delay=4., { shutdown() })

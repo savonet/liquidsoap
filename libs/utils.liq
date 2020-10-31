@@ -13,11 +13,11 @@ end
 def add_skip_command(s) =
   # A command to skip
   def skip(_) =
-    source.skip(s)
+    s.skip()
     "Done!"
   end
   # Register the command:
-  server.register(namespace="#{source.id(s)}",
+  server.register(namespace="#{s.id()}",
                   usage="skip",
                   description="Skip the current song.",
                   "skip",skip)
@@ -96,7 +96,7 @@ end
 # @param f The fallback source
 def fallback.skip(~input,f)
   def transition(a,b) =
-    source.skip(a)
+    a.skip()
     # This eats the last remaining frame from a
     sequence([a,b])
   end
@@ -215,7 +215,7 @@ def server.insert_metadata(~id="",s) =
       "Syntax error or no metadata given. Use key1=\"val1\",key2=\"val2\",.."
     end
   end
-  id = source.id(s)
+  id = s.id()
   server.register(namespace="#{id}",
                   description="Insert a metadata chunk.",
                   usage="insert key1=\"val1\",key2=\"val2\",..",
@@ -228,7 +228,7 @@ end
 # @param ~id Force the value of the source ID.
 def server.rms(~id="",s) =
   let s = rms(id=id,s)
-  id = source.id(s)
+  id = s.id()
   def rms(_) =
     rms = s.rms()
     "#{rms}"
@@ -312,7 +312,7 @@ end
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
 def blank.skip(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
-  blank.detect({source.skip(s)},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
+  blank.detect({s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
 # Same operator as rotate but merges tracks from each sources.
@@ -411,10 +411,10 @@ def overlap_sources(~id="",~normalize=false,
     def disable(_) =
       set_ready(pos,false)
     end
-    on_track(disable,source)
+    source.on_track(disable)
   end
 
-  sources = list.mapi(disable,sources)
+  list.iteri(disable,sources)
 
   # Relay metadata from all sources
   send_to_main_source = ref(fun (_) -> ())
@@ -423,7 +423,7 @@ def overlap_sources(~id="",~normalize=false,
     fn = !send_to_main_source
     fn(m)
   end
-  sources = list.map(on_metadata(relay_metadata),sources)
+  list.iter(fun (s) -> s.on_metadata(relay_metadata),sources)
 
   # Now drop all metadata
   sources = list.map(drop_metadata,sources)
@@ -475,8 +475,8 @@ def chop(~duration=float_getter(3.),~metadata=[],s) =
   # Track time in the source's context:
   start_time = ref(0.)
   def f() =
-    if duration () <= source.time(s) - !start_time then
-      start_time := source.time(s)
+    if duration () <= s.time() - !start_time then
+      start_time := s.time()
       s.insert_metadata(new_track=true, metadata)
     end
     1.

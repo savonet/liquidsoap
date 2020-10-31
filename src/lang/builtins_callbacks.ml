@@ -42,24 +42,3 @@ let () =
       let wrap_f () = ignore (Lang.apply f []) in
       Lifecycle.after_start wrap_f;
       Lang.unit)
-
-let () =
-  add_builtin "source.on_shutdown" ~cat:Sys
-    [
-      ("", Lang.source_t (Lang.univ_t ()), None, None);
-      ("", Lang.fun_t [] Lang.unit_t, None, None);
-    ]
-    Lang.unit_t
-    ~descr:"Register a function to be called when source shuts down."
-    (fun p ->
-      let s = Lang.to_source (Lang.assoc "" 1 p) in
-      let f = Lang.assoc "" 2 p in
-      let wrap_f () = ignore (Lang.apply f []) in
-      s#on_shutdown wrap_f;
-      Lang.unit)
-
-let () =
-  add_builtin "source.is_up" ~cat:Sys
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.bool_t ~descr:"Check whether a source is up."
-    (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)

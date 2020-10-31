@@ -42,7 +42,7 @@ end
 
 s = rotate([s1,s2,s3])
 
-s = on_track(f,s)
+s.on_track(f)
 
 output.dummy(s)
 

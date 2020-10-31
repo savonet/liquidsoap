@@ -297,7 +297,7 @@ def osd_metadata(~color="green",~position="top",
   def feedback(m)
     ignore(process.run("echo #{string.quote(display(m))} | #{osd} &"))
   end
-  on_metadata(feedback,s)
+  s.on_metadata(feedback)
 end
 
 # Use notify to display metadata info.
@@ -313,7 +313,7 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
            ~title="Liquidsoap: new track",s)
   send = 'notify-send -i #{icon} -u #{urgency}'
        ^ ' -t #{time} #{string.quote(title)} '
-  on_metadata(fun (m) -> ignore(process.run(send^string.quote(display(m)))),s)
+  s.on_metadata(fun (m) -> ignore(process.run(send^string.quote(display(m)))))
 end
 
 %ifdef input.external.wav

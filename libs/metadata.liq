@@ -11,7 +11,7 @@ def metadata.getter(init, map, metadata, s)
     v = m[metadata]
     if v != "" then x := map(v) end
   end
-  s = on_metadata(f, s)
+  s.on_metadata(f)
   (s, {!x})
 end
 

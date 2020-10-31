@@ -237,7 +237,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val request_t : t
-val source_t : t -> t
+val source_t : ?active:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
 val kind_t : Frame.kind -> t
@@ -301,7 +301,7 @@ val error : ?pos:pos list -> ?message:string -> string -> 'a
 (** {2 Main script evaluation} *)
 
 (** Load the external libraries. *)
-val load_libs : ?parse_only:bool -> unit -> unit
+val load_libs : ?parse_only:bool -> ?deprecated:bool -> unit -> unit
 
 (** Evaluate a script from an [in_channel]. *)
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit

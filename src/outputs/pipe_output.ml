@@ -165,10 +165,7 @@ class virtual piped_output ~kind p =
   object (self)
     inherit base ~kind ~source ~name p as super
 
-    initializer
-    self#register_command "reopen" ~descr:"Re-open the output." (fun _ ->
-        self#reopen;
-        "Done.")
+    method reopen_cmd = self#reopen
 
     val mutable open_date = 0.
 
@@ -426,5 +423,14 @@ let () =
   Lang.add_operator "output.external" ~active:true
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:Lang.Output
-    ~descr:"Send the stream to a process' standard input." (fun p ->
-      (new external_output p :> Source.source))
+    ~meth:
+      [
+        ( "reopen",
+          ([], Lang.fun_t [] Lang.unit_t),
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#reopen_cmd;
+                Lang.unit) );
+      ]
+    ~descr:"Send the stream to a process' standard input."
+    (fun p -> new external_output p)

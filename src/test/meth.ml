@@ -32,3 +32,20 @@ let () =
   print t;
   let t = T.meths ["f"; "s"; "f'"] ([], T.make (T.Ground T.Float)) t in
   print t
+
+(* Test subtyping. *)
+let () =
+  (* Make sure unifying variables sees top-level methods:
+     We do: t = ('a).{ f : int } <: t' = int.{ ff : int, f : float }
+     and make sure that this fails. *)
+  let t = T.fresh_evar ~level:(-1) ~pos:None in
+  let t = T.meth "f" ([], T.make (T.Ground T.Int)) t in
+  let t' = T.make (T.Ground T.Int) in
+  let t' = T.meth "f" ([], T.make (T.Ground T.Float)) t' in
+  let t' = T.meth "ff" ([], T.make (T.Ground T.Int)) t' in
+  assert (
+    T.(
+      try
+        t <: t';
+        false
+      with _ -> true) )
