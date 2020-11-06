@@ -18,6 +18,6 @@ def f(_)
     test.pass(); shutdown()
   end
 end
-s = on_track(f, s)
+s.on_track(f)
 
 output.dummy(s)

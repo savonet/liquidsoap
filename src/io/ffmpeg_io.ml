@@ -40,9 +40,7 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
         ~empty_on_abort:false ~bufferize
 
     inherit
-      Start_stop.async
-        ~source_kind:"ffmpeg" ~name:"input.ffmpeg" ~on_start ~on_stop
-          ~autostart:start
+      Start_stop.async ~name:"input.ffmpeg" ~on_start ~on_stop ~autostart:start
 
     val mutable container = None
 

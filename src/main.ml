@@ -66,6 +66,9 @@ let parse_only = ref false
 (* Should we load the pervasives? *)
 let pervasives = ref true
 
+(* Should we load the deprecated wrapper? *)
+let deprecated = ref true
+
 (* Have we been used for an other purpose than streaming? *)
 let secondary_task = ref false
 
@@ -81,7 +84,7 @@ let load_libs =
     if !pervasives && not !loaded then (
       let save = !Configure.display_types in
       Configure.display_types := false;
-      Lang.load_libs ~parse_only:!parse_only ();
+      Lang.load_libs ~deprecated:!deprecated ~parse_only:!parse_only ();
       loaded := true;
       Configure.display_types := save )
 
@@ -466,6 +469,9 @@ let options =
           Printf.sprintf
             "Do not load pervasives script libraries (i.e., %s/*.liq)."
             Configure.liq_libs_dir );
+        ( ["--no-deprecated"],
+          Arg.Clear deprecated,
+          "Do not load wrappers for deprecated operators." );
         (["-i"], Arg.Set Configure.display_types, "Display infered types.");
         ( ["--version"],
           Arg.Unit

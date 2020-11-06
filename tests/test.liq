@@ -54,7 +54,9 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
     end
   end
 
-  on_track(id="check_non_repeating",check,s)
+  s.on_track(check)
+
+  s
 end
 
 # Asynchronous test handler with dummy output

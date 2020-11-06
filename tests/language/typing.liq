@@ -97,7 +97,7 @@ def f() =
   
   # Now let's test ad-hoc polymorphism.
   
-  echo = fun(x) -> system("echo #{quote(string_of(x))}")
+  echo = fun(x) -> process.run("echo #{string.quote(string_of(x))}")
   ignore(echo)
   
   ignore("bla")

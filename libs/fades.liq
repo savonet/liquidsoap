@@ -49,10 +49,10 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
   start_time = ref(-1.)
   def fade() =
     if !start_time < 0. then
-      start_time := source.time(s)
+      start_time := s.time()
     end
 
-    t = source.time(s) - !start_time
+    t = s.time() - !start_time
     if t >= duration then
       on_done ()
       stop
@@ -88,7 +88,7 @@ def fade.out(~id="fade.out",~duration=3.,
              ~override_duration="liq_fade_out",
              ~override_type="liq_fade_type",
              ~type="lin",s) =
-  log = log(label=source.id(s),level=4)
+  log = log(label=s.id(),level=4)
   fn = ref(fun () -> 1.)
   type = ref(type)
   duration = ref(duration)
@@ -97,7 +97,7 @@ def fade.out(~id="fade.out",~duration=3.,
 
   def start_fade(d,_) =
     log("Fading out with #{d}s remaining..")
-    start_time := source.time(s)
+    start_time := s.time()
     duration = if d < !duration then d else !duration end
     fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)
     started := true
@@ -127,9 +127,9 @@ def fade.out(~id="fade.out",~duration=3.,
     end
   end
 
-  s = on_metadata(update_fade,s)
+  s.on_metadata(update_fade)
   delay = fun () -> !duration
-  s = on_track(stop_fade,s)
+  s.on_track(stop_fade)
   s = on_end(delay=delay,start_fade,s)
   fade.scale(id=id,apply,s)
 end
@@ -146,7 +146,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
              ~override_type="liq_fade_skip",
              ~override_skip="liq_skip_meta",
              ~type="lin",s) =
-  log = log(label=source.id(s),level=4)
+  log = log(label=s.id(),level=4)
   fn = ref(fun () -> 1.)
   type = ref(type)
   duration = ref(duration)
@@ -162,12 +162,12 @@ def fade.skip(~id="fade.skip",~duration=5.,
 
   def skip()
     log("Fade finished executing. Calling skip now") 
-    source.skip(s);
+    s.skip();
   end
 
   def update_fade(m) = 
     if m[override_skip] == "true" then
-      remaining = source.remaining(s)
+      remaining = s.remaining()
       duration = if remaining < !duration then remaining else !duration end  
       log("Skip fade executed for: #{duration}s")      
       fn := mkfade(start=1.,stop=0.,type=!type,duration=duration, on_done=skip,s)       
@@ -184,8 +184,8 @@ def fade.skip(~id="fade.skip",~duration=5.,
     end
   end
 
-  s = on_metadata(update_fade,s)  
-  s = on_track(stop_fade,s)
+  s.on_metadata(update_fade)
+  s.on_track(stop_fade)
   fade.scale(id=id,apply,s)
 end
 
@@ -200,7 +200,7 @@ def fade.in(~id="fade.in",~duration=3.,
             ~override_duration="liq_fade_in",
             ~override_type="liq_fade_type",
             ~type="lin",s) =
-  log = log(label=source.id(s),level=4)
+  log = log(label=s.id(),level=4)
   fn = ref(fun () -> 0.)
   duration = ref(duration)
   type = ref(type)
@@ -227,8 +227,8 @@ def fade.in(~id="fade.in",~duration=3.,
     end
   end
 
-  s = on_metadata(update_fade,s)
-  s = on_track(start_fade,s)
+  s.on_metadata(update_fade)
+  s.on_track(start_fade)
 
   fade.scale(id=id,apply,s)
 end

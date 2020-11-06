@@ -67,16 +67,10 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
-    initializer
-    self#register_command "buffer_length"
-      ~descr:"Show internal buffer length (in seconds)." (fun _ ->
-        Printf.sprintf
-          "audio buffer length: %.02f s\n\
-           video buffer length: %.02f s\n\
-           total buffer length: %.02f s"
-          (Frame.seconds_of_master (Generator.audio_length abg))
-          (Frame.seconds_of_master (Generator.video_length abg))
-          (Frame.seconds_of_master (Generator.length abg)))
+    method buffer_length_cmd =
+      ( Frame.seconds_of_master (Generator.audio_length abg),
+        Frame.seconds_of_master (Generator.video_length abg),
+        Frame.seconds_of_master (Generator.length abg) )
 
     method wake_up x =
       (* Now we can create the log function *)
@@ -102,6 +96,17 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.avi" ~category:Lang.Input
     ~flags:[Lang.Experimental]
+    ~meth:
+      [
+        ( "buffer_length",
+          ( [],
+            Lang.fun_t []
+              (Lang.tuple_t [Lang.float_t; Lang.float_t; Lang.float_t]) ),
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                let x, y, z = s#buffer_length_cmd in
+                Lang.tuple [Lang.float x; Lang.float y; Lang.float z]) );
+      ]
     ~descr:"Stream data from an external application."
     [
       ( "buffer",
@@ -232,10 +237,9 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ( new video
-          ~name:"input.external.avi" ~kind ~restart ~bufferize ~log_overfull
-          ~restart_on_error ~max ~read_header ~on_data command
-        :> Source.source ))
+      new video
+        ~name:"input.external.avi" ~kind ~restart ~bufferize ~log_overfull
+        ~restart_on_error ~max ~read_header ~on_data command)
 
 (***** raw video *****)
 
@@ -244,6 +248,17 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
     ~flags:[Lang.Experimental]
+    ~meth:
+      [
+        ( "buffer_length",
+          ( [],
+            Lang.fun_t []
+              (Lang.tuple_t [Lang.float_t; Lang.float_t; Lang.float_t]) ),
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                let x, y, z = s#buffer_length_cmd in
+                Lang.tuple [Lang.float x; Lang.float y; Lang.float z]) );
+      ]
     ~descr:"Stream data from an external application."
     [
       ( "buffer",
@@ -293,7 +308,6 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ( new video
-          ~name:"input.external.rawvideo" ~kind ~restart ~bufferize
-          ~log_overfull ~restart_on_error ~max ~on_data command
-        :> Source.source ))
+      new video
+        ~name:"input.external.rawvideo" ~kind ~restart ~bufferize ~log_overfull
+        ~restart_on_error ~max ~on_data command)

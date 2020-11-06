@@ -114,6 +114,7 @@ val clear : data -> unit
 (** Format *)
 
 val format : data -> format
+val duplicate : format -> format
 val merge : format -> format -> unit
 val compatible : format -> format -> bool
 val string_of_format : format -> string

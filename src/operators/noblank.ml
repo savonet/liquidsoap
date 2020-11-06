@@ -36,7 +36,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
 
     method virtual private log : Log.t
 
-    method private in_blank = match state with `Blank _ -> true | _ -> false
+    method is_blank = match state with `Blank _ -> true | _ -> false
 
     method private string_of_state =
       function `Blank _ -> "blank" | `Noise _ -> "no blank"
@@ -103,10 +103,10 @@ class detect ~kind ~start_blank ~max_blank ~min_noise ~threshold
     method private get_frame ab =
       let p0 = AFrame.position ab in
       source#get ab;
-      let was_blank = self#in_blank in
+      let was_blank = self#is_blank in
       let is_blank =
         self#check_blank ab p0;
-        self#in_blank
+        self#is_blank
       in
       match (was_blank, is_blank) with
         | true, false -> ignore (Lang.apply on_noise [])
@@ -124,19 +124,13 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
 
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
-    initializer
-    ns_kind <- "blank.strip";
-    let status _ = string_of_bool self#in_blank in
-    self#register_command "is_stripping"
-      ~descr:"Check if the source is stripping." status
-
     method stype = Fallible
 
-    method is_ready = (not self#in_blank) && source#is_ready
+    method is_ready = (not self#is_blank) && source#is_ready
 
-    method remaining = if self#in_blank then 0 else source#remaining
+    method remaining = if self#is_blank then 0 else source#remaining
 
-    method seek n = if self#in_blank then 0 else source#seek n
+    method seek n = if self#is_blank then 0 else source#seek n
 
     method abort_track = source#abort_track
 
@@ -150,7 +144,7 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
 
       (* It's useless to strip metadata, because [ab] is [memo]
        * and metadata will not be copied from it outside of the track. *)
-      if self#in_blank then AFrame.set_breaks ab (p0 :: b0)
+      if self#is_blank then AFrame.set_breaks ab (p0 :: b0)
 
     method private output =
       (* We only #get once in memo; this is why we can set_breaks everytime
@@ -160,7 +154,7 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
        * the track ends, the beginning of the next track won't be lost. (Because
        * of granularity issues, the change of #is_ready only takes effect at the
        * end of the clock cycle). *)
-      if source#is_ready && self#in_blank && AFrame.is_partial self#memo then
+      if source#is_ready && self#is_blank && AFrame.is_partial self#memo then
         self#get_frame self#memo
 
     method output_reset = ()
@@ -212,10 +206,10 @@ class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank
         if track_sensitive && AFrame.is_partial ab then (
           stripping <- false;
           beginning <- true );
-        let was_blank = self#in_blank in
+        let was_blank = self#is_blank in
         let is_blank =
           self#check_blank ab p0;
-          self#in_blank
+          self#is_blank
         in
         match (was_blank, is_blank) with
           | false, true ->
@@ -279,6 +273,12 @@ let extract p =
 
 let () =
   Lang.add_operator "blank.detect" ~return_t ~category:Lang.TrackProcessing
+    ~meth:
+      [
+        ( "is_blank",
+          ([], Lang.fun_t [] Lang.bool_t),
+          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
+      ]
     ~descr:"Calls a given handler when detecting a blank."
     ( ( "",
         Lang.fun_t [] Lang.unit_t,
@@ -300,16 +300,27 @@ let () =
         ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         ~on_blank ~on_noise s);
   Lang.add_operator "blank.strip" ~active:true ~return_t
+    ~meth:
+      [
+        ( "is_blank",
+          ([], Lang.fun_t [] Lang.bool_t),
+          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
+      ]
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank." proto
     (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      ( new strip
-          ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s
-        :> Source.source ));
+      new strip
+        ~kind ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s);
   Lang.add_operator "blank.eat" ~return_t ~category:Lang.TrackProcessing
+    ~meth:
+      [
+        ( "is_blank",
+          ([], Lang.fun_t [] Lang.bool_t),
+          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
+      ]
     ~descr:
       "Eat blanks, i.e., drop the contents of the stream until it is not blank \
        anymore."

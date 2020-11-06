@@ -66,10 +66,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     inherit active_operator ~name:output_kind content_kind [source] as super
 
-    inherit
-      Start_stop.base
-        ~name ~source_kind:output_kind ~interactive:true ~on_start ~on_stop
-          ~autostart as start_stop
+    inherit Start_stop.base ~name ~on_start ~on_stop ~autostart as start_stop
 
     (* Eventually we can simply rename them... *)
     method private start = self#output_start
@@ -85,35 +82,6 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method stype = source#stype
 
     method self_sync = source#self_sync
-
-    initializer
-    (* Add a few more server controls *)
-    self#register_command "skip"
-      (fun _ ->
-        self#skip;
-        "Done")
-      ~descr:"Skip current song.";
-    self#register_command "metadata" ~descr:"Print current metadata." (fun _ ->
-        let q = self#metadata_queue in
-        fst
-          (Queue.fold
-             (fun (s, i) m ->
-               let s =
-                 s
-                 ^ (if s = "" then "--- " else "\n--- ")
-                 ^ string_of_int i ^ " ---\n"
-                 ^ Request.string_of_metadata m
-               in
-               (s, i - 1))
-             ("", Queue.length q)
-             q));
-    self#register_command "remaining" ~descr:"Display estimated remaining time."
-      (fun _ ->
-        let r = source#remaining in
-        if r < 0 then "(undef)"
-        else (
-          let t = Frame.seconds_of_master r in
-          Printf.sprintf "%.2f" t ))
 
     method is_ready =
       if infallible then (

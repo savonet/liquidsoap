@@ -136,3 +136,4 @@ val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 val fresh : constraints:constraints -> level:int -> pos:pos option -> t
 val fresh_evar : level:int -> pos:pos option -> t
+val min_type : ?pos:pos option -> ?level:int -> t -> t -> t

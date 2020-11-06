@@ -52,6 +52,7 @@ New:
 - Add `list.indexed`.
 - Added optional support for high-resolution time and latency control on POSIX systems (#1050).
 - Added syntax for `for` and `while` loops (#1252).
+- Added a bunch of source-related methods (#1379).
 
 Changed:
 
@@ -128,6 +129,8 @@ Changed:
   last functions is now optional (#1320).
 - Dropped optional `gavl` video converter in favor of `ffmpeg.
 - Remove `persist` argument in `output.*.hls` and use nullable value for `persist_at`.
+- Deprecated source server commands in favor or direct call to source methods. Added
+  wrappers for some of the old commands (#1379).
 
 Fixed:
 

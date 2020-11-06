@@ -22,8 +22,8 @@
 
 (** Base class for sources with start/stop methods and server commands.
   * That class provides #may/do_start/stop but does not hook them anywhere. *)
-class virtual base ~name ~source_kind ~interactive ~(on_start : unit -> unit)
-  ~(on_stop : unit -> unit) ~autostart =
+class virtual base ~name ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
+  ~autostart =
   object (self)
     method virtual private id : string
 
@@ -42,47 +42,6 @@ class virtual base ~name ~source_kind ~interactive ~(on_start : unit -> unit)
 
     (* Ask for startup *)
     val mutable request_stop = false
-
-    (* Ask for termination *)
-    val mutable autostart = autostart
-
-    (* Start as soon as possible *)
-    method virtual register_command
-        : descr:string -> ?usage:string -> string -> (string -> string) -> unit
-
-    val virtual mutable ns_kind : string
-
-    initializer
-    if interactive then (
-      ns_kind <- source_kind;
-      self#register_command "autostart" ~descr:"Enable/disable autostart."
-        (fun s ->
-          if s <> "" then (
-            let update = s = "on" || s = "yes" || s = "y" in
-            (* Update request_start when:
-             *  - autostart becomes true (we now wait to start asap)
-             *  - autostart becomes false too (stop ongoing waiting)
-             * But not when it is unchanged. For example, this prevents
-             * cancelling a manually-ordered start. *)
-            if update <> autostart then (
-              request_start <- update;
-              autostart <- update;
-              self#notify ) );
-          if autostart then "on" else "off");
-      self#register_command "start" ~descr:"Start." (fun _ ->
-          request_start <- true;
-          self#notify;
-          "OK");
-      self#register_command "stop" ~descr:"Stop and disable autostart."
-        (fun _ ->
-          if autostart then (
-            autostart <- false;
-            request_start <- false );
-          request_stop <- true;
-          self#notify;
-          "OK");
-      self#register_command "status" ~descr:"Get status." (fun _ ->
-          if is_started then "on" else "off") )
 
     method is_active = is_started
 
@@ -117,11 +76,10 @@ class virtual base ~name ~source_kind ~interactive ~(on_start : unit -> unit)
  * but they may be called from any thread.
  * It is suitable for inactive inputs, where the #start/stop methods
  * should start some sort of feeding thread. *)
-class virtual async ~name ~source_kind ~(on_start : unit -> unit)
-  ~(on_stop : unit -> unit) ~autostart =
+class virtual async ~name ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
+  ~autostart =
   object (self)
-    inherit
-      base ~name ~source_kind ~interactive:true ~on_start ~on_stop ~autostart as super
+    inherit base ~name ~on_start ~on_stop ~autostart as super
 
     method private wake_up activation =
       super#wake_up activation;
@@ -147,9 +105,7 @@ class virtual input ~name ~source_kind ~content_kind ~(on_start : unit -> unit)
   object (self)
     inherit Source.active_source ~name:source_kind content_kind
 
-    inherit
-      base
-        ~name ~source_kind ~interactive:fallible ~on_start ~on_stop ~autostart as super
+    inherit base ~name ~on_start ~on_stop ~autostart as super
 
     method stype = if fallible then Source.Fallible else Source.Infallible
 

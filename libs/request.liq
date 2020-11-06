@@ -48,7 +48,7 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
       string.concat(separator=" ", list.map(fun (r) -> string_of(request.id(r)), !queue))
     end
     server.register(namespace=namespace, description="Display current queue content.", usage="queue", "queue", show_queue)
-    def skip(_) = source.skip(s); "Done." end
+    def skip(_) = s.skip(); "Done." end
     server.register(namespace=namespace, description="Skip current song.", usage="skip", "skip", skip)
   end
   s.{push=push}

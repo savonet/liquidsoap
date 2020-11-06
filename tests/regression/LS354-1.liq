@@ -1,8 +1,10 @@
 %include "test.liq"
 
-s = on_track(
-     fun(_)-> begin test.pass(); shutdown() end,
-     blank(duration=1.))
+s = blank(duration=1.)
+
+s.on_track(
+     fun(_)-> begin test.pass(); shutdown() end
+)
 
 r = ref(false)
 d = source.dynamic({ if !r then [s] else [] end })

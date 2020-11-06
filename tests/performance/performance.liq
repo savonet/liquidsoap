@@ -3,9 +3,9 @@ profile = (getenv("LIQ_PROFILE") != "")
 def time(name, f)
   if profile then profiler.enable() end
   print("Computing #{name}...")
-  t = gettimeofday()
+  t = time()
   f()
-  t' = gettimeofday()
+  t' = time()
   print("Computing #{name} took #{t'-t} seconds.")
   if profile then print(profiler.stats.string()) end
 end

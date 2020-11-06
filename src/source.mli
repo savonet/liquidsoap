@@ -86,6 +86,7 @@ class virtual source :
   -> ?midi_in:Frame.kind
   -> Frame.content_kind
   -> object
+       method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
        (** {1 Naming} *)
 
@@ -101,12 +102,6 @@ class virtual source :
        method virtual stype : source_t
 
        (** {1 Init/shutdown} *)
-
-       (** Registered server commands for the source *)
-       val mutable ns_kind : string
-
-       method register_command :
-         descr:string -> ?usage:string -> string -> (string -> string) -> unit
 
        (** Register a callback, to be executed when source shuts down. *)
        method on_shutdown : (unit -> unit) -> unit
@@ -178,6 +173,12 @@ class virtual source :
            [get] should never be called with a full buffer,
            and without checking that the source is ready. *)
        method get : Frame.t -> unit
+
+       (** Register a callback to be called on new metadata *)
+       method on_metadata : (Frame.metadata -> unit) -> unit
+
+       (** Register a callback to be called on new track *)
+       method on_track : ((string, string) Hashtbl.t -> unit) -> unit
 
        method virtual private get_frame : Frame.t -> unit
 

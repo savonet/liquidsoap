@@ -74,7 +74,7 @@ let int_getter_t () = getter_t T.Int
 let bool_getter_t () = getter_t T.Bool
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
-let source_t t = Term.source_t t
+let source_t ?active t = Term.source_t ?active t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 let request_t = Term.request_t ()
@@ -555,10 +555,13 @@ let from_file ?parse_only ~ns ~lib filename =
   from_in_channel ~dir:(Filename.dirname filename) ?parse_only ~ns ~lib ic;
   close_in ic
 
-let load_libs ?parse_only () =
+let load_libs ?parse_only ?(deprecated = false) () =
   let dir = Configure.liq_libs_dir in
   let file = Filename.concat dir "pervasives.liq" in
   if Sys.file_exists file then
+    from_file ?parse_only ~ns:(Some file) ~lib:true file;
+  let file = Filename.concat dir "deprecations.liq" in
+  if deprecated && Sys.file_exists file then
     from_file ?parse_only ~ns:(Some file) ~lib:true file
 
 let from_file = from_file ~ns:None
@@ -695,6 +698,105 @@ module MkAbstract (Def : AbstractDef) = struct
     match t.value with L.V.Ground (Value c) -> c | _ -> assert false
 end
 
+(* Augment source_t and source with default methods. *)
+
+let source_methods =
+  [
+    ("id", ([], fun_t [] string_t), fun s -> val_fun [] (fun _ -> string s#id));
+    ( "is_ready",
+      ([], fun_t [] bool_t),
+      fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+    ( "on_metadata",
+      ( [],
+        fun_t
+          [
+            ( false,
+              "",
+              fun_t [(false, "", list_t (product_t string_t string_t))] unit_t
+            );
+          ]
+          unit_t ),
+      fun s ->
+        val_fun [("", "", None)] (fun p ->
+            let f = assoc "" 1 p in
+            s#on_metadata (fun m -> ignore (apply f [("", metadata m)]));
+            unit) );
+    ( "on_shutdown",
+      ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
+      fun s ->
+        val_fun [("", "", None)] (fun p ->
+            let f = assoc "" 1 p in
+            s#on_shutdown (fun () -> ignore (apply f []));
+            unit) );
+    ( "on_track",
+      ( [],
+        fun_t
+          [
+            ( false,
+              "",
+              fun_t [(false, "", list_t (product_t string_t string_t))] unit_t
+            );
+          ]
+          unit_t ),
+      fun s ->
+        val_fun [("", "", None)] (fun p ->
+            let f = assoc "" 1 p in
+            s#on_track (fun m -> ignore (apply f [("", metadata m)]));
+            unit) );
+    ( "remaining",
+      ([], fun_t [] float_t),
+      fun s -> val_fun [] (fun _ -> float (Frame.seconds_of_master s#remaining))
+    );
+    ("is_up", ([], fun_t [] bool_t), fun s -> val_fun [] (fun _ -> bool s#is_up));
+    ( "seek",
+      ([], fun_t [(false, "", float_t)] float_t),
+      fun s ->
+        val_fun [] (fun p ->
+            float
+              (Frame.seconds_of_master
+                 (s#seek (Frame.master_of_seconds (to_float (List.assoc "" p))))))
+    );
+    ( "skip",
+      ([], fun_t [] unit_t),
+      fun s ->
+        val_fun [] (fun _ ->
+            s#abort_track;
+            unit) );
+    ( "fallible",
+      ([], fun_t [] bool_t),
+      fun s -> val_fun [] (fun _ -> bool (s#stype = Source.Fallible)) );
+    ( "shutdown",
+      ([], fun_t [] unit_t),
+      fun s ->
+        val_fun [] (fun _ ->
+            (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
+                (s' :> Source.source) = (s :> Source.source));
+            unit) );
+    ( "time",
+      ([], fun_t [] float_t),
+      fun s ->
+        val_fun [] (fun _ ->
+            let ticks =
+              if Source.Clock_variables.is_known s#clock then
+                (Source.Clock_variables.get s#clock)#get_tick
+              else 0
+            in
+            let frame_position =
+              Lazy.force Frame.duration *. float_of_int ticks
+            in
+            let in_frame_position =
+              Frame.seconds_of_master (Frame.position s#memo)
+            in
+            float (frame_position +. in_frame_position)) );
+  ]
+
+let source_t ?active t =
+  method_t (source_t ?active t)
+    (List.map (fun (name, t, _) -> (name, t)) source_methods)
+
+let source v =
+  meth (source v) (List.map (fun (name, _, fn) -> (name, fn v)) source_methods)
+
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
   * Creating the associated function type (and function) requires some work:
@@ -749,7 +851,7 @@ let add_operator =
         | Source.Kind.Conflict (a, b) ->
             raise (Lang_errors.Kind_conflict (pos, a, b))
     in
-    let return_t = Term.source_t ~active return_t in
+    let return_t = source_t ~active return_t in
     let return_t =
       method_t return_t (List.map (fun (name, typ, _) -> (name, typ)) meth)
     in

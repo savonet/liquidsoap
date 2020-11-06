@@ -100,19 +100,3 @@ let () =
     (fun p ->
       let t = nullable_time (List.assoc "" p) in
       return (Unix.gmtime t))
-
-let () =
-  add_builtin ~cat:Liq "source.time"
-    ~descr:"Get a source's time, based on its assigned clock"
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.float_t
-    (fun p ->
-      let s = Lang.to_source (List.assoc "" p) in
-      let ticks =
-        if Source.Clock_variables.is_known s#clock then
-          (Source.Clock_variables.get s#clock)#get_tick
-        else 0
-      in
-      let frame_position = Lazy.force Frame.duration *. float ticks in
-      let in_frame_position = Frame.seconds_of_master (Frame.position s#memo) in
-      Lang.float (frame_position +. in_frame_position))

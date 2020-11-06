@@ -11,6 +11,80 @@ def deprecated(old, new)
 end
 
 # @flag hidden
+def on_metadata(~id="",fn,s) =
+  deprecated("on_metadata", "the <source>.on_metadata(..) method")
+  s.on_metadata(fn)
+  s
+end
+
+# @flag hidden
+def on_track(~id="",fn,s) =
+  deprecated("on_track", "the <source>.on_track(..) method")
+  s.on_track(fn)
+  s
+end
+
+# @flag hidden
+def source.on_shutdown(s, fn) =
+  deprecated("source.on_shutdown", "the <source>.on_shutdown() method")
+  s.on_shutdown(fn)
+end
+
+# @flag hidden
+def source.is_up(s) =
+  deprecated("source.is_up", "the <source>.is_up() method")
+  s.is_up()
+end
+
+# @flag hidden
+def source.is_ready(s) =
+  deprecated("source.is_ready", "the <source>.is_ready() method")
+  s.is_ready()
+end
+
+# @flag hidden
+def source.id(s) =
+  deprecated("source.id", "the <source>.id() method")
+  s.id()
+end
+
+# @flag hidden
+def source.shutdown(s) =
+  deprecated("source.shutdown", "the <source>.shutdown() method")
+  s.shutdown()
+end
+
+# @flag hidden
+def source.seek(s, f) =
+  deprecated("source.seek", "the <source>.seek(..) method")
+  s.seek(f)
+end
+
+# @flag hidden
+def source.skip(s) =
+  deprecated("source.skip", "the <source>.skip() method")
+  s.skip()
+end
+
+# @flag hidden
+def source.fallible(s) =
+  deprecated("source.fallible", "the <source>.fallible() method")
+  s.fallible()
+end
+
+# @flag hidden
+def source.remaining(s) =
+  deprecated("source.remaining", "the <source>.remaining() method")
+  s.remaining()
+end
+
+# @flag hidden
+def source.time(s) =
+  deprecated("source.time", "the <source>.time() method")
+  s.time()
+end
+
+# @flag hidden
 def on_change_harbor_bind_addr(v) =
   deprecated("harbor.bind_addr", "harbor.bind_addrs")
   set("harbor.bind_addrs",[v])
@@ -40,7 +114,7 @@ def replaces input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                           samplerate=samplerate,cmd)
 end
 
-# Deprecated: this function has been replaced by `quote`.
+# Deprecated: this function has been replaced by `string.quote`.
 # @flag hidden
 def quote(s) =
   deprecated("quote", "string.quote")
@@ -229,7 +303,7 @@ def register_flow(~server="",~user="default",~password="default",
     params = [("m_title",title),("m_artist",artist)]
     thread.run(fast=false, {request(cmd="metadata",params=params)})
   end
-  on_metadata(metadata,s)
+  s.on_metadata(metadata)
 end
 
 # Deprecated: this function has been replaced by `fail`.
@@ -401,4 +475,138 @@ end
 def gettimeofday()
   deprecated("gettimeofday", "time")
   time()
+end
+
+# @docof input.gstreamer.audio_video
+def input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
+  s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
+
+  server.register(namespace=s.id(), description="Set gstreamer pipeline state to play",
+                  "play", fun (_) -> try
+                    s.play()
+                    "Done."
+                  catch err do
+                    "Error while setting state to play: #{err}"
+                  end)
+
+  server.register(namespace=s.id(), description="Set gstreamer pipeline state to paused",
+                  "pause", fun (_) -> try
+                    s.pause()
+                    "Done."
+                  catch err do
+                    "Error while setting state to paused: #{err}"
+                  end)
+
+  server.register(namespace=s.id(), description="Restart gstreamer pipeline",
+                  "restart", fun (_) -> try
+                    s.restart()
+                    "Done."
+                  catch err do
+                    "Error while restarting pipeline: #{err}"
+                  end)
+
+  s
+end
+
+# @docof blank.strip
+def blank.strip(%argsof(blank.strip), s) =
+  s = blank.strip(%argsof(blank.strip), s)
+
+  server.register(namespace=s.id(), description="Check if the source is stripping.",
+                  "is_stripping", fun (_) -> begin
+                    "#{s.is_blank()}"
+                  end)
+
+  s
+end
+
+# @docof output.external
+def output.external(%argsof(output.external), f, p, s) =
+  s = output.external(%argsof(output.external), f, p, s)
+
+  server.register(namespace=s.id(), description="Re-open the output.",
+                  "reopen", fun (_) -> begin
+                    s.reopen()
+                    "Done."
+                  end)
+
+  s
+end
+
+# @docof input.external.avi
+def input.external.avi(%argsof(input.external.avi), s) =
+  s = input.external.avi(%argsof(input.external.avi), s)
+
+  server.register(namespace=s.id(), description="Show internal buffer length (in seconds).",
+                  "buffer_length", fun (_) -> begin
+                    let (audio, video, total) = s.buffer_length()
+                    "audio buffer length: #{audio}\nvideo buffer length: #{video}\ntotal buffer length: #{total}"
+                  end)
+
+  s
+end
+
+# @docof input.harbor
+def input.harbor(%argsof(input.harbor), s) =
+  s = input.harbor(%argsof(input.harbor), s)
+
+  server.register(namespace=s.id(), description="Stop current source client, if connected.",
+                  "stop", fun (_) -> begin
+                    s.stop()
+                    "Done"
+                  end)
+
+  server.register(namespace=s.id(), description="Display current status.",
+                  "status", fun (_) -> begin
+                    s.status()
+                  end)
+
+  server.register(namespace=s.id(), description="Get the buffer's length, in seconds.",
+                  "buffer_length", fun (_) -> begin
+                    "#{s.buffer_length()}"
+                  end)
+
+  s
+end
+
+# @docof input.http
+def input.http(%argsof(input.http), s) =
+  s = input.http(%argsof(input.http), s)
+
+  server.register(namespace=s.id(), description="Start the source, if needed.",
+                  "start", fun (_) -> begin
+                    s.start()
+                    "Done!"
+                  end)
+
+  server.register(namespace=s.id(), description="Stop the source if connected.",
+                  "stop", fun (_) -> begin
+                    s.stop()
+                    "Done!"
+                  end)
+
+  server.register(namespace=s.id(), description="Get or set the stream's HTTP URL. Setting a new URL will not affect an ongoing connection.",
+                  usage="url [url]", "url", fun (url) -> begin
+                    if url == "" then
+                      s.url()
+                    else begin
+                      s.set_url({url})
+                      "Done!"
+                    end end
+                  end)
+
+  server.register(namespace=s.id(), description="Return the current status of the source, either \"stopped\" \
+                                                 (the source isn't trying to relay the HTTP stream), \"polling\" \
+                                                 (attempting to connect to the HTTP stream) or \"connected <url>\" \
+                                                 (connected to <url>, buffering or playing back the stream).",
+                  "status", fun (_) -> begin
+                    s.status()
+                  end)
+
+  server.register(namespace=s.id(), description="Get the buffer's length, in seconds.",
+                  "buffer_length", fun (_) -> begin
+                    "#{s.buffer_length()}"
+                  end)
+
+  s
 end

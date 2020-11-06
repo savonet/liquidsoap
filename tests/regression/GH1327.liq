@@ -2,6 +2,8 @@
 
 %include "test.liq"
 
+set("log.level",5)
+
 selected = ref([])
 
 s1 = blank(duration=0.1)
@@ -26,7 +28,7 @@ end
 
 s = rotate(weights=[2,1],[s1,s2])
 
-s = on_track(f,s)
+s.on_track(f)
 
 def m_noise(_) =
   [("id","noise")]
@@ -42,7 +44,7 @@ def f(_) =
   ready := true
 end
 
-s = on_track(f,s)
+s.on_track(f)
 
 output.dummy(s)
 
@@ -60,7 +62,6 @@ def on_done () =
   end
 
   shutdown()
-  (-1.)
 end
 
-add_timeout(1., on_done)
+thread.run(delay=1., on_done)

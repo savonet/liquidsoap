@@ -408,6 +408,10 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     if debug then
       Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
 
+    val mutex = Mutex.create ()
+
+    method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b = Tutils.mutexify mutex
+
     (** Is the source infallible, i.e. is it always guaranteed that there
     * will be always be a next track immediately available. *)
     method virtual stype : source_t
@@ -498,22 +502,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     (* List of callbacks executed when source shuts down. *)
     val mutable on_shutdown = []
 
-    val on_shutdown_m = Mutex.create ()
-
-    method on_shutdown fn =
-      (Tutils.mutexify on_shutdown_m (fun () ->
-           on_shutdown <- fn :: on_shutdown))
-        ()
-
-    (* contains: (ns,descr,usage,name,f) *)
-    val mutable commands = []
-
-    val mutable ns_kind = "unknown"
-
-    val mutable ns = []
-
-    method register_command ~descr ?usage name f =
-      commands <- (descr, usage, name, f) :: commands
+    method on_shutdown =
+      self#mutexify (fun fn -> on_shutdown <- fn :: on_shutdown)
 
     method private update_caching_mode =
       let string_of activations =
@@ -559,14 +549,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up with content kind: %s." id
           (Kind.to_string self#kind);
-        self#wake_up activation;
-        if commands <> [] then (
-          assert (ns = []);
-          ns <- Server.register [self#id] ns_kind;
-          self#set_id (Server.to_string ns);
-          List.iter
-            (fun (descr, usage, name, f) -> Server.add ~ns ~descr ?usage name f)
-            commands ) );
+        self#wake_up activation );
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
       self#update_caching_mode;
@@ -596,15 +579,12 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       self#update_caching_mode;
       if static_activations = [] && dynamic_activations = [] then (
         source_log#debug "Source %s gets down." id;
-        (Tutils.mutexify on_shutdown_m (fun () ->
-             List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
-             on_shutdown <- []))
+        self#mutexify
+          (fun () ->
+            List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
+            on_shutdown <- [])
           ();
-        self#sleep;
-        List.iter (fun (_, _, name, _) -> Server.remove ~ns name) commands;
-        if ns <> [] then (
-          Server.unregister ns;
-          ns <- [] ) );
+        self#sleep );
       self#iter_watchers (fun w -> w.leave ())
 
     method is_up = static_activations <> [] || dynamic_activations <> []
@@ -655,23 +635,52 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             memo <- Some m;
             m
 
+    val mutable on_metadata : (Frame.metadata -> unit) list = []
+
+    method on_metadata =
+      self#mutexify (fun fn -> on_metadata <- fn :: on_metadata)
+
+    val mutable on_track : ((string, string) Hashtbl.t -> unit) list = []
+
+    (* We want to notify of new tracks on the next call after a
+       partial frame. *)
+    val mutable was_partial = true
+
+    method on_track = self#mutexify (fun fn -> on_track <- fn :: on_track)
+
     method private instrumented_get_frame buf =
-      if watchers = [] then self#get_frame buf
-      else (
-        let start_time = Unix.gettimeofday () in
-        let start_position = Frame.position buf in
-        self#get_frame buf;
-        let end_time = Unix.gettimeofday () in
-        let end_position = Frame.position buf in
-        let is_partial = Frame.is_partial buf in
-        let metadata =
-          List.filter
-            (fun (pos, _) -> start_position <= pos)
-            (Frame.get_all_metadata buf)
-        in
-        self#iter_watchers (fun w ->
-            w.get_frame ~start_time ~start_position ~end_time ~end_position
-              ~is_partial ~metadata) )
+      let start_time = Unix.gettimeofday () in
+      let start_position = Frame.position buf in
+      self#get_frame buf;
+      let end_time = Unix.gettimeofday () in
+      let end_position = Frame.position buf in
+      let is_partial = Frame.is_partial buf in
+      let metadata =
+        List.filter
+          (fun (pos, _) -> start_position <= pos)
+          (Frame.get_all_metadata buf)
+      in
+      let on_metadata = self#mutexify (fun () -> on_metadata) () in
+      List.iter
+        (fun (i, m) ->
+          self#log#debug "Got metadata at position %d: calling handlers..." i;
+          List.iter (fun fn -> fn m) on_metadata)
+        metadata;
+      self#mutexify
+        (fun () ->
+          if was_partial then (
+            was_partial <- false;
+            let m =
+              match Frame.get_metadata buf start_position with
+                | None -> Hashtbl.create 0
+                | Some m -> m
+            in
+            List.iter (fun fn -> fn m) on_track );
+          was_partial <- is_partial)
+        ();
+      self#iter_watchers (fun w ->
+          w.get_frame ~start_time ~start_position ~end_time ~end_position
+            ~is_partial ~metadata)
 
     (* [#get buf] completes the frame with the next data in the stream.
      * Depending on whether caching is enabled or not,

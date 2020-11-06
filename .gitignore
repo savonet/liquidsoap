@@ -42,6 +42,7 @@ src/test/timezone
 src/test/ID3
 src/test/meth
 src/test/test.mp3
+src/test/types
 *.conflicts
 liquidsoap.config
 doc/liquidsoap.1.md

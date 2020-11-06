@@ -200,9 +200,6 @@ module Make (Config : Config_t) = struct
       (** POSIX sucks. *)
       val mutable socket = None
 
-      (* Mutex to change the socket's state (open, close) *)
-      val mutable socket_m = Mutex.create ()
-
       val mutable url = url
 
       (** [kill_polling] is for requesting that the feeding thread stops;
@@ -219,46 +216,28 @@ module Make (Config : Config_t) = struct
 
       val mutable relaying = autostart
 
+      method private relaying = self#mutexify (fun () -> relaying) ()
+
       val mutable playlist_mode = playlist_mode
 
-      initializer
-      ns_kind <- "input." ^ protocol;
-      self#register_command "start" ~usage:"start"
-        ~descr:"Start the source, if needed." (fun _ ->
-          relaying <- true;
-          "Done");
-      self#register_command "stop" ~usage:"stop"
-        ~descr:"Stop the source if streaming." (fun _ ->
-          relaying <- false;
-          "Done");
-      self#register_command "url" ~usage:"url [url]"
-        ~descr:
-          "Get or set the stream's HTTP URL. Setting a new URL will not affect \
-           an ongoing connection." (fun u ->
-          if u = "" then "Empty url!"
-          else (
-            url <- (fun () -> u);
-            "Done!" ));
-      self#register_command "status" ~usage:"status"
-        ~descr:
-          "Return the current status of the source, either \"stopped\" (the \
-           source isn't trying to relay the HTTP stream), \"polling\" \
-           (attempting to connect to the HTTP stream) or \"connected <url>\" \
-           (connected to <url>, buffering or playing back the stream)."
-        (fun _ ->
-          match Mutex.try_lock socket_m with
-            | false -> "A state change is currently happening. Try later!"
-            | true ->
-                let ret =
-                  match socket with
-                    | Some (_, _, url) -> "connected " ^ url
-                    | None -> if relaying then "polling" else "stopped"
-                in
-                Mutex.unlock socket_m;
-                ret);
-      self#register_command "buffer_length" ~usage:"buffer_length"
-        ~descr:"Get the buffer's length, in seconds." (fun _ ->
-          Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
+      method start_cmd = self#mutexify (fun () -> relaying <- true) ()
+
+      method stop_cmd = self#mutexify (fun () -> relaying <- false) ()
+
+      method set_url_cmd fn = self#mutexify (fun () -> url <- fn) ()
+
+      method url_cmd = self#mutexify (fun () -> url ()) ()
+
+      method status_cmd =
+        self#mutexify
+          (fun () ->
+            match socket with
+              | Some (_, _, url) -> "connected " ^ url
+              | None -> if relaying then "polling" else "stopped")
+          ()
+
+      method buffer_length_cmd =
+        self#mutexify (fun () -> Frame.seconds_of_audio self#length) ()
 
       (* Insert metadata *)
       method insert_metadata m =
@@ -273,7 +252,7 @@ module Make (Config : Config_t) = struct
           let log s = self#log#info "%s" s in
           (* Socket can't be closed while waiting on it. *)
           fun buf ofs len ->
-            let socket = Tutils.mutexify socket_m (fun () -> socket) () in
+            let socket = self#mutexify (fun () -> socket) () in
             match socket with
               | None -> 0
               | Some (socket, read, _) -> (
@@ -305,7 +284,8 @@ module Make (Config : Config_t) = struct
           let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
           while true do
             if should_fail then failwith "end of track";
-            if should_stop () || not relaying then failwith "source stopped";
+            if should_stop () || not self#relaying then
+              failwith "source stopped";
             decoder.Decoder.decode buffer
           done
         with e ->
@@ -344,8 +324,7 @@ module Make (Config : Config_t) = struct
           socket;
         socket <- None
 
-      method disconnect =
-        Tutils.mutexify socket_m (fun () -> self#disconnect_no_lock) ()
+      method disconnect = self#mutexify (fun () -> self#disconnect_no_lock) ()
 
       (* Called when there's no decoding process, in order to create one. *)
       method connect poll_should_stop url =
@@ -364,7 +343,7 @@ module Make (Config : Config_t) = struct
         in
         try
           let (_, status, status_msg), fields =
-            Tutils.mutexify socket_m
+            self#mutexify
               (fun () ->
                 if socket <> None then
                   failwith "Cannot connect while already connected..";
@@ -446,7 +425,7 @@ module Make (Config : Config_t) = struct
           in
           let test_playlist parser =
             let playlist =
-              Tutils.mutexify socket_m
+              self#mutexify
                 (fun () ->
                   match socket with
                     | None -> failwith "not connected!"
@@ -521,7 +500,7 @@ module Make (Config : Config_t) = struct
             url
           with Failure _ -> failwith ("Invalid URL: " ^ url)
         in
-        if relaying then self#connect should_stop url;
+        if self#relaying then self#connect should_stop url;
         if should_stop () then has_stopped ()
         else (
           Thread.delay poll_delay;
@@ -555,6 +534,41 @@ module Make (Config : Config_t) = struct
 
   let register protocol =
     Lang.add_operator ("input." ^ protocol) ~return_t:(Lang.univ_t ())
+      ~meth:
+        [
+          ( "start",
+            ([], Lang.fun_t [] Lang.unit_t),
+            fun s ->
+              Lang.val_fun [] (fun _ ->
+                  s#start_cmd;
+                  Lang.unit) );
+          ( "stop",
+            ([], Lang.fun_t [] Lang.unit_t),
+            fun s ->
+              Lang.val_fun [] (fun _ ->
+                  s#stop_cmd;
+                  Lang.unit) );
+          ( "url",
+            ([], Lang.fun_t [] Lang.string_t),
+            fun s -> Lang.val_fun [] (fun _ -> Lang.string s#url_cmd) );
+          ( "set_url",
+            ( [],
+              Lang.fun_t [(false, "", Lang.fun_t [] Lang.string_t)] Lang.unit_t
+            ),
+            fun s ->
+              Lang.val_fun [("", "", None)] (fun p ->
+                  let fn = List.assoc "" p in
+                  let fn () = Lang.to_string (Lang.apply fn []) in
+                  s#set_url_cmd fn;
+                  Lang.unit) );
+          ( "status",
+            ([], Lang.fun_t [] Lang.string_t),
+            fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd) );
+          ( "buffer_length",
+            ([], Lang.fun_t [] Lang.float_t),
+            fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd)
+          );
+        ]
       ~category:Lang.Input
       ~descr:("Create a source that fetches a " ^ protocol ^ " stream.")
       [
@@ -694,11 +708,10 @@ module Make (Config : Config_t) = struct
         in
         let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
         let kind = Lang.any in
-        ( new http
-            ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta ~force_mime
-            ~bind_address ~poll_delay ~timeout ~on_connect ~on_disconnect
-            ~bufferize ~max ~debug ~log_overfull ~logfile ~user_agent url
-          :> Source.source ))
+        new http
+          ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta ~force_mime
+          ~bind_address ~poll_delay ~timeout ~on_connect ~on_disconnect
+          ~bufferize ~max ~debug ~log_overfull ~logfile ~user_agent url)
 end
 
 module Config = struct

@@ -80,8 +80,7 @@ sources = \
 
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
-	operators/on_metadata.ml operators/store_metadata.ml \
-	operators/on_track.ml operators/on_end.ml operators/on_frame.ml operators/delay.ml \
+	operators/on_end.ml operators/on_frame.ml operators/delay.ml \
 	operators/max_duration.ml operators/sequence.ml operators/add.ml \
 	operators/switch.ml operators/cross.ml \
 	operators/pitch.ml operators/pipe.ml operators/filter.ml \
@@ -93,7 +92,7 @@ operators = \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
 	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
 	operators/noblank.ml operators/compand.ml operators/on_offset.ml \
-	operators/mixing_table.ml operators/prepend.ml \
+	operators/prepend.ml \
 	operators/midi_routing.ml operators/sleeper.ml \
 	operators/time_warp.ml operators/resample.ml \
 	operators/chord.ml operators/video_text.ml operators/window_op.ml \

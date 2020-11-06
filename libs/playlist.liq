@@ -205,11 +205,11 @@ def replaces playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~de
     thread.run(delay=n, every=n, reloader)
   elsif reload_mode == "watch" then
     unwatch = file.watch(!uri, reloader)
-    source.on_shutdown(s, unwatch)
+    s.on_shutdown(unwatch)
   end
 
   # Set up telnet commands
-  server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin source.skip(s); "OK" end)
+  server.register(namespace=id, description="Skip current song in the playlist.", usage="skip", "skip", fun (_) -> begin s.skip(); "OK" end)
   server.register(namespace=id, description="Reload the playlist, unless already being loaded.", usage="reload", "reload", fun (_) -> begin reloader(); "OK" end)
   def uri_cmd (uri') =
     if uri' == "" then !uri
