@@ -77,8 +77,8 @@ def f() =
   t(list.for_all(fun (x) -> x.b, l), true)
 
   # Ensure that we can have active sources and sources
-  ignore([input(), blank()])
-  ignore([blank(), input()])
+  ignore([output.dummy(noise()), blank()])
+  ignore([blank(), output.dummy(noise())])
 
   # There used to be a bug where [x] would loose all its methods.
   x = 1

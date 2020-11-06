@@ -131,6 +131,8 @@ Changed:
 - Remove `persist` argument in `output.*.hls` and use nullable value for `persist_at`.
 - Deprecated source server commands in favor or direct call to source methods. Added
   wrappers for some of the old commands (#1379).
+- Deprecated catch-all `input` and `output` in favor or setting your desired input or 
+  output explicitely.
 
 Fixed:
 

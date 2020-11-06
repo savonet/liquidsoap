@@ -29,65 +29,6 @@ def drop_metadata(s)
   map_metadata(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
 
-# Default inputs and outpus.
-#
-# They are called "prefered" but it's not a user preference, just a view of
-# what's generally preferable among the available modules.
-#
-# It is important that input and output preferences are in the same order: the
-# chosen I/O should work in the same clock, we don't want an ALSA input and OSS
-# output. The only exception is AO: it is the default output after dummy, so the
-# input will be a dummy when AO is used for output.
-
-let replaces output=output.dummy
-%ifdef output.ao
-  let replaces output=output.ao
-%endif
-%ifdef output.alsa
-  let replaces output=output.alsa
-%endif
-%ifdef output.oss
-  let replaces output=output.oss
-%endif
-%ifdef output.portaudio
-  let replaces output=output.portaudio
-%endif
-%ifdef output.pulseaudio
-  let replaces output=output.pulseaudio
-%endif
-# Output to local audio card using the first available driver in pulseaudio,
-# portaudio, oss, alsa, ao, dummy.
-# @category Source / Output
-def replaces output(~id="",~fallible=false,
-           ~on_start={()},~on_stop={()},~start=true,s)
-  output(id=id,fallible=fallible,
-         start=start,on_start=on_start,on_stop=on_stop,
-         s)
-end
-
-def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
-  blank(id=id)
-end
-%ifdef input.alsa
-  let replaces input = input.alsa
-%endif
-%ifdef input.oss
-  let replaces input = input.oss
-%endif
-%ifdef input.portaudio
-  let replaces input = input.portaudio
-%endif
-%ifdef input.pulseaudio
-  let replaces input = input.pulseaudio
-%endif
-
-# Create a source from the first available input driver in pulseaudio,
-# portaudio, oss, alsa, blank.
-# @category Source / Input
-def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
-  input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
-end
-
 # Special track insensitive fallback that always skips current song before
 # switching.
 # @category Source / Track Processing

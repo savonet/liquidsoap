@@ -610,3 +610,49 @@ def input.http(%argsof(input.http), s) =
 
   s
 end
+
+let replaces output=output.dummy
+%ifdef output.ao
+  let replaces output=output.ao
+%endif
+%ifdef output.alsa
+  let replaces output=output.alsa
+%endif
+%ifdef output.oss
+  let replaces output=output.oss
+%endif
+%ifdef output.portaudio
+  let replaces output=output.portaudio
+%endif
+%ifdef output.pulseaudio
+  let replaces output=output.pulseaudio
+%endif
+
+# @flag hidden 
+def replaces output(~id="",~fallible=false,
+           ~on_start={()},~on_stop={()},~start=true,s)
+  output(id=id,fallible=fallible,
+         start=start,on_start=on_start,on_stop=on_stop,
+         s)
+end
+
+def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+  blank(id=id)
+end
+%ifdef input.alsa
+  let replaces input = input.alsa
+%endif
+%ifdef input.oss
+  let replaces input = input.oss
+%endif
+%ifdef input.portaudio
+  let replaces input = input.portaudio
+%endif
+%ifdef input.pulseaudio
+  let replaces input = input.pulseaudio
+%endif
+
+# @flag hidden
+def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+  input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
+end
