@@ -22,6 +22,8 @@
 
 (** SRT input *)
 
+open Unsigned
+
 exception Done
 exception Not_connected
 
@@ -64,6 +66,10 @@ let common_options ~mode =
       Some "Address to bind on the local machine. Used only in listener mode" );
     ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
     ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");
+    ( "stats_interval",
+      Lang.int_t,
+      Some (Lang.int 100),
+      Some "Interval used to collect statistics" );
     ( "on_connect",
       Lang.fun_t [(false, "", Lang.unit_t)] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
@@ -72,6 +78,316 @@ let common_options ~mode =
       Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
       Some "Function to excecute when disconnected" );
+  ]
+
+let stats_specs =
+  [
+    ( "msTimeStamp",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.msTimeStamp)),
+      Lang.int (-1) );
+    ( "pktSentTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktSentTotal)),
+      Lang.int (-1) );
+    ( "pktRecvTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktRecvTotal)),
+      Lang.int (-1) );
+    ( "pktSndLossTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSndLossTotal),
+      Lang.int (-1) );
+    ( "pktRcvLossTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvLossTotal),
+      Lang.int (-1) );
+    ( "pktRetransTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRetransTotal),
+      Lang.int (-1) );
+    ( "pktSentACKTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSentACKTotal),
+      Lang.int (-1) );
+    ( "pktRecvACKTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRecvACKTotal),
+      Lang.int (-1) );
+    ( "pktSentNAKTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSentNAKTotal),
+      Lang.int (-1) );
+    ( "pktRecvNAKTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRecvNAKTotal),
+      Lang.int (-1) );
+    ( "usSndDurationTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.usSndDurationTotal)),
+      Lang.int (-1) );
+    ( "pktSndDropTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSndDropTotal),
+      Lang.int (-1) );
+    ( "pktRcvDropTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvDropTotal),
+      Lang.int (-1) );
+    ( "pktRcvUndecryptTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvUndecryptTotal),
+      Lang.int (-1) );
+    ( "byteSentTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSentTotal)),
+      Lang.int (-1) );
+    ( "byteRecvTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRecvTotal)),
+      Lang.int (-1) );
+    ( "byteRetransTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRetransTotal)),
+      Lang.int (-1) );
+    ( "byteSndDropTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSndDropTotal)),
+      Lang.int (-1) );
+    ( "byteRcvDropTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvDropTotal)),
+      Lang.int (-1) );
+    ( "byteRcvUndecryptTotal",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvUndecryptTotal)),
+      Lang.int (-1) );
+    ( "pktSent",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktSent)),
+      Lang.int (-1) );
+    ( "pktRecv",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktRecv)),
+      Lang.int (-1) );
+    ( "pktSndLoss",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSndLoss),
+      Lang.int (-1) );
+    ( "pktRcvLoss",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvLoss),
+      Lang.int (-1) );
+    ( "pktRetrans",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRetrans),
+      Lang.int (-1) );
+    ( "pktRcvRetrans",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvRetrans),
+      Lang.int (-1) );
+    ( "pktSentACK",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSentACK),
+      Lang.int (-1) );
+    ( "pktRecvACK",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRecvACK),
+      Lang.int (-1) );
+    ( "pktSentNAK",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSentNAK),
+      Lang.int (-1) );
+    ( "pktRecvNAK",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRecvNAK),
+      Lang.int (-1) );
+    ( "mbpsSendRate",
+      Lang.float_t,
+      (fun v -> Lang.float v.Srt.Stats.mbpsSendRate),
+      Lang.float (-1.) );
+    ( "mbpsRecvRate",
+      Lang.float_t,
+      (fun v -> Lang.float v.Srt.Stats.mbpsRecvRate),
+      Lang.float (-1.) );
+    ( "usSndDuration",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.usSndDuration)),
+      Lang.int (-1) );
+    ( "pktReorderDistance",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktReorderDistance),
+      Lang.int (-1) );
+    ( "pktRcvAvgBelatedTime",
+      Lang.float_t,
+      (fun v -> Lang.float v.Srt.Stats.pktRcvAvgBelatedTime),
+      Lang.float (-1.) );
+    ( "pktRcvBelated",
+      Lang.int_t,
+      (fun v -> Lang.int (Int64.to_int v.Srt.Stats.pktRcvBelated)),
+      Lang.int (-1) );
+    ( "pktSndDrop",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSndDrop),
+      Lang.int (-1) );
+    ( "pktRcvDrop",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvDrop),
+      Lang.int (-1) );
+    ( "pktRcvUndecrypt",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvUndecrypt),
+      Lang.int (-1) );
+    ( "byteSent",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSent)),
+      Lang.int (-1) );
+    ( "byteRecv",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRecv)),
+      Lang.int (-1) );
+    ( "byteRetrans",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRetrans)),
+      Lang.int (-1) );
+    ( "byteSndDrop",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteSndDrop)),
+      Lang.int (-1) );
+    ( "byteRcvDrop",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvDrop)),
+      Lang.int (-1) );
+    ( "byteRcvUndecrypt",
+      Lang.int_t,
+      (fun v -> Lang.int (UInt64.to_int v.Srt.Stats.byteRcvUndecrypt)),
+      Lang.int (-1) );
+    ( "usPktSndPeriod",
+      Lang.float_t,
+      (fun v -> Lang.float v.Srt.Stats.usPktSndPeriod),
+      Lang.float (-1.) );
+    ( "pktFlowWindow",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktFlowWindow),
+      Lang.int (-1) );
+    ( "pktCongestionWindow",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktCongestionWindow),
+      Lang.int (-1) );
+    ( "pktFlightSize",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktFlightSize),
+      Lang.int (-1) );
+    ( "msRTT",
+      Lang.float_t,
+      (fun v -> Lang.float v.Srt.Stats.msRTT),
+      Lang.float (-1.) );
+    ( "mbpsBandwidth",
+      Lang.float_t,
+      (fun v -> Lang.float v.Srt.Stats.mbpsBandwidth),
+      Lang.float (-1.) );
+    ( "byteAvailSndBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.byteAvailSndBuf),
+      Lang.int (-1) );
+    ( "byteAvailRcvBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.byteAvailRcvBuf),
+      Lang.int (-1) );
+    ( "mbpsMaxBW",
+      Lang.float_t,
+      (fun v -> Lang.float v.Srt.Stats.mbpsMaxBW),
+      Lang.float (-1.) );
+    ( "byteMSS",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.byteMSS),
+      Lang.int (-1) );
+    ( "pktSndBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSndBuf),
+      Lang.int (-1) );
+    ( "byteSndBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.byteSndBuf),
+      Lang.int (-1) );
+    ( "msSndBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.msSndBuf),
+      Lang.int (-1) );
+    ( "msSndTsbPdDelay",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.msSndTsbPdDelay),
+      Lang.int (-1) );
+    ( "pktRcvBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvBuf),
+      Lang.int (-1) );
+    ( "byteRcvBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.byteRcvBuf),
+      Lang.int (-1) );
+    ( "msRcvBuf",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.msRcvBuf),
+      Lang.int (-1) );
+    ( "msRcvTsbPdDelay",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.msRcvTsbPdDelay),
+      Lang.int (-1) );
+    ( "pktSndFilterExtraTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSndFilterExtraTotal),
+      Lang.int (-1) );
+    ( "pktRcvFilterExtraTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterExtraTotal),
+      Lang.int (-1) );
+    ( "pktRcvFilterSupplyTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterSupplyTotal),
+      Lang.int (-1) );
+    ( "pktRcvFilterLossTotal",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterLossTotal),
+      Lang.int (-1) );
+    ( "pktSndFilterExtra",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktSndFilterExtra),
+      Lang.int (-1) );
+    ( "pktRcvFilterExtra",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterExtra),
+      Lang.int (-1) );
+    ( "pktRcvFilterSupply",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterSupply),
+      Lang.int (-1) );
+    ( "pktRcvFilterLoss",
+      Lang.int_t,
+      (fun v -> Lang.int v.Srt.Stats.pktRcvFilterLoss),
+      Lang.int (-1) );
+  ]
+
+let meth :
+    < Source.source ; stats : Srt.Stats.t option > Lang.operator_method list =
+  [
+    ( "stats",
+      ( [],
+        Lang.fun_t []
+          (Lang.record_t
+             (List.map (fun (name, typ, _, _) -> (name, typ)) stats_specs)) ),
+      fun s ->
+        Lang.val_fun [] (fun _ ->
+            Lang.record
+              ( match s#stats with
+                | Some stats ->
+                    List.map
+                      (fun (name, _, fn, _) -> (name, fn stats))
+                      stats_specs
+                | None ->
+                    List.map
+                      (fun (name, _, _, none) -> (name, none))
+                      stats_specs )) );
   ]
 
 let parse_common_options p =
@@ -88,12 +404,16 @@ let parse_common_options p =
   let bind_address = Unix.ADDR_INET (bind_address, port) in
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
+  let stats_interval =
+    float (Lang.to_int (List.assoc "stats_interval" p)) /. 1000.
+  in
   ( mode_of_value (List.assoc "mode" p),
     Lang.to_string (List.assoc "host" p),
     Lang.to_int (List.assoc "port" p),
     bind_address,
     Lang.to_int (List.assoc "payload_size" p),
     Lang.to_bool (List.assoc "messageapi" p),
+    stats_interval,
     ref (fun () -> ignore (Lang.apply on_connect [])),
     ref (fun () -> ignore (Lang.apply on_disconnect [])) )
 
@@ -230,8 +550,8 @@ class virtual base =
     method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
   end
 
-class virtual networking_agent =
-  object
+class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
+  object (self)
     method virtual private connect : unit
 
     method virtual private disconnect : unit
@@ -239,13 +559,50 @@ class virtual networking_agent =
     method virtual private is_connected : bool
 
     method virtual private get_socket : Srt.socket
+
+    method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
+
+    method virtual private should_stop : bool
+
+    val mutable stats : Srt.Stats.t option = None
+
+    val mutable stats_task = None
+
+    method collect_stats () =
+      ( try
+          let s = self#get_socket in
+          self#mutexify
+            (fun () -> stats <- Some (Srt.Stats.bstats ~clear:true s))
+            ()
+        with _ -> () );
+      if self#should_stop then -1. else stats_interval
+
+    method stats = self#mutexify (fun () -> stats) ()
+
+    initializer
+    let current_on_connect = !on_connect in
+    (on_connect :=
+       fun () ->
+         if stats_interval > 0. then (
+           let t =
+             Duppy.Async.add ~priority:Tutils.Non_blocking Tutils.scheduler
+               self#collect_stats
+           in
+           stats_task <- Some t;
+           Duppy.Async.wake_up t );
+         current_on_connect ());
+
+    let current_on_disconnect = !on_disconnect in
+    on_disconnect :=
+      fun () ->
+        (try ignore (Option.map Duppy.Async.stop stats_task) with _ -> ());
+        stats <- None;
+        current_on_disconnect ()
   end
 
 class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
   ~on_disconnect =
   object (self)
-    inherit networking_agent
-
     method virtual should_stop : bool
 
     val mutable connect_task = None
@@ -320,8 +677,6 @@ class virtual caller ~payload_size ~messageapi ~hostname ~port ~on_connect
 class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
   ~on_disconnect =
   object (self)
-    inherit networking_agent
-
     val mutable client_data = None
 
     method virtual log : Log.t
@@ -387,7 +742,7 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
   end
 
 class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
-  ~on_disconnect ~payload_size ~dump format =
+  ~on_disconnect ~payload_size ~dump ~stats_interval format =
   let max_ticks = Frame.master_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -396,7 +751,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
       `Undefined
   in
   object (self)
-    inherit networking_agent
+    inherit networking_agent ~on_connect ~on_disconnect ~stats_interval
 
     inherit base
 
@@ -514,12 +869,13 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
   end
 
 class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~on_connect ~on_disconnect ~messageapi ~dump format =
+  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
+  format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump format
+          ~on_disconnect ~dump ~stats_interval format
 
     inherit
       listener
@@ -527,12 +883,13 @@ class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
   end
 
 class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
-  ~clock_safe ~on_connect ~on_disconnect ~messageapi ~dump format =
+  ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
+  format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump format
+          ~on_disconnect ~dump ~stats_interval format
 
     inherit
       caller
@@ -542,7 +899,7 @@ class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input
+  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input ~meth
     ~descr:"Receive a SRT stream from a distant agent."
     ( common_options ~mode:`Listener
     @ [
@@ -564,6 +921,10 @@ let () =
           Some
             "Dump received data to the given file for debugging. Unused is \
              empty." );
+        ( "stats_interval",
+          Lang.nullable_t Lang.int_t,
+          Some Lang.null,
+          Some "Interval used to collect internal stats in milliseconds" );
         ( "content_type",
           Lang.string_t,
           Some (Lang.string "application/ffmpeg"),
@@ -578,6 +939,7 @@ let () =
             bind_address,
             payload_size,
             messageapi,
+            stats_interval,
             on_connect,
             on_disconnect ) =
         parse_common_options p
@@ -595,20 +957,23 @@ let () =
         | `Listener ->
             ( new input_listener
                 ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
-                ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
-              :> Source.source )
+                ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
+                ~dump format
+              :> < Source.source ; stats : Srt.Stats.t option > )
         | `Caller ->
             ( new input_caller
                 ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
-                ~on_disconnect ~messageapi ~max ~log_overfull ~dump format
-              :> Source.source ))
+                ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
+                ~dump format
+              :> < Source.source ; stats : Srt.Stats.t option > ))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~autostart ~on_connect:_ ~on_disconnect ~encoder_factory source =
+  ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
+  ~encoder_factory source =
   let buffer = Strings.Mutable.empty () in
   let tmp = Bytes.create payload_size in
   object (self)
-    inherit networking_agent
+    inherit networking_agent ~on_connect ~on_disconnect ~stats_interval
 
     inherit base
 
@@ -695,13 +1060,14 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   end
 
 class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~autostart ~on_connect ~on_disconnect ~port ~hostname
-  ~encoder_factory source =
+  ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect ~port
+  ~hostname ~encoder_factory source =
   object
     inherit
       output_base
         ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~autostart ~on_connect ~on_disconnect ~encoder_factory source
+          ~autostart ~stats_interval ~on_connect ~on_disconnect ~encoder_factory
+          source
 
     inherit
       caller
@@ -709,13 +1075,14 @@ class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
   end
 
 class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address
-  ~encoder_factory source =
+  ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
+  ~bind_address ~encoder_factory source =
   object
     inherit
       output_base
         ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~autostart ~on_connect ~on_disconnect ~encoder_factory source
+          ~autostart ~stats_interval ~on_connect ~on_disconnect ~encoder_factory
+          source
 
     inherit
       listener
@@ -726,7 +1093,7 @@ let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
-    ~descr:"Send a SRT stream to a distant agent."
+    ~meth ~descr:"Send a SRT stream to a distant agent."
     ( Output.proto
     @ common_options ~mode:`Caller
     @ [
@@ -740,6 +1107,7 @@ let () =
             bind_address,
             payload_size,
             messageapi,
+            stats_interval,
             on_connect,
             on_disconnect ) =
         parse_common_options p
@@ -769,12 +1137,12 @@ let () =
         | `Caller ->
             ( new output_caller
                 ~kind ~hostname ~port ~payload_size ~autostart ~on_start
-                ~on_stop ~infallible ~messageapi ~encoder_factory ~on_connect
-                ~on_disconnect source
-              :> Source.source )
+                ~on_stop ~stats_interval ~infallible ~messageapi
+                ~encoder_factory ~on_connect ~on_disconnect source
+              :> < Source.source ; stats : Srt.Stats.t option > )
         | `Listener ->
             ( new output_listener
                 ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
-                ~infallible ~messageapi ~encoder_factory ~on_connect
-                ~on_disconnect source
-              :> Source.source ))
+                ~infallible ~stats_interval ~messageapi ~encoder_factory
+                ~on_connect ~on_disconnect source
+              :> < Source.source ; stats : Srt.Stats.t option > ))
