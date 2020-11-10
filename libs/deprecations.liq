@@ -319,30 +319,6 @@ def request.create.raw(~indicators=[], ~persistent=false, uri)
   request.create(indicators=indicators, persistent=persistent, uri)
 end
 
-# Deprecated: use `output` instead.
-# @flag hidden
-def output.prefered(~id="",~fallible=false,
-                    ~on_start={()},~on_stop={()},~start=true,s)
-  deprecated("output.prefered","output")
-  output(id=id,fallible=fallible,
-         start=start,on_start=on_start,on_stop=on_stop,
-         s)
-end
-
-# Deprecated: use `output` instead.
-# @flag hidden
-def out(s)
-  deprecated("out","output")
-  output.prefered(mksafe(s))
-end
-
-# Deprecated: use `input` instead.
-# @flag hidden
-def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
-  deprecated("in", "input")
-  input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
-end
-
 # Deprecated: use `file.remove` instead.
 # @flag hidden
 def file.unlink(filename)
@@ -654,5 +630,28 @@ end
 
 # @flag hidden
 def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+  input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
+end
+
+# @flag hidden
+def output.prefered(~id="",~fallible=false,
+                    ~on_start={()},~on_stop={()},~start=true,s)
+  deprecated("output.prefered","output")
+  output(id=id,fallible=fallible,
+         start=start,on_start=on_start,on_stop=on_stop,
+         s)
+end
+
+# Deprecated: use `output` instead.
+# @flag hidden
+def out(s)
+  deprecated("out","output")
+  output.prefered(mksafe(s))
+end
+
+# Deprecated: use `input` instead.
+# @flag hidden
+def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+  deprecated("in", "input")
   input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
