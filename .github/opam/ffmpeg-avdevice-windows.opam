@@ -1,0 +1,34 @@
+opam-version: "2.0"
+version: "0.5.0"
+synopsis: "Bindings for the ffmpeg avdevice library"
+maintainer: ["Romain Beauxis <toots@rastageeks.org>"]
+authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+license: "LGPL"
+homepage: "https://github.com/savonet/ocaml-ffmpeg"
+bug-reports: "https://github.com/savonet/ocaml-ffmpeg/issues"
+depends: [
+  "ocaml-windows" {>= "4.05.0"}
+  "dune" {>= "2.0"}
+  "dune-configurator"
+  "ffmpeg-av-windows" {= version}
+]
+build: [
+  [
+    "dune"
+    "build"
+    "-p"
+    "ffmpeg-avdevice"
+    "-j"
+    jobs
+    "-x"
+    "windows"
+    "@install"
+  ]
+]
+dev-repo: "git+https://github.com/savonet/ocaml-ffmpeg.git"
+depexts: [
+  ["ffmpeg"] {os-distribution = "mxe"}
+]
+url {
+  src: "https://github.com/savonet/ocaml-ffmpeg/archive/master.tar.gz"
+}

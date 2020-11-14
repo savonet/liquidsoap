@@ -271,7 +271,7 @@ DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 
 install-local: all-auto
 	$(INSTALL) -d $(bindir)
-	$(INSTALL_PROGRAM) liquidsoap $(bindir)
+	$(INSTALL_PROGRAM) liquidsoap$(EXEEXT) $(bindir)
 ifneq ($(BYTE),)
   ifneq ($(NO_CUSTOM),)
 	$(OCAMLFIND) install liquidsoap META dllliquidsoap.so $(wildcard plugins/dll*.so)

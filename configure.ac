@@ -24,10 +24,10 @@ fi
 
 AC_ARG_WITH([libs-dir],
             AS_HELP_STRING([--with-libs-dir],[sets path to install the internal libraries to. Default: <datadir>/liquidsoap/<version>]))
-if test -z "$with_liq_libs_dir" ; then
+if test -z "$with_libs_dir" ; then
   liq_libs_dir="${datadir}/liquidsoap/${liq_libs_dir_version}"
 else
-  liq_libs_dir="$with_liq_libs_dir"
+  liq_libs_dir="$with_libs_dir"
 fi
 
 AC_SUBST(version)
