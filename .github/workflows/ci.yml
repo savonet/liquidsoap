@@ -93,11 +93,10 @@ jobs:
   build_win32:
     runs-on: ubuntu-latest
     needs: get_branch_name
-    if: ${{ needs.get_branch_name.output.is_release }}
     strategy:
       fail-fast: false
       matrix:
-        system: [x86, x64]
+        system: [x64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

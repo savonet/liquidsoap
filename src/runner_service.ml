@@ -61,9 +61,9 @@ let () =
     let display = !display
     let text = !text
     let arguments = args
-    let stop = Tutils.shutdown
+    let stop () = Tutils.shutdown 0
   end in
-  let module Svc = Service.Make (S) in
+  let module Svc = Winsvc.Make (S) in
   match !action with
     | `Install ->
         Svc.install ();
@@ -81,4 +81,4 @@ let () =
         with e ->
           Main.log#severe "Error while running service: %s"
             (Printexc.to_string e) )
-    | `None -> main ()
+    | `None -> Main.start ()
