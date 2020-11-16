@@ -1,0 +1,144 @@
+opam-version: "2.0"
+name: "liquidsoap"
+version: "1.4.3"
+maintainer: "romain.beauxis@gmail.com"
+homepage: "https://github.com/savonet/liquidsoap"
+authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
+build: [
+  ["./bootstrap"]
+  ["./configure" "--enable-custom-path" "--host=%{conf-gcc-windows:host}%"
+                 "--prefix=%{prefix}%" "--with-libs-dir=%{prefix}%/lib/liquidsoap"
+                 "LDFLAGS=-lssp" "OCAMLFIND_TOOLCHAIN=windows"]
+  ["env" "OCAMLFIND_TOOLCHAIN=windows" make]
+]
+install: [
+  ["env" "OCAMLFIND_TOOLCHAIN=windows" make "install"]
+]
+post-messages: [
+"We're sorry that your liquidsoap install failed. Check out our installation
+instructions at: https://www.liquidsoap.info/doc-%{version}%/install.html#opam
+for more information." {failure}
+
+"✨ Congratulations on installing liquidsoap! ✨" {success}
+
+"We noticed that you did not install any mp3 decoder. This is a feature most
+users want. You might need to install the mad or ffmpeg package." {success & !mad-enabled & !ffmpeg-enabled}
+
+"We noticed that you did not install any mp3 encoder. This is a feature most
+users want. You might need to install the lame or shine package." {success & !lame-enabled & !shine-enabled}
+
+"We noticed that you did not install the taglib package that provides support
+for reading metatadata in audio files. This is a feature most users want." {success & !taglib-enabled}
+
+"We noticed that you did not install the samplerate package. We stronly
+recommend this package for audio samplerate conversion." {success & !samperate-enabled}
+
+"We noticed that you did not install the cry package that provides icecast
+output. This is a feature most users want." {success & !cry-enabled}
+
+"We noticed that you did not install any ssl support package. Liquidsoap won't
+be able to use any HTTPS feature. You might want to install one of ssl or
+osx-secure-transport package." {success & !ssl-enabled & !secure-transport-enabled}
+]
+depends: [
+  "ocaml-windows" {>= "4.08.0"}
+  "camomile-windows" {>= "1.0.0"}
+  "dtools-windows" {>= "0.4.1"}
+  "duppy-windows" {>= "0.8.0"}
+  "menhir-windows"
+  "mm-windows" {>= "0.5.0" & < "0.6.0"}
+  "ocamlfind" {build}
+  "pcre-windows"
+  "sedlex-windows" {>= "2.0"}
+]
+depopts: [
+  "ao-windows"
+  "bjack-windows"
+  "camlimages-windows"
+  "cry-windows"
+  "dssi-windows"
+  "faad-windows"
+  "fdkaac-windows"
+  "ffmpeg-windows"
+  "flac-windows"
+  "frei0r-windows"
+  "gavl-windows"
+  "gd-windows"
+  "graphics-windows"
+  "gstreamer-windows"
+  "inotify-windows"
+  "ladspa-windows"
+  "lame-windows"
+  "lastfm-windows"
+  "lo-windows"
+  "mad-windows"
+  "magic-windows"
+  "sdl-liquidsoap-windows"
+  "ogg-windows"
+  "opus-windows"
+  "portaudio-windows"
+  "pulseaudio-windows"
+  "samplerate-windows"
+  "shine-windows"
+  "soundtouch-windows"
+  "speex-windows"
+  "ssl-windows"
+  "taglib-windows"
+  "theora-windows"
+  "vorbis-windows"
+  "xmlplaylist-windows"
+  "yojson-windows"
+]
+conflicts: [
+  "ao-windows" {< "0.2.0"}
+  "bjack-windows" {< "0.1.3"}
+  "cry-windows" {< "0.6.0"}
+  "dssi-windows" {< "0.1.1"}
+  "faad-windows" {< "0.4.0"}
+  "faad-windows" {>= "0.5.0"}
+  "fdkaac-windows" {< "0.3.1"}
+  "ffmpeg-windows" {< "0.2.0"}
+  "ffmpeg-windows" {>= "0.5.0"}
+  "flac-windows" {< "0.1.5"}
+  "flac-windows" {>= "0.2.0"}
+  "frei0r-windows" {< "0.1.0"}
+  "gavl-windows" {< "0.1.4"}
+  "gstreamer-windows" {< "0.3.0"}
+  "inotify-windows" {< "1.0"}
+  "ladspa-windows" {< "0.1.4"}
+  "lame-windows" {< "0.3.2"}
+  "lastfm-windows" {< "0.3.0"}
+  "lo-windows" {< "0.1.2"}
+  "mad-windows" {< "0.1.4"}
+  "mad-windows" {>= "0.5.0"}
+  "magic-windows" {< "0.6"}
+  "ogg-windows" {< "0.5.0"}
+  "ogg-windows" {>= "0.6.0"}
+  "opus-windows" {< "0.1.3"}
+  "portaudio-windows" {< "0.2.0"}
+  "pulseaudio-windows" {< "0.1.2"}
+  "samplerate-windows" {< "0.1.1"}
+  "sdl-liquidsoap-windows" {>= "2"}
+  "shine-windows" {< "0.2.0"}
+  "soundtouch-windows" {< "0.1.7"}
+  "speex-windows" {< "0.2.1"}
+  "speex-windows" {>= "0.3.0"}
+  "ssl-windows" {< "0.5.2"}
+  "taglib-windows" {< "0.3.0"}
+  "theora-windows" {< "0.3.1"}
+  "vorbis-windows" {< "0.7.0"}
+  "xmlplaylist-windows" {< "0.1.3"}
+]
+bug-reports: "https://github.com/savonet/liquidsoap/issues"
+dev-repo: "git+https://github.com/savonet/liquidsoap.git"
+synopsis: "Swiss-army knife for multimedia streaming"
+description: """
+Liquidsoap is a powerful and flexible language for describing your
+streams. It offers a rich collection of operators that you can combine
+at will, giving you more power than you need for creating or
+transforming streams. But liquidsoap is still very light and easy to
+use, in the Unix tradition of simple strong components working
+together."""
+url {
+  src: "https://github.com/savonet/liquidsoap/archive/@COMMIT_SHORT@.tar.gz"
+}

@@ -65,7 +65,7 @@ let () =
     let arguments = args
     let stop = Tutils.shutdown
   end in
-  let module Svc = Service.Make (S) in
+  let module Svc = Winsvc.Make (S) in
   let main () =
     let module Main = Main.Make (Runner) in
     ()

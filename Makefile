@@ -28,8 +28,8 @@ finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
-	@echo let libs_dir = \"$(datadir)/liquidsoap/$(libs_dir_version)/libs\" >> src/configure.ml
-	@echo let bin_dir = \"$(datadir)/liquidsoap/$(libs_dir_version)/bin\" >> src/configure.ml
+	@echo let libs_dir = \"$(liq_libs_dir)/libs\" >> src/configure.ml
+	@echo let bin_dir = \"$(liq_libs_dir)/bin\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
@@ -73,11 +73,11 @@ ifeq ($(INSTALL_DAEMON),yes)
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/run/liquidsoap
 endif
 	$(INSTALL_DIRECTORY) $(bindir)
-	$(INSTALL_DIRECTORY) $(datadir)/liquidsoap/$(libs_dir_version)/bin
-	$(INSTALL_DIRECTORY) $(datadir)/liquidsoap/$(libs_dir_version)/libs
-	$(INSTALL_PROGRAM) scripts/extract-replaygain $(datadir)/liquidsoap/$(libs_dir_version)/bin
+	$(INSTALL_DIRECTORY) $(liq_libs_dir)/bin
+	$(INSTALL_DIRECTORY) $(liq_libs_dir)/libs
+	$(INSTALL_PROGRAM) scripts/extract-replaygain $(liq_libs_dir)/bin
 	find libs | grep '\.liq$$' | while read l; do \
-	  $(INSTALL_DATA) $$l $(datadir)/liquidsoap/$(libs_dir_version)/libs ; \
+	  $(INSTALL_DATA) $$l $(liq_libs_dir)/libs ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example

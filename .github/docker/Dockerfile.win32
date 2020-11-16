@@ -1,9 +1,9 @@
 ARG IMAGE
 FROM $IMAGE
 
-ARG RELEASE
 ARG BUILD
 ARG HOST
+ARG PKG_CONFIG_PATH
 
 WORKDIR /tmp
 
@@ -11,16 +11,19 @@ USER opam
 
 ENV CC ""
 
-RUN eval `opam config env` && opam update && opam reinstall -y `echo $OPAM_DEPS | sed -e 's#,# #g'`
+# This is until https://github.com/ocaml/dune/pull/3751 is merged:
+RUN eval `opam config env` && cd /tmp && git clone https://github.com/toots/dune.git && cd dune && git checkout host-ppx.exe-bis && opam install -y ./dune.opam
 
-RUN git clone --recursive https://github.com/savonet/liquidsoap.git && \
-    cd liquidsoap && git fetch origin $RELEASE && git checkout $RELEASE && ./bootstrap
+ENV OPAMSOLVERTIMEOUT=240
 
-RUN eval `opam config env` && cd /tmp/liquidsoap && \
-  ./configure --enable-custom-path --host=$HOST OCAMLFIND_TOOLCHAIN=windows && \
-  env OCAMLFIND_TOOLCHAIN=windows make
+RUN eval `opam config env` && opam update && opam reinstall -y --verbose `echo $OPAM_DEPS | sed -e 's#,# #g'` liquidsoap-windows
 
-RUN eval `opam config env` && mv /tmp/liquidsoap/.github/win32 /tmp/liquidsoap-$BUILD && \
-  cd /tmp/liquidsoap-$BUILD && cp /tmp/liquidsoap/src/liquidsoap.exe . && cp /tmp/liquidsoap/libs/*.liq libs && \
+ADD --chown=opam:root .github/win32 /tmp/liquidsoap-$BUILD
+
+RUN eval `opam config env` && \
+  OPAM_PREFIX=`opam var prefix` && \
+  cd /tmp/liquidsoap-$BUILD && \
+  cp ${OPAM_PREFIX}/bin/liquidsoap.exe . && \
+  cp ${OPAM_PREFIX}/lib/liquidsoap/libs/*.liq libs && \
   cp -rf `ocamlfind -toolchain windows ocamlc -where`/../../share/camomile . && \
   cd .. && zip -r liquidsoap-$BUILD.zip liquidsoap-$BUILD

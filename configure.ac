@@ -13,18 +13,26 @@ git_commit=`git rev-parse --short HEAD || true`
 if test $git_snapshot != "false"; then
   if test -n "$git_commit"; then
     version="$version+git@$git_commit"
-    libs_dir_version="git/$git_commit"
+    liq_libs_dir_version="git/$git_commit"
   else
     version="$version+dev"
-    libs_dir_version="dev"
+    liq_libs_dir_version="dev"
   fi
 else
-  libs_dir_version="$version"
+  liq_libs_dir_version="$version"
+fi
+
+AC_ARG_WITH([libs-dir],
+            AS_HELP_STRING([--with-libs-dir],[sets path to install the internal libraries to. Default: <datadir>/liquidsoap/<version>]))
+if test -z "$with_libs_dir" ; then
+  liq_libs_dir="${datadir}/liquidsoap/${liq_libs_dir_version}"
+else
+  liq_libs_dir="$with_libs_dir"
 fi
 
 AC_SUBST(version)
 AC_SUBST(min_ocaml_version)
-AC_SUBST(libs_dir_version)
+AC_SUBST(liq_libs_dir)
 
 AC_PREREQ(2.61)
 AC_CONFIG_SRCDIR([src/main.ml])
