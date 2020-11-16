@@ -139,6 +139,12 @@ let mk_audio ~ffmpeg ~options output =
       ~opts ~codec output
   in
 
+  let codec_attr () = Av.codec_attr stream in
+
+  let bitrate () = Av.bitrate stream in
+
+  let video_size () = None in
+
   let audio_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.audio_opts in
 
   Hashtbl.filter_map_inplace
@@ -200,11 +206,20 @@ let mk_audio ~ffmpeg ~options output =
         flush () )
   in
 
+  let was_keyframe () = false in
+
   let encode frame start len =
     List.iter write_frame (converter frame start len)
   in
 
-  { Ffmpeg_encoder_common.mk_stream; encode }
+  {
+    Ffmpeg_encoder_common.mk_stream;
+    was_keyframe;
+    encode;
+    codec_attr;
+    bitrate;
+    video_size;
+  }
 
 let mk_video ~ffmpeg ~options output =
   let codec =
@@ -238,6 +253,15 @@ let mk_video ~ffmpeg ~options output =
         (Avutil.Pixel_format.of_string ffmpeg.Ffmpeg_format.pixel_format)
       ~frame_rate:{ Avutil.num = target_fps; den = 1 }
       ~width:target_width ~height:target_height ~opts ~codec output
+  in
+
+  let codec_attr () = Av.codec_attr stream in
+
+  let bitrate () = Av.bitrate stream in
+
+  let video_size () =
+    let p = Av.get_codec_params stream in
+    Some (Avcodec.Video.get_width p, Avcodec.Video.get_height p)
   in
 
   let video_opts = Hashtbl.copy ffmpeg.Ffmpeg_format.video_opts in
@@ -276,6 +300,8 @@ let mk_video ~ffmpeg ~options output =
 
   let stream_time_base = Av.get_time_base stream in
 
+  let was_keyframe = ref false in
+
   let fps_converter ~time_base frame =
     let converter =
       get_converter ~time_base
@@ -291,7 +317,8 @@ let mk_video ~ffmpeg ~options output =
             (Avutil.frame_pts frame)
         in
         Avutil.frame_set_pts frame frame_pts;
-        Av.write_frame stream frame)
+        Av.write_frame stream frame;
+        if Av.was_keyframe stream then was_keyframe := true)
   in
 
   let internal_converter cb =
@@ -369,6 +396,18 @@ let mk_video ~ffmpeg ~options output =
       | _ -> assert false
   in
 
-  let encode = converter fps_converter in
+  let encode =
+    was_keyframe := false;
+    converter fps_converter
+  in
 
-  { Ffmpeg_encoder_common.mk_stream; encode }
+  let was_keyframe () = !was_keyframe in
+
+  {
+    Ffmpeg_encoder_common.mk_stream;
+    was_keyframe;
+    encode;
+    codec_attr;
+    bitrate;
+    video_size;
+  }

@@ -9,6 +9,8 @@ New:
 - Added support for list spread and deconstruction syntax (#1269).
 - Added support for video encoding and decoding using `ffmpeg` (#1038).
 - Added support for ffmpeg filters (#1038).
+- Added video support to `output.hls` (#1391).
+- Added mp4 support to `output.hls` (#1391).
 - Added `output.url` for encoders that support handling data output (currently only `%ffmpeg`) (#1038).
 - Added `output.file.dash.ffmpeg`.
 - Added LV2 support (#906).

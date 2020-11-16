@@ -24,14 +24,27 @@
 
 open Avcodec
 
-let mk_stream_copy ~get_data output =
+let mk_stream_copy ~video_size ~get_data output =
   let stream = ref None in
+  let video_size_ref = ref None in
+  let codec_attr = ref None in
+  let bitrate = ref None in
   let master_time_base = Ffmpeg_utils.liq_master_ticks_time_base () in
 
   let mk_stream frame =
     let { Ffmpeg_content_base.params } = get_data frame in
-    stream := Some (Av.new_stream_copy ~params:(Option.get params) output)
+    video_size_ref := video_size frame;
+    let s = Av.new_stream_copy ~params:(Option.get params) output in
+    codec_attr := Av.codec_attr s;
+    bitrate := Av.bitrate s;
+    stream := Some s
   in
+
+  let codec_attr () = !codec_attr in
+
+  let bitrate () = !bitrate in
+
+  let video_size () = !video_size_ref in
 
   (* Keep track of latest DTS/PTS in master time_base
      since time_base can change between streams. *)
@@ -55,14 +68,20 @@ let mk_stream_copy ~get_data output =
       | _ -> failwith "Packet missing duration!"
   in
 
+  let was_keyframe = ref false in
+
   let encode frame start len =
     let stop = start + len in
     let data = (get_data frame).Ffmpeg_content_base.data in
+
+    was_keyframe := false;
 
     List.iter
       (fun (pos, { Ffmpeg_copy_content.packet; time_base }) ->
         let stream = Option.get !stream in
         if start <= pos && pos < stop then (
+          let packet = Avcodec.Packet.dup packet in
+
           init ~ts:(Packet.get_dts packet) ~time_base next_dts;
           init ~ts:(Packet.get_pts packet) ~time_base next_pts;
 
@@ -76,7 +95,20 @@ let mk_stream_copy ~get_data output =
           add ~duration ~time_base next_dts;
           add ~duration ~time_base next_pts;
 
+          if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
+            was_keyframe := true;
+
           Av.write_packet stream master_time_base packet ))
       data
   in
-  { Ffmpeg_encoder_common.mk_stream; encode }
+
+  let was_keyframe () = !was_keyframe in
+
+  {
+    Ffmpeg_encoder_common.mk_stream;
+    was_keyframe;
+    encode;
+    codec_attr;
+    bitrate;
+    video_size;
+  }

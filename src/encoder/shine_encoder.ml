@@ -65,9 +65,19 @@ let encoder shine =
     Strings.Mutable.flush encoded
   in
   let stop () = Strings.of_string (Shine.flush enc) in
+  let hls =
+    {
+      Encoder.init_encode = (fun f o l -> (None, encode f o l));
+      split_encode = (fun f o l -> `Ok (Strings.empty, encode f o l));
+      codec_attrs = (fun () -> None);
+      bitrate = (fun () -> None);
+      video_size = (fun () -> None);
+    }
+  in
   {
     Encoder.insert_metadata = (fun _ -> ());
     header = Strings.empty;
+    hls;
     encode;
     stop;
   }

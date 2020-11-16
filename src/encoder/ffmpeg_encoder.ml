@@ -33,7 +33,9 @@ let () =
               match m.Ffmpeg_format.audio_codec with
                 | Some `Copy ->
                     fun ~ffmpeg:_ ~options:_ ->
-                      Ffmpeg_copy_encoder.mk_stream_copy ~get_data:(fun frame ->
+                      Ffmpeg_copy_encoder.mk_stream_copy
+                        ~video_size:(fun _ -> None)
+                        ~get_data:(fun frame ->
                           Ffmpeg_copy_content.Audio.get_data
                             Frame.(frame.content.audio))
                 | _ -> Ffmpeg_internal_encoder.mk_audio
@@ -42,9 +44,19 @@ let () =
               match m.Ffmpeg_format.video_codec with
                 | Some `Copy ->
                     fun ~ffmpeg:_ ~options:_ ->
-                      Ffmpeg_copy_encoder.mk_stream_copy ~get_data:(fun frame ->
-                          Ffmpeg_copy_content.Video.get_data
-                            Frame.(frame.content.video))
+                      let get_data frame =
+                        Ffmpeg_copy_content.Video.get_data
+                          Frame.(frame.content.video)
+                      in
+                      let video_size frame =
+                        let { Ffmpeg_content_base.params } = get_data frame in
+                        Option.map
+                          (fun params ->
+                            ( Avcodec.Video.get_width params,
+                              Avcodec.Video.get_height params ))
+                          params
+                      in
+                      Ffmpeg_copy_encoder.mk_stream_copy ~video_size ~get_data
                 | _ -> Ffmpeg_internal_encoder.mk_video
             in
             encoder ~mk_audio ~mk_video m)
