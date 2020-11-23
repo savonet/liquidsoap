@@ -1,3 +1,12 @@
+1.4.4 (unrelease)
+=====
+
+Changed:
+- Fetch mime type using curl first when available.
+
+Fixed:
+- Remote file resolution when passing URLs with spaces (#1410)
+
 1.4.3 (14-09-2020)
 =====
 
