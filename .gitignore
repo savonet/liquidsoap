@@ -46,3 +46,4 @@ src/test/types
 *.conflicts
 liquidsoap.config
 doc/liquidsoap.1.md
+_opam/
