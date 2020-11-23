@@ -453,6 +453,7 @@ def gettimeofday()
   time()
 end
 
+%ifdef input.gstreamer.audio_video
 # @docof input.gstreamer.audio_video
 def input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
   s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
@@ -483,6 +484,7 @@ def input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
 
   s
 end
+%endif
 
 # @docof blank.strip
 def blank.strip(%argsof(blank.strip), s) =
