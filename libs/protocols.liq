@@ -140,54 +140,64 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
   timeout = maxtime - time()
 
   # First define using curl.
-  def get_mime() =
+  def get_mime(uri) =
+    uri = string.replace(pattern=" ", (fun (_) -> "%20"), uri)
     cmd = "#{curl} -sLI -X HEAD #{string.quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
     log(level=4,"Running #{cmd}")
-    p = process.run(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
-    if "exit" != p.status or p.status.code != 0 then
+    let p = process.run(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
+    if "#{p.status}" != "exit" or p.status.code != 0 then
       log(level=3,"Failed to fetch mime-type for #{uri} via curl.")
-      log(level=4,"Process return status: #{p.status.code}")
+      log(level=4,"Process return status: #{p.status}")
       ""
     else
-      lines = string.split(separator="\\n", p.stdout)
+      lines = string.split(separator="\\n",p.stdout)
       string.case(lower=true,string.trim(list.hd(default="",lines)))
     end
   end
 
-  def head_mime(~name, ret) =
-    def get_mime() =
-      if 200 <= ret.status_code and ret.status_code < 300 then
-        ret.headers["content-type"]
-      else
-        log(level=3,"Failed to fetch mime-type for #{uri}.")
-        log(level=4,"Request response: #{ret}")
-        ""
+  # Use internal functions if on windows or curl is not present.
+  get_mime =
+    if os.type == "Win32" or file.which("curl") == null() then
+      def rec get_mime(uri) =
+        uri = string.replace(pattern=" ", (fun (_) -> "%20"), uri)
+
+        def process(fn) =
+          ret = fn(uri)
+          code = ret.status_code
+          headers = ret.headers
+
+          if 200 <= code and code < 300 then
+            headers["content-type"]
+          elsif code == 302 and headers["location"] != "" then
+            uri = headers["location"]
+            log(level=3,"Following redirect to #{uri}")
+            get_mime(uri)
+          else
+            log(level=3,"Failed to fetch mime-type for #{uri}.")
+            log(level=4,"Request response: #{ret}")
+            ""
+          end
+        end
+
+        sub = string.sub(uri,start=0,length=5)
+
+        if sub == "http:" then
+          process(http.head)
+        %ifdef https.head
+          elsif sub == "https" then
+            process(https.head)
+        %endif
+          else
+            log(level=3,"Failed to fetch mime-type for #{uri}.")
+            ""
+         end
       end
-    end
-    get_mime
-  end
-
-  sub = string.sub(uri,start=0,length=5)
-
-%ifdef https.head
-  get_mime =
-    if sub == "https" then
-      log(level=4,"Fetching https head for #{uri}")
-      head_mime(name="https",https.head(timeout=timeout,uri))
-    else
       get_mime
-    end
-%endif
-
-  get_mime =
-    if sub != "https" then
-      log(level=4,"Fetching http head for #{uri}")
-      head_mime(name="http",http.head(timeout=timeout,uri))
     else
       get_mime
     end
 
-  mime = get_mime()
+  mime = get_mime(uri)
 
   extname =
     if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
@@ -206,6 +216,9 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
       log(level=3,"No known file extension for mime: #{mime}")
       "osb"
     end
+
+  uri = string.replace(pattern=" ", (fun (_) -> "%20"), uri)
+
   [process_uri(extname=extname,"#{curl} -sL #{string.quote(uri)} -o $(output)")]
 end
 
