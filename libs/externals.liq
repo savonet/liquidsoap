@@ -38,7 +38,7 @@ def enable_external_ffmpeg_decoder() =
     list.assoc(default=0,"channels",stream)
   end
 
-  if file.which(ffmpeg) != "" and file.which (ffprobe) != "" then
+  if file.which(ffmpeg) != null() and file.which (ffprobe) != null() then
    log(label="external.decoder","Enabling FFMPEG decoder")
     add_decoder(
       name="FFMPEG",
@@ -95,7 +95,7 @@ def enable_external_mpc_decoder() =
     end
   end
 
-  if file.which(mpcdec) != "" then
+  if file.which(mpcdec) != null() then
     log(label="external.decoder","Enabling MPCDEC external decoder.")
     mpcdec_p = fun(f) -> "#{mpcdec} #{string.quote(f)} -"
     add_oblivious_decoder(name="MPCDEC",description="Decode files using the mpcdec \
@@ -124,11 +124,11 @@ def enable_external_flac_decoder() =
   flac = get(default="flac#{exe_ext}","decoder.external.flac.path")
   metaflac = get(default="metaflac#{exe_ext}","decoder.external.metaflac.path")
 
-  if file.which(flac) != "" then
+  if file.which(flac) != null() then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
     flac_p = "#{flac} -d -c -"
     def test_flac(fname) =
-      if file.which(metaflac) != "" then
+      if file.which(metaflac) != null() then
         channels = list.hd(default="",
                            process.read.lines("#{metaflac} \
                                               --show-channels #{string.quote(fname)}"))
@@ -151,7 +151,7 @@ def enable_external_flac_decoder() =
     log(label="decoder.external","Did not find flac binary, please adjust using the \"decoder.external.flac.path\" setting.")
   end
 
-  if file.which(metaflac) != "" then
+  if file.which(metaflac) != null() then
     log(label="decoder.external","Enabling EXTERNAL_FLAC metadata \
                 resolver.")
     def flac_meta(fname)
@@ -221,7 +221,7 @@ def enable_external_faad_decoder() =
     end
   end
 
-  if file.which(faad) != "" then
+  if file.which(faad) != null() then
     log(label="decoder.external","Enabling EXTERNAL_FAAD decoder and \
                  metadata resolver.")
     faad_p = (fun (f) -> "#{faad} -w #{string.quote(f)}")

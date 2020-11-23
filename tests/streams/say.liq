@@ -3,7 +3,7 @@
 %include "test.liq"
 
 s =
-if file.which(get(default="???","protocol.gtts.path")) == "" and file.which(get(default="???","protocol.text2wave.path")) == "" then
+if file.which(get(default="???","protocol.gtts.path")) == null() and file.which(get(default="???","protocol.text2wave.path")) == null() then
   print("Could not test gtts")
   sine(duration=1.)
 else

@@ -153,7 +153,7 @@ end
 # @flag hidden
 def which(f)
   deprecated("which", "file.which")
-  file.which(f)
+  file.which(f) ?? ""
 end
 
 base64 = ()
