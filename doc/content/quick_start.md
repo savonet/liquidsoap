@@ -6,7 +6,7 @@ The Internet radio toolchain
 
 The chain is made of:
 
-* the stream generator (Liquidsoap, [ices](http://www.icecast.org/ices.php), or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
+* the stream generator (Liquidsoap, [ices](https://www.icecast.org/ices/), or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
 * the streaming media server ([Icecast](http://www.icecast.org), [Shoutcast](http://www.shoutcast.com), ...) which relays several streams from their sources to their listeners;
 * the media player (iTunes, Winamp, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
 
