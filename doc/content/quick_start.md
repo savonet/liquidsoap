@@ -38,7 +38,7 @@ Firstly, because it could contain only invalid files, or at least spend too
 much time on invalid files for preparing a valid one on time.
 Moreover, a playlist could contain remote files, which may not
 be accessible quickly at all times.
-A queue of user requests is an other example of fallible source. 
+A queue of user requests is another example of fallible source. 
 Also, if `file.ogg` is a valid local file,
 then `single("file.ogg")` is an infallible source.
 
