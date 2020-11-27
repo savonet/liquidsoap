@@ -31,7 +31,7 @@ In Liquidsoap,
 we say that a source is *infallible* if it is always available.
 Otherwise, it is *fallible*, something can go wrong.
 By default, an output requires that its input source is infallible,
-otherwise it complains that ``That source is fallible!''
+otherwise it complains that "That source is fallible!"
 
 For example, a normal `playlist` is fallible.
 Firstly, because it could contain only invalid files, or at least spend too
@@ -48,7 +48,7 @@ The function `mksafe` takes a source and returns an infallible
 source, streaming silence when the input stream becomes unavailable.
 In a radio-like stream, silence is not the prefered solution, and you
 will probably prefer to `fallback` on an infallible
-``security'' source:
+"security" source:
 
 ```liquidsoap
 fallback([your_fallible_source_here, single("failure.ogg")])
