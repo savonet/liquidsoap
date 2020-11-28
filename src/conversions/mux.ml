@@ -24,152 +24,71 @@
   * The auxiliary source streams only one kind of content,
   * the main has no channel of that kind, anything for the others. *)
 
-module Muxer = struct
-  module Generator = Generator.From_audio_video
+open Producer_consumer
 
-  (* The kind of value shared by a producer and a consumer. *)
-  type control = {
-    lock : Mutex.t;
-    generator : Generator.t;
-    mutable buffering : bool;
-    mutable main_abort : bool;
-    mutable aux_abort : bool;
-  }
-
-  let proceed control f = Tutils.mutexify control.lock f ()
-
-  (** The source which produces data by reading the buffer. *)
-  class producer ~name ~kind c =
-    object (self)
-      inherit Source.source kind ~name
-
-      method self_sync = false
-
-      method stype = Source.Fallible
-
-      method remaining = proceed c (fun () -> Generator.remaining c.generator)
-
-      method is_ready = proceed c (fun () -> not c.buffering)
-
-      method private get_frame frame =
-        proceed c (fun () ->
-            Generator.fill c.generator frame;
-            if Frame.is_partial frame && Generator.length c.generator = 0 then (
-              self#log#important "Buffer emptied, start buffering...";
-              c.buffering <- true ))
-
-      method abort_track =
-        proceed c (fun () ->
-            c.main_abort <- true;
-            c.aux_abort <- true)
-    end
-
-  class consumer ~producer ~kind ~mode ~content ~max_buffer ~pre_buffer
-    source_val c =
-    let prebuf = Frame.master_of_seconds pre_buffer in
-    let max_buffer = Frame.master_of_seconds max_buffer in
-    let autostart = true in
-    let output_kind =
-      match (mode, content) with
-        | `Main, `Audio -> "audio_main"
-        | `Main, `Video -> "video_main"
-        | `Aux, `Audio -> "audio_aux"
-        | `Aux, `Video -> "video_aux"
-        | _ -> assert false
-    in
-    object (self)
-      inherit
-        Output.output
-          ~output_kind ~content_kind:kind ~infallible:false
-          ~on_start:(fun () -> ())
-          ~on_stop:(fun () -> ())
-          source_val autostart
-
-      val source = Lang.to_source source_val
-
-      method output_reset = ()
-
-      method output_start = ()
-
-      method output_stop = ()
-
-      method private set_clock =
-        Clock.unify self#clock producer#clock;
-        Clock.unify self#clock source#clock
-
-      method output_send frame =
-        proceed c (fun () ->
-            ( match mode with
-              | `Main ->
-                  if c.main_abort then (
-                    c.main_abort <- false;
-                    source#abort_track )
-              | `Aux ->
-                  if c.aux_abort then (
-                    c.aux_abort <- false;
-                    source#abort_track ) );
-
-            Generator.feed_from_frame ~mode:content c.generator frame;
-            if Generator.length c.generator > prebuf then (
-              c.buffering <- false;
-              if Generator.buffered_length c.generator > max_buffer then
-                Generator.remove c.generator
-                  (Generator.length c.generator - max_buffer) ))
-    end
-
-  let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content
-      ~aux_source ~aux_content () =
-    let lock = Mutex.create () in
-    let control =
+let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
+    ~aux_content () =
+  let lock = Mutex.create () in
+  let control =
+    {
+      Producer_consumer.generator = Generator.create `Both;
+      lock;
+      buffering = true;
+      abort = false;
+    }
+  in
+  let producer = new producer ~kind:Lang.any ~name control in
+  let main_kind =
+    Frame.
       {
-        generator = Generator.create `Both;
-        lock;
-        buffering = true;
-        main_abort = false;
-        aux_abort = false;
+        audio = (if main_content = `Audio then `Any else none);
+        video = (if main_content = `Video then `Any else none);
+        midi = `Any;
       }
-    in
-    let producer = new producer ~kind:Lang.any ~name control in
-    let main_kind =
-      Frame.
-        {
-          audio = (if main_content = `Audio then `Any else none);
-          video = (if main_content = `Video then `Any else none);
-          midi = `Any;
-        }
-    in
-    let main =
-      new consumer
-        ~producer ~mode:`Main ~kind:main_kind ~content:main_content main_source
-        ~max_buffer ~pre_buffer control
-    in
-    let aux_kind =
-      Frame.
-        {
-          audio = (if aux_content = `Audio then `Any else none);
-          video = (if aux_content = `Video then `Any else none);
-          midi = none;
-        }
-    in
-    let aux =
-      new consumer
-        ~producer ~mode:`Aux ~kind:aux_kind ~content:aux_content aux_source
-        ~max_buffer ~pre_buffer control
-    in
-    let muxed_kind =
+  in
+  let main_output_kind =
+    match main_content with
+      | `Audio -> "audio_main"
+      | `Video -> "video_main"
+      | _ -> assert false
+  in
+  let main =
+    new consumer
+      ~producer ~output_kind:main_output_kind ~kind:main_kind
+      ~content:main_content ~max_buffer ~pre_buffer ~source:main_source control
+  in
+  let aux_kind =
+    Frame.
       {
-        Frame.audio =
-          ( if aux_content = `Audio then aux#kind.Frame.audio
-          else main#kind.Frame.audio );
-        video =
-          ( if aux_content = `Video then aux#kind.Frame.video
-          else main#kind.Frame.video );
-        midi = main#kind.Frame.midi;
+        audio = (if aux_content = `Audio then `Any else none);
+        video = (if aux_content = `Video then `Any else none);
+        midi = none;
       }
-    in
-    Source.Kind.unify muxed_kind producer#kind;
-    producer
-end
+  in
+  let aux_output_kind =
+    match aux_content with
+      | `Audio -> "audio_aux"
+      | `Video -> "video_aux"
+      | _ -> assert false
+  in
+  let aux =
+    new consumer
+      ~producer ~output_kind:aux_output_kind ~kind:aux_kind ~content:aux_content
+      ~max_buffer ~pre_buffer ~source:aux_source control
+  in
+  let muxed_kind =
+    {
+      Frame.audio =
+        ( if aux_content = `Audio then aux#kind.Frame.audio
+        else main#kind.Frame.audio );
+      video =
+        ( if aux_content = `Video then aux#kind.Frame.video
+        else main#kind.Frame.video );
+      midi = main#kind.Frame.midi;
+    }
+  in
+  Source.Kind.unify muxed_kind producer#kind;
+  producer
 
 let base_proto =
   [
@@ -209,7 +128,7 @@ let () =
       let main_content = `Audio in
       let aux_source = List.assoc "video" p in
       let aux_content = `Video in
-      Muxer.create ~name:"mux_video" ~pre_buffer ~max_buffer ~main_source
+      create ~name:"mux_video" ~pre_buffer ~max_buffer ~main_source
         ~main_content ~aux_source ~aux_content ())
 
 let () =
@@ -238,5 +157,5 @@ let () =
       let main_content = `Video in
       let aux_source = List.assoc "audio" p in
       let aux_content = `Audio in
-      Muxer.create ~name:"mux_audio" ~pre_buffer ~max_buffer ~main_source
+      create ~name:"mux_audio" ~pre_buffer ~max_buffer ~main_source
         ~main_content ~aux_source ~aux_content ())

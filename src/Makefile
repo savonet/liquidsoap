@@ -248,7 +248,8 @@ liquidsoap_sources += \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \
-	$(sources) $(outputs) $(conversions) $(operators) \
+	$(sources) $(outputs) tools/producer_consumer.ml \
+	$(conversions) $(operators) \
 	$(encoders) $(decoders) $(ogg_demuxer) $(ogg_muxer) \
 	$(analyze) $(playlists) \
 	$(visualization) $(synth) $(io) \

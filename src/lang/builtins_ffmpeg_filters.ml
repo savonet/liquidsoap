@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Lang_builtins
-open Builtins_ffmpeg
 
 let () =
   Lang.add_module "ffmpeg.filter";
