@@ -6,7 +6,7 @@ The Internet radio toolchain
 
 The chain is made of:
 
-* the stream generator (Liquidsoap, [ices](http://www.icecast.org/ices.php), or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
+* the stream generator (Liquidsoap, [ices](https://www.icecast.org/ices/), or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
 * the streaming media server ([Icecast](http://www.icecast.org), [Shoutcast](http://www.shoutcast.com), ...) which relays several streams from their sources to their listeners;
 * the media player (iTunes, Winamp, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
 
@@ -31,14 +31,14 @@ In Liquidsoap,
 we say that a source is *infallible* if it is always available.
 Otherwise, it is *fallible*, something can go wrong.
 By default, an output requires that its input source is infallible,
-otherwise it complains that ``That source is fallible!''
+otherwise it complains that "That source is fallible!"
 
 For example, a normal `playlist` is fallible.
 Firstly, because it could contain only invalid files, or at least spend too
 much time on invalid files for preparing a valid one on time.
 Moreover, a playlist could contain remote files, which may not
 be accessible quickly at all times.
-A queue of user requests is an other example of fallible source. 
+A queue of user requests is another example of fallible source. 
 Also, if `file.ogg` is a valid local file,
 then `single("file.ogg")` is an infallible source.
 
@@ -48,7 +48,7 @@ The function `mksafe` takes a source and returns an infallible
 source, streaming silence when the input stream becomes unavailable.
 In a radio-like stream, silence is not the prefered solution, and you
 will probably prefer to `fallback` on an infallible
-``security'' source:
+"security" source:
 
 ```liquidsoap
 fallback([your_fallible_source_here, single("failure.ogg")])
