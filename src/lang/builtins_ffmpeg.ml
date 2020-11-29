@@ -41,40 +41,66 @@ class consumer ~output_kind ~producer ~kind ~content ~max_buffer ~pre_buffer
   let time_base = { Avutil.num = 1; den = sample_rate } in
   let get_duration = Ffmpeg_decoder_common.convert_duration ~src:time_base in
   let sample_format = Avcodec.Audio.find_best_sample_format codec `Dbl in
-  let encoder =
-    Avcodec.Audio.create_encoder ~channel_layout ~channels ~sample_format
-      ~sample_rate codec
+
+  let opts = Hashtbl.create 10 in
+  let () =
+    Hashtbl.iter (Hashtbl.add opts) format.Ffmpeg_format.audio_opts;
+    let options = Hashtbl.copy format.Ffmpeg_format.other_opts in
+    Ffmpeg_encoder_common.convert_options options;
+    Hashtbl.iter (Hashtbl.add opts) options
   in
+
+  let original_opts = Hashtbl.copy opts in
+
+  let encoder =
+    Avcodec.Audio.create_encoder ~opts ~channel_layout ~channels ~sample_format
+      ~sample_rate ~time_base codec
+  in
+
+  let () =
+    Hashtbl.filter_map_inplace
+      (fun l v -> if Hashtbl.mem opts l then Some v else None)
+      original_opts;
+
+    if Hashtbl.length original_opts > 0 then
+      failwith
+        (Printf.sprintf "Unrecognized options: %s"
+           (Ffmpeg_format.string_of_options original_opts))
+  in
+
   let resampler =
     InternalResampler.create ~out_sample_format:sample_format src_channel_layout
       src_sample_rate channel_layout sample_rate
   in
-  let s = Lang.to_source source in
+
+  let write_ffmpeg_frame =
+    Ffmpeg_internal_encoder.write_audio_frame ~codec ~src_time_base:time_base
+      ~dst_time_base:time_base ~target_samplerate:sample_rate
+      ~target_channel_layout:channel_layout ~target_sample_format:sample_format
+      ~get_frame_size:(fun () -> Avcodec.Audio.frame_size encoder)
+      (Avcodec.encode encoder (fun packet ->
+           let duration = get_duration (Avcodec.Packet.get_duration packet) in
+           let packet = { Ffmpeg_copy_content.packet; time_base } in
+           let data =
+             {
+               Ffmpeg_content_base.params = Some (Avcodec.params encoder);
+               data = [(0, packet)];
+             }
+           in
+           let data = Ffmpeg_copy_content.Audio.lift_data data in
+           Producer_consumer.(Generator.put_audio c.generator data 0 duration)))
+  in
+
+  let write_frame frame =
+    let frame = InternalResampler.convert resampler (AFrame.pcm frame) in
+    write_ffmpeg_frame frame
+  in
+
   object
     inherit
       Producer_consumer.consumer
-        ~output_kind ~producer ~kind ~content ~max_buffer ~pre_buffer ~source c
-
-    method output_send frame =
-      let frame = InternalResampler.convert resampler (AFrame.pcm frame) in
-
-      Producer_consumer.(
-        proceed c (fun () ->
-            if c.abort then (
-              c.abort <- false;
-              s#abort_track );
-            Avcodec.encode encoder
-              (fun packet ->
-                let duration =
-                  get_duration (Avcodec.Packet.get_duration packet)
-                in
-                let packet = { Ffmpeg_copy_content.packet; time_base } in
-                let data =
-                  { Ffmpeg_content_base.params = None; data = [(0, packet)] }
-                in
-                let data = Ffmpeg_copy_content.Audio.lift_data data in
-                Generator.put_audio c.generator data 0 duration)
-              frame))
+        ~write_frame ~output_kind ~producer ~kind ~content ~max_buffer
+          ~pre_buffer ~source c
   end
 
 let () =
@@ -125,7 +151,7 @@ let () =
       let control =
         Producer_consumer.
           {
-            generator = Generator.create `Both;
+            generator = Generator.create `Audio;
             lock = Mutex.create ();
             buffering = true;
             abort = false;
@@ -133,11 +159,11 @@ let () =
       in
       let producer =
         new Producer_consumer.producer
-          ~kind:return_kind ~name:"ffmpeg.encode" control
+          ~kind:return_kind ~name:"ffmpeg.encode.producer" control
       in
       let _ =
         new consumer
-          ~producer ~output_kind:"ffmpeg.encode" ~kind:source_kind
+          ~producer ~output_kind:"ffmpeg.encode.consumer" ~kind:source_kind
           ~content:`Audio ~max_buffer ~pre_buffer ~source ~format control
       in
       producer)

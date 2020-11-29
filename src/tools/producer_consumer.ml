@@ -55,12 +55,17 @@ class producer ~name ~kind c =
     method abort_track = proceed c (fun () -> c.abort <- true)
   end
 
-class consumer ~output_kind ~producer ~kind ~content ~max_buffer ~pre_buffer
-  ~source c =
+class consumer ?write_frame ~output_kind ~producer ~kind ~content ~max_buffer
+  ~pre_buffer ~source c =
   let prebuf = Frame.master_of_seconds pre_buffer in
   let max_buffer = Frame.master_of_seconds max_buffer in
   let autostart = true in
   let s = Lang.to_source source in
+  let write_frame =
+    match write_frame with
+      | Some f -> f
+      | None -> Generator.feed_from_frame ~mode:content c.generator
+  in
   object (self)
     inherit
       Output.output
@@ -85,7 +90,7 @@ class consumer ~output_kind ~producer ~kind ~content ~max_buffer ~pre_buffer
             c.abort <- false;
             s#abort_track );
 
-          Generator.feed_from_frame ~mode:content c.generator frame;
+          write_frame frame;
           if Generator.length c.generator > prebuf then (
             c.buffering <- false;
             if Generator.buffered_length c.generator > max_buffer then
