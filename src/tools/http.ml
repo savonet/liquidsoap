@@ -466,15 +466,15 @@ module Make (Transport : Transport_t) = struct
   let put ?headers ?log ?http_version ~timeout data socket uri =
     execute ?headers ?log ?http_version ~timeout socket (Put data) uri
 
-  let full_request ?headers ?(log = fun _ -> ()) ?http_version ~timeout ~uri
-      ~request () =
+  let full_request ?headers ?(log = fun _ -> ()) ?(http_version = "1.0")
+      ~timeout ~uri ~request () =
     let port = match uri.port with Some port -> port | None -> default_port in
     let connection = Transport.connect uri.host port in
     Tutils.finalize
       ~k:(fun () -> Transport.disconnect connection)
       (fun () ->
         let execute request =
-          execute ?headers ~log ?http_version ~timeout connection request uri
+          execute ?headers ~log ~http_version ~timeout connection request uri
         in
         (* We raise an error if the statuses are not correct. *)
         let status, headers = execute request in
@@ -493,6 +493,18 @@ module Make (Transport : Transport_t) = struct
                     | c, _ ->
                         Buffer.add_string buf c;
                         f ()
+                in
+                f ()
+            | None when http_version = "1.0" ->
+                let buf = Buffer.create 1024 in
+                let tmp = Bytes.create 1024 in
+                let rec f () =
+                  Transport.wait_for ~log (`Read connection) timeout;
+                  let n = Transport.read connection tmp 0 1024 in
+                  if n > 0 then (
+                    Buffer.add_subbytes buf tmp 0 n;
+                    f () )
+                  else Buffer.contents buf
                 in
                 f ()
             | None -> (

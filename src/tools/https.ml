@@ -58,7 +58,12 @@ struct
     in
     Tutils.wait_for ?log event timeout
 
-  let read = Ssl.read
+  let read socket buf ofs len =
+    try Ssl.read socket buf ofs len
+    with
+    | Ssl.Read_error Ssl.Error_syscall | Ssl.Read_error Ssl.Error_zero_return ->
+      0
+
   let write = Ssl.write
 end
 
