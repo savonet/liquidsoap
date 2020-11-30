@@ -72,7 +72,9 @@ output.icecast(fallback([crossfade(playlist(...)),jingles]))
 
 yields the following graph:
 
-![Graph representation with clocks](images/graph_clocks.png)Here, clock_2 was created specifically for the crossfading
+![Graph representation with clocks](/assets/img/graph_clocks.png)
+
+Here, clock_2 was created specifically for the crossfading
 operator; the rate of that clock is controlled by that operator,
 which can hence accelerate it around track changes without any
 risk of inconsistency.

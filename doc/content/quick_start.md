@@ -10,7 +10,9 @@ The chain is made of:
 * the streaming media server ([Icecast](http://www.icecast.org), [Shoutcast](http://www.shoutcast.com), ...) which relays several streams from their sources to their listeners;
 * the media player (iTunes, Winamp, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
 
-![Internet radio toolchain](images/schema-webradio-inkscape.png)The stream is always passed from the stream generator to the server, whether or not there are listeners. It is then sent by the server to every listener. The more listeners you have, the more bandwidth you need.
+![Internet radio toolchain](/assets/img/schema-webradio-inkscape.png)
+
+The stream is always passed from the stream generator to the server, whether or not there are listeners. It is then sent by the server to every listener. The more listeners you have, the more bandwidth you need.
 
 If you use Icecast, you can broadcast more than one audio feed using the same server. Each audio feed or stream is identified by its "mount point" on the server. If you connect to the `foo.ogg` mount point, the URL of your stream will be [http://localhost:8000/foo.ogg](http://localhost:8000/foo.ogg) -- assuming that your Icecast is on localhost on port 8000. If you need further information on this you might want to read Icecast's [documentation](http://www.icecast.org). A proper setup of a streaming server is required for running Liquidsoap.
 
@@ -23,7 +25,9 @@ In this tutorial we assume that you have a fully installed Liquidsoap. In partic
 ### Sources
 A stream is built with Liquidsoap by using or creating sources. A source is an annotated audio stream. In the following picture we represent a stream which has at least three tracks (one of which starts before the snapshot), and a few metadata packets (notice that they do not necessarily coincide with new tracks).
 
-![A stream](images/stream.png)In a Liquidsoap script, you build source objects. Liquidsoap provides many functions for creating sources from scratch (e.g. `playlist`), and also for creating complex sources by putting together simpler ones (e.g. `switch` in the following example). Some of these functions (typically the `output.*`) create an active source, which will continuously pull its children's stream and output it to speakers, to a file, to a streaming server, etc. These active sources are the roots of a Liquidsoap instance, the sources which bring life into it.
+![A stream](/assets/img/stream.png)
+
+In a Liquidsoap script, you build source objects. Liquidsoap provides many functions for creating sources from scratch (e.g. `playlist`), and also for creating complex sources by putting together simpler ones (e.g. `switch` in the following example). Some of these functions (typically the `output.*`) create an active source, which will continuously pull its children's stream and output it to speakers, to a file, to a streaming server, etc. These active sources are the roots of a Liquidsoap instance, the sources which bring life into it.
 
 ### That source is fallible!
 A couple of things can go wrong in your streaming system.
@@ -176,7 +180,7 @@ In this section, we build a basic radio station that plays songs randomly chosen
 
 Before reading the code of the corresponding liquidsoap script, it might be useful to visualize the streaming process with the following tree-like diagram. The idea is that the audio streams flows through this diagram, following the arrows. In this case the nodes (`fallback` and `random`) select one of the incoming streams and relay it. The final node `output.icecast` is an output: it actively pulls the data out of the graph and sends it to the world.
 
-![Graph for 'basic-radio.liq'](images/basic-radio-graph.png)
+![Graph for 'basic-radio.liq'](/assets/img/basic-radio-graph.png)
 ```liquidsoap
 #!/usr/bin/liquidsoap
 # Log dir

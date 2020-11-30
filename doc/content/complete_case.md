@@ -11,7 +11,7 @@ We will develop here a more complex example, according to the following specific
 
 Once you've managed to describe what you want in such a modular way, you're half the way. More precisely, you should think of a diagram such as the following, through which the audio streams flow, following the arrows. The nodes can modify the stream using some basic operators: switching and mixing in our case. The final nodes, the ends of the paths, are outputs: they are in charge of pulling the data out of the graph and send it to the world. In our case, we only have outputs to icecast, using two different formats.
 
-![Graph for 'radio.liq'](images/liqgraph.png)
+![Graph for 'radio.liq'](/assets/img/liqgraph.png)
 
 Now here is how to write that in [Liquidsoap](index.html).
 ```liquidsoap

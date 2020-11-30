@@ -52,7 +52,9 @@ a static playlist, with some jingles, with 3 songs for one jingle,
 and output the result to an icecast server. This 
 is described by the following graph:
 
-![Initial stream model](images/on2_part2_schema1.svg)This very simple stream is defined by the following content
+![Initial stream model](/assets/img/on2_part2_schema1.svg)
+
+This very simple stream is defined by the following content
 in `radio.liq`:
 ```liquidsoap
 # The file source
@@ -373,7 +375,9 @@ Now that we have a controllable initial radio, we extend our initial
 scripts to add advanced features. The following graph illustrates what 
 we are going to add:
 
-![Advanced stream model](images/on2_part2_schema2.svg)* The `Replay gain` node normalizes all the songs using the [Replay Gain](http://replaygain.org) technology.
+![Advanced stream model](/assets/img/on2_part2_schema2.svg)
+
+** The `Replay gain` node normalizes all the songs using the [Replay Gain](http://replaygain.org) technology.
 * The `Smart crossfade` node adds crossfading between songs but not jingles.
 * The `Smooth_add` node adds the possibility to insert a jingle in the middle of a song, fading out and then back in the initial stream while the jingle is being played.
 
