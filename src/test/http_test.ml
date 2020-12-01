@@ -77,7 +77,7 @@ let () =
   assert (Buffer.contents mock_query = q);
   assert (status = ("HTTP/1.1", 200, "OK"));
   assert (headers = [("content-length", "10"); ("foo", "bar")]);
-  assert (body = "1234567890");
+  assert (body = "12345678901");
   (* Chunked response. *)
   Buffer.reset mock_query;
   mock_response :=
