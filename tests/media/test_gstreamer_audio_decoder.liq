@@ -1,7 +1,7 @@
 #!../../src/liquidsoap ../../libs/pervasives.liq
 %include "test.liq"
 
-set("log.level",4)
+set("log.level",5)
 set("frame.audio.samplerate",48000)
 
 set("decoder.decoders",["GSTREAMER"])

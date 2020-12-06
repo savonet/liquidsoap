@@ -1,7 +1,7 @@
 #!../../src/liquidsoap ../../libs/pervasives.liq
 %include "test.liq"
 
-set("log.level",4)
+set("log.level",5)
 
 set("decoder.decoders",["FFMPEG"])
 
