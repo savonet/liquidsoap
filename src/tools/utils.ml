@@ -652,3 +652,12 @@ let string_of_size n =
   else if n < 1 lsl 30 then
     Printf.sprintf "%.02f MiB" (float_of_int n /. float_of_int (1 lsl 20))
   else Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
+
+(* Inspired from https://github.com/python/cpython/blob/3689c25a/Lib/shlex.py#L323-L334
+   use single quotes, and put single quotes into double quotes
+   the string $'b is then quoted as '$'"'"'b' *)
+let shell_escape s =
+  if Pcre.pmatch ~rex:(Pcre.regexp "[^\\w@%+=:,./-]") s then
+    Printf.sprintf "'%s'"
+      (Pcre.substitute ~pat:"'" ~subst:(fun _ -> "'\"'\"'") s)
+  else s

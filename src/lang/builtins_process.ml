@@ -43,6 +43,10 @@ let () =
         Lang.list_t env_t,
         Some (Lang.list ~t:env_t []),
         Some "Process environment" );
+      ( "escape_input",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Escape input to prevent injection." );
       ( "inherit_env",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -85,6 +89,7 @@ let () =
             (Lang.to_string k, Lang.to_string v))
           env
       in
+      let escape_input = Lang.to_bool (List.assoc "escape_input" p) in
       let sandbox_rw =
         List.map Lang.to_string (Lang.to_list (List.assoc "rwdirs" p))
       in
@@ -119,9 +124,10 @@ let () =
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let env = List.map (fun (k, v) -> Printf.sprintf "%s=%s" k v) env in
       let env = Array.of_list env in
+      let cmd = Lang.to_string (List.assoc "" p) in
+      let cmd = if escape_input then Utils.shell_escape cmd else cmd in
       let cmd =
-        Sandbox.cmd ~rw:sandbox_rw ~ro:sandbox_ro ~network:sandbox_network
-          (Lang.to_string (List.assoc "" p))
+        Sandbox.cmd ~rw:sandbox_rw ~ro:sandbox_ro ~network:sandbox_network cmd
       in
       let buflen = 1024 in
       let out_buf = Buffer.create buflen in
