@@ -116,6 +116,7 @@ conflicts: [
   "gstreamer" {< "0.3.0"}
   "inotify" {< "1.0"}
   "ladspa" {< "0.1.4"}
+  "ladspa" {>= "0.2.0"}
   "lame" {< "0.3.2"}
   "lastfm" {< "0.3.0"}
   "lo" {< "0.1.2"}
