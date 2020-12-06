@@ -303,8 +303,9 @@ let params_of_descr d =
 let register_descr plugin_name descr_n d inputs outputs =
   let ni = Array.length inputs in
   let no = Array.length outputs in
+  let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
-  let input_kind = Lang.audio_n ni in
+  let input_kind = if mono then Lang.audio_pcm else Lang.audio_n ni in
   let input_t = Lang.kind_type_of_kind_format input_kind in
   let liq_params =
     liq_params
@@ -314,8 +315,10 @@ let register_descr plugin_name descr_n d inputs outputs =
   let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
   let return_t =
-    let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
-    Lang.frame_kind_t ~audio:(Lang.kind_t (Frame.audio_n no)) ~video ~midi
+    if mono then input_t
+    else (
+      let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
+      Lang.frame_kind_t ~audio:(Lang.kind_t (Frame.audio_n no)) ~video ~midi )
   in
   Lang.add_operator
     ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d))
@@ -326,7 +329,7 @@ let register_descr plugin_name descr_n d inputs outputs =
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
       let params = params p in
       if ni = 0 then new ladspa_nosource plugin_name descr_n outputs params
-      else if ni = 1 && no = 1 then
+      else if mono then
         ( new ladspa_mono
             (Option.get source) plugin_name descr_n inputs.(0) outputs.(0)
             params
