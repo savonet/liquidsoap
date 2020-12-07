@@ -109,7 +109,8 @@ let mk_audio ~ffmpeg ~options output =
 
   let internal_converter () =
     let src_samplerate = Lazy.force Frame.audio_rate in
-    let src_channels = Lazy.force Frame.audio_channels in
+    (* The typing system ensures that this is the number of channels in the frame. *)
+    let src_channels = ffmpeg.Ffmpeg_format.channels in
     let src_channel_layout = get_channel_layout src_channels in
 
     let resampler =
