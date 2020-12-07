@@ -35,3 +35,15 @@ src/test/timezone
 liquidsoap.config
 doc/liquidsoap.1.md
 _opam/
+src/test/decoder_test
+src/test/frame_test
+src/test/generator_test
+src/test/http_test
+src/test/id3v2_test
+src/test/meth
+src/test/readavi
+src/test/source_test
+src/test/strings_test
+src/test/test.mp3
+src/test/types
+src/test/unifier_test
