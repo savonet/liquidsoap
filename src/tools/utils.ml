@@ -724,12 +724,3 @@ let string_of_matrix a =
 let log_exception ~(log : Log.t) ~bt msg =
   if log#active 4 (* info *) then log#info "%s\n%s" msg bt
   else log#severe "%s" msg
-
-(* Inspired from https://github.com/python/cpython/blob/3689c25a/Lib/shlex.py#L323-L334
-   use single quotes, and put single quotes into double quotes
-   the string $'b is then quoted as '$'"'"'b' *)
-let shell_escape s =
-  if Pcre.pmatch ~rex:(Pcre.regexp "[^\\w@%+=:,./-]") s then
-    Printf.sprintf "'%s'"
-      (Pcre.substitute ~pat:"'" ~subst:(fun _ -> "'\"'\"'") s)
-  else s
