@@ -20,3 +20,5 @@ clean:
 	@$(OCAMLC) $(OCAML_CFLAGS) $(OCAML_LFLAGS) $^ -o $@
 
 include ../../Makefile.defs
+
+export OCAMLPATH := $(OCAMLPATH)

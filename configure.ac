@@ -916,6 +916,7 @@ cat >> src/configure.ml <<__BLAH__
 let libs_versions = "$LIBS_VERSIONS"
 __BLAH__
 
+AC_SUBST(OCAMLPATH)
 AC_SUBST(OCAMLCOMP)
 AC_SUBST(NO_CUSTOM)
 AC_SUBST(_DEP_OPTS)
