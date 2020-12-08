@@ -24,6 +24,13 @@ type ('a, 'b) content = { mutable params : 'a; mutable data : (int * 'b) list }
 
 let make ~size:_ params = { params; data = [] }
 let clear d = d.data <- []
+let is_empty { data } = data = []
+
+let sub c ofs len =
+  {
+    c with
+    data = List.filter (fun (pos, _) -> ofs <= pos && pos < ofs + len) c.data;
+  }
 
 let blit src src_pos dst dst_pos len =
   (* No compatibility check here, it's

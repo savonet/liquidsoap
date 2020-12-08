@@ -56,8 +56,10 @@ module type ContentSpecs = sig
 
   val make : size:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
+  val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
+  val is_empty : data -> bool
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -158,6 +160,8 @@ let parse_param label value =
 
 type data_handler = {
   blit : int -> data -> int -> int -> unit;
+  sub : int -> int -> data;
+  is_empty : unit -> bool;
   copy : unit -> data;
   format : unit -> format;
   clear : unit -> unit;
@@ -177,11 +181,9 @@ let get_data_handler v =
   with Found_data h -> h
 
 let make ~size k = (get_params_handler k).make size
-
-let blit src src_ofs dst dst_ofs len =
-  let src = get_data_handler src in
-  src.blit src_ofs dst dst_ofs len
-
+let blit src = (get_data_handler src).blit
+let sub d = (get_data_handler d).sub
+let is_empty c = (get_data_handler c).is_empty ()
 let copy c = (get_data_handler c).copy ()
 let format c = (get_data_handler c).format ()
 let clear c = (get_data_handler c).clear ()
@@ -271,6 +273,8 @@ module MkContent (C : ContentSpecs) :
           Some
             {
               blit = blit d;
+              sub = (fun ofs len -> Data (C.sub d ofs len));
+              is_empty = (fun () -> C.is_empty d);
               copy = (fun () -> Data (C.copy d));
               format = (fun () -> Format (Unifier.make (C.params d)));
               clear = (fun () -> C.clear d);
@@ -295,9 +299,11 @@ module NoneSpecs = struct
   type params = unit
   type data = unit
 
+  let is_empty _ = true
   let make ~size:_ _ = ()
   let clear _ = ()
   let blit _ _ _ _ _ = ()
+  let sub _ _ _ = ()
   let copy _ = ()
   let params _ = ()
   let merge _ _ = ()
@@ -333,6 +339,8 @@ module AudioSpecs = struct
       | `Stereo -> "stereo"
       | `Five_point_one -> "dolby 5.1"
 
+  let is_empty d = Audio.length d = 0
+
   let merge p p' =
     assert (!!(p.channel_layout) = !!(p'.channel_layout));
     p
@@ -340,13 +348,17 @@ module AudioSpecs = struct
   let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
 
   let blit src src_pos dst dst_pos len =
+    let ( ! ) = audio_of_master in
     Array.iter2
       (fun a a' ->
-        let ( ! ) = audio_of_master in
         Audio.Mono.blit
           (Audio.Mono.sub a !src_pos !len)
           (Audio.Mono.sub a' !dst_pos !len))
       src dst
+
+  let sub data ofs len =
+    let ( ! ) = audio_of_master in
+    Audio.sub data !ofs !len
 
   let copy d = Array.map Audio.Mono.copy d
 
@@ -413,6 +425,7 @@ module VideoSpecs = struct
   type data = Video.t
 
   let string_of_kind = function `Yuv420p -> "yuv420p"
+  let is_empty d = Video.length d = 0
 
   let make ~size { width; height } =
     let width = !!(Option.value ~default:video_width width) in
@@ -454,6 +467,10 @@ module VideoSpecs = struct
     let ( ! ) = Frame_settings.video_of_master in
     Video.blit src !src_pos dst !dst_pos !len
 
+  let sub data ofs len =
+    let ( ! ) = Frame_settings.video_of_master in
+    Array.sub data !ofs !len
+
   let copy = Video.copy
 
   let params data =
@@ -487,6 +504,7 @@ module MidiSpecs = struct
   type params = Contents.midi_params
   type data = MIDI.Multitrack.t
 
+  let is_empty m = MIDI.Multitrack.duration m = 0
   let string_of_kind = function `Midi -> "midi"
   let string_of_params { channels } = Printf.sprintf "channels=%d" channels
 
@@ -497,11 +515,14 @@ module MidiSpecs = struct
   let compatible p p' = p.channels = p'.channels
 
   let blit src src_pos dst dst_pos len =
-    Array.iter2
-      (fun m m' ->
-        let ( ! ) = midi_of_master in
-        MIDI.blit m !src_pos m' !dst_pos !len)
-      src dst
+    let ( ! ) = midi_of_master in
+    Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
+
+  let sub data ofs len =
+    let ( ! ) = midi_of_master in
+    let d = MIDI.Multitrack.create (MIDI.Multitrack.channels data) !len in
+    blit data !ofs d 0 !len;
+    d
 
   let copy m = Array.map MIDI.copy m
   let params m = { channels = MIDI.Multitrack.channels m }
