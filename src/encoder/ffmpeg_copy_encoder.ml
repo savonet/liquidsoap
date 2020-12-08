@@ -49,6 +49,7 @@ let mk_stream_copy ~video_size ~get_data output =
   (* Keep track of latest DTS/PTS in master time_base
      since time_base can change between streams. *)
   let next_dts = ref None in
+  let last_pts = ref None in
   let next_pts = ref None in
 
   let to_master_time_base ~time_base v =
@@ -56,16 +57,17 @@ let mk_stream_copy ~video_size ~get_data output =
   in
 
   let init ~ts ~time_base v =
-    match !v with
-      | Some _ -> ()
-      | None -> v := Option.map (to_master_time_base ~time_base) ts
+    match (!v, ts) with
+      | Some _, _ -> ()
+      | None, Some ts -> v := Some (to_master_time_base ~time_base ts)
+      | None, None -> v := Some 0L
   in
 
   let add ~duration ~time_base v =
     match (!v, duration) with
-      | Some p, Some d ->
-          v := Some (Int64.add p (to_master_time_base ~time_base d))
-      | _ -> failwith "Packet missing duration!"
+      | Some _v, Some d ->
+          v := Some (Int64.add _v (to_master_time_base ~time_base d))
+      | _ -> ()
   in
 
   let was_keyframe = ref false in
@@ -81,11 +83,20 @@ let mk_stream_copy ~video_size ~get_data output =
         let stream = Option.get !stream in
         if start <= pos && pos < stop then (
           let packet = Avcodec.Packet.dup packet in
+          let pts = Avcodec.Packet.get_pts packet in
+          let dts = Avcodec.Packet.get_dts packet in
 
-          init ~ts:(Packet.get_dts packet) ~time_base next_dts;
-          init ~ts:(Packet.get_pts packet) ~time_base next_pts;
+          let duration =
+            match (Packet.get_duration packet, pts, !last_pts) with
+              | Some d, _, _ -> Some d
+              | _, Some current_pts, Some last_pts ->
+                  Some (Int64.sub current_pts last_pts)
+              | _ -> None
+          in
 
-          let duration = Packet.get_duration packet in
+          last_pts := pts;
+          init ~ts:dts ~time_base next_dts;
+          init ~ts:pts ~time_base next_pts;
 
           Packet.set_duration packet
             (Option.map (to_master_time_base ~time_base) duration);

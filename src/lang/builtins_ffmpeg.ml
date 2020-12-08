@@ -120,49 +120,36 @@ let write_video_frame ~opts ~format c =
       ~target_fps ()
   in
 
+  let last_pts = ref None in
+
   (* We don't know packet duration in advance so we have to infer
      it from the next packet. *)
-  let last_packet = ref None in
-
   let write_ffmpeg_frame frame =
-    Ffmpeg_utils.Fps.convert fps_converter frame
-      (fun ~time_base:src_time_base frame ->
-        let frame_pts =
-          Option.map
-            (fun pts ->
-              Ffmpeg_utils.convert_time_base ~src:src_time_base ~dst:time_base
-                pts)
-            (Avutil.frame_pts frame)
-        in
-        Avutil.frame_set_pts frame frame_pts;
+    Ffmpeg_utils.Fps.convert fps_converter frame (fun ~time_base frame ->
         Avcodec.encode encoder
           (fun packet ->
-            ( match !last_packet with
-              | None -> ()
-              | Some last_p -> (
-                  match
-                    ( Avcodec.Packet.get_pts last_p,
-                      Avcodec.Packet.get_pts packet )
-                  with
-                    | Some last_pts, Some current_pts ->
-                        let duration = Some (Int64.sub current_pts last_pts) in
-                        Avcodec.Packet.set_duration last_p duration;
-                        let packet =
-                          { Ffmpeg_copy_content.packet = last_p; time_base }
-                        in
-                        let data =
-                          {
-                            Ffmpeg_content_base.params =
-                              Some (Avcodec.params encoder);
-                            data = [(0, packet)];
-                          }
-                        in
-                        let data = Ffmpeg_copy_content.Video.lift_data data in
-                        Producer_consumer.(
-                          Generator.put_video c.generator data 0
-                            (get_duration duration))
-                    | _ -> () ) );
-            last_packet := Some packet)
+            let pts = Avcodec.Packet.get_pts packet in
+            let duration =
+              match (Avcodec.Packet.get_duration packet, pts, !last_pts) with
+                | Some d, _, _ -> d
+                | None, Some current_pts, Some last_pts ->
+                    let d = Int64.sub current_pts last_pts in
+                    Avcodec.Packet.set_duration packet (Some d);
+                    d
+                | _ -> 0L
+            in
+            last_pts := pts;
+            let packet = { Ffmpeg_copy_content.packet; time_base } in
+            let data =
+              {
+                Ffmpeg_content_base.params = Some (Avcodec.params encoder);
+                data = [(0, packet)];
+              }
+            in
+            let data = Ffmpeg_copy_content.Video.lift_data data in
+            Producer_consumer.(
+              Generator.put_video c.generator data 0
+                (get_duration (Some duration))))
           frame)
   in
 
