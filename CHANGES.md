@@ -1,6 +1,9 @@
 1.4.4 (unreleased)
 =====
 
+New:
+- Added `process.quote` to quote process' arguments (#1215)
+
 Changed:
 - Fetch mime type using curl first when available.
 
