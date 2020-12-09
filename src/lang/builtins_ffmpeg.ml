@@ -48,6 +48,8 @@ let write_audio_frame ~opts ~format c =
       ~sample_rate ~time_base codec
   in
 
+  let encoder_time_base = Avcodec.time_base encoder in
+
   let resampler =
     InternalResampler.create ~out_sample_format:sample_format src_channel_layout
       src_sample_rate channel_layout sample_rate
@@ -60,7 +62,9 @@ let write_audio_frame ~opts ~format c =
       ~get_frame_size:(fun () -> Avcodec.Audio.frame_size encoder)
       (Avcodec.encode encoder (fun packet ->
            let duration = get_duration (Avcodec.Packet.get_duration packet) in
-           let packet = { Ffmpeg_copy_content.packet; time_base } in
+           let packet =
+             { Ffmpeg_copy_content.packet; time_base = encoder_time_base }
+           in
            let data =
              {
                Ffmpeg_content_base.params = Some (Avcodec.params encoder);
@@ -99,6 +103,8 @@ let write_video_frame ~opts ~format c =
       ~time_base codec
   in
 
+  let encoder_time_base = Avcodec.time_base encoder in
+
   let flag =
     match Ffmpeg_utils.conf_scaling_algorithm#get with
       | "fast_bilinear" -> Swscale.Fast_bilinear
@@ -125,7 +131,7 @@ let write_video_frame ~opts ~format c =
   (* We don't know packet duration in advance so we have to infer
      it from the next packet. *)
   let write_ffmpeg_frame frame =
-    Ffmpeg_utils.Fps.convert fps_converter frame (fun ~time_base frame ->
+    Ffmpeg_utils.Fps.convert fps_converter frame (fun ~time_base:_ frame ->
         Avcodec.encode encoder
           (fun packet ->
             let pts = Avcodec.Packet.get_pts packet in
@@ -139,7 +145,9 @@ let write_video_frame ~opts ~format c =
                 | _ -> 0L
             in
             last_pts := pts;
-            let packet = { Ffmpeg_copy_content.packet; time_base } in
+            let packet =
+              { Ffmpeg_copy_content.packet; time_base = encoder_time_base }
+            in
             let data =
               {
                 Ffmpeg_content_base.params = Some (Avcodec.params encoder);
