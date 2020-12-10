@@ -45,9 +45,9 @@ let port_t d p =
   else if Descriptor.port_is_integer d p then Int
   else Float
 
-class virtual base ~channels source =
+class virtual base ~kind source =
   object
-    inherit operator ~name:"ladspa" (Lang.audio_n channels) [source]
+    inherit operator ~name:"ladspa" kind [source]
 
     method stype = source#stype
 
@@ -62,9 +62,9 @@ class virtual base ~channels source =
     method abort_track = source#abort_track
   end
 
-class virtual base_nosource ~channels =
+class virtual base_nosource ~kind =
   object
-    inherit source ~name:"ladspa" (Lang.audio_n channels)
+    inherit source ~name:"ladspa" kind
 
     method stype = Infallible
 
@@ -91,9 +91,9 @@ let instantiate d samplerate =
   ans
 
 (* A plugin is created for each channel. *)
-class ladspa_mono (source : source) plugin descr input output params =
+class ladspa_mono ~kind (source : source) plugin descr input output params =
   object (self)
-    inherit base ~channels:1 source as super
+    inherit base ~kind source as super
 
     val mutable inst = None
 
@@ -127,9 +127,9 @@ class ladspa_mono (source : source) plugin descr input output params =
       done
   end
 
-class ladspa (source : source) plugin descr inputs outputs params =
+class ladspa ~kind (source : source) plugin descr inputs outputs params =
   object
-    inherit base ~channels:(Array.length outputs) source
+    inherit base ~kind source
 
     val inst =
       let p = Plugin.load plugin in
@@ -167,9 +167,9 @@ class ladspa (source : source) plugin descr inputs outputs params =
         Descriptor.run inst len )
   end
 
-class ladspa_nosource plugin descr outputs params =
+class ladspa_nosource ~kind plugin descr outputs params =
   object
-    inherit base_nosource ~channels:(Array.length outputs)
+    inherit base_nosource ~kind
 
     val inst =
       let p = Plugin.load plugin in
@@ -314,12 +314,10 @@ let register_descr plugin_name descr_n d inputs outputs =
   let maker = Descriptor.maker d in
   let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
-  let return_t =
-    if mono then input_t
-    else (
-      let { Frame.video; midi } = Lang.of_frame_kind_t input_t in
-      Lang.frame_kind_t ~audio:(Lang.kind_t (Frame.audio_n no)) ~video ~midi )
+  let output_kind =
+    if mono then input_kind else Frame.{ input_kind with audio = audio_n no }
   in
+  let return_t = Lang.kind_type_of_kind_format output_kind in
   Lang.add_operator
     ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d))
     liq_params ~return_t ~category:Lang.SoundProcessing ~flags:[Lang.Extra]
@@ -328,15 +326,17 @@ let register_descr plugin_name descr_n d inputs outputs =
       let f v = List.assoc v p in
       let source = try Some (Lang.to_source (f "")) with Not_found -> None in
       let params = params p in
-      if ni = 0 then new ladspa_nosource plugin_name descr_n outputs params
+      if ni = 0 then
+        new ladspa_nosource ~kind:output_kind plugin_name descr_n outputs params
       else if mono then
         ( new ladspa_mono
-            (Option.get source) plugin_name descr_n inputs.(0) outputs.(0)
-            params
+            ~kind:output_kind (Option.get source) plugin_name descr_n inputs.(0)
+            outputs.(0) params
           :> Source.source )
       else
         ( new ladspa
-            (Option.get source) plugin_name descr_n inputs outputs params
+            ~kind:output_kind (Option.get source) plugin_name descr_n inputs
+            outputs params
           :> Source.source ))
 
 let register_descr plugin_name descr_n d inputs outputs =

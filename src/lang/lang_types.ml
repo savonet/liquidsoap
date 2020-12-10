@@ -838,8 +838,6 @@ exception Type_Error of explanation
 let print_type_error error_header ((flipped, ta, tb, a, b) : explanation) =
   error_header (print_pos_opt ta.pos);
   match b with
-    | `Meth (l, ([], `Ellipsis), `Ellipsis) ->
-        Format.printf "this value does not have a field %s.@]@." l
     | _ ->
         let inferred_pos a =
           let dpos = (deref a).pos in
