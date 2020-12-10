@@ -25,13 +25,7 @@ module InternalResampler =
 
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
-let write_audio_frame ~opts ~format c =
-  let codec =
-    (* TODO raise a nice exception. *)
-    match format.Ffmpeg_format.audio_codec with
-      | Some (`Internal codec) -> Avcodec.Audio.find_encoder codec
-      | _ -> assert false
-  in
+let write_audio_frame ~opts ~codec ~format c =
   let src_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
@@ -79,13 +73,7 @@ let write_audio_frame ~opts ~format c =
     let frame = InternalResampler.convert resampler (AFrame.pcm frame) in
     write_ffmpeg_frame frame
 
-let write_video_frame ~opts ~format c =
-  let codec =
-    (* TODO raise a nice exception. *)
-    match format.Ffmpeg_format.video_codec with
-      | Some (`Internal codec) -> Avcodec.Video.find_encoder codec
-      | _ -> assert false
-  in
+let write_video_frame ~opts ~codec ~format c =
   let pixel_aspect = { Avutil.num = 1; den = 1 } in
 
   let pixel_format =
@@ -234,15 +222,15 @@ let mk_encoder mode =
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      let format = Lang.assoc "" 1 p in
+      let format_val = Lang.assoc "" 1 p in
       let source = Lang.assoc "" 2 p in
       let format =
-        match Lang.to_format format with
+        match Lang.to_format format_val with
           | Encoder.Ffmpeg ffmpeg -> ffmpeg
           | _ ->
               raise
                 (Lang_errors.Invalid_value
-                   (format, "Only %ffmpeg encoder is currently supported!"))
+                   (format_val, "Only %ffmpeg encoder is currently supported!"))
       in
       let control =
         Producer_consumer.
@@ -264,15 +252,18 @@ let mk_encoder mode =
       in
 
       if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
-        failwith
-          (Printf.sprintf
-             "Muxer options are not supported for inline encoders: %s"
-             (Ffmpeg_format.string_of_options format.Ffmpeg_format.other_opts));
+        raise
+          (Lang_errors.Invalid_value
+             ( format_val,
+               Printf.sprintf
+                 "Muxer options are not supported for inline encoders: %s"
+                 (Ffmpeg_format.string_of_options
+                    format.Ffmpeg_format.other_opts) ));
 
       if format.Ffmpeg_format.format <> None then
-        failwith
-          (Printf.sprintf "Format option is not supported inline encoders: %s"
-             (Option.get format.Ffmpeg_format.format));
+        raise
+          (Lang_errors.Invalid_value
+             (format_val, "Format option is not supported inline encoders"));
 
       let audio_opts = Hashtbl.copy format.Ffmpeg_format.audio_opts in
 
@@ -288,13 +279,29 @@ let mk_encoder mode =
 
       let write_frame =
         let write_audio_frame =
-          if mode = `Audio || mode = `Both then
-            Some (write_audio_frame ~opts:audio_opts ~format control)
+          if mode = `Audio || mode = `Both then (
+            let codec =
+              match format.Ffmpeg_format.audio_codec with
+                | Some (`Internal codec) -> Avcodec.Audio.find_encoder codec
+                | _ ->
+                    raise
+                      (Lang_errors.Invalid_value
+                         (format_val, "Operator expects a %audio encoder"))
+            in
+            Some (write_audio_frame ~opts:audio_opts ~codec ~format control) )
           else None
         in
         let write_video_frame =
-          if mode = `Video || mode = `Both then
-            Some (write_video_frame ~opts:video_opts ~format control)
+          if mode = `Video || mode = `Both then (
+            let codec =
+              match format.Ffmpeg_format.video_codec with
+                | Some (`Internal codec) -> Avcodec.Video.find_encoder codec
+                | _ ->
+                    raise
+                      (Lang_errors.Invalid_value
+                         (format_val, "Operator expects a %video encoder"))
+            in
+            Some (write_video_frame ~opts:video_opts ~codec ~format control) )
           else None
         in
         fun frame ->
@@ -315,9 +322,11 @@ let mk_encoder mode =
           original_opts;
 
         if Hashtbl.length original_opts > 0 then
-          failwith
-            (Printf.sprintf "Unrecognized options: %s"
-               (Ffmpeg_format.string_of_options original_opts))
+          raise
+            (Lang_errors.Invalid_value
+               ( format_val,
+                 Printf.sprintf "Unrecognized options: %s"
+                   (Ffmpeg_format.string_of_options original_opts) ))
       in
 
       let _ =
