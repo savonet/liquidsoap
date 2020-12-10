@@ -138,11 +138,22 @@ let encoder ~mk_audio ~mk_video ffmpeg meta =
     let encoder = !encoder in
     match encoder.video_stream with Some s -> s.video_size () | None -> None
   in
+  let audio_sent = ref false in
+  let video_sent = ref false in
   let init_encode frame start len =
     let encoder = !encoder in
     match ffmpeg.Ffmpeg_format.format with
       | Some "mp4" ->
           encode ~encoder frame start len;
+          if encoder.video_stream <> None then (
+            let d = Frame_content.sub Frame.(frame.content.video) start len in
+            video_sent := !video_sent || not (Frame_content.is_empty d) )
+          else video_sent := true;
+          if encoder.audio_stream <> None then (
+            let d = Frame_content.sub Frame.(frame.content.audio) start len in
+            audio_sent := !audio_sent || not (Frame_content.is_empty d) )
+          else audio_sent := true;
+          if not (!audio_sent && !video_sent) then raise Encoder.Not_enough_data;
           Av.flush encoder.output;
           let init = Strings.Mutable.flush buf in
           (Some init, Strings.empty)

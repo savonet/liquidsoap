@@ -51,8 +51,10 @@ module type ContentSpecs = sig
   (* Size is in master ticks. *)
   val make : size:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
+  val sub : data -> int -> int -> data
   val copy : data -> data
   val clear : data -> unit
+  val is_empty : data -> bool
 
   (** Params *)
 
@@ -108,8 +110,10 @@ type data = Contents.data
 
 val make : size:int -> format -> data
 val blit : data -> int -> data -> int -> int -> unit
+val sub : data -> int -> int -> data
 val copy : data -> data
 val clear : data -> unit
+val is_empty : data -> bool
 
 (** Format *)
 

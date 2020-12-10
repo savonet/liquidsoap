@@ -44,6 +44,49 @@ let get_channel_layout channels =
           %d channels.."
          channels)
 
+let write_audio_frame ~codec ~src_time_base ~dst_time_base ~target_samplerate
+    ~target_channel_layout ~target_sample_format ~get_frame_size write_frame =
+  let variable_frame_size =
+    List.mem `Variable_frame_size (Avcodec.Audio.capabilities codec)
+  in
+
+  let nb_samples = ref 0L in
+  let write_frame frame =
+    let frame_pts =
+      Ffmpeg_utils.convert_time_base ~src:src_time_base ~dst:dst_time_base
+        !nb_samples
+    in
+    nb_samples :=
+      Int64.add !nb_samples (Int64.of_int (Avutil.Audio.frame_nb_samples frame));
+    Avutil.frame_set_pts frame (Some frame_pts);
+    write_frame frame
+  in
+
+  if variable_frame_size then write_frame
+  else (
+    let out_frame_size = get_frame_size () in
+
+    let in_params =
+      {
+        Avfilter.Utils.sample_rate = target_samplerate;
+        channel_layout = target_channel_layout;
+        sample_format = target_sample_format;
+      }
+    in
+    let filter_in, filter_out =
+      Avfilter.Utils.convert_audio ~in_params ~in_time_base:src_time_base
+        ~out_frame_size ()
+    in
+    let rec flush () =
+      try
+        write_frame (filter_out ());
+        flush ()
+      with Avutil.Error `Eagain -> ()
+    in
+    fun frame ->
+      filter_in frame;
+      flush () )
+
 let mk_audio ~ffmpeg ~options output =
   let codec =
     match ffmpeg.Ffmpeg_format.audio_codec with
@@ -66,6 +109,7 @@ let mk_audio ~ffmpeg ~options output =
 
   let internal_converter () =
     let src_samplerate = Lazy.force Frame.audio_rate in
+    (* The typing system ensures that this is the number of channels in the frame. *)
     let src_channels = ffmpeg.Ffmpeg_format.channels in
     let src_channel_layout = get_channel_layout src_channels in
 
@@ -160,53 +204,15 @@ let mk_audio ~ffmpeg ~options output =
     (fun l v -> if Hashtbl.mem opts l then Some v else None)
     options;
 
-  let write_frame =
-    let variable_frame_size =
-      List.mem `Variable_frame_size (Avcodec.Audio.capabilities codec)
-    in
-
-    let stream_time_base = Av.get_time_base stream in
-
-    let nb_samples = ref 0L in
-    let write_frame frame =
-      let frame_pts =
-        Ffmpeg_utils.convert_time_base ~src:target_liq_audio_sample_time_base
-          ~dst:stream_time_base !nb_samples
-      in
-      nb_samples :=
-        Int64.add !nb_samples
-          (Int64.of_int (Avutil.Audio.frame_nb_samples frame));
-      Avutil.frame_set_pts frame (Some frame_pts);
-      Av.write_frame stream frame
-    in
-
-    if variable_frame_size then write_frame
-    else (
-      let out_frame_size = Av.get_frame_size stream in
-
-      let in_params =
-        {
-          Avfilter.Utils.sample_rate = target_samplerate;
-          channel_layout = target_channel_layout;
-          sample_format = target_sample_format;
-        }
-      in
-      let filter_in, filter_out =
-        Avfilter.Utils.convert_audio ~in_params
-          ~in_time_base:target_liq_audio_sample_time_base ~out_frame_size ()
-      in
-      let rec flush () =
-        try
-          write_frame (filter_out ());
-          flush ()
-        with Avutil.Error `Eagain -> ()
-      in
-      fun frame ->
-        filter_in frame;
-        flush () )
-  in
-
   let was_keyframe () = false in
+
+  let write_frame =
+    write_audio_frame ~codec ~src_time_base:target_liq_audio_sample_time_base
+      ~dst_time_base:(Av.get_time_base stream) ~target_samplerate
+      ~target_channel_layout ~target_sample_format
+      ~get_frame_size:(fun () -> Av.get_frame_size stream)
+      (Av.write_frame stream)
+  in
 
   let encode frame start len =
     List.iter write_frame (converter frame start len)

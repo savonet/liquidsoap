@@ -224,6 +224,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            $(if $(W_CRY),lang/builtins_cry.ml) \
            $(if $(W_LASTFM),lang/builtins_lastfm.ml) \
            $(if $(W_PROMETHEUS),lang/builtins_prometheus.ml) \
+           $(if $(W_FFMPEG_ENCODER),lang/builtins_ffmpeg.ml) \
            $(if $(W_FFMPEG_LIQ_FILTER),lang/builtins_ffmpeg_filters.ml)
 
 liquidsoap_sources= \
@@ -247,7 +248,8 @@ liquidsoap_sources += \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \
-	$(sources) $(outputs) $(conversions) $(operators) \
+	$(sources) $(outputs) tools/producer_consumer.ml \
+	$(conversions) $(operators) \
 	$(encoders) $(decoders) $(ogg_demuxer) $(ogg_muxer) \
 	$(analyze) $(playlists) \
 	$(visualization) $(synth) $(io) \

@@ -23,7 +23,6 @@
 open Lang_builtins
 
 let () =
-  Lang.add_module "ffmpeg";
   Lang.add_module "ffmpeg.filter";
   Lang.add_module "ffmpeg.filter.audio";
   Lang.add_module "ffmpeg.filter.video"

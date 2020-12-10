@@ -656,11 +656,13 @@ class hls_output p =
           let segment = Option.get s.current_segment in
           let b =
             if s.init_state = `Todo then (
-              let init, encoded =
-                Encoder.(s.encoder.hls.init_encode frame ofs len)
-              in
-              self#process_init ~init ~segment s;
-              (None, encoded) )
+              try
+                let init, encoded =
+                  Encoder.(s.encoder.hls.init_encode frame ofs len)
+                in
+                self#process_init ~init ~segment s;
+                (None, encoded)
+              with Encoder.Not_enough_data -> (None, Strings.empty) )
             else if segment.len + len > segment_master_duration then (
               match Encoder.(s.encoder.hls.split_encode frame ofs len) with
                 | `Ok (flushed, encoded) -> (Some flushed, encoded)

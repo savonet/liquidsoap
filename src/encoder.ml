@@ -233,6 +233,9 @@ type split_result =
     Strings.t * Strings.t
   | `Nope of Strings.t ]
 
+(* Raised by [init_encode] if more data is needed. *)
+exception Not_enough_data
+
 type hls = {
   (* Returns (init_segment, first_bytes) *)
   init_encode : Frame.t -> int -> int -> Strings.t option * Strings.t;
