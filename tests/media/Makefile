@@ -3,7 +3,7 @@
 DISTFILES = Makefile $(wildcard *.sh) $(wildcard *.liq *.liq.in)
 top_srcdir = $(shell realpath ../..)
 
-test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_distributed_hls test_gstreamer_audio_decoder test_gstreamer_video_decoder # test_stream_audio test_stream_video
+test: test_encoder test_stereo test_mono test_ffmpeg_audio_decoder test_ffmpeg_video_decoder test_ffmpeg_filter test_ffmpeg_copy_decoder test_ffmpeg_copy_and_encode_decoder test_ffmpeg_raw_decoder test_ffmpeg_raw_and_encode_decoder test_ffmpeg_raw_and_copy_decoder test_ffmpeg_raw_hls test_ffmpeg_distributed_hls test_gstreamer_audio_decoder test_gstreamer_video_decoder # test_stream_audio test_stream_video
 
 AUDIO_TEST_FORMATS = \
   @flac(stereo).flac \
@@ -131,5 +131,8 @@ test_gstreamer_video_decoder: $(ENCODED_VIDEO_FILES) $(top_srcdir)/src/liquidsoa
 
 test_ffmpeg_distributed_hls:
 	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_ffmpeg_distributed_hls.liq
+
+test_ffmpeg_raw_hls:
+	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq -" media/test_ffmpeg_raw_hls.liq
 
 include $(top_srcdir)/Makefile.rules
