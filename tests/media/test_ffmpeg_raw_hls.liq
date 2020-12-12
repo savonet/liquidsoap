@@ -4,6 +4,12 @@
 set("log.level", 5)
 set("frame.audio.samplerate",48000)
 
+debian_version = process.run("cat /etc/os-release | grep VERSION_ID | cut -d'=' -f 2")
+
+if "#{debian_version}" == "\"10\"" then
+  test.skip()
+end
+
 raw_encoder = %ffmpeg(%audio.raw,%video.raw)
 
 mpegts = %ffmpeg(
