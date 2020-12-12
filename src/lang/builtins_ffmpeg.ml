@@ -437,47 +437,48 @@ let mk_encoder mode =
         let write_audio_frame =
           if has_audio then (
             match format.Ffmpeg_format.audio_codec with
-              | Some (`Raw "none") when has_raw_audio ->
+              | Some (`Raw None) when has_raw_audio ->
                   Some
                     (write_audio_frame ~mode:`Raw ~opts:audio_opts ~format
                        control)
-              | Some (`Internal codec) when has_encoded_audio ->
+              | Some (`Internal (Some codec)) when has_encoded_audio ->
                   let codec = Avcodec.Audio.find_encoder codec in
                   Some
                     (write_audio_frame ~mode:`Encoded ~opts:audio_opts ~codec
                        ~format control)
               | _ ->
                   let encoder =
-                    if has_encoded_audio then "%audio"
-                    else "%audio.raw(codec=\"none\")"
+                    if has_encoded_audio then "%audio(codec=..., ...)"
+                    else "%audio.raw"
                   in
                   raise
                     (Lang_errors.Invalid_value
-                       (format_val, "Operator expects a " ^ encoder ^ " encoder"))
-            )
+                       ( format_val,
+                         "Operator expects an encoder of the form: " ^ encoder
+                       )) )
           else None
         in
         let write_video_frame =
           if has_video then (
             match format.Ffmpeg_format.video_codec with
-              | Some (`Raw "none") when has_raw_video ->
+              | Some (`Raw None) when has_raw_video ->
                   Some
                     (write_video_frame ~mode:`Raw ~opts:video_opts ~format
                        control)
-              | Some (`Internal codec) when has_encoded_video ->
+              | Some (`Internal (Some codec)) when has_encoded_video ->
                   let codec = Avcodec.Video.find_encoder codec in
                   Some
                     (write_video_frame ~mode:`Encoded ~opts:video_opts ~codec
                        ~format control)
               | _ ->
                   let encoder =
-                    if has_encoded_video then "%video"
-                    else "%video.raw(codec=\"none\")"
+                    if has_encoded_video then "%video" else "%video.raw"
                   in
                   raise
                     (Lang_errors.Invalid_value
-                       (format_val, "Operator expects a " ^ encoder ^ " encoder"))
-            )
+                       ( format_val,
+                         "Operator expects an encoder of the form: " ^ encoder
+                       )) )
           else None
         in
         fun frame ->

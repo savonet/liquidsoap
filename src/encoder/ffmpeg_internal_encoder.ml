@@ -85,7 +85,7 @@ let write_audio_frame ~src_time_base ~dst_time_base ~target_samplerate
 let mk_audio ~ffmpeg ~options output =
   let codec =
     match ffmpeg.Ffmpeg_format.audio_codec with
-      | Some (`Raw codec) | Some (`Internal codec) ->
+      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) ->
           Avcodec.Audio.find_encoder codec
       | _ -> assert false
   in
@@ -230,7 +230,7 @@ let mk_audio ~ffmpeg ~options output =
 let mk_video ~ffmpeg ~options output =
   let codec =
     match ffmpeg.Ffmpeg_format.video_codec with
-      | Some (`Raw codec) | Some (`Internal codec) ->
+      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) ->
           Avcodec.Video.find_encoder codec
       | _ -> assert false
   in

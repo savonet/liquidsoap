@@ -4,7 +4,7 @@
 set("log.level", 5)
 set("frame.audio.samplerate",48000)
 
-raw_encoder = %ffmpeg(%audio.raw(codec="none"),%video.raw(codec="none"))
+raw_encoder = %ffmpeg(%audio.raw,%video.raw)
 
 mpegts = %ffmpeg(
   format="mpegts",

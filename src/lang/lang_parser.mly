@@ -730,9 +730,13 @@ ffmpeg_list_elem:
   | AUDIO_NONE                        { `Audio_none }
   | AUDIO_COPY                        { `Audio_copy }
   | AUDIO_RAW LPAR ffmpeg_params RPAR { `Audio_raw $3 }
+  /* This is for inline encoders. */
+  | AUDIO_RAW                         { `Audio_raw [] }
   | AUDIO LPAR ffmpeg_params RPAR     { `Audio  $3 }
   | VIDEO_NONE                        { `Video_none }
   | VIDEO_COPY                        { `Video_copy }
+  /* This is for inline encoders. */
+  | VIDEO_RAW                         { `Video_raw [] }
   | VIDEO_RAW LPAR ffmpeg_params RPAR { `Video_raw  $3 }
   | VIDEO LPAR ffmpeg_params RPAR     { `Video  $3 }
   | ffmpeg_param                      { `Option $1 }
