@@ -127,7 +127,6 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
       ~target_channel_layout:channel_layout ~target_sample_format:sample_format
       ~frame_size write_frame
   in
-  Printf.printf "here..\n%!";
 
   fun frame ->
     let frame = InternalResampler.convert resampler (AFrame.pcm frame) in
