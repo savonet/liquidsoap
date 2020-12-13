@@ -35,19 +35,6 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
   let sample_rate = Lazy.force format.Ffmpeg_format.samplerate in
   let time_base = { Avutil.num = 1; den = sample_rate } in
 
-  let last_pts = ref None in
-
-  let pts_duration ~get_duration pts =
-    let d =
-      match (!last_pts, pts) with
-        | Some old_pts, Some new_pts ->
-            get_duration (Some (Int64.sub new_pts old_pts))
-        | _ -> 0
-    in
-    last_pts := pts;
-    d
-  in
-
   let sample_format, frame_size, write_frame =
     match mode with
       | `Encoded ->
@@ -73,11 +60,7 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
             then None
             else Some (Avcodec.Audio.frame_size encoder) ),
             Avcodec.encode encoder (fun packet ->
-                let duration =
-                  try get_duration (Avcodec.Packet.get_duration packet)
-                  with _ ->
-                    pts_duration ~get_duration (Avcodec.Packet.get_pts packet)
-                in
+                let duration = get_duration (Avcodec.Packet.get_pts packet) in
                 let packet =
                   { Ffmpeg_copy_content.packet; time_base = encoder_time_base }
                 in
@@ -106,9 +89,7 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
           ( sample_format,
             None,
             fun frame ->
-              let duration =
-                pts_duration ~get_duration (Avutil.frame_pts frame)
-              in
+              let duration = get_duration (Avutil.frame_pts frame) in
               let frame = { Ffmpeg_raw_content.time_base; frame } in
               let data = { Ffmpeg_content_base.params; data = [(0, frame)] } in
               let data = Ffmpeg_raw_content.Audio.lift_data data in
@@ -166,19 +147,6 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
       ~pixel_aspect:target_pixel_aspect ~target_fps ()
   in
 
-  let last_pts = ref None in
-
-  let pts_duration ~get_duration pts =
-    let d =
-      match (!last_pts, pts) with
-        | Some old_pts, Some new_pts ->
-            get_duration (Some (Int64.sub new_pts old_pts))
-        | _ -> 0
-    in
-    last_pts := pts;
-    d
-  in
-
   let write_frame =
     let time_base = Ffmpeg_utils.Fps.time_base fps_converter in
     match mode with
@@ -201,11 +169,7 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
             Ffmpeg_decoder_common.convert_duration ~src:encoder_time_base
           in
           Avcodec.encode encoder (fun packet ->
-              let duration =
-                try get_duration (Avcodec.Packet.get_duration packet)
-                with _ ->
-                  pts_duration ~get_duration (Avcodec.Packet.get_pts packet)
-              in
+              let duration = get_duration (Avcodec.Packet.get_pts packet) in
               Avcodec.Packet.set_duration packet (Some (Int64.of_int duration));
               let packet =
                 { Ffmpeg_copy_content.packet; time_base = encoder_time_base }
@@ -232,9 +196,7 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
             Ffmpeg_decoder_common.convert_duration ~src:time_base
           in
           fun frame ->
-            let duration =
-              pts_duration ~get_duration (Avutil.frame_pts frame)
-            in
+            let duration = get_duration (Avutil.frame_pts frame) in
             let frame = { Ffmpeg_raw_content.time_base; frame } in
             let data = { Ffmpeg_content_base.params; data = [(0, frame)] } in
             let data = Ffmpeg_raw_content.Video.lift_data data in

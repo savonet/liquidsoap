@@ -35,7 +35,7 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
   in
   fun ~buffer packet ->
     try
-      let duration = get_duration (Packet.get_duration packet) in
+      let duration = get_duration (Packet.get_pts packet) in
       let flags = Packet.get_flags packet in
       if List.mem `Corrupt flags then (
         log#important "Corrupted packet in stream!";
@@ -48,11 +48,7 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
       in
       let data = lift_data data in
       put_data ?pts:None buffer.Decoder.generator data 0 duration
-    with
-    | Corrupt (* Might want to change that later. *)
-    | Ffmpeg_decoder_common.No_duration
-    ->
-      ()
+    with Corrupt (* Might want to change that later. *) -> ()
 
 let mk_audio_decoder ~format container =
   let idx, stream, params = Av.find_best_audio_stream container in

@@ -29,7 +29,7 @@ let mk_decoder ~stream_time_base ~mk_params ~lift_data ~put_data params =
     Ffmpeg_decoder_common.convert_duration ~src:stream_time_base
   in
   fun ~buffer frame ->
-    let duration = get_duration (Avutil.frame_pkt_duration frame) in
+    let duration = get_duration (Avutil.frame_pts frame) in
     let frame = { Ffmpeg_raw_content.time_base = stream_time_base; frame } in
     let data =
       { Ffmpeg_content_base.params = mk_params params; data = [(0, frame)] }

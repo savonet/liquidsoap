@@ -20,10 +20,22 @@
 
   *****************************************************************************)
 
-exception No_duration
+exception No_pts
 
+(* Ffmpeg doesn't really support a consistent duration API. Thus, we
+   use PTS increment between packets to emulate duration. This means that
+   a packet's duration is, in effect, the time between the last packet and
+   the current one. *)
 let convert_duration ~src =
   let dst = Ffmpeg_utils.liq_master_ticks_time_base () in
-  function
-  | Some d -> Int64.to_int (Ffmpeg_utils.convert_time_base ~src ~dst d)
-  | None -> raise No_duration
+  let last_pts = ref None in
+  fun pts ->
+    match (!last_pts, pts) with
+      | None, Some _ ->
+          last_pts := pts;
+          0
+      | Some old_pts, Some pts ->
+          let d = Int64.sub old_pts pts in
+          last_pts := Some pts;
+          Int64.to_int (Ffmpeg_utils.convert_time_base ~src ~dst d)
+      | _, None -> raise No_pts
