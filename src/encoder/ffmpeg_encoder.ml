@@ -38,7 +38,12 @@ let () =
                         ~get_data:(fun frame ->
                           Ffmpeg_copy_content.Audio.get_data
                             Frame.(frame.content.audio))
-                | _ -> Ffmpeg_internal_encoder.mk_audio
+                | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
+                    Ffmpeg_internal_encoder.mk_audio
+                | Some (`Internal None) ->
+                    failwith "%audio encoder expects a codec variable!"
+                | Some (`Raw None) ->
+                    failwith "%audio.raw encoder expects a codec variable!"
             in
             let mk_video =
               match m.Ffmpeg_format.video_codec with
@@ -57,7 +62,12 @@ let () =
                           params
                       in
                       Ffmpeg_copy_encoder.mk_stream_copy ~video_size ~get_data
-                | _ -> Ffmpeg_internal_encoder.mk_video
+                | None | Some (`Internal (Some _)) | Some (`Raw (Some _)) ->
+                    Ffmpeg_internal_encoder.mk_video
+                | Some (`Internal None) ->
+                    failwith "%video encoder expects a codec variable!"
+                | Some (`Raw None) ->
+                    failwith "%video.raw encoder expects a codec variable!"
             in
             encoder ~mk_audio ~mk_video m)
     | _ -> None)

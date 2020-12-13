@@ -33,7 +33,7 @@ fi
 
 if [ "${STATUS}" == "2" ]; then
     echo -e "\033[1;33m[skipped]\033[0m"
-    exit 2
+    exit 0
 fi
 
 echo -e "\033[0;31m[failed]\033[0m"

@@ -82,13 +82,13 @@ let ffmpeg_gen params =
         let f =
           match (mode, format) with
             | `Audio, `Internal ->
-                { f with Ffmpeg_format.audio_codec = Some (`Internal c) }
+                { f with Ffmpeg_format.audio_codec = Some (`Internal (Some c)) }
             | `Audio, `Raw ->
-                { f with Ffmpeg_format.audio_codec = Some (`Raw c) }
+                { f with Ffmpeg_format.audio_codec = Some (`Raw (Some c)) }
             | `Video, `Internal ->
-                { f with Ffmpeg_format.video_codec = Some (`Internal c) }
+                { f with Ffmpeg_format.video_codec = Some (`Internal (Some c)) }
             | `Video, `Raw ->
-                { f with Ffmpeg_format.video_codec = Some (`Raw c) }
+                { f with Ffmpeg_format.video_codec = Some (`Raw (Some c)) }
         in
         parse_args ~format ~mode f l
     | (k, { term = Ground (String s); _ }) :: l ->
@@ -112,12 +112,24 @@ let ffmpeg_gen params =
     (fun f -> function
       | `Audio_none -> { f with Ffmpeg_format.audio_codec = None; channels = 0 }
       | `Audio_copy -> { f with Ffmpeg_format.audio_codec = Some `Copy }
-      | `Audio_raw l -> parse_args ~format:`Raw ~mode:`Audio f l
-      | `Audio l -> parse_args ~format:`Internal ~mode:`Audio f l
+      | `Audio_raw l ->
+          let f = { f with Ffmpeg_format.audio_codec = Some (`Raw None) } in
+          parse_args ~format:`Raw ~mode:`Audio f l
+      | `Audio l ->
+          let f =
+            { f with Ffmpeg_format.audio_codec = Some (`Internal None) }
+          in
+          parse_args ~format:`Internal ~mode:`Audio f l
       | `Video_none -> { f with Ffmpeg_format.video_codec = None }
       | `Video_copy -> { f with Ffmpeg_format.video_codec = Some `Copy }
-      | `Video_raw l -> parse_args ~format:`Raw ~mode:`Video f l
-      | `Video l -> parse_args ~format:`Internal ~mode:`Video f l
+      | `Video_raw l ->
+          let f = { f with Ffmpeg_format.video_codec = Some (`Raw None) } in
+          parse_args ~format:`Raw ~mode:`Video f l
+      | `Video l ->
+          let f =
+            { f with Ffmpeg_format.video_codec = Some (`Internal None) }
+          in
+          parse_args ~format:`Internal ~mode:`Video f l
       | `Option ("format", { term = Ground (String s); _ })
       | `Option ("format", { term = Var s; _ })
         when s = "none" ->

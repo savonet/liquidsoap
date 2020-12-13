@@ -25,7 +25,7 @@ type opt_val =
 
 type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
-type codec = [ `Copy | `Raw of string | `Internal of string ]
+type codec = [ `Copy | `Raw of string option | `Internal of string option ]
 
 type t = {
   format : string option;
@@ -68,7 +68,7 @@ let to_string m =
     match m.video_codec with
       | None -> opts
       | Some `Copy -> "%video.copy" :: opts
-      | Some (`Raw c) | Some (`Internal c) ->
+      | Some (`Raw (Some c)) | Some (`Internal (Some c)) ->
           let video_opts = Hashtbl.copy m.video_opts in
           Hashtbl.add video_opts "codec" (`String c);
           Hashtbl.add video_opts "framerate" (`Int (Lazy.force m.framerate));
@@ -80,22 +80,26 @@ let to_string m =
               | _ -> "video"
           in
           Printf.sprintf "%%%s(%s)" name (string_of_options video_opts) :: opts
+      | Some (`Raw None) -> "%video.raw" :: opts
+      | Some (`Internal None) -> "%video" :: opts
   in
   let opts =
     match m.audio_codec with
       | None -> opts
       | Some `Copy -> "%audio.copy" :: opts
-      | Some (`Raw c) | Some (`Internal c) ->
+      | Some (`Raw (Some c)) | Some (`Internal (Some c)) ->
           let audio_opts = Hashtbl.copy m.audio_opts in
           Hashtbl.add audio_opts "codec" (`String c);
           Hashtbl.add audio_opts "channels" (`Int m.channels);
           Hashtbl.add audio_opts "samplerate" (`Int (Lazy.force m.samplerate));
           let name =
-            match m.video_codec with
+            match m.audio_codec with
               | Some (`Raw _) -> "audio.raw"
               | _ -> "audio"
           in
           Printf.sprintf "%%%s(%s)" name (string_of_options audio_opts) :: opts
+      | Some (`Raw None) -> "%audio.raw" :: opts
+      | Some (`Internal None) -> "%audio" :: opts
   in
   let opts =
     match m.format with

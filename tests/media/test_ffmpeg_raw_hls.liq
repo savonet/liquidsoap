@@ -10,34 +10,43 @@ if debian_version == "10" then
   test.skip()
 end
 
-main_encoder =
-  %ffmpeg(
-    %audio(
-      codec="aac",
-      b="128k",
-      channels=2,
-      ar=44100
-    ),
-    %video(
-      codec="libx264",
-      b="5M",
-      flags="+global_header"
-    )
-  )
+raw_encoder = %ffmpeg(%audio.raw,%video.raw)
 
 mpegts = %ffmpeg(
   format="mpegts",
-  %audio.copy, %video.copy)
+  %audio.raw(
+    codec="aac",
+    b="128k",
+    channels=2,
+    ar=44100
+  ),
+  %video.raw(
+    codec="libx264",
+    b="5M",
+    flags="+global_header"
+  )
+)
 
 mp4 = %ffmpeg(
   format="mp4",
   movflags="+dash+skip_sidx+skip_trailer+frag_custom",
   frag_duration=2,
-  %audio.copy, %video.copy)
+  %audio.raw(
+    codec="aac",
+    b="128k",
+    channels=2,
+    ar=44100
+  ),
+  %video.raw(
+    codec="libx264",
+    b="5M",
+    flags="+global_header"
+  )
+)
 
 s = noise(duration=1.)
 
-encoded = ffmpeg.encode.audio_video(main_encoder, s)
+raw = ffmpeg.raw.audio_video(raw_encoder, s)
 
 streams = [
   ("mp4", mp4),
@@ -47,7 +56,7 @@ streams = [
 is_ready = ref(false)
 
 def segment_name(~position,~extname,stream_name) =
-  is_ready := position > 1
+  is_ready := position > 2
   timestamp = int_of_float(time())
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
@@ -122,4 +131,4 @@ output.file.hls(playlist="live.m3u8",
                 output_dir,
                 streams,
                 fallible=true,
-                encoded)
+                raw)

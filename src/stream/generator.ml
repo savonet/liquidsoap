@@ -32,7 +32,7 @@ module type S = sig
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
   val remove : t -> int -> unit
-  val add_metadata : t -> Frame.metadata -> unit
+  val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
 end
 
 module type S_Asio = sig
@@ -46,8 +46,8 @@ module type S_Asio = sig
 
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
-  val add_metadata : t -> Frame.metadata -> unit
-  val add_break : ?sync:bool -> t -> unit
+  val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
+  val add_break : ?sync:bool -> ?pos:int -> t -> unit
   val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
@@ -229,8 +229,10 @@ module From_frames = struct
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining fg = match fg.breaks with a :: _ -> a | _ -> -1
 
-  let add_metadata fg m = fg.metadata <- fg.metadata @ [(length fg, m)]
-  let add_break fg = fg.breaks <- fg.breaks @ [length fg]
+  let add_metadata ?(pos = 0) fg m =
+    fg.metadata <- fg.metadata @ [(length fg + pos, m)]
+
+  let add_break ?(pos = 0) fg = fg.breaks <- fg.breaks @ [length fg + pos]
 
   (* Advance metadata and breaks by [len] ticks. *)
   let advance fg len =
@@ -380,14 +382,15 @@ module From_audio_video = struct
   (** Add metadata at the minimum position of audio and video.
     * You probably want to call this when there is as much
     * audio as video. *)
-  let add_metadata t m = t.metadata <- t.metadata @ [(length t, m)]
+  let add_metadata ?(pos = 0) t m =
+    t.metadata <- t.metadata @ [(length t + pos, m)]
 
   (** Add a track limit. Audio and video length should be equal. *)
-  let add_break ?(sync = false) t =
+  let add_break ?(sync = false) ?(pos = 0) t =
     if sync then (
       Generator.clear t.current_audio;
       Generator.clear t.current_video );
-    t.breaks <- t.breaks @ [length t]
+    t.breaks <- t.breaks @ [length t + pos]
 
   let clear t =
     t.metadata <- [];
@@ -703,10 +706,14 @@ module From_audio_video_plus = struct
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
   let set_rewrite_metadata t f = t.map_meta <- f
 
-  let add_metadata t m =
-    Tutils.mutexify t.lock (fun m -> Super.add_metadata t.gen (t.map_meta m)) m
+  let add_metadata ?pos t m =
+    Tutils.mutexify t.lock
+      (fun m -> Super.add_metadata ?pos t.gen (t.map_meta m))
+      m
 
-  let add_break ?sync t = Tutils.mutexify t.lock (Super.add_break ?sync) t.gen
+  let add_break ?sync ?pos t =
+    Tutils.mutexify t.lock (Super.add_break ?sync ?pos) t.gen
+
   let clear t = Tutils.mutexify t.lock Super.clear t.gen
 
   let fill t frame =
