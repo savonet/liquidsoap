@@ -86,7 +86,7 @@ let mk_video_decoder container =
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
   let decoder_pts = ref 0L in
-  let cb ~buffer ~time_base:_ frame =
+  let cb ~buffer frame =
     let img =
       match Scaler.convert scaler frame with
         | [| (y, sy); (u, s); (v, _) |] ->

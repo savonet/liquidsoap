@@ -79,12 +79,16 @@ let () =
 
 module Fps = struct
   type filter = {
+    time_base : Avutil.rational;
     input : [ `Video ] Avfilter.input;
     output : [ `Video ] Avfilter.output;
   }
 
-  type pass_through = Avutil.rational
-  type t = [ `Filter of filter | `Pass_through of pass_through ]
+  type t = [ `Filter of filter | `Pass_through of Avutil.rational ]
+
+  let time_base = function
+    | `Filter { time_base } -> time_base
+    | `Pass_through time_base -> time_base
 
   let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
       ~target_fps () =
@@ -132,7 +136,8 @@ module Fps = struct
     let graph = Avfilter.launch config in
     let _, input = List.hd Avfilter.(graph.inputs.video) in
     let _, output = List.hd Avfilter.(graph.outputs.video) in
-    { input; output }
+    let time_base = Avfilter.(time_base output.context) in
+    { input; output; time_base }
 
   (* Source fps is not always known so it is optional here. *)
   let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
@@ -146,13 +151,12 @@ module Fps = struct
 
   let convert converter frame cb =
     match converter with
-      | `Pass_through time_base -> cb ~time_base frame
+      | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
           input frame;
-          let time_base = Avfilter.(time_base output.context) in
           let rec flush () =
             try
-              cb ~time_base (output.Avfilter.handler ());
+              cb (output.Avfilter.handler ());
               flush ()
             with Avutil.Error `Eagain -> ()
           in

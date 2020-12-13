@@ -314,7 +314,8 @@ let mk_video ~ffmpeg ~options output =
         ~pixel_format:(Avutil.Video.frame_get_pixel_format frame)
         ()
     in
-    Ffmpeg_utils.Fps.convert converter frame (fun ~time_base frame ->
+    let time_base = Ffmpeg_utils.Fps.time_base converter in
+    Ffmpeg_utils.Fps.convert converter frame (fun frame ->
         let frame_pts =
           Option.map
             (fun pts ->

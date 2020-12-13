@@ -133,16 +133,19 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
     write_ffmpeg_frame frame
 
 let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
-  let pixel_aspect = { Avutil.num = 1; den = 1 } in
+  let internal_fps = Lazy.force Frame.video_rate in
+  let internal_time_base = { Avutil.num = 1; den = internal_fps } in
+  let internal_width = Lazy.force Frame.video_width in
+  let internal_height = Lazy.force Frame.video_height in
 
-  let pixel_format =
+  let target_fps = Lazy.force format.Ffmpeg_format.framerate in
+  let target_frame_rate = { Avutil.num = target_fps; den = 1 } in
+  let target_width = Lazy.force format.Ffmpeg_format.width in
+  let target_height = Lazy.force format.Ffmpeg_format.height in
+  let target_pixel_aspect = { Avutil.num = 1; den = 1 } in
+  let target_pixel_format =
     Avutil.Pixel_format.of_string format.Ffmpeg_format.pixel_format
   in
-  let target_fps = Lazy.force format.Ffmpeg_format.framerate in
-  let frame_rate = { Avutil.num = target_fps; den = 1 } in
-  let time_base = { Avutil.num = 1; den = target_fps } in
-  let width = Lazy.force format.Ffmpeg_format.width in
-  let height = Lazy.force format.Ffmpeg_format.height in
 
   let flag =
     match Ffmpeg_utils.conf_scaling_algorithm#get with
@@ -152,17 +155,15 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
       | _ -> failwith "Invalid value set for ffmpeg scaling algorithm!"
   in
 
-  let src_width = Lazy.force Frame.video_width in
-  let src_height = Lazy.force Frame.video_height in
-
   let scaler =
-    InternalScaler.create [flag] src_width src_height `Yuv420p width height
-      pixel_format
+    InternalScaler.create [flag] internal_width internal_height `Yuv420p
+      target_width target_height target_pixel_format
   in
 
   let fps_converter =
-    Ffmpeg_utils.Fps.init ~width ~height ~pixel_format ~time_base ~pixel_aspect
-      ~target_fps ()
+    Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
+      ~pixel_format:target_pixel_format ~time_base:internal_time_base
+      ~pixel_aspect:target_pixel_aspect ~target_fps ()
   in
 
   let last_pts = ref None in
@@ -179,11 +180,13 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   in
 
   let write_frame =
+    let time_base = Ffmpeg_utils.Fps.time_base fps_converter in
     match mode with
       | `Encoded ->
           let encoder =
-            Avcodec.Video.create_encoder ~opts ~frame_rate ~pixel_format ~width
-              ~height ~time_base (Option.get codec)
+            Avcodec.Video.create_encoder ~opts ~frame_rate:target_frame_rate
+              ~pixel_format:target_pixel_format ~width:target_width
+              ~height:target_height ~time_base (Option.get codec)
           in
 
           let params = Some (Avcodec.params encoder) in
@@ -214,9 +217,9 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
       | `Raw ->
           let params =
             {
-              Ffmpeg_raw_content.VideoSpecs.width = Some width;
-              height = Some height;
-              pixel_format = Some pixel_format;
+              Ffmpeg_raw_content.VideoSpecs.width = Some target_width;
+              height = Some target_height;
+              pixel_format = Some target_pixel_format;
             }
           in
 
@@ -241,8 +244,7 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   (* We don't know packet duration in advance so we have to infer
      it from the next packet. *)
   let write_ffmpeg_frame frame =
-    Ffmpeg_utils.Fps.convert fps_converter frame (fun ~time_base:_ frame ->
-        write_frame frame)
+    Ffmpeg_utils.Fps.convert fps_converter frame write_frame
   in
 
   let nb_frames = ref 0L in
