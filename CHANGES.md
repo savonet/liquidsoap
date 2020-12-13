@@ -10,6 +10,7 @@ Changed:
 Fixed:
 - Remote file resolution when passing URLs with spaces (#1410)
 - Fixed empty `{http,https}` body (#1417) 
+- Fixed `input.harbor` shoutcast client connection (#1353)
 
 1.4.3 (14-09-2020)
 =====
