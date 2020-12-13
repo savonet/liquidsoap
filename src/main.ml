@@ -590,9 +590,10 @@ let initial_cleanup () =
   if !Lang_values.profile then
     log#important "Profiler stats:\n\n%s" (Profiler.stats ());
   Clock.stop ();
-  log#important "Waiting for main threads to terminate...";
-  Tutils.join_all ();
-  log#important "Main threads terminated."
+  if Tutils.has_started () then (
+    log#important "Waiting for main threads to terminate...";
+    Tutils.join_all ();
+    log#important "Main threads terminated." )
 
 let final_cleanup () =
   log#important "Cleaning downloaded files...";
@@ -669,6 +670,7 @@ let () =
          *   raises an exception and dtools catches it so we don't get
          *   a backtrace (by default at least). *)
         Clock.start ();
+        Tutils.start ();
         Tutils.main ()
       in
       if !interactive then (

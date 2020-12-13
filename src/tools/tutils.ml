@@ -237,21 +237,20 @@ let new_queue ?priorities ~name () =
 let create f x name = create ~queue:false f x name
 let join_all () = join_all ~set:all ()
 
-let () =
-  Lifecycle.on_start (fun () ->
-      for i = 1 to generic_queues#get do
-        let name = Printf.sprintf "generic queue #%d" i in
-        new_queue ~name ()
-      done;
-      for i = 1 to fast_queues#get do
-        let name = Printf.sprintf "fast queue #%d" i in
-        new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
-      done;
-      for i = 1 to non_blocking_queues#get do
-        let name = Printf.sprintf "non-blocking queue #%d" i in
-        new_queue ~priorities:(fun x -> x = Non_blocking) ~name ()
-      done;
-      mutexify started_m (fun () -> started := true) ())
+let start () =
+  for i = 1 to generic_queues#get do
+    let name = Printf.sprintf "generic queue #%d" i in
+    new_queue ~name ()
+  done;
+  for i = 1 to fast_queues#get do
+    let name = Printf.sprintf "fast queue #%d" i in
+    new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
+  done;
+  for i = 1 to non_blocking_queues#get do
+    let name = Printf.sprintf "non-blocking queue #%d" i in
+    new_queue ~priorities:(fun x -> x = Non_blocking) ~name ()
+  done;
+  mutexify started_m (fun () -> started := true) ()
 
 (** Replace stdout/err by a pipe, and install a Duppy task that pulls data
   * out of that pipe and logs it.

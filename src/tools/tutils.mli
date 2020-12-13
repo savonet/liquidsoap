@@ -32,6 +32,7 @@
 val create : ('a -> unit) -> 'a -> string -> Thread.t
 
 val main : unit -> unit
+val start : unit -> unit
 val has_started : unit -> bool
 val shutdown : int -> unit
 val exit_code : unit -> int
