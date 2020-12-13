@@ -216,9 +216,15 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     | `Options -> "OPTIONS"
     | _ -> assert false
 
-  let string_of_verb_or_source = function
+  let string_of_any_verb = function
     | `Source -> "SOURCE"
-    | v -> string_of_verb v
+    | `Shout -> "ICY"
+    | `Get -> "GET"
+    | `Post -> "POST"
+    | `Put -> "PUT"
+    | `Delete -> "DELETE"
+    | `Head -> "HEAD"
+    | `Options -> "OPTIONS"
 
   type protocol =
     [ `Http_10
@@ -419,7 +425,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* We do not implement anything with this handler for now. *)
   let handle_asterisk_options_request ~hprotocol:_ ~headers:_ _ =
     log#info "Returned 405: Method Not Allowed";
-    simple_reply "HTTP/1.0 405 Method Not Allowed\r\nAllow: \r\n\r\n"
+    simple_reply
+      "HTTP/1.0 405 Method Not Allowed\r\n\
+       Allow: OPTIONS, GET, POST, PUT\r\n\
+       \r\n"
 
   let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
     (* ICY request are on port+1 *)
@@ -787,7 +796,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         in
         Duppy.Monad.bind __pa_duppy_0 (fun (hmethod, huri, hprotocol) ->
             log#info "Method: %s, uri: %s, protocol: %s"
-              (string_of_verb_or_source hmethod)
+              (string_of_any_verb hmethod)
               huri
               (string_of_protocol hprotocol);
             let headers = parse_headers (List.tl lines) in
