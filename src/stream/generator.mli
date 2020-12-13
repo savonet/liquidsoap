@@ -48,7 +48,7 @@ module type S = sig
   val remove : t -> int -> unit
 
   (** Add metadata. *)
-  val add_metadata : t -> Frame.metadata -> unit
+  val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
 end
 
 (** Content-agnostic generator. *)
@@ -134,10 +134,10 @@ module From_frames : sig
   val remaining : t -> int
 
   (** Add metadata at the current position. *)
-  val add_metadata : t -> Frame.metadata -> unit
+  val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
 
   (** Add a break at the current position. *)
-  val add_break : t -> unit
+  val add_break : ?pos:int -> t -> unit
 
   (** Remove data. *)
   val remove : t -> int -> unit
@@ -173,8 +173,8 @@ module type S_Asio = sig
 
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
-  val add_metadata : t -> Frame.metadata -> unit
-  val add_break : ?sync:bool -> t -> unit
+  val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
+  val add_break : ?sync:bool -> ?pos:int -> t -> unit
   val put_audio : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val put_video : ?pts:int64 -> t -> Frame_content.data -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
@@ -228,12 +228,13 @@ module From_audio_video : sig
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   val remaining : t -> int
 
-  (** Add metadata at the minimum position of audio and video. You probably want
-      to call this when there is as much audio as video. *)
-  val add_metadata : t -> Frame.metadata -> unit
+  (** Add metadata at the minimum position of audio and video. [pos] is an
+      offset from the current buffer's length and defaults to [0]. *)
+  val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
 
-  (** Add a track limit. Audio and video length should be equal. *)
-  val add_break : ?sync:bool -> t -> unit
+  (** Add a track limit. [pos] is an offset from the current buffer's length and
+      defaults to [0]. *)
+  val add_break : ?sync:bool -> ?pos:int -> t -> unit
 
   (* [put_audio ?pts buffer data offset length]: offset and length
    * are in master ticks ! *)
@@ -283,8 +284,8 @@ module From_audio_video_plus : sig
   val length : t -> int
   val remaining : t -> int
   val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
-  val add_metadata : t -> Frame.metadata -> unit
-  val add_break : ?sync:bool -> t -> unit
+  val add_metadata : ?pos:int -> t -> Frame.metadata -> unit
+  val add_break : ?sync:bool -> ?pos:int -> t -> unit
 
   (* [put_audio ?pts buffer data offset length]:
    * offset and length are in master ticks! *)

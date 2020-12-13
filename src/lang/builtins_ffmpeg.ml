@@ -397,19 +397,16 @@ let mk_encoder mode =
                 (Lang_errors.Invalid_value
                    (format_val, "Only %ffmpeg encoder is currently supported!"))
       in
+      let generator =
+        Producer_consumer.Generator.create
+          ( match mode with
+            | `Audio_raw | `Audio_encoded -> `Audio
+            | `Video_raw | `Video_encoded -> `Video
+            | `Both_raw | `Both_encoded -> `Both )
+      in
       let control =
         Producer_consumer.
-          {
-            generator =
-              Generator.create
-                ( match mode with
-                  | `Audio_raw | `Audio_encoded -> `Audio
-                  | `Video_raw | `Video_encoded -> `Video
-                  | `Both_raw | `Both_encoded -> `Both );
-            lock = Mutex.create ();
-            buffering = true;
-            abort = false;
-          }
+          { generator; lock = Mutex.create (); buffering = true; abort = false }
       in
       let producer =
         new Producer_consumer.producer
@@ -496,7 +493,15 @@ let mk_encoder mode =
                        )) )
           else None
         in
+        let size = Lazy.force Frame.size in
         fun frame ->
+          List.iter
+            (fun (pos, m) ->
+              Producer_consumer.Generator.add_metadata ~pos generator m)
+            (Frame.get_all_metadata frame);
+          List.iter
+            (fun pos -> Producer_consumer.Generator.add_break ~pos generator)
+            (List.filter (fun x -> x < size) (Frame.breaks frame));
           ignore (Option.map (fun fn -> fn frame) write_video_frame);
           ignore (Option.map (fun fn -> fn frame) write_audio_frame)
       in
