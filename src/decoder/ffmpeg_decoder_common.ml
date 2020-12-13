@@ -35,7 +35,7 @@ let convert_duration ~src =
           last_pts := pts;
           0
       | Some old_pts, Some pts ->
-          let d = Int64.sub old_pts pts in
+          let d = Int64.sub pts old_pts in
           last_pts := Some pts;
           Int64.to_int (Ffmpeg_utils.convert_time_base ~src ~dst d)
       | _, None -> raise No_pts
