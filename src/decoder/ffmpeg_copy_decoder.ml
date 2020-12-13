@@ -33,6 +33,7 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
   let get_duration =
     Ffmpeg_decoder_common.convert_duration ~src:stream_time_base
   in
+  let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
   fun ~buffer packet ->
     try
       let duration = get_duration (Packet.get_pts packet) in
@@ -41,7 +42,7 @@ let mk_decoder ~stream_time_base ~lift_data ~put_data params =
         log#important "Corrupted packet in stream!";
         raise Corrupt );
       let packet =
-        { Ffmpeg_copy_content.packet; time_base = stream_time_base }
+        { Ffmpeg_copy_content.packet; time_base = stream_time_base; stream_idx }
       in
       let data =
         { Ffmpeg_content_base.params = Some params; data = [(0, packet)] }

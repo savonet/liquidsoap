@@ -23,7 +23,17 @@
 open Avutil
 open Avcodec
 
-type 'a packet = { packet : 'a Packet.t; time_base : Avutil.rational }
+type 'a packet = {
+  stream_idx : Int64.t;
+  time_base : Avutil.rational;
+  packet : 'a Packet.t;
+}
+
+let stream_idx = ref 0L
+
+let new_stream_idx () =
+  stream_idx := Int64.succ !stream_idx;
+  !stream_idx
 
 module BaseSpecs = struct
   include Ffmpeg_content_base

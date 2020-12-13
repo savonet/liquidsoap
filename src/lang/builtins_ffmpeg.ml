@@ -38,6 +38,7 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
   let sample_format, frame_size, write_frame =
     match mode with
       | `Encoded ->
+          let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
           let codec = Option.get codec in
           let sample_format =
             Avcodec.Audio.find_best_sample_format codec `Dbl
@@ -62,7 +63,11 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
             Avcodec.encode encoder (fun packet ->
                 let duration = get_duration (Avcodec.Packet.get_pts packet) in
                 let packet =
-                  { Ffmpeg_copy_content.packet; time_base = encoder_time_base }
+                  {
+                    Ffmpeg_copy_content.packet;
+                    time_base = encoder_time_base;
+                    stream_idx;
+                  }
                 in
                 let data =
                   { Ffmpeg_content_base.params; data = [(0, packet)] }
@@ -151,6 +156,8 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
     let time_base = Ffmpeg_utils.Fps.time_base fps_converter in
     match mode with
       | `Encoded ->
+          let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
+
           let encoder =
             Avcodec.Video.create_encoder ~opts ~frame_rate:target_frame_rate
               ~pixel_format:target_pixel_format ~width:target_width
@@ -170,9 +177,12 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
           in
           Avcodec.encode encoder (fun packet ->
               let duration = get_duration (Avcodec.Packet.get_pts packet) in
-              Avcodec.Packet.set_duration packet (Some (Int64.of_int duration));
               let packet =
-                { Ffmpeg_copy_content.packet; time_base = encoder_time_base }
+                {
+                  Ffmpeg_copy_content.packet;
+                  time_base = encoder_time_base;
+                  stream_idx;
+                }
               in
               let data = { Ffmpeg_content_base.params; data = [(0, packet)] } in
               let data = Ffmpeg_copy_content.Video.lift_data data in
