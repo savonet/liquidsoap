@@ -502,13 +502,11 @@ class hls_output p =
 
     method private write_playlist s =
       let segments =
-        List.rev
-          (List.fold_left
-             (fun cur el ->
-               if List.length cur < segments_per_playlist then el :: cur
-               else cur)
-             []
-             !(List.assoc s.name segments))
+        List.fold_left
+          (fun cur el ->
+            if List.length cur < segments_per_playlist then el :: cur else cur)
+          []
+          (List.rev !(List.assoc s.name segments))
       in
       let discontinuity_sequence, media_sequence =
         match segments with
