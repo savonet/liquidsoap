@@ -55,8 +55,11 @@ class producer ~name ~kind c =
     method abort_track = proceed c (fun () -> c.abort <- true)
   end
 
-class consumer ?write_frame ~output_kind ~producer ~kind ~content ~max_buffer
-  ~pre_buffer ~source c =
+type write_payload = [ `Frame of Frame.t | `Flush ]
+type write_frame = write_payload -> unit
+
+class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
+  ~content ~max_buffer ~pre_buffer ~source c =
   let prebuf = Frame.master_of_seconds pre_buffer in
   let max_buffer = Frame.master_of_seconds max_buffer in
   let autostart = true in
@@ -64,14 +67,18 @@ class consumer ?write_frame ~output_kind ~producer ~kind ~content ~max_buffer
   let write_frame =
     match write_frame with
       | Some f -> f
-      | None -> Generator.feed_from_frame ~mode:content c.generator
+      | None -> (
+          function
+          | `Frame frame ->
+              Generator.feed_from_frame ~mode:content c.generator frame
+          | `Flush -> () )
   in
   object (self)
     inherit
       Output.output
         ~output_kind ~content_kind:kind ~infallible:false
         ~on_start:(fun () -> ())
-        ~on_stop:(fun () -> ())
+        ~on_stop:(fun () -> write_frame `Flush)
         source autostart
 
     method output_reset = ()
@@ -90,7 +97,7 @@ class consumer ?write_frame ~output_kind ~producer ~kind ~content ~max_buffer
             c.abort <- false;
             s#abort_track );
 
-          write_frame frame;
+          write_frame (`Frame frame);
           if Generator.length c.generator > prebuf then (
             c.buffering <- false;
             if Generator.buffered_length c.generator > max_buffer then
