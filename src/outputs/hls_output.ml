@@ -57,6 +57,10 @@ let hls_proto kind =
         Lang.string_t,
         Some (Lang.string "stream.m3u8"),
         Some "Playlist name (m3u8 extension is recommended)." );
+      ( "prefix",
+        Lang.string_t,
+        Some (Lang.string ""),
+        Some "Prefix for each files in playlists." );
       ( "segment_duration",
         Lang.float_t,
         Some (Lang.float 10.),
@@ -200,6 +204,7 @@ class hls_output p =
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let prefix = Lang.to_string (List.assoc "prefix" p) in
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
   let () =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
@@ -540,7 +545,9 @@ class hls_output p =
           output_string oc
             (Printf.sprintf "#EXTINF:%.03f,\r\n"
                (Frame.seconds_of_master segment.len));
-          output_string oc (Printf.sprintf "%s\r\n" segment.filename))
+          output_string oc
+            (Printf.sprintf "%s%s\r\n" prefix
+               (Filename.basename segment.filename)))
         segments;
 
       self#close_out ~filename oc
@@ -565,7 +572,7 @@ class hls_output p =
             in
 
             output_string oc line;
-            output_string oc (s.name ^ ".m3u8\r\n"))
+            output_string oc (Printf.sprintf "%s%s.m3u8\r\n" prefix s.name))
           streams;
         self#close_out ~filename:main_playlist_filename oc );
       main_playlist_writen <- true
