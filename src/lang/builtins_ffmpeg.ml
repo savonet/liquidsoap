@@ -26,29 +26,33 @@ module InternalResampler =
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
 let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
-  let src_channel_layout =
+  let internal_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
-  let src_sample_rate = Lazy.force Frame.audio_rate in
-  let channels = format.Ffmpeg_format.channels in
-  let channel_layout = Avutil.Channel_layout.get_default channels in
-  let sample_rate = Lazy.force format.Ffmpeg_format.samplerate in
-  let time_base = { Avutil.num = 1; den = sample_rate } in
+  let internal_samplerate = Lazy.force Frame.audio_rate in
+  let target_channels = format.Ffmpeg_format.channels in
+  let target_channel_layout =
+    Avutil.Channel_layout.get_default target_channels
+  in
+  let target_samplerate = Lazy.force format.Ffmpeg_format.samplerate in
+  let target_time_base = { Avutil.num = 1; den = target_samplerate } in
 
-  let sample_format, frame_size, write_frame =
+  let target_sample_format, frame_size, write_frame =
     match mode with
       | `Encoded -> (
           let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
 
           let codec = Option.get codec in
 
-          let sample_format =
+          let target_sample_format =
             Avcodec.Audio.find_best_sample_format codec `Dbl
           in
 
           let encoder =
-            Avcodec.Audio.create_encoder ~opts ~channel_layout ~channels
-              ~sample_format ~sample_rate ~time_base codec
+            Avcodec.Audio.create_encoder ~opts
+              ~channel_layout:target_channel_layout ~channels:target_channels
+              ~sample_format:target_sample_format ~sample_rate:target_samplerate
+              ~time_base:target_time_base codec
           in
           let encoder_time_base = Avcodec.time_base encoder in
 
@@ -76,7 +80,7 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
             Producer_consumer.(Generator.put_audio c.generator data 0 duration)
           in
 
-          ( sample_format,
+          ( target_sample_format,
             ( if List.mem `Variable_frame_size (Avcodec.Audio.capabilities codec)
             then None
             else Some (Avcodec.Audio.frame_size encoder) ),
@@ -84,12 +88,13 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
             | `Frame frame -> Avcodec.encode encoder write_packet frame
             | `Flush -> Avcodec.flush_encoder encoder write_packet ) )
       | `Raw -> (
-          let sample_format = `Dbl in
+          let target_sample_format = `Dbl in
           let params =
             {
-              Ffmpeg_raw_content.AudioSpecs.channel_layout = Some channel_layout;
-              sample_format = Some sample_format;
-              sample_rate = Some sample_rate;
+              Ffmpeg_raw_content.AudioSpecs.channel_layout =
+                Some target_channel_layout;
+              sample_format = Some target_sample_format;
+              sample_rate = Some target_samplerate;
             }
           in
           let effective_t =
@@ -97,14 +102,16 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
           in
           Lang_types.(effective_t <: kind_t);
           let get_duration =
-            Ffmpeg_decoder_common.convert_duration ~src:time_base
+            Ffmpeg_decoder_common.convert_duration ~src:target_time_base
           in
-          ( sample_format,
+          ( target_sample_format,
             None,
             function
             | `Frame frame ->
                 let duration = get_duration (Avutil.frame_pts frame) in
-                let frame = { Ffmpeg_raw_content.time_base; frame } in
+                let frame =
+                  { Ffmpeg_raw_content.time_base = target_time_base; frame }
+                in
                 let data =
                   { Ffmpeg_content_base.params; data = [(0, frame)] }
                 in
@@ -115,15 +122,16 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
   in
 
   let resampler =
-    InternalResampler.create ~out_sample_format:sample_format src_channel_layout
-      src_sample_rate channel_layout sample_rate
+    InternalResampler.create ~out_sample_format:target_sample_format
+      internal_channel_layout internal_samplerate target_channel_layout
+      target_samplerate
   in
 
   let write_ffmpeg_frame =
-    Ffmpeg_internal_encoder.write_audio_frame ~src_time_base:time_base
-      ~dst_time_base:time_base ~target_samplerate:sample_rate
-      ~target_channel_layout:channel_layout ~target_sample_format:sample_format
-      ~frame_size (fun frame -> write_frame (`Frame frame))
+    Ffmpeg_internal_encoder.write_audio_frame ~time_base:target_time_base
+      ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
+      ~sample_format:target_sample_format ~frame_size (fun frame ->
+        write_frame (`Frame frame))
   in
 
   function
