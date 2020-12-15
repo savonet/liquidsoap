@@ -463,7 +463,7 @@ let mk_encoder mode =
                     (write_audio_frame ~kind_t:audio_kind_t ~mode:`Raw
                        ~opts:audio_opts ~format control)
               | Some (`Internal (Some codec)) when has_encoded_audio ->
-                  let codec = Avcodec.Audio.find_encoder codec in
+                  let codec = Avcodec.Audio.find_encoder_by_name codec in
                   Some
                     (write_audio_frame ~kind_t:audio_kind_t ~mode:`Encoded
                        ~opts:audio_opts ~codec ~format control)
@@ -487,7 +487,7 @@ let mk_encoder mode =
                     (write_video_frame ~kind_t:video_kind_t ~mode:`Raw
                        ~opts:video_opts ~format control)
               | Some (`Internal (Some codec)) when has_encoded_video ->
-                  let codec = Avcodec.Video.find_encoder codec in
+                  let codec = Avcodec.Video.find_encoder_by_name codec in
                   Some
                     (write_video_frame ~kind_t:video_kind_t ~mode:`Encoded
                        ~opts:video_opts ~codec ~format control)
