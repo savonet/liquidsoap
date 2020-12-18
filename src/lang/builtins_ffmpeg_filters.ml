@@ -230,12 +230,20 @@ let mk_options { Avfilter.options } =
               ~to_string:(fun x -> x)
               ~from_value:Lang.to_string s
         | `Pixel_fmt s ->
-            mk_opt ~t:Lang.string_t ~to_string:Avutil.Pixel_format.to_string
+            mk_opt ~t:Lang.string_t
+              ~to_string:(fun p ->
+                match Avutil.Pixel_format.to_string p with
+                  | None -> "none"
+                  | Some p -> p)
               ~from_value:(fun v ->
                 Avutil.Pixel_format.of_string (Lang.to_string v))
               s
         | `Sample_fmt s ->
-            mk_opt ~t:Lang.string_t ~to_string:Avutil.Sample_format.get_name
+            mk_opt ~t:Lang.string_t
+              ~to_string:(fun p ->
+                match Avutil.Sample_format.get_name p with
+                  | None -> "none"
+                  | Some p -> p)
               ~from_value:(fun v ->
                 Avutil.Sample_format.find (Lang.to_string v))
               s
@@ -415,9 +423,9 @@ let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
         `Int (Option.value ~default:(Lazy.force Frame.video_height) height) );
     `Pair
       ( "pix_fmt",
-        `String
+        `Int
           Avutil.Pixel_format.(
-            to_string (Option.value ~default:`Yuv420p pixel_format)) );
+            get_id (Option.value ~default:`Yuv420p pixel_format)) );
   ]
 
 let () =

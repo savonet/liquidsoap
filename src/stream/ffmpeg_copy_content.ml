@@ -76,8 +76,10 @@ module AudioSpecs = struct
         ( "sample_format",
           Option.map
             (fun p ->
-              Printf.sprintf "%S"
-                (Sample_format.get_name (Audio.get_sample_format p)))
+              Printf.sprintf "%s"
+                ( match Sample_format.get_name (Audio.get_sample_format p) with
+                  | None -> "none"
+                  | Some p -> p ))
             params );
         ( "sample_rate",
           Option.map (fun p -> string_of_int (Audio.get_sample_rate p)) params
@@ -130,7 +132,10 @@ module VideoSpecs = struct
         ( "pixel_format",
           Option.bind params (fun p ->
               Option.bind (Video.get_pixel_format p) (fun p ->
-                  Some (Pixel_format.to_string p))) );
+                  Some
+                    ( match Pixel_format.to_string p with
+                      | None -> "none"
+                      | Some p -> p ))) );
       ]
 
   let compatible p p' =

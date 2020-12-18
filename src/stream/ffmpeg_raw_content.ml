@@ -70,7 +70,11 @@ module AudioSpecs = struct
           Option.map
             (Channel_layout.get_description ?channels:None)
             channel_layout );
-        ("sample_format", Option.map Sample_format.get_name sample_format);
+        ( "sample_format",
+          Option.map
+            (fun p ->
+              match Sample_format.get_name p with None -> "none" | Some p -> p)
+            sample_format );
         ("sample_rate", Option.map string_of_int sample_rate);
       ]
 
@@ -160,7 +164,13 @@ module VideoSpecs = struct
       [
         ("width", Option.map string_of_int width);
         ("height", Option.map string_of_int height);
-        ("pixel_format", Option.map Avutil.Pixel_format.to_string pixel_format);
+        ( "pixel_format",
+          Option.map
+            (fun p ->
+              match Avutil.Pixel_format.to_string p with
+                | None -> "none"
+                | Some p -> p)
+            pixel_format );
       ]
 
   let parse_param label value =

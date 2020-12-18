@@ -148,7 +148,10 @@ let get_type ~ctype ~url container =
       let pixel_format =
         match Avcodec.Video.get_pixel_format params with
           | None -> "unknown"
-          | Some f -> Avutil.Pixel_format.to_string f
+          | Some f -> (
+              match Avutil.Pixel_format.to_string f with
+                | None -> "none"
+                | Some s -> s )
       in
       let codec_name =
         Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)

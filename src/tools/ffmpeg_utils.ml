@@ -97,7 +97,7 @@ module Fps = struct
       let args =
         [
           `Pair ("video_size", `String (Printf.sprintf "%dx%d" width height));
-          `Pair ("pix_fmt", `String (Avutil.Pixel_format.to_string pixel_format));
+          `Pair ("pix_fmt", `Int (Avutil.Pixel_format.get_id pixel_format));
           `Pair ("time_base", `Rational time_base);
           `Pair ("pixel_aspect", `Rational pixel_aspect);
         ]

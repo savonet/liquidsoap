@@ -152,7 +152,7 @@ let create () =
             n * snd dst_d.(0)
         | `Pixel n ->
             assert (n = 0 || Array.length dst_d = 1);
-            n * Avutil.Pixel_format.bits dst_f
+            n * Avutil.Pixel_format.(bits (descriptor dst_f))
     in
     Swscale.scale conv.conv src_d 0 src_h dst_d dst_off
   in

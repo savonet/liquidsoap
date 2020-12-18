@@ -205,8 +205,7 @@ let mk_audio ~ffmpeg ~options output =
   let was_keyframe () = false in
 
   let frame_size =
-    if List.mem `Variable_frame_size (Avcodec.Audio.capabilities codec) then
-      None
+    if List.mem `Variable_frame_size (Avcodec.capabilities codec) then None
     else Some (Av.get_frame_size stream)
   in
 

@@ -81,8 +81,8 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
           in
 
           ( target_sample_format,
-            ( if List.mem `Variable_frame_size (Avcodec.Audio.capabilities codec)
-            then None
+            ( if List.mem `Variable_frame_size (Avcodec.capabilities codec) then
+              None
             else Some (Avcodec.Audio.frame_size encoder) ),
             function
             | `Frame frame -> Avcodec.encode encoder write_packet frame
