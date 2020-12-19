@@ -38,11 +38,15 @@ type outputs =
 
 type graph = {
   mutable config : Avfilter.config option;
-  mutable pending_input : int;
+  input_inits : unit Lazy.t Queue.t;
   init : unit Lazy.t Queue.t;
   entries : (inputs, outputs) Avfilter.io;
   clocks : Source.clock_variable Queue.t;
 }
+
+let init_graph graph =
+  Queue.iter Lazy.force graph.input_inits;
+  Queue.iter Lazy.force graph.init
 
 module Graph = Lang.MkAbstract (struct
   type content = graph
@@ -492,14 +496,9 @@ let () =
            List.hd Avfilter.(_abuffer.io.outputs.audio))
       in
 
-      graph.pending_input <- graph.pending_input + 1;
+      Queue.add (lazy (ignore (Lazy.force audio))) graph.input_inits;
 
-      s#set_init
-        ( lazy
-          ( ignore (Lazy.force audio);
-            graph.pending_input <- graph.pending_input - 1;
-            if graph.pending_input = 0 then Queue.iter Lazy.force graph.init )
-          );
+      s#set_init (lazy (init_graph graph));
 
       Audio.to_value (`Output audio));
 
@@ -585,14 +584,9 @@ let () =
            List.hd Avfilter.(_buffer.io.outputs.video))
       in
 
-      graph.pending_input <- graph.pending_input + 1;
+      Queue.add (lazy (ignore (Lazy.force video))) graph.input_inits;
 
-      s#set_init
-        ( lazy
-          ( ignore (Lazy.force video);
-            graph.pending_input <- graph.pending_input - 1;
-            if graph.pending_input = 0 then Queue.iter Lazy.force graph.init )
-          );
+      s#set_init (lazy (init_graph graph));
 
       Video.to_value (`Output video));
 
@@ -673,7 +667,7 @@ let () =
         Avfilter.
           {
             config = Some config;
-            pending_input = 0;
+            input_inits = Queue.create ();
             init = Queue.create ();
             clocks = Queue.create ();
             entries =
@@ -725,6 +719,7 @@ let () =
                   set_output output)
                 filter.outputs.video) ) )
         graph.init;
-      if graph.pending_input = 0 then Queue.iter Lazy.force graph.init;
+      if Queue.length graph.input_inits = 0 then
+        Queue.iter Lazy.force graph.init;
       graph.config <- None;
       ret)
