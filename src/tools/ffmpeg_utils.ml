@@ -188,8 +188,6 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
   let codec_name = Avcodec.name codec in
   let no_hardware_context = (None, target_pixel_format) in
   try
-    if not (List.mem `Hardware (Avcodec.capabilities codec)) then
-      raise (Found no_hardware_context);
     let hw_configs = Avcodec.hw_configs codec in
     let find hw_method cb =
       ignore
@@ -205,18 +203,18 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
             "Codec %s has internal hardware capabilities that should work \
              without specific settings."
             codec_name;
-          raise (Found (None, target_pixel_format)) );
-        find `Hw_device_ctx (fun { Avcodec.device_type; _ } ->
-            log#info
-              "Codec %s has device context-based hardware capabilities. \
-               Enabling it.."
-              codec_name;
-            let device_context =
-              Avutil.HwContext.create_device_context ?device:hwaccel_device
-                ~opts device_type
-            in
-            raise
-              (Found (Some (`Device_context device_context), target_pixel_format))));
+          raise (Found (None, target_pixel_format)) ));
+    find `Hw_device_ctx (fun { Avcodec.device_type; _ } ->
+        log#info
+          "Codec %s has device context-based hardware capabilities. Enabling \
+           it.."
+          codec_name;
+        let device_context =
+          Avutil.HwContext.create_device_context ?device:hwaccel_device ~opts
+            device_type
+        in
+        raise
+          (Found (Some (`Device_context device_context), target_pixel_format)));
     find `Hw_frames_ctx (fun { Avcodec.device_type; pixel_format; _ } ->
         log#info
           "Codec %s has frame context-based hardware cabilities. Enabling it.."
