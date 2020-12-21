@@ -188,6 +188,7 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
   let codec_name = Avcodec.name codec in
   let no_hardware_context = (None, target_pixel_format) in
   try
+    if hwaccel = `None then raise (Found no_hardware_context);
     let hw_configs = Avcodec.hw_configs codec in
     let find hw_method cb =
       ignore
