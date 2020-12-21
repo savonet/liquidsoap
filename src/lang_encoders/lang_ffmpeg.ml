@@ -37,6 +37,8 @@ let ffmpeg_gen params =
       pixel_format = "yuv420p";
       audio_codec = None;
       video_codec = None;
+      hwaccel = `Auto;
+      hwaccel_device = None;
       audio_opts = Hashtbl.create 0;
       video_opts = Hashtbl.create 0;
       other_opts = Hashtbl.create 0;
@@ -77,6 +79,19 @@ let ffmpeg_gen params =
     | ("pixel_format", { term = Ground (String p); _ }) :: l when mode = `Video
       ->
         parse_args ~format ~mode { f with Ffmpeg_format.pixel_format = p } l
+    | ("hwaccel", { term = Var "auto"; _ }) :: l when mode = `Video ->
+        parse_args ~format ~mode { f with Ffmpeg_format.hwaccel = `Auto } l
+    | ("hwaccel", { term = Var "none"; _ }) :: l when mode = `Video ->
+        parse_args ~format ~mode { f with Ffmpeg_format.hwaccel = `None } l
+    | ("hwaccel_device", { term = Var "none"; _ }) :: l when mode = `Video ->
+        parse_args ~format ~mode
+          { f with Ffmpeg_format.hwaccel_device = None }
+          l
+    | ("hwaccel_device", { term = Ground (String d); _ }) :: l
+      when mode = `Video ->
+        parse_args ~format ~mode
+          { f with Ffmpeg_format.hwaccel_device = Some d }
+          l
     (* Shared options *)
     | ("codec", { term = Ground (String c); _ }) :: l ->
         let f =

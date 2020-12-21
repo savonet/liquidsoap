@@ -29,7 +29,7 @@ module RawResampler = Swresample.Make (Swresample.Frame) (Swresample.Frame)
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 module RawScaler = Swscale.Make (Swscale.Frame) (Swscale.Frame)
 
-let log = Log.make ["ffmpeg"; "decoder"; "internal"]
+let log = Log.make ["ffmpeg"; "encoder"; "internal"]
 
 (* mk_stream is used for the copy encoder, where stream creation has to be
    delayed until the first packet is passed. This is not needed here. *)
@@ -241,6 +241,9 @@ let mk_video ~ffmpeg ~options output =
   let target_video_frame_time_base = { Avutil.num = 1; den = target_fps } in
   let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
   let target_height = Lazy.force ffmpeg.Ffmpeg_format.height in
+  let target_pixel_format =
+    Avutil.Pixel_format.of_string ffmpeg.Ffmpeg_format.pixel_format
+  in
 
   let flag =
     match Ffmpeg_utils.conf_scaling_algorithm#get with
@@ -254,10 +257,17 @@ let mk_video ~ffmpeg ~options output =
   Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.video_opts;
   Hashtbl.iter (Hashtbl.add opts) options;
 
+  let hwaccel = ffmpeg.Ffmpeg_format.hwaccel in
+  let hwaccel_device = ffmpeg.Ffmpeg_format.hwaccel_device in
+
+  let hardware_context, target_pixel_format =
+    Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
+      ~target_pixel_format ~target_width ~target_height codec
+  in
+
   let stream =
     Av.new_video_stream ~time_base:target_video_frame_time_base
-      ~pixel_format:
-        (Avutil.Pixel_format.of_string ffmpeg.Ffmpeg_format.pixel_format)
+      ~pixel_format:target_pixel_format ?hardware_context
       ~frame_rate:{ Avutil.num = target_fps; den = 1 }
       ~width:target_width ~height:target_height ~opts ~codec output
   in
