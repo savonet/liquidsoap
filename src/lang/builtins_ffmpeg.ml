@@ -182,9 +182,12 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
 
           let codec = Option.get codec in
 
+          let hwaccel = format.Ffmpeg_format.hwaccel in
+          let hwaccel_device = format.Ffmpeg_format.hwaccel_device in
+
           let hardware_context, target_pixel_format =
-            Ffmpeg_utils.mk_hardware_context ~opts ~target_pixel_format
-              ~target_width ~target_height codec
+            Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
+              ~target_pixel_format ~target_width ~target_height codec
           in
 
           let encoder =

@@ -26,6 +26,7 @@ type opt_val =
 type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
 type codec = [ `Copy | `Raw of string option | `Internal of string option ]
+type hwaccel = [ `None | `Auto ]
 
 type t = {
   format : string option;
@@ -36,6 +37,8 @@ type t = {
   width : int Lazy.t;
   height : int Lazy.t;
   pixel_format : string;
+  hwaccel : hwaccel;
+  hwaccel_device : string option;
   audio_codec : codec option;
   audio_opts : opts;
   video_codec : codec option;
@@ -43,8 +46,10 @@ type t = {
   other_opts : opts;
 }
 
-let string_of_options options =
+let string_of_options
+    (options : (string, [< `Var of string | opt_val ]) Hashtbl.t) =
   let _v = function
+    | `Var v -> v
     | `String s -> Printf.sprintf "%S" s
     | `Int i -> string_of_int i
     | `Int64 i -> Int64.to_string i
@@ -69,11 +74,23 @@ let to_string m =
       | None -> opts
       | Some `Copy -> "%video.copy" :: opts
       | Some (`Raw (Some c)) | Some (`Internal (Some c)) ->
-          let video_opts = Hashtbl.copy m.video_opts in
+          let video_opts =
+            Hashtbl.fold
+              (fun lbl v h ->
+                Hashtbl.add h lbl (v :> [ `Var of string | opt_val ]);
+                h)
+              m.video_opts (Hashtbl.create 10)
+          in
           Hashtbl.add video_opts "codec" (`String c);
           Hashtbl.add video_opts "framerate" (`Int (Lazy.force m.framerate));
           Hashtbl.add video_opts "width" (`Int (Lazy.force m.width));
           Hashtbl.add video_opts "height" (`Int (Lazy.force m.height));
+          Hashtbl.add video_opts "hwaccel"
+            (`Var (match m.hwaccel with `None -> "none" | `Auto -> "auto"));
+          Hashtbl.add video_opts "hwaccel_device"
+            ( match m.hwaccel_device with
+              | None -> `Var "none"
+              | Some d -> `String d );
           let name =
             match m.video_codec with
               | Some (`Raw _) -> "video.raw"

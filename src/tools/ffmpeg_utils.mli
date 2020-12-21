@@ -35,6 +35,8 @@ val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
 
 val mk_hardware_context :
+  hwaccel:Ffmpeg_format.hwaccel ->
+  hwaccel_device:string option ->
   opts:Avutil.opts ->
   target_pixel_format:Avutil.Pixel_format.t ->
   target_width:int ->

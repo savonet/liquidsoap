@@ -257,9 +257,12 @@ let mk_video ~ffmpeg ~options output =
   Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.video_opts;
   Hashtbl.iter (Hashtbl.add opts) options;
 
+  let hwaccel = ffmpeg.Ffmpeg_format.hwaccel in
+  let hwaccel_device = ffmpeg.Ffmpeg_format.hwaccel_device in
+
   let hardware_context, target_pixel_format =
-    Ffmpeg_utils.mk_hardware_context ~opts ~target_pixel_format ~target_width
-      ~target_height codec
+    Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
+      ~target_pixel_format ~target_width ~target_height codec
   in
 
   let stream =
