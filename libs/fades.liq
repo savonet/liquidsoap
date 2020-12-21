@@ -140,6 +140,7 @@ end
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~override_skip Metadata field which, when present and set to "true", will trigger the fade
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.skip(~id="fade.skip",~duration=5.,
              ~override_duration="liq_fade_skip",
