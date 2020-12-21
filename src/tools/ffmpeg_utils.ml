@@ -179,3 +179,57 @@ let convert_time_base ~src ~dst pts =
   let num = src.Avutil.num * dst.Avutil.den in
   let den = src.Avutil.den * dst.Avutil.num in
   Int64.div (Int64.mul pts (Int64.of_int num)) (Int64.of_int den)
+
+exception
+  Found of (Avcodec.Video.hardware_context option * Avutil.Pixel_format.t)
+
+let mk_hardware_context ~opts ~target_pixel_format ~target_width ~target_height
+    codec =
+  let codec_name = Avcodec.name codec in
+  let no_hardware_context = (None, target_pixel_format) in
+  try
+    if not (List.mem `Hardware (Avcodec.capabilities codec)) then
+      raise (Found no_hardware_context);
+    let hw_configs = Avcodec.hw_configs codec in
+    let find hw_method cb =
+      ignore
+        (Option.map
+           (fun hw_method -> raise (Found (cb hw_method)))
+           (List.find_opt
+              (fun { Avcodec.methods; _ } -> List.mem hw_method methods)
+              hw_configs))
+    in
+    find `Internal (fun _ ->
+        log#info
+          "Codec %s has internal hardware capabilities that should work \
+           without specific settings."
+          codec_name;
+        (None, target_pixel_format));
+    find `Hw_device_ctx (fun { Avcodec.device_type; _ } ->
+        log#info
+          "Codec %s has device context-based hardware capabilities. Enabling \
+           it.."
+          codec_name;
+        let device_context =
+          Avutil.HwContext.create_device_context ~opts device_type
+        in
+        (Some (`Device_context device_context), target_pixel_format));
+    find `Hw_frames_ctx (fun { Avcodec.device_type; pixel_format; _ } ->
+        log#info
+          "Codec %s has frame context-based hardware cabilities. Enabling it.."
+          codec_name;
+        let device_context =
+          Avutil.HwContext.create_device_context ~opts device_type
+        in
+        let frame_context =
+          Avutil.HwContext.create_frame_context ~width:target_width
+            ~height:target_height ~src_pixel_format:target_pixel_format
+            ~dst_pixel_format:pixel_format device_context
+        in
+        (Some (`Frame_context frame_context), pixel_format));
+    log#info
+      "Codec %s has hardware-accelerated support but no suitable method was \
+       found. Trying without any specific settings.."
+      codec_name;
+    no_hardware_context
+  with Found v -> v

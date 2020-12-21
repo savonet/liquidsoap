@@ -34,6 +34,14 @@ val liq_frame_time_base : unit -> Avutil.rational
 val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
 
+val mk_hardware_context :
+  opts:Avutil.opts ->
+  target_pixel_format:Avutil.Pixel_format.t ->
+  target_width:int ->
+  target_height:int ->
+  ([< `Audio | `Video ], Avcodec.encode) Avcodec.codec ->
+  Avcodec.Video.hardware_context option * Avutil.Pixel_format.t
+
 module Fps : sig
   type t
 

@@ -8,6 +8,7 @@ New:
 - Add support for `x ? y : z` syntax (#1266).
 - Added support for list spread and deconstruction syntax (#1269).
 - Added support for video encoding and decoding using `ffmpeg` (#1038).
+- Added support for hardware-accelerated video encoding using `ffmpeg` (#1380)
 - Added support for ffmpeg filters (#1038).
 - Added video support to `output.hls` (#1391).
 - Added mp4 support to `output.hls` (#1391).

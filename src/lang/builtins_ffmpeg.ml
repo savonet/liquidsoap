@@ -180,10 +180,17 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
       | `Encoded -> (
           let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
 
+          let codec = Option.get codec in
+
+          let hardware_context, target_pixel_format =
+            Ffmpeg_utils.mk_hardware_context ~opts ~target_pixel_format
+              ~target_width ~target_height codec
+          in
+
           let encoder =
-            Avcodec.Video.create_encoder ~opts ~frame_rate:target_frame_rate
-              ~pixel_format:target_pixel_format ~width:target_width
-              ~height:target_height ~time_base (Option.get codec)
+            Avcodec.Video.create_encoder ?hardware_context ~opts
+              ~frame_rate:target_frame_rate ~pixel_format:target_pixel_format
+              ~width:target_width ~height:target_height ~time_base codec
           in
 
           let params = Some (Avcodec.params encoder) in
