@@ -54,7 +54,7 @@ let audio_mono =
 let audio_stereo =
   `Format Audio.(lift_params { Contents.channel_layout = lazy `Stereo })
 
-let video_yuv420p = `Kind Video.kind
+let video_yuva420p = `Kind Video.kind
 let midi_native = `Kind Midi.kind
 let midi_n c = `Format Midi.(lift_params { Contents.channels = c })
 

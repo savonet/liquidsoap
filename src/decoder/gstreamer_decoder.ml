@@ -137,7 +137,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
       let img = Image.YUV420.make_data width height buf y_stride uv_stride in
       let stream = Video.single img in
       let fps = { Decoder.num = Lazy.force Frame.video_rate; den = 1 } in
-      buffer.Decoder.put_yuv420p ~fps stream );
+      buffer.Decoder.put_yuva420p ~fps stream );
     GU.flush ~log gst.bin
   in
   let seek off =

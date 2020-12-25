@@ -164,7 +164,7 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   in
 
   let scaler =
-    InternalScaler.create [flag] internal_width internal_height `Yuv420p
+    InternalScaler.create [flag] internal_width internal_height `Yuva420p
       target_width target_height target_pixel_format
   in
 
@@ -266,13 +266,15 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   | `Frame frame ->
       let vstart = 0 in
       let vstop = Frame.video_of_master (Lazy.force Frame.size) in
-      let vbuf = VFrame.yuv420p frame in
+      let vbuf = VFrame.yuva420p frame in
       for i = vstart to vstop - 1 do
         let f = Video.get vbuf i in
         let y, u, v = Image.YUV420.data f in
         let sy = Image.YUV420.y_stride f in
         let s = Image.YUV420.uv_stride f in
-        let vdata = [| (y, sy); (u, s); (v, s) |] in
+        Image.YUV420.ensure_alpha f;
+        let a = Option.get (Image.YUV420.alpha f) in
+        let vdata = [| (y, sy); (u, s); (v, s); (a, s) |] in
         let frame = InternalScaler.convert scaler vdata in
         Avutil.frame_set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;
@@ -300,7 +302,7 @@ let mk_encoder mode =
     Frame.
       {
         audio = (if has_audio then audio_pcm else none);
-        video = (if has_video then video_yuv420p else none);
+        video = (if has_video then video_yuva420p else none);
         midi = none;
       }
   in

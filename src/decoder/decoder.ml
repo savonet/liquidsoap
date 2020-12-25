@@ -62,7 +62,7 @@ type fps = Decoder_utils.fps = { num : int; den : int }
 type buffer = {
   generator : G.t;
   put_pcm : ?pts:Int64.t -> samplerate:int -> Frame_content.Audio.data -> unit;
-  put_yuv420p : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
+  put_yuva420p : ?pts:Int64.t -> fps:fps -> Frame_content.Video.data -> unit;
 }
 
 type decoder = {
@@ -445,7 +445,7 @@ let mk_buffer ~ctype generator =
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
 
-  let put_yuv420p =
+  let put_yuva420p =
     if mode <> `Audio then (
       let video_resample = Decoder_utils.video_resample () in
       let video_scale = Decoder_utils.video_scale () in
@@ -461,7 +461,7 @@ let mk_buffer ~ctype generator =
     else fun ?pts:_ ~fps:_ _ -> ()
   in
 
-  { generator; put_pcm; put_yuv420p }
+  { generator; put_pcm; put_yuva420p }
 
 let mk_decoder ~filename ~close ~remaining ~buffer decoder =
   let prebuf = Frame.master_of_seconds 0.5 in

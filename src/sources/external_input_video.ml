@@ -92,7 +92,7 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
 let log = Log.make ["input"; "external"; "video"]
 
 let () =
-  let kind = Frame.{ audio = audio_pcm; video = video_yuv420p; midi = none } in
+  let kind = Frame.{ audio = audio_pcm; video = video_yuva420p; midi = none } in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.avi" ~category:Lang.Input
     ~flags:[Lang.Experimental]
@@ -244,7 +244,7 @@ let () =
 (***** raw video *****)
 
 let () =
-  let kind = Lang.video_yuv420p in
+  let kind = Lang.video_yuva420p in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.rawvideo" ~category:Lang.Input
     ~flags:[Lang.Experimental]

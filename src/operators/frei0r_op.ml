@@ -184,7 +184,7 @@ class frei0r_source ~kind ~name bgra instance params =
         params ();
         let start = VFrame.position frame in
         let stop = VFrame.size () in
-        let rgb = VFrame.yuv420p frame in
+        let rgb = VFrame.yuva420p frame in
         for i = start to stop - 1 do
           let img = Video.get rgb i in
           let img = Image.YUV420.to_RGBA32 img in
@@ -311,7 +311,7 @@ let register_plugin fname =
       | Frei0r.Mixer3 -> (3, 1)
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
-  let kind = Lang.video_yuv420p in
+  let kind = Lang.video_yuva420p in
   let return_t = Lang.kind_type_of_kind_format kind in
   let liq_params, params = params plugin info in
   let liq_params =

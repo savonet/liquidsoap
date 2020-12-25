@@ -127,8 +127,8 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                 with Frame_content.Invalid -> () );
 
               try
-                let vbuf = VFrame.yuv420p buf in
-                let vtmp = VFrame.yuv420p tmp in
+                let vbuf = VFrame.yuva420p buf in
+                let vtmp = VFrame.yuva420p tmp in
                 let ( ! ) = Frame.video_of_master in
                 for i = !offset to !already - 1 do
                   video_loop rank (Video.get vbuf i) (Video.get vtmp i)
@@ -136,7 +136,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
               with Frame_content.Invalid -> () )
             else (
               try
-                let vbuf = VFrame.yuv420p buf in
+                let vbuf = VFrame.yuva420p buf in
                 let ( ! ) = Frame.video_of_master in
                 for i = !offset to !already - 1 do
                   video_init (Video.get vbuf i)
@@ -211,7 +211,7 @@ let tile_pos n =
   horiz (n / 2) (n - (n / 2))
 
 let () =
-  let kind = Lang.video_yuv420p in
+  let kind = Lang.video_yuva420p in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.tile" ~category:Lang.VideoProcessing
     ~descr:"Tile sources (same as add but produces tiles of videos)."

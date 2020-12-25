@@ -122,11 +122,11 @@ def f() =
   end
   ignore(sum_eq)
 
-  (noise():source(audio=pcm,video=yuv420p,midi=none))
+  (noise():source(audio=pcm,video=yuva420p,midi=none))
 
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.copy,video=ffmpeg.video.copy,midi=midi))
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw,video=ffmpeg.video.raw,midi=midi))
-  (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw(sample_rate=44100),video=ffmpeg.video.raw(pixel_format=yuv420p),midi=midi))
+  (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw(sample_rate=44100),video=ffmpeg.video.raw(pixel_format=yuva420p),midi=midi))
   
   test.pass()
 end

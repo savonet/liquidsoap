@@ -283,7 +283,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
               (Option.get el.audio) data 0 (Bytes.length data) );
           if has_video then (
-            let buf = VFrame.yuv420p frame in
+            let buf = VFrame.yuva420p frame in
             for i = 0 to Video.length buf - 1 do
               let img = Video.get buf i in
               let y, u, v = Image.YUV420.data img in
@@ -397,7 +397,7 @@ let () =
 
 let () =
   let kind =
-    { Frame.audio = Frame.audio_pcm; video = Frame.video_yuv420p; midi = `Any }
+    { Frame.audio = Frame.audio_pcm; video = Frame.video_yuva420p; midi = `Any }
   in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio_video" ~active:true
@@ -678,7 +678,7 @@ let input_proto =
 let () =
   let kind =
     (* TODO: be more flexible on audio *)
-    Frame.{ audio = audio_stereo; video = video_yuv420p; midi = none }
+    Frame.{ audio = audio_stereo; video = video_yuva420p; midi = none }
   in
   let return_t = Lang.kind_type_of_kind_format kind in
   let proto =
@@ -753,7 +753,7 @@ let () =
         :> Source.source ))
 
 let () =
-  let kind = Lang.video_yuv420p in
+  let kind = Lang.video_yuva420p in
   let return_t = Lang.kind_type_of_kind_format kind in
   let proto =
     input_proto

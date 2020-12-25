@@ -30,7 +30,7 @@ let () =
     Frame_content.(
       Audio.lift_params { Contents.channel_layout = lazy `Five_point_one })
   in
-  let yuv420p = Frame_content.default_video () in
+  let yuva420p = Frame_content.default_video () in
   let midi = Frame_content.(Midi.lift_params { Contents.channels = 1 }) in
   assert (
     Decoder.can_decode_type
@@ -48,11 +48,11 @@ let () =
     not
       (Decoder.can_decode_type
          { audio = mono; video = none; midi = none }
-         { audio = stereo; video = yuv420p; midi = none }) );
+         { audio = stereo; video = yuva420p; midi = none }) );
   assert (
     Decoder.can_decode_type
-      { audio = mono; video = yuv420p; midi = none }
-      { audio = stereo; video = yuv420p; midi = none } );
+      { audio = mono; video = yuva420p; midi = none }
+      { audio = stereo; video = yuva420p; midi = none } );
   assert (
     not
       (Decoder.can_decode_type
@@ -60,13 +60,13 @@ let () =
          { audio = stereo; video = none; midi }) );
   assert (
     Decoder.can_decode_type
-      { audio = stereo; video = yuv420p; midi }
+      { audio = stereo; video = yuva420p; midi }
       { audio = stereo; video = none; midi = none } );
   assert (
     Decoder.can_decode_type
-      { audio = stereo; video = yuv420p; midi }
-      { audio = stereo; video = yuv420p; midi } );
+      { audio = stereo; video = yuva420p; midi }
+      { audio = stereo; video = yuva420p; midi } );
   assert (
     Decoder.can_decode_type
-      { audio = stereo; video = yuv420p; midi = none }
-      { audio = none; video = yuv420p; midi = none } )
+      { audio = stereo; video = yuva420p; midi = none }
+      { audio = none; video = yuva420p; midi = none } )

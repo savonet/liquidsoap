@@ -45,7 +45,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
-    let vbuf = VFrame.yuv420p frame in
+    let vbuf = VFrame.yuva420p frame in
     let vstart = Frame.video_of_master start in
     let vlen = Frame.video_of_master len in
     let data = Strings.Mutable.empty () in

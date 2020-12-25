@@ -158,7 +158,7 @@ end
 module Video : sig
   include
     Content
-      with type kind = [ `Yuv420p ]
+      with type kind = [ `Yuva420p ]
        and type params = Contents.video_params
        and type data = Video.t
 
