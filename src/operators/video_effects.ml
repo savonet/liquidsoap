@@ -271,7 +271,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing
-    ~descr:"Set alpha value on a give box inside the image."
+    ~descr:"Set alpha value on a given box inside the image."
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
