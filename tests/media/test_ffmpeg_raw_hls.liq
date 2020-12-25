@@ -46,7 +46,7 @@ mp4 = %ffmpeg(
 
 s = noise(duration=1.)
 
-raw = ffmpeg.raw.audio_video(raw_encoder, s)
+raw = ffmpeg.raw.encode.audio_video(raw_encoder, s)
 
 streams = [
   ("mp4", mp4),

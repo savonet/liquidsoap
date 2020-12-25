@@ -22,7 +22,11 @@
 
 open Avutil
 
-type 'a frame = { time_base : Avutil.rational; frame : 'a Avutil.frame }
+type 'a frame = {
+  stream_idx : Int64.t;
+  time_base : Avutil.rational;
+  frame : 'a Avutil.frame;
+}
 
 module BaseSpecs = struct
   include Ffmpeg_content_base
@@ -139,6 +143,7 @@ module VideoSpecs = struct
     width : int option;
     height : int option;
     pixel_format : Avutil.Pixel_format.t option;
+    pixel_aspect : Avutil.rational option;
   }
 
   type data = (params, video frame) content
@@ -148,6 +153,7 @@ module VideoSpecs = struct
       width = Some (Video.frame_get_width frame);
       height = Some (Video.frame_get_height frame);
       pixel_format = Some (Video.frame_get_pixel_format frame);
+      pixel_aspect = Video.frame_get_pixel_aspect frame;
     }
 
   let mk_params p =
@@ -155,11 +161,13 @@ module VideoSpecs = struct
       width = Some (Avcodec.Video.get_width p);
       height = Some (Avcodec.Video.get_height p);
       pixel_format = Avcodec.Video.get_pixel_format p;
+      pixel_aspect = Avcodec.Video.get_pixel_aspect p;
     }
 
-  let default_params _ = { width = None; height = None; pixel_format = None }
+  let default_params _ =
+    { width = None; height = None; pixel_format = None; pixel_aspect = None }
 
-  let string_of_params { width; height; pixel_format } =
+  let string_of_params { width; height; pixel_format; pixel_aspect } =
     Frame_content.print_optional
       [
         ("width", Option.map string_of_int width);
@@ -171,6 +179,10 @@ module VideoSpecs = struct
                 | None -> "none"
                 | Some p -> p)
             pixel_format );
+        ( "pixel_aspect",
+          Option.map
+            (fun { Avutil.num; den } -> Printf.sprintf "%d/%d" num den)
+            pixel_aspect );
       ]
 
   let parse_param label value =
@@ -181,6 +193,7 @@ module VideoSpecs = struct
               width = Some (int_of_string value);
               height = None;
               pixel_format = None;
+              pixel_aspect = None;
             }
       | "height" ->
           Some
@@ -188,6 +201,7 @@ module VideoSpecs = struct
               width = None;
               height = Some (int_of_string value);
               pixel_format = None;
+              pixel_aspect = None;
             }
       | "pixel_format" ->
           Some
@@ -195,7 +209,22 @@ module VideoSpecs = struct
               width = None;
               height = None;
               pixel_format = Some (Avutil.Pixel_format.of_string value);
+              pixel_aspect = None;
             }
+      | "pixel_aspect" ->
+          let pixel_aspect =
+            try
+              let rex = Pcre.regexp "(\\d+)/(\\d+)" in
+              let sub = Pcre.exec ~rex value in
+              Some
+                {
+                  Avutil.num = int_of_string (Pcre.get_substring sub 1);
+                  den = int_of_string (Pcre.get_substring sub 2);
+                }
+            with _ -> None
+          in
+          Some
+            { width = None; height = None; pixel_format = None; pixel_aspect }
       | _ -> None
 
   let compatible p p' =
@@ -203,6 +232,7 @@ module VideoSpecs = struct
     c (p.width, p'.width)
     && c (p.height, p'.height)
     && c (p.pixel_format, p'.pixel_format)
+    && c (p.pixel_aspect, p'.pixel_aspect)
 
   let merge p p' =
     {
@@ -211,6 +241,9 @@ module VideoSpecs = struct
       pixel_format =
         Frame_content.merge_param ~name:"pixel_format"
           (p.pixel_format, p'.pixel_format);
+      pixel_aspect =
+        Frame_content.merge_param ~name:"pixel_aspect"
+          (p.pixel_aspect, p'.pixel_aspect);
     }
 end
 

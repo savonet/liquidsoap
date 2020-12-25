@@ -90,7 +90,7 @@ module Fps = struct
     | `Filter { time_base } -> time_base
     | `Pass_through time_base -> time_base
 
-  let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
+  let init ~width ~height ~pixel_format ~time_base ?pixel_aspect ?source_fps
       ~target_fps () =
     let config = Avfilter.init () in
     let _buffer =
@@ -99,8 +99,11 @@ module Fps = struct
           `Pair ("video_size", `String (Printf.sprintf "%dx%d" width height));
           `Pair ("pix_fmt", `Int (Avutil.Pixel_format.get_id pixel_format));
           `Pair ("time_base", `Rational time_base);
-          `Pair ("pixel_aspect", `Rational pixel_aspect);
         ]
+        @
+        match pixel_aspect with
+          | None -> []
+          | Some p -> [`Pair ("pixel_aspect", `Rational p)]
       in
       let args =
         match source_fps with
@@ -140,13 +143,13 @@ module Fps = struct
     { input; output; time_base }
 
   (* Source fps is not always known so it is optional here. *)
-  let init ~width ~height ~pixel_format ~time_base ~pixel_aspect ?source_fps
+  let init ~width ~height ~pixel_format ~time_base ?pixel_aspect ?source_fps
       ~target_fps () =
     match source_fps with
       | Some f when f = target_fps -> `Pass_through time_base
       | _ ->
           `Filter
-            (init ~width ~height ~pixel_format ~time_base ~pixel_aspect
+            (init ~width ~height ~pixel_format ~time_base ?pixel_aspect
                ?source_fps ~target_fps ())
 
   let convert converter frame cb =
@@ -232,6 +235,48 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
         raise (Found (Some (`Frame_context frame_context), pixel_format)));
     no_hardware_context
   with Found v -> v
+
+module Duration = struct
+  type 'a t = {
+    get_ts : 'a -> Int64.t option;
+    src : Avutil.rational;
+    dst : Avutil.rational;
+    mutable last_packet : 'a option;
+    mutable packets : (int * 'a) list;
+  }
+
+  let init ~src ~get_ts =
+    {
+      get_ts;
+      src;
+      dst = liq_master_ticks_time_base ();
+      last_packet = None;
+      packets = [];
+    }
+
+  let push ({ get_ts; last_packet; packets; src; dst } as t) packet =
+    t.last_packet <- Some packet;
+    let last_ts =
+      Option.join (Option.map (fun packet -> get_ts packet) last_packet)
+    in
+    let duration =
+      match (last_ts, get_ts packet) with
+        | None, Some _ -> 0
+        | Some old_pts, Some pts ->
+            let d = Int64.sub pts old_pts in
+            Int64.to_int (convert_time_base ~src ~dst d)
+        | _, None -> 0
+    in
+    let packets = packets in
+    if duration > 0 then (
+      t.packets <- [(0, packet)];
+      Some (duration, packets) )
+    else (
+      t.packets <- packets @ [(0, packet)];
+      None )
+
+  let flush { packets } = packets
+end
 
 let find_pixel_format codec =
   match

@@ -28,28 +28,37 @@ module G = Decoder.G
 let log = Log.make ["ffmpeg"; "decoder"; "copy"]
 
 exception Corrupt
+exception Empty
 
 let mk_decoder ~stream_time_base ~lift_data ~put_data params =
-  let get_duration =
-    Ffmpeg_decoder_common.convert_duration ~src:stream_time_base
+  let duration_converter =
+    Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Packet.get_dts
   in
-  let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
+  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   fun ~buffer packet ->
     try
-      let duration = get_duration (Packet.get_pts packet) in
       let flags = Packet.get_flags packet in
       if List.mem `Corrupt flags then (
         log#important "Corrupted packet in stream!";
         raise Corrupt );
-      let packet =
-        { Ffmpeg_copy_content.packet; time_base = stream_time_base; stream_idx }
-      in
+      let packets = Ffmpeg_utils.Duration.push duration_converter packet in
+      if packets = None then raise Empty;
+      let duration, packets = Option.get packets in
       let data =
-        { Ffmpeg_content_base.params = Some params; data = [(0, packet)] }
+        List.map
+          (fun (pos, packet) ->
+            ( pos,
+              {
+                Ffmpeg_copy_content.packet;
+                time_base = stream_time_base;
+                stream_idx;
+              } ))
+          packets
       in
+      let data = { Ffmpeg_content_base.params = Some params; data } in
       let data = lift_data data in
       put_data ?pts:None buffer.Decoder.generator data 0 duration
-    with Corrupt (* Might want to change that later. *) -> ()
+    with Empty | Corrupt (* Might want to change that later. *) -> ()
 
 let mk_audio_decoder ~format container =
   let idx, stream, params = Av.find_best_audio_stream container in

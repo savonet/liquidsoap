@@ -25,7 +25,7 @@ module InternalResampler =
 
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
-let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
+let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
   let internal_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
@@ -37,11 +37,11 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
   let target_samplerate = Lazy.force format.Ffmpeg_format.samplerate in
   let target_time_base = { Avutil.num = 1; den = target_samplerate } in
 
-  let target_sample_format, frame_size, write_frame =
+  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
+
+  let target_sample_format, frame_size, encode_frame =
     match mode with
       | `Encoded -> (
-          let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
-
           let codec = Option.get codec in
 
           let target_sample_format =
@@ -56,8 +56,9 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
           in
           let encoder_time_base = Avcodec.time_base encoder in
 
-          let get_duration =
-            Ffmpeg_decoder_common.convert_duration ~src:encoder_time_base
+          let duration_converter =
+            Ffmpeg_utils.Duration.init ~src:encoder_time_base
+              ~get_ts:Avcodec.Packet.get_dts
           in
 
           let params = Some (Avcodec.params encoder) in
@@ -67,17 +68,24 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
           Lang_types.(effective_t <: kind_t);
 
           let write_packet packet =
-            let duration = get_duration (Avcodec.Packet.get_pts packet) in
-            let packet =
-              {
-                Ffmpeg_copy_content.packet;
-                time_base = encoder_time_base;
-                stream_idx;
-              }
-            in
-            let data = { Ffmpeg_content_base.params; data = [(0, packet)] } in
-            let data = Ffmpeg_copy_content.Audio.lift_data data in
-            Producer_consumer.(Generator.put_audio c.generator data 0 duration)
+            match Ffmpeg_utils.Duration.push duration_converter packet with
+              | Some (duration, packets) ->
+                  let data =
+                    List.map
+                      (fun (pos, packet) ->
+                        ( pos,
+                          {
+                            Ffmpeg_copy_content.packet;
+                            time_base = encoder_time_base;
+                            stream_idx;
+                          } ))
+                      packets
+                  in
+                  let data = { Ffmpeg_content_base.params; data } in
+                  let data = Ffmpeg_copy_content.Audio.lift_data data in
+                  Producer_consumer.(
+                    Generator.put_audio c.generator data 0 duration)
+              | None -> ()
           in
 
           ( target_sample_format,
@@ -101,23 +109,32 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
             Lang.kind_t (`Format (Ffmpeg_raw_content.Audio.lift_params params))
           in
           Lang_types.(effective_t <: kind_t);
-          let get_duration =
-            Ffmpeg_decoder_common.convert_duration ~src:target_time_base
+          let duration_converter =
+            Ffmpeg_utils.Duration.init ~src:target_time_base
+              ~get_ts:Avutil.frame_pts
           in
           ( target_sample_format,
             None,
             function
-            | `Frame frame ->
-                let duration = get_duration (Avutil.frame_pts frame) in
-                let frame =
-                  { Ffmpeg_raw_content.time_base = target_time_base; frame }
-                in
-                let data =
-                  { Ffmpeg_content_base.params; data = [(0, frame)] }
-                in
-                let data = Ffmpeg_raw_content.Audio.lift_data data in
-                Producer_consumer.(
-                  Generator.put_audio c.generator data 0 duration)
+            | `Frame frame -> (
+                match Ffmpeg_utils.Duration.push duration_converter frame with
+                  | Some (duration, frames) ->
+                      let data =
+                        List.map
+                          (fun (pos, frame) ->
+                            ( pos,
+                              {
+                                Ffmpeg_raw_content.time_base = target_time_base;
+                                stream_idx;
+                                frame;
+                              } ))
+                          frames
+                      in
+                      let data = { Ffmpeg_content_base.params; data } in
+                      let data = Ffmpeg_raw_content.Audio.lift_data data in
+                      Producer_consumer.(
+                        Generator.put_audio c.generator data 0 duration)
+                  | None -> () )
             | `Flush -> () ) )
   in
 
@@ -127,20 +144,20 @@ let write_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
       target_samplerate
   in
 
-  let write_ffmpeg_frame =
+  let encode_ffmpeg_frame =
     Ffmpeg_internal_encoder.write_audio_frame ~time_base:target_time_base
       ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
       ~sample_format:target_sample_format ~frame_size (fun frame ->
-        write_frame (`Frame frame))
+        encode_frame (`Frame frame))
   in
 
   function
   | `Frame frame ->
       let frame = InternalResampler.convert resampler (AFrame.pcm frame) in
-      write_ffmpeg_frame frame
-  | `Flush -> write_frame `Flush
+      encode_ffmpeg_frame frame
+  | `Flush -> encode_frame `Flush
 
-let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
+let encode_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   let internal_fps = Lazy.force Frame.video_rate in
   let internal_time_base = { Avutil.num = 1; den = internal_fps } in
   let internal_width = Lazy.force Frame.video_width in
@@ -177,11 +194,11 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
            ~pixel_aspect:target_pixel_aspect ~target_fps ())
   in
 
-  let write_frame =
+  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
+
+  let encode_frame =
     match mode with
       | `Encoded -> (
-          let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
-
           let codec = Option.get codec in
 
           let target_pixel_format =
@@ -217,22 +234,30 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
 
           let encoder_time_base = Avcodec.time_base encoder in
 
-          let get_duration =
-            Ffmpeg_decoder_common.convert_duration ~src:encoder_time_base
+          let duration_converter =
+            Ffmpeg_utils.Duration.init ~src:encoder_time_base
+              ~get_ts:Avcodec.Packet.get_dts
           in
 
           let write_packet packet =
-            let duration = get_duration (Avcodec.Packet.get_pts packet) in
-            let packet =
-              {
-                Ffmpeg_copy_content.packet;
-                time_base = encoder_time_base;
-                stream_idx;
-              }
-            in
-            let data = { Ffmpeg_content_base.params; data = [(0, packet)] } in
-            let data = Ffmpeg_copy_content.Video.lift_data data in
-            Producer_consumer.(Generator.put_video c.generator data 0 duration)
+            match Ffmpeg_utils.Duration.push duration_converter packet with
+              | Some (duration, packets) ->
+                  let data =
+                    List.map
+                      (fun (pos, packet) ->
+                        ( pos,
+                          {
+                            Ffmpeg_copy_content.packet;
+                            time_base = encoder_time_base;
+                            stream_idx;
+                          } ))
+                      packets
+                  in
+                  let data = { Ffmpeg_content_base.params; data } in
+                  let data = Ffmpeg_copy_content.Video.lift_data data in
+                  Producer_consumer.(
+                    Generator.put_video c.generator data 0 duration)
+              | None -> ()
           in
 
           function
@@ -253,6 +278,7 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
               Ffmpeg_raw_content.VideoSpecs.width = Some target_width;
               height = Some target_height;
               pixel_format = Some target_pixel_format;
+              pixel_aspect = Some target_pixel_aspect;
             }
           in
 
@@ -261,26 +287,35 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
           in
           Lang_types.(effective_t <: kind_t);
 
-          let get_duration =
-            Ffmpeg_decoder_common.convert_duration ~src:time_base
+          let duration_converter =
+            Ffmpeg_utils.Duration.init ~src:time_base ~get_ts:Avutil.frame_pts
           in
 
           function
-          | `Frame frame ->
-              let duration = get_duration (Avutil.frame_pts frame) in
-              let frame = { Ffmpeg_raw_content.time_base; frame } in
-              let data = { Ffmpeg_content_base.params; data = [(0, frame)] } in
-              let data = Ffmpeg_raw_content.Video.lift_data data in
-              Producer_consumer.(
-                Generator.put_video c.generator data 0 duration)
+          | `Frame frame -> (
+              match Ffmpeg_utils.Duration.push duration_converter frame with
+                | Some (duration, frames) ->
+                    let data =
+                      List.map
+                        (fun (pos, frame) ->
+                          ( pos,
+                            { Ffmpeg_raw_content.time_base; stream_idx; frame }
+                          ))
+                        frames
+                    in
+                    let data = { Ffmpeg_content_base.params; data } in
+                    let data = Ffmpeg_raw_content.Video.lift_data data in
+                    Producer_consumer.(
+                      Generator.put_video c.generator data 0 duration)
+                | None -> () )
           | `Flush -> () )
   in
 
   (* We don't know packet duration in advance so we have to infer
      it from the next packet. *)
-  let write_ffmpeg_frame frame =
+  let encode_ffmpeg_frame frame =
     Ffmpeg_utils.Fps.convert (Option.get !fps_converter) frame (fun frame ->
-        write_frame (`Frame frame))
+        encode_frame (`Frame frame))
   in
 
   let nb_frames = ref 0L in
@@ -301,14 +336,13 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
         let frame = InternalScaler.convert (Option.get !scaler) vdata in
         Avutil.frame_set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;
-        write_ffmpeg_frame frame
+        encode_ffmpeg_frame frame
       done
-  | `Flush -> write_frame `Flush
+  | `Flush -> encode_frame `Flush
 
 let () =
-  Lang.add_module "ffmpeg";
   Lang.add_module "ffmpeg.encode";
-  Lang.add_module "ffmpeg.raw"
+  Lang.add_module "ffmpeg.raw.encode"
 
 let mk_encoder mode =
   let has_audio =
@@ -418,11 +452,11 @@ let mk_encoder mode =
   let extension =
     match mode with
       | `Audio_encoded -> "encode.audio"
-      | `Audio_raw -> "raw.audio"
+      | `Audio_raw -> "raw.encode.audio"
       | `Video_encoded -> "encode.video"
-      | `Video_raw -> "raw.video"
+      | `Video_raw -> "raw.encode.video"
       | `Both_encoded -> "encode.audio_video"
-      | `Both_raw -> "raw.audio_video"
+      | `Both_raw -> "raw.encode.audio_video"
   in
   Lang.add_operator ("ffmpeg." ^ extension) proto ~return_t
     ~category:Lang.Conversions ~descr:"Convert a source's content" (fun p ->
@@ -471,7 +505,7 @@ let mk_encoder mode =
           (Lang_errors.Invalid_value
              (format_val, "Format option is not supported inline encoders"));
 
-      let mk_write_frame () =
+      let mk_encode_frame () =
         let audio_opts = Hashtbl.copy format.Ffmpeg_format.audio_opts in
 
         let video_opts = Hashtbl.copy format.Ffmpeg_format.video_opts in
@@ -490,17 +524,17 @@ let mk_encoder mode =
               Hashtbl.add original_opts ("video: " ^ name) value)
             format.Ffmpeg_format.video_opts;
 
-        let write_audio_frame =
+        let encode_audio_frame =
           if has_audio then (
             match format.Ffmpeg_format.audio_codec with
               | Some (`Raw None) when has_raw_audio ->
                   Some
-                    (write_audio_frame ~kind_t:audio_kind_t ~mode:`Raw
+                    (encode_audio_frame ~kind_t:audio_kind_t ~mode:`Raw
                        ~opts:audio_opts ~format control)
               | Some (`Internal (Some codec)) when has_encoded_audio ->
                   let codec = Avcodec.Audio.find_encoder_by_name codec in
                   Some
-                    (write_audio_frame ~kind_t:audio_kind_t ~mode:`Encoded
+                    (encode_audio_frame ~kind_t:audio_kind_t ~mode:`Encoded
                        ~opts:audio_opts ~codec ~format control)
               | _ ->
                   let encoder =
@@ -514,17 +548,17 @@ let mk_encoder mode =
                        )) )
           else None
         in
-        let write_video_frame =
+        let encode_video_frame =
           if has_video then (
             match format.Ffmpeg_format.video_codec with
               | Some (`Raw None) when has_raw_video ->
                   Some
-                    (write_video_frame ~kind_t:video_kind_t ~mode:`Raw
+                    (encode_video_frame ~kind_t:video_kind_t ~mode:`Raw
                        ~opts:video_opts ~format control)
               | Some (`Internal (Some codec)) when has_encoded_video ->
                   let codec = Avcodec.Video.find_encoder_by_name codec in
                   Some
-                    (write_video_frame ~kind_t:video_kind_t ~mode:`Encoded
+                    (encode_video_frame ~kind_t:video_kind_t ~mode:`Encoded
                        ~opts:video_opts ~codec ~format control)
               | _ ->
                   let encoder =
@@ -539,7 +573,7 @@ let mk_encoder mode =
         in
         let size = Lazy.force Frame.size in
 
-        let write_frame = function
+        let encode_frame = function
           | `Frame frame ->
               List.iter
                 (fun (pos, m) ->
@@ -550,12 +584,12 @@ let mk_encoder mode =
                   Producer_consumer.Generator.add_break ~pos generator)
                 (List.filter (fun x -> x < size) (Frame.breaks frame));
               ignore
-                (Option.map (fun fn -> fn (`Frame frame)) write_video_frame);
+                (Option.map (fun fn -> fn (`Frame frame)) encode_video_frame);
               ignore
-                (Option.map (fun fn -> fn (`Frame frame)) write_audio_frame)
+                (Option.map (fun fn -> fn (`Frame frame)) encode_audio_frame)
           | `Flush ->
-              ignore (Option.map (fun fn -> fn `Flush) write_video_frame);
-              ignore (Option.map (fun fn -> fn `Flush) write_audio_frame)
+              ignore (Option.map (fun fn -> fn `Flush) encode_video_frame);
+              ignore (Option.map (fun fn -> fn `Flush) encode_audio_frame)
         in
 
         let left_over_opts = Hashtbl.create 10 in
@@ -582,21 +616,21 @@ let mk_encoder mode =
                  Printf.sprintf "Unrecognized options: %s"
                    (Ffmpeg_format.string_of_options original_opts) ));
 
-        write_frame
+        encode_frame
       in
 
-      let write_frame_ref = ref (mk_write_frame ()) in
+      let encode_frame_ref = ref (mk_encode_frame ()) in
 
-      let write_frame = function
-        | `Frame frame -> !write_frame_ref (`Frame frame)
+      let encode_frame = function
+        | `Frame frame -> !encode_frame_ref (`Frame frame)
         | `Flush ->
-            !write_frame_ref `Flush;
-            write_frame_ref := mk_write_frame ()
+            !encode_frame_ref `Flush;
+            encode_frame_ref := mk_encode_frame ()
       in
 
       let _ =
         new Producer_consumer.consumer
-          ~write_frame ~producer
+          ~write_frame:encode_frame ~producer
           ~output_kind:("ffmpeg." ^ extension ^ ".consumer")
           ~kind:source_kind ~content:`Audio ~max_buffer ~pre_buffer ~source
           control

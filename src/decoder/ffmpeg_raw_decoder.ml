@@ -25,17 +25,28 @@
 module G = Decoder.G
 
 let mk_decoder ~stream_time_base ~mk_params ~lift_data ~put_data params =
-  let get_duration =
-    Ffmpeg_decoder_common.convert_duration ~src:stream_time_base
+  let duration_converter =
+    Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Avutil.frame_pts
   in
+  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   fun ~buffer frame ->
-    let duration = get_duration (Avutil.frame_pts frame) in
-    let frame = { Ffmpeg_raw_content.time_base = stream_time_base; frame } in
-    let data =
-      { Ffmpeg_content_base.params = mk_params params; data = [(0, frame)] }
-    in
-    let data = lift_data data in
-    put_data ?pts:None buffer.Decoder.generator data 0 duration
+    match Ffmpeg_utils.Duration.push duration_converter frame with
+      | Some (duration, frames) ->
+          let data =
+            List.map
+              (fun (pos, frame) ->
+                ( pos,
+                  {
+                    Ffmpeg_raw_content.time_base = stream_time_base;
+                    stream_idx;
+                    frame;
+                  } ))
+              frames
+          in
+          let data = { Ffmpeg_content_base.params = mk_params params; data } in
+          let data = lift_data data in
+          put_data ?pts:None buffer.Decoder.generator data 0 duration
+      | None -> ()
 
 let mk_audio_decoder ~format container =
   let idx, stream, params = Av.find_best_audio_stream container in

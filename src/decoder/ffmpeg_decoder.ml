@@ -80,6 +80,7 @@ let file_extensions =
         "m4p";
         "m4v";
         "m4r";
+        "mov";
         "3gp";
         "mp4";
         "wav";
