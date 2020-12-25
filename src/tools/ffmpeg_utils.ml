@@ -57,6 +57,10 @@ let conf_scaling_algorithm =
         "\"bilinear\" or \"bicubic\".";
       ]
 
+let conf_alpha =
+  Dtools.Conf.bool ~p:(conf_ffmpeg#plug "alpha") ~d:false
+    "Import and export alpha layers when converting to and from ffmpeg frames."
+
 let () =
   Lifecycle.before_start (fun () ->
       let verbosity =
@@ -178,6 +182,28 @@ let liq_video_sample_time_base () =
 let liq_frame_time_base () =
   { Avutil.num = Lazy.force Frame.size; den = Lazy.force Frame.master_rate }
 
+let liq_frame_pixel_format () = if conf_alpha#get then `Yuva420p else `Yuv420p
+
+let pack_image f =
+  let y, u, v = Image.YUV420.data f in
+  let sy = Image.YUV420.y_stride f in
+  let s = Image.YUV420.uv_stride f in
+  if conf_alpha#get then (
+    Image.YUV420.ensure_alpha f;
+    let a = Option.get (Image.YUV420.alpha f) in
+    [| (y, sy); (u, s); (v, s); (a, s) |] )
+  else [| (y, sy); (u, s); (v, s) |]
+
+let unpack_image ~width ~height f =
+  match (conf_alpha#get, f) with
+    | true, [| (y, sy); (u, s); (v, _); (a, _) |] ->
+        let img = Image.YUV420.make width height y sy u v s in
+        Image.YUV420.set_alpha img (Some a);
+        img
+    | false, [| (y, sy); (u, s); (v, _) |] ->
+        Image.YUV420.make width height y sy u v s
+    | _ -> assert false
+
 let convert_time_base ~src ~dst pts =
   let num = src.Avutil.num * dst.Avutil.den in
   let den = src.Avutil.den * dst.Avutil.num in
@@ -278,19 +304,22 @@ module Duration = struct
   let flush { packets } = packets
 end
 
-let find_pixel_format codec =
-  match
-    List.filter
-      (fun f ->
-        not (List.mem `Hwaccel Avutil.Pixel_format.((descriptor f).flags)))
-      (Avcodec.Video.get_supported_pixel_formats codec)
-  with
-    | p :: _ -> p
-    | [] ->
-        failwith
-          (Printf.sprintf "No suitable pixel format for codec %s!"
-             (Avcodec.name codec))
+let find_pixel_format codec pixel_format =
+  let formats = Avcodec.Video.get_supported_pixel_formats codec in
+  if List.mem pixel_format formats then pixel_format
+  else (
+    match
+      List.filter
+        (fun f ->
+          not (List.mem `Hwaccel Avutil.Pixel_format.((descriptor f).flags)))
+        formats
+    with
+      | p :: _ -> p
+      | [] ->
+          failwith
+            (Printf.sprintf "No suitable pixel format for codec %s!"
+               (Avcodec.name codec)) )
 
 let pixel_format codec = function
   | Some p -> Avutil.Pixel_format.of_string p
-  | None -> find_pixel_format codec
+  | None -> find_pixel_format codec (liq_frame_pixel_format ())

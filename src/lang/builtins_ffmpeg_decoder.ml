@@ -181,7 +181,8 @@ let decode_video_frame ~mode c =
         Some (width, height, pixel_format, time_base, pixel_aspect, stream_idx);
       let scaler =
         InternalScaler.create [] width height pixel_format internal_width
-          internal_height `Yuv420p
+          internal_height
+          (Ffmpeg_utils.liq_frame_pixel_format ())
       in
       let fps_converter =
         Ffmpeg_utils.Fps.init ~width ~height ~pixel_format ~time_base
@@ -223,10 +224,9 @@ let decode_video_frame ~mode c =
       in
       Ffmpeg_utils.Fps.convert fps_converter frame (fun data ->
           let img =
-            match InternalScaler.convert scaler data with
-              | [| (y, sy); (u, s); (v, _) |] ->
-                  Image.YUV420.make internal_width internal_height y sy u v s
-              | _ -> assert false
+            Ffmpeg_utils.unpack_image ~width:internal_width
+              ~height:internal_height
+              (InternalScaler.convert scaler data)
           in
           let data = Video.single img in
           let data = Frame_content.Video.lift_data data in

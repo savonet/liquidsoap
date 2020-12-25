@@ -429,7 +429,10 @@ let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
       ( "pix_fmt",
         `Int
           Avutil.Pixel_format.(
-            get_id (Option.value ~default:`Yuva420p pixel_format)) );
+            get_id
+              (Option.value
+                 ~default:(Ffmpeg_utils.liq_frame_pixel_format ())
+                 pixel_format)) );
   ]
 
 let () =

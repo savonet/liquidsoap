@@ -181,7 +181,8 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   let mk_scaler ~target_pixel_format =
     scaler :=
       Some
-        (InternalScaler.create [flag] internal_width internal_height `Yuva420p
+        (InternalScaler.create [flag] internal_width internal_height
+           (Ffmpeg_utils.liq_frame_pixel_format ())
            target_width target_height target_pixel_format)
   in
 
@@ -264,7 +265,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format c =
           | `Frame frame -> Avcodec.encode encoder write_packet frame
           | `Flush -> Avcodec.flush_encoder encoder write_packet )
       | `Raw -> (
-          let target_pixel_format = `Yuva420p in
+          let target_pixel_format = Ffmpeg_utils.liq_frame_pixel_format () in
 
           mk_scaler ~target_pixel_format;
           mk_fps_converter ~target_pixel_format;
@@ -327,12 +328,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format c =
       let vbuf = VFrame.yuva420p frame in
       for i = vstart to vstop - 1 do
         let f = Video.get vbuf i in
-        let y, u, v = Image.YUV420.data f in
-        let sy = Image.YUV420.y_stride f in
-        let s = Image.YUV420.uv_stride f in
-        Image.YUV420.ensure_alpha f;
-        let a = Option.get (Image.YUV420.alpha f) in
-        let vdata = [| (y, sy); (u, s); (v, s); (a, s) |] in
+        let vdata = Ffmpeg_utils.pack_image f in
         let frame = InternalScaler.convert (Option.get !scaler) vdata in
         Avutil.frame_set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;

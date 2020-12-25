@@ -78,18 +78,14 @@ let mk_video_decoder container =
   let target_height = Lazy.force Frame.video_height in
   let scaler =
     Scaler.create [] width height pixel_format target_width target_height
-      `Yuva420p
+      (Ffmpeg_utils.liq_frame_pixel_format ())
   in
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
   let cb ~buffer frame =
     let img =
-      match Scaler.convert scaler frame with
-        | [| (y, sy); (u, s); (v, _); (a, _) |] ->
-            let img = Image.YUV420.make target_width target_height y sy u v s in
-            Image.YUV420.set_alpha img (Some a);
-            img
-        | _ -> assert false
+      Ffmpeg_utils.unpack_image ~width:target_width ~height:target_height
+        (Scaler.convert scaler frame)
     in
     let content = Video.single img in
     buffer.Decoder.put_yuva420p ?pts:None
