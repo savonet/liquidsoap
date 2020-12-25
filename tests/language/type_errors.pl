@@ -90,4 +90,94 @@ incorrect('def f(x) = output.file(%vorbis(stereo),"",x) output.file(%vorbis(mono
 incorrect('add([output.file(%vorbis(stereo),"",blank()),output.file(%vorbis(mono),"",blank())])');
 incorrect('add([mean(blank()),audio_to_stereo(add([]))])');
 
+section("ENCODERS");
+correct('%ffmpeg(%video(codec="h264_nvenc"))');
+correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel=none))');
+correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel=auto,hwaccel_device=none))');
+correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel_device="foo"))');
+correct('%ffmpeg(format="mpegts",
+                %audio(
+                  codec="aac",
+                  channels=2,
+                  ar=44100
+                ))');
+correct('%ffmpeg(format="mpegts",
+               %audio(
+                 codec="aac",
+                 channels=2,
+                 ar=44100,
+                 b="96k"
+               ))');
+correct('%ffmpeg(format="mpegts",
+               %audio(
+                codec="aac",
+                channels=2,
+                ar=44100,
+                b="192k"
+              ))');
+correct('%ffmpeg(
+         format="mpegts",
+         %audio(
+            codec="aac",
+            b="128k",
+            channels=2,
+            ar=44100
+         ),
+         %video(
+           codec="libx264",
+           b="5M"
+         )
+       )');
+correct('%ffmpeg(
+        format="mp4",
+        movflags="+dash+skip_sidx+skip_trailer+frag_custom",
+        frag_duration=10,
+        %audio(
+          codec="aac",
+          b="128k",
+          channels=2,
+          ar=44100),
+        %video(
+          codec="libx264",
+          b="5M"
+        )
+      )');
+correct('%ffmpeg(
+         format="mpegts",
+         %audio.raw(
+            codec="aac",
+            b="128k",
+            channels=2,
+            ar=44100
+         ),
+         %video.raw(
+           codec="libx264",
+           b="5M"
+         )
+       )');
+correct('%ffmpeg(
+        format="mp4",
+        movflags="+dash+skip_sidx+skip_trailer+frag_custom",
+        frag_duration=10,
+        %audio.raw(
+          codec="aac",
+          b="128k",
+          channels=2,
+          ar=44100),
+        %video.raw(
+          codec="libx264",
+          b="5M"
+        )
+      )');
+correct('%ffmpeg(
+         format="mpegts",
+         %audio.copy,
+         %video.copy)');
+correct('%ffmpeg(
+        format="mp4",
+        movflags="+dash+skip_sidx+skip_trailer+frag_custom",
+        frag_duration=10,
+        %audio.copy,
+        %video.copy)');
+
 print "Everything's good!\n" ;
