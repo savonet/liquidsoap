@@ -30,6 +30,7 @@ val liq_master_ticks_time_base : unit -> Avutil.rational
 val liq_audio_sample_time_base : unit -> Avutil.rational
 val liq_video_sample_time_base : unit -> Avutil.rational
 val liq_frame_time_base : unit -> Avutil.rational
+val pixel_format : 'a Avcodec.Video.t -> string option -> Avutil.Pixel_format.t
 
 val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64

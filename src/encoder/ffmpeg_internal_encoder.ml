@@ -242,7 +242,7 @@ let mk_video ~ffmpeg ~options output =
   let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
   let target_height = Lazy.force ffmpeg.Ffmpeg_format.height in
   let target_pixel_format =
-    Avutil.Pixel_format.of_string ffmpeg.Ffmpeg_format.pixel_format
+    Ffmpeg_utils.pixel_format codec ffmpeg.Ffmpeg_format.pixel_format
   in
 
   let flag =
@@ -344,8 +344,7 @@ let mk_video ~ffmpeg ~options output =
     let src_height = Lazy.force Frame.video_height in
     let scaler =
       InternalScaler.create [flag] src_width src_height `Yuva420p target_width
-        target_height
-        (Avutil.Pixel_format.of_string ffmpeg.Ffmpeg_format.pixel_format)
+        target_height target_pixel_format
     in
     let nb_frames = ref 0L in
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in

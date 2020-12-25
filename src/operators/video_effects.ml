@@ -260,6 +260,34 @@ let () =
         src)
 
 let () =
+  let name = "video.opacity.set_box" in
+  Lang.add_operator name
+    [
+      ("width", Lang.int_getter_t (), None, Some "Box width.");
+      ("height", Lang.int_getter_t (), None, Some "Box height.");
+      ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
+      ("alpha", Lang.float_getter_t (), None, Some "alpha value.");
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.VideoProcessing
+    ~descr:"Set alpha value on a give box inside the image."
+    (fun p ->
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      let width = Lang.to_int_getter (f "width") in
+      let height = Lang.to_int_getter (f "height") in
+      let ox = Lang.to_int_getter (f "x") in
+      let oy = Lang.to_int_getter (f "y") in
+      let alpha = Lang.to_float_getter (f "alpha") in
+      new effect
+        ~name ~kind
+        (fun buf ->
+          Image.YUV420.box_alpha buf (ox ()) (oy ()) (width ()) (height ())
+            (alpha ()))
+        src)
+
+let () =
   let name = "video.scale" in
   Lang.add_operator name
     [

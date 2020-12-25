@@ -230,9 +230,22 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
             ~dst_pixel_format:pixel_format device_context
         in
         raise (Found (Some (`Frame_context frame_context), pixel_format)));
-    log#info
-      "Codec %s has hardware-accelerated support but no suitable method was \
-       found. Trying without any specific settings.."
-      codec_name;
     no_hardware_context
   with Found v -> v
+
+let find_pixel_format codec =
+  match
+    List.filter
+      (fun f ->
+        not (List.mem `Hwaccel Avutil.Pixel_format.((descriptor f).flags)))
+      (Avcodec.Video.get_supported_pixel_formats codec)
+  with
+    | p :: _ -> p
+    | [] ->
+        failwith
+          (Printf.sprintf "No suitable pixel format for codec %s!"
+             (Avcodec.name codec))
+
+let pixel_format codec = function
+  | Some p -> Avutil.Pixel_format.of_string p
+  | None -> find_pixel_format codec

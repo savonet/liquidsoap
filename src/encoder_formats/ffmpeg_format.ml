@@ -36,7 +36,7 @@ type t = {
   framerate : int Lazy.t;
   width : int Lazy.t;
   height : int Lazy.t;
-  pixel_format : string;
+  pixel_format : string option;
   hwaccel : hwaccel;
   hwaccel_device : string option;
   audio_codec : codec option;
