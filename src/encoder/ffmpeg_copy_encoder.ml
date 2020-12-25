@@ -50,33 +50,36 @@ let mk_stream_copy ~video_size ~get_data output =
      since time_base can change between streams. *)
   let last_dts = ref None in
   let last_pts = ref None in
-  let dts_offset = ref None in
-  let pts_offset = ref None in
-  let last_stream_idx = ref None in
+  let dts_offset = ref 0L in
+  let pts_offset = ref 0L in
+  let last_pts_stream_idx = ref None in
+  let last_dts_stream_idx = ref None in
 
   let to_master_time_base ~time_base v =
     Ffmpeg_utils.convert_time_base ~src:time_base ~dst:master_time_base v
   in
 
-  let adjust ~stream_idx ~time_base ~last_ts ~ts_offset ts =
+  let adjust ~stream_idx ~time_base ~last_stream_idx ~last_ts ~ts_offset ts =
     if Some stream_idx <> !last_stream_idx then (
       last_stream_idx := Some stream_idx;
       ts_offset :=
         (* Account for potential offset in new stream's TS. *)
         match (!last_ts, ts) with
-          | Some old_ts, None -> Some old_ts
+          | Some old_ts, None -> old_ts
           | Some old_ts, Some new_ts ->
-              Some (Int64.sub old_ts (to_master_time_base ~time_base new_ts))
-          | None, _ -> None );
+              Int64.sub old_ts (to_master_time_base ~time_base new_ts)
+          | None, Some new_ts -> new_ts
+          | None, None -> 0L );
     let ret =
-      match (!ts_offset, ts) with
-        | Some ofs, None -> Some ofs
-        | Some ofs, Some v ->
-            Some (Int64.add ofs (to_master_time_base ~time_base v))
-        | None, Some v -> Some (to_master_time_base ~time_base v)
-        | None, None -> None
+      match ts with
+        | None -> Some !ts_offset
+        | Some v ->
+            Some (Int64.add !ts_offset (to_master_time_base ~time_base v))
     in
-    last_ts := ret;
+    ( match (!last_ts, ret) with
+      | _, None -> ()
+      | None, _ -> last_ts := ret
+      | Some t, Some t' -> last_ts := Some (max t t') );
     ret
   in
 
@@ -97,12 +100,12 @@ let mk_stream_copy ~video_size ~get_data output =
           let packet_dts = Avcodec.Packet.get_dts packet in
 
           let packet_pts =
-            adjust ~stream_idx ~time_base ~last_ts:last_pts
-              ~ts_offset:pts_offset packet_pts
+            adjust ~stream_idx ~time_base ~last_stream_idx:last_pts_stream_idx
+              ~last_ts:last_pts ~ts_offset:pts_offset packet_pts
           in
           let packet_dts =
-            adjust ~stream_idx ~time_base ~last_ts:last_dts
-              ~ts_offset:dts_offset packet_dts
+            adjust ~stream_idx ~time_base ~last_stream_idx:last_dts_stream_idx
+              ~last_ts:last_dts ~ts_offset:dts_offset packet_dts
           in
 
           Packet.set_pts packet packet_pts;

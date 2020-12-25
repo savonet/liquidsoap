@@ -433,12 +433,26 @@ let mk_buffer ~ctype generator =
   let put_pcm =
     if mode <> `Video then (
       let resampler = Decoder_utils.samplerate_converter () in
-      let channel_converter () =
-        Decoder_utils.channels_converter (channel_layout ctype.Frame.audio)
+      let current_channel_converter = ref None in
+      let current_dst = ref None in
+
+      let mk_channel_converter dst =
+        let c = Decoder_utils.channels_converter dst in
+        current_dst := Some dst;
+        current_channel_converter := Some c;
+        c
+      in
+
+      let get_channel_converter () =
+        let dst = channel_layout ctype.Frame.audio in
+        match !current_channel_converter with
+          | None -> mk_channel_converter dst
+          | Some _ when !current_dst <> Some dst -> mk_channel_converter dst
+          | Some c -> c
       in
       fun ?pts ~samplerate data ->
         let data = resampler ~samplerate data in
-        let data = channel_converter () data in
+        let data = (get_channel_converter ()) data in
         let len = Audio.length data in
         let data = Frame_content.Audio.lift_data data in
         G.put_audio ?pts generator data 0 (Frame.master_of_audio len) )

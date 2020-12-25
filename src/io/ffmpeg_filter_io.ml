@@ -124,6 +124,7 @@ type audio_config = {
 class audio_input ~bufferize kind =
   let generator = Generator.create `Audio in
   let min_buf = Frame.master_of_seconds bufferize in
+  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
 
@@ -166,6 +167,7 @@ class audio_input ~bufferize kind =
             {
               Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
               frame = ffmpeg_frame;
+              stream_idx;
             }
           in
           let content =
@@ -233,6 +235,7 @@ class video_input ~bufferize ~fps kind =
   let duration =
     lazy (Frame.master_of_seconds (1. /. float (Lazy.force fps)))
   in
+  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
 
@@ -244,6 +247,7 @@ class video_input ~bufferize ~fps kind =
           Ffmpeg_raw_content.VideoSpecs.width = Some Avfilter.(width v.context);
           height = Some Avfilter.(height v.context);
           pixel_format = Some Avfilter.(pixel_format v.context);
+          pixel_aspect = Some Avfilter.(sample_aspect_ratio v.context);
         }
       in
       Frame_content.merge self#ctype.Frame.video
@@ -267,6 +271,7 @@ class video_input ~bufferize ~fps kind =
             {
               Ffmpeg_raw_content.time_base = ffmpeg_frame_time_base;
               frame = ffmpeg_frame;
+              stream_idx;
             }
           in
           let pts =

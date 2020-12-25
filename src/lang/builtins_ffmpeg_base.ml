@@ -20,38 +20,6 @@
 
  *****************************************************************************)
 
-type ('a, 'b) content = { mutable params : 'a; mutable data : (int * 'b) list }
-
-let make ~size:_ params = { params; data = [] }
-let clear d = d.data <- []
-let is_empty { data } = data = []
-let stream_idx = ref 0L
-
-let new_stream_idx () =
-  stream_idx := Int64.succ !stream_idx;
-  !stream_idx
-
-let sub c ofs len =
-  {
-    c with
-    data = List.filter (fun (pos, _) -> ofs <= pos && pos < ofs + len) c.data;
-  }
-
-let blit src src_pos dst dst_pos len =
-  (* No compatibility check here, it's
-     assumed to have been done beforehand. *)
-  dst.params <- src.params;
-  let src_end = src_pos + len in
-  let data =
-    List.fold_left
-      (fun data (pos, p) ->
-        if src_pos <= pos && pos < src_end then (
-          let pos = dst_pos + (pos - src_pos) in
-          (pos, p) :: data )
-        else data)
-      dst.data src.data
-  in
-  dst.data <- List.sort (fun (pos, _) (pos', _) -> Stdlib.compare pos pos') data
-
-let copy { data; params } = { data; params }
-let params { params } = params
+let () =
+  Lang.add_module "ffmpeg";
+  Lang.add_module "ffmpeg.raw"

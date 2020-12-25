@@ -42,7 +42,6 @@ let mk_audio_decoder ~channels container =
       !in_sample_rate target_channel_layout target_sample_rate
   in
   let converter = ref (mk_converter ()) in
-  let decoder_pts = ref 0L in
   ( idx,
     stream,
     fun ~buffer frame ->
@@ -63,8 +62,6 @@ let mk_audio_decoder ~channels container =
         in_sample_format := frame_in_sample_format;
         converter := mk_converter () );
       let content = Converter.convert !converter frame in
-      let l = Audio.length content in
-      decoder_pts := Int64.add !decoder_pts (Int64.of_int l);
       buffer.Decoder.put_pcm ?pts:None ~samplerate:target_sample_rate content )
 
 let mk_video_decoder container =
@@ -85,7 +82,6 @@ let mk_video_decoder container =
   in
   let time_base = Av.get_time_base stream in
   let pixel_aspect = Av.get_pixel_aspect stream in
-  let decoder_pts = ref 0L in
   let cb ~buffer frame =
     let img =
       match Scaler.convert scaler frame with
@@ -96,7 +92,6 @@ let mk_video_decoder container =
         | _ -> assert false
     in
     let content = Video.single img in
-    decoder_pts := Int64.succ !decoder_pts;
     buffer.Decoder.put_yuva420p ?pts:None
       ~fps:{ Decoder.num = target_fps; den = 1 }
       content

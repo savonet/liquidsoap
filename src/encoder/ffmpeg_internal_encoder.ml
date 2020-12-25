@@ -297,31 +297,32 @@ let mk_video ~ffmpeg ~options output =
 
   let converter = ref None in
 
-  let mk_converter ~pixel_format ~time_base () =
+  let mk_converter ~pixel_format ~time_base ~stream_idx () =
     let c =
       Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
         ~pixel_format ~time_base ~pixel_aspect ~target_fps ()
     in
-    converter := Some (pixel_format, time_base, c);
+    converter := Some (pixel_format, time_base, stream_idx, c);
     c
   in
 
-  let get_converter ~pixel_format ~time_base () =
+  let get_converter ~pixel_format ~time_base ~stream_idx () =
     match !converter with
-      | None -> mk_converter ~pixel_format ~time_base ()
-      | Some (p, t, _) when (p, t) <> (pixel_format, time_base) ->
+      | None -> mk_converter ~stream_idx ~pixel_format ~time_base ()
+      | Some (p, t, i, _) when (p, t, i) <> (pixel_format, time_base, stream_idx)
+        ->
           log#important "Frame format change detected!";
-          mk_converter ~pixel_format ~time_base ()
-      | Some (_, _, c) -> c
+          mk_converter ~stream_idx ~pixel_format ~time_base ()
+      | Some (_, _, _, c) -> c
   in
 
   let stream_time_base = Av.get_time_base stream in
 
   let was_keyframe = ref false in
 
-  let fps_converter ~time_base frame =
+  let fps_converter ~stream_idx ~time_base frame =
     let converter =
-      get_converter ~time_base
+      get_converter ~time_base ~stream_idx
         ~pixel_format:(Avutil.Video.frame_get_pixel_format frame)
         ()
     in
@@ -348,6 +349,7 @@ let mk_video ~ffmpeg ~options output =
     in
     let nb_frames = ref 0L in
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
+    let stream_idx = 1L in
     fun frame start len ->
       let vstart = Frame.video_of_master start in
       let vstop = Frame.video_of_master (start + len) in
@@ -363,7 +365,7 @@ let mk_video ~ffmpeg ~options output =
         let frame = InternalScaler.convert scaler vdata in
         Avutil.frame_set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;
-        cb ~time_base frame
+        cb ~stream_idx ~time_base frame
       done
   in
 
@@ -403,8 +405,9 @@ let mk_video ~ffmpeg ~options output =
         Ffmpeg_raw_content.Video.get_data Frame.(frame.content.video)
       in
       List.iter
-        (fun (pos, { Ffmpeg_raw_content.time_base; frame }) ->
-          if start <= pos && pos < stop then cb ~time_base (scale frame))
+        (fun (pos, { Ffmpeg_raw_content.time_base; frame; stream_idx }) ->
+          if start <= pos && pos < stop then
+            cb ~stream_idx ~time_base (scale frame))
         data
   in
 

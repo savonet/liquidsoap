@@ -55,7 +55,7 @@ module Fps : sig
     height:int ->
     pixel_format:Avutil.Pixel_format.t ->
     time_base:Avutil.rational ->
-    pixel_aspect:Avutil.rational ->
+    ?pixel_aspect:Avutil.rational ->
     ?source_fps:int ->
     target_fps:int ->
     unit ->
@@ -63,4 +63,18 @@ module Fps : sig
 
   val convert :
     t -> [ `Video ] Avutil.frame -> ([ `Video ] Avutil.frame -> unit) -> unit
+end
+
+(* Ffmpeg doesn't really support a consistent duration API. Thus, we
+   use PTS increment between packets to emulate duration. This means that
+   a packet's duration is, in effect, the time between the last packet and
+   the current one. We also need to group packets to make sure that we
+   always submit chunks with non-null length. Some files have shown two
+   successive packet with the same DTS. *)
+module Duration : sig
+  type 'a t
+
+  val init : src:Avutil.rational -> get_ts:('a -> Int64.t option) -> 'a t
+  val push : 'a t -> 'a -> (int * (int * 'a) list) option
+  val flush : 'a t -> (int * 'a) list
 end
