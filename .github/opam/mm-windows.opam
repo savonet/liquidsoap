@@ -1,0 +1,35 @@
+opam-version: "2.0"
+maintainer: "Romain Beauxis <toots@rastageeks.org>"
+authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
+homepage: "https://github.com/savonet/ocaml-mm"
+build: [
+  ["./bootstrap"]
+  ["./configure" "--host=%{conf-gcc-windows:host}%" "--prefix=%{prefix}%" "OCAMLFIND_TOOLCHAIN=windows"]
+  [make]
+]
+install: [
+  ["env" "OCAMLFIND_TOOLCHAIN=windows"
+   make "install"]
+]
+remove: ["ocamlfind" "-toolchain" "windows" "remove" "mm"]
+depends: [
+  "ocaml-windows" {>= "4.08.0"}
+  "ocamlfind" {build}
+]
+depopts: [
+  "alsa-windows"
+  "ao-windows"
+  "pulseaudio-windows"
+  "gstreamer-windows"
+  "mad-windows"
+  "ogg-windows"
+  "ocamlsdl-windows"
+  "theora-windows"
+]
+bug-reports: "https://github.com/savonet/ocaml-mm/issues"
+dev-repo: "git+https://github.com/savonet/ocaml-mm.git"
+synopsis:
+  "The mm library contains high-level to create and manipulate multimedia streams (audio, video, MIDI)"
+url {
+  src: "https://github.com/savonet/ocaml-mm/archive/master.tar.gz"
+}
