@@ -34,7 +34,7 @@ let ffmpeg_gen params =
       framerate = Frame.video_rate;
       width = Frame.video_width;
       height = Frame.video_height;
-      pixel_format = "yuv420p";
+      pixel_format = None;
       audio_codec = None;
       video_codec = None;
       hwaccel = `Auto;
@@ -76,9 +76,13 @@ let ffmpeg_gen params =
         parse_args ~format ~mode
           { f with Ffmpeg_format.height = Lazy.from_val h }
           l
+    | ("pixel_format", { term = Var "none"; _ }) :: l when mode = `Video ->
+        parse_args ~format ~mode { f with Ffmpeg_format.pixel_format = None } l
     | ("pixel_format", { term = Ground (String p); _ }) :: l when mode = `Video
       ->
-        parse_args ~format ~mode { f with Ffmpeg_format.pixel_format = p } l
+        parse_args ~format ~mode
+          { f with Ffmpeg_format.pixel_format = Some p }
+          l
     | ("hwaccel", { term = Var "auto"; _ }) :: l when mode = `Video ->
         parse_args ~format ~mode { f with Ffmpeg_format.hwaccel = `Auto } l
     | ("hwaccel", { term = Var "none"; _ }) :: l when mode = `Video ->

@@ -242,7 +242,7 @@ let mk_video ~ffmpeg ~options output =
   let target_width = Lazy.force ffmpeg.Ffmpeg_format.width in
   let target_height = Lazy.force ffmpeg.Ffmpeg_format.height in
   let target_pixel_format =
-    Avutil.Pixel_format.of_string ffmpeg.Ffmpeg_format.pixel_format
+    Ffmpeg_utils.pixel_format codec ffmpeg.Ffmpeg_format.pixel_format
   in
 
   let flag =
@@ -343,22 +343,23 @@ let mk_video ~ffmpeg ~options output =
     let src_width = Lazy.force Frame.video_width in
     let src_height = Lazy.force Frame.video_height in
     let scaler =
-      InternalScaler.create [flag] src_width src_height `Yuv420p target_width
-        target_height
-        (Avutil.Pixel_format.of_string ffmpeg.Ffmpeg_format.pixel_format)
+      InternalScaler.create [flag] src_width src_height `Yuva420p target_width
+        target_height target_pixel_format
     in
     let nb_frames = ref 0L in
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
     fun frame start len ->
       let vstart = Frame.video_of_master start in
       let vstop = Frame.video_of_master (start + len) in
-      let vbuf = VFrame.yuv420p frame in
+      let vbuf = VFrame.yuva420p frame in
       for i = vstart to vstop - 1 do
         let f = Video.get vbuf i in
         let y, u, v = Image.YUV420.data f in
         let sy = Image.YUV420.y_stride f in
         let s = Image.YUV420.uv_stride f in
-        let vdata = [| (y, sy); (u, s); (v, s) |] in
+        Image.YUV420.ensure_alpha f;
+        let a = Option.get (Image.YUV420.alpha f) in
+        let vdata = [| (y, sy); (u, s); (v, s); (a, s) |] in
         let frame = InternalScaler.convert scaler vdata in
         Avutil.frame_set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;

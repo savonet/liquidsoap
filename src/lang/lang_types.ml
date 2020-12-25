@@ -131,7 +131,7 @@ let print_constr = function
       if !pretty_getters then Printf.sprintf "{%s}" t
       else Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "unit, bool, int, float, string or [string]"
-  | InternalMedia -> "an internal media type (none, pcm, yuv420p or midi)"
+  | InternalMedia -> "an internal media type (none, pcm, yuva420p or midi)"
 
 (** Types *)
 

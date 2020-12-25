@@ -89,13 +89,13 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in
       (* We only display the first image of each frame *)
-      let rgb = Video.get (VFrame.yuv420p buf) 0 in
+      let rgb = Video.get (VFrame.yuva420p buf) 0 in
       Sdl_utils.Surface.of_img surface rgb;
       Sdl_utils.check Sdl.update_window_surface window
   end
 
 let () =
-  let kind = Lang.video_yuv420p in
+  let kind = Lang.video_yuva420p in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.sdl" ~active:true
     (Output.proto @ [("", Lang.source_t k, None, None)])

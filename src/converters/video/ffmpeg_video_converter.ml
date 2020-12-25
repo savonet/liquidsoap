@@ -56,7 +56,7 @@ let format_of frame =
           | P.YUV444 -> `Yuv444p
           | P.YUV411 -> `Yuv411p
           | P.YUV410 -> `Yuv410p
-          | P.YUVJ420 -> `Yuv420p
+          | P.YUVJ420 -> `Yuva420p
           | P.YUVJ422 -> `Yuvj422p
           | P.YUVJ444 -> `Yuvj444p )
 

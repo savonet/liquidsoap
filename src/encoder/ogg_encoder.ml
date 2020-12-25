@@ -58,7 +58,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
 
 (** Helper to encode video. *)
 let encode_video encoder id frame start len =
-  let data = VFrame.yuv420p frame in
+  let data = VFrame.yuva420p frame in
   let start = Frame.video_of_master start in
   let len = Frame.video_of_master len in
   let data =

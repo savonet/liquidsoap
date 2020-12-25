@@ -103,8 +103,8 @@ let audio_mono =
 let audio_stereo =
   audio_params { Frame_content.Contents.channel_layout = lazy `Stereo }
 
-let video_yuv420p =
-  { Frame.audio = `Any; video = Frame.video_yuv420p; midi = `Any }
+let video_yuva420p =
+  { Frame.audio = `Any; video = Frame.video_yuva420p; midi = `Any }
 
 let midi = { Frame.audio = `Any; video = `Any; midi = Frame.midi_native }
 

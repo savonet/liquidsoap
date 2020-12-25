@@ -108,7 +108,7 @@ class visu ~kind source =
         (* Fill-in video information. *)
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float self#audio_channels in
-        let buf = VFrame.yuv420p frame in
+        let buf = VFrame.yuva420p frame in
         let start = Frame.video_of_master offset in
         let stop = start + Frame.video_of_master len in
         let line img c p q =

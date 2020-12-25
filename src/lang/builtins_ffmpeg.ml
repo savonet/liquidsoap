@@ -151,9 +151,6 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   let target_width = Lazy.force format.Ffmpeg_format.width in
   let target_height = Lazy.force format.Ffmpeg_format.height in
   let target_pixel_aspect = { Avutil.num = 1; den = 1 } in
-  let target_pixel_format =
-    Avutil.Pixel_format.of_string format.Ffmpeg_format.pixel_format
-  in
 
   let flag =
     match Ffmpeg_utils.conf_scaling_algorithm#get with
@@ -163,24 +160,40 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
       | _ -> failwith "Invalid value set for ffmpeg scaling algorithm!"
   in
 
-  let scaler =
-    InternalScaler.create [flag] internal_width internal_height `Yuv420p
-      target_width target_height target_pixel_format
+  let scaler = ref None in
+  let mk_scaler ~target_pixel_format =
+    scaler :=
+      Some
+        (InternalScaler.create [flag] internal_width internal_height `Yuva420p
+           target_width target_height target_pixel_format)
   in
 
-  let fps_converter =
-    Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
-      ~pixel_format:target_pixel_format ~time_base:internal_time_base
-      ~pixel_aspect:target_pixel_aspect ~target_fps ()
+  let fps_converter = ref None in
+  let mk_fps_converter ~target_pixel_format =
+    fps_converter :=
+      Some
+        (Ffmpeg_utils.Fps.init ~width:target_width ~height:target_height
+           ~pixel_format:target_pixel_format ~time_base:internal_time_base
+           ~pixel_aspect:target_pixel_aspect ~target_fps ())
   in
 
   let write_frame =
-    let time_base = Ffmpeg_utils.Fps.time_base fps_converter in
     match mode with
       | `Encoded -> (
           let stream_idx = Ffmpeg_copy_content.new_stream_idx () in
 
           let codec = Option.get codec in
+
+          let target_pixel_format =
+            Ffmpeg_utils.pixel_format codec format.Ffmpeg_format.pixel_format
+          in
+
+          mk_scaler ~target_pixel_format;
+          mk_fps_converter ~target_pixel_format;
+
+          let time_base =
+            Ffmpeg_utils.Fps.time_base (Option.get !fps_converter)
+          in
 
           let hwaccel = format.Ffmpeg_format.hwaccel in
           let hwaccel_device = format.Ffmpeg_format.hwaccel_device in
@@ -226,6 +239,15 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
           | `Frame frame -> Avcodec.encode encoder write_packet frame
           | `Flush -> Avcodec.flush_encoder encoder write_packet )
       | `Raw -> (
+          let target_pixel_format = `Yuva420p in
+
+          mk_scaler ~target_pixel_format;
+          mk_fps_converter ~target_pixel_format;
+
+          let time_base =
+            Ffmpeg_utils.Fps.time_base (Option.get !fps_converter)
+          in
+
           let params =
             {
               Ffmpeg_raw_content.VideoSpecs.width = Some target_width;
@@ -242,6 +264,7 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
           let get_duration =
             Ffmpeg_decoder_common.convert_duration ~src:time_base
           in
+
           function
           | `Frame frame ->
               let duration = get_duration (Avutil.frame_pts frame) in
@@ -256,7 +279,7 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   (* We don't know packet duration in advance so we have to infer
      it from the next packet. *)
   let write_ffmpeg_frame frame =
-    Ffmpeg_utils.Fps.convert fps_converter frame (fun frame ->
+    Ffmpeg_utils.Fps.convert (Option.get !fps_converter) frame (fun frame ->
         write_frame (`Frame frame))
   in
 
@@ -266,14 +289,16 @@ let write_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   | `Frame frame ->
       let vstart = 0 in
       let vstop = Frame.video_of_master (Lazy.force Frame.size) in
-      let vbuf = VFrame.yuv420p frame in
+      let vbuf = VFrame.yuva420p frame in
       for i = vstart to vstop - 1 do
         let f = Video.get vbuf i in
         let y, u, v = Image.YUV420.data f in
         let sy = Image.YUV420.y_stride f in
         let s = Image.YUV420.uv_stride f in
-        let vdata = [| (y, sy); (u, s); (v, s) |] in
-        let frame = InternalScaler.convert scaler vdata in
+        Image.YUV420.ensure_alpha f;
+        let a = Option.get (Image.YUV420.alpha f) in
+        let vdata = [| (y, sy); (u, s); (v, s); (a, s) |] in
+        let frame = InternalScaler.convert (Option.get !scaler) vdata in
         Avutil.frame_set_pts frame (Some !nb_frames);
         nb_frames := Int64.succ !nb_frames;
         write_ffmpeg_frame frame
@@ -300,7 +325,7 @@ let mk_encoder mode =
     Frame.
       {
         audio = (if has_audio then audio_pcm else none);
-        video = (if has_video then video_yuv420p else none);
+        video = (if has_video then video_yuva420p else none);
         midi = none;
       }
   in

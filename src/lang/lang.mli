@@ -166,7 +166,7 @@ val audio_mono : Frame.content_kind
 val audio_stereo : Frame.content_kind
 
 (* Video *)
-val video_yuv420p : Frame.content_kind
+val video_yuva420p : Frame.content_kind
 
 (* Midi *)
 val midi : Frame.content_kind

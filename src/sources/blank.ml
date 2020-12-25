@@ -59,7 +59,7 @@ class blank ~kind duration =
 
       (* Video *)
       ( try
-          Video.blank (VFrame.yuv420p ab) video_pos
+          Video.blank (VFrame.yuva420p ab) video_pos
             (Frame.video_of_master length)
         with Frame_content.Invalid -> () );
 

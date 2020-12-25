@@ -155,7 +155,7 @@ let encoder ext =
         ~duration (Option.get gst.audio_src) data 0 (Bytes.length data) );
     if videochans > 0 then (
       (* Put video. *)
-      let vbuf = VFrame.yuv420p frame in
+      let vbuf = VFrame.yuva420p frame in
       let vstart = Frame.video_of_master start in
       let vlen = Frame.video_of_master len in
       for i = vstart to vstart + vlen - 1 do

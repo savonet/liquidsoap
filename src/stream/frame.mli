@@ -39,7 +39,7 @@ val audio_pcm : kind
 val audio_n : int -> kind
 val audio_stereo : kind
 val audio_mono : kind
-val video_yuv420p : kind
+val video_yuva420p : kind
 val midi_native : kind
 val midi_n : int -> kind
 

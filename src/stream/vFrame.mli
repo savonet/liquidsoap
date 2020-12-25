@@ -61,6 +61,6 @@ val get_content :
 (** Get video contents. Raises [Not_found] is frame has no video *)
 val content : t -> Frame_content.data
 
-(** Get yuv420p video content. Raises [Frame_content.Invalid] if video
-  * content is not yuv420p and [Not_found] if frame has no video content. *)
-val yuv420p : t -> Frame_content.Video.data
+(** Get yuva420p video content. Raises [Frame_content.Invalid] if video
+  * content is not yuva420p and [Not_found] if frame has no video content. *)
+val yuva420p : t -> Frame_content.Video.data
