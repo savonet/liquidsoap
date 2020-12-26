@@ -73,6 +73,17 @@ let conf_cue_out_metadata =
         "operator on the resulting source";
       ]
 
+let conf_uri_protocols =
+  Dtools.Conf.list
+    ~p:(conf_playlists#plug "remote_protocols")
+    ~d:["http"; "https"; "ftp"; "sftp"]
+    "Protocols used for remote requests"
+    ~comments:
+      [
+        "Any request using one of the listed protocols is considered a remote \
+         request";
+      ]
+
 (** A playlist is list of metadatas,uri *)
 type playlist = ((string * string) list * string) list
 
@@ -89,14 +100,39 @@ type plugin = {
 let parsers : plugin Plug.plug =
   Plug.create ~doc:"Method to parse playlist." "playlist formats"
 
+exception Found of string
+
 let get_file ?pwd file =
-  match pwd with
-    | Some pwd ->
-        if Http.is_url pwd && not (Http.is_url file) then pwd ^ file
-        else (
-          let f = Filename.concat pwd file in
-          if Sys.file_exists f then f else file )
-    | None -> file
+  try
+    let check file =
+      if Sys.file_exists file then raise (Found file);
+
+      if pwd <> None then (
+        let pwd_file = Filename.concat (Option.get pwd) file in
+        if Sys.file_exists pwd_file then raise (Found pwd_file) )
+    in
+
+    check file;
+
+    let rec parse_and_check file =
+      match Request.parse_uri file with
+        | Some (proto, uri) ->
+            if List.mem proto conf_uri_protocols#get then raise (Found file);
+            check uri;
+            parse_and_check uri
+        | None ->
+            if pwd <> None then (
+              check file;
+              let pwd_uri = Option.get pwd ^ file in
+              match Request.parse_uri pwd_uri with
+                | Some (proto, _) when List.mem proto conf_uri_protocols#get ->
+                    raise (Found pwd_uri)
+                | _ -> () );
+            file
+    in
+
+    parse_and_check file
+  with Found file -> file
 
 exception Exit of (string * playlist)
 
