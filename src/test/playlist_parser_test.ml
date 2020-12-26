@@ -27,7 +27,7 @@ let () =
           (Some "http://", "annotate:foo=\"bar\":foo", "http://foo");
           (None, "annotate:foo=\"bar\":bla:foo", "bla:foo");
           (Some "bla:", "annotate:foo=\"bar\":foo", "bla:foo");
-          (Some "http://host/", "annotate:foo=\"bar\":" ^ tmp, tmp);
+          (Some "http://host/", "annotate:foo=\"bar\":http://bla", "http://bla");
         ]
       in
       List.iter
