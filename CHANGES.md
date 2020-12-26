@@ -6,6 +6,7 @@ New:
 
 Changed:
 - Fetch mime type using curl first when available.
+- Make override metadata name case-sensitive in `amplify` (#1323)
 
 Fixed:
 - Remote file resolution when passing URLs with spaces (#1410)

@@ -95,5 +95,5 @@ let () =
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       let o = Lang.to_string (Lang.assoc "override" 1 p) in
-      let o = if o = "" then None else Some (String.lowercase_ascii o) in
+      let o = if o = "" then None else Some o in
       new amplify ~kind s o c)
