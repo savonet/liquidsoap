@@ -1,10 +1,10 @@
 TESTS_ML = $(wildcard *.ml)
 TESTS = $(TESTS_ML:.ml=)
-OCAML_CFLAGS = -I ../tools -I .. $(liquidsoap_ocamlcflags) -thread
+OCAML_CFLAGS = -I ../tools -I .. -I ../decoder $(liquidsoap_ocamlcflags) -thread
 OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
 		extralib.cmx utils.cmx tools/log.cmx tutils.cmx \
 		file_watcher_mtime.cmx tools/dyntools.cmx configure.cmx http.cmx JSON.cmx \
-		stream/frame.cmx avi.cmx \
+		stream/frame.cmx avi.cmx doc.cmx pool.cmx plug.cmx decoder.cmx request.cmx playlist_parser.cmx \
 		../tools/unix_c.o
 
 all: $(TESTS)
