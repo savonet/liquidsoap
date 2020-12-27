@@ -389,7 +389,7 @@ let () =
       in
       let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
       let tl =
-        Frame.master_of_seconds
+        Frame.main_of_seconds
           (Lang.to_float (List.assoc "transition_length" p))
       in
       let override_meta = Lang.to_string (List.assoc "override" p) in

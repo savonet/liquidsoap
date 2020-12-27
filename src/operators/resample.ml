@@ -46,7 +46,7 @@ class resample ~kind ~active ~ratio (source : source) =
       Clock.unify self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]);
       Clock.unify source#clock c;
 
-      (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+      (* Make sure the child clock can be garbage collected, cf. cue_cut(). *)
       Gc.finalise (fun self -> Clock.forget self#clock c) self
 
     (* Actual processing: put data in a buffer until there is enough,
@@ -62,20 +62,20 @@ class resample ~kind ~active ~ratio (source : source) =
 
     (** Whenever we need data we call our source, using a special
     * [frame]. We always source#get from the current position of
-    * [frame], and perform #slave_tick when we need to advance.
+    * [frame], and perform #child_tick when we need to advance.
     * Alone, this is a very clean way to proceed.
     *
-    * When [active] we also tick whenever our master clock ticks,
-    * if we haven't ticked the slave clock yet. This seems natural
+    * When [active] we also tick whenever our main clock ticks,
+    * if we haven't ticked the child clock yet. This seems natural
     * in many cases but can cause data losses: if we get data in
     * [frame] from position 0 to X<size (i.e. end of track) then
     * we have enough to perform one self#get_frame after which
-    * the master clock might tick (we might have reach the end of
-    * the master frame, because of resampling or the different
-    * initial offset) and ticking the slave clock at this point
+    * the main clock might tick (we might have reach the end of
+    * the main frame, because of resampling or the different
+    * initial offset) and ticking the child clock at this point
     * could discard data that has been cached for the range X..size
     * if this data has been required by an output operator in the
-    * slave clock. *)
+    * child clock. *)
 
     val mutable frame = Frame.dummy
 
@@ -85,30 +85,30 @@ class resample ~kind ~active ~ratio (source : source) =
       frame <- Frame.create self#ctype;
       source#get_ready [(self :> source)]
 
-    val mutable master_time = 0
+    val mutable main_time = 0
 
-    val mutable last_slave_tick = 0
+    val mutable last_child_tick = 0
 
-    (* in master time *)
-    method private slave_tick =
+    (* in main time *)
+    method private child_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output;
       Frame.advance frame;
-      last_slave_tick <- (Clock.get self#clock)#get_tick
+      last_child_tick <- (Clock.get self#clock)#get_tick
 
     method after_output =
       super#after_output;
-      let master_clock = Clock.get self#clock in
+      let main_clock = Clock.get self#clock in
       (* Is it really a new tick? *)
-      if master_time <> master_clock#get_tick then (
-        (* Did the slave clock tick during this instant? *)
-        if active && last_slave_tick <> master_time then (
-          self#slave_tick;
-          last_slave_tick <- master_time );
-        master_time <- master_clock#get_tick )
+      if main_time <> main_clock#get_tick then (
+        (* Did the child clock tick during this instant? *)
+        if active && last_child_tick <> main_time then (
+          self#child_tick;
+          last_child_tick <- main_time );
+        main_time <- main_clock#get_tick )
 
     method private fill_buffer =
-      if Lazy.force Frame.size = Frame.position frame then self#slave_tick;
+      if Lazy.force Frame.size = Frame.position frame then self#child_tick;
       let start = Frame.position frame in
       let stop =
         source#get frame;
@@ -116,8 +116,8 @@ class resample ~kind ~active ~ratio (source : source) =
       in
       let ratio = ratio () in
       let content =
-        let start = Frame.audio_of_master start in
-        let stop = Frame.audio_of_master stop in
+        let start = Frame.audio_of_main start in
+        let stop = Frame.audio_of_main stop in
         let content = AFrame.pcm frame in
         let converter =
           match converter with

@@ -30,8 +30,8 @@ class gen ~kind ~seek name g freq duration ampl =
     inherit Synthesized.source ~seek ~name kind duration
 
     method private synthesize frame off len =
-      let off = Frame.audio_of_master off in
-      let len = Frame.audio_of_master len in
+      let off = Frame.audio_of_main off in
+      let len = Frame.audio_of_main len in
       let buf = AFrame.pcm frame in
       g#set_frequency (freq ());
       g#set_volume (ampl ());

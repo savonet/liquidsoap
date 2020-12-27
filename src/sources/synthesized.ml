@@ -27,7 +27,7 @@
  * [fun _ -> 0] *)
 class virtual source ?name ~seek kind duration =
   let track_size =
-    if duration <= 0. then None else Some (Frame.master_of_seconds duration)
+    if duration <= 0. then None else Some (Frame.main_of_seconds duration)
   in
   object (self)
     inherit Source.source ?name kind

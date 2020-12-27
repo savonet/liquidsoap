@@ -98,7 +98,7 @@ let create ?header input =
     match (input.Decoder.lseek, input.Decoder.tell, !header) with
       | Some seek, Some tell, Some (_, samplesize, channels, samplerate, _) -> (
           (* seek is in absolute position *)
-          let duration = Frame.seconds_of_master ticks in
+          let duration = Frame.seconds_of_main ticks in
           let samples = int_of_float (duration *. float samplerate) in
           let bytes = samples * samplesize * channels / 8 in
           try
@@ -106,7 +106,7 @@ let create ?header input =
             let ret = seek (pos + bytes) in
             let samples = 8 * (ret - pos) / (samplesize * channels) in
             let duration = float samples /. float samplerate in
-            Frame.master_of_seconds duration
+            Frame.main_of_seconds duration
           with _ -> 0 )
       | _, _, _ -> 0
   in

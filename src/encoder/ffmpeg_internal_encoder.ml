@@ -117,8 +117,8 @@ let mk_audio ~ffmpeg ~options output =
         target_samplerate
     in
     fun frame start len ->
-      let astart = Frame.audio_of_master start in
-      let alen = Frame.audio_of_master len in
+      let astart = Frame.audio_of_main start in
+      let alen = Frame.audio_of_main len in
       let pcm = Audio.sub (AFrame.pcm frame) astart alen in
       [InternalResampler.convert resampler pcm]
   in
@@ -352,8 +352,8 @@ let mk_video ~ffmpeg ~options output =
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
     let stream_idx = 1L in
     fun frame start len ->
-      let vstart = Frame.video_of_master start in
-      let vstop = Frame.video_of_master (start + len) in
+      let vstart = Frame.video_of_main start in
+      let vstop = Frame.video_of_main (start + len) in
       let vbuf = VFrame.yuva420p frame in
       for i = vstart to vstop - 1 do
         let f = Video.get vbuf i in

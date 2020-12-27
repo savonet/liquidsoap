@@ -29,7 +29,7 @@ let mk_stream_copy ~video_size ~get_data output =
   let video_size_ref = ref None in
   let codec_attr = ref None in
   let bitrate = ref None in
-  let master_time_base = Ffmpeg_utils.liq_master_ticks_time_base () in
+  let main_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
 
   let mk_stream frame =
     let { Ffmpeg_content_base.params } = get_data frame in
@@ -46,7 +46,7 @@ let mk_stream_copy ~video_size ~get_data output =
 
   let video_size () = !video_size_ref in
 
-  (* Keep track of latest DTS/PTS in master time_base
+  (* Keep track of latest DTS/PTS in main time_base
      since time_base can change between streams. *)
   let last_dts = ref None in
   let last_pts = ref None in
@@ -55,8 +55,8 @@ let mk_stream_copy ~video_size ~get_data output =
   let last_pts_stream_idx = ref None in
   let last_dts_stream_idx = ref None in
 
-  let to_master_time_base ~time_base v =
-    Ffmpeg_utils.convert_time_base ~src:time_base ~dst:master_time_base v
+  let to_main_time_base ~time_base v =
+    Ffmpeg_utils.convert_time_base ~src:time_base ~dst:main_time_base v
   in
 
   let adjust ~stream_idx ~time_base ~last_stream_idx ~last_ts ~ts_offset ts =
@@ -67,14 +67,14 @@ let mk_stream_copy ~video_size ~get_data output =
         match (!last_ts, ts) with
           | Some old_ts, None -> old_ts
           | Some old_ts, Some new_ts ->
-              Int64.sub old_ts (to_master_time_base ~time_base new_ts)
+              Int64.sub old_ts (to_main_time_base ~time_base new_ts)
           | None, Some new_ts -> new_ts
           | None, None -> 0L );
     let ret =
       match ts with
         | None -> Some !ts_offset
         | Some v ->
-            Some (Int64.add !ts_offset (to_master_time_base ~time_base v))
+            Some (Int64.add !ts_offset (to_main_time_base ~time_base v))
     in
     ( match (!last_ts, ret) with
       | _, None -> ()
@@ -112,13 +112,13 @@ let mk_stream_copy ~video_size ~get_data output =
           Packet.set_dts packet packet_dts;
           Packet.set_duration packet
             (Option.map
-               (to_master_time_base ~time_base)
+               (to_main_time_base ~time_base)
                (Packet.get_duration packet));
 
           if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
             was_keyframe := true;
 
-          Av.write_packet stream master_time_base packet ))
+          Av.write_packet stream main_time_base packet ))
       data
   in
 

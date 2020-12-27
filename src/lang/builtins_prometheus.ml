@@ -173,7 +173,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     last_end_time := end_time;
     Prometheus.Gauge.set last_data end_time;
     let encoded_time =
-      Frame.seconds_of_master (end_position - start_position)
+      Frame.seconds_of_main (end_position - start_position)
     in
     let latency = (end_time -. start_time) /. encoded_time in
     add_input_latency latency

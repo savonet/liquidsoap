@@ -26,7 +26,7 @@ val conf_log : Dtools.Conf.ut
 val conf_verbosity : string Dtools.Conf.t
 val conf_level : int Dtools.Conf.t
 val conf_scaling_algorithm : string Dtools.Conf.t
-val liq_master_ticks_time_base : unit -> Avutil.rational
+val liq_main_ticks_time_base : unit -> Avutil.rational
 val liq_audio_sample_time_base : unit -> Avutil.rational
 val liq_video_sample_time_base : unit -> Avutil.rational
 val liq_frame_time_base : unit -> Avutil.rational

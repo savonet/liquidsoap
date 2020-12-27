@@ -45,7 +45,7 @@ let decode_audio_frame ~mode c =
       let data = Frame_content.Audio.lift_data data in
       Producer_consumer.(
         Generator.put_audio c.generator ?pts:None data 0
-          (Frame.master_of_audio len))
+          (Frame.main_of_audio len))
   in
 
   let mk_copy_decoder () =
@@ -232,7 +232,7 @@ let decode_video_frame ~mode c =
           let data = Frame_content.Video.lift_data data in
           Producer_consumer.(
             Generator.put_video c.generator ?pts:None data 0
-              (Frame.master_of_video 1)))
+              (Frame.main_of_video 1)))
   in
 
   let mk_copy_decoder () =

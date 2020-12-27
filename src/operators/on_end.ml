@@ -45,7 +45,7 @@ class on_end ~kind ~delay f s =
     method private get_frame ab =
       s#get ab;
       self#save_latest_metadata ab;
-      let rem = Frame.seconds_of_master s#remaining in
+      let rem = Frame.seconds_of_main s#remaining in
       if
         (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab)
       then (

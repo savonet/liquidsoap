@@ -45,7 +45,7 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
     Generator.put_audio abg
       (Frame_content.Audio.lift_data data)
       0
-      (Frame.master_of_audio len);
+      (Frame.main_of_audio len);
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue

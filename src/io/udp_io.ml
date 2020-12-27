@@ -79,7 +79,7 @@ module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
 class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
-  let max_ticks = 2 * Frame.master_of_seconds bufferize in
+  let max_ticks = 2 * Frame.main_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
   let log_ref = ref (fun _ -> ()) in

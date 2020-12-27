@@ -169,7 +169,7 @@ let external_input_oblivious process filename prebuf =
   in
   let gen = Generator.create ~log_overfull:false ~log:(log#info "%s") `Audio in
   let buffer = Decoder.mk_buffer ~ctype gen in
-  let prebuf = Frame.master_of_seconds prebuf in
+  let prebuf = Frame.main_of_seconds prebuf in
   let decoder = Wav_aiff_decoder.create input in
   let fill frame =
     begin

@@ -170,8 +170,8 @@ module Fps = struct
           flush ()
 end
 
-let liq_master_ticks_time_base () =
-  { Avutil.num = 1; den = Lazy.force Frame.master_rate }
+let liq_main_ticks_time_base () =
+  { Avutil.num = 1; den = Lazy.force Frame.main_rate }
 
 let liq_audio_sample_time_base () =
   { Avutil.num = 1; den = Lazy.force Frame.audio_rate }
@@ -180,7 +180,7 @@ let liq_video_sample_time_base () =
   { Avutil.num = 1; den = Lazy.force Frame.video_rate }
 
 let liq_frame_time_base () =
-  { Avutil.num = Lazy.force Frame.size; den = Lazy.force Frame.master_rate }
+  { Avutil.num = Lazy.force Frame.size; den = Lazy.force Frame.main_rate }
 
 let liq_frame_pixel_format () = if conf_alpha#get then `Yuva420p else `Yuv420p
 
@@ -275,7 +275,7 @@ module Duration = struct
     {
       get_ts;
       src;
-      dst = liq_master_ticks_time_base ();
+      dst = liq_main_ticks_time_base ();
       last_packet = None;
       packets = [];
     }

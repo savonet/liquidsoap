@@ -34,7 +34,7 @@ module Make (Harbor : T) = struct
   class http_input_server ~kind ~dumpfile ~logfile ~bufferize ~max ~icy ~port
     ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
     ~on_disconnect ~login ~debug ~log_overfull ~timeout p =
-    let max_ticks = Frame.master_of_seconds max in
+    let max_ticks = Frame.main_of_seconds max in
     (* We need a temporary log until
      * the source has an id *)
     let log_ref = ref (fun _ -> ()) in

@@ -605,7 +605,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
      * -1 means Infinity, time unit is the frame. *)
     method virtual remaining : int
 
-    (* [self#seek x] skips [x] master ticks.
+    (* [self#seek x] skips [x] main ticks.
      * returns the number of ticks actually skipped.
      * By default it always returns 0, refusing to seek at all. *)
     method seek (_ : int) =

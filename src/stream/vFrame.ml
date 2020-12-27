@@ -24,12 +24,12 @@ open Frame
 
 type t = Frame.t
 
-let tov = Frame.master_of_video
+let tov = Frame.main_of_video
 
 let vot ?round x =
   match round with
-    | None | Some `Down -> Frame.video_of_master x
-    | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate - 1)
+    | None | Some `Down -> Frame.video_of_main x
+    | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
 
 let content b = b.content.video
 let yuva420p b = Frame_content.Video.get_data (content b)

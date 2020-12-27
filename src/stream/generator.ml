@@ -517,7 +517,7 @@ module From_audio_video = struct
 
     pts
 
-  (** Add some audio content. Offset and length are given in master ticks. *)
+  (** Add some audio content. Offset and length are given in main ticks. *)
   let put_audio ?pts t data o l =
     let pts = match pts with Some pts -> pts | None -> t.current_audio_pts in
     t.current_audio_pts <-
@@ -536,7 +536,7 @@ module From_audio_video = struct
     end;
     sync_content t
 
-  (** Add some video content. Offset and length are given in master ticks. *)
+  (** Add some video content. Offset and length are given in main ticks. *)
   let put_video ?pts t data o l =
     let pts = match pts with Some pts -> pts | None -> t.current_video_pts in
     t.current_video_pts <-
@@ -741,7 +741,7 @@ module From_audio_video_plus = struct
     match t.overfull with
       | Some (`Drop_old len) when Super.buffered_length t.gen + extra > len ->
           let len = Super.buffered_length t.gen + extra - len in
-          let len_time = Frame.seconds_of_master len in
+          let len_time = Frame.seconds_of_main len in
           if t.log_overfull then
             t.log
               (Printf.sprintf

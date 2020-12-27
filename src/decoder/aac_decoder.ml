@@ -100,7 +100,7 @@ let create_decoder input =
     else (
       let cur_time = float !processed /. float samplerate in
       let rate = float !pos /. cur_time in
-      let offset = Frame.seconds_of_master ticks in
+      let offset = Frame.seconds_of_main ticks in
       let bytes = int_of_float (rate *. offset) in
       try
         ignore
@@ -209,14 +209,14 @@ let create_decoder input =
   in
   let seek ticks =
     try
-      let time = Frame.seconds_of_master ticks in
+      let time = Frame.seconds_of_main ticks in
       let audio_ticks = int_of_float (time *. float samplerate) in
       let offset = max (!pos + audio_ticks) 0 in
       let new_sample, _ = Faad.Mp4.seek mp4 track offset in
       sample := new_sample;
       let time = float (offset - !pos) /. float samplerate in
       pos := offset;
-      Frame.master_of_seconds time
+      Frame.main_of_seconds time
     with _ ->
       ended := true;
       0

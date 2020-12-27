@@ -27,8 +27,8 @@ open Avi_format
 let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let audio =
-    let astart = Frame.audio_of_master start in
-    let alen = Frame.audio_of_master len in
+    let astart = Frame.audio_of_main start in
+    let alen = Frame.audio_of_main len in
     let pcm = AFrame.pcm frame in
     (* Resample if needed. *)
     let pcm, astart, alen =
@@ -46,8 +46,8 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
   in
   let video =
     let vbuf = VFrame.yuva420p frame in
-    let vstart = Frame.video_of_master start in
-    let vlen = Frame.video_of_master len in
+    let vstart = Frame.video_of_main start in
+    let vlen = Frame.video_of_main len in
     let data = Strings.Mutable.empty () in
     for i = vstart to vstart + vlen - 1 do
       let img = Video.get vbuf i in

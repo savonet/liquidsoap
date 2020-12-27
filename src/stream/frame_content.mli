@@ -48,7 +48,7 @@ module type ContentSpecs = sig
 
   (** Data *)
 
-  (* Size is in master ticks. *)
+  (* Size is in main ticks. *)
   val make : size:int -> params -> data
   val blit : data -> int -> data -> int -> int -> unit
   val sub : data -> int -> int -> data

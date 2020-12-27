@@ -1,6 +1,6 @@
 (** Specialization of Frame for content kinds restricted to audio,
   * with a fixed number of channels.
-  * All units are in audio samples instead of master clock ticks. *)
+  * All units are in audio samples instead of main clock ticks. *)
 
 (** {2 Types} *)
 

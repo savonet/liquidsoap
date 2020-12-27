@@ -216,7 +216,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
           (* There is a track available but we don't know its duration at this
              point. Hence, using default_duration. *)
           queue_length +. default_duration
-        else queue_length +. Frame.seconds_of_master remaining )
+        else queue_length +. Frame.seconds_of_main remaining )
 
     (** State should be `Sleeping on awakening, and is then turned to `Running.
       Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
@@ -378,7 +378,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
                     retrieved;
                   self#log#info
                     "Remaining: %.1fs, queued: %.1fs, adding: %.1fs (RID %d)"
-                    (Frame.seconds_of_master self#remaining)
+                    (Frame.seconds_of_main self#remaining)
                     queue_length len (Request.get_id req);
                   queue_length <- queue_length +. len;
                   Mutex.unlock qlock;
@@ -397,7 +397,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         try
           let r = Queue.take retrieved in
           self#log#info "Remaining: %.1fs, queued: %.1fs, taking: %.1fs"
-            (Frame.seconds_of_master self#remaining)
+            (Frame.seconds_of_main self#remaining)
             queue_length r.duration;
           if not r.expired then queue_length <- queue_length -. r.duration;
           Some r.request

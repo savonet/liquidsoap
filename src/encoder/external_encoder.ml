@@ -113,7 +113,7 @@ let encoder id ext =
           ~converter frame start len
       else (
         let b = AFrame.pcm frame in
-        let len = Frame.audio_of_master len in
+        let len = Frame.audio_of_main len in
         (* Resample if needed. *)
         let b, start, len =
           if ratio = 1. then (b, start, len)

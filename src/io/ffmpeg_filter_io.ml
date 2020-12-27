@@ -32,7 +32,7 @@ class audio_output ~name ~kind source_val =
   let convert_frame_pts =
     Ffmpeg_utils.(
       convert_time_base ~src:(liq_frame_time_base ())
-        ~dst:(liq_master_ticks_time_base ()))
+        ~dst:(liq_main_ticks_time_base ()))
   in
   object (self)
     inherit
@@ -75,7 +75,7 @@ class video_output ~kind ~name source_val =
   let convert_frame_pts =
     Ffmpeg_utils.(
       convert_time_base ~src:(liq_frame_time_base ())
-        ~dst:(liq_master_ticks_time_base ()))
+        ~dst:(liq_main_ticks_time_base ()))
   in
   object (self)
     inherit
@@ -123,7 +123,7 @@ type audio_config = {
 (* Same thing here. *)
 class audio_input ~bufferize kind =
   let generator = Generator.create `Audio in
-  let min_buf = Frame.master_of_seconds bufferize in
+  let min_buf = Frame.main_of_seconds bufferize in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"
@@ -158,7 +158,7 @@ class audio_input ~bufferize kind =
       let get_duration frame =
         let samplerate = float (Avutil.Audio.frame_get_sample_rate frame) in
         let nb_samples = float (Avutil.Audio.frame_nb_samples frame) in
-        Frame.master_of_seconds (nb_samples /. samplerate)
+        Frame.main_of_seconds (nb_samples /. samplerate)
       in
       let rec f () =
         try
@@ -231,9 +231,9 @@ type video_config = {
 
 class video_input ~bufferize ~fps kind =
   let generator = Generator.create `Video in
-  let min_buf = Frame.master_of_seconds bufferize in
+  let min_buf = Frame.main_of_seconds bufferize in
   let duration =
-    lazy (Frame.master_of_seconds (1. /. float (Lazy.force fps)))
+    lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps)))
   in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)

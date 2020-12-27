@@ -238,10 +238,10 @@ class hls_output p =
   (* better choice? *)
   let segment_duration = Lang.to_float (List.assoc "segment_duration" p) in
   let segment_ticks =
-    Frame.master_of_seconds segment_duration / Lazy.force Frame.size
+    Frame.main_of_seconds segment_duration / Lazy.force Frame.size
   in
-  let segment_master_duration = segment_ticks * Lazy.force Frame.size in
-  let segment_duration = Frame.seconds_of_master segment_master_duration in
+  let segment_main_duration = segment_ticks * Lazy.force Frame.size in
+  let segment_duration = Frame.seconds_of_main segment_main_duration in
   let segment_name = Lang.to_fun (List.assoc "segment_name" p) in
   let segment_name ~position ~extname sname =
     directory
@@ -544,7 +544,7 @@ class hls_output p =
               | _ -> () );
           output_string oc
             (Printf.sprintf "#EXTINF:%.03f,\r\n"
-               (Frame.seconds_of_master segment.len));
+               (Frame.seconds_of_main segment.len));
           output_string oc
             (Printf.sprintf "%s%s\r\n" prefix
                (Filename.basename segment.filename)))
@@ -668,7 +668,7 @@ class hls_output p =
                 self#process_init ~init ~segment s;
                 (None, encoded)
               with Encoder.Not_enough_data -> (None, Strings.empty) )
-            else if segment.len + len > segment_master_duration then (
+            else if segment.len + len > segment_main_duration then (
               match Encoder.(s.encoder.hls.split_encode frame ofs len) with
                 | `Ok (flushed, encoded) -> (Some flushed, encoded)
                 | `Nope encoded -> (None, encoded) )

@@ -42,7 +42,7 @@ let encoder shine =
   let encoded = Strings.Mutable.empty () in
   let encode frame start len =
     let b = AFrame.pcm frame in
-    let len = Frame.audio_of_master len in
+    let len = Frame.audio_of_main len in
     let b, start, len =
       if src_freq <> dst_freq then (
         let b =

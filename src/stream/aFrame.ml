@@ -25,8 +25,8 @@ open Frame
 type t = Frame.t
 
 (* Samples of ticks, and vice versa. *)
-let sot = audio_of_master
-let tos = master_of_audio
+let sot = audio_of_main
+let tos = main_of_audio
 let content b = b.content.audio
 let pcm b = Frame_content.Audio.get_data (content b)
 

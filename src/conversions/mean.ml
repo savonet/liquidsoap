@@ -37,7 +37,7 @@ class mean source =
           let content = AFrame.pcm frame in
           let tmp_content = AFrame.pcm tmp_frame in
           let channels = float (Array.length tmp_content) in
-          let ( ! ) = Frame.audio_of_master in
+          let ( ! ) = Frame.audio_of_main in
           for i = !start to !(start + len) - 1 do
             content.(0).{i} <-
               Array.fold_left (fun m b -> m +. b.{i}) 0. tmp_content /. channels

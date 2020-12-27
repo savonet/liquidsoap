@@ -99,7 +99,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         Generator.put_audio abg
           (Frame_content.Audio.lift_data data)
           0
-          (Frame.master_of_audio len);
+          (Frame.main_of_audio len);
         let to_replay =
           Tutils.mutexify mutex
             (fun () ->
@@ -149,7 +149,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
       if source#is_ready then (
         let tmp = Frame.create self#ctype in
         source#get tmp;
-        self#slave_tick;
+        self#child_tick;
         let buf = AFrame.pcm tmp in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
@@ -236,17 +236,17 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
                 true
             | _, `Nothing -> restart)
 
-    method private slave_tick =
+    method private child_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output
 
     (* See smactross.ml for details. *)
     method private set_clock =
-      let slave_clock = Clock.create_known (new Clock.clock self#id) in
+      let child_clock = Clock.create_known (new Clock.clock self#id) in
       Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
-      Clock.unify slave_clock source#clock;
-      Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
+      Clock.unify child_clock source#clock;
+      Gc.finalise (fun self -> Clock.forget self#clock child_clock) self
 
     method wake_up a =
       super#wake_up a;

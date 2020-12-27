@@ -663,10 +663,10 @@ let () =
       Lang.float (Audio.lin_of_dB x))
 
 let () =
-  add_builtin "seconds_of_master" ~cat:Liq
-    ~descr:"Convert a number of master ticks in seconds."
+  add_builtin "seconds_of_main" ~cat:Liq
+    ~descr:"Convert a number of main ticks in seconds."
     [("", Lang.int_t, None, None)] Lang.float_t (fun p ->
-      Lang.float (Frame.seconds_of_master (Lang.to_int (List.assoc "" p))))
+      Lang.float (Frame.seconds_of_main (Lang.to_int (List.assoc "" p))))
 
 let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."

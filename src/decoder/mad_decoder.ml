@@ -57,7 +57,7 @@ let init input =
   let seek ticks =
     if ticks < 0 && input.Decoder.lseek = None then 0
     else (
-      let time = Frame.seconds_of_master ticks in
+      let time = Frame.seconds_of_main ticks in
       let cur_time = get_time () in
       let seek_time = cur_time +. time in
       let seek_time = if seek_time < 0. then 0. else seek_time in
@@ -88,7 +88,7 @@ let init input =
       in
       f (get_time ());
       let new_time = get_time () in
-      Frame.master_of_seconds (new_time -. cur_time) )
+      Frame.main_of_seconds (new_time -. cur_time) )
   in
   let get_info () = Mad.get_frame_format !dec in
   (get_info, get_data, seek)

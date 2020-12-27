@@ -85,30 +85,30 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
     method private sleep = source#leave (self :> source)
 
     method private set_clock =
-      let slave_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should stricly contain the slave clock. *)
+      let child_clock = Clock.create_known (new Clock.clock self#id) in
+      (* Our external clock should stricly contain the child clock. *)
       Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
 
       (* The source must belong to our clock, since we need occasional
        * control on its flow (to seek at the beginning of a track). *)
-      Clock.unify slave_clock source#clock;
+      Clock.unify child_clock source#clock;
 
-      (* When this source disappears the slave clock becomes useless.
+      (* When this source disappears the child clock becomes useless.
        * To allow for its collection, remove references to it as a subclock
-       * of the master clock. *)
-      Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
+       * of the main clock. *)
+      Gc.finalise (fun self -> Clock.forget self#clock child_clock) self
 
-    (* The slave clock will tick just like the master clock, except one
+    (* The child clock will tick just like the main clock, except one
      * extra tick at the beginning of each track where data has to
      * be skipped. *)
-    method private slave_tick =
+    method private child_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output
 
     method after_output =
       super#after_output;
-      self#slave_tick
+      self#child_tick
 
     method private get_cue_points buf pos =
       match Frame.get_metadata buf pos with
@@ -121,7 +121,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
                   Some
                     (Int64.of_float
                        ( float_of_string content
-                       *. float (Lazy.force Frame.master_rate) ))
+                       *. float (Lazy.force Frame.main_rate) ))
                 with _ ->
                   self#log#severe "Ill-formed metadata %s=%S!" key content;
                   None
@@ -164,9 +164,9 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
       Frame.set_breaks buf breaks;
 
       (* Before pulling new data to fill-in the frame,
-       * we need to tick the slave clock otherwise we might get
+       * we need to tick the child clock otherwise we might get
        * the same old (cached) data. *)
-      self#slave_tick;
+      self#child_tick;
       source#get buf;
       let new_pos = Frame.position buf in
       ( Int64.of_int (delta_pos + seeked_pos + new_pos - pos),
@@ -193,7 +193,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
        * and do one more #get to consume any remaining data. *)
       if not (Frame.is_partial buf) then (
         source#abort_track;
-        self#slave_tick;
+        self#child_tick;
         source#get (Frame.create self#ctype) );
 
       (* Quantify in the previous #get

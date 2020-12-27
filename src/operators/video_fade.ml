@@ -106,7 +106,7 @@ class fade_out ~kind ?(meta = "liq_video_fade_out") duration fader fadefun
     method is_ready = source#is_ready
 
     method private get_frame ab =
-      let n = Frame.video_of_master source#remaining in
+      let n = Frame.video_of_main source#remaining in
       let off_ticks = Frame.position ab in
       let video_content = VFrame.get_content ab source in
       (* In video frames: [length] of the fade. *)
