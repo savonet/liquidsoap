@@ -26,7 +26,7 @@ module Make (Generator : Generator.S) = struct
    * Store [bufferize] seconds before declaring itself as ready. *)
   class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
     ~empty_on_abort gen =
-    let bufferize = Frame.master_of_seconds bufferize in
+    let bufferize = Frame.main_of_seconds bufferize in
     object (self)
       (** We keep the generator in an instance variable so that derived
     * classes can access it. There are concurrency issues, though:

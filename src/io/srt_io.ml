@@ -742,7 +742,7 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
 
 class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
   ~on_disconnect ~payload_size ~dump ~stats_interval format =
-  let max_ticks = Frame.master_of_seconds max in
+  let max_ticks = Frame.main_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let generator =

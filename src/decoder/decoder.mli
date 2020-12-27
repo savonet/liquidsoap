@@ -55,7 +55,7 @@ type buffer = {
 
 type decoder = {
   decode : buffer -> unit;
-  (* [seek x]: Skip [x] master ticks.
+  (* [seek x]: Skip [x] main ticks.
    * Returns the number of ticks atcually skiped. *)
   seek : int -> int;
 }

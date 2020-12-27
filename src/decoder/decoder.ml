@@ -67,7 +67,7 @@ type buffer = {
 
 type decoder = {
   decode : buffer -> unit;
-  (* [seek x]: Skip [x] master ticks.
+  (* [seek x]: Skip [x] main ticks.
    * Returns the number of ticks atcually skiped. *)
   seek : int -> int;
 }
@@ -455,7 +455,7 @@ let mk_buffer ~ctype generator =
         let data = (get_channel_converter ()) data in
         let len = Audio.length data in
         let data = Frame_content.Audio.lift_data data in
-        G.put_audio ?pts generator data 0 (Frame.master_of_audio len) )
+        G.put_audio ?pts generator data 0 (Frame.main_of_audio len) )
     else fun ?pts:_ ~samplerate:_ _ -> ()
   in
 
@@ -471,14 +471,14 @@ let mk_buffer ~ctype generator =
         let data = video_resample ~in_freq:fps ~out_freq data in
         let len = Video.length data in
         let data = Frame_content.Video.lift_data data in
-        G.put_video ?pts generator data 0 (Frame.master_of_video len) )
+        G.put_video ?pts generator data 0 (Frame.main_of_video len) )
     else fun ?pts:_ ~fps:_ _ -> ()
   in
 
   { generator; put_pcm; put_yuva420p }
 
 let mk_decoder ~filename ~close ~remaining ~buffer decoder =
-  let prebuf = Frame.master_of_seconds 0.5 in
+  let prebuf = Frame.main_of_seconds 0.5 in
   let decoding_done = ref false in
 
   let remaining frame offset =

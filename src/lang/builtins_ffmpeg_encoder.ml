@@ -324,7 +324,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   function
   | `Frame frame ->
       let vstart = 0 in
-      let vstop = Frame.video_of_master (Lazy.force Frame.size) in
+      let vstop = Frame.video_of_main (Lazy.force Frame.size) in
       let vbuf = VFrame.yuva420p frame in
       for i = vstart to vstop - 1 do
         let f = Video.get vbuf i in

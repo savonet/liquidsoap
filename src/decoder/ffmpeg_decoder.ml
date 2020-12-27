@@ -210,7 +210,7 @@ let get_type ~ctype ~url container =
   ctype
 
 let seek ~audio ~video ~target_position ticks =
-  let tpos = Frame.seconds_of_master ticks in
+  let tpos = Frame.seconds_of_main ticks in
   log#debug "Setting target position to %f" tpos;
   target_position := Some tpos;
   let position = Int64.of_float (tpos *. 1000.) in
@@ -341,7 +341,7 @@ let create_decoder ~ctype fname =
   in
   let get_remaining =
     Tutils.mutexify m (fun () ->
-        match !remaining with None -> -1 | Some r -> Frame.master_of_seconds r)
+        match !remaining with None -> -1 | Some r -> Frame.main_of_seconds r)
   in
   let container = Av.open_input fname in
   let audio, video = mk_streams ~ctype container in
@@ -386,7 +386,7 @@ let create_decoder ~ctype fname =
             | None -> -1
             | Some d ->
                 let ticks =
-                  ticks + Frame.master_of_seconds d - get_remaining ()
+                  ticks + Frame.main_of_seconds d - get_remaining ()
                 in
                 seek ~audio ~video ~target_position ticks);
       decode = mk_decoder ?audio ?video ~target_position container;

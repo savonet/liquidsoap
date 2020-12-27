@@ -84,12 +84,12 @@ class dssi ~kind ?chan plugin descr outputs params source =
       let b = AFrame.pcm buf in
       let evs = MFrame.midi buf in
       (* Now convert everything to audio samples. *)
-      let offset = Frame.audio_of_master offset in
-      let position = Frame.audio_of_master position in
+      let offset = Frame.audio_of_main offset in
+      let position = Frame.audio_of_main position in
       let len = position - offset in
       let evs =
         let dssi_of_midi (t, e) =
-          let t = Frame.audio_of_master (Frame.master_of_midi t) in
+          let t = Frame.audio_of_main (Frame.main_of_midi t) in
           match e with
             | MIDI.Note_on (n, v) ->
                 Some (t, Dssi.Event_note_on (0, n, int_of_float (v *. 127.)))

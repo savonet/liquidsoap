@@ -745,7 +745,7 @@ let source_methods =
             unit) );
     ( "remaining",
       ([], fun_t [] float_t),
-      fun s -> val_fun [] (fun _ -> float (Frame.seconds_of_master s#remaining))
+      fun s -> val_fun [] (fun _ -> float (Frame.seconds_of_main s#remaining))
     );
     ("is_up", ([], fun_t [] bool_t), fun s -> val_fun [] (fun _ -> bool s#is_up));
     ( "seek",
@@ -753,8 +753,8 @@ let source_methods =
       fun s ->
         val_fun [] (fun p ->
             float
-              (Frame.seconds_of_master
-                 (s#seek (Frame.master_of_seconds (to_float (List.assoc "" p))))))
+              (Frame.seconds_of_main
+                 (s#seek (Frame.main_of_seconds (to_float (List.assoc "" p))))))
     );
     ( "skip",
       ([], fun_t [] unit_t),
@@ -785,7 +785,7 @@ let source_methods =
               Lazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
-              Frame.seconds_of_master (Frame.position s#memo)
+              Frame.seconds_of_main (Frame.position s#memo)
             in
             float (frame_position +. in_frame_position)) );
   ]

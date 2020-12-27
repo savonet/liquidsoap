@@ -273,11 +273,11 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       try
         if not (Frame.is_partial frame) then (
           let len = Lazy.force Frame.size in
-          let duration = Gstreamer_utils.time_of_master len in
+          let duration = Gstreamer_utils.time_of_main len in
           if has_audio then (
             let pcm = AFrame.pcm frame in
             assert (Array.length pcm = self#audio_channels);
-            let len = Frame.audio_of_master len in
+            let len = Frame.audio_of_main len in
             let data = Bytes.create (2 * self#audio_channels * len) in
             Audio.S16LE.of_audio pcm data 0;
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
@@ -457,7 +457,7 @@ type 'a sink = { pending : unit -> int; pull : unit -> 'a }
 class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
   let max = Lang.to_float (List.assoc "max" p) in
   let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
-  let max_ticks = Frame.master_of_seconds max in
+  let max_ticks = Frame.main_of_seconds max in
   let on_error = List.assoc "on_error" p in
   let on_error error =
     let msg = Printexc.to_string error in
@@ -606,7 +606,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         Generator.put_audio gen
           (Frame_content.Audio.lift_data buf)
           0
-          (Frame.master_of_audio len)
+          (Frame.main_of_audio len)
       done
 
     method private fill_video video =
@@ -620,7 +620,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         Generator.put_video gen
           (Frame_content.Video.lift_data stream)
           0
-          (Frame.master_of_video (Video.length stream))
+          (Frame.main_of_video (Video.length stream))
       done
 
     method get_frame frame =

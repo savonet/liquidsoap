@@ -403,7 +403,7 @@ let abuffer_args
       ( "sample_rate",
         `Int (Option.value ~default:(Lazy.force Frame.audio_rate) sample_rate)
       );
-    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_master_ticks_time_base ()));
+    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
     `Pair
       ( "channel_layout",
         `Int64
@@ -418,7 +418,7 @@ let abuffer_args
 
 let buffer_args { Ffmpeg_raw_content.VideoSpecs.width; height; pixel_format } =
   [
-    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_master_ticks_time_base ()));
+    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
     `Pair
       ( "width",
         `Int (Option.value ~default:(Lazy.force Frame.video_width) width) );

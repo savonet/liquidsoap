@@ -23,7 +23,7 @@
 open Source
 
 class blank ~kind duration =
-  let ticks = if duration < 0. then -1 else Frame.master_of_seconds duration in
+  let ticks = if duration < 0. then -1 else Frame.main_of_seconds duration in
   object
     inherit source ~name:"blank" kind
 
@@ -48,19 +48,19 @@ class blank ~kind duration =
         if remaining < 0 then Lazy.force Frame.size - position
         else min remaining (Lazy.force Frame.size - position)
       in
-      let video_pos = Frame.video_of_master position in
+      let video_pos = Frame.video_of_main position in
       (* Audio *)
       ( try
           Audio.clear
             (Audio.sub (AFrame.pcm ab)
-               (Frame.audio_of_master position)
-               (Frame.audio_of_master length))
+               (Frame.audio_of_main position)
+               (Frame.audio_of_main length))
         with Frame_content.Invalid -> () );
 
       (* Video *)
       ( try
           Video.blank (VFrame.yuva420p ab) video_pos
-            (Frame.video_of_master length)
+            (Frame.video_of_main length)
         with Frame_content.Invalid -> () );
 
       Frame.add_break ab (position + length);

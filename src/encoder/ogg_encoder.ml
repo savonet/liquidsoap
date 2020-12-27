@@ -34,11 +34,11 @@ let theora_encoder = ref None
 (** Helper to encode audio *)
 let encode_audio ~channels ~src_freq ~dst_freq () =
   let samplerate_converter = Audio_converter.Samplerate.create channels in
-  (* start and len are in master ticks. *)
+  (* start and len are in main ticks. *)
   let encode encoder id frame start len =
     let b = AFrame.pcm frame in
-    let start = Frame.audio_of_master start in
-    let len = Frame.audio_of_master len in
+    let start = Frame.audio_of_main start in
+    let len = Frame.audio_of_main len in
     let buf, start, len =
       if src_freq <> dst_freq then (
         let b =
@@ -59,8 +59,8 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
 (** Helper to encode video. *)
 let encode_video encoder id frame start len =
   let data = VFrame.yuva420p frame in
-  let start = Frame.video_of_master start in
-  let len = Frame.video_of_master len in
+  let start = Frame.video_of_main start in
+  let len = Frame.video_of_main len in
   let data =
     Ogg_muxer.Video_data { Ogg_muxer.data; offset = start; length = len }
   in

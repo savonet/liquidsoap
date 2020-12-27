@@ -142,12 +142,12 @@ let encoder ext =
   let nano = 1_000_000_000. in
   let vduration = Int64.of_float (Frame.seconds_of_video 1 *. nano) in
   let encode frame start len =
-    let duration = Int64.of_float (Frame.seconds_of_master len *. nano) in
+    let duration = Int64.of_float (Frame.seconds_of_main len *. nano) in
     let videochans = if gst.video_src <> None then 1 else 0 in
     if channels > 0 then (
       (* Put audio. *)
-      let astart = Frame.audio_of_master start in
-      let alen = Frame.audio_of_master len in
+      let astart = Frame.audio_of_main start in
+      let alen = Frame.audio_of_main len in
       let pcm = AFrame.pcm frame in
       let data = Bytes.create (2 * channels * alen) in
       Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
@@ -156,8 +156,8 @@ let encoder ext =
     if videochans > 0 then (
       (* Put video. *)
       let vbuf = VFrame.yuva420p frame in
-      let vstart = Frame.video_of_master start in
-      let vlen = Frame.video_of_master len in
+      let vstart = Frame.video_of_main start in
+      let vlen = Frame.video_of_main len in
       for i = vstart to vstart + vlen - 1 do
         let img = Video.get vbuf i in
         (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)

@@ -96,7 +96,7 @@ class visu ~kind source =
 
         (* Feed the volume buffer. *)
         let acontent = AFrame.pcm frame in
-        for i = Frame.audio_of_master offset to AFrame.position frame - 1 do
+        for i = Frame.audio_of_main offset to AFrame.position frame - 1 do
           self#add_vol
             (Array.map
                (fun c ->
@@ -109,8 +109,8 @@ class visu ~kind source =
         let volwidth = float width /. float backpoints in
         let volheight = float height /. float self#audio_channels in
         let buf = VFrame.yuva420p frame in
-        let start = Frame.video_of_master offset in
-        let stop = start + Frame.video_of_master len in
+        let start = Frame.video_of_main offset in
+        let stop = start + Frame.video_of_main len in
         let line img c p q =
           let f i j =
             if

@@ -63,7 +63,7 @@ class max_duration ~kind ~override_meta ~duration source =
                 if lbl = override_meta then (
                   try
                     let v = float_of_string v in
-                    remaining <- Frame.master_of_seconds v;
+                    remaining <- Frame.main_of_seconds v;
                     self#log#info "Overriding remaining value: %.02f." v
                   with _ ->
                     self#log#important "Invalid remaining override value: %s." v
@@ -100,7 +100,7 @@ let () =
     (fun p ->
       let override_meta = Lang.to_string (List.assoc "override" p) in
       let duration =
-        Frame.master_of_seconds (Lang.to_float (Lang.assoc "" 1 p))
+        Frame.main_of_seconds (Lang.to_float (Lang.assoc "" 1 p))
       in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
       new max_duration ~kind ~override_meta ~duration s)

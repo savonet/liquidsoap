@@ -182,7 +182,7 @@ module Make (Config : Config_t) = struct
     ?(force_mime = None) ~bind_address ~autostart ~bufferize ~max ~timeout
     ~debug ~log_overfull ~on_connect ~on_disconnect ?(logfile = None)
     ~user_agent url =
-    let max_ticks = Frame.master_of_seconds (Stdlib.max max bufferize) in
+    let max_ticks = Frame.main_of_seconds (Stdlib.max max bufferize) in
     (* We need a temporary log until the source has an ID. *)
     let log_ref = ref (fun _ -> ()) in
     let log x = !log_ref x in

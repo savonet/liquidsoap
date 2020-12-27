@@ -55,7 +55,7 @@ let create_decoder input =
   {
     Decoder.seek =
       (fun ticks ->
-        let duration = Frame.seconds_of_master ticks in
+        let duration = Frame.seconds_of_main ticks in
         let samples = Int64.of_float (duration *. float samplerate) in
         let pos = Int64.add !processed samples in
         let c =

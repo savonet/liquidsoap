@@ -77,7 +77,7 @@ type t = {
 
 (** {2 Content-independent frame operations} *)
 
-(** All units are in ticks (master clock). *)
+(** All units are in ticks (main clock). *)
 
 (** Create a frame of a given content type. *)
 val create : content_type -> t
@@ -215,7 +215,7 @@ val video_rate : int Lazy.t
 val midi_rate : int Lazy.t
 
 (** Ticks per second. *)
-val master_rate : int Lazy.t
+val main_rate : int Lazy.t
 
 val size : int Lazy.t
 
@@ -224,20 +224,20 @@ val duration : float Lazy.t
 
 (** {2 Time and frequency conversions} *)
 
-(** Conversion between the internal unit (master ticks), seconds, and data
+(** Conversion between the internal unit (main ticks), seconds, and data
     units. *)
 
 (** Duration of given number of samples in ticks. *)
-val audio_of_master : int -> int
+val audio_of_main : int -> int
 
-val video_of_master : int -> int
-val midi_of_master : int -> int
-val master_of_audio : int -> int
-val master_of_video : int -> int
-val master_of_midi : int -> int
-val master_of_seconds : float -> int
+val video_of_main : int -> int
+val midi_of_main : int -> int
+val main_of_audio : int -> int
+val main_of_video : int -> int
+val main_of_midi : int -> int
+val main_of_seconds : float -> int
 val audio_of_seconds : float -> int
 val video_of_seconds : float -> int
-val seconds_of_master : int -> float
+val seconds_of_main : int -> float
 val seconds_of_audio : int -> float
 val seconds_of_video : int -> float

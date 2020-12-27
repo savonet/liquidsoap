@@ -207,9 +207,9 @@ let create_decoder ?(merge_tracks = false) source input =
   in
   let seek offset =
     try
-      let time_offset = Frame.seconds_of_master offset in
+      let time_offset = Frame.seconds_of_main offset in
       let new_time = Ogg_demuxer.seek ~relative:true decoder time_offset in
-      Frame.master_of_seconds new_time
+      Frame.main_of_seconds new_time
     with Ogg_demuxer.End_of_stream | Ogg.End_of_stream ->
       log#info "End of track reached while seeking!";
       0

@@ -25,7 +25,7 @@ module Generated = Generated.Make (Generator)
 
 class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
   ~opts url =
-  let max_ticks = 2 * Frame.master_of_seconds bufferize in
+  let max_ticks = 2 * Frame.main_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
   let log_ref = ref (fun _ -> ()) in

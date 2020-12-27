@@ -162,32 +162,32 @@ let lcm a b = a / gcd a b * b
 (** [upper_multiple k m] is the least multiple of [k] that is [>=m]. *)
 let upper_multiple k m = if m mod k = 0 then m else (1 + (m / k)) * k
 
-(** The master clock is the slowest possible that can convert to both
+(** The main clock is the slowest possible that can convert to both
   * the audio and video clocks. *)
-let master_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
+let main_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
 
 (** Precompute those ratios to avoid too large integers below. *)
-let m_o_a = delayed (fun () -> !!master_rate / !!audio_rate)
+let m_o_a = delayed (fun () -> !!main_rate / !!audio_rate)
 
-let m_o_v = delayed (fun () -> !!master_rate / !!video_rate)
-let master_of_audio a = a * !!m_o_a
-let master_of_video v = v * !!m_o_v
-
-(* TODO: for now MIDI rate is the same as audio rate. *)
-let master_of_midi = master_of_audio
-let audio_of_master m = m / !!m_o_a
-let video_of_master m = m / !!m_o_v
+let m_o_v = delayed (fun () -> !!main_rate / !!video_rate)
+let main_of_audio a = a * !!m_o_a
+let main_of_video v = v * !!m_o_v
 
 (* TODO: for now MIDI rate is the same as audio rate. *)
-let midi_of_master = audio_of_master
-let master_of_seconds d = int_of_float (d *. float !!master_rate)
+let main_of_midi = main_of_audio
+let audio_of_main m = m / !!m_o_a
+let video_of_main m = m / !!m_o_v
+
+(* TODO: for now MIDI rate is the same as audio rate. *)
+let midi_of_main = audio_of_main
+let main_of_seconds d = int_of_float (d *. float !!main_rate)
 let audio_of_seconds d = int_of_float (d *. float !!audio_rate)
 let video_of_seconds d = int_of_float (d *. float !!video_rate)
-let seconds_of_master d = float d /. float !!master_rate
+let seconds_of_main d = float d /. float !!main_rate
 let seconds_of_audio d = float d /. float !!audio_rate
 let seconds_of_video d = float d /. float !!video_rate
 
-(** The frame size (in master ticks) should allow for an integer
+(** The frame size (in main ticks) should allow for an integer
   * number of samples of all types (audio, video).
   * With audio@44100Hz and video@25Hz, ticks=samples and one video
   * sample takes 1764 ticks: we need frames of size N*1764. *)
@@ -195,35 +195,35 @@ let size =
   delayed (fun () ->
       let audio = !!audio_rate in
       let video = !!video_rate in
-      let master = !!master_rate in
-      let granularity = lcm (master / audio) (master / video) in
+      let main = !!main_rate in
+      let granularity = lcm (main / audio) (main / video) in
       let target =
-        log#important "Using %dHz audio, %dHz video, %dHz master." audio video
-          master;
+        log#important "Using %dHz audio, %dHz video, %dHz main." audio video
+          main;
         log#important
           "Frame size must be a multiple of %d ticks = %d audio samples = %d \
            video samples."
           granularity
-          (audio_of_master granularity)
-          (video_of_master granularity);
+          (audio_of_main granularity)
+          (video_of_main granularity);
         try
           let d = conf_audio_size#get in
           log#important
             "Targetting 'frame.audio.size': %d audio samples = %d ticks." d
-            (master_of_audio d);
-          master_of_audio d
+            (main_of_audio d);
+          main_of_audio d
         with Conf.Undefined _ ->
           log#important
             "Targetting 'frame.duration': %.2fs = %d audio samples = %d ticks."
             conf_duration#get
             (audio_of_seconds conf_duration#get)
-            (master_of_seconds conf_duration#get);
-          master_of_seconds conf_duration#get
+            (main_of_seconds conf_duration#get);
+          main_of_seconds conf_duration#get
       in
       let s = upper_multiple granularity (max 1 target) in
       log#important
         "Frames last %.2fs = %d audio samples = %d video samples = %d ticks."
-        (seconds_of_master s) (audio_of_master s) (video_of_master s) s;
+        (seconds_of_main s) (audio_of_main s) (video_of_main s) s;
       s)
 
-let duration = delayed (fun () -> float !!size /. float !!master_rate)
+let duration = delayed (fun () -> float !!size /. float !!main_rate)

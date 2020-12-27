@@ -31,7 +31,7 @@ exception Finished of string * bool
 
 class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
   ~on_data ?read_header command =
-  let abg_max_len = Frame.master_of_seconds max in
+  let abg_max_len = Frame.main_of_seconds max in
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log_error = ref (fun _ -> ()) in
@@ -44,8 +44,8 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
     on_data abg reader;
 
     (* Check that audio and video roughly get filled as the same speed. *)
-    let lv = Frame.seconds_of_master (Generator.video_length abg) in
-    let la = Frame.seconds_of_master (Generator.audio_length abg) in
+    let lv = Frame.seconds_of_main (Generator.video_length abg) in
+    let la = Frame.seconds_of_main (Generator.audio_length abg) in
     let d = abs_float (lv -. la) in
     if d > vadiff && d -. !last_vadiff_warning >= vadiff then (
       last_vadiff_warning := d;
@@ -68,9 +68,9 @@ class video ~name ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
     method buffer_length_cmd =
-      ( Frame.seconds_of_master (Generator.audio_length abg),
-        Frame.seconds_of_master (Generator.video_length abg),
-        Frame.seconds_of_master (Generator.length abg) )
+      ( Frame.seconds_of_main (Generator.audio_length abg),
+        Frame.seconds_of_main (Generator.video_length abg),
+        Frame.seconds_of_main (Generator.length abg) )
 
     method wake_up x =
       (* Now we can create the log function *)
@@ -222,14 +222,14 @@ let () =
               let data = (Option.get !video_converter) data in
               Generator.put_video abg
                 (Frame_content.Video.lift_data (Video.single data))
-                0 (Frame.master_of_video 1)
+                0 (Frame.main_of_video 1)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data = converter data in
               Generator.put_audio abg
                 (Frame_content.Audio.lift_data data)
                 0
-                (Frame.master_of_audio (Audio.length data))
+                (Frame.main_of_audio (Audio.length data))
           | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
@@ -301,7 +301,7 @@ let () =
         (* Img.Effect.flip data; *)
         Generator.put_video abg
           (Frame_content.Video.lift_data (Video.single data))
-          0 (Frame.master_of_video 1)
+          0 (Frame.main_of_video 1)
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in

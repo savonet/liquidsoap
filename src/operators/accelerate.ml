@@ -55,7 +55,7 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
 
     method is_ready = source#is_ready
 
-    method private slave_tick =
+    method private child_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output
 
@@ -71,7 +71,7 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
       else (
         (* How much we filled compared to what we should have. *)
         let d = float filled -. (float (filled + skipped) /. ratio) in
-        let d = Frame.seconds_of_master (truncate d) in
+        let d = Frame.seconds_of_main (truncate d) in
         let rnd = randomize () in
         if rnd = 0. then d > 0.
         else (
@@ -88,7 +88,7 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
       while !pos > 0 && self#must_drop do
         Frame.clear null;
         source#get null;
-        self#slave_tick;
+        self#child_tick;
         pos := Frame.position null;
         skipped <- skipped + !pos
       done;
@@ -96,7 +96,7 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
       if !pos > 0 then source#get frame;
       let after = Frame.position frame in
       filled <- filled + (after - before);
-      self#slave_tick
+      self#child_tick
   end
 
 let () =

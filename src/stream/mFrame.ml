@@ -24,8 +24,8 @@ open Frame
 
 type t = Frame.t
 
-let mot = midi_of_master
-let tom = master_of_midi
+let mot = midi_of_main
+let tom = main_of_midi
 let size () = mot (Lazy.force Frame.size)
 let position t = mot (position t)
 let content b = b.content.midi

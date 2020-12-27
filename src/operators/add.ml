@@ -107,8 +107,8 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
               try
                 Audio.amplify c
                   (Audio.sub (AFrame.pcm buffer)
-                     (Frame.audio_of_master offset)
-                     (Frame.audio_of_master (already - offset)))
+                     (Frame.audio_of_main offset)
+                     (Frame.audio_of_main (already - offset)))
               with Frame_content.Invalid -> () );
             if rank > 0 then (
               (* The region grows, make sure it is clean before adding.
@@ -117,8 +117,8 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                   if already > end_offset then
                     Audio.clear
                       (Audio.sub (AFrame.pcm buf)
-                         (Frame.audio_of_master end_offset)
-                         (Frame.audio_of_master (already - end_offset)));
+                         (Frame.audio_of_main end_offset)
+                         (Frame.audio_of_main (already - end_offset)));
 
                   (* Add to the main buffer. *)
                   Audio.add
@@ -129,7 +129,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
               try
                 let vbuf = VFrame.yuva420p buf in
                 let vtmp = VFrame.yuva420p tmp in
-                let ( ! ) = Frame.video_of_master in
+                let ( ! ) = Frame.video_of_main in
                 for i = !offset to !already - 1 do
                   video_loop rank (Video.get vbuf i) (Video.get vtmp i)
                 done
@@ -137,7 +137,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
             else (
               try
                 let vbuf = VFrame.yuva420p buf in
-                let ( ! ) = Frame.video_of_master in
+                let ( ! ) = Frame.video_of_main in
                 for i = !offset to !already - 1 do
                   video_init (Video.get vbuf i)
                 done

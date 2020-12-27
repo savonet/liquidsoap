@@ -24,8 +24,8 @@ open Source
 module Generator = Generator.From_frames
 module Generated = Generated.Make (Generator)
 
-let finalise_slave_clock slave_clock source =
-  Clock.forget source#clock slave_clock
+let finalise_child_clock child_clock source =
+  Clock.forget source#clock child_clock
 
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
@@ -128,10 +128,10 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       self#cleanup_transition_source
 
     method private set_clock =
-      let slave_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should stricly contain the slave clock. *)
+      let child_clock = Clock.create_known (new Clock.clock self#id) in
+      (* Our external clock should stricly contain the child clock. *)
       Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
 
       (* The source must belong to our clock, since we need occasional
        * control on its flow (to fold an end of track over a beginning).
@@ -140,43 +140,43 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
        * to that same clock, since we (dynamically) activate them as well.
        * The activation mechanism is designed for a single thread,
        * which multiples clocks wouldn't ensure. *)
-      Clock.unify slave_clock s#clock;
-      Lang.iter_sources (fun s -> Clock.unify slave_clock s#clock) transition;
+      Clock.unify child_clock s#clock;
+      Lang.iter_sources (fun s -> Clock.unify child_clock s#clock) transition;
 
-      (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
-      Gc.finalise (finalise_slave_clock slave_clock) self
+      (* Make sure the child clock can be garbage collected, cf. cue_cut(). *)
+      Gc.finalise (finalise_child_clock child_clock) self
 
-    val mutable master_time = 0
+    val mutable main_time = 0
 
-    val mutable last_slave_tick = 0
+    val mutable last_child_tick = 0
 
-    (* in master time *)
+    (* in main time *)
 
-    (* Indicate that the source should be managed by relaying master ticks,
+    (* Indicate that the source should be managed by relaying main ticks,
      * and it has been used during the current tick, so it should be ticked
      * even if we're not in active mode. *)
     val mutable needs_tick = false
 
     val mutable status = `Idle
 
-    method private slave_tick =
+    method private child_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output;
       Frame.advance buf_frame;
       needs_tick <- false;
-      last_slave_tick <- (Clock.get self#clock)#get_tick
+      last_child_tick <- (Clock.get self#clock)#get_tick
 
     method after_output =
       super#after_output;
-      if needs_tick then self#slave_tick;
-      let master_clock = Clock.get self#clock in
+      if needs_tick then self#child_tick;
+      let main_clock = Clock.get self#clock in
       (* Is it really a new tick? *)
-      if master_time <> master_clock#get_tick then (
-        (* Did the slave clock tick during this instant? *)
-        if active && last_slave_tick <> master_time then (
-          self#slave_tick;
-          last_slave_tick <- master_time );
-        master_time <- master_clock#get_tick )
+      if main_time <> main_clock#get_tick then (
+        (* Did the child clock tick during this instant? *)
+        if active && last_child_tick <> main_time then (
+          self#child_tick;
+          last_child_tick <- main_time );
+        main_time <- main_clock#get_tick )
 
     method private save_last_metadata mode buf_frame =
       let compare x y = -compare (fst x) (fst y) in
@@ -196,7 +196,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                   try
                     let l = float_of_string v in
                     self#log#info "Setting crossfade duration to %.2fs" l;
-                    cross_length <- Frame.master_of_seconds l
+                    cross_length <- Frame.main_of_seconds l
                   with _ -> () ) ))
         (Frame.get_all_metadata frame)
 
@@ -232,7 +232,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             (* The track finished.
              * We compute rms_after and launch the transition. *)
             if source#is_ready then self#analyze_after;
-            self#slave_tick;
+            self#child_tick;
             self#create_transition;
 
             (* Check if the new source is ready *)
@@ -269,9 +269,9 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
     method private buffering n =
-      (* For the first call, the position is the old position in the master
+      (* For the first call, the position is the old position in the main
        * frame. After that it'll always be 0. *)
-      if not (Frame.is_partial buf_frame) then self#slave_tick;
+      if not (Frame.is_partial buf_frame) then self#child_tick;
       let start = Frame.position buf_frame in
       let stop =
         source#get buf_frame;
@@ -335,7 +335,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
         self#update_cross_length buf_frame start;
         if AFrame.is_partial buf_frame then Generator.add_break gen_after
         else begin
-          self#slave_tick;
+          self#child_tick;
           if after_len < before_len then f ()
         end
       in
@@ -386,10 +386,10 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             let compound =
               self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
                 db_before db_after
-                (Frame.seconds_of_master (Generator.length gen_before))
-                (Frame.seconds_of_master (Generator.length gen_after));
+                (Frame.seconds_of_main (Generator.length gen_before))
+                (Frame.seconds_of_main (Generator.length gen_after));
               if
-                Frame.master_of_audio minimum_length
+                Frame.main_of_audio minimum_length
                 < Generator.length gen_after
               then f before after
               else (
@@ -499,7 +499,7 @@ let () =
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
-      let cross_length = Frame.master_of_seconds duration in
+      let cross_length = Frame.main_of_seconds duration in
       let minimum = Lang.to_float (List.assoc "minimum" p) in
       let minimum_length = Frame.audio_of_seconds minimum in
       let rms_width = Lang.to_float (List.assoc "width" p) in

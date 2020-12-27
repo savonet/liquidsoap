@@ -41,16 +41,16 @@ class soundtouch ~kind (source : source) rate tempo pitch =
         (Soundtouch.get_version_string (Option.get st))
 
     method private set_clock =
-      let slave_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should stricly contain the slave clock. *)
+      let child_clock = Clock.create_known (new Clock.clock self#id) in
+      (* Our external clock should stricly contain the child clock. *)
       Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]);
-      Clock.unify slave_clock source#clock;
+        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
+      Clock.unify child_clock source#clock;
 
-      (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
-      Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
+      (* Make sure the child clock can be garbage collected, cf. cue_cut(). *)
+      Gc.finalise (fun self -> Clock.forget self#clock child_clock) self
 
-    method private slave_tick =
+    method private child_tick =
       (Clock.get source#clock)#end_tick;
       source#after_output;
       Frame.advance databuf
@@ -88,7 +88,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
         Generator.put_audio abg
           (Frame_content.Audio.lift_data tmp)
           0
-          (Frame.master_of_audio available) );
+          (Frame.main_of_audio available) );
       if AFrame.is_partial databuf then Generator.add_break abg;
 
       (* It's almost impossible to know where to add metadata,
@@ -96,7 +96,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
       List.iter
         (fun (_, m) -> Generator.add_metadata abg m)
         (AFrame.get_all_metadata databuf);
-      self#slave_tick
+      self#child_tick
 
     method private get_frame buf =
       let need = AFrame.size () - AFrame.position buf in

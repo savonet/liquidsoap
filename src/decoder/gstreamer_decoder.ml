@@ -142,7 +142,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
   in
   let seek off =
     try
-      let off = Gstreamer_utils.time_of_master off in
+      let off = Gstreamer_utils.time_of_main off in
       let pos = Gstreamer.Element.position gst.bin Gstreamer.Format.Time in
       let new_pos =
         Gstreamer.Element.seek_simple gst.bin Gstreamer.Format.Time
@@ -156,7 +156,7 @@ let create_decoder ?(merge_tracks = false) _ ~channels ~mode fname =
         Gstreamer.Element.position gst.bin Gstreamer.Format.Time
       in
       GU.flush ~log gst.bin;
-      Gstreamer_utils.master_of_time (Int64.sub new_pos pos)
+      Gstreamer_utils.main_of_time (Int64.sub new_pos pos)
     with exn ->
       let bt = Printexc.get_backtrace () in
       Utils.log_exception ~log ~bt
@@ -203,11 +203,11 @@ let create_file_decoder filename content_type ctype =
   in
   let remaining () =
     let pos =
-      Gstreamer_utils.master_of_time
+      Gstreamer_utils.main_of_time
         (Gstreamer.Element.position bin Gstreamer.Format.Time)
     in
     let duration =
-      Gstreamer_utils.master_of_time
+      Gstreamer_utils.main_of_time
         (Gstreamer.Element.duration bin Gstreamer.Format.Time)
     in
     duration - pos

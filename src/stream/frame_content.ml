@@ -348,7 +348,7 @@ module AudioSpecs = struct
   let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
 
   let blit src src_pos dst dst_pos len =
-    let ( ! ) = audio_of_master in
+    let ( ! ) = audio_of_main in
     Array.iter2
       (fun a a' ->
         Audio.Mono.blit
@@ -357,7 +357,7 @@ module AudioSpecs = struct
       src dst
 
   let sub data ofs len =
-    let ( ! ) = audio_of_master in
+    let ( ! ) = audio_of_main in
     Audio.sub data !ofs !len
 
   let copy d = Array.map Audio.Mono.copy d
@@ -395,7 +395,7 @@ module AudioSpecs = struct
         | `Stereo -> 2
         | `Five_point_one -> 6
     in
-    Array.init channels (fun _ -> Audio.Mono.create (audio_of_master size))
+    Array.init channels (fun _ -> Audio.Mono.create (audio_of_main size))
 
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
 end
@@ -430,7 +430,7 @@ module VideoSpecs = struct
   let make ~size { width; height } =
     let width = !!(Option.value ~default:video_width width) in
     let height = !!(Option.value ~default:video_height height) in
-    Video.make (video_of_master size) width height
+    Video.make (video_of_main size) width height
 
   let clear _ = ()
 
@@ -464,11 +464,11 @@ module VideoSpecs = struct
     compare (p.width, p'.width) && compare (p.height, p'.height)
 
   let blit src src_pos dst dst_pos len =
-    let ( ! ) = Frame_settings.video_of_master in
+    let ( ! ) = Frame_settings.video_of_main in
     Video.blit src !src_pos dst !dst_pos !len
 
   let sub data ofs len =
-    let ( ! ) = Frame_settings.video_of_master in
+    let ( ! ) = Frame_settings.video_of_main in
     Array.sub data !ofs !len
 
   let copy = Video.copy
@@ -515,11 +515,11 @@ module MidiSpecs = struct
   let compatible p p' = p.channels = p'.channels
 
   let blit src src_pos dst dst_pos len =
-    let ( ! ) = midi_of_master in
+    let ( ! ) = midi_of_main in
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
 
   let sub data ofs len =
-    let ( ! ) = midi_of_master in
+    let ( ! ) = midi_of_main in
     let d = MIDI.Multitrack.create (MIDI.Multitrack.channels data) !len in
     blit data !ofs d 0 !len;
     d
@@ -531,7 +531,7 @@ module MidiSpecs = struct
   let clear _ = ()
 
   let make ~size { channels } =
-    MIDI.Multitrack.create channels (midi_of_master size)
+    MIDI.Multitrack.create channels (midi_of_main size)
 
   let kind_of_string = function "midi" -> Some `Midi | _ -> None
 

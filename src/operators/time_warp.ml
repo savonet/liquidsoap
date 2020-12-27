@@ -71,8 +71,8 @@ module Buffer = struct
 
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
     ~max_buffer ~kind source_val c =
-    let prebuf = Frame.master_of_seconds pre_buffer in
-    let maxbuf = Frame.master_of_seconds max_buffer in
+    let prebuf = Frame.main_of_seconds pre_buffer in
+    let maxbuf = Frame.main_of_seconds max_buffer in
     object
       inherit
         Output.output
@@ -262,8 +262,8 @@ module AdaptativeBuffer = struct
             let unscale n = int_of_float (float n /. scaling) in
             let ofs = Frame.position frame in
             let len = Lazy.force Frame.size - ofs in
-            let aofs = Frame.audio_of_master ofs in
-            let alen = Frame.audio_of_master len in
+            let aofs = Frame.audio_of_main ofs in
+            let alen = Frame.audio_of_main len in
             let buf = AFrame.pcm frame in
             let salen = scale alen in
             fill buf aofs alen salen;
@@ -274,7 +274,7 @@ module AdaptativeBuffer = struct
             (* Fill in metadata *)
             let md = MG.metadata c.mg (scale len) in
             List.iter (fun (t, m) -> Frame.set_metadata frame (unscale t) m) md;
-            MG.advance c.mg (min (Frame.master_of_audio salen) (MG.length c.mg));
+            MG.advance c.mg (min (Frame.main_of_audio salen) (MG.length c.mg));
             if Frame.is_partial frame then MG.drop_initial_break c.mg;
 
             (* If there is no data left, we should buffer again. *)
@@ -317,7 +317,7 @@ module AdaptativeBuffer = struct
               (* Not enough write space, let's drop some data. *)
               let n = len - RB.write_space c.rb in
               RB.read_advance c.rb n;
-              MG.advance c.mg (Frame.master_of_audio n) );
+              MG.advance c.mg (Frame.main_of_audio n) );
             RB.write c.rb (Audio.sub buf 0 len);
             MG.feed_from_frame c.mg frame;
             if RB.read_space c.rb > prebuf then (

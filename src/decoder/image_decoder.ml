@@ -137,7 +137,7 @@ let create_decoder ~metadata img =
     if !duration = -1 then -1
     else (
       duration := !duration - (stop - start);
-      Frame.master_of_video !duration )
+      Frame.main_of_video !duration )
   in
   { Decoder.fill; fseek = (fun _ -> 0); close }
 

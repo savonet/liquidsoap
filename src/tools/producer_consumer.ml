@@ -60,8 +60,8 @@ type write_frame = write_payload -> unit
 
 class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
   ~content ~max_buffer ~pre_buffer ~source c =
-  let prebuf = Frame.master_of_seconds pre_buffer in
-  let max_buffer = Frame.master_of_seconds max_buffer in
+  let prebuf = Frame.main_of_seconds pre_buffer in
+  let max_buffer = Frame.main_of_seconds max_buffer in
   let autostart = true in
   let s = Lang.to_source source in
   let write_frame =
