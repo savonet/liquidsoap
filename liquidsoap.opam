@@ -149,6 +149,9 @@ conflicts: [
   "vorbis" {< "0.7.0"}
   "xmlplaylist" {< "0.1.3"}
 ]
+depexts: [
+  ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
+]
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
 synopsis: "Swiss-army knife for multimedia streaming"
