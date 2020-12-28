@@ -12,14 +12,14 @@ Replay gain
 
 Because it is track-based, replay gain does not suffer from the typical problems of stream-based, dynamic approaches. Namely, these distort the initial audio, since they constantly adapt the amplification factor. Sometimes it oscillates too quickly in a weird audible way. Sometimes it does not adapt quickly enough, leading to under or over-amplified sections.
 
-### Computing or retrieving replay gain data
+### Computing or retrieving replay gain information
 
 The first step in order to use replay gain is to fetch or compute the appropriate normalization level for a given file.
 
-Replay gain information can be found in various metadats fields depending on the audio format and the replay gain computation tool.
+Replay gain information can be found in various metadata fields depending on the audio format and the replay gain computation tool.
 Liquidsoap provides a script for extracting the replay gain value which requires the `ffmpeg` binary.
 
-There are at least two ways to use our replain gain script, one that works for _all_ files and one that can be enalbed on a 
+There are two ways to use our replain gain script, one that works for _all_ files and one that can be enabled on a 
 per-file basis, if you need finer grained control over replay gain.
 
 1. Using the replay gain metadata resolver
@@ -33,12 +33,12 @@ reason, it is recommended to pre-compute replay gain information as much as poss
 if you intent to stream large audio files.
 
 The replay gain metadata resolver is not enabled by default. You can do it
-by adding the following code in your script:
+by adding the following code to your script:
 ```liquidsoap
 enable_replaygain_metadata()
 ```
 
-2. Using the `replay_gain` protocol
+2. Using the `replay_gain:` protocol
 
 In this case, everytime you need replaygain information about a file,
 access it through your new protocol: for example,
@@ -46,7 +46,7 @@ replace `/path/to/file.mp3`
 by `replay_gain:/path/to/file.mp3`.
 The resolving of the protocol will trigger a call to our script,
 which will return an annotated request, finally resulting in your file
-with the extra `replay_gain` metadata.
+having the extra `replay_gain` metadata.
 
 Prepending `replay_gain:` is easy if you are using a script
 behind some `request.dynamic.list` operator. If you are using the
