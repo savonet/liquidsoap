@@ -40,17 +40,22 @@ enable_replaygain_metadata()
 
 2. Using the `replay_gain:` protocol
 
-In this case, everytime you need replaygain information about a file,
-access it through your new protocol: for example,
-replace `/path/to/file.mp3`
-by `replay_gain:/path/to/file.mp3`.
-The resolving of the protocol will trigger a call to our script,
-which will return an annotated request, finally resulting in your file
-having the extra `replay_gain` metadata.
+The `replay_gain:` protocol triggers replay gain retrieval or computation on 
+a per-file bases. To use it, you prefix your request URIs with it.
+
+For instance, replacing `/path/to/file.mp3` with `replay_gain:/path/to/file.mp3`.
+
+When resolving such a request, a call to our script will be issued, 
+resulting in your file having the extra `replay_gain` metadata.
 
 Prepending `replay_gain:` is easy if you are using a script
 behind some `request.dynamic.list` operator. If you are using the
 `playlist` operator, you can use its `prefix` parameter.
+
+Protocols can be chained, for instance:
+```
+annotate:foo=\"bar":replay_gain:/path/to/file.mp3
+```
 
 ### Applying replay gain information
 
