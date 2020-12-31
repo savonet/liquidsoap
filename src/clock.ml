@@ -245,10 +245,9 @@ class clock id =
                     s#output_get_ready;
                     `Started s
                   with e ->
-                    log#severe "Error when starting output %s: %s!" s#id
-                      (Printexc.to_string e);
-                    List.iter (log#important "%s")
-                      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()));
+                    let bt = Printexc.get_backtrace () in
+                    log#severe "Error when starting output %s: %s!\n%s" s#id
+                      (Printexc.to_string e) bt;
                     leave s;
                     `Error s ))
             to_start
