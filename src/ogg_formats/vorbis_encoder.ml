@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 let create_gen enc freq m =
   let encoder = Configure.vendor in
   let p1, p2, p3 = Vorbis.Encoder.headerout_packetout ~encoder enc m in

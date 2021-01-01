@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 val log : Log.t
 val conf_ffmpeg : Dtools.Conf.ut
 val conf_log : Dtools.Conf.ut

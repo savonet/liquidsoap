@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Video_converter
 module Img = Image.Generic
 

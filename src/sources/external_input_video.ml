@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Extralib
 
 (* Video-only input. Ideally this should be merged with previous one. *)

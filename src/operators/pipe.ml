@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.From_audio_video_plus
@@ -98,8 +99,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         let buffered = Generator.length abg in
         Generator.put_audio abg
           (Frame_content.Audio.lift_data data)
-          0
-          (Frame.main_of_audio len);
+          0 (Frame.main_of_audio len);
         let to_replay =
           Tutils.mutexify mutex
             (fun () ->

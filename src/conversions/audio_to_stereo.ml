@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** These classes define conversion operators that accept a source streaming
   * at least one audio channel, and no other kind of channel, and return
   * a source that streams stereo audio.

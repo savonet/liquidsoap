@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Decode and read ogg files. *)
 
 module P = Image.Generic.Pixel

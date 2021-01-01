@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.clock "portaudio")
 

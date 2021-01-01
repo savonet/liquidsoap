@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Samplerate converter using libsamplerate *)
 
 let log = Log.make ["audio"; "converter"; "libsamplerate"]

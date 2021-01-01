@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** External audio samplerate conversion utilities. *)
 
 let log = Log.make ["audio"; "converter"]

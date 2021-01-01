@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Media decoding infrastructure.
   *
   * We treat files and streams.

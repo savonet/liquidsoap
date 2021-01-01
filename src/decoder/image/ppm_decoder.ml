@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 let log = Log.make ["decoder"; "ppm"]
 
 let load_image fname =

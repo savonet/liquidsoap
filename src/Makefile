@@ -74,7 +74,7 @@ sources = \
 	$(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \
         tools/external_input.ml sources/external_input_audio.ml sources/external_input_video.ml \
-	tools/liqMM.ml tools/sandbox.ml \
+	tools/sandbox.ml \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml)
 

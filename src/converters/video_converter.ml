@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (* Video format converters *)
 
 let log = Log.make ["video"; "converter"]

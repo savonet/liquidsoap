@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Decode and read metadata from flac files. *)
 
 let log = Log.make ["decoder"; "flac"]

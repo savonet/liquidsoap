@@ -19,6 +19,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Play multiple sources at the same time, and perform weighted mix *)
 
 open Source

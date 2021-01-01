@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Resampling module for any Frame.content *)
 
 type samplerate_converter =

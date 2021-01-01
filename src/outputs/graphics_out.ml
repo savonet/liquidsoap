@@ -19,6 +19,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
   let video_width = Lazy.force Frame.video_width in
   let video_height = Lazy.force Frame.video_height in

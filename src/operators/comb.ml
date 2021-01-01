@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 (* See http://en.wikipedia.org/wiki/Comb_filter *)

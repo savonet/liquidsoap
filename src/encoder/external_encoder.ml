@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** External encoder *)
 
 open External_encoder_format

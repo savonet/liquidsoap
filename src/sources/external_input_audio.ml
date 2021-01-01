@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Extralib
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.From_audio_video_plus
@@ -44,8 +45,7 @@ class external_input ~name ~kind ~restart ~bufferize ~log_overfull
     let buffered = Generator.length abg in
     Generator.put_audio abg
       (Frame_content.Audio.lift_data data)
-      0
-      (Frame.main_of_audio len);
+      0 (Frame.main_of_audio len);
     if abg_max_len < buffered + len then
       `Delay (Frame.seconds_of_audio (buffered + len - (3 * abg_max_len / 4)))
     else `Continue

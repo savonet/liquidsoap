@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 module Img = Image.RGBA32
 module P = Image.Generic.Pixel
 

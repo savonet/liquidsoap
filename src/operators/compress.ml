@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 (** See http://www.musicdsp.org/archive.php?classid=4#169 *)

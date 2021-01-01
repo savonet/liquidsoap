@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Native audio converters *)
 
 let samplerate_conf =
