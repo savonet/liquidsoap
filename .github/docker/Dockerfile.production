@@ -4,10 +4,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 USER root
 
+RUN addgroup --gid 10001 --system liquidsoap && \
+    adduser --system --disabled-password --disabled-login --uid 10000 \
+    --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap && \
+    usermod --append --groups audio liquidsoap
+
 # For libfdk-aac-dev
 RUN sed -e 's#main#main contrib non-free#' -i /etc/apt/sources.list
 
 COPY *debian-testing*deb liquidsoap.deb
 
-RUN apt-get update && apt install -y ./liquidsoap.deb && apt-get clean
+RUN apt-get update && apt install -y ./liquidsoap.deb && apt-get install -y tini && apt-get clean
 
+USER liquidsoap
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/bin/liquidsoap"]
