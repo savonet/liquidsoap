@@ -16,12 +16,14 @@ case "$1" in
     ;;
 esac
 
-addgroup --system liquidsoap
+[ $(getent group liquidsoap) ] || addgroup --system liquidsoap
 
 # Create the new system account
-adduser --system --disabled-password --disabled-login \
---home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap
-usermod --append --groups audio liquidsoap
+id liquidsoap >dev/null 2>&1 || (\
+  adduser --system --disabled-password --disabled-login \
+  --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap && \
+  usermod --append --groups audio liquidsoap\
+)
 
 # Add again /usr/share/liquidsoap if user was already created
 if ! test -d /usr/share/liquidsoap; then
