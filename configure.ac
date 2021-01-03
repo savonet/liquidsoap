@@ -1125,6 +1125,7 @@ cat <<EOMSG
    - FFmpeg filters:   : $w_FFMPEG_LIQ_FILTER
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
+   - lastfm            : $w_LASTFM
    - lo                : $w_LO
    - magic             : $w_MAGIC
    - SecureTransport   : $w_OSX_SECURE_TRANSPORT
