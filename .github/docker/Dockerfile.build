@@ -15,6 +15,9 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full
 
+# Remove after next base image rebuild
+RUN rm -rf ocaml-lastfm/src/lastfm_constants.ml
+
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout master && git pull && \
      git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA && \
