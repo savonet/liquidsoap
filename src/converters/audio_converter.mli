@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** External audio conversion utilities *)
 
 (* TODO: is it the right place for this ? *)

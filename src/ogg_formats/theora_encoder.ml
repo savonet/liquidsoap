@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 module Img = Image.Generic
 
 let create_encoder ~theora ~metadata () =

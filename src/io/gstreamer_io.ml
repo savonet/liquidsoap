@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Extralib
 open Gstreamer
 module GU = Gstreamer_utils
@@ -605,8 +606,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         Audio.S16LE.to_audio b 0 (Audio.sub buf 0 len);
         Generator.put_audio gen
           (Frame_content.Audio.lift_data buf)
-          0
-          (Frame.main_of_audio len)
+          0 (Frame.main_of_audio len)
       done
 
     method private fill_video video =

@@ -20,6 +20,8 @@
 
   *****************************************************************************)
 
+open Mm
+
 (** Decode and read metadata using ffmpeg. *)
 
 module Generator = Decoder.G

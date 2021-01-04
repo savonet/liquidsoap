@@ -56,7 +56,7 @@ depends: [
   "dtools" {>= "0.4.2"}
   "duppy" {>= "0.8.1"}
   "menhir"
-  "mm" {>= "0.6.0"}
+  "mm" {>= "0.7.0"}
   "ocamlfind" {build}
   "pcre"
   "sedlex" {>= "2.0"}

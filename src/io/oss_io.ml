@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 external set_format : Unix.file_descr -> int -> int = "caml_oss_dsp_setfmt"
 external set_channels : Unix.file_descr -> int -> int = "caml_oss_dsp_channels"
 external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"

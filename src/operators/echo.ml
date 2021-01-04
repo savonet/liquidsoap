@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 class echo ~kind (source : source) delay feedback ping_pong =

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 module InternalResampler =
   Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
 

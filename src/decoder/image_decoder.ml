@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (* TODO: put this in some library as it can be used in many other places... *)
 
 (** Function to retrieve width an height from parameters. *)

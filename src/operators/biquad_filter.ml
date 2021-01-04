@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 class biquad ~kind (source : source) filter_type freq fparam db_gain =

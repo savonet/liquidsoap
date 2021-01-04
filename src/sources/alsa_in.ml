@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (* Alsa calls are blocking AND they do not respond in a regular fashion.
  * Basically, it waits two buffer lengths, then give you one buffer,
  * then waits epsilon and gives you the second one.

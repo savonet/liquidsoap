@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Generate a white noise *)
 
 class noise ~kind duration =

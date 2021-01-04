@@ -20,6 +20,8 @@
 
 *****************************************************************************)
 
+open Mm
+
 type samplerate_converter =
   samplerate:int -> Frame_content.Audio.data -> Frame_content.Audio.data
 

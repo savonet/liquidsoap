@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 class bpm ~kind (source : source) cb every =

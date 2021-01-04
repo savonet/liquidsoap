@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 class pan ~kind (source : source) phi phi_0 =

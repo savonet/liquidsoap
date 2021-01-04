@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 module Contents = struct
   type format = ..
   type kind = ..

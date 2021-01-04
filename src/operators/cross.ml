@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 module Generator = Generator.From_frames
 module Generated = Generated.Make (Generator)
@@ -388,9 +389,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
                 db_before db_after
                 (Frame.seconds_of_main (Generator.length gen_before))
                 (Frame.seconds_of_main (Generator.length gen_after));
-              if
-                Frame.main_of_audio minimum_length
-                < Generator.length gen_after
+              if Frame.main_of_audio minimum_length < Generator.length gen_after
               then f before after
               else (
                 self#log#important "Not enough data for crossing.";

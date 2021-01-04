@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** FFMPEG internal encoder *)
 
 module InternalResampler =

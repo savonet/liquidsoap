@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text

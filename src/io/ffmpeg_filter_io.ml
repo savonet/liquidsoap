@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Connect sources to FFmpeg filters. *)
 
 module Generator = Generator.From_audio_video
@@ -232,9 +234,7 @@ type video_config = {
 class video_input ~bufferize ~fps kind =
   let generator = Generator.create `Video in
   let min_buf = Frame.main_of_seconds bufferize in
-  let duration =
-    lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps)))
-  in
+  let duration = lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps))) in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source kind ~name:"ffmpeg.filter.output"

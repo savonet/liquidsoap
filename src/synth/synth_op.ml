@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 class synth ~kind (synth : Synth.synth) (source : source) chan volume =

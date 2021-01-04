@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 module Generator = Generator.From_frames
 

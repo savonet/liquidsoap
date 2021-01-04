@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 module Ringbuffer = Audio.Ringbuffer
 

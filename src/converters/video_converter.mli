@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (* Video format converters *)
 
 (** Plugin to add video-related configuration keys. *)

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Decode and read metadatas of AAC files. *)
 
 let error_translator = function

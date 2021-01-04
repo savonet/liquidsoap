@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Generic content registration API. *)
 
 module Contents : sig

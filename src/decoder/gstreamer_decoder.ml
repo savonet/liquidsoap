@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Decode files and streams using GStreamer. *)
 
 open Extralib

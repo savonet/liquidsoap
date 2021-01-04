@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 class normalize ~kind (source : source) (* RMS target. *) rmst

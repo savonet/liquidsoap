@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 (** Create a buffer between two clocks.
   *
   * This creates an active operator in the inner clock (the action consists

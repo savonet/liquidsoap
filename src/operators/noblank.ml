@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 open Source
 
 (** Below, lengths are in audio samples, thresholds in RMS (in [0.;1.]). *)
