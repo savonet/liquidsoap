@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2020 Savonet team
+  Copyright 2003-2021 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -135,7 +135,9 @@ module Make (Harbor : T) = struct
           in
           begin
             match dump with
-            | Some b -> output_string b (Bytes.sub_string buf 0 input)
+            | Some b ->
+                output_string b (Bytes.sub_string buf 0 input);
+                flush b
             | None -> ()
           end;
           begin

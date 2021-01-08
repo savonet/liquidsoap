@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2020 Savonet team
+  Copyright 2003-2021 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -54,9 +54,7 @@ class on_offset ~kind ~force ~offset ~override f s =
 
     method private execute =
       self#log#info "Executing on_offset callback.";
-      let pos =
-        Int64.to_float elapsed /. float (Lazy.force Frame.main_rate)
-      in
+      let pos = Int64.to_float elapsed /. float (Lazy.force Frame.main_rate) in
       ignore
         (Lang.apply f
            [("", Lang.float pos); ("", Lang.metadata latest_metadata)]);

@@ -43,7 +43,7 @@ Libraries not developed by Savonet are:
 | OCaml compiler | >= 4.08.0     |
 | ocaml-dtools   |  >= 0.4.2    |
 | ocaml-duppy    |  >= 0.8.1     |
-| ocaml-mm       |  >= 0.6.0        |
+| ocaml-mm       |  >= 0.7.0        |
 | ocaml-pcre     |       |
 | menhir         |  |
 | sedlex         |  >= 2.0    |
@@ -68,7 +68,7 @@ Libraries not developed by Savonet are:
 | ocaml-dssi          |  >= 0.1.3                 | DSSI sound synthesis                          |
 | ocaml-faad          |  >= 0.5.0                 | AAC stream decoding                           |
 | ocaml-fdkaac        |  >= 0.3.1               | AAC(+) encoding                               |
-| ocaml-ffmpeg        |  >= 0.5.0        | Audio and video tools from the ffmpeg library | 
+| ocaml-ffmpeg        |  >= 1.0.0        | Audio and video tools from the ffmpeg library | 
 | ocaml-flac          |  >= 0.2.0                 | Flac and Ogg/Flac codec                       |
 | ocaml-frei0r        |  >= 0.1.0               | Frei0r plugins                                |
 | ocaml-gstreamer     |  >= 0.3.1            | GStreamer input, output and encoding/decoding |
