@@ -135,7 +135,9 @@ module Make (Harbor : T) = struct
           in
           begin
             match dump with
-            | Some b -> output_string b (Bytes.sub_string buf 0 input)
+            | Some b ->
+                output_string b (Bytes.sub_string buf 0 input);
+                flush b
             | None -> ()
           end;
           begin
