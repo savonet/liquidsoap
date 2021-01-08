@@ -29,7 +29,7 @@ module type Websocket_t = sig
     | `Text of string ]
 
   val to_string : msg -> string
-  val read : socket -> msg
+  val read : unit -> socket -> msg
   val write : socket -> msg -> unit
   val upgrade : (string * string) list -> string
 end
@@ -180,36 +180,48 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
       { fin; rsv1; rsv2; rsv3; opcode; data }
   end
 
-  let rec read s =
-    let frame = Frame.read s in
-    let data =
-      (* Read continuation *)
-      let rec continuation () =
-        let frame = Frame.read s in
-        (* TODO: control frames can be inserted in the middle of a fragmented
-           packet, we should find a way to handle those. *)
-        assert (frame.Frame.opcode = 0);
+  let read () =
+    (* This queue stores control frames which are in the middle of a fragmented
+       packet so that they can be handled later on. This is why the function
+       takes unit as argument in order to create the closure. *)
+    let frames = Queue.create () in
+    let rec read s =
+      let frame =
+        if Queue.is_empty frames then Frame.read s else Queue.pop frames
+      in
+      let data =
+        (* Read continuation *)
+        let rec continuation () =
+          let frame = Frame.read s in
+          (* Delay interleaved control frame. *)
+          if frame.Frame.opcode <> 0 then (
+            Queue.push frame frames;
+            continuation () )
+          else if frame.Frame.fin then frame.Frame.data
+          else frame.Frame.data ^ continuation ()
+        in
         if frame.Frame.fin then frame.Frame.data
         else frame.Frame.data ^ continuation ()
       in
-      if frame.Frame.fin then frame.Frame.data
-      else frame.Frame.data ^ continuation ()
+      match frame.Frame.opcode with
+        | 0x1 -> `Text data
+        | 0x2 -> `Binary data
+        | 0x8 ->
+            let reason =
+              if data = "" then None
+              else (
+                assert (String.length data >= 2);
+                let code =
+                  (int_of_char data.[0] lsl 8) + int_of_char data.[1]
+                in
+                Some (code, String.sub data 2 (String.length data - 2)) )
+            in
+            `Close reason
+        | 0x9 -> `Ping data
+        | 0xa -> `Pong data
+        | _ -> read s
     in
-    match frame.Frame.opcode with
-      | 0x1 -> `Text data
-      | 0x2 -> `Binary data
-      | 0x8 ->
-          let reason =
-            if data = "" then None
-            else (
-              assert (String.length data >= 2);
-              let code = (int_of_char data.[0] lsl 8) + int_of_char data.[1] in
-              Some (code, String.sub data 2 (String.length data - 2)) )
-          in
-          `Close reason
-      | 0x9 -> `Ping data
-      | 0xa -> `Pong data
-      | _ -> read s
+    read
 
   let to_string data =
     let frame =
