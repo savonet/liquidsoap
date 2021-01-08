@@ -182,10 +182,20 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
 
   let rec read s =
     let frame = Frame.read s in
-    let data = frame.Frame.data in
-    (* TODO: handle continuation frames. There is a problem with our model though:
-       control frames can be inserted in the middle of a fragmented packet. *)
-    assert (frame.Frame.fin = true);
+    let data =
+      (* Read continuation *)
+      let rec continuation () =
+        let frame = Frame.read s in
+        (* TODO: Control frames can be inserted in the middle of a fragmented
+           packet. For now we simply drop them but we should have a stack
+           somewhere to read them later on... *)
+        if frame.Frame.opcode <> 0 then continuation ()
+        else if frame.Frame.fin then frame.Frame.data
+        else frame.Frame.data ^ continuation ()
+      in
+      if frame.Frame.fin then frame.Frame.data
+      else frame.Frame.data ^ continuation ()
+    in
     match frame.Frame.opcode with
       | 0x1 -> `Text data
       | 0x2 -> `Binary data
