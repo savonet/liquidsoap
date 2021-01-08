@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2020 Savonet team
+  Copyright 2003-2021 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -73,8 +73,7 @@ let mk_stream_copy ~video_size ~get_data output =
     let ret =
       match ts with
         | None -> Some !ts_offset
-        | Some v ->
-            Some (Int64.add !ts_offset (to_main_time_base ~time_base v))
+        | Some v -> Some (Int64.add !ts_offset (to_main_time_base ~time_base v))
     in
     ( match (!last_ts, ret) with
       | _, None -> ()

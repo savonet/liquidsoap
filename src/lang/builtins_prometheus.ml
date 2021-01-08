@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2020 Savonet team
+  Copyright 2003-2021 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -172,9 +172,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     last_start_time := start_time;
     last_end_time := end_time;
     Prometheus.Gauge.set last_data end_time;
-    let encoded_time =
-      Frame.seconds_of_main (end_position - start_position)
-    in
+    let encoded_time = Frame.seconds_of_main (end_position - start_position) in
     let latency = (end_time -. start_time) /. encoded_time in
     add_input_latency latency
   in

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2020 Savonet team
+  Copyright 2003-2021 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -389,8 +389,7 @@ let () =
       in
       let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
       let tl =
-        Frame.main_of_seconds
-          (Lang.to_float (List.assoc "transition_length" p))
+        Frame.main_of_seconds (Lang.to_float (List.assoc "transition_length" p))
       in
       let override_meta = Lang.to_string (List.assoc "override" p) in
       let singles =
