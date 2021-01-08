@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 module Resampler =
   Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.FltPlanarBigArray)
 

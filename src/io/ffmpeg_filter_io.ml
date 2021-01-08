@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** Connect sources to FFmpeg filters. *)
 
 module Generator = Generator.From_audio_video
