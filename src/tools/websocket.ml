@@ -186,7 +186,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
           let data = Bytes.create len in
           let n = T.read s data 0 len in
           Buffer.add_subbytes buf data 0 n;
-          if n = 0 then failwith "end of stream reach prematurely!";
+          if n = 0 then failwith "end of stream reached prematurely!";
           f (Int64.add pos (Int64.of_int n)) )
         else Buffer.to_bytes buf
       in
