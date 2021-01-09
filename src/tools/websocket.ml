@@ -29,7 +29,7 @@ module type Websocket_t = sig
     | `Text of string ]
 
   val to_string : msg -> string
-  val read : socket -> msg
+  val read : unit -> socket -> msg
   val write : socket -> msg -> unit
   val upgrade : (string * string) list -> string
 end
@@ -130,14 +130,20 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
       let read_short () =
         let c1 = read_byte () in
         let c2 = read_byte () in
-        (c1 lsl 8) + c2
+        Int64.of_string (Printf.sprintf "0x%02x%02x" c1 c2)
       in
       let read_long () =
         let c1 = read_byte () in
         let c2 = read_byte () in
         let c3 = read_byte () in
         let c4 = read_byte () in
-        (c1 lsl 24) + (c2 lsl 16) + (c3 lsl 8) + c4
+        let c5 = read_byte () in
+        let c6 = read_byte () in
+        let c7 = read_byte () in
+        let c8 = read_byte () in
+        Int64.of_string
+          (Printf.sprintf "0x%02x%02x%02x%02x%02x%02x%02x%02x" c1 c2 c3 c4 c5 c6
+             c7 c8)
       in
       let c = read_byte () in
       let fin = c land 0b10000000 <> 0 in
@@ -151,7 +157,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
       let length =
         if length = 126 then read_short ()
         else if length = 127 then read_long ()
-        else length
+        else Int64.of_int length
       in
       let masking_key =
         if mask then (
@@ -172,35 +178,71 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
             Bytes.set s i c
           done
       in
-      let data = Bytes.create length in
-      let n = T.read_retry s data 0 length in
-      assert (n = length);
+      let buflen = Utils.pagesize in
+      let buf = Buffer.create buflen in
+      let rec f pos =
+        if pos < length then (
+          let len = min buflen (Int64.to_int (Int64.sub length pos)) in
+          let data = Bytes.create len in
+          let n = T.read s data 0 len in
+          Buffer.add_subbytes buf data 0 n;
+          if n = 0 then failwith "end of stream reached prematurely!";
+          f (Int64.add pos (Int64.of_int n)) )
+        else Buffer.to_bytes buf
+      in
+      let data = f 0L in
       unmask masking_key data;
       let data = Bytes.unsafe_to_string data in
       { fin; rsv1; rsv2; rsv3; opcode; data }
   end
 
-  let rec read s =
-    let frame = Frame.read s in
-    let data = frame.Frame.data in
-    (* TODO: handle continuation frames. There is a problem with our model though:
-       control frames can be inserted in the middle of a fragmented packet. *)
-    assert (frame.Frame.fin = true);
-    match frame.Frame.opcode with
-      | 0x1 -> `Text data
-      | 0x2 -> `Binary data
-      | 0x8 ->
-          let reason =
-            if data = "" then None
-            else (
-              assert (String.length data >= 2);
-              let code = (int_of_char data.[0] lsl 8) + int_of_char data.[1] in
-              Some (code, String.sub data 2 (String.length data - 2)) )
-          in
-          `Close reason
-      | 0x9 -> `Ping data
-      | 0xa -> `Pong data
-      | _ -> read s
+  let read () =
+    (* This queue stores control frames which are in the middle of a fragmented
+       packet so that they can be handled later on. This is why the function
+       takes unit as argument in order to create the closure. *)
+    let frames = Queue.create () in
+    let rec read s =
+      let frame =
+        if Queue.is_empty frames then Frame.read s else Queue.pop frames
+      in
+      let data =
+        match frame.Frame.fin with
+          | true -> frame.Frame.data
+          | false ->
+              let buf = Buffer.create 1024 in
+              Buffer.add_string buf frame.Frame.data;
+              let rec continuation () =
+                let frame = Frame.read s in
+                match frame.Frame.opcode with
+                  | 0 ->
+                      Buffer.add_string buf frame.Frame.data;
+                      if frame.Frame.fin then Buffer.contents buf
+                      else continuation ()
+                  | _ ->
+                      Queue.push frame frames;
+                      continuation ()
+              in
+              continuation ()
+      in
+      match frame.Frame.opcode with
+        | 0x1 -> `Text data
+        | 0x2 -> `Binary data
+        | 0x8 ->
+            let reason =
+              if data = "" then None
+              else (
+                assert (String.length data >= 2);
+                let code =
+                  (int_of_char data.[0] lsl 8) + int_of_char data.[1]
+                in
+                Some (code, String.sub data 2 (String.length data - 2)) )
+            in
+            `Close reason
+        | 0x9 -> `Ping data
+        | 0xa -> `Pong data
+        | _ -> read s
+    in
+    read
 
   let to_string data =
     let frame =

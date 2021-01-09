@@ -539,10 +539,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       in
       (packet_type, data)
     in
+    let websocket_read = Websocket.read () in
     let read_hello s =
       let error () = simple_reply (websocket_error 1002 "Invalid hello.") in
       try
-        match Websocket.read s with
+        match websocket_read s with
           | `Text s -> (
               log#debug "Hello packet: %s\n%!" s;
               match extract_packet s with
@@ -588,7 +589,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 Duppy.Monad.bind __pa_duppy_0 (fun () ->
                     let binary_data = Buffer.create Utils.pagesize in
                     let read_socket socket =
-                      match Websocket.read socket with
+                      match websocket_read socket with
                         | `Binary buf -> Buffer.add_string binary_data buf
                         | `Text s -> (
                             match extract_packet s with
