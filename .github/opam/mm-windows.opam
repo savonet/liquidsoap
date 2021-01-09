@@ -38,3 +38,6 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/savonet/ocaml-mm.git"
+url {
+  src: "https://github.com/savonet/ocaml-mm/archive/master.tar.gz"
+}
