@@ -237,7 +237,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val request_t : t
-val source_t : ?active:bool -> t -> t
+val source_t : ?methods:bool -> ?active:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
 val kind_t : Frame.kind -> t
