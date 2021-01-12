@@ -228,6 +228,26 @@ let builtin_type p t =
 
 let to_plugin_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
+  let meths, return_t =
+    let rec aux t =
+      match (T.deref t).T.descr with
+        | T.Meth (l, mt, t) ->
+            let m, t = aux t in
+            ((l, mt) :: m, t)
+        | _ -> ([], t)
+    in
+    aux return_t
+  in
+  let meths =
+    let meths_items = new Doc.item "" in
+    List.iter
+      (fun (m, (generalized, t)) ->
+        let i = new Doc.item "" in
+        i#add_subsection "type" (T.doc_of_type ~generalized t);
+        meths_items#add_subsection m i)
+      meths;
+    meths_items
+  in
   let t = builtin_type proto return_t in
   let generalized = T.filter_vars (fun _ -> true) t in
   item#add_subsection "_category" (Doc.trivial category);
@@ -235,6 +255,7 @@ let to_plugin_doc category flags main_doc proto return_t =
   List.iter
     (fun f -> item#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
     flags;
+  item#add_subsection "_methods" meths;
   List.iter
     (fun (l, t, d, doc) ->
       item#add_subsection
