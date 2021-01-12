@@ -8,6 +8,7 @@ fade = ()
 # @param ~duration Duration in seconds.
 # @param ~on_done Function to execute when the fade is finished
 def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
+  ignore((s : source_methods))
   log = log(label="mkfade")
 
   # Shape functions must map 0. -> 0. and 1. -> 1.
@@ -280,6 +281,8 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
   end
 
   def smart_transition(a,b,ma,mb,sa,sb)
+    ignore((sa : source_methods))
+    ignore((sb : source_methods))
 
     list.iter(fun(x)-> log(level=4,"Before: #{x}"),ma)
     list.iter(fun(x)-> log(level=4,"After : #{x}"),mb)
