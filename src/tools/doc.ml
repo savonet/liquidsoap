@@ -254,6 +254,12 @@ let print_lang (i : item) =
       List.remove_assoc "_category" sub
     with Not_found -> sub
   in
+  let meths, sub =
+    try
+      ( (List.assoc "_methods" sub)#get_subsections,
+        List.remove_assoc "_methods" sub )
+    with Not_found -> ([], sub)
+  in
   let rec print_flags sub =
     try
       Format.fprintf ff "Flag: %s@." (List.assoc "_flag" sub)#get_doc;
@@ -270,6 +276,12 @@ let print_lang (i : item) =
         if i#get_doc <> "(no doc)" then
           Format.fprintf ff "@[<5>     %a@]@." print_string_split i#get_doc)
       sub );
+  if meths <> [] then (
+    Format.fprintf ff "@.Methods:@.";
+    List.iter
+      (fun (l, i) ->
+        Format.fprintf ff "@. * %s : %s@." l (i#get_subsection "type")#get_doc)
+      meths );
   Format.fprintf ff "@.";
   Format.pp_print_flush ff ();
   Utils.print_string ~pager:true (Buffer.contents b)
