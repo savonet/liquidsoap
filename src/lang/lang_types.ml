@@ -936,20 +936,17 @@ let rec ( <: ) a b =
               raise (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l'))))
           l m
     | Arrow (l12, t), Arrow (l, t') ->
-        (* Here, it must be that l12 = l1@l2
-         * where l1 is essentially l modulo order
-         * and either l2 is erasable and t<:t'
-         *        or (l2)->t <: t'. *)
+        (* Here, it must be that l12 = l1@l2 where l1 is essentially l modulo
+           order and either l2 is erasable and t<:t' or (l2)->t <: t'. *)
         let ellipsis = (false, "", `Range_Ellipsis) in
         let elide (o, l, _) = (o, l, `Ellipsis) in
         let l1, l2 =
           List.fold_left
-            (* Start with [l2:=l12], [l1:=[]] and
-             * move each param [o,lbl] required by [l] from [l2] to [l1]. *)
+            (* Start with [l2:=l12], [l1:=[]] and move each param [o,lbl]
+               required by [l] from [l2] to [l1]. *)
               (fun (l1, l2) (o, lbl, t) ->
-              (* Search for a param with optionality o and label lbl.
-               * Returns the first matching parameter
-               * and the list without it. *)
+              (* Search for a param with optionality o and label lbl. Returns
+                 the first matching parameter and the list without it. *)
               let rec get_param acc = function
                 | [] ->
                     raise
@@ -967,7 +964,7 @@ let rec ( <: ) a b =
               let (o, lbl, t'), l2' = get_param [] l2 in
               (* Check on-the-fly that the types match. *)
               begin
-                try t <: t'
+                try t' <: t
                 with Error (t, t') ->
                   let make t =
                     `Arrow (List.rev (ellipsis :: (o, lbl, t) :: l1), `Ellipsis)
@@ -1032,8 +1029,8 @@ let rec ( <: ) a b =
     | Meth (l, _, u1), _ -> hide_meth l u1 <: b
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
-        (* The superficial representation is enough for explaining
-         * the mismatch. *)
+        (* The superficial representation is enough for explaining the
+           mismatch. *)
         let filter () =
           let already = ref false in
           function
