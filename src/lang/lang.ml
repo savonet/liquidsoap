@@ -796,6 +796,10 @@ let source_t ?(methods = false) ?active t =
     method_t t (List.map (fun (name, t, _) -> (name, t)) source_methods)
   else t
 
+let () =
+  Lang_values.source_methods_t :=
+    fun () -> source_t ~methods:true (kind_type_of_kind_format any)
+
 let source v =
   meth (source v) (List.map (fun (name, _, fn) -> (name, fn v)) source_methods)
 

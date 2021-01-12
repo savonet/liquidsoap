@@ -135,6 +135,9 @@ let source_t ?(active = false) ?pos ?level k =
   let name = if active then "active_source" else "source" in
   T.make ?pos ?level (T.Constr { T.name; T.params = [(T.Invariant, k)] })
 
+(* Filled in later to avoid dependency cycles. *)
+let source_methods_t = ref (fun () : Lang_types.t -> assert false)
+
 let of_source_t t =
   match (T.deref t).T.descr with
     | T.Constr { T.name = "source"; T.params = [(_, t)] } -> t
