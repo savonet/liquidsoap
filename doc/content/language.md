@@ -254,6 +254,30 @@ switch([
 ])
 ```
 
+Lists
+-----
+There are multiple ways to work with lists. If you like to iterate over a list
+you may use `list.iter`. It takes a function with one argument where each item
+of the list is passed to. As second parameter the list is passed.
+
+Here you can see how it works:
+
+```liquidsoap
+# Create a list of string pairs
+myList = [("a", "aaa"), ("b", "bbb"), ("c", "ccc")]
+
+list.iter(
+  fun(item) -> print(
+    fst(item) ^ " => " ^ snd(item)
+  ),
+  myList
+)
+# This will output:
+# a => aaa
+# b => bbb
+# c => ccc
+```
+
 Includes
 --------
 
