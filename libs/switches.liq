@@ -142,6 +142,8 @@ def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=
   end
 
   def add_condition(index, s) =
+    ignore ((s : source_methods))
+
     def f(_) =
       next_index := -1
     end 
