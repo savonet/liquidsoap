@@ -11,6 +11,7 @@
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
+# @method reload Reload the playlist with given songs.
 def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~on_done={()}, ~timeout=20., playlist)
   mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
 
@@ -101,6 +102,7 @@ end
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra information using annotate, or for resolution through a particular protocol, such as replaygain.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
+# @method reload Reload the playlist.
 def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_done={()}, ~prefix="", ~timeout=20., uri)
   # URI of the current playlist
   playlist_uri=ref(uri)
