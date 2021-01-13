@@ -117,11 +117,23 @@ def f() =
   # source is not an Ord
   # echo(blank()==blank())
 
-  # Ensure that we have correct subtyping for arguments (which should be
-  # contravariant, see #1465).
-  def f(x) = "" ^ x end
+  # Test record subtyping.
+  def f(x) =
+    "" ^ x
+  end
   ignore(f("a".{n = 3}))
-  
+  # Ensure that we have correct subtyping for arguments, which should be
+  # contravariant, see #1465.
+  # We have string.{l : int} < string
+  # Thus    (string) -> int  < (string.{l : int}) -> int
+  def g(f) =
+    f("a".{l = 3})
+  end
+  def f(x) =
+    0
+  end
+  ignore(g(f))
+
   def sum_eq(a,b)
     a+b == a
   end
