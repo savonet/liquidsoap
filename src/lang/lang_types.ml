@@ -221,6 +221,16 @@ let rec meths ?pos ?level l v t =
         let v = meths ?pos ?level ll v tl in
         meth ?pos ?level l (g, v) t
 
+let split_meths t =
+  let rec aux t =
+    match (deref t).descr with
+      | Meth (l, mt, t) ->
+          let m, t = aux t in
+          ((l, mt) :: m, t)
+      | _ -> ([], t)
+  in
+  aux t
+
 (** Given a strictly positive integer, generate a name in [a-z]+:
   * a, b, ... z, aa, ab, ... az, ba, ... *)
 let name =
@@ -867,6 +877,16 @@ let doc_of_type ~generalized t =
   Format.fprintf Format.str_formatter "%a@?" (pp_type_generalized generalized) t;
   Format.pp_set_margin Format.str_formatter margin;
   Doc.trivial (Format.flush_str_formatter ())
+
+let doc_of_meths m =
+  let items = new Doc.item ~sort:false "" in
+  List.iter
+    (fun (m, (generalized, t)) ->
+      let i = new Doc.item ~sort:false "" in
+      i#add_subsection "type" (doc_of_type ~generalized t);
+      items#add_subsection m i)
+    m;
+  items
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.

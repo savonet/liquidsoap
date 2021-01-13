@@ -1211,7 +1211,15 @@ let toplevel_add (doc, params) pat ~t v =
       Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
         (string_of_pat pat) (T.print_pos_opt v.V.pos))
     params;
-  doc#add_subsection "_type" (T.doc_of_type ~generalized t);
+  (let meths, t =
+     match (T.deref t).T.descr with
+       | T.Arrow (p, a) ->
+           let meths, a = T.split_meths a in
+           (meths, { t with T.descr = T.Arrow (p, a) })
+       | _ -> ([], t)
+   in
+   doc#add_subsection "_type" (T.doc_of_type ~generalized t);
+   if meths <> [] then doc#add_subsection "_methods" (T.doc_of_meths meths));
   List.iter
     (fun (x, v) -> add_builtin ~override:true ~doc x ((generalized, t), v))
     (eval_pat pat v)

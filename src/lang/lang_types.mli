@@ -86,6 +86,7 @@ val pp_type_generalized : var list -> Format.formatter -> t -> unit
 val print : ?generalized:var list -> t -> string
 val print_scheme : scheme -> string
 val doc_of_type : generalized:var list -> t -> Doc.item
+val doc_of_meths : (string * scheme) list -> Doc.item
 
 exception Occur_check of t * t
 
@@ -110,6 +111,8 @@ val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
 
 (** Remove all methods in a type. *)
 val demeth : t -> t
+
+val split_meths : t -> (string * scheme) list * t
 
 (** Put the methods of the first type around the second type. *)
 val remeth : t -> t -> t
