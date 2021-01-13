@@ -881,7 +881,7 @@ let doc_of_type ~generalized t =
   Doc.trivial (Format.flush_str_formatter ())
 
 let doc_of_meths m =
-  let items = new Doc.item ~sort:false "" in
+  let items = new Doc.item "" in
   List.iter
     (fun (m, (generalized, t)) ->
       let i = new Doc.item ~sort:false "" in
