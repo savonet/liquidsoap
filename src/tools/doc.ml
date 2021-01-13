@@ -105,11 +105,19 @@ let print_functions (doc : item) print_string =
   let add (f, _) = functions := f :: !functions in
   List.iter add doc;
   let functions = List.sort compare !functions in
-  List.iter print_string functions
+  List.iter
+    (fun s ->
+      print_string s;
+      print_string "\n")
+    functions
 
 let print_functions_md ~extra (doc : item) print_string =
   let doc = to_json doc in
-  let to_assoc = function `Assoc l -> l | _ -> assert false in
+  let to_assoc = function
+    | `Assoc l -> l
+    | `String "" -> []
+    | _ -> assert false
+  in
   let to_string = function `String s -> s | _ -> assert false in
   let doc = List.assoc "scripting values" (to_assoc doc) in
   let doc = List.tl (to_assoc doc) in
@@ -143,11 +151,21 @@ let print_functions_md ~extra (doc : item) print_string =
               (to_string (List.assoc "_info" desc));
             Printf.ksprintf print_string "Type:\n```\n%s\n```\n\n"
               (to_string (List.assoc "_type" desc));
+            let methods =
+              let methods =
+                try List.assoc "_methods" desc |> to_assoc
+                with Not_found -> []
+              in
+              let methods = List.filter (fun (n, _) -> n <> "_info") methods in
+              List.map
+                (fun (l, m) -> (l, List.assoc "type" (to_assoc m) |> to_string))
+                methods
+            in
             let args =
               List.filter
                 (fun (n, _) ->
                   n <> "_info" && n <> "_category" && n <> "_type"
-                  && n <> "_flag")
+                  && n <> "_flag" && n <> "_methods")
                 desc
             in
             let args =
@@ -172,6 +190,12 @@ let print_functions_md ~extra (doc : item) print_string =
                 Printf.ksprintf print_string "- `%s` (of type `%s`%s)%s\n" n t d
                   s)
               args;
+            if methods <> [] then (
+              print_string "\nMethods:\n\n";
+              List.iter
+                (fun (l, t) ->
+                  Printf.ksprintf print_string "- `%s` (of type `%s`)\n" l t)
+                methods );
             if List.mem "experimental" flags then
               print_string "\nThis function is experimental.\n";
             print_string "\n" ))
@@ -230,6 +254,12 @@ let print_lang (i : item) =
       List.remove_assoc "_category" sub
     with Not_found -> sub
   in
+  let meths, sub =
+    try
+      ( (List.assoc "_methods" sub)#get_subsections,
+        List.remove_assoc "_methods" sub )
+    with Not_found -> ([], sub)
+  in
   let rec print_flags sub =
     try
       Format.fprintf ff "Flag: %s@." (List.assoc "_flag" sub)#get_doc;
@@ -246,6 +276,12 @@ let print_lang (i : item) =
         if i#get_doc <> "(no doc)" then
           Format.fprintf ff "@[<5>     %a@]@." print_string_split i#get_doc)
       sub );
+  if meths <> [] then (
+    Format.fprintf ff "@.Methods:@.";
+    List.iter
+      (fun (l, i) ->
+        Format.fprintf ff "@. * %s : %s@." l (i#get_subsection "type")#get_doc)
+      meths );
   Format.fprintf ff "@.";
   Format.pp_print_flush ff ();
   Utils.print_string ~pager:true (Buffer.contents b)

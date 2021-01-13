@@ -208,8 +208,10 @@ let rec invoke t l =
     | Meth (_, _, t) -> invoke t l
     | _ -> raise Not_found
 
+(** Add a method. *)
 let meth ?pos ?level l v t = make ?pos ?level (Meth (l, v, t))
 
+(** Add methods. *)
 let rec meths ?pos ?level l v t =
   match l with
     | [] -> assert false
