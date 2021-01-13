@@ -1212,11 +1212,17 @@ let toplevel_add (doc, params) pat ~t v =
         (string_of_pat pat) (T.print_pos_opt v.V.pos))
     params;
   (let meths, t =
+     let meths, t = T.split_meths t in
      match (T.deref t).T.descr with
        | T.Arrow (p, a) ->
            let meths, a = T.split_meths a in
+           (* Note that in case we have a function, we drop the methods around,
+              the reason being that we expect that they are registered on their
+              own in the documentation. For instance, we don't want the field
+              recurrent to appear in the doc of thread.run: it is registered as
+              thread.run.recurrent anyways. *)
            (meths, { t with T.descr = T.Arrow (p, a) })
-       | _ -> ([], t)
+       | _ -> (meths, t)
    in
    doc#add_subsection "_type" (T.doc_of_type ~generalized t);
    if meths <> [] then doc#add_subsection "_methods" (T.doc_of_meths meths));
