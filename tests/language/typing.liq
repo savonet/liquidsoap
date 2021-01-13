@@ -116,6 +116,11 @@ def f() =
   
   # source is not an Ord
   # echo(blank()==blank())
+
+  # Ensure that we have correct subtyping for arguments (which should be
+  # contravariant, see #1465).
+  def f(x) = "" ^ x end
+  ignore(f("a".{n = 3}))
   
   def sum_eq(a,b)
     a+b == a
