@@ -880,11 +880,12 @@ let doc_of_type ~generalized t =
   Format.pp_set_margin Format.str_formatter margin;
   Doc.trivial (Format.flush_str_formatter ())
 
-let doc_of_meths m =
+let doc_of_meths ?(description = []) m =
   let items = new Doc.item "" in
   List.iter
     (fun (m, (generalized, t)) ->
-      let i = new Doc.item ~sort:false "" in
+      let description = try List.assoc m description with Not_found -> "" in
+      let i = new Doc.item ~sort:false description in
       i#add_subsection "type" (doc_of_type ~generalized t);
       items#add_subsection m i)
     m;
