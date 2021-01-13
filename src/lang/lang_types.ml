@@ -221,15 +221,17 @@ let rec meths ?pos ?level l v t =
         let v = meths ?pos ?level ll v tl in
         meth ?pos ?level l (g, v) t
 
+(** Split the methods from the type. *)
 let split_meths t =
-  let rec aux t =
+  let rec aux hide t =
     match (deref t).descr with
       | Meth (l, mt, t) ->
-          let m, t = aux t in
-          ((l, mt) :: m, t)
+          let m, t = aux (l :: hide) t in
+          let m = if List.mem l hide then m else (l, mt) :: m in
+          (m, t)
       | _ -> ([], t)
   in
-  aux t
+  aux [] t
 
 (** Given a strictly positive integer, generate a name in [a-z]+:
   * a, b, ... z, aa, ab, ... az, ba, ... *)
