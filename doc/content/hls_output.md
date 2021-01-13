@@ -1,37 +1,28 @@
 HLS Output
 ==========
 
-Starting with liquidsoap `1.4.1`, it is possible to send your streams as [HLS output](https://en.wikipedia.org/wiki/HTTP_Live_Streaming).
+Starting with liquidsoap `1.4.0`, it is possible to send your streams as [HLS output](https://en.wikipedia.org/wiki/HTTP_Live_Streaming).
 
 The main operator is `output.file.hls`. Here's an example using it, courtesy of [srt2hls](https://github.com/mbugeia/srt2hls):
 
 ```liquidsoap
 aac_lofi = %ffmpeg(format="mpegts",
-                   codec="libfdk_aac",
+                   codec="aac",
                    channels=2,
                    ar=44100,
-                   # Bitrate is define per channel in ffmpeg,
-                   # so for 2 channels, 16k per channel gives
-                   # an overall bitrate of 32k
-                   b="16k",
-                   afterburner=1,
-                   profile="aac_he_v2")
+                   b="32k")
 
 aac_midfi = %ffmpeg(format="mpegts",
-                   codec="libfdk_aac",
+                   codec="aac",
                    channels=2,
                    ar=44100,
-                   b="48k",
-                   afterburner=1,
-                   profile="aac_low")
+                   b="96k")
 
 aac_hifi = %ffmpeg(format="mpegts",
-                   codec="libfdk_aac",
+                   codec="aac",
                    channels=2,
                    ar=44100,
-                   b="96k",
-                   afterburner=1,
-                   profile="aac_low")
+                   b="192k")
 
 streams_info = [("aac_lofi",(40000,"mp4a.40.29","ts")),
                 ("aac_midfi",(110000,"mp4a.40.2","ts")),
