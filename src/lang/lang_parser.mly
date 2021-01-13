@@ -314,6 +314,7 @@
       | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
       | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
       | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
+      | "source_methods" -> !Lang_values.source_methods_t ()
       | _ -> raise (Parse_error (pos, "Unknown type constructor."))
 %}
 

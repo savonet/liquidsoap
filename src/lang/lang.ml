@@ -790,9 +790,15 @@ let source_methods =
             float (frame_position +. in_frame_position)) );
   ]
 
-let source_t ?active t =
-  method_t (source_t ?active t)
-    (List.map (fun (name, t, _) -> (name, t)) source_methods)
+let source_t ?(methods = false) ?active t =
+  let t = source_t ?active t in
+  if methods then
+    method_t t (List.map (fun (name, t, _) -> (name, t)) source_methods)
+  else t
+
+let () =
+  Lang_values.source_methods_t :=
+    fun () -> source_t ~methods:true (kind_type_of_kind_format any)
 
 let source v =
   meth (source v) (List.map (fun (name, _, fn) -> (name, fn v)) source_methods)
@@ -851,7 +857,7 @@ let add_operator =
         | Source.Kind.Conflict (a, b) ->
             raise (Lang_errors.Kind_conflict (pos, a, b))
     in
-    let return_t = source_t ~active return_t in
+    let return_t = source_t ~methods:true ~active return_t in
     let return_t =
       method_t return_t (List.map (fun (name, typ, _) -> (name, typ)) meth)
     in
