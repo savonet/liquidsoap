@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 let create_encoder ~flac ~comments () =
   let samplerate = Lazy.force flac.Flac_format.samplerate in
   let p =

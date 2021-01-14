@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 exception Internal
 exception Invalid_settings of string
 
