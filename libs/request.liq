@@ -1,4 +1,3 @@
-# TODO: use a record to push........
 let request.queue = ()
 
 # Play request dynamically created by a given function.
@@ -24,6 +23,7 @@ end
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
+# @method push Push an uri on the request queue.
 def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
   queue = ref(queue)
   def next()

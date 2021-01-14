@@ -263,7 +263,8 @@ end
 type term = { mutable t : T.t; term : in_term }
 
 and let_t = {
-  doc : Doc.item * (string * string) list;
+  doc : Doc.item * (string * string) list * (string * string) list;
+  (* name, arguments, methods *)
   replace : bool;
   (* whether the definition replaces a previously existing one (keeping methods) *)
   pat : pattern;
@@ -1166,7 +1167,7 @@ let eval ?env tm =
 (** Add toplevel definitions to [builtins] so they can be looked during the
     evaluation of the next scripts. Also try to generate a structured
     documentation from the source code. *)
-let toplevel_add (doc, params) pat ~t v =
+let toplevel_add (doc, params, methods) pat ~t v =
   let generalized, t = t in
   let rec ptypes t =
     match (T.deref t).T.descr with
@@ -1225,6 +1226,14 @@ let toplevel_add (doc, params) pat ~t v =
        | _ -> (meths, t)
    in
    doc#add_subsection "_type" (T.doc_of_type ~generalized t);
+   let meths =
+     List.map
+       (fun (l, (t, d)) ->
+         (* Override description by the one given in comment if it exists. *)
+         let d = try List.assoc l methods with Not_found -> d in
+         (l, (t, d)))
+       meths
+   in
    if meths <> [] then doc#add_subsection "_methods" (T.doc_of_meths meths));
   List.iter
     (fun (x, v) -> add_builtin ~override:true ~doc x ((generalized, t), v))

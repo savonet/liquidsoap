@@ -166,7 +166,7 @@
     let list_var_name = "_" in
     let list_var () = mk ~pos (Var list_var_name) in
     let mk_let ~pos var def body =
-       mk_let ~pos ((Doc.none (), []), false, PVar [var], def) body
+       mk_let ~pos ((Doc.none (), [], []), false, PVar [var], def) body
     in
     let body =
       match dots with
@@ -331,7 +331,8 @@
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END REC GETS TILD QUESTION LET
-%token <Doc.item * (string*string) list> DEF
+/* name, arguments, methods */
+%token <Doc.item * (string*string) list * (string*string) list> DEF
 %token REPLACES
 %token COALESCE
 %token TRY CATCH IN DO
@@ -622,9 +623,9 @@ pattern_list:
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | bindvar GETS expr { (Doc.none (),[]),false,PVar [$1],$3 }
-  | LET replaces pattern GETS expr { (Doc.none (),[]),$2,$3,$5 }
-  | LET replaces subfield GETS expr { (Doc.none (),[]),$2,PVar $3,$5 }
+  | bindvar GETS expr { (Doc.none (),[],[]),false,PVar [$1],$3 }
+  | LET replaces pattern GETS expr { (Doc.none (),[],[]),$2,$3,$5 }
+  | LET replaces subfield GETS expr { (Doc.none (),[],[]),$2,PVar $3,$5 }
   | DEF replaces pattern g exprs END {
       let body = $5 in
       $1,$2,$3,body
