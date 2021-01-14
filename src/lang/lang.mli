@@ -175,7 +175,7 @@ val midi_n : int -> Frame.content_kind
 (* Conversion to format *)
 val kind_type_of_kind_format : Frame.content_kind -> t
 
-type 'a operator_method = string * scheme * ('a -> value)
+type 'a operator_method = string * scheme * string * ('a -> value)
 
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
@@ -231,7 +231,7 @@ val of_product_t : t -> t * t
 val tuple_t : t list -> t
 val of_tuple_t : t -> t list
 val record_t : (string * t) list -> t
-val method_t : t -> (string * scheme) list -> t
+val method_t : t -> (string * scheme * string) list -> t
 val list_t : t -> t
 val of_list_t : t -> t
 val nullable_t : t -> t

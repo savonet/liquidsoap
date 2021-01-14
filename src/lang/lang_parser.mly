@@ -88,7 +88,7 @@
       in
       let get_meth_type () =
         match t.T.descr with
-          | T.Meth (_, _, t) -> t
+          | T.Meth (_, _, _, t) -> t
           | _ -> assert false
       in
       let term =

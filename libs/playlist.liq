@@ -11,7 +11,7 @@
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
-# @method reload Reload the playlist with given songs.
+# @method reload Reload the playlist with given list of songs.
 def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~on_done={()}, ~timeout=20., playlist)
   mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
 

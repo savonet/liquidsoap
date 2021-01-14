@@ -278,6 +278,7 @@ let () =
       [
         ( "is_blank",
           ([], Lang.fun_t [] Lang.bool_t),
+          "Indicate whether blank was detected.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
       ]
     ~descr:"Calls a given handler when detecting a blank."
@@ -305,6 +306,7 @@ let () =
       [
         ( "is_blank",
           ([], Lang.fun_t [] Lang.bool_t),
+          "Indicate whether blank was detected.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
       ]
     ~category:Lang.TrackProcessing
@@ -320,6 +322,7 @@ let () =
       [
         ( "is_blank",
           ([], Lang.fun_t [] Lang.bool_t),
+          "Indicate whether blank was detected.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
       ]
     ~descr:

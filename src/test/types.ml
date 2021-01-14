@@ -27,23 +27,23 @@ let () =
     (T.List (T.make (T.Ground T.Int)));
 
   let m =
-    T.Meth ("aa", ([], T.make (T.Ground T.Int)), T.make (T.Ground T.Bool))
+    T.Meth ("aa", ([], T.make (T.Ground T.Int)), "", T.make (T.Ground T.Bool))
   in
 
   should_work m (T.Ground T.Bool) (T.Ground T.Bool);
 
-  let n = T.Meth ("b", ([], T.make (T.Ground T.Bool)), T.make m) in
+  let n = T.Meth ("b", ([], T.make (T.Ground T.Bool)), "", T.make m) in
 
   should_work m n m;
 
   let n =
-    T.Meth ("aa", ([], T.make (T.Ground T.Int)), T.make (T.Ground T.Int))
+    T.Meth ("aa", ([], T.make (T.Ground T.Int)), "", T.make (T.Ground T.Int))
   in
 
   should_fail m n;
 
   let n =
-    T.Meth ("aa", ([], T.make (T.Ground T.Bool)), T.make (T.Ground T.Bool))
+    T.Meth ("aa", ([], T.make (T.Ground T.Bool)), "", T.make (T.Ground T.Bool))
   in
 
   should_fail m n;

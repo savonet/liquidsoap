@@ -376,6 +376,7 @@ let meth :
         Lang.fun_t []
           (Lang.record_t
              (List.map (fun (name, typ, _, _) -> (name, typ)) stats_specs)) ),
+      "Statistics.",
       fun s ->
         Lang.val_fun [] (fun _ ->
             Lang.record

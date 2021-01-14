@@ -704,18 +704,21 @@ let () =
       [
         ( "pause",
           ([], Lang.fun_t [] Lang.unit_t),
+          "Pause input.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 s#pause_cmd;
                 Lang.unit) );
         ( "play",
           ([], Lang.fun_t [] Lang.unit_t),
+          "Play input.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 s#play_cmd;
                 Lang.unit) );
         ( "restart",
           ([], Lang.fun_t [] Lang.unit_t),
+          "Restart input.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 s#restart_cmd;

@@ -151,7 +151,7 @@ and descr =
   | List of t
   | Tuple of t list
   | Nullable of t
-  | Meth of string * scheme * t
+  | Meth of string * scheme * string * t (* label, type, documentation, type to decorate *)
   | Arrow of (bool * string * t) list * t
   | EVar of var (* type variable *)
   | Link of t
@@ -188,28 +188,28 @@ let rec deref t = match t.descr with Link x -> deref x | _ -> t
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in
-  match t.descr with Meth (_, _, t) -> demeth t | _ -> t
+  match t.descr with Meth (_, _, _, t) -> demeth t | _ -> t
 
 let rec remeth t u =
   let t = deref t in
   match t.descr with
-    | Meth (l, v, t) -> { t with descr = Meth (l, v, remeth t u) }
+    | Meth (l, v, d, t) -> { t with descr = Meth (l, v, d, remeth t u) }
     | _ -> u
 
 let rec hide_meth l a =
   match (deref a).descr with
-    | Meth (l', _, u) when l' = l -> hide_meth l u
-    | Meth (l', t, u) -> { a with descr = Meth (l', t, hide_meth l u) }
+    | Meth (l', _, _, u) when l' = l -> hide_meth l u
+    | Meth (l', t, d, u) -> { a with descr = Meth (l', t, d, hide_meth l u) }
     | _ -> a
 
 let rec invoke t l =
   match (deref t).descr with
-    | Meth (l', t, _) when l = l' -> t
-    | Meth (_, _, t) -> invoke t l
+    | Meth (l', t, _, _) when l = l' -> t
+    | Meth (_, _, _, t) -> invoke t l
     | _ -> raise Not_found
 
 (** Add a method. *)
-let meth ?pos ?level l v t = make ?pos ?level (Meth (l, v, t))
+let meth ?pos ?level l v ?(doc = "") t = make ?pos ?level (Meth (l, v, doc, t))
 
 (** Add methods. *)
 let rec meths ?pos ?level l v t =
@@ -225,9 +225,9 @@ let rec meths ?pos ?level l v t =
 let split_meths t =
   let rec aux hide t =
     match (deref t).descr with
-      | Meth (l, mt, t) ->
+      | Meth (l, v, d, t) ->
           let m, t = aux (l :: hide) t in
-          let m = if List.mem l hide then m else (l, mt) :: m in
+          let m = if List.mem l hide then m else (l, (v, d)) :: m in
           (m, t)
       | _ -> ([], t)
   in
@@ -302,7 +302,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
-        | Meth (l, (g', u), v) ->
+        | Meth (l, (g', u), _, v) ->
             let gen =
               List.map
                 (fun ic -> match uvar (g' @ g) t.level ic with `UVar ic -> ic)
@@ -631,7 +631,7 @@ let rec occur_check a b =
     | Tuple l -> List.iter (occur_check a) l
     | List t -> occur_check a t
     | Nullable t -> occur_check a t
-    | Meth (_, (_, t), u) ->
+    | Meth (_, (_, t), _, u) ->
         (* We assume that a is not a generalized variable of t. *)
         occur_check a t;
         occur_check a u
@@ -773,7 +773,7 @@ let filter_vars f t =
       | Ground _ -> l
       | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
-      | Meth (_, (g, t), u) ->
+      | Meth (_, (g, t), _, u) ->
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
@@ -804,11 +804,11 @@ let copy_with (subst : Subst.t) t =
       | List t -> cp (List (aux t))
       | Nullable t -> cp (Nullable (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
-      | Meth (l, (g, t), u) ->
+      | Meth (l, (g, t), d, u) ->
           (* We assume that we don't substitute generalized variables. *)
           if !debug then
             assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
-          cp (Meth (l, (g, aux t), aux u))
+          cp (Meth (l, (g, aux t), d, aux u))
       | Arrow (p, t) ->
           cp (Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t))
       | Link t ->
@@ -880,12 +880,11 @@ let doc_of_type ~generalized t =
   Format.pp_set_margin Format.str_formatter margin;
   Doc.trivial (Format.flush_str_formatter ())
 
-let doc_of_meths ?(description = []) m =
+let doc_of_meths m =
   let items = new Doc.item "" in
   List.iter
-    (fun (m, (generalized, t)) ->
-      let description = try List.assoc m description with Not_found -> "" in
-      let i = new Doc.item ~sort:false description in
+    (fun (m, ((generalized, t), doc)) ->
+      let i = new Doc.item ~sort:false doc in
       i#add_subsection "type" (doc_of_type ~generalized t);
       items#add_subsection m i)
     m;
@@ -1024,7 +1023,7 @@ let rec ( <: ) a b =
           raise (Error (repr a, repr b)) )
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)) )
-    | _, Meth (l, (g2, t2), u2) -> (
+    | _, Meth (l, (g2, t2), _, u2) -> (
         try
           let g1, t1 = invoke a l in
           ( try
@@ -1047,11 +1046,12 @@ let rec ( <: ) a b =
                      (Meth
                         ( l,
                           (g2, t2),
+                          "",
                           fresh ~level:(-1) ~constraints:[] ~pos:None ));
                 a <: b
             | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))) )
         )
-    | Meth (l, _, u1), _ -> hide_meth l u1 <: b
+    | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining the
@@ -1098,8 +1098,8 @@ let rec duplicate ?pos ?level t =
       | List t -> List (duplicate ?pos ?level t)
       | Tuple l -> Tuple (List.map (duplicate ?pos ?level) l)
       | Nullable t -> Nullable (duplicate ?pos ?level t)
-      | Meth (name, (v, g), t) ->
-          Meth (name, (v, duplicate ?pos ?level g), duplicate ?pos ?level t)
+      | Meth (name, (v, g), d, t) ->
+          Meth (name, (v, duplicate ?pos ?level g), d, duplicate ?pos ?level t)
       | Arrow (args, t) ->
           Arrow
             ( List.map (fun (b, n, t) -> (b, n, duplicate ?pos ?level t)) args,
@@ -1126,25 +1126,27 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
     match ((deref a).descr, (deref b).descr) with
       | (Meth _ as da), (Meth _ as db) ->
           let rec methods m = function
-            | Meth (name, scheme, t) when not (List.mem_assoc name m) ->
-                methods ((name, scheme) :: m) (deref t).descr
+            | Meth (name, scheme, doc, t) when not (List.mem_assoc name m) ->
+                methods ((name, (scheme, doc)) :: m) (deref t).descr
             | _ -> m
           in
           let meths_a = methods [] da in
           let meths_b = methods [] db in
           let meths =
             List.fold_left
-              (fun cur (name, (g, t)) ->
+              (fun cur (name, ((g, t), doc)) ->
                 match List.assoc_opt name meths_b with
                   | None -> cur
-                  | Some (g', t') -> (
-                      try (name, (g @ g', min_type t t')) :: cur with _ -> cur ))
+                  | Some ((g', t'), _) -> (
+                      try (name, ((g @ g', min_type t t'), doc)) :: cur
+                      with _ -> cur ))
               [] meths_a
           in
           let t = min (demeth a) (demeth b) in
           let t =
             List.fold_left
-              (fun cur (name, s) -> make ~pos ~level (Meth (name, s, cur)))
+              (fun cur (name, (s, doc)) ->
+                make ~pos ~level (Meth (name, s, doc, cur)))
               t meths
           in
           duplicate ~pos ~level a <: t;
