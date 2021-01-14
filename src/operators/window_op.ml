@@ -102,7 +102,13 @@ let declare mode suffix kind fun_ret_t f_ans =
   let doc = match mode with RMS -> "RMS volume" | Peak -> "peak volume" in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator (name ^ suffix) ~category:Lang.Visualization
-    ~meth:[(name, ([], Lang.fun_t [] fun_ret_t), fun s -> f_ans s#value)]
+    ~meth:
+      [
+        ( name,
+          ([], Lang.fun_t [] fun_ret_t),
+          "Current value for the " ^ doc ^ ".",
+          fun s -> f_ans s#value );
+      ]
     ~return_t
     ~descr:
       ( "Get current " ^ doc

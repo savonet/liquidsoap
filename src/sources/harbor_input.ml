@@ -271,15 +271,18 @@ module Make (Harbor : T) = struct
         [
           ( "stop",
             ([], Lang.fun_t [] Lang.unit_t),
+            "Stop the input.",
             fun s ->
               Lang.val_fun [] (fun _ ->
                   s#stop_cmd;
                   Lang.unit) );
           ( "status",
             ([], Lang.fun_t [] Lang.string_t),
+            "Current statu of the input.",
             fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd) );
           ( "buffer_length",
             ([], Lang.fun_t [] Lang.float_t),
+            "Length of the buffer (in seconds).",
             fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd)
           );
         ]

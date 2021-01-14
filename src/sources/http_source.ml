@@ -538,23 +538,27 @@ module Make (Config : Config_t) = struct
         [
           ( "start",
             ([], Lang.fun_t [] Lang.unit_t),
+            "Start reading input.",
             fun s ->
               Lang.val_fun [] (fun _ ->
                   s#start_cmd;
                   Lang.unit) );
           ( "stop",
             ([], Lang.fun_t [] Lang.unit_t),
+            "Stop reading input.",
             fun s ->
               Lang.val_fun [] (fun _ ->
                   s#stop_cmd;
                   Lang.unit) );
           ( "url",
             ([], Lang.fun_t [] Lang.string_t),
+            "URL of the input.",
             fun s -> Lang.val_fun [] (fun _ -> Lang.string s#url_cmd) );
           ( "set_url",
             ( [],
               Lang.fun_t [(false, "", Lang.fun_t [] Lang.string_t)] Lang.unit_t
             ),
+            "Set the url of the input.",
             fun s ->
               Lang.val_fun [("", "", None)] (fun p ->
                   let fn = List.assoc "" p in
@@ -563,9 +567,11 @@ module Make (Config : Config_t) = struct
                   Lang.unit) );
           ( "status",
             ([], Lang.fun_t [] Lang.string_t),
+            "Current status of the input.",
             fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd) );
           ( "buffer_length",
             ([], Lang.fun_t [] Lang.float_t),
+            "Length of the buffer length (in seconds).",
             fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd)
           );
         ]

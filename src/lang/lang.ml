@@ -49,7 +49,7 @@ let rec record_t = function
 
 let rec method_t t0 = function
   | [] -> t0
-  | (l, t) :: r -> T.meth l t (method_t t0 r)
+  | (l, t, doc) :: r -> T.meth l t ~doc (method_t t0 r)
 
 let of_tuple_t t =
   match (T.deref t).T.descr with T.Tuple l -> l | _ -> assert false
@@ -704,9 +704,13 @@ end
 
 let source_methods =
   [
-    ("id", ([], fun_t [] string_t), fun s -> val_fun [] (fun _ -> string s#id));
+    ( "id",
+      ([], fun_t [] string_t),
+      "Identifier of the source.",
+      fun s -> val_fun [] (fun _ -> string s#id) );
     ( "is_ready",
       ([], fun_t [] bool_t),
+      "Indicate if a source is ready to stream, or currently streaming.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
     ( "on_metadata",
       ( [],
@@ -718,6 +722,7 @@ let source_methods =
             );
           ]
           unit_t ),
+      "Call a given handler on metadata packets.",
       fun s ->
         val_fun [("", "", None)] (fun p ->
             let f = assoc "" 1 p in
@@ -725,6 +730,7 @@ let source_methods =
             unit) );
     ( "on_shutdown",
       ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
+      "Register a function to be called when source shuts down.",
       fun s ->
         val_fun [("", "", None)] (fun p ->
             let f = assoc "" 1 p in
@@ -740,6 +746,7 @@ let source_methods =
             );
           ]
           unit_t ),
+      "Call a given handler on new tracks.",
       fun s ->
         val_fun [("", "", None)] (fun p ->
             let f = assoc "" 1 p in
@@ -747,11 +754,17 @@ let source_methods =
             unit) );
     ( "remaining",
       ([], fun_t [] float_t),
+      "Estimation of remaining time in the current track.",
       fun s -> val_fun [] (fun _ -> float (Frame.seconds_of_main s#remaining))
     );
-    ("is_up", ([], fun_t [] bool_t), fun s -> val_fun [] (fun _ -> bool s#is_up));
+    ( "is_up",
+      ([], fun_t [] bool_t),
+      "Check whether a source is up.",
+      fun s -> val_fun [] (fun _ -> bool s#is_up) );
     ( "seek",
       ([], fun_t [(false, "", float_t)] float_t),
+      "Seek forward, in seconds (returns the amount of time effectively \
+       seeked).",
       fun s ->
         val_fun [] (fun p ->
             float
@@ -760,15 +773,18 @@ let source_methods =
     );
     ( "skip",
       ([], fun_t [] unit_t),
+      "Skip to the next track.",
       fun s ->
         val_fun [] (fun _ ->
             s#abort_track;
             unit) );
     ( "fallible",
       ([], fun_t [] bool_t),
+      "Indicate if a source may fail, i.e. may not be ready to stream.",
       fun s -> val_fun [] (fun _ -> bool (s#stype = Source.Fallible)) );
     ( "shutdown",
       ([], fun_t [] unit_t),
+      "Deactivate a source.",
       fun s ->
         val_fun [] (fun _ ->
             (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
@@ -776,6 +792,7 @@ let source_methods =
             unit) );
     ( "time",
       ([], fun_t [] float_t),
+      "Get a source's time, based on its assigned clock.",
       fun s ->
         val_fun [] (fun _ ->
             let ticks =
@@ -795,7 +812,8 @@ let source_methods =
 let source_t ?(methods = false) ?active t =
   let t = source_t ?active t in
   if methods then
-    method_t t (List.map (fun (name, t, _) -> (name, t)) source_methods)
+    method_t t
+      (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
   else t
 
 let () =
@@ -803,7 +821,8 @@ let () =
     fun () -> source_t ~methods:true (kind_type_of_kind_format any)
 
 let source v =
-  meth (source v) (List.map (fun (name, _, fn) -> (name, fn v)) source_methods)
+  meth (source v)
+    (List.map (fun (name, _, _, fn) -> (name, fn v)) source_methods)
 
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
@@ -818,12 +837,12 @@ let source v =
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 
-type 'a operator_method = string * scheme * ('a -> value)
+type 'a operator_method = string * scheme * string * ('a -> value)
 
 let add_operator =
   let _meth = meth in
-  fun ~category ~descr ?(flags = []) ?(active = false) ?(meth = []) name proto
-      ~return_t f ->
+  fun ~category ~descr ?(flags = []) ?(active = false)
+      ?(meth = ([] : 'a operator_method list)) name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0
@@ -848,7 +867,7 @@ let add_operator =
       in
       if id <> "" then src#set_id id;
       let v = source (src :> Source.source) in
-      _meth v (List.map (fun (name, _, fn) -> (name, fn src)) meth)
+      _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     in
     let f env =
       let pos = None in
@@ -861,7 +880,8 @@ let add_operator =
     in
     let return_t = source_t ~methods:true ~active return_t in
     let return_t =
-      method_t return_t (List.map (fun (name, typ, _) -> (name, typ)) meth)
+      method_t return_t
+        (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
     in
     let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f

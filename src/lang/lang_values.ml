@@ -598,7 +598,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
               let (lvg, lvt), lv = aux (l :: prefix) ll in
               (* Updated type for x.l1...li, obtained by changing the type of
                  the field li+1. *)
-              let t = T.make ~pos:t.T.pos (T.Meth (l, (lvg, lvt), vt)) in
+              let t = T.make ~pos:t.T.pos (T.Meth (l, (lvg, lvt), "", vt)) in
               (* Update value for x.l1...li. *)
               let value = V.Meth (l, lv, v) in
               ((vg, t), { V.pos = v.V.pos; value })
@@ -757,12 +757,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
     | Meth (l, a, b) ->
         check ~throw ~level ~env a;
         check ~throw ~level ~env b;
-        e.t >: mk (T.Meth (l, (T.generalizable ~level a.t, a.t), b.t))
+        e.t >: mk (T.Meth (l, (T.generalizable ~level a.t, a.t), "", b.t))
     | Invoke (a, l) ->
         check ~throw ~level ~env a;
         let rec aux t =
           match (T.deref t).T.descr with
-            | T.Meth (l', (generalized, b), c) ->
+            | T.Meth (l', (generalized, b), _, c) ->
                 if l = l' then T.instantiate ~level ~generalized b else aux c
             | _ ->
                 (* We did not find the method, the type we will infer is not the
@@ -770,7 +770,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
                    enough for records. *)
                 let x = T.fresh_evar ~level ~pos in
                 let y = T.fresh_evar ~level ~pos in
-                a.t <: mk (T.Meth (l, ([], x), y));
+                a.t <: mk (T.Meth (l, ([], x), "", y));
                 x
         in
         e.t >: aux a.t
@@ -779,7 +779,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
         a.t <: mk T.unit;
         let rec aux env t =
           match (T.deref t).T.descr with
-            | T.Meth (l, (g, u), t) -> aux ((l, (g, u)) :: env) t
+            | T.Meth (l, (g, u), _, t) -> aux ((l, (g, u)) :: env) t
             | _ -> env
         in
         let env = aux env a.t in
@@ -1171,7 +1171,7 @@ let toplevel_add (doc, params) pat ~t v =
   let rec ptypes t =
     match (T.deref t).T.descr with
       | T.Arrow (p, _) -> p
-      | T.Meth (_, _, t) -> ptypes t
+      | T.Meth (_, _, _, t) -> ptypes t
       | _ -> []
   in
   let ptypes = ptypes t in

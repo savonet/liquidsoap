@@ -58,7 +58,7 @@ and descr =
   | List of t
   | Tuple of t list
   | Nullable of t
-  | Meth of string * scheme * t
+  | Meth of string * scheme * string * t
   | Arrow of (bool * string * t) list * t
   | EVar of var
   | Link of t
@@ -86,7 +86,7 @@ val pp_type_generalized : var list -> Format.formatter -> t -> unit
 val print : ?generalized:var list -> t -> string
 val print_scheme : scheme -> string
 val doc_of_type : generalized:var list -> t -> Doc.item
-val doc_of_meths : (string * scheme) list -> Doc.item
+val doc_of_meths : (string * (scheme * string)) list -> Doc.item
 
 exception Occur_check of t * t
 
@@ -104,7 +104,8 @@ val bind : t -> t -> unit
 val deref : t -> t
 
 (** Add a method to a type. *)
-val meth : ?pos:pos option -> ?level:int -> string -> scheme -> t -> t
+val meth :
+  ?pos:pos option -> ?level:int -> string -> scheme -> ?doc:string -> t -> t
 
 (** Add a submethod to a type. *)
 val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
@@ -112,7 +113,7 @@ val meths : ?pos:pos option -> ?level:int -> string list -> scheme -> t -> t
 (** Remove all methods in a type. *)
 val demeth : t -> t
 
-val split_meths : t -> (string * scheme) list * t
+val split_meths : t -> (string * (scheme * string)) list * t
 
 (** Put the methods of the first type around the second type. *)
 val remeth : t -> t -> t

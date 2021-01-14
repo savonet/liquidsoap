@@ -427,6 +427,7 @@ let () =
       [
         ( "reopen",
           ([], Lang.fun_t [] Lang.unit_t),
+          "Reopen the pipe.",
           fun s ->
             Lang.val_fun [] (fun _ ->
                 s#reopen_cmd;

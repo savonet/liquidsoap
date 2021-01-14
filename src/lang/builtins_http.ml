@@ -43,10 +43,12 @@ let add_http_request http m name descr request =
   let request_return_t =
     Lang.method_t Lang.string_t
       [
-        ("protocol_version", ([], Lang.string_t));
-        ("status_code", ([], Lang.int_t));
-        ("status_message", ([], Lang.string_t));
-        ("headers", ([], headers_t));
+        ( "protocol_version",
+          ([], Lang.string_t),
+          "Version of the HTTP protocol." );
+        ("status_code", ([], Lang.int_t), "Status code.");
+        ("status_message", ([], Lang.string_t), "Status message.");
+        ("headers", ([], headers_t), "HTTP headers.");
       ]
   in
   let params =

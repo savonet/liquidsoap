@@ -43,8 +43,12 @@ let () =
         ("stderr", Lang.string_t);
         ( "status",
           Lang.method_t Lang.string_t
-            [("code", ([], Lang.int_t)); ("description", ([], Lang.string_t))]
-        );
+            [
+              ("code", ([], Lang.int_t), "Returned status code.");
+              ( "description",
+                ([], Lang.string_t),
+                "Returned description (in case an exception was raised)." );
+            ] );
       ]
   in
   let env_t = Lang.product_t Lang.string_t Lang.string_t in
