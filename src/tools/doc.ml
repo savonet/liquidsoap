@@ -158,7 +158,11 @@ let print_functions_md ~extra (doc : item) print_string =
               in
               let methods = List.filter (fun (n, _) -> n <> "_info") methods in
               List.map
-                (fun (l, m) -> (l, List.assoc "type" (to_assoc m) |> to_string))
+                (fun (l, m) ->
+                  let m = to_assoc m in
+                  ( l,
+                    List.assoc "_info" m |> to_string,
+                    List.assoc "type" m |> to_string ))
                 methods
             in
             let args =
@@ -193,8 +197,9 @@ let print_functions_md ~extra (doc : item) print_string =
             if methods <> [] then (
               print_string "\nMethods:\n\n";
               List.iter
-                (fun (l, t) ->
-                  Printf.ksprintf print_string "- `%s` (of type `%s`)\n" l t)
+                (fun (l, s, t) ->
+                  let s = if s = "" then "" else ": " ^ s in
+                  Printf.ksprintf print_string "- `%s` (of type `%s`)%s\n" l t s)
                 methods );
             if List.mem "experimental" flags then
               print_string "\nThis function is experimental.\n";
@@ -280,7 +285,10 @@ let print_lang (i : item) =
     Format.fprintf ff "@.Methods:@.";
     List.iter
       (fun (l, i) ->
-        Format.fprintf ff "@. * %s : %s@." l (i#get_subsection "type")#get_doc)
+        Format.fprintf ff "@. * %s : %s@." l (i#get_subsection "type")#get_doc;
+        let doc = i#get_doc in
+        if doc <> "(no doc)" && doc <> "" then
+          Format.fprintf ff "@[<5>     %a@]@." print_string_split doc)
       meths );
   Format.fprintf ff "@.";
   Format.pp_print_flush ff ();

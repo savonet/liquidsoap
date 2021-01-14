@@ -86,7 +86,9 @@ val pp_type_generalized : var list -> Format.formatter -> t -> unit
 val print : ?generalized:var list -> t -> string
 val print_scheme : scheme -> string
 val doc_of_type : generalized:var list -> t -> Doc.item
-val doc_of_meths : (string * scheme) list -> Doc.item
+
+val doc_of_meths :
+  ?description:(string * string) list -> (string * scheme) list -> Doc.item
 
 exception Occur_check of t * t
 

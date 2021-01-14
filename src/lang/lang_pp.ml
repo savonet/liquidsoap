@@ -261,12 +261,13 @@ let parse_comments tokenizer =
            (fun (n, _) -> String.length n = 0 || n.[0] <> '_')
            doc#get_subsections)
     in
-    let rec parse_doc (main, special, params) = function
-      | [] -> (main, special, params)
+    let rec parse_doc (main, special, params, methods) = function
+      | [] -> (main, special, params, methods)
       | line :: lines -> (
           try
             let sub =
-              Pcre.exec ~pat:"^\\s*@(category|docof|flag|param|argsof)\\s*(.*)$"
+              Pcre.exec
+                ~pat:"^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$"
                 line
             in
             let s = Pcre.get_substring sub 2 in
@@ -290,7 +291,9 @@ let parse_comments tokenizer =
                         with Not_found -> cur)
                       [] ["_category"; "_flag"]
                   in
-                  parse_doc (main, doc_specials @ special, params) lines
+                  parse_doc
+                    (main, doc_specials @ special, params, methods)
+                    lines
               | "argsof" ->
                   let s, only, except =
                     try
@@ -330,10 +333,13 @@ let parse_comments tokenizer =
                               List.mem n only && not (List.mem n except))
                       (get_args doc)
                   in
-                  parse_doc (main, special, args @ params) lines
+                  parse_doc (main, special, args @ params, methods) lines
               | "category" ->
-                  parse_doc (main, `Category s :: special, params) lines
-              | "flag" -> parse_doc (main, `Flag s :: special, params) lines
+                  parse_doc
+                    (main, `Category s :: special, params, methods)
+                    lines
+              | "flag" ->
+                  parse_doc (main, `Flag s :: special, params, methods) lines
               | "param" ->
                   let sub = Pcre.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
                   let label = Pcre.get_substring sub 1 in
@@ -359,11 +365,21 @@ let parse_comments tokenizer =
                             (String.concat "" descr, lines) )
                   in
                   let descr, lines = parse_descr [] (descr :: lines) in
-                  parse_doc (main, special, (label, descr) :: params) lines
+                  parse_doc
+                    (main, special, (label, descr) :: params, methods)
+                    lines
+              | "method" ->
+                  let sub = Pcre.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s in
+                  let label = Pcre.get_substring sub 1 in
+                  let descr = Pcre.get_substring sub 2 in
+                  parse_doc
+                    (main, special, params, (label, descr) :: methods)
+                    lines
               | _ -> assert false
-          with Not_found -> parse_doc (line :: main, special, params) lines )
+          with Not_found ->
+            parse_doc (line :: main, special, params, methods) lines )
     in
-    let main, special, params = parse_doc ([], [], []) doc in
+    let main, special, params, methods = parse_doc ([], [], [], []) doc in
     let main = List.rev main and params = List.rev params in
     let main = String.concat "\n" main in
     let main = Utils.unbreak_md main in
@@ -377,7 +393,7 @@ let parse_comments tokenizer =
         | `Category c -> doc#add_subsection "_category" (Doc.trivial c)
         | `Flag c -> doc#add_subsection "_flag" (Doc.trivial c))
       special;
-    (Lang_parser.DEF (doc, params), (startp, endp))
+    (Lang_parser.DEF (doc, params, methods), (startp, endp))
   in
   let comment = ref ([], None) in
   let rec token () =
