@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 let log = Log.make ["liqfm"]
 
 (* A custom implementation of HTTP 

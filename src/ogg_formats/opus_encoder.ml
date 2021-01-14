@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 let create_encoder ~opus ~comments () =
   let samplerate = opus.Opus_format.samplerate in
   let channels = opus.Opus_format.channels in

@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
 module Audioscrobbler : Lastfm_generic.Audioscrobbler_t
 
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
