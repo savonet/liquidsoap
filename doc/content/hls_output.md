@@ -29,10 +29,6 @@ aac_hifi = %ffmpeg(format="mpegts",
                      b="192k"
                    ))
 
-streams_info = [("aac_lofi",(40000,"mp4a.40.29","ts")),
-                ("aac_midfi",(110000,"mp4a.40.2","ts")),
-                ("aac_hifi",(220000,"mp4a.40.2","ts"))]
-                
 streams = [("aac_lofi",aac_lofi), 
            ("aac_midfi", aac_midfi), 
            ("aac_hifi", aac_hifi)]
@@ -48,7 +44,6 @@ output.file.hls(playlist="live.m3u8",
                 segments=5,
                 segments_overhead=5,
                 segment_name=segment_name,
-                streams_info=streams_info,
                 persist_at="/path/to/state.config",
                 "/path/to/hls/directory",
                 streams,
@@ -61,12 +56,6 @@ Let's see what's important here:
   the corresponding media playlists. Encoders can be any encoder supported by liquidsoap. However, the [HLS RFC](https://tools.ietf.org/html/rfc8216)
   limits the list of possible codecs to `mp3` and `aac`. Furthermore, for the best possible compatible, it is recommended
   to send data encapsulated in a `MPEG-TS` stream. Currently, the only encoder capable of doing this in liquidsoap is `%ffmpeg`.
-* `streams_info` describes additional data used to generated the HLS playlists according to
-  [section 4.3.4.2](https://tools.ietf.org/html/rfc8216#section-4.3.4.2) of the RFC. It consists of a list
-  of the form: `(stream_name, (average_bandwidth, codec_name, segments_file_extension))`. This list is inffered for the following formats:
-  `%mp3`, `%fdkaac`, `%shine`. When using these formats, you do not need to pass an entry for the corresponding stream in this
-  list. However, since we're using the `%ffmpeg` encoder to get `MPEG-TS` encapsulated data, we need to add 
-  these info for each stream.
 * `persist_at` is used to allow liquidsoap to restart while keeping the existing segments and playlists. When
   shutting down, liquidsoap stores the current configuration at `persist_at` and uses it to restart the HLS stream when
   restarting.
