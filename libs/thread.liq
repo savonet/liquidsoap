@@ -4,7 +4,7 @@
 # @param ~delay Delay (in seconds) after which the thread should be lauched.
 # @param ~every How often (in seconds) the thread should be run. If `null`, run once.
 # @param f Function to execute.
-def replaces thread.run(~fast=true, ~delay=0., ~every, f)
+def replaces thread.run(~fast=true, ~delay=0., ~every=null(), f)
   every = every ?? float_getter(-1.)
   every = to_float_getter(every)
   def f() =
