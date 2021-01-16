@@ -2,9 +2,10 @@
 # @category Control
 # @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts. This is only effective if you set a dedicated queue for fast tasks, see the "scheduler" settings for more details.
 # @param ~delay Delay (in seconds) after which the thread should be lauched.
-# @param ~every How often (in seconds) the thread should be run (negative means once).
+# @param ~every How often (in seconds) the thread should be run. If `null`, run once.
 # @param f Function to execute.
-def replaces thread.run(~fast=true, ~delay=0., ~every=float_getter(-1.), f)
+def replaces thread.run(~fast=true, ~delay=0., ~every, f)
+  every = every ?? float_getter(-1.)
   every = to_float_getter(every)
   def f() =
     ignore(f() == ())
