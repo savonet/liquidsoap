@@ -111,19 +111,19 @@ let ffmpeg_gen params =
         in
         parse_args ~format ~mode f l
     | (k, { term = Ground (String s); _ }) :: l ->
-        ( match mode with
+        (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`String s)
-          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`String s) );
+          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`String s));
         parse_args ~format ~mode f l
     | (k, { term = Ground (Int i); _ }) :: l ->
-        ( match mode with
+        (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Int i)
-          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Int i) );
+          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Int i));
         parse_args ~format ~mode f l
     | (k, { term = Ground (Float fl); _ }) :: l ->
-        ( match mode with
+        (match mode with
           | `Audio -> Hashtbl.add f.Ffmpeg_format.audio_opts k (`Float fl)
-          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl) );
+          | `Video -> Hashtbl.add f.Ffmpeg_format.video_opts k (`Float fl));
         parse_args ~format ~mode f l
     | (_, t) :: _ -> raise (generic_error t)
   in
@@ -149,9 +149,7 @@ let ffmpeg_gen params =
             { f with Ffmpeg_format.video_codec = Some (`Internal None) }
           in
           parse_args ~format:`Internal ~mode:`Video f l
-      | `Option ("format", { term = Ground (String s); _ })
-      | `Option ("format", { term = Var s; _ })
-        when s = "none" ->
+      | `Option ("format", { term = Var "none"; _ }) ->
           { f with Ffmpeg_format.format = None }
       | `Option ("format", { term = Ground (String fmt); _ }) ->
           { f with Ffmpeg_format.format = Some fmt }
@@ -163,7 +161,8 @@ let ffmpeg_gen params =
           f
       | `Option (k, { term = Ground (Float i); _ }) ->
           Hashtbl.add f.Ffmpeg_format.other_opts k (`Float i);
-          f | `Option (_, t) -> raise (generic_error t))
+          f
+      | `Option (_, t) -> raise (generic_error t))
     defaults params
 
 let make params = Encoder.Ffmpeg (ffmpeg_gen params)
