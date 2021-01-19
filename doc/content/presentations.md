@@ -12,6 +12,10 @@ In particular, Romain presented the main features of the upcoming Liquidsoap
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/VT6TEjJzWoY" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
+and Gilou did a tutorial about setting up a webradio with Liquidsoap
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/B8l8uqBS6-c" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 ## FOSDEM 2020
 
 We presented liquidsoap during the FOSDEM 2020 conference. You can watch the video here:
