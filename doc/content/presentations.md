@@ -1,6 +1,17 @@
 Presentations about Liquidsoap
 ==============================
 
+## Liquidshop
+
+In January 2021, we organized [the *Liquidshop*, a workshop around
+Liquidsoap](http://www.liquidsoap.info/liquidshop/), where you can find lots of
+presentations around Liquidsoap.
+
+In particular, Romain presented the main features of the upcoming Liquidsoap
+2.0:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/VT6TEjJzWoY" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 ## FOSDEM 2020
 
 We presented liquidsoap during the FOSDEM 2020 conference. You can watch the video here:
