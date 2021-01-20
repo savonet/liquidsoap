@@ -193,14 +193,14 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                 | _ ->
                     (* We are staying on the same child,
                      * don't start a new track. *)
-                    need_eot <- false )
+                    need_eot <- false)
           | None -> (
               match selected with
                 | Some (_, old_s) ->
                     old_s#leave (self :> source);
                     to_finish <- old_s :: to_finish;
                     selected <- None
-                | None -> () )
+                | None -> ())
       in
       (* #select is called only when selected=None, and the cache is cleared
        * as soon as the new selection is set. *)
@@ -219,7 +219,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
           | Some (c, s) ->
               s#get ab;
               c.cur_meta <-
-                ( if Frame.is_partial ab then None
+                (if Frame.is_partial ab then None
                 else (
                   match
                     List.fold_left
@@ -228,15 +228,15 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         | Some (curp, curm) ->
                             fun (p, m) ->
                               Some (if p >= curp then (p, m) else (curp, curm)))
-                      ( match c.cur_meta with
+                      (match c.cur_meta with
                         | None -> None
-                        | Some m -> Some (-1, m) )
+                        | Some m -> Some (-1, m))
                       (Frame.get_all_metadata ab)
                   with
                     | None -> None
-                    | Some (_, m) -> Some (Hashtbl.copy m) ) );
+                    | Some (_, m) -> Some (Hashtbl.copy m)));
               if Frame.is_partial ab then reselect ~forget:true ()
-              else if not (mode ()) then reselect () )
+              else if not (mode ()) then reselect ())
 
     method remaining =
       match selected with None -> 0 | Some (_, s) -> s#remaining
@@ -484,11 +484,11 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
 
         (* First try to select another track from the source
            currently playing. *)
-        if position <> -1 then (
+        if strict && position <> -1 then (
           let weight, s = List.nth children position in
           if s.source#is_ready && tracks_played < weight () then (
             track_pending <- true;
-            raise (Found (Some s)) ) );
+            raise (Found (Some s))));
 
         (* Otherwise, select the next source to be played. Respect original
            list order but skip over unavailale sources. *)
@@ -522,7 +522,7 @@ class random ~kind ~override_meta ~transition_length ?replay_meta strict mode
     method private get_frame buf =
       if track_pending then (
         track_pending <- false;
-        tracks_played <- tracks_played + 1 );
+        tracks_played <- tracks_played + 1);
       super#get_frame buf
   end
 
@@ -530,14 +530,14 @@ let () =
   let add name strict descr weight_descr =
     let kind = Lang.univ_t 1 in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
-      ( common kind
+      (common kind
       @ [
           ( "weights",
             Lang.list_t (Lang.int_getter_t 2),
             Some (Lang.list ~t:(Lang.int_getter_t 2) []),
             Some weight_descr );
           ("", Lang.list_t (Lang.source_t kind), None, None);
-        ] )
+        ])
       ~kind:(Lang.Unconstrained kind)
       (fun p kind ->
         let children = Lang.to_source_list (List.assoc "" p) in
