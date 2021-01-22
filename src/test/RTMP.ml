@@ -1,4 +1,8 @@
-(* We are following https://www.adobe.com/devnet/rtmp.html *)
+(* We are following
+   - https://www.adobe.com/devnet/rtmp.html
+   - https://www.adobe.com/content/dam/acom/en/devnet/pdf/amf0-file-format-specification.pdf
+   - https://www.adobe.com/content/dam/acom/en/devnet/pdf/amf-file-format-spec.pdf
+*)
 
 (* A few general remarks:
    - all integers a big-endian
@@ -53,7 +57,12 @@ let write_int32_le f n =
 
 let read f n =
   let s = Bytes.create n in
-  assert (Unix.read f s 0 n = n);
+  let r = ref 0 in
+  while !r < n do
+    let r' = Unix.read f s !r (n - !r) in
+    assert (r' > 0);
+    r := !r + r'
+  done;
   s
 
 let read_string f n = Bytes.unsafe_to_string (read f n)
@@ -106,23 +115,24 @@ let bytes_of_int32 n =
 
 (** Writing. *)
 
-let basic_header f ~chunk_type ~stream_id =
+let basic_header f ~chunk_type ~chunk_stream_id =
   assert (0 <= chunk_type && chunk_type < 4);
-  assert (3 <= stream_id && stream_id <= 65599);
-  if stream_id <= 63 then write_byte f ((chunk_type lsl 6) + stream_id)
-  else if stream_id <= 319 then (
+  assert (3 <= chunk_stream_id && chunk_stream_id <= 65599);
+  if chunk_stream_id <= 63 then
+    write_byte f ((chunk_type lsl 6) + chunk_stream_id)
+  else if chunk_stream_id <= 319 then (
     write_byte f (chunk_type lsl 6);
-    write_byte f (stream_id - 64) )
+    write_byte f (chunk_stream_id - 64) )
   else (
     write_byte f ((chunk_type lsl 6) + 0x111111);
-    write_short f stream_id )
+    write_short f chunk_stream_id )
 
 let int32_byte n k =
   Int32.to_int (Int32.logand (Int32.shift_right n (8 * k)) (Int32.of_int 0xff))
 
-let chunk_header0 f ~stream_id ~timestamp ~message_length ~message_type_id
+let chunk_header0 f ~chunk_stream_id ~timestamp ~message_length ~message_type_id
     ~message_stream_id =
-  basic_header f ~chunk_type:0 ~stream_id;
+  basic_header f ~chunk_type:0 ~chunk_stream_id;
   let extended = timestamp >= Int32.of_int 0xffffff in
   let timestamp' = if extended then 0xffffff else Int32.to_int timestamp in
   write_int24 f timestamp';
@@ -131,9 +141,9 @@ let chunk_header0 f ~stream_id ~timestamp ~message_length ~message_type_id
   write_int32_le f message_stream_id;
   if extended then write_int32 f timestamp
 
-let chunk_header1 f ~stream_id ~timestamp_delta ~message_length ~message_type_id
-    =
-  basic_header f ~chunk_type:1 ~stream_id;
+let chunk_header1 f ~chunk_stream_id ~timestamp_delta ~message_length
+    ~message_type_id =
+  basic_header f ~chunk_type:1 ~chunk_stream_id;
   let extended = timestamp_delta >= Int32.of_int 0xffffff in
   let timestamp_delta' =
     if extended then 0xffffff else Int32.to_int timestamp_delta
@@ -143,8 +153,8 @@ let chunk_header1 f ~stream_id ~timestamp_delta ~message_length ~message_type_id
   write_byte f message_type_id;
   if extended then write_int32 f timestamp_delta
 
-let chunk_header2 f ~stream_id ~timestamp_delta =
-  basic_header f ~chunk_type:2 ~stream_id;
+let chunk_header2 f ~chunk_stream_id ~timestamp_delta =
+  basic_header f ~chunk_type:2 ~chunk_stream_id;
   let extended = timestamp_delta >= Int32.of_int 0xffffff in
   let timestamp_delta' =
     if extended then 0xffffff else Int32.to_int timestamp_delta
@@ -152,10 +162,11 @@ let chunk_header2 f ~stream_id ~timestamp_delta =
   write_int24 f timestamp_delta';
   if extended then write_int32 f timestamp_delta
 
-let chunk_header3 f ~stream_id = basic_header f ~chunk_type:3 ~stream_id
+let chunk_header3 f ~chunk_stream_id =
+  basic_header f ~chunk_type:3 ~chunk_stream_id
 
 let control_message f message_stream_id payload =
-  chunk_header0 f ~stream_id:0 ~timestamp:Int32.zero
+  chunk_header0 f ~chunk_stream_id:0 ~timestamp:Int32.zero
     ~message_stream_id:(Int32.of_int 2) ~message_type_id:1
     ~message_length:(String.length payload)
 
@@ -176,8 +187,6 @@ let set_peer_bandwidth f n t =
   let t = match t with `Hard -> 0 | `Soft -> 1 | `Dynamic -> 2 in
   let t = String.make 1 (char_of_int t) in
   control_message f 6 (n ^ t)
-
-(* let rtmp_header ~message_type ~payload_length ~timestamp ~stream_id = *)
 
 (* rtmp://a.rtmp.youtube.com/live2 *)
 let test () =
@@ -209,6 +218,18 @@ let test () =
   (* S2 *)
   ignore (read s (4 + 4 + 1158))
 
+let max_chunk_size = 128
+
+type message = {
+  message_chunk_stream_id : int;
+  message_timestamp : Int32.t;
+  message_type_id : int;
+  message_stream_id : Int32.t;
+  mutable message_data : string list;
+  (* Data in chunks, to be read from right to left (i.e. rev before concatenating). *)
+  mutable message_remaining : int; (* Bytes which remain to be fetched *)
+}
+
 (** Local server. *)
 let () =
   let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
@@ -222,11 +243,7 @@ let () =
     (* C0 *)
     let c0 = read_byte s in
     assert (c0 = 3);
-    (* C1 *)
-    let time = read_int32 s in
-    let zero = read_int32 s in
-    let rand = read s 1528 in
-    (* assert (zero = Int32.zero); *)
+    Printf.printf "C0\n%!";
     (* S0 *)
     write_byte s 3;
     (* S1 *)
@@ -235,23 +252,41 @@ let () =
     write_int32 s time2;
     write_int32 s Int32.zero;
     write s rand2;
+    (* C1 *)
+    let time = read_int32 s in
+    let zero = read_int32 s in
+    let rand = read s 1528 in
+    (* assert (zero = Int32.zero); *)
+    Printf.printf "C1\n%!";
     (* S2 *)
     write_int32 s time2;
     write_int32 s time;
     write s rand;
+    (* C2 *)
+    let time' = read_int32 s in
+    if time' <> time then
+      Printf.printf "C2 time: %ld instead of %ld\n%!" time' time;
+    assert (read_int32 s = time2);
+    assert (read s 1528 = rand2);
+    Printf.printf "C2\n%!";
+    let messages = ref [] in
+    let add_message msg = messages := msg :: !messages in
+    let find_message cid =
+      List.find (fun msg -> msg.message_chunk_stream_id = cid) !messages
+    in
     while true do
       Printf.printf "\n%!";
       (* Basic header *)
       let basic = read_byte s in
       let chunk_type = basic lsr 6 in
       Printf.printf "Chunk type: %d\n%!" chunk_type;
-      let stream_id =
+      let chunk_stream_id =
         let n = basic land 0x3f in
         if n = 0 then read_byte s + 64
         else if n = 0x3f then read_short s + 64
         else n
       in
-      Printf.printf "Stream id: %d\n%!" stream_id;
+      Printf.printf "Chunk stream id: %d\n%!" chunk_stream_id;
       (* Message header *)
       match chunk_type with
         | 0 ->
@@ -263,10 +298,33 @@ let () =
               if timestamp = 0xffffff then read_int32 s
               else Int32.of_int timestamp
             in
+            Printf.printf "Timestamp: %d\n%!" (Int32.to_int timestamp);
             Printf.printf "Message length: %d\n%!" message_length;
-            Printf.printf "Message type: %d\n%!" message_type_id;
+            Printf.printf "Message type: %d (0x%x)\n%!" message_type_id
+              message_type_id;
             Printf.printf "Message stream: %d\n%!"
-              (Int32.to_int message_stream_id)
+              (Int32.to_int message_stream_id);
+            let data_length = min max_chunk_size message_length in
+            let data = read_string s data_length in
+            let msg =
+              {
+                message_chunk_stream_id = chunk_stream_id;
+                message_timestamp = timestamp;
+                message_type_id;
+                message_stream_id;
+                message_data = [data];
+                message_remaining = message_length - data_length;
+              }
+            in
+            add_message msg
+        | 3 ->
+            let msg = find_message chunk_stream_id in
+            let remaining = msg.message_remaining in
+            let data_length = min max_chunk_size remaining in
+            Printf.printf "read %d\n%!" data_length;
+            let data = read_string s data_length in
+            msg.message_data <- data :: msg.message_data;
+            msg.message_remaining <- msg.message_remaining - data_length
         | _ -> assert false
     done;
     Printf.printf "Done with connection\n%!";
