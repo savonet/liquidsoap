@@ -166,7 +166,7 @@ let chunk_header3 f ~chunk_stream_id =
   basic_header f ~chunk_type:3 ~chunk_stream_id
 
 let control_message f message_stream_id payload =
-  chunk_header0 f ~chunk_stream_id:0 ~timestamp:Int32.zero
+  chunk_header0 f ~chunk_stream_id:2 ~timestamp:Int32.zero
     ~message_stream_id:(Int32.of_int 2) ~message_type_id:1
     ~message_length:(String.length payload)
 
@@ -230,6 +230,98 @@ type message = {
   mutable message_remaining : int; (* Bytes which remain to be fetched *)
 }
 
+(*
+02 | 00 07 | 63 6f 6e 6e 65 63 74
+00 | 3f f0 00 00 00 00 00 00
+03 |
+   00 03 | 61 70 70
+   02 | 00 07 | 70 61 74 68 2f 74 6f
+   00 04 | 74 79 70 65
+   02 | 00 0a | 6e 6f 6e 70 72 69 76 61 74 65
+   00 05 | 74 63 55 72 6c
+   02 | 00 18 | 72 74 6d 70 3a 2f 2f 6c 6f 63 61 6c 68 6f 73 74 2f 70 61 74 68 2f 74 6f
+   00 00
+   09
+*)
+
+module AMF = struct
+  type t = Number of float | String of string | Object of (string * t) list
+
+  let parse data =
+    let i = ref 0 in
+    let n = String.length data in
+    let byte () =
+      let x = int_of_char data.[!i] in
+      i := !i + 1;
+      x
+    in
+    let u16 () =
+      let b1 = byte () in
+      let b0 = byte () in
+      (b1 lsl 8) + b0
+    in
+    let u64 () =
+      let n = ref Int64.zero in
+      for _ = 0 to 7 do
+        n := Int64.add (Int64.shift_left !n 8) (Int64.of_int (byte ()))
+      done;
+      !n
+    in
+    let string () =
+      let len = u16 () in
+      let s = String.sub data !i len in
+      i := !i + len;
+      s
+    in
+    let double () = Int64.float_of_bits (u64 ()) in
+    let rec value () =
+      match byte () with
+        | 0x00 ->
+            (* number *)
+            let n = double () in
+            Number n
+        | 0x02 ->
+            (* string *)
+            let s = string () in
+            String s
+        | 0x03 ->
+            (* object *)
+            let ans = ref [] in
+            (* Printf.printf "object: %s\n%!" (string ()); *)
+            let l = ref (string ()) in
+            Printf.printf "label: %s\n%!" !l;
+            while !l <> "" do
+              let v = value () in
+              ans := (!l, v) :: !ans;
+              l := string ()
+            done;
+            assert (byte () = 0x09);
+            Object (List.rev !ans)
+        | b ->
+            Printf.printf "***** Unknown AMF 0x%02x\n%!" b;
+            raise Exit
+    in
+    let ans = ref [] in
+    ( try
+        while !i <> n do
+          ans := value () :: !ans
+        done
+      with Exit -> () );
+    List.rev !ans
+
+  let rec to_string = function
+    | Number n -> Printf.sprintf "%f" n
+    | String s -> "\"" ^ s ^ "\""
+    | Object l ->
+        let l =
+          List.map (fun (l, v) -> l ^ ": " ^ to_string v) l
+          |> String.concat ", "
+        in
+        "{" ^ l ^ "}"
+
+  let list_to_string l = String.concat ", " (List.map to_string l)
+end
+
 (** Local server. *)
 let () =
   let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
@@ -274,6 +366,29 @@ let () =
     let find_message cid =
       List.find (fun msg -> msg.message_chunk_stream_id = cid) !messages
     in
+    let handle_message msg =
+      let data = String.concat "" (List.rev msg.message_data) in
+      match msg.message_type_id with
+        | 0x14 ->
+            Printf.printf "AMF0: %s\n%!" data;
+            for i = 0 to String.length data - 1 do
+              Printf.printf "%02x " (int_of_char data.[i])
+            done;
+            Printf.printf "\n%!";
+            let amf = AMF.parse data in
+            Printf.printf "%s\n%!" (AMF.list_to_string amf)
+        | _ -> assert false
+    in
+    let handle_messages () =
+      messages :=
+        List.filter
+          (fun msg ->
+            if msg.message_remaining = 0 then (
+              handle_message msg;
+              false )
+            else true)
+          !messages
+    in
     while true do
       Printf.printf "\n%!";
       (* Basic header *)
@@ -288,7 +403,7 @@ let () =
       in
       Printf.printf "Chunk stream id: %d\n%!" chunk_stream_id;
       (* Message header *)
-      match chunk_type with
+      ( match chunk_type with
         | 0 ->
             let timestamp = read_int24 s in
             let message_length = read_int24 s in
@@ -325,7 +440,8 @@ let () =
             let data = read_string s data_length in
             msg.message_data <- data :: msg.message_data;
             msg.message_remaining <- msg.message_remaining - data_length
-        | _ -> assert false
+        | _ -> assert false );
+      handle_messages ()
     done;
     Printf.printf "Done with connection\n%!";
     exit 0
