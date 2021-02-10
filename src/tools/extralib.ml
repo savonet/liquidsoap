@@ -98,3 +98,16 @@ module Filename = struct
     in
     loop 1000
 end
+
+module Int = struct
+  include Int
+
+  let find p =
+    let ans = ref 0 in
+    try
+      while true do
+        if p !ans then raise Exit else incr ans
+      done;
+      assert false
+    with Exit -> !ans
+end

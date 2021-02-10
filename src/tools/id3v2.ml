@@ -74,12 +74,17 @@ let parse f =
           let encoding = int_of_char data.[0] in
           let start, len =
             match encoding with
-              | 0x00 (* ISO-8859-1 *) | 0x01 (* 16-bit unicode 2.0 *) | 0x02
-              (* UTF-16BE *)
-              | 0x03 (* UTF8 *) -> (
-                  try (1, String.index_from data 1 '\000' - 1)
-                  with Not_found -> raise Invalid )
-              | _ -> (0, String.length data)
+              | 0x00 (* ISO-8859-1 *) | 0x03 (* UTF8 *) ->
+                  if data.[size - 1] = '\000' then (1, size - 2)
+                  else (1, size - 1)
+              | 0x01 (* 16-bit unicode 2.0 *) | 0x02 (* UTF-16BE *) ->
+                  if
+                    size >= 2
+                    && data.[size - 2] = '\000'
+                    && data.[size - 1] = '\000'
+                  then (1, size - 3)
+                  else (1, size - 1)
+              | _ -> (0, size)
           in
           let text = String.sub data start len in
           let text = recode encoding text in
@@ -98,14 +103,20 @@ type apic = {
 
 let parse_apic apic =
   let text_encoding = int_of_char apic.[0] in
+  let text_bytes = if text_encoding = 1 || text_encoding = 2 then 2 else 1 in
   let recode = recode text_encoding in
   let n = String.index_from apic 1 '\000' in
-  let mime = recode (String.sub apic 1 (n - 1)) in
+  let mime = String.sub apic 1 (n - 1) in
   let n = n + 1 in
   let picture_type = int_of_char apic.[n] in
   let n = n + 1 in
-  let n' = String.index_from apic n '\000' in
-  let description = recode (String.sub apic n (n' - n)) in
-  let n = n' + 1 in
+  let l =
+    Int.find (fun i ->
+        i mod text_bytes = 0
+        && apic.[n + i] = '\000'
+        && (text_bytes = 1 || apic.[n + i + 1] = '\000'))
+  in
+  let description = recode (String.sub apic n l) in
+  let n = n + l + text_bytes in
   let data = String.sub apic n (String.length apic - n) in
   { mime; picture_type; description; data }
