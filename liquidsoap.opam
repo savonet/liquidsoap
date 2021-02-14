@@ -94,6 +94,7 @@ depopts: [
   "shine"
   "soundtouch"
   "speex"
+  "srt"
   "ssl"
   "taglib"
   "theora"
@@ -130,6 +131,7 @@ conflicts: [
   "shine" {< "0.2.0"}
   "soundtouch" {< "0.1.7"}
   "speex" {< "0.2.1"}
+  "srt" {>= "0.2.0"}
   "ssl" {< "0.5.2"}
   "taglib" {< "0.3.0"}
   "theora" {< "0.3.1"}
