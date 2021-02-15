@@ -12,9 +12,8 @@ jingles = playlist("~/Music")
 radio = switch([({8h-20h}, day), ({20h-8h}, night)])
 # Crossfade
 radio = crossfade(fade_out=3., fade_in=3., duration=5., radio)
-l = [jingles, radio]
 # Add jingles
-radio = random(weights=[1, 4], l)
+radio = random(weights=[1, 4], [jingles, radio])
 
 output.dummy(fallible=true, radio)
 

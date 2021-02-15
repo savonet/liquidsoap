@@ -1,7 +1,6 @@
 #!../../src/liquidsoap ../../libs/pervasives.liq
 
 # Basic radio test
-# TODO: add more "features"
 
 %include "test.liq"
 
