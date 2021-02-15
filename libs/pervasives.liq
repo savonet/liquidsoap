@@ -27,3 +27,4 @@
 %include "gstreamer.liq"
 %include "visualization.liq"
 %include "profiler.liq"
+%include "deprecations.liq"
