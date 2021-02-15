@@ -70,6 +70,7 @@ def f() =
   ignore(list.hd(l).x)
   l = [b,a]
   ignore(list.hd(l).x)
+  def f(c) = [a,c] end      
 
   if !success then test.pass() else test.fail() end
 end

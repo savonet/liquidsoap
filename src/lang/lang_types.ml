@@ -1081,6 +1081,8 @@ let ( <: ) a b =
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
 
+(** Approximation of type duplication. Sharing of variables is not guaranteed to
+    be preserved. *)
 let rec duplicate ?pos ?level t =
   make ?pos ?level
     ( match (deref t).descr with
@@ -1107,9 +1109,11 @@ let rec duplicate ?pos ?level t =
       | EVar v -> EVar v
       | Link t -> Link (duplicate ?pos ?level t) )
 
-(** Find the minimal type that is safe to use instead of both
-    left and right hand types. *)
+(** Find an approximation of the minimal type that is safe to use instead of
+    both left and right hand types. This function is not exact: we should always
+    try to cast with the result in order to ensure that everything is alright. *)
 let rec min_type ?(pos = None) ?(level = -1) a b =
+  let has_meth a = match (deref a).descr with Meth _ -> true | _ -> false in
   try
     let min a b =
       try
@@ -1123,36 +1127,30 @@ let rec min_type ?(pos = None) ?(level = -1) a b =
         duplicate ~pos ~level a <: t;
         deref t
     in
-    match ((deref a).descr, (deref b).descr) with
-      | (Meth _ as da), (Meth _ as db) ->
-          let rec methods m = function
-            | Meth (name, scheme, doc, t) when not (List.mem_assoc name m) ->
-                methods ((name, (scheme, doc)) :: m) (deref t).descr
-            | _ -> m
-          in
-          let meths_a = methods [] da in
-          let meths_b = methods [] db in
-          let meths =
-            List.fold_left
-              (fun cur (name, ((g, t), doc)) ->
-                match List.assoc_opt name meths_b with
-                  | None -> cur
-                  | Some ((g', t'), _) -> (
-                      try (name, ((g @ g', min_type t t'), doc)) :: cur
-                      with _ -> cur ))
-              [] meths_a
-          in
-          let t = min (demeth a) (demeth b) in
-          let t =
-            List.fold_left
-              (fun cur (name, (s, doc)) ->
-                make ~pos ~level (Meth (name, s, doc, cur)))
-              t meths
-          in
-          duplicate ~pos ~level a <: t;
-          duplicate ~pos ~level b <: t;
-          deref t
-      | _ -> min a b
+    if not (has_meth a && has_meth b) then min a b
+    else (
+      let meths_a, a' = split_meths a in
+      let meths_b, b' = split_meths b in
+      let meths =
+        List.fold_left
+          (fun cur (name, ((g, t), doc)) ->
+            match List.assoc_opt name meths_b with
+              | None -> cur
+              | Some ((g', t'), _) -> (
+                  try (name, ((g @ g', min_type t t'), doc)) :: cur
+                  with _ -> cur ))
+          [] meths_a
+      in
+      let t = min a' b' in
+      let t =
+        List.fold_left
+          (fun cur (name, (s, doc)) ->
+            make ~pos ~level (Meth (name, s, doc, cur)))
+          t meths
+      in
+      duplicate ~pos ~level a <: t;
+      duplicate ~pos ~level b <: t;
+      t )
   with Error (x, y) ->
     let bt = Printexc.get_raw_backtrace () in
     Printexc.raise_with_backtrace (Type_Error (false, a, b, x, y)) bt
