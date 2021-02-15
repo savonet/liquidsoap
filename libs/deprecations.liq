@@ -611,7 +611,7 @@ def replaces output(~id="",~fallible=false,
            ~on_start={()},~on_stop={()},~start=true,s)
   output(id=id,fallible=fallible,
          start=start,on_start=on_start,on_stop=on_stop,
-         s)
+         mksafe(s))
 end
 
 def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
