@@ -65,7 +65,7 @@
                 List.find (fun (_, n, _) -> n = name) l
               in
               t
-          | _ -> assert false
+          | _ -> raise (Parse_error (pos, Printf.sprintf "Cannot get argument type of %s, this is not a function, it has type: %s." name (T.print t)))
       in
       List.map (fun (n, n', v) ->
         let t = T.make ~pos:(Some pos) (get_arg_type t n).T.descr in
