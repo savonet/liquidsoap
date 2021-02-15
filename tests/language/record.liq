@@ -55,11 +55,21 @@ def f() =
   t(counter(), 1)
 
   # Open
-
   r = ()
   def r.f(n) = 2*n end
   open r
   t(f(3), 6)
+
+  # Test subtyping in lists
+  a = "a"
+  b = "b"
+  let a.x = 5
+  let b.x = 3
+  let b.y = 1.
+  l = [a,b]
+  ignore(list.hd(l).x)
+  l = [b,a]
+  ignore(list.hd(l).x)
 
   if !success then test.pass() else test.fail() end
 end
