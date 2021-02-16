@@ -127,9 +127,12 @@ def interactive.harbor(~port=8080, uri="interactive")
       common = "id='#{name}' name='#{name}' onchange=\"send()\""
       if v.type == "float" then
         v = list.assoc(name, !variables_float)
-        # add("<input type='range' #{common} min='#{v.min}' max='#{v.max}' value='#{!v.ref}'>")
         value = string_of(!v.ref) ^ "0"
-        add("<input type='number' #{common} step='#{v.step}' value='#{value}'>")
+        if v.min == 0.-infinity or v.max == infinity then
+          add("<input type='number' #{common} step='#{v.step}' value='#{value}'>")
+        else
+          add("<input type='range' #{common} min='#{v.min}' max='#{v.max}' step='#{v.step}' value='#{!v.ref}'>")
+        end
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
         c = (!v.ref) ? "checked" : ""
