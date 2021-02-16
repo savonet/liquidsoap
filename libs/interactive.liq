@@ -155,7 +155,7 @@ end
 # @category Interaction
 # @param ~port Port of the server.
 # @param ~uri URI of the server.
-def interactive.harbor(~port=8080, ~uri="interactive")
+def interactive.harbor(~port=8080, ~uri="/interactive")
   def webpage(~protocol, ~data, ~headers, uri)
     form_data = data
     data = ref("")
@@ -251,7 +251,7 @@ def interactive.harbor(~port=8080, ~uri="interactive")
           interactive.set.string(name, v)
         end
       catch _ do
-        log.important("Could not update variable #{name}.")
+        log.important(label="interactive.harbor", "Could not update variable #{name}.")
       end
     end
     list.iter(update, data)
@@ -259,6 +259,7 @@ def interactive.harbor(~port=8080, ~uri="interactive")
   end
 
   harbor.http.register(port=port, method="POST", uri, setter)
+  log.important(label="interactive.harbor", "Website should be ready at <http://localhost:#{port}#{uri}>.")
 end
 
 # Read a float from an interactive input.
