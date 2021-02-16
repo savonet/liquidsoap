@@ -195,11 +195,15 @@ def interactive.harbor(~port=8080, ~uri="interactive")
       common = "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
       if v.type == "float" then
         v = list.assoc(name, !variables_float)
-        value = string_of(!v.ref) ^ "0"
+        value = http.string_of_float(!v.ref)
         if v.min == 0.-infinity or v.max == infinity then
           add("<input type='number' #{common} step='#{v.step}' value='#{value}'>")
         else
-          add("<input type='range' #{common} min='#{v.min}0' max='#{v.max}0' step='#{v.step}0' value='#{!v.ref}0' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text>")
+          min = http.string_of_float(v.min)
+          max = http.string_of_float(v.max)
+          step = http.string_of_float(v.step)
+          value = http.string_of_float(!v.ref)
+          add("<input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text>")
         end
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)

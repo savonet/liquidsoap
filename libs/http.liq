@@ -137,6 +137,18 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
   list.iter(register, ["OPTIONS","HEAD","GET"])
 end
 
+# It seems that browsers want a trailing 0 for floats.
+# @flag hidden
+def http.string_of_float(x)
+  s = string_of(x)
+  n = string.length(s)
+  if string.sub(s, start=n-1, length=1) == "." then
+    s ^ "0"
+  else
+    s
+  end
+end
+
 # @flag hidden
 def get_mime_process(file) =
   list.hd(default="", process.read.lines("file -b -I #{string.quote(file)}"))
