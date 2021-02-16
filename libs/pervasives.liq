@@ -3,6 +3,7 @@
 %include "audio.liq"
 %include "ref.liq"
 %include "list.liq"
+%include "math.liq"
 %include "getter.liq"
 %include "predicate.liq"
 %include "log.liq"
