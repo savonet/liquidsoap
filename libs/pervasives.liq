@@ -13,6 +13,7 @@
 %include "switches.liq"
 %include "utils.liq"
 %include "string.liq"
+%include "interactive.liq"
 %include "metadata.liq"
 %include "request.liq"
 %include "playlist.liq"
