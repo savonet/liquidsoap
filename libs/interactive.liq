@@ -97,7 +97,7 @@ end
 # @param name Name of the variable.
 # @param v Initial value.
 def interactive.string(name, v)
-  add_variable(name=name, type="bool")
+  add_variable(name=name, type="string")
   r = ref(v)
   variables_string := list.add((name, r), !variables_string)
   ref.getter(r)
