@@ -4,6 +4,7 @@ variables_bool   = ref([])
 variables_string = ref([])
 
 let interactive = ()
+let interactive.ref = ()
 let interactive.var = ()
 
 # @flag hidden
@@ -18,17 +19,37 @@ end
 server.register(usage="list", description="List available interactive variables.", namespace="var", "list", interactive.var.list)
 
 # @flag hidden
+def interactive.type(name)
+  list.assoc(name, !variables).type
+end
+
+# @flag hidden
+def interactive.ref.float(name)
+  list.assoc(name, !variables_float).ref
+end
+
+# @flag hidden
+def interactive.ref.bool(name)
+  list.assoc(name, !variables_bool).ref
+end
+
+# @flag hidden
+def interactive.ref.string(name)
+  list.assoc(name, !variables_string).ref
+end
+
+# @flag hidden
 def interactive.var.get(name)
-  try
-    v = list.assoc(name, !variables)
-    if v.type == "float" then
-      r = list.assoc(name, !variables_float).ref
+try
+    t = interactive.type(name)
+    if t == "float" then
+      r = interactive.ref.float(name)
       string_of(!r)
-    elsif v.type == "bool" then
-      r = list.assoc(name, !variables_bool).ref
+    elsif t == "bool" then
+      r = interactive.ref.bool(name)
       string_of(!r)
-    elsif v.type == "string" then
-      r = list.assoc(name, !variables_string).ref
+    elsif t == "string" then
+      r = interactive.ref.string(name)
       !r
     else
       error.raise(error.not_found)
@@ -45,15 +66,15 @@ def interactive.var.set(arg)
     arg = string.split(separator=" = ", arg)
     name = list.nth(arg, 0)
     value = list.nth(arg, 1)
-    v = list.assoc(name, !variables)
-    if v.type == "float" then
-      r = list.assoc(name, !variables_float).ref
+    t = interactive.type(name)
+    if t == "float" then
+      r = interactive.ref.float(name)
       r := float_of_string(value)
-    elsif v.type == "bool" then
-      r = list.assoc(name, !variables_bool).ref
+    elsif t == "bool" then
+      r = interactive.ref.bool(name)
       r := bool_of_string(value)
-    elsif v.type == "string" then
-      r = list.assoc(name, !variables_string).ref
+    elsif t == "string" then
+      r = interactive.ref.string(name)
       r := value
     else
       error.raise(error.not_found)
@@ -74,48 +95,98 @@ end
 # Expose interactive variables through habor http server.
 # @category Interaction
 def interactive.harbor(~port=8080, uri="interactive")
-  def handler(~protocol, ~data, ~headers, uri)
+  def webpage(~protocol, ~data, ~headers, uri)
+    form_data = data
     data = ref("")
     def add(s) =
       data := !data ^ s ^ "\n"
     end
     title = "Interactive values"
-    add("<html><head><title>#{title}</title></head><body>")
+    add("<html><head>")
+    add("<title>#{title}</title>")
+    add("<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js'></script>")
+    # TODO: we could send only the udpated value instead of sending them all
+    ajax = list.map(fun (x) -> begin
+      x = fst(x)
+      "#{x}: $('##{x}').val()"
+    end, !variables)
+    ajax = string.concat(separator=", ", ajax)
+    add("<script> \
+    function send() {
+      var data = {#{ajax}};
+      console.log(data);
+      $.ajax({ uri: '#{uri}', type: 'POST', data: data })
+    }
+    </script>")
+    add("</head><body>")
     add("<h1>#{title}</h1>")
     def add_var(nv)
       let (name, v) = nv
       add("<div>")
       add("<label for=#{name}>#{name}</label>")
+      common = "id='#{name}' name='#{name}' onchange=\"send()\""
       if v.type == "float" then
         v = list.assoc(name, !variables_float)
-        add("<input type='range' id='#{name}' name='#{name}' min='#{v.min}' max='#{v.max}' value='#{!v.ref}'>")
+        # add("<input type='range' #{common} min='#{v.min}' max='#{v.max}' value='#{!v.ref}'>")
+        value = string_of(!v.ref) ^ "0"
+        add("<input type='number' #{common} step='#{v.step}' value='#{value}'>")
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
         c = (!v.ref) ? "checked" : ""
-        add("<input type='checkbox' id='#{name}' name='#{name}' #{c}>")
+        add("<input type='checkbox' #{common} #{c}>")
       elsif v.type == "string" then
         v = list.assoc(name, !variables_string)
-        add("<input type='text' id='#{name}' name='#{name}' value='#{!v.ref}'>")
+        add("<input type='text' #{common} value='#{!v.ref}'>")
       else
         ()
       end
       add("</div>")
     end
+    add("<form>")
     list.iter(add_var, !variables)
+    add("<input type='submit' value='Send'>")
+    add("</form>")
     add("</body>")
     http.response(data=!data)
   end
-  harbor.http.register(port=port, method="GET", uri, handler)
+
+  harbor.http.register(port=port, method="GET", uri, webpage)
+
+  def setter(~protocol, ~data, ~headers, uri)
+    data = url.split_args(data)
+    def update(nv)
+      let (name, v) = nv
+      try
+        t = interactive.type(name)
+        if t == "float" then
+          r = interactive.ref.float(name)
+          r := float_of_string(v)
+        elsif t == "bool" then
+          r = interactive.ref.bool(name)
+          # TODO: not working for now
+        elsif t == "string" then
+          r = interactive.ref.string(name)
+          r := v
+        end
+      catch _ do
+        log.important("Could not update variable #{name}")
+      end
+    end
+    list.iter(update, data)
+    http.response()
+  end
+
+  harbor.http.register(port=port, method="POST", uri, setter)
 end
 
 # Read a float from an interactive input.
 # @category Interaction
 # @param name Name of the variable.
 # @param v Initial value.
-def interactive.float(~min=0.-infinity, ~max=infinity, name, v)
+def interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, name, v)
   add_variable(name=name, type="float")
   r = ref(v)
-  variables_float := list.add((name, { ref=r , min=min, max=max }), !variables_float)
+  variables_float := list.add((name, { ref=r , min=min, max=max, step=step }), !variables_float)
   ref.getter(r)
 end
 
