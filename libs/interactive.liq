@@ -170,7 +170,17 @@ def interactive.harbor(~port=8080, ~uri="interactive")
     function send() {
       var interactive = document.getElementsByClassName('interactive');
       var data = '';
-      for(var i=0; i<interactive.length; i++){data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';}
+      for(var i=0; i<interactive.length; i++){
+        if (interactive[i].type == 'checkbox') {
+          if (interactive[i].checked) {
+            interactive[i].value = 'true'
+          } else {
+            interactive[i].value = 'false'
+          }
+        }
+        data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';
+      }
+      console.log(data);
       var xmlHttp = new XMLHttpRequest();
       xmlHttp.open('POST', '#{uri}');
       xmlHttp.onreadystatechange = function () {
@@ -208,7 +218,7 @@ def interactive.harbor(~port=8080, ~uri="interactive")
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
         c = (!v.ref) ? "checked" : ""
-        add("<input type='checkbox' #{common} #{c}>")
+        add("<input type='checkbox' #{common} value='true' #{c}>")
       elsif v.type == "string" then
         v = list.assoc(name, !variables_string)
         add("<input type='text' #{common} value='#{!v.ref}'>")
@@ -236,11 +246,9 @@ def interactive.harbor(~port=8080, ~uri="interactive")
         if t == "float" then
           interactive.set.float(name, float_of_string(v))
         elsif t == "bool" then
-          # TODO: not working for now
-          # r = interactive.ref.bool(name)
-          ()
+          interactive.set.bool(name, bool_of_string(v))
         elsif t == "string" then
-          r = interactive.set.string(name, v)
+          interactive.set.string(name, v)
         end
       catch _ do
         log.important("Could not update variable #{name}.")
