@@ -1,6 +1,10 @@
+# Information about all variables
 variables        = ref([])
+# Float variables
 variables_float  = ref([])
+# Bool variables
 variables_bool   = ref([])
+# String variables
 variables_string = ref([])
 
 let interactive = ()
@@ -94,6 +98,8 @@ end
 
 # Expose interactive variables through habor http server.
 # @category Interaction
+# @param port Port of the server.
+# @param uri URI of the server.
 def interactive.harbor(~port=8080, uri="interactive")
   def webpage(~protocol, ~data, ~headers, uri)
     form_data = data
@@ -172,7 +178,7 @@ def interactive.harbor(~port=8080, uri="interactive")
           r := v
         end
       catch _ do
-        log.important("Could not update variable #{name}")
+        log.important("Could not update variable #{name}.")
       end
     end
     list.iter(update, data)
