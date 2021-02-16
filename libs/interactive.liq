@@ -112,9 +112,9 @@ def interactive.harbor(~port=8080, uri="interactive")
     add("<title>#{title}</title>")
     add("<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js'></script>")
     # TODO: we could send only the udpated value instead of sending them all
-    ajax = list.map(fun (x) -> begin
-      x = fst(x)
-      "#{x}: $('##{x}').val()"
+    ajax = list.map(fun (name) -> begin
+      name = fst(name)
+      "#{name}: $('##{name}').val()"
     end, !variables)
     ajax = string.concat(separator=", ", ajax)
     add("<script> \
@@ -137,7 +137,7 @@ def interactive.harbor(~port=8080, uri="interactive")
         if v.min == 0.-infinity or v.max == infinity then
           add("<input type='number' #{common} step='#{v.step}' value='#{value}'>")
         else
-          add("<input type='range' #{common} min='#{v.min}' max='#{v.max}' step='#{v.step}' value='#{!v.ref}'>")
+          add("<input type='range' #{common} min='#{v.min}0' max='#{v.max}0' step='#{v.step}0' value='#{!v.ref}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text>")
         end
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
