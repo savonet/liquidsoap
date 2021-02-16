@@ -7,13 +7,12 @@ variables_bool   = ref([])
 # String variables
 variables_string = ref([])
 
-let interactive = ()
+let interactive     = ()
 let interactive.ref = ()
 let interactive.set = ()
-let interactive.var = ()
 
 # @flag hidden
-def interactive.var.list(_)
+def interactive.list(_)
   l = !variables
   l = list.map(fun(xv) -> begin
     let (x,v) = xv
@@ -21,7 +20,7 @@ def interactive.var.list(_)
   end, l)
   string.concat(separator="\n", l)
 end
-server.register(usage="list", description="List available interactive variables.", namespace="var", "list", interactive.var.list)
+server.register(usage="list", description="List available interactive variables.", namespace="var", "list", interactive.list)
 
 # @flag hidden
 def interactive.type(name)
@@ -59,7 +58,13 @@ def interactive.set.string(name, v)
 end
 
 # @flag hidden
-def interactive.var.get(name)
+def add_variable(~name, ~type)
+  variables := list.add((name, { type=type }), !variables)
+  variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
+end
+
+# @flag hidden
+def interactive.get(name)
 try
     t = interactive.type(name)
     if t == "float" then
@@ -78,10 +83,10 @@ try
     "Variable not found."
   end
 end
-server.register(namespace="var", description="Get the value of a variable.", "get", interactive.var.get)
+server.register(namespace="var", description="Get the value of a variable.", "get", interactive.get)
 
 # @flag hidden
-def interactive.var.set(arg)
+def replaces interactive.set(arg)
   try
     arg = string.split(separator=" = ", arg)
     name = list.nth(arg, 0)
@@ -101,13 +106,7 @@ def interactive.var.set(arg)
     "Syntax error or variable not found."
   end
 end
-server.register(usage="set <name> = <value>", description="Set the value of a variable.", namespace="var", "set", interactive.var.set)
-
-# @flag hidden
-def add_variable(~name, ~type)
-  variables := list.add((name, { type=type }), !variables)
-  variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
-end
+server.register(usage="set <name> = <value>", description="Set the value of a variable.", namespace="var", "set", interactive.set)
 
 # Save the value of all interactive variables in a file.
 # @category Interactive
