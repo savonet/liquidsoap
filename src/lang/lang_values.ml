@@ -550,6 +550,18 @@ module V = struct
   (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
   let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
+  let split_meths e =
+    let rec aux hide e =
+      match e.value with
+        | Meth (l, v, e) ->
+            if List.mem l hide then aux hide e
+            else (
+              let m, e = aux (l :: hide) e in
+              ((l, v) :: m, e) )
+        | _ -> ([], e)
+    in
+    aux [] e
+
   let rec demeth v = match v.value with Meth (_, _, v) -> demeth v | _ -> v
 
   let rec remeth t u =
