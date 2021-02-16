@@ -9,6 +9,7 @@ variables_string = ref([])
 
 let interactive = ()
 let interactive.ref = ()
+let interactive.set = ()
 let interactive.var = ()
 
 # @flag hidden
@@ -43,6 +44,21 @@ def interactive.ref.string(name)
 end
 
 # @flag hidden
+def interactive.set.float(name, v)
+  interactive.ref.float(name) := v
+end
+
+# @flag hidden
+def interactive.set.bool(name, v)
+  interactive.ref.bool(name) := v
+end
+
+# @flag hidden
+def interactive.set.string(name, v)
+  interactive.ref.string(name) := v
+end
+
+# @flag hidden
 def interactive.var.get(name)
 try
     t = interactive.type(name)
@@ -72,14 +88,11 @@ def interactive.var.set(arg)
     value = list.nth(arg, 1)
     t = interactive.type(name)
     if t == "float" then
-      r = interactive.ref.float(name)
-      r := float_of_string(value)
+      interactive.set.float(name, float_of_string(value))
     elsif t == "bool" then
-      r = interactive.ref.bool(name)
-      r := bool_of_string(value)
+      interactive.set.bool(name, bool_of_string(value))
     elsif t == "string" then
-      r = interactive.ref.string(name)
-      r := value
+      interactive.set.string(name, value)
     else
       error.raise(error.not_found)
     end
@@ -96,11 +109,35 @@ def add_variable(~name, ~type)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
 end
 
+# Save the value of all interactive variables in a file.
+# @category Interactive
+# @param fname Name of the file.
+def interactive.save(fname)
+  int = [] # Be ready when we add support for those
+  float = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_float)
+  bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool)
+  string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
+  vars = (int, float, bool, string)
+  ignore(file.write(data=json_of(vars), fname))
+end
+
+# Load the value of interactive variables from a file.
+# @category Interactive
+# @param fnam Name of the file.
+def interactive.load(fname)
+  vars = file.contents(fname)
+  let (int, float, bool, string) = of_json(default=([("",0)],[("",0.)],[("",false)],[("","")]), vars)
+  ignore(int)
+  list.iter(fun (nv) -> try interactive.set.float (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, float )
+  list.iter(fun (nv) -> try interactive.set.bool  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, bool  )
+  list.iter(fun (nv) -> try interactive.set.string(fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, string)
+end
+
 # Expose interactive variables through habor http server.
 # @category Interaction
-# @param port Port of the server.
-# @param uri URI of the server.
-def interactive.harbor(~port=8080, uri="interactive")
+# @param ~port Port of the server.
+# @param ~uri URI of the server.
+def interactive.harbor(~port=8080, ~uri="interactive")
   def webpage(~protocol, ~data, ~headers, uri)
     form_data = data
     data = ref("")
@@ -168,14 +205,13 @@ def interactive.harbor(~port=8080, uri="interactive")
       try
         t = interactive.type(name)
         if t == "float" then
-          r = interactive.ref.float(name)
-          r := float_of_string(v)
+          interactive.set.float(name, float_of_string(v))
         elsif t == "bool" then
-          r = interactive.ref.bool(name)
           # TODO: not working for now
+          # r = interactive.ref.bool(name)
+          ()
         elsif t == "string" then
-          r = interactive.ref.string(name)
-          r := v
+          r = interactive.set.string(name, v)
         end
       catch _ do
         log.important("Could not update variable #{name}.")
