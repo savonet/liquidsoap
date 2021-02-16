@@ -165,8 +165,8 @@ let rec of_json d j =
         (* TODO: we could also try with other elements of the default list... *)
         let l = List.map (of_json d) l in
         Lang.list l
-    | Lang.Tuple [d1; d2], `List [j1; j2] ->
-        Lang.product (of_json d1 j1) (of_json d2 j2)
+    | Lang.Tuple dd, `List jj when List.length dd = List.length jj ->
+      Lang.tuple (List.map2 of_json dd jj)
     | ( Lang.List
           ({
              Lang.value =
