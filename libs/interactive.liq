@@ -164,7 +164,30 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
     end
     title = "Interactive values"
     add("<html><head>")
+    add("<meta charset='utf-8'/>")
     add("<title>#{title}</title>")
+    add("<style>
+    body {
+      font-family: sans-serif;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      border-radius: 20px;
+      display: block;
+      background-color: whitesmoke;
+      width: max-content;
+      margin: 0 auto;
+      padding: 2ex;
+      display:grid;
+      grid-template-columns: max-content max-content;
+      grid-gap: 5px;
+    }
+    label {
+      text-align: right;
+    }
+    </style>")
     # TODO: we could send only the udpated value instead of sending them all
     add("<script>
     function send() {
@@ -200,7 +223,7 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
     add("<h1>#{title}</h1>")
     def add_var(nv)
       let (name, v) = nv
-      add("<div>")
+      # add("<div>")
       add("<label for=#{name}>#{name}</label>")
       common = "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
       if v.type == "float" then
@@ -213,7 +236,7 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
           max = http.string_of_float(v.max)
           step = http.string_of_float(v.step)
           value = http.string_of_float(!v.ref)
-          add("<input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text>")
+          add("<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text></div>")
         end
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
@@ -225,7 +248,7 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
       else
         ()
       end
-      add("</div>")
+      # add("</div>")
     end
     add("<form>")
     list.iter(add_var, !variables)
