@@ -42,19 +42,27 @@ def interactive.ref.string(name)
   list.assoc(name, !variables_string).ref
 end
 
+let interactive.set.persistency = ref(fun()->())
+
 # @flag hidden
 def interactive.set.float(name, v)
-  interactive.ref.float(name) := v
+  interactive.ref.float(name) := v;
+  p = !interactive.set.persistency
+  p()
 end
 
 # @flag hidden
 def interactive.set.bool(name, v)
   interactive.ref.bool(name) := v
+  p = !interactive.set.persistency
+  p()
 end
 
 # @flag hidden
 def interactive.set.string(name, v)
   interactive.ref.string(name) := v
+  p = !interactive.set.persistency
+  p()
 end
 
 # @flag hidden
@@ -122,7 +130,7 @@ end
 
 # Load the value of interactive variables from a file.
 # @category Interactive
-# @param fnam Name of the file.
+# @param fname Name of the file.
 def interactive.load(fname)
   vars = file.contents(fname)
   let (int, float, bool, string) = of_json(default=([("",0)],[("",0.)],[("",false)],[("","")]), vars)
@@ -130,6 +138,17 @@ def interactive.load(fname)
   list.iter(fun (nv) -> try interactive.set.float (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, float )
   list.iter(fun (nv) -> try interactive.set.bool  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, bool  )
   list.iter(fun (nv) -> try interactive.set.string(fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, string)
+end
+
+# Make the value of interactive variables persistent: they are loaded from the
+# given file and stored there whenever updated. This function should be called
+# after all interactive variables have been defined (variables not declared yet
+# will not be loaded) .
+# @category Interactive
+# @param fname Name of the file.
+def interactive.persistent(fname)
+  interactive.load(fname)
+  interactive.set.persistency := {interactive.save(fname)}
 end
 
 # Expose interactive variables through habor http server.
@@ -189,7 +208,7 @@ def interactive.harbor(~port=8080, ~uri="interactive")
     end
     add("<form>")
     list.iter(add_var, !variables)
-    add("<input type='submit' value='Send'>")
+    # add("<input type='submit' value='Send'>")
     add("</form>")
     add("</body>")
     http.response(data=!data)
