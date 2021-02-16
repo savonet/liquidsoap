@@ -169,6 +169,6 @@ end
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
 def harbor.https.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.http.register,basepath=path,content_type=content_type,port=port,headers=headers,directory)
+  harbor.http.static.base(harbor.https.register,basepath=path,content_type=content_type,port=port,headers=headers,directory)
 end
 %endif
