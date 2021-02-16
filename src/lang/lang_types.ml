@@ -208,6 +208,9 @@ let rec invoke t l =
     | Meth (_, _, _, t) -> invoke t l
     | _ -> raise Not_found
 
+(** Do we have a method. *)
+let has_meth a = match (deref a).descr with Meth _ -> true | _ -> false
+
 (** Add a method. *)
 let meth ?pos ?level l v ?(doc = "") t = make ?pos ?level (Meth (l, v, doc, t))
 
@@ -1017,7 +1020,9 @@ let rec ( <: ) a b =
           (* Can't do more concise than a full representation, as the problem
              isn't local. *)
           raise (Error (repr a, repr b)) )
-    | _, EVar _ -> (
+    | _, EVar (_, c)
+    (* Force dropping the methods when we have constraints, see #1496. *)
+      when not (has_meth a && c <> []) -> (
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)) )
@@ -1113,7 +1118,6 @@ let rec duplicate ?pos ?level t =
     both left and right hand types. This function is not exact: we should always
     try to cast with the result in order to ensure that everything is alright. *)
 let rec min_type ?(pos = None) ?(level = -1) a b =
-  let has_meth a = match (deref a).descr with Meth _ -> true | _ -> false in
   try
     let min a b =
       try
