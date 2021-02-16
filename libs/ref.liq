@@ -1,7 +1,7 @@
 # Create a getter from a reference.
 # @category Liquidsoap
 def ref.getter(r) =
-  fun () -> !r
+  (fun () -> !r).{ set = fun(v) -> r := v }
 end
 
 # Increment a reference to an integer.
