@@ -136,7 +136,7 @@ Changed:
   wrappers for some of the old commands (#1379).
 - Deprecated catch-all `input` and `output` in favor or setting your desired input or 
   output explicitly.
-- Implement `interactive.*` on script side.
+- Implement `interactive.*` on script side (#1493).
 
 Fixed:
 
