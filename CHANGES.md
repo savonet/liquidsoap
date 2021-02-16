@@ -57,9 +57,9 @@ New:
 - Added syntax for `for` and `while` loops (#1252).
 - Added a bunch of source-related methods (#1379).
 - Added `interactive.harbor` in order to expose interactive variables over
-  harbor.
+  harbor (#1495).
 - Added `interactive.persistent` (as well as `interactive.save` and
-  `interactive.load`) to make interactive variables persistent.
+  `interactive.load`) to make interactive variables persistent (#1495).
 
 Changed:
 
