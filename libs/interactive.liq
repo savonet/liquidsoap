@@ -165,18 +165,25 @@ def interactive.harbor(~port=8080, ~uri="interactive")
     title = "Interactive values"
     add("<html><head>")
     add("<title>#{title}</title>")
-    add("<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js'></script>")
     # TODO: we could send only the udpated value instead of sending them all
-    ajax = list.map(fun (name) -> begin
-      name = fst(name)
-      "#{name}: $('##{name}').val()"
-    end, !variables)
-    ajax = string.concat(separator=", ", ajax)
-    add("<script> \
+    add("<script>
     function send() {
-      var data = {#{ajax}};
-      console.log(data);
-      $.ajax({ uri: '#{uri}', type: 'POST', data: data })
+      var interactive = document.getElementsByClassName('interactive');
+      var data = '';
+      for(var i=0; i<interactive.length; i++){data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';}
+      var xmlHttp = new XMLHttpRequest();
+      xmlHttp.open('POST', '#{uri}');
+      xmlHttp.onreadystatechange = function () {
+        if(xmlHttp.readyState === XMLHttpRequest.DONE) {
+          var status = xmlHttp.status;
+          if (status === 0 || (status >= 200 && status < 400)) {
+            //console.log(xmlHttp.responseText);
+          } else {
+            console.log('Failed to send values.')
+          }
+        }
+      }
+      xmlHttp.send(data);
     }
     </script>")
     add("</head><body>")
@@ -185,14 +192,14 @@ def interactive.harbor(~port=8080, ~uri="interactive")
       let (name, v) = nv
       add("<div>")
       add("<label for=#{name}>#{name}</label>")
-      common = "id='#{name}' name='#{name}' onchange=\"send()\""
+      common = "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
       if v.type == "float" then
         v = list.assoc(name, !variables_float)
         value = string_of(!v.ref) ^ "0"
         if v.min == 0.-infinity or v.max == infinity then
           add("<input type='number' #{common} step='#{v.step}' value='#{value}'>")
         else
-          add("<input type='range' #{common} min='#{v.min}0' max='#{v.max}0' step='#{v.step}0' value='#{!v.ref}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text>")
+          add("<input type='range' #{common} min='#{v.min}0' max='#{v.max}0' step='#{v.step}0' value='#{!v.ref}0' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text>")
         end
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
