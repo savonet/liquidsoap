@@ -130,12 +130,13 @@ Changed:
 - Deprecated `gettimeofday` in favor or `time`, renamed `localtime` to
   `time.local` and `gmtime` to `time.utc`, and the argument of these two
   last functions is now optional (#1320).
-- Dropped optional `gavl` video converter in favor of `ffmpeg.
+- Dropped optional `gavl` video converter in favor of `ffmpeg`.
 - Remove `persist` argument in `output.*.hls` and use nullable value for `persist_at`.
 - Deprecated source server commands in favor or direct call to source methods. Added
   wrappers for some of the old commands (#1379).
 - Deprecated catch-all `input` and `output` in favor or setting your desired input or 
-  output explicitely.
+  output explicitly.
+- Implement `interactive.*` on script side.
 
 Fixed:
 
