@@ -188,7 +188,7 @@ let () =
         ( "lufs",
           ([], Lang.fun_t [] Lang.float_t),
           "Current value for the LUFS.",
-          fun s -> Lang.val_cst_fun [] (Lang.float s#compute) );
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#compute) );
       ]
     ~return_t
     ~descr:
