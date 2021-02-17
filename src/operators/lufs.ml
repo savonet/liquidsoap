@@ -23,6 +23,12 @@
 open Source
 open Extralib
 
+module List = struct
+  include List
+
+  let mean l = List.fold_left ( +. ) 0. l /. float_of_int (List.length l)
+end
+
 (** Second order IIR filter. *)
 module IIR = struct
   type sample = float array
@@ -146,14 +152,16 @@ class lufs ~kind window source =
         let aux = function b :: b' :: b'' :: l -> aux b b' b'' l | _ -> [] in
         aux ms_blocks
       in
-      let mean l = List.fold_left ( +. ) 0. l /. float_of_int (List.length l) in
       (* Blocks over absolute threshold. *)
       let absolute = List.filter (fun z -> loudness z > -70.) blocks in
-      let threshold = loudness (mean absolute) -. 10. in
+      let threshold = loudness (List.mean absolute) -. 10. in
       (* Blocks over relative threshold. *)
       let relative = List.filter (fun z -> loudness z > threshold) blocks in
       (* Compute LUFS. *)
-      loudness (mean relative)
+      loudness (List.mean relative)
+
+    (** Momentary LUFS. *)
+    method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
     method private get_frame buf =
       let channels = self#channels in
@@ -189,6 +197,10 @@ let () =
           ([], Lang.fun_t [] Lang.float_t),
           "Current value for the LUFS.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.float s#compute) );
+        ( "lufs_momentary",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Momentary LUFS (over a 400ms) window.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#momentary) );
       ]
     ~return_t
     ~descr:
