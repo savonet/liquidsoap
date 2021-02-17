@@ -172,18 +172,22 @@ class lufs ~kind window source =
       let buf = AFrame.pcm buf in
       for i = offset to position - 1 do
         let x = Array.init channels (fun c -> buf.(c).{i}) in
+        (* Prefilter. *)
         let x = stage1 x in
         let x = stage2 x in
+        (* Add squares. *)
         for c = 0 to channels - 1 do
           let xc = x.(c) in
           ms <- ms +. (xc *. xc)
         done;
         ms_len <- ms_len + 1;
+        (* When we have 100ms of squares we push the block. *)
         if ms_len >= len_100ms then (
-          ms_blocks <- (ms /. Float.of_int len_100ms) :: ms_blocks;
+          ms_blocks <- (ms /. float_of_int len_100ms) :: ms_blocks;
           ms <- 0.;
           ms_len <- 0 )
       done;
+      (* Keep only a limited (by the window) number of blocks. *)
       ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
   end
 
