@@ -56,6 +56,7 @@ New:
 - Added optional support for high-resolution time and latency control on POSIX systems (#1050).
 - Added syntax for `for` and `while` loops (#1252).
 - Added a bunch of source-related methods (#1379).
+- Added `lufs` to compute the LUFS loundness.
 
 Changed:
 
