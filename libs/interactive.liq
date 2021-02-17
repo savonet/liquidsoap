@@ -7,9 +7,10 @@ variables_bool   = ref([])
 # String variables
 variables_string = ref([])
 
-let interactive     = ()
-let interactive.ref = ()
-let interactive.set = ()
+let interactive        = ()
+let interactive.float  = ()
+let interactive.bool   = ()
+let interactive.string = ()
 
 # @flag hidden
 def interactive.list(_)
@@ -28,40 +29,40 @@ def interactive.type(name)
 end
 
 # @flag hidden
-def interactive.ref.float(name)
+def interactive.float.ref(name)
   list.assoc(name, !variables_float).ref
 end
 
 # @flag hidden
-def interactive.ref.bool(name)
+def interactive.bool.ref(name)
   list.assoc(name, !variables_bool).ref
 end
 
 # @flag hidden
-def interactive.ref.string(name)
+def interactive.string.ref(name)
   list.assoc(name, !variables_string).ref
 end
 
-let interactive.set.persistency = ref(fun()->())
+let interactive.persistency = ref(fun()->())
 
 # @flag hidden
-def interactive.set.float(name, v)
-  interactive.ref.float(name) := v;
-  p = !interactive.set.persistency
+def interactive.float.set(name, v)
+  interactive.float.ref(name) := v;
+  p = !interactive.persistency
   p()
 end
 
 # @flag hidden
-def interactive.set.bool(name, v)
-  interactive.ref.bool(name) := v
-  p = !interactive.set.persistency
+def interactive.bool.set(name, v)
+  interactive.bool.ref(name) := v
+  p = !interactive.persistency
   p()
 end
 
 # @flag hidden
-def interactive.set.string(name, v)
-  interactive.ref.string(name) := v
-  p = !interactive.set.persistency
+def interactive.string.set(name, v)
+  interactive.string.ref(name) := v
+  p = !interactive.persistency
   p()
 end
 
@@ -76,13 +77,13 @@ def interactive.get(name)
 try
     t = interactive.type(name)
     if t == "float" then
-      r = interactive.ref.float(name)
+      r = interactive.float.ref(name)
       string_of(!r)
     elsif t == "bool" then
-      r = interactive.ref.bool(name)
+      r = interactive.bool.ref(name)
       string_of(!r)
     elsif t == "string" then
-      r = interactive.ref.string(name)
+      r = interactive.string.ref(name)
       !r
     else
       error.raise(error.not_found)
@@ -94,18 +95,18 @@ end
 server.register(namespace="var", description="Get the value of a variable.", "get", interactive.get)
 
 # @flag hidden
-def replaces interactive.set(arg)
+def interactive.set(arg)
   try
     arg = string.split(separator=" = ", arg)
     name = list.nth(arg, 0)
     value = list.nth(arg, 1)
     t = interactive.type(name)
     if t == "float" then
-      interactive.set.float(name, float_of_string(value))
+      interactive.float.set(name, float_of_string(value))
     elsif t == "bool" then
-      interactive.set.bool(name, bool_of_string(value))
+      interactive.bool.set(name, bool_of_string(value))
     elsif t == "string" then
-      interactive.set.string(name, value)
+      interactive.string.set(name, value)
     else
       error.raise(error.not_found)
     end
@@ -135,9 +136,9 @@ def interactive.load(fname)
   vars = file.contents(fname)
   let (int, float, bool, string) = of_json(default=([("",0)],[("",0.)],[("",false)],[("","")]), vars)
   ignore(int)
-  list.iter(fun (nv) -> try interactive.set.float (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, float )
-  list.iter(fun (nv) -> try interactive.set.bool  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, bool  )
-  list.iter(fun (nv) -> try interactive.set.string(fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, string)
+  list.iter(fun (nv) -> try interactive.float.set (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, float )
+  list.iter(fun (nv) -> try interactive.bool.set  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, bool  )
+  list.iter(fun (nv) -> try interactive.string.set(fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, string)
 end
 
 # Make the value of interactive variables persistent: they are loaded from the
@@ -148,7 +149,7 @@ end
 # @param fname Name of the file.
 def interactive.persistent(fname)
   interactive.load(fname)
-  interactive.set.persistency := {interactive.save(fname)}
+  interactive.persistency := {interactive.save(fname)}
 end
 
 # Expose interactive variables through habor http server.
@@ -267,11 +268,11 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
       try
         t = interactive.type(name)
         if t == "float" then
-          interactive.set.float(name, float_of_string(v))
+          interactive.float.set(name, float_of_string(v))
         elsif t == "bool" then
-          interactive.set.bool(name, bool_of_string(v))
+          interactive.bool.set(name, bool_of_string(v))
         elsif t == "string" then
-          interactive.set.string(name, v)
+          interactive.string.set(name, v)
         end
       catch _ do
         log.important(label="interactive.harbor", "Could not update variable #{name}.")
@@ -289,31 +290,31 @@ end
 # @category Interaction
 # @param name Name of the variable.
 # @param v Initial value.
-def interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, name, v)
+def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, name, v)
   add_variable(name=name, type="float")
   r = ref(v)
   variables_float := list.add((name, { ref=r , min=min, max=max, step=step }), !variables_float)
-  ref.getter(r)
+  ref.getter(r).{set = interactive.float.set(name)}
 end
 
 # Read a boolean from an interactive input.
 # @category Interaction
 # @param name Name of the variable.
 # @param v Initial value.
-def interactive.bool(name, v)
+def replaces interactive.bool(name, v)
   add_variable(name=name, type="bool")
   r = ref(v)
   variables_bool := list.add((name, { ref=r }), !variables_bool)
-  ref.getter(r)
+  ref.getter(r).{set = interactive.bool.set(name)}
 end
 
 # Read a string from an interactive input.
 # @category Interaction
 # @param name Name of the variable.
 # @param v Initial value.
-def interactive.string(name, v)
+def replaces interactive.string(name, v)
   add_variable(name=name, type="string")
   r = ref(v)
   variables_string := list.add((name, { ref=r }), !variables_string)
-  ref.getter(r)
+  ref.getter(r).{set = interactive.bool.set(name)}
 end
