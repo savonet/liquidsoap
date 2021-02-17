@@ -59,13 +59,13 @@
   let args_of, app_of =
     let rec get_args ~pos t args =
       let get_arg_type t name =
-        match t.T.descr with
+        match (T.deref t).T.descr with
           | T.Arrow (l, _) ->
               let (_, _, t) =
                 List.find (fun (_, n, _) -> n = name) l
               in
               t
-          | _ -> assert false
+          | _ -> raise (Parse_error (pos, Printf.sprintf "Cannot get argument type of %s, this is not a function, it has type: %s." name (T.print t)))
       in
       List.map (fun (n, n', v) ->
         let t = T.make ~pos:(Some pos) (get_arg_type t n).T.descr in
@@ -77,17 +77,17 @@
       ) args
     and term_of_value ~pos t ({Lang_values.V.value} as v) =
       let get_list_type () =
-        match t.T.descr with
+        match (T.deref t).T.descr with
           | T.List t -> t
           | _ -> assert false
       in
       let get_tuple_type pos =
-        match t.T.descr with
+        match (T.deref t).T.descr with
           | T.Tuple t -> List.nth t pos
           | _ -> assert false
       in
       let get_meth_type () =
-        match t.T.descr with
+        match (T.deref t).T.descr with
           | T.Meth (_, _, _, t) -> t
           | _ -> assert false
       in

@@ -56,6 +56,12 @@ New:
 - Added optional support for high-resolution time and latency control on POSIX systems (#1050).
 - Added syntax for `for` and `while` loops (#1252).
 - Added a bunch of source-related methods (#1379).
+- Added `min` and `max` functions.
+- Added `lufs` to compute the LUFS loundness (#1497).
+- Added `interactive.harbor` in order to expose interactive variables over
+  harbor (#1495).
+- Added `interactive.persistent` (as well as `interactive.save` and
+  `interactive.load`) to make interactive variables persistent (#1495).
 
 Changed:
 
@@ -130,12 +136,13 @@ Changed:
 - Deprecated `gettimeofday` in favor or `time`, renamed `localtime` to
   `time.local` and `gmtime` to `time.utc`, and the argument of these two
   last functions is now optional (#1320).
-- Dropped optional `gavl` video converter in favor of `ffmpeg.
+- Dropped optional `gavl` video converter in favor of `ffmpeg`.
 - Remove `persist` argument in `output.*.hls` and use nullable value for `persist_at`.
 - Deprecated source server commands in favor or direct call to source methods. Added
   wrappers for some of the old commands (#1379).
 - Deprecated catch-all `input` and `output` in favor or setting your desired input or 
-  output explicitely.
+  output explicitly.
+- Implement `interactive.*` on script side (#1493).
 
 Fixed:
 

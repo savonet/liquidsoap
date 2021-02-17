@@ -92,7 +92,7 @@ operators = \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
 	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
 	operators/noblank.ml operators/compand.ml operators/on_offset.ml \
-	operators/prepend.ml \
+	operators/prepend.ml operators/lufs.ml \
 	operators/midi_routing.ml operators/sleeper.ml \
 	operators/time_warp.ml operators/resample.ml \
 	operators/chord.ml operators/video_text.ml operators/window_op.ml \
@@ -214,7 +214,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
            lang/builtins_thread.ml lang/builtins_process.ml \
-           lang/builtins_source.ml lang/builtins_interactive.ml \
+           lang/builtins_source.ml \
            lang/builtins_profiler.ml lang/builtins_http.ml \
            lang/builtins_harbor.ml \
            $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \

@@ -29,14 +29,28 @@ let () =
       "Register a command. You can then execute this function through the \
        server, either telnet or socket."
     [
-      ("namespace", Lang.string_t, Some (Lang.string ""), None);
+      ( "namespace",
+        Lang.string_t,
+        Some (Lang.string ""),
+        Some
+          "Used to group multiple commands for the same functionality. If \
+           sepecified, the command will be named `namespace.command`." );
       ( "description",
         Lang.string_t,
         Some (Lang.string "No documentation available."),
         Some "A description of your command." );
-      ("usage", Lang.string_t, Some (Lang.string ""), None);
-      ("", Lang.string_t, None, None);
-      ("", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t, None, None);
+      ( "usage",
+        Lang.string_t,
+        Some (Lang.string ""),
+        Some "Description of how the command should be used." );
+      ("", Lang.string_t, None, Some "Name of the command.");
+      ( "",
+        Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t,
+        None,
+        Some
+          "Function called when the command is executed. It takes as argument \
+           the argument passed on the commandline and returns the message \
+           which will be printed on the commandline." );
     ]
     Lang.unit_t
     (fun p ->
