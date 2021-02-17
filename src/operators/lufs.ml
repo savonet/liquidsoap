@@ -167,8 +167,8 @@ class lufs ~kind window source =
         let x = stage1 x in
         let x = stage2 x in
         for c = 0 to channels - 1 do
-          let xi = x.(i) in
-          ms <- ms +. (xi *. xi)
+          let xc = x.(c) in
+          ms <- ms +. (xc *. xc)
         done;
         ms_len <- ms_len + 1;
         if ms_len >= len_100ms then (
