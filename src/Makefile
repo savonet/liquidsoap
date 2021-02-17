@@ -92,7 +92,7 @@ operators = \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
 	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
 	operators/noblank.ml operators/compand.ml operators/on_offset.ml \
-	operators/prepend.ml \
+	operators/prepend.ml operators/lufs.ml \
 	operators/midi_routing.ml operators/sleeper.ml \
 	operators/time_warp.ml operators/resample.ml \
 	operators/chord.ml operators/video_text.ml operators/window_op.ml \
