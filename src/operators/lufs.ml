@@ -204,8 +204,8 @@ let () =
       ]
     ~return_t
     ~descr:
-      "Compute current LUFS (or LKFS or LU) of the source (returns the source \
-       with a method to compute the current value)."
+      "Compute current LUFS of the source (returns the source with a method to \
+       compute the current value)."
     [
       ( "window",
         Lang.float_getter_t (),
