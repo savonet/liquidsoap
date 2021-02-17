@@ -48,7 +48,16 @@ let rec to_json_compact v =
         )
     | Lang.Null -> "null"
     | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
-    | Lang.Meth _ -> failwith "TODO: JSON of field not yet implemented"
+    | Lang.Meth _ ->
+        let m, v = Lang_values.V.split_meths v in
+        if v.Lang.value = Lang.Tuple [] then (
+          let l =
+            List.map
+              (fun (l, v) -> Printf.sprintf "%s:%s" l (to_json_compact v))
+              m
+          in
+          Printf.sprintf "{%s}" (String.concat "," l) )
+        else failwith "TODO: JSON of method not yet implemented"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
@@ -156,8 +165,8 @@ let rec of_json d j =
         (* TODO: we could also try with other elements of the default list... *)
         let l = List.map (of_json d) l in
         Lang.list l
-    | Lang.Tuple [d1; d2], `List [j1; j2] ->
-        Lang.product (of_json d1 j1) (of_json d2 j2)
+    | Lang.Tuple dd, `List jj when List.length dd = List.length jj ->
+      Lang.tuple (List.map2 of_json dd jj)
     | ( Lang.List
           ({
              Lang.value =
