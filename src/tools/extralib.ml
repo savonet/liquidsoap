@@ -18,12 +18,15 @@ module List = struct
     | _ :: t -> assoc_nth l n t
 
   let assoc_all x l = may_map (fun (y, v) -> if x = y then Some v else None) l
+
   let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
 
   let rec prefix n l =
     match l with
-      | [] -> []
-      | x :: l -> if n = 0 then [] else x :: prefix (n - 1) l
+    | [] -> []
+    | x::l ->
+      if n = 0 then []
+      else x::(prefix (n-1) l)
 end
 
 module String = struct
