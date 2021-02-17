@@ -54,7 +54,9 @@ module IIR = struct
     let y = (blank, blank) in
     if samplerate = 48000. then { channels; x; y; a1; a2; b0; b1; b2 }
     else (
-      (* Inspired of https://github.com/klangfreund/LUFSMeter/ *)
+      (* The coeffients of the specification are given for a 48 kHz samplerate,
+         this computes the values for other samplerates. This is "strongly
+         inspired" of https://github.com/klangfreund/LUFSMeter/ *)
       let k_q = (2. -. (2. *. a2)) /. (a2 -. a1 +. 1.) in
       let k = sqrt ((a1 +. a2 +. 1.) /. (a2 -. a1 +. 1.)) in
       let q = k /. k_q in
@@ -154,6 +156,7 @@ class lufs ~kind window source =
       in
       (* Blocks over absolute threshold. *)
       let absolute = List.filter (fun z -> loudness z > -70.) blocks in
+      (* Relative threshold. *)
       let threshold = loudness (List.mean absolute) -. 10. in
       (* Blocks over relative threshold. *)
       let relative = List.filter (fun z -> loudness z > threshold) blocks in
@@ -199,17 +202,18 @@ let () =
       [
         ( "lufs",
           ([], Lang.fun_t [] Lang.float_t),
-          "Current value for the LUFS.",
+          "Current value for the LUFS (short-term value computed over the \
+           duration specified by the `window` parameter).",
           fun s -> Lang.val_fun [] (fun _ -> Lang.float s#compute) );
         ( "lufs_momentary",
           ([], Lang.fun_t [] Lang.float_t),
-          "Momentary LUFS (over a 400ms) window.",
+          "Momentary LUFS (over a 400ms window).",
           fun s -> Lang.val_fun [] (fun _ -> Lang.float s#momentary) );
       ]
     ~return_t
     ~descr:
-      "Compute current LUFS of the source (returns the source with a method to \
-       compute the current value)."
+      "Compute current LUFS of the source according to the EBU R128 standard.
+       It returns the source with a method to compute the current value."
     [
       ( "window",
         Lang.float_getter_t (),
