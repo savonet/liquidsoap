@@ -212,7 +212,7 @@ let () =
       ]
     ~return_t
     ~descr:
-      "Compute current LUFS of the source according to the EBU R128 standard.
+      "Compute current LUFS of the source according to the EBU R128 standard. \
        It returns the source with a method to compute the current value."
     [
       ( "window",
