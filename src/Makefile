@@ -214,7 +214,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
            lang/builtins_thread.ml lang/builtins_process.ml \
-           lang/builtins_source.ml lang/builtins_interactive.ml \
+           lang/builtins_source.ml \
            lang/builtins_profiler.ml lang/builtins_http.ml \
            lang/builtins_harbor.ml \
            $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \

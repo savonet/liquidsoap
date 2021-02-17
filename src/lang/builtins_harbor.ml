@@ -52,7 +52,12 @@ module Make (Harbor : T) = struct
            name_up)
       [
         ("port", Lang.int_t, None, Some "Port to server.");
-        ("method", Lang.string_t, None, Some "Accepted method");
+        ( "method",
+          Lang.string_t,
+          None,
+          Some
+            "Accepted method (\"GET\" / \"POST\" / \"PUT\" / \"DELETE\" / \
+             \"HEAD\" / \"OPTIONS\")." );
         ("", Lang.string_t, None, Some "URI to serve.");
         ( "",
           Lang.fun_t
@@ -67,10 +72,10 @@ module Make (Harbor : T) = struct
             resp_t,
           None,
           Some
-            "Function to execute. method argument is \"PUT\" or \"GET\", \
+            "Function to execute. Method argument is \"PUT\" or \"GET\", \
              protocol argument is \"HTTP/1.1\" or \"HTTP/1.0\" etc., data \
              argument contains data passed in case of a PUT request, and \"\" \
-             otherwise. headers argument contains the HTTP headers. Unlabeled \
+             otherwise. Headers argument contains the HTTP headers. Unlabeled \
              argument contains the requested URI." );
       ]
       Lang.unit_t

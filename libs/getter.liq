@@ -13,3 +13,14 @@ def getter.int_of_float(x)
   x = to_float_getter(x)
   int_getter({int_of_float(x())})
 end
+
+# Execute a function when the value of the getter changes.
+# @category Math
+def getter.on_change(f, x)
+  old = ref(x())
+  fun () -> begin
+    new = x()
+    if !old != new then old := new; f(new) end
+    new
+  end
+end

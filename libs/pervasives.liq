@@ -23,6 +23,7 @@
 %include "shoutcast.liq"
 %include "lastfm.liq"
 %include "http.liq"
+%include "interactive.liq"
 %include "hls.liq"
 %include "video.liq"
 %include "gstreamer.liq"

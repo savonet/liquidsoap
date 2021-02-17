@@ -9,3 +9,12 @@ end
 def max(a, b)
   if a >= b then a else b end
 end
+
+# Float representation of infinity.
+# @category Math
+def infinity =
+  infinity()
+end
+
+# Avoid unused variable warning
+ignore(infinity)
