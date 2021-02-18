@@ -144,7 +144,7 @@ Changed:
   output explicitly.
 - Implement `interactive.*` on script side (#1493).
 - `file.write` does not return a boolean anymore, exceptions are used for
-  exceptional cases.
+  exceptional cases (#1500).
 
 Fixed:
 
