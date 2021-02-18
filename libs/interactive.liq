@@ -127,7 +127,7 @@ def interactive.save(fname)
   bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool)
   string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
   vars = (int, float, bool, string)
-  ignore(file.write(data=json_of(vars), fname))
+  file.write(data=json_of(vars), fname)
 end
 
 # Load the value of interactive variables from a file.

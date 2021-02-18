@@ -143,6 +143,8 @@ Changed:
 - Deprecated catch-all `input` and `output` in favor or setting your desired input or 
   output explicitly.
 - Implement `interactive.*` on script side (#1493).
+- `file.write` does not return a boolean anymore, exceptions are used for
+  exceptional cases (#1500).
 
 Fixed:
 
