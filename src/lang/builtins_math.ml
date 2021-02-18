@@ -132,12 +132,16 @@ let () =
     Lang.bool_t (fun _ -> Lang.bool (Random.bool ()))
 
 let () =
-  add_builtin "max_int" ~cat:Math ~descr:"Maximal representable integer."
-    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ -> Lang.int max_int)
+  Lang.add_builtin_base ~category:(string_of_category Math)
+    ~descr:"Maximal representable integer." "max_int"
+    Lang.(Ground (Ground.Int max_int))
+    Lang.int_t
 
 let () =
-  add_builtin "min_int" ~cat:Math ~descr:"Minimal representable integer."
-    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ -> Lang.int min_int)
+  Lang.add_builtin_base ~category:(string_of_category Math)
+    ~descr:"Minimal representable integer." "min_int"
+    Lang.(Ground (Ground.Int min_int))
+    Lang.int_t
 
 let () =
   Lang.add_builtin_base ~category:(string_of_category Math)
