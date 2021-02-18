@@ -23,7 +23,7 @@ New:
   `file.mp3.metadata`, `file.mp3.parse_apic` and `file.cover` (#987).
 - Use a pager to display long help results (#1017).
 - Added new functions for lists: `lists.exists`, `list.for_all`, `list.init`,
-  `list.ind`, `list.index`, `list.last`.
+  `list.ind`, `list.index`, `list.last`, `list.shuffle`.
 - Added `request.id`.
 - Added a profiler for the language. It can be enabled with `profiler.enable` and
   the results are obtained with `profiler.stats.string` (#1027).
