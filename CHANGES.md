@@ -15,6 +15,7 @@ Fixed:
 - Fixed `input.harbor` shoutcast client connection (#1353)
 - Fixed exception reporting when output fails to start (#1372)
 - Fixed `random` track selection (#1468)
+- Fixed playlist request leak when using `reload="watch"` with `inotify` on a folder (#1451)
 
 1.4.3 (14-09-2020)
 =====

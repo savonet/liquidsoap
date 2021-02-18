@@ -42,6 +42,7 @@ let rec watchdog () =
 
 let watch : File_watcher.watch =
  fun e file f ->
+  if not (Sys.file_exists file) then raise Not_found;
   Tutils.mutexify m
     (fun () ->
       if !fd = None then begin
@@ -52,12 +53,12 @@ let watch : File_watcher.watch =
       let event_conv = function
         | `Modify ->
             [
-              Inotify.S_Modify;
               Inotify.S_Moved_to;
               Inotify.S_Moved_from;
               Inotify.S_Delete;
               Inotify.S_Create;
             ]
+            @ if Sys.is_directory file then [] else [Inotify.S_Modify]
       in
       let e = List.flatten (List.map event_conv e) in
       let wd = Inotify.add_watch fd file e in
