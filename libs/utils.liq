@@ -234,12 +234,12 @@ def clock.log(~delay=0., ~every=1., logfile)
   # Get the current clocks
   clocks = list.map(fst,clock.status())
   # Column headers
-  ignore(file.write(data="# #{string.concat(separator=' ', clocks)}", logfile))
+  file.write(data="# #{string.concat(separator=' ', clocks)}", logfile)
   def report()
     status = clock.status()
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
     status = list.map(fun (c) -> status[c], clocks)
-    ignore(file.write(append=true, data="#{string.concat(separator=' ', status)}", logfile))
+    file.write(append=true, data="#{string.concat(separator=' ', status)}", logfile)
   end
   delay = if delay <= 0. then 0. else delay end
   thread.run(delay=delay, every=every, report)
