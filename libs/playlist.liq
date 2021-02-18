@@ -21,7 +21,7 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   # Randomize the playlist if necessary
   def randomize(p)
     if mode == "randomize" then
-      list.sort(fun (x,y) -> int_of_float(random.float()), p)
+      list.sort(fun (x,y) -> random.int(), p)
     else
       p
     end
