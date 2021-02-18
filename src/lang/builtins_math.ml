@@ -102,10 +102,9 @@ let () =
   add_builtin "random.float" ~cat:Math
     ~descr:
       "Generate a random value between `min` (included) and `max` (excluded)."
-    (* TODO better default values *)
     [
-      ("min", Lang.float_t, Some (Lang.float (-1000000.)), None);
-      ("max", Lang.float_t, Some (Lang.float 1000000.), None);
+      ("min", Lang.float_t, Some (Lang.float 0.), None);
+      ("max", Lang.float_t, Some (Lang.float 1.), None);
     ]
     Lang.float_t
     (fun p ->
