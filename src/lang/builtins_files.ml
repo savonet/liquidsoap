@@ -162,7 +162,7 @@ let () =
         Some "Default file rights if created" );
       ("", Lang.string_t, None, Some "Path to write to");
     ]
-    Lang.bool_t ~descr:"Write data to a file. Returns `true` if successful."
+    Lang.unit_t ~descr:"Write data to a file."
     (fun p ->
       let data = Lang.to_string (List.assoc "data" p) in
       let append = Lang.to_bool (List.assoc "append" p) in
@@ -174,7 +174,7 @@ let () =
         let oc = open_out_gen flags perms f in
         output_string oc data;
         close_out oc;
-        Lang.bool true
+        Lang.unit
       with e ->
         let message =
           Printf.sprintf "The file %s could not be written: %s" f

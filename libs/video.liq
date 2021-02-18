@@ -24,7 +24,7 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id="", ~width=int_getter(-1), ~height=int_getter(-1), ~x=int_getter(max_int()), ~y=int_getter(max_int()), ~file, s)
+def video.add_image(~id="", ~width=int_getter(-1), ~height=int_getter(-1), ~x=int_getter(max_int), ~y=int_getter(max_int), ~file, s)
   image = single(id=id, file)
   image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
   image = mux_audio(audio=blank(), image)

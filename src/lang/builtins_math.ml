@@ -102,10 +102,9 @@ let () =
   add_builtin "random.float" ~cat:Math
     ~descr:
       "Generate a random value between `min` (included) and `max` (excluded)."
-    (* TODO better default values *)
     [
-      ("min", Lang.float_t, Some (Lang.float (-1000000.)), None);
-      ("max", Lang.float_t, Some (Lang.float 1000000.), None);
+      ("min", Lang.float_t, Some (Lang.float 0.), None);
+      ("max", Lang.float_t, Some (Lang.float 1.), None);
     ]
     Lang.float_t
     (fun p ->
@@ -132,16 +131,22 @@ let () =
     Lang.bool_t (fun _ -> Lang.bool (Random.bool ()))
 
 let () =
-  add_builtin "max_int" ~cat:Math ~descr:"Maximal representable integer."
-    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ -> Lang.int max_int)
+  Lang.add_builtin_base ~category:(string_of_category Math)
+    ~descr:"Maximal representable integer." "max_int"
+    Lang.(Ground (Ground.Int max_int))
+    Lang.int_t
 
 let () =
-  add_builtin "min_int" ~cat:Math ~descr:"Minimal representable integer."
-    ~flags:[Lang.Hidden] [] Lang.int_t (fun _ -> Lang.int min_int)
+  Lang.add_builtin_base ~category:(string_of_category Math)
+    ~descr:"Minimal representable integer." "min_int"
+    Lang.(Ground (Ground.Int min_int))
+    Lang.int_t
 
 let () =
-  add_builtin "infinity" ~cat:Math ~descr:"Float representation of infinity." []
-    Lang.float_t (fun _ -> Lang.float infinity)
+  Lang.add_builtin_base ~category:(string_of_category Math)
+    ~descr:"Float representation of infinity." "infinity"
+    Lang.(Ground (Ground.Float infinity))
+    Lang.float_t
 
 let () =
   add_builtin "lsl" ~cat:Math ~descr:"Logical shift left."

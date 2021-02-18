@@ -280,7 +280,7 @@ add_protocol("youtube-dl", youtube_dl_protocol,
 # @flag hidden
 def youtube_pl_protocol(~rlog,~maxtime,arg)
   tmp = file.temp("youtube-pl","")
-  ignore(file.write(data="youtube-pl:#{arg}",tmp))
+  file.write(data="youtube-pl:#{arg}",tmp)
   [tmp]
 end
 add_protocol("youtube-pl", youtube_pl_protocol,

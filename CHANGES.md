@@ -23,7 +23,7 @@ New:
   `file.mp3.metadata`, `file.mp3.parse_apic` and `file.cover` (#987).
 - Use a pager to display long help results (#1017).
 - Added new functions for lists: `lists.exists`, `list.for_all`, `list.init`,
-  `list.ind`, `list.index`, `list.last`.
+  `list.ind`, `list.index`, `list.last`, `list.shuffle`.
 - Added `request.id`.
 - Added a profiler for the language. It can be enabled with `profiler.enable` and
   the results are obtained with `profiler.stats.string` (#1027).
@@ -143,6 +143,8 @@ Changed:
 - Deprecated catch-all `input` and `output` in favor or setting your desired input or 
   output explicitly.
 - Implement `interactive.*` on script side (#1493).
+- `file.write` does not return a boolean anymore, exceptions are used for
+  exceptional cases (#1500).
 
 Fixed:
 

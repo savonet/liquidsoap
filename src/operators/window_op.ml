@@ -107,14 +107,14 @@ let declare mode suffix kind fun_ret_t f_ans =
         ( name,
           ([], Lang.fun_t [] fun_ret_t),
           "Current value for the " ^ doc ^ ".",
-          fun s -> f_ans s#value );
+          fun s -> Lang.val_fun [] (fun _ -> f_ans s#value) );
       ]
     ~return_t
     ~descr:
       ( "Get current " ^ doc
-      ^ " of the source. Returns the source with a method to compute the \
-         current " ^ doc ^ " of the source, with `0.0 <= " ^ doc ^ " <= 1.0`."
-      )
+      ^ " of the source. Returns the source with a method `" ^ name
+      ^ "` to compute the current " ^ doc ^ " of the source, with `0.0 <= "
+      ^ doc ^ " <= 1.0`." )
     [
       ( "duration",
         Lang.float_getter_t (),

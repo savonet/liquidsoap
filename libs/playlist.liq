@@ -21,7 +21,7 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   # Randomize the playlist if necessary
   def randomize(p)
     if mode == "randomize" then
-      list.sort(fun (x,y) -> int_of_float(random.float()), p)
+      list.shuffle(p)
     else
       p
     end
@@ -106,6 +106,8 @@ end
 def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_done={()}, ~prefix="", ~timeout=20., uri)
   # URI of the current playlist
   playlist_uri=ref(uri)
+  # List of files in the current playlist
+  files=ref([])
 
   # The load function
   def load_playlist () =
@@ -146,7 +148,8 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
   end
 
   # Create the source
-  s = playlist.list(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, load_playlist())
+  files := load_playlist()
+  s = playlist.list(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, !files)
 
   # The reload function
   def reload(~uri="") =
@@ -154,10 +157,15 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
       playlist_uri := uri
     end
     log(label=id,"Reloading playlist with URI #{!playlist_uri}.")
-    s.reload(load_playlist())
+    files := load_playlist()
+    s.reload(!files)
   end
 
-  s.{reload = reload}
+  def length() =
+    list.length(!files)
+  end
+
+  s.{reload = reload, length = length}
 end
 
 # Read a playlist or a directory and play all files.
