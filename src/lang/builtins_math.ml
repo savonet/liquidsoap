@@ -140,8 +140,10 @@ let () =
     ~flags:[Lang.Hidden] [] Lang.int_t (fun _ -> Lang.int min_int)
 
 let () =
-  add_builtin "infinity" ~cat:Math ~descr:"Float representation of infinity." []
-    Lang.float_t (fun _ -> Lang.float infinity)
+  Lang.add_builtin_base ~category:(string_of_category Math)
+    ~descr:"Float representation of infinity." "infinity"
+    Lang.(Ground (Ground.Float infinity))
+    Lang.float_t
 
 let () =
   add_builtin "lsl" ~cat:Math ~descr:"Logical shift left."
