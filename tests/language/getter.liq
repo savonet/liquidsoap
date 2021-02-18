@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/pervasives.liq
 
 %include "test.liq"
 
@@ -21,6 +21,12 @@ def tests() =
   g()
   g(x=3)
   g(x={4})
+
+  r = ref(5)
+  r = ref.getter(r)
+  f(x=r)
+  g(x=r)
+  r.set(r()+2)
 
   test.pass()
 end
