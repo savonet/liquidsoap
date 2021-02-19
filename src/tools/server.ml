@@ -279,6 +279,7 @@ let () =
                namespaces []))
         ())
 
+(** Execute a command. *)
 let exec s =
   let s, args =
     try

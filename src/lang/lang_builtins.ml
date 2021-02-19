@@ -399,8 +399,11 @@ let () =
   let cat = Liq in
   let params =
     [
-      ("", Lang.string_t, None, None);
-      ("", Lang.string_t, Some (Lang.string ""), None);
+      ("", Lang.string_t, None, Some "Command to execute.");
+      ( "",
+        Lang.string_t,
+        Some (Lang.string ""),
+        Some "Argument for the command." );
     ]
   in
   let return_t = Lang.list_t Lang.string_t in
