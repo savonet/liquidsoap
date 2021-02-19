@@ -33,8 +33,8 @@ let () =
   in
   add sqrt "sqrt" "Square root.";
   add exp "exp" "Exponential.";
-  add Stdlib.log "log_e" "Natural logarithm.";
-  add log10 "log_10" "Base 10 logarithm.";
+  add Stdlib.log "ln" "Natural logarithm.";
+  add log10 "log10" "Base 10 logarithm.";
   add sin "sin" "Sine. Argument is in radians.";
   add cos "cos" "Cosine. Argument is in radians.";
   add tan "tan" "Tangent. Argument is in radians.";

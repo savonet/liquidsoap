@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
 open Extralib
 
 type category =
@@ -652,16 +651,6 @@ let () =
       with _ -> Lang.list [])
 
 (** Sound utils. *)
-
-let () =
-  add_builtin "dB_of_lin" ~cat:Math [("", Lang.float_t, None, None)]
-    Lang.float_t ~descr:"Convert linear scale into decibels." (fun p ->
-      let x = Lang.to_float (Lang.assoc "" 1 p) in
-      Lang.float (Audio.dB_of_lin x));
-  add_builtin "lin_of_dB" ~cat:Math [("", Lang.float_t, None, None)]
-    Lang.float_t ~descr:"Convert decibels into linear scale." (fun p ->
-      let x = Lang.to_float (Lang.assoc "" 1 p) in
-      Lang.float (Audio.lin_of_dB x))
 
 let () =
   add_builtin "seconds_of_main" ~cat:Liq

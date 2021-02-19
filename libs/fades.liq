@@ -24,9 +24,9 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
   end
 
   curve = 10.
-  m = log_e(1.+curve)
+  m = ln(1.+curve)
   def log_shape(x) =
-    log_e(1.+10.*x)/m
+    ln(1.+10.*x)/m
   end
 
   def lin_shape(x) =
