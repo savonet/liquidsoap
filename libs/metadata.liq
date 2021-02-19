@@ -12,7 +12,7 @@ def metadata.getter(init, map, metadata, s)
     if v != "" then x := map(v) end
   end
   s.on_metadata(f)
-  (s, {!x})
+  {!x}
 end
 
 # Create a string getter from a metadata: this is a string, whose value can be changed with a metadata.
