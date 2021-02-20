@@ -4,8 +4,8 @@ let file.error = error.register("file")
 
 # Read the whole contents of a file.
 # @category System
-def file.contents(f) =
-  fn = file.read(f)
+def file.contents(fname) =
+  fn = file.read(fname)
   def rec f(cur) =
     s = fn()
     if s == "" then
@@ -15,6 +15,18 @@ def file.contents(f) =
     end
   end
   f("")
+end
+
+# Get the list of lines of a file.
+# @category System
+def file.lines(fname)
+  string.split(separator="\n", file.contents(fname))
+end
+
+# Iterate over the lines of a file.
+# @category System
+def file.lines.iterator(fname)
+  list.iterator(file.lines(fname))
 end
 
 # Iterate over the contents of a file.
