@@ -1,4 +1,8 @@
 # Start an interface for the "telnet" server over http.
+# @category Liquidsoap
+# @flag extra
+# @param ~port Port of the server.
+# @param ~uri URI of the server.
 def server.harbor(~port=8080, ~uri="/telnet")
   def webpage(~protocol, ~data, ~headers, uri)
     data="
@@ -38,7 +42,8 @@ def server.harbor(~port=8080, ~uri="/telnet")
             if(xmlHttp.readyState === XMLHttpRequest.DONE) {
               var status = xmlHttp.status;
               if (status === 0 || (status >= 200 && status < 400)) {
-                c.value += xmlHttp.responseText;
+                c.value += xmlHttp.responseText + 'END\\n';
+                c.scrollTop = c.scrollHeight;
               } else {
                 console.log('Failed to send values.')
               }
