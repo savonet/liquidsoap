@@ -103,6 +103,7 @@ end
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
 # @method reload Reload the playlist.
+# @method length Length of the of the playlist (the number of songs it contains).
 def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_done={()}, ~prefix="", ~timeout=20., uri)
   # URI of the current playlist
   playlist_uri=ref(uri)
@@ -184,6 +185,8 @@ end
 # @param ~reload_mode Unit of the reload parameter, either "never" (never reload the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is changed).
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
+# @method reload Reload the playlist.
+# @method length Length of the of the playlist (the number of songs it contains).
 def replaces playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
 
   reload_mode = if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds" else reload_mode end
