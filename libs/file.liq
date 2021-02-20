@@ -17,6 +17,16 @@ def file.contents(f) =
   f("")
 end
 
+# Iterate over the contents of a file.
+# @category System
+def file.iterator(fname)
+  f = file.read(fname)
+  fun () -> begin
+    s = f()
+    (s=="")?null():null(s)
+  end
+end
+
 # Dummy implementation of file.mime
 # @category System
 def file.mime_default(_)
