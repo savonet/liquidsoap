@@ -9,8 +9,6 @@ ARG GITHUB_SHA
 
 USER root
 
-RUN apt-get update && apt-get -y upgrade
-
 USER opam
 
 WORKDIR /tmp/liquidsoap-full
