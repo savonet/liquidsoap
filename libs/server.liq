@@ -13,8 +13,6 @@ def server.harbor(~port=8080, ~uri="/telnet")
     <style>
       body {
           font-family: sans-serif;
-          /* color: lightgreen; */
-          /* background-color: black; */
       }
       h1 {
           text-align: center;
