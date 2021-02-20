@@ -24,6 +24,7 @@ end
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @method push Push an uri on the request queue.
+# @method length Length of the queue.
 def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
   queue = ref(queue)
   def next()
@@ -51,5 +52,5 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
     def skip(_) = s.skip(); "Done." end
     server.register(namespace=namespace, description="Skip current song.", usage="skip", "skip", skip)
   end
-  s.{push=push}
+  s.{push=push, length={list.length(!queue)}}
 end
