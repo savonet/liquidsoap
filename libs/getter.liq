@@ -24,3 +24,14 @@ def getter.on_change(f, x)
     new
   end
 end
+
+# Detect whether the value of the getter changes.
+# @category Math
+def getter.changes(x)
+  old = ref(x())
+  fun () -> begin
+    new = x()
+    if !old != new then old := new; true
+    else false end
+  end
+end
