@@ -136,10 +136,6 @@ let pipe_proto kind arg_doc =
         Lang.float_t,
         Some (Lang.float 120.),
         Some "Prevent re-opening within that delay, in seconds." );
-      ( "reopen_on_error",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Re-open if some error occurs." );
       ( "reopen_on_metadata",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -162,7 +158,6 @@ let pipe_proto kind arg_doc =
 class virtual piped_output ~kind p =
   let reload_predicate = List.assoc "reopen_when" p in
   let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
-  let reload_on_error = Lang.to_bool (List.assoc "reopen_on_error" p) in
   let reload_on_metadata = Lang.to_bool (List.assoc "reopen_on_metadata" p) in
   let name = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let name = name () in
@@ -217,10 +212,7 @@ class virtual piped_output ~kind p =
 
     method send b =
       if not self#is_open then self#prepare_pipe;
-      ( try super#send b
-        with e when reload_on_error ->
-          self#log#important "Reopening on error: %s." (Printexc.to_string e);
-          need_reset <- true );
+      super#send b;
       if not reopening then
         if
           need_reset
