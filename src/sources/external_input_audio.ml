@@ -92,7 +92,9 @@ let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.external.rawaudio" ~category:Lang.Input
-    ~descr:"Stream raw PCM data from an external application."
+    ~descr:
+      "Stream raw PCM data (interleaved signed 16 bits little endian integers) \
+       from an external application."
     ( proto
     @ [
         ("channels", Lang.int_t, Some (Lang.int 2), Some "Number of channels.");
