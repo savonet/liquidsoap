@@ -22,6 +22,8 @@ You can find more details on how to configure the server in the
 interface. Liquidsoap also embeds some [documentation](help.html#server) about
 the available server commands.
 
+### Using telnet
+
 Now, we shall simply enable the Telnet interface to the server, by setting
 `set("server.telnet",true)` or simply passing the `-t` option on the
 command-line. In a [complete case analysis](complete_case.html) we set up a
@@ -52,8 +54,18 @@ exit
 Of course, the server isn't very user-friendly. But it is easy to write scripts
 to interact with Liquidsoap in that way, to implement a website or an IRC
 interface to your radio. However, this sort of tool is often bound to a specific
-usage, so we have not released any of ours. Feel free to [ask the
-community](mailto:savonet-users@lists.sf.net) about code that you could re-use.
+usage, so we have not released any of ours.
+
+### Web interface
+
+Another simple way to test the telnet server consists in using the
+
+```liquidsoap
+server.harbor()
+```
+
+command which will start a web interface accessible at
+<http://localhost:8080/telnet> providing an emulation of a telnet.
 
 Interactive variables
 ---------------------
@@ -99,15 +111,41 @@ output.pulseaudio(s)
 By default the source s1 is played. To switch to s2, you can connect on
 the telnet server and type `var.set button = false`.
 
+### Web interface
+
+A nice web interface can be obtained by running
+
+```liquidsoap
+interactive.harbor()
+```
+
+after all interactive variables have been defined. This will start a web server
+accessible at <http://localhost:8080/interactive> on which you can easily change
+the values for the interactive variables.
+
+### Persistency
+
+By default, interactive variables are not _persistent_, which means that their
+values are lost if you restart the script. This can be changed by running the command
+
+```liquidsoap
+interactive.persistent("vars.json")
+```
+
+after all the interactive variables have been defined. This will store the
+values of all the interactive variables in the file `vars.json` (in JSON format)
+whenever you modify them, and reload them next time your run your script. This
+can be very handy for setting parameters for sound effects for instance.
+
 Interactive commands
 --------------------
 Starting with liquidsoap version `1.3.4`, you can register custom server commands
 to interact with the client with applications such as implementing a `pub/sub` mechanism.
 
-There main commands are:
+There main commands are
 
-* `server.write`, `server.read`, `server.readchars` and `server.readline` to read and write interactively
-* `server.condition`, `server.wait`, `server.signal` and `server.broadcast` to control the execution of the command
+- `server.write`, `server.read`, `server.readchars` and `server.readline` to read and write interactively,
+- `server.condition`, `server.wait`, `server.signal` and `server.broadcast` to control the execution of the command.
 
 ### Read/Write
 
