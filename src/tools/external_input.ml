@@ -26,7 +26,7 @@ open Extralib
 
 class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
   command =
-  let header_read, read_header =
+  let no_header, read_header =
     match read_header with
       | None -> (true, fun _ -> assert false)
       | Some f -> (false, f)
@@ -36,13 +36,14 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
 
     val mutable process = None
 
-    val mutable header_read = header_read
+    (** The header was already read. *)
+    val mutable header_read = false
 
     method stype = Source.Fallible
 
     method wake_up _ =
       let on_stdout reader =
-        if not header_read then (
+        if not (no_header || header_read) then (
           let ret = read_header reader in
           self#log#info "Header read!";
           header_read <- true;
