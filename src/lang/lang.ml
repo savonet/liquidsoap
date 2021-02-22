@@ -82,10 +82,7 @@ let kind_t k = Term.kind_t k
 let kind_none_t = Term.kind_t Frame.none
 let empty = { Frame.audio = Frame.none; video = Frame.none; midi = Frame.none }
 let any = { Frame.audio = `Any; video = `Any; midi = `Any }
-
-let audio_video_internal =
-  { Frame.audio = `Internal; video = `Internal; midi = Frame.none }
-
+let internal = { Frame.audio = `Internal; video = `Internal; midi = `Internal }
 let audio_pcm = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any }
 
 let audio_params p =
