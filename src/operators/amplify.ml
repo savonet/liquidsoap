@@ -58,7 +58,7 @@ class amplify ~kind (source : source) override_field coeff =
                     in
                     self#log#info "Overriding amplification: %f." k;
                     override <- Some k
-                  with _ -> () ))
+                  with _ -> ()))
               (AFrame.get_all_metadata buf)
         | None -> ()
       end;
@@ -68,11 +68,11 @@ class amplify ~kind (source : source) override_field coeff =
           (Audio.sub (AFrame.pcm buf) offset (AFrame.position buf - offset));
       if AFrame.is_partial buf && override <> None then (
         self#log#info "End of the current overriding.";
-        override <- None )
+        override <- None)
   end
 
 let () =
-  let kind = Lang.any in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "amplify"
     [
