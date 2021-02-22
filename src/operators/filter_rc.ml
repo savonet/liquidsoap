@@ -88,7 +88,7 @@ class filter ~kind (source : source) rc wet mode =
   end
 
 let () =
-  let kind = Lang.any in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.rc"
     [

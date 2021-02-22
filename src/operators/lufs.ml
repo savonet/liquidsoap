@@ -195,7 +195,7 @@ class lufs ~kind window source =
   end
 
 let () =
-  let kind = Lang.any in
+  let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "lufs" ~category:Lang.Visualization
     ~meth:
