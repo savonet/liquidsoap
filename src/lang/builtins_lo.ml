@@ -58,6 +58,7 @@ let handler path (data : LO.Message.data array) =
   with _ -> ()
 
 let server = ref None
+let log = Log.make ["lo"]
 
 let start_server () =
   if !server = None then (
@@ -67,10 +68,17 @@ let start_server () =
     ignore
       (Thread.create
          (fun () ->
-           while true do
-             S.recv s
-           done)
-         ()) )
+           try
+             while true do
+               S.recv s
+             done
+           with
+             | LO.Server.Stopped -> ()
+             | exn ->
+                 let backtrace = Printexc.get_backtrace () in
+                 log#important "LO server thread exited with exception: %s\n%s"
+                   (Printexc.to_string exn) backtrace)
+         ()))
 
 let _ =
   Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] (fun () ->
