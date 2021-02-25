@@ -73,7 +73,7 @@ class compress ~kind (source : source) attack release threshold ratio knee
       if AFrame.is_partial buf then effect#reset
   end
 
-let kind = Lang.any
+let kind = Lang.audio_pcm
 let k = Lang.kind_type_of_kind_format kind
 
 let proto =

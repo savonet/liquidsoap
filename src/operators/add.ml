@@ -156,7 +156,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
   end
 
 let () =
-  let kind = Lang.audio_video_internal in
+  let kind = Lang.internal in
   let kind_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "add" ~category:Lang.SoundProcessing
     ~descr:

@@ -157,7 +157,7 @@ class visu ~kind source =
   end
 
 let () =
-  let kind = Lang.audio_mono in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "video.volume"
     [("", Lang.source_t k, None, None)]

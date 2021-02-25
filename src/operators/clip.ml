@@ -48,7 +48,7 @@ class clip ~kind (source : source) =
   end
 
 let () =
-  let kind = Lang.any in
+  let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "clip"
     [("", Lang.source_t k, None, None)]

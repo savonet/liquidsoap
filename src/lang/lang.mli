@@ -156,7 +156,9 @@ val string_of_flag : doc_flag -> string
 
 val empty : Frame.content_kind
 val any : Frame.content_kind
-val audio_video_internal : Frame.content_kind
+
+(** Any internal stream type. *)
+val internal : Frame.content_kind
 
 (* Audio (PCM format) *)
 val audio_pcm : Frame.content_kind

@@ -72,6 +72,7 @@ let server = ref None
 let should_start = ref false
 let started = ref false
 let started_m = Mutex.create ()
+let log = Log.make ["lo"]
 
 let start_server () =
   log#info "Starting OSC server";
@@ -81,9 +82,16 @@ let start_server () =
   ignore
     (Thread.create
        (fun () ->
-         while true do
-           S.recv s
-         done)
+         try
+           while true do
+             S.recv s
+           done
+         with
+           | LO.Server.Stopped -> ()
+           | exn ->
+               let backtrace = Printexc.get_backtrace () in
+               log#important "LO server thread exited with exception: %s\n%s"
+                 (Printexc.to_string exn) backtrace)
        ())
 
 let () =

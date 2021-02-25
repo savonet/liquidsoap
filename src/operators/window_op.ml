@@ -140,7 +140,7 @@ let () =
     Lang.product (Lang.float value.(0)) (Lang.float value.(1))
   in
   let kind = { Frame.audio = Frame.audio_stereo; video = `Any; midi = `Any } in
-  declare RMS "" Lang.any Lang.float_t mean;
+  declare RMS "" Lang.audio_pcm Lang.float_t mean;
   declare RMS ".stereo" kind (Lang.product_t Lang.float_t Lang.float_t) stereo;
-  declare Peak "" Lang.any Lang.float_t mean;
+  declare Peak "" Lang.audio_pcm Lang.float_t mean;
   declare Peak ".stereo" kind (Lang.product_t Lang.float_t Lang.float_t) stereo

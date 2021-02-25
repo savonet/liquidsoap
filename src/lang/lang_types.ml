@@ -496,6 +496,12 @@ let print_repr f t =
     | `UVar (_, [Getter a]) when !pretty_getters ->
         Format.fprintf f "{%s}" (print_ground a);
         vars
+    | `EVar (a, [InternalMedia]) ->
+        Format.fprintf f "?internal(%s)" a;
+        vars
+    | `UVar (a, [InternalMedia]) ->
+        Format.fprintf f "internal(%s)" a;
+        vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;
         if c <> [] then DS.add (name, c) vars else vars

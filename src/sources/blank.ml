@@ -70,7 +70,7 @@ class blank ~kind duration =
   end
 
 let () =
-  let kind = Lang.audio_video_internal in
+  let kind = Lang.internal in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "blank" ~category:Lang.Input
     ~descr:"Produce silence and blank images." ~return_t
