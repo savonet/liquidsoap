@@ -172,6 +172,7 @@ type repr =
   | `Nullable of repr
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
+  | `Getter of ground
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
@@ -318,6 +319,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
+        | EVar (_, [Getter a]) when !pretty_getters -> `Getter a
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
@@ -490,10 +492,7 @@ let print_repr f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "]@]";
         vars
-    | `EVar (_, [Getter a]) when !pretty_getters ->
-        Format.fprintf f "?{%s}" (print_ground a);
-        vars
-    | `UVar (_, [Getter a]) when !pretty_getters ->
+    | `Getter a ->
         Format.fprintf f "{%s}" (print_ground a);
         vars
     | `EVar (a, [InternalMedia]) ->
