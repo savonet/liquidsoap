@@ -496,11 +496,11 @@ let print_repr f t =
     | `UVar (_, [Getter a]) when !pretty_getters ->
         Format.fprintf f "{%s}" (print_ground a);
         vars
-    | `EVar (_, [InternalMedia]) ->
-        Format.fprintf f "?internal";
+    | `EVar (a, [InternalMedia]) ->
+        Format.fprintf f "?internal(%s)" a;
         vars
-    | `UVar (_, [InternalMedia]) ->
-        Format.fprintf f "internal";
+    | `UVar (a, [InternalMedia]) ->
+        Format.fprintf f "internal(%s)" a;
         vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;
