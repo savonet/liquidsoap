@@ -159,6 +159,26 @@ Fixed:
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out duration (#1351).
 - Fixed osc server not workin when daemonized (#1365).
 
+1.4.4 (27-02-2021)
+=====
+
+New:
+- Added `process.quote` to quote process' arguments (#1215)
+
+Changed:
+- Fetch mime type using curl first when available.
+- Make override metadata name case-sensitive in `amplify` (#1323)
+- Harnessed playlist file resolver to better support some combination of protocols and file resolution (#1362)
+
+Fixed:
+- Remote file resolution when passing URLs with spaces (#1410)
+- Fixed empty `{http,https}` body (#1417)
+- Fixed `input.harbor` shoutcast client connection (#1353)
+- Fixed exception reporting when output fails to start (#1372)
+- Fixed `random` track selection (#1468)
+- Fixed playlist request leak when using `reload="watch"` with `inotify` on a folder (#1451)
+- Deadlock when LO server thread crashes (#1409)
+
 1.4.3 (14-09-2020)
 =====
 
