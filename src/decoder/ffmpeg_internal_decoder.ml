@@ -47,14 +47,25 @@ let mk_audio_decoder ~channels container =
   ( idx,
     stream,
     fun ~buffer frame ->
+      let format_changed = ref false in
       let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
+      if !in_sample_rate <> frame_in_sample_rate then (
+        log#important "Samplerate change detected!";
+        format_changed := true);
+      let frame_in_channel_layout =
+        Avutil.Channel_layout.get_default
+          (Avutil.Audio.frame_get_channels frame)
+      in
+      if !in_channel_layout <> frame_in_channel_layout then (
+        log#important "Channel layout change detected!";
+        format_changed := true);
       let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
-      if
-        !in_sample_rate <> frame_in_sample_rate
-        || !in_sample_format <> frame_in_sample_format
-      then (
-        log#important "Frame format change detected!";
+      if !in_sample_format <> frame_in_sample_format then (
+        log#important "Sample format change detected!";
+        format_changed := true);
+      if !format_changed then (
         in_sample_rate := frame_in_sample_rate;
+        in_channel_layout := frame_in_channel_layout;
         in_sample_format := frame_in_sample_format;
         converter := mk_converter ());
       let content = Converter.convert !converter frame in
