@@ -94,6 +94,7 @@ depopts: [
   "shine"
   "soundtouch"
   "speex"
+  "srt"
   "ssl"
   "taglib"
   "theora"
@@ -116,6 +117,7 @@ conflicts: [
   "gstreamer" {< "0.3.0"}
   "inotify" {< "1.0"}
   "ladspa" {< "0.1.4"}
+  "ladspa" {>= "0.2.0"}
   "lame" {< "0.3.2"}
   "lastfm" {< "0.3.0"}
   "lo" {< "0.1.2"}
@@ -129,6 +131,7 @@ conflicts: [
   "shine" {< "0.2.0"}
   "soundtouch" {< "0.1.7"}
   "speex" {< "0.2.1"}
+  "srt" {>= "0.2.0"}
   "ssl" {< "0.5.2"}
   "taglib" {< "0.3.0"}
   "theora" {< "0.3.1"}
