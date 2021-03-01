@@ -24,7 +24,6 @@ open Extralib
 module S = LO.Server
 
 let () = Lang.add_module "osc"
-let log = Log.make ["osc"]
 
 let conf_osc =
   Dtools.Conf.void
@@ -90,7 +89,7 @@ let start_server () =
            | LO.Server.Stopped -> ()
            | exn ->
                let backtrace = Printexc.get_backtrace () in
-               log#important "LO server thread exited with exception: %s\n%s"
+               log#important "OSC server thread exited with exception: %s\n%s"
                  (Printexc.to_string exn) backtrace)
        ())
 
