@@ -58,6 +58,8 @@ depends: [
   "menhir"
   "mm" {>= "0.5.0" & < "0.6.0"}
   "ocamlfind" {build}
+  "conf-pkg-config" {build}
+  "conf-which" {build}
   "pcre"
   "sedlex" {>= "2.0"}
 ]
