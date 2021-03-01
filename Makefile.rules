@@ -167,6 +167,12 @@ configure: configure.ac install-sh
 	./bootstrap
 	./configure-with-options || ./configure
 
+print-distdir:
+	@printf $(DISTDIR)
+
+print-tarball-filename:
+	@printf $(DISTDIR).tar.bz2
+
 tarball: configure pre-distclean dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
 	rm -rf $(DISTDIR)
