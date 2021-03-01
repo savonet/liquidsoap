@@ -7,7 +7,7 @@ OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
                 doc.cmx plug.cmx audio_converter.cmx video_converter.cmx unifier.cmx \
 		stream/frame_settings.cmx stream/frame_content.cmx stream/frame.cmx avi.cmx \
                 vFrame.cmx aFrame.cmx generator.cmx decoder_utils.cmx decoder.cmx \
-		lang_types.cmx pool.cmx request.cmx playlist_parser.cmx server.cmx source.cmx ../tools/unix_c.o
+		lang_types.cmx pool.cmx request.cmx server.cmx source.cmx ../tools/unix_c.o
 
 all: $(TESTS)
 

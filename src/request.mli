@@ -60,9 +60,6 @@ val destroy : ?force:bool -> t -> unit
 
 (** {1 General management} *)
 
-(** Try to parse a uri. returns [protocol, request_uri] *)
-val parse_uri : string -> (string * string) option
-
 (** Called at exit, for cleaning temporary files
   * and destroying all the requests, even persistent ones. *)
 val clean : unit -> unit
