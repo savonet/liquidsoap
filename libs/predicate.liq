@@ -15,6 +15,23 @@ def predicate.activates(~init=false, p)
   end
 end
 
+# Limit the number of times a predicate is true is a row.
+# @flag extra
+# @param n Number of times the predicate is allowed to be true.
+# @param p Predicate.
+def predicate.at_most(n, p)
+  k = ref(0)
+  fun () -> begin
+    if p() then
+      ref.incr(k)
+      !k <= n
+    else
+      k := 0
+      false
+    end
+  end
+end
+
 # Detect when a predicate changes.
 # @category Liquidsoap
 # @flag extra
