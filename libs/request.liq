@@ -36,7 +36,7 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
     log.info(label=id, "Pushing #{r} on the queue.")
     queue := list.append(!queue, [r])
   end
-  def push_file(uri)
+  def push_uri(uri)
     r = request.create(uri)
     push(r)
   end
@@ -56,5 +56,5 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
     def skip(_) = s.skip(); "Done." end
     server.register(namespace=namespace, description="Skip current song.", usage="skip", "skip", skip)
   end
-  s.{push=push.{file=push_file}, length={list.length(!queue)}}
+  s.{push=push.{uri=push_uri}, length={list.length(!queue)}}
 end
