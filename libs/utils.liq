@@ -409,7 +409,7 @@ end
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
 # @category Source / Track Processing
-def chop(~duration=float_getter(3.),~metadata=[],s) =
+def chop(~duration=float_getter(3.),~metadata={[]},s) =
   duration=to_float_getter(duration)
   s = insert_metadata(s)
 
@@ -418,7 +418,7 @@ def chop(~duration=float_getter(3.),~metadata=[],s) =
   def f() =
     if duration () <= s.time() - !start_time then
       start_time := s.time()
-      s.insert_metadata(new_track=true, metadata)
+      s.insert_metadata(new_track=true, metadata())
     end
     1.
   end
