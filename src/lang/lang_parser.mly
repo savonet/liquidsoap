@@ -626,10 +626,8 @@ binding:
   | bindvar GETS expr { (Doc.none (),[],[]),false,PVar [$1],$3 }
   | LET replaces pattern GETS expr { (Doc.none (),[],[]),$2,$3,$5 }
   | LET replaces subfield GETS expr { (Doc.none (),[],[]),$2,PVar $3,$5 }
-  | DEF replaces pattern g exprs END {
-      let body = $5 in
-      $1,$2,$3,body
-    }
+  | DEF replaces pattern g exprs END { $1,$2,$3,$5 }
+  | DEF replaces subfield g exprs END { $1,$2,PVar $3,$5 }
   | DEF replaces varlpar arglist RPAR g exprs END {
       let arglist = $4 in
       let body = mk_fun ~pos:$loc arglist $7 in
