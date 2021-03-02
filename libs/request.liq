@@ -23,7 +23,7 @@ end
 # @param ~length How much audio (in sec.) should be queued in advance.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
-# @method push Push an uri on the request queue.
+# @method push Push a request on the request queue.
 # @method length Length of the queue.
 def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~queue=[], ~timeout=20.)
   queue = ref(queue)
@@ -32,14 +32,18 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
     queue := []
     reqs
   end
-  def push(uri)
-    log.info(label=id, "Pushing #{uri} on the queue.")
-    queue := list.append(!queue, [uri])
+  def push(r)
+    log.info(label=id, "Pushing #{r} on the queue.")
+    queue := list.append(!queue, [r])
+  end
+  def push_file(uri)
+    r = request.create(uri)
+    push(r)
   end
   s = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next)
   if interactive then
     namespace = if id == "" then "queue" else id end
-    def push(uri) =
+    def push(uri)
       r = request.create(uri)
       push(r)
       "#{request.id(r)}"
@@ -52,5 +56,5 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
     def skip(_) = s.skip(); "Done." end
     server.register(namespace=namespace, description="Skip current song.", usage="skip", "skip", skip)
   end
-  s.{push=push, length={list.length(!queue)}}
+  s.{push=push.{file=push_file}, length={list.length(!queue)}}
 end
