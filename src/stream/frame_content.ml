@@ -339,7 +339,7 @@ module AudioSpecs = struct
     match !!channel_layout with
       | `Mono -> "mono"
       | `Stereo -> "stereo"
-      | `Five_point_one -> "dolby 5.1"
+      | `Five_point_one -> "5.1"
 
   let is_empty d = Audio.length d = 0
 
