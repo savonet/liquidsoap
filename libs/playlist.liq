@@ -1,3 +1,41 @@
+# Retrieve the list of files contained in a playlist.
+# @category Liquidsoap
+# @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
+# @param ~timeout Timeout for resolving the playlist
+# @param uri Path to the playlist
+def playlist.files(~id="playlist.files", ~mime_type="", ~timeout=20., uri) =
+  if file.is_directory(uri) then
+    log.info(label=id,"Playlist is a directory.")
+    files = file.ls(absolute=true, recursive=true, uri)
+    files = list.filter(fun(f) -> not (file.is_directory(f)), files)
+    files = list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
+    files
+  else
+    pl = request.create(uri)
+    result =
+      if request.resolve(timeout=timeout, pl) then
+        pl = request.filename(pl)
+        files = playlist.parse(mime=mime_type, pl)
+        def file_request(el) =
+          let (meta, file) = el
+          s = list.fold(fun (cur, el) ->
+          "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
+          if s == "" then
+            file
+          else
+            "annotate:#{s}:#{file}"
+          end
+        end
+        list.map(file_request, files)
+      else
+        log.important(label=id, "Couldn't read playlist: request resolution failed.")
+        []
+      end
+    request.destroy(pl)
+    result
+  end
+end
+
 # Play a list of files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -111,41 +149,11 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
   files=ref([])
 
   # The load function
-  def load_playlist () =
+  def load_playlist() =
     playlist_uri = path.home.unrelate(!playlist_uri)
     log.info(label=id, "Reloading playlist.")
-    if file.is_directory(playlist_uri) then
-      log.info(label=id,"Playlist is a directory.")
-      files = file.ls(absolute=true, recursive=true, playlist_uri)
-      files = list.filter(fun(f) -> not (file.is_directory(f)), files)
-      files = list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, files)
-      def add_prefix(file) = prefix^file end
-      list.map(add_prefix, files)
-    else
-      pl = request.create(playlist_uri)
-      result =
-        if request.resolve(timeout=timeout, pl) then
-          pl = request.filename(pl)
-          files = playlist.parse(mime=mime_type, pl)
-          def file_request(el) =
-            let (meta, file) = el
-            file = prefix^file
-            s = list.fold(fun (cur, el) ->
-            "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
-            if s == "" then
-              file
-            else
-              "annotate:#{s}:#{file}"
-            end
-          end
-          list.map(file_request,files)
-        else
-          log.important(label=id, "Couldn't read playlist: request resolution failed.")
-          []
-        end
-      request.destroy(pl)
-      result
-    end
+    files = playlist.files(id=id, mime_type=mime_type, timeout=timeout, playlist_uri)
+    list.map(fun(file) -> prefix^file, files)
   end
 
   # Create the source
