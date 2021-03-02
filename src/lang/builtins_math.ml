@@ -51,17 +51,6 @@ let () =
   add tanh "tanh" "Hyperbolic tangent. Argument is in radians."
 
 let () =
-  let t = Lang.int_t in
-  add_builtin "mod" ~cat:Math
-    ~descr:
-      "Integer remainder. If y is not zero, x == (x / y) * y + x mod y, and \
-       abs(x mod y) <= abs(y)-1." [("", t, None, None); ("", t, None, None)] t
-    (fun p ->
-      let a = Lang.to_int (Lang.assoc "" 1 p) in
-      let b = Lang.to_int (Lang.assoc "" 2 p) in
-      Lang.int (a mod b))
-
-let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
   add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
     [("", t, None, None)] t (fun p ->
@@ -96,7 +85,8 @@ let () =
   register_op "Substraction " "-" ( - ) ( -. );
   register_op "Exponentiation" "pow"
     (fun a b -> int_of_float (float_of_int a ** float_of_int b))
-    ( ** )
+    ( ** );
+  register_op "Remainder of division" "mod" ( mod ) mod_float
 
 let () =
   add_builtin "random.float" ~cat:Math
