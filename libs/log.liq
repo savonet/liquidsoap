@@ -27,3 +27,9 @@ end
 def log.debug(~label="lang",msg) =
   log(label=label,level=5,msg)
 end
+
+# Get and set the log level.
+# @category Liquidsoap
+def log.level =
+  setting.getter.int("log.level")
+end

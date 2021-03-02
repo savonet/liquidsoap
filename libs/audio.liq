@@ -1,11 +1,11 @@
 # Samplerate for audio.
 # @category Liquidsoap
-def audio.samplerate() =
-  get(default=-1,"frame.audio.samplerate")
+def audio.samplerate =
+  setting.getter.int("frame.audio.samplerate")
 end
 
 # Channels for audio.
 # @category Liquidsoap
-def audio.channels() =
-  get(default=-1,"frame.audio.channels")
+def audio.channels =
+  setting.getter.int("frame.audio.channels")
 end

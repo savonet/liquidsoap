@@ -1,19 +1,19 @@
 # Width for all video frames.
 # @category Source / Video Processing
-def video.frame.width() =
-  get(default=-1,"frame.video.width")
+def video.frame.width =
+  setting.getter.int("frame.video.width")
 end
 
 # Height for all video frames.
 # @category Source / Video Processing
-def video.frame.height() =
-  get(default=-1,"frame.video.height")
+def video.frame.height =
+  setting.getter.int("frame.video.height")
 end
 
 # Rate for all video frames.
 # @category Source / Video Processing
-def video.frame.rate() =
-  get(default=-1,"frame.video.samplerate")
+def video.frame.rate =
+  setting.getter.int("frame.video.samplerate")
 end
 
 # Add a static image on the first video channel.
