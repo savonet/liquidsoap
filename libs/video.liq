@@ -13,7 +13,7 @@ end
 # Rate for all video frames.
 # @category Source / Video Processing
 def video.frame.rate =
-  setting.getter.int("frame.video.samplerate")
+  setting.getter.int("frame.video.framerate")
 end
 
 # Add a static image on the first video channel.
