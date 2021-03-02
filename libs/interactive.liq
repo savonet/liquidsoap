@@ -24,6 +24,11 @@ end
 server.register(usage="list", description="List available interactive variables.", namespace="var", "list", interactive.list)
 
 # @flag hidden
+def interactive.description(name)
+  list.assoc(name, !variables).description
+end
+
+# @flag hidden
 def interactive.type(name)
   list.assoc(name, !variables).type
 end
@@ -68,8 +73,8 @@ end
 
 # Create an interactive variable.
 # @flag hidden
-def interactive.create(~name, ~type)
-  variables := list.add((name, { type=type }), !variables)
+def interactive.create(~name, ~description="", ~type)
+  variables := list.add((name, { type=type, description=description }), !variables)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
 end
 
@@ -226,8 +231,10 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
     add("<h1>#{title}</h1>")
     def add_var(nv)
       let (name, v) = nv
+      description = interactive.description(name)
+      description = if description == "" then name else "#{description} (#{name})" end
       # add("<div>")
-      add("<label for=#{name}>#{name}</label>")
+      add("<label for=#{name}>#{description}</label>")
       common = "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
       if v.type == "float" then
         v = list.assoc(name, !variables_float)
@@ -290,10 +297,14 @@ end
 
 # Read a float from an interactive input.
 # @category Interaction
+# @param ~min Minimal value.
+# @param ~max Maximal value.
+# @param ~step Typical variation of the value.
+# @param ~description Description of the variable.
 # @param name Name of the variable.
 # @param v Initial value.
-def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, name, v)
-  interactive.create(name=name, type="float")
+def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", name, v)
+  interactive.create(name=name, description=description, type="float")
   r = ref(v)
   variables_float := list.add((name, { ref=r , min=min, max=max, step=step }), !variables_float)
   ref.getter(r).{set = interactive.float.set(name)}
@@ -301,10 +312,11 @@ end
 
 # Read a boolean from an interactive input.
 # @category Interaction
+# @param ~description Description of the variable.
 # @param name Name of the variable.
 # @param v Initial value.
-def replaces interactive.bool(name, v)
-  interactive.create(name=name, type="bool")
+def replaces interactive.bool(~description="", name, v)
+  interactive.create(name=name, description=description, type="bool")
   r = ref(v)
   variables_bool := list.add((name, { ref=r }), !variables_bool)
   ref.getter(r).{set = interactive.bool.set(name)}
@@ -312,10 +324,11 @@ end
 
 # Read a string from an interactive input.
 # @category Interaction
+# @param ~description Description of the variable.
 # @param name Name of the variable.
 # @param v Initial value.
-def replaces interactive.string(name, v)
-  interactive.create(name=name, type="string")
+def replaces interactive.string(~description="", name, v)
+  interactive.create(name=name, description=description, type="string")
   r = ref(v)
   variables_string := list.add((name, { ref=r }), !variables_string)
   ref.getter(r).{set = interactive.bool.set(name)}
