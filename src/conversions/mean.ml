@@ -22,7 +22,7 @@
 
 open Source
 
-class mean source =
+class mean ~normalize source =
   object
     inherit
       operator ~audio_in:Frame.audio_pcm Lang.audio_mono [source] ~name:"mean"
@@ -36,11 +36,13 @@ class mean source =
           let len = Frame.position tmp_frame - start in
           let content = AFrame.pcm frame in
           let tmp_content = AFrame.pcm tmp_frame in
-          let channels = float (Array.length tmp_content) in
+          let amp =
+            if normalize then 1. /. float (Array.length tmp_content) else 1.
+          in
           let ( ! ) = Frame.audio_of_main in
           for i = !start to !(start + len) - 1 do
             content.(0).{i} <-
-              Array.fold_left (fun m b -> m +. b.{i}) 0. tmp_content /. channels
+              Array.fold_left (fun m b -> m +. b.{i}) 0. tmp_content *. amp
           done;
           Frame.set_audio frame (Frame_content.Audio.lift_data content))
   end
@@ -56,9 +58,19 @@ let () =
     Lang.frame_kind_t ~audio:(Lang.kind_t Frame.audio_mono) ~video ~midi
   in
   Lang.add_operator "mean"
-    [("", Lang.source_t in_kind, None, None)]
+    [
+      ( "normalize",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Divide the output volume by the number of channels." );
+      ( "",
+        Lang.source_t in_kind,
+        None,
+        Some "Source whose mean should be computed." );
+    ]
     ~return_t:out_kind ~category:Lang.Conversions
     ~descr:"Produce mono audio by taking the mean of all audio channels."
     (fun p ->
+      let normalize = Lang.to_bool (List.assoc "normalize" p) in
       let s = Lang.to_source (Lang.assoc "" 1 p) in
-      (new mean s :> Source.source))
+      (new mean ~normalize s :> Source.source))
