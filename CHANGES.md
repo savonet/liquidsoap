@@ -63,6 +63,7 @@ New:
 - Added `interactive.persistent` (as well as `interactive.save` and
   `interactive.load`) to make interactive variables persistent (#1495).
 - Added `server.habor` (#1502).
+- Added `metronome`.
 
 Changed:
 

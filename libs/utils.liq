@@ -426,6 +426,23 @@ def chop(~duration=float_getter(3.),~metadata={[]},s) =
   amplify(f,s)
 end
 
+# Indicate beats.
+# @param bpm Number of beats per minute.
+def metronome(bpm=60.)
+  volume_down = 0.
+  beat_duration = 0.1
+  s = sine(440.)
+  def f() =
+    if s.time() mod (60. / bpm) <= beat_duration then
+      1.
+    else
+      volume_down
+    end
+  end
+
+  amplify(f,s)
+end
+
 # Make a source available or not depending on a boolean.
 # @param ~id The source ID
 # @param ~active Whether the source should be pulled when not available
