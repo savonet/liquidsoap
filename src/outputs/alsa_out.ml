@@ -113,8 +113,9 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
               (bufsize, fst (Pcm.get_periods_max params))
             in
             self#log#important
-              "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d" alsa_rate
-              bufsize
+              "channels=%d, samplerate=%dHz, buffer size=%dB, frame size=%dB, \
+               periods=%d"
+              self#audio_channels alsa_rate bufsize
               (Pcm.get_frame_size params)
               periods;
             Pcm.set_params dev params;

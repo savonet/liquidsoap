@@ -279,6 +279,7 @@ and in_term =
   | List of term list
   | Tuple of term list
   | Null
+  | Cast of term * T.t
   | Meth of string * term * term
   | Invoke of term * string
   | Open of term * term
@@ -318,6 +319,7 @@ let rec print_term v =
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
     | Null -> "null"
+    | Cast (e, t) -> "(" ^ print_term e ^ " : " ^ T.print t ^ ")"
     | Meth (l, v, e) -> print_term e ^ ".{" ^ l ^ " = " ^ print_term v ^ "}"
     | Invoke (e, l) -> print_term e ^ "." ^ l
     | Open (m, e) -> "open " ^ print_term m ^ " " ^ print_term e
@@ -357,6 +359,7 @@ let rec free_vars tm =
     | Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
     | Null -> Vars.empty
+    | Cast (e, _) -> free_vars e
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | Meth (_, v, e) -> Vars.union (free_vars v) (free_vars e)
     | Invoke (e, _) -> free_vars e
@@ -406,6 +409,7 @@ let check_unused ~throw ~lib tm =
       | Ground _ | Encoder _ -> v
       | Tuple l -> List.fold_left (fun a -> check a) v l
       | Null -> v
+      | Cast (e, _) -> check v e
       | Meth (_, f, e) -> check (check v e) f
       | Invoke (e, _) -> check v e
       | Open (a, b) -> check (check v a) b
@@ -767,6 +771,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
         List.iter (fun a -> check ~throw ~level ~env a) l;
         e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
     | Null -> e.t >: mk (T.Nullable (T.fresh_evar ~level ~pos))
+    | Cast (a, t) ->
+        check ~throw ~level ~env a;
+        a.t <: t;
+        e.t >: t
     | Meth (l, a, b) ->
         check ~throw ~level ~env a;
         check ~throw ~level ~env b;
@@ -980,24 +988,34 @@ let rec eval ~env tm =
   let mk v =
     ( (* Ensure that the kind computed at runtime for sources will agree with
          the typing. *)
+      (* TODO: cover more cases of casting *)
       match (T.deref tm.t).T.descr with
       | T.Constr { T.name = "source"; params = [(T.Invariant, k)] } -> (
-          let k =
-            match of_frame_kind_t k with
-              | {
-               Frame.audio = { T.descr = T.Ground (T.Format audio) };
-               video = { T.descr = T.Ground (T.Format video) };
-               midi = { T.descr = T.Ground (T.Format midi) };
-              } ->
-                  Source.Kind.of_kind
-                    {
-                      Frame.audio = `Format audio;
-                      video = `Format video;
-                      midi = `Format midi;
-                    }
+          let frame_content_of_t t =
+            Printf.printf "frame_content_of_t: %s\n%!" (T.print t);
+            match (T.deref t).T.descr with
+              | T.Ground (T.Format fmt) -> `Format fmt
+              | T.EVar _ -> `Any
+              | T.Constr { T.name = "pcm"; params = [(_, t)] } -> (
+                  match (T.deref t).T.descr with
+                    | T.Ground (T.Format fmt) -> `Format fmt
+                    | _ -> assert false )
               | _ -> assert false
           in
-          match v with
+          let k = of_frame_kind_t k in
+          let k =
+            Source.Kind.of_kind
+              {
+                Frame.audio = frame_content_of_t k.Frame.audio;
+                video = frame_content_of_t k.Frame.video;
+                midi = frame_content_of_t k.Frame.midi;
+              }
+          in
+          let rec demeth = function
+            | V.Meth (_, _, v) -> demeth v.V.value
+            | v -> v
+          in
+          match demeth v with
             | V.Source s -> Source.Kind.unify s#kind k
             | _ ->
                 raise
@@ -1014,6 +1032,9 @@ let rec eval ~env tm =
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
     | Null -> mk V.Null
+    | Cast (e, _) ->
+        let e = eval ~env e in
+        mk e.V.value
     | Meth (l, u, v) -> mk (V.Meth (l, eval ~env u, eval ~env v))
     | Invoke (t, l) ->
         let rec aux t =
