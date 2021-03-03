@@ -23,7 +23,7 @@ jobs:
         uses: crazy-max/ghaction-github-pages@v2
         with:
           repo: savonet/savonet.github.io
-          target_branch: main
+          target_branch: master
           build_dir: html
           fqdn: www.liquidsoap.info
         env:
