@@ -2,7 +2,7 @@ name: Update website
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   update_website:
@@ -23,7 +23,7 @@ jobs:
         uses: crazy-max/ghaction-github-pages@v2
         with:
           repo: savonet/savonet.github.io
-          target_branch: master
+          target_branch: main
           build_dir: html
           fqdn: www.liquidsoap.info
         env:

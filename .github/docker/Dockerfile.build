@@ -17,7 +17,7 @@ WORKDIR /tmp/liquidsoap-full
 RUN rm -rf ocaml-lastfm/src/lastfm_constants.ml
 
 RUN eval $(opam config env) && git pull && make clean && make update && \
-     cd liquidsoap && git reset --hard && git checkout master && git pull && \
+     cd liquidsoap && git reset --hard && git checkout main && git pull && \
      git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA && \
      ./.github/scripts/checkout-deps.sh && \
      cd .. && ./bootstrap && \

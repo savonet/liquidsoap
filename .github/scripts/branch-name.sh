@@ -18,7 +18,7 @@ else
   IS_RELEASE=
 fi
 
-if [[ "${BRANCH}" = "master" ]] || [[ -n "${IS_RELEASE}" ]]; then
+if [[ "${BRANCH}" = "main" ]] || [[ -n "${IS_RELEASE}" ]]; then
   echo "Branch has a docker release"
   DOCKER_RELEASE=true
 else
