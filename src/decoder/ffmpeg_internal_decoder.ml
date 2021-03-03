@@ -63,11 +63,6 @@ let mk_audio_decoder ~channels container =
       if !in_sample_format <> frame_in_sample_format then (
         log#important "Sample format change detected!";
         format_changed := true);
-      if !format_changed then (
-        in_sample_rate := frame_in_sample_rate;
-        in_channel_layout := frame_in_channel_layout;
-        in_sample_format := frame_in_sample_format;
-        converter := mk_converter ());
       let content = Converter.convert !converter frame in
       buffer.Decoder.put_pcm ?pts:None ~samplerate:target_sample_rate content )
 
