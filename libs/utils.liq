@@ -3,7 +3,7 @@
 # @param s the source to turn infaillible
 # @category Source / Track Processing
 def mksafe(~id="mksafe",s)
-  fallback(id=id,track_sensitive=false,[s,blank(id="safe_blank")])
+  fallback(id=id,track_sensitive=false,[s,(blank(id="safe_blank"):source)])
 end
 
 # Add a skip function to a source when it does not have one by default.
