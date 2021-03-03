@@ -119,7 +119,7 @@ module VideoSpecs = struct
         ("width", Option.map (fun p -> string_of_int (Video.get_width p)) params);
         ( "height",
           Option.map (fun p -> string_of_int (Video.get_height p)) params );
-        ( "sample_ratio",
+        ( "aspect_ratio",
           Option.map
             (fun p -> string_of_rational (Video.get_sample_aspect_ratio p))
             params );
