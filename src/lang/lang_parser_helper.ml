@@ -286,42 +286,48 @@ let mk_time_pred ~pos (a, b, c) =
   mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
 let mk_kind ~pos (kind, params) =
-  try
-    let k = Frame_content.kind_of_string kind in
-    match params with
-      | [] -> Lang_values.kind_t (`Kind k)
-      | [("", "any")] -> Lang_types.fresh_evar ~level:(-1) ~pos:None
-      | [("", "internal")] ->
-          Lang_types.fresh ~constraints:[Lang_types.InternalMedia] ~level:(-1)
-            ~pos:None
-      | param :: params ->
-          let mk_format (label, value) =
-            Frame_content.parse_param label value
-          in
-          let f = mk_format param in
-          List.iter
-            (fun param -> Frame_content.merge f (mk_format param))
-            params;
-          assert (k = Frame_content.kind f);
-          Lang_values.kind_t (`Format f)
-  with _ -> raise (Parse_error (pos, "Unknown type constructor."))
+  if kind = "any" then Lang_types.fresh_evar ~level:(-1) ~pos:(Some pos)
+  else (
+    try
+      let k = Frame_content.kind_of_string kind in
+      match params with
+        | [] -> Lang_values.kind_t (`Kind k)
+        | [("", "any")] -> Lang_types.fresh_evar ~level:(-1) ~pos:None
+        | [("", "internal")] ->
+            Lang_types.fresh ~constraints:[Lang_types.InternalMedia] ~level:(-1)
+              ~pos:None
+        | param :: params ->
+            let mk_format (label, value) =
+              Frame_content.parse_param label value
+            in
+            let f = mk_format param in
+            List.iter
+              (fun param -> Frame_content.merge f (mk_format param))
+              params;
+            assert (k = Frame_content.kind f);
+            Lang_values.kind_t (`Format f)
+    with _ -> raise (Parse_error (pos, "Unknown type constructor.")) )
 
 let mk_source_ty ~pos name args =
   if name <> "source" && name <> "active_source" then
     raise (Parse_error (pos, "Unknown type constructor."));
 
-  let args = List.sort (fun (x, _) (y, _) -> Stdlib.compare x y) args in
+  let audio = ref ("any", []) in
+  let video = ref ("any", []) in
+  let midi = ref ("any", []) in
 
-  let audio, video, midi =
-    match args with
-      | [("audio", audio); ("midi", midi); ("video", video)] ->
-          (audio, video, midi)
-      | _ -> raise (Parse_error (pos, "Unknown type constructor."))
-  in
+  List.iter
+    (function
+      | "audio", k -> audio := k
+      | "video", k -> video := k
+      | "midi", k -> midi := k
+      | l, _ ->
+          raise (Parse_error (pos, "Unknown type constructor (" ^ l ^ ").")))
+    args;
 
-  let audio = mk_kind ~pos audio in
-  let video = mk_kind ~pos video in
-  let midi = mk_kind ~pos midi in
+  let audio = mk_kind ~pos !audio in
+  let video = mk_kind ~pos !video in
+  let midi = mk_kind ~pos !midi in
 
   Lang_values.source_t ~active:(name <> "source")
     (Lang_values.frame_kind_t audio video midi)

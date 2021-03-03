@@ -244,8 +244,11 @@ ty:
   | ty_source                  { $1 }
 
 ty_source:
-  | VARLPAR VAR GETS ty_content COMMA VAR GETS ty_content COMMA VAR GETS ty_content RPAR
-                               { mk_source_ty ~pos:$loc $1 [($2,$4);($6,$8);($10,$12)] }
+  | VARLPAR ty_source_params RPAR { mk_source_ty ~pos:$loc $1 $2 }
+
+ty_source_params:
+  | VAR GETS ty_content { [$1,$3] }
+  | VAR GETS ty_content COMMA ty_source_params { ($1,$3)::$5 }
 
 ty_content:
   | VAR                           { $1, [] }
