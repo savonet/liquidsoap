@@ -614,6 +614,21 @@ def replaces output(~id="",~fallible=false,
          mksafe(s))
 end
 
+let output.video = output.dummy
+%ifdef output.sdl
+  let output.video = output.sdl
+%endif
+%ifdef output.graphics
+  let output.video = output.graphics
+%endif
+
+# @flag hidden
+def output.audio_video(~id="",~fallible=false,~on_start={()},~on_stop={()},~start=true,s)
+  output(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s)
+  output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s)
+end
+
+
 def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
   blank(id=id)
 end
