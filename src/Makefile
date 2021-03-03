@@ -245,7 +245,7 @@ liquidsoap_sources= \
 
 liquidsoap_sources += \
 	lang/lang_types.ml lang/profiler.ml lang/lang_values.ml \
-	$(lang_encoders) lang/lang_parser.ml lang/lang_lexer.ml \
+	$(lang_encoders) lang/lang_parser_helper.ml lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml lang/modules.ml \
         tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
