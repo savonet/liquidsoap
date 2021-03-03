@@ -266,6 +266,7 @@ ty_content_args:
 ty_content_arg:
   | VAR                  { "",$1 }
   | VAR GETS VAR         { $1,$3 }
+  | VAR GETS STRING      { $1,$3}
   | VAR GETS INT         { $1,string_of_int $3}
 
 ty_tuple:
