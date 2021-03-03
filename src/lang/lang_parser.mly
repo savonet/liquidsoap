@@ -244,6 +244,7 @@ ty:
   | ty_source                  { $1 }
 
 ty_source:
+  | VARLPAR RPAR                  { mk_source_ty ~pos:$loc $1 [] }
   | VARLPAR ty_source_params RPAR { mk_source_ty ~pos:$loc $1 $2 }
 
 ty_source_params:
