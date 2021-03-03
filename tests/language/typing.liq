@@ -140,6 +140,7 @@ def f() =
   ignore(sum_eq)
 
   (noise():source(audio=pcm,video=yuva420p,midi=none))
+  (noise():source(audio=none,video=none,midi=none))
 
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.copy,video=ffmpeg.video.copy,midi=midi))
   (single("annotate:foo=\"bla\":/nonexistent"):source(audio=ffmpeg.audio.raw,video=ffmpeg.video.raw,midi=midi))
