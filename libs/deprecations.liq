@@ -589,67 +589,6 @@ def input.http(%argsof(input.http), s) =
   s
 end
 
-let replaces output=output.dummy
-%ifdef output.ao
-  let replaces output=output.ao
-%endif
-%ifdef output.alsa
-  let replaces output=output.alsa
-%endif
-%ifdef output.oss
-  let replaces output=output.oss
-%endif
-%ifdef output.portaudio
-  let replaces output=output.portaudio
-%endif
-%ifdef output.pulseaudio
-  let replaces output=output.pulseaudio
-%endif
-
-# @flag hidden 
-def replaces output(~id="",~fallible=false,
-           ~on_start={()},~on_stop={()},~start=true,s)
-  output(id=id,fallible=fallible,
-         start=start,on_start=on_start,on_stop=on_stop,
-         mksafe(s))
-end
-
-let output.video = output.dummy
-%ifdef output.sdl
-  let output.video = output.sdl
-%endif
-%ifdef output.graphics
-  let output.video = output.graphics
-%endif
-
-# @flag hidden
-def output.audio_video(~id="",~fallible=false,~on_start={()},~on_stop={()},~start=true,s)
-  output(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s)
-  output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s)
-end
-
-
-def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
-  blank(id=id)
-end
-%ifdef input.alsa
-  let replaces input = input.alsa
-%endif
-%ifdef input.oss
-  let replaces input = input.oss
-%endif
-%ifdef input.portaudio
-  let replaces input = input.portaudio
-%endif
-%ifdef input.pulseaudio
-  let replaces input = input.pulseaudio
-%endif
-
-# @flag hidden
-def replaces input(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
-  input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
-end
-
 # @flag hidden
 def output.prefered(~id="",~fallible=false,
                     ~on_start={()},~on_stop={()},~start=true,s)
@@ -663,7 +602,7 @@ end
 # @flag hidden
 def out(s)
   deprecated("out","output")
-  output.prefered(mksafe(s))
+  output(mksafe(s))
 end
 
 # Deprecated: use `input` instead.
