@@ -82,6 +82,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
             self#log#important "Using ALSA %s." (Alsa.get_version ());
             let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
             let params = Pcm.get_params dev in
+            let channels = self#audio_channels in
             let bufsize, periods =
               ( try
                   Pcm.set_access dev params Pcm.Access_rw_noninterleaved;
@@ -93,10 +94,12 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
                   Pcm.set_format dev params Pcm.Format_s16_le;
                   alsa_write <-
                     (fun pcm buf ofs len ->
-                      let sbuf = Bytes.create (2 * len * Array.length buf) in
+                      let sbuf =
+                        Bytes.create (Audio.S16LE.size (Array.length buf) len)
+                      in
                       Audio.S16LE.of_audio (Audio.sub buf ofs len) sbuf 0;
                       Pcm.writei pcm sbuf 0 len) );
-              Pcm.set_channels dev params self#audio_channels;
+              Pcm.set_channels dev params channels;
               alsa_rate <-
                 Pcm.set_rate_near dev params samples_per_second Dir_eq;
 
@@ -113,8 +116,9 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
               (bufsize, fst (Pcm.get_periods_max params))
             in
             self#log#important
-              "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d" alsa_rate
-              bufsize
+              "channels=%d, samplerate=%dHz, buffer size=%dB, frame size=%dB, \
+               periods=%d"
+              channels alsa_rate bufsize
               (Pcm.get_frame_size params)
               periods;
             Pcm.set_params dev params;
@@ -139,15 +143,16 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
         in
         f 0
       with e ->
+        let bt = Printexc.get_raw_backtrace () in
         begin
           match e with
           | Buffer_xrun -> self#log#severe "Underrun!"
           | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
-          self#log#severe "Trying to recover..";
+          self#log#severe "Trying to recover.";
           Pcm.recover dev e )
-        else raise e
+        else Printexc.raise_with_backtrace e bt
 
     method output_send buf =
       let buf = AFrame.pcm buf in

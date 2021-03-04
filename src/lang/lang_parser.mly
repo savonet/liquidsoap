@@ -125,7 +125,7 @@ exprss:
 
 /* General expressions. */
 expr:
-  | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ; $2 }
+  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "~-"), ["", $3])) }
