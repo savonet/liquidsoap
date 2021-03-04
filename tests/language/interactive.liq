@@ -20,6 +20,14 @@ def f() =
   t(x(), 15.)
   interactive.load(file)
   t(x(), 2.)
+  try
+    interactive.float("bla", 0.)
+    interactive.float("bla", 0.)
+    log.critical("Did not detect double registration.")
+    success := false
+  catch _ do
+    log.important("Double registration detected.")
+  end
 
   if !success then test.pass() else test.fail() end
 end

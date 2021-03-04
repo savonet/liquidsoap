@@ -12,6 +12,8 @@ let interactive.float  = ()
 let interactive.bool   = ()
 let interactive.string = ()
 
+let interactive.error = error.register("interactive.error")
+
 # @flag hidden
 def interactive.list(_)
   l = !variables
@@ -74,6 +76,7 @@ end
 # Create an interactive variable.
 # @flag hidden
 def interactive.create(~name, ~description="", ~type)
+  if list.mem_assoc(name, !variables) then error.raise(interactive.error, "variable already registered") end
   variables := list.add((name, { type=type, description=description }), !variables)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
 end
