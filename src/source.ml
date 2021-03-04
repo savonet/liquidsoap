@@ -591,6 +591,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
     (** Two methods called for initialization and shutdown of the source *)
     method private wake_up activation =
+      self#log#debug "Clock is %s." (variable_to_string self#clock);
       self#log#info "Content type is %s."
         (Frame.string_of_content_type self#ctype);
       let activation = (self :> operator) :: activation in
