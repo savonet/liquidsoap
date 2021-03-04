@@ -988,19 +988,19 @@ let rec eval ~env tm =
   let mk v =
     ( (* Ensure that the kind computed at runtime for sources will agree with
          the typing. *)
-      (* TODO: cover more cases of casting *)
       match (T.deref tm.t).T.descr with
       | T.Constr { T.name = "source"; params = [(T.Invariant, k)] } -> (
           let frame_content_of_t t =
-            Printf.printf "frame_content_of_t: %s\n%!" (T.print t);
             match (T.deref t).T.descr with
-              | T.Ground (T.Format fmt) -> `Format fmt
               | T.EVar _ -> `Any
-              | T.Constr { T.name = "pcm"; params = [(_, t)] } -> (
+              | T.Constr { T.name; params = [(_, t)] } -> (
                   match (T.deref t).T.descr with
                     | T.Ground (T.Format fmt) -> `Format fmt
-                    | _ -> assert false )
-              | _ -> assert false
+                    | T.EVar _ -> `Kind (Frame_content.kind_of_string name)
+                    | _ -> failwith ("Unhandled content: " ^ T.print tm.t) )
+              | T.Constr { T.name = "none" } ->
+                  `Kind (Frame_content.kind_of_string "none")
+              | _ -> failwith ("Unhandled content: " ^ T.print tm.t)
           in
           let k = of_frame_kind_t k in
           let k =
