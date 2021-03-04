@@ -153,7 +153,7 @@ let get_type ~ctype ~url container =
           | Some f -> (
               match Avutil.Pixel_format.to_string f with
                 | None -> "none"
-                | Some s -> s )
+                | Some s -> s)
       in
       let codec_name =
         Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)
@@ -405,7 +405,31 @@ let create_stream_decoder ~ctype _ input =
       | None -> None
       | Some fn -> Some (fun len _ -> fn len)
   in
-  let container = Av.open_input_stream ?seek:seek_input input.Decoder.read in
+  let eof = ref false in
+  let buf = Buffer.create 4096 in
+  let read bytes ofs len =
+    let b = Bytes.create len in
+    if !eof then 0
+    else (
+      let rec f () =
+        let pos = Buffer.length buf in
+        match input.Decoder.read b 0 (len - pos) with
+          | 0 ->
+              eof := true;
+              Buffer.blit buf 0 bytes ofs pos;
+              pos
+          | n when len = pos + n ->
+              Buffer.add_subbytes buf b 0 n;
+              Buffer.blit buf 0 bytes ofs len;
+              Buffer.reset buf;
+              len
+          | n ->
+              Buffer.add_subbytes buf b 0 n;
+              f ()
+      in
+      f ())
+  in
+  let container = Av.open_input_stream ?seek:seek_input read in
   let audio, video = mk_streams ~ctype container in
   let target_position = ref None in
   {
