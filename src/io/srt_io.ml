@@ -802,11 +802,13 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
       in
       let buf = Buffer.create payload_size in
       let tmp = Bytes.create payload_size in
+      let eof_seen = ref false in
       let read bytes ofs len =
         if self#should_stop then raise Done;
-        if Buffer.length buf < len then (
+        if !eof_seen && Buffer.length buf = 0 then raise End_of_file;
+        if (not !eof_seen) && Buffer.length buf < len then (
           let input = Srt.recvmsg socket tmp payload_size in
-          if input = 0 then raise End_of_file;
+          if input = 0 then eof_seen := true;
           Buffer.add_subbytes buf tmp 0 input;
           match dump_chan with
             | Some chan -> output chan tmp 0 input

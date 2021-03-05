@@ -281,6 +281,7 @@ let mk_decoder ?audio ?video ~target_position container =
             then video_packet_decoder ~buffer packet
             else f ()
         | _ -> ()
+        | exception Avutil.Error `Invalid_data -> f ()
         | exception Avutil.Error `Eof ->
             Generator.add_break ?sync:(Some true) buffer.Decoder.generator;
             raise End_of_file

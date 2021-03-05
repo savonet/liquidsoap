@@ -7,7 +7,7 @@ DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
 ocaml_progs= liquidsoap
 
-top_srcdir=..
+top_srcdir := $(if $(top_srcdir), $(top_srcdir), ..)
 include $(top_srcdir)/Makefile.defs
 
 liquidsoap_c_files = tools/unix_c.c \
@@ -130,7 +130,11 @@ encoders = \
 
 lang_encoders = \
   lang/lang_encoders.ml \
-  $(wildcard lang_encoders/*.ml)
+  lang_encoders/lang_avi.ml lang_encoders/lang_external_encoder.ml lang_encoders/lang_fdkaac.ml \
+  lang_encoders/lang_ffmpeg.ml lang_encoders/lang_flac.ml lang_encoders/lang_gstreamer.ml \
+  lang_encoders/lang_mp3.ml lang_encoders/lang_opus.ml lang_encoders/lang_shine.ml \
+  lang_encoders/lang_speex.ml lang_encoders/lang_theora.ml lang_encoders/lang_vorbis.ml \
+  lang_encoders/lang_wav.ml
 
 encoder_formats = \
   encoder_formats.ml \
