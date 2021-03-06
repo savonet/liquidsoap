@@ -39,13 +39,13 @@ let duration file =
         Ogg.Stream.put_page os page;
         let packet = Ogg.Stream.get_packet os in
         (* Test header. Do not catch anything, first page should be sufficient *)
-        if not (Ogg_flac.Decoder.check_packet packet) then raise Not_found;
+        if not (Flac_ogg.Decoder.check_packet packet) then raise Not_found;
         let fill () =
           let page = Ogg.Sync.read sync in
           if Ogg.Page.serialno page = serial then Ogg.Stream.put_page os page
         in
-        let callbacks = Ogg_flac.Decoder.get_callbacks (fun _ -> ()) in
-        let dec = Ogg_flac.Decoder.create packet os in
+        let callbacks = Flac_ogg.Decoder.get_callbacks (fun _ -> ()) in
+        let dec = Flac_ogg.Decoder.create packet os in
         let rec info () =
           try Flac.Decoder.init dec callbacks
           with Ogg.Not_enough_data ->

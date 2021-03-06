@@ -20,4 +20,4 @@
 
  *****************************************************************************)
 
-let () = Ogg_demuxer_flac_decoder.register ()
+let () = Vorbis_decoder.register ()

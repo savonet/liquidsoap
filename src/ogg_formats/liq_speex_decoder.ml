@@ -20,4 +20,4 @@
 
  *****************************************************************************)
 
-let () = Ogg_demuxer_vorbis_decoder.register ()
+let () = Speex_decoder.register ()
