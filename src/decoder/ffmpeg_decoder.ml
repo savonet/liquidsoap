@@ -153,7 +153,7 @@ let get_type ~ctype ~url container =
           | Some f -> (
               match Avutil.Pixel_format.to_string f with
                 | None -> "none"
-                | Some s -> s )
+                | Some s -> s)
       in
       let codec_name =
         Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)
