@@ -22,6 +22,8 @@
 
 open Mm
 
+let log = Log.make ["image"; "decoder"]
+
 (* TODO: put this in some library as it can be used in many other places... *)
 
 (** Function to retrieve width an height from parameters. *)
@@ -90,6 +92,7 @@ let create_decoder ~metadata img =
   let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
   let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
+  log#debug "Decoding to %dx%d at %dx%d" width height off_x off_y;
   let scale = Video_converter.scaler () in
   let img =
     let img =
