@@ -94,32 +94,6 @@ let () =
 let log = Lang.log
 
 let () =
-  let add_getters name get_t type_t to_get to_val =
-    add_builtin ~cat:Liq
-      ("to_" ^ name ^ "_getter")
-      ~descr:("Return a function from a " ^ name ^ " getter")
-      [("", get_t (), None, None)]
-      (Lang.fun_t [] type_t)
-      (fun p ->
-        let getter = to_get (Lang.assoc "" 1 p) in
-        Lang.val_fun [] (fun _ -> to_val (getter ())));
-    add_builtin ~cat:Liq (name ^ "_getter")
-      ~descr:
-        ( "Identity function over " ^ name ^ " getters. "
-        ^ "This is useful to make types explicit." )
-      [("", get_t (), None, None)]
-      (get_t ())
-      (fun p -> List.assoc "" p)
-  in
-  add_getters "string" Lang.string_getter_t Lang.string_t Lang.to_string_getter
-    Lang.string;
-  add_getters "float" Lang.float_getter_t Lang.float_t Lang.to_float_getter
-    Lang.float;
-  add_getters "int" Lang.int_getter_t Lang.int_t Lang.to_int_getter Lang.int;
-  add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter
-    Lang.bool
-
-let () =
   let kind = Lang.univ_t () in
   add_builtin ~cat:Liq "encoder.content_type"
     ~descr:"Return the content-type (mime) of an encoder, if known."
