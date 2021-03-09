@@ -27,6 +27,14 @@ end
 def video.add_image(~id="", ~width=int_getter(-1), ~height=int_getter(-1), ~x=int_getter(0), ~y=int_getter(0), ~file, s)
   image =
     if getter.int.is_constant(x) and getter.int.is_constant(y) and getter.int.is_constant(width) and getter.int.is_constant(height) then
+      width = to_int_getter(width)
+      height = to_int_getter(height)
+      x = to_int_getter(x)
+      y = to_int_getter(y)
+      width = width()
+      height = height()
+      x = x()
+      y = y()
       # This version is more efficient and does not mess up the dimensions (with
       # the one below, images get decoded with transparent border which messes
       # up their dimensions).

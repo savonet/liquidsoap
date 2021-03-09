@@ -59,7 +59,7 @@ let () =
     add_builtin ~cat:Liq
       ("getter." ^ name ^ ".is_constant")
       ~descr:"If true then the getter in argument is constant."
-      [("", Lang.getter_t ground, None, Some "Getter to inspect.")]
+      [("", Lang.ground_getter_t ground, None, Some "Getter to inspect.")]
       Lang.bool_t
       (fun p ->
         let g = List.assoc "" p in

@@ -132,7 +132,9 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
   end
 
   def register(method)
-    serve(port=port,method=method,"^#{basepath}",handler(method=method))
+    # TODO: restore me...
+    # serve(port=port,method=method,"^#{basepath}",handler(method=method))
+    ()
   end
   list.iter(register, ["OPTIONS","HEAD","GET"])
 end

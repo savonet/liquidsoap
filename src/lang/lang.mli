@@ -259,8 +259,11 @@ val univ_t : ?constraints:Lang_types.constraints -> unit -> t
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
 
+(** A getter on an arbitrary type. *)
+val getter_t : t -> t
+
 (** A getter on an arbitrary ground type. *)
-val getter_t : Lang_types.ground -> t
+val ground_getter_t : Lang_types.ground -> t
 
 (** A string getter. *)
 val string_getter_t : unit -> t
