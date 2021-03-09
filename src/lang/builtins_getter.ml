@@ -37,6 +37,18 @@ let () =
       let x = List.assoc "" p |> Lang.to_getter in
       x ())
 
+let () =
+  let a = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.is_constant"
+    ~descr:"If true then the getter in argument is constant."
+    [("", Lang.getter_t a, None, Some "Getter to inspect.")]
+    Lang.bool_t
+    (fun p ->
+      let g = List.assoc "" p in
+      match (Lang.demeth g).Lang.value with
+        | Lang.Ground _ -> Lang.bool true
+        | _ -> Lang.bool false)
+
 let () = Lang.add_module "getter.int"
 let () = Lang.add_module "getter.bool"
 let () = Lang.add_module "getter.float"
@@ -67,21 +79,3 @@ let () =
   add_getters "int" Lang.int_getter_t Lang.int_t Lang.to_int_getter Lang.int;
   add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter
     Lang.bool
-
-let () =
-  let add name ground =
-    add_builtin ~cat:Liq
-      ("getter." ^ name ^ ".is_constant")
-      ~descr:"If true then the getter in argument is constant."
-      [("", Lang.ground_getter_t ground, None, Some "Getter to inspect.")]
-      Lang.bool_t
-      (fun p ->
-        let g = List.assoc "" p in
-        match (Lang.demeth g).Lang.value with
-          | Lang.Ground _ -> Lang.bool true
-          | _ -> Lang.bool false)
-  in
-  add "float" Lang_types.Float;
-  add "string" Lang_types.String;
-  add "int" Lang_types.Int;
-  add "bool" Lang_types.Bool
