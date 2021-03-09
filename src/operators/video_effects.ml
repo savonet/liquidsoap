@@ -219,11 +219,14 @@ let () =
   let name = "video.resize" in
   Lang.add_operator name
     [
-      ("width", Lang.int_getter_t (), Some (Lang.int (-1)), Some "Target width.");
+      ( "width",
+        Lang.int_getter_t (),
+        Some (Lang.int (-1)),
+        Some "Target width (negative means original width)." );
       ( "height",
         Lang.int_getter_t (),
         Some (Lang.int (-1)),
-        Some "Target height." );
+        Some "Target height (negative means original height)." );
       ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
       ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
