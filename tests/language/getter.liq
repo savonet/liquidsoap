@@ -5,12 +5,11 @@
 # Test getters, see #1181
 
 def f(~x)
-  x = to_int_getter(x)
-  ignore(x() + 2)
+  ignore(getter.get(x) + 2)
 end
 
-def g(~x=int_getter(2))
-  x = to_int_getter(x)
+def g(~x=getter(2))
+  x = getter.function(x)
   ignore(x() + 2)
 end
 
