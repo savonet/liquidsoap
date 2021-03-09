@@ -54,7 +54,7 @@ let () =
       ("", Lang.fun_t [(false, "", a)] b, None, None);
       ("", Lang.fun_t [(false, "", Lang.fun_t [] a)] b, None, None);
     ]
-    Lang.bool_t
+    b
     (fun p ->
       let x = Lang.assoc "" 1 p in
       let f = Lang.assoc "" 2 p in
