@@ -105,7 +105,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
     ret = string.extract(pattern="^#{basepath}([^?]*)",uri)
 
     if list.length(ret) == 0 then
-      http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
+      getter(http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!"))
     else
       match = string.trim(ret[1])
 
@@ -121,20 +121,18 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
         end
 
         if method == "OPTIONS" or method == "HEAD" then
-          http.response(protocol=protocol,code=200,headers=responseHeaders)
+          getter(http.response(protocol=protocol,code=200,headers=responseHeaders))
         else
-          http.response.stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(fname),data=file.read(fname))
+          getter(http.response.stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(fname),data=file.read(fname)))
         end
       else
-        http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!")
+        getter(http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!"))
       end
     end
   end
 
   def register(method)
-    # TODO: restore me...
-    # serve(port=port,method=method,"^#{basepath}",handler(method=method))
-    ()
+    serve(port=port,method=method,"^#{basepath}",handler(method=method))
   end
   list.iter(register, ["OPTIONS","HEAD","GET"])
 end

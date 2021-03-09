@@ -409,16 +409,15 @@ end
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
 # @category Source / Track Processing
-def chop(~duration=float_getter(3.),~metadata={[]},s) =
-  duration=to_float_getter(duration)
+def chop(~duration=getter(3.), ~metadata=getter([]), s) =
   s = insert_metadata(s)
 
   # Track time in the source's context:
   start_time = ref(0.)
   def f() =
-    if duration () <= s.time() - !start_time then
+    if getter.get(duration) <= s.time() - !start_time then
       start_time := s.time()
-      s.insert_metadata(new_track=true, metadata())
+      s.insert_metadata(new_track=true, getter.get(metadata))
     end
     1.
   end
@@ -451,10 +450,10 @@ end
 # @param ~available Whether the source is available (`true`) or not (`false`).
 # @param s The stream.
 # @category Source / Track Processing
-def mkavailable(~id="mkavailable",~track_sensitive=bool_getter(true),~active=bool_getter(false),~available=bool_getter(true),s) =
-  output.dummy(switch([(to_bool_getter(active),s)]),fallible=true)
+def mkavailable(~id="mkavailable", ~track_sensitive=getter(true), ~active=getter(false), ~available=getter(true), s) =
+  output.dummy(switch([(getter.function(active),s)]),fallible=true)
 
-  switch(id=id,track_sensitive=to_bool_getter(track_sensitive),[(to_bool_getter(available),s)])
+  switch(id=id,track_sensitive=getter.function(track_sensitive),[(getter.function(available),s)])
 end
 
 let frame = ()

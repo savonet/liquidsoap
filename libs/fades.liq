@@ -357,8 +357,8 @@ end
 # @param ~p       Portion of amplitude of the normal source in the mix.
 # @param ~normal  The normal source, which could be called the carrier too.
 # @param ~special The special source.
-def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
-  p = to_float_getter(p)
+def smooth_add(~delay=0.5, ~p=getter(0.2), ~normal, ~special)
+  p = getter.function(p)
   last_p = ref(p())
 
   def c(fn,s) =

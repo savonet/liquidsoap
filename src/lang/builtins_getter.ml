@@ -25,9 +25,16 @@ open Lang_builtins
 let () =
   let a = Lang.univ_t () in
   add_builtin ~cat:Liq "getter" ~descr:"Create a getter."
-    [("", a, None, Some "Value from which the getter should be created.")]
-    (Lang.getter_t a) (fun p -> List.assoc "" p)
+    [
+      ( "",
+        Lang.getter_t a,
+        None,
+        Some "Value from which the getter should be created." );
+    ]
+    (Lang.getter_t a)
+    (fun p -> List.assoc "" p)
 
+(* TODO: this could be implemented in Liq with getter.elim *)
 let () =
   let a = Lang.univ_t () in
   add_builtin ~cat:Liq "getter.get" ~descr:"Get the value of a getter."
@@ -39,43 +46,19 @@ let () =
 
 let () =
   let a = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter.is_constant"
-    ~descr:"If true then the getter in argument is constant."
-    [("", Lang.getter_t a, None, Some "Getter to inspect.")]
+  let b = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.elim"
+    ~descr:"Return a value depending on whether the getter is constant or not."
+    [
+      ("", Lang.getter_t a, None, Some "Getter to inspect.");
+      ("", Lang.fun_t [(false, "", a)] b, None, None);
+      ("", Lang.fun_t [(false, "", Lang.fun_t [] a)] b, None, None);
+    ]
     Lang.bool_t
     (fun p ->
-      let g = List.assoc "" p in
-      match (Lang.demeth g).Lang.value with
-        | Lang.Ground _ -> Lang.bool true
-        | _ -> Lang.bool false)
-
-let () = Lang.add_module "getter.int"
-let () = Lang.add_module "getter.bool"
-let () = Lang.add_module "getter.float"
-let () = Lang.add_module "getter.string"
-
-let () =
-  let add_getters name get_t type_t to_get to_val =
-    add_builtin ~cat:Liq
-      ("to_" ^ name ^ "_getter")
-      ~descr:("Return a function from a " ^ name ^ " getter")
-      [("", get_t (), None, None)]
-      (Lang.fun_t [] type_t)
-      (fun p ->
-        let getter = to_get (Lang.assoc "" 1 p) in
-        Lang.val_fun [] (fun _ -> to_val (getter ())));
-    add_builtin ~cat:Liq (name ^ "_getter")
-      ~descr:
-        ( "Identity function over " ^ name ^ " getters. "
-        ^ "This is useful to make types explicit." )
-      [("", get_t (), None, None)]
-      (get_t ())
-      (fun p -> List.assoc "" p)
-  in
-  add_getters "string" Lang.string_getter_t Lang.string_t Lang.to_string_getter
-    Lang.string;
-  add_getters "float" Lang.float_getter_t Lang.float_t Lang.to_float_getter
-    Lang.float;
-  add_getters "int" Lang.int_getter_t Lang.int_t Lang.to_int_getter Lang.int;
-  add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter
-    Lang.bool
+      let x = Lang.assoc "" 1 p in
+      let f = Lang.assoc "" 2 p in
+      let g = Lang.assoc "" 3 p in
+      match (Lang.demeth x).Lang.value with
+        | Lang.Fun ([], _, _, _) -> Lang.apply g [("", x)]
+        | _ -> Lang.apply f [("", x)])
