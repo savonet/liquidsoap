@@ -24,9 +24,21 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id="", ~width=int_getter(-1), ~height=int_getter(-1), ~x=int_getter(max_int), ~y=int_getter(max_int), ~file, s)
-  image = single(id=id, file)
-  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
+def video.add_image(~id="", ~width=int_getter(-1), ~height=int_getter(-1), ~x=int_getter(0), ~y=int_getter(0), ~file, s)
+  image =
+    if getter.int.is_constant(x) and getter.int.is_constant(y) and getter.int.is_constant(width) and getter.int.is_constant(height) then
+      # This version is more efficient and does not mess up the dimensions (with
+      # the one below, images get decoded with transparent border which messes
+      # up their dimensions).
+      width = if width < 0 then "" else "width=#{width}" end
+      height = if height < 0 then "" else "height=#{height}" end
+      x = if x == 0 then "" else "x=#{x}" end
+      y = if y == 0 then "" else "y=#{y}" end
+      single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")
+    else
+      image = single(id=id, file)
+      video.resize(id=id, x=x, y=y, width=width, height=height, image)
+    end
   image = mux_audio(audio=blank(), image)
   add([s,image])
 end
