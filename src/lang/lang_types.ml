@@ -1016,8 +1016,6 @@ let rec ( <: ) a b =
         try bind b a
         with Occur_check _ | Unsatisfied_constraint _ ->
           raise (Error (repr a, repr b)) )
-    | _, Getter t2 -> (
-        try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)) )
     | _, Nullable t2 -> (
         try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)) )
     | _, Meth (l, (g2, t2), _, u2) -> (
@@ -1049,6 +1047,8 @@ let rec ( <: ) a b =
             | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))) )
         )
     | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
+    | _, Getter t2 -> (
+        try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)) )
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining the
