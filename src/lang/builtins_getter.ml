@@ -22,7 +22,21 @@
 
 open Lang_builtins
 
-let () = Lang.add_module "getter"
+let () =
+  let a = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter" ~descr:"Create a getter."
+    [("", a, None, Some "Value from which the getter should be created.")]
+    (Lang.getter_t a) (fun p -> List.assoc "" p)
+
+let () =
+  let a = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.get" ~descr:"Get the value of a getter."
+    [("", Lang.getter_t a, None, None)]
+    a
+    (fun p ->
+      let x = List.assoc "" p |> Lang.to_getter in
+      x ())
+
 let () = Lang.add_module "getter.int"
 let () = Lang.add_module "getter.bool"
 let () = Lang.add_module "getter.float"

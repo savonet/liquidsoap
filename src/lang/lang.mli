@@ -218,6 +218,7 @@ val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
+val to_getter : value -> unit -> value
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
   * This is useful for retrieving arguments of a function. *)

@@ -502,6 +502,11 @@ let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
 let to_source_list l = List.map to_source (to_list l)
 
+let to_getter t =
+  match (demeth t).value with
+    | Fun ([], _, _, _) | FFI ([], _, _) -> fun () -> apply t []
+    | _ -> fun () -> t
+
 (** [assoc lbl n l] returns the [n]th element in [l]
   * of which the first component is [lbl]. *)
 let rec assoc label n = function
