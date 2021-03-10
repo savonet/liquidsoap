@@ -37,11 +37,11 @@ let create_encoder ~flac ~comments () =
     match !enc with
       | Some x -> x
       | None ->
-          let x = Ogg_flac.Encoder.create ~comments p os in
+          let x = Flac_ogg.Encoder.create ~comments p os in
           enc := Some x;
           x
   in
-  let cb = Ogg_flac.Encoder.callbacks in
+  let cb = Flac_ogg.Encoder.callbacks in
   let empty_data () =
     Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.)
   in
@@ -52,7 +52,7 @@ let create_encoder ~flac ~comments () =
   in
   let fisbone_packet os =
     Some
-      (Ogg_flac.Skeleton.fisbone ~serialno:(Ogg.Stream.serialno os)
+      (Flac_ogg.Skeleton.fisbone ~serialno:(Ogg.Stream.serialno os)
          ~samplerate:(Int64.of_int samplerate) ())
   in
   let stream_start os =
@@ -79,9 +79,9 @@ let create_encoder ~flac ~comments () =
     (* Assert that at least some data was encoded.. *)
     if not !started then (
       let b = empty_data () in
-      Flac.Encoder.process enc cb b );
+      Flac.Encoder.process enc cb b);
     Flac.Encoder.finish enc cb;
-    Ogg_flac.Encoder.finish enc
+    Flac_ogg.Encoder.finish enc
   in
   {
     Ogg_muxer.header_encoder;

@@ -20,18 +20,4 @@
 
  *****************************************************************************)
 
-let samplerates = [8000; 12000; 16000; 24000; 48000]
-
-let () =
-  Lifecycle.on_start (fun () ->
-      let rate = Lazy.force Frame.audio_rate in
-      let rec f = function
-        | [] -> 48000
-        | x :: l when x < rate -> f l
-        | x :: _ -> x
-      in
-      Ogg_demuxer_opus_decoder.decoder_samplerate := f samplerates);
-  Ogg_demuxer_opus_decoder.register ()
-
-(* Register audio/opus mime *)
-let () = Ogg_decoder.mime_types#set ("audio/opus" :: Ogg_decoder.mime_types#get)
+let () = Flac_decoder.register ()

@@ -20,4 +20,19 @@
 
  *****************************************************************************)
 
-let () = Ogg_demuxer_theora_decoder.register ()
+let samplerates = [8000; 12000; 16000; 24000; 48000]
+
+let () =
+  Lifecycle.on_start (fun () ->
+      let rate = Lazy.force Frame.audio_rate in
+      let rec f = function
+        | [] -> 48000
+        | x :: l when x < rate -> f l
+        | x :: _ -> x
+      in
+      Opus_decoder.decoder_samplerate := f samplerates);
+  Opus_decoder.register ()
+
+(* Register audio/opus mime *)
+let () =
+  Liq_ogg_decoder.mime_types#set ("audio/opus" :: Liq_ogg_decoder.mime_types#get)
