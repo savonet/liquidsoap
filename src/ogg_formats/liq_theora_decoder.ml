@@ -20,4 +20,4 @@
 
  *****************************************************************************)
 
-let () = Ogg_demuxer_speex_decoder.register ()
+let () = Theora_decoder.register ()

@@ -426,24 +426,28 @@ AC_CHECK_OCAML_BINDING([lastfm],[xmlplaylist])
 #
 
 AC_CHECK_OCAML_BINDING([ogg])
+AC_CHECK_OCAML_BINDING([ogg.decoder],[ogg])
 
 #
 # Vorbis
 #
 
 AC_CHECK_OCAML_BINDING([vorbis],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis.decoder],[vorbis])
 
 #
 # Opus
 #
 
 AC_CHECK_OCAML_BINDING([opus],[ogg])
+AC_CHECK_OCAML_BINDING([opus.decoder],[opus])
 
 #
 # Speex
 #
 
 AC_CHECK_OCAML_BINDING([speex],[ogg])
+AC_CHECK_OCAML_BINDING([speex.decoder],[speex])
 
 #
 # Mad
@@ -461,6 +465,7 @@ if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
 AC_CHECK_OCAML_BINDING([flac.ogg],[ogg flac],[],[],[flac])
+AC_CHECK_OCAML_BINDING([flac.decoder],[flac.ogg])
 
 #
 # Dynlink
@@ -555,6 +560,7 @@ AC_SUBST(W_FDKAAC_DYN)
 #
 
 AC_CHECK_OCAML_BINDING([theora],[ogg])
+AC_CHECK_OCAML_BINDING([theora.decoder],[theora])
 
 #
 # FFMPEG
