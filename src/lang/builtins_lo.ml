@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Extralib
-module S = LO.Server
+module S = Lo.Server
 
 let () = Lang.add_module "osc"
 
@@ -37,7 +37,7 @@ let conf_port =
 let handlers = ref []
 let add_handler path t f = handlers := ((path, t), f) :: !handlers
 
-let handler path (data : LO.Message.data array) =
+let handler path (data : Lo.Message.data array) =
   let typ = function
     | `Float _ | `Double _ -> `Float
     | `Int32 _ | `Int64 _ -> `Int
@@ -86,7 +86,7 @@ let start_server () =
              S.recv s
            done
          with
-           | LO.Server.Stopped -> ()
+           | Lo.Server.Stopped -> ()
            | exn ->
                let backtrace = Printexc.get_backtrace () in
                log#important "OSC server thread exited with exception: %s\n%s"
@@ -163,7 +163,7 @@ let register name osc_t liq_t =
       let port = Lang.to_int (List.assoc "port" p) in
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.assoc "" 2 p in
-      let address = LO.Address.create host port in
+      let address = Lo.Address.create host port in
       let osc_val v =
         match v.Lang.value with
           | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
@@ -173,7 +173,7 @@ let register name osc_t liq_t =
       in
       (* There was a bug in early versions of lo bindings and anyway we don't
          really want errors to show up here... *)
-      (try LO.send address path (osc_val v) with _ -> ());
+      (try Lo.send address path (osc_val v) with _ -> ());
       Lang.unit)
 
 let () =
