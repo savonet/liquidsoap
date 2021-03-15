@@ -4,6 +4,8 @@ def getter.function(x)
   {getter.get(x)}
 end
 
+# Determine if a getter is a constant.
+# @category Liquidsoap
 def getter.is_constant(x)
   getter.elim(x, fun (_) -> true, fun (_) -> false)
 end
