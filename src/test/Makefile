@@ -1,29 +1,33 @@
 TESTS_ML = $(wildcard *.ml)
 TESTS = $(TESTS_ML:.ml=)
-OCAML_CFLAGS = -I ../lang -I ../stream -I ../converters -I ../converters/audio/ -I ../tools  -I ../decoder -I .. $(liquidsoap_ocamlcflags) -thread
-OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
-		extralib.cmx stringView.cmx strings.cmx utils.cmx log.cmx lifecycle.cmx  tutils.cmx \
-		file_watcher_mtime.cmx dyntools.cmx JSON.cmx configure.cmx http.cmx id3v2.cmx \
-                doc.cmx plug.cmx audio_converter.cmx video_converter.cmx unifier.cmx \
-		stream/frame_settings.cmx stream/frame_content.cmx stream/frame.cmx avi.cmx \
-                vFrame.cmx aFrame.cmx generator.cmx decoder_utils.cmx decoder.cmx \
-		lang_types.cmx pool.cmx request.cmx server.cmx source.cmx ../tools/unix_c.o
 
 all: $(TESTS)
+
+SUBDIRS=""
+top_srcdir=../..
+include $(top_srcdir)/src/Makefile
 
 test.mp3:
 	if [ ! -e test.wav ] ; then ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 -metadata title="Liquidsong" -metadata artist="Liquidsinger" test.mp3 ; fi
 
-test: test.mp3 all
-	@for t in $(TESTS); do echo "Testing $$t..."; ./$$t || exit 1; done
+test: test.mp3 all run_stream_decoder_test
+	@for t in $(filter-out stream_decoder_test,$(TESTS)); do echo "Testing $$t..."; ./$$t || exit 1; done
 
 clean:
-	rm -f $(TESTS) *.annot *.cmi *.cmx *.cmo *.o
+	rm -f $(TESTS) *.annot *.cm* *.o bla.mp3 test.mp3
+
+run_stream_decoder_test: stream_decoder_test test.mp3
+	./stream_decoder_test test.mp3 bla.mp3
+
+all-subdirs: ;
+all-auto-ocaml-prog: ;
+
+ml = $(subst runner.ml,,$(subst main.ml,,$(liquidsoap_sources)))
+cmx = $(ml:.ml=.$(o))
 
 %: %.ml
 	@echo "Generating $@..."
-	@$(OCAMLC) $(OCAML_CFLAGS) $(OCAML_LFLAGS) $^ -o $@
-
-include ../../Makefile.defs
+	@cd .. && $(OCAMLC) $(liquidsoap_ocamlcflags) $(OCAML_CFLAGS) $(liquidsoap_ocamllflags) $(OCAML_LFLAGS) -c test/$^
+	@cd .. && $(OCAMLC) $(liquidsoap_ocamlcflags) $(OCAML_CFLAGS) $(liquidsoap_ocamllflags) $(OCAML_LFLAGS) $(cmx) $(liquidsoap_c_files:.c=.o) test/$(patsubst %.ml,%.$(o),$^) -o test/$@
 
 export OCAMLPATH := $(OCAMLPATH)
