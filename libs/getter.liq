@@ -8,22 +8,6 @@ def getter.is_constant(x)
   getter.elim(x, fun (_) -> true, fun (_) -> false)
 end
 
-# Apply a function to a getter.
-# @category Liquidsoap
-def getter.map(f, x)
-  getter(f(getter.get(x)))
-
-  # TODO: both optimizations below are not typable
-
-  # getter.elim(x, fun(x) -> getter(f(x)), fun (x) -> getter({f(x())}))
-
-  # if getter.is_constant(x) then
-    # getter(f(getter.get(x)))
-  # else
-    # getter({f(getter.get(x))})
-  # end
-end
-
 # Convert an int getter to a float getter.
 # @category Math
 def getter.float_of_int(x)

@@ -50,10 +50,9 @@ let () =
       let f = Lang.assoc "" 2 p in
       let g = Lang.assoc "" 3 p in
       match (Lang.demeth x).Lang.value with
-        | Lang.Fun ([], _, _, _) -> Lang.apply g [("", x)]
+        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) -> Lang.apply g [("", x)]
         | _ -> Lang.apply f [("", x)])
 
-(* TODO: this could be implemented in Liq with getter.case *)
 let () =
   let a = Lang.univ_t () in
   add_builtin ~cat:Liq "getter.get" ~descr:"Get the value of a getter."
@@ -62,3 +61,20 @@ let () =
     (fun p ->
       let x = List.assoc "" p |> Lang.to_getter in
       x ())
+
+let () =
+  let a = Lang.univ_t () in
+  let b = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.map" ~descr:"Apply a function on a getter."
+    [
+      ("", Lang.fun_t [(false, "", a)] b, None, Some "Function to apply.");
+      ("", Lang.getter_t a, None, None);
+    ]
+    (Lang.getter_t b)
+    (fun p ->
+      let f = Lang.assoc "" 1 p in
+      let x = Lang.assoc "" 2 p in
+      match (Lang.demeth x).Lang.value with
+        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) ->
+            Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
+        | _ -> Lang.apply f [("", x)])
