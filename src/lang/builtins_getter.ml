@@ -34,20 +34,10 @@ let () =
     (Lang.getter_t a)
     (fun p -> List.assoc "" p)
 
-(* TODO: this could be implemented in Liq with getter.elim *)
-let () =
-  let a = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter.get" ~descr:"Get the value of a getter."
-    [("", Lang.getter_t a, None, None)]
-    a
-    (fun p ->
-      let x = List.assoc "" p |> Lang.to_getter in
-      x ())
-
 let () =
   let a = Lang.univ_t () in
   let b = Lang.univ_t () in
-  add_builtin ~cat:Liq "getter.elim"
+  add_builtin ~cat:Liq "getter.case"
     ~descr:"Return a value depending on whether the getter is constant or not."
     [
       ("", Lang.getter_t a, None, Some "Getter to inspect.");
@@ -62,3 +52,13 @@ let () =
       match (Lang.demeth x).Lang.value with
         | Lang.Fun ([], _, _, _) -> Lang.apply g [("", x)]
         | _ -> Lang.apply f [("", x)])
+
+(* TODO: this could be implemented in Liq with getter.case *)
+let () =
+  let a = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.get" ~descr:"Get the value of a getter."
+    [("", Lang.getter_t a, None, None)]
+    a
+    (fun p ->
+      let x = List.assoc "" p |> Lang.to_getter in
+      x ())
