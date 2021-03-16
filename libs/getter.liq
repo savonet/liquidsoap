@@ -17,7 +17,7 @@ def getter.float_of_int(x)
 end
 
 # Convert a float getter to a int getter.
-# @category Math
+# @category Liquidsoap
 def getter.int_of_float(x)
   getter.map(int_of_float, x)
 end
