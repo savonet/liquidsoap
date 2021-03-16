@@ -105,11 +105,11 @@ let () =
   Lang.add_operator "accelerate"
     [
       ( "ratio",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 2.),
         Some "A value higher than 1 means slowing down." );
       ( "randomize",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Randomization (0 means no randomization)." );
       ("", Lang.source_t return_t, None, None);

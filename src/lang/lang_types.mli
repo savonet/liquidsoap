@@ -43,7 +43,7 @@ type ground +=
 val register_ground_printer : (ground -> string option) -> unit
 val print_ground : ground -> string
 
-type constr = Num | Ord | Getter of ground | Dtools | InternalMedia
+type constr = Num | Ord | Dtools | InternalMedia
 type constraints = constr list
 
 val print_constr : constr -> string
@@ -55,6 +55,7 @@ and constructed = { name : string; params : (variance * t) list }
 and descr =
   | Constr of constructed
   | Ground of ground
+  | Getter of t
   | List of t
   | Tuple of t list
   | Nullable of t

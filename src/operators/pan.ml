@@ -60,11 +60,11 @@ let () =
   Lang.add_operator "stereo.pan"
     [
       ( "pan",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 0.),
         Some "Pan ranges between -1 and 1." );
       ( "field",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 90.),
         Some "Field width in degrees (between 0 and 90)." );
       ("", Lang.source_t k, None, None);

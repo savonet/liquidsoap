@@ -65,7 +65,7 @@ New:
 - Added `server.habor` (#1502).
 - Added `metronome`.
 - Added `playlist.files`.
-- Added `getter.*.is_constant`.
+- Added `getter.is_constant`.
 
 Changed:
 

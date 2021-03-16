@@ -33,7 +33,7 @@ let gstreamer.single = ()
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the file to be played.
 def gstreamer.single.audio(~id="",~on_error=fun(_)->3.,uri) =
-  uri = to_string_getter(uri)
+  uri = getter.function(uri)
   input.gstreamer.audio(pipeline={"filesrc location=\"#{uri()}\""})
 end
 
@@ -45,7 +45,7 @@ end
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
 def output.file.hls.gstreamer(~id="",~on_error=fun(_)->3.,uri) =
-  uri = to_string_getter(uri)
+  uri = getter.function(uri)
   pipeline = {"souphttpsrc location=\"#{uri()}\" ! tee name=t"}
   audio_pipeline = "t. ! queue"
   video_pipeline = "t. ! queue"
@@ -59,7 +59,7 @@ end
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
 def output.file.hls.gstreamer.audio(~id="",~on_error=fun(_)->3.,uri) =
-  uri = to_string_getter(uri)
+  uri = getter.function(uri)
   pipeline = {"souphttpsrc location=\"#{uri()}\""}
   input.gstreamer.audio(id=id, pipeline=pipeline, on_error=on_error)
 end

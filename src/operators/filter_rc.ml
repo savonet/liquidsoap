@@ -92,7 +92,10 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.rc"
     [
-      ("rc", Lang.float_getter_t (), None, Some "Time constant (in seconds).");
+      ( "rc",
+        Lang.getter_t Lang.float_t,
+        None,
+        Some "Time constant (in seconds)." );
       ( "mode",
         Lang.string_t,
         None,
@@ -100,7 +103,7 @@ let () =
           "Available modes are 'low' (for low-pass filter), 'high' (for \
            high-pass filter)." );
       ( "wetness",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some
           "How much of the original signal should be added (1. means only \

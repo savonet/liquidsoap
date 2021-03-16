@@ -216,7 +216,7 @@ let () =
        It returns the source with a method to compute the current value."
     [
       ( "window",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 3.),
         Some "Duration of the window (in seconds) used to compute the LUFS." );
       ("", Lang.source_t return_t, None, None);

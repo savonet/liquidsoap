@@ -155,13 +155,13 @@ let () =
     ~descr:"Play request dynamically created by a given function."
     ( ("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
     :: ( "retry_delay",
-         Lang.float_getter_t (),
+         Lang.getter_t Lang.float_t,
          Some (Lang.float 0.1),
          Some
            "Retry after a given time (in seconds) when callback returns an \
             empty list." )
     :: ( "available",
-         Lang.bool_getter_t (),
+         Lang.getter_t Lang.bool_t,
          Some (Lang.bool true),
          Some
            "Whether some new requests are available (when set to false, it \

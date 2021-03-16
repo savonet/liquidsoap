@@ -150,7 +150,7 @@ let pipe_proto kind arg_doc =
         Some "When should the output be re-opened." );
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ( "",
-        Lang.string_getter_t (),
+        Lang.getter_t Lang.string_t,
         None,
         Some
           ( arg_doc

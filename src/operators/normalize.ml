@@ -131,7 +131,7 @@ let () =
   Lang.add_operator "normalize"
     [
       ( "target",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-13.)),
         Some "Desired RMS (dB)." );
       ( "window",
@@ -141,27 +141,27 @@ let () =
           "Duration of the window used to compute the current RMS power \
            (second)." );
       ( "k_up",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 0.005),
         Some
           "Coefficient when the power must go up (between 0 and 1, slowest to \
            fastest)." );
       ( "k_down",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 0.1),
         Some
           "Coefficient when the power must go down (between 0 and 1, slowest \
            to fastest)." );
       ( "threshold",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-40.)),
         Some "Minimal RMS for activaing gain control (dB)." );
       ( "gain_min",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-6.)),
         Some "Minimal gain value (dB)." );
       ( "gain_max",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 6.),
         Some "Maximal gain value (dB)." );
       ("", Lang.source_t k, None, None);

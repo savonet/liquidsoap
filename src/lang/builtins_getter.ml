@@ -22,52 +22,59 @@
 
 open Lang_builtins
 
-let () = Lang.add_module "getter"
-let () = Lang.add_module "getter.int"
-let () = Lang.add_module "getter.bool"
-let () = Lang.add_module "getter.float"
-let () = Lang.add_module "getter.string"
+let () =
+  let a = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter" ~descr:"Create a getter."
+    [
+      ( "",
+        Lang.getter_t a,
+        None,
+        Some "Value from which the getter should be created." );
+    ]
+    (Lang.getter_t a)
+    (fun p -> List.assoc "" p)
 
 let () =
-  let add_getters name get_t type_t to_get to_val =
-    add_builtin ~cat:Liq
-      ("to_" ^ name ^ "_getter")
-      ~descr:("Return a function from a " ^ name ^ " getter")
-      [("", get_t (), None, None)]
-      (Lang.fun_t [] type_t)
-      (fun p ->
-        let getter = to_get (Lang.assoc "" 1 p) in
-        Lang.val_fun [] (fun _ -> to_val (getter ())));
-    add_builtin ~cat:Liq (name ^ "_getter")
-      ~descr:
-        ( "Identity function over " ^ name ^ " getters. "
-        ^ "This is useful to make types explicit." )
-      [("", get_t (), None, None)]
-      (get_t ())
-      (fun p -> List.assoc "" p)
-  in
-  add_getters "string" Lang.string_getter_t Lang.string_t Lang.to_string_getter
-    Lang.string;
-  add_getters "float" Lang.float_getter_t Lang.float_t Lang.to_float_getter
-    Lang.float;
-  add_getters "int" Lang.int_getter_t Lang.int_t Lang.to_int_getter Lang.int;
-  add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter
-    Lang.bool
+  let a = Lang.univ_t () in
+  let b = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.case"
+    ~descr:"Return a value depending on whether the getter is constant or not."
+    [
+      ("", Lang.getter_t a, None, Some "Getter to inspect.");
+      ("", Lang.fun_t [(false, "", a)] b, None, None);
+      ("", Lang.fun_t [(false, "", Lang.fun_t [] a)] b, None, None);
+    ]
+    b
+    (fun p ->
+      let x = Lang.assoc "" 1 p in
+      let f = Lang.assoc "" 2 p in
+      let g = Lang.assoc "" 3 p in
+      match (Lang.demeth x).Lang.value with
+        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) -> Lang.apply g [("", x)]
+        | _ -> Lang.apply f [("", x)])
 
 let () =
-  let add name ground =
-    add_builtin ~cat:Liq
-      ("getter." ^ name ^ ".is_constant")
-      ~descr:"If true then the getter in argument is constant."
-      [("", Lang.getter_t ground, None, Some "Getter to inspect.")]
-      Lang.bool_t
-      (fun p ->
-        let g = List.assoc "" p in
-        match (Lang.demeth g).Lang.value with
-          | Lang.Ground _ -> Lang.bool true
-          | _ -> Lang.bool false)
-  in
-  add "float" Lang_types.Float;
-  add "string" Lang_types.String;
-  add "int" Lang_types.Int;
-  add "bool" Lang_types.Bool
+  let a = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.get" ~descr:"Get the value of a getter."
+    [("", Lang.getter_t a, None, None)]
+    a
+    (fun p ->
+      let x = List.assoc "" p |> Lang.to_getter in
+      x ())
+
+let () =
+  let a = Lang.univ_t () in
+  let b = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.map" ~descr:"Apply a function on a getter."
+    [
+      ("", Lang.fun_t [(false, "", a)] b, None, Some "Function to apply.");
+      ("", Lang.getter_t a, None, None);
+    ]
+    (Lang.getter_t b)
+    (fun p ->
+      let f = Lang.assoc "" 1 p in
+      let x = Lang.assoc "" 2 p in
+      match (Lang.demeth x).Lang.value with
+        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) ->
+            Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
+        | _ -> Lang.apply f [("", x)])

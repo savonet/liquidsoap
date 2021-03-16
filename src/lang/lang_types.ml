@@ -23,9 +23,6 @@
 let debug = ref (Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None)
 let debug_levels = false
 
-(** Pretty-print getters as {t}. *)
-let pretty_getters = ref true
-
 (** Show generalized variables in records. *)
 let show_record_schemes = ref true
 
@@ -120,16 +117,12 @@ let print_ground v =
 
 (** Type constraints *)
 
-type constr = Num | Ord | Getter of ground | Dtools | InternalMedia
+type constr = Num | Ord | Dtools | InternalMedia
 type constraints = constr list
 
 let print_constr = function
   | Num -> "a number type"
   | Ord -> "an orderable type"
-  | Getter t ->
-      let t = print_ground t in
-      if !pretty_getters then Printf.sprintf "{%s}" t
-      else Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "unit, bool, int, float, string or [string]"
   | InternalMedia -> "an internal media type (none, pcm, yuva420p or midi)"
 
@@ -148,6 +141,7 @@ and constructed = { name : string; params : (variance * t) list }
 and descr =
   | Constr of constructed
   | Ground of ground
+  | Getter of t
   | List of t
   | Tuple of t list
   | Nullable of t
@@ -172,7 +166,7 @@ type repr =
   | `Nullable of repr
   | `Meth of string * ((string * constraints) list * repr) * repr
   | `Arrow of (bool * string * repr) list * repr
-  | `Getter of ground
+  | `Getter of repr
   | `EVar of string * constraints (* existential variable *)
   | `UVar of string * constraints (* universal variable *)
   | `Ellipsis (* omitted sub-term *)
@@ -303,6 +297,7 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
     else (
       match t.descr with
         | Ground g -> `Ground g
+        | Getter t -> `Getter (repr g t)
         | List t -> `List (repr g t)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
@@ -319,7 +314,6 @@ let repr ?(filter_out = fun _ -> false) ?(generalized = []) t : repr =
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
-        | EVar (_, [Getter a]) when !pretty_getters -> `Getter a
         | EVar (i, c) ->
             if List.exists (fun (j, _) -> j = i) g then uvar g t.level (i, c)
             else evar t.level i c
@@ -492,8 +486,10 @@ let print_repr f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "]@]";
         vars
-    | `Getter a ->
-        Format.fprintf f "{%s}" (print_ground a);
+    | `Getter t ->
+        Format.fprintf f "{";
+        let vars = print ~par:false vars t in
+        Format.fprintf f "}";
         vars
     | `EVar (a, [InternalMedia]) ->
         Format.fprintf f "?internal(%s)" a;
@@ -539,9 +535,6 @@ let print_repr f t =
   begin
     match t with
     (* We're only printing a variable: ignore its [repr]esentation. *)
-    | (`EVar (_, [Getter a]) | `UVar (_, [Getter a])) when !pretty_getters ->
-        let t = print_ground a in
-        Format.fprintf f "{%s}" t
     | `EVar (_, c) when c <> [] ->
         Format.fprintf f "something that is %s"
           (String.concat " and " (List.map print_constr c))
@@ -637,6 +630,7 @@ let rec occur_check a b =
   match b.descr with
     | Constr c -> List.iter (fun (_, x) -> occur_check a x) c.params
     | Tuple l -> List.iter (occur_check a) l
+    | Getter t -> occur_check a t
     | List t -> occur_check a t
     | Nullable t -> occur_check a t
     | Meth (_, (_, t), _, u) ->
@@ -670,22 +664,6 @@ let rec bind a0 b =
       | EVar (_, constraints) ->
           List.iter
             (function
-              | Getter g -> (
-                  let error = Unsatisfied_constraint (Getter g, b) in
-                  match b.descr with
-                    | Ground g' -> if g <> g' then raise error
-                    | Arrow ([], t) -> (
-                        match (deref t).descr with
-                          | Ground g' -> if g <> g' then raise error
-                          | EVar (_, _) ->
-                              (* This is almost wrong as it flips <: into
-                               * >:, but that's OK for a ground type. *)
-                              bind t (make (Ground g))
-                          | _ -> raise error )
-                    | EVar (j, c) ->
-                        if List.mem (Getter g) c then ()
-                        else b.descr <- EVar (j, Getter g :: c)
-                    | _ -> raise error )
               | Ord ->
                   let rec check b =
                     let b = demeth b in
@@ -779,6 +757,7 @@ let filter_vars f t =
     let t = deref t in
     match t.descr with
       | Ground _ -> l
+      | Getter t -> aux l t
       | List t | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
       | Meth (_, (g, t), _, u) ->
@@ -809,6 +788,7 @@ let copy_with (subst : Subst.t) t =
           let params = List.map (fun (v, t) -> (v, aux t)) c.params in
           cp (Constr { c with params })
       | Ground _ -> cp t.descr
+      | Getter t -> cp (Getter (aux t))
       | List t -> cp (List (aux t))
       | Nullable t -> cp (Nullable (aux t))
       | Tuple l -> cp (Tuple (List.map aux l))
@@ -1019,6 +999,11 @@ let rec ( <: ) a b =
     | Ground (Format k), Ground (Format k') -> (
         try Frame_content.merge k k' with _ -> raise (Error (repr a, repr b)) )
     | Ground x, Ground y -> if x <> y then raise (Error (repr a, repr b))
+    | Getter t1, Getter t2 -> (
+        try t1 <: t2 with Error (a, b) -> raise (Error (`Getter a, `Getter b)) )
+    | Arrow ([], t1), Getter t2 -> (
+        try t1 <: t2
+        with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)) )
     | EVar _, _ -> (
         try bind a b
         with Occur_check _ | Unsatisfied_constraint _ ->
@@ -1062,6 +1047,8 @@ let rec ( <: ) a b =
             | _ -> raise (Error (repr a, `Meth (l, ([], `Ellipsis), `Ellipsis))) )
         )
     | Meth (l, _, _, u1), _ -> hide_meth l u1 <: b
+    | _, Getter t2 -> (
+        try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)) )
     | Link _, _ | _, Link _ -> assert false (* thanks to deref *)
     | _, _ ->
         (* The superficial representation is enough for explaining the
@@ -1107,6 +1094,7 @@ let rec duplicate ?pos ?level t =
             }
       | Ground (Format k) -> Ground (Format (Frame_content.duplicate k))
       | Ground g -> Ground g
+      | Getter t -> Getter (duplicate ?pos ?level t)
       | List t -> List (duplicate ?pos ?level t)
       | Tuple l -> Tuple (List.map (duplicate ?pos ?level) l)
       | Nullable t -> Nullable (duplicate ?pos ?level t)

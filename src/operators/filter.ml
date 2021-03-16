@@ -100,8 +100,8 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter"
     [
-      ("freq", Lang.float_getter_t (), None, None);
-      ("q", Lang.float_getter_t (), Some (Lang.float 1.), None);
+      ("freq", Lang.getter_t Lang.float_t, None, None);
+      ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), None);
       ( "mode",
         Lang.string_t,
         None,
@@ -110,7 +110,7 @@ let () =
            high-pass filter), 'band' (for band-pass filter) and 'notch' (for \
            notch / band-stop / band-rejection filter)." );
       ( "wetness",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some
           "How much of the original signal should be added (1. means only \

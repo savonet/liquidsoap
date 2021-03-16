@@ -324,7 +324,7 @@ let () =
        true."
     [
       ( "track_sensitive",
-        Lang.bool_getter_t (),
+        Lang.getter_t Lang.bool_t,
         Some (Lang.bool true),
         Some "Re-select only on end of tracks." );
       ( "transition_length",

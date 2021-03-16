@@ -218,6 +218,7 @@ val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
+val to_getter : value -> unit -> value
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
   * This is useful for retrieving arguments of a function. *)
@@ -259,17 +260,9 @@ val univ_t : ?constraints:Lang_types.constraints -> unit -> t
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
 
-(** A getter on an arbitrary ground type. *)
-val getter_t : Lang_types.ground -> t
+(** A getter on an arbitrary type. *)
+val getter_t : t -> t
 
-(** A string getter. *)
-val string_getter_t : unit -> t
-
-(** A float getter. *)
-val float_getter_t : unit -> t
-
-val int_getter_t : unit -> t
-val bool_getter_t : unit -> t
 val unit : value
 val int : int -> value
 val bool : bool -> value

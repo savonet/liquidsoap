@@ -126,8 +126,8 @@ let register name init render_text =
           Lang.int_t,
           Some (Lang.int 0xffffff),
           Some "Text color (in 0xRRGGBB format)." );
-        ("x", Lang.int_getter_t (), Some (Lang.int 10), Some "x offset.");
-        ("y", Lang.int_getter_t (), Some (Lang.int 10), Some "y offset.");
+        ("x", Lang.getter_t Lang.int_t, Some (Lang.int 10), Some "x offset.");
+        ("y", Lang.getter_t Lang.int_t, Some (Lang.int 10), Some "y offset.");
         ( "speed",
           Lang.int_t,
           Some (Lang.int 70),
@@ -144,7 +144,7 @@ let register name init render_text =
           Some
             "Change text on a particular metadata (empty string means \
              disabled)." );
-        ("", Lang.string_getter_t (), None, Some "Text to display.");
+        ("", Lang.getter_t Lang.string_t, None, Some "Text to display.");
         ("", Lang.source_t k, None, None);
       ]
       ~return_t:k ~category:Lang.VideoProcessing ~descr:"Display a text."

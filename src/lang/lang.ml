@@ -67,11 +67,7 @@ let nullable_t t = T.make (T.Nullable t)
 let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
-let getter_t a = univ_t ~constraints:[T.Getter a] ()
-let string_getter_t () = getter_t T.String
-let float_getter_t () = getter_t T.Float
-let int_getter_t () = getter_t T.Int
-let bool_getter_t () = getter_t T.Bool
+let getter_t a = T.make (T.Getter a)
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t ?active t = Term.source_t ?active t
@@ -500,6 +496,11 @@ let to_metadata t =
 let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
 let to_source_list l = List.map to_source (to_list l)
+
+let to_getter t =
+  match (demeth t).value with
+    | Fun ([], _, _, _) | FFI ([], _, _) -> fun () -> apply t []
+    | _ -> fun () -> t
 
 (** [assoc lbl n l] returns the [n]th element in [l]
   * of which the first component is [lbl]. *)

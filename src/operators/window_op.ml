@@ -117,7 +117,7 @@ let declare mode suffix kind fun_ret_t f_ans =
       ^ doc ^ " <= 1.0`." )
     [
       ( "duration",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 0.5),
         Some
           "Duration of the window (in seconds). A value <= 0, means that \

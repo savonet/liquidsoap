@@ -73,7 +73,7 @@ let () =
     [
       ("delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.");
       ( "feedback",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-6.)),
         Some "Feedback coefficient in dB." );
       ("", Lang.source_t k, None, None);

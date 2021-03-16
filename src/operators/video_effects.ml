@@ -87,7 +87,7 @@ let () =
   Lang.add_operator name
     [
       ( "",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         None,
         Some "Coefficient to scale opacity with." );
       ("", Lang.source_t return_t, None, None);
@@ -106,7 +106,7 @@ let () =
   Lang.add_operator name
     [
       ( "color",
-        Lang.int_getter_t (),
+        Lang.getter_t Lang.int_t,
         Some (Lang.int 0),
         Some "Color to fill the image with (0xRRGGBB)." );
       ("", Lang.source_t return_t, None, None);
@@ -220,15 +220,15 @@ let () =
   Lang.add_operator name
     [
       ( "width",
-        Lang.int_getter_t (),
+        Lang.getter_t Lang.int_t,
         Some (Lang.int (-1)),
         Some "Target width (negative means original width)." );
       ( "height",
-        Lang.int_getter_t (),
+        Lang.getter_t Lang.int_t,
         Some (Lang.int (-1)),
         Some "Target height (negative means original height)." );
-      ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
-      ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
+      ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing
@@ -267,11 +267,11 @@ let () =
   let name = "video.opacity.box" in
   Lang.add_operator name
     [
-      ("width", Lang.int_getter_t (), None, Some "Box width.");
-      ("height", Lang.int_getter_t (), None, Some "Box height.");
-      ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
-      ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
-      ("alpha", Lang.float_getter_t (), None, Some "alpha value.");
+      ("width", Lang.getter_t Lang.int_t, None, Some "Box width.");
+      ("height", Lang.getter_t Lang.int_t, None, Some "Box height.");
+      ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
+      ("alpha", Lang.getter_t Lang.float_t, None, Some "alpha value.");
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing
@@ -296,13 +296,19 @@ let () =
   Lang.add_operator name
     [
       ( "scale",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Scaling coefficient in both directions." );
-      ("xscale", Lang.float_getter_t (), Some (Lang.float 1.), Some "x scaling.");
-      ("yscale", Lang.float_getter_t (), Some (Lang.float 1.), Some "y scaling.");
-      ("x", Lang.int_getter_t (), Some (Lang.int 0), Some "x offset.");
-      ("y", Lang.int_getter_t (), Some (Lang.int 0), Some "y offset.");
+      ( "xscale",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 1.),
+        Some "x scaling." );
+      ( "yscale",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 1.),
+        Some "y scaling." );
+      ("x", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "x offset.");
+      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "y offset.");
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.VideoProcessing ~descr:"Scale and translate video."
