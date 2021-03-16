@@ -11,7 +11,7 @@ def getter.is_constant(x)
 end
 
 # Convert an int getter to a float getter.
-# @category Math
+# @category Liquidsoap
 def getter.float_of_int(x)
   getter.map(float_of_int, x)
 end
