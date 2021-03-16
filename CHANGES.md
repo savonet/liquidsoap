@@ -307,7 +307,7 @@ New:
 - Added `configure.bindir`
 - Added `for` and `while` loop functions.
 - Added `list.case`.
-- Added `metadata.string_getter` and `metadata.float_getter`.
+- Added `metadata.getter` and `metadata.getter.float`.
 - Added `string.contains`.
 - Added `request.uri`.
 - Added `{input,output}.srt` (#898)

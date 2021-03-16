@@ -1,3 +1,5 @@
+let metadata.getter = ()
+
 # Create a getter from a metadata.
 # @category Interaction
 # @flag hidden
@@ -5,7 +7,7 @@
 # @param map Function to apply to the metadata value to obtain the new value.
 # @param metadata Metadata on which the value should be updated.
 # @param s Source containing the metadata.
-def metadata.getter(init, map, metadata, s)
+def metadata.getter.base(init, map, metadata, s)
   x = ref(init)
   def f(m)
     v = m[metadata]
@@ -15,24 +17,26 @@ def metadata.getter(init, map, metadata, s)
   {!x}
 end
 
-# Create a string getter from a metadata: this is a string, whose value can be changed with a metadata.
+# Create a getter from a metadata: this is a string, whose value can be changed
+# with a metadata.
 # @category Interaction
 # @flag extra
 # @param init Initial value.
 # @param m Metadata on which the value should be updated.
 # @param s Source containing the metadata.
-def metadata.string_getter(init, m, s)
-  metadata.getter(init, fun (v) -> v, m, s)
+def replaces metadata.getter(init, m, s)
+  metadata.getter.base(init, fun (v) -> v, m, s)
 end
 
-# Create a float getter from a metadata: this is a float, whose value can be changed with a metadata.
+# Create a float getter from a metadata: this is a float, whose value can be
+# changed with a metadata.
 # @category Interaction
 # @flag extra
 # @param init Initial value.
 # @param m Metadata on which the value should be updated.
 # @param s Source containing the metadata.
-def metadata.float_getter(init, m, s)
-  metadata.getter(init, float_of_string, m, s)
+def metadata.getter.float(init, m, s)
+  metadata.getter.base(init, float_of_string, m, s)
 end
 
 # Obtain cover-art for a file. An empty string is returned in case there is no
