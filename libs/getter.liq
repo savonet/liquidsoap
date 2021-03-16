@@ -35,7 +35,7 @@ def getter.on_change(f, x)
 end
 
 # Detect whether the value of the getter changes.
-# @category Math
+# @category Liquidsoap
 def getter.changes(x)
   old = ref(getter.get(x))
   fun () -> begin
