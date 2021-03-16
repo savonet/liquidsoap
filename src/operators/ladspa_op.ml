@@ -226,9 +226,9 @@ let params_of_descr d =
         let t = port_t d p in
         ( Utils.normalize_parameter_string (Descriptor.port_name d p),
           ( match t with
-            | Float -> Lang.float_getter_t ()
-            | Int -> Lang.int_getter_t ()
-            | Bool -> Lang.bool_getter_t () ),
+            | Float -> Lang.getter_t Lang.float_t
+            | Int -> Lang.getter_t Lang.int_t
+            | Bool -> Lang.getter_t Lang.bool_t ),
           ( match
               Descriptor.port_get_default d ~samplerate:default_samplerate p
             with

@@ -685,15 +685,15 @@ let () =
     input_proto
     @ [
         ( "pipeline",
-          Lang.string_getter_t (),
+          Lang.getter_t Lang.string_t,
           Some (Lang.string ""),
           Some "Main GStreamer pipeline." );
         ( "audio_pipeline",
-          Lang.string_getter_t (),
+          Lang.getter_t Lang.string_t,
           Some (Lang.string "audiotestsrc"),
           Some "Audio pipeline to input from." );
         ( "video_pipeline",
-          Lang.string_getter_t (),
+          Lang.getter_t Lang.string_t,
           Some (Lang.string "videotestsrc"),
           Some "Video pipeline to input from." );
       ]
@@ -744,7 +744,7 @@ let () =
     input_proto
     @ [
         ( "pipeline",
-          Lang.string_getter_t (),
+          Lang.getter_t Lang.string_t,
           Some (Lang.string "audiotestsrc"),
           Some "GStreamer pipeline to input from." );
       ]
@@ -762,7 +762,7 @@ let () =
     input_proto
     @ [
         ( "pipeline",
-          Lang.string_getter_t (),
+          Lang.getter_t Lang.string_t,
           Some (Lang.string "videotestsrc"),
           Some "GStreamer pipeline to input from." );
       ]

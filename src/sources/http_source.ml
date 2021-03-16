@@ -651,7 +651,7 @@ module Make (Config : Config_t) = struct
           Some (Lang.string Http.user_agent),
           Some "User agent." );
         ( "",
-          Lang.string_getter_t (),
+          Lang.getter_t Lang.string_t,
           None,
           Some
             ( "URL of an " ^ protocol ^ " stream (default port is "

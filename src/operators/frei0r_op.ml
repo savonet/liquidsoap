@@ -214,7 +214,7 @@ let params plugin info =
                   ( Lang.bool_t,
                     Some (Lang.bool (Frei0r.get_param_bool instance i)) )
               | Frei0r.Double ->
-                  ( Lang.float_getter_t (),
+                  ( Lang.getter_t Lang.float_t,
                     Some (Lang.float (Frei0r.get_param_float instance i)) )
               | Frei0r.Color ->
                   let r, g, b = Frei0r.get_param_color instance i in

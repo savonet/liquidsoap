@@ -113,9 +113,9 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "soundtouch"
     [
-      ("rate", Lang.float_getter_t (), Some (Lang.float 1.0), None);
-      ("tempo", Lang.float_getter_t (), Some (Lang.float 1.0), None);
-      ("pitch", Lang.float_getter_t (), Some (Lang.float 1.0), None);
+      ("rate", Lang.getter_t Lang.float_t, Some (Lang.float 1.0), None);
+      ("tempo", Lang.getter_t Lang.float_t, Some (Lang.float 1.0), None);
+      ("pitch", Lang.getter_t Lang.float_t, Some (Lang.float 1.0), None);
       ("", Lang.source_t return_t, None, None);
     ]
     ~category:Lang.SoundProcessing ~return_t

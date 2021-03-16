@@ -64,7 +64,7 @@ let () =
   Lang.add_operator "on_end"
     [
       ( "delay",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 5.),
         Some
           "Execute handler when remaining time is less or equal to this value."

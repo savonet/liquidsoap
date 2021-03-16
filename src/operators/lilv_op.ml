@@ -248,7 +248,7 @@ let params_of_plugin plugin =
         let p = Plugin.port_by_index plugin p in
         let t = port_type p in
         ( Port.symbol p,
-          (match t with `Float -> Lang.float_getter_t ()),
+          (match t with `Float -> Lang.getter_t Lang.float_t),
           ( match Port.default_float p with
             | Some f -> Some (match t with `Float -> Lang.float f)
             | None -> None ),

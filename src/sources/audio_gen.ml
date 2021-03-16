@@ -52,11 +52,11 @@ let add name g =
         Some (Lang.float 0.),
         Some "Duration in seconds (0. means infinite)." );
       ( "amplitude",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
         Some "Maximal value of the waveform." );
       ( "",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 440.),
         Some ("Frequency of the " ^ name ^ ".") );
     ]

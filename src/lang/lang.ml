@@ -68,11 +68,6 @@ let ref_t t = Term.ref_t t
 let metadata_t = list_t (product_t string_t string_t)
 let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
 let getter_t a = T.make (T.Getter a)
-let ground_getter_t a = getter_t (T.make (T.Ground a))
-let string_getter_t () = ground_getter_t T.String
-let float_getter_t () = ground_getter_t T.Float
-let int_getter_t () = ground_getter_t T.Int
-let bool_getter_t () = ground_getter_t T.Bool
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
 let source_t ?active t = Term.source_t ?active t

@@ -79,19 +79,19 @@ let k = Lang.kind_type_of_kind_format kind
 let proto =
   [
     ( "attack",
-      Lang.float_getter_t (),
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 100.),
       Some "Attack time (ms)." );
     ( "release",
-      Lang.float_getter_t (),
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 400.),
       Some "Release time (ms)." );
     ( "threshold",
-      Lang.float_getter_t (),
+      Lang.getter_t Lang.float_t,
       Some (Lang.float (-10.)),
       Some "Threshold level (dB)." );
     ( "knee",
-      Lang.float_getter_t (),
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 1.),
       Some "Knee radius (dB)." );
     ( "window",
@@ -99,7 +99,7 @@ let proto =
       Some (Lang.float 0.1),
       Some "Window for computing RMS (in sec)." );
     ( "gain",
-      Lang.float_getter_t (),
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 0.),
       Some "Additional gain (dB)." );
     ("", Lang.source_t k, None, None);
@@ -127,7 +127,7 @@ let compress p =
 let () =
   Lang.add_operator "compress"
     ( ( "ratio",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 2.),
         Some "Gain reduction ratio (n:1)." )
     :: proto )
@@ -135,7 +135,7 @@ let () =
     compress;
   Lang.add_operator "limit"
     ( ( "ratio",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 20.),
         Some "Gain reduction ratio (n:1)." )
     :: proto )

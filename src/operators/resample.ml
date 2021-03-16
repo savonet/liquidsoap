@@ -173,7 +173,7 @@ let () =
   Lang.add_operator "stretch" (* TODO better name *)
     [
       ( "ratio",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         None,
         Some "A value higher than 1 means slowing down." );
       ( "active",

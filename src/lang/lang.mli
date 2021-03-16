@@ -263,17 +263,6 @@ val metadata_t : t
 (** A getter on an arbitrary type. *)
 val getter_t : t -> t
 
-(** A getter on an arbitrary ground type. *)
-val ground_getter_t : Lang_types.ground -> t
-
-(** A string getter. *)
-val string_getter_t : unit -> t
-
-(** A float getter. *)
-val float_getter_t : unit -> t
-
-val int_getter_t : unit -> t
-val bool_getter_t : unit -> t
 val unit : value
 val int : int -> value
 val bool : bool -> value

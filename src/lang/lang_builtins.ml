@@ -663,7 +663,7 @@ let () =
 let () =
   add_builtin "while" ~cat:Liq ~descr:"A while loop."
     [
-      ("", Lang.bool_getter_t (), None, Some "Condition guarding the loop.");
+      ("", Lang.getter_t Lang.bool_t, None, Some "Condition guarding the loop.");
       ("", Lang.fun_t [] Lang.unit_t, None, Some "Function to execute.");
     ]
     Lang.unit_t

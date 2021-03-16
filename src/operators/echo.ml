@@ -68,11 +68,11 @@ let () =
   Lang.add_operator "echo"
     [
       ( "delay",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 0.5),
         Some "Delay in seconds." );
       ( "feedback",
-        Lang.float_getter_t (),
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-6.)),
         Some "Feedback coefficient in dB (negative)." );
       ( "ping_pong",
