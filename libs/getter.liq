@@ -23,7 +23,7 @@ def getter.int_of_float(x)
 end
 
 # Execute a function when the value of the getter changes.
-# @category Math
+# @category Liquidsoap
 def getter.on_change(f, x)
   x = {getter.get(x)}
   old = ref(x())
