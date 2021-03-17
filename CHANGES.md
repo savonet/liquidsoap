@@ -66,6 +66,7 @@ New:
 - Added `metronome`.
 - Added `playlist.files`.
 - Added `getter.is_constant`.
+- Added `assert`.
 
 Changed:
 
