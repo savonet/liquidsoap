@@ -95,6 +95,7 @@ depopts: [
   "osx-secure-transport"
   "portaudio"
   "pulseaudio"
+  "prometheus-liquidsoap"
   "samplerate"
   "shine"
   "soundtouch"
