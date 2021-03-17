@@ -261,7 +261,7 @@ module Kind = struct
             match t with
               | `Audio -> Frame_content.default_audio ()
               | `Video -> Frame_content.default_video ()
-              | `Midi -> Frame_content.default_midi () )
+              | `Midi -> Frame_content.default_midi ())
         | `Format f -> f
         | `Kind k -> Frame_content.default_format k
     in
@@ -395,7 +395,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       let s = Pcre.substitute ~pat:"[ \t\n]" ~subst:(fun _ -> "_") s in
       if not definitive_id then (
         id <- s;
-        definitive_id <- definitive );
+        definitive_id <- definitive);
 
       (* Sometimes the ID is changed during initialization,
        * in order to make it equal to the server name,
@@ -529,16 +529,16 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
                     dynamic_activations
                 then Some "possible dynamic activation"
                 else None
-            | _ -> Some "two static activations" )
+            | _ -> Some "two static activations")
       with
         | None ->
             if caching then (
               caching <- false;
-              self#log#debug "Disabling caching mode." )
+              self#log#debug "Disabling caching mode.")
         | Some msg ->
             if not caching then (
               caching <- true;
-              self#log#debug "Enabling caching mode: %s." msg )
+              self#log#debug "Enabling caching mode: %s." msg)
 
     (* Ask for initialization.
      * The current implementation makes it dangerous to call #get_ready from
@@ -549,7 +549,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up with content kind: %s." id
           (Kind.to_string self#kind);
-        self#wake_up activation );
+        self#wake_up activation);
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
       self#update_caching_mode;
@@ -584,7 +584,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
             on_shutdown <- [])
           ();
-        self#sleep );
+        self#sleep);
       self#iter_watchers (fun w -> w.leave ())
 
     method is_up = static_activations <> [] || dynamic_activations <> []
@@ -676,7 +676,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
                 | None -> Hashtbl.create 0
                 | Some m -> m
             in
-            List.iter (fun fn -> fn m) on_track );
+            List.iter (fun fn -> fn m) on_track);
           was_partial <- is_partial)
         ();
       self#iter_watchers (fun w ->
@@ -720,7 +720,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
           self#instrumented_get_frame buf;
           if List.length b + 1 <> List.length (Frame.breaks buf) then (
             self#log#severe "#get_frame didn't add exactly one break!";
-            assert false ) )
+            assert false))
       else (
         let memo = self#memo in
         try Frame.get_chunk buf memo
@@ -733,9 +733,9 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
             self#instrumented_get_frame memo;
             if List.length b + 1 <> List.length (Frame.breaks memo) then (
               self#log#severe "#get_frame didn't add exactly one break!";
-              assert false )
+              assert false)
             else if p < Frame.position memo then self#get buf
-            else Frame.add_break buf (Frame.position buf) ) )
+            else Frame.add_break buf (Frame.position buf)))
 
     (* That's the way the source produces audio data.
      * It cannot be called directly, but [#get] should be used instead, for
