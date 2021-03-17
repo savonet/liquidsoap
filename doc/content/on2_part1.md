@@ -169,7 +169,7 @@ print(x)
 ```
 As follows:
 ```
-% liquidsoap --no-pervasives -i /path/to/script.liq
+% liquidsoap --no-libs -i /path/to/script.liq
 x     : int
 42
 No output defined, nothing to do.

@@ -1,11 +1,10 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
-%include "test.liq"
+#!../../src/liquidsoap ../../libs/main.liq
+%include "../test.liq"
 
 set("log.level",4)
 
-file = argv(default="",1)
-
 s = once(@SOURCE@(duration=0.5))
+file = argv(default="",1)
 
 clock.assign_new(sync="none",[s])
 

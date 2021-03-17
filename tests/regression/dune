@@ -1,0 +1,28 @@
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:main_lib ../../libs/main.liq)
+  (:run_test ../run_test.sh)
+  ../media/stereo.flac
+  (source_tree ../../libs)
+  (source_tree .))
+ (action
+  (progn
+   (run %{run_test} %{liquidsoap} %{main_lib} 115-1.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} 115-2.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} 123.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} BUG403.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} GH-action-919422659.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} GH1129.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} GH1146.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} GH1151.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} GH1159.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} GH1279.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} GH1327.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} LS268.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} LS354-1.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} LS354-2.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} LS460.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} LS503.liq))))

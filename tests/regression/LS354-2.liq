@@ -1,4 +1,4 @@
-%include "test.liq"
+%include "../test.liq"
 
 s1 = fail()
 s2 = blank(duration=1.)

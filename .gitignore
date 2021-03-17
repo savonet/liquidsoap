@@ -3,7 +3,6 @@ gui/liguidsoap
 Makefile.defs
 aclocal.m4
 autom4te.cache/
-config.*
 configure
 configure-with-options
 install-sh
@@ -12,6 +11,7 @@ scripts/liquidsoap.initd
 scripts/liquidsoap.logrotate
 src/META
 src/configure.ml
+/config.*
 *.sw*
 *.cm*
 *.o

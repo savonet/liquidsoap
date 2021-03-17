@@ -21,10 +21,8 @@ override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
-	$(MAKE) install DESTDIR=$(DESTDIR) OCAMLFIND_DESTDIR=$(DESTDIR)/$(OCAML_STDLIB_DIR) \
-               prefix=$(DESTDIR)/usr sysconfdir=$(DESTDIR)/etc \
-               INSTALL_DAEMON=no OCAMLFIND_LDCONF=ignore
-	mkdir -p $(DESTDIR)/usr/share/liquidsoap
+	export OCAMLPATH=`cat ../.ocamlpath` && dune build @install
+	export OCAMLPATH=`cat ../.ocamlpath` && dune install --prefix=$(DESTDIR)/usr
 	cp -rf `ocamlfind ocamlc -where`/../../share/camomile $(DESTDIR)/usr/share/liquidsoap
 	dh_install
 

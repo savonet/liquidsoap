@@ -5,24 +5,18 @@ maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
 build: [
-  ["./bootstrap"] {dev}
-  ["./configure" "--prefix" prefix
-                 "--sbindir=%{lib}%/liquidsoap/sbin"
-                 "--libexecdir=%{lib}%/liquidsoap/libexec"
-                 "--sysconfdir=%{lib}%/liquidsoap/etc"
-                 "--sharedstatedir=%{lib}%/liquidsoap/com"
-                 "--localstatedir=%{lib}%/liquidsoap/var"
-                 "--libdir=%{lib}%/liquidsoap/lib"
-                 "--includedir=%{lib}%/liquidsoap/include"
-                 "--datarootdir=%{lib}%/liquidsoap/share"
-                 "--with-bash-completion-dir=%{lib}%/liquidsoap/etc/bash_completion.d"
-                 "--with-user=dummy"
-                 "--with-group=dummy"]
-  [make "clean"] {dev}
-  [make]
-]
-install: [
-  [make "install"]
+  ["dune" "subst"] {pinned}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
 ]
 post-messages: [
 "We're sorry that your liquidsoap install failed. Check out our installation
@@ -32,10 +26,10 @@ for more information." {failure}
 "✨ Congratulations on installing liquidsoap! ✨" {success}
 
 "We noticed that you did not install any mp3 decoder. This is a feature most
-users want. You might need to install the mad or ffmpeg package." {success & !mad-enabled & !ffmpeg-decoder-enabled}
+users want. You might need to install the mad or ffmpeg package." {success & !mad-enabled & !ffmpeg-enabled}
 
 "We noticed that you did not install any mp3 encoder. This is a feature most
-users want. You might need to install the lame or shine package." {success & !lame-enabled & !shine-enabled & !ffmpeg-encoder-enabled}
+users want. You might need to install the lame or shine package." {success & !lame-enabled & !shine-enabled & !ffmpeg-enabled}
 
 "We noticed that you did not install the taglib package that provides support
 for reading metatadata in audio files. This is a feature most users want." {success & !taglib-enabled}
@@ -51,6 +45,9 @@ be able to use any HTTPS feature. You might want to install one of ssl or
 osx-secure-transport package." {success & !ssl-enabled & !secure-transport-enabled}
 ]
 depends: [
+  "dune" {> "2.8"}
+  "dune-site"
+  "dune-build-info"
   "ocaml" {>= "4.08.0"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.2"}
@@ -58,8 +55,6 @@ depends: [
   "menhir"
   "mm" {>= "0.7.0"}
   "ocamlfind" {build}
-  "conf-pkg-config" {build}
-  "conf-which" {build}
   "pcre"
   "sedlex" {>= "2.0"}
 ]

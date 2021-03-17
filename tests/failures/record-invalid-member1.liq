@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/main.liq
 
 # Testing invalid record members. The default error was
 # At line 4, char 4:

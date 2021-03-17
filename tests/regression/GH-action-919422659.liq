@@ -1,4 +1,4 @@
-%include "test.liq"
+%include "../test.liq"
 
 # In https://github.com/savonet/liquidsoap/runs/919422659,
 # GH1159.liq started failing. Further investigation revealed
@@ -10,7 +10,7 @@
 
 set("decoder.decoders",["FFMPEG"])
 
-s = single("../media/files/audio/@flac(stereo).flac")
+s = single("../media/stereo.flac")
 
 def f(rem, _) =
   if rem > 0. then

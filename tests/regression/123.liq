@@ -1,9 +1,9 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/main.liq
 
 # Correctly parse urls with empty arguments.
 # https://github.com/savonet/liquidsoap/issues/123
 
-%include "test.liq"
+%include "../test.liq"
 
 def f() =
   if url.split("abc?a=aa&b=&c=cc") == ("abc",[("a","aa"),("b",""),("c","cc")]) then

@@ -1,6 +1,6 @@
 #!../src/liquidsoap
 
-%include "test.liq"
+%include "../test.liq"
 
 # Some tests related to recusion and polymorphism.
 

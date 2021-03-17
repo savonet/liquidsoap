@@ -10,7 +10,7 @@
 # but A finds itself not ready anymore.
 # In other words, B committed but A did not.
 
-%include "test.liq"
+%include "../test.liq"
 
 r = ref(false)
 def pred () =

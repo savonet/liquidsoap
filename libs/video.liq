@@ -59,7 +59,7 @@ def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
                           ~restart=true,~restart_on_error=false,
                           ~buffer=0.2,~max=10.,inputopts)
   inputopts = (inputopts : string)
-  ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
+  ffmpeg = get(default="ffmpeg#{ext_exe}","decoder.external.ffmpeg.path")
   cmd = "#{ffmpeg} #{inputopts} -f avi \
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\

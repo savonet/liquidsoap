@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/main.liq
 
 # Testing dynamic kind unification errors.
 

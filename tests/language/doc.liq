@@ -1,15 +1,19 @@
-#!../..//src/liquidsoap ../../libs/pervasives.liq
+#!../..//src/liquidsoap ../../libs/main.liq
 
-%include "test.liq"
+%include "../test.liq"
 
-a = ()
+def fn() =
+  a = ()
 
-# My function
-# @param ~x The parameter.
-def a.b(~x)
-  0
+  # My function
+  # @param ~x The parameter.
+  def a.b(~x)
+    0
+  end
+
+  ignore(a)
+
+  test.pass()
 end
 
-ignore(a)
-
-test.pass()
+test.check(fn)

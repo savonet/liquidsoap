@@ -1,0 +1,36 @@
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:main_lib ../../libs/main.liq)
+  (:run_test ../run_test.sh)
+  big-record.liq
+  (source_tree ../../libs)
+  (source_tree .))
+ (action
+  (progn
+   (run
+    %{run_test}
+    %{liquidsoap}
+    %{main_lib}
+    erathostenes.liq
+    erathostenes.liq
+    true)
+   (run
+    %{run_test}
+    %{liquidsoap}
+    %{main_lib}
+    big-record.liq
+    big-record.liq
+    true))))
+
+(rule
+ (target big-record.liq)
+ (package liquidsoap)
+ (deps
+  (:generate_record generate-record.sh))
+ (action
+  (with-stdout-to
+   big-record.liq
+   (run %{generate_record}))))

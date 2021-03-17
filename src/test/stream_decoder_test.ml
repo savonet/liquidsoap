@@ -17,7 +17,7 @@ let () =
   let out_file = Sys.argv.(2) in
   let out_fd = open_out_bin out_file in
   let write = Strings.iter (output_substring out_fd) in
-  let format = "application/ffmpeg" in
+  let format = "audio/wav" in
   let ctype =
     {
       Frame.audio = Frame_content.default_audio ();
@@ -33,22 +33,28 @@ let () =
   let log = Printf.printf "Generator log: %s" in
   let generator = G.create ~log ~log_overfull:false `Audio in
   let buffer = Decoder.mk_buffer ~ctype generator in
-  let mp3_format = Lang_mp3.mp3_base_defaults () in
-  let create_encoder = Encoder.get_factory (Encoder.MP3 mp3_format) in
+  let wav_format =
+    {
+      Wav_format.samplerate = lazy 44100;
+      samplesize = 16;
+      channels = 2;
+      duration = None;
+      header = true;
+    }
+  in
+  let create_encoder = Encoder.get_factory (Encoder.WAV wav_format) in
   let encoder = create_encoder "test stream" Meta_format.empty_metadata in
   write encoder.Encoder.header;
   try
     while true do
-      try
-        while G.length generator < Lazy.force Frame.size do
-          decoder.Decoder.decode buffer
-        done;
-        G.fill generator frame;
-        write (encoder.Encoder.encode frame 0 (Frame.position frame));
-        Frame.advance frame
-      with Avutil.Error `Invalid_data -> ()
+      while G.length generator < Lazy.force Frame.size do
+        decoder.Decoder.decode buffer
+      done;
+      G.fill generator frame;
+      write (encoder.Encoder.encode frame 0 (Frame.position frame));
+      Frame.advance frame
     done
-  with Ffmpeg_decoder.End_of_file ->
+  with _ ->
     write (encoder.Encoder.stop ());
     close_out out_fd;
     close_in in_fd

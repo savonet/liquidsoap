@@ -7,22 +7,17 @@ MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
 ARG DOCKER_TAG
 ARG GITHUB_SHA
 
-USER root
-
 USER opam
 
 WORKDIR /tmp/liquidsoap-full
 
-# Remove after next base image rebuild
-RUN rm -rf ocaml-lastfm/src/lastfm_constants.ml
+# To remove once the base image is rebuilt again the dune build system
+RUN eval $(opam config env) && opam install -y dune-site dune-build-info
 
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout main && git pull && \
      git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA && \
+     rm -rf doc/liquidsoap.1 && \
      ./.github/scripts/checkout-deps.sh && \
-     cd .. && ./bootstrap && \
      export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
-     ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
-                 --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
-                 --with-camomile-data-dir=/usr/share/liquidsoap/camomile && \
-     cd liquidsoap && make && make doc
+     cd .. && ./configure

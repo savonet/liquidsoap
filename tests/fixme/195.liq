@@ -1,6 +1,6 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/main.liq
 
-%include "test.liq"
+%include "../test.liq"
 
 s = playlist(mime_type="audio/mpegurl", mode="randomize",reload=1,reload_mode="rounds","threesines")
 
