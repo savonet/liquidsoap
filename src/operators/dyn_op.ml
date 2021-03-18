@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class dyn ~kind f =
+class dyn ~kind ~track_sensitive f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
 
@@ -79,7 +79,7 @@ class dyn ~kind f =
       self#unregister_source ~already_locked:false
 
     method is_ready =
-      self#select;
+      if (not track_sensitive) || source = None then self#select;
       match source with Some s when s#is_ready -> true | _ -> false
 
     method private get_frame frame =
@@ -88,7 +88,7 @@ class dyn ~kind f =
         | Some s -> s#get frame
         | None -> Frame.add_break frame (Frame.position frame)
       end;
-      self#select
+      if (not track_sensitive) || Frame.is_partial frame then self#select
 
     method remaining = match source with Some s -> s#remaining | None -> -1
 
@@ -105,6 +105,10 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "source.dynamic"
     [
+      ( "track_sensitive",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Whether the source should only be updated on track change." );
       ( "",
         Lang.fun_t [] (Lang.nullable_t (Lang.source_t k)),
         None,
@@ -114,4 +118,6 @@ let () =
     ]
     ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
-    (fun p -> new dyn ~kind (List.assoc "" p))
+    (fun p ->
+      let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
+      new dyn ~kind ~track_sensitive (List.assoc "" p))
