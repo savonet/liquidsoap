@@ -150,6 +150,7 @@ Changed:
 - Implement `interactive.*` on script side (#1493).
 - `file.write` does not return a boolean anymore, exceptions are used for
   exceptional cases (#1500).
+- `source.dynamic` now takes a nullable argument.
 
 Fixed:
 

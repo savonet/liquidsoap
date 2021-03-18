@@ -53,17 +53,17 @@ class dyn ~kind f =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
         (Tutils.mutexify source_lock (fun () ->
-             let l = Lang.apply f [] in
-             let l = Lang.to_source_list l in
-             match l with
-               | [] -> ()
-               | [s] ->
+             let s =
+               Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
+             in
+             match s with
+               | None -> ()
+               | Some s ->
                    Source.Kind.unify s#kind self#kind;
                    Clock.unify s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;
-                   source <- Some s
-               | _ -> assert false))
+                   source <- Some s))
 
     (* Source methods: attempt to #select as soon as it could be useful
      * for the selection function to change the source. *)
@@ -104,7 +104,14 @@ let () =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "source.dynamic"
-    [("", Lang.fun_t [] (Lang.list_t (Lang.source_t k)), None, None)]
+    [
+      ( "",
+        Lang.fun_t [] (Lang.nullable_t (Lang.source_t k)),
+        None,
+        Some
+          "Function returning the source to be used, `null` means keep current \
+           source." );
+    ]
     ~return_t:k ~descr:"Dynamically change the underlying source."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
     (fun p -> new dyn ~kind (List.assoc "" p))
