@@ -7,7 +7,7 @@ s.on_track(
 )
 
 r = ref(false)
-d = source.dynamic({ if !r then [s] else [] end })
+d = source.dynamic({ if !r then s else null() end })
 
 output.dummy(mksafe(d))
 

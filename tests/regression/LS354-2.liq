@@ -8,9 +8,9 @@ s2.on_track(
 )
 
 r = ref(0)
-d = source.dynamic({ if !r==1 then [s1]
-                     elsif !r==2 then [s2]
-                     else [] end })
+d = source.dynamic({ if !r==1 then s1
+                     elsif !r==2 then s2
+                     else null() end })
 
 output.dummy(mksafe(d))
 
