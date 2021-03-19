@@ -536,7 +536,7 @@ def say_protocol(~rlog,~maxtime,arg) =
   ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol,
-             doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",
+             doc="Generate speech synthesis using text2wave. Result is always stereo.",
              syntax="say:Text to read")
 
 register(name="AWS protocols settings","protocol.aws",())
