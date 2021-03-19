@@ -1,10 +1,12 @@
+let input.hls = ()
+
 # Play an HLS stream.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~reload How often (in seconds) the playlist should be reloaded.
-# @param uri Playlist URI
+# @param uri Playlist URI.
 # @flag experimental
-def input.hls(~id="",~reload=10.,uri)
+def input.hls.native(~id="",~reload=10.,uri)
   playlistr = ref([])
   sequence = ref(0)
   playlist_uri = ref(uri)
@@ -83,6 +85,19 @@ def input.hls(~id="",~reload=10.,uri)
   thread.run(every=reload, load_playlist)
 
   source
+end
+
+let replaces input.hls = input.hls.native
+%ifdef input.ffmpeg
+let replaces input.hls = input.ffmpeg
+%endif
+
+# Play an HLS stream.
+# @category Source / Input
+# @param ~id Force the value of the source ID.
+# @param uri Playlist URI.
+def input.hls(~id="", uri)
+  input.hls(id=id, uri)
 end
 
 let output.harbor.hls = ()
