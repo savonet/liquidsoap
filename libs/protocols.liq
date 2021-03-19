@@ -64,10 +64,11 @@ def process_protocol(~rlog,~maxtime,arg)
 
     delay = maxtime - time()
     p = process.run(timeout=delay,env=env,inherit_env=inherit_env,cmd)
-    if "exit" == p.status then
+
+    if p.status == "exit" and p.status.code == 0 then
       [output]
     else
-      log.important("Failed to execute #{cmd}: #{p.status}")
+      log.important("Failed to execute #{cmd}: #{p.status} (#{p.status.code})")
       log.info("Standard output:\n#{p.stdout}")
       log.info("Error output:\n#{p.stderr}")
       log.info("Removing #{output}.")
