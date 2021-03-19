@@ -431,6 +431,7 @@ let start_socket () =
     try Unix.bind sock bind_addr
     with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
+  log#important "Socket created at %s." socket_path;
   Unix.listen sock max_conn;
   Lifecycle.after_scheduler_shutdown (fun () ->
       log#important "Unlink %s" socket_name;
