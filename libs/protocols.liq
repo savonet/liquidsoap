@@ -500,8 +500,16 @@ add_protocol("ffmpeg",ffmpeg_protocol,
 # @flag hidden
 def stereo_protocol(~rlog, ~maxtime, arg)
   file = file.temp("liq-stereo", ".wav")
-  source.dump(%wav, file, audio_to_stereo(once(single(arg))))
-  [file]
+  r = request.create(arg)
+  if not request.resolve(r) then
+    log.info("Stereo: failed to resolve request #{arg}")
+    []
+  else
+    # TODO: the following sometimes hangs, so we resolve twice...
+    # source.dump(%wav, file, audio_to_stereo(once(request.queue(queue=[r]))))
+    source.dump(%wav, file, audio_to_stereo(once(single(arg))))
+    [file]
+  end
 end
 add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
 
@@ -521,17 +529,22 @@ add_protocol(static=true,"text2wave",text2wave_protocol,
 register(name="gTTS protocol settings", "protocol.gtts",())
 register(name="gtts-cli binary path", "protocol.gtts.path", "gtts-cli")
 
+# @flag hidden
+def gtts_binary()
+  get(default="gtts-cli", "protocol.gtts.path")
+end
+
 # Register the gtts: protocol using gtts
 # @flag hidden
 def gtts_protocol(~rlog,~maxtime,arg) =
-  binary = get(default="gtts-cli","protocol.gtts.path")
-  [process_uri(extname="mp3","#{binary} -o $(output) #{string.quote(arg)}")]
+  binary = gtts_binary()
+  [process_uri(extname="mp3", "#{binary} -o $(output) #{string.quote(arg)}")]
 end
 add_protocol(static=true,"gtts",gtts_protocol,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
              syntax="gtts:Text to read")
 
-# Register the legacy say: protocol using text2wave and sox
+# Register the legacy say: protocol
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
   ["stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
