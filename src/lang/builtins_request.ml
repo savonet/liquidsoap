@@ -72,6 +72,14 @@ let () =
           with _ -> false ))
 
 let () =
+  add_builtin "request.read_metadata" ~cat:Liq
+    [("", Lang.request_t, None, None)]
+    Lang.unit_t ~descr:"Force reading the metadata of a request." (fun p ->
+      let r = Lang.to_request (List.assoc "" p) in
+      Request.read_metadata r;
+      Lang.unit)
+
+let () =
   add_builtin "request.metadata" ~cat:Liq [("", Lang.request_t, None, None)]
     Lang.metadata_t ~descr:"Get the metadata associated to a request." (fun p ->
       let r = Lang.to_request (List.assoc "" p) in
