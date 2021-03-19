@@ -13,9 +13,9 @@ first = ref(true)
 def f()
   if !first then
     first := false
-    [sine(id="sineF",880.)]
+    sine(id="sineF",880.)
   else
-    []
+    null()
   end
 end
 
