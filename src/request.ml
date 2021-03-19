@@ -232,6 +232,13 @@ let () =
     | No_indicator -> Some "All options exhausted while processing request"
     | _ -> None)
 
+let string_of_indicators t =
+  let i = t.indicators in
+  let string_of_list l = "[" ^ String.concat ", " l ^ "]" in
+  let i = List.map (List.map (fun i -> i.string)) i in
+  let i = List.map string_of_list i in
+  string_of_list i
+
 let peek_indicator t =
   match t.indicators with
     | (h :: _) :: _ -> h
@@ -567,12 +574,14 @@ exception ExnTimeout
 
 let resolve ~ctype t timeout =
   assert (t.ctype = None || t.ctype = ctype);
+  log#debug "Resolving request %s." (string_of_indicators t);
   t.ctype <- ctype;
   t.resolving <- Some (Unix.time ());
   t.status <- Resolving;
   let maxtime = Unix.time () +. timeout in
   let resolve_step () =
     let i = peek_indicator t in
+    log#f 6 "Resolve step %s in %s\n%!" i.string (string_of_indicators t);
     (* If the file is local we only need to check that it's valid,
      * we'll actually do that in a single local_check for all local indicators
      * on the top of the stack. *)
@@ -621,6 +630,7 @@ let resolve ~ctype t timeout =
           add_log t "Every possibility failed!";
           Failed
   in
+  log#debug "Resolved to %s." (string_of_indicators t);
   let excess = Unix.time () -. maxtime in
   if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
   t.resolving <- None;
