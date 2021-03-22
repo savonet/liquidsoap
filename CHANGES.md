@@ -67,6 +67,7 @@ New:
 - Added `playlist.files`.
 - Added `getter.is_constant`.
 - Added `assert`.
+- Added `available`.
 
 Changed:
 
