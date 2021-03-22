@@ -611,3 +611,10 @@ def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
   deprecated("in", "input")
   input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
+
+# Deprecated: use `available` instead.
+# @flag hidden
+def mkavailable(~id="mkavailable", ~track_sensitive=getter(true), ~active=getter(false), ~available=getter(true), s) =
+  output.dummy(switch([(getter.function(active),s)]),fallible=true)
+  switch(id=id,track_sensitive=getter.function(track_sensitive),[(getter.function(available),s)])
+end

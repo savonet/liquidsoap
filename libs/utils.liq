@@ -443,19 +443,6 @@ def metronome(~frequency=440., bpm=60.)
   amplify(f,s)
 end
 
-# Make a source available or not depending on a boolean.
-# @param ~id The source ID
-# @param ~active Whether the source should be pulled when not available
-# @param ~track_sensitive Re-select only on end of tracks.
-# @param ~available Whether the source is available (`true`) or not (`false`).
-# @param s The stream.
-# @category Source / Track Processing
-def mkavailable(~id="mkavailable", ~track_sensitive=getter(true), ~active=getter(false), ~available=getter(true), s) =
-  output.dummy(switch([(getter.function(active),s)]),fallible=true)
-
-  switch(id=id,track_sensitive=getter.function(track_sensitive),[(getter.function(available),s)])
-end
-
 let frame = ()
 
 # Duration of a frame.
