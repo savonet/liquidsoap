@@ -2,7 +2,6 @@ predicate = ()
 
 # Detect when a predicate becomes true.
 # @category Liquidsoap
-# @flag extra
 # @param ~init Detect at begining.
 # @param p Predicate.
 def predicate.activates(~init=false, p)
@@ -15,8 +14,14 @@ def predicate.activates(~init=false, p)
   end
 end
 
+# Become true once every time a predicate is true.
+# @category Liquidsoap
+# @param p Predicate.
+def predicate.once(p)
+  predicate.activates(init=true, p)
+end
+
 # Limit the number of times a predicate is true is a row.
-# @flag extra
 # @param n Number of times the predicate is allowed to be true.
 # @param p Predicate.
 def predicate.at_most(n, p)
@@ -34,7 +39,6 @@ end
 
 # Detect when a predicate changes.
 # @category Liquidsoap
-# @flag extra
 # @param p Predicate.
 def predicate.changes(p)
   last = ref(p())
@@ -48,9 +52,8 @@ end
 
 # First occurrence of a predicate.
 # @category Liquidsoap
-# @flag extra
 # @param p Predicate.
-def predicate.once(p)
+def predicate.first(p)
   done = ref(false)
   fun () -> begin
     if !done then
