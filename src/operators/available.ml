@@ -44,7 +44,7 @@ class available ~kind ~track_sensitive ~delay p (source : source) =
     val mutable last = Unix.time ()
 
     method is_ready =
-      if (not (track_sensitive && ready)) && Unix.time () -. last >= delay ()
+      if (not (track_sensitive () && ready)) && Unix.time () -. last >= delay ()
       then (
         ready <- p ();
         last <- Unix.time () );
@@ -52,7 +52,7 @@ class available ~kind ~track_sensitive ~delay p (source : source) =
 
     method private get_frame buf =
       source#get buf;
-      if track_sensitive && Frame.is_partial buf then (
+      if track_sensitive () && Frame.is_partial buf then (
         ready <- p ();
         last <- Unix.time () )
   end
@@ -63,7 +63,7 @@ let () =
   Lang.add_operator "available"
     [
       ( "track_sensitive",
-        Lang.bool_t,
+        Lang.getter_t Lang.bool_t,
         Some (Lang.bool true),
         Some "Change availability only on end of tracks." );
       ( "delay",
@@ -85,7 +85,9 @@ let () =
     ~descr:"Change the availability of a source depending on a predicate."
     ~return_t
     (fun p ->
-      let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
+      let track_sensitive =
+        List.assoc "track_sensitive" p |> Lang.to_bool_getter
+      in
       let delay = List.assoc "delay" p |> Lang.to_float_getter in
       let pred = Lang.assoc "" 1 p |> Lang.to_bool_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
