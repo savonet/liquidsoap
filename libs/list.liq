@@ -181,9 +181,10 @@ def list.rev(l)
   list.ind(l, [], fun (x, l, r) -> list.snoc(x, r))
 end
 
-# Associate a value to a key in an association list.
+# Associate a value to a key in an association list. This functions raises
+# `error.not_found` if no default value is specified.
 # @category List
-# @param ~default Value returned if the key is not found
+# @param ~default Value returned if the key is not found.
 def list.assoc(~default=null(), key, l)
   def rec aux(l)
     def f(x, l)
@@ -299,7 +300,8 @@ def list.iterator(l)
   f
 end
 
-# Returns a copy of the given list with a new element inserted at a given position. Raises `error.not_found` if the list has less than `index` elements.
+# Returns a copy of the given list with a new element inserted at a given
+# position. Raises `error.not_found` if the list has less than `index` elements.
 # @category List
 # @param index Index to insert at, starting at `0`.
 # @param new_element Element to insert
