@@ -96,7 +96,8 @@ let () =
               [(true, "new_track", Lang.bool_t); (false, "", Lang.metadata_t)]
               Lang.unit_t ),
           "Insert metadata in the source. The `new_track` parameter indicates \
-           whether a track boundary should also be inserted.",
+           whether a track boundary should also be inserted (by default, no \
+           track is inserted).",
           fun s ->
             Lang.val_fun
               [
