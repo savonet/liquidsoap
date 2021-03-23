@@ -327,7 +327,7 @@ def file.unlink(filename)
 end
 
 # Deprecated: was designed for transitions only and is not
-# needed anymore
+# needed anymore. Use `file.out` instead.
 # @flag deprecated
 def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
   deprecated("fade.final", "fade.out")
@@ -348,7 +348,7 @@ def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
 end
 
 # Deprecated: was designed for transitions only and is not
-# needed anymore.
+# needed anymore. Use `fade.in` instead.
 # @flag deprecated
 def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
   deprecated("fade.initial", "fade.in")  
