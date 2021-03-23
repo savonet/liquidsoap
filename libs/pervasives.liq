@@ -32,4 +32,3 @@
 %include "visualization.liq"
 %include "profiler.liq"
 %include "io.liq"
-%include "deprecations.liq"

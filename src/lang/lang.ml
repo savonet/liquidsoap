@@ -556,7 +556,7 @@ let from_file ?parse_only ~ns ~lib filename =
   from_in_channel ~dir:(Filename.dirname filename) ?parse_only ~ns ~lib ic;
   close_in ic
 
-let load_libs ?parse_only ?(deprecated = false) () =
+let load_libs ?parse_only ?(deprecated = true) () =
   let dir = Configure.liq_libs_dir in
   let file = Filename.concat dir "pervasives.liq" in
   if Sys.file_exists file then
