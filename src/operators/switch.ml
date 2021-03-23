@@ -279,8 +279,21 @@ let trivially_true = function
 
 let third (_, _, s) = s
 
-class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
-  (children : (Lang.value * bool * child) list) =
+(** Like [List.find] but evaluates [f] on every element when [strict] is
+    [true]. *)
+let find ?(strict = false) f l =
+  let rec aux = function
+    | x :: l ->
+        if f x then (
+          if strict then List.iter (fun x -> ignore (f x)) l;
+          x )
+        else aux l
+    | [] -> raise Not_found
+  in
+  aux l
+
+class lang_switch ~kind ~override_meta ~all_predicates ~transition_length mode
+  ?replay_meta (children : (Lang.value * bool * child) list) =
   object
     inherit
       switch
@@ -296,11 +309,11 @@ class lang_switch ~kind ~override_meta ~transition_length mode ?replay_meta
       try
         Some
           (third
-             (List.find
+             (find ~strict:all_predicates
                 (fun (d, single, s) ->
                   (* Check single constraints *)
                   (if selected s then not single else true)
-                  && s.source#is_ready && satisfied d)
+                  && satisfied d && s.source#is_ready)
                 children))
       with Not_found -> None
 
@@ -343,6 +356,10 @@ let () =
         Some
           "Replay the last metadata of a child when switching to it in the \
            middle of a track." );
+      ( "all_predicates",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Always evaluate all predicates when re-selecting." );
       (let transition_t =
          Lang.fun_t
            [
@@ -392,6 +409,7 @@ let () =
         Frame.main_of_seconds (Lang.to_float (List.assoc "transition_length" p))
       in
       let override_meta = Lang.to_string (List.assoc "override" p) in
+      let all_predicates = Lang.to_bool (List.assoc "all_predicates" p) in
       let singles =
         List.map Lang.to_bool (Lang.to_list (List.assoc "single" p))
       in
@@ -413,4 +431,5 @@ let () =
                  "there should be exactly one flag per children" ))
       in
       new lang_switch
-        ~kind ~replay_meta ~override_meta ~transition_length:tl ts children)
+        ~kind ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
+        ts children)
