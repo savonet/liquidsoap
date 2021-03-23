@@ -39,7 +39,8 @@ New:
   before setting it (#1046, @CyberDomovoy)
 - Add `string.null_terminated` (#960).
 - Add `file.metadata` (#1058).
-- Add `predicate.activates`, `predicate.changes`, `predicate.once` (#1075).
+- Add `predicate.activates`, `predicate.changes`, `predicate.first`,
+  `predicate.once`, `predicate.signal` (#1075).
 - Add `playlist.list.reloadable` and `playlist.list` (#1133).
 - Make it possible to disable buffer overrun logs.
 - Add `accelerate` operator (#1144).

@@ -42,6 +42,12 @@ def f() =
   tl(predicate.changes(predicate.nth(2)), [false,true,true,false])
   tl(predicate.once(predicate.from(2)), [false,false,true,false])
 
+  p = predicate.signal()
+  t(p(), false)
+  p.signal()
+  t(p(), true)
+  t(p(), false)
+
   if !success then test.pass() else test.fail() end
 end
 

@@ -68,3 +68,23 @@ def predicate.first(p)
     end
   end
 end
+
+# Predicate which is true when a signal is sent. The returned predicate has a
+# method `signal` to send the signal.
+# @category Liquidsoap
+# @method signal Send a signal.
+def predicate.signal()
+  state = ref(false)
+  def signal()
+    state := true
+  end
+  def p ()
+    if !state then
+      state := false
+      true
+    else
+      false
+    end
+  end
+  p.{ signal=signal }
+end
