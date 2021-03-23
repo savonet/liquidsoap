@@ -135,7 +135,8 @@ let print_functions_md ~extra (doc : item) print_string =
   let by_cat = List.sort (fun (c, _) (c', _) -> compare c c') !by_cat in
   let by_cat = List.filter (fun (c, _) -> c <> "") by_cat in
   let should_print l =
-    if List.mem "hidden" l then false else List.mem "extra" l = extra
+    if List.mem "hidden" l || List.mem "deprecated" l then false
+    else List.mem "extra" l = extra
   in
   List.iter
     (fun (cat, ff) ->

@@ -1,7 +1,7 @@
 # Deprecated APIs.
 
 # Mark a function as deprecated.
-# @flag hidden
+# @flag deprecated
 # @category Liquidsoap
 # @param old Old function name.
 # @param new New function name.
@@ -10,81 +10,81 @@ def deprecated(old, new)
   log.severe(label="lang.deprecated", "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{new}")
 end
 
-# @flag hidden
+# @flag deprecated
 def on_metadata(~id="",fn,s) =
   deprecated("on_metadata", "the <source>.on_metadata(..) method")
   s.on_metadata(fn)
   s
 end
 
-# @flag hidden
+# @flag deprecated
 def on_track(~id="",fn,s) =
   deprecated("on_track", "the <source>.on_track(..) method")
   s.on_track(fn)
   s
 end
 
-# @flag hidden
+# @flag deprecated
 def source.on_shutdown(s, fn) =
   deprecated("source.on_shutdown", "the <source>.on_shutdown() method")
   s.on_shutdown(fn)
 end
 
-# @flag hidden
+# @flag deprecated
 def source.is_up(s) =
   deprecated("source.is_up", "the <source>.is_up() method")
   s.is_up()
 end
 
-# @flag hidden
+# @flag deprecated
 def source.is_ready(s) =
   deprecated("source.is_ready", "the <source>.is_ready() method")
   s.is_ready()
 end
 
-# @flag hidden
+# @flag deprecated
 def source.id(s) =
   deprecated("source.id", "the <source>.id() method")
   s.id()
 end
 
-# @flag hidden
+# @flag deprecated
 def source.shutdown(s) =
   deprecated("source.shutdown", "the <source>.shutdown() method")
   s.shutdown()
 end
 
-# @flag hidden
+# @flag deprecated
 def source.seek(s, f) =
   deprecated("source.seek", "the <source>.seek(..) method")
   s.seek(f)
 end
 
-# @flag hidden
+# @flag deprecated
 def source.skip(s) =
   deprecated("source.skip", "the <source>.skip() method")
   s.skip()
 end
 
-# @flag hidden
+# @flag deprecated
 def source.fallible(s) =
   deprecated("source.fallible", "the <source>.fallible() method")
   s.fallible()
 end
 
-# @flag hidden
+# @flag deprecated
 def source.remaining(s) =
   deprecated("source.remaining", "the <source>.remaining() method")
   s.remaining()
 end
 
-# @flag hidden
+# @flag deprecated
 def source.time(s) =
   deprecated("source.time", "the <source>.time() method")
   s.time()
 end
 
-# @flag hidden
+# @flag deprecated
 def on_change_harbor_bind_addr(v) =
   deprecated("harbor.bind_addr", "harbor.bind_addrs")
   set("harbor.bind_addrs",[v])
@@ -94,7 +94,7 @@ register(name="[DEPRECATED] Harbor bind_addr",
          descr="IP addresses on which the harbor should listen.",
          on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")
 
-# @flag hidden
+# @flag deprecated
 def on_change_video_samplerate(r) =
   deprecated("frame.video.samplerate", "frame.video.framerate")
   set("frame.video.framerate",r)
@@ -104,7 +104,7 @@ register(name="[DEPRECATED] Framerate",
          on_change=on_change_video_samplerate,"frame.video.samplerate",25)
 
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
-# @flag hidden
+# @flag deprecated
 def replaces input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                    ~restart=true,~restart_on_error=false,
                    ~samplerate=44100,cmd) =
@@ -115,42 +115,42 @@ def replaces input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
 end
 
 # Deprecated: this function has been replaced by `string.quote`.
-# @flag hidden
+# @flag deprecated
 def quote(s) =
   deprecated("quote", "string.quote")
   string.quote(s)
 end
 
 # Deprecated: use mksafe and playlist instead.
-# @flag hidden
+# @flag deprecated
 def playlist.safe(~id="", ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
   deprecated("playlist.safe", "")
   mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
 
 # Deprecated: this function has been replaced by `thread.run.recurrent`.
-# @flag hidden
+# @flag deprecated
 def add_timeout(~fast=true, delay, f)
   deprecated("add_timeout", "thread.run.recurrent")
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
 
 # Deprecated: this function has been replaced by `thread.when`.
-# @flag hidden
+# @flag deprecated
 def exec_at(~freq=1., ~pred, f)
   deprecated("exec_at", "thread.when")
   thread.when(every=freq, pred, f)
 end
 
 # Deprecated: this function has been replaced by `thread.mutexify`.
-# @flag hidden
+# @flag deprecated
 def mutexify(f)
   deprecated("mutexify", "thread.mutexify")
   thread.mutexify(f)
 end
 
 # Deprecated: this function has been replaced by `file.which`.
-# @flag hidden
+# @flag deprecated
 def which(f)
   deprecated("which", "file.which")
   file.which(f) ?? ""
@@ -159,14 +159,14 @@ end
 base64 = ()
 
 # Deprecated: this function has been replaced by `string.base64.decode`.
-# @flag hidden
+# @flag deprecated
 def base64.decode(s)
   deprecated("base64.decode", "string.base64.decode")
   string.base64.decode(s)
 end
 
 # Deprecated: this function has been replaced by `string.base64.encode`.
-# @flag hidden
+# @flag deprecated
 def base64.encode(s)
   deprecated("base64.encode", "string.base64.encode")
   string.base64.encode(s)
@@ -183,7 +183,7 @@ def playlist.once(~id="",~random=false,~reload_mode="",
 end
 
 # Deprecated: this function has been replaced by `map_metadata`.
-# @flag hidden
+# @flag deprecated
 def rewrite_metadata(l,~insert_missing=true,~update=true,~strip=false,s)
   deprecated("rewrite_metadata", "map_metadata")
   def map(m)
@@ -198,7 +198,7 @@ def rewrite_metadata(l,~insert_missing=true,~update=true,~strip=false,s)
 end
 
 # Deprecated: this function will be removed in a future release
-# @flag hidden
+# @flag deprecated
 def id(~id="",s)
  deprecated("id","")
  s
@@ -207,7 +207,7 @@ end
 # Deprecated: flow is no longer maintained
 # Register a radio on Liquidsoap Flows.
 # @category Liquidsoap
-# @flag hidden
+# @flag deprecated
 # @param ~radio   Name of the radio.
 # @param ~website URL of the website of the radio.
 # @param ~description Description of the radio.
@@ -307,20 +307,20 @@ def register_flow(~server="",~user="default",~password="default",
 end
 
 # Deprecated: this function has been replaced by `fail`.
-# @flag hidden
+# @flag deprecated
 def empty(~id="")
   fail()
 end
 
 # Deprecated: use `request.create` instead.
-# @flag hidden
+# @flag deprecated
 def request.create.raw(~indicators=[], ~persistent=false, uri)
   deprecated("request.create.raw", "request.create")
   request.create(indicators=indicators, persistent=persistent, uri)
 end
 
 # Deprecated: use `file.remove` instead.
-# @flag hidden
+# @flag deprecated
 def file.unlink(filename)
   deprecated("file.unlink", "file.remove")
   file.remove(filename)
@@ -328,7 +328,7 @@ end
 
 # Deprecated: was designed for transitions only and is not
 # needed anymore
-# @flag hidden
+# @flag deprecated
 def fade.final(~id="fade.final",~duration=3.,~type="lin",s) =
   deprecated("fade.final", "fade.out")
 
@@ -349,7 +349,7 @@ end
 
 # Deprecated: was designed for transitions only and is not
 # needed anymore.
-# @flag hidden
+# @flag deprecated
 def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
   deprecated("fade.initial", "fade.in")  
 
@@ -358,7 +358,7 @@ def fade.initial(~id="fade.initial",~duration=3.,~type="lin",s) =
 end
 
 # Deprecated: use `process.read` instead.
-# @flag hidden
+# @flag deprecated
 def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
   deprecated("get_process_output", "process.read")
 
@@ -366,7 +366,7 @@ def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
 end
 
 # Deprecated: use `process.read.lines` instead.
-# @flag hidden
+# @flag deprecated
 def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
   deprecated("get_process_lines", "process.read.lines")
 
@@ -374,7 +374,7 @@ def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
 end
 
 # Deprecated: use `process.test` instead.
-# @flag hidden
+# @flag deprecated
 def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
   deprecated("test_process", "process.test")
 
@@ -382,7 +382,7 @@ def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
 end
 
 # Deprecated: use `process.run` instead.
-# @flag hidden
+# @flag deprecated
 def system(command) =
   deprecated("system", "process.run")
 
@@ -390,7 +390,7 @@ def system(command) =
 end
 
 # Deprecated: use `blank.detect` instead
-# @flag hidden
+# @flag deprecated
 def on_blank(~id="on_blank", ~max_blank=20., ~min_noise=0.,
              ~on_noise, ~start_blank=false, ~threshold=(-40.),
              ~track_sensitive=true, cb, s) =
@@ -402,7 +402,7 @@ def on_blank(~id="on_blank", ~max_blank=20., ~min_noise=0.,
 end
 
 # Deprecated: use `blank.skip` instead
-# @flag hidden
+# @flag deprecated
 def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s) =
   deprecated("skip_blank", "blank.skip")
 
@@ -410,7 +410,7 @@ def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensit
 end
 
 # Deprecated: use `blank.eat` instead
-# @flag hidden
+# @flag deprecated
 def eat_blank(~id="", ~at_beginning=false, ~max_blank=20., ~min_noise=0.,
               ~start_blank=false, ~threshold=(-40.), ~track_sensitive=true,
               s) =
@@ -422,7 +422,7 @@ def eat_blank(~id="", ~at_beginning=false, ~max_blank=20., ~min_noise=0.,
 end
 
 # Deprecated: use `blank.strip` instead
-# @flag hidden
+# @flag deprecated
 def strip_blank(~id="", ~max_blank=20., ~min_noise=0., ~start_blank=false,
                 ~threshold=(-40.), ~track_sensitive=true, s)
   deprecated("strip_blank", "blank.strip")
@@ -433,21 +433,21 @@ def strip_blank(~id="", ~max_blank=20., ~min_noise=0., ~start_blank=false,
 end
 
 # Deprecated: use `time.local` instead
-# @flag hidden
+# @flag deprecated
 def localtime(t)
   deprecated("localtime", "time.local")
   time.local(t)
 end
 
 # Deprecated: use `time.utc` instead
-# @flag hidden
+# @flag deprecated
 def gmtime(t)
   deprecated("gmtime", "time.utc")
   time.utc(t)
 end
 
 # Deprecated: use `time` instead
-# @flag hidden
+# @flag deprecated
 def gettimeofday()
   deprecated("gettimeofday", "time")
   time()
@@ -589,7 +589,7 @@ def input.http(%argsof(input.http), s) =
   s
 end
 
-# @flag hidden
+# @flag deprecated
 def output.prefered(~id="",~fallible=false,
                     ~on_start={()},~on_stop={()},~start=true,s)
   deprecated("output.prefered","output")
@@ -599,21 +599,21 @@ def output.prefered(~id="",~fallible=false,
 end
 
 # Deprecated: use `output` instead.
-# @flag hidden
+# @flag deprecated
 def out(s)
   deprecated("out","output")
   output(mksafe(s))
 end
 
 # Deprecated: use `input` instead.
-# @flag hidden
+# @flag deprecated
 def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
   deprecated("in", "input")
   input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
 
 # Deprecated: use `available` instead.
-# @flag hidden
+# @flag deprecated
 def mkavailable(~id="mkavailable", ~track_sensitive=getter(true), ~active=getter(false), ~available=getter(true), s) =
   output.dummy(switch([(getter.function(active),s)]),fallible=true)
   switch(id=id,track_sensitive=getter.function(track_sensitive),[(getter.function(available),s)])
