@@ -20,12 +20,9 @@
 
  *****************************************************************************)
 
-(** Avoids some source to play a new track before some delay elapses after the
-  * end of the previous track played. *)
-
 open Source
 
-class available ~kind ~track_sensitive ~delay p (source : source) =
+class available ~kind ~track_sensitive p (source : source) =
   object
     inherit operator ~name:"available" kind [source]
 
@@ -41,20 +38,13 @@ class available ~kind ~track_sensitive ~delay p (source : source) =
 
     val mutable ready = p ()
 
-    val mutable last = Unix.time ()
-
     method is_ready =
-      if (not (track_sensitive () && ready)) && Unix.time () -. last >= delay ()
-      then (
-        ready <- p ();
-        last <- Unix.time () );
+      if not (track_sensitive () && ready) then ready <- p ();
       ready && source#is_ready
 
     method private get_frame buf =
       source#get buf;
-      if track_sensitive () && Frame.is_partial buf then (
-        ready <- p ();
-        last <- Unix.time () )
+      if track_sensitive () && Frame.is_partial buf then ready <- p ()
   end
 
 let () =
@@ -66,10 +56,6 @@ let () =
         Lang.getter_t Lang.bool_t,
         Some (Lang.bool true),
         Some "Change availability only on end of tracks." );
-      ( "delay",
-        Lang.getter_t Lang.float_t,
-        Some (Lang.float 1.),
-        Some "Delay between availability checks." );
       ( "",
         Lang.getter_t Lang.bool_t,
         None,
@@ -88,7 +74,6 @@ let () =
       let track_sensitive =
         List.assoc "track_sensitive" p |> Lang.to_bool_getter
       in
-      let delay = List.assoc "delay" p |> Lang.to_float_getter in
       let pred = Lang.assoc "" 1 p |> Lang.to_bool_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
-      new available ~kind ~track_sensitive ~delay pred s)
+      new available ~kind ~track_sensitive pred s)
