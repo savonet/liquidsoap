@@ -29,21 +29,6 @@ def drop_metadata(s)
   map_metadata(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
 
-# Special track insensitive fallback that always skips current song before
-# switching.
-# @category Source / Track Processing
-# @param ~input The input source
-# @flag extra
-# @param f The fallback source
-def fallback.skip(~input,f)
-  def transition(a,b) =
-    a.skip()
-    # This eats the last remaining frame from a
-    sequence([a,b])
-  end
-  fallback(track_sensitive=false,transitions=[transition,transition],[input,f])
-end
-
 # Compress and normalize, producing a more uniform and "full" sound.
 # @category Source / Sound Processing
 # @flag extra

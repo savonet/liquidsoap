@@ -18,6 +18,21 @@ def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
          list.map(add_condition, sources))
 end
 
+# Special track insensitive fallback that always skips current song before
+# switching.
+# @category Source / Track Processing
+# @param ~input The input source
+# @flag extra
+# @param f The fallback source
+def fallback.skip(~input,f)
+  def transition(a,b) =
+    a.skip()
+    # This eats the last remaining frame from a
+    sequence([a,b])
+  end
+  fallback(track_sensitive=false,transitions=[transition,transition],[input,f])
+end
+
 # Rotate between sources.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
