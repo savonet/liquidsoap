@@ -545,3 +545,9 @@ def mkavailable(~id="mkavailable", ~track_sensitive=getter(true), ~active=getter
   output.dummy(switch([(getter.function(active),s)]),fallible=true)
   switch(id=id,track_sensitive=getter.function(track_sensitive),[(getter.function(available),s)])
 end
+
+# Deprecated: use `source.on_end` instead.
+# @flag deprecated
+def on_end(~id="", delay=5., f, s)
+  source.on_end(id=id, delay=delay, s, f)
+end

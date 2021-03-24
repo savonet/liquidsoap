@@ -153,6 +153,7 @@ Changed:
 - `file.write` does not return a boolean anymore, exceptions are used for
   exceptional cases (#1500).
 - `source.dynamic` now takes a nullable argument.
+- Renamed `on_end` to `source.on_end`.
 
 Fixed:
 

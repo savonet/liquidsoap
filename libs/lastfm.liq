@@ -47,6 +47,7 @@ def lastfm.nowplaying(~user,~password,~length=false,m) =
                 m)
 end
 
+let source_on_end = source.on_end
 let source_on_metadata = source.on_metadata
 
 # Submit songs using audioscrobbler, respecting the full protocol:
@@ -79,7 +80,7 @@ def audioscrobbler.submit.full(
             level=4,"Remaining time null: \
                      will not submit song (song skipped ?)")
       end
-  on_end(delay=delay,f,s)
+  source_on_end(s,delay=delay,f)
 end
 
 # Submit songs to librefm using audioscrobbler, respecting the full protocol:

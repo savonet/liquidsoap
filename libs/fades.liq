@@ -118,19 +118,19 @@ def fade.out(~id="fade.out",~duration=3.,
   def update_fade(m) =
     if m[override_duration] != "" then
       duration := float_of_string(default=!duration,m[override_duration])
-      log("New fade duration: #{!duration}")
+      log("New fade duration: #{!duration}s.")
     end
 
     if m[override_type] != "" then
       type := m[override_type]
-      log("New fade type: #{!type}")
+      log("New fade type: #{!type}.")
     end
   end
 
   source.on_metadata(s, update_fade)
   delay = fun () -> !duration
   source.on_track(s, stop_fade)
-  s = on_end(delay=delay,start_fade,s)
+  s = source.on_end(s,delay=delay,start_fade)
   fade.scale(id=id,apply,s)
 end
 
@@ -212,19 +212,19 @@ def fade.in(~id="fade.in",~duration=3.,
   end
 
   def start_fade(_) =
-    log("Fading in..")
+    log("Fading in (type: #{!type}, duration: #{!duration}s).")
     fn := mkfade(start=0.,stop=1.,type=!type,duration=!duration,s)
   end
 
   def update_fade(m) =
     if m[override_duration] != "" then
       duration := float_of_string(default=!duration,m[override_duration])
-      log("New fade duration: #{!duration}")
+      log("New fade duration: #{!duration}s.")
     end
 
     if m[override_type] != "" then
       type := m[override_type]
-      log("New fade type: #{!type}")
+      log("New fade type: #{!type}.")
     end
   end
 
