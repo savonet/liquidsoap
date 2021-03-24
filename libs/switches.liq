@@ -4,7 +4,7 @@
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
 # @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
 # @param ~track_sensitive Re-select only on end of tracks.
-# @param ~transition_length Maximun transition duration.
+# @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
            ~track_sensitive=true, ~transition_length=5., ~transitions=[],
@@ -23,7 +23,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
 # @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
-# @param ~transition_length Maximun transition duration.
+# @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
@@ -91,7 +91,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
 # @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
-# @param ~transition_length Maximun transition duration.
+# @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child the probability that it is selected.
 def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=true,
