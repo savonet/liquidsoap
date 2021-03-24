@@ -32,16 +32,16 @@ end
 # Special track insensitive fallback that always skips current song before
 # switching.
 # @category Source / Track Processing
-# @param l List of sources to be played (as in `fallback`, the first available is selected).
+# @param ~input The input source
 # @flag extra
-def fallback.skip(l)
+# @param f The fallback source
+def fallback.skip(~input,f)
   def transition(a,b) =
     a.skip()
     # This eats the last remaining frame from a
     sequence([a,b])
   end
-  transitions = list.map(fun(_) -> transition, l)
-  fallback(track_sensitive=false, transitions=transitions, l)
+  fallback(track_sensitive=false,transitions=[transition,transition],[input,f])
 end
 
 # Compress and normalize, producing a more uniform and "full" sound.
