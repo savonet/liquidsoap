@@ -31,15 +31,6 @@ open Source
  * involving storing chunks that have been fetched too early, replaying
  * them later, glued with new content. *)
 
-(* We use ticks for precision, but store them as Int64 to allow
- * long durations. This should eventually be generalized to all of
- * liquidsoap, removing limitations such as the duration passed to
- * #seek or returned by #remaining.
- * We introduce a few notations to make this comfortable. *)
-
-let ( -- ) = Int64.sub
-let ( ++ ) = Int64.add
-
 class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
   (source : Source.source) =
   object (self)
@@ -66,14 +57,13 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
     val mutable track_state = None
 
     method remaining =
-      let source_remaining = Int64.of_int source#remaining in
-      Int64.to_int
-        ( match track_state with
-          | None | Some None -> source_remaining
-          | Some (Some (elapsed, cue_out)) ->
-              let target = cue_out -- elapsed in
-              if source_remaining = -1L then target
-              else min source_remaining target )
+      let source_remaining = source#remaining in
+      match track_state with
+        | None | Some None -> source#remaining
+        | Some (Some (elapsed, cue_out)) ->
+            let target = cue_out - elapsed in
+            if source_remaining = -1 then target
+            else min source#remaining target
 
     (* Management of the source has to be done fully manually:
      * we don't use the default mechanisms because we want complete
@@ -117,11 +107,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
             let get key =
               try
                 let content = Hashtbl.find table key in
-                try
-                  Some
-                    (Int64.of_float
-                       ( float_of_string content
-                       *. float (Lazy.force Frame.main_rate) ))
+                try Some (Frame.main_of_seconds (float_of_string content))
                 with _ ->
                   self#log#severe "Ill-formed metadata %s=%S!" key content;
                   None
@@ -135,8 +121,8 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
              * tracks and potential loops. *)
             let cue_in =
               match cue_in with
-                | Some i when i <= 0L ->
-                    if i < 0L then
+                | Some i when i <= 0 ->
+                    if i < 0 then
                       self#log#severe "Ignoring negative cue-in point.";
                     None
                 | i -> i
@@ -148,7 +134,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
                       "Ignoring cue-out point before cue-in. Note that cue-out \
                        should be given relative to the beginning of the file.";
                     None
-                | None, Some o when o < 0L ->
+                | None, Some o when o < 0 ->
                     self#log#severe "Ignoring negative cue-out point.";
                     None
                 | _, cue_out -> cue_out
@@ -158,7 +144,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
     method private cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos seek_time =
       self#log#important "Cueing in...";
       on_cue_in ();
-      let seek_pos = Int64.to_int seek_time - delta_pos in
+      let seek_pos = seek_time - delta_pos in
       let seeked_pos = source#seek seek_pos in
       (* Set back original breaks. *)
       Frame.set_breaks buf breaks;
@@ -169,15 +155,15 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
       self#child_tick;
       source#get buf;
       let new_pos = Frame.position buf in
-      ( Int64.of_int (delta_pos + seeked_pos + new_pos - pos),
+      ( delta_pos + seeked_pos + new_pos - pos,
         if seeked_pos = seek_pos then out_pos
         else (
-          let position = Int64.of_int (delta_pos + seeked_pos) in
+          let position = delta_pos + seeked_pos in
           match out_pos with
             | Some o when position > o ->
                 self#log#important
                   "Initial seek reached %i ticks past cue-out point!"
-                  (Int64.to_int (position -- o));
+                  (position - o);
                 Some position
             | _ ->
                 if seeked_pos = 0 then
@@ -200,7 +186,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
        * - the amount of [extra] data past the cue point, to be dropped;
        * - the amount of [remaining] data, that should be left. *)
       let new_pos = Frame.position buf in
-      let extra = Int64.to_int (elapsed -- out_pos) in
+      let extra = elapsed - out_pos in
       let remaining = new_pos - pos - extra in
       (* We know that [extra>0] so [remaining] is strictly less
        * than the total amount of data from the last #get, ie.,
@@ -232,14 +218,14 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
         (* Compute track state after the #get *)
         match track_state with
           | Some None -> None
-          | Some (Some (e, o)) -> Some (e ++ Int64.of_int delta_pos, o)
+          | Some (Some (e, o)) -> Some (e + delta_pos, o)
           | None -> (
               (* New track: get the cue point information from metadata *)
               let in_pos, out_pos = self#get_cue_points buf pos in
               (* Perform cue_in if required, adjusting out_pos if needed *)
               let elapsed, out_pos =
                 match in_pos with
-                  | None | Some 0L -> (Int64.of_int delta_pos, out_pos)
+                  | None | Some 0 -> (delta_pos, out_pos)
                   | Some seek_time ->
                       self#cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos
                         seek_time
