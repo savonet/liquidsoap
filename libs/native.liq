@@ -71,18 +71,6 @@ end
 # @param ~track_sensitive Re-select only on end of tracks.
 # @param sources Sources with the predicate telling when they can be played.
 def native.switch(~id="", ~track_sensitive=true, sources)
-  fail = (fail():source)
-  def s()
-    def activated(ps)
-      let (p, s) = ps
-      if p () then
-        s = getter.get(s)
-        if source.is_ready(s) then s else null () end
-      else
-        null()
-      end
-    end
-    null.find(default=fail, activated, sources)
-  end
-  source.dynamic(track_sensitive=track_sensitive, s)
+  sources = list.map(fun(ps) -> available(fst(ps), snd(ps)), sources)
+  native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
