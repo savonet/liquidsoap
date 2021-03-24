@@ -22,7 +22,7 @@
 
 open Source
 
-class available ~kind ~track_sensitive p (source : source) =
+class available ~kind ~track_sensitive ~override p (source : source) =
   object
     inherit operator ~name:"available" kind [source]
 
@@ -40,7 +40,7 @@ class available ~kind ~track_sensitive p (source : source) =
 
     method is_ready =
       if not (track_sensitive () && ready) then ready <- p ();
-      ready && source#is_ready
+      ready && (override || source#is_ready)
 
     method private get_frame buf =
       source#get buf;
@@ -56,6 +56,12 @@ let () =
         Lang.getter_t Lang.bool_t,
         Some (Lang.bool true),
         Some "Change availability only on end of tracks." );
+      ( "override",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Don't take availability of original source in account (this can be \
+           dangerous and should be avoided)." );
       ( "",
         Lang.getter_t Lang.bool_t,
         None,
@@ -74,6 +80,7 @@ let () =
       let track_sensitive =
         List.assoc "track_sensitive" p |> Lang.to_bool_getter
       in
+      let override = List.assoc "override" p |> Lang.to_bool in
       let pred = Lang.assoc "" 1 p |> Lang.to_bool_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
-      new available ~kind ~track_sensitive pred s)
+      new available ~kind ~track_sensitive ~override pred s)
