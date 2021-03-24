@@ -20,27 +20,27 @@
 
  *****************************************************************************)
 
-(* For some synthetized function (e.g. noise, blank, sine),
- * we can pretend we support seek by doing nothing. However, for
- * other, seek should be disabled. Thus, if [seek] is [true],
- * the seek function is [fun x -> x] otherwise it is
- * [fun _ -> 0] *)
+(* For some synthetized function (e.g. noise, blank, sine), we can pretend we
+   support seek by doing nothing. However, for other, seek should be
+   disabled. Thus, if [seek] is [true], the seek function is [fun x -> x]
+   otherwise it is [fun _ -> 0] *)
 class virtual source ?name ~seek kind duration =
   let track_size =
-    if duration <= 0. then None else Some (Frame.main_of_seconds duration)
+    if duration < 0. then None else Some (Frame.main_of_seconds duration)
   in
   object (self)
     inherit Source.source ?name kind
 
-    method stype = Source.Infallible
+    method stype =
+      if track_size = None then Source.Infallible else Source.Fallible
 
-    method is_ready = true
+    val mutable remaining = track_size
+
+    method is_ready = remaining <> Some 0
 
     method seek x = if seek then x else 0
 
     method self_sync = false
-
-    val mutable remaining = track_size
 
     method remaining =
       match remaining with None -> -1 | Some remaining -> remaining
@@ -54,8 +54,8 @@ class virtual source ?name ~seek kind duration =
     method private get_frame frame =
       if must_fail then (
         Frame.add_break frame (Frame.position frame);
-        remaining <- track_size;
-        must_fail <- false )
+        must_fail <- false;
+        if track_size <> None then remaining <- Some 0 )
       else (
         let off = Frame.position frame in
         let len =

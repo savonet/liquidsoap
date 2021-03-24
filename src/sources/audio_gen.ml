@@ -49,8 +49,8 @@ let add name g =
     [
       ( "duration",
         Lang.float_t,
-        Some (Lang.float 0.),
-        Some "Duration in seconds (0. means infinite)." );
+        Some (Lang.float (-1.)),
+        Some "Duration in seconds (negative means infinite)." );
       ( "amplitude",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),
