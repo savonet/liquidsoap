@@ -18,7 +18,7 @@ def f(rem, _) =
   shutdown()
 end
 
-s = on_end(delay=0.1,f,s)
+s = source.on_end(s,delay=0.1,f)
 
 clock.assign_new(sync="none",[s])
 
