@@ -32,3 +32,4 @@
 %include "visualization.liq"
 %include "profiler.liq"
 %include "io.liq"
+%include "native.liq"
