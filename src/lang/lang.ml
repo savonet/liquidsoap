@@ -807,6 +807,10 @@ let source v =
   meth (source v)
     (List.map (fun (name, _, _, fn) -> (name, fn v)) source_methods)
 
+(** A method: name, type scheme, documentation and implementation (which takes
+    the currently defined source as argument). *)
+type 'a operator_method = string * scheme * string * ('a -> value)
+
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
   * Creating the associated function type (and function) requires some work:
@@ -819,9 +823,6 @@ let source v =
   * Once the type has been inferred, the function might be executed,
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
-
-type 'a operator_method = string * scheme * string * ('a -> value)
-
 let add_operator =
   let _meth = meth in
   fun ~category ~descr ?(flags = []) ?(active = false)
