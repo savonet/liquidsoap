@@ -50,7 +50,7 @@ class available ~kind ~track_sensitive ~override p (source : source) =
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "available"
+  Lang.add_operator "source.available"
     [
       ( "track_sensitive",
         Lang.getter_t Lang.bool_t,
@@ -63,15 +63,15 @@ let () =
           "Don't take availability of original source in account (this can be \
            dangerous and should be avoided)." );
       ( "",
+        Lang.source_t return_t,
+        None,
+        Some "Source of which the availability should be changed." );
+      ( "",
         Lang.getter_t Lang.bool_t,
         None,
         Some
           "Predicate indicating whether the source should be available or not."
       );
-      ( "",
-        Lang.source_t return_t,
-        None,
-        Some "Source of which the availability should be changed." );
     ]
     ~category:Lang.TrackProcessing
     ~descr:"Change the availability of a source depending on a predicate."

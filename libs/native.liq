@@ -6,10 +6,10 @@ let native = ()
 # @category Source / Track Processing
 # @flag extra
 def native.once(s)
-  # available(track_sensitive=true, predicate.first({true}), (s:source))
+  # source.available(track_sensitive=true, (s:source), predicate.first({true}))
   a = ref(true)
   source.on_track(s, fun(_) -> a := false)
-  available({!a}, s)
+  source.available(s, {!a})
 end
 
 # At the beginning of each track, select the first ready child.
@@ -71,6 +71,6 @@ end
 # @param ~track_sensitive Re-select only on end of tracks.
 # @param sources Sources with the predicate telling when they can be played.
 def native.switch(~id="", ~track_sensitive=true, sources)
-  sources = list.map(fun(ps) -> available(fst(ps), snd(ps)), sources)
+  sources = list.map(fun(ps) -> source.available(snd(ps), fst(ps)), sources)
   native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
