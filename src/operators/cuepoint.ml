@@ -222,6 +222,12 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
           | None -> (
               (* New track: get the cue point information from metadata *)
               let in_pos, out_pos = self#get_cue_points buf pos in
+              if in_pos <> None then
+                self#log#debug "Cue in at %f s."
+                  (Option.get in_pos |> Frame.seconds_of_main);
+              if out_pos <> None then
+                self#log#debug "Cue out at %f s."
+                  (Option.get out_pos |> Frame.seconds_of_main);
               (* Perform cue_in if required, adjusting out_pos if needed *)
               let elapsed, out_pos =
                 match in_pos with
