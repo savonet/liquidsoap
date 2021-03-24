@@ -43,7 +43,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
 
-    val mutable cross_length = cross_length
+    val mutable cross_length = cross_length ()
 
     (* We need to store the end of a track, and compute the power of the signal
      * before the end of track. For doing so we need to remember a sliding window
@@ -429,7 +429,7 @@ let () =
   Lang.add_operator "cross"
     [
       ( "duration",
-        Lang.float_t,
+        Lang.getter_t Lang.float_t,
         Some (Lang.float 5.),
         Some
           "Duration (in seconds) of buffered data from each track that is used \
@@ -494,11 +494,11 @@ let () =
        depending on the relative power of the signal before and after the end \
        of track."
     (fun p ->
-      let duration = Lang.to_float (List.assoc "duration" p) in
+      let duration = Lang.to_float_getter (List.assoc "duration" p) in
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
-      let cross_length = Frame.main_of_seconds duration in
+      let cross_length () = Frame.main_of_seconds (duration ()) in
       let minimum = Lang.to_float (List.assoc "minimum" p) in
       let minimum_length = Frame.audio_of_seconds minimum in
       let rms_width = Lang.to_float (List.assoc "width" p) in

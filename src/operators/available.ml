@@ -81,6 +81,6 @@ let () =
         List.assoc "track_sensitive" p |> Lang.to_bool_getter
       in
       let override = List.assoc "override" p |> Lang.to_bool in
-      let pred = Lang.assoc "" 1 p |> Lang.to_bool_getter in
-      let s = Lang.assoc "" 2 p |> Lang.to_source in
+      let s = Lang.assoc "" 1 p |> Lang.to_source in
+      let pred = Lang.assoc "" 2 p |> Lang.to_bool_getter in
       new available ~kind ~track_sensitive ~override pred s)
