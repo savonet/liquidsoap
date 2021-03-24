@@ -247,7 +247,8 @@ def list.exists(p, l)
   aux(l)
 end
 
-# First element satisfying a predicate.
+# First element satisfying a predicate. Raises `error.not_found` if not element
+# is found and no default value was specified.
 # @category List
 # @param ~default Returned value when the predicate is not found.
 # @param p Predicate.
