@@ -62,7 +62,9 @@ let () =
 
 let () =
   add_builtin "source.is_ready" ~cat:Liq
-    ~descr:"Indicate if a source is ready to stream, or currently streaming."
+    ~descr:
+      "Indicate if a source is ready to stream (we also say that it is \
+       available), or currently streaming."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
     (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#is_ready)
