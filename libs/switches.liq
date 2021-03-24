@@ -8,7 +8,7 @@
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
            ~track_sensitive=true, ~transition_length=5., ~transitions=[],
-           ~weights=[], sources) =
+           sources) =
   def add_condition(s) =
     ({true}, s)
   end
