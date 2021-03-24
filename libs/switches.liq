@@ -25,12 +25,17 @@ end
 # @flag extra
 # @param f The fallback source
 def fallback.skip(~input,f)
-  def transition(a,b) =
-    a.skip()
-    # This eats the last remaining frame from a
-    sequence([a,b])
+  avail = ref(true)
+  def check()
+    old = !avail
+    avail := source.is_ready(input)
+    if not old and !avail then
+      source.skip(f)
+    end
   end
-  fallback(track_sensitive=false,transitions=[transition,transition],[input,f])
+  s = fallback(track_sensitive=false, [input,f])
+  # TODO: could we have something more efficient that checking on every frame
+  source.on_frame(s, check)
 end
 
 # Rotate between sources.
