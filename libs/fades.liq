@@ -8,7 +8,6 @@ fade = ()
 # @param ~duration Duration in seconds.
 # @param ~on_done Function to execute when the fade is finished
 def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
-  ignore((s : source_methods))
   log = log(label="mkfade")
 
   # Shape functions must map 0. -> 0. and 1. -> 1.
@@ -50,10 +49,10 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
   start_time = ref(-1.)
   def fade() =
     if !start_time < 0. then
-      start_time := s.time()
+      start_time := source.time(s)
     end
 
-    t = s.time() - !start_time
+    t = source.time(s) - !start_time
     if t >= duration then
       on_done ()
       stop
@@ -89,7 +88,7 @@ def fade.out(~id="fade.out",~duration=3.,
              ~override_duration="liq_fade_out",
              ~override_type="liq_fade_type",
              ~type="lin",s) =
-  log = log(label=s.id(),level=4)
+  log = log(label=source.id(s),level=4)
   fn = ref(fun () -> 1.)
   type = ref(type)
   duration = ref(duration)
@@ -97,8 +96,8 @@ def fade.out(~id="fade.out",~duration=3.,
   started = ref(false)
 
   def start_fade(d,_) =
-    log("Fading out with #{d}s remaining..")
-    start_time := s.time()
+    log("Fading out with #{d}s remaining.")
+    start_time := source.time(s)
     duration = if d < !duration then d else !duration end
     fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)
     started := true
@@ -128,9 +127,9 @@ def fade.out(~id="fade.out",~duration=3.,
     end
   end
 
-  s.on_metadata(update_fade)
+  source.on_metadata(s, update_fade)
   delay = fun () -> !duration
-  s.on_track(stop_fade)
+  source.on_track(s, stop_fade)
   s = on_end(delay=delay,start_fade,s)
   fade.scale(id=id,apply,s)
 end
@@ -148,7 +147,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
              ~override_type="liq_fade_skip",
              ~override_skip="liq_skip_meta",
              ~type="lin",s) =
-  log = log(label=s.id(),level=4)
+  log = log(label=source.id(s),level=4)
   fn = ref(fun () -> 1.)
   type = ref(type)
   duration = ref(duration)
@@ -164,12 +163,12 @@ def fade.skip(~id="fade.skip",~duration=5.,
 
   def skip()
     log("Fade finished executing. Calling skip now") 
-    s.skip();
+    source.skip(s);
   end
 
   def update_fade(m) = 
     if m[override_skip] == "true" then
-      remaining = s.remaining()
+      remaining = source.remaining(s)
       duration = if remaining < !duration then remaining else !duration end  
       log("Skip fade executed for: #{duration}s")      
       fn := mkfade(start=1.,stop=0.,type=!type,duration=duration, on_done=skip,s)       
@@ -186,8 +185,8 @@ def fade.skip(~id="fade.skip",~duration=5.,
     end
   end
 
-  s.on_metadata(update_fade)
-  s.on_track(stop_fade)
+  source.on_metadata(s, update_fade)
+  source.on_track(s, stop_fade)
   fade.scale(id=id,apply,s)
 end
 
@@ -202,7 +201,7 @@ def fade.in(~id="fade.in",~duration=3.,
             ~override_duration="liq_fade_in",
             ~override_type="liq_fade_type",
             ~type="lin",s) =
-  log = log(label=s.id(),level=4)
+  log = log(label=source.id(s),level=4)
   fn = ref(fun () -> 0.)
   duration = ref(duration)
   type = ref(type)
@@ -229,8 +228,8 @@ def fade.in(~id="fade.in",~duration=3.,
     end
   end
 
-  s.on_metadata(update_fade)
-  s.on_track(start_fade)
+  source.on_metadata(s, update_fade)
+  source.on_track(s, start_fade)
 
   fade.scale(id=id,apply,s)
 end
@@ -264,7 +263,7 @@ end
 # @param s             The input source.
 def crossfade(~duration=5.,~override_duration="liq_cross_duration",
               ~fade_in=3.,~fade_out=3.,~smart=false,
-              ~default=(fun (a,b) -> sequence([a, b])),
+              ~default=(fun (a,b) -> (sequence([a, b]):source)),
               ~high=-15., ~medium=-32., ~margin=4.,
               ~minimum=(-1.),~width=2.,~conservative=true,s)
   let fade.out = fade.out(type="sin",duration=fade_out)
@@ -277,13 +276,10 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
     list.iter(fun(x)-> log(level=4,"After : #{x}"),mb)
 
     log("Simple transition: crossed, fade-in, fade-out.")
-    add(fade.out(sa),fade.in(sb))
+    (add(fade.out(sa),fade.in(sb)):source)
   end
 
   def smart_transition(a,b,ma,mb,sa,sb)
-    ignore((sa : source_methods))
-    ignore((sb : source_methods))
-
     list.iter(fun(x)-> log(level=4,"Before: #{x}"),ma)
     list.iter(fun(x)-> log(level=4,"After : #{x}"),mb)
 

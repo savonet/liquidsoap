@@ -47,6 +47,8 @@ def lastfm.nowplaying(~user,~password,~length=false,m) =
                 m)
 end
 
+let source_on_metadata = source.on_metadata
+
 # Submit songs using audioscrobbler, respecting the full protocol:
 # First signal song as now playing when starting, and
 # then submit song when it ends.
@@ -64,7 +66,7 @@ def audioscrobbler.submit.full(
   f = audioscrobbler.nowplaying(
         user=user,password=password,
         host=host,port=port,length=length)
-  s.on_metadata(f)
+  source_on_metadata(s, f)
   f = fun (rem,m) ->
       # Avoid skipped songs
       if rem > 0. or force then

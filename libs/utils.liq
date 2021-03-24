@@ -201,7 +201,7 @@ end
 # @param fn The applied function.
 # @param s The input source.
 def map_first_track(~id="",fn,s)
-  fallback(id=id,track_sensitive=true,[fn(once(s)),s])
+  fallback(id=id,track_sensitive=true,[fn((once(s):source)),s])
 end
 
 # Restrict a source to play only when a predicate is true.
@@ -269,6 +269,8 @@ def rotate.merge(~id="",~transitions=[],~weights=[],sources)
   duration = get(default=0.04,"frame.duration")
 
   def to_first(old,new) =
+    ignore((old:source))
+    ignore((new:source))
     ready := (not !ready)
     sequence(merge=true,[blank(duration=duration),new])
   end

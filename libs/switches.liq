@@ -37,10 +37,10 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
   def pick() =
     tracks_played := 0
 
-    if list.exists(fun (s) -> s.is_ready(), sources) then
+    if list.exists(source.is_ready, sources) then
       def rec f(index) =
-        s = list.nth(default=fail(), sources, index)
-        if s.is_ready() then
+        s = list.nth(default=(fail():source), sources, index)
+        if source.is_ready(s) then
           picked_index := index
         else
           f((index + 1) mod list.length(sources))
@@ -59,7 +59,7 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
       tracks_played := !tracks_played + 1
     end
 
-    s.on_track(f)
+    source.on_track(s, f)
 
     def cond() =
       if !picked_index == -1 then pick() end
@@ -83,7 +83,7 @@ def rotate(~id="", ~override="liq_transition_length", ~replay_metadata=true,
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, list.add(s, sources))
+  fallback(id=id, track_sensitive=true, list.add((s:source), sources))
 end
 
 # At the beginning of every track, select a random ready child.
@@ -107,7 +107,7 @@ def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=
       weight = list.nth(default=default_weight, weights, index)
 
       let (current_weight, indexes) =
-        if s.is_ready() then
+        if source.is_ready(s) then
           weight = weight()
           indexes = list.add((current_weight, current_weight+weight, index), indexes)
           (current_weight + weight, indexes)
@@ -142,13 +142,11 @@ def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=
   end
 
   def add_condition(index, s) =
-    ignore ((s : source_methods))
-
     def f(_) =
       next_index := -1
     end 
 
-    s.on_track(f)
+    source.on_track(s, f)
 
     def cond() =
       if !next_index == -1 then pick() end
@@ -162,5 +160,5 @@ def replaces random(~id="", ~override="liq_transition_length", ~replay_metadata=
              transition_length=transition_length, transitions=transitions,
              list.mapi(add_condition, sources))
 
-  fallback(id=id, track_sensitive=true, list.add(s, sources))
+  fallback(id=id, track_sensitive=true, list.add((s:source), sources))
 end

@@ -712,15 +712,7 @@ let source_methods =
       "Indicate if a source is ready to stream, or currently streaming.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
     ( "on_metadata",
-      ( [],
-        fun_t
-          [
-            ( false,
-              "",
-              fun_t [(false, "", list_t (product_t string_t string_t))] unit_t
-            );
-          ]
-          unit_t ),
+      ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on metadata packets.",
       fun s ->
         val_fun [("", "", None)] (fun p ->
@@ -736,15 +728,7 @@ let source_methods =
             s#on_shutdown (fun () -> ignore (apply f []));
             unit) );
     ( "on_track",
-      ( [],
-        fun_t
-          [
-            ( false,
-              "",
-              fun_t [(false, "", list_t (product_t string_t string_t))] unit_t
-            );
-          ]
-          unit_t ),
+      ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on new tracks.",
       fun s ->
         val_fun [("", "", None)] (fun p ->
