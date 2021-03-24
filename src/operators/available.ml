@@ -24,7 +24,7 @@ open Source
 
 class available ~kind ~track_sensitive ~override p (source : source) =
   object
-    inherit operator ~name:"available" kind [source]
+    inherit operator ~name:"source.available" kind [source]
 
     method stype = Fallible
 
@@ -54,7 +54,7 @@ let () =
     [
       ( "track_sensitive",
         Lang.getter_t Lang.bool_t,
-        Some (Lang.bool true),
+        Some (Lang.bool false),
         Some "Change availability only on end of tracks." );
       ( "override",
         Lang.bool_t,
