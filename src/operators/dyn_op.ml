@@ -20,11 +20,11 @@
 
  *****************************************************************************)
 
-class dyn ~kind ~track_sensitive f =
+class dyn ~kind ~track_sensitive ~infallible f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
 
-    method stype = Source.Fallible
+    method stype = if infallible then Source.Infallible else Source.Fallible
 
     val mutable activation = []
 
@@ -109,6 +109,12 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Whether the source should only be updated on track change." );
+      ( "infallible",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Whether the source is infallible or not (be careful when setting \
+           this, it will not be checked by the typing system)." );
       ( "",
         Lang.fun_t [] (Lang.nullable_t (Lang.source_t k)),
         None,
@@ -120,4 +126,5 @@ let () =
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
     (fun p ->
       let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
-      new dyn ~kind ~track_sensitive (List.assoc "" p))
+      let infallible = List.assoc "infallible" p |> Lang.to_bool in
+      new dyn ~kind ~track_sensitive ~infallible (List.assoc "" p))
