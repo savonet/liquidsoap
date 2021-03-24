@@ -277,8 +277,12 @@ let print_lang (i : item) =
     Format.fprintf ff "@.Parameters:@.";
     List.iter
       (fun (lbl, i) ->
-        Format.fprintf ff "@. * %s : %s (default: %s)@." lbl
-          (i#get_subsection "type")#get_doc (i#get_subsection "default")#get_doc;
+        let default = (i#get_subsection "default")#get_doc in
+        let default =
+          if default = "None" then "" else " (default: " ^ default ^ ")"
+        in
+        Format.fprintf ff "@. * %s : %s%s@." lbl
+          (i#get_subsection "type")#get_doc default;
         if i#get_doc <> "(no doc)" then
           Format.fprintf ff "@[<5>     %a@]@." print_string_split i#get_doc)
       sub );
