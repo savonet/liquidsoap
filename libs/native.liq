@@ -84,6 +84,7 @@ let native.request = request
 # @param ~polling_delay How often the queue should be checkelid and filled in seconds.
 # @param ~prefetch Number of tracks to prepare in advance.
 # @param ~timeout Timeout for resolving requests in seconds.
+# @param f Function returning the next request.
 def native.request.dynamic(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
   # Prepared requests
   queue = ref([])
@@ -115,4 +116,26 @@ def native.request.dynamic(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20.,
     end
   end
   source.dynamic(id=id, track_sensitive=true, s)
+end
+
+# Play requests dynamically created by a given function.
+# @category Source / Input
+# @param ~id Force the value of the source ID.
+# @param ~polling_delay How often the queue should be checkelid and filled in seconds.
+# @param ~prefetch Number of tracks to prepare in advance.
+# @param ~timeout Timeout for resolving requests in seconds.
+# @param f Function returning the list of next requests.
+def native.request.dynamic.list(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
+  l = ref([])
+  def f()
+    if !l == [] then l := f() end
+    if !l != [] then
+      r = list.hd(!l)
+      l := list.tl(!l)
+      r
+    else
+      null()
+    end
+  end
+  native.request.dynamic(id=id, f)
 end

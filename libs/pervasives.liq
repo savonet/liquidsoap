@@ -16,6 +16,7 @@
 %include "audio.liq"
 %include "metadata.liq"
 %include "request.liq"
+%include "native.liq"
 %include "playlist.liq"
 %include "resolvers.liq"
 %include "fades.liq"
@@ -32,4 +33,4 @@
 %include "visualization.liq"
 %include "profiler.liq"
 %include "io.liq"
-%include "native.liq"
+
