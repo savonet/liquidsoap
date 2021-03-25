@@ -1,6 +1,6 @@
 let request.queue = ()
 
-# Play request dynamically created by a given function.
+# Play requests dynamically created by a given function.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~available Whether some new requests are available (when set to false, it stops after current playing request).
