@@ -81,13 +81,14 @@ let native.request = ()
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~polling_delay How often the queue should be checkelid and filled in seconds.
+# @param ~prefetch Number of tracks to prepare in advance.
 # @param ~timeout Timeout for resolving requests in seconds.
-def native.request.dynamic(~id="", ~polling_delay=1., ~timeout=20., f)
+def native.request.dynamic(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
   # Prepared requests
   queue = ref([])
   # Filling thread
   def filler()
-    if list.length(!queue) < 2 then
+    if list.length(!queue) < prefetch then
       r = f()
       if null.defined(r) then
         r = null.get(r)
