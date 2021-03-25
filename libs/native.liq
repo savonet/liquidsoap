@@ -91,9 +91,10 @@ def native.request.dynamic(~id="", ~polling_delay=1., ~timeout=20., f)
       r = f()
       if null.defined(r) then
         r = null.get(r)
-        if request.resolve(r) then
+        s = request.once(r)
+        if s.resolve() then
           log.info("Added request on queue: #{request.uri(r)}.")
-          queue := list.append(!queue, [r])
+          queue := list.append(!queue, [s])
         else
           log.important("Failed to resolve request #{request.uri(r)}.")
         end
@@ -104,9 +105,9 @@ def native.request.dynamic(~id="", ~polling_delay=1., ~timeout=20., f)
   # Source
   def s()
     if not list.is_empty(!queue) then
-      r = list.hd(!queue)
+      s = list.hd(!queue)
       queue := list.tl(!queue)
-      request.once(r)
+      s
     else
       fail()
     end
