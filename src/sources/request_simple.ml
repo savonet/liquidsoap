@@ -35,6 +35,14 @@ let () =
         Some "Timeout in seconds for resolving the request." );
       ("", Lang.request_t, None, Some "Request to play.");
     ]
+    ~meth:
+      [
+        ( "resolve",
+          ([], Lang.fun_t [] Lang.bool_t),
+          "Resolve the request (this is useful to make sure that the source \
+           will be available in advance).",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#resolve) );
+      ]
     ~return_t
     (fun p ->
       let timeout = List.assoc "timeout" p |> Lang.to_float in

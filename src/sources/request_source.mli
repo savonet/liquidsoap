@@ -40,6 +40,8 @@ class once :
 
        method private get_frame : Frame.t -> unit
 
+       method resolve : bool
+
        method abort_track : unit
      end
 

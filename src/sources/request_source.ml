@@ -51,6 +51,10 @@ class once ~kind ~name ~timeout request =
 
     val mutable decoder = None
 
+    method resolve =
+      Request.resolve ~ctype:(Some self#ctype) request timeout
+      = Request.Resolved
+
     method private wake_up activation =
       super#wake_up activation;
       if not over then (
