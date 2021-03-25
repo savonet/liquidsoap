@@ -78,7 +78,7 @@ end
 # Getter to the contents of a file.
 # @category System
 # @param fname Name of the file from which the contents should be taken.
-def getter.file(fname)
+def file.getter(fname)
   contents = ref("")
   def update()
     contents := file.contents(fname)
@@ -86,4 +86,13 @@ def getter.file(fname)
   update()
   ignore(file.watch(fname, update))
   {!contents}
+end
+
+# Float getter from a file.
+# @category System
+# @param fname Name of the file from which the contents should be taken.
+# @param ~default Default value when the file contains invalid data.
+def file.getter.float(~default=0., fname)
+  x = file.getter(fname)
+  {float_of_string(default=default, string.trim(x()))}
 end
