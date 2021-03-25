@@ -83,7 +83,7 @@ test_stereo: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
 
 test_ffmpeg_filter: $(ENCODED_AUDIO_VIDEO_FILES) $(top_srcdir)/src/liquidsoap
 	@for i in $(ENCODED_AUDIO_VIDEO_FILES:%="%"); do \
-	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $<" media/test_ffmpeg_filter.liq "Ffmpeg filter test for $$i" || exit; \
+	../run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives $(top_srcdir)/libs/pervasives.liq - -- $<" media/test_ffmpeg_filter.liq "FFmpeg filter test for $$i" || exit; \
 	done
 
 test_ffmpeg_audio_decoder: $(ENCODED_AUDIO_FILES) $(top_srcdir)/src/liquidsoap
