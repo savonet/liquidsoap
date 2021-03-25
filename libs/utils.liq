@@ -318,10 +318,10 @@ def overlap_sources(~id="",~normalize=false,
 end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).
+# @category Source / Track Processing
 # @param ~duration Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
-# @category Source / Track Processing
 def chop(~duration=getter(3.), ~metadata=getter([]), s) =
   s = insert_metadata(s)
 
@@ -331,6 +331,22 @@ def chop(~duration=getter(3.), ~metadata=getter([]), s) =
     if getter.get(duration) <= s.time() - !start_time then
       start_time := s.time()
       s.insert_metadata(new_track=true, getter.get(metadata))
+    end
+  end
+
+  source.on_frame(s, f)
+end
+
+# Regularly skip tracks from a source (useful for testing skipping).
+# @category Source / Track Processing
+# @param ~every How often to skip tracks.
+# @param s The stream.
+def skipper(~every=getter(5.), s) =
+  start_time = ref(0.)
+  def f() =
+    if getter.get(every) <= s.time() - !start_time then
+      start_time := s.time()
+      s.skip()
     end
   end
 
