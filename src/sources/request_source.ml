@@ -339,7 +339,11 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         && self#available_length < min_queue_length
       then (
         match self#prefetch with
-          | Finished -> 0.
+          | Finished ->
+              (* Retry again in order to make sure that we have enough data (in
+                 particular, when being conservative and starting on empty we need
+                 to fetch two requests). *)
+              0.5
           | Retry -> adaptative_delay ()
           | Empty -> -1. )
       else -1.
