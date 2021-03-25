@@ -40,7 +40,8 @@ let () =
         ( "resolve",
           ([], Lang.fun_t [] Lang.bool_t),
           "Resolve the request (this is useful to make sure that the source \
-           will be available in advance).",
+           will be available in advance). This function returns `true` if we \
+           were able to successfully perform resolution.",
           fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#resolve) );
       ]
     ~return_t
