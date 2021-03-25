@@ -29,6 +29,92 @@ type handler = {
   close : unit -> unit;
 }
 
+(** Play a request once and become unavailable. *)
+class once ~kind ~name ~timeout request =
+  object (self)
+    inherit source kind ~name as super
+
+    method self_sync = false
+
+    method stype = Fallible
+
+    (* True means that the request has already been played or could not be
+       resolved. *)
+    val mutable over = false
+
+    (* We need to insert a track at next frame. *)
+    val mutable must_fail = false
+
+    val mutable remaining = 0
+
+    method remaining = remaining
+
+    val mutable decoder = None
+
+    method private wake_up activation =
+      super#wake_up activation;
+      if not over then (
+        ( (* Ensure that the request is resolved. *)
+          match Request.resolve ~ctype:(Some self#ctype) request timeout with
+          | Request.Resolved -> ()
+          | (Request.Failed | Request.Timeout) as ans ->
+              self#log#important "Could not resolve request %s: %s."
+                (Request.initial_uri request)
+                ( match ans with
+                  | Request.Failed -> "failed"
+                  | Request.Timeout -> "timeout"
+                  | Request.Resolved -> assert false ) );
+        if not (Request.is_ready request) then (
+          over <- true;
+          self#log#critical "Failed to prepare track: request not ready.";
+          Request.destroy request )
+        else (
+          ( match Request.ctype request with
+            | Some ctype -> assert (Frame.compatible ctype self#ctype)
+            | None -> () );
+          let file = Option.get (Request.get_filename request) in
+          decoder <- Request.get_decoder request;
+          assert (decoder <> None);
+          remaining <- -1;
+          self#log#important "Prepared %S (RID %d)." file
+            (Request.get_id request) ) )
+
+    method private end_track forced =
+      if not over then (
+        ( match Request.get_filename request with
+          | None ->
+              self#log#severe
+                "Finished with a non-existent file?! Something may have been \
+                 moved or destroyed during decoding. It is VERY dangerous, \
+                 avoid it!"
+          | Some f -> self#log#info "Finished with %S." f );
+        let decoder = Option.get decoder in
+        decoder.Decoder.close ();
+        Request.destroy request;
+        remaining <- 0;
+        if forced then must_fail <- true else over <- true )
+
+    method is_ready = not over
+
+    method private get_frame buf =
+      if must_fail then (
+        must_fail <- false;
+        over <- true;
+        Frame.add_break buf (Frame.position buf) )
+      else (
+        let decoder = Option.get decoder in
+        remaining <- decoder.Decoder.fill buf;
+        if Frame.is_partial buf then self#end_track false )
+
+    method seek len =
+      let decoder = Option.get decoder in
+      decoder.Decoder.fseek len
+
+    method abort_track = self#end_track true
+
+    method private sleep = self#end_track false
+  end
+
 (** Class [unqueued] plays the file given by method [get_next_file] as a request
     which is ready, i.e. has been resolved. On the top of it we define [queued],
     which manages a queue of files, feed by resolving in an other thread requests

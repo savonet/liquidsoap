@@ -22,6 +22,27 @@
 
 (** General classes for streaming files. *)
 
+class once :
+  kind:Frame.content_kind
+  -> name:string
+  -> timeout:float
+  -> Request.t
+  -> object
+       inherit Source.source
+
+       method stype : Source.source_t
+
+       method self_sync : bool
+
+       method is_ready : bool
+
+       method remaining : int
+
+       method private get_frame : Frame.t -> unit
+
+       method abort_track : unit
+     end
+
 class virtual unqueued :
   kind:Frame.content_kind
   -> name:string

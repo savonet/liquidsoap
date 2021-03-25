@@ -23,6 +23,24 @@
 open Source
 open Request_source
 
+let () =
+  let kind = Lang.any in
+  let return_t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "request.once" ~category:Lang.Input
+    ~descr:"Play a request once and become unavailable."
+    [
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 20.),
+        Some "Timeout in seconds for resolving the request." );
+      ("", Lang.request_t, None, Some "Request to play.");
+    ]
+    ~return_t
+    (fun p ->
+      let timeout = List.assoc "timeout" p |> Lang.to_float in
+      let r = List.assoc "" p |> Lang.to_request in
+      new once ~kind ~name:"request.once" ~timeout r)
+
 exception Invalid_URI of string
 
 (** [r] must resolve and be always ready. *)

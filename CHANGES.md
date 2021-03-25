@@ -69,6 +69,7 @@ New:
 - Added `getter.is_constant`.
 - Added `assert`.
 - Added `source.available`.
+- Added `request.once`.
 
 Changed:
 
