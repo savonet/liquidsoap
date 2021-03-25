@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class dyn ~kind ~track_sensitive ~infallible f =
+class dyn ~kind ~track_sensitive ~infallible ~resurection_time f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
 
@@ -49,6 +49,8 @@ class dyn ~kind ~track_sensitive ~infallible f =
       if already_locked then unregister ()
       else Tutils.mutexify source_lock unregister ()
 
+    val mutable last_select = 0.
+
     method private select =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
@@ -56,6 +58,7 @@ class dyn ~kind ~track_sensitive ~infallible f =
              let s =
                Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
              in
+             if track_sensitive then last_select <- Unix.gettimeofday ();
              match s with
                | None -> ()
                | Some s ->
@@ -80,7 +83,14 @@ class dyn ~kind ~track_sensitive ~infallible f =
 
     method is_ready =
       if (not track_sensitive) || source = None then self#select;
-      match source with Some s when s#is_ready -> true | _ -> false
+      match source with
+        | Some s when s#is_ready -> true
+        | _ ->
+            if
+              track_sensitive && resurection_time >= 0.
+              && Unix.gettimeofday () -. last_select >= resurection_time
+            then self#select;
+            false
 
     method private get_frame frame =
       begin
@@ -115,6 +125,13 @@ let () =
         Some
           "Whether the source is infallible or not (be careful when setting \
            this, it will not be checked by the typing system)." );
+      ( "resurection_time",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "When track sensitive and the source is unavailable, how long we \
+           should wait before trying to update source again (negative means \
+           never)." );
       ( "",
         Lang.fun_t [] (Lang.nullable_t (Lang.source_t k)),
         None,
@@ -127,4 +144,6 @@ let () =
     (fun p ->
       let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
       let infallible = List.assoc "infallible" p |> Lang.to_bool in
-      new dyn ~kind ~track_sensitive ~infallible (List.assoc "" p))
+      let resurection_time = List.assoc "resurection_time" p |> Lang.to_float in
+      new dyn
+        ~kind ~track_sensitive ~infallible ~resurection_time (List.assoc "" p))
