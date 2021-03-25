@@ -48,6 +48,11 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "noise" ~category:Lang.Input
     ~descr:"Generate audio white noise."
-    [("duration", Lang.float_t, Some (Lang.float 0.), None)]
+    [
+      ( "duration",
+        Lang.float_t,
+        Some (Lang.float (-1.)),
+        Some "Duration in seconds (negative means infinite)." );
+    ]
     ~return_t
     (fun p -> new noise ~kind (Lang.to_float (List.assoc "duration" p)))
