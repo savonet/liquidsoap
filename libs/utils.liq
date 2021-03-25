@@ -108,64 +108,6 @@ def url.split(uri) =
   end
 end
 
-# Register a server/telnet command to update a source's metadata. Returns a new
-# source, which will receive the updated metadata. The command has the following
-# format: insert key1="val1",key2="val2",...
-# @category Source / Track Processing
-# @param ~id Force the value of the source ID.
-def server.insert_metadata(~id="",s) =
-  s = insert_metadata(id=id,s)
-  insert = s.insert_metadata
-  def insert(s) =
-    #TODO: we don't split as expected if one string contains a comma, but this
-    #is difficult to achieve with regexps
-    l = string.split(separator=',',s)
-    def f(l,x) =
-      def sub(s) = string.replace(pattern='\\"',fun (_) -> '"',s) end
-      if x != "" then
-        ret = string.extract(pattern='([^=]+)\\s*=\\s*"((?:\\"|[^"])*)"',x)
-        if ret[1] != "" then
-          list.append(l, [(ret[1], sub(ret[2]))])
-        else
-          l
-        end
-      else
-        l
-      end
-    end
-    meta = list.fold(f,[],l)
-    if meta != [] then
-      insert(meta)
-      "Done"
-    else
-      "Syntax error or no metadata given. Use key1=\"val1\",key2=\"val2\",.."
-    end
-  end
-  id = s.id()
-  server.register(namespace="#{id}",
-                  description="Insert a metadata chunk.",
-                  usage="insert key1=\"val1\",key2=\"val2\",..",
-                  "insert",insert)
-  s
-end
-
-# Register a command that outputs the RMS of the returned source.
-# @category Source / Visualization
-# @param ~id Force the value of the source ID.
-def server.rms(~id="",s) =
-  let s = rms(id=id,s)
-  id = s.id()
-  def rms(_) =
-    rms = s.rms()
-    "#{rms}"
-  end
-  server.register(namespace="#{id}",
-                  description="Return the current RMS of the source.",
-                  usage="rms",
-                  "rms",rms)
-  s
-end
-
 # Remove low frequencies often produced by microphones.
 # @category Source / Sound Processing
 # @param s The input source.
@@ -373,22 +315,6 @@ def overlap_sources(~id="",~normalize=false,
   s = insert_metadata(source)
   send_to_main_source := fun (m) -> s.insert_metadata(m)
   s
-end
-
-# Restart one server client waiting on the given condition
-# @param c condition
-# @category Interaction
-def server.signal(c) =
-  signal = fst(snd(c))
-  signal()
-end
-
-# Restart all server clients waiting on the given condition
-# @param c condition
-# @category Interaction
-def server.broadcast(x) =
-  broadcast = snd(snd(x))
-  broadcast()
 end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).
