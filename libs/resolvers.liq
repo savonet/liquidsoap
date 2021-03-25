@@ -4,7 +4,7 @@ def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain"
   log = log.info(label="extract.replaygain")
   p = process.run("#{extract_replaygain} #{string.quote(file)}")
   stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)
-  if "exit" == p.status then
+  if p.status == "exit" and p.status.code == 0 then
     stdout
   else
     stderr = string.replace(pattern='\\n', fun (_) -> "", p.stderr)
