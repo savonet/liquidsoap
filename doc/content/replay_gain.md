@@ -22,7 +22,7 @@ Liquidsoap provides a script for extracting the replay gain value which requires
 There are two ways to use our replain gain script, one that works for _all_ files and one that can be enabled on a 
 per-file basis, if you need finer grained control over replay gain.
 
-1. Using the replay gain metadata resolver
+#### Using the replay gain metadata resolver
 
 The metadata solution is uniform: without changing anything, *all* your
 files will have a new `replay_gain` metadata when the computation suceeded.
@@ -34,11 +34,12 @@ if you intent to stream large audio files.
 
 The replay gain metadata resolver is not enabled by default. You can do it
 by adding the following code to your script:
+
 ```liquidsoap
 enable_replaygain_metadata()
 ```
 
-2. Using the `replay_gain:` protocol
+#### Using the `replay_gain:` protocol
 
 The `replay_gain:` protocol triggers replay gain retrieval or computation on 
 a per-file bases. To use it, you prefix your request URIs with it.
@@ -53,6 +54,7 @@ behind some `request.dynamic.list` operator. If you are using the
 `playlist` operator, you can use its `prefix` parameter.
 
 Protocols can be chained, for instance:
+
 ```
 annotate:foo=\"bar":replay_gain:/path/to/file.mp3
 ```
@@ -65,6 +67,7 @@ The `amplify()` operator is used for that. This operator can be made to behave a
 done using the `override` parameter.
 
 For replay gain implementation, the `amplify` operator would typically be added immediately on top of the basic tracks source, before transitions or other audio processing operators. Typically:
+
 ```liquidsoap
 enable_replaygain_metadata()
 
