@@ -74,3 +74,42 @@ def native.switch(~id="", ~track_sensitive=true, sources)
   sources = list.map(fun(ps) -> source.available(snd(ps), fst(ps)), sources)
   native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
+
+let native.request = ()
+
+# Play requests dynamically created by a given function.
+# @category Source / Input
+# @param ~id Force the value of the source ID.
+# @param ~polling_delay How often the queue should be checkelid and filled in seconds.
+# @param ~timeout Timeout for resolving requests in seconds.
+def native.request.dynamic(~id="", ~polling_delay=1., ~timeout=20., f)
+  # Prepared requests
+  queue = ref([])
+  # Filling thread
+  def filler()
+    if list.length(!queue) < 2 then
+      r = f()
+      if null.defined(r) then
+        r = null.get(r)
+        if request.resolve(r) then
+          log.info("Added request on queue: #{request.uri(r)}.")
+          queue := list.append(!queue, [r])
+        else
+          log.important("Failed to resolve request #{request.uri(r)}.")
+        end
+      end
+    end
+  end
+  thread.run(every=polling_delay, filler)
+  # Source
+  def s()
+    if not list.is_empty(!queue) then
+      r = list.hd(!queue)
+      queue := list.tl(!queue)
+      request.once(r)
+    else
+      null()
+    end
+  end
+  source.dynamic(id=id, track_sensitive=true, s)
+end
