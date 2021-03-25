@@ -74,3 +74,16 @@ def get_mime(fname) =
     file_method(fname)
   end
 end
+
+# Getter to the contents of a file.
+# @category System
+# @param fname Name of the file from which the contents should be taken.
+def getter.file(fname)
+  contents = ref("")
+  def update()
+    contents := file.contents(fname)
+  end
+  update()
+  ignore(file.watch(fname, update))
+  {!contents}
+end

@@ -70,6 +70,7 @@ New:
 - Added `assert`.
 - Added `source.available`.
 - Added `request.once`.
+- Added `getter.file`.
 
 Changed:
 
