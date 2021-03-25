@@ -108,7 +108,7 @@ def native.request.dynamic(~id="", ~polling_delay=1., ~timeout=20., f)
       queue := list.tl(!queue)
       request.once(r)
     else
-      null()
+      fail()
     end
   end
   source.dynamic(id=id, track_sensitive=true, s)
