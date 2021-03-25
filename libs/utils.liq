@@ -406,10 +406,9 @@ def chop(~duration=getter(3.), ~metadata=getter([]), s) =
       start_time := s.time()
       s.insert_metadata(new_track=true, getter.get(metadata))
     end
-    1.
   end
 
-  amplify(f,s)
+  source.on_frame(s, f)
 end
 
 # Indicate beats.
