@@ -37,18 +37,18 @@ end
 def native.sequence(~id="", sources)
   len  = list.length(sources)
   n    = ref(0)
-  fail = fail()
+  fail = (fail():source)
 
   def rec s()
     sn = list.nth(default=list.last(default=fail, sources), sources, !n)
-    if sn.is_ready() or !n >= len - 1 then
+    if source.is_ready(sn) or !n >= len - 1 then
       sn
     else
       ref.incr(n)
       s()
     end
   end
-  infallible = not list.last(default=fail, sources).fallible()
+  infallible = not source.fallible(list.last(default=fail, sources))
   s = source.dynamic(infallible=infallible, track_sensitive=true, s)
 
   first = ref(true)
@@ -75,7 +75,8 @@ def native.switch(~id="", ~track_sensitive=true, sources)
   native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
 
-let native.request = ()
+# This allows doing `open native`
+let native.request = request
 
 # Play requests dynamically created by a given function.
 # @category Source / Input
