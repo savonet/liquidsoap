@@ -42,6 +42,9 @@ class once ~kind ~name ~timeout request =
        resolved. *)
     val mutable over = false
 
+    (* We must send metadata at beginning. *)
+    val mutable send_metadata = true
+
     (* We need to insert a track at next frame. *)
     val mutable must_fail = false
 
@@ -106,6 +109,11 @@ class once ~kind ~name ~timeout request =
         over <- true;
         Frame.add_break buf (Frame.position buf) )
       else (
+        if send_metadata then (
+          Request.on_air request;
+          let m = Request.get_all_metadata request in
+          Frame.set_metadata buf (Frame.position buf) m;
+          send_metadata <- false );
         let decoder = Option.get decoder in
         remaining <- decoder.Decoder.fill buf;
         if Frame.is_partial buf then self#end_track false )
