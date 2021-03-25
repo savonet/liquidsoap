@@ -36,6 +36,8 @@ def playlist.files(~id="playlist.files", ~mime_type="", ~timeout=20., uri) =
   end
 end
 
+let stdlib_native = native
+
 # Play a list of files.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -46,11 +48,12 @@ end
 # @param ~loop Loop on the playlist.
 # @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
 # @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
+# @param ~native Use native implementation.
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
-def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~on_done={()}, ~timeout=20., playlist)
+def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="normal", ~native=false, ~on_done={()}, ~timeout=20., playlist)
   mode = if not list.mem(mode, ["normal", "random", "randomize"]) then log.severe(label=id, "Invalid mode: #{mode}"); "randomize" else mode end
 
   # Original playlist when loaded
@@ -109,8 +112,12 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=fun(_)->true, ~con
   end
 
   # Instantiate the source
-  # s = request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next)
-  s = native.request.dynamic.list(id=id, next)
+  s =
+    if native then
+      stdlib_native.request.dynamic.list(id=id, next)
+    else
+      (request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next):source_methods)
+    end
 
   # The reload function
   def reload(p) =
@@ -137,13 +144,14 @@ end
 # @param ~loop Loop on the playlist.
 # @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
 # @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
+# @param ~native Use native implementation.
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra information using annotate, or for resolution through a particular protocol, such as replaygain.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param uri Playlist URI.
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
-def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_done={()}, ~prefix="", ~timeout=20., uri)
+def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~native=false, ~on_done={()}, ~prefix="", ~timeout=20., uri)
   # URI of the current playlist
   playlist_uri=ref(uri)
   # List of files in the current playlist
@@ -159,7 +167,7 @@ def playlist.reloadable(~id="playlist.reloadable", ~check_next=fun(_)->true, ~co
 
   # Create the source
   files := load_playlist()
-  s = playlist.list(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, timeout=timeout, !files)
+  s = playlist.list(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, native=native, on_done=on_done, timeout=timeout, !files)
 
   # The reload function
   def reload(~uri="") =
@@ -188,6 +196,7 @@ end
 # @param ~loop Loop on the playlist.
 # @param ~mime_type Default MIME type for the playlist. Empty string means automatic detection.
 # @param ~mode Play the files in the playlist either in the order ("normal" mode), or shuffle the playlist each time it is loaded, and play it in this order for a whole round ("randomize" mode), or pick a random file in the playlist each time ("random" mode).
+# @param ~native Use native implementation.
 # @param ~on_reload Callback called after playlist has reloaded.
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra information using annotate, or for resolution through a particular protocol, such as replaygain.
 # @param ~reload Amount of time (in seconds or rounds), when applicable, before which the playlist is reloaded; 0 means never.
@@ -196,7 +205,7 @@ end
 # @param uri Playlist URI.
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
-def replaces playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
+def replaces playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~default_duration=30., ~length=10., ~loop=true, ~mime_type="", ~mode="randomize", ~native=false, ~on_reload={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri)
 
   reload_mode = if not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"]) then log.severe(label=id, "Invalid reload mode: #{mode}"); "seconds" else reload_mode end
   uri = ref(uri)
@@ -217,7 +226,7 @@ def replaces playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~de
     end
   end
 
-  s = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
+  s = playlist.reloadable(id=id, check_next=check_next, conservative=conservative, default_duration=default_duration, length=length, loop=loop, mime_type=mime_type, mode=mode, native=native, on_done=on_done, prefix=prefix, timeout=timeout, !uri)
   def reloader (~uri="") = s.reload(uri=uri); on_reload () end
   rreloader := {reloader()}
 
