@@ -154,6 +154,7 @@ Changed:
   exceptional cases (#1500).
 - `source.dynamic` now takes a nullable argument.
 - Renamed `on_end` to `source.on_end`.
+- Changed the name of the arguments of `fallback.skip`.
 
 Fixed:
 

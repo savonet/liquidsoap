@@ -18,22 +18,24 @@ def fallback(~id="", ~override="liq_transition_length", ~replay_metadata=true,
          list.map(add_condition, sources))
 end
 
+let stdlib_fallback = fallback
+
 # Special track insensitive fallback that always skips current song before
 # switching.
 # @category Source / Track Processing
-# @param ~input The input source
 # @flag extra
-# @param f The fallback source
-def fallback.skip(~input,f)
+# @param s The main source.
+# @param ~fallback The fallback source.
+def fallback.skip(s,~fallback=blank())
   avail = ref(true)
   def check()
     old = !avail
-    avail := source.is_ready(input)
+    avail := source.is_ready(s)
     if not old and !avail then
-      source.skip(f)
+      source.skip(fallback)
     end
   end
-  s = fallback(track_sensitive=false, [input,f])
+  s = stdlib_fallback(track_sensitive=false, [s, fallback])
   # TODO: could we have something more efficient that checking on every frame
   source.on_frame(s, check)
 end
