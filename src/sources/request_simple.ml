@@ -68,12 +68,12 @@ let () =
       "Loop on a request. It never fails if the request is static, meaning \
        that it can be fetched once. Typically, http, ftp, say requests are \
        static, and time is not."
-    (("", Lang.string_t, None, Some "URI where to find the file")
+    ( ("", Lang.string_t, None, Some "URI where to find the file")
     :: ( "fallible",
          Lang.bool_t,
          Some (Lang.bool false),
          Some "Enforce fallibility of the request." )
-    :: queued_proto)
+    :: queued_proto )
     ~return_t
     (fun p ->
       let val_uri = List.assoc "" p in
@@ -82,7 +82,7 @@ let () =
       let uri = Lang.to_string val_uri in
       if (not fallible) && Request.is_static uri then (
         let request = Request.create ~persistent:true uri in
-        (new unqueued ~kind request :> source))
+        (new unqueued ~kind request :> source) )
       else (new queued uri ~kind l d t c :> source))
 
 let () =
@@ -127,7 +127,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
           List.iter
             (fun req -> Request.set_root_metadata req "source" self#id)
             reqs;
-          reqs)
+          reqs )
         else []
       with e ->
         log#severe "Failed to obtain a media request!";
@@ -145,15 +145,16 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
                   Some req
               | [] ->
                   retry_status <- Some (Unix.gettimeofday () +. retry_delay ());
-                  None)
+                  None )
   end
 
 let () =
+  let log = Log.make ["reqest"; "dynamic"] in
   let kind = Lang.any in
   let t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "request.dynamic.list" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    (("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
+    ( ("", Lang.fun_t [] (Lang.list_t Lang.request_t), None, None)
     :: ( "retry_delay",
          Lang.getter_t Lang.float_t,
          Some (Lang.float 0.1),
@@ -166,11 +167,36 @@ let () =
          Some
            "Whether some new requests are available (when set to false, it \
             stops after current playing request)." )
-    :: queued_proto)
+    :: queued_proto )
+    ~meth:
+      [
+        ( "prefetch",
+          ([], Lang.fun_t [] Lang.unit_t),
+          "Try feeding the queue with a new request (this method can take long \
+           to return and should usually be run in a separate thread).",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                match s#prefetch with
+                  | `Finished -> Lang.unit
+                  | `Retry ->
+                      log#important "Prefetch failed: retry.";
+                      Lang.unit
+                  | `Empty ->
+                      log#important "Prefetch failed: empty.";
+                      Lang.unit) );
+        ( "queue_size",
+          ([], Lang.fun_t [] Lang.int_t),
+          "Number of requests in the queue.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#queue_size) );
+        ( "queue_length",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Size of the queue in seconds.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#queue_length) );
+      ]
     ~return_t:t
     (fun p ->
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
       let l, d, t, c = extract_queued_params p in
-      (new dynamic ~kind ~available ~retry_delay f l d t c :> source))
+      new dynamic ~kind ~available ~retry_delay f l d t c)

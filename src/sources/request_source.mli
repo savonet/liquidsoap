@@ -61,8 +61,8 @@ class virtual queued :
        (** You should only define this. *)
        method virtual get_next_request : Request.t option
 
-       (** This method should be called whenever the feeding task gets
-    * a new opportunity to add more data into the queue. *)
+       (** This method should be called whenever the feeding task gets a new
+           opportunity to add more data into the queue. *)
        method private notify_new_request : unit
 
        inherit unqueued
@@ -71,8 +71,19 @@ class virtual queued :
        method private get_next_file : Request.t option
 
        (** [#expire f] marks queued requests [r] such that [f r] as expired,
-    * which will trigger their removal from the queue as soon as possible .*)
+           which will trigger their removal from the queue as soon as
+           possible. *)
        method private expire : (Request.t -> bool) -> unit
+
+       (** Try to add a new request in the queue. This should be used in usual
+           situations. *)
+       method prefetch : [ `Finished | `Retry | `Empty ]
+
+       (** Number of requests in the queue. *)
+       method queue_size : int
+
+       (** Size of the queue. *)
+       method queue_length : float
      end
 
 val queued_proto : Lang.proto

@@ -165,9 +165,6 @@ type queue_item = {
   mutable expired : bool;
 }
 
-(* Private types for request resolutions *)
-type resolution = Empty | Retry | Finished
-
 (* Scheduler priority for request resolutions. *)
 let priority = Tutils.Maybe_blocking
 
@@ -195,6 +192,10 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
     val retrieved : queue_item Queue.t = Queue.create ()
 
     val mutable queue_length = 0.
+
+    method queue_length = queue_length
+
+    method queue_size = Queue.length retrieved
 
     (* Seconds *)
     val mutable resolving = None
@@ -339,22 +340,22 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         && self#available_length < min_queue_length
       then (
         match self#prefetch with
-          | Finished ->
+          | `Finished ->
               (* Retry again in order to make sure that we have enough data (in
                  particular, when being conservative and starting on empty we need
                  to fetch two requests). *)
               0.5
-          | Retry -> adaptative_delay ()
-          | Empty -> -1. )
+          | `Retry -> adaptative_delay ()
+          | `Empty -> -1. )
       else -1.
 
     (** Try to feed the queue with a new request. Return a resolution status:
       Empty if there was no new request to try,
       Retry if there was a new one but it failed to be resolved,
       Finished if all went OK. *)
-    method private prefetch =
+    method prefetch =
       match self#get_next_request with
-        | None -> Empty
+        | None -> `Empty
         | Some req -> (
             resolving <- Some req;
             match Request.resolve ~ctype:(Some self#ctype) req timeout with
@@ -387,12 +388,12 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
                   queue_length <- queue_length +. len;
                   Mutex.unlock qlock;
                   resolving <- None;
-                  Finished
+                  `Finished
               | Request.Failed (* Failure of resolving or decoding *)
               | Request.Timeout ->
                   resolving <- None;
                   Request.destroy req;
-                  Retry )
+                  `Retry )
 
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
