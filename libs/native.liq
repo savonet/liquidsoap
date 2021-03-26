@@ -139,3 +139,40 @@ def native.request.dynamic.list(~id="", ~prefetch=1, ~polling_delay=1., ~timeout
   end
   native.request.dynamic(id=id, f)
 end
+
+# Volume normalization function.
+# @category Source / Sound Processing
+# @param ~id Force the value of the source ID.
+# @param ~gain_max Maximal gain value (dB).
+# @param ~gain_min Minimal gain value (dB).
+# @param ~k_down Coefficient when the power must go down (from 0, the higher, the fastest).
+# @param ~k_up Coefficient when the power must go up (from 0, the higher, the fastest).
+# @param ~target Desired RMS (dB).
+# @param ~threshold  Minimal RMS for activaing gain control (dB).
+# @param ~window Duration of the window used to compute the current RMS power (second).
+# @param s Source to normalize.
+# @method gain Current amplification coefficient.
+def native.normalize(~id="", ~target=getter(-13.), ~k_up=getter(0.1), ~k_down=getter(5.), ~gain_min=-9., ~gain_max=9., ~window=0.1, ~threshold=getter(-40.), s)
+  s = rms(duration=window, s)
+  v = ref(1.)
+  frame = frame.duration()
+  gain_min = lin_of_dB(gain_min)
+  gain_max = lin_of_dB(gain_max)
+  def update()
+    target    = lin_of_dB(getter.get(target))
+    threshold = lin_of_dB(getter.get(threshold))
+    rms       = s.rms()
+    if rms >= threshold then
+      if rms <= target then
+        k_up = getter.get(k_up) * frame
+        v := !v + k_up * ((target / rms) - !v)
+      else
+        k_down = getter.get(k_down) * frame
+        v := !v + k_down * ((target / rms) - !v)
+      end
+      v := max(gain_min, min(gain_max, !v))
+    end
+  end
+  s = source.on_frame(s, update)
+  amplify({!v}, s). { gain = fun() -> !v }
+end
