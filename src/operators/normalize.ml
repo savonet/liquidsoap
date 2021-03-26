@@ -33,23 +33,26 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
     inherit operator ~name:"normalize" kind [source] as super
 
     (** Current squares of RMS. *)
-    val mutable rms = [||]
+    val mutable rms = 0.
 
     (** Current number of samples used to compute [rmsl] and [rmsr]. *)
     val mutable rmsc = 0
 
-    (** Volume coefficients. *)
-    val mutable v = [||]
+    (** Volume coefficient. *)
+    val mutable v = 1.
 
     (** Previous volume coefficients. *)
-    val mutable vold = [||]
+    val mutable vold = 1.
+
+    method init =
+      rms <- 0.;
+      rmsc <- 0;
+      v <- 1.;
+      vold <- 1.
 
     method wake_up a =
       super#wake_up a;
-      let channels = self#audio_channels in
-      rms <- Array.make channels 0.;
-      v <- Array.make channels 1.;
-      vold <- Array.make channels 1.
+      self#init
 
     method stype = source#stype
 
@@ -77,52 +80,26 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
         for c = 0 to self#audio_channels - 1 do
           let bc = b.(c) in
           let x = bc.{i} in
-          rms.(c) <- rms.(c) +. (x *. x);
+          rms <- rms +. (x *. x);
           bc.{i} <-
             x
-            *. ((float rmsc *. vold.(c)) +. (float (rmsi - rmsc) *. v.(c)))
+            *. ((float rmsc *. vold) +. (float (rmsi - rmsc) *. v))
             /. float rmsi
         done;
         rmsc <- rmsc + 1;
         if rmsc >= rmsi then (
-          (* TODO: adapt this to channels chans. *)
-          (*
-              begin
-                let rmsl = sqrt (rms.(0) /. (float_of_int rmsi)) in
-                let rmsr = sqrt (rms.(1) /. (float_of_int rmsi)) in
-                  self#log#info
-                    "%6.02f  *  %4.02f  ->  %6.02f    |    \
-                    %6.02f  *  %4.02f  ->  %6.02f"
-                    (Sutils.dB_of_lin rmsl)
-                    v.(0)
-                    (Sutils.dB_of_lin (rmsl *. v.(0)))
-                    (Sutils.dB_of_lin rmsr)
-                    v.(1)
-                    (Sutils.dB_of_lin (rmsr *. v.(1)))
-              end ;
-              *)
-          (* TODO: do all the computations in dB? *)
-          for c = 0 to self#audio_channels - 1 do
-            let r = sqrt (rms.(c) /. float_of_int rmsi) in
-            if r > threshold then
-              if r *. v.(c) > rmst then
-                v.(c) <- v.(c) +. (kdown *. ((rmst /. r) -. v.(c)))
-              else v.(c) <- v.(c) +. (kup *. ((rmst /. r) -. v.(c)));
-            vold.(c) <- v.(c);
-            v.(c) <- max gmin (min gmax v.(c));
-            rms.(c) <- 0.
-          done;
+          let r = sqrt (rms /. float_of_int (rmsi * self#audio_channels)) in
+          if r > threshold then
+            if r *. v > rmst then v <- v +. (kdown *. ((rmst /. r) -. v))
+            else v <- v +. (kup *. ((rmst /. r) -. v));
+          vold <- v;
+          v <- max gmin (min gmax v);
+          rms <- 0.;
           rmsc <- 0 )
       done;
 
       (* Reset values if it is the end of the track. *)
-      if track_sensitive && AFrame.is_partial buf then (
-        for c = 0 to self#audio_channels - 1 do
-          vold.(c) <- 1.;
-          v.(c) <- 1.;
-          rms.(c) <- 0.
-        done;
-        rmsc <- 0 )
+      if track_sensitive && AFrame.is_partial buf then self#init
   end
 
 let () =

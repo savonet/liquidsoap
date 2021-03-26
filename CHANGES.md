@@ -161,6 +161,7 @@ Changed:
   - we now use the standard `replaygain_track_gain` metadata
   - renamed the protocol from `replay_gain` to `replaygain`
   - added the `replaygain` operator to perform amplification
+- `normalize` now handles all channels uniformly.
 
 Fixed:
 
