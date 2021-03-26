@@ -173,7 +173,7 @@ def native.normalize(~id="", ~target=getter(-13.), ~k_up=getter(0.1), ~k_down=ge
       v := max(gain_min, min(gain_max, !v))
     end
   end
-  source.on_frame(s, update)
+  s = source.on_frame(s, update)
   if track_sensitive then source.on_track(s, fun (_) -> v := 1.) end
   amplify({!v}, s). { gain = fun() -> !v }
 end
