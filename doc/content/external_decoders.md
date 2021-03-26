@@ -11,7 +11,7 @@ Please note that this feature is not available under Windows.
 External decoders are registered using the `add_decoder` and `add_oblivious_decoder` operators. 
 They are invoked the following way: 
 
-### add_decoder
+### `add_decoder`
 
 ```liquidsoap
 add_decoder(name="my_decoder",description="My custom decoder",
@@ -23,14 +23,15 @@ input (stdin) and write the decoded data as WAV to their standard output (stdout
 is recommended because its estimation of the remaining time is better than the estimation done
 by the decoders registered using `add_oblivious_decoder`. The important parameters are:
 
-* `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:  * `0`: no decodable audio, 
- * `-1`: decodable audio but number of audio channels unknown, 
- * `x`: fixed number of decodable audio channels.
+- `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:
 
+  - `0`: no decodable audio,
+  - `-1`: decodable audio but number of audio channels unknown,
+  - `x`: fixed number of decodable audio channels.
 
-* `decoder` is the string containing the shell command to run to execute the decoding process.
+- `decoder` is the string containing the shell command to run to execute the decoding process.
 
-### add_oblivious_decoder
+### `add_oblivious_decoder`
 
 `add_oblivious_decoder` is very similar to `add_decoder`. The main difference is that the
 decoding program reads encoded data directly from the local files and not its standard input.
@@ -48,21 +49,24 @@ input (stdin) and write the decoded data as WAV to their standard output (stdout
 is recommended because its estimation of the remaining time is better than the estimation done
 by the decoders registered using `add_oblivious_decoder`. The important parameters are:
 
-* `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:  * `0`: no decodable audio,
- * `-1`: decodable audio but number of audio channels unknown,
- * `x`: fixed number of decodable audio channels.
+- `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:
 
+  - `0`: no decodable audio,
+  - `-1`: decodable audio but number of audio channels unknown,
+  - `x`: fixed number of decodable audio channels.
 
-* `decoder` is a function that receives the name of the file that should be decoded and returns a string containing the shell command to run to execute the decoding process.
+- `decoder` is a function that receives the name of the file that should be decoded and returns a string containing the shell command to run to execute the decoding process.
 
-### add_metadata_resolver
+### `add_metadata_resolver`
 
 You may also register new metadata resolvers using the `add_metadata_resolver` operator. It is invoked the
 following way: `add_metadata_resolver(format,resolver)`, where:
 
-* `format` is the name of the resolved format. It is only informative.
-* `resolver` is a function `f` that returns a list of metadata of the form: `(label, value)`. It is invoked the following way: `f(format=name,file)`, where: * `format` contains the name of the format, as returned by the decoder that accepted to decode the file. `f` may return immediately if this is not an expected value.
- * `file` is the name of the file to decode.
+- `format` is the name of the resolved format. It is only informative.
+- `resolver` is a function `f` that returns a list of metadata of the form: `(label, value)`. It is invoked the following way: `f(format=name,file)`, where:
+
+  - `format` contains the name of the format, as returned by the decoder that accepted to decode the file. `f` may return immediately if this is not an expected value.
+  - `file` is the name of the file to decode.
 
 ## Wrappers
 
