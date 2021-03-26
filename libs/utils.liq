@@ -317,6 +317,24 @@ def overlap_sources(~id="",~normalize=false,
   s
 end
 
+# Run a function regularly. This is similar to `thread.run` but based on a
+# source internal time instead of the world's time.
+# @category Source / Track Processing
+# @param s Source whose time is taken as reference.
+# @param ~delay Time to wait before the first run (in seconds).
+# @param ~every How often to run the function (in seconds). The function is run once if `null`.
+# @param f Function to run.
+def source.run(s, ~delay=0., ~every=null(), f)
+  next = ref(delay)
+  def check()
+    if source.time(s) >= !next then
+      null.case(every, {next := infinity}, fun (every) -> next := !next + every)
+      f()
+    end
+  end
+  source.on_frame(s, check)
+end
+
 # Regularly insert track boundaries in a stream (useful for testing tracks).
 # @category Source / Track Processing
 # @param ~duration Duration of a track (in seconds).
