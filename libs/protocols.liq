@@ -1,7 +1,7 @@
 register(name="Protocol Settings","protocol",())
 
-register(name="Replay_gain protocol settings","protocol.replay_gain",())
-register(name="Replay_gain path","protocol.replay_gain.path","#{configure.bindir}/extract-replaygain")
+register(name="ReplayGain protocol settings","protocol.replaygain",())
+register(name="ReplayGain path","protocol.replaygain.path","#{configure.bindir}/extract-replaygain")
 
 # Register the replaygain protocol.
 # @flag hidden
@@ -9,18 +9,18 @@ def replaygain_protocol(~rlog,~maxtime,arg)
  delay = maxtime - time()
  # The extraction program
  extract_replaygain =
-   get(default="#{configure.bindir}/extract-replaygain","protocol.replay_gain.path")
+   get(default="#{configure.bindir}/extract-replaygain","protocol.replaygain.path")
  ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
  if ret != "" then
-  ["annotate:replay_gain=\"#{ret}\":#{arg}"]
+  ["annotate:replaygain_track_gain=\"#{ret}\":#{arg}"]
  else
   [arg]
  end
 end
-add_protocol("replay_gain", replaygain_protocol,
-             syntax="replay_gain:uri",
+add_protocol("replaygain", replaygain_protocol,
+             syntax="replaygain:uri",
              doc="Compute replaygain value using the extract-replaygain script. \
-                  Adds returned value as `\"replay_gain\"` metadata")
+                  Adds returned value as `\"replaygain_track_gain\"` metadata")
 
 register(name="Process protocol settings","protocol.process",())
 register(name="Process Environment",
@@ -301,7 +301,7 @@ register(name="ffmpeg protocol settings","protocol.ffmpeg",())
 register(name="Path to ffmpeg","protocol.ffmpeg.path","ffmpeg")
 register(name="Number of channels","protocol.ffmpeg.channels",2)
 register(name="Extract metadata","protocol.ffmpeg.metadata",true)
-register(name="Adjust replaygain","protocol.ffmpeg.replaygain",false)
+register(name="Adjust ReplayGain","protocol.ffmpeg.replaygain",false)
 
 # Register ffmpeg
 # @flag hidden
@@ -351,9 +351,9 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
 
   def replaygain_filter(file) =
     if replaygain then
-      # The extraction program
+      # The extraction program
       extract_replaygain =
-        get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+        get(default="#{configure.libdir}/extract-replaygain","protocol.replaygain.path")
       delay = maxtime - time()
       ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
       if ret != "" then

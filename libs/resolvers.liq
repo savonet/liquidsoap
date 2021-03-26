@@ -8,30 +8,30 @@ def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain"
     stdout
   else
     stderr = string.replace(pattern='\\n', fun (_) -> "", p.stderr)
-    log("Replaygain extraction by #{extract_replaygain} failed with: #{stderr}")
+    log("ReplayGain extraction by #{extract_replaygain} failed with: #{stderr}")
     ""
   end
 end
 
-# Enable replay gain metadata resolver. This resolver will process any file
-# decoded by liquidsoap and add a replay_gain metadata when this value could be
-# computed. For a finer-grained replay gain processing, use the replay_gain
-# protocol.
+# Enable ReplayGain metadata resolver. This resolver will process any file
+# decoded by Liquidsoap and add a `replaygain_track_gain` metadata when this
+# value could be computed. For a finer-grained replay gain processing, use the
+# `replaygain:` protocol.
 # @category Liquidsoap
-# @param ~delay Maximum delay for extracting metadata
-# @param ~extract_replaygain The extraction program
+# @param ~delay Maximum delay for extracting metadata.
+# @param ~extract_replaygain The extraction program.
 def enable_replaygain_metadata(
        ~delay=(-1.),
        ~extract_replaygain="#{configure.bindir}/extract-replaygain")
   def replaygain_metadata(file)
     ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
     if ret != "" then
-      [("replay_gain",ret)]
+      [("replaygain_track_gain",ret)]
     else
       []
     end
   end
-  add_metadata_resolver("replay_gain", replaygain_metadata)
+  add_metadata_resolver("replaygain_track_gain", replaygain_metadata)
 end
 
 # @flag hidden

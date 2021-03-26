@@ -396,3 +396,12 @@ let frame = ()
 def frame.duration =
   setting.getter.float("frame.duration")
 end
+
+# Amplify source tracks according to replaygain metadata. This operator does not
+# compute itself the replaygain: you can use either `enable_replaygain_metadata`
+# or the `replaygain:` protocol for this.
+# @category Source / Sound Processing
+# @param s Source to be amplified.
+def replaygain(s)
+  amplify(override="replaygain_track_gain", 1., s)
+end

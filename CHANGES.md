@@ -157,6 +157,10 @@ Changed:
 - `source.dynamic` now takes a nullable argument.
 - Renamed `on_end` to `source.on_end`.
 - Changed the name of the arguments of `fallback.skip`.
+- Normalize ReplayGain handling:
+  - we now use the standard `replaygain_track_gain` metadata
+  - renamed the protocol from `replay_gain` to `replaygain`
+  - added the `replaygain` operator to perform amplification
 
 Fixed:
 
