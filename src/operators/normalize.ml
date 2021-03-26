@@ -143,11 +143,11 @@ let () =
         Some "Minimal RMS for activaing gain control (dB)." );
       ( "gain_min",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float (-9.)),
+        Some (Lang.float (-6.)),
         Some "Minimal gain value (dB)." );
       ( "gain_max",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float 9.),
+        Some (Lang.float 6.),
         Some "Maximal gain value (dB)." );
       ( "track_sensitive",
         Lang.bool_t,
