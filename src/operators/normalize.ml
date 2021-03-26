@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class normalize ~kind (source : source) (* RMS target. *) rmst
+class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
   (* Number of samples for computing rms. *)
     window (* Spring coefficient when the sound is going louder. *) kup
   (* Spring coefficient when the sound is going less loud. *)
@@ -116,7 +116,7 @@ class normalize ~kind (source : source) (* RMS target. *) rmst
       done;
 
       (* Reset values if it is the end of the track. *)
-      if AFrame.is_partial buf then (
+      if track_sensitive && AFrame.is_partial buf then (
         for c = 0 to self#audio_channels - 1 do
           vold.(c) <- 1.;
           v.(c) <- 1.;
@@ -164,6 +164,10 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 6.),
         Some "Maximal gain value (dB)." );
+      ( "track_sensitive",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Reset values on every track." );
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing
@@ -186,8 +190,9 @@ let () =
           Lang.to_float_getter (f "gain_max"),
           Lang.to_source (f "") )
       in
+      let track_sensitive = Lang.to_bool (f "track_sensitive") in
       ( new normalize
-          ~kind src
+          ~kind ~track_sensitive src
           (fun () -> Audio.lin_of_dB (target ()))
           window kup kdown
           (fun () -> Audio.lin_of_dB (threshold ()))
