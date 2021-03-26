@@ -735,14 +735,6 @@ let source_methods =
             let f = assoc "" 1 p in
             s#on_track (fun m -> ignore (apply f [("", metadata m)]));
             unit) );
-    ( "on_frame",
-      ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
-      "Call a given handle on every frame.",
-      fun s ->
-        val_fun [("", "", None)] (fun p ->
-            let f = assoc "" 1 p in
-            s#on_frame (fun () -> ignore (apply f []));
-            unit) );
     ( "remaining",
       ([], fun_t [] float_t),
       "Estimation of remaining time in the current track.",
