@@ -152,7 +152,7 @@ end
 # @param ~window Duration of the window used to compute the current RMS power (second).
 # @param s Source to normalize.
 # @method gain Current amplification coefficient.
-def native.normalize(~id="", ~target=getter(-13.), ~k_up=getter(0.1), ~k_down=getter(5.), ~gain_min=-9., ~gain_max=9., ~window=0.1, ~threshold=getter(-40.), s)
+def native.normalize(~id="", ~target=getter(-13.), ~k_up=getter(0.1), ~k_down=getter(5.), ~gain_min=-9., ~gain_max=9., ~window=0.1, ~threshold=getter(-40.), ~track_sensitive=true, s)
   s = rms(duration=window, s)
   v = ref(1.)
   frame = frame.duration()
@@ -173,6 +173,7 @@ def native.normalize(~id="", ~target=getter(-13.), ~k_up=getter(0.1), ~k_down=ge
       v := max(gain_min, min(gain_max, !v))
     end
   end
-  s = source.on_frame(s, update)
+  source.on_frame(s, update)
+  if track_sensitive then source.on_track(s, fun (_) -> v := 1.) end
   amplify({!v}, s). { gain = fun() -> !v }
 end
