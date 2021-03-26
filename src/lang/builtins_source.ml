@@ -140,6 +140,20 @@ let () =
       Lang.unit)
 
 let () =
+  add_builtin "source.on_frame" ~cat:Liq
+    ~descr:"Call a given handler on every frame."
+    [
+      ("", Lang.source_t (Lang.univ_t ()), None, None);
+      ("", Lang.fun_t [] Lang.unit_t, None, None);
+    ]
+    Lang.unit_t
+    (fun p ->
+      let s = Lang.assoc "" 1 p |> Lang.to_source in
+      let f = Lang.assoc "" 2 p in
+      s#on_frame (fun () -> ignore (Lang.apply f []));
+      Lang.unit)
+
+let () =
   add_builtin "source.on_shutdown" ~cat:Sys
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);

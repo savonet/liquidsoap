@@ -649,6 +649,10 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
     method on_track = self#mutexify (fun fn -> on_track <- fn :: on_track)
 
+    val mutable on_frame : (unit -> unit) list = []
+
+    method on_frame = self#mutexify (fun f -> on_frame <- f :: on_frame)
+
     method private instrumented_get_frame buf =
       let start_time = Unix.gettimeofday () in
       let start_position = Frame.position buf in
@@ -662,6 +666,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
           (Frame.get_all_metadata buf)
       in
       let on_metadata = self#mutexify (fun () -> on_metadata) () in
+      let on_frame = self#mutexify (fun () -> on_frame) () in
+      List.iter (fun f -> f ()) on_frame;
       List.iter
         (fun (i, m) ->
           self#log#debug "Got metadata at position %d: calling handlers..." i;

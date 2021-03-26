@@ -180,6 +180,9 @@ class virtual source :
        (** Register a callback to be called on new track *)
        method on_track : ((string, string) Hashtbl.t -> unit) -> unit
 
+       (** Register a callback to be called on every frame. *)
+       method on_frame : (unit -> unit) -> unit
+
        method virtual private get_frame : Frame.t -> unit
 
        (** Tells the source to finish the reading of current track. *)
