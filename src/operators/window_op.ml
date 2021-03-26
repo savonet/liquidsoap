@@ -46,7 +46,7 @@ class window ~kind mode duration source =
     (** Accumulator (e.g. sum of squares). *)
     val mutable acc = [||]
 
-    (** Duration of the accumlated data. *)
+    (** Duration of the accumlated data (in samples). *)
     val mutable acc_dur = 0
 
     (** Last computed value (rms or peak). *)
