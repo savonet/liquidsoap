@@ -111,12 +111,12 @@ class pitch ~kind every length freq_min freq_max (source : source) =
           if d < !d_opt then (
             (* Printf.printf "d: %.02f      l: %d\n%!" d l; *)
             d_opt := d;
-            wl_opt := l )
+            wl_opt := l)
         done;
         let f = samples_per_second /. float !wl_opt in
         let f = if f > freq_max then 0. else f in
         self#log#important "Found frequency: %.02f (%s)\n%!" f
-          (string_of_note (note_of_freq f)) )
+          (string_of_note (note_of_freq f)))
   end
 
 let () =

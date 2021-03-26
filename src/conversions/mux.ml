@@ -79,11 +79,11 @@ let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
   let muxed_kind =
     {
       Frame.audio =
-        ( if aux_content = `Audio then aux#kind.Frame.audio
-        else main#kind.Frame.audio );
+        (if aux_content = `Audio then aux#kind.Frame.audio
+        else main#kind.Frame.audio);
       video =
-        ( if aux_content = `Video then aux#kind.Frame.video
-        else main#kind.Frame.video );
+        (if aux_content = `Video then aux#kind.Frame.video
+        else main#kind.Frame.video);
       midi = main#kind.Frame.midi;
     }
   in
@@ -115,11 +115,11 @@ let () =
       "Add video channnels to a stream. Track marks and metadata are taken \
        from both sources."
     ~return_t:out_t
-    ( base_proto
+    (base_proto
     @ [
         ("video", Lang.source_t aux_t, None, None);
         ("", Lang.source_t main_t, None, None);
-      ] )
+      ])
     (fun p ->
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
@@ -144,11 +144,11 @@ let () =
       "Mux an audio stream into an audio-free stream. Track marks and metadata \
        are taken from both sources."
     ~return_t:out_t
-    ( base_proto
+    (base_proto
     @ [
         ("audio", Lang.source_t aux_t, None, None);
         ("", Lang.source_t main_t, None, None);
-      ] )
+      ])
     (fun p ->
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in

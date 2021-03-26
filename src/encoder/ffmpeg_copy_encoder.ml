@@ -69,16 +69,16 @@ let mk_stream_copy ~video_size ~get_data output =
           | Some old_ts, Some new_ts ->
               Int64.sub old_ts (to_main_time_base ~time_base new_ts)
           | None, Some new_ts -> new_ts
-          | None, None -> 0L );
+          | None, None -> 0L);
     let ret =
       match ts with
         | None -> Some !ts_offset
         | Some v -> Some (Int64.add !ts_offset (to_main_time_base ~time_base v))
     in
-    ( match (!last_ts, ret) with
+    (match (!last_ts, ret) with
       | _, None -> ()
       | None, _ -> last_ts := ret
-      | Some t, Some t' -> last_ts := Some (max t t') );
+      | Some t, Some t' -> last_ts := Some (max t t'));
     ret
   in
 
@@ -117,7 +117,7 @@ let mk_stream_copy ~video_size ~get_data output =
           if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
             was_keyframe := true;
 
-          Av.write_packet stream main_time_base packet ))
+          Av.write_packet stream main_time_base packet))
       data
   in
 

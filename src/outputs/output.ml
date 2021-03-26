@@ -86,7 +86,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method is_ready =
       if infallible then (
         assert source#is_ready;
-        true )
+        true)
       else source#is_ready
 
     method remaining = source#remaining
@@ -154,7 +154,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         if Frame.position self#memo > 0 then self#output_send self#memo;
         if Frame.is_partial self#memo then (
           self#log#important "Source failed (no more tracks) stopping output...";
-          request_stop <- true ) );
+          request_stop <- true));
       self#may_stop
 
     method after_output =
@@ -165,7 +165,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
       if skip then (
         self#log#important "Performing user-requested skip";
         skip <- false;
-        self#abort_track )
+        self#abort_track)
   end
 
 class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
@@ -198,9 +198,9 @@ let () =
       let on_stop = List.assoc "on_stop" p in
       let on_start () = ignore (Lang.apply on_start []) in
       let on_stop () = ignore (Lang.apply on_stop []) in
-      ( new dummy
-          ~kind ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p)
-        :> Source.source ))
+      (new dummy
+         ~kind ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p)
+        :> Source.source))
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
@@ -237,7 +237,7 @@ class virtual encoded ~content_kind ~output_kind ~name ~infallible ~on_start
             output_chunks frame (stop :: l)
       in
       output_chunks frame
-        ( 0
+        (0
         :: List.sort compare
              (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame)
         )

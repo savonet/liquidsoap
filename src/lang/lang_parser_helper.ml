@@ -206,7 +206,7 @@ let mk_list_let ~pos ((vars, dots), def) body =
           let list = mk ~pos (Var "list") in
           let hd = mk ~pos (Invoke (list, "hd")) in
           let hd = mk ~pos (App (hd, [("", list_var ())])) in
-          mk_let ~pos var hd body ))
+          mk_let ~pos var hd body))
       body (List.rev vars)
   in
   mk_let ~pos list_var_name def body
@@ -306,7 +306,7 @@ let mk_kind ~pos (kind, params) =
               params;
             assert (k = Frame_content.kind f);
             Lang_values.kind_t (`Format f)
-    with _ -> raise (Parse_error (pos, "Unknown type constructor.")) )
+    with _ -> raise (Parse_error (pos, "Unknown type constructor.")))
 
 let mk_source_ty ~pos name args =
   if name <> "source" && name <> "active_source" then

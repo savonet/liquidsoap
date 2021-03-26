@@ -170,7 +170,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
                   self#log#severe "Could not seek to cue point!";
                 self#log#info "Seeked %i ticks instead of %i." seeked_pos
                   seek_pos;
-                out_pos ) )
+                out_pos) )
 
     method private cue_out ~buf ~elapsed ~pos out_pos =
       self#log#important "Cueing out...";
@@ -180,7 +180,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
       if not (Frame.is_partial buf) then (
         source#abort_track;
         self#child_tick;
-        source#get (Frame.create self#ctype) );
+        source#get (Frame.create self#ctype));
 
       (* Quantify in the previous #get
        * - the amount of [extra] data past the cue point, to be dropped;
@@ -236,8 +236,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
                       self#cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos
                         seek_time
               in
-              match out_pos with None -> None | Some pos -> Some (elapsed, pos)
-              )
+              match out_pos with None -> None | Some pos -> Some (elapsed, pos))
       in
       track_state <- Some in_track_state;
 
@@ -249,7 +248,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
             if Frame.is_partial buf then (
               if in_track_state <> None then
                 self#log#important "End of track before cue-out point.";
-              track_state <- None )
+              track_state <- None)
   end
 
 let () =

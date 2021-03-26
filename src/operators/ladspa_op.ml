@@ -87,7 +87,7 @@ let instantiate d samplerate =
   for i = 0 to Descriptor.port_count d - 1 do
     if Descriptor.port_is_control d i && not (Descriptor.port_is_input d i) then (
       let c = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout 1 in
-      Descriptor.connect_port ans i c )
+      Descriptor.connect_port ans i c)
   done;
   ans
 
@@ -153,7 +153,7 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
           Descriptor.connect_port inst inputs.(c) buf;
           Descriptor.connect_port inst outputs.(c) buf
         done;
-        Descriptor.run inst len )
+        Descriptor.run inst len)
       else (
         (* We have to change channels. *)
         let d = AFrame.pcm buf in
@@ -165,7 +165,7 @@ class ladspa ~kind (source : source) plugin descr inputs outputs params =
           Descriptor.connect_port inst outputs.(c)
             (Audio.Mono.sub d.(c) offset len)
         done;
-        Descriptor.run inst len )
+        Descriptor.run inst len)
   end
 
 class ladspa_nosource ~kind plugin descr outputs params =
@@ -182,7 +182,7 @@ class ladspa_nosource ~kind plugin descr outputs params =
     method private get_frame buf =
       if must_fail then (
         AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false )
+        must_fail <- false)
       else (
         let offset = AFrame.position buf in
         let b = AFrame.pcm buf in
@@ -196,7 +196,7 @@ class ladspa_nosource ~kind plugin descr outputs params =
             (Audio.Mono.sub b.(c) offset len)
         done;
         Descriptor.run inst len;
-        AFrame.add_break buf position )
+        AFrame.add_break buf position)
   end
 
 (* List the indexes of control ports. *)
@@ -225,20 +225,20 @@ let params_of_descr d =
       (fun p ->
         let t = port_t d p in
         ( Utils.normalize_parameter_string (Descriptor.port_name d p),
-          ( match t with
+          (match t with
             | Float -> Lang.getter_t Lang.float_t
             | Int -> Lang.getter_t Lang.int_t
-            | Bool -> Lang.getter_t Lang.bool_t ),
-          ( match
-              Descriptor.port_get_default d ~samplerate:default_samplerate p
-            with
+            | Bool -> Lang.getter_t Lang.bool_t),
+          (match
+             Descriptor.port_get_default d ~samplerate:default_samplerate p
+           with
             | Some f ->
                 Some
-                  ( match t with
+                  (match t with
                     | Float -> Lang.float f
                     | Int -> Lang.int (int_of_float f)
-                    | Bool -> Lang.bool (f > 0.) )
-            | None -> None ),
+                    | Bool -> Lang.bool (f > 0.))
+            | None -> None),
           let bounds =
             let min =
               Descriptor.port_get_min d ~samplerate:default_samplerate p
@@ -258,7 +258,7 @@ let params_of_descr d =
                           bounds :=
                             Printf.sprintf "%s%d <= " !bounds
                               (int_of_float (ceil f))
-                      | Bool -> () )
+                      | Bool -> ())
                 | None -> ()
               end;
               bounds :=
@@ -273,10 +273,10 @@ let params_of_descr d =
                       | Int ->
                           bounds :=
                             Printf.sprintf "%s <= %d" !bounds (int_of_float f)
-                      | Bool -> () )
+                      | Bool -> ())
                 | None -> ()
               end;
-              !bounds ^ ")" )
+              !bounds ^ ")")
           in
           Some (Descriptor.port_name d p ^ bounds ^ ".") ))
       control_ports
@@ -330,15 +330,15 @@ let register_descr plugin_name descr_n d inputs outputs =
       if ni = 0 then
         new ladspa_nosource ~kind:output_kind plugin_name descr_n outputs params
       else if mono then
-        ( new ladspa_mono
-            ~kind:output_kind (Option.get source) plugin_name descr_n inputs.(0)
-            outputs.(0) params
-          :> Source.source )
+        (new ladspa_mono
+           ~kind:output_kind (Option.get source) plugin_name descr_n inputs.(0)
+           outputs.(0) params
+          :> Source.source)
       else
-        ( new ladspa
-            ~kind:output_kind (Option.get source) plugin_name descr_n inputs
-            outputs params
-          :> Source.source ))
+        (new ladspa
+           ~kind:output_kind (Option.get source) plugin_name descr_n inputs
+           outputs params
+          :> Source.source))
 
 let register_descr plugin_name descr_n d inputs outputs =
   (* We do not register plugins without outputs for now. *)

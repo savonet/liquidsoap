@@ -46,14 +46,14 @@ class synth ~kind (synth : Synth.synth) (source : source) chan volume =
         self#log#important
           "Cannot read MIDI channel %d, stream only has %d channels." chan
           (Array.length midi);
-        source#get buf )
+        source#get buf)
       else (
         let evs = midi.(chan) in
         source#get buf;
         let b = AFrame.pcm buf in
         let position = AFrame.position buf in
         let len = position - offset in
-        synth#play evs offset (Audio.sub b offset len) )
+        synth#play evs offset (Audio.sub b offset len))
   end
 
 let register obj name descr =
@@ -148,11 +148,11 @@ let register obj name descr =
             (1., new synth ~kind (obj adsr) src c 1.))
       in
       let synths = Array.to_list synths in
-      ( new Add.add
-          ~kind ~renorm:false synths
-          (fun _ -> ())
-          (fun _ buf tmp -> Video.Image.add buf tmp)
-        :> Source.source ))
+      (new Add.add
+         ~kind ~renorm:false synths
+         (fun _ -> ())
+         (fun _ buf tmp -> Video.Image.add buf tmp)
+        :> Source.source))
 
 let () =
   register

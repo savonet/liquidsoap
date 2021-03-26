@@ -26,7 +26,7 @@ module T : Transport_t = struct
       let ofs = !pos in
       pos := !pos + n;
       Bytes.blit_string v ofs b bofs n;
-      n )
+      n)
     else 0
 
   let disconnect _ = ()

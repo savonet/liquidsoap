@@ -55,7 +55,7 @@ class virtual source ?name ~seek kind duration =
       if must_fail then (
         Frame.add_break frame (Frame.position frame);
         must_fail <- false;
-        if track_size <> None then remaining <- Some 0 )
+        if track_size <> None then remaining <- Some 0)
       else (
         let off = Frame.position frame in
         let len =
@@ -70,5 +70,5 @@ class virtual source ?name ~seek kind duration =
         Frame.add_break frame (off + len);
         if VFrame.is_partial frame then (
           assert (remaining = Some 0);
-          remaining <- track_size ) )
+          remaining <- track_size))
   end

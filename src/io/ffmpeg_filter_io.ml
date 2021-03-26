@@ -200,13 +200,13 @@ class audio_input ~bufferize kind =
         | `Not_ready ->
             if Generator.length generator >= min_buf then (
               state <- `Ready;
-              true )
+              true)
             else false
         | `Ready ->
             if Generator.length generator > 0 then true
             else (
               state <- `Not_ready;
-              false )
+              false)
 
     method private get_frame frame =
       self#flush_buffer;
@@ -298,13 +298,13 @@ class video_input ~bufferize ~fps kind =
         | `Not_ready ->
             if Generator.length generator >= min_buf then (
               state <- `Ready;
-              true )
+              true)
             else false
         | `Ready ->
             if Generator.length generator > 0 then true
             else (
               state <- `Not_ready;
-              false )
+              false)
 
     method private get_frame frame =
       self#flush_buffer;

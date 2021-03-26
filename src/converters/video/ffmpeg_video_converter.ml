@@ -50,7 +50,7 @@ let format_of frame =
           | P.BGR24 -> `Bgr24
           | P.RGB32 -> `Rgba
           | P.BGR32 -> `Bgra
-          | P.RGBA32 -> `Rgba )
+          | P.RGBA32 -> `Rgba)
     | P.YUV fmt -> (
         match fmt with
           | P.YUV422 -> `Yuv422p
@@ -59,7 +59,7 @@ let format_of frame =
           | P.YUV410 -> `Yuv410p
           | P.YUVJ420 -> Ffmpeg_utils.liq_frame_pixel_format ()
           | P.YUVJ422 -> `Yuvj422p
-          | P.YUVJ444 -> `Yuvj444p )
+          | P.YUVJ444 -> `Yuvj444p)
 
 type fmt = Avutil.Pixel_format.t * int * int
 
@@ -114,10 +114,10 @@ let create () =
           if proportional then
             if dst_h * src_w < src_h * dst_w then (
               let ox = (dst_w - (src_w * dst_h / src_h)) / 2 in
-              (`Pixel ox, dst_w - (2 * ox), dst_h) )
+              (`Pixel ox, dst_w - (2 * ox), dst_h))
             else (
               let oy = (dst_h - (src_h * dst_w / src_w)) / 2 in
-              (`Line oy, dst_w, dst_h - (2 * oy)) )
+              (`Line oy, dst_w, dst_h - (2 * oy)))
           else (`Zero, dst_w, dst_h)
         in
         let conv =

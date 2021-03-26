@@ -83,13 +83,13 @@ class filter ~kind (source : source) freq q wet mode =
           band.(c) <- (f *. high.(c)) +. band.(c);
           notch.(c) <- high.(c) +. low.(c);
           b_c.{i} <-
-            ( wet
+            (wet
             *.
             match mode with
               | Low_pass -> low.(c)
               | High_pass -> high.(c)
               | Band_pass -> band.(c)
-              | Notch -> notch.(c) )
+              | Notch -> notch.(c))
             +. ((1. -. wet) *. b_c.{i})
         done
       done

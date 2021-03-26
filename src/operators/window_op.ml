@@ -93,8 +93,8 @@ class window ~kind mode duration source =
                         v)
             in
             acc_dur <- 0;
-            Tutils.mutexify m (fun () -> value <- value') () )
-        done )
+            Tutils.mutexify m (fun () -> value <- value') ())
+        done)
   end
 
 let declare mode suffix kind fun_ret_t f_ans =
@@ -111,10 +111,10 @@ let declare mode suffix kind fun_ret_t f_ans =
       ]
     ~return_t
     ~descr:
-      ( "Get current " ^ doc
-      ^ " of the source. Returns the source with a method `" ^ name
-      ^ "` to compute the current " ^ doc ^ " of the source, with `0.0 <= "
-      ^ doc ^ " <= 1.0`." )
+      ("Get current " ^ doc
+     ^ " of the source. Returns the source with a method `" ^ name
+     ^ "` to compute the current " ^ doc ^ " of the source, with `0.0 <= " ^ doc
+     ^ " <= 1.0`.")
     [
       ( "duration",
         Lang.getter_t Lang.float_t,

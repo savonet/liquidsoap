@@ -168,7 +168,7 @@ let () =
               | _ -> Printexc.to_string e
           in
           log#severe "WARNING: %s" m;
-          Lang.unit )
+          Lang.unit)
         else raise e)
 
 let () =

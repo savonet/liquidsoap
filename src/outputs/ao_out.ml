@@ -99,7 +99,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
           assert (Array.length pcm = self#audio_channels);
           Audio.S16LE.of_audio pcm data 0
         in
-        ioring#put_block push )
+        ioring#put_block push)
 
     method output_reset = ()
   end
@@ -108,7 +108,7 @@ let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.ao" ~active:true
-    ( Output.proto
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -131,7 +131,7 @@ let () =
           Some (Lang.list []),
           Some "List of parameters, depends on the driver." );
         ("", Lang.source_t return_t, None, None);
-      ] )
+      ])
     ~category:Lang.Output
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
@@ -160,7 +160,7 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      ( new output
-          ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
-          ?channels_matrix ~options source start
-        :> Source.source ))
+      (new output
+         ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
+         ?channels_matrix ~options source start
+        :> Source.source))

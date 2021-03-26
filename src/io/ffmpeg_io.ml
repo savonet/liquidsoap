@@ -145,7 +145,7 @@ let () =
   in
   Lang.add_operator "input.ffmpeg" ~active:true
     ~descr:"Decode a url using ffmpeg." ~category:Lang.Input
-    ( Start_stop.input_proto
+    (Start_stop.input_proto
     @ [
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
@@ -165,7 +165,7 @@ let () =
             "Force a specific input format. Autodetected when passed an empty \
              string." );
         ("", Lang.string_t, None, Some "URL to decode.");
-      ] )
+      ])
     ~return_t:k
     (fun p ->
       let start = Lang.to_bool (List.assoc "start" p) in
@@ -187,7 +187,7 @@ let () =
                 raise
                   (Lang_errors.Invalid_value
                      ( Lang.string format,
-                       "Could not find ffmpeg input format with that name" )) )
+                       "Could not find ffmpeg input format with that name" )))
       in
       let opts = Hashtbl.create 10 in
       parse_args ~t:`Int "int" p opts;
@@ -196,7 +196,7 @@ let () =
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
-      ( new input
-          ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
-          url
-        :> Source.source ))
+      (new input
+         ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
+         url
+        :> Source.source))

@@ -62,9 +62,9 @@ class flanger ~kind (source : source) delay freq feedback phase =
       for i = offset to position - 1 do
         for c = 0 to Array.length b - 1 do
           let delay =
-            ( past_pos + past_len
+            (past_pos + past_len
             + Frame.audio_of_seconds
-                (delay *. (1. -. cos (omega +. (float c *. phase ()))) /. 2.) )
+                (delay *. (1. -. cos (omega +. (float c *. phase ()))) /. 2.))
             mod past_len
           in
           past.(c).{past_pos} <- b.(c).{i};

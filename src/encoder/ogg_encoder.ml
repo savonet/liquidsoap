@@ -47,7 +47,7 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
           Audio_converter.Samplerate.resample samplerate_converter
             (dst_freq /. src_freq) (Audio.sub b start len)
         in
-        (b, 0, Audio.length b) )
+        (b, 0, Audio.length b))
       else (b, start, len)
     in
     let data =
@@ -119,7 +119,7 @@ let encoder { Ogg_format.audio; video } =
        * avoid empty streams at beginning.. *)
       if Ogg_muxer.state ogg_enc <> Ogg_muxer.Streaming then (
         streams_start ();
-        enc.Encoder.header <- Ogg_muxer.get_header ogg_enc );
+        enc.Encoder.header <- Ogg_muxer.get_header ogg_enc);
       let f track =
         track.encode ogg_enc (Option.get track.id) frame start len
       in
@@ -138,7 +138,7 @@ let encoder { Ogg_format.audio; video } =
       List.iter f tracks;
       if Ogg_muxer.state ogg_enc = Ogg_muxer.Streaming then (
         Ogg_muxer.end_of_stream ogg_enc;
-        enc.Encoder.header <- Strings.empty )
+        enc.Encoder.header <- Strings.empty)
     and stop () =
       ogg_stop ();
       enc.Encoder.header <- Strings.empty;

@@ -140,16 +140,13 @@ let register_descr plugin_name descr_n descr outputs =
   let k = Lang.kind_type_of_kind_format kind in
   let liq_params = liq_params in
   Lang.add_operator
-    ( "synth.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
-    ( [
-        ( "channel",
-          Lang.int_t,
-          Some (Lang.int 0),
-          Some "MIDI channel to handle." );
-      ]
+    ("synth.dssi."
+    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
+    ([
+       ("channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.");
+     ]
     @ liq_params
-    @ [("", Lang.source_t k, None, None)] )
+    @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.SoundSynthesis ~flags:[Lang.Extra]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
     (fun p ->
@@ -167,8 +164,8 @@ let register_descr plugin_name descr_n descr outputs =
   in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator
-    ( "synth.all.dssi."
-    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr) )
+    ("synth.all.dssi."
+    ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
     (liq_params @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.SoundSynthesis ~flags:[Lang.Extra]
     ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
@@ -191,7 +188,7 @@ let register_plugin ?(log_errors = false) pname =
           register_descr pname n d o;
           if log_errors then
             log#important "Registered DSSI plugin: %s."
-              (Ladspa.Descriptor.label ladspa_descr) )
+              (Ladspa.Descriptor.label ladspa_descr))
         else if log_errors then
           log#important
             "Plugin %s has inputs, don't know how to handle them for now."
@@ -229,12 +226,12 @@ let dssi_init =
     if !inited then ()
     else (
       Dssi.init ();
-      inited := true )
+      inited := true)
 
 let () =
   if dssi_enable then (
     dssi_init ();
-    register_plugins () );
+    register_plugins ());
   List.iter (register_plugin ~log_errors:true) dssi_load
 
 let () =

@@ -136,7 +136,7 @@ let () =
                 let n = input c buf 0 buflen in
                 if n = 0 then (
                   close_in c;
-                  ic := None );
+                  ic := None);
                 Bytes.sub_string buf 0 n
             | None -> ""
         in
@@ -238,11 +238,11 @@ let () =
                   let acc =
                     if f <> Filename.current_dir_name then f :: acc else acc
                   in
-                  aux subdir (aux f acc (readdir df)) l )
+                  aux subdir (aux f acc (readdir df)) l)
                 else aux subdir (concat subdir f :: acc) l
             | [] -> acc
           in
-          aux Filename.current_dir_name [] [Filename.current_dir_name] )
+          aux Filename.current_dir_name [] [Filename.current_dir_name])
       in
       let files =
         if absolute then List.map (Filename.concat dir) files else files
@@ -260,7 +260,7 @@ let () =
       let r = Request.create uri in
       if Request.resolve ~ctype:None r 30. = Request.Resolved then (
         Request.read_metadata r;
-        Lang.metadata (Request.get_all_metadata r) )
+        Lang.metadata (Request.get_all_metadata r))
       else Lang.metadata (Hashtbl.create 0))
 
 (************** Paths ********************)
@@ -377,4 +377,4 @@ let () =
         Lang.string (Digest.to_hex (Digest.file file))
       else (
         let message = Printf.sprintf "The file %s does not exist." file in
-        Lang.error ~message "file" ))
+        Lang.error ~message "file"))

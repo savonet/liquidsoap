@@ -99,7 +99,7 @@ module Icecast_v (M : Icecast_t) = struct
               raise
                 (Lang_errors.Invalid_value
                    ( Lang.assoc "" 1 p,
-                     "No format (mime) found, please specify one." )) )
+                     "No format (mime) found, please specify one." )))
     in
     { factory = encoder_factory; format; info }
 end

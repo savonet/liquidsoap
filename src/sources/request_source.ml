@@ -61,45 +61,45 @@ class once ~kind ~name ~timeout request =
     method private wake_up activation =
       super#wake_up activation;
       if not over then (
-        ( (* Ensure that the request is resolved. *)
-          match Request.resolve ~ctype:(Some self#ctype) request timeout with
+        (* Ensure that the request is resolved. *)
+        (match Request.resolve ~ctype:(Some self#ctype) request timeout with
           | Request.Resolved -> ()
           | (Request.Failed | Request.Timeout) as ans ->
               self#log#important "Could not resolve request %s: %s."
                 (Request.initial_uri request)
-                ( match ans with
+                (match ans with
                   | Request.Failed -> "failed"
                   | Request.Timeout -> "timeout"
-                  | Request.Resolved -> assert false ) );
+                  | Request.Resolved -> assert false));
         if not (Request.is_ready request) then (
           over <- true;
           self#log#critical "Failed to prepare track: request not ready.";
-          Request.destroy request )
+          Request.destroy request)
         else (
-          ( match Request.ctype request with
+          (match Request.ctype request with
             | Some ctype -> assert (Frame.compatible ctype self#ctype)
-            | None -> () );
+            | None -> ());
           let file = Option.get (Request.get_filename request) in
           decoder <- Request.get_decoder request;
           assert (decoder <> None);
           remaining <- -1;
           self#log#important "Prepared %S (RID %d)." file
-            (Request.get_id request) ) )
+            (Request.get_id request)))
 
     method private end_track forced =
       if not over then (
-        ( match Request.get_filename request with
+        (match Request.get_filename request with
           | None ->
               self#log#severe
                 "Finished with a non-existent file?! Something may have been \
                  moved or destroyed during decoding. It is VERY dangerous, \
                  avoid it!"
-          | Some f -> self#log#info "Finished with %S." f );
+          | Some f -> self#log#info "Finished with %S." f);
         let decoder = Option.get decoder in
         decoder.Decoder.close ();
         Request.destroy request;
         remaining <- 0;
-        if forced then must_fail <- true else over <- true )
+        if forced then must_fail <- true else over <- true)
 
     method is_ready = not over
 
@@ -107,16 +107,16 @@ class once ~kind ~name ~timeout request =
       if must_fail then (
         must_fail <- false;
         over <- true;
-        Frame.add_break buf (Frame.position buf) )
+        Frame.add_break buf (Frame.position buf))
       else (
         if send_metadata then (
           Request.on_air request;
           let m = Request.get_all_metadata request in
           Frame.set_metadata buf (Frame.position buf) m;
-          send_metadata <- false );
+          send_metadata <- false);
         let decoder = Option.get decoder in
         remaining <- decoder.Decoder.fill buf;
-        if Frame.is_partial buf then self#end_track false )
+        if Frame.is_partial buf then self#end_track false)
 
     method seek len =
       let decoder = Option.get decoder in
@@ -229,7 +229,7 @@ class virtual unqueued ~kind ~name =
     method private get_frame buf =
       if must_fail then (
         must_fail <- false;
-        Frame.add_break buf (Frame.position buf) )
+        Frame.add_break buf (Frame.position buf))
       else (
         let try_get () =
           match current with
@@ -241,11 +241,11 @@ class virtual unqueued ~kind ~name =
                   Request.on_air cur.req;
                   let m = Request.get_all_metadata cur.req in
                   Frame.set_metadata buf (Frame.position buf) m;
-                  send_metadata <- false );
+                  send_metadata <- false);
                 cur.fill buf
         in
         Tutils.mutexify plock try_get ();
-        if Frame.is_partial buf then self#end_track false )
+        if Frame.is_partial buf then self#end_track false)
 
     method seek x = match current with None -> 0 | Some cur -> cur.seek x
 
@@ -315,7 +315,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
           (* There is a track available but we don't know its duration at this
              point. Hence, using default_duration. *)
           queue_length +. default_duration
-        else queue_length +. Frame.seconds_of_main remaining )
+        else queue_length +. Frame.seconds_of_main remaining)
 
     (** State should be `Sleeping on awakening, and is then turned to `Running.
       Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
@@ -444,7 +444,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
                  to fetch two requests). *)
               0.5
           | `Retry -> adaptative_delay ()
-          | `Empty -> -1. )
+          | `Empty -> -1.)
       else -1.
 
     (** Try to feed the queue with a new request. Return a resolution status:
@@ -461,7 +461,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
                   let len =
                     match Request.get_metadata req "duration" with
                       | Some f -> (
-                          try float_of_string f with _ -> default_duration )
+                          try float_of_string f with _ -> default_duration)
                       | None -> default_duration
                   in
                   let rec remove_expired n =
@@ -470,9 +470,9 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
                       let r = Queue.take retrieved in
                       if r.expired then (
                         self#log#info "Dropping expired request.";
-                        Request.destroy r.request )
+                        Request.destroy r.request)
                       else Queue.add r retrieved;
-                      remove_expired (n - 1) )
+                      remove_expired (n - 1))
                   in
                   Mutex.lock qlock;
                   remove_expired (Queue.length retrieved);
@@ -491,7 +491,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
               | Request.Timeout ->
                   resolving <- None;
                   Request.destroy req;
-                  `Retry )
+                  `Retry)
 
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
@@ -526,7 +526,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
         (fun r ->
           if test r.request && not r.expired then (
             r.expired <- true;
-            queue_length <- queue_length -. r.duration ))
+            queue_length <- queue_length -. r.duration))
         retrieved;
       Mutex.unlock qlock;
       if self#available_length < min_queue_length then (
@@ -534,7 +534,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
           self#log#info "Expirations made the queue too short, feeding...";
 
         (* Notify in any case, notifying twice never hurts. *)
-        self#notify_new_request )
+        self#notify_new_request)
 
     method private get_frame ab =
       super#get_frame ab;

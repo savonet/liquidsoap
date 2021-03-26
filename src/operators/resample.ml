@@ -105,8 +105,8 @@ class resample ~kind ~active ~ratio (source : source) =
         (* Did the child clock tick during this instant? *)
         if active && last_child_tick <> main_time then (
           self#child_tick;
-          last_child_tick <- main_time );
-        main_time <- main_clock#get_tick )
+          last_child_tick <- main_time);
+        main_time <- main_clock#get_tick)
 
     method private fill_buffer =
       if Lazy.force Frame.size = Frame.position frame then self#child_tick;

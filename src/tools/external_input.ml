@@ -47,7 +47,7 @@ class virtual base ~name ~kind ~restart ~restart_on_error ~on_data ?read_header
           let ret = read_header reader in
           self#log#info "Header read!";
           header_read <- true;
-          ret )
+          ret)
         else on_data reader
       in
       let on_stderr =

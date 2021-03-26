@@ -42,8 +42,8 @@ let argv =
           * For a real #! invokation, env[_] (the script name) should be
           * found on the command-line, either at position 1 or 2. *)
       not
-        ( (Array.length Sys.argv > 1 && Sys.getenv "_" === Sys.argv.(1))
-        || (Array.length Sys.argv > 2 && Sys.getenv "_" === Sys.argv.(2)) )
+        ((Array.length Sys.argv > 1 && Sys.getenv "_" === Sys.argv.(1))
+        || (Array.length Sys.argv > 2 && Sys.getenv "_" === Sys.argv.(2)))
     with Not_found ->
       (* In case ENV[_] is not defined, for compatibility: *)
       true
@@ -67,4 +67,4 @@ let argv =
           [| Sys.argv.(2) |],
           Array.sub Sys.argv 3 (Array.length Sys.argv - 3) )
     in
-    Array.concat [[| Sys.argv.(0) |]; opts; script; [| "--" |]; more] )
+    Array.concat [[| Sys.argv.(0) |]; opts; script; [| "--" |]; more])

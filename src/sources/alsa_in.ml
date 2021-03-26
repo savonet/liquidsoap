@@ -141,7 +141,7 @@ class mic ~kind ~clock_safe device =
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";
-          Pcm.recover dev e )
+          Pcm.recover dev e)
         else raise e
 
     method get_frame buf =

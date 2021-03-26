@@ -66,8 +66,7 @@ class max_duration ~kind ~override_meta ~duration source =
                     remaining <- Frame.main_of_seconds v;
                     self#log#info "Overriding remaining value: %.02f." v
                   with _ ->
-                    self#log#important "Invalid remaining override value: %s." v
-                  ))
+                    self#log#important "Invalid remaining override value: %s." v))
               m)
         (Frame.get_all_metadata buf)
 
@@ -79,7 +78,7 @@ class max_duration ~kind ~override_meta ~duration source =
       if remaining <= 0 then (
         s#leave (self :> Source.source);
         s <- Blank.empty kind;
-        s#get_ready [(self :> Source.source)] )
+        s#get_ready [(self :> Source.source)])
   end
 
 let () =

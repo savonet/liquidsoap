@@ -32,7 +32,7 @@ class virtual base =
     initializer
     if not !initialized then (
       Portaudio.init ();
-      initialized := true )
+      initialized := true)
 
     method virtual log : Log.t
 
@@ -184,7 +184,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.portaudio" ~active:true
-    ( Output.proto
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -195,7 +195,7 @@ let () =
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
@@ -213,11 +213,11 @@ let () =
       in
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-      ( new output
-          ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
-        :> Source.source ));
+      (new output
+         ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
+        :> Source.source));
   Lang.add_operator "input.portaudio"
-    ( Start_stop.input_proto
+    (Start_stop.input_proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -227,7 +227,7 @@ let () =
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
-      ] )
+      ])
     ~return_t:k ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
     (fun p ->
@@ -244,5 +244,5 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      ( new input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen
-        :> Source.source ))
+      (new input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen
+        :> Source.source))

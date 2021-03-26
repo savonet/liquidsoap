@@ -64,14 +64,14 @@ class sequence ~kind ?(merge = false) sources =
     method remaining =
       if merge then (
         let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
-        List.fold_left ( + ) 0 (List.map (fun s -> s#remaining) seq_sources) )
+        List.fold_left ( + ) 0 (List.map (fun s -> s#remaining) seq_sources))
       else (List.hd seq_sources)#remaining
 
     method abort_track =
       if merge then (
         match List.rev seq_sources with
           | [] -> assert false
-          | hd :: _ -> seq_sources <- [hd] );
+          | hd :: _ -> seq_sources <- [hd]);
       match seq_sources with hd :: _ -> hd#abort_track | _ -> ()
 
     method private get_frame buf =
@@ -86,7 +86,7 @@ class sequence ~kind ?(merge = false) sources =
               let pos = Frame.position buf in
               self#get_frame buf;
               Frame.set_breaks buf
-                (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) ) ) )
+                (Utils.remove_one (( = ) pos) (Frame.breaks buf))))))
       else (
         match seq_sources with
           | a :: (_ :: _ as tl) ->
@@ -98,7 +98,7 @@ class sequence ~kind ?(merge = false) sources =
               (* Our #is_ready ensures that. *)
               head_ready <- true;
               self#get_frame buf
-          | [] -> assert false )
+          | [] -> assert false)
   end
 
 class merge_tracks ~kind source =
@@ -121,9 +121,9 @@ class merge_tracks ~kind source =
         self#log#info "End of track: merging.";
         self#get_frame buf;
         Frame.set_breaks buf
-          ( match Frame.breaks buf with
+          (match Frame.breaks buf with
             | b :: _ :: l -> b :: l
-            | _ -> assert false ) )
+            | _ -> assert false))
   end
 
 let () =

@@ -172,13 +172,13 @@ let () =
   in
   add_builtin "clock.assign_new" ~cat:Liq
     ~descr:"Create a new clock and assign it to a list of sources."
-    ( proto
+    (proto
     @ [
         ( "",
           Lang.list_t (Lang.source_t (Lang.univ_t ())),
           None,
           Some "List of sources to which the new clock will be assigned." );
-      ] )
+      ])
     Lang.unit_t
     (fun p ->
       let id = Lang.to_string (List.assoc "id" p) in
@@ -543,7 +543,7 @@ let () =
           ignore (List.find (fun x -> x = name) argv);
           opts := List.filter (fun x -> x <> name) argv;
           Lang.string "1"
-        with Not_found -> Lang.string "0" )
+        with Not_found -> Lang.string "0")
       else (
         let rec find l l' =
           match l with
@@ -553,7 +553,7 @@ let () =
         in
         let v, l = find argv [] in
         opts := l;
-        Lang.string v ));
+        Lang.string v));
 
   add_builtin "argv" ~cat:Sys
     ~descr:
@@ -572,7 +572,7 @@ let () =
         (* Special case so that argv(0) returns the script name *)
         let i = offset - 1 in
         if 0 <= i && i < Array.length argv then Lang.string argv.(i)
-        else Lang.string default )
+        else Lang.string default)
       else if i < List.length opts then Lang.string (List.nth opts i)
       else Lang.string default)
 
@@ -617,7 +617,7 @@ let () =
               | Some plugin -> (mime, plugin.Playlist_parser.parser ~pwd content)
               | None ->
                   log#important "Unknown mime type, trying autodetection.";
-                  Playlist_parser.search_valid ~pwd content )
+                  Playlist_parser.search_valid ~pwd content)
         in
         let process m =
           let f (n, v) = Lang.product (Lang.string n) (Lang.string v) in

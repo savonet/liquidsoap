@@ -94,7 +94,7 @@ module Make (Harbor : T) = struct
          * or "artist" and "title". Here, we use "song"
          * as the "title" field if "title" is not provided. *)
         if not (Hashtbl.mem m "title") then (
-          try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> () );
+          try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
         self#log#important "New metadata chunk %s -- %s."
           (try Hashtbl.find m "artist" with _ -> "?")
           (try Hashtbl.find m "title" with _ -> "?");
@@ -130,7 +130,7 @@ module Make (Harbor : T) = struct
                       self#log#severe "Error while reading from client: %s"
                         (Printexc.to_string e);
                       self#disconnect ~lock:false;
-                      0 ))
+                      0))
               buf len
           in
           begin
@@ -222,7 +222,7 @@ module Make (Harbor : T) = struct
               try dump <- Some (open_out_bin (Utils.home_unrelate f))
               with e ->
                 self#log#severe "Could not open dump file: %s"
-                  (Printexc.to_string e) )
+                  (Printexc.to_string e))
           | None -> ()
         end;
         begin
@@ -231,7 +231,7 @@ module Make (Harbor : T) = struct
               try logf <- Some (open_out_bin (Utils.home_unrelate f))
               with e ->
                 self#log#severe "Could not open log file: %s"
-                  (Printexc.to_string e) )
+                  (Printexc.to_string e))
           | None -> ()
         end;
         ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")

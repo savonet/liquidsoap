@@ -54,7 +54,7 @@ class delay ~kind ~initial (source : source) delay =
       (* The current track ends. *)
       if Frame.is_partial buf then (
         in_track <- false;
-        last <- Unix.time () )
+        last <- Unix.time ())
   end
 
 let () =

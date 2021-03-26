@@ -107,7 +107,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.jack" ~active:true
-    ( Output.proto
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -122,7 +122,7 @@ let () =
           Some (Lang.string ""),
           Some "Jack server to connect to." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Output ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
@@ -138,7 +138,7 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      ( new output
-          ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
-          source
-        :> Source.source ))
+      (new output
+         ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
+         source
+        :> Source.source))

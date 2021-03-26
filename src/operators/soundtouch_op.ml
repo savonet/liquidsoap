@@ -89,7 +89,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
         Generator.put_audio abg
           (Frame_content.Audio.lift_data tmp)
           0
-          (Frame.main_of_audio available) );
+          (Frame.main_of_audio available));
       if AFrame.is_partial databuf then Generator.add_break abg;
 
       (* It's almost impossible to know where to add metadata,

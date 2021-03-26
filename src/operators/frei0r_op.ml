@@ -180,7 +180,7 @@ class frei0r_source ~kind ~name bgra instance params =
     method private get_frame frame =
       if must_fail then (
         must_fail <- false;
-        VFrame.add_break frame (VFrame.position frame) )
+        VFrame.add_break frame (VFrame.position frame))
       else (
         params ();
         let start = VFrame.position frame in
@@ -196,7 +196,7 @@ class frei0r_source ~kind ~name bgra instance params =
           Video.set rgb i img;
           t <- t +. dt
         done;
-        VFrame.add_break frame stop )
+        VFrame.add_break frame stop)
   end
 
 (** Make a list of parameters. *)
@@ -347,11 +347,11 @@ let register_plugin fname =
       let params = params instance p in
       if inputs = 1 then (
         let source = Lang.to_source (f "") in
-        new frei0r_filter ~kind ~name bgra instance params source )
+        new frei0r_filter ~kind ~name bgra instance params source)
       else if inputs = 2 then (
         let source = Lang.to_source (f "") in
         let source' = Lang.to_source (Lang.assoc "" 2 p) in
-        new frei0r_mixer ~kind ~name bgra instance params source source' )
+        new frei0r_mixer ~kind ~name bgra instance params source source')
       else if inputs = 0 then new frei0r_source ~kind ~name bgra instance params
       else assert false)
 

@@ -74,7 +74,7 @@ module Samplerate = struct
     let converter =
       let rec f = function
         | conv :: l -> (
-            match converters#get conv with Some v -> v | None -> f l )
+            match converters#get conv with Some v -> v | None -> f l)
         | [] ->
             (* This should never come up since the native converter is always
                available. *)
@@ -141,13 +141,13 @@ module Channel_layout = struct
       else (
         let rec f = function
           | conv :: l -> (
-              match converters#get conv with Some v -> v | None -> f l )
+              match converters#get conv with Some v -> v | None -> f l)
           | [] ->
               (* This should never come up since the native converter is always
                  available. *)
               assert false
         in
-        f converters_conf#get )
+        f converters_conf#get)
     in
     { src; converter = converter src dst }
 

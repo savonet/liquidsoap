@@ -79,7 +79,7 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
           (* Scaled logistic function: 0. when a is very negative, 1. when a is
              very positive. *)
           let l = (tanh (a *. 2.) +. 1.) /. 2. in
-          Random.float 1. > 1. -. l ) )
+          Random.float 1. > 1. -. l))
 
     method private get_frame frame =
       let pos = ref 1 in

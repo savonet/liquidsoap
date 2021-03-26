@@ -51,7 +51,7 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
               if off + pos < len then (
                 let len = min (len - pos) max_packet_size in
                 let len = Unix.sendto socket msg (off + pos) len [] portaddr in
-                f (pos + len) )
+                f (pos + len))
             in
             f 0);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
@@ -188,13 +188,13 @@ let () =
   Lang.add_operator "output.udp" ~active:true
     ~descr:"Output encoded data to UDP, without any control whatsoever."
     ~category:Lang.Output ~flags:[Lang.Experimental]
-    ( Output.proto
+    (Output.proto
     @ [
         ("port", Lang.int_t, None, None);
         ("host", Lang.string_t, None, None);
         ("", Lang.format_t k, None, Some "Encoding format.");
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k
     (fun p ->
       (* Generic output parameters *)
@@ -220,10 +220,10 @@ let () =
                (fmt, "Cannot get a stream encoder for that format"))
       in
       let source = Lang.assoc "" 2 p in
-      ( new output
-          ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-          ~encoder_factory:fmt source
-        :> Source.source ))
+      (new output
+         ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
+         ~encoder_factory:fmt source
+        :> Source.source))
 
 let () =
   let kind = Lang.any in
@@ -261,6 +261,6 @@ let () =
                      "Cannot get a stream decoder for this MIME" ))
           | Some decoder_factory -> decoder_factory
       in
-      ( new input
-          ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
-        :> Source.source ))
+      (new input
+         ~kind ~hostname ~port ~bufferize ~log_overfull ~get_stream_decoder
+        :> Source.source))

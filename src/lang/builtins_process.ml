@@ -149,7 +149,7 @@ let () =
                 match s with
                   | Unix.WEXITED c -> ("exit", c, "")
                   | Unix.WSIGNALED s -> ("killed", s, "")
-                  | Unix.WSTOPPED s -> ("stopped", s, "") )
+                  | Unix.WSTOPPED s -> ("stopped", s, ""))
             | _ -> assert false
         in
         Lang.record
@@ -176,7 +176,7 @@ let () =
             if n = 0 then ()
             else (
               Buffer.add_subbytes buf tmp 0 n;
-              aux () )
+              aux ())
           in
           aux ()
         in
@@ -225,5 +225,5 @@ let () =
             (timed_out, !status))
       in
       on_done
-        ( if 0. <= timeout && Tutils.has_started () then asynchronous ()
-        else synchronous () ))
+        (if 0. <= timeout && Tutils.has_started () then asynchronous ()
+        else synchronous ()))

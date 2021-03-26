@@ -138,8 +138,8 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
               self#log#info "z = %+.013f %+.013f i." z.re z.im;
               if polemask mod 2 == 0 then (
                 splane_poles <- Array.append splane_poles [| z |];
-                splane_numpoles <- splane_numpoles + 1 );
-              polemask <- polemask lsl 1 )
+                splane_numpoles <- splane_numpoles + 1);
+              polemask <- polemask lsl 1)
           in
           self#log#info "Theta:";
           for i = 0 to (2 * order) - 1 do
@@ -291,7 +291,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
 
             (* oscillator *)
             let zp = { re = cos theta; im = sin theta } in
-            zplane_poles <- [| zp; Complex.conj zp |] )
+            zplane_poles <- [| zp; Complex.conj zp |])
           else (
             (* must iterate to find exact pole positions *)
             topcoeffs <- expand zplane_zeros zplane_numzeros;
@@ -315,7 +315,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
             done;
 
             (* if we failed to converge ... *)
-            assert !cvg );
+            assert !cvg);
           xv <- Array.make_matrix channels zplane_numzeros 0.;
           yv <- Array.make_matrix channels zplane_numpoles 0.;
 
@@ -341,7 +341,7 @@ class iir ~kind (source : source) filter_family filter_type order freq1 freq2
                 zplane_zeros.(1) <-
                   zplane_poles.(1) /~ sqrt (cor (Complex.norm zplane_poles.(1)))
             | Band_pass -> ()
-            | _ -> assert false )
+            | _ -> assert false)
     end;
 
     (* Now expand the polynomials *)

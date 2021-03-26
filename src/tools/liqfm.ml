@@ -124,18 +124,18 @@ let init host =
                   | Some s -> (
                       match Request.get_filename s with
                         | Some file -> Request.duration file
-                        | None -> raise Not_found )
+                        | None -> raise Not_found)
                   | None -> raise Not_found
               with
                 | Not_found -> raise Duration
                 | Bad_rid ->
                     log#severe "Metadata 'rid' is not associated to an integer!";
-                    raise Duration )
+                    raise Duration)
           in
           let duration =
             if length then (
               try Some (duration ())
-              with Duration -> if source = User then raise Duration else None )
+              with Duration -> if source = User then raise Duration else None)
             else if source <> User then None
             else raise Duration
           in

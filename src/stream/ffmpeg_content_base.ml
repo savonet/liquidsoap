@@ -47,7 +47,7 @@ let blit src src_pos dst dst_pos len =
       (fun data (pos, p) ->
         if src_pos <= pos && pos < src_end then (
           let pos = dst_pos + (pos - src_pos) in
-          (pos, p) :: data )
+          (pos, p) :: data)
         else data)
       dst.data src.data
   in

@@ -128,7 +128,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     if n = 0 then 0.
     else (
       let s = Hashtbl.fold (fun _ v cur -> cur +. v) l 0. in
-      s /. float_of_int n )
+      s /. float_of_int n)
   in
   let track_latency mode =
     let latency, peak_latency, max_latency =

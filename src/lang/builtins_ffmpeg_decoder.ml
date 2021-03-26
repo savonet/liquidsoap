@@ -359,17 +359,17 @@ let mk_encoder mode =
     Frame.
       {
         audio =
-          ( match mode with
+          (match mode with
             | `Audio_encoded | `Both_encoded ->
                 `Kind Ffmpeg_copy_content.Audio.kind
             | `Audio_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Audio.kind
-            | _ -> none );
+            | _ -> none);
         video =
-          ( match mode with
+          (match mode with
             | `Video_encoded | `Both_encoded ->
                 `Kind Ffmpeg_copy_content.Video.kind
             | `Video_raw | `Both_raw -> `Kind Ffmpeg_raw_content.Video.kind
-            | _ -> none );
+            | _ -> none);
         midi = none;
       }
   in
@@ -413,10 +413,10 @@ let mk_encoder mode =
       let source = List.assoc "" p in
       let generator =
         Producer_consumer.Generator.create
-          ( match mode with
+          (match mode with
             | `Audio_raw | `Audio_encoded -> `Audio
             | `Video_raw | `Video_encoded -> `Video
-            | `Both_raw | `Both_encoded -> `Both )
+            | `Both_raw | `Both_encoded -> `Both)
       in
       let control =
         Producer_consumer.
@@ -433,13 +433,13 @@ let mk_encoder mode =
         let decode_audio_frame =
           if has_audio then (
             let mode = if has_encoded_audio then `Decode else `Raw in
-            Some (decode_audio_frame ~mode control) )
+            Some (decode_audio_frame ~mode control))
           else None
         in
         let decode_video_frame =
           if has_video then (
             let mode = if has_encoded_video then `Decode else `Raw in
-            Some (decode_video_frame ~mode control) )
+            Some (decode_video_frame ~mode control))
           else None
         in
         let size = Lazy.force Frame.size in

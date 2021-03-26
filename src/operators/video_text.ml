@@ -91,19 +91,19 @@ class text ~kind init render_text ttf ttf_size color tx ty speed cycle meta text
             in
             if cur_text <> text then (
               cur_text <- text;
-              self#render_text cur_text );
+              self#render_text cur_text);
             for i = off to off + len - 1 do
               if speed = 0 then (
                 Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
                 pos_x <- tx ();
-                pos_y <- ty () )
+                pos_y <- ty ())
               else (
                 if pos_x <> -tfw then
                   Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y;
                 pos_x <- pos_x - speed;
                 if pos_x < -tfw then
                   if cycle then pos_x <- video_width
-                  else pos_x <- -tfw (* avoid overflows *) )
+                  else pos_x <- -tfw (* avoid overflows *))
             done
         | _ -> ()
   end
@@ -164,9 +164,9 @@ let register name init render_text =
         in
         let speed = speed / Lazy.force Frame.video_rate in
         let meta = if meta = "" then None else Some meta in
-        ( new text
-            ~kind init render_text ttf ttf_size color x y speed cycle meta txt
-            source
-          :> Source.source ))
+        (new text
+           ~kind init render_text ttf ttf_size color x y speed cycle meta txt
+           source
+          :> Source.source))
   in
   add_operator ("video.add_text." ^ name)

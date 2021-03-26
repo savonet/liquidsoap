@@ -46,10 +46,10 @@ let render_text ~font ~size text =
   in
   (* Anti-aliasing. *)
   let get_pixel x y =
-    ( get_pixel (2 * x) (2 * y)
+    (get_pixel (2 * x) (2 * y)
     + get_pixel ((2 * x) + 1) (2 * y)
     + get_pixel (2 * x) ((2 * y) + 1)
-    + get_pixel ((2 * x) + 1) ((2 * y) + 1) )
+    + get_pixel ((2 * x) + 1) ((2 * y) + 1))
     / 4
   in
   (w, h, get_pixel)

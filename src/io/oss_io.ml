@@ -143,7 +143,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.oss" ~active:true
-    ( Output.proto
+    (Output.proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -154,7 +154,7 @@ let () =
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
         ("", Lang.source_t k, None, None);
-      ] )
+      ])
     ~return_t:k ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
     (fun p ->
@@ -172,12 +172,12 @@ let () =
       let clock_safe = e Lang.to_bool "clock_safe" in
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
-      ( new output
-          ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
-        :> Source.source ));
+      (new output
+         ~start ~on_start ~on_stop ~infallible ~kind ~clock_safe device source
+        :> Source.source));
   let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "input.oss" ~active:true
-    ( Start_stop.input_proto
+    (Start_stop.input_proto
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -187,7 +187,7 @@ let () =
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
-      ] )
+      ])
     ~return_t:k ~category:Lang.Input ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -203,5 +203,5 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      ( new input ~kind ~start ~on_start ~on_stop ~fallible ~clock_safe device
-        :> Source.source ))
+      (new input ~kind ~start ~on_start ~on_stop ~fallible ~clock_safe device
+        :> Source.source))

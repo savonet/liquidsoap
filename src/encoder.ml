@@ -151,7 +151,7 @@ let iso_base_file_media_file_format = function
         | `Mpeg_4 `AAC_ELD -> "mp4a.40.39"
         | `Mpeg_2 `AAC_LC -> "mp4a.67"
         | `Mpeg_2 `HE_AAC -> "mp4a.67" (* TODO: check this *)
-        | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *) )
+        | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *))
   | Ffmpeg { Ffmpeg_format.format = Some "libmp3lame" } -> "mp4a.40.34"
   | _ -> raise Not_found
 

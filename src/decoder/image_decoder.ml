@@ -40,7 +40,7 @@ let wh iw ih w h =
           else (
             let h = frame_h in
             let w = iw * frame_h / ih in
-            (w, h) )
+            (w, h))
         in
         (w, h)
     | Some w, None -> (w, ih * w / iw)
@@ -56,11 +56,11 @@ let wh_string iw ih w h =
       let a = float_of_string (String.sub l 0 (String.length l - 1)) /. 100. in
       let d = float_of_int d in
       let l = int_of_float ((a *. d) +. 0.5) in
-      Some l )
+      Some l)
     else (
       let l = int_of_string l in
       let l = if l < 0 then i else l in
-      Some l )
+      Some l)
   in
   wh iw ih (f frame_w iw w) (f frame_h ih h)
 
@@ -75,7 +75,7 @@ let off_string iw ih ox oy =
       let a = float_of_string (String.sub l 0 (String.length l - 1)) /. 100. in
       let frame = float_of_int frame in
       let o = int_of_float ((frame *. a) +. 0.5) in
-      o )
+      o)
     else int_of_string l
   in
   let ox = f ((frame_w - iw) / 2) frame_w ox in
@@ -100,7 +100,7 @@ let create_decoder ~metadata img =
       else (
         let img' = Video.Image.create width height in
         scale img img';
-        img' )
+        img')
     in
     let img =
       let img' =
@@ -142,7 +142,7 @@ let create_decoder ~metadata img =
     if !duration = -1 then -1
     else (
       duration := !duration - (stop - start);
-      Frame.main_of_video !duration )
+      Frame.main_of_video !duration)
   in
   { Decoder.fill; fseek = (fun _ -> 0); close }
 

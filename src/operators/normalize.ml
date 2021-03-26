@@ -103,7 +103,7 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
           vold <- v;
           v <- max gmin (min gmax v);
           rms <- 0.;
-          rmsc <- 0 )
+          rmsc <- 0)
       done;
 
       (* Reset values if it is the end of the track. *)

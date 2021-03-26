@@ -80,7 +80,7 @@ let unescape_char c s =
         | '\\' when not escaped -> f ~escaped:true cur pos
         | x when x = c -> f ~escaped:false (Printf.sprintf "%s%c" cur c) pos
         | x when escaped -> f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
-        | x -> f ~escaped:false (Printf.sprintf "%s%c" cur x) pos )
+        | x -> f ~escaped:false (Printf.sprintf "%s%c" cur x) pos)
   in
   f ~escaped:false "" 0
 
@@ -96,7 +96,7 @@ let split ~sep s =
         match s.[pos] with
           | '\\' when not escaped -> get_index true (pos + 1)
           | x when x == sep && not escaped -> pos
-          | _ -> get_index false (pos + 1) )
+          | _ -> get_index false (pos + 1))
     in
     let pos = get_index false 0 in
     if pos == len then s :: cur
@@ -122,7 +122,7 @@ let remove_one f l =
 
 let rec may_map f = function
   | h :: t -> (
-      match f h with Some h -> h :: may_map f t | None -> may_map f t )
+      match f h with Some h -> h :: may_map f t | None -> may_map f t)
   | [] -> []
 
 (* Read all data from a given filename.
@@ -141,7 +141,7 @@ let read_all filename =
     let ret = input channel tmp 0 pagesize in
     if ret > 0 then (
       Strings.Mutable.add_subbytes contents tmp 0 ret;
-      read () )
+      read ())
   in
   read ();
   close_in channel;
@@ -155,7 +155,7 @@ let buffer_drop buffer len =
   else (
     let tmp = Buffer.sub buffer len (size - len) in
     Buffer.clear buffer;
-    Buffer.add_string buffer tmp )
+    Buffer.add_string buffer tmp)
 
 let unix_translator = function
   | Unix.Unix_error (code, name, param) ->
@@ -214,7 +214,7 @@ let rec utf8_search_head s i =
   if i >= String.length s then i
   else (
     let n = Char.code (String.unsafe_get s i) in
-    if n < 0x80 || n >= 0xc2 then i else utf8_search_head s (i + 1) )
+    if n < 0x80 || n >= 0xc2 then i else utf8_search_head s (i + 1))
 
 let utf8_next s i =
   let n = Char.code s.[i] in
@@ -383,7 +383,7 @@ let rec mkdir ~perm dir =
   else (
     let up = Filename.dirname dir in
     if up = "." then () else mkdir ~perm up;
-    Unix.mkdir dir perm )
+    Unix.mkdir dir perm)
 
 (** Expand ~ notation in filenames. *)
 let home_unrelate =
@@ -403,8 +403,8 @@ let home_unrelate =
             try
               let home = (Unix.getpwnam user).Unix.pw_dir in
               Filename.concat home (String.sub s index (len - index))
-            with Not_found -> s )
-        | _ -> s )
+            with Not_found -> s)
+        | _ -> s)
   in
   unrel
 
@@ -475,7 +475,7 @@ let encode64 s =
   done;
   if extra = 1 then (
     Bytes.set dst ((4 * (n / 3)) - 2) '=';
-    Bytes.set dst ((4 * (n / 3)) - 1) '=' )
+    Bytes.set dst ((4 * (n / 3)) - 1) '=')
   else if extra = 2 then Bytes.set dst ((4 * (n / 3)) - 1) '=';
   Bytes.unsafe_to_string dst
 
@@ -575,7 +575,7 @@ let float_of_extended_float bytes =
     let expon = expon - 16383 - 31 in
     let f = ldexp (float_of_unsigned hiMant) expon in
     let f = f +. ldexp (float_of_unsigned loMant) (expon - 32) in
-    if int_of_char bytes.[0] land 0x80 <> 0 then -1. *. f else f )
+    if int_of_char bytes.[0] land 0x80 <> 0 then -1. *. f else f)
 
 (* From OCaml *)
 let file_extension_len ~dir_sep name =
@@ -682,7 +682,7 @@ let print_strings ?(pager = false) s =
           raise Exit
         with _ ->
           close_out oc;
-          Unix.unlink fname )
+          Unix.unlink fname)
 
 let print_string ?(pager = false) s =
   if not pager then print_string s
@@ -693,7 +693,7 @@ let kprint_string ?(pager = false) f =
   else (
     let ans = Strings.Mutable.empty () in
     f (Strings.Mutable.add ans);
-    print_strings ~pager (Strings.Mutable.to_strings ans) )
+    print_strings ~pager (Strings.Mutable.to_strings ans))
 
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
