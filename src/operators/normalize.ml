@@ -41,8 +41,15 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
     (** Volume coefficient. *)
     val mutable v = 1.
 
-    (** Previous volume coefficients. *)
+    (** Previous volume coefficient. *)
     val mutable vold = 1.
+
+    method gain = v
+
+    (** Last fully computed rms. *)
+    val mutable last_rms = 0.
+
+    method rms = last_rms
 
     method init =
       rms <- 0.;
@@ -89,6 +96,7 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
         rmsc <- rmsc + 1;
         if rmsc >= rmsi then (
           let r = sqrt (rms /. float_of_int (rmsi * self#audio_channels)) in
+          last_rms <- r;
           if r > threshold then
             if r *. v > rmst then v <- v +. (kdown *. ((rmst /. r) -. v))
             else v <- v +. (kup *. ((rmst /. r) -. v));
@@ -135,11 +143,11 @@ let () =
         Some "Minimal RMS for activaing gain control (dB)." );
       ( "gain_min",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float (-6.)),
+        Some (Lang.float (-9.)),
         Some "Minimal gain value (dB)." );
       ( "gain_max",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float 6.),
+        Some (Lang.float 9.),
         Some "Maximal gain value (dB)." );
       ( "track_sensitive",
         Lang.bool_t,
@@ -155,6 +163,17 @@ let () =
        far as creating saturation in some extreme cases. If possible, consider \
        using some track-based normalization techniques such as those based on \
        replay gain. See the documentation for more details."
+    ~meth:
+      [
+        ( "gain",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Current amplification coefficient.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain) );
+        ( "rms",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Current RMS.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms) );
+      ]
     (fun p ->
       let f v = List.assoc v p in
       let target, window, kup, kdown, threshold, gmin, gmax, src =
@@ -168,11 +187,10 @@ let () =
           Lang.to_source (f "") )
       in
       let track_sensitive = Lang.to_bool (f "track_sensitive") in
-      ( new normalize
-          ~kind ~track_sensitive src
-          (fun () -> Audio.lin_of_dB (target ()))
-          window kup kdown
-          (fun () -> Audio.lin_of_dB (threshold ()))
-          (fun () -> Audio.lin_of_dB (gmin ()))
-          (fun () -> Audio.lin_of_dB (gmax ()))
-        :> Source.source ))
+      new normalize
+        ~kind ~track_sensitive src
+        (fun () -> Audio.lin_of_dB (target ()))
+        window kup kdown
+        (fun () -> Audio.lin_of_dB (threshold ()))
+        (fun () -> Audio.lin_of_dB (gmin ()))
+        (fun () -> Audio.lin_of_dB (gmax ())))
