@@ -147,14 +147,14 @@ end
 # @param ~gain_min Minimal gain value (dB).
 # @param ~down Characteristic time to go down.
 # @param ~up Characteristic time to go up.
-# @param ~lookahead How much time to look ahead of the signal (second).
+# @param ~lookahead How much time to look ahead of the signal (second). Setting a positive value delays the output by the corresponding amount of time.
 # @param ~target Desired RMS (dB).
 # @param ~threshold  Minimal RMS for activaing gain control (dB).
 # @param ~window Duration of the window used to compute the current RMS power (second).
 # @param ~debug How often to print debug messages, in seconds, useful to finetune the parameters. You should set `set("log.level", 5)` to see them.
 # @param s Source to normalize.
 # @method gain Current amplification coefficient.
-def native.normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter(.01), ~gain_min=-12., ~gain_max=12., ~lookahead=0., ~window=.5, ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
+def native.normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lookahead=0., ~window=.5, ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
   s = rms.smooth(duration=window, s)
   v = ref(1.)
   frame = frame.duration()
@@ -165,7 +165,7 @@ def native.normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter
     threshold = lin_of_dB(getter.get(threshold))
     rms       = s.rms()
     if rms >= threshold then
-      if rms <= target then
+      if !v * rms <= target then
         up = frame / (getter.get(up) + frame)
         v := !v + up * ((target / rms) - !v)
       else
