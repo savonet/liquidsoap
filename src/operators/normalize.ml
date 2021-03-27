@@ -103,17 +103,19 @@ class normalize ~kind ~track_sensitive (source : source) (* RMS target. *) rmst
           vold <- v;
           v <- max gmin (min gmax v);
           rms <- 0.;
-          rmsc <- 0)
+          rmsc <- 0 )
       done;
 
       (* Reset values if it is the end of the track. *)
       if track_sensitive && AFrame.is_partial buf then self#init
   end
 
+let () = Lang.add_module "normalize"
+
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "normalize"
+  Lang.add_operator "normalize.old"
     [
       ( "target",
         Lang.getter_t Lang.float_t,
@@ -162,7 +164,9 @@ let () =
        However, its dynamic aspect implies some limitations which can go as \
        far as creating saturation in some extreme cases. If possible, consider \
        using some track-based normalization techniques such as those based on \
-       replay gain. See the documentation for more details."
+       replay gain. See the documentation for more details. This is the \
+       implementation provided in Liquidsoap < 2.0. A new, better and more \
+       customizable one is now given in `normalize`."
     ~meth:
       [
         ( "gain",

@@ -71,6 +71,9 @@ New:
 - Added `source.available`.
 - Added `request.once`.
 - Added `file.getter`.
+- A better `normalize` function (with more reasonable parameters, more
+  customisable, and written in Liquidsoap) is now provided. The old one is
+  renamed `normalize.old`.
 
 Changed:
 
