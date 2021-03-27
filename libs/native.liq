@@ -153,7 +153,7 @@ end
 # @param ~debug How often to print debug messages, in seconds, useful to finetune the parameters. You should set `set("log.level", 5)` to see them.
 # @param s Source to normalize.
 # @method gain Current amplification coefficient.
-def native.normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~window=1., ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
+def native.normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter(.01), ~gain_min=-12., ~gain_max=12., ~window=.5, ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
   s = rms.smooth(duration=window, s)
   v = ref(1.)
   frame = frame.duration()
