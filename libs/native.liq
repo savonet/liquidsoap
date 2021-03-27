@@ -145,15 +145,16 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~gain_max Maximal gain value (dB).
 # @param ~gain_min Minimal gain value (dB).
-# @param ~k_down Coefficient when the power must go down (from 0, the higher, the fastest).
-# @param ~k_up Coefficient when the power must go up (from 0, the higher, the fastest).
+# @param ~down Characteristic time to go down.
+# @param ~up Characteristic time to go up.
 # @param ~target Desired RMS (dB).
 # @param ~threshold  Minimal RMS for activaing gain control (dB).
 # @param ~window Duration of the window used to compute the current RMS power (second).
+# @param ~debug How often to print debug messages, in seconds, useful to finetune the parameters. You should set `set("log.level", 5)` to see them.
 # @param s Source to normalize.
 # @method gain Current amplification coefficient.
-def native.normalize(~id="", ~target=getter(-13.), ~k_up=getter(0.1), ~k_down=getter(5.), ~gain_min=-9., ~gain_max=9., ~window=0.1, ~threshold=getter(-40.), ~track_sensitive=true, s)
-  s = rms(duration=window, s)
+def native.normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~window=1., ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
+  s = rms.smooth(duration=window, s)
   v = ref(1.)
   frame = frame.duration()
   gain_min = lin_of_dB(gain_min)
@@ -164,16 +165,22 @@ def native.normalize(~id="", ~target=getter(-13.), ~k_up=getter(0.1), ~k_down=ge
     rms       = s.rms()
     if rms >= threshold then
       if rms <= target then
-        k_up = getter.get(k_up) * frame
-        v := !v + k_up * ((target / rms) - !v)
+        up = frame / (getter.get(up) + frame)
+        v := !v + up * ((target / rms) - !v)
       else
-        k_down = getter.get(k_down) * frame
-        v := !v + k_down * ((target / rms) - !v)
+        down = frame / (getter.get(down) + frame)
+        v := !v + down * ((target / rms) - !v)
       end
       v := max(gain_min, min(gain_max, !v))
     end
   end
+  s =
+    if null.defined(debug) then
+      source.run(s, every=null.get(debug), {log.debug("rms: #{s.rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{lin_of_dB(getter.get(target))/s.rms()}")})
+    else
+      (s:source)
+    end
   s = source.on_frame(s, update)
   if track_sensitive then source.on_track(s, fun (_) -> v := 1.) end
-  amplify({!v}, s). { gain = fun() -> !v }
+  amplify({!v}, s).{ gain = fun() -> !v }
 end
