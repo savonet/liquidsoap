@@ -89,7 +89,6 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     (fun p ->
-      let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
-      let duration = Lang.to_float_getter (f "duration") in
+      let duration = List.assoc "duration" p |> Lang.to_float_getter in
+      let src = List.assoc "" p |> Lang.to_source in
       new rms ~kind ~tau:duration src)
