@@ -24,7 +24,7 @@ open Mm
 open Source
 
 class delay ~kind (source : source) duration =
-  let length = Frame.audio_of_seconds duration in
+  let length () = Frame.audio_of_seconds (duration ()) in
   object (self)
     inherit operator ~name:"amplify" kind [source] as super
 
@@ -42,20 +42,32 @@ class delay ~kind (source : source) duration =
 
     method self_sync = source#self_sync
 
+    (** Length of the buffer in samples. *)
+    val mutable buffer_length = 0
+
+    (** Ringbuffer. *)
     val mutable buffer = [||]
 
-    (** Position of the last valid sample in the buffer. *)
+    (** Position in the buffer. *)
     val mutable pos = 0
+
+    (** Make sure that the buffer has required size. *)
+    method prepare n =
+      if buffer_length <> n then (
+        buffer <- Audio.create self#audio_channels n;
+        buffer_length <- n )
 
     method wake_up a =
       super#wake_up a;
-      buffer <- Audio.create self#audio_channels length
+      self#prepare (length ())
 
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
       let position = AFrame.position buf in
       let buf = AFrame.pcm buf in
+      let length = length () in
+      self#prepare length;
       if length > 0 then
         for i = offset to position - 1 do
           for c = 0 to self#audio_channels - 1 do
@@ -72,12 +84,15 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "delay_line"
     [
-      ("", Lang.float_t, None, Some "Duration of the delay in seconds.");
+      ( "",
+        Lang.getter_t Lang.float_t,
+        None,
+        Some "Duration of the delay in seconds." );
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:"Delay the audio signal by a given amount of time."
     (fun p ->
-      let duration = Lang.assoc "" 1 p |> Lang.to_float in
+      let duration = Lang.assoc "" 1 p |> Lang.to_float_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
       new delay ~kind s duration)
