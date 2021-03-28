@@ -388,11 +388,13 @@ end
 # @param ~up Characteristic time to go up.
 # @param ~lookahead How much time to look ahead of the signal (second). Setting a positive value delays the output by the corresponding amount of time.
 # @param ~target Desired RMS (dB).
-# @param ~threshold  Minimal RMS for activaing gain control (dB).
+# @param ~threshold Minimal RMS for activaing gain control (dB).
 # @param ~window Duration of the window used to compute the current RMS power (second).
 # @param ~debug How often to print debug messages, in seconds, useful to finetune the parameters. You should set `set("log.level", 5)` to see them.
 # @param s Source to normalize.
-# @method gain Current amplification coefficient.
+# @method gain Current amplification coefficient (in linear scale).
+# @method target_gain Current target amplification coefficient (in linear scale).
+# @method rms Current rms (in linear scale).
 def replaces normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lookahead=getter(0.), ~window=getter(.5), ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
   s = rms.smooth(duration=window, s)
   v = ref(1.)
@@ -414,15 +416,17 @@ def replaces normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=gett
       v := max(gain_min, min(gain_max, !v))
     end
   end
+  rms = s.rms
+  def target_gain () = lin_of_dB(getter.get(target)) / rms() end
   s =
     if null.defined(debug) then
-      source.run(s, every=null.get(debug), {log.debug("rms: #{s.rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{lin_of_dB(getter.get(target))/s.rms()}")})
+      source.run(s, every=null.get(debug), {log.debug("rms: #{s.rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{target_gain()}")})
     else
       (s:source)
     end
   s = source.on_frame(s, update)
   if track_sensitive then source.on_track(s, fun (_) -> v := 1.) end
-  amplify({!v}, delay_line(lookahead, s)).{ gain = fun() -> !v }
+  amplify({!v}, delay_line(lookahead, s)).{ rms = rms, gain = fun() -> !v, target_gain = target_gain }
 end
 
 # Compress and normalize, producing a more uniform and "full" sound.
