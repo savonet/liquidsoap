@@ -66,10 +66,10 @@ class msstereo ~kind (source : source) mode width =
 let () =
   Lang.add_module "stereo.ms";
   let kind = Lang.audio_stereo in
-  let k = Lang.kind_type_of_kind_format kind in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "stereo.ms.encode"
-    [("", Lang.source_t k, None, None)]
-    ~return_t:k ~category:Lang.SoundProcessing
+    [("", Lang.source_t return_t, None, None)]
+    ~return_t ~category:Lang.SoundProcessing
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
@@ -80,11 +80,67 @@ let () =
         Lang.float_t,
         Some (Lang.float 1.),
         Some "Width of the stereo field." );
-      ("", Lang.source_t k, None, None);
+      ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t:k ~category:Lang.SoundProcessing
+    ~return_t ~category:Lang.SoundProcessing
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let w = Lang.to_float (Lang.assoc "width" 1 p) in
       new msstereo ~kind s Decode w)
+
+class spatializer ~kind ~width (source : source) =
+  object
+    inherit operator ~name:"stereo.width" kind [source]
+
+    method stype = source#stype
+
+    method is_ready = source#is_ready
+
+    method remaining = source#remaining
+
+    method seek = source#seek
+
+    method self_sync = source#self_sync
+
+    method abort_track = source#abort_track
+
+    method private get_frame buf =
+      let offset = AFrame.position buf in
+      source#get buf;
+      let position = AFrame.position buf in
+      let buf = AFrame.pcm buf in
+      let width = width () in
+      let width = (width +. 1.) /. 2. in
+      let a =
+        let w = width in
+        let w' = 1. -. width in
+        w /. sqrt ((w *. w) +. (w' *. w'))
+      in
+      for i = offset to position - 1 do
+        let left = buf.(0).{i} in
+        let right = buf.(1).{i} in
+        let mid = (left +. right) /. 2. in
+        let side = (left -. right) /. 2. in
+        buf.(0).{i} <- ((1. -. a) *. mid) -. (a *. side);
+        buf.(1).{i} <- ((1. -. a) *. mid) +. (a *. side)
+      done
+  end
+
+let () =
+  let kind = Lang.audio_stereo in
+  let return_t = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator "stereo.width"
+    [
+      ( "",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some "Width of the signal (-1: mono, 0.: original, 1.: wide stereo)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.SoundProcessing
+    ~descr:"Spacializer which allows controling the width of the signal."
+    (fun p ->
+      let width = Lang.assoc "" 1 p |> Lang.to_float_getter in
+      let s = Lang.assoc "" 2 p |> Lang.to_source in
+      new spatializer ~kind ~width s)
