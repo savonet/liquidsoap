@@ -18,6 +18,8 @@
 %include "request.liq"
 %include "native.liq"
 %include "playlist.liq"
+%include "source.liq"
+%include "sound.liq"
 %include "resolvers.liq"
 %include "fades.liq"
 %include "protocols.liq"
