@@ -34,16 +34,6 @@ def url.split(uri) =
   end
 end
 
-# Append speech-synthesized tracks reading the metadata.
-# @category Source / Track Processing
-# @param ~pattern Pattern to use
-# @param s The source to use
-def say_metadata
-  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
-  fun (s,~pattern=p) ->
-    append(s, fun (m) -> once(single(pattern % m)))
-end
-
 let frame = ()
 
 # Duration of a frame.

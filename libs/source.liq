@@ -221,6 +221,16 @@ def overlap_sources(~id="",~normalize=false,
   s
 end
 
+# Append speech-synthesized tracks reading the metadata.
+# @category Source / Track Processing
+# @param ~pattern Pattern to use
+# @param s The source to use
+def say_metadata
+  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
+  fun (s,~pattern=p) ->
+    append(s, fun (m) -> once(single(pattern % m)))
+end
+
 # Run a function regularly. This is similar to `thread.run` but based on a
 # source internal time instead of the world's time.
 # @category Source / Track Processing

@@ -55,6 +55,43 @@ def replaces normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=gett
   amplify({!v}, delay_line(lookahead, s)).{ rms = rms, gain = fun() -> !v, target_gain = target_gain }
 end
 
+# Multiband compression. The list in argument specifies
+# - the `frequency` below which we should apply compression (it is above previous band)
+# - the `attack` time (ms)
+# - the `release` time (ms)
+# - the compression `ratio`
+# - the `threshold` for compression
+# - the `gain` for the band
+# @category Source / Sound Processing
+# @param ~limit Also apply limiting to bands.
+# @param l Parameters for compression bands.
+# @param s Source on which multiband compression should be applied.
+def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
+  # Check that the bands are with increasing frequencies.
+  for i = 0 to list.length(l) - 2 do
+    assert (list.nth(l, i+1).frequency > list.nth(l, i).frequency)
+  end
+  # Limiter
+  limiter = compress(threshold=-2., ratio=20.)
+  # Process a band
+  def band(low, band)
+    s = if low > 0. then filter.iir.eq.high(frequency=low, s) else s end
+    s = if band.frequency < 20000. then filter.iir.eq.low(frequency=band.frequency, s) else s end
+    s = compress(attack=band.attack, release=band.release, threshold=band.threshold, ratio=band.ratio, gain=band.gain, s)
+    if limit then limiter(s) else s end
+  end
+  l = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l, i-1).frequency end, b), l)
+  c = add(normalize=false, l)
+  s =
+    if not getter.is_constant(wet) or getter.get(wet) != 1. then
+      add(normalize=false, [amplify({1.-getter.get(wet)}, s), amplify(wet, c)])
+    else
+      c
+    end
+  # Limit to avoid bad surprises
+  limiter(s)
+end
+
 # Compress and normalize, producing a more uniform and "full" sound.
 # @category Source / Sound Processing
 # @flag extra
