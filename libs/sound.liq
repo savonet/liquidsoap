@@ -55,6 +55,15 @@ def replaces normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=gett
   amplify({!v}, delay_line(lookahead, s)).{ rms = rms, gain = fun() -> !v, target_gain = target_gain }
 end
 
+
+# A limiter. This is a `compress` with tweaked parameters.
+# @category Source / Sound Processing
+def limit(~attack=50., ~release=200., ~ratio=20., ~threshold=-2., s)
+  compress(attack=attack, release=release, ratio=ratio, threshold=threshold, s)
+end
+
+let sound_limit = limit
+
 # Multiband compression. The list in argument specifies
 # - the `frequency` below which we should apply compression (it is above previous band)
 # - the `attack` time (ms)
@@ -72,7 +81,7 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
     assert (list.nth(l, i+1).frequency > list.nth(l, i).frequency)
   end
   # Limiter
-  limiter = compress(threshold=-2., ratio=20.)
+  limiter = sound_limit
   # Process a band
   def band(low, band)
     s = if low > 0. then filter.iir.eq.high(frequency=low, s) else s end

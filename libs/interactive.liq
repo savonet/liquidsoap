@@ -336,3 +336,18 @@ def replaces interactive.string(~description="", name, v)
   variables_string := list.add((name, { ref=r }), !variables_string)
   ref.getter(r).{set = interactive.bool.set(name)}
 end
+
+def compress.multiband.interactive(~id="compress", frequency, s)
+  prefix = id^"_"
+  wet = interactive.float(prefix^"wet", min=0., max=1., 1.)
+  def band(i, frequency)
+    attack = interactive.float("#{prefix}attack#{i}", min=0., max=1000., 100.)
+    release = interactive.float("#{prefix}release#{i}", min=0., max=1000., 200.)
+    threshold = interactive.float("#{prefix}threshold#{i}", min=-20., max=0., -10.)
+    ratio = interactive.float("#{prefix}ratio#{i}", min=1., max=10., 4.)
+    gain = interactive.float("#{prefix}gain#{i}", min=0., max=30., 3.)
+    {frequency=frequency, attack=attack, release=release, threshold=threshold, ratio=ratio, gain=gain}
+  end
+  l = list.mapi(band, frequency)
+  compress.multiband(wet=wet, s, l)
+end
