@@ -47,7 +47,7 @@ class rms ~kind ~tau source =
 
     method private get_frame buf =
       let chans = self#audio_channels in
-      let a = 1. /. ((tau () *. samplerate) +. 1.) in
+      let a = 1. -. exp (-1. /. (tau () *. samplerate)) in
       let offset = AFrame.position buf in
       source#get buf;
       let position = AFrame.position buf in

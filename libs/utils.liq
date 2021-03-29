@@ -373,13 +373,14 @@ def replaygain(s)
   amplify(override="replaygain_track_gain", 1., s)
 end
 
-# Normalization the volume of a stream. Dynamic normalization of the signal is
-# sometimes the only option (for instance, for live sources), and can make a
-# listening experience much nicer. However, its dynamic aspect implies some
-# limitations which can go as far as creating saturation in some extreme
-# cases. If possible, consider using some track-based normalization techniques
-# such as those based on ReplayGain. The implementation of Liquidsoap < 2.0 was
-# renamed to `normalize.old`.
+# Normalization the volume of a stream (this is also called _automatic gain
+# control_). Dynamic normalization of the signal is sometimes the only option
+# (for instance, for live sources), and can make a listening experience much
+# nicer. However, its dynamic aspect implies some limitations which can go as
+# far as creating saturation in some extreme cases. If possible, consider using
+# some track-based normalization techniques such as those based on
+# ReplayGain. The implementation of Liquidsoap < 2.0 was renamed to
+# `normalize.old`.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~gain_max Maximal gain value (dB).
@@ -407,10 +408,10 @@ def replaces normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=gett
     rms       = s.rms()
     if rms >= threshold then
       if !v * rms <= target then
-        up = frame / (getter.get(up) + frame)
+        up = 1. - exp (0. - frame / getter.get(up))
         v := !v + up * ((target / rms) - !v)
       else
-        down = frame / (getter.get(down) + frame)
+        down = 1. - exp (0. - frame / getter.get(down))
         v := !v + down * ((target / rms) - !v)
       end
       v := max(gain_min, min(gain_max, !v))
