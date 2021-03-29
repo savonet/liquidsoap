@@ -75,8 +75,8 @@ New:
   customisable, and written in Liquidsoap) is now provided. The old one is
   renamed `normalize.old`.
 - New and better `compress` function. The previous one was renamed
-  `compress.old`.
-- Added `gate` operator.
+  `compress.old` (#868, #869).
+- Added `gate` operator (#751).
 
 Changed:
 
