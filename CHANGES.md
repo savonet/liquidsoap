@@ -74,6 +74,8 @@ New:
 - A better `normalize` function (with more reasonable parameters, more
   customisable, and written in Liquidsoap) is now provided. The old one is
   renamed `normalize.old`.
+- New and better `compress` function. The previous one was renamed
+  `compress.old`.
 
 Changed:
 

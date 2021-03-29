@@ -20,27 +20,23 @@
 
  *****************************************************************************)
 
+(* Some vague inspiration drew from
+   http://c4dm.eecs.qmul.ac.uk/audioengineering/compressors/documents/Reiss-Tutorialondynamicrangecompression.pdf
+   https://github.com/nwjs/chromium.src/blob/df7f8c8582b9a78c806a7fa1e9d3f3ba51f7a698/third_party/WebKit/Source/platform/audio/DynamicsCompressorKernel.cpp
+   and https://github.com/velipso/sndfilter/blob/master/src/compressor.c *)
+
 open Mm
 open Source
 
-(** See http://www.musicdsp.org/archive.php?classid=4#169 *)
-
-class compress ~kind (source : source) attack release threshold ratio knee
-  rms_window gain =
-  let samplerate = Lazy.force Frame.audio_rate in
+class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
+  ~pre_gain ~make_up_gain ~lookahead ~window ~dry (source : source) =
+  let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
     inherit operator ~name:"compress" kind [source] as super
 
     val mutable effect = None
 
-    method private wake_up a =
-      super#wake_up a;
-      effect <-
-        Some
-          (new Audio.Effect.compress
-             ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ())
-             ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ())
-             self#audio_channels samplerate)
+    method private wake_up a = super#wake_up a
 
     method stype = source#stype
 
@@ -54,90 +50,214 @@ class compress ~kind (source : source) attack release threshold ratio knee
 
     method abort_track = source#abort_track
 
+    (* Current gain in dB. *)
+    val mutable gain = 0.
+
+    method gain = gain
+
+    (* Position in ringbuffer. *)
+    val mutable ringbuffer_pos = 0
+
+    val mutable ringbuffer = [||]
+
+    (* Averaged mean of squares. *)
+    val mutable ms = 0.
+
+    method rms = sqrt ms
+
+    (* Make sure that the ringbuffer can hold this much. *)
+    method prepare n =
+      if
+        n > 0
+        && (Array.length ringbuffer = 0 || Audio.Mono.length ringbuffer.(0) <> n)
+      then ringbuffer <- Audio.create self#audio_channels n
+
+    method private reset =
+      gain <- 0.;
+      ms <- 0.
+
     method private get_frame buf =
       let ofs = AFrame.position buf in
       source#get buf;
-      let b = AFrame.pcm buf in
       let pos = AFrame.position buf in
-      let len = pos - ofs in
-      let effect = Option.get effect in
-      effect#set_gain (gain ());
-      effect#set_attack (attack ());
-      effect#set_release (release ());
-      effect#set_threshold (threshold ());
-      effect#set_ratio (ratio ());
-      effect#set_knee (knee ());
-      effect#process (Audio.sub b ofs len);
-
-      (* Reset values if it is the end of the track. *)
-      if AFrame.is_partial buf then effect#reset
+      let partial = AFrame.is_partial buf in
+      let buf = AFrame.pcm buf in
+      let chans = self#audio_channels in
+      let samplerate = float (Lazy.force Frame.audio_rate) in
+      let threshold = threshold () in
+      let knee = knee () in
+      let ratio = ratio () in
+      let attack = attack () in
+      let attack_coef = 1. -. exp (-1. /. (attack *. samplerate)) in
+      let release = release () in
+      let release_coef = 1. -. exp (-1. /. (release *. samplerate)) in
+      let lookahead = lookahead () in
+      let pre_gain = pre_gain () in
+      let pre_gain_lin = Audio.lin_of_dB pre_gain in
+      let make_up_gain = make_up_gain () in
+      let window = window () in
+      let window_coef = 1. -. exp (-1. /. (window *. samplerate)) in
+      let dry = dry () in
+      self#prepare lookahead;
+      for i = ofs to pos - 1 do
+        (* Apply pre_gain. *)
+        if pre_gain <> 0. then
+          for c = 0 to chans - 1 do
+            buf.(c).{i} <- buf.(c).{i} *. pre_gain_lin
+          done;
+        (* Compute input. *)
+        let x =
+          if window = 0. then (
+            (* Peak mode: maximum absolute value over chans. *)
+            let x = ref 0. in
+            for c = 0 to chans - 1 do
+              let old =
+                if lookahead = 0 then buf.(c).{i}
+                else (
+                  let old = ringbuffer.(c).{ringbuffer_pos} in
+                  ringbuffer.(c).{ringbuffer_pos} <- buf.(c).{i};
+                  old )
+              in
+              x := max !x (abs_float old)
+            done;
+            if lookahead > 0 then
+              ringbuffer_pos <- (ringbuffer_pos + 1) mod lookahead;
+            let x = !x in
+            ms <- x *. x;
+            x )
+          else (
+            (* Smoothed RMS mode. *)
+            let x = ref 0. in
+            for c = 0 to chans - 1 do
+              let old =
+                if lookahead = 0 then buf.(c).{i}
+                else (
+                  let old = ringbuffer.(c).{ringbuffer_pos} in
+                  ringbuffer.(c).{ringbuffer_pos} <- buf.(c).{i};
+                  old )
+              in
+              x := !x +. (old *. old)
+            done;
+            if lookahead > 0 then
+              ringbuffer_pos <- (ringbuffer_pos + 1) mod lookahead;
+            ms <- ms +. (window_coef *. ((!x /. float chans) -. ms));
+            sqrt ms )
+        in
+        (* From now on, we work in the dB domain, which gives better fidelity
+           than the linear domain. *)
+        let x = max (-80.) (Audio.dB_of_lin x) in
+        (* Shape input. *)
+        let x' =
+          let x' =
+            if x <= threshold -. (knee /. 2.) then x
+            else if x < threshold +. (knee /. 2.) then (
+              (* Second order interpolation for the knee. *)
+              let a = x -. threshold +. (knee /. 2.) in
+              x +. (((1. /. ratio) -. 1.) *. a *. a /. (2. *. knee)) )
+            else threshold +. ((x -. threshold) /. ratio)
+          in
+          x'
+        in
+        (* if x >= threshold then Printf.printf "%f => %f (%f)\tratio: %f\n%!" x x' (threshold +. (x -. threshold) /. ratio) ratio; *)
+        (* Target gain (dB). *)
+        let target = x' -. x in
+        (* if x >= threshold then Printf.printf "gain: %f\ttarget: %f (%f -> %f)\n%!" gain target x x'; *)
+        (* if gain > target then Printf.printf "Attack (%f -> %f)\tcoef: %f\n%!" gain target attack_coef; *)
+        if gain > target then
+          (* Attack. *)
+          gain <- gain +. (attack_coef *. (target -. gain))
+        else (* Release *)
+          gain <- gain +. (release_coef *. (target -. gain));
+        (* Finally apply gain. *)
+        let gain = Audio.lin_of_dB (gain +. make_up_gain) in
+        for c = 0 to chans - 1 do
+          buf.(c).{i} <- buf.(c).{i} *. (dry +. ((1. -. dry) *. gain))
+        done
+      done;
+      if partial && track_sensitive then self#reset
   end
 
-let kind = Lang.audio_pcm
-let k = Lang.kind_type_of_kind_format kind
-
-let proto =
-  [
-    ( "attack",
-      Lang.getter_t Lang.float_t,
-      Some (Lang.float 100.),
-      Some "Attack time (ms)." );
-    ( "release",
-      Lang.getter_t Lang.float_t,
-      Some (Lang.float 400.),
-      Some "Release time (ms)." );
-    ( "threshold",
-      Lang.getter_t Lang.float_t,
-      Some (Lang.float (-10.)),
-      Some "Threshold level (dB)." );
-    ( "knee",
-      Lang.getter_t Lang.float_t,
-      Some (Lang.float 1.),
-      Some "Knee radius (dB)." );
-    ( "window",
-      Lang.float_t,
-      Some (Lang.float 0.1),
-      Some "Window for computing RMS (in sec)." );
-    ( "gain",
-      Lang.getter_t Lang.float_t,
-      Some (Lang.float 0.),
-      Some "Additional gain (dB)." );
-    ("", Lang.source_t k, None, None);
-  ]
-
-let compress p =
-  let f v = List.assoc v p in
-  let attack, release, threshold, ratio, knee, rmsw, gain, src =
-    ( Lang.to_float_getter (f "attack"),
-      Lang.to_float_getter (f "release"),
-      Lang.to_float_getter (f "threshold"),
-      Lang.to_float_getter (f "ratio"),
-      Lang.to_float_getter (f "knee"),
-      Lang.to_float (f "window"),
-      Lang.to_float_getter (f "gain"),
-      Lang.to_source (f "") )
-  in
-  new compress
-    ~kind src
-    (fun () -> attack () /. 1000.)
-    (fun () -> release () /. 1000.)
-    threshold ratio knee rmsw
-    (fun () -> Audio.lin_of_dB (gain ()))
-
 let () =
+  let kind = Lang.audio_pcm in
+  let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "compress"
-    (( "ratio",
-       Lang.getter_t Lang.float_t,
-       Some (Lang.float 2.),
-       Some "Gain reduction ratio (n:1)." )
-    :: proto)
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Compress the signal."
-    compress;
-  Lang.add_operator "limit"
-    (( "ratio",
-       Lang.getter_t Lang.float_t,
-       Some (Lang.float 20.),
-       Some "Gain reduction ratio (n:1)." )
-    :: proto)
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Limit the signal."
-    compress
+    [
+      ( "attack",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 5.),
+        Some "Attack time (ms)." );
+      ( "release",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 400.),
+        Some "Release time (ms)." );
+      ( "lookahead",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some "Lookahead (ms)." );
+      ( "threshold",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float (-10.)),
+        Some "Threshold level (dB)." );
+      ( "track_sensitive",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Reset on every track." );
+      ( "knee",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Knee width (dB)." );
+      ( "pre_gain",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some "Pre-amplification (dB)." );
+      ( "gain",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some "Post-amplification (dB)." );
+      ( "ratio",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 2.),
+        Some "Gain reduction ratio (reduction is ratio:1)." );
+      ( "window",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some "RMS window length (second). `0.` means peak mode." );
+      ( "dry",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.),
+        Some
+          "How much of input sound to output (between 0 and 1, 0 means only \
+           compressed sound, 1 means original input)." );
+      ("", Lang.source_t return_t, None, None);
+    ]
+    ~return_t ~category:Lang.SoundProcessing ~descr:"Compress the signal."
+    ~meth:
+      [
+        ( "gain",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Gain (dB).",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain) );
+        ( "rms",
+          ([], Lang.fun_t [] Lang.float_t),
+          "RMS or peak power (linear).",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms) );
+      ]
+    (fun p ->
+      let attack = List.assoc "attack" p |> Lang.to_float_getter in
+      let attack () = attack () /. 1000. in
+      let release = List.assoc "release" p |> Lang.to_float_getter in
+      let release () = release () /. 1000. in
+      let lookahead = List.assoc "lookahead" p |> Lang.to_float_getter in
+      let lookahead () = lookahead () /. 1000. in
+      let threshold = List.assoc "threshold" p |> Lang.to_float_getter in
+      let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
+      let ratio = List.assoc "ratio" p |> Lang.to_float_getter in
+      let knee = List.assoc "knee" p |> Lang.to_float_getter in
+      let pre_gain = List.assoc "pre_gain" p |> Lang.to_float_getter in
+      let make_up_gain = List.assoc "gain" p |> Lang.to_float_getter in
+      let window = List.assoc "window" p |> Lang.to_float_getter in
+      let dry = List.assoc "dry" p |> Lang.to_float_getter in
+      let s = List.assoc "" p |> Lang.to_source in
+      new compress
+        ~kind ~attack ~release ~lookahead ~ratio ~knee ~threshold
+        ~track_sensitive ~pre_gain ~make_up_gain ~window ~dry s)
