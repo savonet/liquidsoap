@@ -76,7 +76,6 @@ New:
   renamed `normalize.old`.
 - New and better `compress` function. The previous one was renamed
   `compress.old` (#868, #869).
-- Added `gate` operator (#751).
 
 Changed:
 
