@@ -29,7 +29,7 @@ open Mm
 open Source
 
 class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
-  ~pre_gain ~make_up_gain ~lookahead ~window ~dry (source : source) =
+  ~pre_gain ~make_up_gain ~lookahead ~window ~wet (source : source) =
   let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
     inherit operator ~name:"compress" kind [source] as super
@@ -97,7 +97,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       let make_up_gain = make_up_gain () in
       let window = window () in
       let window_coef = 1. -. exp (-1. /. (window *. samplerate)) in
-      let dry = dry () in
+      let wet = wet () in
       self#prepare lookahead;
       for i = ofs to pos - 1 do
         (* Apply pre_gain. *)
@@ -171,7 +171,7 @@ class compress ~kind ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
         (* Finally apply gain. *)
         let gain = Audio.lin_of_dB (gain +. make_up_gain) in
         for c = 0 to chans - 1 do
-          buf.(c).{i} <- buf.(c).{i} *. (dry +. ((1. -. dry) *. gain))
+          buf.(c).{i} <- buf.(c).{i} *. (1. -. wet +. (wet *. gain))
         done
       done;
       if partial && track_sensitive then self#reset
@@ -222,12 +222,12 @@ let () =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 0.),
         Some "RMS window length (second). `0.` means peak mode." );
-      ( "dry",
+      ( "wet",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float 0.),
+        Some (Lang.float 1.),
         Some
           "How much of input sound to output (between 0 and 1, 0 means only \
-           compressed sound, 1 means original input)." );
+           original sound, 1 means only compressed sound)." );
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.SoundProcessing ~descr:"Compress the signal."
@@ -256,8 +256,8 @@ let () =
       let pre_gain = List.assoc "pre_gain" p |> Lang.to_float_getter in
       let make_up_gain = List.assoc "gain" p |> Lang.to_float_getter in
       let window = List.assoc "window" p |> Lang.to_float_getter in
-      let dry = List.assoc "dry" p |> Lang.to_float_getter in
+      let wet = List.assoc "wet" p |> Lang.to_float_getter in
       let s = List.assoc "" p |> Lang.to_source in
       new compress
         ~kind ~attack ~release ~lookahead ~ratio ~knee ~threshold
-        ~track_sensitive ~pre_gain ~make_up_gain ~window ~dry s)
+        ~track_sensitive ~pre_gain ~make_up_gain ~window ~wet s)
