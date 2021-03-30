@@ -137,7 +137,10 @@ let () =
         Some "Duration for computing peak (ms)." );
       ("", Lang.source_t return_t, None, None);
     ]
-    ~return_t ~category:Lang.SoundProcessing ~descr:""
+    ~return_t ~category:Lang.SoundProcessing
+    ~descr:
+      "Reduce the volume when the stream is silent (typically in order to \
+       avoid low intensity noise)."
     ~meth:
       [
         ( "gate",
