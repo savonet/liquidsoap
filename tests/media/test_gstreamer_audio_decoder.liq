@@ -6,6 +6,8 @@ set("frame.audio.samplerate",48000)
 
 set("decoder.decoders",["GSTREAMER"])
 
+test.skip()
+
 fname = argv(default="",1)
 out = "files/test.wav"
 
