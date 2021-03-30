@@ -83,13 +83,13 @@ class filter ~kind (source : source) freq q wet mode =
           band.(c) <- (f *. high.(c)) +. band.(c);
           notch.(c) <- high.(c) +. low.(c);
           b_c.{i} <-
-            (wet
+            ( wet
             *.
             match mode with
               | Low_pass -> low.(c)
               | High_pass -> high.(c)
               | Band_pass -> band.(c)
-              | Notch -> notch.(c))
+              | Notch -> notch.(c) )
             +. ((1. -. wet) *. b_c.{i})
         done
       done
@@ -100,7 +100,10 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter"
     [
-      ("freq", Lang.getter_t Lang.float_t, None, None);
+      ( "freq",
+        Lang.getter_t Lang.float_t,
+        None,
+        Some "Characteristic frequency of the filter." );
       ("q", Lang.getter_t Lang.float_t, Some (Lang.float 1.), None);
       ( "mode",
         Lang.string_t,
@@ -118,7 +121,10 @@ let () =
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing
-    ~descr:"Perform several kinds of filtering on the signal"
+    ~descr:
+      "Perform several kinds of filtering on the signal. Only frequencies \
+       below the sampling rate / 4 (generally 10 kHz) are handled well for the \
+       `freq` parameter."
     (fun p ->
       let f v = List.assoc v p in
       let freq, q, wet, mode, src =
