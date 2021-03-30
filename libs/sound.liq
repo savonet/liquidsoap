@@ -137,7 +137,7 @@ end
 # @param ~frequency Frequency below which sound is considered as bass.
 # @param ~gain Amount of boosting (dB).
 # @param s Source whose bass should be boosted
-def bass_boost(~frequency=200., ~gain=getter(10.), s)
+def bass_boost(~frequency=getter(200.), ~gain=getter(10.), s)
   bass = limit(pre_gain=gain, filter.iir.eq.low(frequency=frequency, s))
   add([s, bass])
 end
