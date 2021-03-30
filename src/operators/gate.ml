@@ -23,7 +23,8 @@
 open Mm
 open Source
 
-class gate ~kind ~threshold ~attack ~release ~hold ~range (source : source) =
+class gate ~kind ~threshold ~attack ~release ~hold ~range ~window
+  (source : source) =
   object (self)
     inherit operator ~name:"gate" kind [source]
 
@@ -43,6 +44,9 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range (source : source) =
     val mutable gate = 1.
 
     method gate = gate
+
+    (* Smoothed peak. *)
+    val mutable peak = 0.
 
     (* Current state. *)
     val mutable state = `Open
@@ -64,14 +68,17 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range (source : source) =
       let release_rate = 1. /. (release *. samplerate) in
       let threshold = threshold () in
       let threshold_lin = Audio.lin_of_dB threshold in
+      let window_coef = 1. -. exp (-1. /. (window () *. samplerate)) in
       let range = range () in
+      let hold = int_of_float (hold () *. samplerate) in
       for i = offset to position - 1 do
         let x =
           let x = ref 0. in
           for c = 0 to chans - 1 do
             x := max !x (abs_float buf.(c).{i})
           done;
-          !x
+          peak <- peak +. (window_coef *. (!x -. peak));
+          peak
         in
         ( match state with
           | `Closed -> if x > threshold_lin then state <- `Opening
@@ -79,19 +86,20 @@ class gate ~kind ~threshold ~attack ~release ~hold ~range (source : source) =
               gate <- gate +. attack_rate;
               if gate >= 1. then (
                 gate <- 1.;
-                hold_delay <- int_of_float (hold () *. samplerate);
+                hold_delay <- hold;
                 state <- `Open )
           | `Open ->
-              if hold_delay <= 0 then (
-                if x < threshold_lin then state <- `Closing )
-              else hold_delay <- hold_delay - 1
+              if x < threshold_lin then
+                if hold_delay <= 0 then state <- `Closing
+                else hold_delay <- hold_delay - 1
+              else hold_delay <- hold
           | `Closing ->
               gate <- gate -. release_rate;
               if x >= threshold_lin then state <- `Opening
               else if gate <= 0. then (
                 gate <- 0.;
                 state <- `Closed ) );
-        let gain = Audio.lin_of_dB ((threshold -. range) *. gate) in
+        let gain = Audio.lin_of_dB (range *. (1. -. gate)) in
         for c = 0 to chans - 1 do
           buf.(c).{i} <- buf.(c).{i} *. gain
         done
@@ -113,7 +121,7 @@ let () =
         Some "Time to fully close the gate (ms)." );
       ( "threshold",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float (-50.)),
+        Some (Lang.float (-30.)),
         Some "Threshold at which the gate will open (dB)." );
       ( "hold",
         Lang.getter_t Lang.float_t,
@@ -121,8 +129,12 @@ let () =
         Some "Minimum amount of time the gate stays open (ms)." );
       ( "range",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float (-40.)),
+        Some (Lang.float (-30.)),
         Some "Difference betwee closed and open level (dB)." );
+      ( "window",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Duration for computing peak (ms)." );
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.SoundProcessing ~descr:""
@@ -142,5 +154,7 @@ let () =
       let hold = List.assoc "hold" p |> Lang.to_float_getter in
       let hold () = hold () /. 1000. in
       let range = List.assoc "range" p |> Lang.to_float_getter in
+      let window = List.assoc "window" p |> Lang.to_float_getter in
+      let window () = window () /. 1000. in
       let src = List.assoc "" p |> Lang.to_source in
-      new gate ~kind ~threshold ~attack ~release ~hold ~range src)
+      new gate ~kind ~threshold ~attack ~release ~hold ~range ~window src)
