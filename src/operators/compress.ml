@@ -184,7 +184,7 @@ let () =
     [
       ( "attack",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float 5.),
+        Some (Lang.float 50.),
         Some "Attack time (ms)." );
       ( "release",
         Lang.getter_t Lang.float_t,
