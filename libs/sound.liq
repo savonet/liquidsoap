@@ -58,11 +58,11 @@ end
 
 # A limiter. This is a `compress` with tweaked parameters.
 # @category Source / Sound Processing
-def limit(~attack=50., ~release=200., ~ratio=20., ~threshold=-2., s)
-  compress(attack=attack, release=release, ratio=ratio, threshold=threshold, s)
+def limit(~attack=getter(50.), ~release=getter(200.), ~ratio=getter(20.), ~threshold=getter(-2.), ~pre_gain=getter(0.), ~gain=getter(0.), s)
+  compress(attack=attack, release=release, ratio=ratio, threshold=threshold, pre_gain=pre_gain, gain=gain, s)
 end
 
-let sound_limit = limit
+let limiter = limit
 
 # Multiband compression. The list in argument specifies
 # - the `frequency` below which we should apply compression (it is above previous band)
@@ -80,8 +80,6 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
   for i = 0 to list.length(l) - 2 do
     assert (list.nth(l, i+1).frequency > list.nth(l, i).frequency)
   end
-  # Limiter
-  limiter = sound_limit
   # Process a band
   def band(low, band)
     s = if low > 0. then filter.iir.eq.high(frequency=low, s) else s end
@@ -132,6 +130,16 @@ def sky(s)
                  ratio = 6., gain = 6.7, knee = 0.3,
                  high(s))
       ])
+end
+
+# Add some bass to the sound.
+# @category Source / Sound Processing
+# @param ~frequency Frequency below which sound is considered as bass.
+# @param ~gain Amount of boosting (dB).
+# @param s Source whose bass should be boosted
+def bass_boost(~frequency=200., ~gain=getter(10.), s)
+  bass = limit(pre_gain=gain, filter.iir.eq.low(frequency=frequency, s))
+  add([s, bass])
 end
 
 # Amplify source tracks according to replaygain metadata. This operator does not
