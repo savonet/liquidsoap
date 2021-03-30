@@ -31,11 +31,6 @@ def interactive.description(name)
 end
 
 # @flag hidden
-def interactive.unit(name)
-  list.assoc(name, !variables).unit
-end
-
-# @flag hidden
 def interactive.type(name)
   list.assoc(name, !variables).type
 end
@@ -80,9 +75,9 @@ end
 
 # Create an interactive variable.
 # @flag hidden
-def interactive.create(~name, ~description="", ~unit="", ~type)
+def interactive.create(~name, ~description="", ~type)
   if list.mem_assoc(name, !variables) then error.raise(interactive.error, "variable already registered") end
-  variables := list.add((name, { type=type, description=description, unit=unit }), !variables)
+  variables := list.add((name, { type=type, description=description }), !variables)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
 end
 
@@ -317,7 +312,7 @@ end
 # @param name Name of the variable.
 # @param v Initial value.
 def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", ~unit="", name, v)
-  interactive.create(name=name, description=description, unit=unit, type="float")
+  interactive.create(name=name, description=description, type="float")
   r = ref(v)
   variables_float := list.add((name, {ref=r, unit=unit, min=min, max=max, step=step }), !variables_float)
   ref.getter(r).{set = interactive.float.set(name)}
