@@ -163,8 +163,9 @@ end
 
 # Remove low frequencies often produced by microphones.
 # @category Source / Sound Processing
+# @param ~frequency Frequency under which sound should be lowered.
 # @param s The input source.
-def mic_filter(s)
+def mic_filter(~frequency=200., s)
   filter(freq=200.,q=1.,mode="high",s)
 end
 
