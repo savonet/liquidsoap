@@ -78,12 +78,12 @@ let limiter = limit
 def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
   # Check that the bands are with increasing frequencies.
   for i = 0 to list.length(l) - 2 do
-    assert (list.nth(l, i+1).frequency > list.nth(l, i).frequency)
+    if getter.get(list.nth(l,i+1).frequency) < getter.get(list.nth(l,i).frequency) then failwith("Bands should be sorted.") end
   end
   # Process a band
   def band(low, band)
-    s = if low > 0. then filter.iir.eq.high(frequency=low, s) else s end
-    s = if band.frequency < 20000. then filter.iir.eq.low(frequency=band.frequency, s) else s end
+    s = if getter.get(low) > 0. then filter.iir.eq.high(frequency=low, s) else s end
+    s = if getter.get(band.frequency) < 20000. then filter.iir.eq.low(frequency=band.frequency, s) else s end
     s = compress(attack=band.attack, release=band.release, threshold=band.threshold, ratio=band.ratio, gain=band.gain, s)
     if limit then limiter(s) else s end
   end

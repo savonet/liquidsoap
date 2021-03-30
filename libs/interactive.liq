@@ -31,6 +31,11 @@ def interactive.description(name)
 end
 
 # @flag hidden
+def interactive.unit(name)
+  list.assoc(name, !variables).unit
+end
+
+# @flag hidden
 def interactive.type(name)
   list.assoc(name, !variables).type
 end
@@ -75,9 +80,9 @@ end
 
 # Create an interactive variable.
 # @flag hidden
-def interactive.create(~name, ~description="", ~type)
+def interactive.create(~name, ~description="", ~unit="", ~type)
   if list.mem_assoc(name, !variables) then error.raise(interactive.error, "variable already registered") end
-  variables := list.add((name, { type=type, description=description }), !variables)
+  variables := list.add((name, { type=type, description=description, unit=unit }), !variables)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
 end
 
@@ -157,7 +162,7 @@ end
 # @category Interactive
 # @param fname Name of the file.
 def interactive.persistent(fname)
-  interactive.load(fname)
+  if file.exists(fname) then interactive.load(fname) end
   interactive.persistency := {interactive.save(fname)}
 end
 
@@ -197,6 +202,9 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
     }
     label {
       text-align: right;
+    }
+    input {
+      width: 300px;
     }
     </style>")
     # TODO: we could send only the udpated value instead of sending them all
@@ -249,7 +257,8 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
           max = http.string_of_float(v.max)
           step = http.string_of_float(v.step)
           value = http.string_of_float(!v.ref)
-          add("<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'></text></div>")
+          unit = if v.unit == "" then "" else " "^v.unit end
+          add("<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'>#{value}#{unit}</text></div>")
         end
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
@@ -304,12 +313,13 @@ end
 # @param ~max Maximal value.
 # @param ~step Typical variation of the value.
 # @param ~description Description of the variable.
+# @param ~unit Unit for the variable.
 # @param name Name of the variable.
 # @param v Initial value.
-def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", name, v)
-  interactive.create(name=name, description=description, type="float")
+def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", ~unit="", name, v)
+  interactive.create(name=name, description=description, unit=unit, type="float")
   r = ref(v)
-  variables_float := list.add((name, { ref=r , min=min, max=max, step=step }), !variables_float)
+  variables_float := list.add((name, {ref=r, unit=unit, min=min, max=max, step=step }), !variables_float)
   ref.getter(r).{set = interactive.float.set(name)}
 end
 
@@ -337,17 +347,20 @@ def replaces interactive.string(~description="", name, v)
   ref.getter(r).{set = interactive.bool.set(name)}
 end
 
-def compress.multiband.interactive(~id="compress", frequency, s)
+def compress.multiband.interactive(~id="compress", ~bands=5, s)
   prefix = id^"_"
   wet = interactive.float(prefix^"wet", min=0., max=1., 1.)
-  def band(i, frequency)
-    attack = interactive.float("#{prefix}attack#{i}", min=0., max=1000., 100.)
-    release = interactive.float("#{prefix}release#{i}", min=0., max=1000., 200.)
-    threshold = interactive.float("#{prefix}threshold#{i}", min=-20., max=0., -10.)
+  def band(i)
+    frequency = 100. + 10. * exp(ln(25000.) * float_of_int(i) / float_of_int(bands))
+    print("freq: #{frequency}")
+    frequency = interactive.float("#{prefix}frequency#{i}", unit="Hz", min=0., max=20000., step=10., frequency)
+    attack = interactive.float("#{prefix}attack#{i}", unit="ms", min=0., max=1000., 100.)
+    release = interactive.float("#{prefix}release#{i}", unit="ms", min=0., max=1000., 200.)
+    threshold = interactive.float("#{prefix}threshold#{i}", unit="dB", min=-20., max=0., -10.)
     ratio = interactive.float("#{prefix}ratio#{i}", min=1., max=10., 4.)
-    gain = interactive.float("#{prefix}gain#{i}", min=0., max=30., 3.)
+    gain = interactive.float("#{prefix}gain#{i}", unit="dB", min=0., max=30., 3.)
     {frequency=frequency, attack=attack, release=release, threshold=threshold, ratio=ratio, gain=gain}
   end
-  l = list.mapi(band, frequency)
+  l = list.init(bands, band)
   compress.multiband(wet=wet, s, l)
 end
