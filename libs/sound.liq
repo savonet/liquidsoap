@@ -167,3 +167,14 @@ end
 def mic_filter(s)
   filter(freq=200.,q=1.,mode="high",s)
 end
+
+# A bandpass filter obtained by chaining a low-pass and a high-pass filter.
+# @category Source / Sound Processing
+# @param id Force the value of the source ID.
+# @param ~low Lower frequency of the bandpass filter.
+# @param ~high Higher frequency of the bandpass filter.
+# @param ~q Q factor.
+def filter.iir.eq.low_high(~id="", ~low, ~high, ~q=1., s)
+  s = filter.iir.eq.low(frequency=high, q=q, s)
+  filter.iir.eq.high(frequency=low, q=q, s)
+end
