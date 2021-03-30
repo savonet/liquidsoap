@@ -75,43 +75,37 @@ class biquad ~kind (source : source) filter_type freq q gain =
         last_gain <- gain;
         let w0 = 2. *. Float.pi *. freq /. samplerate in
         let sin_w0 = sin w0 in
+        let cos_w0 = cos w0 in
         let alpha = sin_w0 /. (2. *. q) in
         let b0, b1, b2, a0, a1, a2 =
           match filter_type with
             | `Low_pass ->
-                let cos_w0 = cos w0 in
                 let b1 = 1. -. cos w0 in
                 let b0 = b1 /. 2. in
                 (b0, b1, b0, 1. +. alpha, -2. *. cos_w0, 1. -. alpha)
             | `High_pass ->
-                let cos_w0 = cos w0 in
                 let b1 = 1. +. cos_w0 in
                 let b0 = b1 /. 2. in
                 let b1 = -.b1 in
                 (b0, b1, b0, 1. +. alpha, -2. *. cos_w0, 1. -. alpha)
             | `Band_pass ->
-                let cos_w0 = cos w0 in
                 let b0 = sin_w0 /. 2. in
                 (b0, 0., -.b0, 1. +. alpha, -2. *. cos_w0, 1. -. alpha)
             | `Notch ->
-                let cos_w0 = cos w0 in
                 let b1 = -2. *. cos_w0 in
                 (1., b1, 1., 1. +. alpha, b1, 1. -. alpha)
             | `All_pass ->
-                let cos_w0 = cos w0 in
                 let b0 = 1. -. alpha in
                 let b1 = -2. *. cos_w0 in
                 let b2 = 1. +. alpha in
                 (b0, b1, b2, b2, b1, b0)
             | `Peaking ->
-                let cos_w0 = cos w0 in
                 let a = if gain = 0. then 1. else 10. ** (gain /. 40.) in
                 let ama = alpha *. a in
                 let ada = alpha /. a in
                 let b1 = -2. *. cos_w0 in
                 (1. +. ama, b1, 1. -. ama, 1. +. ada, b1, 1. -. ada)
             | `Low_shelf ->
-                let cos_w0 = cos w0 in
                 let a = if gain = 0. then 1. else 10. ** (gain /. 40.) in
                 let s = 2. *. sqrt a *. alpha in
                 ( a *. (a +. 1. -. ((a -. 1.) *. cos_w0) +. s),
@@ -121,7 +115,6 @@ class biquad ~kind (source : source) filter_type freq q gain =
                   (-2. *. (a -. 1.)) +. ((a +. 1.) *. cos_w0),
                   a +. 1. +. ((a -. 1.) *. cos_w0) -. s )
             | `High_shelf ->
-                let cos_w0 = cos w0 in
                 let a = if gain = 0. then 1. else 10. ** (gain /. 40.) in
                 let s = 2. *. sqrt a *. alpha in
                 ( a *. (a +. 1. +. ((a -. 1.) *. cos_w0) +. s),
