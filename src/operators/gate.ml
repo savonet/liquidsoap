@@ -121,7 +121,7 @@ let () =
         Some "Minimum amount of time the gate stays open (ms)." );
       ( "range",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float (-30.)),
+        Some (Lang.float (-40.)),
         Some "Difference betwee closed and open level (dB)." );
       ("", Lang.source_t return_t, None, None);
     ]
@@ -136,11 +136,11 @@ let () =
     (fun p ->
       let threshold = List.assoc "threshold" p |> Lang.to_float_getter in
       let attack = List.assoc "attack" p |> Lang.to_float_getter in
-      let attack () = 1000. *. attack () in
+      let attack () = attack () /. 1000. in
       let release = List.assoc "release" p |> Lang.to_float_getter in
-      let release () = 1000. *. release () in
+      let release () = release () /. 1000. in
       let hold = List.assoc "hold" p |> Lang.to_float_getter in
-      let hold () = 1000. *. hold () in
+      let hold () = hold () /. 1000. in
       let range = List.assoc "range" p |> Lang.to_float_getter in
       let src = List.assoc "" p |> Lang.to_source in
       new gate ~kind ~threshold ~attack ~release ~hold ~range src)
