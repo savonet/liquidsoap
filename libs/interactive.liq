@@ -253,7 +253,7 @@ def interactive.harbor(~port=8080, ~uri="/interactive")
           step = http.string_of_float(v.step)
           value = http.string_of_float(!v.ref)
           unit = if v.unit == "" then "" else " "^v.unit end
-          add("<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value'><text id='#{name}-value' style='inline'>#{value}#{unit}</text></div>")
+          add("<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value+\"#{unit}\"'><text id='#{name}-value' style='inline'>#{value}#{unit}</text></div>")
         end
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
