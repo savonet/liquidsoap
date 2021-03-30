@@ -24,7 +24,7 @@ open Source
 
 type mode = Low_pass | High_pass
 
-class filter ~kind (source : source) rc wet mode =
+class filter ~kind (source : source) freq wet mode =
   let rate = float (Lazy.force Frame.audio_rate) in
   let dt = 1. /. rate in
   object (self)
@@ -56,7 +56,7 @@ class filter ~kind (source : source) rc wet mode =
       source#get buf;
       let b = AFrame.pcm buf in
       let position = AFrame.position buf in
-      let rc = rc () in
+      let rc = 1. /. freq () in
       let alpha =
         match mode with
           | Low_pass -> dt /. (rc +. dt)
@@ -92,10 +92,7 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "filter.rc"
     [
-      ( "rc",
-        Lang.getter_t Lang.float_t,
-        None,
-        Some "Time constant (in seconds)." );
+      ("frequency", Lang.getter_t Lang.float_t, None, Some "Cutoff frequency.");
       ( "mode",
         Lang.string_t,
         None,
@@ -114,8 +111,8 @@ let () =
     ~descr:"First-order filter (RC filter)."
     (fun p ->
       let f v = List.assoc v p in
-      let rc, wet, mode, src =
-        ( Lang.to_float_getter (f "rc"),
+      let freq, wet, mode, src =
+        ( Lang.to_float_getter (f "frequency"),
           Lang.to_float_getter (f "wetness"),
           f "mode",
           Lang.to_source (f "") )
@@ -128,4 +125,4 @@ let () =
               raise
                 (Lang_errors.Invalid_value (mode, "valid values are low|high"))
       in
-      (new filter ~kind src rc wet mode :> Source.source))
+      (new filter ~kind src freq wet mode :> Source.source))

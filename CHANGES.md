@@ -168,6 +168,8 @@ Changed:
   - renamed the protocol from `replay_gain` to `replaygain`
   - added the `replaygain` operator to perform amplification
 - `normalize` now handles all channels uniformly.
+- First-order filter `filter.rc` now takes the cutoff frequency instead of the
+  time constant as argument.
 
 Fixed:
 
