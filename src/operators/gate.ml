@@ -117,11 +117,11 @@ let () =
         Some "Threshold at which the gate will open (dB)." );
       ( "hold",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float 2000.),
+        Some (Lang.float 1000.),
         Some "Minimum amount of time the gate stays open (ms)." );
       ( "range",
         Lang.getter_t Lang.float_t,
-        Some (Lang.float (-80.)),
+        Some (Lang.float (-30.)),
         Some "Difference betwee closed and open level (dB)." );
       ("", Lang.source_t return_t, None, None);
     ]
