@@ -180,3 +180,18 @@ end
 def mic_filter(~frequency=200., s)
   filter(freq=200.,q=1.,mode="high",s)
 end
+
+# Mix between dry and wet sources. Useful for testing effects. Typically:
+# ```
+# c = interactive.float("wetness", min=0., max=1., 1.)
+# s = dry_wet(c, s, effect(s))
+# ```
+# and vary `c` to hear the difference between the source without and with
+# the effect.
+# @category Source / Sound Processing
+# @param wetness Wetness coefficient, from 0 (fully dry) to  1 (fully wet).
+# @param dry Dry source.
+# @param wet Wet source.
+def dry_wet(wetness, dry, wet)
+  add(normalize=false, weights=[getter.map(fun(x) -> 1.-x, wetness), wetness], [dry, wet])
+end
