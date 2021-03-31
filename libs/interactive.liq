@@ -163,7 +163,6 @@ end
 
 # Expose interactive variables through habor http server.
 # @category Interaction
-# @flag extra
 # @param ~port Port of the server.
 # @param ~uri URI of the server.
 def interactive.harbor(~port=8080, ~uri="/interactive")
