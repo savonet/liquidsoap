@@ -94,5 +94,6 @@ end
 # @param ~default Default value when the file contains invalid data.
 def file.getter.float(~default=0., fname)
   x = file.getter(fname)
-  {float_of_string(default=default, string.trim(x()))}
+  def f(x) = float_of_string(default=default, string.trim(x)) end
+  getter.map.memoize(f, x)
 end
