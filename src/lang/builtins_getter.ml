@@ -78,3 +78,32 @@ let () =
         | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) ->
             Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
         | _ -> Lang.apply f [("", x)])
+
+let () =
+  let a = Lang.univ_t ~constraints:[Lang_types.Ord] () in
+  let b = Lang.univ_t () in
+  add_builtin ~cat:Liq "getter.map.memoize"
+    ~descr:
+      "Apply a function on a getter. If the input value has not changed \
+       compared to last call, the previous result is returned without \
+       computing the function again."
+    [
+      ("", Lang.fun_t [(false, "", a)] b, None, Some "Function to apply.");
+      ("", Lang.getter_t a, None, None);
+    ]
+    (Lang.getter_t b)
+    (fun p ->
+      let f = Lang.assoc "" 1 p in
+      let x = Lang.assoc "" 2 p in
+      match (Lang.demeth x).Lang.value with
+        | Lang.Fun ([], _, _, _) | Lang.FFI ([], _, _) ->
+            let last_x = ref (Lang.apply x []) in
+            let last_y = ref (Lang.apply f [("", !last_x)]) in
+            Lang.val_fun [] (fun _ ->
+                let x = Lang.apply x [] in
+                if Lang.compare_values x !last_x = 0 then !last_y
+                else (
+                  let y = Lang.apply f [("", x)] in
+                  last_y := y;
+                  y ))
+        | _ -> Lang.apply f [("", x)])
