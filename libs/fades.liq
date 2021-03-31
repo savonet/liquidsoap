@@ -83,10 +83,12 @@ end
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~track_sensitive Be track sensitive (if `false` we only fade ou once at the beginning of the track).
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.out(~id="fade.out",~duration=3.,
              ~override_duration="liq_fade_out",
              ~override_type="liq_fade_type",
+             ~track_sensitive=true,
              ~type="lin",s) =
   log = log(label=source.id(s),level=4)
   fn = ref(fun () -> 1.)
@@ -129,8 +131,12 @@ def fade.out(~id="fade.out",~duration=3.,
 
   source.on_metadata(s, update_fade)
   delay = fun () -> !duration
-  source.on_track(s, stop_fade)
-  s = source.on_end(s,delay=delay,start_fade)
+  if track_sensitive then
+    source.on_track(s, stop_fade)
+  else
+    start_fade(!duration, [])
+  end
+  s = if track_sensitive then source.on_end(s,delay=delay,start_fade) else s end
   fade.scale(id=id,apply,s)
 end
 
@@ -196,10 +202,12 @@ end
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~track_sensitive Be track sensitive (if `false` we only fade in once at the beginning of the track).
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.in(~id="fade.in",~duration=3.,
             ~override_duration="liq_fade_in",
             ~override_type="liq_fade_type",
+            ~track_sensitive=true,
             ~type="lin",s) =
   log = log(label=source.id(s),level=4)
   fn = ref(fun () -> 0.)
@@ -229,7 +237,7 @@ def fade.in(~id="fade.in",~duration=3.,
   end
 
   source.on_metadata(s, update_fade)
-  source.on_track(s, start_fade)
+  if track_sensitive then source.on_track(s, start_fade) else start_fade([]) end
 
   fade.scale(id=id,apply,s)
 end
