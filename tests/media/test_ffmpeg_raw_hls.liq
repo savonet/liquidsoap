@@ -44,7 +44,7 @@ mp4 = %ffmpeg(
   )
 )
 
-s = noise(duration=1.)
+s = noise()
 
 raw = ffmpeg.raw.encode.audio_video(raw_encoder, s)
 
@@ -52,14 +52,6 @@ streams = [
   ("mp4", mp4),
   ("mpegts",mpegts)
 ]
-
-is_ready = ref(false)
-
-def segment_name(~position,~extname,stream_name) =
-  is_ready := position > 2
-  timestamp = int_of_float(time())
-  "#{stream_name}_#{timestamp}_#{position}.#{extname}"
-end
 
 output_dir = file.temp_dir("liq","hls")
 
@@ -69,8 +61,10 @@ end
 
 on_shutdown(cleanup)
 
-def check_stream(_) =
-  if !is_ready then
+is_done = ref(false)
+
+def check_stream() =
+  if not !is_done then
     ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{output_dir}/mp4.m3u8")
 
     output_format = of_json(default=[("streams", [[("samplerate", "0")]])], ojson)
@@ -113,6 +107,8 @@ def check_stream(_) =
       [("codec_name", "h264"), ("pix_fmt", "yuv420p")]
     ]
 
+    is_done := true
+
     if output_streams == expected then
       test.pass()
     else
@@ -121,7 +117,14 @@ def check_stream(_) =
   end
 end
 
-s.on_track(check_stream)
+def segment_name(~position,~extname,stream_name) =
+  if position > 2 then
+    check_stream()
+  end
+
+  timestamp = int_of_float(time())
+  "#{stream_name}_#{timestamp}_#{position}.#{extname}"
+end
 
 output.file.hls(playlist="live.m3u8",
                 segment_duration=2.0,
