@@ -176,7 +176,8 @@ let () =
         Some (Lang.list []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
-           for the homogeneous distribution." );
+           for the homogeneous distribution. These are used as amplification \
+           coefficients if we are not normalizing." );
       ("", Lang.list_t (Lang.source_t kind_t), None, None);
     ]
     ~return_t:kind_t
