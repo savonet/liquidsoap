@@ -189,9 +189,24 @@ end
 # and vary `c` to hear the difference between the source without and with
 # the effect.
 # @category Source / Sound Processing
+# @param ~power If `true` use constant power mixing.
 # @param wetness Wetness coefficient, from 0 (fully dry) to  1 (fully wet).
 # @param dry Dry source.
 # @param wet Wet source.
-def dry_wet(wetness, dry, wet)
-  add(normalize=false, weights=[getter.map(fun(x) -> 1.-x, wetness), wetness], [dry, wet])
+def dry_wet(~power=false, wetness, dry, wet)
+  if power then
+    def d ()
+      a = getter.get(wetness)
+      a' = 1. - a
+      a / sqrt (a * a + a' * a')
+    end
+    def w ()
+      a = getter.get(wetness)
+      a' = 1. - a
+      a' / sqrt (a * a + a' * a')
+    end
+    add(normalize=false, weights=[d, w], [dry, wet])
+  else
+    add(normalize=false, weights=[getter.map(fun(x) -> 1.-x, wetness), wetness], [dry, wet])
+  end
 end
