@@ -32,8 +32,8 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * The [video_init] (resp. [video_loop]) parameter is used to pre-process
   * the first layer (resp. next layers) in the sum; this generalization
   * is used to add either as an overlay or as a tiling. *)
-class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
-  =
+class add ~kind ~renorm (sources : ((unit -> float) * source) list) video_init
+  video_loop =
   object (self)
     inherit operator ~name:"add" kind (List.map snd sources) as super
 
@@ -82,6 +82,8 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
 
     method private get_frame buf =
       let tmp = tmp in
+      let renorm = renorm () in
+      let sources = List.map (fun (w, s) -> (w (), s)) sources in
       (* Compute the list of ready sources, and their total weight *)
       let weight, sources =
         List.fold_left
@@ -100,7 +102,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
               else (
                 Frame.clear tmp;
                 Frame.set_breaks tmp [offset];
-                tmp)
+                tmp )
             in
             s#get buffer;
             let already = Frame.position buffer in
@@ -111,22 +113,22 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                   (Audio.sub (AFrame.pcm buffer)
                      (Frame.audio_of_main offset)
                      (Frame.audio_of_main (already - offset)))
-              with Frame_content.Invalid -> ());
+              with Frame_content.Invalid -> () );
             if rank > 0 then (
               (* The region grows, make sure it is clean before adding.
                * TODO the same should be done for video. *)
-              (try
-                 if already > end_offset then
-                   Audio.clear
-                     (Audio.sub (AFrame.pcm buf)
-                        (Frame.audio_of_main end_offset)
-                        (Frame.audio_of_main (already - end_offset)));
+              ( try
+                  if already > end_offset then
+                    Audio.clear
+                      (Audio.sub (AFrame.pcm buf)
+                         (Frame.audio_of_main end_offset)
+                         (Frame.audio_of_main (already - end_offset)));
 
-                 (* Add to the main buffer. *)
-                 Audio.add
-                   (Audio.sub (AFrame.pcm buf) offset (already - offset))
-                   (Audio.sub (AFrame.pcm tmp) offset (already - offset))
-               with Frame_content.Invalid -> ());
+                  (* Add to the main buffer. *)
+                  Audio.add
+                    (Audio.sub (AFrame.pcm buf) offset (already - offset))
+                    (Audio.sub (AFrame.pcm tmp) offset (already - offset))
+                with Frame_content.Invalid -> () );
 
               try
                 let vbuf = VFrame.yuva420p buf in
@@ -135,7 +137,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                 for i = !offset to !already - 1 do
                   video_loop rank (Video.get vbuf i) (Video.get vtmp i)
                 done
-              with Frame_content.Invalid -> ())
+              with Frame_content.Invalid -> () )
             else (
               try
                 let vbuf = VFrame.yuva420p buf in
@@ -143,7 +145,7 @@ class add ~kind ~renorm (sources : (float * source) list) video_init video_loop
                 for i = !offset to !already - 1 do
                   video_init (Video.get vbuf i)
                 done
-              with Frame_content.Invalid -> ());
+              with Frame_content.Invalid -> () );
             (rank + 1, max end_offset already))
           (0, offset) sources
       in
@@ -163,9 +165,14 @@ let () =
       "Mix sources, with optional normalization. Only relay metadata from the \
        first source that is effectively summed."
     [
-      ("normalize", Lang.bool_t, Some (Lang.bool true), None);
+      ( "normalize",
+        Lang.getter_t Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Divide by the sum of weights (or by the number of sources if \
+           weights are not specified)." );
       ( "weights",
-        Lang.list_t Lang.float_t,
+        Lang.list_t (Lang.getter_t Lang.float_t),
         Some (Lang.list []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
@@ -176,24 +183,24 @@ let () =
     (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
-        List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
+        List.map Lang.to_float_getter (Lang.to_list (List.assoc "weights" p))
       in
       let weights =
-        if weights = [] then List.init (List.length sources) (fun _ -> 1.)
+        if weights = [] then List.init (List.length sources) (fun _ () -> 1.)
         else weights
       in
-      let renorm = Lang.to_bool (List.assoc "normalize" p) in
+      let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
       if List.length weights <> List.length sources then
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      (new add
-         ~kind ~renorm
-         (List.map2 (fun w s -> (w, s)) weights sources)
-         (fun _ -> ())
-         (fun _ buf tmp -> Video.Image.add tmp buf)
-        :> Source.source))
+      ( new add
+          ~kind ~renorm
+          (List.map2 (fun w s -> (w, s)) weights sources)
+          (fun _ -> ())
+          (fun _ buf tmp -> Video.Image.add tmp buf)
+        :> Source.source ))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -203,7 +210,7 @@ let tile_pos n =
       let x = ref (x - dx) in
       Array.init l (fun _ ->
           x := !x + dx;
-          (!x, y, dx, y' - y)))
+          (!x, y, dx, y' - y)) )
   in
   let x' = Lazy.force Frame.video_width in
   let y' = Lazy.force Frame.video_height in
@@ -218,9 +225,9 @@ let () =
   Lang.add_operator "video.tile" ~category:Lang.VideoProcessing
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
-      ("normalize", Lang.bool_t, Some (Lang.bool true), None);
+      ("normalize", Lang.getter_t Lang.bool_t, Some (Lang.bool true), None);
       ( "weights",
-        Lang.list_t Lang.float_t,
+        Lang.list_t (Lang.getter_t Lang.float_t),
         Some (Lang.list []),
         Some
           "Relative weight of the sources in the sum. The empty list stands \
@@ -235,13 +242,13 @@ let () =
     (fun p ->
       let sources = Lang.to_source_list (List.assoc "" p) in
       let weights =
-        List.map Lang.to_float (Lang.to_list (List.assoc "weights" p))
+        List.map Lang.to_float_getter (Lang.to_list (List.assoc "weights" p))
       in
       let weights =
-        if weights = [] then List.init (List.length sources) (fun _ -> 1.)
+        if weights = [] then List.init (List.length sources) (fun _ () -> 1.)
         else weights
       in
-      let renorm = Lang.to_bool (List.assoc "normalize" p) in
+      let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
       let proportional = Lang.to_bool (List.assoc "proportional" p) in
       let tp = tile_pos (List.length sources) in
       let scale = Video_converter.scaler () in
@@ -252,10 +259,10 @@ let () =
             let sw, sh = (Video.Image.width buf, Video.Image.height buf) in
             if w * sh < sw * h then (
               let h' = sh * w / sw in
-              (x, y + ((h - h') / 2), w, h'))
+              (x, y + ((h - h') / 2), w, h') )
             else (
               let w' = sw * h / sh in
-              (x + ((w - w') / 2), y, w', h)))
+              (x + ((w - w') / 2), y, w', h) ) )
           else (x, y, w, h)
         in
         let tmp' = Video.Image.create w h in
@@ -268,8 +275,8 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
-      (new add
-         ~kind ~renorm
-         (List.map2 (fun w s -> (w, s)) weights sources)
-         video_init video_loop
-        :> Source.source))
+      ( new add
+          ~kind ~renorm
+          (List.map2 (fun w s -> (w, s)) weights sources)
+          video_init video_loop
+        :> Source.source ))
