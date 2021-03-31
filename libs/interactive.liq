@@ -157,7 +157,11 @@ end
 # @category Interactive
 # @param fname Name of the file.
 def interactive.persistent(fname)
-  if file.exists(fname) then interactive.load(fname) end
+  if file.exists(fname) then
+    interactive.load(fname)
+  else
+    interactive.save(fname)
+  end
   interactive.persistency := {interactive.save(fname)}
 end
 
