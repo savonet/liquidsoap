@@ -7,6 +7,12 @@ set("frame.video.framerate",45)
 
 set("decoder.decoders",["GSTREAMER"])
 
+debian_version = string.trim(process.run("cat /etc/os-release | grep VERSION_ID | cut -d'=' -f 2 | xargs").stdout)
+
+if debian_version == "10" then
+  test.skip()
+end
+
 fname = argv(default="",1)
 out = "files/test.mp4"
 
