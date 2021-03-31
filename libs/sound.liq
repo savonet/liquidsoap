@@ -69,8 +69,9 @@ end
 # @param ~high Higher frequency of the bandpass filter.
 # @param ~q Q factor.
 def filter.iir.eq.low_high(~id="", ~low, ~high, ~q=1., s)
-  s = filter.iir.eq.low(frequency=high, q=q, s)
-  filter.iir.eq.high(frequency=low, q=q, s)
+  s = if high != infinity then filter.iir.eq.low(frequency=high, q=q, s) else s end
+  s = if low != 0. then filter.iir.eq.high(frequency=low, q=q, s) else s end
+  s
 end
 
 let limiter = limit
