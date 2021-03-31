@@ -69,8 +69,8 @@ end
 # @param ~high Higher frequency of the bandpass filter.
 # @param ~q Q factor.
 def filter.iir.eq.low_high(~id="", ~low, ~high, ~q=1., s)
-  s = if high != infinity then filter.iir.eq.low(frequency=high, q=q, s) else s end
-  s = if low != 0. then filter.iir.eq.high(frequency=low, q=q, s) else s end
+  s = if not (getter.is_constant(high) and getter.get(high) == infinity) then filter.iir.eq.low(frequency=high, q=q, s) else s end
+  s = if not (getter.is_constant(low) and getter.get(low) == 0.) then filter.iir.eq.high(frequency=low, q=q, s) else s end
   s
 end
 
@@ -94,12 +94,12 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
   end
   # Process a band
   def band(low, band)
-    s = if getter.get(low) > 0. then filter.iir.eq.high(frequency=low, s) else s end
-    s = if getter.get(band.frequency) < 20000. then filter.iir.eq.low(frequency=band.frequency, s) else s end
+    high = if getter.is_constant(band.frequency) and getter.get(band.frequency) >= float_of_int(audio.samplerate()) / 2. then infinity else band.frequency end
+    s = filter.iir.eq.low_high(low=low, high=high, s)
     s = compress(attack=band.attack, release=band.release, threshold=band.threshold, ratio=band.ratio, gain=band.gain, s)
     if limit then limiter(s) else s end
   end
-  l = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l, i-1).frequency end, b), l)
+  l = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l,i-1).frequency end, b), l)
   c = add(normalize=false, l)
   s =
     if not getter.is_constant(wet) or getter.get(wet) != 1. then
