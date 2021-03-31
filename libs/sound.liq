@@ -62,6 +62,17 @@ def limit(~attack=getter(50.), ~release=getter(200.), ~ratio=getter(20.), ~thres
   compress(attack=attack, release=release, ratio=ratio, threshold=threshold, pre_gain=pre_gain, gain=gain, s)
 end
 
+# A bandpass filter obtained by chaining a low-pass and a high-pass filter.
+# @category Source / Sound Processing
+# @param id Force the value of the source ID.
+# @param ~low Lower frequency of the bandpass filter.
+# @param ~high Higher frequency of the bandpass filter.
+# @param ~q Q factor.
+def filter.iir.eq.low_high(~id="", ~low, ~high, ~q=1., s)
+  s = filter.iir.eq.low(frequency=high, q=q, s)
+  filter.iir.eq.high(frequency=low, q=q, s)
+end
+
 let limiter = limit
 
 # Multiband compression. The list in argument specifies
@@ -167,15 +178,4 @@ end
 # @param s The input source.
 def mic_filter(~frequency=200., s)
   filter(freq=200.,q=1.,mode="high",s)
-end
-
-# A bandpass filter obtained by chaining a low-pass and a high-pass filter.
-# @category Source / Sound Processing
-# @param id Force the value of the source ID.
-# @param ~low Lower frequency of the bandpass filter.
-# @param ~high Higher frequency of the bandpass filter.
-# @param ~q Q factor.
-def filter.iir.eq.low_high(~id="", ~low, ~high, ~q=1., s)
-  s = filter.iir.eq.low(frequency=high, q=q, s)
-  filter.iir.eq.high(frequency=low, q=q, s)
 end
