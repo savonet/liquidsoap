@@ -194,19 +194,5 @@ end
 # @param dry Dry source.
 # @param wet Wet source.
 def dry_wet(~power=false, wetness, dry, wet)
-  if power then
-    def d ()
-      a = getter.get(wetness)
-      a' = 1. - a
-      a / sqrt (a * a + a' * a')
-    end
-    def w ()
-      a = getter.get(wetness)
-      a' = 1. - a
-      a' / sqrt (a * a + a' * a')
-    end
-    add(normalize=false, weights=[d, w], [dry, wet])
-  else
-    add(normalize=false, weights=[getter.map(fun(x) -> 1.-x, wetness), wetness], [dry, wet])
-  end
+  add(power=power, weights=[getter.map(fun(x) -> 1.-x, wetness), wetness], [dry, wet])
 end

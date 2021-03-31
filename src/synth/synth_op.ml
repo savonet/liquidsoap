@@ -151,6 +151,7 @@ let register obj name descr =
       ( new Add.add
           ~kind
           ~renorm:(fun () -> false)
+          ~power:(fun () -> false)
           synths
           (fun _ -> ())
           (fun _ buf tmp -> Video.Image.add buf tmp)

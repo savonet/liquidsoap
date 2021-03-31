@@ -32,8 +32,8 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * The [video_init] (resp. [video_loop]) parameter is used to pre-process
   * the first layer (resp. next layers) in the sum; this generalization
   * is used to add either as an overlay or as a tiling. *)
-class add ~kind ~renorm (sources : ((unit -> float) * source) list) video_init
-  video_loop =
+class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
+  video_init video_loop =
   object (self)
     inherit operator ~name:"add" kind (List.map snd sources) as super
 
@@ -84,12 +84,16 @@ class add ~kind ~renorm (sources : ((unit -> float) * source) list) video_init
       let tmp = tmp in
       let renorm = renorm () in
       let sources = List.map (fun (w, s) -> (w (), s)) sources in
+      let power = power () in
       (* Compute the list of ready sources, and their total weight. *)
       let weight, sources =
         List.fold_left
-          (fun (t, l) (w, s) -> (w +. t, if s#is_ready then (w, s) :: l else l))
+          (fun (t, l) (w, s) ->
+            ( (w +. if power then t *. t else t),
+              if s#is_ready then (w, s) :: l else l ))
           (0., []) sources
       in
+      let weight = if power then sqrt weight else weight in
       (* Sum contributions. *)
       let offset = Frame.position buf in
       let _, end_offset =
@@ -171,6 +175,10 @@ let () =
         Some
           "Divide by the sum of weights of ready sources (or by the number of \
            ready sources if weights are not specified)." );
+      ( "power",
+        Lang.getter_t Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Perform constant-power normalization." );
       ( "weights",
         Lang.list_t (Lang.getter_t Lang.float_t),
         Some (Lang.list []),
@@ -191,13 +199,14 @@ let () =
         else weights
       in
       let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
+      let power = List.assoc "power" p |> Lang.to_bool_getter in
       if List.length weights <> List.length sources then
         raise
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
       ( new add
-          ~kind ~renorm
+          ~kind ~renorm ~power
           (List.map2 (fun w s -> (w, s)) weights sources)
           (fun _ -> ())
           (fun _ buf tmp -> Video.Image.add tmp buf)
@@ -227,6 +236,10 @@ let () =
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
       ("normalize", Lang.getter_t Lang.bool_t, Some (Lang.bool true), None);
+      ( "power",
+        Lang.getter_t Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Perform constant-power normalization." );
       ( "weights",
         Lang.list_t (Lang.getter_t Lang.float_t),
         Some (Lang.list []),
@@ -250,6 +263,7 @@ let () =
         else weights
       in
       let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
+      let power = List.assoc "power" p |> Lang.to_bool_getter in
       let proportional = Lang.to_bool (List.assoc "proportional" p) in
       let tp = tile_pos (List.length sources) in
       let scale = Video_converter.scaler () in
@@ -277,7 +291,7 @@ let () =
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
       ( new add
-          ~kind ~renorm
+          ~kind ~renorm ~power
           (List.map2 (fun w s -> (w, s)) weights sources)
           video_init video_loop
         :> Source.source ))
