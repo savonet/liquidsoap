@@ -84,20 +84,20 @@ class add ~kind ~renorm (sources : ((unit -> float) * source) list) video_init
       let tmp = tmp in
       let renorm = renorm () in
       let sources = List.map (fun (w, s) -> (w (), s)) sources in
-      (* Compute the list of ready sources, and their total weight *)
+      (* Compute the list of ready sources, and their total weight. *)
       let weight, sources =
         List.fold_left
           (fun (t, l) (w, s) -> (w +. t, if s#is_ready then (w, s) :: l else l))
           (0., []) sources
       in
-      (* Sum contributions *)
+      (* Sum contributions. *)
       let offset = Frame.position buf in
       let _, end_offset =
         List.fold_left
           (fun (rank, end_offset) (w, s) ->
             let buffer =
-              (* The first source writes directly to [buf],
-               * the others write to [tmp] and we'll sum that. *)
+              (* The first source writes directly to [buf], the others write to
+                 [tmp] and we'll sum that. *)
               if rank = 0 then buf
               else (
                 Frame.clear tmp;
@@ -106,8 +106,8 @@ class add ~kind ~renorm (sources : ((unit -> float) * source) list) video_init
             in
             s#get buffer;
             let already = Frame.position buffer in
-            let c = w /. weight in
-            if c <> 1. && renorm then (
+            let c = if renorm then w /. weight else w in
+            if c <> 1. then (
               try
                 Audio.amplify c
                   (Audio.sub (AFrame.pcm buffer)
@@ -149,8 +149,8 @@ class add ~kind ~renorm (sources : ((unit -> float) * source) list) video_init
             (rank + 1, max end_offset already))
           (0, offset) sources
       in
-      (* If the other sources have filled more than the first one,
-       * the end of track in buf gets overriden. *)
+      (* If the other sources have filled more than the first one, the end of
+         track in buf gets overriden. *)
       match Frame.breaks buf with
         | pos :: breaks when pos < end_offset ->
             Frame.set_breaks buf (end_offset :: breaks)
@@ -169,8 +169,8 @@ let () =
         Lang.getter_t Lang.bool_t,
         Some (Lang.bool true),
         Some
-          "Divide by the sum of weights (or by the number of sources if \
-           weights are not specified)." );
+          "Divide by the sum of weights of ready sources (or by the number of \
+           ready sources if weights are not specified)." );
       ( "weights",
         Lang.list_t (Lang.getter_t Lang.float_t),
         Some (Lang.list []),
