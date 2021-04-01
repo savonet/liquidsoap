@@ -9,8 +9,6 @@ ARG GITHUB_SHA
 
 USER root
 
-RUN apt-get update && apt-get install -y amb-plugins caps cmt csladspa fomp calf-ladspa swh-plugins tap-plugins lsp-plugins-ladspa lsp-plugins-lv2 zam-plugins dpf-plugins swh-lv2 abgate
-
 USER opam
 
 WORKDIR /tmp/liquidsoap-full
