@@ -25,11 +25,13 @@ def interactive.list(_)
 end
 server.register(usage="list", description="List available interactive variables.", namespace="var", "list", interactive.list)
 
+# Description of an interactive variable.
 # @flag hidden
 def interactive.description(name)
   list.assoc(name, !variables).description
 end
 
+# Type of an interactive variable.
 # @flag hidden
 def interactive.type(name)
   list.assoc(name, !variables).type
@@ -50,6 +52,7 @@ def interactive.string.ref(name)
   list.assoc(name, !variables_string).ref
 end
 
+# Function called to ensure persistency of data.
 let interactive.persistency = ref(fun()->())
 
 # @flag hidden
@@ -73,12 +76,29 @@ def interactive.string.set(name, v)
   p()
 end
 
+let stdlib_osc = osc
+
 # Create an interactive variable.
 # @flag hidden
-def interactive.create(~name, ~description="", ~type)
+# @param ~name Name of the variable.
+# @param ~description Description of the variable.
+# @param ~osc OSC address for the variable.
+# @param ~type Type of the variable.
+def interactive.create(~name, ~description="", ~osc="", ~type)
   if list.mem_assoc(name, !variables) then error.raise(interactive.error, "variable already registered") end
   variables := list.add((name, { type=type, description=description }), !variables)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
+  if osc != "" then
+    if type == "float" then
+      stdlib_osc.on_float(osc, interactive.float.set(name))
+    elsif type == "bool" then
+      stdlib_osc.on_bool(osc, interactive.bool.set(name))
+    elsif type == "string" then
+      stdlib_osc.on_string(osc, interactive.string.set(name))
+    else
+      error.raise(error.not_found)
+    end
+  end
 end
 
 # @flag hidden
@@ -312,10 +332,11 @@ end
 # @param ~step Typical variation of the value.
 # @param ~description Description of the variable.
 # @param ~unit Unit for the variable.
+# @param ~osc OSC address.
 # @param name Name of the variable.
 # @param v Initial value.
-def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", ~unit="", name, v)
-  interactive.create(name=name, description=description, type="float")
+def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~description="", ~unit="", ~osc="", name, v)
+  interactive.create(name=name, description=description, osc=osc, type="float")
   r = ref(v)
   variables_float := list.add((name, {ref=r, unit=unit, min=min, max=max, step=step }), !variables_float)
   ref.getter(r).{set = interactive.float.set(name)}
@@ -324,10 +345,11 @@ end
 # Read a boolean from an interactive input.
 # @category Interaction
 # @param ~description Description of the variable.
+# @param ~osc OSC address.
 # @param name Name of the variable.
 # @param v Initial value.
-def replaces interactive.bool(~description="", name, v)
-  interactive.create(name=name, description=description, type="bool")
+def replaces interactive.bool(~description="", ~osc="", name, v)
+  interactive.create(name=name, description=description, osc=osc, type="bool")
   r = ref(v)
   variables_bool := list.add((name, { ref=r }), !variables_bool)
   ref.getter(r).{set = interactive.bool.set(name)}
@@ -336,10 +358,11 @@ end
 # Read a string from an interactive input.
 # @category Interaction
 # @param ~description Description of the variable.
+# @param ~osc OSC address.
 # @param name Name of the variable.
 # @param v Initial value.
-def replaces interactive.string(~description="", name, v)
-  interactive.create(name=name, description=description, type="string")
+def replaces interactive.string(~description="", ~osc="", name, v)
+  interactive.create(name=name, description=description, osc=osc, type="string")
   r = ref(v)
   variables_string := list.add((name, { ref=r }), !variables_string)
   ref.getter(r).{set = interactive.bool.set(name)}
