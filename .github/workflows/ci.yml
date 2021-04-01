@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [debian_stable, debian_testing, ubuntu_focal]
+        os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
