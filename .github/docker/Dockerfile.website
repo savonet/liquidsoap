@@ -4,7 +4,7 @@ MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
 
 USER root
 
-RUN apt-get update && apt-get -y install openssh-client && apt-get install -y amb-plugins caps cmt csladspa fomp calf-plugins swh-plugins tap-plugins lsp-plugins-ladspa lsp-plugins-lv2 zam-plugins dpf-plugins swh-lv2 abgate
+RUN apt-get update && apt-get -y install openssh-client && apt-get install -y amb-plugins caps cmt csladspa fomp calf-plugins swh-plugins tap-plugins lsp-plugins-ladspa lsp-plugins-lv2 zam-plugins swh-lv2 abgate
 
 USER opam
 
