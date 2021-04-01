@@ -35,7 +35,7 @@ mp4 = %ffmpeg(
   frag_duration=2,
   %audio.copy, %video.copy)
 
-s = noise(duration=1.)
+s = noise()
 
 encoded = ffmpeg.encode.audio_video(main_encoder, s)
 
