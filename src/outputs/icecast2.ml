@@ -169,7 +169,7 @@ module Icecast = struct
                 bitrate = None;
                 samplerate = None;
                 channels = None;
-              })
+              } )
 end
 
 module M = Icecast_utils.Icecast_v (Icecast)
@@ -237,7 +237,7 @@ let proto kind =
       ( "chunked",
         Lang.bool_t,
         Some (Lang.bool false),
-        Some "Used cunked transfer with the 'http(s)' protocol." );
+        Some "Used chunked transfer with the 'http(s)' protocol." );
       ( "icy_metadata",
         Lang.string_t,
         Some (Lang.string "guess"),
@@ -441,7 +441,7 @@ class output ~kind p =
             | (_, s) :: _ -> (
                 let title = Filename.basename s in
                 try String.sub title 0 (String.rindex title '.')
-                with Not_found -> title)
+                with Not_found -> title )
             | [] -> "Unknown"
         in
         let default_song =
@@ -478,14 +478,14 @@ class output ~kind p =
               with e ->
                 self#log#important
                   "Metadata update may have failed with error: %s"
-                  (Printexc.to_string e))
+                  (Printexc.to_string e) )
           | Cry.Disconnected -> ()
-        (* Do nothing if shout connection isn't available *))
+        (* Do nothing if shout connection isn't available *) )
       else (
         (* Encoder is not always present.. *)
-        match encoder with
+          match encoder with
           | Some encoder -> encoder.Encoder.insert_metadata m
-          | None -> ())
+          | None -> () )
 
     method send b =
       match Cry.get_status connection with
@@ -508,8 +508,8 @@ class output ~kind p =
                 self#icecast_stop;
                 restart_time <- Unix.time () +. delay;
                 self#log#important "Will try to reconnect in %.02f seconds."
-                  delay)
-              else raise e)
+                  delay )
+              else raise e )
 
     (** It there's too much latency, we'll stop trying to catchup.
     * Reconnect to cancel the latency on the server's side too. *)
@@ -575,7 +575,7 @@ class output ~kind p =
         if delay >= 0. then (
           self#log#important "Will try again in %.02f sec." delay;
           self#icecast_stop;
-          restart_time <- Unix.time () +. delay)
+          restart_time <- Unix.time () +. delay )
         else raise e
 
     method icecast_stop =
