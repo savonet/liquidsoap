@@ -76,6 +76,7 @@ def interactive.string.set(name, v)
   p()
 end
 
+%ifdef osc
 let stdlib_osc = osc
 
 # Create an interactive variable.
@@ -389,3 +390,4 @@ def compress.multiband.interactive(~id="compress", ~bands=5, s)
   l = list.init(bands, band)
   compress.multiband(wet=wet, s, l)
 end
+%endif
