@@ -12,7 +12,7 @@ if [ -z "${TEST_NAME}" ]; then
   TEST_NAME=${TEST}
 fi
 
-TIMEOUT=90
+TIMEOUT=300 # 5 minutes.
 LOG_FILE=`mktemp`
 LIQ_PID=
 MAIN_PID=$$
