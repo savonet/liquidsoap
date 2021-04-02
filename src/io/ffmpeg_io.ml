@@ -110,7 +110,10 @@ class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
         begin
           match e with
           | Failure s -> self#log#severe "Feeding stopped: %s." s
-          | e -> self#log#severe "Feeding stopped: %s." (Printexc.to_string e)
+          | e ->
+              let bt = Printexc.get_backtrace () in
+              Utils.log_exception ~log:self#log ~bt
+                (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string e))
         end;
         if should_stop () then has_stopped ()
         else self#feed (should_stop, has_stopped)
@@ -145,7 +148,7 @@ let () =
   in
   Lang.add_operator "input.ffmpeg" ~active:true
     ~descr:"Decode a url using ffmpeg." ~category:Lang.Input
-    (Start_stop.input_proto
+    ( Start_stop.input_proto
     @ [
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
@@ -165,7 +168,7 @@ let () =
             "Force a specific input format. Autodetected when passed an empty \
              string." );
         ("", Lang.string_t, None, Some "URL to decode.");
-      ])
+      ] )
     ~return_t:k
     (fun p ->
       let start = Lang.to_bool (List.assoc "start" p) in
@@ -187,7 +190,7 @@ let () =
                 raise
                   (Lang_errors.Invalid_value
                      ( Lang.string format,
-                       "Could not find ffmpeg input format with that name" )))
+                       "Could not find ffmpeg input format with that name" )) )
       in
       let opts = Hashtbl.create 10 in
       parse_args ~t:`Int "int" p opts;
@@ -196,7 +199,7 @@ let () =
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
-      (new input
-         ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
-         url
-        :> Source.source))
+      ( new input
+          ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
+          url
+        :> Source.source ))
