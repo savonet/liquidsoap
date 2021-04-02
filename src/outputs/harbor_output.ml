@@ -75,10 +75,18 @@ module Make (T : T) = struct
         ("mount", Lang.string_t, None, None);
         ("port", Lang.int_t, Some (Lang.int 8000), None);
         ( "user",
-          Lang.string_t,
-          Some (Lang.string ""),
-          Some "User for client connection, disabled if empty." );
-        ("password", Lang.string_t, Some (Lang.string "hackme"), None);
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some
+            "User for client connection. You also need to setup a `password`."
+        );
+        ( "password",
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some
+            "Password for client connection. A `user` must also be set. We \
+             check for this password is checked unless an `auth` function is \
+             defined, which is used in this case." );
         ( "timeout",
           Lang.float_t,
           Some (Lang.float 30.),
@@ -95,14 +103,15 @@ module Make (T : T) = struct
           Some (Lang.int 8192),
           Some "Interval used to send ICY metadata" );
         ( "auth",
-          Lang.fun_t
-            [(false, "", Lang.string_t); (false, "", Lang.string_t)]
-            Lang.bool_t,
-          Some (Lang.val_cst_fun [("", None); ("", None)] (Lang.bool false)),
+          Lang.nullable_t
+            (Lang.fun_t
+               [(false, "", Lang.string_t); (false, "", Lang.string_t)]
+               Lang.bool_t),
+          Some Lang.null,
           Some
             "Authentication function. `f(login,password)` returns `true` if \
-             the user should be granted access for this login. Override any \
-             other method if used." );
+             the user should be granted access for this login. When defined, \
+             `user` and `password` arguments are not taken in account." );
         ( "buffer",
           Lang.int_t,
           Some (Lang.int (5 * 65535)),
@@ -205,7 +214,7 @@ module Make (T : T) = struct
       let ret = Bytes.unsafe_to_string ret in
       if ret <> c.latest_meta then (
         c.latest_meta <- ret;
-        ret)
+        ret )
       else "\000"
     in
     let get_meta () =
@@ -228,10 +237,10 @@ module Make (T : T) = struct
         let after = Strings.sub data next_meta_pos (len - next_meta_pos) in
         let cur = Strings.concat [cur; before; Strings.of_string meta] in
         c.metapos <- 0;
-        process cur after)
+        process cur after )
       else (
         c.metapos <- c.metapos + len;
-        Strings.concat [cur; data])
+        Strings.concat [cur; data] )
     in
     if c.metaint > 0 then process Strings.empty data else data
 
@@ -251,13 +260,13 @@ module Make (T : T) = struct
     in
     Duppy.Monad.bind __pa_duppy_0 (fun data ->
         Duppy.Monad.bind
-          (if Strings.is_empty data then
-           Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
-               Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
-                 (fun () -> Duppy_m.unlock c.condition_m))
+          ( if Strings.is_empty data then
+            Duppy.Monad.bind (Duppy_m.lock c.condition_m) (fun () ->
+                Duppy.Monad.bind (Duppy_c.wait c.condition c.condition_m)
+                  (fun () -> Duppy_m.unlock c.condition_m))
           else
             Duppy.Monad.Io.write ?timeout:(Some c.timeout)
-              ~priority:Tutils.Non_blocking c.handler (Strings.to_bytes data))
+              ~priority:Tutils.Non_blocking c.handler (Strings.to_bytes data) )
           (fun () ->
             let __pa_duppy_0 =
               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking c.handler
@@ -344,37 +353,29 @@ module Make (T : T) = struct
     in
     let url = match s "url" with "" -> None | x -> Some x in
     let port = e Lang.to_int "port" in
-    let default_user = s "user" in
-    let default_password = s "password" in
-    (* Cf sources/harbor_input.ml *)
-    let trivially_false = function
-      | {
-          Lang.value =
-            Lang.Fun
-              ( _,
-                _,
-                _,
-                {
-                  Lang_values.term = Lang_values.(Ground (Ground.Bool false));
-                  _;
-                } );
-          _;
-        } ->
-          true
-      | _ -> false
+    let default_user =
+      List.assoc "user" p |> Lang.to_option |> Option.map Lang.to_string
     in
-    let auth_function = List.assoc "auth" p in
+    let default_password =
+      List.assoc "password" p |> Lang.to_option |> Option.map Lang.to_string
+    in
+    let auth_function = List.assoc "auth" p |> Lang.to_option in
     let login user password =
       let user, password =
         let f = Configure.recode_tag in
         (f user, f password)
       in
-      let default_login = user = default_user && password = default_password in
-      if not (trivially_false auth_function) then
-        Lang.to_bool
-          (Lang.apply auth_function
-             [("", Lang.string user); ("", Lang.string password)])
-      else default_login
+      match auth_function with
+        | Some f ->
+            Lang.to_bool
+              (Lang.apply f
+                 [("", Lang.string user); ("", Lang.string password)])
+        | None -> (
+            match (default_user, default_password) with
+              | _, None -> false
+              | None, _ -> false
+              | Some default_user, Some default_password ->
+                  user = default_user && password = default_password )
     in
     let dumpfile = match s "dumpfile" with "" -> None | s -> Some s in
     let extra_headers =
@@ -497,11 +498,15 @@ module Make (T : T) = struct
         self#log#info "Serving client %s." ip;
         Duppy.Monad.bind
           (Duppy.Monad.catch
-             (if default_user <> "" || not (trivially_false auth_function) then
-              Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
-                (Harbor.http_auth_check ~args ~login:(default_user, login)
-                   headers)
-             else Duppy.Monad.return ())
+             ( if
+               (default_user <> None && default_password <> None)
+               || auth_function <> None
+             then (
+               let default_user = Option.value default_user ~default:"" in
+               Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
+                 (Harbor.http_auth_check ~args ~login:(default_user, login)
+                    headers) )
+             else Duppy.Monad.return () )
              (function
                | Harbor.Relay _ -> assert false
                | Harbor.Close s ->
@@ -526,15 +531,15 @@ module Make (T : T) = struct
           let wake_up =
             if chunk_len >= chunk then (
               chunk_len <- 0;
-              true)
+              true )
             else false
           in
           Strings.Mutable.append_strings burst_data b;
           Strings.Mutable.keep burst_data burst;
           let new_clients = Queue.create () in
-          (match dump with
+          ( match dump with
             | Some s -> Strings.iter (output_substring s) b
-            | None -> ());
+            | None -> () );
           Tutils.mutexify clients_m
             (fun () ->
               Queue.iter
@@ -569,7 +574,7 @@ module Make (T : T) = struct
                   (Duppy_c.broadcast duppy_c)
               else ();
               clients <- new_clients)
-            ())
+            () )
         else ()
 
       method output_start =
