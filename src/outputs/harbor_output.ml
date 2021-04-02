@@ -97,7 +97,7 @@ module Make (T : T) = struct
           Some
             "Encoding used to send metadata. If empty, defaults to \
              \"ISO-8859-1\" for non-ogg formats and \"UTF-8\" otherwise." );
-        ("url", Lang.string_t, Some (Lang.string ""), None);
+        ("url", Lang.nullable_t Lang.string_t, Some Lang.null, None);
         ( "metaint",
           Lang.int_t,
           Some (Lang.int 8192),
@@ -139,11 +139,15 @@ module Make (T : T) = struct
                  ("headers", None); ("uri", None); ("protocol", None); ("", None);
                ]
                Lang.unit),
-          Some "Callback executed when connection is established." );
+          Some
+            "Callback executed when connection is established (takes headers, \
+             connection uri, protocol and client's IP as arguments)." );
         ( "on_disconnect",
           Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t,
           Some (Lang.val_cst_fun [("", None)] Lang.unit),
-          Some "Callback executed when connection stops." );
+          Some
+            "Callback executed when connection stops (takes client's IP as \
+             argument)." );
         ( "headers",
           Lang.metadata_t,
           Some (Lang.list []),
@@ -351,7 +355,9 @@ module Make (T : T) = struct
       let f = List.assoc "on_stop" p in
       fun () -> ignore (Lang.apply f [])
     in
-    let url = match s "url" with "" -> None | x -> Some x in
+    let url =
+      List.assoc "url" p |> Lang.to_option |> Option.map Lang.to_string
+    in
     let port = e Lang.to_int "port" in
     let default_user =
       List.assoc "user" p |> Lang.to_option |> Option.map Lang.to_string
