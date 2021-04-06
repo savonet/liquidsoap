@@ -78,6 +78,7 @@ end
 
 %ifdef osc
 let stdlib_osc = osc
+%endif
 
 # Create an interactive variable.
 # @flag hidden
@@ -89,6 +90,7 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
   if list.mem_assoc(name, !variables) then error.raise(interactive.error, "variable already registered") end
   variables := list.add((name, { type=type, description=description }), !variables)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
+%ifdef osc
   if osc != "" then
     if type == "float" then
       stdlib_osc.on_float(osc, interactive.float.set(name))
@@ -100,6 +102,7 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
       error.raise(error.not_found)
     end
   end
+%endif
 end
 
 # @flag hidden
@@ -390,4 +393,3 @@ def compress.multiband.interactive(~id="compress", ~bands=5, s)
   l = list.init(bands, band)
   compress.multiband(wet=wet, s, l)
 end
-%endif
