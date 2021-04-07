@@ -37,18 +37,32 @@ let () =
 
 let () =
   let ret_t =
-    Lang.record_t
+    Lang.method_t Lang.unit_t
       [
-        ("stdout", Lang.string_t);
-        ("stderr", Lang.string_t);
+        ( "stdout",
+          ([], Lang.string_t),
+          "Messages written by process on standard output stream." );
+        ( "stderr",
+          ([], Lang.string_t),
+          "Messages written by process on standard error stream." );
         ( "status",
-          Lang.method_t Lang.string_t
-            [
-              ("code", ([], Lang.int_t), "Returned status code.");
-              ( "description",
-                ([], Lang.string_t),
-                "Returned description (in case an exception was raised)." );
-            ] );
+          ( [],
+            Lang.method_t Lang.string_t
+              [
+                ( "code",
+                  ([], Lang.int_t),
+                  "Returned status code (or signal, in case the process was \
+                   killed or stopped by a signal)." );
+                ( "description",
+                  ([], Lang.string_t),
+                  "Returned description (in case an exception was raised)." );
+              ] ),
+          "Status when process ended, can be one of `\"exit\"` (the program \
+           exited, the `status` code is then relevant), `\"killed\"` (the \
+           program was killed by signal given in `status` code), `\"stopped\"` \
+           (the program was stopped by signal given in `status` code) or \
+           `\"exception\"` (the program raised and exception detailed in the \
+           `description`)." );
       ]
   in
   let env_t = Lang.product_t Lang.string_t Lang.string_t in
@@ -56,10 +70,10 @@ let () =
   add_builtin "process.run" ~cat:Sys
     ~descr:
       "Run a process in a shell environment. Returns the standard output, as \
-       well as standard error and status. The status can be \"exit\" (the \
-       status code is set), \"killed\" or \"stopped\" (the status code is the \
-       signal), or \"exception\" (the description is set) or \"timeout\" (the \
-       description is the run time)."
+       well as standard error and status as methods. The status can be \
+       \"exit\" (the status code is set), \"killed\" or \"stopped\" (the \
+       status code is the signal), or \"exception\" (the description is set) \
+       or \"timeout\" (the description is the run time)."
     [
       ("env", Lang.list_t env_t, Some (Lang.list []), Some "Process environment");
       ( "inherit_env",
@@ -149,7 +163,7 @@ let () =
                 match s with
                   | Unix.WEXITED c -> ("exit", c, "")
                   | Unix.WSIGNALED s -> ("killed", s, "")
-                  | Unix.WSTOPPED s -> ("stopped", s, ""))
+                  | Unix.WSTOPPED s -> ("stopped", s, "") )
             | _ -> assert false
         in
         Lang.record
@@ -176,7 +190,7 @@ let () =
             if n = 0 then ()
             else (
               Buffer.add_subbytes buf tmp 0 n;
-              aux ())
+              aux () )
           in
           aux ()
         in
@@ -225,5 +239,5 @@ let () =
             (timed_out, !status))
       in
       on_done
-        (if 0. <= timeout && Tutils.has_started () then asynchronous ()
-        else synchronous ()))
+        ( if 0. <= timeout && Tutils.has_started () then asynchronous ()
+        else synchronous () ))
