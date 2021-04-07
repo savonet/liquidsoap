@@ -188,8 +188,15 @@ let () =
       ("", Lang.string_t, None, Some "File to watch.");
       ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.");
     ]
-    (Lang.fun_t [] Lang.unit_t)
-    ~descr:"Call a function when a file is modified. Returns unwatch function."
+    (Lang.method_t Lang.unit_t
+       [
+         ( "unwatch",
+           ([], Lang.fun_t [] Lang.unit_t),
+           "Function to remove the watch on the file." );
+       ])
+    ~descr:
+      "Call a function when a file is modified. Returns unwatch function in \
+       `unwatch` method."
     (fun p ->
       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
       let fname = Utils.home_unrelate fname in
@@ -197,9 +204,13 @@ let () =
       let f () = ignore (Lang.apply f []) in
       let watch = !Configure.file_watcher in
       let unwatch = watch [`Modify] fname f in
-      Lang.val_fun [] (fun _ ->
-          unwatch ();
-          Lang.unit))
+      Lang.meth Lang.unit
+        [
+          ( "unwatch",
+            Lang.val_fun [] (fun _ ->
+                unwatch ();
+                Lang.unit) );
+        ])
 
 let () =
   add_builtin "file.ls" ~cat:Sys

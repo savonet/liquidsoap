@@ -170,6 +170,7 @@ Changed:
 - `normalize` now handles all channels uniformly.
 - First-order filter `filter.rc` now takes the cutoff frequency instead of the
   time constant as argument.
+- `file.watch` now returns unit with `unwatch` method.
 
 Fixed:
 

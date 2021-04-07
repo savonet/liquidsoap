@@ -235,8 +235,8 @@ def replaces playlist(~id="", ~check_next=fun(_)->true, ~conservative=false, ~de
     n = float_of_int(reload)
     thread.run(delay=n, every=n, reloader)
   elsif reload_mode == "watch" then
-    unwatch = file.watch(!uri, reloader)
-    s.on_shutdown(unwatch)
+    w = file.watch(!uri, reloader)
+    s.on_shutdown(w.unwatch)
   end
 
   # Set up telnet commands
