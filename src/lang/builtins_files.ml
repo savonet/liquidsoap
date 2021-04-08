@@ -66,6 +66,24 @@ let () =
       with _ -> Lang.int 0)
 
 let () =
+  add_builtin "file.mkdir" ~cat:Sys ~descr:"Create a directory."
+    [
+      ( "perms",
+        Lang.int_t,
+        Some (Lang.int 0o755),
+        Some "Default file rights if created (default is `0o755`)." );
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.unit_t
+    (fun p ->
+      let perms = List.assoc "perms" p |> Lang.to_int in
+      let dir = List.assoc "" p |> Lang.to_string in
+      try
+        Unix.mkdir dir perms;
+        Lang.unit
+      with _ -> Lang.unit)
+
+let () =
   add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
     [("", Lang.string_t, None, None)] Lang.unit_t (fun p ->
       try
