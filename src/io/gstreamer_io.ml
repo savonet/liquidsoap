@@ -81,7 +81,7 @@ class virtual ['a, 'b] element_factory ~on_error =
           (fun () ->
             if not restarting then (
               restarting <- true;
-              true)
+              true )
             else false)
           ()
       in
@@ -121,7 +121,7 @@ class virtual ['a, 'b] element_factory ~on_error =
           retry_in <- on_error exn;
           self#log#important "Will retry again in %.02f" retry_in;
           Tutils.mutexify restart_m (fun () -> restarting <- false) ();
-          retry_in)
+          retry_in )
       else -1.
 
     method private register_task ~priority scheduler =
@@ -254,7 +254,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
           let audio_src =
             App_src.of_element (Bin.get_by_name bin "audio_src")
           in
-          Some audio_src)
+          Some audio_src )
         else None
       in
       let video_src =
@@ -262,7 +262,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
           let video_src =
             App_src.of_element (Bin.get_by_name bin "video_src")
           in
-          Some video_src)
+          Some video_src )
         else None
       in
       { bin; audio = audio_src; video = video_src }
@@ -282,7 +282,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
             let data = Bytes.create (2 * self#audio_channels * len) in
             Audio.S16LE.of_audio pcm data 0;
             Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time
-              (Option.get el.audio) data 0 (Bytes.length data));
+              (Option.get el.audio) data 0 (Bytes.length data) );
           if has_video then (
             let buf = VFrame.yuva420p frame in
             for i = 0 to Video.length buf - 1 do
@@ -295,11 +295,11 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
               Gstreamer.Buffer.set_duration buf duration;
               Gstreamer.Buffer.set_presentation_time buf presentation_time;
               Gstreamer.App_src.push_buffer (Option.get el.video) buf
-            done);
+            done );
           presentation_time <- Int64.add presentation_time duration;
           GU.flush ~log:self#log
             ~on_error:(fun err -> raise (Flushing_error err))
-            el.bin)
+            el.bin )
       with e ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
@@ -361,10 +361,10 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output
-         ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
-         ("", Some pipeline, None)
-        :> Source.source))
+      ( new output
+          ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop source
+          start ("", Some pipeline, None)
+        :> Source.source ))
 
 let () =
   let kind = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any } in
@@ -391,10 +391,10 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output
-         ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
-         ("", None, Some pipeline)
-        :> Source.source))
+      ( new output
+          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop source
+          start ("", None, Some pipeline)
+        :> Source.source ))
 
 let () =
   let kind =
@@ -402,7 +402,7 @@ let () =
   in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.gstreamer.audio_video" ~active:true
-    (output_proto ~return_t ~pipeline:""
+    ( output_proto ~return_t ~pipeline:""
     @ [
         ( "audio_pipeline",
           Lang.string_t,
@@ -416,7 +416,7 @@ let () =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Pushing buffers is blocking." );
-      ])
+      ] )
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
     ~return_t
     (fun p ->
@@ -441,11 +441,11 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output
-         ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking
-         source start
-         (pipeline, Some audio_pipeline, Some video_pipeline)
-        :> Source.source))
+      ( new output
+          ~kind ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking
+          source start
+          (pipeline, Some audio_pipeline, Some video_pipeline)
+        :> Source.source ))
 
 (***** Input *****)
 
@@ -506,9 +506,9 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       in
       try
         ready
-        && (Generator.length gen > 0
+        && ( Generator.length gen > 0
            || pending self#get_element.audio
-           || pending self#get_element.video)
+           || pending self#get_element.video )
       with e ->
         log#info "Error when trying to check if ready: %s"
           (Printexc.to_string e);
@@ -583,13 +583,13 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
       let audio_sink =
         if has_audio then (
           let sink = App_sink.of_element (Bin.get_by_name bin "audio_sink") in
-          Some (wrap_sink sink Gstreamer.App_sink.pull_buffer_string))
+          Some (wrap_sink sink Gstreamer.App_sink.pull_buffer_string) )
         else None
       in
       let video_sink =
         if has_video then (
           let sink = App_sink.of_element (Bin.get_by_name bin "video_sink") in
-          Some (wrap_sink sink Gstreamer.App_sink.pull_buffer_data))
+          Some (wrap_sink sink Gstreamer.App_sink.pull_buffer_data) )
         else None
       in
       { bin; audio = audio_sink; video = video_sink }
@@ -642,7 +642,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
             ready <- false;
             if restart then (
               self#log#info "Restarting.";
-              self#restart)
+              self#restart )
         | exn ->
             let bt = Printexc.get_backtrace () in
             Utils.log_exception ~log:self#log ~bt
@@ -752,8 +752,8 @@ let () =
   Lang.add_operator "input.gstreamer.audio" proto ~return_t ~category:Lang.Input
     ~flags:[] ~descr:"Stream audio from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
-      (new audio_video_input p kind ((fun () -> ""), Some pipeline, None)
-        :> Source.source))
+      ( new audio_video_input p kind ((fun () -> ""), Some pipeline, None)
+        :> Source.source ))
 
 let () =
   let kind = Lang.video_yuva420p in
@@ -770,5 +770,5 @@ let () =
   Lang.add_operator "input.gstreamer.video" proto ~return_t ~category:Lang.Input
     ~flags:[] ~descr:"Stream video from a GStreamer pipeline." (fun p ->
       let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
-      (new audio_video_input p kind ((fun () -> ""), None, Some pipeline)
-        :> Source.source))
+      ( new audio_video_input p kind ((fun () -> ""), None, Some pipeline)
+        :> Source.source ))

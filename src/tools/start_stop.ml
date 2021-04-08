@@ -62,14 +62,14 @@ class virtual base ~name ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
       if not is_started then (
         self#start;
         on_start ();
-        is_started <- true)
+        is_started <- true )
 
     method private do_stop =
       if is_started then (
         self#stop;
         on_stop ();
         is_started <- false;
-        request_stop <- false)
+        request_stop <- false )
   end
 
 (* Takes care of calling #start/#stop in a well-parenthesized way,
@@ -121,7 +121,7 @@ class virtual input ~name ~source_kind ~content_kind ~(on_start : unit -> unit)
       if fallible then self#is_active
       else (
         assert self#is_active;
-        true)
+        true )
 
     method remaining = if self#is_active then -1 else 0
 

@@ -49,7 +49,7 @@ let make params =
            Printf.sprintf "invalid samplerate value. Possible values: %s"
              (String.concat ", " (List.map string_of_int valid_samplerates))
          in
-         match t with Some t -> raise (Error (t, err)) | None -> failwith err);
+         match t with Some t -> raise (Error (t, err)) | None -> failwith err );
        i)
   in
   let defaults =
@@ -85,7 +85,7 @@ let make params =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
                   (String.concat ", " (List.map string_of_int valid_vbr))
               in
-              raise (Error (t, err)));
+              raise (Error (t, err)) );
             { f with Fdkaac_format.bitrate_mode = `Variable i }
         | "bandwidth", { term = Ground (Int i); _ } ->
             { f with Fdkaac_format.bandwidth = `Fixed i }

@@ -170,7 +170,7 @@ let () =
         let rec extract acc i =
           if i < n then (
             try extract ((i, Pcre.get_substring sub i) :: acc) (i + 1)
-            with Not_found -> extract acc (i + 1))
+            with Not_found -> extract acc (i + 1) )
           else List.rev acc
         in
         let l = extract [] 1 in
@@ -259,8 +259,8 @@ let () =
       let lower = Lang.to_bool (List.assoc "lower" p) in
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string
-        (if lower then String.lowercase_ascii string
-        else String.uppercase_ascii string))
+        ( if lower then String.lowercase_ascii string
+        else String.uppercase_ascii string ))
 
 let () =
   add_builtin "string.trim" ~cat:String
@@ -293,11 +293,11 @@ let () =
         if cap then String.capitalize_ascii s else String.uncapitalize_ascii s
       in
       Lang.string
-        (if space_sensitive then (
-         let l = Pcre.split ~pat:" " string in
-         let l = List.map f l in
-         String.concat " " l)
-        else f string))
+        ( if space_sensitive then (
+          let l = Pcre.split ~pat:" " string in
+          let l = List.map f l in
+          String.concat " " l )
+        else f string ))
 
 let () =
   add_builtin "string.replace" ~cat:String

@@ -132,7 +132,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
         | None -> (
             match self#cached_select with
               | Some { source } -> source#self_sync
-              | None -> false)
+              | None -> false )
 
     method private get_frame ab =
       (* Choose the next child to be played.
@@ -201,21 +201,21 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                 | _ ->
                     (* We are staying on the same child,
                      * don't start a new track. *)
-                    need_eot <- false)
+                    need_eot <- false )
           | None -> (
               match selected with
                 | Some (_, old_s) ->
                     old_s#leave (self :> source);
                     to_finish <- old_s :: to_finish;
                     selected <- None
-                | None -> ())
+                | None -> () )
       in
       (* #select is called only when selected=None, and the cache is cleared	
        * as soon as the new selection is set. *)
       assert (selected = None || cached_selected = None);
       if need_eot then (
         need_eot <- false;
-        Frame.add_break ab (Frame.position ab))
+        Frame.add_break ab (Frame.position ab) )
       else (
         match selected with
           | None ->
@@ -227,7 +227,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
           | Some (c, s) ->
               s#get ab;
               c.cur_meta <-
-                (if Frame.is_partial ab then None
+                ( if Frame.is_partial ab then None
                 else (
                   match
                     List.fold_left
@@ -236,15 +236,15 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                         | Some (curp, curm) ->
                             fun (p, m) ->
                               Some (if p >= curp then (p, m) else (curp, curm)))
-                      (match c.cur_meta with
+                      ( match c.cur_meta with
                         | None -> None
-                        | Some m -> Some (-1, m))
+                        | Some m -> Some (-1, m) )
                       (Frame.get_all_metadata ab)
                   with
                     | None -> None
-                    | Some (_, m) -> Some (Hashtbl.copy m)));
+                    | Some (_, m) -> Some (Hashtbl.copy m) ) );
               if Frame.is_partial ab then reselect ~forget:true ()
-              else if not (mode ()) then reselect ())
+              else if not (mode ()) then reselect () )
 
     method remaining =
       match selected with None -> 0 | Some (_, s) -> s#remaining
@@ -286,7 +286,7 @@ let find ?(strict = false) f l =
     | x :: l ->
         if f x then (
           if strict then List.iter (fun x -> ignore (f x)) l;
-          x)
+          x )
         else aux l
     | [] -> raise Not_found
   in

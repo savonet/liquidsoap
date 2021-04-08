@@ -121,8 +121,8 @@ let throw print_error = function
         "Cannot apply that parameter because the function %s@ has %s@ %s!@]@."
         pos_f
         (if first then "no" else "no more")
-        (if lbl = "" then "unlabeled argument"
-        else Format.sprintf "argument labeled %S" lbl);
+        ( if lbl = "" then "unlabeled argument"
+        else Format.sprintf "argument labeled %S" lbl );
       raise Error
   | Invalid_value (v, msg) ->
       error_header 7 (T.print_pos_opt v.Term.V.pos);
@@ -184,8 +184,8 @@ let report lexbuf f =
       let start = snd (Sedlexing.lexing_positions lexbuf) in
       let buf = Sedlexing.Utf8.lexeme lexbuf in
       Printf.sprintf "%sine %d, char %d%s"
-        (if start.Lexing.pos_fname = "" then "L"
-        else Printf.sprintf "File %S, l" start.Lexing.pos_fname)
+        ( if start.Lexing.pos_fname = "" then "L"
+        else Printf.sprintf "File %S, l" start.Lexing.pos_fname )
         start.Lexing.pos_lnum
         (start.Lexing.pos_cnum - start.Lexing.pos_bol)
         (if buf = "" then "" else Printf.sprintf " before %S" buf)

@@ -53,16 +53,16 @@ class prepend ~kind ~merge source f =
                   "Prepending disabled from metadata \
                    (\"liq_prepend\"=\"false\").";
                 state <- `Buffer peek;
-                self#get_frame buf)
+                self#get_frame buf )
               else (
                 let prepend = Lang.to_source (Lang.apply f [("", lang_m)]) in
                 self#register prepend;
                 if not prepend#is_ready then (
                   self#log#important "Candidate to prepending not ready. Abort!";
                   state <- `Buffer peek;
-                  self#unregister prepend)
+                  self#unregister prepend )
                 else state <- `Prepend (prepend, peek);
-                self#get_frame buf))
+                self#get_frame buf ) )
         | `Buffer peek ->
             let p = AFrame.position buf in
             let pcm = AFrame.pcm buf in
@@ -93,7 +93,7 @@ class prepend ~kind ~merge source f =
                 let pos = AFrame.position buf in
                 self#get_frame buf;
                 AFrame.set_breaks buf
-                  (Utils.remove_one (( = ) pos) (AFrame.breaks buf))))
+                  (Utils.remove_one (( = ) pos) (AFrame.breaks buf)) ) )
 
     method stype = source#stype
 
@@ -161,9 +161,9 @@ let register =
     ]
     ~return_t:k ~category:Lang.TrackProcessing
     ~descr:
-      ("Prepend an extra track before every track. "
-     ^ "Set the metadata 'liq_prepend' to 'false' to "
-     ^ "inhibit prepending on one track.")
+      ( "Prepend an extra track before every track. "
+      ^ "Set the metadata 'liq_prepend' to 'false' to "
+      ^ "inhibit prepending on one track." )
     (fun p ->
       let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in

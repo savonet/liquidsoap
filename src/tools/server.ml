@@ -301,13 +301,13 @@ let exec s =
 
 let handle_client socket ip =
   let on_error e =
-    (match e with
+    ( match e with
       | Duppy.Io.Io_error -> ()
       | Duppy.Io.Timeout ->
           log#info "Timeout reached while communicating to client %s." ip
       | Duppy.Io.Unix (c, p, m) ->
           log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown e -> log#important "%s" (Printexc.to_string e));
+      | Duppy.Io.Unknown e -> log#important "%s" (Printexc.to_string e) );
     Duppy e
   in
   let h =
@@ -404,13 +404,15 @@ let start_socket () =
   let max_conn = 10 in
   let sock = Unix.socket ~cloexec:true Unix.PF_UNIX Unix.SOCK_STREAM 0 in
   let rec incoming _ =
-    (try
-       let socket, caller = Unix.accept ~cloexec:true sock in
-       let ip = Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller in
-       log#important "New client %s." ip;
-       handle_client socket ip
-     with e ->
-       log#severe "Failed to accept new client: %S" (Printexc.to_string e));
+    ( try
+        let socket, caller = Unix.accept ~cloexec:true sock in
+        let ip =
+          Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
+        in
+        log#important "New client %s." ip;
+        handle_client socket ip
+      with e ->
+        log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
     [
       {
         Duppy.Task.priority = Tutils.Non_blocking;
@@ -458,13 +460,15 @@ let start_telnet () =
   (* Set TCP_NODELAY on the socket *)
   Unix.setsockopt sock Unix.TCP_NODELAY true;
   let rec incoming _ =
-    (try
-       let socket, caller = Unix.accept ~cloexec:true sock in
-       let ip = Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller in
-       log#important "New client: %s." ip;
-       handle_client socket ip
-     with e ->
-       log#severe "Failed to accept new client: %S" (Printexc.to_string e));
+    ( try
+        let socket, caller = Unix.accept ~cloexec:true sock in
+        let ip =
+          Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
+        in
+        log#important "New client: %s." ip;
+        handle_client socket ip
+      with e ->
+        log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
     [
       {
         Duppy.Task.priority = Tutils.Non_blocking;
@@ -491,7 +495,7 @@ let start () =
   let socket = conf_socket#get in
   if telnet || socket then (
     if telnet then start_telnet () else ();
-    if socket then start_socket () else ())
+    if socket then start_socket () else () )
   else ()
 
 let () = Lifecycle.on_start start

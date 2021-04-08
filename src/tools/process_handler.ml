@@ -99,7 +99,7 @@ let send_stop ~log t =
       if not process.stopped then (
         log "Closing process's stdin";
         process.stopped <- true;
-        try close_out process.p.stdin with _ -> ()))
+        try close_out process.p.stdin with _ -> () ))
     ()
 
 let _kill = function
@@ -154,7 +154,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                (fun () ->
                  if process.status = None then (
                    process.status <- Some status;
-                   ignore (Unix.write in_pipe done_c 0 1)))
+                   ignore (Unix.write in_pipe done_c 0 1) ))
                ()
            with _ -> ())
          ());
@@ -242,8 +242,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                 | `Read fd when fd = stdout ->
                     on_stdout (puller process.in_pipe fd) :: cur
                 | `Read fd -> on_stderr (puller process.in_pipe fd) :: cur
-                | `Write fd -> on_stdin (pusher fd) :: cur
-                | `Delay _ -> cur)
+                | `Write fd -> on_stdin (pusher fd) :: cur | `Delay _ -> cur)
               [] l
           in
           List.fold_left
@@ -257,7 +256,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                 | `Continue, `Continue -> `Continue
                 | `Delay d, `Delay d' -> `Delay (max d d')
                 | `Delay d, _ | _, `Delay d -> `Delay d)
-            `Continue decisions)
+            `Continue decisions )
       in
       get_task decision
     with
@@ -300,7 +299,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                 raise e
             | _ ->
                 f e;
-                restart_decision (on_stop (`Exception e)))
+                restart_decision (on_stop (`Exception e)) )
   in
   let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
   Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));

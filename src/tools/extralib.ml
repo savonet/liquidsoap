@@ -9,7 +9,7 @@ module List = struct
 
   let rec may_map f = function
     | x :: t -> (
-        match f x with Some x -> x :: may_map f t | None -> may_map f t)
+        match f x with Some x -> x :: may_map f t | None -> may_map f t )
     | [] -> []
 
   let rec assoc_nth l n = function
@@ -59,11 +59,11 @@ module Unix = struct
     let rec finddepth f roots =
       Array.iter
         (fun root ->
-          (match lstat root with
+          ( match lstat root with
             | { st_kind = S_DIR } ->
                 finddepth f
                   (Array.map (Filename.concat root) (Sys.readdir root))
-            | _ -> ());
+            | _ -> () );
           f root)
         roots
     in
@@ -99,7 +99,7 @@ module Filename = struct
           | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
           | Unix.Unix_error (Unix.EINTR, _, _) -> loop count
           | Unix.Unix_error (e, _, _) ->
-              raise_err ("mk_temp_dir: " ^ Unix.error_message e))
+              raise_err ("mk_temp_dir: " ^ Unix.error_message e) )
     in
     loop 1000
 end

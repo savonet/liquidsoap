@@ -47,7 +47,7 @@ class swap ~kind (source : source) =
       if offset = 0 then (
         let tmp = buffer.(1) in
         buffer.(1) <- buffer.(2);
-        buffer.(2) <- tmp)
+        buffer.(2) <- tmp )
       else
         for i = offset to AFrame.position buf - 1 do
           let tmp = buffer.(0).{i} in

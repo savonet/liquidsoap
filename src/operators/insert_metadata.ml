@@ -80,7 +80,7 @@ class insert_metadata ~kind source =
             otherwise, it will be visible to sources under
            this one! See: #1115 *)
         source#get buf;
-        self#add_metadata buf p)
+        self#add_metadata buf p )
   end
 
 let () =
@@ -149,5 +149,5 @@ class replay ~kind meta src =
       if first then (
         if Frame.get_metadata ab start = None then
           Frame.set_metadata ab start meta;
-        first <- false)
+        first <- false )
   end

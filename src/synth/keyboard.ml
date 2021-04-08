@@ -115,7 +115,7 @@ class keyboard ~kind =
               priority = Tutils.Non_blocking;
               events = [`Read Unix.stdin];
             };
-          ])
+          ] )
       in
       Duppy.Task.add Tutils.scheduler
         {

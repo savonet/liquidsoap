@@ -150,23 +150,23 @@ let mk_options { Avfilter.options } =
             try from_value v
             with _ -> raise (Lang_errors.Invalid_value (v, "Invalid value"))
           in
-          (match min with
+          ( match min with
             | Some m when x < m ->
                 raise
                   (Lang_errors.Invalid_value
                      ( v,
                        Printf.sprintf "%s must be more than %s" name
                          (to_string m) ))
-            | _ -> ());
-          (match max with
+            | _ -> () );
+          ( match max with
             | Some m when m < x ->
                 raise
                   (Lang_errors.Invalid_value
                      ( v,
                        Printf.sprintf "%s must be less than %s" name
                          (to_string m) ))
-            | _ -> ());
-          (match values with
+            | _ -> () );
+          ( match values with
             | _ :: _ when List.find_opt (fun (_, v) -> v = x) values = None ->
                 raise
                   (Lang_errors.Invalid_value
@@ -174,7 +174,7 @@ let mk_options { Avfilter.options } =
                        Printf.sprintf "%s should be one of: %s" name
                          (String.concat ", "
                             (List.map (fun (_, v) -> to_string v) values)) ))
-            | _ -> ());
+            | _ -> () );
           let x =
             match default with
               | Some v
@@ -290,31 +290,32 @@ let apply_filter ~args_parser ~filter p =
                ( v,
                  Printf.sprintf "Invalid number of input for filter %s"
                    filter.name ));
-        List.nth inputs idx)
+        List.nth inputs idx )
       else Lang.assoc "" (idx + ofs + 2) p
     in
     Queue.push
-      (lazy
-        (List.iteri
-           (fun idx input ->
-             let output =
-               match Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx) with
-                 | `Output output -> Lazy.force output
-                 | _ -> assert false
-             in
-             link output input)
-           filter.io.inputs.audio;
-         List.iteri
-           (fun idx input ->
-             let output =
-               match
-                 Video.of_value (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
-               with
-                 | `Output output -> output
-                 | _ -> assert false
-             in
-             link (Lazy.force output) input)
-           filter.io.inputs.video))
+      ( lazy
+        ( List.iteri
+            (fun idx input ->
+              let output =
+                match Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx) with
+                  | `Output output -> Lazy.force output
+                  | _ -> assert false
+              in
+              link output input)
+            filter.io.inputs.audio;
+          List.iteri
+            (fun idx input ->
+              let output =
+                match
+                  Video.of_value
+                    (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
+                with
+                  | `Output output -> output
+                  | _ -> assert false
+              in
+              link (Lazy.force output) input)
+            filter.io.inputs.video ) )
       graph.init;
     let audio =
       List.map
@@ -360,13 +361,13 @@ let () =
         in
         let explanation =
           String.concat " "
-            ((if List.mem `Dynamic_inputs flags then
-              [
-                "This filter has dynamic inputs: last two arguments are lists \
-                 of audio and video inputs. Total number of inputs is \
-                 determined at runtime.";
-              ]
-             else [])
+            ( ( if List.mem `Dynamic_inputs flags then
+                [
+                  "This filter has dynamic inputs: last two arguments are \
+                   lists of audio and video inputs. Total number of inputs is \
+                   determined at runtime.";
+                ]
+              else [] )
             @
             if List.mem `Dynamic_outputs flags then
               [
@@ -374,7 +375,7 @@ let () =
                  audio and video outputs. Total number of outputs is \
                  determined at runtime.";
               ]
-            else [])
+            else [] )
         in
         let descr =
           Printf.sprintf "Ffmpeg filter: %s%s" description
@@ -528,7 +529,7 @@ let () =
 
       let pad = Audio.of_value (Lang.assoc "" 2 p) in
       Queue.add
-        (lazy
+        ( lazy
           (let pad =
              match pad with `Output pad -> Lazy.force pad | _ -> assert false
            in
@@ -537,7 +538,8 @@ let () =
              Avfilter.attach ~name Avfilter.abuffersink config
            in
            Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
-           Avfilter.(Hashtbl.add graph.entries.outputs.audio name s#set_output)))
+           Avfilter.(Hashtbl.add graph.entries.outputs.audio name s#set_output))
+          )
         graph.init;
 
       (s :> Source.source));
@@ -595,7 +597,7 @@ let () =
   let return_t = Lang.kind_type_of_kind_format return_kind in
   Lang.add_operator "ffmpeg.filter.video.output" ~category:Lang.Output
     ~descr:"Return a video source from a filter's output" ~return_t
-    (output_base_proto
+    ( output_base_proto
     @ [
         ( "fps",
           Lang.nullable_t Lang.int_t,
@@ -603,7 +605,7 @@ let () =
           Some "Output frame per seconds. Defaults to global value" );
         ("", Graph.t, None, None);
         ("", Video.t, None, None);
-      ])
+      ] )
     (fun p ->
       let graph_v = Lang.assoc "" 1 p in
       let config = get_config graph_v in
@@ -626,7 +628,7 @@ let () =
       Queue.add s#clock graph.clocks;
 
       Queue.add
-        (lazy
+        ( lazy
           (let pad =
              match Video.of_value (Lang.assoc "" 2 p) with
                | `Output p -> Lazy.force p
@@ -649,7 +651,8 @@ let () =
              link
                (List.hd fps.io.outputs.video)
                (List.hd _buffersink.io.inputs.video));
-           Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output)))
+           Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output))
+          )
         graph.init;
 
       (s :> Source.source))
@@ -683,37 +686,41 @@ let () =
       let first = Queue.take graph.clocks in
       Queue.iter (Clock.unify first) graph.clocks;
       Queue.add
-        (lazy
-          (log#info "Initializing graph";
-           let filter = Avfilter.launch config in
-           Avfilter.(
-             List.iter
-               (fun (name, input) ->
-                 let set_input = Hashtbl.find graph.entries.inputs.audio name in
-                 set_input input)
-               filter.inputs.audio);
-           Avfilter.(
-             List.iter
-               (fun (name, input) ->
-                 let set_input = Hashtbl.find graph.entries.inputs.video name in
-                 set_input input)
-               filter.inputs.video);
-           Avfilter.(
-             List.iter
-               (fun (name, output) ->
-                 let set_output =
-                   Hashtbl.find graph.entries.outputs.audio name
-                 in
-                 set_output output)
-               filter.outputs.audio);
-           Avfilter.(
-             List.iter
-               (fun (name, output) ->
-                 let set_output =
-                   Hashtbl.find graph.entries.outputs.video name
-                 in
-                 set_output output)
-               filter.outputs.video)))
+        ( lazy
+          ( log#info "Initializing graph";
+            let filter = Avfilter.launch config in
+            Avfilter.(
+              List.iter
+                (fun (name, input) ->
+                  let set_input =
+                    Hashtbl.find graph.entries.inputs.audio name
+                  in
+                  set_input input)
+                filter.inputs.audio);
+            Avfilter.(
+              List.iter
+                (fun (name, input) ->
+                  let set_input =
+                    Hashtbl.find graph.entries.inputs.video name
+                  in
+                  set_input input)
+                filter.inputs.video);
+            Avfilter.(
+              List.iter
+                (fun (name, output) ->
+                  let set_output =
+                    Hashtbl.find graph.entries.outputs.audio name
+                  in
+                  set_output output)
+                filter.outputs.audio);
+            Avfilter.(
+              List.iter
+                (fun (name, output) ->
+                  let set_output =
+                    Hashtbl.find graph.entries.outputs.video name
+                  in
+                  set_output output)
+                filter.outputs.video) ) )
         graph.init;
       if Queue.length graph.input_inits = 0 then
         Queue.iter Lazy.force graph.init;

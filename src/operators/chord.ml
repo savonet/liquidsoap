@@ -116,7 +116,7 @@ class chord ~kind metadata_name (source : source) =
               | "M7" -> play t [c; c + 4; c + 7; c + 11]
               | "m7" -> play t [c; c + 3; c + 7; c + 10]
               | "dim" -> play t [c; c + 3; c + 6]
-              | m -> self#log#debug "Unknown mode: %s\n%!" m))
+              | m -> self#log#debug "Unknown mode: %s\n%!" m ))
         chords
   end
 

@@ -64,7 +64,7 @@ module Make (Config : Config_t) = struct
           else (
             let p = Http.read socket buf pos (size - pos) in
             if p <= 0 then raise Read_error;
-            read (pos + p))
+            read (pos + p) )
         in
         Bytes.unsafe_to_string (read 0)
       in
@@ -92,7 +92,7 @@ module Make (Config : Config_t) = struct
       else (
         old_chunk := chunk;
         parse chunk;
-        Some h)
+        Some h )
 
   let read_line socket =
     let ans = ref Bytes.empty in
@@ -124,7 +124,7 @@ module Make (Config : Config_t) = struct
         let n = min len (String.length !chunkbuf) in
         String.blit !chunkbuf 0 buf offs n;
         chunkbuf := String.sub !chunkbuf n (String.length !chunkbuf - n);
-        n)
+        n )
       else Http.read socket buf 0 len
     in
     match metaint with
@@ -144,8 +144,8 @@ module Make (Config : Config_t) = struct
                 readcnt := 0;
                 match read_metadata socket with
                   | Some m -> insert_metadata m
-                  | None -> ());
-              r)
+                  | None -> () );
+              r )
 
   (** HTTP input *)
 
@@ -263,7 +263,7 @@ module Make (Config : Config_t) = struct
                     self#log#severe "Error while reading from socket: %s"
                       (Printexc.to_string e);
                     self#disconnect_no_lock;
-                    0)
+                    0 )
         in
         let read =
           match logf with
@@ -382,7 +382,7 @@ module Make (Config : Config_t) = struct
                   try
                     let sub = Pcre.exec ~pat:"^([^;]+);.*$" content_type in
                     Pcre.get_substring sub 1
-                  with Not_found -> content_type)
+                  with Not_found -> content_type )
           in
           self#log#info "Content-type %S." content_type;
           if status = 301 || status = 302 || status = 303 || status = 307 then (
@@ -396,10 +396,10 @@ module Make (Config : Config_t) = struct
               else location
             in
             self#log#info "Redirected to %s" location;
-            raise (Redirection location));
+            raise (Redirection location) );
           if status <> 200 then (
             self#log#info "Could not get file: %s" status_msg;
-            raise Internal);
+            raise Internal );
           on_connect fields;
           let play_track (m, uri) =
             if not (poll_should_stop ()) then (
@@ -407,7 +407,7 @@ module Make (Config : Config_t) = struct
               List.iter (fun (a, b) -> Hashtbl.add metas a b) m;
               self#insert_metadata metas;
               self#disconnect;
-              self#connect poll_should_stop uri)
+              self#connect poll_should_stop uri )
           in
           let randomize playlist =
             let aplay = Array.of_list playlist in
@@ -434,7 +434,7 @@ module Make (Config : Config_t) = struct
                         let playlist = parser content in
                         match playlist with
                           | [] -> raise Not_found
-                          | _ -> playlist))
+                          | _ -> playlist ))
                 ()
             in
             playlist_process playlist
@@ -453,7 +453,7 @@ module Make (Config : Config_t) = struct
               try
                 test_playlist (fun x ->
                     snd (Playlist_parser.search_valid ~pwd:(Http.dirname url) x))
-              with Not_found -> ())
+              with Not_found -> () )
             else (
               Generator.set_mode generator `Undefined;
               let dec =
@@ -469,14 +469,14 @@ module Make (Config : Config_t) = struct
                     try logf <- Some (open_out_bin (Utils.home_unrelate f))
                     with e ->
                       self#log#severe "Could not open log file: %s"
-                        (Printexc.to_string e))
+                        (Printexc.to_string e) )
                 | None -> ()
               end;
               self#log#important "Decoding...";
               Generator.set_rewrite_metadata generator (fun m ->
                   Hashtbl.add m "source_url" url;
                   m);
-              self#feeding poll_should_stop dec)
+              self#feeding poll_should_stop dec )
         with
           | Redirection location ->
               self#disconnect;
@@ -504,7 +504,7 @@ module Make (Config : Config_t) = struct
         if should_stop () then has_stopped ()
         else (
           Thread.delay poll_delay;
-          self#poll (should_stop, has_stopped))
+          self#poll (should_stop, has_stopped) )
 
       method wake_up act =
         super#wake_up act;
@@ -654,8 +654,8 @@ module Make (Config : Config_t) = struct
           Lang.getter_t Lang.string_t,
           None,
           Some
-            ("URL of an " ^ protocol ^ " stream (default port is "
-           ^ string_of_int default_port ^ ").") );
+            ( "URL of an " ^ protocol ^ " stream (default port is "
+            ^ string_of_int default_port ^ ")." ) );
       ]
       (fun p ->
         let playlist_mode =

@@ -227,7 +227,7 @@ module Make (Transport : Transport_t) = struct
         if plus && x = " " then "+"
         else (
           let k = Char.code x.[0] in
-          "%" ^ to_hex2 k))
+          "%" ^ to_hex2 k ))
       s
 
   let of_hex1 c =
@@ -249,7 +249,7 @@ module Make (Transport : Transport_t) = struct
           if String.length s < 3 then raise UrlDecoding;
           let k1 = of_hex1 s.[1] in
           let k2 = of_hex1 s.[2] in
-          String.make 1 (Char.chr ((k1 lsl 4) lor k2))))
+          String.make 1 (Char.chr ((k1 lsl 4) lor k2)) ))
       s
 
   let args_split s =
@@ -348,7 +348,7 @@ module Make (Transport : Transport_t) = struct
       else (
         let c = Bytes.get c 0 in
         Buffer.add_char ans c;
-        if c = '\n' then incr count_n else if c <> '\r' then count_n := 0);
+        if c = '\n' then incr count_n else if c <> '\r' then count_n := 0 );
       incr n
     done;
     Buffer.contents ans
@@ -444,7 +444,7 @@ module Make (Transport : Transport_t) = struct
     if not (List.mem request [Get; Head; Delete]) then (
       let data = data_of_request request in
       Printf.sprintf "%sContent-Length: %d\r\n\r\n%s\r\n" req
-        (String.length data) data)
+        (String.length data) data )
     else Printf.sprintf "%s\r\n" req
 
   let execute ?(headers = []) ?log ?http_version ~timeout socket action uri =
@@ -503,7 +503,7 @@ module Make (Transport : Transport_t) = struct
                   let n = Transport.read connection tmp 0 1024 in
                   if n > 0 then (
                     Buffer.add_subbytes buf tmp 0 n;
-                    f ())
+                    f () )
                   else Buffer.contents buf
                 in
                 f ()
@@ -516,7 +516,7 @@ module Make (Transport : Transport_t) = struct
                       headers
                   in
                   really_read ~timeout connection (int_of_string len)
-                with _ -> "")
+                with _ -> "" )
         in
         (status, headers, body))
 end

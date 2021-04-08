@@ -133,7 +133,7 @@ let read_header read_ops ic =
       if read_string ic 4 <> name then (
         let n = even_ceil (read_int ic) in
         read_ops.seek ic n;
-        seek ())
+        seek () )
     in
     seek ()
   in
@@ -165,7 +165,7 @@ let read_header read_ops ic =
       bytes_per_sample = byt_per_samp;
       bits_per_sample = bit_per_samp;
       length_of_data_to_follow = len_dat;
-    })
+    } )
   else if format = `Aiff then (
     if fmt_len < 0x12 then
       raise (Not_a_iff_file "Bad header: invalid \"COMM\" length");
@@ -181,7 +181,7 @@ let read_header read_ops ic =
     if fmt_len > 0x12 then (
       match read_string ic 4 with
         | "NONE" -> read_ops.seek ic (even_ceil (fmt_len - 0x16))
-        | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported"));
+        | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported") );
 
     (* Skip unhandled chunks. *)
     seek_chunk ic "SSND";
@@ -198,7 +198,7 @@ let read_header read_ops ic =
       bytes_per_sample = byt_per_samp;
       bits_per_sample = bit_per_samp;
       length_of_data_to_follow = len_dat - (8 + offset);
-    })
+    } )
   else assert false
 
 let in_chan_read_header = read_header in_chan_ops

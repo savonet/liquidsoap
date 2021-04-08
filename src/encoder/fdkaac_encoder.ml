@@ -88,9 +88,9 @@ module Register (Fdkaac : Fdkaac_t) = struct
         `Transmux params.Fdkaac_format.transmux;
         `Afterburner params.Fdkaac_format.afterburner;
       ]
-      @ (if params.Fdkaac_format.aot = `Mpeg_4 `AAC_ELD then
-         [`Sbr_mode params.Fdkaac_format.sbr_mode]
-        else [])
+      @ ( if params.Fdkaac_format.aot = `Mpeg_4 `AAC_ELD then
+          [`Sbr_mode params.Fdkaac_format.sbr_mode]
+        else [] )
       @
       match params.Fdkaac_format.bitrate_mode with
         | `Variable vbr -> [`Bitrate_mode (`Variable vbr)]
@@ -136,7 +136,7 @@ module Register (Fdkaac : Fdkaac_t) = struct
             Audio_converter.Samplerate.resample samplerate_converter
               (dst_freq /. src_freq) (Audio.sub b start len)
           in
-          (b, 0, Audio.length b))
+          (b, 0, Audio.length b) )
         else (b, start, len)
       in
       let encoded = Strings.Mutable.empty () in

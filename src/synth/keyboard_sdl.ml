@@ -142,14 +142,14 @@ class keyboard ~kind velocity =
                     else (
                       let n = note_of_char c in
                       (* Printf.printf "Playing note %d.\n%!" n; *)
-                      MIDI.insert ans (0, MIDI.Note_on (n, velocity)))
+                      MIDI.insert ans (0, MIDI.Note_on (n, velocity)) )
                 | `Key_up ->
                     let k = Sdl.Event.(get e keyboard_keycode) in
                     let c = char_of_key k in
                     let n = note_of_char c in
                     (* Printf.printf "Stopping note %d.\n%!" n; *)
                     MIDI.insert ans (0, MIDI.Note_off (n, velocity))
-                | _ -> ())
+                | _ -> () )
           with Not_found | Invalid_argument _ -> ()
         done;
         ans

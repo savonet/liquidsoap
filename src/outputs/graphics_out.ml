@@ -68,5 +68,5 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output ~kind ~infallible ~autostart ~on_start ~on_stop source
-        :> Source.source))
+      ( new output ~kind ~infallible ~autostart ~on_start ~on_stop source
+        :> Source.source ))

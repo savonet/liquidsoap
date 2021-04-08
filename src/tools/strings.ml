@@ -97,7 +97,8 @@ let drop l len =
         if len = 0 then (0, x :: l)
         else (
           let lx = S.length x in
-          if len >= lx then (len - lx, l) else (0, S.sub x len (lx - len) :: l))
+          if len >= lx then (len - lx, l) else (0, S.sub x len (lx - len) :: l)
+          )
   in
   let r, l = aux len l in
   assert (r = 0);
@@ -123,7 +124,7 @@ let sub l o len =
           let s = S.sub s !o r in
           ans := add_view !ans s;
           o := 0;
-          len := !len - r)))
+          len := !len - r ) ))
     l;
   assert (!len = 0);
   !ans

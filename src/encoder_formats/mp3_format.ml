@@ -41,14 +41,14 @@ let string_of_bitrate_constraints
   String.concat ","
     (List.filter
        (fun s -> s <> "")
-       (List.map f
-          [
-            ("quality", quality);
-            ("bitrate", mean_bitrate);
-            ("min_bitrate", min_bitrate);
-            ("max_bitrate", max_bitrate);
-          ]
-       @ [hard_min]))
+       ( List.map f
+           [
+             ("quality", quality);
+             ("bitrate", mean_bitrate);
+             ("min_bitrate", min_bitrate);
+             ("max_bitrate", max_bitrate);
+           ]
+       @ [hard_min] ))
 
 type bitrate_control =
   | ABR of bitrate_constraints

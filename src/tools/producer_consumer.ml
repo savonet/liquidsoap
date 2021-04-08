@@ -50,7 +50,7 @@ class producer ~name ~kind c =
           Generator.fill c.generator frame;
           if Frame.is_partial frame && Generator.length c.generator = 0 then (
             self#log#important "Buffer emptied, start buffering...";
-            c.buffering <- true))
+            c.buffering <- true ))
 
     method abort_track = proceed c (fun () -> c.abort <- true)
   end
@@ -71,7 +71,7 @@ class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
           function
           | `Frame frame ->
               Generator.feed_from_frame ~mode:content c.generator frame
-          | `Flush -> ())
+          | `Flush -> () )
   in
   object (self)
     inherit
@@ -95,12 +95,12 @@ class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
       proceed c (fun () ->
           if c.abort then (
             c.abort <- false;
-            s#abort_track);
+            s#abort_track );
 
           write_frame (`Frame frame);
           if Generator.length c.generator > prebuf then (
             c.buffering <- false;
             if Generator.buffered_length c.generator > max_buffer then
               Generator.remove c.generator
-                (Generator.length c.generator - max_buffer)))
+                (Generator.length c.generator - max_buffer) ))
   end

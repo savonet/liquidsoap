@@ -86,7 +86,7 @@ class on_offset ~kind ~force ~offset ~override f s =
         if force && not executed then self#execute;
         executed <- false;
         self#clear_latest_metadata;
-        elapsed <- 0L)
+        elapsed <- 0L )
   end
 
 let () =

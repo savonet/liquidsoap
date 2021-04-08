@@ -45,7 +45,7 @@ let external_input process input =
     if read = 0 then `Stop
     else (
       Process_handler.really_write (Bytes.sub buf 0 read) pusher;
-      `Continue)
+      `Continue )
   in
   let log = log#important "%s" in
   (* reading from input is blocking.. *)
@@ -112,8 +112,8 @@ let test_ctype f filename =
         midi = Frame_content.None.format;
         (* TODO: this is not perfect *)
         audio =
-          (if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
-          else audio_n ret);
+          ( if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
+          else audio_n ret );
       }
 
 let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =

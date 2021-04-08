@@ -90,7 +90,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
                 ~samplesize)
           ();
-        `Reschedule Tutils.Non_blocking)
+        `Reschedule Tutils.Non_blocking )
       else (
         let len = pull bytes 0 Utils.pagesize in
         let data = converter (Bytes.unsafe_to_string (Bytes.sub bytes 0 len)) in
@@ -113,7 +113,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
                           "Cannot replay multiple element at once.. Picking up \
                            the most recent";
                       if pos > 0 && pos < pos' then ((pos, b), cur)
-                      else ((pos', b'), cur))
+                      else ((pos', b'), cur) )
                     else ((pos, b), (pos' + len, b') :: cur))
                   ((-1, `Nothing), [])
                   pending
@@ -134,7 +134,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         end;
         if abg_max_len < buffered + len then
           `Delay (Frame.seconds_of_audio (buffered + len - abg_max_len))
-        else `Continue)
+        else `Continue )
 
     val mutable handler = None
 
@@ -177,7 +177,7 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
         if ofs < slen then (
           let len = slen - ofs in
           let next = if Frame.is_partial tmp then `Break else `Nothing in
-          Queue.push { sbuf; next; ofs; len } to_write))
+          Queue.push { sbuf; next; ofs; len } to_write ) )
 
     method private on_stdin pusher =
       if Queue.is_empty to_write then self#get_to_write;
@@ -192,17 +192,17 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
               Tutils.mutexify mutex
                 (fun () -> replay_pending := (0, next) :: !replay_pending)
                 ();
-              `Continue)
+              `Continue )
             else (
               Tutils.mutexify mutex (fun () -> next_stop := next) ();
-              if next <> `Nothing then `Stop else `Continue)
+              if next <> `Nothing then `Stop else `Continue )
           in
           ignore (Queue.take to_write);
-          action)
+          action )
         else (
           chunk.ofs <- ofs + ret;
           chunk.len <- len - ret;
-          `Continue)
+          `Continue )
       with Queue.Empty -> `Continue
 
     method private on_stderr reader =
@@ -345,7 +345,7 @@ let () =
           Lang.to_bool (f "restart_on_error"),
           Lang.to_source (f "") )
       in
-      (new pipe
-         ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
-         ~restart_on_error ~process src
-        :> source))
+      ( new pipe
+          ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
+          ~restart_on_error ~process src
+        :> source ))

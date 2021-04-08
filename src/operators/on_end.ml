@@ -52,10 +52,10 @@ class on_end ~kind ~delay f s =
         ignore
           (Lang.apply f
              [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
-        executed <- true);
+        executed <- true );
       if Frame.is_partial ab then (
         self#clear_latest_metadata;
-        executed <- false)
+        executed <- false )
   end
 
 let () =

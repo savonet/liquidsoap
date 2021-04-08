@@ -107,19 +107,19 @@ let search read write field v =
         let f = prefix ^ "/" ^ f in
         if conf_debug#get then Printf.printf "Found: %s\n%!" f;
         add ();
-        file := f)
+        file := f )
       else if Str.string_match re_metadata s 0 then (
         let field = Str.matched_group 1 s in
         let field = String.lowercase_ascii field in
         let value = Str.matched_group 2 s in
         if List.mem field valid_metadata then
-          metadata := (field, value) :: !metadata))
+          metadata := (field, value) :: !metadata ))
     l;
   add ();
   if conf_randomize#get then (
     let ans = Array.of_list !ans in
     Utils.randomize ans;
-    Array.to_list ans)
+    Array.to_list ans )
   else List.rev !ans
 
 let re_request = Str.regexp "^\\([^=]+\\)=\\(.*\\)$"

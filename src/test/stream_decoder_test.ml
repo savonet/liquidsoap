@@ -5,7 +5,7 @@ module G = Generator.From_audio_video_plus
 let () =
   if Array.length Sys.argv < 3 then (
     Printf.printf "Usage: stream_decoder_test <in file> <out file>\n%!";
-    exit 1);
+    exit 1 );
   Frame_settings.lazy_config_eval := true;
   Dtools.Log.conf_stdout#set true;
   Dtools.Log.conf_file#set false;

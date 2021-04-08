@@ -74,7 +74,7 @@ let init input =
 
           (* We have to assume here that new_pos = seek_pos.. *)
           time_offset := seek_time
-        with _ -> ());
+        with _ -> () );
       let rec f pos =
         if pos < seek_time then
           if
@@ -84,11 +84,11 @@ let init input =
             with Mad.End_of_stream -> false
           then (
             update_index ();
-            f (get_time ()))
+            f (get_time ()) )
       in
       f (get_time ());
       let new_time = get_time () in
-      Frame.main_of_seconds (new_time -. cur_time))
+      Frame.main_of_seconds (new_time -. cur_time) )
   in
   let get_info () = Mad.get_frame_format !dec in
   (get_info, get_data, seek)
@@ -189,7 +189,7 @@ let check filename =
         try
           ignore (file_type filename);
           true
-        with _ -> false)
+        with _ -> false )
 
 let duration file =
   if not (check file) then raise Not_found;

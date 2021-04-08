@@ -18,7 +18,7 @@ let read_size ?(synch_safe = true) f =
   let s3 = int_of_char s.[3] in
   if synch_safe then (
     if s0 lor s1 lor s2 lor s3 land 0b10000000 <> 0 then raise Invalid;
-    (s0 lsl 21) + (s1 lsl 14) + (s2 lsl 7) + s3)
+    (s0 lsl 21) + (s1 lsl 14) + (s2 lsl 7) + s3 )
   else (s0 lsl 24) + (s1 lsl 16) + (s2 lsl 8) + s3
 
 let recode enc s =
@@ -44,7 +44,7 @@ let parse f =
     let size = read_size ~synch_safe:(v > 3) f in
     (* size *)
     let size = if v = 3 then size else size - 4 in
-    ignore (read f size));
+    ignore (read f size) );
   let len = ref size in
   let tags = ref [] in
   while !len > 0 do
@@ -88,8 +88,8 @@ let parse f =
           in
           let text = String.sub data start len in
           let text = recode encoding text in
-          tags := (id, text) :: !tags)
-        else tags := (id, data) :: !tags)
+          tags := (id, text) :: !tags )
+        else tags := (id, data) :: !tags )
     with Exit -> ()
   done;
   !tags

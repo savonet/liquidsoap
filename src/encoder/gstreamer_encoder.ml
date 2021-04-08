@@ -120,7 +120,7 @@ let encoder ext =
             done
           with Gstreamer.End_of_stream -> ()
         end;
-        buf)
+        buf )
       else Strings.Mutable.empty ()
     in
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
@@ -154,7 +154,7 @@ let encoder ext =
       let data = Bytes.create (2 * channels * alen) in
       Audio.S16LE.of_audio (Audio.sub pcm astart alen) data 0;
       Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time
-        ~duration (Option.get gst.audio_src) data 0 (Bytes.length data));
+        ~duration (Option.get gst.audio_src) data 0 (Bytes.length data) );
     if videochans > 0 then (
       (* Put video. *)
       let vbuf = VFrame.yuva420p frame in
@@ -166,7 +166,7 @@ let encoder ext =
         assert (Image.YUV420.y_stride img = (Image.YUV420.width img + 3) / 4 * 4);
         assert (
           Image.YUV420.uv_stride img
-          = ((Image.YUV420.width img / 2) + 3) / 4 * 4);
+          = ((Image.YUV420.width img / 2) + 3) / 4 * 4 );
         let y, u, v = Image.YUV420.data img in
         let presentation_time =
           Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration)
@@ -178,7 +178,7 @@ let encoder ext =
         Gstreamer.Buffer.set_presentation_time buf presentation_time;
         Gstreamer.Buffer.set_duration buf vduration;
         Gstreamer.App_src.push_buffer (Option.get gst.video_src) buf
-      done);
+      done );
     GU.flush ~log gst.bin;
 
     (* Return result. *)
@@ -187,7 +187,7 @@ let encoder ext =
     else (
       let ans = Gstreamer.App_sink.pull_buffer_string gst.sink in
       decr_samples ();
-      Strings.of_string ans)
+      Strings.of_string ans )
   in
   let hls =
     {

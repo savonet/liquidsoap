@@ -29,12 +29,12 @@ class noise ~kind duration =
     inherit Synthesized.source ~seek:true ~name:"noise" kind duration
 
     method private synthesize frame off len =
-      (try
-         let off = Frame.audio_of_main off in
-         let len = Frame.audio_of_main len in
-         let b = AFrame.pcm frame in
-         Audio.Generator.white_noise (Audio.sub b off len)
-       with Frame_content.Invalid -> ());
+      ( try
+          let off = Frame.audio_of_main off in
+          let len = Frame.audio_of_main len in
+          let b = AFrame.pcm frame in
+          Audio.Generator.white_noise (Audio.sub b off len)
+        with Frame_content.Invalid -> () );
       try
         let off = Frame.video_of_main off in
         let len = Frame.video_of_main len in
