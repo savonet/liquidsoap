@@ -112,7 +112,7 @@ def check_stream() =
 end
 
 def segment_name(~position,~extname,stream_name) =
-  if position > 9 then
+  if position > 10 then
     check_stream()
   end
 
