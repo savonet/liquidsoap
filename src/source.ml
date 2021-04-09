@@ -562,11 +562,18 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
           w.get_ready ~stype:self#stype ~is_output:self#is_output ~id:self#id
             ~ctype:self#ctype ~clock_id ~clock_sync_mode)
 
+    val mutable on_leave = []
+
+    method on_leave = self#mutexify (fun fn -> on_leave <- fn :: on_leave)
+
     (* Release the source, which will shutdown if possible.
      * The current implementation makes it dangerous to call #leave from
      * another thread than the Root one, as interleaving with #get is
      * forbidden. *)
     method leave ?(dynamic = false) src =
+      self#mutexify
+        (fun () -> List.iter (fun fn -> try fn () with _ -> ()) on_leave)
+        ();
       let rec remove acc = function
         | [] ->
             self#log#critical "Got ill-balanced activations (from %s)!" src#id;
