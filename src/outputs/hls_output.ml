@@ -122,6 +122,10 @@ let hls_proto kind =
           "Location of the configuration file used to restart the output. \
            Relative paths are assumed to be with regard to the directory for \
            generated file." );
+      ( "strict_persist",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Fail if an invalid saved state exists." );
       ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
         Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t kind)),
@@ -275,6 +279,7 @@ class hls_output p =
         filename)
       (Lang.to_option (List.assoc "persist_at" p))
   in
+  let strict_persist = Lang.to_bool (List.assoc "strict_persist" p) in
   (* better choice? *)
   let segment_duration = Lang.to_float (List.assoc "segment_duration" p) in
   let segment_ticks =
@@ -629,7 +634,7 @@ class hls_output p =
               self#read_state persist_at;
               self#toggle_state `Resumed;
               try Unix.unlink persist_at with _ -> ()
-            with exn ->
+            with exn when not strict_persist ->
               self#log#info "Failed to resume from saved state: %s"
                 (Printexc.to_string exn);
               self#toggle_state `Start )

@@ -46,6 +46,9 @@ streams = [
 
 output_dir = file.temp_dir("liq","hls")
 
+state_file = path.concat(path.dirname(argv(0)), "test_ffmpeg_distributed_hls_state.json")
+process.run("cp #{state_file} #{output_dir}/state.json")
+
 def cleanup() =
   file.rmdir(output_dir)
 end
@@ -109,7 +112,7 @@ def check_stream() =
 end
 
 def segment_name(~position,~extname,stream_name) =
-  if position > 2 then
+  if position > 9 then
     check_stream()
   end
 
@@ -123,6 +126,8 @@ output.file.hls(playlist="live.m3u8",
                 segments_overhead=5,
                 segment_name=segment_name,
                 output_dir,
+                persist_at="#{output_dir}/state.json",
+                strict_persist=true,
                 streams,
                 fallible=true,
                 encoded)
