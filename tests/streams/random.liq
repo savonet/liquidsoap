@@ -1,6 +1,6 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/main.liq
 
-%include "test.liq"
+%include "../test.liq"
 
 # We want:
 # Track selection 1 -> s1 ready, s2 not ready -> switch to s1

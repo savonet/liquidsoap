@@ -1,8 +1,8 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/main.liq
 
 success = ref(true)
 
-%include "test.liq"
+%include "../test.liq"
 
 def t(x, y)
   if x != y then

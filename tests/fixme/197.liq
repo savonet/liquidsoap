@@ -1,6 +1,6 @@
-#!../../../src/liquidsoap ../../../libs/pervasives.liq
+#!../../../src/liquidsoap ../../../libs/main.liq
 
-%include "test.liq"
+%include "../test.liq"
 
 first = ref("")
 def filter(r)

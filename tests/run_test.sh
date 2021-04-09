@@ -1,12 +1,11 @@
 #!/bin/bash
 
-BASEPATH=$0
-BASEDIR=`dirname $0`
-PWD=`cd $BASEDIR && pwd`
-
-CMD=$1
-TEST=$2
-TEST_NAME=$3
+LIQUIDSOAP=$1
+MAIN_LIB=$2
+TEST=$3
+TEST_NAME=$4
+PRINT_LOG=$5
+EXTRA_ARGS=$6
 
 if [ -z "${TEST_NAME}" ]; then
   TEST_NAME=${TEST}
@@ -47,7 +46,7 @@ trap timeout ALRM
 
 echo -en "Running test \033[1m${TEST_NAME}\033[0m... "
 
-${CMD} < "${PWD}/${TEST}"  > "${LOG_FILE}" 2>&1 &
+${LIQUIDSOAP} --no-libs ${MAIN_LIB} - -- ${EXTRA_ARGS} < "${TEST}"  > "${LOG_FILE}" 2>&1 &
 
 PID=$!
 wait $PID
@@ -58,12 +57,18 @@ wait $WATCH_PID
 
 if [ "${STATUS}" == "0" ]; then
   echo -e "\033[0;32m[ok]\033[0m"
+  if [ -n "${PRINT_LOG}" ]; then
+    cat "${LOG_FILE}"
+  fi
   exit 0
 fi
 
 if [ "${STATUS}" == "2" ]; then
-    echo -e "\033[1;33m[skipped]\033[0m"
-    exit 0
+  echo -e "\033[1;33m[skipped]\033[0m"
+  if [ -n "${PRINT_LOG}" ]; then
+    cat "${LOG_FILE}"
+  fi
+  exit 0
 fi
 
 echo -e "\033[0;31m[failed]\033[0m"

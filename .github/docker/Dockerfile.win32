@@ -7,12 +7,13 @@ ARG PKG_CONFIG_PATH
 
 WORKDIR /tmp
 
+# Until the next rebuild
+USER root
+RUN apt-get update && apt-get install -y pandoc
+
 USER opam
 
 ENV CC ""
-
-# This is until https://github.com/ocaml/dune/pull/3751 is merged:
-RUN eval `opam config env` && cd /tmp && git clone https://github.com/toots/dune.git && cd dune && git checkout host-ppx.exe-bis && opam install -y ./dune.opam
 
 ENV OPAMSOLVERTIMEOUT=480
 

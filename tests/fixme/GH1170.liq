@@ -1,6 +1,6 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../src/liquidsoap ../libs/main.liq
 
-%include "test.liq"
+%include "../test.liq"
 
 # GH1170 was a tricky bug: we were checking on [is_ready]
 # for the crossfaded source only based on the transition source

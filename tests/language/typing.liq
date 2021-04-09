@@ -1,8 +1,8 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq 
+#!../../src/liquidsoap ../../libs/main.liq 
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 
-%include "test.liq"
+%include "../test.liq"
   
 def f() =
   # Check that some polymorphism is allowed.

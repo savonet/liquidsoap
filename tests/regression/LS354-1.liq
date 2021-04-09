@@ -1,4 +1,4 @@
-%include "test.liq"
+%include "../test.liq"
 
 s = blank(duration=1.)
 

@@ -1,0 +1,18 @@
+(rule
+ (alias runtest)
+ (package liquidsoap)
+ (deps
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (:main_lib ../../libs/main.liq)
+  (:run_test ../run_test.sh)
+  (source_tree ../../libs)
+  (source_tree .))
+ (action
+  (progn
+   (run %{run_test} %{liquidsoap} %{main_lib} ctype1.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} ctype2.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} on_frame.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} radio.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} radio2.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} random.liq)
+   (run %{run_test} %{liquidsoap} %{main_lib} say.liq))))

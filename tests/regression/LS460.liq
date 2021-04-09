@@ -3,7 +3,7 @@
 #  When foo restarts it doesn't know that q isn't ready anymore,
 #  which can lead to a crash.
 
-%include "test.liq"
+%include "../test.liq"
 
 q = once(sine(duration=10.))
 output.dummy(id="bar",mksafe(q))

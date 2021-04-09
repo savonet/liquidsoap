@@ -5,4 +5,4 @@ MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN eval $(opam config env) && make test
+RUN eval $(opam config env) && export OCAMLPATH=`cat ../.ocamlpath` && dune runtest

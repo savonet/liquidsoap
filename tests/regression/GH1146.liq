@@ -1,4 +1,4 @@
-%include "test.liq"
+%include "../test.liq"
 
 # In #1146, we encountered a case where native flac
 # decoding was stuck at the end of a track. This test
@@ -7,7 +7,7 @@
 
 track_count = ref(0)
 
-s = single("../media/files/audio/@flac(stereo).flac")
+s = single("../media/stereo.flac")
 
 def f(_) =
   track_count := !track_count + 1

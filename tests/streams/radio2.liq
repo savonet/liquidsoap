@@ -1,8 +1,8 @@
-#!../../src/liquidsoap -i ../../libs/pervasives.liq
+#!../../src/liquidsoap -i ../../libs/main.liq
 
 # Basic radio test
 
-%include "test.liq"
+%include "../test.liq"
 
 day     = playlist("~/Music")
 night   = playlist("~/Music")

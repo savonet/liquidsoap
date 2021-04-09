@@ -1,5 +1,5 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
-%include "test.liq"
+#!../../src/liquidsoap ../../libs/main.liq
+%include "../test.liq"
 
 set("log.level",5)
 set("frame.audio.samplerate",48000)
@@ -14,7 +14,7 @@ if debian_version == "10" then
 end
 
 fname = argv(default="",1)
-out = "files/test.mp4"
+out = "test.mp4"
 
 if file.exists(out) then
   file.remove(out)

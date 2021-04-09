@@ -1,5 +1,5 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
-%include "test.liq"
+#!../../src/liquidsoap --no-libs ../../libs/main.liq
+%include "../test.liq"
 
 set("log.level",5)
 set("frame.audio.samplerate",48000)
@@ -13,11 +13,6 @@ if file.exists(out) then
   file.remove(out)
 end
 
-digests = [
-  ("files/@wav(mono).wav", "792e343a2772b8c67bc0d03ec60fe734"),
-  ("files/@wav(stereo).wav", "792e343a2772b8c67bc0d03ec60fe734")
-] 
-
 s = single(fname)
 
 s = once(s)
@@ -25,14 +20,6 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  recorded_digest = list.assoc(default="", fname, digests)
-  pass_digest =
-    if recorded_digest != "" then
-      recorded_digest == file.digest(out)
-    else
-      true
-    end
-
   json = process.read("ffprobe -v quiet -print_format json -show_streams #{out}")
 
   int_format = of_json(default=[("streams", [[("channels", 0)]])], json)
@@ -43,7 +30,7 @@ def on_done () =
   stream = list.hd(default=[], list.assoc(default=[], "streams", string_format))
   samplerate = list.assoc(default="0","sample_rate",stream)
 
-  if pass_digest and channels == 2 and samplerate == "48000" then
+  if channels == 2 and samplerate == "48000" then
     test.pass()
   else
     test.fail()

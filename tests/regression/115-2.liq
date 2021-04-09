@@ -1,5 +1,5 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
-%include "test.liq"
+#!../../src/liquidsoap ../../libs/main.liq
+%include "../test.liq"
 
 sa = sine()
 

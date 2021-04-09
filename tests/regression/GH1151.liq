@@ -1,4 +1,4 @@
-%include "test.liq"
+%include "../test.liq"
 
 def f() =
   if process.read.lines('echo "aa\rbb\ncc\r\ndd\r\r\nee"') !=

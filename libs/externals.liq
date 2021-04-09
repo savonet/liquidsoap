@@ -9,12 +9,12 @@ register(
   name="ffmpeg path",
   descr="Path to ffmpeg binary",
   "decoder.external.ffmpeg.path",
-  "ffmpeg#{exe_ext}")
+  "ffmpeg#{ext_exe}")
 register(
   name="ffprobe path",
   descr="Path to ffprobe binary",
   "decoder.external.ffprobe.path",
-  "ffprobe#{exe_ext}")
+  "ffprobe#{ext_exe}")
 
 register(
   name="Ffmpeg decoder stream mimes",
@@ -25,8 +25,8 @@ register(
 # Enable ffmpeg decoder.
 # @category Liquidsoap
 def enable_external_ffmpeg_decoder() =
-  ffmpeg     = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
-  ffprobe    = get(default="ffprobe#{exe_ext}","decoder.external.ffprobe.path")
+  ffmpeg     = get(default="ffmpeg#{ext_exe}","decoder.external.ffmpeg.path")
+  ffprobe    = get(default="ffprobe#{ext_exe}","decoder.external.ffprobe.path")
   mime_types = get(default=[],"decoder.mime_types.ffmpeg")
 
   def ffprobe_test(fname) =
@@ -55,7 +55,7 @@ register(
   name="mpcdec path",
   descr="Path to mpcdec binary",
   "decoder.external.mpcdec.path",
-  "mpcdec#{exe_ext}")
+  "mpcdec#{ext_exe}")
 
 # Enable external Musepack decoder.
 # @category Liquidsoap
@@ -65,7 +65,7 @@ def enable_external_mpc_decoder() =
   mpc_mimes = [ "audio/x-musepack", "audio/musepack" ]
   mpc_filexts = [ "mpc", "mp+", "mpp" ]
 
-  mpcdec = get(default="mpcdec#{exe_ext}","decoder.external.mpcdec.path") 
+  mpcdec = get(default="mpcdec#{ext_exe}","decoder.external.mpcdec.path") 
 
   def test_mpc(file) =
     def get_channels(file) =
@@ -109,20 +109,20 @@ register(
   name="flac path",
   descr="Path to flac binary",
   "decoder.external.flac.path",
-  "flac#{exe_ext}")
+  "flac#{ext_exe}")
 register(
   name="metaflac path",
   descr="Path to metaflac binary",
   "decoder.external.metaflac.path",
-  "metaflac#{exe_ext}")
+  "metaflac#{ext_exe}")
 
 # Enable external FLAC decoders. Please note that built-in support for 
 # FLAC is available in liquidsoap if compiled and should be preferred
 # over the external decoder.
 # @category Liquidsoap
 def enable_external_flac_decoder() =
-  flac = get(default="flac#{exe_ext}","decoder.external.flac.path")
-  metaflac = get(default="metaflac#{exe_ext}","decoder.external.metaflac.path")
+  flac = get(default="flac#{ext_exe}","decoder.external.flac.path")
+  metaflac = get(default="metaflac#{ext_exe}","decoder.external.metaflac.path")
 
   if file.which(flac) != null() then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
@@ -182,7 +182,7 @@ register(
   name="faad path",
   descr="Path to faad binary",
   "decoder.external.faad.path",
-  "faad#{exe_ext}")
+  "faad#{ext_exe}")
 
 # Enable or disable external FAAD (AAC/AAC+/M4A) decoders. Does not work
 # on Win32.
@@ -190,7 +190,7 @@ register(
 # compiled and should be preferred over the external decoder.
 # @category Liquidsoap
 def enable_external_faad_decoder() =
-  faad = get(default="faad#{exe_ext}","decoder.external.faad.path")
+  faad = get(default="faad#{ext_exe}","decoder.external.faad.path")
 
   # A list of know extensions and content-type for AAC.
   # Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding

@@ -44,7 +44,7 @@ let () =
   let status, headers, body = full_request ~timeout:1. ~uri ~request:Get () in
   let q =
     Printf.sprintf "GET /foo HTTP/1.0\r\nHost: foo\r\nUser-Agent: %s\r\n\r\n"
-      Configure.vendor
+      (Configure.vendor ())
   in
   assert (Buffer.contents mock_query = q);
   assert (status = ("HTTP/1.1", 200, "OK"));
@@ -58,7 +58,7 @@ let () =
   let status, headers, body = full_request ~timeout:1. ~uri ~request:Get () in
   let q =
     Printf.sprintf "GET /foo HTTP/1.0\r\nHost: foo\r\nUser-Agent: %s\r\n\r\n"
-      Configure.vendor
+      (Configure.vendor ())
   in
   assert (Buffer.contents mock_query = q);
   assert (status = ("HTTP/1.1", 200, "OK"));
@@ -72,7 +72,7 @@ let () =
   let status, headers, body = full_request ~timeout:1. ~uri ~request:Get () in
   let q =
     Printf.sprintf "GET /foo HTTP/1.0\r\nHost: foo\r\nUser-Agent: %s\r\n\r\n"
-      Configure.vendor
+      (Configure.vendor ())
   in
   assert (Buffer.contents mock_query = q);
   assert (status = ("HTTP/1.1", 200, "OK"));
@@ -94,7 +94,7 @@ let () =
   let status, headers, body = full_request ~timeout:1. ~uri ~request:Get () in
   let q =
     Printf.sprintf "GET /foo HTTP/1.0\r\nHost: foo\r\nUser-Agent: %s\r\n\r\n"
-      Configure.vendor
+      (Configure.vendor ())
   in
   assert (Buffer.contents mock_query = q);
   assert (status = ("HTTP/1.1", 200, "OK"));

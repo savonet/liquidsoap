@@ -5,7 +5,7 @@
 
 # By the way, this one is a more complicated instance of LS503..
 
-%include "test.liq"
+%include "../test.liq"
 
 skipped = true
 

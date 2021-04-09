@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/main.liq
 
 # We had a problem that we had no location was reported for builtin records,
 # when a member is not found.

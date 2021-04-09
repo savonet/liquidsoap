@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq --force-start
+#!../../src/liquidsoap ../../libs/main.liq --force-start
 
 %include "performance.liq"
 

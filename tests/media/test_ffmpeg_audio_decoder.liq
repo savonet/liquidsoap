@@ -1,5 +1,5 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
-%include "test.liq"
+#!../../src/liquidsoap ../../libs/main.liq
+%include "../test.liq"
 
 set("log.level",5)
 set("frame.audio.samplerate",48000)
@@ -7,7 +7,7 @@ set("frame.audio.samplerate",48000)
 set("decoder.decoders",["FFMPEG"])
 
 fname = argv(default="",1)
-out = "files/test.wav"
+out = "test.wav"
 
 if file.exists(out) then
   file.remove(out)
