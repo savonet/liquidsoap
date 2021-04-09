@@ -326,7 +326,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
            if auth_f user password then Duppy.Monad.return (`Shout, "/", `Icy)
            else (
              log#info "ICY error: invalid password";
-             simple_reply "Invalid password\r\n\r\n")))
+             simple_reply "Invalid password\r\n\r\n" )))
 
   let parse_http_request_line r =
     try
@@ -394,7 +394,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 let auth_data = Pcre.split ~pat:":" (Utils.decode64 x) in
                 match auth_data with
                   | x :: y :: _ -> (x, y)
-                  | _ -> raise Not_found)
+                  | _ -> raise Not_found )
             | _ -> raise Not_found
         with Not_found -> (
           match args with
@@ -407,7 +407,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   try Hashtbl.find args "user" with Not_found -> valid_user
                 in
                 (user, Hashtbl.find args "pass")
-            | _ -> raise Not_found)
+            | _ -> raise Not_found )
       in
       auth_check ~auth_f user pass
     with
@@ -442,9 +442,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
         Duppy.Monad.bind
-          (if (* ICY and Xaudiocast auth check was done before.. *)
-              not auth then exec_http_auth_check ~login:s#login h headers
-          else Duppy.Monad.return ())
+          ( if (* ICY and Xaudiocast auth check was done before.. *)
+               not auth then exec_http_auth_check ~login:s#login h headers
+          else Duppy.Monad.return () )
           (fun () ->
             try
               let sproto =
@@ -474,13 +474,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                       let s, len =
                         Http.read_chunked ~timeout:conf_timeout#get connection
                       in
-                      Buffer.add_substring buf s 0 len);
+                      Buffer.add_substring buf s 0 len );
                     let len = min len (Buffer.length buf) in
                     Buffer.blit buf 0 b ofs len;
                     Utils.buffer_drop buf len;
                     len
                   in
-                  Some read)
+                  Some read )
                 else None
               in
               let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
@@ -555,7 +555,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                       json_string_of (List.assoc "password" data)
                     in
                     Duppy.Monad.return (mime, mount, user, password)
-                | _ -> error ())
+                | _ -> error () )
           | _ -> error ()
       with _ -> error ()
     in
@@ -613,7 +613,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                                   in
                                   source#insert_metadata m;
                                   raise Retry
-                              | _ -> raise Retry)
+                              | _ -> raise Retry )
                         | `Close _ -> raise Websocket_closed
                         | _ -> raise Retry
                     in
@@ -670,20 +670,20 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                       (exec_http_auth_check ~args ~login:s#login h headers)
                       (fun () ->
                         Duppy.Monad.bind
-                          (if
-                           not
-                             (List.mem
-                                (Option.value ~default:"" s#get_mime_type)
-                                conf_icy_metadata#get)
+                          ( if
+                            not
+                              (List.mem
+                                 (Option.value ~default:"" s#get_mime_type)
+                                 conf_icy_metadata#get)
                           then (
-                           log#info
-                             "Returned 405 for '%s': Source format does not \
-                              support ICY metadata update"
-                             uri;
-                           simple_reply
-                             (http_error_page 405 "Method Not Allowed"
-                                "Method Not Allowed"))
-                          else Duppy.Monad.return ())
+                            log#info
+                              "Returned 405 for '%s': Source format does not \
+                               support ICY metadata update"
+                              uri;
+                            simple_reply
+                              (http_error_page 405 "Method Not Allowed"
+                                 "Method Not Allowed") )
+                          else Duppy.Monad.return () )
                           (fun () ->
                             Hashtbl.remove args "mount";
                             Hashtbl.remove args "mode";
@@ -742,7 +742,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       else (
         let log_args = Hashtbl.copy args in
         Hashtbl.remove log_args "pass";
-        log_args)
+        log_args )
     in
     Hashtbl.iter (log#info "%s Arg: %s, value: %s." protocol_name) log_args;
 
@@ -752,7 +752,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let rex = Pcre.regexp reg_uri in
       if (verb :> verb) = hmethod && Pcre.pmatch ~rex uri then (
         log#info "Found handler '%s %s' on port %d." smethod reg_uri port;
-        raise (Handled handler))
+        raise (Handled handler) )
       else ()
     in
     try
@@ -783,9 +783,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
         ~priority:Tutils.Non_blocking
         ~marker:
-          (match icy with
+          ( match icy with
             | true -> Duppy.Io.Split "[\r]?\n"
-            | false -> Duppy.Io.Split "[\r]?\n[\r]?\n")
+            | false -> Duppy.Io.Split "[\r]?\n[\r]?\n" )
         h
     in
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
@@ -915,13 +915,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         let unix_socket = T.file_descr_of_socket socket in
         Unix.setsockopt unix_socket Unix.TCP_NODELAY true;
         let on_error e =
-          (match e with
+          ( match e with
             | Duppy.Io.Io_error -> log#info "Client %s disconnected" ip
             | Duppy.Io.Timeout ->
                 log#info "Timeout while communicating with client %s." ip
             | Duppy.Io.Unix (c, p, m) ->
                 log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-            | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e));
+            | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e) );
 
           (* Sending an HTTP response in case of timeout
            * even though ICY connections are not HTTP.. *)
@@ -970,7 +970,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             (function `Read s -> Unix.close s | _ -> assert false)
             events;
           []
-        with _ -> [])
+        with _ -> [] )
       else (
         let get_sock = function `Read sock -> sock | _ -> assert false in
         List.iter process_client (List.map get_sock e);
@@ -980,7 +980,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             events;
             handler = incoming ~port ~icy events out_s;
           };
-        ])
+        ] )
     in
     let open_socket port bind_addr =
       let bind_addr_inet = Unix.inet_addr_of_string bind_addr in
@@ -1018,7 +1018,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
        * we need to open a second one. *)
       if List.length socks = 1 && icy then (
         let socks = open_port ~icy (port + 1) :: socks in
-        Hashtbl.replace opened_ports port (h, socks))
+        Hashtbl.replace opened_ports port (h, socks) )
       else ();
       h
     with Not_found ->
@@ -1054,7 +1054,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Unix.close in_s
       in
       List.iter f socks;
-      Hashtbl.remove opened_ports port)
+      Hashtbl.remove opened_ports port )
     else ()
 
   (* Add http_handler... *)
@@ -1082,7 +1082,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Unix.close in_s
       in
       List.iter f socks;
-      Hashtbl.remove opened_ports port)
+      Hashtbl.remove opened_ports port )
     else ()
 end
 

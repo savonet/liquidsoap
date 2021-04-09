@@ -65,7 +65,7 @@ let video_convert scale =
       in
       let img2 = Video.Image.create width height in
       scale img img2;
-      img2)
+      img2 )
     else (
       let converter = converter buf.Ogg_decoder.format in
       let yuv = Video.Image.create width height in
@@ -77,7 +77,7 @@ let video_convert scale =
           buf.Ogg_decoder.uv_stride
       in
       converter (Image.Generic.of_YUV420 sframe) frame;
-      yuv)
+      yuv )
 
 let demuxer_log x = log#debug "%s" x
 
@@ -104,7 +104,7 @@ let create_decoder ?(merge_tracks = false) source input =
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
       if not merge_tracks then
-        Decoder.G.add_break ~sync:true buffer.Decoder.generator);
+        Decoder.G.add_break ~sync:true buffer.Decoder.generator );
     let add_meta f t =
       (* Initial metadata in files is handled separately. *)
       if source = `Stream || (merge_tracks && not !first_meta) then (
@@ -114,7 +114,7 @@ let create_decoder ?(merge_tracks = false) source input =
           (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
           m;
         Hashtbl.add metas "vendor" v;
-        Decoder.G.add_metadata buffer.Decoder.generator metas);
+        Decoder.G.add_metadata buffer.Decoder.generator metas );
       first_meta := false
     in
     let drop_track d t =
@@ -150,7 +150,7 @@ let create_decoder ?(merge_tracks = false) source input =
     try
       if not !started then (
         init ~reset:false buffer;
-        started := true);
+        started := true );
       if Ogg_decoder.eos decoder then
         if merge_tracks || source = `Stream then init ~reset:true buffer
         else raise Ogg_decoder.End_of_stream;
@@ -183,10 +183,10 @@ let create_decoder ?(merge_tracks = false) source input =
       if decode_audio then (
         let track = Option.get tracks.Ogg_decoder.audio_track in
         Ogg_decoder.decode_audio decoder track (fun buf ->
-            audio_feed track (Audio.of_array buf)));
+            audio_feed track (Audio.of_array buf)) );
       if decode_video then (
         let track = Option.get tracks.Ogg_decoder.video_track in
-        Ogg_decoder.decode_video decoder track (video_feed track))
+        Ogg_decoder.decode_video decoder track (video_feed track) )
     with
       (* We catch [Ogg_decoder.End_of_stream] only if asked to
        * to merge logical tracks or with a stream source. 

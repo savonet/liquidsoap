@@ -95,7 +95,7 @@ let video_scale () =
     else (
       let img2 = Video.Image.create dst_width dst_height in
       video_scale img img2;
-      img2)
+      img2 )
 
 type fps = { num : int; den : int }
 
@@ -142,4 +142,4 @@ let video_resample () =
         | _ ->
             let resampler = video_resample ~in_freq ~out_freq in
             state := Some (resampler, in_freq, out_freq);
-            exec resampler data)
+            exec resampler data )

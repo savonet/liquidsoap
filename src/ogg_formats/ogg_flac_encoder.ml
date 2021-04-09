@@ -79,7 +79,7 @@ let create_encoder ~flac ~comments () =
     (* Assert that at least some data was encoded.. *)
     if not !started then (
       let b = empty_data () in
-      Flac.Encoder.process enc cb b);
+      Flac.Encoder.process enc cb b );
     Flac.Encoder.finish enc cb;
     Flac_ogg.Encoder.finish enc
   in

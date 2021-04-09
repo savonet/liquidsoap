@@ -150,7 +150,7 @@ let mk_audio ~ffmpeg ~options output =
                       ~out_sample_format:target_sample_format src_channel_layout
                       src_samplerate target_channel_layout target_samplerate
                   in
-                  RawResampler.convert fn)
+                  RawResampler.convert fn )
                 else fun f -> f
               in
               resampler := Some f;
@@ -389,7 +389,7 @@ let mk_video ~ffmpeg ~options output =
                   fun frame ->
                     let scaled = RawScaler.convert scaler frame in
                     Avutil.frame_set_pts scaled (Avutil.frame_pts frame);
-                    scaled)
+                    scaled )
                 else fun f -> f
               in
               scaler := Some f;

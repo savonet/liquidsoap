@@ -35,38 +35,38 @@ let () =
   assert (
     Decoder.can_decode_type
       { audio = stereo; video = none; midi = none }
-      { audio = stereo; video = none; midi = none });
+      { audio = stereo; video = none; midi = none } );
   assert (
     Decoder.can_decode_type
       { audio = mono; video = none; midi = none }
-      { audio = stereo; video = none; midi = none });
+      { audio = stereo; video = none; midi = none } );
   assert (
     Decoder.can_decode_type
       { audio = five_point_one; video = none; midi = none }
-      { audio = stereo; video = none; midi = none });
+      { audio = stereo; video = none; midi = none } );
   assert (
     not
       (Decoder.can_decode_type
          { audio = mono; video = none; midi = none }
-         { audio = stereo; video = yuva420p; midi = none }));
+         { audio = stereo; video = yuva420p; midi = none }) );
   assert (
     Decoder.can_decode_type
       { audio = mono; video = yuva420p; midi = none }
-      { audio = stereo; video = yuva420p; midi = none });
+      { audio = stereo; video = yuva420p; midi = none } );
   assert (
     not
       (Decoder.can_decode_type
          { audio = mono; video = none; midi = none }
-         { audio = stereo; video = none; midi }));
+         { audio = stereo; video = none; midi }) );
   assert (
     Decoder.can_decode_type
       { audio = stereo; video = yuva420p; midi }
-      { audio = stereo; video = none; midi = none });
+      { audio = stereo; video = none; midi = none } );
   assert (
     Decoder.can_decode_type
       { audio = stereo; video = yuva420p; midi }
-      { audio = stereo; video = yuva420p; midi });
+      { audio = stereo; video = yuva420p; midi } );
   assert (
     Decoder.can_decode_type
       { audio = stereo; video = yuva420p; midi = none }
-      { audio = none; video = yuva420p; midi = none })
+      { audio = none; video = yuva420p; midi = none } )

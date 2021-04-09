@@ -153,9 +153,9 @@ let pipe_proto kind arg_doc =
         Lang.getter_t Lang.string_t,
         None,
         Some
-          (arg_doc
-         ^ " Some strftime conversion specifiers are available: `%SMHdmY`. You \
-            can also use `$(..)` interpolation notation for metadata.") );
+          ( arg_doc
+          ^ " Some strftime conversion specifiers are available: `%SMHdmY`. \
+             You can also use `$(..)` interpolation notation for metadata." ) );
       ("", Lang.source_t kind, None, None);
     ]
 
@@ -197,7 +197,7 @@ class virtual piped_output ~kind p =
       if self#is_open then (
         let flush = (Option.get encoder).Encoder.stop () in
         self#send flush;
-        self#close_pipe);
+        self#close_pipe );
       super#output_stop
 
     val m = Mutex.create ()
@@ -217,10 +217,10 @@ class virtual piped_output ~kind p =
 
     method send b =
       if not self#is_open then self#prepare_pipe;
-      (try super#send b
-       with e when reload_on_error ->
-         self#log#important "Reopening on error: %s." (Printexc.to_string e);
-         need_reset <- true);
+      ( try super#send b
+        with e when reload_on_error ->
+          self#log#important "Reopening on error: %s." (Printexc.to_string e);
+          need_reset <- true );
       if not reopening then
         if
           need_reset
@@ -231,7 +231,7 @@ class virtual piped_output ~kind p =
     method insert_metadata m =
       if reload_on_metadata then (
         current_metadata <- Some m;
-        need_reset <- true)
+        need_reset <- true )
       else super#insert_metadata m
   end
 

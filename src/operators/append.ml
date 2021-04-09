@@ -50,18 +50,18 @@ class append ~kind ~insert_missing ~merge source f =
                         let pos = Frame.position buf in
                         self#get_frame buf;
                         Frame.set_breaks buf
-                          (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
+                          (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) )
                     else (
                       self#log#important
                         "Track ends and append source is not ready: won't \
                          append.";
                       self#unregister append;
-                      state <- `Idle)
+                      state <- `Idle )
                   else state <- `Replay (Some append)
               | _ ->
                   self#log#important
                     "No metadata at beginning of track: won't append.";
-                  state <- (if finished then `Idle else `Replay None))
+                  state <- (if finished then `Idle else `Replay None) )
         | `Replay None ->
             source#get buf;
             if Frame.is_partial buf then state <- `Idle
@@ -74,17 +74,17 @@ class append ~kind ~insert_missing ~merge source f =
                   let pos = Frame.position buf in
                   self#get_frame buf;
                   Frame.set_breaks buf
-                    (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
+                    (Utils.remove_one (( = ) pos) (Frame.breaks buf)) ) )
               else (
                 self#log#important
                   "Track ends and append source is not ready: won't append.";
                 state <- `Idle;
-                self#unregister a)
+                self#unregister a )
         | `Append a ->
             a#get buf;
             if Frame.is_partial buf then (
               state <- `Idle;
-              self#unregister a)
+              self#unregister a )
 
     method stype = source#stype
 

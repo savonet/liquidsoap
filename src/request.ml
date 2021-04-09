@@ -69,7 +69,7 @@ let string_of_metadata metadata =
     (fun k v ->
       if !first then (
         first := false;
-        try Format.fprintf f "%s=%a" k escape v with _ -> ())
+        try Format.fprintf f "%s=%a" k escape v with _ -> () )
       else (try Format.fprintf f "\n%s=%a" k escape v with _ -> ()))
     metadata;
   Format.pp_print_flush f ();
@@ -256,7 +256,7 @@ let rec pop_indicator t =
   in
   if i.temporary then (
     try Unix.unlink i.string
-    with e -> log#severe "Unlink failed: %S" (Printexc.to_string e));
+    with e -> log#severe "Unlink failed: %S" (Printexc.to_string e) );
   t.decoder <- None;
   if repop then pop_indicator t
 
@@ -345,7 +345,7 @@ let read_metadata t =
             try
               Hashtbl.replace indicator.metadata "duration"
                 (string_of_float (duration name))
-            with Not_found -> ())
+            with Not_found -> () )
         with _ -> ())
       (get_decoders conf_metadata_decoders mresolvers)
 
@@ -359,7 +359,7 @@ let local_check t =
         if not (file_is_readable name) then (
           log#important "Read permission denied for %S!" name;
           add_log t "Read permission denied!";
-          pop_indicator t)
+          pop_indicator t )
         else (
           match Decoder.get_file_decoder ~metadata ~ctype name with
             | Some (decoder_name, f) ->
@@ -367,7 +367,7 @@ let local_check t =
                 set_root_metadata t "decoder" decoder_name;
                 read_metadata t;
                 t.status <- Ready
-            | None -> pop_indicator t)
+            | None -> pop_indicator t )
       done
     with No_indicator -> ()
   in
@@ -385,7 +385,7 @@ let push_indicators t l =
      * without any need for a resolution process. *)
     (* TODO sometimes it's not that fast actually, and it'd be nice
      * to be able to disable this check in some cases, like playlist.safe. *)
-    local_check t)
+    local_check t )
 
 let is_ready t =
   t.indicators <> []
@@ -405,9 +405,9 @@ let update_metadata t =
 
   (* TOP INDICATOR *)
   replace "temporary"
-    (match t.indicators with
+    ( match t.indicators with
       | (h :: _) :: _ -> if h.temporary then "true" else "false"
-      | _ -> "false");
+      | _ -> "false" );
   begin
     match get_filename t with
     | Some f -> replace "filename" f
@@ -431,12 +431,12 @@ let update_metadata t =
     | Some ct -> replace "kind" (Frame.string_of_content_type ct)
   end;
   replace "status"
-    (match t.status with
+    ( match t.status with
       | Idle -> "idle"
       | Resolving -> "resolving"
       | Ready -> "ready"
       | Playing -> "playing"
-      | Destroyed -> "destroyed")
+      | Destroyed -> "destroyed" )
 
 let get_metadata t k =
   update_metadata t;
@@ -535,7 +535,7 @@ let destroy ?force t =
     done;
     t.status <- Destroyed;
     add_log t "Request finished.";
-    Pool.kill t.id grace_time#get)
+    Pool.kill t.id grace_time#get )
 
 let clean () =
   Pool.iter (fun _ r -> if r.status <> Destroyed then destroy ~force:true r)
@@ -563,8 +563,8 @@ let is_static s =
       | Some (proto, _) -> (
           match protocols#get proto with
             | Some handler -> handler.static
-            | None -> false)
-      | None -> false)
+            | None -> false )
+      | None -> false )
 
 (** Resolving engine. *)
 
@@ -602,17 +602,17 @@ let resolve ~ctype t timeout =
                       "Failed to resolve %S! For more info, see server command \
                        'trace %d'."
                       i.string t.id;
-                    ignore (pop_indicator t))
+                    ignore (pop_indicator t) )
                   else push_indicators t production
               | None ->
                   log#important "Unknown protocol %S in URI %S!" proto i.string;
                   add_log t "Unknown protocol!";
-                  pop_indicator t)
+                  pop_indicator t )
         | None ->
             let log_level = if i.string = "" then 4 else 3 in
             log#f log_level "Nonexistent file or ill-formed URI %S!" i.string;
             add_log t "Nonexistent file or ill-formed URI!";
-            pop_indicator t)
+            pop_indicator t )
   in
   let result =
     try
@@ -621,7 +621,7 @@ let resolve ~ctype t timeout =
         if timeleft > 0. then resolve_step ()
         else (
           add_log t "Global timeout.";
-          raise ExnTimeout)
+          raise ExnTimeout )
       done;
       Resolved
     with

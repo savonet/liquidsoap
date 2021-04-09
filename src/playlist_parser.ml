@@ -95,7 +95,7 @@ let get_file ?pwd file =
         if Http.is_url pwd && not (Http.is_url file) then pwd ^ file
         else (
           let f = Filename.concat pwd file in
-          if Sys.file_exists f then f else file)
+          if Sys.file_exists f then f else file )
     | None -> file
 
 exception Exit of (string * playlist)

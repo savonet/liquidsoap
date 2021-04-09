@@ -67,7 +67,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
           let theta = Float.pi *. float_of_int n /. 1024. in
           Array.append
             (mkcircle (n - 1))
-            [| { re = cos theta; im = sin theta } |])
+            [| { re = cos theta; im = sin theta } |] )
       in
       mkcircle 1024
     in
@@ -106,7 +106,7 @@ class fir ~kind (source : source) freq beta numcoeffs =
           let wkt = circle.(i * a) *~ !t.(s + h + i) in
           !d.(s + i) <- !t.(s + i) +~ wkt;
           !d.(s + h + i) <- !t.(s + i) -~ wkt
-        done)
+        done )
     in
     fft (ref temp) (ref vec) 0 2048;
 

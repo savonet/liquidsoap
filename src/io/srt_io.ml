@@ -380,7 +380,7 @@ let meth :
       fun s ->
         Lang.val_fun [] (fun _ ->
             Lang.record
-              (match s#stats with
+              ( match s#stats with
                 | Some stats ->
                     List.map
                       (fun (name, _, fn, _) -> (name, fn stats))
@@ -388,7 +388,7 @@ let meth :
                 | None ->
                     List.map
                       (fun (name, _, _, none) -> (name, none))
-                      stats_specs)) );
+                      stats_specs )) );
   ]
 
 let parse_common_options p =
@@ -569,12 +569,12 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
     val mutable stats_task = None
 
     method collect_stats () =
-      (try
-         let s = self#get_socket in
-         self#mutexify
-           (fun () -> stats <- Some (Srt.Stats.bstats ~clear:true s))
-           ()
-       with _ -> ());
+      ( try
+          let s = self#get_socket in
+          self#mutexify
+            (fun () -> stats <- Some (Srt.Stats.bstats ~clear:true s))
+            ()
+        with _ -> () );
       if self#should_stop then -1. else stats_interval
 
     method stats = self#mutexify (fun () -> stats) ()
@@ -589,7 +589,7 @@ class virtual networking_agent ~on_connect ~on_disconnect ~stats_interval =
                self#collect_stats
            in
            stats_task <- Some t;
-           Duppy.Async.wake_up t);
+           Duppy.Async.wake_up t );
          current_on_connect ());
 
     let current_on_disconnect = !on_disconnect in
@@ -700,10 +700,10 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
       let on_connect s =
         try
           let client, origin = Srt.accept s in
-          (try self#log#info "New connection from %s" (string_of_address origin)
-           with exn ->
-             self#log#important "Error while fetching connection source: %s"
-               (Printexc.to_string exn));
+          ( try self#log#info "New connection from %s" (string_of_address origin)
+            with exn ->
+              self#log#important "Error while fetching connection source: %s"
+                (Printexc.to_string exn) );
           Srt.setsockflag client Srt.sndsyn true;
           Srt.setsockflag client Srt.rcvsyn true;
           if self#should_stop then raise Done;
@@ -767,19 +767,19 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
     (on_connect :=
        fun () ->
          Generator.set_mode generator `Undefined;
-         (match dump with
+         ( match dump with
            | Some fname -> dump_chan <- Some (open_out_bin fname)
-           | None -> ());
+           | None -> () );
          on_connect_cur ());
     let on_disconnect_cur = !on_disconnect in
     on_disconnect :=
       fun () ->
         decoder_data <- None;
-        (match dump_chan with
+        ( match dump_chan with
           | Some chan ->
               close_out_noerr chan;
               dump_chan <- None
-          | None -> ());
+          | None -> () );
         on_disconnect_cur ()
 
     method stype = Source.Fallible
@@ -812,7 +812,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
           Buffer.add_subbytes buf tmp 0 input;
           match dump_chan with
             | Some chan -> output chan tmp 0 input
-            | None -> ());
+            | None -> () );
         let len = min len (Buffer.length buf) in
         Buffer.blit buf 0 bytes ofs len;
         Utils.buffer_drop buf len;
@@ -903,7 +903,7 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.srt" ~return_t ~category:Lang.Input ~meth
     ~descr:"Receive a SRT stream from a distant agent."
-    (common_options ~mode:`Listener
+    ( common_options ~mode:`Listener
     @ [
         ( "clock_safe",
           Lang.bool_t,
@@ -933,7 +933,7 @@ let () =
           Some
             "Content-Type (mime type) used to find a decoder for the input \
              stream." );
-      ])
+      ] )
     (fun p ->
       let ( mode,
             hostname,
@@ -957,17 +957,17 @@ let () =
       let format = Lang.to_string (List.assoc "content_type" p) in
       match mode with
         | `Listener ->
-            (new input_listener
-               ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
-               ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-               ~dump format
-              :> < Source.source ; stats : Srt.Stats.t option >)
+            ( new input_listener
+                ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
+                ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
+                ~dump format
+              :> < Source.source ; stats : Srt.Stats.t option > )
         | `Caller ->
-            (new input_caller
-               ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
-               ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-               ~dump format
-              :> < Source.source ; stats : Srt.Stats.t option >))
+            ( new input_caller
+                ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
+                ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
+                ~dump format
+              :> < Source.source ; stats : Srt.Stats.t option > ))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
@@ -1058,7 +1058,7 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
     method private send data =
       if self#is_connected then (
         self#mutexify (Strings.Mutable.append_strings buffer) data;
-        self#send_chunks)
+        self#send_chunks )
   end
 
 class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
@@ -1096,12 +1096,12 @@ let () =
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
     ~meth ~descr:"Send a SRT stream to a distant agent."
-    (Output.proto
+    ( Output.proto
     @ common_options ~mode:`Caller
     @ [
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
-      ])
+      ] )
     (fun p ->
       let ( mode,
             hostname,
@@ -1137,14 +1137,14 @@ let () =
       in
       match mode with
         | `Caller ->
-            (new output_caller
-               ~kind ~hostname ~port ~payload_size ~autostart ~on_start ~on_stop
-               ~stats_interval ~infallible ~messageapi ~encoder_factory
-               ~on_connect ~on_disconnect source
-              :> < Source.source ; stats : Srt.Stats.t option >)
+            ( new output_caller
+                ~kind ~hostname ~port ~payload_size ~autostart ~on_start
+                ~on_stop ~stats_interval ~infallible ~messageapi
+                ~encoder_factory ~on_connect ~on_disconnect source
+              :> < Source.source ; stats : Srt.Stats.t option > )
         | `Listener ->
-            (new output_listener
-               ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
-               ~infallible ~stats_interval ~messageapi ~encoder_factory
-               ~on_connect ~on_disconnect source
-              :> < Source.source ; stats : Srt.Stats.t option >))
+            ( new output_listener
+                ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
+                ~infallible ~stats_interval ~messageapi ~encoder_factory
+                ~on_connect ~on_disconnect source
+              :> < Source.source ; stats : Srt.Stats.t option > ))

@@ -64,7 +64,7 @@ class bpm ~kind (source : source) cb every =
       if n >= every then (
         n <- 0;
         let bpm = Soundtouch.BPM.get_bpm bpm in
-        ignore (cb [("", Lang.float bpm)]))
+        ignore (cb [("", Lang.float bpm)]) )
   end
 
 let () =

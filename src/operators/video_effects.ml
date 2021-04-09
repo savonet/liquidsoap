@@ -44,7 +44,7 @@ class effect ~name ~kind effect (source : source) =
         | Some (rgb, offset, length) -> (
             try
               Video.iter effect (Frame_content.Video.get_data rgb) offset length
-            with Frame_content.Invalid -> ())
+            with Frame_content.Invalid -> () )
         | _ -> ()
   end
 
@@ -254,7 +254,7 @@ let () =
               if width < 0 && height < 0 then (owidth, oheight)
               else if width < 0 then (owidth * height / oheight, height)
               else if height < 0 then (width, oheight * width / owidth)
-              else assert false)
+              else assert false )
           in
           let dst = Video.Image.create width height in
           Video.Image.scale buf dst;

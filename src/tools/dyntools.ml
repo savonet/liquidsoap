@@ -58,7 +58,7 @@ let load_dynlinks () =
               List.iter
                 (fun file -> Dynlink.loadfile (get_file file))
                 dynload.files;
-              raise (Done path))
+              raise (Done path) )
           with Dynlink.Error e ->
             dyn_log#important "Error while loading dynamic %s at %s" name path;
             dyn_log#important "%s" (Dynlink.error_message e))

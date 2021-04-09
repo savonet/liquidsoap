@@ -223,14 +223,15 @@ class hls_output p =
           else filename
         in
         let dir = Filename.dirname filename in
-        (try Utils.mkdir ~perm:0o777 dir
-         with exn ->
-           raise
-             (Lang_errors.Invalid_value
-                ( List.assoc "persist_at" p,
-                  Printf.sprintf
-                    "Error while creating directory %S for persisting state: %s"
-                    dir (Printexc.to_string exn) )));
+        ( try Utils.mkdir ~perm:0o777 dir
+          with exn ->
+            raise
+              (Lang_errors.Invalid_value
+                 ( List.assoc "persist_at" p,
+                   Printf.sprintf
+                     "Error while creating directory %S for persisting state: \
+                      %s"
+                     dir (Printexc.to_string exn) )) );
         filename)
       (Lang.to_option (List.assoc "persist_at" p))
   in
@@ -301,7 +302,7 @@ class hls_output p =
         with Not_found ->
           let bandwidth =
             lazy
-              (match Encoder.(encoder.hls.bitrate ()) with
+              ( match Encoder.(encoder.hls.bitrate ()) with
                 | Some b -> b + (b / 10)
                 | None -> (
                     try Encoder.bitrate format
@@ -310,11 +311,11 @@ class hls_output p =
                         (Lang_errors.Invalid_value
                            ( fmt,
                              "Bandwidth cannot be inferred from codec, please \
-                              specify it in `streams_info`" ))))
+                              specify it in `streams_info`" )) ) )
           in
           let codecs =
             lazy
-              (match Encoder.(encoder.hls.codec_attrs ()) with
+              ( match Encoder.(encoder.hls.codec_attrs ()) with
                 | Some attrs -> attrs
                 | None -> (
                     try Encoder.iso_base_file_media_file_format format
@@ -323,7 +324,7 @@ class hls_output p =
                         (Lang_errors.Invalid_value
                            ( fmt,
                              "Codec cannot be inferred from codec, please \
-                              specify it in `streams_info`" ))))
+                              specify it in `streams_info`" )) ) )
           in
           let extname =
             try Encoder.extension format
@@ -337,9 +338,9 @@ class hls_output p =
           let extname = if extname = "mp4" then "m4s" else extname in
           let video_size =
             lazy
-              (match Encoder.(encoder.hls.video_size ()) with
+              ( match Encoder.(encoder.hls.video_size ()) with
                 | Some s -> Some s
-                | None -> Encoder.video_size format)
+                | None -> Encoder.video_size format )
           in
           (bandwidth, codecs, extname, video_size)
       in
@@ -363,16 +364,16 @@ class hls_output p =
   in
   let x_version =
     lazy
-      (if
-       List.find_opt
-         (fun s ->
-           match s.current_segment with
-             | Some { init_filename = Some _ } -> true
-             | _ -> false)
-         streams
-       <> None
+      ( if
+        List.find_opt
+          (fun s ->
+            match s.current_segment with
+              | Some { init_filename = Some _ } -> true
+              | _ -> false)
+          streams
+        <> None
       then 7
-      else 3)
+      else 3 )
   in
   let source = Lang.assoc "" 3 p in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in
@@ -445,7 +446,7 @@ class hls_output p =
                                   s.init_filename = segment.init_filename)
                                 !segments)
                       then self#unlink filename)
-                    segment.init_filename)))
+                    segment.init_filename) ))
            s.current_segment);
       s.current_segment <- None;
       self#write_playlist s;
@@ -540,7 +541,7 @@ class hls_output p =
               | Some filename ->
                   output_string oc
                     (Printf.sprintf "#EXT-X-MAP:URI=%S\r\n" filename)
-              | _ -> ());
+              | _ -> () );
           output_string oc
             (Printf.sprintf "#EXTINF:%.03f,\r\n"
                (Frame.seconds_of_main segment.len));
@@ -565,15 +566,15 @@ class hls_output p =
             let line =
               Printf.sprintf "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=%S%s\r\n"
                 (Lazy.force s.bandwidth) (Lazy.force s.codecs)
-                (match Lazy.force s.video_size with
+                ( match Lazy.force s.video_size with
                   | None -> ""
-                  | Some (w, h) -> Printf.sprintf ",RESOLUTION=%dx%d" w h)
+                  | Some (w, h) -> Printf.sprintf ",RESOLUTION=%dx%d" w h )
             in
 
             output_string oc line;
             output_string oc (Printf.sprintf "%s%s.m3u8\r\n" prefix s.name))
           streams;
-        self#close_out ~filename:main_playlist_filename oc);
+        self#close_out ~filename:main_playlist_filename oc );
       main_playlist_writen <- true
 
     method private cleanup_playlists =
@@ -581,7 +582,7 @@ class hls_output p =
       self#unlink main_playlist_path
 
     method output_start =
-      (match persist_at with
+      ( match persist_at with
         | Some persist_at when Sys.file_exists persist_at -> (
             try
               self#log#info "Resuming from saved state";
@@ -591,19 +592,19 @@ class hls_output p =
             with exn ->
               self#log#info "Failed to resume from saved state: %s"
                 (Printexc.to_string exn);
-              self#toggle_state `Start)
-        | _ -> self#toggle_state `Start);
+              self#toggle_state `Start )
+        | _ -> self#toggle_state `Start );
       List.iter self#open_segment streams;
       self#toggle_state `Streaming
 
     method output_stop =
       self#toggle_state `Stop;
-      (try
-         let data =
-           List.map (fun s -> (None, s.encoder.Encoder.stop ())) streams
-         in
-         self#send data
-       with _ -> ());
+      ( try
+          let data =
+            List.map (fun s -> (None, s.encoder.Encoder.stop ())) streams
+          in
+          self#send data
+        with _ -> () );
       match persist_at with
         | Some persist_at ->
             self#log#info "Saving state to %S.." persist_at;
@@ -666,11 +667,11 @@ class hls_output p =
                 in
                 self#process_init ~init ~segment s;
                 (None, encoded)
-              with Encoder.Not_enough_data -> (None, Strings.empty))
+              with Encoder.Not_enough_data -> (None, Strings.empty) )
             else if segment.len + len > segment_main_duration then (
               match Encoder.(s.encoder.hls.split_encode frame ofs len) with
                 | `Ok (flushed, encoded) -> (Some flushed, encoded)
-                | `Nope encoded -> (None, encoded))
+                | `Nope encoded -> (None, encoded) )
             else (None, Encoder.(s.encoder.encode frame ofs len))
           in
           let segment = Option.get s.current_segment in

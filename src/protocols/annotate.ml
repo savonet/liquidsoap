@@ -58,7 +58,7 @@ let annotate s ~log _ =
               in
               (* Revert the above hack. *)
               let uri = Pcre.substitute ~pat:"= -" ~subst:(fun _ -> "=-") uri in
-              (metadata, uri))
+              (metadata, uri) )
             else (
               match Stream.next lexer with
                 | Kwd "=" -> (
@@ -67,8 +67,8 @@ let annotate s ~log _ =
                       | Int i -> parse ((key, string_of_int i) :: metadata)
                       | Float f -> parse ((key, string_of_float f) :: metadata)
                       | Ident k -> parse ((key, k) :: metadata)
-                      | _ -> raise Error)
-                | _ -> raise Error)
+                      | _ -> raise Error )
+                | _ -> raise Error )
         | _ -> raise Error
     in
     let metadata, uri = parse [] in

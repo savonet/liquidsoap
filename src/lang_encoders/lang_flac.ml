@@ -56,8 +56,7 @@ let flac_gen params =
       | "", { term = Var s; _ } when String.lowercase_ascii s = "mono" ->
           { f with Flac_format.channels = 1 }
       | "", { term = Var s; _ } when String.lowercase_ascii s = "stereo" ->
-          { f with Flac_format.channels = 2 }
-      | _, t -> raise (generic_error t))
+          { f with Flac_format.channels = 2 } | _, t -> raise (generic_error t))
     defaults params
 
 let make_ogg params = Ogg_format.Flac (flac_gen params)

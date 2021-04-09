@@ -48,4 +48,4 @@ let () =
       try
         t <: t';
         false
-      with _ -> true))
+      with _ -> true) )

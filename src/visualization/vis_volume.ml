@@ -76,7 +76,7 @@ class vumeter ~kind source =
           vol.(c).(pos) <- sqrt (cur_rms.(c) /. f_group_size);
           cur_rms.(c) <- 0.
         done;
-        pos <- (pos + 1) mod backpoints)
+        pos <- (pos + 1) mod backpoints )
 
     method private get_frame buf =
       let channels = self#audio_channels in
@@ -114,11 +114,11 @@ class vumeter ~kind source =
           for i = 1 to backpoints - 1 do
             Graphics.lineto
               (int_of_float (volwidth *. float i))
-              (chan_height
-              + int_of_float (volheight *. vol.((i + pos) mod backpoints)))
+              ( chan_height
+              + int_of_float (volheight *. vol.((i + pos) mod backpoints)) )
           done
         done;
-        Graphics.synchronize ())
+        Graphics.synchronize () )
   end
 
 let () =

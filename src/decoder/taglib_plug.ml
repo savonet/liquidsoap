@@ -60,7 +60,7 @@ let get_tags fname =
             if values = [] then tags
             else (
               let v = List.hd values in
-              if v = "" then tags else (key, v) :: tags))
+              if v = "" then tags else (key, v) :: tags ))
           (Taglib.File.properties f) tags)
   with
     | Invalid_file -> []

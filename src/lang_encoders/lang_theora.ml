@@ -84,8 +84,8 @@ let make params =
           if
             i
             > min
-                (Lazy.force f.Theora_format.width
-                - Lazy.force f.Theora_format.picture_width)
+                ( Lazy.force f.Theora_format.width
+                - Lazy.force f.Theora_format.picture_width )
                 255
           then
             raise

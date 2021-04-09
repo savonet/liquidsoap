@@ -47,7 +47,7 @@ let watch : File_watcher.watch =
     (fun () ->
       if !fd = None then (
         fd := Some (Inotify.create ());
-        Duppy.Task.add Tutils.scheduler (watchdog ()));
+        Duppy.Task.add Tutils.scheduler (watchdog ()) );
       let fd = Option.get !fd in
       let event_conv = function
         | `Modify ->

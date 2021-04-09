@@ -4,7 +4,7 @@ let () =
   let fname = if Array.length Sys.argv > 1 then Sys.argv.(1) else "test.mp3" in
   if not (Sys.file_exists fname) then (
     Printf.printf "File %s not found, exiting." fname;
-    exit 0);
+    exit 0 );
   Printf.printf "Reading %s...\n%!" fname;
   let ic = open_in fname in
   let tags = parse (input ic) in
@@ -17,4 +17,5 @@ let () =
     Printf.printf "mime: %s\n" apic.mime;
     Printf.printf "type: %d\n" apic.picture_type;
     Printf.printf "description: %s\n" apic.description
-    (* let oc = open_out "/tmp/cover.jpg" in output_string oc apic.data; close_out oc *))
+    (* let oc = open_out "/tmp/cover.jpg" in output_string oc apic.data; close_out oc *)
+    )

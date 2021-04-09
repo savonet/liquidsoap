@@ -100,7 +100,7 @@ let encoder id ext =
     Tutils.mutexify mutex (fun _ ->
         if ext.restart = Metadata then (
           is_metadata_restart := true;
-          Process_handler.stop process))
+          Process_handler.stop process ))
   in
   let converter = Audio_converter.Samplerate.create ext.channels in
   let ratio =
@@ -124,12 +124,12 @@ let encoder id ext =
               Audio_converter.Samplerate.resample converter ratio
                 (Audio.sub b start len)
             in
-            (b, 0, Audio.length b))
+            (b, 0, Audio.length b) )
         in
         let slen = 2 * len * Array.length b in
         let sbuf = Bytes.create slen in
         Audio.S16LE.of_audio (Audio.sub b start len) sbuf 0;
-        Strings.unsafe_of_bytes sbuf)
+        Strings.unsafe_of_bytes sbuf )
     in
     Tutils.mutexify mutex
       (fun () ->

@@ -69,7 +69,7 @@ let buffered_input input =
         let read = input.Decoder.read tmp 0 read in
         if read = 0 then raise End_of_stream;
         Strings.Mutable.add_subbytes buffer tmp 0 read;
-        min len (size + read))
+        min len (size + read) )
     in
     Strings.Mutable.blit buffer 0 buf ofs len;
     len
@@ -110,7 +110,7 @@ let create_decoder input =
              ((Option.get input.Decoder.tell) () + bytes));
         Faad.post_sync_reset dec;
         ticks
-      with _ -> 0)
+      with _ -> 0 )
   in
   {
     Decoder.seek;
@@ -125,7 +125,7 @@ let create_decoder input =
           end;
           drop pos;
 
-          buffer.Decoder.put_pcm ~samplerate data));
+          buffer.Decoder.put_pcm ~samplerate data ));
   }
 
 let aac_mime_types =

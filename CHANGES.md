@@ -77,6 +77,7 @@ New:
 - New and better `compress` function. The previous one was renamed
   `compress.old` (#868, #869).
 - Added `stereo.width`.
+- Added `file.mkdir`.
 
 Changed:
 
@@ -170,6 +171,7 @@ Changed:
 - `normalize` now handles all channels uniformly.
 - First-order filter `filter.rc` now takes the cutoff frequency instead of the
   time constant as argument.
+- `file.watch` now returns unit with `unwatch` method.
 
 Fixed:
 

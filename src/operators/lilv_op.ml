@@ -147,7 +147,7 @@ class lilv ~kind (source : source) plugin inputs outputs params =
           Plugin.Instance.connect_port_float inst outputs.(c)
             (Audio.Mono.sub b.(c) offset len)
         done;
-        Plugin.Instance.run inst len)
+        Plugin.Instance.run inst len )
       else (
         (* We have to change channels. *)
         let d = AFrame.pcm buf in
@@ -160,7 +160,7 @@ class lilv ~kind (source : source) plugin inputs outputs params =
           Plugin.Instance.connect_port_float inst outputs.(c)
             (Audio.Mono.sub b.(c) offset len)
         done;
-        Plugin.Instance.run inst len)
+        Plugin.Instance.run inst len )
   end
 
 (** An LV2 plugin without audio input. *)
@@ -178,7 +178,7 @@ class lilv_nosource ~kind plugin outputs params =
     method private get_frame buf =
       if must_fail then (
         AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false)
+        must_fail <- false )
       else (
         let offset = AFrame.position buf in
         let b = AFrame.pcm buf in
@@ -194,7 +194,7 @@ class lilv_nosource ~kind plugin outputs params =
             (Audio.Mono.sub b.(c) offset len)
         done;
         Plugin.Instance.run inst len;
-        AFrame.add_break buf position)
+        AFrame.add_break buf position )
   end
 
 (** An LV2 plugin without audio output (e.g. to observe the stream). The input
@@ -249,9 +249,9 @@ let params_of_plugin plugin =
         let t = port_type p in
         ( Port.symbol p,
           (match t with `Float -> Lang.getter_t Lang.float_t),
-          (match Port.default_float p with
+          ( match Port.default_float p with
             | Some f -> Some (match t with `Float -> Lang.float f)
-            | None -> None),
+            | None -> None ),
           let bounds =
             let min = Port.min_float p in
             let max = Port.max_float p in
@@ -263,7 +263,7 @@ let params_of_plugin plugin =
                 | Some f -> (
                     match t with
                       | `Float ->
-                          bounds := Printf.sprintf "%s%.6g <= " !bounds f)
+                          bounds := Printf.sprintf "%s%.6g <= " !bounds f )
                 | None -> ()
               end;
               bounds := !bounds ^ "`" ^ Port.symbol p ^ "`";
@@ -272,10 +272,10 @@ let params_of_plugin plugin =
                 | Some f -> (
                     match t with
                       | `Float ->
-                          bounds := Printf.sprintf "%s <= %.6g" !bounds f)
+                          bounds := Printf.sprintf "%s <= %.6g" !bounds f )
                 | None -> ()
               end;
-              !bounds ^ ")")
+              !bounds ^ ")" )
           in
           Some (Port.name p ^ bounds ^ ".") ))
       control_ports
@@ -345,18 +345,18 @@ let register_plugin plugin =
         new lilv_nosource ~kind:(Lang.audio_n no) plugin outputs params
       else if no = 0 then
         (* TODO: can we really use such a type? *)
-        (new lilv_noout
-           ~kind:(Lang.audio_n 0) (Option.get source) plugin inputs params
-          :> Source.source)
+        ( new lilv_noout
+            ~kind:(Lang.audio_n 0) (Option.get source) plugin inputs params
+          :> Source.source )
       else if mono then
-        (new lilv_mono
-           ~kind:Lang.any (Option.get source) plugin inputs.(0) outputs.(0)
-           params
-          :> Source.source)
+        ( new lilv_mono
+            ~kind:Lang.any (Option.get source) plugin inputs.(0) outputs.(0)
+            params
+          :> Source.source )
       else
-        (new lilv
-           ~kind:Lang.any (Option.get source) plugin inputs outputs params
-          :> Source.source))
+        ( new lilv
+            ~kind:Lang.any (Option.get source) plugin inputs outputs params
+          :> Source.source ))
 
 let register_plugin plugin =
   try register_plugin plugin

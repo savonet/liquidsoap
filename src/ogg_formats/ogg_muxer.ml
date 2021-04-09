@@ -128,7 +128,7 @@ let add_page encoder ?(header = false) (h, v) =
   Strings.Mutable.add encoder.encoded v;
   if header then (
     Strings.Mutable.add encoder.header h;
-    Strings.Mutable.add encoder.header v)
+    Strings.Mutable.add encoder.header v )
 
 let flush_pages os =
   let rec f os l =
@@ -172,12 +172,12 @@ let create ~skeleton id =
 let register_track ?fill encoder track_encoder =
   if encoder.state = Streaming then (
     log#info "%s: Invalid new track: ogg stream already started.." encoder.id;
-    raise Invalid_usage);
+    raise Invalid_usage );
   if encoder.state = Eos then (
     log#info "%s: Starting new sequentialized ogg stream." encoder.id;
     if encoder.skeleton <> None then
       encoder.skeleton <- Some (init_skeleton encoder);
-    encoder.state <- Bos);
+    encoder.state <- Bos );
 
   (* Initiate a new logical stream *)
   let serial = get_serial () in
@@ -307,7 +307,7 @@ let add_available src encoder =
         | Some (track, pos, p) ->
             add_page encoder p;
             encoder.position <- pos;
-            set_remaining_of_ogg_track track None);
+            set_remaining_of_ogg_track track None );
 
     (* Then, we proceed only if the track
      * is the only one left, or there is no 
@@ -331,11 +331,11 @@ let add_available src encoder =
                 src.remaining <- Some (pos, p)
               else (
                 add_page encoder p;
-                fill src dst)
+                fill src dst )
           | Unknown ->
               add_page encoder p;
               fill src dst
-      with Ogg.Not_enough_data -> ())
+      with Ogg.Not_enough_data -> () )
   in
   fill src encoder;
   if is_empty src then
@@ -347,7 +347,7 @@ let encode encoder id data =
   if encoder.state = Bos then streams_start encoder;
   if encoder.state = Eos then (
     log#info "%s: Cannot encode: ogg stream finished.." encoder.id;
-    raise Invalid_usage);
+    raise Invalid_usage );
   let queue_add src p = Queue.add p src.available in
   match data with
     | Audio_data x -> (
@@ -355,13 +355,13 @@ let encode encoder id data =
           | Audio_track t ->
               t.encoder x t.os (queue_add t);
               add_available t encoder
-          | _ -> raise Invalid_data)
+          | _ -> raise Invalid_data )
     | Video_data x -> (
         match Hashtbl.find encoder.tracks id with
           | Video_track t ->
               t.encoder x t.os (queue_add t);
               add_available t encoder
-          | _ -> raise Invalid_data)
+          | _ -> raise Invalid_data )
 
 (** Finish a track.
   * Not all data will necessarily be outputed here. It is possible
@@ -370,17 +370,17 @@ let end_of_track encoder id =
   let track = Hashtbl.find encoder.tracks id in
   if encoder.state = Bos then (
     log#info "%s: Stream finished without calling streams_start !" encoder.id;
-    streams_start encoder);
+    streams_start encoder );
   match track with
     | Video_track x ->
         if not (Ogg.Stream.eos x.os) then (
           log#info "%s: Setting end of track %nx." encoder.id id;
-          x.stream_end x.os);
+          x.stream_end x.os );
         add_available x encoder
     | Audio_track x ->
         if not (Ogg.Stream.eos x.os) then (
           log#info "%s: Setting end of track %nx." encoder.id id;
-          x.stream_end x.os);
+          x.stream_end x.os );
         add_available x encoder
 
 (** Flush data from all tracks in the stream. *)

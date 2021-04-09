@@ -95,11 +95,11 @@ let () =
     ~descr:
       "Stream raw PCM data (interleaved signed 16 bits little endian integers) \
        from an external application."
-    (proto
+    ( proto
     @ [
         ("channels", Lang.int_t, Some (Lang.int 2), Some "Number of channels.");
         ("samplerate", Lang.int_t, Some (Lang.int 44100), Some "Samplerate.");
-      ])
+      ] )
     ~return_t
     (fun p ->
       let command = Lang.to_string (List.assoc "" p) in
@@ -127,10 +127,10 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      (new external_input
-         ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
-         ~name:"input.external.rawaudio" ~converter command
-        :> Source.source))
+      ( new external_input
+          ~kind ~restart ~bufferize ~log_overfull ~restart_on_error ~max
+          ~name:"input.external.rawaudio" ~converter command
+        :> Source.source ))
 
 let () =
   let kind = Lang.audio_pcm in
@@ -159,7 +159,7 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      (new external_input
-         ~kind ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error
-         ~max ~name:"input.external.wav" ~converter command
-        :> Source.source))
+      ( new external_input
+          ~kind ~restart ~bufferize ~log_overfull ~read_header ~restart_on_error
+          ~max ~name:"input.external.wav" ~converter command
+        :> Source.source ))
