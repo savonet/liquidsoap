@@ -134,6 +134,9 @@ class virtual source :
            [get_ready] and not called externally. *)
        method private wake_up : source list -> unit
 
+       (** Register a callback when leave is called. *)
+       method on_leave : (unit -> unit) -> unit
+
        (** Opposite of [get_ready] : the operator no longer needs the source. *)
        method leave : ?dynamic:bool -> source -> unit
 

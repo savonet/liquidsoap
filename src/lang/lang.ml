@@ -727,6 +727,15 @@ let source_methods =
             let f = assoc "" 1 p in
             s#on_shutdown (fun () -> ignore (apply f []));
             unit) );
+    ( "on_leave",
+      ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
+      "Register a function to be called when source is not used anymore by \
+       another source.",
+      fun s ->
+        val_fun [("", "", None)] (fun p ->
+            let f = assoc "" 1 p in
+            s#on_leave (fun () -> ignore (apply f []));
+            unit) );
     ( "on_track",
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on new tracks.",
