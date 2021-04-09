@@ -22,6 +22,8 @@
 
 (** HLS output. *)
 
+exception Invalid_state
+
 let log = Log.make ["hls"; "output"]
 
 let hls_proto kind =
@@ -120,6 +122,10 @@ let hls_proto kind =
           "Location of the configuration file used to restart the output. \
            Relative paths are assumed to be with regard to the directory for \
            generated file." );
+      ( "strict_persist",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Fail if an invalid saved state exists." );
       ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
         Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t kind)),
@@ -138,8 +144,46 @@ type segment = {
   mutable len : int;
 }
 
-(* We marshal segments so we're not using
-   Queue for them. *)
+let json_of_segment
+    { id; discontinuous; current_discontinuity; filename; init_filename; len } =
+  `Assoc
+    [
+      ("id", `Int id);
+      ("discontinuous", `Bool discontinuous);
+      ("current_discontinuity", `Int current_discontinuity);
+      ("filename", `String filename);
+      ( "init_filename",
+        match init_filename with Some f -> `String f | None -> `Null );
+      ("len", `Int len);
+    ]
+
+let segment_of_json = function
+  | `Assoc
+      [
+        ("id", `Int id);
+        ("discontinuous", `Bool discontinuous);
+        ("current_discontinuity", `Int current_discontinuity);
+        ("filename", `String filename);
+        ("init_filename", init_filename);
+        ("len", `Int len);
+      ] ->
+      let init_filename =
+        match init_filename with
+          | `String f -> Some f
+          | `Null -> None
+          | _ -> raise Invalid_state
+      in
+      {
+        id;
+        discontinuous;
+        current_discontinuity;
+        filename;
+        init_filename;
+        len;
+        out_channel = None;
+      }
+  | _ -> raise Invalid_state
+
 type segments = segment list ref
 
 let push_segment segment segments = segments := !segments @ [segment]
@@ -235,6 +279,7 @@ class hls_output p =
         filename)
       (Lang.to_option (List.assoc "persist_at" p))
   in
+  let strict_persist = Lang.to_bool (List.assoc "strict_persist" p) in
   (* better choice? *)
   let segment_duration = Lang.to_float (List.assoc "segment_duration" p) in
   let segment_ticks =
@@ -589,7 +634,7 @@ class hls_output p =
               self#read_state persist_at;
               self#toggle_state `Resumed;
               try Unix.unlink persist_at with _ -> ()
-            with exn ->
+            with exn when not strict_persist ->
               self#log#info "Failed to resume from saved state: %s"
                 (Printexc.to_string exn);
               self#toggle_state `Start )
@@ -620,26 +665,66 @@ class hls_output p =
       self#log#info "Reading state file at %S.." persist_at;
       let fd = open_out_bin persist_at in
       let streams =
-        List.map
-          (fun { name; position; discontinuity_count } ->
-            (name, position, discontinuity_count))
-          streams
+        `List
+          (List.map
+             (fun { name; position; discontinuity_count } ->
+               `Assoc
+                 [
+                   ("name", `String name);
+                   ("position", `Int position);
+                   ("discontinuity_count", `Int discontinuity_count);
+                 ])
+             streams)
       in
-      Marshal.to_channel fd (streams, segments) [];
+      let segments =
+        `Assoc
+          (List.map
+             (fun (s, l) -> (s, `List (List.map json_of_segment !l)))
+             segments)
+      in
+      output_string fd
+        (JSON.to_string (`Assoc [("streams", streams); ("segments", segments)]));
       close_out fd
 
     method private read_state persist_at =
-      let fd = open_in_bin persist_at in
-      let p, s = Marshal.from_channel fd in
-      close_in fd;
+      let saved_streams, saved_segments =
+        match JSON.from_string (Utils.read_all persist_at) with
+          | `Assoc [("streams", streams); ("segments", segments)] ->
+              (streams, segments)
+          | _ -> raise Invalid_state
+      in
+      let saved_streams =
+        List.map
+          (function
+            | `Assoc
+                [
+                  ("name", `String name);
+                  ("position", `Int position);
+                  ("discontinuity_count", `Int discontinuity_count);
+                ] ->
+                (name, position, discontinuity_count)
+            | _ -> raise Invalid_state)
+          (match saved_streams with `List l -> l | _ -> raise Invalid_state)
+      in
+      let saved_segments =
+        match saved_segments with
+          | `Assoc l ->
+              List.map
+                (function
+                  | s, `List segments ->
+                      (s, ref (List.map segment_of_json segments))
+                  | _ -> raise Invalid_state)
+                l
+          | _ -> raise Invalid_state
+      in
       List.iter2
         (fun stream (name, pos, discontinuity_count) ->
           assert (name = stream.name);
           stream.discontinuity_count <- discontinuity_count;
           stream.init_position <- pos;
           stream.position <- pos + 1)
-        streams p;
-      segments <- s
+        streams saved_streams;
+      segments <- saved_segments
 
     method private process_init ~init ~segment
         ({ extname; name; init_position } as s) =
