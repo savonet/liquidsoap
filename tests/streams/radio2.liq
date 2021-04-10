@@ -4,9 +4,9 @@
 
 %include "test.liq"
 
-day     = playlist("~/Music")
-night   = playlist("~/Music")
-jingles = playlist("~/Music")
+day     = playlist("playlist")
+night   = playlist("playlist")
+jingles = playlist("playlist")
 
 # Day / night switch
 radio = switch([({8h-20h}, day), ({20h-8h}, night)])
@@ -21,4 +21,4 @@ def on_done () =
   test.pass()
 end
 
-thread.run(delay=1., on_done)
+thread.run(delay=10., on_done)

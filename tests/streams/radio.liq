@@ -5,7 +5,7 @@
 %include "test.liq"
 
 mic = sine()
-bed = mksafe(playlist("~/Music"))
+bed = mksafe(playlist("playlist"))
 
 radio = add([mic, bed])
 
@@ -16,4 +16,4 @@ def on_done () =
   shutdown()
 end
 
-thread.run(delay=1., on_done)
+thread.run(delay=10., on_done)
