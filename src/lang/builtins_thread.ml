@@ -73,6 +73,35 @@ let () =
       Lang.unit)
 
 let () =
+  let fun_t =
+    Lang.fun_t
+      [
+        (false, "backtrace", Lang.string_t);
+        (false, "queue_name", Lang.string_t);
+        (false, "", Builtins_error.Error.t);
+      ]
+      Lang.bool_t
+  in
+  add_builtin "thread.on_error" ~cat:Liq
+    ~descr:
+      "Register a function to be called when an error is raised in a \
+       asynchronous thread. Returns `true` if the exception has been handled \
+       by the given callback." [("", fun_t, None, None)] Lang.unit_t (fun p ->
+      let fn = List.assoc "" p in
+      let handler ~bt ~name = function
+        | Lang_values.(Runtime_error { kind; msg; _ }) ->
+            let error = Builtins_error.(Error.to_value { kind; msg }) in
+            let bt = Lang.string bt in
+            let name = Lang.string name in
+            Lang.to_bool
+              (Lang.apply fn
+                 [("backtrace", bt); ("queue_name", name); ("", error)])
+        | _ -> false
+      in
+      Queue.push handler Tutils.error_handlers;
+      Lang.unit)
+
+let () =
   let t = Lang.univ_t () in
   add_builtin "thread.mutexify" ~cat:Liq
     ~descr:

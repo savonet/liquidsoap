@@ -105,7 +105,28 @@ def f() =
     end
   t(ret, "blo")
 
-  if !success then test.pass() else test.fail() end
+  def on_done() =
+    if !success then
+      test.pass()
+    else
+      test.fail()
+    end 
+  end
+
+  # Catches error in asynchronous tasks
+  def on_error(~backtrace, ~queue_name, e) =
+    if error.kind(e) == "foo" then
+      print("caught error #{e} from queue #{queue_name} and backtrace:\n#{backtrace}")
+      on_done()
+      true
+    else
+      test.fail()
+      false
+    end
+  end
+
+  thread.on_error(on_error)
+  thread.run(fun () -> error.raise(e, "Asynchronous error"))
 end
 
 test.check(f)
