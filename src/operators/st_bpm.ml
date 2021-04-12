@@ -23,8 +23,7 @@
 open Mm
 open Source
 
-class bpm ~kind (source : source) cb every =
-  let every = Frame.audio_of_seconds every in
+class bpm ~kind (source : source) =
   object (self)
     inherit operator ~name:"bpm" kind [source] as super
 
@@ -50,8 +49,6 @@ class bpm ~kind (source : source) cb every =
              (Frame_content.Audio.channels_of_format self#ctype.Frame.audio)
              (Lazy.force Frame.audio_rate))
 
-    val mutable n = 0
-
     method private get_frame buf =
       let bpm = Option.get bpm in
       let offset = AFrame.position buf in
@@ -59,34 +56,29 @@ class bpm ~kind (source : source) cb every =
       let len = AFrame.position buf - offset in
       let buf = AFrame.pcm buf in
       let ibuf = Audio.interleave (Audio.sub buf offset len) in
-      Soundtouch.BPM.put_samples_ba bpm ibuf;
-      n <- n + len;
-      if n >= every then (
-        n <- 0;
-        let bpm = Soundtouch.BPM.get_bpm bpm in
-        ignore (cb [("", Lang.float bpm)]) )
+      Soundtouch.BPM.put_samples_ba bpm ibuf
+
+    method bpm =
+      let bpm = Option.get bpm in
+      Soundtouch.BPM.get_bpm bpm
   end
 
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "bpm"
-    [
-      ( "every",
-        Lang.float_t,
-        Some (Lang.float 1.),
-        Some "Interval at which BPM is computed (in second)." );
-      ( "",
-        Lang.fun_t [(false, "", Lang.float_t)] Lang.unit_t,
-        None,
-        Some "Callback function." );
-      ("", Lang.source_t k, None, None);
-    ]
-    ~return_t:k ~category:Lang.SoundProcessing ~descr:"Detect the BPM."
-    ~flags:[]
+    [("", Lang.source_t k, None, None)]
+    ~return_t:k ~category:Lang.SoundProcessing
+    ~descr:
+      "Detect the BPM (number of beats per minute). The returned source has a \
+       method `bpm`, which can be called to compute it."
+    ~meth:
+      [
+        ( "bpm",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Compute the current BPM.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#bpm) );
+      ]
     (fun p ->
-      let f v = List.assoc v p in
-      let every = Lang.to_float (f "every") in
-      let cb = Lang.to_fun (Lang.assoc "" 1 p) in
-      let s = Lang.to_source (Lang.assoc "" 2 p) in
-      (new bpm ~kind s cb every :> Source.source))
+      let s = Lang.to_source (List.assoc "" p) in
+      new bpm ~kind s)
