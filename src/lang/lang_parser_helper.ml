@@ -306,11 +306,16 @@ let mk_kind ~pos (kind, params) =
               params;
             assert (k = Frame_content.kind f);
             Lang_values.kind_t (`Format f)
-    with _ -> raise (Parse_error (pos, "Unknown type constructor.")) )
+    with _ ->
+      let params =
+        params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
+      in
+      let t = kind ^ "(" ^ params ^ ")" in
+      raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")) )
 
 let mk_source_ty ~pos name args =
   if name <> "source" && name <> "active_source" then
-    raise (Parse_error (pos, "Unknown type constructor."));
+    raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
 
   let audio = ref ("any", []) in
   let video = ref ("any", []) in
@@ -322,7 +327,7 @@ let mk_source_ty ~pos name args =
       | "video", k -> video := k
       | "midi", k -> midi := k
       | l, _ ->
-          raise (Parse_error (pos, "Unknown type constructor (" ^ l ^ ").")))
+          raise (Parse_error (pos, "Unknown type constructor: " ^ l ^ ".")))
     args;
 
   let audio = mk_kind ~pos !audio in
@@ -342,4 +347,4 @@ let mk_ty ~pos name =
     | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
     | "source" -> mk_source_ty ~pos "source" []
     | "source_methods" -> !Lang_values.source_methods_t ()
-    | _ -> raise (Parse_error (pos, "Unknown type constructor."))
+    | _ -> raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."))
