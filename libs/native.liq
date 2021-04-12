@@ -88,6 +88,9 @@ let native.request = request
 def native.request.dynamic(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
   # Prepared requests
   queue = ref([])
+  def queue_size()
+    list.length(!queue)
+  end
   # Filling thread
   def filler()
     if list.length(!queue) < prefetch then
@@ -115,7 +118,7 @@ def native.request.dynamic(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20.,
       fail()
     end
   end
-  source.dynamic(id=id, track_sensitive=true, s)
+  source.dynamic(id=id, track_sensitive=true, s).{queue_size=queue_size}
 end
 
 # Play requests dynamically created by a given function.
