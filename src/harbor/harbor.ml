@@ -119,7 +119,8 @@ module type T = sig
 
          method virtual insert_metadata : (string, string) Hashtbl.t -> unit
 
-         method virtual login : string * (string -> string -> bool)
+         method virtual login :
+           string * (socket:socket -> string -> string -> bool)
 
          method virtual icy_charset : string option
 
@@ -130,7 +131,8 @@ module type T = sig
 
   val http_auth_check :
     ?args:(string, string) Hashtbl.t ->
-    login:string * (string -> string -> bool) ->
+    login:string * (socket:socket -> string -> string -> bool) ->
+    socket ->
     (string * string) list ->
     (unit, reply) Duppy.Monad.t
 
@@ -176,7 +178,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
       method virtual insert_metadata : (string, string) Hashtbl.t -> unit
 
-      method virtual login : string * (string -> string -> bool)
+      method virtual login
+          : string * (socket:socket -> string -> string -> bool)
 
       method virtual icy_charset : string option
 
@@ -323,7 +326,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
           (let user, auth_f = s#login in
            let user = if requested_user = "" then user else requested_user in
-           if auth_f user password then Duppy.Monad.return (`Shout, "/", `Icy)
+           if auth_f ~socket:h.Duppy.Monad.Io.socket user password then
+             Duppy.Monad.return (`Shout, "/", `Icy)
            else (
              log#info "ICY error: invalid password";
              simple_reply "Invalid password\r\n\r\n" )))
@@ -365,16 +369,16 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       display_headers;
     headers
 
-  let auth_check ~auth_f user pass =
+  let auth_check ~auth_f socket user pass =
     (* OK *)
     if conf_pass_verbose#get then
       log#info "Requested username: %s, password: %s." user pass
     else ();
-    if not (auth_f user pass) then raise Not_authenticated else ();
+    if not (auth_f ~socket user pass) then raise Not_authenticated else ();
     log#info "Client logged in.";
     Duppy.Monad.return ()
 
-  let http_auth_check ?args ~login headers =
+  let http_auth_check ?args ~login socket headers =
     (* 401 error model *)
     let http_reply s =
       simple_reply
@@ -409,7 +413,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 (user, Hashtbl.find args "pass")
             | _ -> raise Not_found )
       in
-      auth_check ~auth_f user pass
+      auth_check ~auth_f socket user pass
     with
       | Not_authenticated ->
           log#info "Returned 401: wrong auth.";
@@ -420,7 +424,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let exec_http_auth_check ?args ~login h headers =
     Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
-      (http_auth_check ?args ~login headers)
+      (http_auth_check ?args ~login h.Duppy.Monad.Io.socket headers)
 
   (* We do not implement anything with this handler for now. *)
   let handle_asterisk_options_request ~hprotocol:_ ~headers:_ _ =
@@ -581,7 +585,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             Duppy.Monad.bind __pa_duppy_0 (fun source ->
                 let _, auth_f = source#login in
                 let __pa_duppy_0 =
-                  try auth_check ~auth_f user password
+                  try auth_check ~auth_f h.Duppy.Monad.Io.socket user password
                   with Not_authenticated ->
                     log#info "Authentication failed!";
                     simple_reply (websocket_error 1011 "Authentication failed.")
@@ -844,8 +848,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                                  hapenned *)
                               Tutils.Maybe_blocking h
                             (let valid_user, auth_f = s#login in
-                             if not (auth_f valid_user password) then
-                               simple_reply "Invalid password!"
+                             if
+                               not
+                                 (auth_f ~socket:h.Duppy.Monad.Io.socket
+                                    valid_user password)
+                             then simple_reply "Invalid password!"
                              else Duppy.Monad.return (true, uri, `Xaudiocast)))
                   | _ -> Duppy.Monad.return (false, huri, smethod)
               in
