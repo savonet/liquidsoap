@@ -172,6 +172,8 @@ Changed:
 - First-order filter `filter.rc` now takes the cutoff frequency instead of the
   time constant as argument.
 - `file.watch` now returns unit with `unwatch` method.
+- Changed the interface for `bpm`: the bpm can now be retrieved using a method
+  of the returned source instead of having a callback.
 
 Fixed:
 
