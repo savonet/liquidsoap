@@ -84,12 +84,15 @@ let () =
   in
   add_builtin "thread.on_error" ~cat:Liq
     ~descr:
-      "Register a function to be called when an error is raised in a \
-       asynchronous thread. Returns `true` if the exception has been handled \
-       by the given callback." [("", fun_t, None, None)] Lang.unit_t (fun p ->
-      let fn = List.assoc "" p in
+      "Register a function to be called when an error of the given kind is \
+       raised in a asynchronous thread."
+    [("", Builtins_error.Error.t, None, None); ("", fun_t, None, None)]
+    Lang.unit_t (fun p ->
+      let err = Builtins_error.Error.of_value (Lang.assoc "" 1 p) in
+      let fn = Lang.assoc "" 2 p in
       let handler ~bt ~name = function
-        | Lang_values.(Runtime_error { kind; msg; _ }) ->
+        | Lang_values.(Runtime_error { kind; msg; _ })
+          when kind = err.Builtins_error.kind ->
             let error = Builtins_error.(Error.to_value { kind; msg }) in
             let bt = Lang.string bt in
             let name = Lang.string name in
