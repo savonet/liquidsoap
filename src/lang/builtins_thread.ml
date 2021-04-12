@@ -80,7 +80,7 @@ let () =
         (false, "queue_name", Lang.string_t);
         (false, "", Builtins_error.Error.t);
       ]
-      Lang.bool_t
+      Lang.unit_t
   in
   add_builtin "thread.on_error" ~cat:Liq
     ~descr:
@@ -96,9 +96,10 @@ let () =
             let error = Builtins_error.(Error.to_value { kind; msg }) in
             let bt = Lang.string bt in
             let name = Lang.string name in
-            Lang.to_bool
+            ignore
               (Lang.apply fn
-                 [("backtrace", bt); ("queue_name", name); ("", error)])
+                 [("backtrace", bt); ("queue_name", name); ("", error)]);
+            true
         | _ -> false
       in
       Queue.push handler Tutils.error_handlers;
