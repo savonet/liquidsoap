@@ -116,7 +116,11 @@ def f() =
   # Catches error in asynchronous tasks
   def on_error(~backtrace, ~queue_name, e) =
     print("caught error #{e} from queue #{queue_name} and backtrace:\n#{backtrace}")
-    on_done()
+    if error.kind(e) == "foo" then
+      on_done()
+    else
+      test.fail()
+    end
   end
 
   thread.on_error(e, on_error)
