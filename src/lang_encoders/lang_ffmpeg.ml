@@ -24,6 +24,20 @@ open Lang_values
 open Lang_values.Ground
 open Lang_encoders
 
+(* Looks like this is how ffmpeg CLI does it.
+   See: https://github.com/FFmpeg/FFmpeg/blob/4782124b90cf915ede2cebd871be82fc0267a135/fftools/ffmpeg_opt.c#L1567-L1570 *)
+let set_global_quality q f =
+  let flags =
+    match Hashtbl.find_opt f.Ffmpeg_format.other_opts "flags" with
+      | Some (`Int f) -> f
+      | Some _ -> assert false
+      | None -> 0
+  in
+  let flags = flags lor Avcodec.flag_qscale in
+  Hashtbl.replace f.Ffmpeg_format.other_opts "flags" (`Int flags);
+  Hashtbl.replace f.Ffmpeg_format.other_opts "global_quality"
+    (`Float (float Avutil.qp2lambda *. q))
+
 let ffmpeg_gen params =
   let defaults =
     {
@@ -109,6 +123,14 @@ let ffmpeg_gen params =
             | `Video, `Raw ->
                 { f with Ffmpeg_format.video_codec = Some (`Raw (Some c)) }
         in
+        parse_args ~format ~mode f l
+    | ("q", { term = Ground (Float q); _ }) :: l
+    | ("qscale", { term = Ground (Float q); _ }) :: l ->
+        set_global_quality q f;
+        parse_args ~format ~mode f l
+    | ("q", { term = Ground (Int q); _ }) :: l
+    | ("qscale", { term = Ground (Int q); _ }) :: l ->
+        set_global_quality (float q) f;
         parse_args ~format ~mode f l
     | (k, { term = Ground (String s); _ }) :: l ->
         ( match mode with
