@@ -275,7 +275,7 @@ and let_t = {
 
 and in_term =
   | Ground of Ground.t
-  | Encoder of Encoder.format
+  | Encoder of string * (string * term) list
   | List of term list
   | Tuple of term list
   | Null
@@ -315,7 +315,15 @@ let is_ground x =
 let rec print_term v =
   match v.term with
     | Ground g -> Ground.to_string g
-    | Encoder e -> Encoder.string_of_format e
+    | Encoder (e, p) ->
+        let p =
+          p
+          |> List.map (function
+               | "", v -> print_term v
+               | l, v -> l ^ "=" ^ print_term v)
+          |> String.concat ", "
+        in
+        "%" ^ e ^ "(" ^ p ^ ")"
     | List l -> "[" ^ String.concat ", " (List.map print_term l) ^ "]"
     | Tuple l -> "(" ^ String.concat ", " (List.map print_term l) ^ ")"
     | Null -> "null"
