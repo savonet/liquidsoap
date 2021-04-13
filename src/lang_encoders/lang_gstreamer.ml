@@ -48,7 +48,11 @@ let make ?pos params =
         | "has_video", { term = Ground (Bool b); _ } ->
             { f with Gstreamer_format.has_video = b }
         | "video", { term = Ground (String s); _ } ->
-            { f with Gstreamer_format.video = perhaps s }
+            let video = perhaps s in
+            let has_video =
+              if video = None then false else f.Gstreamer_format.has_video
+            in
+            { f with Gstreamer_format.has_video; video }
         | "muxer", { term = Ground (String s); _ } ->
             { f with Gstreamer_format.muxer = perhaps s }
         | "metadata", { term = Ground (String s); _ } ->
