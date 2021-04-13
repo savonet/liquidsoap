@@ -105,13 +105,18 @@ module Make (T : T) = struct
         ( "auth",
           Lang.nullable_t
             (Lang.fun_t
-               [(false, "", Lang.string_t); (false, "", Lang.string_t)]
+               [
+                 (false, "address", Lang.string_t);
+                 (false, "", Lang.string_t);
+                 (false, "", Lang.string_t);
+               ]
                Lang.bool_t),
           Some Lang.null,
           Some
-            "Authentication function. `f(login,password)` returns `true` if \
-             the user should be granted access for this login. When defined, \
-             `user` and `password` arguments are not taken in account." );
+            "Authentication function. `f(~address,login,password)` returns \
+             `true` if the user should be granted access for this login. When \
+             defined, `user` and `password` arguments are not taken in \
+             account." );
         ( "buffer",
           Lang.int_t,
           Some (Lang.int (5 * 65535)),
@@ -365,8 +370,14 @@ module Make (T : T) = struct
     let default_password =
       List.assoc "password" p |> Lang.to_option |> Option.map Lang.to_string
     in
+    let address_resolver s =
+      let s = Harbor.file_descr_of_socket s in
+      Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
+        (Unix.getpeername s)
+    in
     let auth_function = List.assoc "auth" p |> Lang.to_option in
-    let login user password =
+    let login ~socket user password =
+      let address = address_resolver socket in
       let user, password =
         let f = Configure.recode_tag in
         (f user, f password)
@@ -375,7 +386,11 @@ module Make (T : T) = struct
         | Some f ->
             Lang.to_bool
               (Lang.apply f
-                 [("", Lang.string user); ("", Lang.string password)])
+                 [
+                   ("address", Lang.string address);
+                   ("", Lang.string user);
+                   ("", Lang.string password);
+                 ])
         | None -> (
             match (default_user, default_password) with
               | _, None -> false
@@ -510,7 +525,7 @@ module Make (T : T) = struct
              then (
                let default_user = Option.value default_user ~default:"" in
                Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking handler
-                 (Harbor.http_auth_check ~args ~login:(default_user, login)
+                 (Harbor.http_auth_check ~args ~login:(default_user, login) s
                     headers) )
              else Duppy.Monad.return () )
              (function
