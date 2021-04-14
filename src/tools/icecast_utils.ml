@@ -71,9 +71,7 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.MP3 _ -> Some mpeg
     | Encoder.Shine _ -> Some mpeg
     | Encoder.Ffmpeg e -> (
-        match (e.Ffmpeg_format.audio_codec, e.Ffmpeg_format.video_codec) with
-          | Some (`Internal (Some "libmp3lame")), None -> Some mpeg
-          | _ -> None )
+        match e.Ffmpeg_format.format with Some "mp3" -> Some mpeg | _ -> None )
     | Encoder.FdkAacEnc _ -> Some aac
     | Encoder.External _ -> None
     | Encoder.GStreamer _ -> None
