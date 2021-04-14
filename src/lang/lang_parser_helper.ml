@@ -218,15 +218,6 @@ let mk_rec_fun ~pos pat args body =
   let fv = Lang_values.free_vars ~bound body in
   mk ~pos (RFun (name, fv, args, body))
 
-let mk_enc ~pos e =
-  begin
-    try
-      let (_ : Encoder.factory) = Encoder.get_factory e in
-      ()
-    with Not_found -> raise (Unsupported_format (pos, e))
-  end;
-  mk ~pos (Encoder e)
-
 (** Time intervals *)
 
 let time_units = [| 7 * 24 * 60 * 60; 24 * 60 * 60; 60 * 60; 60; 1 |]

@@ -31,7 +31,7 @@ exception Internal_error of (pos list * string)
 exception Parse_error of (pos * string)
 
 (** Unsupported format *)
-exception Unsupported_format of (pos * Encoder.format)
+exception Unsupported_format of pos option
 
 (** An error at runtime. *)
 type runtime_error = { kind : string; msg : string option; pos : pos list }
@@ -145,13 +145,6 @@ let of_source_t t =
     | _ -> assert false
 
 let request_t ?pos ?level () = T.make ?pos ?level (T.Ground T.Request)
-
-let type_of_format ~pos ~level f =
-  let kind = Encoder.kind_of_format f in
-  let audio = kind_t ~pos ~level kind.Frame.audio in
-  let video = kind_t ~pos ~level kind.Frame.video in
-  let midi = kind_t ~pos ~level kind.Frame.midi in
-  format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
 
 (** {2 Terms} *)
 
@@ -273,9 +266,11 @@ and let_t = {
   body : term;
 }
 
+and preformat = string * (string * term) list
+
 and in_term =
   | Ground of Ground.t
-  | Encoder of string * (string * term) list
+  | Encoder of preformat
   | List of term list
   | Tuple of term list
   | Null
@@ -720,6 +715,28 @@ let rec type_of_pat ~level ~pos = function
       let l = List.rev l in
       (env, T.make ~level ~pos (T.Tuple l))
 
+(** Compute a kind from a non-fully evaluated format. *)
+let kind_of_preformat (name, p) =
+  let channels ?(default = 2) p =
+    try
+      let c = try List.assoc "channels" p with Not_found -> raise Exit in
+      match c.term with Ground (Ground.Int n) -> n | _ -> raise Not_found
+    with Exit -> default
+  in
+  match name with
+    | "%wav" | "%mp3" | "%mp3.cbr" | "%mp3.abr" | "%mp3.vbr" | "%mp3.fxp"
+    | "%shine" | "%flac" | "%fdkaac" ->
+        Encoder.audio_kind (channels p)
+    | "%avi" -> Encoder.audio_video_kind (channels p)
+    | _ -> raise Not_found
+
+let type_of_preformat ~pos ~level f =
+  let kind = kind_of_preformat f in
+  let audio = kind_t ~pos ~level kind.Frame.audio in
+  let video = kind_t ~pos ~level kind.Frame.video in
+  let midi = kind_t ~pos ~level kind.Frame.midi in
+  format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
+
 (* Type-check an expression.
  * [level] should be the sum of the lengths of [env] and [builtins],
  * that is the size of the typing context, that is the number of surrounding
@@ -765,7 +782,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : T.env) e =
   in
   match e.term with
     | Ground g -> e.t >: mkg (Ground.to_type g)
-    | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
+    | Encoder f ->
+        let t =
+          try type_of_preformat ~pos:e.t.T.pos ~level f
+          with Not_found -> raise (Unsupported_format pos)
+        in
+        e.t >: t
     | List l ->
         List.iter (fun x -> check ~throw ~level ~env x) l;
         let t =
@@ -1036,7 +1058,17 @@ let rec eval ~env tm =
   in
   match tm.term with
     | Ground g -> mk (V.Ground g)
-    | Encoder x -> mk (V.Encoder x)
+    | Encoder f ->
+        let mk_enc ~pos e =
+          begin
+            try
+              let (_ : Encoder.factory) = Encoder.get_factory e in
+              ()
+            with Not_found -> raise (Unsupported_format (pos, e))
+          end;
+          mk ~pos (Encoder e)
+        in
+        mk (V.Encoder x)
     | List l -> mk (V.List (List.map (eval ~env) l))
     | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
     | Null -> mk V.Null
