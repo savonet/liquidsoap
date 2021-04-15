@@ -581,7 +581,7 @@ let resolve ~ctype t timeout =
   let maxtime = Unix.time () +. timeout in
   let resolve_step () =
     let i = peek_indicator t in
-    log#f 6 "Resolve step %s in %s\n%!" i.string (string_of_indicators t);
+    log#f 6 "Resolve step %s in %s." i.string (string_of_indicators t);
     (* If the file is local we only need to check that it's valid,
      * we'll actually do that in a single local_check for all local indicators
      * on the top of the stack. *)

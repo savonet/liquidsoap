@@ -78,6 +78,7 @@ New:
   `compress.old` (#868, #869).
 - Added `stereo.width`.
 - Added `file.mkdir`.
+- Added support for harbor's connected address in auth function and as a method (#1364).
 
 Changed:
 

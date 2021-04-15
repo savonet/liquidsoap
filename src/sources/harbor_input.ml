@@ -31,6 +31,11 @@ module type T = sig
 end
 
 module Make (Harbor : T) = struct
+  let address_resolver s =
+    let s = Harbor.file_descr_of_socket s in
+    Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
+      (Unix.getpeername s)
+
   class http_input_server ~kind ~dumpfile ~logfile ~bufferize ~max ~icy ~port
     ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
     ~on_disconnect ~login ~debug ~log_overfull ~timeout p =
@@ -66,21 +71,21 @@ module Make (Harbor : T) = struct
 
       method stop_cmd = self#disconnect ~lock:true
 
-      method status_cmd =
-        (Tutils.mutexify relay_m (fun () ->
-             match relay_socket with
-               | Some s ->
-                   let s = Harbor.file_descr_of_socket s in
-                   Printf.sprintf "source client connected from %s"
-                     (Utils.name_of_sockaddr
-                        ~rev_dns:Harbor_base.conf_revdns#get
-                        (Unix.getpeername s))
-               | None -> "no source client connected"))
+      method connected_client =
+        Tutils.mutexify relay_m
+          (fun () -> Option.map address_resolver relay_socket)
           ()
+
+      method status_cmd =
+        match self#connected_client with
+          | Some addr -> Printf.sprintf "source client connected from %s" addr
+          | None -> "no source client connected"
 
       method buffer_length_cmd = Frame.seconds_of_audio self#length
 
-      method login : string * (string -> string -> bool) = login
+      method login : string * (socket:Harbor.socket -> string -> string -> bool)
+          =
+        login
 
       method stype = Source.Fallible
 
@@ -276,6 +281,15 @@ module Make (Harbor : T) = struct
               Lang.val_fun [] (fun _ ->
                   s#stop_cmd;
                   Lang.unit) );
+          ( "connected_client",
+            ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t)),
+            "Returns the address of the client currently connected, if there \
+             is one.",
+            fun s ->
+              Lang.val_fun [] (fun _ ->
+                  match s#connected_client with
+                    | Some c -> Lang.string c
+                    | None -> Lang.null) );
           ( "status",
             ([], Lang.fun_t [] Lang.string_t),
             "Current status of the input.",
@@ -346,14 +360,19 @@ module Make (Harbor : T) = struct
              This helps when source has dropped due to temporary connection \
              issues." );
         ( "auth",
-          Lang.fun_t
-            [(false, "", Lang.string_t); (false, "", Lang.string_t)]
-            Lang.bool_t,
-          Some (Lang.val_cst_fun [("", None); ("", None)] (Lang.bool false)),
+          Lang.nullable_t
+            (Lang.fun_t
+               [
+                 (false, "address", Lang.string_t);
+                 (false, "", Lang.string_t);
+                 (false, "", Lang.string_t);
+               ]
+               Lang.bool_t),
+          Some Lang.null,
           Some
-            "Authentication function. `f(login,password)` returns `true` if \
-             the user should be granted access for this login. Override any \
-             other method if used." );
+            "Authentication function. `f(~address,login,password)` returns \
+             `true` if the user should be granted access for this login. \
+             Override any other method if used." );
         ( "dumpfile",
           Lang.string_t,
           Some (Lang.string ""),
@@ -381,23 +400,6 @@ module Make (Harbor : T) = struct
           if mountpoint <> "" && mountpoint.[0] = '/' then mountpoint
           else Printf.sprintf "/%s" mountpoint
         in
-        let trivially_false = function
-          | {
-              Lang.value =
-                Lang.Fun
-                  ( _,
-                    _,
-                    _,
-                    {
-                      Lang_values.term =
-                        Lang_values.(Ground (Ground.Bool false));
-                      _;
-                    } );
-              _;
-            } ->
-              true
-          | _ -> false
-        in
         let default_user = Lang.to_string (List.assoc "user" p) in
         let default_password = Lang.to_string (List.assoc "password" p) in
         let debug = Lang.to_bool (List.assoc "debug" p) in
@@ -416,8 +418,8 @@ module Make (Harbor : T) = struct
         in
         let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
         let port = Lang.to_int (List.assoc "port" p) in
-        let auth_function = List.assoc "auth" p in
-        let login user password =
+        let auth_function = Lang.to_option (List.assoc "auth" p) in
+        let login ~socket user password =
           (* We try to decode user & password here.
            * Idealy, it would be better to decode them
            * in tools/harbor.ml in order to use any
@@ -438,11 +440,16 @@ module Make (Harbor : T) = struct
           let default_login =
             user = default_user && password = default_password
           in
-          if not (trivially_false auth_function) then
-            Lang.to_bool
-              (Lang.apply auth_function
-                 [("", Lang.string user); ("", Lang.string password)])
-          else default_login
+          match auth_function with
+            | Some auth_function ->
+                Lang.to_bool
+                  (Lang.apply auth_function
+                     [
+                       ("address", Lang.string (address_resolver socket));
+                       ("", Lang.string user);
+                       ("", Lang.string password);
+                     ])
+            | None -> default_login
         in
         let login = (default_user, login) in
         let dumpfile =

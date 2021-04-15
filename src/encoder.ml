@@ -166,7 +166,7 @@ let extension = function
   | FdkAacEnc _ -> "aac"
   | Ffmpeg { Ffmpeg_format.format = Some "ogg" } -> "ogg"
   | Ffmpeg { Ffmpeg_format.format = Some "opus" } -> "opus"
-  | Ffmpeg { Ffmpeg_format.format = Some "libmp3lame" } -> "mp3"
+  | Ffmpeg { Ffmpeg_format.format = Some "mp3" } -> "mp3"
   | Ffmpeg { Ffmpeg_format.format = Some "matroska" } -> "mkv"
   | Ffmpeg { Ffmpeg_format.format = Some "mpegts" } -> "ts"
   | Ffmpeg { Ffmpeg_format.format = Some "mp4" } -> "mp4"

@@ -70,7 +70,8 @@ module Icecast_v (M : Icecast_t) = struct
   let format_of_encoder = function
     | Encoder.MP3 _ -> Some mpeg
     | Encoder.Shine _ -> Some mpeg
-    | Encoder.Ffmpeg _ -> None
+    | Encoder.Ffmpeg e -> (
+        match e.Ffmpeg_format.format with Some "mp3" -> Some mpeg | _ -> None )
     | Encoder.FdkAacEnc _ -> Some aac
     | Encoder.External _ -> None
     | Encoder.GStreamer _ -> None

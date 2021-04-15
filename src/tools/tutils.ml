@@ -216,6 +216,30 @@ let scheduler_log n =
     fun m -> log#info "%s" m )
   else fun _ -> ()
 
+let error_handlers = Queue.create ()
+
+let default_error_handler ~bt ~name exn =
+  log#severe "Queue %s crashed with exception %s\n%s" name
+    (Printexc.to_string exn) bt;
+  log#critical
+    "PANIC: Liquidsoap has crashed, exiting.,\n\
+     Please report at: savonet-users@lists.sf.net";
+  exit 1
+
+exception Error_processed
+
+let rec error_handler ~bt ~name exn =
+  try
+    Queue.iter
+      (fun handler -> if handler ~bt ~name exn then raise Error_processed)
+      error_handlers;
+    default_error_handler ~bt ~name exn
+  with
+    | Error_processed -> ()
+    | exn ->
+        let bt = Printexc.get_backtrace () in
+        error_handler ~bt ~name exn
+
 let new_queue ?priorities ~name () =
   let qlog = scheduler_log name in
   let queue () =
@@ -223,14 +247,9 @@ let new_queue ?priorities ~name () =
       match priorities with
         | None -> Duppy.queue scheduler ~log:qlog name
         | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
-    with e ->
+    with exn ->
       let bt = Printexc.get_backtrace () in
-      log#severe "Queue %s crashed with exception %s\n%s" name
-        (Printexc.to_string e) bt;
-      log#critical
-        "PANIC: Liquidsoap has crashed, exiting.,\n\
-         Please report at: savonet-users@lists.sf.net";
-      exit 1
+      error_handler ~bt ~name exn
   in
   ignore (create ~queue:true queue () name)
 
