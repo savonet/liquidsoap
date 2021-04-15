@@ -387,6 +387,12 @@ fi
 AC_SUBST(MENHIR)
 
 #
+# Curl
+#
+
+AC_CHECK_OCAML_BINDING([curl],[],[1])
+
+#
 # Dtools
 #
 

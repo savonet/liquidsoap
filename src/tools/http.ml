@@ -60,7 +60,12 @@ module type Http_t = sig
   type event =
     [ `Write of connection | `Read of connection | `Both of connection ]
 
-  type uri = { host : string; port : int option; path : string }
+  type uri = {
+    protocol : string;
+    host : string;
+    port : int option;
+    path : string;
+  }
 
   val default_port : int
   val user_agent : string
@@ -96,67 +101,8 @@ module type Http_t = sig
     string ->
     (string * int * string) * (string * string) list
 
-  val get :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  val post :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    string ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  val put :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    string ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  val head :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  val delete :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
   val read_with_timeout :
     ?log:(string -> unit) -> timeout:float -> connection -> int option -> string
-
-  type request = Get | Post of string | Put of string | Head | Delete
-
-  val full_request :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    uri:uri ->
-    request:request ->
-    unit ->
-    (string * int * string) * (string * string) list * string
 end
 
 module Make (Transport : Transport_t) = struct
@@ -183,7 +129,12 @@ module Make (Transport : Transport_t) = struct
   type event =
     [ `Write of connection | `Read of connection | `Both of connection ]
 
-  type uri = { host : string; port : int option; path : string }
+  type uri = {
+    protocol : string;
+    host : string;
+    port : int option;
+    path : string;
+  }
 
   let () = Printexc.register_printer error_translator
   let raise e = raise (Error e)
@@ -276,24 +227,25 @@ module Make (Transport : Transport_t) = struct
 
   let parse_url url =
     let basic_rex =
-      Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://([^/:]+)(:[0-9]+)?(/.*)?$"
+      Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?)://([^/:]+)(:[0-9]+)?(/.*)?$"
     in
     let sub =
       try Pcre.exec ~rex:basic_rex url
       with Not_found -> (* raise Invalid_url *)
                         failwith "Invalid URL."
     in
-    let host = Pcre.get_substring sub 1 in
+    let protocol = Pcre.get_substring sub 1 in
+    let host = Pcre.get_substring sub 2 in
     let port =
       try
-        let port = Pcre.get_substring sub 2 in
+        let port = Pcre.get_substring sub 3 in
         let port = String.sub port 1 (String.length port - 1) in
         let port = int_of_string port in
         Some port
       with Not_found -> None
     in
-    let path = try Pcre.get_substring sub 3 with Not_found -> "/" in
-    { host; port; path }
+    let path = try Pcre.get_substring sub 4 with Not_found -> "/" in
+    { protocol; host; port; path }
 
   let is_url path = Pcre.pmatch ~pat:"^[Hh][Tt][Tt][Pp][sS]?://.+" path
 
@@ -408,117 +360,6 @@ module Make (Transport : Transport_t) = struct
         [] header
     in
     ((response_http_version, response_status, response_msg), List.rev fields)
-
-  type request = Get | Post of string | Put of string | Head | Delete
-
-  let method_of_request = function
-    | Get -> "GET"
-    | Post _ -> "POST"
-    | Put _ -> "PUT"
-    | Head -> "HEAD"
-    | Delete -> "DELETE"
-
-  let data_of_request = function Post d | Put d -> d | _ -> assert false
-
-  let http_req ?(headers = []) ?(http_version = "1.0") request uri =
-    let req =
-      Printf.sprintf "%s %s HTTP/%s\r\n"
-        (method_of_request request)
-        uri.path http_version
-    in
-    let req =
-      match uri.port with
-        | None -> Printf.sprintf "%sHost: %s\r\n" req uri.host
-        | Some port -> Printf.sprintf "%sHost: %s:%d\r\n" req uri.host port
-    in
-    let req =
-      if not (List.mem_assoc "User-Agent" headers) then
-        Printf.sprintf "%sUser-Agent: %s\r\n" req user_agent
-      else req
-    in
-    let req =
-      List.fold_left
-        (fun s (t, v) -> Printf.sprintf "%s%s: %s\r\n" s t v)
-        req headers
-    in
-    if not (List.mem request [Get; Head; Delete]) then (
-      let data = data_of_request request in
-      Printf.sprintf "%sContent-Length: %d\r\n\r\n%s\r\n" req
-        (String.length data) data )
-    else Printf.sprintf "%s\r\n" req
-
-  let execute ?(headers = []) ?log ?http_version ~timeout socket action uri =
-    let req = http_req ~headers ?http_version action uri in
-    request ?log ~timeout socket req
-
-  let get ?headers ?log ?http_version ~timeout socket uri =
-    execute ?headers ?log ?http_version ~timeout socket Get uri
-
-  let head ?headers ?log ?http_version ~timeout socket uri =
-    execute ?headers ?log ?http_version ~timeout socket Head uri
-
-  let delete ?headers ?log ?http_version ~timeout socket uri =
-    execute ?headers ?log ?http_version ~timeout socket Delete uri
-
-  let post ?headers ?log ?http_version ~timeout data socket uri =
-    execute ?headers ?log ?http_version ~timeout socket (Post data) uri
-
-  let put ?headers ?log ?http_version ~timeout data socket uri =
-    execute ?headers ?log ?http_version ~timeout socket (Put data) uri
-
-  let full_request ?headers ?(log = fun _ -> ()) ?(http_version = "1.0")
-      ~timeout ~uri ~request () =
-    let port = match uri.port with Some port -> port | None -> default_port in
-    let connection = Transport.connect uri.host port in
-    Tutils.finalize
-      ~k:(fun () -> Transport.disconnect connection)
-      (fun () ->
-        let execute request =
-          execute ?headers ~log ~http_version ~timeout connection request uri
-        in
-        (* We raise an error if the statuses are not correct. *)
-        let status, headers = execute request in
-        let body =
-          match
-            List.find_opt
-              (fun (l, v) ->
-                String.lowercase_ascii l = "transfer-encoding" && v = "chunked")
-              headers
-          with
-            | Some _ ->
-                let buf = Buffer.create Utils.pagesize in
-                let rec f () =
-                  match read_chunked ~timeout connection with
-                    | _, 0 -> Buffer.contents buf
-                    | c, _ ->
-                        Buffer.add_string buf c;
-                        f ()
-                in
-                f ()
-            | None when http_version = "1.0" ->
-                let buf = Buffer.create 1024 in
-                let tmp = Bytes.create 1024 in
-                let rec f () =
-                  Transport.wait_for ~log (`Read connection) timeout;
-                  let n = Transport.read connection tmp 0 1024 in
-                  if n > 0 then (
-                    Buffer.add_subbytes buf tmp 0 n;
-                    f () )
-                  else Buffer.contents buf
-                in
-                f ()
-            | None -> (
-                try
-                  let _, len =
-                    List.find
-                      (fun (l, _) ->
-                        String.lowercase_ascii l = "content-length")
-                      headers
-                  in
-                  really_read ~timeout connection (int_of_string len)
-                with _ -> "" )
-        in
-        (status, headers, body))
 end
 
 module Http_request = Make (Unix_transport)

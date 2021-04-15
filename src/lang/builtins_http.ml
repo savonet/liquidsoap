@@ -28,6 +28,8 @@ let () =
 
 type request = Get | Post | Put | Head | Delete
 
+let request_with_body = [Get; Post; Put]
+
 let add_http_error kind =
   Lang.add_builtin_base ~category:(string_of_category Liq)
     ~descr:(Printf.sprintf "Base error for %s" kind)
@@ -35,13 +37,15 @@ let add_http_error kind =
     (Builtins_error.Error.to_value { Builtins_error.kind; msg = None })
       .Lang.value Builtins_error.Error.t
 
-let add_http_request http m name descr request =
-  let name = Printf.sprintf "%s.%s" m name in
-  let log = Log.make [name] in
+let add_http_request ~stream_body ~descr ~request name =
+  let name = Printf.sprintf "http.%s" name in
+  let name = if stream_body then Printf.sprintf "%s.stream" name else name in
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
+  let has_body = List.mem request request_with_body in
   let request_return_t =
-    Lang.method_t Lang.string_t
+    Lang.method_t
+      (if (not has_body) || stream_body then Lang.unit_t else Lang.string_t)
       [
         ( "protocol_version",
           ([], Lang.string_t),
@@ -60,24 +64,34 @@ let add_http_request http m name descr request =
     @ [
         ("headers", headers_t, Some (Lang.list []), Some "Additional headers.");
         ( "http_version",
-          Lang.string_t,
-          Some (Lang.string "1.0"),
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
           Some "Http request version." );
         ( "redirect",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Perform redirections if needed." );
         ( "timeout",
-          Lang.float_t,
-          Some (Lang.float 10.),
+          Lang.int_t,
+          Some (Lang.int 10),
           Some "Timeout for network operations (in seconds)." );
         ( "",
           Lang.string_t,
           None,
-          Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"." );
+          Some "Requested URL, e.g. \"http://www.google.com/\"." );
       ]
+    @
+    if stream_body then
+      [
+        ( "on_body_data",
+          Lang.fun_t [(false, "", Lang.nullable_t Lang.string_t)] Lang.unit_t,
+          None,
+          Some
+            "function called when receiving response body data. `null` means \
+             that all the data has been passed." );
+      ]
+    else []
   in
-  let (module Http : Http.Http_t) = http in
   add_builtin name ~cat:Interaction ~descr params request_return_t (fun p ->
       let headers = List.assoc "headers" p in
       let headers = Lang.to_list headers in
@@ -85,48 +99,51 @@ let add_http_request http m name descr request =
       let headers =
         List.map (fun (x, y) -> (Lang.to_string x, Lang.to_string y)) headers
       in
-      let timeout = Lang.to_float (List.assoc "timeout" p) in
-      let http_version = Lang.to_string (List.assoc "http_version" p) in
+      let timeout = Lang.to_int (List.assoc "timeout" p) in
+      let http_version =
+        Option.map Lang.to_string (Lang.to_option (List.assoc "http_version" p))
+      in
       let url = Lang.to_string (List.assoc "" p) in
       let redirect = Lang.to_bool (List.assoc "redirect" p) in
-      let (protocol_version, status_code, status_message), headers, data =
+      let on_body_data, get_body =
+        if stream_body then (
+          let on_body_data = List.assoc "on_body_data" p in
+          ( (fun s ->
+              let v =
+                match s with None -> Lang.null | Some s -> Lang.string s
+              in
+              ignore (Lang.apply on_body_data [("", v)])),
+            fun _ -> assert false ) )
+        else (
+          let body = Buffer.create 1024 in
+          ( (fun s -> ignore (Option.map (Buffer.add_string body) s)),
+            fun () -> Buffer.contents body ) )
+      in
+      let protocol_version, status_code, status_message, headers =
         try
           let request =
             match request with
-              | Get -> Http.Get
+              | Get -> `Get
               | Post ->
                   let data = Lang.to_string (List.assoc "data" p) in
-                  Http.Post data
+                  `Post data
               | Put ->
                   let data = Lang.to_string (List.assoc "data" p) in
-                  Http.Put data
-              | Head -> Http.Head
-              | Delete -> Http.Delete
+                  `Put data
+              | Head -> `Head
+              | Delete -> `Delete
           in
-          let log s = log#info "%s" s in
-          let rec f url =
-            let uri = Http.parse_url url in
-            let ans =
-              Http.full_request ~log ~timeout ~headers ~uri ~request
-                ~http_version ()
-            in
-            let (_, status_code, _), headers, _ = ans in
-            if
-              redirect
-              && (status_code = 301 || status_code = 307)
-              && List.mem_assoc "location" headers
-            then f (List.assoc "location" headers)
-            else ans
+          let ans =
+            Liqcurl.http_request ~follow_redirect:redirect ~timeout ~headers
+              ~url
+              ~on_body_data:(fun s -> on_body_data (Some s))
+              ~request ?http_version ()
           in
-          f url
+          on_body_data None;
+          ans
         with e ->
-          raise
-            (Lang_values.Runtime_error
-               {
-                 Lang_values.kind = m;
-                 msg = Some (Printexc.to_string e);
-                 pos = [];
-               })
+          let bt = Printexc.get_backtrace () in
+          Lang.raise_as_runtime ~bt ~kind:"http" e
       in
       let protocol_version = Lang.string protocol_version in
       let status_code = Lang.int status_code in
@@ -137,7 +154,11 @@ let add_http_request http m name descr request =
           headers
       in
       let headers = Lang.list headers in
-      Lang.meth (Lang.string data)
+      let ret =
+        if (not has_body) || stream_body then Lang.unit
+        else Lang.string (get_body ())
+      in
+      Lang.meth ret
         [
           ("protocol_version", protocol_version);
           ("status_code", status_code);
@@ -147,9 +168,16 @@ let add_http_request http m name descr request =
 
 let () =
   add_http_error "http";
-  let add_http_request = add_http_request (module Http) in
-  add_http_request "http" "get" "Perform a full Http GET request." Get;
-  add_http_request "http" "post" "Perform a full Http POST request`." Post;
-  add_http_request "http" "put" "Perform a full Http PUT request." Put;
-  add_http_request "http" "head" "Perform a full Http HEAD request." Head;
-  add_http_request "http" "delete" "Perform a full Http DELETE request." Delete
+  List.iter
+    (fun stream_body ->
+      add_http_request ~descr:"Perform a full Http GET request." ~request:Get
+        ~stream_body "get";
+      add_http_request ~descr:"Perform a full Http POST request`." ~request:Post
+        ~stream_body "post";
+      add_http_request ~descr:"Perform a full Http PUT request." ~request:Put
+        ~stream_body "put";
+      add_http_request ~descr:"Perform a full Http HEAD request." ~request:Head
+        ~stream_body "head";
+      add_http_request ~descr:"Perform a full Http DELETE request."
+        ~request:Delete ~stream_body "delete")
+    [false; true]

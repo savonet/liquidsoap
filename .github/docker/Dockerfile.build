@@ -9,12 +9,15 @@ ARG GITHUB_SHA
 
 USER root
 
+# Remove after next base image rebuild
+RUN apt-get update && apt-get install -y libcurl4-gnutls-dev
+
 USER opam
 
 WORKDIR /tmp/liquidsoap-full
 
 # Remove after next base image rebuild
-RUN rm -rf ocaml-lastfm/src/lastfm_constants.ml
+RUN opam install -y ocurl 
 
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout main && git pull && \

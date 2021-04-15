@@ -114,13 +114,11 @@ def process_uri(~extname,~uri="",cmd) =
 end
 
 register(name="External download protocol","protocol.external",true)
-register(name="Path to curl","protocol.external.curl","curl")
 register(name="External protocols","protocol.external.protocols",["http","https","ftp"])
 
 # Resolve download protocols using curl
 # @flag hidden
 def download_protocol(proto,~rlog,~maxtime,arg) =
-  curl = get(default="curl","protocol.external.curl")
   uri = "#{proto}:#{arg}"
 
   log = log(label="procol.external")
@@ -130,77 +128,22 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     log(level=level,s)
   end
 
-  env_vars = get(default=[],"protocol.process.env")
-  env = environment()
-  def get_env(k) =
-    (k,env[k])
-  end
-  env = list.map(get_env,env_vars)
-  inherit_env = get(default=true,"protocol.process.inherit_env")
-
   timeout = maxtime - time()
 
-  # First define using curl.
-  def get_mime(uri) =
-    uri = string.replace(pattern=" ", (fun (_) -> "%20"), uri)
-    cmd = "#{curl} -sLI -X HEAD #{string.quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
-    log(level=4,"Running #{cmd}")
-    let p = process.run(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
-    if "#{p.status}" != "exit" or p.status.code != 0 then
-      log(level=3,"Failed to fetch mime-type for #{uri} via curl.")
-      log(level=4,"Process return status: #{p.status}")
-      ""
+  ret = http.head(timeout=int_of_float(timeout),uri)
+  code = ret.status_code
+  headers = ret.headers
+
+  mime =
+    if 200 <= code and code < 300 then
+      null(headers["content-type"])
     else
-      lines = string.split(separator="\\n",p.stdout)
-      string.case(lower=true,string.trim(list.hd(default="",lines)))
-    end
-  end
-
-  # Use internal functions if on windows or curl is not present.
-  get_mime =
-    if os.type == "Win32" or file.which("curl") == null() then
-      def rec get_mime(uri) =
-        uri = string.replace(pattern=" ", (fun (_) -> "%20"), uri)
-
-        def process(fn) =
-          ret = fn(uri)
-          code = ret.status_code
-          headers = ret.headers
-
-          if 200 <= code and code < 300 then
-            headers["content-type"]
-          elsif code == 302 and headers["location"] != "" then
-            uri = headers["location"]
-            log(level=3,"Following redirect to #{uri}")
-            get_mime(uri)
-          else
-            log(level=3,"Failed to fetch mime-type for #{uri}.")
-            log(level=4,"Request response: #{ret}")
-            ""
-          end
-        end
-
-        sub = string.sub(uri,start=0,length=5)
-
-        if sub == "http:" then
-          process(http.head)
-        %ifdef https.head
-          elsif sub == "https" then
-            process(https.head)
-        %endif
-          else
-            log(level=3,"Failed to fetch mime-type for #{uri}.")
-            ""
-         end
-      end
-      get_mime
-    else
-      get_mime
+      log(level=3,"Failed to fetch mime-type for #{uri}.")
+      log(level=4,"Request response: #{ret}")
+      null()
     end
 
-  mime = get_mime(uri)
-
-  extname =
+  extname = null.case(mime, (fun () -> "osb"), (fun (mime) ->
     if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
       "mp3"
     elsif list.mem(mime,["application/ogg", "application/x-ogg",
@@ -216,17 +159,27 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     else
       log(level=3,"No known file extension for mime: #{mime}")
       "osb"
-    end
+    end))
 
-  uri = string.replace(pattern=" ", (fun (_) -> "%20"), uri)
+  output = file.temp("liq-process", ".#{extname}")
 
-  [process_uri(extname=extname,"#{curl} -sL #{string.quote(uri)} -o $(output)")]
+  file_writer = file.write.stream(output)
+
+  timeout = maxtime - time()
+  
+  http.get.stream(
+    on_body_data=file_writer,
+    timeout=int_of_float(timeout),
+    uri
+  )
+
+  [output]
 end
 
 # Register download protocol
 # @flag hidden
 def add_download_protocol(proto) =
-  add_protocol(syntax="#{proto}://...",doc="Download files using curl",proto,download_protocol(proto))
+  add_protocol(temporary=true,syntax="#{proto}://...",doc="Download files using curl",proto,download_protocol(proto))
 end
 if get(default=true,"protocol.external") then
   list.iter(add_download_protocol,get(default=["http","https","ftp"],"protocol.external.protocols"))
