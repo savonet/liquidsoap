@@ -65,13 +65,17 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
             Thread.delay (5. *. seconds_per_frame);
             let server_name = match server with "" -> None | s -> Some s in
             let dev =
-              Bjack.open_t ~rate:samples_per_second
-                ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:0
-                ~output_channels:self#audio_channels ~flags:[] ?server_name
-                ~ringbuffer_size:
-                  (nb_blocks * samples_per_frame * bytes_per_sample)
-                ~client_name:self#id ()
+              try
+                Bjack.open_t ~rate:samples_per_second
+                  ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:0
+                  ~output_channels:self#audio_channels ~flags:[] ?server_name
+                  ~ringbuffer_size:
+                    (nb_blocks * samples_per_frame * bytes_per_sample)
+                  ~client_name:self#id ()
+              with Bjack.Open ->
+                failwith "Could not open JACK device: is the server running?"
             in
+
             Bjack.set_all_volume dev 100;
             device <- Some dev;
             dev
