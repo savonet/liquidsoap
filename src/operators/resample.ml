@@ -116,7 +116,7 @@ class resample ~kind ~active ~ratio (source : source) =
         Frame.position frame
       in
       let ratio = ratio () in
-      let content =
+      let content, len =
         let start = Frame.audio_of_main start in
         let stop = Frame.audio_of_main stop in
         let content = AFrame.pcm frame in
@@ -135,20 +135,19 @@ class resample ~kind ~active ~ratio (source : source) =
           Audio_converter.Samplerate.resample converter ratio
             (Audio.sub content start len)
         in
-        {
-          Frame.audio = Frame_content.Audio.lift_data pcm;
-          video = Frame_content.None.data;
-          midi = Frame_content.None.data;
-        }
+        let len = Audio.length pcm in
+        ( {
+            Frame.audio = Frame_content.Audio.lift_data pcm;
+            video = Frame_content.None.data;
+            midi = Frame_content.None.data;
+          },
+          len )
       in
-      let convert x = int_of_float (float x *. ratio) in
+      let convert x = int_of_float (float (x - start) *. ratio) in
       let metadata =
         List.map (fun (i, m) -> (convert i, m)) (Frame.get_all_metadata frame)
       in
-      let start = convert start in
-      let stop = convert stop in
-      let len = stop - start in
-      Generator.feed generator ~metadata ~copy:false content start len;
+      Generator.feed generator ~metadata ~copy:false content 0 len;
       if Frame.is_partial frame then Generator.add_break generator
 
     method private get_frame frame =
