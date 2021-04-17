@@ -94,7 +94,7 @@ Libraries not developed by Savonet are:
 | ocaml-xmlplaylist   |  >= 0.1.3          | XML-based playlist formats                    |
 | osx-secure-transport|  | SSL/https support via OSX's SecureTransport   |
 | posix-time2         |           | High-resolution time/latency                  |
-| tsdl                |                  | Display videos                                |
+| tsdl                |  >= 0.2.0                 | Display videos                                |
 | tsdl-image          |            | Load images                                   |
 | tsdl-tff            |              | Render fonts                                  |
 | yojson              |                | Parsing JSON data (of_json function)          |
