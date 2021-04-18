@@ -53,7 +53,7 @@ let rec to_json_compact v =
         if v.Lang.value = Lang.Tuple [] then (
           let l =
             List.map
-              (fun (l, v) -> Printf.sprintf "%s:%s" l (to_json_compact v))
+              (fun (l, v) -> Printf.sprintf "\"%s\":%s" l (to_json_compact v))
               m
           in
           Printf.sprintf "{%s}" (String.concat "," l) )
