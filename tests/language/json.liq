@@ -1,4 +1,4 @@
-#!../src/liquidsoap ../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/pervasives.liq
 
 # We test some ground values for json import/export.
 
@@ -6,7 +6,14 @@
 
 success = ref(true)
 
-def t(d,x) =
+def t(x,y) =
+  if x != y then
+    print("Failure: #{x} instead of #{y}")
+    success := false
+  end
+end
+
+def u(d,x) =
   y = of_json(default=d,json_of(x))
   if y == d or y != x then
     print("Failure: #{x} => #{json_of(x)} => #{y}")
@@ -15,17 +22,19 @@ def t(d,x) =
 end
 
 def f() =
-  t(2, 1)
-  t(3.14, 4.25)
-  t(false, true)
-  t("abc", "def")
-  t([1],[1,2,3])
-  t((1,"foo"), (2,"bar"))
-  t([("foo",(1,"bar"))], [("gni",(2,"boo"))])
-  t([(1,[("fr","bar")])], [(2,[("en","foo")])])
-  # t([("ping",())], [("pong",())])
-  t([3],[])
-  t([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4}"))
+  u(2, 1)
+  u(3.14, 4.25)
+  u(false, true)
+  u("abc", "def")
+  u([1],[1,2,3])
+  u((1,"foo"), (2,"bar"))
+  u([("foo",(1,"bar"))], [("gni",(2,"boo"))])
+  u([(1,[("fr","bar")])], [(2,[("en","foo")])])
+  # u([("ping",())], [("pong",())])
+  u([3],[])
+  u([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4}"))
+
+  t(of_json(default=[("","")], '{"a":3}'), [("a","3")])
 
   if !success then
     test.pass()
