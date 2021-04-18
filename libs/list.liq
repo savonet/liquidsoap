@@ -336,3 +336,17 @@ end
 def list.shuffle(l) =
   list.sort(fun(_,_) -> random.bool()?-1:1, l)
 end
+
+
+# Compute the beginning of a list.
+# @category List
+# @param n Number of elements in the returned list.
+# @param l List whose prefix should be taken
+def list.prefix(n, l)
+  def rec aux(n, l)
+    if n <= 0 or list.is_empty(l) then [] else
+      list.add(list.hd(l), aux(n-1, list.tl(l)))
+    end
+  end
+  aux(n, l)
+end

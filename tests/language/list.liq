@@ -45,6 +45,8 @@ def f() =
   t(list.exists(fun (n) -> n > 0, [0,0,0]), false)
   t(list.fold(fun(x,y)->x+y,1,[2,3,4]), 10)
   t(list.fold_right(fun(x,y)->x+y,1,[2,3,4]), 10)
+  t(list.prefix(2,[1,2,3]), [1,2])
+  t(list.prefix(3,[1]), [1])
   t(list.init(4, fun(x)->2*x), [0,2,4,6])
   t(list.index(fun(x)->x==0,[1,2,0,3]), 2)
   t(list.index(fun(x)->x==0,[1,2,3]), 3)
