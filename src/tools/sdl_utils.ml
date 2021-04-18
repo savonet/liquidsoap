@@ -39,6 +39,8 @@ let options : Sdl.Init.t option ref = ref None
 let check f x =
   match f x with Error (`Msg err) -> failwith err | Ok ans -> ans
 
+let initialized = ref false
+
 let init l =
   if !options = None then options := Some Sdl.Init.nothing;
   List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l

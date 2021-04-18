@@ -33,7 +33,14 @@ end
 
 let output.video = output.dummy
 %ifdef output.sdl
-  let output.video = output.sdl
+  def output.video(%argsof(output.sdl), s)
+    if output.sdl.has_video() then
+      output.sdl(%argsof(output.sdl), s)
+    else
+      # Avoid using SDL when there is no video output.
+      output.dummy(s)
+    end
+  end
 %endif
 %ifdef output.graphics
   let output.video = output.graphics

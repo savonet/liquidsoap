@@ -116,3 +116,11 @@ let () =
       let source = List.assoc "" p in
       ( new output ~infallible ~autostart ~on_start ~on_stop ~kind source
         :> Source.source ))
+
+let () =
+  Lang.add_builtin ~category:(Lang.string_of_category Lang.Output)
+    ~descr:"Check whether video output is available with SDL."
+    "output.sdl.has_video" [] Lang.bool_t (fun _ ->
+      match Sdl.init Sdl.Init.video with
+        | Ok _ -> Lang.bool true
+        | Error _ -> Lang.bool false)
