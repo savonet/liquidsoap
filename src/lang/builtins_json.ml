@@ -59,7 +59,7 @@ let rec to_json_compact v =
           Printf.sprintf "{%s}" (String.concat "," l) )
         else failwith "TODO: JSON of method not yet implemented"
     | Lang.Source _ -> "\"<source>\""
-    | Lang.Ref v -> Printf.sprintf "{\"reference\":%s}" (to_json_compact !v)
+    | Lang.Ref v -> Printf.sprintf "{\"reference\": %s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
     | Lang.FFI _ | Lang.Fun _ -> "\"<fun>\""
 
