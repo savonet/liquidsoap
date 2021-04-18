@@ -60,15 +60,16 @@ let decode_audio_frame ~mode c =
       let channels = Avcodec.Audio.get_nb_channels params in
       let channel_layout = Avutil.Channel_layout.get_default channels in
       let samplerate = Avcodec.Audio.get_sample_rate params in
-      let in_sample_format = Avcodec.Audio.get_sample_format params in
-
-      let converter =
-        mk_converter ~channel_layout ~samplerate ~in_sample_format
-      in
 
       let codec_id = Avcodec.Audio.get_params_id params in
       let codec = Avcodec.Audio.find_decoder codec_id in
       let decoder = Avcodec.Audio.create_decoder ~params codec in
+
+      let in_sample_format = Avcodec.Audio.sample_format decoder in
+      let converter =
+        mk_converter ~channel_layout ~samplerate ~in_sample_format
+      in
+
       current_converter := Some (converter, decoder);
       current_stream_idx := Some stream_idx;
       current_params := Some params;
