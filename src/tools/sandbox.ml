@@ -51,7 +51,7 @@ let get_setenv () =
 let conf_unsetenv =
   Dtools.Conf.list
     ~p:(conf_sandbox#plug "unsetenv")
-    ~d:[] "Environment varialbes to unset."
+    ~d:[] "Environment variables to unset."
 
 let conf_binary =
   Dtools.Conf.string
