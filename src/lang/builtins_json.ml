@@ -151,15 +151,20 @@ let () =
 let rec of_json d j =
   match (d.Lang.value, j) with
     | Lang.Tuple [], `Null -> Lang.unit
-    | Lang.Ground (Lang.Ground.Bool _), `Bool b ->
-        Lang.bool b
-        (* JSON specs do not differenciate between ints
-         * and floats. Therefore, we should parse int as
-         * floats when required.. *)
+    | Lang.Ground (Lang.Ground.Bool _), `Bool b -> Lang.bool b
+    (* JSON specs do not differenciate between ints and floats. Therefore, we
+       should parse int as floats when required. *)
     | Lang.Ground (Lang.Ground.Int _), `Int i -> Lang.int i
     | Lang.Ground (Lang.Ground.Float _), `Int i -> Lang.float (float_of_int i)
-    | Lang.Ground (Lang.Ground.String _), `String s -> Lang.string s
     | Lang.Ground (Lang.Ground.Float _), `Float x -> Lang.float x
+    | Lang.Ground (Lang.Ground.String _), `String s -> Lang.string s
+    (* Be liberal and allow casting basic types to string. *)
+    | Lang.Ground (Lang.Ground.String _), `Int i ->
+        Lang.string (string_of_int i)
+    | Lang.Ground (Lang.Ground.String _), `Float x ->
+        Lang.string (string_of_float x)
+    | Lang.Ground (Lang.Ground.String _), `Bool b ->
+        Lang.string (string_of_bool b)
     | Lang.List [], `List [] -> Lang.list []
     | Lang.List (d :: _), `List l ->
         (* TODO: we could also try with other elements of the default list... *)
