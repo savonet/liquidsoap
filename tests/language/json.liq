@@ -35,6 +35,7 @@ def f() =
   u([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4}"))
 
   t(of_json(default=[("","")], '{"a":3}'), [("a","3")])
+  t(of_json(default={x=0, a=""}, '{"a":"z", "x":3}'), {x=3, a="z"})
 
   if !success then
     test.pass()

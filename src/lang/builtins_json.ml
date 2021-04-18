@@ -192,6 +192,15 @@ let rec of_json d j =
             [] l
         in
         Lang.list l
+    (* Parse records. *)
+    | Lang.Meth (l, x, d), `Assoc a -> (
+        try
+          let y = List.assoc l a in
+          let v = of_json x y in
+          let a' = List.remove_assoc l a in
+          Lang.meth (of_json d (`Assoc a')) [(l, v)]
+        with Not_found -> raise Failed )
+    | Lang.Tuple [], `Assoc _ -> Lang.unit
     | _ -> raise Failed
 
 let () =
