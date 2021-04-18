@@ -139,6 +139,13 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
                     None
                 | _, cue_out -> cue_out
             in
+            self#log#info "Cue points : %s / %s"
+              ( match cue_in with
+                | None -> "none"
+                | Some t -> string_of_float (Frame.seconds_of_main t) )
+              ( match cue_out with
+                | None -> "none"
+                | Some t -> string_of_float (Frame.seconds_of_main t) );
             (cue_in, cue_out)
 
     method private cue_in ~buf ~breaks ~delta_pos ~out_pos ~pos seek_time =
