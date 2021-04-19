@@ -363,14 +363,20 @@ module Make (Harbor : T) = struct
           Lang.nullable_t
             (Lang.fun_t
                [
-                 (false, "address", Lang.string_t);
-                 (false, "", Lang.string_t);
-                 (false, "", Lang.string_t);
+                 ( false,
+                   "",
+                   Lang.record_t
+                     [
+                       ("address", Lang.string_t);
+                       ("user", Lang.string_t);
+                       ("password", Lang.string_t);
+                     ] );
                ]
                Lang.bool_t),
           Some Lang.null,
           Some
-            "Authentication function. `f(~address,login,password)` returns \
+            "Authentication function. Receives a record with: `user`, \
+             `password` and `address` (client network address) and returns \
              `true` if the user should be granted access for this login. \
              Override any other method if used." );
         ( "dumpfile",
@@ -445,9 +451,13 @@ module Make (Harbor : T) = struct
                 Lang.to_bool
                   (Lang.apply auth_function
                      [
-                       ("address", Lang.string (address_resolver socket));
-                       ("", Lang.string user);
-                       ("", Lang.string password);
+                       ( "",
+                         Lang.record
+                           [
+                             ("address", Lang.string (address_resolver socket));
+                             ("user", Lang.string user);
+                             ("password", Lang.string password);
+                           ] );
                      ])
             | None -> default_login
         in
