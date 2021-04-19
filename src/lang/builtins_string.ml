@@ -481,7 +481,12 @@ let () =
     (fun p ->
       let show_fields = Lang.to_bool (List.assoc "fields" p) in
       let v = List.assoc "" p in
-      let v = if show_fields then v else Lang.demeth v in
+      let dv = Lang.demeth v in
+      (* Always show records. *)
+      let show_fields =
+        if dv.Lang.value = Lang_values.V.unit then true else show_fields
+      in
+      let v = if show_fields then v else dv in
       match v with
         | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
         | v -> Lang.string (Lang.print_value v))
