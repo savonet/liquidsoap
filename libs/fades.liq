@@ -279,54 +279,54 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
   add = fun (a,b) -> add(normalize=false,[b, a])
   log = log(label="crossfade")
 
-  def simple_transition(a,b,ma,mb,sa,sb)
-    list.iter(fun(x)-> log(level=4,"Before: #{x}"),ma)
-    list.iter(fun(x)-> log(level=4,"After : #{x}"),mb)
+  def simple_transition(a,b)
+    list.iter(fun(x)-> log(level=4,"Before: #{x}"),a.metadata)
+    list.iter(fun(x)-> log(level=4,"After : #{x}"),b.metadata)
 
     log("Simple transition: crossed, fade-in, fade-out.")
-    (add(fade.out(sa),fade.in(sb)):source)
+    (add(fade.out(a),fade.in(b)):source)
   end
 
-  def smart_transition(a,b,ma,mb,sa,sb)
-    list.iter(fun(x)-> log(level=4,"Before: #{x}"),ma)
-    list.iter(fun(x)-> log(level=4,"After : #{x}"),mb)
+  def smart_transition(a,b)
+    list.iter(fun(x)-> log(level=4,"Before: #{x}"),a.metadata)
+    list.iter(fun(x)-> log(level=4,"After : #{x}"),b.metadata)
 
     if
       # If A and B are not too loud and close, fully cross-fade them.
-      a <= medium and b <= medium and abs(a - b) <= margin
+      a.power <= medium and b.power <= medium and abs(a.power - b.power) <= margin
     then
       log("Old <= medium, new <= medium and |old-new| <= margin.")
       log("Old and new source are not too loud and close.")
       log("Transition: crossed, fade-in, fade-out.")
-      add(fade.out(sa),fade.in(sb))
+      add(fade.out(a),fade.in(b))
 
     elsif
       # If B is significantly louder than A, only fade-out A.
       # We don't want to fade almost silent things, ask for >medium.
-      b >= a + margin and a >= medium and b <= high
+      b.power >= a.power + margin and a.power >= medium and b.power <= high
     then
       log("new >= old + margin, old >= medium and new <= high.")
       log("New source is significantly louder than old one.")
       log("Transition: crossed, fade-out.")
-      add(fade.out(sa),sb)
+      add(fade.out(a),b)
 
     elsif
       # Opposite as the previous one.
-      a >= b + margin and b >= medium and a <= high
+      a.power >= b.power + margin and b.power >= medium and a.power <= high
     then
       log("old >= new + margin, new >= medium and old <= high")
       log("Old source is significantly louder than new one.")
       log("Transition: crossed, fade-in.")
-      add(sa,fade.in(sb))
+      add(a,fade.in(b))
 
     elsif
       # Do not fade if it's already very low.
-      b >= a + margin and a <= medium and b <= high
+      b.power >= a.power + margin and a.power <= medium and b.power <= high
     then
       log("new >= old + margin, old <= medium and new <= high.")
       log("Do not fade if it's already very low.")
       log("Transition: crossed, no fade.")
-      add(sa,sb)
+      add(a,b)
 
     # What to do with a loud end and a quiet beginning ?
     # A good idea is to use a jingle to separate the two tracks,
@@ -337,7 +337,7 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
       # difference between them is too large and overlapping would completely
       # mask one of them.
       log("No transition: using default.")
-      default(sa, sb)
+      default(a, b)
     end
   end
 
