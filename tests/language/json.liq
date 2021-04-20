@@ -34,6 +34,11 @@ def f() =
   u([3],[])
   u([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4}"))
 
+  t(json_of("a"), '"a"')
+  t(json_of("©"), '"©"')
+  t(json_of('"'), '"\\""')
+  t(json_of('\\'), '"\\\\"')
+
   t(of_json(default=[("","")], '{"a":3}'), [("a","3")])
   t(of_json(default={x=0, a=""}, '{"a":"z", "x":3}'), {x=3, a="z"})
 

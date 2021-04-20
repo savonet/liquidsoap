@@ -31,6 +31,7 @@ let rec to_json_compact v =
         let s = string_of_float n in
         let s = Printf.sprintf "%s" s in
         if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s else s
+    | Lang.(Ground (Ground.String s)) -> print_s s
     | Lang.Ground g -> Lang_values.Ground.to_string g
     | Lang.List l -> (
         try
