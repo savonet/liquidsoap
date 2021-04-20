@@ -101,8 +101,8 @@ let () =
           "Enable or disable network inside sandboxed environment (sandbox \
            default if not specified)." );
       ( "timeout",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
         Some "Cancel process after `timeout` has elapsed. Ignored if negative."
       );
       ("", Lang.string_t, None, Some "Command to run");
@@ -142,12 +142,19 @@ let () =
       in
       let inherit_env = Lang.to_bool (List.assoc "inherit_env" p) in
       let env = if env = [] && inherit_env then Utils.environment () else env in
-      let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let timeout =
+        match
+          Option.map Lang.to_float (Lang.to_option (List.assoc "timeout" p))
+        with
+          | Some f -> f
+          | None -> -1.
+      in
       let env = List.map (fun (k, v) -> Printf.sprintf "%s=%s" k v) env in
       let env = Array.of_list env in
+      let cmd_value = Lang.to_string (List.assoc "" p) in
       let cmd =
         Sandbox.cmd ~rw:sandbox_rw ~ro:sandbox_ro ~network:sandbox_network
-          (Lang.to_string (List.assoc "" p))
+          cmd_value
       in
       let buflen = Utils.pagesize in
       let out_buf = Buffer.create buflen in
@@ -238,6 +245,16 @@ let () =
             in
             (timed_out, !status))
       in
+      let tutils_started = Tutils.has_started () in
+      if 0. <= timeout && not tutils_started then
+        log#important
+          "Command %s cannot be executed with timeout %.02f because the \
+           internal scheduler has not yet started. Most likely, this call is \
+           made at the beginning of your script. We suggest that you wrap this \
+           call in an asynchronous task. If you really need this value \
+           immediately as your script is starting, you should implement the \
+           timeout within the process call itself."
+          cmd_value timeout;
       on_done
-        ( if 0. <= timeout && Tutils.has_started () then asynchronous ()
+        ( if 0. <= timeout && tutils_started then asynchronous ()
         else synchronous () ))
