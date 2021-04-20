@@ -60,3 +60,60 @@ let () =
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
       new on_frame ~kind f s)
+
+(** Operations on frames. *)
+class frame_op ~name ~kind f default s =
+  object
+    inherit Source.operator ~name kind [s]
+
+    method stype = s#stype
+
+    method is_ready = s#is_ready
+
+    method abort_track = s#abort_track
+
+    method remaining = s#remaining
+
+    method seek n = s#seek n
+
+    method self_sync = s#self_sync
+
+    val mutable value = default
+
+    method value : Lang.value = value
+
+    method private get_frame buf =
+      let off = Frame.position buf in
+      s#get buf;
+      let pos = Frame.position buf in
+      value <- f buf off (pos - off)
+  end
+
+let () = Lang.add_module "source.frame"
+
+let op name descr f_t f default =
+  let kind = Lang.any in
+  let k = Lang.kind_type_of_kind_format kind in
+  Lang.add_operator ("source.frame." ^ name)
+    [("", Lang.source_t k, None, None)]
+    ~category:Lang.TrackProcessing ~descr
+    ~return_t:(Lang.method_t k [("frame_" ^ name, ([], f_t), descr)])
+    ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_source in
+      new frame_op ~name ~kind f default s)
+
+let () =
+  op "duration" "Compute the duration of the last frame." Lang.float_t
+    (fun _ _ len -> Lang.float (Frame.seconds_of_main len))
+    (Lang.float 0.);
+  op "rms" "Compute the rms of the last frame." Lang.float_t
+    (fun buf off len ->
+      let rms =
+        Mm.Audio.Analyze.rms
+          (Mm.Audio.sub (AFrame.pcm buf) (Frame.audio_of_main off)
+             (Frame.audio_of_main len))
+      in
+      let rms = Array.fold_left max 0. rms in
+      Lang.float rms)
+    (Lang.float 0.)
