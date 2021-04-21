@@ -251,9 +251,9 @@ let () =
           "Command %s cannot be executed with timeout %.02f because the \
            internal scheduler has not yet started. Most likely, this call is \
            made at the beginning of your script. We suggest that you wrap this \
-           call in an asynchronous task. If you really need this value \
-           immediately as your script is starting, you should implement the \
-           timeout within the process call itself."
+           call in an asynchronous task using `thread.run`. If you really need \
+           this value immediately as your script is starting, you should \
+           implement the timeout within the process call itself."
           cmd_value timeout;
       on_done
         ( if 0. <= timeout && tutils_started then asynchronous ()
