@@ -38,8 +38,8 @@ let () =
       Dtools.Log.conf_stdout#set_d (Some false);
       Dtools.Log.conf_file#set_d (Some true))
 
-(* Should we not run the active sources? *)
-let dont_run = ref false
+(* Are we streaming? *)
+let run_streams = ref true
 
 (* Should we start even without active sources? *)
 let force_start =
@@ -68,9 +68,6 @@ let pervasives = ref true
 
 (* Should we load the deprecated wrapper? *)
 let deprecated = ref true
-
-(* Have we been used for an other purpose than streaming? *)
-let secondary_task = ref false
 
 (* Shall we start an interactive interpreter (REPL) *)
 let interactive = ref false
@@ -133,14 +130,14 @@ let load_libs () =
   load_libs ()
 
 let lang_doc name =
-  secondary_task := true;
+  run_streams := false;
   load_libs ();
   try Doc.print_lang (Lang_values.builtins#get_subsection name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
 
 let process_request s =
   load_libs ();
-  secondary_task := true;
+  run_streams := false;
   let req = Request.create s in
   match Request.resolve ~ctype:None req 20. with
     | Request.Failed ->
@@ -338,23 +335,19 @@ let options =
           "Get help about a scripting value: source, operator, builtin or \
            library function, etc." );
         ( ["-c"; "--check"],
-          Arg.Unit
-            (fun () ->
-              secondary_task := true;
-              dont_run := true),
+          Arg.Unit (fun () -> run_streams := false),
           "Check and evaluate scripts but do not perform any streaming." );
         ( ["-cl"; "--check-lib"],
           Arg.Unit
             (fun () ->
               last_item_lib := true;
-              secondary_task := true;
-              dont_run := true),
+              run_streams := false),
           "Like --check but treats all scripts and expressions as libraries, \
            so that unused toplevel variables are not reported." );
         ( ["-p"; "--parse-only"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               parse_only := true),
           "Parse scripts but do not type-check and run them." );
         ( ["-q"; "--quiet"],
@@ -405,7 +398,7 @@ let options =
         ( ["--list-plugins-xml"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               load_libs ();
               Utils.kprint_string ~pager:true
                 (Doc.print_xml (Plug.plugs : Doc.item))),
@@ -415,7 +408,7 @@ let options =
         ( ["--list-plugins-json"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               load_libs ();
               Utils.kprint_string ~pager:true
                 (Doc.print_json (Plug.plugs : Doc.item))),
@@ -425,7 +418,7 @@ let options =
         ( ["--list-plugins"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               load_libs ();
               Utils.kprint_string ~pager:true
                 (Doc.print (Plug.plugs : Doc.item))),
@@ -435,7 +428,7 @@ let options =
         ( ["--list-functions"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               load_libs ();
               Utils.kprint_string ~pager:true
                 (Doc.print_functions (Plug.plugs : Doc.item))),
@@ -443,7 +436,7 @@ let options =
         ( ["--list-functions-md"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               load_libs ();
               Utils.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:false (Plug.plugs : Doc.item))),
@@ -451,7 +444,7 @@ let options =
         ( ["--list-extra-functions-md"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               load_libs ();
               Utils.kprint_string ~pager:true
                 (Doc.print_functions_md ~extra:true (Plug.plugs : Doc.item))),
@@ -459,7 +452,7 @@ let options =
         ( ["--list-protocols-md"],
           Arg.Unit
             (fun () ->
-              secondary_task := true;
+              run_streams := false;
               load_libs ();
               Utils.kprint_string ~pager:true
                 (Doc.print_protocols_md (Plug.plugs : Doc.item))),
@@ -565,11 +558,6 @@ let () =
         (fun s -> eval (`Expr_or_File s))
         usage;
 
-      (* Now we can start the logs! *)
-      if !secondary_task then (
-        Dtools.Log.conf_stdout#set false;
-        Dtools.Log.conf_file#set false );
-
       if !interactive then (
         let default_log =
           Filename.temp_file
@@ -673,13 +661,13 @@ let () =
         Tutils.start ();
         Tutils.main ()
       in
-      if !interactive then (
-        load_libs ();
-        check_directories ();
-        ignore (Thread.create Lang.interactive ());
-        Dtools.Init.init main )
-      else if Source.has_outputs () || force_start#get then
-        if not !dont_run then (
+      if !run_streams then
+        if !interactive then (
+          load_libs ();
+          check_directories ();
+          ignore (Thread.create Lang.interactive ());
+          Dtools.Init.init main )
+        else if Source.has_outputs () || force_start#get then (
           check_directories ();
           let msg_of_err = function
             | `User -> "root euid (user)"
@@ -696,15 +684,10 @@ let () =
           in
           try Dtools.Init.init ~prohibit_root:(not allow_root#get) main
           with Dtools.Init.Root_prohibited e -> on_error e )
-        else sync_cleanup ()
-      else if
-        (* If there's no output and no secondary task has been performed,
-         * warn the user that his scripts didn't define any output. *)
-        not !secondary_task
-      then (
-        final_cleanup ();
-        Printf.printf "No output defined, nothing to do.\n";
-        exit 1 ))
+        else (
+          final_cleanup ();
+          Printf.printf "No output defined, nothing to do.\n";
+          exit 1 ))
 
 (* Here we go! *)
 let start () = Dtools.Init.exec Lifecycle.init_atom
