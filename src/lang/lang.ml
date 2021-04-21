@@ -510,8 +510,7 @@ let rec assoc label n = function
       if l = label then if n = 1 then e else assoc label (n - 1) tl
       else assoc label n tl
 
-let error ?(pos = []) ?message kind =
-  raise (Lang_values.Runtime_error { Lang_values.kind; msg = message; pos })
+let error = Runtime_error.error
 
 (** {1 Parsing} *)
 

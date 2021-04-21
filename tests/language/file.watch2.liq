@@ -4,10 +4,27 @@
 
 success = ref(false)
   
-fname = "/tmp/fw"
+fname = file.temp("liq","test")
+
+def cleanup() =
+  file.remove(fname)
+end
+
+on_shutdown(cleanup)
+
 file.write(data="abc", fname)
 file.watch(fname, {success := true})
-file.write(data="xxx", fname)
-sleep(1.)
-  
-if !success then test.pass() else test.fail() end
+
+def write() =
+  file.write(data="xxx", fname)
+end
+
+thread.run(delay=1., write)
+
+def check() =
+  if !success then test.pass() else test.fail() end
+end
+
+thread.run(delay=3., check)
+
+output.dummy(blank())
