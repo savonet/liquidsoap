@@ -51,7 +51,7 @@ module Make (Harbor : T) = struct
             empty string."
            name_up)
       [
-        ("port", Lang.int_t, None, Some "Port to server.");
+        ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to server.");
         ( "method",
           Lang.string_t,
           None,
@@ -115,8 +115,8 @@ module Make (Harbor : T) = struct
       ~descr:
         (Printf.sprintf "Remove a registered %s handler on the harbor." name_up)
       [
+        ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to server.");
         ("method", Lang.string_t, None, Some "Method served.");
-        ("port", Lang.int_t, None, Some "Port to server.");
         ("", Lang.string_t, None, Some "URI served.");
       ]
       Lang.unit_t
