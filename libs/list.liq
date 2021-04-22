@@ -140,7 +140,7 @@ end
 # @category List
 # @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.
 # @param x Initial value x1, to be updated by successive calls of `f(x,e)`.
-def list.fold_right(f, x, l)
+def list.fold.right(f, x, l)
   list.ind(l, x, fun (e, l, r) -> f(e, r))
 end
 
