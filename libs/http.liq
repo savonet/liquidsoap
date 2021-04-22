@@ -91,26 +91,50 @@ end
 let harbor.http.static = ()
 
 # @flag hidden
-def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directory) =
+def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,~browse,directory) =
   basepath =
     if string.sub(basepath,start=0,length=1) != "/" then
       "/#{basepath}"
     else
       basepath
     end
+  basepath =
+    if string.sub(basepath,start=string.length(basepath)-1,length=1) != "/" then
+      basepath^"/"
+    else
+      basepath
+    end
+  directory = path.home.unrelate(directory)
 
   responseHeaders = headers
 
   def handler(~method,~protocol,~data,~headers,uri)
-    ret = string.extract(pattern="^#{basepath}([^?]*)",uri)
+    ret = string.extract(pattern="^#{basepath}([^?]*)", uri)
+    match =
+      if list.length(ret) == 0 then "."
+      else string.trim(ret[1]) end
+    match = url.decode(match)
 
-    if list.length(ret) == 0 then
-      getter(http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!"))
-    else
-      match = string.trim(ret[1])
-
-      fname = path.concat(directory, match)
-      if file.exists(fname) then
+    fname = path.concat(directory, match)
+    log.debug("Serving static file: #{fname}")
+    if file.exists(fname) then
+      if file.is_directory(fname) then
+        if browse then
+          page = ref("")
+          def add(s)
+            page := !page ^ s
+          end
+          def add_file(f)
+            add("<li><a href=\"#{uri}/#{f}\">#{f}</a></li>")
+          end
+          add("<html><body><ul>")
+          list.iter(add_file, list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, file.ls(fname)))
+          add("</ul></body>")
+          getter(http.response(protocol=protocol,code=200,headers=responseHeaders,data=!page))
+        else
+          getter(http.response(protocol=protocol,code=403,headers=responseHeaders,data="Forbidden."))
+        end
+      else
         mime = content_type(fname)
 
         responseHeaders =
@@ -118,16 +142,16 @@ def harbor.http.static.base(serve,~content_type,~basepath,~port,~headers,directo
             list.add(("Content-Type",mime),responseHeaders)
           else
             responseHeaders
-        end
+          end
 
         if method == "OPTIONS" or method == "HEAD" then
           getter(http.response(protocol=protocol,code=200,headers=responseHeaders))
         else
           getter(http.response.stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(fname),data=file.read(fname)))
         end
-      else
-        getter(http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!"))
       end
+    else
+      getter(http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!"))
     end
   end
 
@@ -166,10 +190,11 @@ content_type = file.mime
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~path Base path
 # @param ~headers Default response headers.
+# @param ~browse List files in directories.
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
-def replaces harbor.http.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.http.register,content_type=content_type,basepath=path,port=port,headers=headers,directory)
+def replaces harbor.http.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
+  harbor.http.static.base(harbor.http.register,content_type=content_type,basepath=path,browse=browse,port=port,headers=headers,directory)
 end
 
 %ifdef harbor.https.register
@@ -178,9 +203,10 @@ end
 # @param ~port Port for incoming harbor (https) connections.
 # @param ~path Base path
 # @param ~headers Default response headers.
+# @param ~browse List files in directories.
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served
-def harbor.https.static(~port=8000,~path="/",~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.https.register,basepath=path,content_type=content_type,port=port,headers=headers,directory)
+def harbor.https.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
+  harbor.http.static.base(harbor.https.register,basepath=path,browse=browse,content_type=content_type,port=port,headers=headers,directory)
 end
 %endif
