@@ -200,7 +200,7 @@ end
 # @category List
 # @param key Key of pair to be removed.
 # @param l List of pairs (key,value).
-def list.remove_assoc(key, l)
+def list.assoc.remove(key, l)
   def rec aux(l)
     def f(x, l)
       let (k, v) = x
@@ -268,11 +268,11 @@ def list.index(p, l)
   list.ind(l, 0, fun (x, l, r) -> if p(x) then 0 else r+1 end)
 end
 
-# list.mem_assoc(key,l) returns true if l contains a pair (key,value).
+# list.assoc.mem(key,l) returns true if l contains a pair (key,value).
 # @category List
 # @param a Key to look for
 # @param l List of pairs (key,value)
-def list.mem_assoc(a,l)
+def list.assoc.mem(a,l)
   def f(cur, el) =
     if not cur then
       fst(el) == a
@@ -283,11 +283,11 @@ def list.mem_assoc(a,l)
   list.fold(f, false, l)
 end
 
-# list.filter_assoc(key,l) returns all the elements of the form (key, value) from l.
+# list.assoc.filter(key,l) returns all the elements of the form (key, value) from l.
 # @category List
 # @param k Key to look for
 # @param l List of pairs (key,value)
-def list.filter_assoc(k,l)
+def list.assoc.filter(k,l)
   list.filter(fun (el) -> fst(el) == k, l)
 end
 

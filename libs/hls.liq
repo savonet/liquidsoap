@@ -36,7 +36,7 @@ def input.hls.native(~id="",~reload=10.,uri)
 
       def add_file(playlist, file) =
         let (idx,_) = file
-        if first_idx < idx and not list.mem_assoc(idx, playlist) then
+        if first_idx < idx and not list.assoc.mem(idx, playlist) then
           list.append(playlist, [file])
         else
           playlist

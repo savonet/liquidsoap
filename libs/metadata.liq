@@ -44,7 +44,7 @@ end
 def file.cover(~id="file.cover", fname)
   m = file.metadata(fname)
   m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
-  if list.mem_assoc("coverart", m) or list.mem_assoc("metadata_block_picture", m)then
+  if list.assoc.mem("coverart", m) or list.assoc.mem("metadata_block_picture", m)then
     # We are likely to have an ogg/vorbis file
     cover = list.assoc(default="", "coverart", m)
     if cover != "" then
@@ -67,7 +67,7 @@ def file.cover(~id="file.cover", fname)
   else
     # Assume we have an mp3 file
     m =
-      if list.mem_assoc("apic", m) then
+      if list.assoc.mem("apic", m) then
         m
       else
         # Try the builtin tag reader because APIC tags are not read by default,

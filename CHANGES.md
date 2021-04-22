@@ -400,7 +400,7 @@ Changed:
   one request ready to play when the current one ends.
 - Added support for cue in/out and fade in/out/type metadata support in `ffmpeg2wav`
   protocol. Rename protocol to `ffmpeg`. (#909)
-- `list.assoc` and `list.remove_assoc` require an ordered type as first
+- `list.assoc` and `list.assoc.remove` require an ordered type as first
   component.
 - Renamed `quote` to `string.quote`.
 - Added `phase_inversion={true/false}` to `%opus` encoder (#937)

@@ -87,7 +87,7 @@ let stdlib_osc = osc
 # @param ~osc OSC address for the variable.
 # @param ~type Type of the variable.
 def interactive.create(~name, ~description="", ~osc="", ~type)
-  if list.mem_assoc(name, !variables) then error.raise(interactive.error, "variable already registered") end
+  if list.assoc.mem(name, !variables) then error.raise(interactive.error, "variable already registered") end
   variables := list.add((name, { type=type, description=description }), !variables)
   variables := list.sort(fun(n, n') -> if fst(n) < fst(n') then -1 else 1 end, !variables)
 %ifdef osc
