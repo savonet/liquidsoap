@@ -158,7 +158,7 @@ let add ~ns ?usage ~descr cmd handler =
       let name = prefix_ns cmd ns in
       if Hashtbl.mem commands name then
         log#severe
-          "Server command %s already registered! Previous definition replaced.."
+          "Server command %s already registered! Previous definition replaced."
           name
       else ();
       Hashtbl.replace commands (prefix_ns cmd ns) (handler, usage, descr))
