@@ -51,6 +51,7 @@ let rec handler _ =
 
 let watch : File_watcher.watch =
  fun e file callback ->
+  if not (Sys.file_exists file) then Runtime_error.error "not_found";
   if List.mem `Modify e then
     Tutils.mutexify m
       (fun () ->

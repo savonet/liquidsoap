@@ -22,7 +22,7 @@
 
 (** Values in the Liquidsoap language. *)
 
-type pos = Lang_types.pos
+include Runtime_error
 
 (** An internal error. Those should not happen in theory... *)
 exception Internal_error of (pos list * string)
@@ -32,11 +32,6 @@ exception Parse_error of (pos * string)
 
 (** Unsupported format *)
 exception Unsupported_format of (pos * Encoder.format)
-
-(** An error at runtime. *)
-type runtime_error = { kind : string; msg : string option; pos : pos list }
-
-exception Runtime_error of runtime_error
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
