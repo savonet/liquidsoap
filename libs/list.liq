@@ -206,6 +206,21 @@ def list.assoc.remove(key, l)
       let (k, v) = x
       if k == key then l else list.cons((k,v), aux(l)) end
     end
+    list.dcase(l, {error.raise(error.not_found, "inexistent key in list.assoc.remove")}, f)
+  end
+  aux(l)
+end
+
+# Remove all pairs with given key from an associative list.
+# @category List
+# @param key Key of pairs to be removed.
+# @param l List of pairs (key,value).
+def list.assoc.remove.all(key, l)
+  def rec aux(l)
+    def f(x, l)
+      let (k, v) = x
+      if k == key then aux(l) else list.cons((k,v), aux(l)) end
+    end
     list.case(l, [], f)
   end
   aux(l)
