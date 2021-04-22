@@ -225,7 +225,10 @@ let utf8_next s i =
   else if n <= 0xf7 then i + 4
   else if n <= 0xfb then i + 5
   else if n <= 0xfd then i + 6
-  else failwith "Utils.utf_8.next"
+  else
+    (* This is invalid utf8, but we try to find next character anyway. Otherwise
+       we get useless crashes, see #1590. *)
+    utf8_search_head s (i + 1)
 
 (* End of Extlib code *)
 
