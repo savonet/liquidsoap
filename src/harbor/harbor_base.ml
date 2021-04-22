@@ -67,6 +67,6 @@ let conf_icy_metadata =
 let conf_timeout =
   Dtools.Conf.float
     ~p:(conf_harbor#plug "timeout")
-    ~d:300. "Timeout for network operations."
+    ~d:300. "Timeout for network operations (in seconds)."
 
 let log = Log.make ["harbor"]

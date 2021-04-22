@@ -90,7 +90,7 @@ module Make (T : T) = struct
         ( "timeout",
           Lang.float_t,
           Some (Lang.float 30.),
-          Some "Timeout for network operations." );
+          Some "Timeout for network operations (in seconds)." );
         ( "encoding",
           Lang.string_t,
           Some (Lang.string ""),

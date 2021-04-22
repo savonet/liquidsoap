@@ -70,7 +70,7 @@ let add_http_request http m name descr request =
         ( "timeout",
           Lang.float_t,
           Some (Lang.float 10.),
-          Some "Timeout for network operations." );
+          Some "Timeout for network operations (in seconds)." );
         ( "",
           Lang.string_t,
           None,
