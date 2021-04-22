@@ -77,7 +77,7 @@ end
 # @flag extra
 # @param ~port Port of the server.
 # @param ~uri URI of the server.
-def server.harbor(~port=8080, ~uri="/telnet")
+def server.harbor(~port=8000, ~uri="/telnet")
   def webpage(~protocol, ~data, ~headers, uri)
     data="
 <html>
