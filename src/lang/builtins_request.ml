@@ -51,6 +51,12 @@ let () =
 let () =
   add_builtin "request.resolve" ~cat:Liq
     [
+      ( "content_type",
+        Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
+        Some Lang.null,
+        Some
+          "If specified, the request will be decoded with the same content \
+           type as the given source." );
       ( "timeout",
         Lang.float_t,
         Some (Lang.float 30.),
@@ -65,10 +71,15 @@ let () =
        should not be decoded afterward: this is mostly useful to download \
        files such as playlists, etc."
     (fun p ->
+      let ctype =
+        List.assoc "content_type" p
+        |> Lang.to_option
+        |> Option.map (fun s -> (Lang.to_source s)#ctype)
+      in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r = Lang.to_request (List.assoc "" p) in
       Lang.bool
-        ( try Request.Resolved = Request.resolve ~ctype:None r timeout
+        ( try Request.Resolved = Request.resolve ~ctype r timeout
           with _ -> false ))
 
 let () =
