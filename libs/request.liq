@@ -71,3 +71,25 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
   end
   s.{push=push.{uri=push_uri}, length={list.length(!queue)}}
 end
+
+# Create a source on which plays immediately requests given with the `play`
+# method.
+# @category Source / Track Processing
+# @method play Play a request.
+# @method length Number of currently playing requests.
+def request.player()
+  l = ref([])
+
+  # Perform some garbage collection in order to avoid that the list grows too
+  # much.
+  def collect()
+    l := list.filter(source.is_ready, !l)
+  end
+
+  def play(r)
+    collect()
+    l := list.add((request.once(r):source), !l)
+  end
+
+  source.dynamic({add(normalize=false, !l)}).{play=play, length={collect(); list.length(!l)}}
+end
