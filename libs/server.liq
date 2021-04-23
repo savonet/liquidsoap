@@ -1,3 +1,7 @@
+def server.telnet =
+  setting.getter.bool("server.telnet")
+end
+
 # Register a command that outputs the RMS of the returned source.
 # @category Source / Visualization
 # @param ~id Force the value of the source ID.

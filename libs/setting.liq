@@ -23,3 +23,9 @@ end
 def setting.getter.float(name)
   setting.getter(default=-1., name)
 end
+
+# Create a getter from a bool setting.
+# @param name Name of the setting.
+def setting.getter.bool(name)
+  setting.getter(default=false, name)
+end
