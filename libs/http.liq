@@ -8,9 +8,11 @@
 # @param ~protocol HTTP protocol used.
 # @param ~code Response code.
 # @param ~headers Response headers.
-# @param ~data Response data
+# @param ~content_type Content type for the data.
+# @param ~data Response data.
 def http.response(~protocol="HTTP/1.1",
                   ~code=200,~headers=[],
+                  ~content_type="",
                   ~data="") = 
   status = http.codes[code]
   # Set content-length and connection: close
@@ -18,6 +20,12 @@ def http.response(~protocol="HTTP/1.1",
     list.append(headers, 
                 [("Content-Length", "#{string.length(data)}"),
                  ("Connection", "close")])
+  headers =
+    if content_type != "" then
+      list.add(("Content-Type", content_type), headers)
+    else
+      headers
+    end
 
   headers = list.map(fun (x) -> "#{fst(x)}: #{snd(x)}",headers)
   headers = string.concat(separator="\r\n",headers)
@@ -48,18 +56,26 @@ end
 # @param ~protocol HTTP protocol used.
 # @param ~code Response code.
 # @param ~headers Response headers.
-# @param ~data_len Response length in bytes
-# @param ~data Response data
+# @param ~data_len Response length in bytes.
+# @param ~content_type Content type for the data.
+# @param ~data Response data.
 def http.response.stream(
          ~protocol="HTTP/1.1",
          ~code=200,~headers=[],
-         ~data_len,~data) =         
+         ~content_type="",
+         ~data_len,~data) =
   status = http.codes[code]
   # Set content-length and connection: close
   headers =
     list.append(headers,
                 [("Content-Length", "#{data_len}"),
                  ("Connection", "close")])
+  headers =
+    if content_type != "" then
+      list.add(("Content-Type", content_type), headers)
+    else
+      headers
+    end
 
   headers = list.map(fun (x) -> "#{fst(x)}: #{snd(x)}",headers)
   headers = string.concat(separator="\r\n",headers)
@@ -127,33 +143,23 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
           def add_file(f)
             add("<li><a href=\"#{uri}/#{url.encode(f)}\">#{f}</a></li>")
           end
-          add("<html>")
-          add('<head><meta charset="UTF-8"></head>')
-          add("<body><ul>")
+          add("<html><body><ul>")
           list.iter(add_file, list.sort(fun (x,y) -> if x<y then -1 elsif x>y then 1 else 0 end, file.ls(fname)))
           add("</ul></body>")
-          getter(http.response(protocol=protocol,code=200,headers=responseHeaders,data=!page))
+          getter(http.response(protocol=protocol,code=200,headers=responseHeaders,content_type="text/html; charset=UTF-8",data=!page))
         else
-          getter(http.response(protocol=protocol,code=403,headers=responseHeaders,data="Forbidden."))
+          getter(http.response(protocol=protocol,code=403,headers=responseHeaders,content_type="text/plain",data="Forbidden."))
         end
       else
         mime = content_type(fname)
-
-        responseHeaders =
-          if mime != "" then
-            list.add(("Content-Type",mime),responseHeaders)
-          else
-            responseHeaders
-          end
-
         if method == "OPTIONS" or method == "HEAD" then
-          getter(http.response(protocol=protocol,code=200,headers=responseHeaders))
+          getter(http.response(protocol=protocol,code=200,headers=responseHeaders,content_type=mime))
         else
-          getter(http.response.stream(protocol=protocol,code=200,headers=responseHeaders,data_len=file.size(fname),data=file.read(fname)))
+          getter(http.response.stream(protocol=protocol,code=200,headers=responseHeaders,content_type=mime,data_len=file.size(fname),data=file.read(fname)))
         end
       end
     else
-      getter(http.response(protocol=protocol,code=404,headers=responseHeaders,data="Not Found!"))
+      getter(http.response(protocol=protocol,code=404,headers=responseHeaders,content_type="text/plain",data="Not Found!"))
     end
   end
 
