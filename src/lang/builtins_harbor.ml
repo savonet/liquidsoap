@@ -54,7 +54,7 @@ module Make (Harbor : T) = struct
         ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to server.");
         ( "method",
           Lang.string_t,
-          None,
+          Some (Lang.string "GET"),
           Some
             "Accepted method (\"GET\" / \"POST\" / \"PUT\" / \"DELETE\" / \
              \"HEAD\" / \"OPTIONS\")." );
@@ -116,7 +116,10 @@ module Make (Harbor : T) = struct
         (Printf.sprintf "Remove a registered %s handler on the harbor." name_up)
       [
         ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to server.");
-        ("method", Lang.string_t, None, Some "Method served.");
+        ( "method",
+          Lang.string_t,
+          Some (Lang.string "GET"),
+          Some "Method served." );
         ("", Lang.string_t, None, Some "URI served.");
       ]
       Lang.unit_t

@@ -201,7 +201,9 @@ content_type = file.mime
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served.
 def replaces harbor.http.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.http.register(port=port),content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
+  # Make the method argument non-optional, see #1018
+  serve = fun(~method,uri,handler) -> harbor.http.register(port=port,method=method,uri,handler)
+  harbor.http.static.base(serve,content_type=content_type,basepath=path,browse=browse,headers=headers,directory)
 end
 
 %ifdef harbor.https.register
@@ -214,6 +216,7 @@ end
 # @param ~content_type Callback to specify Content-Type on a per file basis. Default: file.mime if compiled or file CLI if present.
 # @param directory Local path to be served.
 def harbor.https.static(~port=8000,~path="/",~browse=false,~content_type=content_type,~headers=[("Access-Control-Allow-Origin","*")],directory) =
-  harbor.http.static.base(harbor.https.register(port=port),basepath=path,browse=browse,content_type=content_type,headers=headers,directory)
+  serve = fun(~method,uri,handler) -> harbor.https.register(port=port,method=method,uri,handler)
+  harbor.http.static.base(serve,basepath=path,browse=browse,content_type=content_type,headers=headers,directory)
 end
 %endif
