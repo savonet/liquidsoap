@@ -36,6 +36,8 @@ def f() =
   s = string.extract(pattern="([^=]*)=(.*)", "ab=cde")
   t(s[1], "ab")
   t(s[2], "cde")
+  t(string.is_int("123"), true)
+  t(string.is_int("1a3"), false)
   
   if !success then test.pass() else test.fail() end
 end
