@@ -22,9 +22,10 @@
 
 let log = Log.make ["lang"; "json"]
 
+(* Utils.escape implements JSON's escaping RFC. *)
+let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s
+
 let rec to_json_compact v =
-  (* Utils.escape implements JSON's escaping RFC. *)
-  let print_s s = Utils.escape_string (fun x -> Utils.escape_utf8 x) s in
   match v.Lang.value with
     (* JSON specs do not allow a trailing . *)
     | Lang.(Ground (Ground.Float n)) ->
@@ -110,6 +111,21 @@ let rec to_json_pp f v =
         in
         aux l;
         Format.fprintf f "@]@;<1 0>]@]"
+    | Lang.Meth _ ->
+        let l, v = Lang_values.V.split_meths v in
+        if v.Lang.value = Lang.Tuple [] then (
+          (* We have a record. *)
+          Format.fprintf f "@{{@;<1 1>@[";
+          let rec aux = function
+            | [] -> ()
+            | [(k, v)] -> Format.fprintf f "%s: %a" (print_s k) to_json_pp v
+            | (k, v) :: l ->
+                Format.fprintf f "%s: %a,@;<1 0>" (print_s k) to_json_pp v;
+                aux l
+          in
+          aux l;
+          Format.fprintf f "@]@;<1 0>}@]" )
+        else failwith "TODO: JSON of method not yet implemented"
     | Lang.Ref v ->
         Format.fprintf f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
           to_json_pp !v
