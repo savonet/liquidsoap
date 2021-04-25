@@ -50,24 +50,15 @@ val conf_telnet_port : int Conf.t
 
 (** {2 Commands of the server} *)
 
-(** Namespaces are used to avoid name conflicts. Any entity which wants to add
-  * commands to the server should first get a new unique namespace, in which the
-  * commands will be added. *)
+(** Namespaces are used to avoid name conflicts. *)
 type namespace = string list
 
 (** Get a string representation of a namespace. *)
 val to_string : namespace -> string
 
-(** [register hint kind] creates a new namespace and registers it.
-  * If [hint] is not used, it will be used as the new namespace. Otherwise,
-  * some numeral suffix will be appended to it in order to distinguish it.
-  * The [kind] is meant to provide information about what kind of namespace
-  * this is. In liquidsoap, it tells which kind of operator owns the namespace,
-  * and hence which commands should be expected in it. *)
-val register : namespace -> string -> namespace
-
-(** Release a namespace, deleting all associated commands. *)
-val unregister : namespace -> unit
+(** Register an operator with given identifier and kind. This is only used in
+   the "list" telnet command.  *)
+val register_op : string -> string -> unit
 
 (** Specialized implementation of conditions to use in server commands. *)
 type condition = {

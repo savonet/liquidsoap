@@ -1,4 +1,3 @@
-(* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
@@ -117,39 +116,21 @@ let log = Log.make ["server"]
 
 exception Duppy of Duppy.Io.failure
 
-(* {1 Manage available commands and namespaces}
- *
- * This needs to be thread safe: (un)registering is done in wakeup/sleep
- * which can be called from arbitrary clock threads. *)
+(* {1 Manage available commands} *)
+
 type namespace = string list
 
+(* This needs to be thread safe: (un)registering is done in wakeup/sleep which
+   can be called from arbitrary clock threads. *)
 let lock = Mutex.create ()
-let namespaces = Hashtbl.create 10
 
 let commands : (string, (string -> string) * string * string) Hashtbl.t =
   Hashtbl.create 50
 
-(* First, get a fresh namespace *)
-let register ns kind =
-  let c = ref 0 in
-  let mkns () = if !c = 0 then ns else ns @ [string_of_int !c] in
-  let ns () =
-    while Hashtbl.mem namespaces (mkns ()) do
-      incr c
-    done;
-    mkns ()
-  in
-  Tutils.mutexify lock
-    (fun () ->
-      let ns = ns () in
-      Hashtbl.add namespaces ns kind;
-      ns)
-    ()
-
 let to_string = String.concat "."
 let prefix_ns cmd ns = to_string (ns @ [cmd])
 
-(* Then add your commands to that namespace *)
+(* Add your commands. *)
 let add ~ns ?usage ~descr cmd handler =
   let usage = match usage with None -> cmd | Some u -> u in
   let usage = prefix_ns usage ns in
@@ -164,9 +145,15 @@ let add ~ns ?usage ~descr cmd handler =
       Hashtbl.replace commands (prefix_ns cmd ns) (handler, usage, descr))
     ()
 
-(* ... maybe remove them *)
+(* ... and maybe remove them. *)
 let remove ~ns cmd =
   Tutils.mutexify lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns)) ()
+
+(* Maintain a list of known operators. *)
+let operators = ref []
+
+let register_op id kind =
+  Tutils.mutexify lock (fun () -> operators := (id, kind) :: !operators) ()
 
 (* That's if you want to have your command wait. *)
 type condition = {
@@ -224,23 +211,6 @@ exception Read of read
 
 let read ~after payload = raise (Read { payload; after })
 
-let unregister ns =
-  Tutils.mutexify lock
-    (fun () ->
-      let ns_str = to_string ns in
-      let ns_len = String.length ns_str in
-      let is_prefix cmd =
-        String.length cmd > ns_len && ns_str = String.sub cmd 0 ns_len
-      in
-      let to_remove =
-        Hashtbl.fold
-          (fun cmd _ l -> if is_prefix cmd then cmd :: l else l)
-          commands []
-      in
-      List.iter (Hashtbl.remove commands) to_remove;
-      Hashtbl.remove namespaces ns)
-    ()
-
 (* The usage string sums up all the commands... *)
 let usage () =
   let l =
@@ -269,14 +239,14 @@ let () =
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
         ^ "Available commands:" ^ usage () ^ "\r\n\r\n"
         ^ "Type \"help <command>\" for more information.");
-  add "list" ~descr:"Get the list of available operators with their interfaces."
+  add "list" ~descr:"Get the list of available operators with their kind."
     (fun _ ->
       Tutils.mutexify lock
         (fun () ->
           String.concat "\r\n"
-            (Hashtbl.fold
-               (fun k v s -> Printf.sprintf "%s : %s" (to_string k) v :: s)
-               namespaces []))
+            (List.fold_left
+               (fun s (id, kind) -> Printf.sprintf "%s : %s" id kind :: s)
+               [] !operators))
         ())
 
 (** Execute a command. *)
