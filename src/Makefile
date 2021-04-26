@@ -229,6 +229,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            $(if $(W_CRY),lang/builtins_cry.ml) \
            $(if $(W_LASTFM),lang/builtins_lastfm.ml) \
            $(if $(W_PROMETHEUS),lang/builtins_prometheus.ml) \
+           $(if $(W_BASE64),lang/builtins_base64.ml) \
            lang/builtins_ffmpeg_base.ml \
            $(if $(W_FFMPEG_ENCODER),lang/builtins_ffmpeg_encoder.ml) \
            $(if $(W_FFMPEG_DECODER),lang/builtins_ffmpeg_decoder.ml) \

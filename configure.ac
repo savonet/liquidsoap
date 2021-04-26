@@ -902,6 +902,7 @@ AC_CHECK_OCAML_BINDING([srt],[srt.constants srt.types srt.stubs srt.stubs.locked
 
 AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([gd])
+AC_CHECK_OCAML_BINDING([base64])
 
 # Winsvc (to run as a service)
 
@@ -1139,6 +1140,7 @@ cat <<EOMSG
    - posix-time2       : $w_POSIX_TIME2
    - windows service   : $w_WINSVC
    - yojson            : $w_YOJSON
+   - base64            : $w_BASE64
 
  * Monitoring
    - Prometheus        : $w_PROMETHEUS_APP
@@ -1246,5 +1248,6 @@ variables {
   srt-enabled: $b_SRT
   winscv-enabled: $b_WINSVC
   prometheus-enabled: $b_PROMETHEUS_APP
+  base64-enabled: $b_BASE64
 }
 EOCFG
