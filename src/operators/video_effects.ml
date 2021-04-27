@@ -60,6 +60,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
+      let kind = Source.Kind.of_kind kind in
       new effect ~name ~kind Video.Image.Effect.greyscale src)
 
 let () =
@@ -70,6 +71,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
+      let kind = Source.Kind.of_kind kind in
       new effect ~name ~kind Video.Image.Effect.sepia src)
 
 let () =
@@ -80,6 +82,7 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
+      let kind = Source.Kind.of_kind kind in
       new effect ~name ~kind Video.Image.Effect.invert src)
 
 let () =
@@ -96,6 +99,7 @@ let () =
     (fun p ->
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
+      let kind = Source.Kind.of_kind kind in
       new effect
         ~name ~kind
         (fun buf -> Video.Image.Effect.Alpha.scale buf (a ()))
@@ -119,6 +123,7 @@ let () =
       let color () =
         Image.Pixel.yuv_of_rgb (Image.RGB8.Color.of_int (color ()))
       in
+      let kind = Source.Kind.of_kind kind in
       new effect
         ~name ~kind
         (fun buf ->
@@ -148,7 +153,8 @@ let () =
     (fun p ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Image.Effect.lomo src)
+       let kind = Source.Kind.of_kind kind in
+       new effect ~kind Image.Effect.lomo src)
 
 let () =
   Lang.add_operator "video.transparent"
@@ -174,7 +180,8 @@ let () =
        in
        let prec = int_of_float (prec *. 255.) in
        let color = Image.RGB8.Color.of_int color in
-         new effect ~kind (fun buf -> Image.Effect.Alpha.of_color buf color prec) src)
+       let kind = Source.Kind.of_kind kind in
+       new effect ~kind (fun buf -> Image.Effect.Alpha.of_color buf color prec) src)
 
 let () =
   Lang.add_operator "video.rotate"
@@ -212,6 +219,7 @@ let () =
           angle := !angle +. da ();
         Image.Effect.rotate buf !angle
       in
+      let kind = Source.Kind.of_kind kind in
       new effect ~kind effect src)
  *)
 
@@ -240,6 +248,7 @@ let () =
       let height = Lang.to_int_getter (f "height") in
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
+      let kind = Source.Kind.of_kind kind in
       new effect
         ~name ~kind
         (fun buf ->
@@ -284,6 +293,7 @@ let () =
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
       let alpha = Lang.to_float_getter (f "alpha") in
+      let kind = Source.Kind.of_kind kind in
       new effect
         ~name ~kind
         (fun buf ->
@@ -322,6 +332,7 @@ let () =
           Lang.to_int_getter (f "x"),
           Lang.to_int_getter (f "y") )
       in
+      let kind = Source.Kind.of_kind kind in
       new effect
         ~name ~kind
         (fun buf ->

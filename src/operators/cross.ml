@@ -507,6 +507,7 @@ let () =
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let active = Lang.to_bool (List.assoc "active" p) in
       let source = Lang.to_source (Lang.assoc "" 2 p) in
+      let kind = Source.Kind.of_kind kind in
       let c =
         new cross
           ~kind source transition ~conservative ~active ~cross_length ~rms_width

@@ -398,8 +398,8 @@ class output ~kind p =
   object (self)
     inherit
       Output.encoded
-        ~content_kind:kind ~output_kind:"output.icecast" ~infallible ~autostart
-          ~on_start ~on_stop ~name source
+        ~content_kind:(Source.Kind.of_kind kind) ~output_kind:"output.icecast"
+          ~infallible ~autostart ~on_start ~on_stop ~name source
 
     (** In this operator, we don't exactly follow the start/stop
     * mechanism of Output.encoded because we want to control

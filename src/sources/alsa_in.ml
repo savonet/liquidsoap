@@ -36,7 +36,8 @@ class mic ~kind ~clock_safe device =
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   object (self)
-    inherit active_source ~name:"input.alsa" kind as active_source
+    inherit
+      active_source ~name:"input.alsa" (Source.Kind.of_kind kind) as active_source
 
     inherit [Frame_content.Audio.data] IoRing.input ~nb_blocks as ioring
 

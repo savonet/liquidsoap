@@ -142,6 +142,7 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
+      let kind = Source.Kind.of_kind kind in
       ( new output
           ~kind ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server
           source

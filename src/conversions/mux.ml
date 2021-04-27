@@ -37,14 +37,17 @@ let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
       abort = false;
     }
   in
-  let producer = new producer ~kind:Lang.any ~name control in
+  let producer =
+    new producer ~kind:(Source.Kind.of_kind Lang.any) ~name control
+  in
   let main_kind =
-    Frame.
-      {
-        audio = (if main_content = `Audio then `Any else none);
-        video = (if main_content = `Video then `Any else none);
-        midi = `Any;
-      }
+    Source.Kind.of_kind
+      Frame.
+        {
+          audio = (if main_content = `Audio then `Any else none);
+          video = (if main_content = `Video then `Any else none);
+          midi = `Any;
+        }
   in
   let main_output_kind =
     match main_content with
@@ -58,12 +61,13 @@ let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
       ~content:main_content ~max_buffer ~pre_buffer ~source:main_source control
   in
   let aux_kind =
-    Frame.
-      {
-        audio = (if aux_content = `Audio then `Any else none);
-        video = (if aux_content = `Video then `Any else none);
-        midi = none;
-      }
+    Source.Kind.of_kind
+      Frame.
+        {
+          audio = (if aux_content = `Audio then `Any else none);
+          video = (if aux_content = `Video then `Any else none);
+          midi = none;
+        }
   in
   let aux_output_kind =
     match aux_content with

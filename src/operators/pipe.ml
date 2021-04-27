@@ -345,6 +345,7 @@ let () =
           Lang.to_bool (f "restart_on_error"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       ( new pipe
           ~kind ~replay_delay ~data_len ~bufferize ~max ~log_overfull ~restart
           ~restart_on_error ~process src

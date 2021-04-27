@@ -430,6 +430,7 @@ let () =
                ( List.assoc "single" p,
                  "there should be exactly one flag per children" ))
       in
+      let kind = Source.Kind.of_kind kind in
       new lang_switch
         ~kind ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
         ts children)

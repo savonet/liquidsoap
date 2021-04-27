@@ -713,7 +713,7 @@ module Make (Config : Config_t) = struct
           ignore (Lang.apply (List.assoc "on_disconnect" p) [])
         in
         let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
-        let kind = Lang.any in
+        let kind = Source.Kind.of_kind Lang.any in
         new http
           ~kind ~protocol ~playlist_mode ~autostart ~track_on_meta ~force_mime
           ~bind_address ~poll_delay ~timeout ~on_connect ~on_disconnect

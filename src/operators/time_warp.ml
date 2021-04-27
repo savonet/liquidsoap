@@ -149,6 +149,7 @@ let () =
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
+      let kind = Source.Kind.of_kind kind in
       Buffer.create ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
         ~max_buffer ~kind s)
 
@@ -399,5 +400,6 @@ let () =
       let limit = if limit < 1. then 1. /. limit else limit in
       let reset = Lang.to_bool (List.assoc "reset" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
+      let kind = Source.Kind.of_kind kind in
       AdaptativeBuffer.create ~infallible ~autostart ~on_start ~on_stop
         ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~kind s)

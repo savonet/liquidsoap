@@ -213,6 +213,7 @@ let () =
       in
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let kind = Source.Kind.of_kind kind in
       ( new output
           ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
         :> Source.source ));
@@ -244,5 +245,6 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
+      let kind = Source.Kind.of_kind kind in
       ( new input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen
         :> Source.source ))

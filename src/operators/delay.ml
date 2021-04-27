@@ -83,4 +83,5 @@ let () =
       let d = Lang.to_float (f 1) in
       let s = Lang.to_source (f 2) in
       let initial = Lang.to_bool (List.assoc "initial" p) in
+      let kind = Source.Kind.of_kind kind in
       new delay ~kind ~initial s d)

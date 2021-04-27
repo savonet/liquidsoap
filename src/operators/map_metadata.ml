@@ -114,4 +114,5 @@ let register =
       let update = Lang.to_bool (List.assoc "update" p) in
       let strip = Lang.to_bool (List.assoc "strip" p) in
       let missing = Lang.to_bool (List.assoc "insert_missing" p) in
+      let kind = Source.Kind.of_kind kind in
       new map_metadata ~kind source f missing update strip)

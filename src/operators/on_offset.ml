@@ -135,4 +135,5 @@ let () =
       let override = Lang.to_string (List.assoc "override" p) in
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
+      let kind = Source.Kind.of_kind kind in
       new on_offset ~kind ~offset ~force ~override f s)

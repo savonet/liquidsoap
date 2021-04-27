@@ -355,7 +355,6 @@ let add_new_output, iterate_new_outputs =
 
 class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
   sources =
-  let out_kind = Kind.of_kind out_kind in
   let f kind (fn, el) = match el with None -> kind | Some v -> fn kind v in
   let in_kind =
     List.fold_left f out_kind

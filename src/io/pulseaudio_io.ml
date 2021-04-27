@@ -226,9 +226,11 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
+      let kind = Source.Kind.of_kind kind in
       (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Source.source));
   Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
     ~return_t:k ~category:Lang.Input
     ~descr:"Stream from a portaudio input device." (fun p ->
+      let kind = Source.Kind.of_kind kind in
       (new input ~kind p :> Source.source))

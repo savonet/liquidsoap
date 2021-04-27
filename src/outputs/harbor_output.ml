@@ -650,7 +650,9 @@ module Make (T : T) = struct
     let return_t = Lang.kind_type_of_kind_format kind in
     Lang.add_operator ~category:Lang.Output ~active:true
       ~descr:T.source_description T.source_name (proto return_t) ~return_t
-      (fun p -> (new output ~kind p :> Source.source))
+      (fun p ->
+        let kind = Source.Kind.of_kind kind in
+        (new output ~kind p :> Source.source))
 end
 
 module Unix_output = struct

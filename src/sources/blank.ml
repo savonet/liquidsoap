@@ -84,6 +84,7 @@ let () =
     ]
     (fun p ->
       let d = Lang.to_float (List.assoc "duration" p) in
+      let kind = Source.Kind.of_kind kind in
       (new blank ~kind d :> source))
 
 class fail ~kind =
@@ -112,4 +113,7 @@ let () =
   Lang.add_operator "fail" ~category:Lang.Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
-    ~return_t [] (fun _ -> (new fail ~kind :> source))
+    ~return_t [] (fun _ ->
+      ( let kind = Source.Kind.of_kind kind in
+        new fail ~kind
+        :> source ))

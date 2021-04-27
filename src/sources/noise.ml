@@ -55,4 +55,6 @@ let () =
         Some "Duration in seconds (negative means infinite)." );
     ]
     ~return_t
-    (fun p -> new noise ~kind (Lang.to_float (List.assoc "duration" p)))
+    (fun p ->
+      let kind = Source.Kind.of_kind kind in
+      new noise ~kind (Lang.to_float (List.assoc "duration" p)))
