@@ -755,7 +755,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
 
     inherit base
 
-    inherit Source.source ~name:"input.srt" kind as super
+    inherit Source.source ~name:"input.srt" (Source.Kind.of_kind kind) as super
 
     val mutable decoder_data = None
 
@@ -1067,9 +1067,9 @@ class output_caller ~kind ~payload_size ~messageapi ~on_start ~on_stop
   object
     inherit
       output_base
-        ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~autostart ~stats_interval ~on_connect ~on_disconnect ~encoder_factory
-          source
+        ~kind:(Source.Kind.of_kind kind) ~payload_size ~messageapi ~on_start
+          ~on_stop ~infallible ~autostart ~stats_interval ~on_connect
+          ~on_disconnect ~encoder_factory source
 
     inherit
       caller
@@ -1082,9 +1082,9 @@ class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
   object
     inherit
       output_base
-        ~kind ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~autostart ~stats_interval ~on_connect ~on_disconnect ~encoder_factory
-          source
+        ~kind:(Source.Kind.of_kind kind) ~payload_size ~messageapi ~on_start
+          ~on_stop ~infallible ~autostart ~stats_interval ~on_connect
+          ~on_disconnect ~encoder_factory source
 
     inherit
       listener

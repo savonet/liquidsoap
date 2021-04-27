@@ -176,8 +176,8 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~content_kind:kind ~name
-          ~output_kind:"output.alsa" val_source start as super
+        ~infallible ~on_stop ~on_start ~content_kind:(Source.Kind.of_kind kind)
+          ~name ~output_kind:"output.alsa" val_source start as super
 
     inherit base dev [Pcm.Playback]
 
@@ -244,7 +244,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
     inherit
       Start_stop.input
-        ~content_kind:kind ~source_kind:"alsa"
+        ~content_kind:(Source.Kind.of_kind kind) ~source_kind:"alsa"
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
         ~on_start ~on_stop ~fallible ~autostart:start as super
 
