@@ -475,6 +475,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       new iir ~kind src Butterworth High_pass order freq 0. 0.);
   Lang.add_operator "filter.iir.butterworth.low"
     [
@@ -490,6 +491,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       new iir ~kind src Butterworth Low_pass order freq 0. 0.);
   Lang.add_operator "filter.iir.butterworth.bandpass"
     [
@@ -507,6 +509,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       new iir ~kind src Butterworth Band_pass order freq1 freq2 0.);
   Lang.add_operator "filter.iir.butterworth.bandstop"
     [
@@ -524,6 +527,7 @@ let () =
           Lang.to_int (f "order"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       new iir ~kind src Butterworth Band_stop order freq1 freq2 0.);
   Lang.add_operator "filter.iir.resonator.bandpass"
     [
@@ -539,6 +543,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       new iir ~kind src Resonator Band_pass 0 freq 0. q);
   Lang.add_operator "filter.iir.resonator.bandstop"
     [
@@ -554,6 +559,7 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       new iir ~kind src Resonator Band_pass 0 freq 0. q);
   Lang.add_operator "filter.iir.resonator.allpass"
     [
@@ -569,4 +575,5 @@ let () =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       new iir ~kind src Resonator Band_pass 0 freq 0. q)

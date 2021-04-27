@@ -425,7 +425,7 @@ let mk_encoder mode =
       in
       let producer =
         new Producer_consumer.producer
-          ~kind:return_kind
+          ~kind:(Source.Kind.of_kind return_kind)
           ~name:("ffmpeg." ^ extension ^ ".producer")
           control
       in
@@ -480,8 +480,8 @@ let mk_encoder mode =
         new Producer_consumer.consumer
           ~write_frame:decode_frame ~producer
           ~output_kind:("ffmpeg." ^ extension ^ ".consumer")
-          ~kind:source_kind ~content:`Audio ~max_buffer ~pre_buffer ~source
-          control
+          ~kind:(Source.Kind.of_kind source_kind)
+          ~content:`Audio ~max_buffer ~pre_buffer ~source control
       in
       producer)
 

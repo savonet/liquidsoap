@@ -77,6 +77,7 @@ let () =
       let f v = List.assoc v p in
       let out = Lang.to_int (f "track_out") in
       let src = Lang.to_source (f "") in
+      let kind = Source.Kind.of_kind kind in
       new merge ~kind src out)
 
 let () =
@@ -92,4 +93,5 @@ let () =
       (* let f v = List.assoc v p in *)
       let t = List.map Lang.to_int (Lang.to_list (Lang.assoc "" 1 p)) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
+      let kind = Source.Kind.of_kind kind in
       new remove ~kind src t)

@@ -199,6 +199,7 @@ let () =
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
+      let kind = Source.Kind.of_kind kind in
       ( new input
           ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
           url

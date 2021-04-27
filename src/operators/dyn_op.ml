@@ -145,5 +145,6 @@ let () =
       let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
       let infallible = List.assoc "infallible" p |> Lang.to_bool in
       let resurection_time = List.assoc "resurection_time" p |> Lang.to_float in
+      let kind = Source.Kind.of_kind kind in
       new dyn
         ~kind ~track_sensitive ~infallible ~resurection_time (List.assoc "" p))

@@ -25,7 +25,10 @@ open Source
 class mean ~normalize source =
   object
     inherit
-      operator ~audio_in:Frame.audio_pcm Lang.audio_mono [source] ~name:"mean"
+      operator
+        ~audio_in:Frame.audio_pcm
+        (Source.Kind.of_kind Lang.audio_mono)
+        [source] ~name:"mean"
 
     inherit
       Conversion.base

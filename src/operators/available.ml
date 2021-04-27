@@ -83,4 +83,5 @@ let () =
       let override = List.assoc "override" p |> Lang.to_bool in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let pred = Lang.assoc "" 2 p |> Lang.to_bool_getter in
+      let kind = Source.Kind.of_kind kind in
       new available ~kind ~track_sensitive ~override pred s)

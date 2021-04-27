@@ -465,16 +465,17 @@ let () =
       let source_val = Lang.assoc "" 2 p in
 
       let kind =
-        Frame.
-          {
-            (* We need to make sure that we are using a format here to
-               ensure that its params are properly unified with the underlying source. *)
-            audio =
-              `Format
-                Ffmpeg_raw_content.Audio.(lift_params (default_params `Raw));
-            video = `Any;
-            midi = `Any;
-          }
+        Source.Kind.of_kind
+          Frame.
+            {
+              (* We need to make sure that we are using a format here to
+                 ensure that its params are properly unified with the underlying source. *)
+              audio =
+                `Format
+                  Ffmpeg_raw_content.Audio.(lift_params (default_params `Raw));
+              video = `Any;
+              midi = `Any;
+            }
       in
       let name = uniq_name "abuffer" in
       let pos = source_val.Lang.pos in
@@ -516,12 +517,13 @@ let () =
       let graph = Graph.of_value graph_v in
 
       let kind =
-        Frame.
-          {
-            audio = `Kind Ffmpeg_raw_content.Audio.kind;
-            video = none;
-            midi = none;
-          }
+        Source.Kind.of_kind
+          Frame.
+            {
+              audio = `Kind Ffmpeg_raw_content.Audio.kind;
+              video = none;
+              midi = none;
+            }
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let s = new Ffmpeg_filter_io.audio_input ~bufferize kind in
@@ -553,16 +555,17 @@ let () =
       let source_val = Lang.assoc "" 2 p in
 
       let kind =
-        Frame.
-          {
-            (* We need to make sure that we are using a format here to
-               ensure that its params are properly unified with the underlying source. *)
-            audio = `Any;
-            video =
-              `Format
-                Ffmpeg_raw_content.Video.(lift_params (default_params `Raw));
-            midi = `Any;
-          }
+        Source.Kind.of_kind
+          Frame.
+            {
+              (* We need to make sure that we are using a format here to
+                 ensure that its params are properly unified with the underlying source. *)
+              audio = `Any;
+              video =
+                `Format
+                  Ffmpeg_raw_content.Video.(lift_params (default_params `Raw));
+              midi = `Any;
+            }
       in
       let name = uniq_name "buffer" in
       let pos = source_val.Lang.pos in
@@ -616,12 +619,13 @@ let () =
       let fps = Option.value fps ~default:Frame.video_rate in
 
       let kind =
-        Frame.
-          {
-            audio = none;
-            video = `Kind Ffmpeg_raw_content.Video.kind;
-            midi = none;
-          }
+        Source.Kind.of_kind
+          Frame.
+            {
+              audio = none;
+              video = `Kind Ffmpeg_raw_content.Video.kind;
+              midi = none;
+            }
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let s = new Ffmpeg_filter_io.video_input ~bufferize ~fps kind in

@@ -73,6 +73,7 @@ let () =
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
+      let kind = Source.Kind.of_kind kind in
       new msstereo ~kind s Encode 0.);
   Lang.add_operator "stereo.ms.decode"
     [
@@ -87,6 +88,7 @@ let () =
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let w = Lang.to_float (Lang.assoc "width" 1 p) in
+      let kind = Source.Kind.of_kind kind in
       new msstereo ~kind s Decode w)
 
 class spatializer ~kind ~width (source : source) =
@@ -143,4 +145,5 @@ let () =
     (fun p ->
       let width = Lang.assoc "" 1 p |> Lang.to_float_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
+      let kind = Source.Kind.of_kind kind in
       new spatializer ~kind ~width s)

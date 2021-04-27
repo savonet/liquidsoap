@@ -239,6 +239,7 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
+      let kind = Source.Kind.of_kind kind in
       new video
         ~name:"input.external.avi" ~kind ~restart ~bufferize ~log_overfull
         ~restart_on_error ~max ~read_header ~on_data command)
@@ -311,6 +312,7 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
+      let kind = Source.Kind.of_kind kind in
       new video
         ~name:"input.external.rawvideo" ~kind ~restart ~bufferize ~log_overfull
         ~restart_on_error ~max ~on_data command)

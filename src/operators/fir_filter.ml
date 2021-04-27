@@ -186,4 +186,5 @@ let () =
           Lang.to_int (f "coeffs"),
           Lang.to_source (f "") )
       in
+      let kind = Source.Kind.of_kind kind in
       (new fir ~kind src freq beta num :> Source.source))

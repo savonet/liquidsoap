@@ -228,6 +228,7 @@ let () =
       let on_stop = List.assoc "on_stop" p in
       let on_start () = ignore (Lang.apply on_start []) in
       let on_stop () = ignore (Lang.apply on_stop []) in
+      let kind = Source.Kind.of_kind kind in
       ( new dummy
           ~kind ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p)
         :> Source.source ))

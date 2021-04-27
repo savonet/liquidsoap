@@ -65,4 +65,5 @@ let () =
     (fun p ->
       let f v = List.assoc v p in
       let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
+      let kind = Source.Kind.of_kind kind in
       new compand ~kind src mu)

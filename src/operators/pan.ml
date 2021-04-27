@@ -74,4 +74,5 @@ let () =
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in
       let phi = Lang.to_float_getter (Lang.assoc "pan" 1 p) in
+      let kind = Source.Kind.of_kind kind in
       new pan ~kind s phi phi_0)

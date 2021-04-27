@@ -195,4 +195,5 @@ let () =
       let src = Lang.to_source (f "") in
       let ratio = Lang.to_float_getter (f "ratio") in
       let active = Lang.to_bool (f "active") in
+      let kind = Source.Kind.of_kind kind in
       new resample ~kind ~active ~ratio src)

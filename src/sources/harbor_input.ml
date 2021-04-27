@@ -491,7 +491,7 @@ module Make (Harbor : T) = struct
         let on_disconnect () =
           ignore (Lang.apply (List.assoc "on_disconnect" p) [])
         in
-        let kind = Lang.any in
+        let kind = Source.Kind.of_kind Lang.any in
         new http_input_server
           ~kind ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile ~logfile
           ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect

@@ -117,6 +117,7 @@ let compress p =
       Lang.to_float_getter (f "gain"),
       Lang.to_source (f "") )
   in
+  let kind = Source.Kind.of_kind kind in
   new compress
     ~kind src
     (fun () -> attack () /. 1000.)

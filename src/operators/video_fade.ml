@@ -295,6 +295,7 @@ let () =
     (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
+      let kind = Source.Kind.of_kind kind in
       new fade_in ~kind ~meta d f t s);
   Lang.add_operator "video.fade.out"
     ( ( "override",
@@ -309,4 +310,5 @@ let () =
     (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
+      let kind = Source.Kind.of_kind kind in
       new fade_out ~kind ~meta d f t s)

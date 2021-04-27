@@ -110,4 +110,5 @@ let () =
           Lang.to_source (f "") )
       in
       let feedback () = Audio.lin_of_dB (feedback ()) in
+      let kind = Source.Kind.of_kind kind in
       (new flanger ~kind src duration freq feedback phase :> Source.source))

@@ -84,7 +84,7 @@ class virtual source :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Frame.content_kind
+  -> Kind.t
   -> object
        method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
@@ -221,7 +221,7 @@ and virtual active_source :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Frame.content_kind
+  -> Kind.t
   -> object
        inherit source
 
@@ -250,7 +250,7 @@ class virtual operator :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Frame.content_kind
+  -> Kind.t
   -> source list
   -> object
        inherit source
@@ -263,7 +263,7 @@ class virtual active_operator :
   -> ?audio_in:Frame.kind
   -> ?video_in:Frame.kind
   -> ?midi_in:Frame.kind
-  -> Frame.content_kind
+  -> Kind.t
   -> source list
   -> object
        inherit active_source

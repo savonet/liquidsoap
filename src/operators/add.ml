@@ -205,6 +205,7 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
+      let kind = Source.Kind.of_kind kind in
       ( new add
           ~kind ~renorm ~power
           (List.map2 (fun w s -> (w, s)) weights sources)
@@ -290,6 +291,7 @@ let () =
           (Lang_errors.Invalid_value
              ( List.assoc "weights" p,
                "there should be as many weights as sources" ));
+      let kind = Source.Kind.of_kind kind in
       ( new add
           ~kind ~renorm ~power
           (List.map2 (fun w s -> (w, s)) weights sources)

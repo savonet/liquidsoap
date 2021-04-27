@@ -26,7 +26,7 @@
 val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
-  content_kind:Frame.content_kind
+  content_kind:Source.Kind.t
   -> output_kind:string
   -> ?name:string
   -> infallible:bool
@@ -83,7 +83,7 @@ class virtual output :
      end
 
 class virtual encoded :
-  content_kind:Frame.content_kind
+  content_kind:Source.Kind.t
   -> output_kind:string
   -> name:string
   -> infallible:bool

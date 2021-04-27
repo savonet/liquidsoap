@@ -168,4 +168,5 @@ let register =
       let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
       let source = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
+      let kind = Source.Kind.of_kind kind in
       new prepend ~kind ~merge source f)
