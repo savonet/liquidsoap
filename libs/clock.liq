@@ -1,4 +1,3 @@
-
 # Assign a new clock to the given source (and to other time-dependent sources)
 # and return the source. It is a conveniency wrapper around clock.assign_new(),
 # allowing more concise scripts in some cases.
@@ -30,4 +29,10 @@ def clock.log(~delay=0., ~every=1., logfile)
   end
   delay = if delay <= 0. then 0. else delay end
   thread.run(delay=delay, every=every, report)
+end
+
+# Get the current time in seconds for all allocated clocks.
+# @category Liquidsoap
+def clock.status.seconds()
+  list.map(fun(ct) -> (fst(ct), seconds_of_main(snd(ct))), clock.status())
 end
