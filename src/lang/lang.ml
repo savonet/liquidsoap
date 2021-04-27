@@ -757,7 +757,7 @@ let source_methods =
       "Seek forward, in seconds (returns the amount of time effectively \
        seeked).",
       fun s ->
-        val_fun [] (fun p ->
+        val_fun [("", "", None)] (fun p ->
             float
               (Frame.seconds_of_main
                  (s#seek (Frame.main_of_seconds (to_float (List.assoc "" p))))))
