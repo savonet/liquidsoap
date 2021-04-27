@@ -5,7 +5,7 @@
 s =
 if file.which(get(default="???","protocol.gtts.path")) == null() and file.which(get(default="???","protocol.text2wave.path")) == null() then
   print("Could not test gtts")
-  chop(duration=1.,sine())
+  chop(every=1.,sine())
 else
   single("say:Hello, world!")
 end
