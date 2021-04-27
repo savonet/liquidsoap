@@ -251,16 +251,16 @@ end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).
 # @category Source / Track Processing
-# @param ~duration Duration of a track (in seconds).
+# @param ~every Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
-def chop(~duration=getter(3.), ~metadata=getter([]), s) =
+def chop(~every=getter(3.), ~metadata=getter([]), s) =
   s = insert_metadata(s)
 
   # Track time in the source's context:
   start_time = ref(0.)
   def f() =
-    if getter.get(duration) <= s.time() - !start_time then
+    if getter.get(every) <= s.time() - !start_time then
       start_time := s.time()
       s.insert_metadata(new_track=true, getter.get(metadata))
     end
