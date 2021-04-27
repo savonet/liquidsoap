@@ -79,7 +79,7 @@ New:
 - Added `stereo.width`.
 - Added `file.mkdir`.
 - Added support for harbor's connected address in auth function and as a method (#1364).
-- Added `uptime`.
+- Added `time.up`.
 
 Changed:
 
