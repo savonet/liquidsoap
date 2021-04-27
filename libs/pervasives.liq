@@ -14,6 +14,7 @@
 %include "utils.liq"
 %include "string.liq"
 %include "audio.liq"
+%include "clock.liq"
 %include "metadata.liq"
 %include "native.liq"
 %include "request.liq"
