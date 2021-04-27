@@ -66,7 +66,7 @@ let () =
       ( "random",
         Lang.float_t,
         Some (Lang.float 0.),
-        Some "Maximal random amount of time added." );
+        Some "Maximal amount of time randomly added to the delay parameter." );
       ( "freeze",
         Lang.float_t,
         Some (Lang.float (-1.)),
