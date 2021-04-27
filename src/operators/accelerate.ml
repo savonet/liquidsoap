@@ -107,7 +107,7 @@ let () =
       ( "ratio",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 2.),
-        Some "A value higher than 1 means slowing down." );
+        Some "A value higher than 1 means speeding up." );
       ( "randomize",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),

@@ -1,5 +1,5 @@
-# Get the value associated to a variable in the process environment. Return ""
-# if variable is not set.
+# Get the value associated to a variable in the process environment. Returns ""
+# if the variable is not set.
 # @category System
 def getenv(s) =
   list.assoc(default="",s,environment())
