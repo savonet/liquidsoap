@@ -220,8 +220,8 @@ let () =
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
   add_builtin "clock.status" ~cat:Liq
-    ~descr:"Get the current time for all allocated clocks." [] (Lang.list_t t)
-    (fun _ ->
+    ~descr:"Get the current time (in ticks) for all allocated clocks." []
+    (Lang.list_t t) (fun _ ->
       let l =
         Clock.fold
           (fun clock l ->
