@@ -48,6 +48,11 @@ let () =
     Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
 
 let () =
+  add_builtin ~cat:Sys "uptime"
+    ~descr:"Current time, in seconds, since the script has started." []
+    Lang.float_t (fun _ -> Lang.float (Utils.uptime ()))
+
+let () =
   let time_t =
     Lang.record_t
       [
