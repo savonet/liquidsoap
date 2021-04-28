@@ -19,9 +19,10 @@ end
 # Generate a source from a static image.
 # @cateogry Source / Video Processing
 # @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param file Path to the image.
-def image(~id="", file)
-  mux_audio(id=id, audio=blank(), single(id=id, file))
+def image(~id="", ~fallible=false, file)
+  mux_audio(id=id, audio=blank(), single(id=id, fallible=fallible, file))
 end
 
 # Add a static image on the first video channel.
