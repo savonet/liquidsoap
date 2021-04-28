@@ -89,6 +89,19 @@ let () =
   register_op "Remainder of division" "mod" ( mod ) mod_float
 
 let () =
+  let t = Lang.univ_t ~constraints:[Lang_types.Num] () in
+  add_builtin "float" ~cat:Math ~descr:"Convert a number to a float."
+    [("", t, None, None)] Lang.float_t (fun p ->
+      let x = List.assoc "" p |> Lang.to_num in
+      let x = match x with `Int x -> float x | `Float x -> x in
+      Lang.float x);
+  add_builtin "int" ~cat:Math ~descr:"Convert a number to an integer."
+    [("", t, None, None)] Lang.int_t (fun p ->
+      let x = List.assoc "" p |> Lang.to_num in
+      let x = match x with `Int x -> x | `Float x -> int_of_float x in
+      Lang.int x)
+
+let () =
   add_builtin "random.float" ~cat:Math
     ~descr:
       "Generate a random value between `min` (included) and `max` (excluded)."
