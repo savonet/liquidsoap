@@ -67,8 +67,5 @@ class virtual source ?name ~seek kind duration =
                 len
         in
         self#synthesize frame off len;
-        Frame.add_break frame (off + len);
-        if VFrame.is_partial frame then (
-          assert (remaining = Some 0);
-          remaining <- track_size ) )
+        Frame.add_break frame (off + len) )
   end
