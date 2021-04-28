@@ -78,7 +78,7 @@ end
 # @category List
 def list.iter(f, l)
   def rec aux(l)
-    list.case(l, (), fun (x, l) -> begin f(x); aux(l) end)
+    list.case(l, (), fun (x, l) -> begin (f(x):unit); aux(l) end)
   end
   aux(l)
 end
@@ -90,7 +90,7 @@ def list.iteri(f, l)
   def rec aux(l)
     i = !n
     n := i + 1
-    list.case(l, (), fun (x, l) -> begin f(i, x); aux(l) end)
+    list.case(l, (), fun (x, l) -> begin (f(i, x):unit); aux(l) end)
   end
   aux(l)
 end
