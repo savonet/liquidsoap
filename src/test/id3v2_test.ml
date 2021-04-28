@@ -16,6 +16,7 @@ let () =
     Printf.printf "\nAPIC\n";
     Printf.printf "mime: %s\n" apic.mime;
     Printf.printf "type: %d\n" apic.picture_type;
-    Printf.printf "description: %s\n" apic.description
-    (* let oc = open_out "/tmp/cover.jpg" in output_string oc apic.data; close_out oc *)
-    )
+    Printf.printf "description: %s\n" apic.description;
+    let oc = open_out "/tmp/cover.jpg" in
+    output_string oc apic.data;
+    close_out oc )
