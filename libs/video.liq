@@ -52,7 +52,7 @@ def video.add_image(~id="", ~width=getter(-1), ~height=getter(-1), ~x=getter(0),
       video.resize(id=id, x=x, y=y, width=width, height=height, image)
     end
   image = mux_audio(audio=blank(), image)
-  add([s,image])
+  add([(s:source),image])
 end
 
 # Input from ffmpeg.
