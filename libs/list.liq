@@ -147,9 +147,12 @@ end
 # Filter a list according to a predicate. The order in which elements are
 # handled is not specified (and is currently implemented from the right).
 # @category List
-def list.filter(p, l)
+# @param ~remove Function called on an element when it is removed.
+# @param p Predicate indicating whether an element should be kept or not.
+# @param l List to filter.
+def list.filter(~remove=fun(_)->(), p, l)
   # list.case(l, [], fun (x, l) -> if p(x) then list.cons(x, list.filter(p, l)) else list.filter(p, l) end)
-  list.ind(l, [], fun(x, _, l) -> if p(x) then list.cons(x, l) else l end)
+  list.ind(l, [], fun(x, _, l) -> if p(x) then list.cons(x, l) else (remove(x):unit); l end)
 end
 
 # Remove the first occurrence of a value from a list.
