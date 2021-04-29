@@ -285,15 +285,15 @@ let () =
     [
       ("process", Lang.string_t, None, Some "Process used to pipe data to.");
       ( "replay_delay",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
         Some
           "Replay track marks and metadata from the input source on the output \
            after a given delay. If negative (default) close and flush the \
            process on each track and metadata to get an exact timing." );
       ( "data_length",
-        Lang.int_t,
-        Some (Lang.int (-1)),
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
         Some
           "Length passed in the WAV data chunk. Data is streamed so no the \
            consuming program should process it as it comes. Some program \
@@ -336,14 +336,20 @@ let () =
             restart_on_error,
             src ) =
         ( Lang.to_string (f "process"),
-          Lang.to_float (f "replay_delay"),
-          Lang.to_int (f "data_length"),
+          Lang.to_option (f "replay_delay"),
+          Lang.to_option (f "data_length"),
           Lang.to_float (f "buffer"),
           Lang.to_float (f "max"),
           Lang.to_bool (f "log_overfull"),
           Lang.to_bool (f "restart"),
           Lang.to_bool (f "restart_on_error"),
           Lang.to_source (f "") )
+      in
+      let replay_delay =
+        match replay_delay with None -> -1. | Some v -> Lang.to_float v
+      in
+      let data_len =
+        match data_len with None -> -1 | Some v -> Lang.to_int v
       in
       let kind = Source.Kind.of_kind kind in
       ( new pipe
