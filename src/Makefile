@@ -181,6 +181,7 @@ tools = tools/extralib.ml tools/JSON.ml tools/lifecycle.ml \
 	tools/stringView.ml tools/strings.ml tools/runtime_error.ml \
         tools/utils.ml tools/doc.ml tools/plug.ml \
 	tools/rqueue.ml tools/unifier.ml \
+	$(if $(W_FFMPEG_AVDEVICE),tools/liqavdevice.ml) \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
