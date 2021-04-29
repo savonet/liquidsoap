@@ -12,12 +12,14 @@ let () =
   let tags = List.remove_assoc "APIC" tags in
   List.iter (fun (t, v) -> Printf.printf "%s: %s\n%!" t v) tags;
   if apic <> "" then (
+    let len = String.length apic in
     let apic = parse_apic apic in
     Printf.printf "\nAPIC\n";
+    Printf.printf "length: %d\n" len;
     Printf.printf "mime: %s\n" apic.mime;
     Printf.printf "type: %d\n" apic.picture_type;
     Printf.printf "description: %s\n" apic.description;
-    Printf.printf "length: %d bytes\n" (String.length apic.data);
+    Printf.printf "data length: %d bytes\n" (String.length apic.data);
     let oc = open_out "/tmp/cover.jpg" in
     output_string oc apic.data;
     close_out oc )
