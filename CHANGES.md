@@ -80,6 +80,7 @@ New:
 - Added `file.mkdir`.
 - Added support for harbor's connected address in auth function and as a method (#1364).
 - Added `time.up`.
+- Added `video.cover`.
 
 Changed:
 

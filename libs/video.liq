@@ -56,6 +56,35 @@ def video.add_image(~id="", ~width=getter(-1), ~height=getter(-1), ~x=getter(0),
   add([(s:source),image])
 end
 
+# Generate a video source containing cover-art for current track of input audio
+# source.
+# @category Source / Video Processing
+# @param s Audio source whose metadata contain cover-art.
+def video.cover(s)
+  video = source.dynamic()
+  def read_cover(m)
+    filename = m["filename"]
+    cover = if file.exists(filename) then file.cover(filename) else "".{mime=""} end
+    if cover == "" then
+      log.debug("No cover for #{filename}.")
+      video.set(fail())
+    else
+      ext =
+        if cover.mime == "image/png" then
+          ".png"
+        else
+          ".jpg"
+        end
+      f = file.temp("cover", ext)
+      log.debug("Found cover for #{filename}.")
+      file.write(data=cover, f)
+      video.set(request.once(request.create(temporary=true, f)))
+    end
+  end
+  s.on_track(read_cover)
+  (video:source(audio=none))
+end
+
 # Input from ffmpeg.
 # @category Source / Video Processing
 # @flag extra
