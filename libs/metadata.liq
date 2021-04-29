@@ -64,7 +64,7 @@ def file.cover(~id="file.cover", fname)
       pic_len = string.binary.to_int(little_endian=false, string.sub(cover, start=!i, length=4))
       i := !i + 4
       cover = string.sub(cover, start=!i, length=pic_len)
-      if cover == "" then log.info("Failed to read cover metadata for #{file}.") end
+      if cover == "" then log.info("Failed to read cover metadata for #{fname}.") end
       cover.{mime=mime}
     end
   else
@@ -75,15 +75,15 @@ def file.cover(~id="file.cover", fname)
       else
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
-        log.debug(label=id, "APIC not found for #{file}, trying builtin tag reader.")
+        log.debug(label=id, "APIC not found for #{fname}, trying builtin tag reader.")
         file.mp3.metadata(fname)
       end
     apic = list.assoc(default="", "apic", m)
     if apic == "" then
-      log.info("No cover found for #{file}.")
+      log.info("No cover found for #{fname}.")
       "".{mime=""}
     else
-      log.debug(label=id, "Found APIC for #{file}.")
+      log.debug(label=id, "Found APIC for #{fname}.")
       # TODO: we could use file type in order to select cover if there are many
       let (mime,_,_,data) = file.mp3.parse_apic(apic)
       data.{mime=mime}
