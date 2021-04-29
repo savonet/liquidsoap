@@ -114,7 +114,7 @@ def process_uri(~extname,~uri="",cmd) =
 end
 
 register(name="External download protocol","protocol.external",true)
-register(name="External protocols","protocol.external.protocols",["http","https","ftp"])
+register(name="External protocols","protocol.external.protocols",["http","https"])
 
 # Resolve download protocols using curl
 # @flag hidden
