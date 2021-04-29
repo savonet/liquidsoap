@@ -96,10 +96,12 @@ let render_text ~font ~size text =
   (* TODO: we ignore font for now... *)
   let () = ignore font in
   let h = char_height in
+  (* Compute bitmap as a matrix of booleans. *)
   let bmp =
     let ans = Array.make h [||] in
     for i = 0 to String.length text - 1 do
       if i <> 0 then
+        (* Add a space *)
         for j = 0 to h - 1 do
           ans.(j) <- Array.append ans.(j) (Array.make char_space false)
         done;
