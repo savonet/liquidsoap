@@ -116,6 +116,7 @@ end
 register(name="External download protocol","protocol.external",true)
 register(name="External protocols","protocol.external.protocols",["http","https"])
 
+%ifdef http.head
 # Resolve download protocols using curl
 # @flag hidden
 def download_protocol(proto,~rlog,~maxtime,arg) =
@@ -184,6 +185,7 @@ end
 if get(default=true,"protocol.external") then
   list.iter(add_download_protocol,get(default=["http","https","ftp"],"protocol.external.protocols"))
 end
+%endif
 
 register(name="Youtube_dl protocol settings","protocol.youtube-dl",())
 register(name="Youtube-dl path","protocol.youtube-dl.path","youtube-dl")

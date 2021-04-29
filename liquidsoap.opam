@@ -58,7 +58,6 @@ depends: [
   "menhir"
   "mm" {>= "0.7.0"}
   "ocamlfind" {build}
-  "ocurl"
   "conf-pkg-config" {build}
   "conf-which" {build}
   "pcre"
@@ -93,6 +92,7 @@ depopts: [
   "lo"
   "mad"
   "magic"
+  "ocurl"
   "ogg"
   "opus"
   "osx-secure-transport"

@@ -126,6 +126,7 @@ def id(~id="",s)
  s
 end 
 
+%ifdef http.get
 # Deprecated: flow is no longer maintained
 # Register a radio on Liquidsoap Flows.
 # @category Liquidsoap
@@ -227,6 +228,7 @@ def register_flow(~server="",~user="default",~password="default",
   end
   s.on_metadata(metadata)
 end
+%endif
 
 # Deprecated: this function has been replaced by `fail`.
 # @flag deprecated
@@ -532,37 +534,47 @@ end
 
 https = ()
 
+%ifdef http.get
 # Deprecated: use `http.get` instead.
 # @flag deprecated
 def https.get(%argsof(http.get))
   deprecated("https.get", "http.get")
   http.get(%argsof(http.get))
 end
+%endif
 
+%ifdef http.put
 # Deprecated: use `http.put` instead.
 # @flag deprecated
 def https.put(%argsof(http.put))
   deprecated("https.put", "http.put")
   http.put(%argsof(http.put))
 end
+%endif
 
+%ifdef http.post
 # Deprecated: use `http.post` instead.
 # @flag deprecated
 def https.post(%argsof(http.post))
   deprecated("https.post", "http.post")
   http.post(%argsof(http.post))
 end
+%endif
 
+%ifdef http.head
 # Deprecated: use `http.head` instead.
 # @flag deprecated
 def https.head(%argsof(http.head))
   deprecated("https.head", "http.head")
   http.head(%argsof(http.head))
 end
+%endif
 
+%ifdef http.delete
 # Deprecated: use `http.delete` instead.
 # @flag deprecated
 def https.delete(%argsof(http.delete))
   deprecated("https.delete", "http.delete")
   http.delete(%argsof(http.delete))
 end
+%endif

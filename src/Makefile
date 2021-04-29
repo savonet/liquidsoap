@@ -188,7 +188,8 @@ tools = tools/extralib.ml tools/JSON.ml tools/lifecycle.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/console.ml tools/process_handler.ml \
-	tools/http.ml tools/liqcurl.ml \
+	tools/http.ml \
+	$(if $(W_CURL),tools/liqcurl.ml) \
 	$(if $(W_SSL),tools/https.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
 	tools/pool.ml tools/sha1.ml tools/websocket.ml tools/id3v2.ml \
@@ -221,7 +222,8 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \
            lang/builtins_thread.ml lang/builtins_process.ml \
            lang/builtins_source.ml lang/builtins_getter.ml \
-           lang/builtins_profiler.ml lang/builtins_http.ml \
+           lang/builtins_profiler.ml \
+	   $(if $(W_CURL),lang/builtins_http.ml) \
            lang/builtins_harbor.ml \
            $(if $(W_SSL),lang/builtins_harbor_ssl.ml) \
            $(if $(W_OSX_SECURE_TRANSPORT),lang/builtins_harbor_secure_transport.ml) \

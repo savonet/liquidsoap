@@ -29,6 +29,8 @@ let () =
       "clock";
       "configure";
       "encoder";
+      "harbor";
+      "http";
       "input";
       "input.external";
       "liquidsoap";

@@ -390,7 +390,7 @@ AC_SUBST(MENHIR)
 # Curl
 #
 
-AC_CHECK_OCAML_BINDING([curl],[],[1])
+AC_CHECK_OCAML_BINDING([curl])
 
 #
 # Dtools
@@ -425,7 +425,7 @@ AC_CHECK_OCAML_BINDING([xmlplaylist])
 # Lastfm
 #
 
-AC_CHECK_OCAML_BINDING([lastfm],[xmlplaylist])
+AC_CHECK_OCAML_BINDING([lastfm],[xmlplaylist curl])
 
 #
 # Ogg
@@ -1134,7 +1134,7 @@ cat <<EOMSG
    - SDL               : $w_TSDL
 
  * Additional libraries
-   - curl URI resolver : requires curl at runtime
+   - URI resolver      : $w_CURL
    - FFmpeg filters:   : $w_FFMPEG_LIQ_FILTER
    - FFmpeg devices    : $w_FFMPEG_AVDEVICE
    - dynlink           : $w_DYNLINK
