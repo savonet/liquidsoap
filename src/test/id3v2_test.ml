@@ -17,6 +17,7 @@ let () =
     Printf.printf "mime: %s\n" apic.mime;
     Printf.printf "type: %d\n" apic.picture_type;
     Printf.printf "description: %s\n" apic.description;
+    Printf.printf "length: %d bytes\n" (String.length apic.data);
     let oc = open_out "/tmp/cover.jpg" in
     output_string oc apic.data;
     close_out oc )
