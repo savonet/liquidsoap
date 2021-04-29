@@ -12,6 +12,8 @@ USER root
 # Remove after next base image rebuild
 RUN apt-get update && apt-get install -y libcurl4-gnutls-dev
 
+RUN apt-get remove -y gstreamer1.0-libav
+
 USER opam
 
 WORKDIR /tmp/liquidsoap-full
