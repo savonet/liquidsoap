@@ -48,13 +48,16 @@ def file.cover(~id="file.cover", fname)
     # We are likely to have an ogg/vorbis file
     cover = list.assoc(default="", "coverart", m)
     if cover != "" then
-      string.base64.decode(cover)
+      string.base64.decode(cover).{mime=""}
     else
+      # See https://xiph.org/flac/format.html#metadata_block_picture
       cover = list.assoc(default=cover, "metadata_block_picture", m)
       cover = string.base64.decode(cover)
       i = ref(4)
       mime_len = string.binary.to_int(little_endian=false, string.sub(cover, start=!i, length=4))
-      i := !i + 4 + mime_len
+      i := !i + 4
+      mime = string.sub(cover, start=!i, length=mime_len)
+      i := !i + mime_len
       desc_len = string.binary.to_int(little_endian=false, string.sub(cover, start=!i, length=4))
       i := !i + 4 + desc_len
       i := !i + 4 * 4
@@ -62,7 +65,7 @@ def file.cover(~id="file.cover", fname)
       i := !i + 4
       cover = string.sub(cover, start=!i, length=pic_len)
       if cover == "" then log.info("Failed to read cover metadata for #{file}.") end
-      cover
+      cover.{mime=mime}
     end
   else
     # Assume we have an mp3 file
@@ -78,12 +81,12 @@ def file.cover(~id="file.cover", fname)
     apic = list.assoc(default="", "apic", m)
     if apic == "" then
       log.info("No cover found for #{file}.")
-      ""
+      "".{mime=""}
     else
       log.debug(label=id, "Found APIC for #{file}.")
       # TODO: we could use file type in order to select cover if there are many
-      let (_,_,_,data) = file.mp3.parse_apic(apic)
-      data
+      let (mime,_,_,data) = file.mp3.parse_apic(apic)
+      data.{mime=mime}
     end
   end
 end
