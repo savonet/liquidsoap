@@ -9,7 +9,13 @@ USER root
 
 RUN apt-get update && apt-get -y install openssh-client && apt-get install -y abgate calf-plugins swh-lv2 swh-plugins tap-plugins zam-plugins
 
+# This is until the next image rebuild:
+RUN apt-get -y install libcurl4-gnutls-dev
+
 USER opam
+
+# This is until the next image rebuild:
+RUN eval $(opam config env) && opam install -y ocurl
 
 WORKDIR /tmp/liquidsoap-full
 
