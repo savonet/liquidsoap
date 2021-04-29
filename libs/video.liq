@@ -22,7 +22,7 @@ end
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param file Path to the image.
 # @method set Change the image.
-def image(~id="", ~fallible=false, file)
+def image(~id="", ~fallible=false, file="")
   s = source.dynamic()
   def set(file)
     s.set(single(id=id, fallible=fallible, file))
