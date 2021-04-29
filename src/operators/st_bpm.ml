@@ -59,8 +59,7 @@ class bpm ~kind (source : source) =
       Soundtouch.BPM.put_samples_ba bpm ibuf
 
     method bpm =
-      let bpm = Option.get bpm in
-      Soundtouch.BPM.get_bpm bpm
+      match bpm with Some bpm -> Soundtouch.BPM.get_bpm bpm | None -> 0.
   end
 
 let () =
