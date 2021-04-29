@@ -95,11 +95,10 @@ def request.player(~simultaneous=true)
 
     source.dynamic({add(normalize=false, !l)}).{play=play, length={collect(); list.length(!l)}}
   else
-    s = ref(fail())
+    s = source.dynamic()
     def play(r)
-      source.shutdown(!s)
-      s := request.once(r)
+      s.set(request.once(r))
     end
-    source.dynamic({!s}).{play=play, length={1}}
+    s.{play=play, length={1}}
   end
 end

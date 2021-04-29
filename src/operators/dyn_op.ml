@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class dyn ~kind ~track_sensitive ~infallible ~resurection_time f =
+class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
   object (self)
     inherit Source.source ~name:"source.dynamic" kind
 
@@ -36,7 +36,7 @@ class dyn ~kind ~track_sensitive ~infallible ~resurection_time f =
      * last, which #sleep ensures. *)
     val source_lock = Mutex.create ()
 
-    val mutable source : Source.source option = None
+    val mutable source : Source.source option = init
 
     method private unregister_source ~already_locked =
       let unregister () =
@@ -51,12 +51,23 @@ class dyn ~kind ~track_sensitive ~infallible ~resurection_time f =
 
     val mutable last_select = 0.
 
+    (* Proposed source for next round. *)
+    val mutable proposal = None
+
+    method propose s = proposal <- Some s
+
     method private select =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
         (Tutils.mutexify source_lock (fun () ->
              let s =
-               Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
+               match proposal with
+                 | Some s ->
+                     proposal <- None;
+                     Some s
+                 | None ->
+                     Lang.apply f [] |> Lang.to_option
+                     |> Option.map Lang.to_source
              in
              if track_sensitive then last_select <- Unix.gettimeofday ();
              match s with
@@ -68,8 +79,8 @@ class dyn ~kind ~track_sensitive ~infallible ~resurection_time f =
                    self#unregister_source ~already_locked:true;
                    source <- Some s))
 
-    (* Source methods: attempt to #select as soon as it could be useful
-     * for the selection function to change the source. *)
+    (* Source methods: attempt to #select as soon as it could be useful for the
+       selection function to change the source. *)
     method private wake_up ancestors =
       activation <- (self :> Source.source) :: ancestors;
       Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f;
@@ -115,6 +126,10 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "source.dynamic"
     [
+      ( "init",
+        Lang.nullable_t (Lang.source_t k),
+        Some Lang.null,
+        Some "Initial value for the source" );
       ( "track_sensitive",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -134,17 +149,35 @@ let () =
            never)." );
       ( "",
         Lang.fun_t [] (Lang.nullable_t (Lang.source_t k)),
-        None,
+        Some (Lang.val_fun [] (fun _ -> Lang.null)),
         Some
           "Function returning the source to be used, `null` means keep current \
            source." );
     ]
-    ~return_t:k ~descr:"Dynamically change the underlying source."
+    ~return_t:k
+    ~descr:
+      "Dynamically change the underlying source: it can either be changed by \
+       the function given as argument, which returns the source to be played, \
+       or by calling the `set` method."
     ~category:Lang.TrackProcessing ~flags:[Lang.Experimental]
+    ~meth:
+      [
+        ( "set",
+          ([], Lang.fun_t [(false, "", Lang.source_t k)] Lang.unit_t),
+          "Set the source.",
+          fun s ->
+            Lang.val_fun [("", "x", None)] (fun p ->
+                s#propose (List.assoc "x" p |> Lang.to_source);
+                Lang.unit) );
+      ]
     (fun p ->
+      let init =
+        List.assoc "init" p |> Lang.to_option |> Option.map Lang.to_source
+      in
       let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
       let infallible = List.assoc "infallible" p |> Lang.to_bool in
       let resurection_time = List.assoc "resurection_time" p |> Lang.to_float in
       let kind = Source.Kind.of_kind kind in
       new dyn
-        ~kind ~track_sensitive ~infallible ~resurection_time (List.assoc "" p))
+        ~kind ~init ~track_sensitive ~infallible ~resurection_time
+        (List.assoc "" p))
