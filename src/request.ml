@@ -51,11 +51,6 @@ let parse_uri uri =
       (String.sub uri 0 i, String.sub uri (i + 1) (String.length uri - (i + 1)))
   with _ -> None
 
-let cleanup =
-  let re1 = Str.regexp "^[\t ]*" in
-  let re2 = Str.regexp "[\t ]*$" in
-  fun s -> Str.global_replace re1 "" (Str.global_replace re2 "" s)
-
 (** Metadata *)
 
 type metadata = (string, string) Hashtbl.t
@@ -339,7 +334,7 @@ let read_metadata t =
             (fun (k, v) ->
               let k = String.lowercase_ascii k in
               if conf_override_metadata#get || get_metadata t k = None then
-                Hashtbl.replace indicator.metadata k (cleanup v))
+                Hashtbl.replace indicator.metadata k v)
             ans;
           if conf_duration#get && get_metadata t "duration" = None then (
             try
