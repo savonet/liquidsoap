@@ -92,34 +92,46 @@ let char c =
 (** Space between chars. *)
 let char_space = 1
 
+(** Space between lines. *)
+let line_space = 2
+
 let render_text ~font ~size text =
   (* TODO: we ignore font for now... *)
   let () = ignore font in
-  let h = char_height in
   (* Compute bitmap as a matrix of booleans. *)
   let bmp =
-    let ans = Array.make h [||] in
+    let ans = ref (Array.make char_height [||]) in
+    (* Current line. *)
+    let line = ref 0 in
     for i = 0 to String.length text - 1 do
-      if i <> 0 then
+      (* Vertical offset. *)
+      let voff = !line * (char_height + line_space) in
+      if Array.length !ans.(voff) <> 0 then
         (* Add a space *)
-        for j = 0 to h - 1 do
-          ans.(j) <- Array.append ans.(j) (Array.make char_space false)
+        for j = 0 to char_height - 1 do
+          !ans.(voff + j) <-
+            Array.append !ans.(voff + j) (Array.make char_space false)
         done;
-      let c = char text.[i] in
-      for j = 0 to h - 1 do
-        ans.(j) <- Array.append ans.(j) c.(j)
-      done
+      if text.[i] = '\n' then (
+        ans := Array.append !ans (Array.make (line_space + char_height) [||]);
+        incr line )
+      else (
+        let c = char text.[i] in
+        for j = 0 to char_height - 1 do
+          !ans.(voff + j) <- Array.append !ans.(voff + j) c.(j)
+        done )
     done;
-    ans
+    !ans
   in
-  let w = Array.length bmp.(0) in
+  let h = Array.length bmp in
   let get_pixel x y =
     let x = x * char_height / size in
     let y = y * char_height / size in
-    if 0 <= y && y < h && 0 <= x && x < w then
+    if 0 <= y && y < h && 0 <= x && x < Array.length bmp.(y) then
       if bmp.(y).(x) then 0xff else 0x00
     else 0x00
   in
+  let w = Array.fold_left (fun w l -> max w (Array.length l)) 0 bmp in
   let h = h * size / char_height in
   let w = w * size / char_height in
   (w, h, get_pixel)
