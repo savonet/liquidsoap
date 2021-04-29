@@ -29,6 +29,11 @@ end
 module String = struct
   include String
 
+  let ends_with s a =
+    let ls = String.length s in
+    let la = String.length a in
+    ls >= la && String.sub s (ls - la) la = a
+
   let split_char c s =
     let rec aux res n =
       try

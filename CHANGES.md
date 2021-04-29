@@ -81,6 +81,7 @@ New:
 - Added support for harbor's connected address in auth function and as a method (#1364).
 - Added `time.up`.
 - Added `video.cover`.
+- Added `video.still_frame`.
 
 Changed:
 
