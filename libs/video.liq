@@ -21,8 +21,15 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param file Path to the image.
+# @method set Change the image.
 def image(~id="", ~fallible=false, file)
-  mux_audio(id=id, audio=blank(), single(id=id, fallible=fallible, file))
+  s = source.dynamic()
+  def set(file)
+    s.set(single(id=id, fallible=fallible, file))
+  end
+  set(file)
+  s = mux_audio(id=id, audio=blank(), s)
+  s.{set=set}
 end
 
 # Add a static image on the first video channel.
