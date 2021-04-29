@@ -30,7 +30,18 @@ let () =
        that will fail to be resolved."
     [
       ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
-      ("persistent", Lang.bool_t, Some (Lang.bool false), None);
+      ( "persistent",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Indicate that the request is persistent, i.e. that it may be used \
+           again once it has been played." );
+      ( "temporary",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Indicate that the request is a temporary file: it will be destroyed \
+           after being played." );
       ("", Lang.string_t, None, None);
     ]
     Lang.request_t
@@ -46,6 +57,12 @@ let () =
       in
       let indicators = List.map Lang.to_string (Lang.to_list indicators) in
       let indicators = List.map (fun x -> Request.indicator x) indicators in
+      let temporary = List.assoc "temporary" p |> Lang.to_bool in
+      let indicators =
+        if temporary then
+          Request.indicator ~temporary:true initial :: indicators
+        else indicators
+      in
       Lang.request (Request.create ~persistent ~indicators initial))
 
 let () =
