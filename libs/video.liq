@@ -248,48 +248,22 @@ def output.youtube.live.ffmpeg(~id="",~flush=false, ~fallible=false,
                          reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
 end
 
-%ifdef ffmpeg.filter.drawtext
-# Display a text.
-# @category Source / Video Processing
-# @param ~color Color of the text.
-# @param ~font Font to use.
-# @param ~size Size of the text.
-# @param ~x x offset.
-# @param ~y y offset.
-# @param text Text to display.
-# @param s Source on which the text should be added.
-def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, text, s)
-  color = "0x" ^ string.hex_of_int(pad=6, color)
-  fontfile =
-    if font == "" then
-      null()
-    else
-      null(font)
-    end
-  def mkfilter(graph)
-    s = ffmpeg.filter.video.input(graph, s)
-    s = ffmpeg.filter.drawtext(fontfile=fontfile, fontsize="#{size}", x="#{x}", y="#{y}", fontcolor=color, text=text, graph, s)
-    ffmpeg.filter.video.output(graph, s)
-  end
-  ffmpeg.filter.create(mkfilter)
-end
-%endif
-
 let video.add_text.best = video.add_text.native
 
-%ifdef video.add_text.sdl
-let video.add_text.best = video.add_text.sdl
+%ifdef video.add_text.gd
+let replaces video.add_text.best = video.add_text.gd
 %endif
 
 %ifdef video.add_text.gstreamer
 let replaces video.add_text.best = video.add_text.gstreamer
 %endif
 
-%ifdef video.add_text.gd
-let replaces video.add_text.best = video.add_text.gd
+%ifdef video.add_text.sdl
+let video.add_text.best = video.add_text.sdl
 %endif
 
-# Display a text using the first available operator in: gd, gstreamer, sdl or native
+# Display a text using the first available operator in: SDL, GStreamer, gd or native.
+# @category Source / Video Processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
 # @param ~cycle Cycle text when it reaches left boundary.

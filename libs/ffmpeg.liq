@@ -22,3 +22,31 @@ def video.testsrc.ffmpeg(~id="", ~kind="testsrc", ~buffer=0.5, ~duration=null())
   (input.ffmpeg(buffer=buffer, format="lavfi", src):source(audio=none))
 end
 %endif
+
+
+%ifdef ffmpeg.filter.drawtext
+# Display a text.
+# @category Source / Video Processing
+# @param ~color Color of the text.
+# @param ~font Font to use.
+# @param ~size Size of the text.
+# @param ~x x offset.
+# @param ~y y offset.
+# @param text Text to display.
+# @param s Source on which the text should be added.
+def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, text, s)
+  color = "0x" ^ string.hex_of_int(pad=6, color)
+  fontfile =
+    if font == "" then
+      null()
+    else
+      null(font)
+    end
+  def mkfilter(graph)
+    s = ffmpeg.filter.video.input(graph, s)
+    s = ffmpeg.filter.drawtext(fontfile=fontfile, fontsize="#{size}", x="#{x}", y="#{y}", fontcolor=color, text=text, graph, s)
+    ffmpeg.filter.video.output(graph, s)
+  end
+  ffmpeg.filter.create(mkfilter)
+end
+%endif
