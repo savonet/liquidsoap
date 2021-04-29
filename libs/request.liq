@@ -75,21 +75,31 @@ end
 # Create a source on which plays immediately requests given with the `play`
 # method.
 # @category Source / Track Processing
+# @param ~simultaneous Allow multiple requests to play simultaneously. If `false` a new request replaces the previous one.
 # @method play Play a request.
 # @method length Number of currently playing requests.
-def request.player()
-  l = ref([])
+def request.player(~simultaneous=true)
+  if simultaneous then
+    l = ref([])
 
-  # Perform some garbage collection in order to avoid that the list grows too
-  # much.
-  def collect()
-    l := list.filter(remove=source.shutdown, source.is_ready, !l)
+    # Perform some garbage collection in order to avoid that the list grows too
+    # much.
+    def collect()
+      l := list.filter(remove=source.shutdown, source.is_ready, !l)
+    end
+
+    def play(r)
+      collect()
+      l := list.add((request.once(r):source), !l)
+    end
+
+    source.dynamic({add(normalize=false, !l)}).{play=play, length={collect(); list.length(!l)}}
+  else
+    s = ref(fail())
+    def play(r)
+      source.shutdown(!s)
+      s := request.once(r)
+    end
+    source.dynamic({!s}).{play=play, length={1}}
   end
-
-  def play(r)
-    collect()
-    l := list.add((request.once(r):source), !l)
-  end
-
-  source.dynamic({add(normalize=false, !l)}).{play=play, length={collect(); list.length(!l)}}
 end
