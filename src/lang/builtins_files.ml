@@ -169,7 +169,12 @@ let () =
 let () =
   add_builtin "file.write" ~cat:Sys
     [
-      ("data", Lang.string_t, None, Some "Data to write");
+      ( "data",
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
+        None,
+        Some
+          "Data to write. If passing a callback `() -> string?`, the callback \
+           must return `null` when it has finished sending all its data." );
       ( "append",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -182,7 +187,18 @@ let () =
     ]
     Lang.unit_t ~descr:"Write data to a file."
     (fun p ->
-      let data = Lang.to_string (List.assoc "data" p) in
+      let data =
+        let data = List.assoc "data" p in
+        match (Lang.demeth data).Lang.value with
+          | Lang.Ground (Lang.Ground.String s) ->
+              let is_done = ref false in
+              fun () ->
+                if not !is_done then (
+                  is_done := true;
+                  Lang.string s )
+                else Lang.null
+          | _ -> Lang.to_getter data
+      in
       let append = Lang.to_bool (List.assoc "append" p) in
       let perms = Lang.to_int (List.assoc "perms" p) in
       let f = Lang.to_string (List.assoc "" p) in
@@ -190,7 +206,14 @@ let () =
       let flags = [flag; Open_wronly; Open_creat; Open_binary] in
       try
         let oc = open_out_gen flags perms f in
-        output_string oc data;
+        let rec f () =
+          match Lang.to_option (data ()) with
+            | None -> ()
+            | Some data ->
+                output_string oc (Lang.to_string data);
+                f ()
+        in
+        f ();
         close_out oc;
         Lang.unit
       with e ->
@@ -199,6 +222,77 @@ let () =
             (Printexc.to_string e)
         in
         Lang.error ~message "file")
+
+let () =
+  add_builtin "file.write.stream" ~cat:Sys
+    [
+      ( "append",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Append data if file exists." );
+      ( "perms",
+        Lang.int_t,
+        Some (Lang.int 0o644),
+        Some "Default file rights if created" );
+      ("", Lang.string_t, None, Some "Path to write to");
+    ]
+    (Lang.fun_t [(false, "", Lang.nullable_t Lang.string_t)] Lang.unit_t)
+    ~descr:
+      "Stream data to a file. Returns a callback to write to the file. Execute \
+       with `null` to signify the end of the writting operation."
+    (fun p ->
+      let append = Lang.to_bool (List.assoc "append" p) in
+      let perms = Lang.to_int (List.assoc "perms" p) in
+      let f = Lang.to_string (List.assoc "" p) in
+      let flag = if append then Open_append else Open_trunc in
+      let flags = [flag; Open_wronly; Open_creat; Open_binary] in
+      let oc =
+        try open_out_gen flags perms f
+        with e ->
+          let message =
+            Printf.sprintf "The file %s could not be opened: %s" f
+              (Printexc.to_string e)
+          in
+          Lang.error ~message "file"
+      in
+      let m = Mutex.create () in
+      let is_done = ref false in
+      let data = Buffer.create 1024 in
+      let task = ref None in
+      let process =
+        Tutils.mutexify m (fun () ->
+            try
+              if !is_done then (
+                close_out oc;
+                Duppy.Async.stop (Option.get !task) )
+              else (
+                Buffer.output_buffer oc data;
+                Buffer.reset data );
+              -1.
+            with e ->
+              let message =
+                Printf.sprintf "The file %s could not be written to: %s" f
+                  (Printexc.to_string e)
+              in
+              Lang.error ~message "file")
+      in
+      task :=
+        Some
+          (Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler process);
+      Lang.val_fun [("", "", None)]
+        (Tutils.mutexify m (fun p ->
+             ( match Lang.to_option (List.assoc "" p) with
+               | None -> is_done := true
+               | Some s -> Buffer.add_string data (Lang.to_string s) );
+             try
+               Duppy.Async.wake_up (Option.get !task);
+               Lang.unit
+             with e ->
+               let message =
+                 Printf.sprintf "The file %s could not be written to: %s" f
+                   (Printexc.to_string e)
+               in
+               Lang.error ~message "file")))
 
 let () =
   add_builtin "file.watch" ~cat:Sys

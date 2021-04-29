@@ -48,6 +48,7 @@ depends: [
   "menhir-windows"
   "mm-windows" {>= "0.6.0"}
   "ocamlfind" {build}
+  "ocurl-windows"
   "pcre-windows"
   "sedlex-windows" {>= "2.0"}
 ]

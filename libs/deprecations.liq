@@ -31,13 +31,9 @@ register(name="[DEPRECATED] Framerate",
 
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag deprecated
-def replaces input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
-                   ~restart=true,~restart_on_error=false,
-                   ~samplerate=44100,cmd) =
+def replaces input.external(%argsof(input.external.rawaudio))
   deprecated("input.external", "input.external.rawaudio")
-  input.external.rawaudio(id=id,buffer=buffer,channels=channels,
-                          max=max,restart=restart,restart_on_error=restart_on_error,
-                          samplerate=samplerate,cmd)
+  input.external.rawaudio(%argsof(input.external.rawaudio))
 end
 
 # Deprecated: this function has been replaced by `string.quote`.
@@ -240,9 +236,9 @@ end
 
 # Deprecated: use `request.create` instead.
 # @flag deprecated
-def request.create.raw(~indicators=[], ~persistent=false, uri)
+def request.create.raw(%argsof(request.create))
   deprecated("request.create.raw", "request.create")
-  request.create(indicators=indicators, persistent=persistent, uri)
+  request.create(%argsof(request.create))
 end
 
 # Deprecated: use `file.remove` instead.
@@ -285,77 +281,58 @@ end
 
 # Deprecated: use `process.read` instead.
 # @flag deprecated
-def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+def get_process_output(%argsof(process.read))
   deprecated("get_process_output", "process.read")
-
-  process.read(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  process.read(%argsof(process.read))
 end
 
 # Deprecated: use `process.read.lines` instead.
 # @flag deprecated
-def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+def get_process_lines(%argsof(process.read.lines))
   deprecated("get_process_lines", "process.read.lines")
-
-  process.read.lines(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  process.read.lines(%argsof(process.read.lines))
 end
 
 # Deprecated: use `process.test` instead.
 # @flag deprecated
-def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+def test_process(%argsof(process.test))
   deprecated("test_process", "process.test")
-
-  process.test(timeout=timeout, env=env, inherit_env=inherit_env, command)
+  process.test(%argsof(process.test))
 end
 
 # Deprecated: use `process.run` instead.
 # @flag deprecated
 def system(command) =
   deprecated("system", "process.run")
-
   process.run(command)
 end
 
 # Deprecated: use `blank.detect` instead
 # @flag deprecated
-def on_blank(~id="on_blank", ~max_blank=20., ~min_noise=0.,
-             ~on_noise, ~start_blank=false, ~threshold=(-40.),
-             ~track_sensitive=true, cb, s) =
+def on_blank(%argsof(blank.detect))
   deprecated("on_blank", "blank.detect")
-
-  blank.detect(id=id, max_blank=max_blank, min_noise=min_noise,
-               on_noise=on_noise, start_blank=start_blank, threshold=threshold,
-               track_sensitive=track_sensitive, cb, s)
+  blank.detect(%argsof(blank.detect))
 end
 
 # Deprecated: use `blank.skip` instead
 # @flag deprecated
-def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s) =
+def skip_blank(%argsof(blank.skip))
   deprecated("skip_blank", "blank.skip")
-
-  blank.skip(id=id, threshold=threshold, max_blank=max_blank, min_noise=min_noise, track_sensitive=track_sensitive, s)
+  blank.skip(%argsof(blank.skip))
 end
 
 # Deprecated: use `blank.eat` instead
 # @flag deprecated
-def eat_blank(~id="", ~at_beginning=false, ~max_blank=20., ~min_noise=0.,
-              ~start_blank=false, ~threshold=(-40.), ~track_sensitive=true,
-              s) =
+def eat_blank(%argsof(blank.eat))
   deprecated("eat_blank", "blank.eat")
-
-  blank.eat(id=id, at_beginning=at_beginning, max_blank=max_blank, min_noise=min_noise,
-            start_blank=start_blank, threshold=threshold, track_sensitive=track_sensitive,
-            s)
+  blank.eat(%argsof(blank.eat))
 end
 
 # Deprecated: use `blank.strip` instead
 # @flag deprecated
-def strip_blank(~id="", ~max_blank=20., ~min_noise=0., ~start_blank=false,
-                ~threshold=(-40.), ~track_sensitive=true, s)
+def strip_blank(%argsof(blank.strip))
   deprecated("strip_blank", "blank.strip")
-
-  blank.strip(id=id, max_blank=max_blank, min_noise=min_noise,
-              start_blank=start_blank, threshold=threshold, track_sensitive=track_sensitive,
-              s)
+  blank.strip(%argsof(blank.strip))
 end
 
 # Deprecated: use `time.local` instead
@@ -548,6 +525,44 @@ end
 
 # Deprecated: use `source.on_end` instead.
 # @flag deprecated
-def on_end(~id="", delay=5., f, s)
-  source.on_end(id=id, delay=delay, s, f)
+def on_end(%argsof(source.on_end))
+  deprecated("on_end", "source.on_end")
+  source.on_end(%argsof(source.on_end))
+end
+
+https = ()
+
+# Deprecated: use `http.get` instead.
+# @flag deprecated
+def https.get(%argsof(http.get))
+  deprecated("https.get", "http.get")
+  http.get(%argsof(http.get))
+end
+
+# Deprecated: use `http.put` instead.
+# @flag deprecated
+def https.put(%argsof(http.put))
+  deprecated("https.put", "http.put")
+  http.put(%argsof(http.put))
+end
+
+# Deprecated: use `http.post` instead.
+# @flag deprecated
+def https.post(%argsof(http.post))
+  deprecated("https.post", "http.post")
+  http.post(%argsof(http.post))
+end
+
+# Deprecated: use `http.head` instead.
+# @flag deprecated
+def https.head(%argsof(http.head))
+  deprecated("https.head", "http.head")
+  http.head(%argsof(http.head))
+end
+
+# Deprecated: use `http.delete` instead.
+# @flag deprecated
+def https.delete(%argsof(http.delete))
+  deprecated("https.delete", "http.delete")
+  http.delete(%argsof(http.delete))
 end

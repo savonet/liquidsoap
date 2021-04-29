@@ -27,7 +27,12 @@ module type Http_t = sig
   type event =
     [ `Write of connection | `Read of connection | `Both of connection ]
 
-  type uri = { host : string; port : int option; path : string }
+  type uri = {
+    protocol : string;
+    host : string;
+    port : int option;
+    path : string;
+  }
 
   (** Default port. *)
   val default_port : int
@@ -94,82 +99,10 @@ module type Http_t = sig
     string ->
     (string * int * string) * (string * string) list
 
-  (** [get ?log ?headers ~timeout socket host port path] makes a GET request.
-    * Returns the status and the headers. *)
-  val get :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  (** [post ?log ?headers ~timeout data socket host port path] makes a POST request.
-    * Returns the status and the headers. *)
-  val post :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    string ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  (** [put ?log ?headers ~timeout data socket host port path] makes a PUT request.
-    * Returns the status and the headers. *)
-  val put :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    string ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  (** [head ?log ?headers ~timeout socket host port path] makes a HEAD request.
-    * Returns the status and the headers. *)
-  val head :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
-  (** [delete ?log ?headers ~timeout socket host port path] makes a DELETE request.
-    * Returns the status and the headers. *)
-  val delete :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    connection ->
-    uri ->
-    (string * int * string) * (string * string) list
-
   (** [read_with_timeout ?log ~timeout len] reads [len] bytes of data
     * or all available data if [len] is [None]. *)
   val read_with_timeout :
     ?log:(string -> unit) -> timeout:float -> connection -> int option -> string
-
-  (** Type for full Http request. *)
-  type request = Get | Post of string | Put of string | Head | Delete
-
-  (** Perform a full Http request and return the response status,headers
-    * and data. *)
-  val full_request :
-    ?headers:(string * string) list ->
-    ?log:(string -> unit) ->
-    ?http_version:string ->
-    timeout:float ->
-    uri:uri ->
-    request:request ->
-    unit ->
-    (string * int * string) * (string * string) list * string
 end
 
 module Make (Transport : Transport_t) :

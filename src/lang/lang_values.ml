@@ -22,6 +22,7 @@
 
 (** Values in the Liquidsoap language. *)
 
+(** An error at runtime. *)
 include Runtime_error
 
 (** An internal error. Those should not happen in theory... *)

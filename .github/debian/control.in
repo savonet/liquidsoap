@@ -12,7 +12,6 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
  bubblewrap,
- curl,
  adduser
 Recommends:
  logrotate,

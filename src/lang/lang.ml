@@ -512,6 +512,15 @@ let rec assoc label n = function
 
 let error = Runtime_error.error
 
+let raise_as_runtime ~bt ~kind exn =
+  match exn with
+    | Lang_values.Runtime_error _ -> raise exn
+    | exn ->
+        error
+          ~message:
+            (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn) bt)
+          kind
+
 (** {1 Parsing} *)
 
 let type_and_run ~throw ~lib ast =

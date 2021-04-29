@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-let log = Log.make ["liqfm"]
-
 (* A custom implementation of HTTP 
  * requests. *)
 module Liq_http = struct
@@ -36,22 +34,22 @@ module Liq_http = struct
   (* This in unused for now.. *)
   let default_timeout = ref 5.
 
-  let request ?timeout ?headers ?port ~host ~url ~request () =
+  let request ?timeout ?headers ?(port = 80) ~host ~url ~request () =
     try
-      let log s = log#info "%s" s in
       let timeout =
-        match timeout with None -> !default_timeout | Some t -> t
+        int_of_float
+          (match timeout with None -> !default_timeout | Some t -> t)
       in
-      let request =
-        match request with Get -> Http.Get | Post s -> Http.Post s
-      in
-      let uri = { Http.host; port; path = url } in
-      let (x, code, y), _, data =
-        Http.full_request ?headers ~log ~timeout ~uri ~request ()
+      let request = match request with Get -> `Get | Post s -> `Post s in
+      let url = Printf.sprintf "http://%s:%d%s" host port url in
+      let data = Buffer.create 1024 in
+      let x, code, y, _ =
+        Liqcurl.http_request ?headers ~follow_redirect:true
+          ~on_body_data:(Buffer.add_string data) ~timeout ~url ~request ()
       in
       if code <> 200 then
         raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y));
-      data
+      Buffer.contents data
     with e -> raise (exc_of_exc e)
 end
 

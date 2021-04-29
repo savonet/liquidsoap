@@ -293,6 +293,9 @@ val metadata : Frame.metadata -> value
 (** Raise an error. *)
 val error : ?pos:pos list -> ?message:string -> string -> 'a
 
+(** Re-raise an error as a runtime error. *)
+val raise_as_runtime : bt:string -> kind:string -> exn -> 'a
+
 (** {2 Main script evaluation} *)
 
 (** Load the external libraries. *)
