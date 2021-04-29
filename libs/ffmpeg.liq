@@ -47,6 +47,6 @@ def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, tex
     s = ffmpeg.filter.drawtext(fontfile=fontfile, fontsize="#{size}", x="#{x}", y="#{y}", fontcolor=color, text=text, graph, s)
     ffmpeg.filter.video.output(graph, s)
   end
-  ffmpeg.filter.create(mkfilter)
+  mux_audio(audio=drop_video(s), ffmpeg.filter.create(mkfilter))
 end
 %endif
