@@ -62,6 +62,7 @@ depopts: [
   "ffmpeg-avutil-windows"
   "ffmpeg-av-windows"
   "ffmpeg-avcodec-windows"
+  "ffmpeg-avdevice-windows"
   "ffmpeg-avfilter-windows"
   "ffmpeg-swresample-windows"
   "ffmpeg-swscale-windows"

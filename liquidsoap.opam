@@ -75,6 +75,7 @@ depopts: [
   "ffmpeg-avutil"
   "ffmpeg-av"
   "ffmpeg-avcodec"
+  "ffmpeg-avdevice"
   "ffmpeg-avfilter"
   "ffmpeg-swresample"
   "ffmpeg-swscale"

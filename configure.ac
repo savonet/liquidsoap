@@ -568,6 +568,7 @@ AC_CHECK_OCAML_BINDING([theora.decoder],[theora])
 
 AC_CHECK_OCAML_BINDING([ffmpeg-avutil], [], [], [], [avutil])
 AC_CHECK_OCAML_BINDING([ffmpeg-avcodec], [ffmpeg-avutil], [], [], [avcodec])
+AC_CHECK_OCAML_BINDING([ffmpeg-avdevice], [ffmpeg-avdevice], [], [], [avdevice])
 AC_CHECK_OCAML_BINDING([ffmpeg-av], [ffmpeg-avutil ffmpeg-avcodec], [], [], [av])
 AC_CHECK_OCAML_BINDING([ffmpeg-avfilter], [ffmpeg-avutil], [], [], [avfilter])
 AC_CHECK_OCAML_BINDING([ffmpeg-swresample], [ffmpeg-avutil ffmpeg-avcodec], [], [], [swresample])
@@ -1130,6 +1131,7 @@ cat <<EOMSG
  * Additional libraries
    - curl URI resolver : requires curl at runtime
    - FFmpeg filters:   : $w_FFMPEG_LIQ_FILTER
+   - FFmpeg devices    : $w_FFMPEG_AVDEVICE
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lastfm            : $w_LASTFM
@@ -1205,6 +1207,7 @@ variables {
   ffmpeg-avutil-enabled: $b_FFMPEG_AVUTIL
   ffmpeg-av-enabled: $b_FFMPEG_AV
   ffmpeg-avcodec-enabled: $b_FFMPEG_AVCODEC
+  ffmpeg-avdevice-enabled: $b_FFMPEG_AVDEVICE
   ffmpeg-avfilter-enabled: $b_FFMPEG_AVFILTER
   ffmpeg-swresample-enabled: $b_FFMPEG_SWRESAMPLE
   ffmpeg-swscale-enabled: $b_FFMPEG_SWSCALE
