@@ -69,7 +69,7 @@ class still_frame ~name ~kind (source : source) =
   end
 
 let () =
-  let k = Lang.any in
+  let k = Lang.video_yuva420p in
   let return_t = Lang.kind_type_of_kind_format k in
   let kind = Source.Kind.of_kind k in
   let name = "video.still_frame" in
