@@ -26,7 +26,7 @@ open Tsdl_ttf
 
 let init () =
   Sdl_utils.init [];
-  Lifecycle.on_start (fun () -> Sdl_utils.check Tsdl_ttf.Ttf.init ())
+  Sdl_utils.check Tsdl_ttf.Ttf.init ()
 
 let get_font font size =
   try Sdl_utils.check (Ttf.open_font font) size
