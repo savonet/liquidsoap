@@ -595,7 +595,7 @@ let resolve ~ctype t timeout =
                   if production = [] then (
                     log#info
                       "Failed to resolve %S! For more info, see server command \
-                       'trace %d'."
+                       `request.trace %d`."
                       i.string t.id;
                     ignore (pop_indicator t) )
                   else push_indicators t production
