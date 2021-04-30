@@ -28,15 +28,15 @@ module Make (Generator : Generator.S) = struct
     ~empty_on_abort gen =
     let bufferize = Frame.main_of_seconds bufferize in
     object (self)
-      (** We keep the generator in an instance variable so that derived
-    * classes can access it. There are concurrency issues, though:
-    *  - In classes such as http_source, the generator is fed concurrently
-    *    with its consumption. But in that case a thread-safe implementation
-    *    of Generator is used.
-    *  - In any case there is always concurrency in this class, with #get
-    *    on one hand and #is_ready, #abort_track and #seek that can be
-    *    called from other threads. We use the generator_lock to avoid
-    *    the only bad interference, ie. #get_frame vs #seek. *)
+      (* We keep the generator in an instance variable so that derived
+       * classes can access it. There are concurrency issues, though:
+       *  - In classes such as http_source, the generator is fed concurrently
+       *    with its consumption. But in that case a thread-safe implementation
+       *    of Generator is used.
+       *  - In any case there is always concurrency in this class, with #get
+       *    on one hand and #is_ready, #abort_track and #seek that can be
+       *    called from other threads. We use the generator_lock to avoid
+       *    the only bad interference, ie. #get_frame vs #seek. *)
       val generator = gen
 
       val generator_lock = Mutex.create ()
