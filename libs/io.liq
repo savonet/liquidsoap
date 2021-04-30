@@ -24,11 +24,11 @@ let replaces output=output.dummy
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def replaces output(~id="",~fallible=false,
+def replaces output(~id="",~fallible=true,
            ~on_start={()},~on_stop={()},~start=true,s)
   output(id=id,fallible=fallible,
          start=start,on_start=on_start,on_stop=on_stop,
-         mksafe(s))
+         s)
 end
 
 let output.video = output.dummy
@@ -55,8 +55,8 @@ let output.video = output.dummy
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def output.video(~id="",~fallible=false,~on_start={()},~on_stop={()},~start=true,s)
-  output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, mksafe(s))
+def output.video(~id="",~fallible=true,~on_start={()},~on_stop={()},~start=true,s)
+  output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s)
 end
 
 # Output a stream with audio and video using the default operator. The input
@@ -69,7 +69,7 @@ end
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def output.audio_video(~id="",~fallible=false,~on_start={()},~on_stop={()},~start=true,s)
+def output.audio_video(~id="",~fallible=true,~on_start={()},~on_stop={()},~start=true,s)
   output(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, drop_video(s))
   output.video(id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, drop_audio(s))
 end
