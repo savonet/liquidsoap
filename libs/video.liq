@@ -242,7 +242,7 @@ def output.youtube.live.ffmpeg(~id="",~flush=false, ~fallible=false,
   samplerate = audio.samplerate()
   key = (key : string)
   cmd = "-deinterlace -vcodec libx264 -pix_fmt yuv420p -preset #{quality} -r #{fps} -g $((#{fps} * 2)) \
-          -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 712000 \
+          -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 128k \
           -bufsize 512k -f flv \"#{url}/#{key}\""
   output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
                          reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
