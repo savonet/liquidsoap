@@ -3,9 +3,10 @@
 # @category Source / Input
 # @flag extra
 # @param ~id Force the value of the source ID.
+# @param ~buffer How much to buffer in advance (in seconds).
 # @param ~device V4L2 device to use.
-def input.v4l2(~id="",~device="/dev/video0")
-  (input.ffmpeg(format="v4l2", device):source(audio=none))
+def input.v4l2(~id="", ~buffer=0.5, ~device="/dev/video0")
+  (input.ffmpeg(format="v4l2", buffer=buffer, device):source(audio=none))
 end
 
 # Test video source
