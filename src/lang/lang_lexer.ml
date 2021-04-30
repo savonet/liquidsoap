@@ -176,11 +176,6 @@ let rec token lexbuf =
     | "else" -> ELSE
     | "elsif" -> ELSIF
     | "->" -> YIELDS
-    | "server.wait" -> SERVER_WAIT
-    | "server.write" -> SERVER_WRITE
-    | "server.read" -> SERVER_READ
-    | "server.readchars" -> SERVER_READCHARS
-    | "server.readline" -> SERVER_READLINE
     | "%ogg" -> OGG
     | "%vorbis" -> VORBIS
     | "%opus" -> OPUS

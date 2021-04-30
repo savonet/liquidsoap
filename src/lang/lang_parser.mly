@@ -47,8 +47,6 @@ open Lang_parser_helper
 %token TRY CATCH IN DO
 %token IF THEN ELSE ELSIF
 %token OPEN
-%token SERVER_WAIT
-%token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON DOT
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
@@ -201,31 +199,6 @@ expr:
                                        let else_b = mk_fun ~pos:$loc($5) [] $5 in
                                        let op = mk ~pos:$loc($1) (Var "if") in
                                        mk ~pos:$loc (App (op, ["", cond; "else", else_b; "then", then_b])) } 
-  | SERVER_WAIT exprs THEN exprs END { let condition = $2 in
-                                       let op = mk ~pos:$loc (Var "server.wait") in
-                                       let after = mk_fun ~pos:$loc($4) [] $4 in
-                                       mk ~pos:$loc (App (op, ["", condition; "", after])) }
-  | SERVER_WRITE expr THEN exprs END { let data = $2 in
-                                       let after = mk_fun ~pos:$loc($4) [] $4 in
-                                       let op = mk ~pos:$loc (Var "server.write") in
-                                       mk ~pos:$loc (App (op, ["",after;"",data])) }
-  | SERVER_READ expr COLON VAR THEN exprs END {
-                                       let marker = $2 in
-                                       let arg = mk_ty ~pos:$loc($4) "string" in
-                                       let after = mk_fun ~pos:$loc($6) ["",$4,arg,None] $6 in
-                                       let op = mk ~pos:$loc (Var "server.read") in
-                                       mk ~pos:$loc (App (op, ["",after;"",marker])) }
-  | SERVER_READCHARS expr COLON VAR THEN exprs END {
-                                       let len = $2 in
-                                       let arg = mk_ty ~pos:$loc($4) "string" in
-                                       let after = mk_fun ~pos:$loc($6) ["",$4,arg,None] $6 in
-                                       let op = mk ~pos:$loc (Var "server.readchars") in
-                                       mk ~pos:$loc (App (op, ["",after;"",len])) }
-  | SERVER_READLINE VAR THEN exprs END {
-                                       let arg = mk_ty ~pos:$loc($4) "string" in
-                                       let after = mk_fun ~pos:$loc($4) ["",$2,arg,None] $4 in
-                                       let op = mk ~pos:$loc (Var "server.readline") in
-                                       mk ~pos:$loc (App (op, ["",after])) }
 
   | expr BIN0 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }
   | expr BIN1 expr                 { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var $2), ["",$1;"",$3])) }

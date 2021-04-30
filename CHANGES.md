@@ -178,6 +178,7 @@ Changed:
 - `file.watch` now returns unit with `unwatch` method.
 - Changed the interface for `bpm`: the bpm can now be retrieved using a method
   of the returned source instead of having a callback.
+- Removed `server.read*` and `server.write*`.
 
 Fixed:
 
