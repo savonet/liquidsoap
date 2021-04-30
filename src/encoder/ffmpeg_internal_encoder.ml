@@ -248,8 +248,11 @@ let mk_audio ~ffmpeg ~options output =
 let mk_video ~ffmpeg ~options output =
   let codec =
     match ffmpeg.Ffmpeg_format.video_codec with
-      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) ->
-          Avcodec.Video.find_encoder_by_name codec
+      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) -> (
+          try Avcodec.Video.find_encoder_by_name codec
+          with e ->
+            log#severe "Cannot find encoder: %s." codec;
+            raise e )
       | _ -> assert false
   in
   let pixel_aspect = { Avutil.num = 1; den = 1 } in
