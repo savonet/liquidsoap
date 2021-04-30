@@ -180,10 +180,22 @@ let mk_audio ~ffmpeg ~options output =
   in
 
   let stream =
-    Av.new_audio_stream ~sample_rate:target_samplerate
-      ~time_base:target_liq_audio_sample_time_base
-      ~channel_layout:target_channel_layout ~sample_format:target_sample_format
-      ~opts ~codec output
+    try
+      Av.new_audio_stream ~sample_rate:target_samplerate
+        ~time_base:target_liq_audio_sample_time_base
+        ~channel_layout:target_channel_layout
+        ~sample_format:target_sample_format ~opts ~codec output
+    with e ->
+      log#severe
+        "Cannot create audio stream (samplerate: %d, time_base: %s, channel \
+         layout: %s, sample format: %s, options: %s)."
+        target_samplerate
+        (Avutil.string_of_rational target_liq_audio_sample_time_base)
+        (Avutil.Channel_layout.get_description target_channel_layout)
+        (Option.value ~default:""
+           (Avutil.Sample_format.get_name target_sample_format))
+        (Avutil.string_of_opts opts);
+      raise e
   in
 
   let codec_attr () = Av.codec_attr stream in
