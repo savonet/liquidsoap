@@ -128,39 +128,3 @@ let () =
       let data = Lang.to_string (Lang.assoc "" 2 p) in
       Server.write ~after:(fun () -> Lang.to_string (after [])) data;
       Lang.string "")
-
-let () =
-  let read ~descr ~args ~mk_marker name =
-    let after_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
-    add_builtin name ~cat:Interaction ~descr
-      (("", after_t, None, Some "function to run after write") :: args)
-      Lang.string_t (fun p ->
-        let marker = mk_marker p in
-        let after = Lang.to_fun (Lang.assoc "" 1 p) in
-        Server.read
-          ~after:(fun ret -> Lang.to_string (after [("", Lang.string ret)]))
-          marker;
-        Lang.string "")
-  in
-  read
-    ~args:[("", Lang.string_t, None, Some "Read marker")]
-    ~mk_marker:(fun p -> Duppy.Io.Split (Lang.to_string (Lang.assoc "" 2 p)))
-    ~descr:
-      "Read a string from the client up-to a marker. Marker can be any string \
-       of regular expression. Should be used via the syntactic sugar: \
-       `server.read <marker> : <varname> then <after> end`"
-    "server.read";
-  read
-    ~args:[("", Lang.int_t, None, Some "Number of characters to read")]
-    ~mk_marker:(fun p -> Duppy.Io.Length (Lang.to_int (Lang.assoc "" 2 p)))
-    ~descr:
-      "Read a string of fixed length from the client up-to a marker. Should be \
-       used via the syntactic sugar: `server.readchars <len> : <varname> then \
-       <after> end`"
-    "server.readchars";
-  read ~args:[]
-    ~mk_marker:(fun _ -> Duppy.Io.Split "[\r\n]+")
-    ~descr:
-      "Read a line from the client. Should be used via the syntactic sugar: \
-       `server.readline <varname> then <after> end`"
-    "server.readline"
