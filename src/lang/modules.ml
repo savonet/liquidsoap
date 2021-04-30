@@ -52,5 +52,6 @@ let () =
       "video.add_text";
       "video.external";
       "video.frame";
+      "video.testsrc";
       "visu";
     ]

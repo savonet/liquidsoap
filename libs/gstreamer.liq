@@ -135,8 +135,6 @@ def output.youtube.live(~id="",
     audio_pipeline=audio_pipeline,pipeline=pipeline,source)
 end
 
-let video.testsrc = ()
-
 # Test audio-video source using GStreamer.
 # @category Source / Input
 # @flag extra
