@@ -90,8 +90,11 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
 let mk_audio ~ffmpeg ~options output =
   let codec =
     match ffmpeg.Ffmpeg_format.audio_codec with
-      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) ->
-          Avcodec.Audio.find_encoder_by_name codec
+      | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) -> (
+          try Avcodec.Audio.find_encoder_by_name codec
+          with e ->
+            log#severe "Cannot find encoder: %s." codec;
+            raise e )
       | _ -> assert false
   in
 
