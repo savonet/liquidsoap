@@ -162,11 +162,11 @@ let () =
           Some (Lang.bool true),
           Some "Log when the source's buffer is overfull." );
         ( "format",
-          Lang.string_t,
-          Some (Lang.string ""),
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
           Some
-            "Force a specific input format. Autodetected when passed an empty \
-             string." );
+            "Force a specific input format. Autodetected when passed a null \
+             argument" );
         ("", Lang.string_t, None, Some "URL to decode.");
       ] )
     ~return_t:k
@@ -180,17 +180,19 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      let format = Lang.to_string (List.assoc "format" p) in
+      let format = Lang.to_option (List.assoc "format" p) in
       let format =
-        if format = "" then None
-        else (
-          match Av.Format.find_input_format format with
-            | Some f -> Some f
-            | None ->
-                raise
-                  (Lang_errors.Invalid_value
-                     ( Lang.string format,
-                       "Could not find ffmpeg input format with that name" )) )
+        Option.map
+          (fun format ->
+            let format = Lang.to_string format in
+            match Av.Format.find_input_format format with
+              | Some f -> f
+              | None ->
+                  raise
+                    (Lang_errors.Invalid_value
+                       ( Lang.string format,
+                         "Could not find ffmpeg input format with that name" )))
+          format
       in
       let opts = Hashtbl.create 10 in
       parse_args ~t:`Int "int" p opts;
