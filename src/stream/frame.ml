@@ -194,6 +194,7 @@ let get_all_metadata b =
     (fun (x, _) (y, _) -> compare x y)
     (List.filter (fun (x, _) -> x <> -1) b.metadata)
 
+let get_all_raw_metadata b = b.metadata
 let set_all_metadata b l = b.metadata <- l
 
 let get_past_metadata b =
