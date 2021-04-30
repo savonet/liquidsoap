@@ -179,7 +179,7 @@ let decode_video_frame ~mode c =
     let current_format = ref None in
 
     let mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-        ~stream_idx =
+        ~stream_idx () =
       current_format :=
         Some (width, height, pixel_format, time_base, pixel_aspect, stream_idx);
       let scaler =
@@ -196,11 +196,11 @@ let decode_video_frame ~mode c =
     in
 
     let get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
-        ~stream_idx =
+        ~stream_idx () =
       match !converter with
         | None ->
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-              ~stream_idx
+              ~stream_idx ()
         | Some _
           when !current_format
                <> Some
@@ -212,7 +212,7 @@ let decode_video_frame ~mode c =
                       stream_idx ) ->
             log#info "Audio frame format change detected..";
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-              ~stream_idx
+              ~stream_idx ()
         | Some v -> v
     in
 
@@ -223,7 +223,7 @@ let decode_video_frame ~mode c =
       let pixel_aspect = Avutil.Video.frame_get_pixel_aspect frame in
       let scaler, fps_converter =
         get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
-          ~stream_idx
+          ~stream_idx ()
       in
       Ffmpeg_utils.Fps.convert fps_converter frame (fun data ->
           let img =

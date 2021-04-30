@@ -282,7 +282,8 @@ module Duration = struct
       packets = [];
     }
 
-  let push ({ get_ts; last_packet; packets; src; dst } as t) packet =
+  let push t packet =
+    let { get_ts; last_packet; packets; src; dst } = t in
     t.last_packet <- Some packet;
     let last_ts =
       Option.join (Option.map (fun packet -> get_ts packet) last_packet)
