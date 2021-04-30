@@ -93,7 +93,8 @@ let mk_audio ~ffmpeg ~options output =
       | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) -> (
           try Avcodec.Audio.find_encoder_by_name codec
           with e ->
-            log#severe "Cannot find encoder: %s." codec;
+            log#severe "Cannot find encoder %s: %s." codec
+              (Printexc.to_string e);
             raise e )
       | _ -> assert false
   in
@@ -188,13 +189,14 @@ let mk_audio ~ffmpeg ~options output =
     with e ->
       log#severe
         "Cannot create audio stream (samplerate: %d, time_base: %s, channel \
-         layout: %s, sample format: %s, options: %s)."
+         layout: %s, sample format: %s, options: %s): %s."
         target_samplerate
         (Avutil.string_of_rational target_liq_audio_sample_time_base)
         (Avutil.Channel_layout.get_description target_channel_layout)
         (Option.value ~default:""
            (Avutil.Sample_format.get_name target_sample_format))
-        (Avutil.string_of_opts opts);
+        (Avutil.string_of_opts opts)
+        (Printexc.to_string e);
       raise e
   in
 
@@ -227,9 +229,13 @@ let mk_audio ~ffmpeg ~options output =
   in
 
   let write_frame =
-    write_audio_frame ~time_base:(Av.get_time_base stream)
-      ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
-      ~sample_format:target_sample_format ~frame_size (Av.write_frame stream)
+    try
+      write_audio_frame ~time_base:(Av.get_time_base stream)
+        ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
+        ~sample_format:target_sample_format ~frame_size (Av.write_frame stream)
+    with e ->
+      log#severe "Error writing audio frame: %s." (Printexc.to_string e);
+      raise e
   in
 
   let encode frame start len =
@@ -251,7 +257,8 @@ let mk_video ~ffmpeg ~options output =
       | Some (`Raw (Some codec)) | Some (`Internal (Some codec)) -> (
           try Avcodec.Video.find_encoder_by_name codec
           with e ->
-            log#severe "Cannot find encoder: %s." codec;
+            log#severe "Cannot find encoder %s: %s." codec
+              (Printexc.to_string e);
             raise e )
       | _ -> assert false
   in
