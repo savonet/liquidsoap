@@ -162,6 +162,11 @@ module Fps = struct
     match converter with
       | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
+          ( match Avutil.frame_pts frame with
+            | Some _ -> ()
+            | None ->
+                Avutil.frame_set_pts frame
+                  (Avutil.frame_best_effort_timestamp frame) );
           input frame;
           let rec flush () =
             try
