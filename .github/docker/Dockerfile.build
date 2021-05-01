@@ -19,7 +19,7 @@ USER opam
 WORKDIR /tmp/liquidsoap-full
 
 # Remove after next base image rebuild
-RUN opam install -y ocurl 
+RUN opam install -y ocurl posix-time2 
 
 RUN eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout main && git pull && \
