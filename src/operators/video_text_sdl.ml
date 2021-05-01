@@ -29,9 +29,12 @@ let init () =
   Sdl_utils.check Tsdl_ttf.Ttf.init ()
 
 let get_font font size =
+  let font = if font = "" then Configure.default_font else font in
   try Sdl_utils.check (Ttf.open_font font) size
   with e ->
-    raise (Lang_errors.Invalid_value (Lang.string font, Printexc.to_string e))
+    raise
+      (Lang_errors.Invalid_value
+         (Lang.string font, Printexc.to_string e ^ "(font: " ^ font ^ ")"))
 
 let render_text ~font ~size text =
   let text = if text = "" then " " else text in
