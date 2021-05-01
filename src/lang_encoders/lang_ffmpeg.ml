@@ -58,44 +58,64 @@ let ffmpeg_gen params =
       other_opts = Hashtbl.create 0;
     }
   in
+  let to_int t =
+    match t.term with
+      | Ground (Int i) -> i
+      | Ground (String s) -> int_of_string s
+      | Ground (Float f) -> int_of_float f
+      | _ -> raise (generic_error t)
+  in
+  let to_string t =
+    match t.term with
+      | Ground (Int i) -> Printf.sprintf "%i" i
+      | Ground (String s) -> s
+      | Ground (Float f) -> Printf.sprintf "%f" f
+      | _ -> raise (generic_error t)
+  in
+  let to_float t =
+    match t.term with
+      | Ground (Int i) -> float i
+      | Ground (String s) -> float_of_string s
+      | Ground (Float f) -> f
+      | _ -> raise (generic_error t)
+  in
   let rec parse_args ~format ~mode f = function
     | [] -> f
     (* Audio options *)
-    | ("channels", { term = Ground (Int c); _ }) :: l when mode = `Audio ->
-        parse_args ~format ~mode { f with Ffmpeg_format.channels = c } l
-    | ("ac", { term = Ground (Int c); _ }) :: l when mode = `Audio ->
-        parse_args ~format ~mode { f with Ffmpeg_format.channels = c } l
-    | ("samplerate", { term = Ground (Int s); _ }) :: l when mode = `Audio ->
+    | ("channels", t) :: l when mode = `Audio ->
+        parse_args ~format ~mode { f with Ffmpeg_format.channels = to_int t } l
+    | ("ac", t) :: l when mode = `Audio ->
+        parse_args ~format ~mode { f with Ffmpeg_format.channels = to_int t } l
+    | ("samplerate", t) :: l when mode = `Audio ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.samplerate = Lazy.from_val s }
+          { f with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
           l
-    | ("ar", { term = Ground (Int s); _ }) :: l when mode = `Audio ->
+    | ("ar", t) :: l when mode = `Audio ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.samplerate = Lazy.from_val s }
+          { f with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
           l
     (* Video options *)
-    | ("framerate", { term = Ground (Int r); _ }) :: l when mode = `Video ->
+    | ("framerate", t) :: l when mode = `Video ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.framerate = Lazy.from_val r }
+          { f with Ffmpeg_format.framerate = Lazy.from_val (to_int t) }
           l
-    | ("r", { term = Ground (Int r); _ }) :: l when mode = `Video ->
+    | ("r", t) :: l when mode = `Video ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.framerate = Lazy.from_val r }
+          { f with Ffmpeg_format.framerate = Lazy.from_val (to_int t) }
           l
-    | ("width", { term = Ground (Int w); _ }) :: l when mode = `Video ->
+    | ("width", t) :: l when mode = `Video ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.width = Lazy.from_val w }
+          { f with Ffmpeg_format.width = Lazy.from_val (to_int t) }
           l
-    | ("height", { term = Ground (Int h); _ }) :: l when mode = `Video ->
+    | ("height", t) :: l when mode = `Video ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.height = Lazy.from_val h }
+          { f with Ffmpeg_format.height = Lazy.from_val (to_int t) }
           l
     | ("pixel_format", { term = Var "none"; _ }) :: l when mode = `Video ->
         parse_args ~format ~mode { f with Ffmpeg_format.pixel_format = None } l
-    | ("pixel_format", { term = Ground (String p); _ }) :: l when mode = `Video
-      ->
+    | ("pixel_format", t) :: l when mode = `Video ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.pixel_format = Some p }
+          { f with Ffmpeg_format.pixel_format = Some (to_string t) }
           l
     | ("hwaccel", { term = Var "auto"; _ }) :: l when mode = `Video ->
         parse_args ~format ~mode { f with Ffmpeg_format.hwaccel = `Auto } l
@@ -105,32 +125,40 @@ let ffmpeg_gen params =
         parse_args ~format ~mode
           { f with Ffmpeg_format.hwaccel_device = None }
           l
-    | ("hwaccel_device", { term = Ground (String d); _ }) :: l
-      when mode = `Video ->
+    | ("hwaccel_device", t) :: l when mode = `Video ->
         parse_args ~format ~mode
-          { f with Ffmpeg_format.hwaccel_device = Some d }
+          { f with Ffmpeg_format.hwaccel_device = Some (to_string t) }
           l
     (* Shared options *)
-    | ("codec", { term = Ground (String c); _ }) :: l ->
+    | ("codec", t) :: l ->
         let f =
           match (mode, format) with
             | `Audio, `Internal ->
-                { f with Ffmpeg_format.audio_codec = Some (`Internal (Some c)) }
+                {
+                  f with
+                  Ffmpeg_format.audio_codec =
+                    Some (`Internal (Some (to_string t)));
+                }
             | `Audio, `Raw ->
-                { f with Ffmpeg_format.audio_codec = Some (`Raw (Some c)) }
+                {
+                  f with
+                  Ffmpeg_format.audio_codec = Some (`Raw (Some (to_string t)));
+                }
             | `Video, `Internal ->
-                { f with Ffmpeg_format.video_codec = Some (`Internal (Some c)) }
+                {
+                  f with
+                  Ffmpeg_format.video_codec =
+                    Some (`Internal (Some (to_string t)));
+                }
             | `Video, `Raw ->
-                { f with Ffmpeg_format.video_codec = Some (`Raw (Some c)) }
+                {
+                  f with
+                  Ffmpeg_format.video_codec = Some (`Raw (Some (to_string t)));
+                }
         in
         parse_args ~format ~mode f l
-    | ("q", { term = Ground (Float q); _ }) :: l
-    | ("qscale", { term = Ground (Float q); _ }) :: l ->
-        set_global_quality q f;
-        parse_args ~format ~mode f l
-    | ("q", { term = Ground (Int q); _ }) :: l
-    | ("qscale", { term = Ground (Int q); _ }) :: l ->
-        set_global_quality (float q) f;
+    | ("q", t) :: l | ("qscale", t) :: l ->
+        set_global_quality (to_float t) f;
         parse_args ~format ~mode f l
     | (k, { term = Ground (String s); _ }) :: l ->
         ( match mode with
