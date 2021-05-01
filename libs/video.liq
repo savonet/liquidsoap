@@ -275,8 +275,8 @@ let video.add_text.best = video.add_text.sdl
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def replaces video.add_text(~id="",~color=16777215,~cycle=true,~font="",
-                   ~metadata="",~size=18,~speed=70,~x=10,~y=10,
+def replaces video.add_text(~id="",~color=0xffffff,~cycle=true,~font="",
+                   ~metadata="",~size=18,~speed=70,~x=getter(10),~y=getter(10),
                    d,s) =
   video.add_text.best(id=id,cycle=cycle,font=font,
      metadata=metadata,size=size,
