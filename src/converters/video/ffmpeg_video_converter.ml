@@ -152,8 +152,9 @@ let create () =
             assert (n = 0 || Array.length dst_d = 1);
             n * snd dst_d.(0)
         | `Pixel n ->
-            assert (n = 0 || Array.length dst_d = 1);
-            n * Avutil.Pixel_format.(bits (descriptor dst_f))
+            if n = 0 || Array.length dst_d = 1 then
+              n * Avutil.Pixel_format.(bits (descriptor dst_f))
+            else 0
     in
     Swscale.scale conv.conv src_d 0 src_h dst_d dst_off
   in
