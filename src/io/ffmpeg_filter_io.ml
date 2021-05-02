@@ -181,7 +181,7 @@ class audio_input ~bufferize kind =
             Option.map
               (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
                  ~dst:liq_frame_time_base)
-              (Avutil.frame_pts ffmpeg_frame)
+              (Ffmpeg_utils.best_pts ffmpeg_frame)
           in
           Generator.put_audio ?pts generator
             (Ffmpeg_raw_content.Audio.lift_data content)
@@ -276,7 +276,7 @@ class video_input ~bufferize ~fps kind =
             Option.map
               (Ffmpeg_utils.convert_time_base ~src:ffmpeg_frame_time_base
                  ~dst:liq_frame_time_base)
-              (Avutil.frame_pts ffmpeg_frame)
+              (Ffmpeg_utils.best_pts ffmpeg_frame)
           in
           let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
           let content =

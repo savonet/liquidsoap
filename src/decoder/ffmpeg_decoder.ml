@@ -265,16 +265,16 @@ let mk_decoder ?audio ?video ~target_position container =
           container
       with
         | `Audio_frame (i, frame) when i = audio_frame_idx ->
-            if check_pts (List.hd audio_frame) (Avutil.frame_pts frame) then
-              audio_frame_decoder ~buffer frame
+            if check_pts (List.hd audio_frame) (Ffmpeg_utils.best_pts frame)
+            then audio_frame_decoder ~buffer frame
             else f ()
         | `Audio_packet (i, packet) when i = audio_packet_idx ->
             if check_pts (List.hd audio_packet) (Avcodec.Packet.get_pts packet)
             then audio_packet_decoder ~buffer packet
             else f ()
         | `Video_frame (i, frame) when i = video_frame_idx ->
-            if check_pts (List.hd video_frame) (Avutil.frame_pts frame) then
-              video_frame_decoder ~buffer frame
+            if check_pts (List.hd video_frame) (Ffmpeg_utils.best_pts frame)
+            then video_frame_decoder ~buffer frame
             else f ()
         | `Video_packet (i, packet) when i = video_packet_idx ->
             if check_pts (List.hd video_packet) (Avcodec.Packet.get_pts packet)
@@ -357,7 +357,7 @@ let create_decoder ~ctype fname =
           Some (`Packet (idx, stream, decoder))
       | Some (`Frame (idx, stream, decoder)) ->
           let decoder ~buffer frame =
-            set_remaining stream (Avutil.frame_pts frame);
+            set_remaining stream (Ffmpeg_utils.best_pts frame);
             decoder ~buffer frame
           in
           Some (`Frame (idx, stream, decoder))
@@ -373,7 +373,7 @@ let create_decoder ~ctype fname =
           Some (`Packet (idx, stream, decoder))
       | Some (`Frame (idx, stream, decoder)) ->
           let decoder ~buffer frame =
-            set_remaining stream (Avutil.frame_pts frame);
+            set_remaining stream (Ffmpeg_utils.best_pts frame);
             decoder ~buffer frame
           in
           Some (`Frame (idx, stream, decoder))

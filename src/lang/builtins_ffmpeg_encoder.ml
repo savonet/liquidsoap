@@ -113,7 +113,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
           Lang_types.(effective_t <: kind_t);
           let duration_converter =
             Ffmpeg_utils.Duration.init ~src:target_time_base
-              ~get_ts:Avutil.frame_pts
+              ~get_ts:Ffmpeg_utils.best_pts
           in
           ( target_sample_format,
             None,
@@ -291,7 +291,8 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format c =
           Lang_types.(effective_t <: kind_t);
 
           let duration_converter =
-            Ffmpeg_utils.Duration.init ~src:time_base ~get_ts:Avutil.frame_pts
+            Ffmpeg_utils.Duration.init ~src:time_base
+              ~get_ts:Ffmpeg_utils.best_pts
           in
 
           function

@@ -26,7 +26,8 @@ module G = Decoder.G
 
 let mk_decoder ~stream_time_base ~mk_params ~lift_data ~put_data params =
   let duration_converter =
-    Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Avutil.frame_pts
+    Ffmpeg_utils.Duration.init ~src:stream_time_base
+      ~get_ts:Ffmpeg_utils.best_pts
   in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   fun ~buffer frame ->

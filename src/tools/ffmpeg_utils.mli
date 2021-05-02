@@ -39,6 +39,8 @@ val pack_image : Image.YUV420.t -> (Image.Data.t * int) array
 val unpack_image :
   width:int -> height:int -> (Image.Data.t * int) array -> Image.YUV420.t
 
+val best_pts : _ Avutil.frame -> int64 option
+
 val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
 

@@ -83,6 +83,11 @@ let () =
       Avutil.Log.set_level verbosity;
       Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s)))
 
+let best_pts frame =
+  match Avutil.frame_pts frame with
+    | Some pts -> Some pts
+    | None -> Avutil.frame_best_effort_timestamp frame
+
 module Fps = struct
   type filter = {
     time_base : Avutil.rational;
@@ -162,11 +167,7 @@ module Fps = struct
     match converter with
       | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
-          ( match Avutil.frame_pts frame with
-            | Some _ -> ()
-            | None ->
-                Avutil.frame_set_pts frame
-                  (Avutil.frame_best_effort_timestamp frame) );
+          Avutil.frame_set_pts frame (best_pts frame);
           input frame;
           let rec flush () =
             try
