@@ -24,7 +24,6 @@ def video.testsrc.ffmpeg(~id="", ~kind="testsrc", ~buffer=0.5, ~duration=null())
 end
 %endif
 
-
 %ifdef ffmpeg.filter.drawtext
 # Display a text.
 # @category Source / Video Processing
@@ -49,5 +48,20 @@ def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, tex
     ffmpeg.filter.video.output(graph, s)
   end
   mux_audio(audio=drop_video(s), ffmpeg.filter.create(mkfilter))
+end
+%endif
+
+let ffmpeg.filter.audio_video = ()
+
+%ifdef ffmpeg.filter.video.output
+# Return a source with audio and video from a filter's output.
+# @category Source / Output
+# @param id Force the value of the source ID.
+# @param buffer Duration of the pre-buffered data.
+# @param fps Output frame per seconds. Defaults to global value.
+def ffmpeg.filter.audio_video.output(~id="", ~buffer=0.1, ~fps=null(), graph, audio, video)
+  a = ffmpeg.filter.audio.output(id=id, buffer=buffer, graph, audio)
+  v = ffmpeg.filter.video.output(id=id, buffer=buffer, fps=fps, graph, video)
+  mux_audio(audio=a, v)
 end
 %endif
