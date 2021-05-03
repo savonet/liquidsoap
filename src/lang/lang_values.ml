@@ -1153,9 +1153,15 @@ and apply f l =
   let f pe =
     try f pe with
       | Runtime_error err ->
-          raise (Runtime_error { err with pos = Option.to_list pos @ err.pos })
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Runtime_error { err with pos = Option.to_list pos @ err.pos })
+            bt
       | Internal_error (poss, e) ->
-          raise (Internal_error (Option.to_list pos @ poss, e))
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Internal_error (Option.to_list pos @ poss, e))
+            bt
   in
   let pe, p =
     List.fold_left
