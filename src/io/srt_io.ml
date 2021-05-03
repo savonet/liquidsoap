@@ -474,21 +474,29 @@ module Poll = struct
           let apply fn s =
             try fn s
             with exn ->
-              log#important "Error while execiting asynchronous callback: %s"
-                (Printexc.to_string exn)
+              let bt = Printexc.get_backtrace () in
+              Utils.log_exception ~log ~bt
+                (Printf.sprintf
+                   "Error while executing asynchronous callback: %s"
+                   (Printexc.to_string exn))
           in
           List.iter
             (fun { Srt.Poll.fd; events } ->
               Srt.Poll.remove_usock t.p fd;
+              t.max_fds <- t.max_fds - 1;
               Srt.setsockflag fd Srt.sndsyn true;
               Srt.setsockflag fd Srt.rcvsyn true;
-              t.max_fds <- t.max_fds - 1;
               let event, fn = Hashtbl.find t.handlers fd in
               if List.mem event events then apply fn fd)
             events)
         ();
       0.
     with
+      (* We are seeing this error while tracking [max_fds]. This could be due to the
+         fact that the poll could remove closed sockets without us seeing it. *)
+      | Srt.Error (`Epollempty, _) ->
+          Tutils.mutexify t.m (fun () -> t.max_fds <- 0) ();
+          -1.
       | Empty -> -1.
       | Srt.Error (`Etimeout, _) -> 0.
       | exn ->
@@ -706,15 +714,22 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
                 (Printexc.to_string exn) );
           Srt.setsockflag client Srt.sndsyn true;
           Srt.setsockflag client Srt.rcvsyn true;
-          if self#should_stop then raise Done;
+          if self#should_stop then (
+            close_socket client;
+            raise Done );
           self#mutexify
             (fun () ->
               client_data <- Some client;
               !on_connect ())
             ()
         with exn ->
-          self#log#debug "Failed to connect: %s." (Printexc.to_string exn);
-          self#connect
+          self#log#debug "Failed to connect: %s" (Printexc.to_string exn);
+          self#mutexify
+            (fun () ->
+              ignore
+                (Option.map (fun socket -> close_socket socket) client_data);
+              client_data <- None)
+            ()
       in
       if not self#should_stop then
         self#mutexify
