@@ -139,6 +139,8 @@ let add_http_request ~stream_body ~descr ~request name =
           ans
         with e ->
           let bt = Printexc.get_backtrace () in
+          log#severe "Could not perform http request: %s."
+            (Printexc.to_string e);
           Lang.raise_as_runtime ~bt ~kind:"http" e
       in
       let protocol_version = Lang.string protocol_version in
