@@ -24,8 +24,8 @@ module Make (Generator : Generator.S) = struct
   (* Reads data from an audio buffer generator.
    * A thread safe generator should be used if it has to be fed concurrently.
    * Store [bufferize] seconds before declaring itself as ready. *)
-  class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
-    ~empty_on_abort gen =
+  class virtual source ?(seek = false) ?(replay_meta = false)
+    ?(clock_safe = false) ?(self_sync = false) ~bufferize ~empty_on_abort gen =
     let bufferize = Frame.main_of_seconds bufferize in
     object (self)
       (* We keep the generator in an instance variable so that derived
@@ -48,8 +48,6 @@ module Make (Generator : Generator.S) = struct
       val mutable cur_meta : Request.metadata option = None
 
       method virtual private log : Log.t
-
-      method self_sync = false
 
       method seek len =
         if (not seek) || len <= 0 then 0
@@ -84,6 +82,28 @@ module Make (Generator : Generator.S) = struct
           if r = 0 then self#log#info "Not ready for a new track: empty buffer.";
           r > 0 )
 
+      (* `self#is_ready` should make sure that the source is only called when
+         it has enough buffered data. Therefore, we do not need to check on it
+         here. *)
+      method self_sync = self_sync
+
+      method virtual private clock : Source.clock_variable
+
+      val mutable clock = None
+
+      method private get_clock =
+        match clock with
+          | Some c -> c
+          | None ->
+              let c = new Clock.clock "srt" in
+              clock <- Some c;
+              c
+
+      method private set_buffered_clock =
+        if clock_safe then
+          Clock.unify self#clock
+            (Clock.create_known (self#get_clock :> Clock.clock))
+
       method remaining =
         if should_fail then 0
         else if buffering && self#length <= bufferize then 0
@@ -115,6 +135,22 @@ module Make (Generator : Generator.S) = struct
           | None -> ()
           | Some m -> Frame.set_metadata frame pos m
 
+      val frame_filled = Condition.create ()
+
+      val frame_filled_m = Mutex.create ()
+
+      method private should_fill_buffer =
+        if self#self_sync && self#is_ready then
+          Tutils.mutexify frame_filled_m
+            (fun () -> Condition.wait frame_filled frame_filled_m)
+            ();
+        true
+
+      method private signal_frame_filled =
+        Tutils.mutexify frame_filled_m
+          (fun () -> Condition.signal frame_filled)
+          ()
+
       method private get_frame ab =
         Tutils.mutexify generator_lock
           (fun () ->
@@ -128,6 +164,7 @@ module Make (Generator : Generator.S) = struct
               Frame.add_break ab (Frame.position ab) )
             else (
               Generator.fill generator ab;
+              self#signal_frame_filled;
 
               (* Currently, we don't enter the buffering phase between tracks
                * even when there's not enough data in the buffer. This is mostly
