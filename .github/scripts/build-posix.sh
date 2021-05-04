@@ -4,6 +4,7 @@ set -e
 
 whoami
 ls -lA /home/opam
+export HOME=/home/opam
 
 eval $(opam config env)
 
