@@ -116,6 +116,12 @@ jobs:
         run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }}  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.build
       - name: Run tests
         run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.test
+      - name: Upload core dump
+        uses: actions/upload-artifact@v2
+        if: ${{ failure() }}
+        with:
+          name: crashes
+          path: /var/crash
       - name: Build debian package
         run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} --build-arg GITHUB_SHA --build-arg BRANCH=${{ needs.get_branch_name.outputs.branch }} -t savonet/liquidsoap-github-actions-deb:${{ steps.tag.outputs.name }}  -f .github/docker/Dockerfile.deb
         id: build_deb
