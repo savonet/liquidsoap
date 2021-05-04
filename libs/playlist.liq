@@ -74,7 +74,21 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=null(), ~conservat
   # A reference to know if the source has been stopped
   has_stopped = ref(false)
 
-  # The next function
+  # Delay the creation of next after the source because we need it to resolve
+  # requests at the right content type.
+  next_fun = ref(fun () -> [])
+
+  next = fun () -> begin f = !next_fun; f() end
+
+  # Instantiate the source
+  s =
+    if native then
+      stdlib_native.request.dynamic.list(id=id, next)
+    else
+      (request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next):source_methods)
+    end
+
+  # The (real) next function
   def rec next() =
     if loop and list.length(!playlist) == 0 then playlist := randomize(!playlist_orig) end
     file =
@@ -101,10 +115,11 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=null(), ~conservat
     else
       log.debug(label=id, "Next song will be \"#{file}\".")
       r = request.create(file)
-      if null.defined(check_next) then
+      if not request.resolve(content_type=s, r) then
+        log.info(label=id, "Could not resolve request: #{request.uri(r)}.")
+        next()
+      elsif null.defined(check_next) then
         check_next = null.get(check_next)
-        # Ensure that we have metadata before calling check next.
-        request.read_metadata(r)
         if check_next(r) then
           [r]
         else
@@ -119,13 +134,7 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=null(), ~conservat
     end
   end
 
-  # Instantiate the source
-  s =
-    if native then
-      stdlib_native.request.dynamic.list(id=id, next)
-    else
-      (request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next):source_methods)
-    end
+  next_fun := next
 
   # The reload function
   def reload(p) =
