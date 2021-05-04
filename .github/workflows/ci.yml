@@ -54,12 +54,23 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+    container:
+      image: savonet/liquidsoap-ci:debian_testing_amd64
+      options: --user opam
+    env:
+      HOME: /home/opam
+    steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          git fetch origin $GITHUB_SHA
+          git checkout $GITHUB_SHA
       - name: Build
-        run: docker build . --build-arg DOCKER_TAG=debian_testing_amd64  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:debian_testing_amd64 -f .github/docker/Dockerfile.minimal
+        run: |
+          cd /tmp/liquidsoap-full
+          cp PACKAGES.minimal PACKAGES
+          cd liquidsoap
+          ./.github/scripts/build-posix.sh
 
   build_posix_amd64:
     runs-on: ubuntu-latest
