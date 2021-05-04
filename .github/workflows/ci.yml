@@ -81,29 +81,29 @@ jobs:
         os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
-      options: --user opam --privileged --ulimit core=-1 --security-opt seccomp=unconfined
-    env:
-      HOME: /home/opam
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
-      - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          git fetch origin $GITHUB_SHA
-          git checkout $GITHUB_SHA
       - name: Enable core dump
         run: |
           ulimit -c unlimited
           echo '/tmp/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
+      - name: Install sudo
+        run: |
+          apt-get update
+          apt-get install -y sudo
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo opam git fetch origin $GITHUB_SHA
+          sudo opam git checkout $GITHUB_SHA
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          ls -lA .github/scripts
-          ./.github/scripts/build-posix.sh
+          sudo opam ./.github/scripts/build-posix.sh
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          ls -lA .github/scripts
-          ./.github/scripts/test-posix.sh
+          sudo opam ./.github/scripts/test-posix.sh
 
   build_posix_arm64:
     runs-on: self-hosted
