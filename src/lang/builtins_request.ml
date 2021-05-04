@@ -24,10 +24,7 @@ open Lang_builtins
 
 let () =
   Lang.add_builtin "request.create" ~category:(string_of_category Liq)
-    ~descr:
-      "Create a request. Creation may fail if there is no available RID, which \
-       cannot be detected currently: in that case one will obtain a request \
-       that will fail to be resolved."
+    ~descr:"Create a request from an URI."
     [
       ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
       ( "persistent",
