@@ -82,8 +82,8 @@ jobs:
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v "/home/runner/work/core":"/tmp/core"
-      env:
-        HOME: /home/opam
+    env:
+      HOME: /home/opam
     steps:
       - name: Enable core dump
         run: |
