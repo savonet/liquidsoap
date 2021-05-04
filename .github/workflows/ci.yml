@@ -90,6 +90,10 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           git fetch origin $GITHUB_SHA
           git checkout $GITHUB_SHA
+      - name: Enable core dump
+        run: |
+          ulimit -c unlimited
+          echo '/tmp/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
