@@ -1,7 +1,7 @@
 SUBDIRS=tools \
 	decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
-	visualization analyze synth harbor lang_encoders encoder_formats
+	visualization synth harbor lang_encoders encoder_formats
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
@@ -111,8 +111,6 @@ operators = \
 conversions = \
 	conversions/conversion.ml conversions/audio_to_stereo.ml conversions/drop.ml \
 	conversions/swap.ml conversions/mean.ml conversions/mux.ml
-
-analyze = analyze/analyze_rms.ml
 
 encoders = \
 	encoder/wav_encoder.ml \
@@ -262,8 +260,7 @@ liquidsoap_sources += \
 	$(sources) $(outputs) tools/producer_consumer.ml \
 	$(conversions) $(operators) \
 	$(encoders) $(decoders) $(ogg_demuxer) $(ogg_muxer) \
-	$(analyze) $(playlists) \
-	$(visualization) $(synth) $(io) \
+	$(playlists) $(visualization) $(synth) $(io) \
 	shebang.ml $(builtins) main.ml \
 	$(if $(W_WINSVC),runner_service.ml,runner.ml)
 
