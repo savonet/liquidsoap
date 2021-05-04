@@ -1,27 +1,13 @@
-ARG DOCKER_TAG
-FROM savonet/liquidsoap-ci:$DOCKER_TAG
+#!/bin/sh
 
-MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
-
-# This looks like a bug..
-ARG DOCKER_TAG
-ARG GITHUB_SHA
-
-USER root
+set -e
 
 # Remove after next base image rebuild
-RUN apt-get update && apt-get install -y libcurl4-gnutls-dev
+opam install -y ocurl posix-time2
 
-RUN apt-get remove -y gstreamer1.0-libav
+cd /tmp/liquidsoap-full
 
-USER opam
-
-WORKDIR /tmp/liquidsoap-full
-
-# Remove after next base image rebuild
-RUN opam install -y ocurl posix-time2 
-
-RUN eval $(opam config env) && git pull && make clean && make update && \
+eval $(opam config env) && git pull && make clean && make update && \
      cd liquidsoap && git reset --hard && git checkout main && git pull && \
      git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA && \
      ./.github/scripts/checkout-deps.sh && \
