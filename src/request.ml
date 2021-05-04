@@ -148,8 +148,9 @@ type t = {
   mutable decoder : (unit -> Decoder.file_decoder_ops) option;
 }
 
-let ctype x = x.ctype
-let initial_uri x = x.initial_uri
+let ctype r = r.ctype
+let initial_uri r = r.initial_uri
+let status r = r.status
 
 let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
   { string = home_unrelate s; temporary = temporary = Some true; metadata }

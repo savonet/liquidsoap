@@ -82,6 +82,7 @@ New:
 - Added `time.up`.
 - Added `video.cover`.
 - Added `video.still_frame`.
+- Added `request.status`.
 
 Changed:
 

@@ -58,6 +58,12 @@ val initial_uri : t -> string
     staticity, and in [src/sources/one_file.ml] for an example of use). *)
 val destroy : ?force:bool -> t -> unit
 
+(** Status of a request. *)
+type status = Idle | Resolving | Ready | Playing | Destroyed
+
+(** Current status of a request. *)
+val status : t -> status
+
 (** {1 General management} *)
 
 (** Called at exit, for cleaning temporary files and destroying all the

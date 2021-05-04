@@ -179,3 +179,19 @@ let () =
     [("", Lang.request_t, None, None)] Lang.int_t (fun p ->
       let r = Lang.to_request (List.assoc "" p) in
       Lang.int (Request.get_id r))
+
+let () =
+  add_builtin "request.status" ~cat:Liq
+    ~descr:
+      "Current status of a request. Can be idle, resolving, ready, playing or \
+       destroyed." [("", Lang.request_t, None, None)] Lang.string_t (fun p ->
+      let r = Lang.to_request (List.assoc "" p) in
+      let s =
+        match Request.status r with
+          | Request.Idle -> "idle"
+          | Request.Resolving -> "resolving"
+          | Request.Ready -> "ready"
+          | Request.Playing -> "playing"
+          | Request.Destroyed -> "destroyed"
+      in
+      Lang.string s)
