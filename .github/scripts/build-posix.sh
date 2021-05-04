@@ -16,8 +16,8 @@ make update
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
+make update
 ./bootstrap
-
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
             --with-camomile-data-dir=/usr/share/liquidsoap/camomile
