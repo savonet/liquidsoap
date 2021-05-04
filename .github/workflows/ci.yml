@@ -48,6 +48,19 @@ jobs:
           name: ${{ steps.build_tarball.outputs.basename }}
           path: tarball/${{ steps.build_tarball.outputs.basename }}
 
+  build_minimal:
+    runs-on: ubuntu-latest
+    needs: get_branch_name
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Build
+        run: docker build . --build-arg DOCKER_TAG=debian_testing_amd64  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:debian_testing_amd64 -f .github/docker/Dockerfile.minimal
+
   build_posix_amd64:
     runs-on: ubuntu-latest
     needs: get_branch_name
