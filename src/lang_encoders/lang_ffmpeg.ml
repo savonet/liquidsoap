@@ -25,6 +25,7 @@ open Lang_values.Ground
 open Lang_encoders
 
 let flag_qscale = ref 0
+let qp2lambda = ref 0
 
 (* Looks like this is how ffmpeg CLI does it.
    See: https://github.com/FFmpeg/FFmpeg/blob/4782124b90cf915ede2cebd871be82fc0267a135/fftools/ffmpeg_opt.c#L1567-L1570 *)
@@ -38,7 +39,7 @@ let set_global_quality q f =
   let flags = flags lor !flag_qscale in
   Hashtbl.replace f.Ffmpeg_format.other_opts "flags" (`Int flags);
   Hashtbl.replace f.Ffmpeg_format.other_opts "global_quality"
-    (`Float (float Avutil.qp2lambda *. q))
+    (`Float (float !qp2lambda *. q))
 
 let ffmpeg_gen params =
   let defaults =
