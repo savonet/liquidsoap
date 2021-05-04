@@ -81,7 +81,7 @@ jobs:
         os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
-      options: --user opam
+      options: --user opam --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     env:
       HOME: /home/opam
     steps:
