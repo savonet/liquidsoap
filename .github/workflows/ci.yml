@@ -72,8 +72,11 @@ jobs:
     steps:
       - name: Build
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap && git fetch && git checkout $GITHUB_SHA
+          cd /tmp/liquidsoap-full/liquidsoap && git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA
           /tmp/liquidsoap-full/liquidsoap/.github/scripts/build-posix.sh
+      - name: Run tests
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap && eval $(opam config env) && make test
 
   build_posix_arm64:
     runs-on: self-hosted

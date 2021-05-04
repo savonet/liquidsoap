@@ -8,8 +8,7 @@ opam install -y ocurl posix-time2
 cd /tmp/liquidsoap-full
 
 eval $(opam config env) && git pull && make clean && make update && \
-     cd liquidsoap && git reset --hard && git checkout main && git pull && \
-     git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA && \
+     cd liquidsoap && \
      ./.github/scripts/checkout-deps.sh && \
      cd .. && ./bootstrap && \
      export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
