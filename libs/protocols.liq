@@ -604,9 +604,9 @@ def synth_protocol(~rlog,~maxtime,text) =
     frequency = ref(440.)
     def set(p)
       let (k,v) = p
-      if k == "duration" then duration := float_of_string(v)
-      elsif k == "frequency" then frequency := float_of_string(v)
-      elsif k == "shape" then shape := v
+      if k == "d" or k == "duration" then duration := float_of_string(v)
+      elsif k == "f" or k == "freq" or k == "frequency" then frequency := float_of_string(v)
+      elsif k == "s" or k == "shape" then shape := v
       end
     end
     list.iter(set, args)
