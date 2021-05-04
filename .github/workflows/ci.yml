@@ -82,6 +82,8 @@ jobs:
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v "/home/runner/work/core":"/tmp/core"
+      env:
+        HOME: /home/opam
     steps:
       - name: Enable core dump
         run: |
@@ -95,22 +97,22 @@ jobs:
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam git fetch origin $GITHUB_SHA
-          sudo -u opam git checkout $GITHUB_SHA
+          sudo -u opam -E git fetch origin $GITHUB_SHA
+          sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam ./.github/scripts/build-posix.sh
+          sudo -u opam -E ./.github/scripts/build-posix.sh
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam ./.github/scripts/test-posix.sh
+          sudo -u opam -E ./.github/scripts/test-posix.sh
       - name: Upload core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: core-dump
-          path: tmp/core
+          path: /home/runner/work/core
 
   build_posix_arm64:
     runs-on: self-hosted
