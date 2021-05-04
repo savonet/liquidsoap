@@ -81,12 +81,13 @@ jobs:
         os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v "/home/runner/work/tmp":"/tmp"
     steps:
       - name: Enable core dump
         run: |
           ulimit -c unlimited
-          echo '/tmp/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
+          mkdir -p /tmp/core
+          echo '/tmp/core/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
       - name: Install sudo
         run: |
           apt-get update
@@ -104,6 +105,12 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam ./.github/scripts/test-posix.sh
+      - name: Upload core dumps
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: core-dump
+          path: tmp/core
 
   build_posix_arm64:
     runs-on: self-hosted
