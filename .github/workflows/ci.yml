@@ -72,6 +72,7 @@ jobs:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
       options: --user opam
     steps:
+      - run: whoami
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
