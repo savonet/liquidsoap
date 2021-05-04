@@ -61,14 +61,16 @@ jobs:
       - name: Build
         run: docker build . --build-arg DOCKER_TAG=debian_testing_amd64  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:debian_testing_amd64 -f .github/docker/Dockerfile.minimal
 
-  build_posix_amd64:
+  build_posix:
     runs-on: ubuntu-latest
     needs: get_branch_name
     strategy:
       fail-fast: false
       matrix:
         os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
-    container: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
+    container:
+      image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
+      options: --user opam
     steps:
       - name: Checkout code
         run: |

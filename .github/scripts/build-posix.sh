@@ -2,10 +2,6 @@
 
 set -e
 
-# Remove after next base image rebuild
-apt-get update && apt-get install -y libcurl4-gnutls-dev
-
-sudo -i -u opam /bin/sh << EOF
 eval $(opam config env)
 
 # Remove after next base image rebuild
@@ -25,4 +21,3 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 cd liquidsoap
 make
 make doc
-EOF
