@@ -94,16 +94,16 @@ jobs:
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo opam git fetch origin $GITHUB_SHA
-          sudo opam git checkout $GITHUB_SHA
+          sudo -u opam git fetch origin $GITHUB_SHA
+          sudo -u opam git checkout $GITHUB_SHA
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo opam ./.github/scripts/build-posix.sh
+          sudo -u opam ./.github/scripts/build-posix.sh
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo opam ./.github/scripts/test-posix.sh
+          sudo -u opam ./.github/scripts/test-posix.sh
 
   build_posix_arm64:
     runs-on: self-hosted
