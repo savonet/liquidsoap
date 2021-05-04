@@ -71,6 +71,8 @@ jobs:
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
       options: --user opam
+    env:
+      HOME: /home/opam
     steps:
       - name: Checkout code
         run: |
