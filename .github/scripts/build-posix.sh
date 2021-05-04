@@ -18,6 +18,8 @@ cd liquidsoap
 git fetch origin $GITHUB_SHA
 git checkout $GITHUB_SHA
 
+cd /tmp/liquidsoap-full
+
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 ./bootstrap
