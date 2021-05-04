@@ -20,20 +20,21 @@
 
  *****************************************************************************)
 
-(** The request is actually the file abstraction in liquidsoap, used
-  * whenever possible. *)
+(** A request is something from which we can produce a file. *)
 
+(** Metadatas of a request. *)
 type metadata = (string, string) Hashtbl.t
 
-(** An indicator is a resource location (URI),
-  * when meaningful, it can be declared as temporary if liquidsoap
-  * should destroy it after usage (this means deleting a local file). *)
+(** An indicator is a resource location (URI), when meaningful, it can be
+    declared as temporary if liquidsoap should destroy it after usage (this means
+    deleting a local file). *)
 type indicator
 
+(** Create an indicator. *)
 val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
 
-(** Type of requests,
-  * which are devices for obtaining a local file from an URI. *)
+(** Type of requests, which are devices for obtaining a local file from an
+    URI. *)
 type t
 
 (** Create a request. *)
@@ -51,47 +52,54 @@ val ctype : t -> Frame.content_type option
 val initial_uri : t -> string
 
 (** Destroying of a requests causes its file to be deleted if it's a temporary
-  * one, for example a downloaded file. If the metadata ["persistent"] is
-  * set to ["true"], destroying doesn't happen, unless [force] is set too.
-  * Persistent sources are useful for static URIs (see below for the definition
-  * of staticity,
-  * and in [src/sources/one_file.ml] for an example of use). *)
+    one, for example a downloaded file. If the metadata ["persistent"] is set to
+    ["true"], destroying doesn't happen, unless [force] is set too.  Persistent
+    sources are useful for static URIs (see below for the definition of
+    staticity, and in [src/sources/one_file.ml] for an example of use). *)
 val destroy : ?force:bool -> t -> unit
 
 (** {1 General management} *)
 
-(** Called at exit, for cleaning temporary files
-  * and destroying all the requests, even persistent ones. *)
+(** Called at exit, for cleaning temporary files and destroying all the
+    requests, even persistent ones. *)
 val clean : unit -> unit
 
-(** Every request has an ID, and you can find a request from its ID. *)
-
+(** Identifier of a request. *)
 val get_id : t -> int
+
+(** Find a request by its identifier. *)
 val from_id : int -> t option
 
-(** Get the list of requests that are currently
-  * alive/on air/being resolved. *)
-
+(** Get the list of all requests. *)
 val all_requests : unit -> int list
+
+(** Get the list of requests that are currently alive. *)
 val alive_requests : unit -> int list
+
+(** Get the list of requests that are currently on air. *)
 val on_air_requests : unit -> int list
+
+(** Get the list of requests that are currently being resolved. *)
 val resolving_requests : unit -> int list
 
 (** {1 Resolving}
-  *
-  * Resolving consists in many steps. Every step consist in rewriting the
-  * first URI into other URIs. The process ends when the first URI
-  * is a local filename. For example, the initial URI can be a database query,
-  * which is then turned into a list of remote locations, which are then
-  * tentatively downloaded...
-  * At each step [protocol.resolve first_uri timeout] is called,
-  * and the function is expected to push the new URIs in the request. *)
+  
+    Resolving consists in many steps. Every step consist in rewriting the
+    first URI into other URIs. The process ends when the first URI
+    is a local filename. For example, the initial URI can be a database query,
+    which is then turned into a list of remote locations, which are then
+    tentatively downloaded...
+    At each step [protocol.resolve first_uri timeout] is called,
+    and the function is expected to push the new URIs in the request. *)
 
+(** Something that resolves an URI. *)
 type resolver = string -> log:(string -> unit) -> float -> indicator list
+
+(** A protocol, which can resolve associated URIs. *)
 type protocol = { resolve : resolver; static : bool }
 
 (** A static request [r] is such that every resolving leads to the same file.
-  * Sometimes, it allows removing useless destroy/create/resolve. *)
+    Sometimes, it allows removing useless destroy/create/resolve. *)
 val is_static : string -> bool
 
 (** Resolving can fail because an URI is invalid, or doesn't refer to a valid
@@ -110,12 +118,12 @@ val read_metadata : t -> unit
 val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
 
 (** [is_ready r] if there's an available local filename. It can be true even if
-  * the resolving hasn't been run, if the initial URI was already a local
-  * filename. *)
+    the resolving hasn't been run, if the initial URI was already a local
+    filename. *)
 val is_ready : t -> bool
 
 (** Return a valid local filename if there is one, which means that the request
-  * is ready. *)
+    is ready. *)
 val get_filename : t -> string option
 
 (** {1 URI manipulation} For protocol plugins. *)
@@ -126,8 +134,8 @@ val pop_indicator : t -> unit
 (** Return the top URI, without removing it. *)
 val peek_indicator : t -> string
 
-(** In most of the case you don't peek or pop any URI, you just push the
-  * new URIs you computed from [first_uri]. *)
+(** In most of the case you don't peek or pop any URI, you just push the new
+    URIs you computed from [first_uri]. *)
 val push_indicators : t -> indicator list -> unit
 
 (** {1 Metadatas} *)
@@ -141,7 +149,7 @@ val get_root_metadata : t -> string -> string option
 val get_all_metadata : t -> metadata
 
 (** {1 Logging}
-  * Every request has a separate log in which its history can be written. *)
+    Every request has a separate log in which its history can be written. *)
 
 type log = (Unix.tm * string) Queue.t
 
@@ -150,8 +158,9 @@ val add_log : t -> string -> unit
 val get_log : t -> log
 
 (** {1 Media operations}
-  * These operations are only meaningful for media requests,
-  * and might crash otherwise. *)
+
+    These operations are only meaningful for media requests, and might crash
+    otherwise. *)
 
 (** Indicate that a request is currently being streamed. *)
 val on_air : t -> unit
@@ -160,21 +169,22 @@ val on_air : t -> unit
 val is_on_air : t -> bool
 
 (** [duration filename] computes the duration of audio data contained in
-  * [filename]. The computation may be expensive.
-  * @raise Not_found if no duration computation method is found. *)
+    [filename]. The computation may be expensive.
+    @raise Not_found if no duration computation method is found. *)
 val duration : string -> float
 
 (** Return a decoder if the file has been resolved, guaranteed to have
-  * available data to deliver. *)
+    available data to deliver. *)
 val get_decoder : t -> Decoder.file_decoder_ops option
 
-(** {1 Plugs}
-  * Respectively for computing duration,
-  * resolving metadata,
-  * and resolving URIs.
-  * Metadata filling isn't included in Decoder because we want it to
-  * occur immediately after request resolution. *)
+(** {1 Plugs} *)
 
+(** Functions for computing duration. *)
 val dresolvers : (string -> float) Plug.plug
+
+(** Functions for resolving metadata. Metadata filling isn't included in Decoder
+    because we want it to occur immediately after request resolution. *)
 val mresolvers : (string -> (string * string) list) Plug.plug
+
+(** Functions for resolving URIs. *)
 val protocols : protocol Plug.plug
