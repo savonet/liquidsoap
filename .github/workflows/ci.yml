@@ -70,13 +70,19 @@ jobs:
         os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
     container: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
     steps:
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          git fetch origin $GITHUB_SHA
+          git checkout $GITHUB_SHA
       - name: Build
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap && git fetch origin $GITHUB_SHA && git checkout $GITHUB_SHA
-          /tmp/liquidsoap-full/liquidsoap/.github/scripts/build-posix.sh
+          cd /tmp/liquidsoap-full/liquidsoap
+          ./.github/scripts/build-posix.sh
       - name: Run tests
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap && eval $(opam config env) && make test
+          cd /tmp/liquidsoap-full/liquidsoap
+          ./.github/scripts/test-posix.sh
 
   build_posix_arm64:
     runs-on: self-hosted
