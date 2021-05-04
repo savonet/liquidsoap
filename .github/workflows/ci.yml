@@ -53,7 +53,6 @@ jobs:
     needs: get_branch_name
     strategy:
       fail-fast: false
-    steps:
     container:
       image: savonet/liquidsoap-ci:debian_testing_amd64
       options: --user opam
@@ -93,10 +92,12 @@ jobs:
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          ls -lA .github/scripts
           ./.github/scripts/build-posix.sh
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          ls -lA .github/scripts
           ./.github/scripts/test-posix.sh
 
   build_posix_arm64:
