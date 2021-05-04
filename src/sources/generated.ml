@@ -146,7 +146,7 @@ module Make (Generator : Generator.S) = struct
             ();
         true
 
-      method private signal_frame_filled =
+      method private signal_get_frame =
         Tutils.mutexify frame_filled_m
           (fun () -> Condition.signal frame_filled)
           ()
@@ -157,6 +157,7 @@ module Make (Generator : Generator.S) = struct
             let was_buffering = buffering in
             let pos = Frame.position ab in
             buffering <- false;
+            self#signal_get_frame;
             if should_fail then (
               self#log#info "Performing skip.";
               should_fail <- false;
@@ -164,7 +165,6 @@ module Make (Generator : Generator.S) = struct
               Frame.add_break ab (Frame.position ab) )
             else (
               Generator.fill generator ab;
-              self#signal_frame_filled;
 
               (* Currently, we don't enter the buffering phase between tracks
                * even when there's not enough data in the buffer. This is mostly
