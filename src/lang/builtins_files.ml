@@ -335,6 +335,10 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Whether to look recursively in subdirectories." );
+      ( "pattern",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Pattern that the filenames should match (e.g. `\"*.mp3\"`)." );
       ("", Lang.string_t, None, Some "Directory to look in.");
     ]
     (Lang.list_t Lang.string_t)
@@ -342,9 +346,24 @@ let () =
     (fun p ->
       let absolute = Lang.to_bool (List.assoc "absolute" p) in
       let recursive = Lang.to_bool (List.assoc "recursive" p) in
+      let pattern =
+        List.assoc "pattern" p |> Lang.to_option |> Option.map Lang.to_string
+      in
+      let pattern =
+        pattern
+        |> Option.map (fun s -> Pcre.replace ~pat:"\\." ~templ:"\\." s)
+        |> Option.map (fun s -> Pcre.replace ~pat:"\\*" ~templ:".*" s)
+        |> Option.map (fun s -> "^" ^ s ^ "$")
+      in
+      let pattern = Option.value ~default:"" pattern in
+      Printf.printf "Pattern: %s\n%!" pattern;
+      let rex = Pcre.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Utils.home_unrelate dir in
-      let readdir dir = Array.to_list (Sys.readdir dir) in
+      let readdir dir =
+        Array.to_list (Sys.readdir dir)
+        |> List.filter (fun s -> Pcre.pmatch ~rex s)
+      in
       let files =
         if not recursive then readdir dir
         else (
