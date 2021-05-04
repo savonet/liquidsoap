@@ -1,5 +1,5 @@
 SUBDIRS=tools \
-	decoder playlists encoder protocols plugins stream lang \
+	decoder playlists encoder protocols stream lang \
 	ogg_formats converters operators sources conversions outputs io \
 	visualization synth harbor lang_encoders encoder_formats
 
@@ -284,9 +284,9 @@ install-local: all-auto
 	$(INSTALL_PROGRAM) liquidsoap$(EXEEXT) $(bindir)
 ifneq ($(BYTE),)
   ifneq ($(NO_CUSTOM),)
-	$(OCAMLFIND) install liquidsoap META dllliquidsoap.so $(wildcard plugins/dll*.so)
+	$(OCAMLFIND) install liquidsoap META dllliquidsoap.so
   else
-	$(OCAMLFIND) install liquidsoap META $(wildcard plugins/dll*.so)
+	$(OCAMLFIND) install liquidsoap META
   endif
 endif
 
