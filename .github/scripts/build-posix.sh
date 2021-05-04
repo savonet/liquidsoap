@@ -14,9 +14,12 @@ make clean
 make update
 ./liquidsoap/.github/scripts/checkout-deps.sh
 
+cd liquidsoap
+git fetch origin $GITHUB_SHA
+git checkout $GITHUB_SHA
+
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
-make update
 ./bootstrap
 ./configure --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man \
             --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var \
