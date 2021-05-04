@@ -203,10 +203,10 @@ module LiqConf = struct
       begin
         match (get_d_string t, get_string t) with
         | None, None -> "" (* Printf.sprintf "# set %-30s\n" prefix *)
-        | Some p, None -> Printf.sprintf "# set(%S,%s)\n" prefix p
+        | Some p, None -> Printf.sprintf "# set(%S, %s)\n" prefix p
         | Some p, Some p' when p' = p ->
-            Printf.sprintf "# set(%S,%s)\n" prefix p
-        | _, Some p -> Printf.sprintf "set(%S,%s)\n" prefix p
+            Printf.sprintf "# set(%S, %s)\n" prefix p
+        | _, Some p -> Printf.sprintf "set(%S, %s)\n" prefix p
       end
       ^ String.concat "" subs
     in
@@ -240,8 +240,8 @@ module LiqConf = struct
             in
             let set =
               if md then
-                Printf.sprintf "```liquidsoap\nset(%S,%s)\n```\n" prefix p
-              else Printf.sprintf "\n    set(%S,%s)\n\n" prefix p
+                Printf.sprintf "```liquidsoap\nset(%S, %s)\n```\n" prefix p
+              else Printf.sprintf "\n    set(%S, %s)\n\n" prefix p
             in
             title level t#descr ^ comments ^ set ^ "\n"
             (*
