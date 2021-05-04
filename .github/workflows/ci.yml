@@ -67,7 +67,7 @@ jobs:
       - name: Build
         run: |
           cd /tmp/liquidsoap-full
-          git fetch && git checkout master
+          git pull
           cp PACKAGES.minimal PACKAGES
           cd liquidsoap
           ./.github/scripts/build-posix.sh

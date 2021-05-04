@@ -4,8 +4,8 @@ set -e
 
 eval $(opam config env)
 
-# Remove after next base image rebuild
-opam install -y ocurl posix-time2
+# Remove after liquidsoap 2.0 release
+opam install -y posix-time2
 
 cd /tmp/liquidsoap-full
 
