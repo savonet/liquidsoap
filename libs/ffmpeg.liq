@@ -51,9 +51,9 @@ def video.add_text.ffmpeg(~color=0xffffff, ~font="", ~size=18, ~x=10, ~y=10, tex
 end
 %endif
 
+%ifdef ffmpeg.filter.video.output
 let ffmpeg.filter.audio_video = ()
 
-%ifdef ffmpeg.filter.video.output
 # Return a source with audio and video from a filter's output.
 # @category Source / Output
 # @param id Force the value of the source ID.
