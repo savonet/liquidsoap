@@ -72,13 +72,19 @@ jobs:
           cd liquidsoap
           ./.github/scripts/build-posix.sh
 
-  build_posix_amd64:
-    runs-on: ubuntu-latest
+  build_posix:
+    runs-on: ${{ matrix.runs-on }}
     needs: get_branch_name
     strategy:
       fail-fast: false
       matrix:
         os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runs-on: ubuntu-latest
+          - platform: arm64
+            runs-on: self-hosted
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_amd64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v "/home/runner/work/core":"/tmp/core"
@@ -108,48 +114,12 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh
-      - name: Upload core dumps
+      - name: Export potential core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: core-dump
           path: /home/runner/work/core
-
-  build_posix_arm64:
-    runs-on: self-hosted
-    needs: get_branch_name
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Compute docker tag
-        run: echo "##[set-output name=name;]${{ matrix.os }}_arm64"
-        id: tag
-      - name: Build
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }}  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.build
-      - name: Run tests
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.test
-      - name: Upload core dump
-        uses: actions/upload-artifact@v2
-        if: ${{ failure() }}
-        with:
-          name: crashes
-          path: /var/crash
-      - name: Build debian package
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} --build-arg GITHUB_SHA --build-arg BRANCH=${{ needs.get_branch_name.outputs.branch }} -t savonet/liquidsoap-github-actions-deb:${{ steps.tag.outputs.name }}  -f .github/docker/Dockerfile.deb
-        id: build_deb
-      - name: Fetch debian package
-        run: .github/scripts/get-deb.sh ${{ steps.tag.outputs.name }}
-      - name: Upload debian packages artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ steps.build_deb.outputs.basename }}
-          path: debian/pkgs/${{ steps.tag.outputs.name }}/${{ steps.build_deb.outputs.basename }}.deb
 
   build_win32:
     runs-on: ubuntu-latest
@@ -174,7 +144,7 @@ jobs:
 
   update_release:
     runs-on: ubuntu-latest
-    needs: [get_branch_name, build_posix_amd64, build_posix_arm64, build_win32]
+    needs: [get_branch_name, build_posix, build_win32]
     if: ${{ needs.get_branch_name.outputs.is_release }}
     steps:
       - name: Checkout code
@@ -206,9 +176,17 @@ jobs:
           gzip: false
           allow_override: true
 
-  build_docker_amd64:
-    runs-on: ubuntu-latest
-    needs: [get_branch_name, build_posix_amd64]
+  build_docker:
+    runs-on: ${{ matrix.runs-on }}
+    needs: [get_branch_name, build_posix]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runs-on: ubuntu-latest
+          - platform: arm64
+            runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -220,33 +198,14 @@ jobs:
         with:
           path: artifacts
       - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep amd64 | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep ${{ matrix.platform }} | grep deb)"
         id: debian_package
       - name: Build docker image
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} amd64
 
-  build_docker_arm64:
-    runs-on: self-hosted
-    needs: [get_branch_name, build_posix_arm64]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-      - name: Download all artifact
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-      - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep arm64 | grep deb)"
-        id: debian_package
-      - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} arm64
-
-  build_docker:
+  build_docker_release:
     runs-on: ubuntu-latest
-    needs: [get_branch_name, build_docker_amd64, build_docker_arm64]
+    needs: [get_branch_name, build_docker]
     if: ${{ needs.get_branch_name.outputs.docker_release }}
     steps:
       - name: Checkout code
