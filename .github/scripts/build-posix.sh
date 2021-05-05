@@ -9,19 +9,19 @@ opam install -y posix-time2
 
 cd /tmp/liquidsoap-full
 
-echo "### Preparing bindings\n"
+echo "\n### Preparing bindings\n"
 
 git pull
 make clean
 make update
 
-echo "### Setting up specific dependencies\n"
+echo "\n### Setting up specific dependencies\n"
 
-./liquidsoap/.github/scripts/checkout-deps.sh
+cd liquidsoap
+./.github/scripts/checkout-deps.sh
 
 echo "### Checking out CI commit\n"
 
-cd liquidsoap
 git fetch origin $GITHUB_SHA
 git checkout $GITHUB_SHA
 
