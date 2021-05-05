@@ -110,6 +110,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-posix.sh
+          cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
