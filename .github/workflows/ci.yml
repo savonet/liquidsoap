@@ -44,16 +44,16 @@ jobs:
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -R git fetch origin $GITHUB_SHA
-          sudo -u opam -R git checkout $GITHUB_SHA
+          sudo -u opam -E git fetch origin $GITHUB_SHA
+          sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build tarball
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -R ./.github/scripts/build-tarball.sh
+          sudo -u opam -E ./.github/scripts/build-tarball.sh
       - name: Get filename
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -R ./.github/scripts/tarball-filename.sh
+          sudo -u opam -E ./.github/scripts/tarball-filename.sh
         id: tarball_filename
       - name: Copy tarball
         run: |
