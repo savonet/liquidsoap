@@ -29,4 +29,3 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 cd liquidsoap
 make
-make doc
