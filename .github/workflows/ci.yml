@@ -49,7 +49,7 @@ jobs:
       - name: Get filename
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/branch-name.sh
+          ./.github/scripts/tarball-filename.sh
         id: tarball_filename
       - name: Copy tarball
         run: |
