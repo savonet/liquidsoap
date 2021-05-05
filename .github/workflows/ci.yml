@@ -117,6 +117,9 @@ jobs:
         run: |
           apt-get update
           apt-get install -y sudo
+      - name: Prepare system
+        run: |
+          apt-get remove gstreamer1.0-libav
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
