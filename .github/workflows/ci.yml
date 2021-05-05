@@ -42,6 +42,10 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           git fetch origin $GITHUB_SHA
           git checkout $GITHUB_SHA
+      - name: Install sudo
+        run: |
+          apt-get update
+          apt-get install -y sudo
       - name: Build tarball
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
