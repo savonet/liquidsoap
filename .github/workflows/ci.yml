@@ -26,33 +26,45 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Extract branch name
-        shell: bash
         run: .github/scripts/branch-name.sh
         id: branch_name
 
   export_tarball:
     runs-on: ubuntu-latest
+    container:
+      image: savonet/liquidsoap-ci:debian_testing_amd64
+      options: --user opam -v "/home/runner/work/tarball":"/tmp/tarball" 
+    env:
+      HOME: /home/opam
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          git fetch origin $GITHUB_SHA
+          git checkout $GITHUB_SHA
       - name: Build tarball
-        id: build_tarball
-        run: docker build . --build-arg DOCKER_TAG=debian_stable_amd64  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:tarball -f .github/docker/Dockerfile.tarball
-      - name: Fetch tarball
-        run: .github/scripts/get-tarball.sh ${{ steps.build_tarball.outputs.filename }}
-      - name: Upload tarball artifact
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/build-tarball.sh
+      - name: Get filename
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E.github/scripts/branch-name.sh
+        id: tarball_filename
+      - name: Copy tarball
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          cp ${{ steps.tarball_filename.outputs.filename }} /tmp/tarball
+      - name: Export tarball
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ steps.build_tarball.outputs.basename }}
-          path: tarball/${{ steps.build_tarball.outputs.basename }}
+          name: ${{ steps.tarball_filename.outputs.filename }}
+          path: /home/runner/work/tarball/${{ steps.tarball_filename.outputs.filename }}
+
 
   build_minimal:
     runs-on: ubuntu-latest
     needs: get_branch_name
-    strategy:
-      fail-fast: false
     container:
       image: savonet/liquidsoap-ci:debian_testing_amd64
       options: --user opam
