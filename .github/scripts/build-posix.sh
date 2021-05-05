@@ -23,7 +23,6 @@ git checkout $GITHUB_SHA
 
 echo "\n### Setting up specific dependencies\n"
 
-cd liquidsoap
 ./.github/scripts/checkout-deps.sh
 
 cd /tmp/liquidsoap-full
