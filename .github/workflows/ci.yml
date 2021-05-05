@@ -135,7 +135,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: core-dump
+          name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
           path: /home/runner/work/core
 
   build_win32:
