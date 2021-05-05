@@ -294,7 +294,7 @@ val metadata : Frame.metadata -> value
 val error : ?pos:pos list -> ?message:string -> string -> 'a
 
 (** Re-raise an error as a runtime error. *)
-val raise_as_runtime : bt:string -> kind:string -> exn -> 'a
+val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
 
 (** {2 Main script evaluation} *)
 

@@ -514,11 +514,12 @@ let error = Runtime_error.error
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
-    | Lang_values.Runtime_error _ -> raise exn
+    | Lang_values.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | exn ->
         error
           ~message:
-            (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn) bt)
+            (Printf.sprintf "%s\nBacktrace:\n%s" (Printexc.to_string exn)
+               (Printexc.raw_backtrace_to_string bt))
           kind
 
 (** {1 Parsing} *)

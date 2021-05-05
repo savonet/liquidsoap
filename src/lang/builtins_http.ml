@@ -138,7 +138,7 @@ let add_http_request ~stream_body ~descr ~request name =
           on_body_data None;
           ans
         with e ->
-          let bt = Printexc.get_backtrace () in
+          let bt = Printexc.get_raw_backtrace () in
           log#severe "Could not perform http request: %s."
             (Printexc.to_string e);
           Lang.raise_as_runtime ~bt ~kind:"http" e
