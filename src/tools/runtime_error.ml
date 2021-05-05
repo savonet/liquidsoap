@@ -27,5 +27,8 @@ type runtime_error = { kind : string; msg : string option; pos : pos list }
 
 exception Runtime_error of runtime_error
 
-let error ?(pos = []) ?message kind =
-  raise (Runtime_error { kind; msg = message; pos })
+let error ?bt ?(pos = []) ?message kind =
+  let e = Runtime_error { kind; msg = message; pos } in
+  match bt with
+    | None -> raise e
+    | Some bt -> Printexc.raise_with_backtrace e bt

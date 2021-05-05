@@ -291,7 +291,8 @@ val val_cst_fun : (string * value option) list -> value -> value
 val metadata : Frame.metadata -> value
 
 (** Raise an error. *)
-val error : ?pos:pos list -> ?message:string -> string -> 'a
+val error :
+  ?bt:Printexc.raw_backtrace -> ?pos:pos list -> ?message:string -> string -> 'a
 
 (** Re-raise an error as a runtime error. *)
 val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
