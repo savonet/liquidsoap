@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: savonet/liquidsoap-ci:debian_testing_amd64
-      options: --user root -v ${{ runner.temp }}/tarball":"/tmp/tarball" 
+      options: --user root -v ${{ runner.temp }}/tarball:/tmp/tarball
     env:
       HOME: /home/opam
     steps:
