@@ -37,10 +37,6 @@ jobs:
     env:
       HOME: /home/opam
     steps:
-      - name: Install sudo
-        run: |
-          apt-get update
-          apt-get install -y sudo
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -85,7 +81,7 @@ jobs:
           cd /tmp/liquidsoap-full
           git pull
           cp PACKAGES.minimal PACKAGES
-          opam remove $(EXT_PACKAGES)
+          opam remove $EXT_PACKAGES
           cd liquidsoap
           ./.github/scripts/build-posix.sh
 
@@ -104,7 +100,7 @@ jobs:
             runs-on: self-hosted
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v "/home/runner/work/core":"/tmp/core"
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v "/home/runner/work/core":"/tmp/core" -v "/home/runner/work/debian":"/tmp/debian"
     env:
       HOME: /home/opam
     steps:
@@ -114,13 +110,6 @@ jobs:
           mkdir -p /tmp/core
           chown -R opam /tmp/core
           echo '/tmp/core/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
-      - name: Install sudo
-        run: |
-          apt-get update
-          apt-get install -y sudo
-      - name: Prepare system
-        run: |
-          apt-get remove -y gstreamer1.0-libav
       - name: Checkout code
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -139,12 +128,21 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh
+      - name: Build debian package
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}_${{ matrix.platform }}
       - name: Export potential core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
           path: /home/runner/work/core
+      - name: Upload debian packages artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.build_deb.outputs.basename }}
+          path: /home/runner/work/debian/${{ matrix.os }}_${{ matrix.platform }}/${{ steps.build_deb.outputs.basename }}.deb
 
   build_win32:
     runs-on: ubuntu-latest
@@ -223,7 +221,9 @@ jobs:
         with:
           path: artifacts
       - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep ${{ matrix.platform }} | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep $PLATFORM | grep deb)"
+        env:
+          PLATFORM: ${{ matrix.platform }}
         id: debian_package
       - name: Build docker image
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} amd64
