@@ -26,6 +26,8 @@ LIQ_PACKAGE="liquidsoap-${TAG}"
 
 echo "Building ${LIQ_PACKAGE}.."
 
+cp -rf .github/debian .
+
 rm -rf debian/changelog
 
 cp -f debian/control.in debian/control

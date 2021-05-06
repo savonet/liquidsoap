@@ -4,9 +4,6 @@ set -e
 
 eval $(opam config env)
 
-# Remove after liquidsoap 2.0 release
-opam install -y posix-time2
-
 cd /tmp/liquidsoap-full
 
 echo "\n### Preparing bindings\n"

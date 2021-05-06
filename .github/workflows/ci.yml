@@ -84,6 +84,10 @@ jobs:
           opam remove $EXT_PACKAGES
           cd liquidsoap
           ./.github/scripts/build-posix.sh
+      - name: Build doc
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/build-doc.sh
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
@@ -118,6 +122,8 @@ jobs:
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          # Remove after liquidsoap 2.0 release
+          sudo -u opam -E opam install -y posix-time2
           sudo -u opam -E ./.github/scripts/build-posix.sh
           cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
       - name: Build doc
