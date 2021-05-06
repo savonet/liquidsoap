@@ -140,7 +140,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           chown -R opam /tmp/debian
-          sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}_${{ matrix.platform }}
+          sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}
       - name: Export potential core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
