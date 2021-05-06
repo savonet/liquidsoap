@@ -60,6 +60,7 @@ jobs:
         with:
           name: ${{ steps.tarball_filename.outputs.filename }}
           path: /home/runner/work/tarball/${{ steps.tarball_filename.outputs.filename }}
+          if-no-files-found: error
 
 
   build_minimal:
@@ -151,6 +152,7 @@ jobs:
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: /home/runner/work/debian/${{ steps.build_deb.outputs.basename }}.deb
+          if-no-files-found: error
 
   build_win32:
     runs-on: ubuntu-latest
