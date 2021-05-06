@@ -137,7 +137,7 @@ jobs:
       - name: Build debian package
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          chown -R opam /tmp/debian/pkgs
+          chown -R opam /tmp/debian
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}_${{ matrix.platform }}
       - name: Export potential core dumps
         if: ${{ failure() }}
@@ -149,7 +149,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
-          path: /home/runner/work/debian/${{ matrix.os }}_${{ matrix.platform }}/${{ steps.build_deb.outputs.basename }}.deb
+          path: /home/runner/work/debian/${{ steps.build_deb.outputs.basename }}.deb
 
   build_win32:
     runs-on: ubuntu-latest

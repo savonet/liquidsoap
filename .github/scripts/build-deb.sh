@@ -38,8 +38,6 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-mkdir -p "/tmp/debian/pkgs/${DOCKER_TAG}"
-
-cp /tmp/liquidsoap-full/*.deb "/tmp/debian/pkgs/${DOCKER_TAG}"
+cp /tmp/liquidsoap-full/*.deb "/tmp/debian"
 
 echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-1_$ARCH"
