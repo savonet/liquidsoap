@@ -231,7 +231,7 @@ jobs:
         with:
           path: artifacts
       - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep $PLATFORM | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep $PLATFORM | grep -v dbgsym | grep deb)"
         env:
           PLATFORM: ${{ matrix.platform }}
         id: debian_package
