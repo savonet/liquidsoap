@@ -151,7 +151,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
-          path: /home/runner/work/debian/${{ steps.build_deb.outputs.basename }}.deb
+          path: /home/runner/work/debian
           if-no-files-found: error
 
   build_win32:
