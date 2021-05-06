@@ -87,7 +87,7 @@ jobs:
       - name: Build doc
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-doc.sh
+          ./.github/scripts/build-doc.sh
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
