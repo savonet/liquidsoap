@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: savonet/liquidsoap-ci:debian_testing_amd64
-      options: --user root -v ${{ runner.temp }}/tarball:/tmp/tarball
+      options: --user root -v ${{ github.workspace }}/tarball:/tmp/tarball
     env:
       HOME: /home/opam
     steps:
@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.tarball_filename.outputs.filename }}
-          path: ${{ runner.temp }}/tarball/${{ steps.tarball_filename.outputs.filename }}
+          path: ${{ github.workspace }}/tarball/${{ steps.tarball_filename.outputs.filename }}
           if-no-files-found: error
 
 
@@ -105,7 +105,7 @@ jobs:
             runs-on: self-hosted
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ runner.temp }}/core:/tmp/core -v ${{ runner.temp }}/debian:/tmp/debian
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian
     env:
       HOME: /home/opam
     steps:
@@ -146,12 +146,12 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
-          path: ${{ runner.temp }}/core
+          path: ${{ github.workspace }}/core
       - name: Upload debian packages artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
-          path: ${{ runner.temp }}/debian
+          path: ${{ github.workspace }}/debian
           if-no-files-found: error
 
   build_win32:
