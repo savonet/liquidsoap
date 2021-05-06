@@ -135,6 +135,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh
       - name: Build debian package
+        id: build_deb
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           chown -R opam /tmp/debian
