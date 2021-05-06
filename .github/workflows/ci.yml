@@ -81,7 +81,7 @@ jobs:
           cd /tmp/liquidsoap-full
           git pull
           cp PACKAGES.minimal PACKAGES
-          opam remove $EXT_PACKAGES
+          opam info -f "depopts:" liquidsoap | xargs opam remove
           cd liquidsoap
           ./.github/scripts/build-posix.sh
       - name: Build doc
