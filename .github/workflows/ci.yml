@@ -81,7 +81,7 @@ jobs:
           cd /tmp/liquidsoap-full
           git pull
           cp PACKAGES.minimal PACKAGES
-          opam info -f "depopts:" liquidsoap | xargs opam remove -y --best-effort
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove -y
           cd liquidsoap
           ./.github/scripts/build-posix.sh
       - name: Build doc
@@ -137,6 +137,7 @@ jobs:
       - name: Build debian package
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          chown -R opam /tmp/debian/pkgs
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}_${{ matrix.platform }}
       - name: Export potential core dumps
         if: ${{ failure() }}
