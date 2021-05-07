@@ -63,8 +63,8 @@ let conf_alpha =
   Dtools.Conf.bool ~p:(conf_ffmpeg#plug "alpha") ~d:false
     "Import and export alpha layers when converting to and from ffmpeg frames."
 
-let () =
-  Lifecycle.before_start (fun () ->
+let log_start_atom =
+  Dtools.Init.make (fun () ->
       let verbosity =
         match conf_verbosity#get with
           | "quiet" -> `Quiet
@@ -82,6 +82,8 @@ let () =
       let level = conf_level#get in
       Avutil.Log.set_level verbosity;
       Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s)))
+
+let () = Lifecycle.before_start (fun () -> Dtools.Init.exec log_start_atom)
 
 let best_pts frame =
   match Avutil.frame_pts frame with

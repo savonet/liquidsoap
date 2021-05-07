@@ -23,6 +23,7 @@
 open Mm
 
 val log : Log.t
+val log_start_atom : Dtools.Init.t
 val conf_ffmpeg : Dtools.Conf.ut
 val conf_log : Dtools.Conf.ut
 val conf_verbosity : string Dtools.Conf.t

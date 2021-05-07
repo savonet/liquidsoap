@@ -180,7 +180,6 @@ tools = tools/extralib.ml tools/JSON.ml tools/lifecycle.ml \
 	tools/stringView.ml tools/strings.ml tools/runtime_error.ml \
         tools/utils.ml tools/doc.ml tools/plug.ml \
 	tools/rqueue.ml tools/unifier.ml \
-	$(if $(W_FFMPEG_AVDEVICE),tools/liqavdevice.ml) \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml \
@@ -239,6 +238,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
 liquidsoap_sources= \
 	tools/log.ml $(tools) converters/audio_converter.ml $(stream) \
 	$(if $(W_FFMPEG_AVUTIL),tools/ffmpeg_utils.ml) \
+        $(if $(W_FFMPEG_AVDEVICE),tools/liqavdevice.ml) \
         converters/video_converter.ml \
 	decoder/decoder_utils.ml decoder/decoder.ml \
         tools/liq_time.ml $(if $(W_POSIX_TIME2),tools/liq_posix_time.ml) \
