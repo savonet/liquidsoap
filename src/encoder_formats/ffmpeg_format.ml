@@ -123,4 +123,4 @@ let to_string m =
       | Some f -> Printf.sprintf "format=%S" f :: opts
       | None -> opts
   in
-  Printf.sprintf "%%fmpeg(%s)" (String.concat "," opts)
+  Printf.sprintf "%%ffmpeg(%s)" (String.concat "," opts)
