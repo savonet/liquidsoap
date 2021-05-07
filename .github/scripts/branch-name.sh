@@ -26,6 +26,9 @@ else
   DOCKER_RELEASE=
 fi
 
+SHA=`git rev-parse --short HEAD`
+
 echo "##[set-output name=branch;]${BRANCH}"
 echo "##[set-output name=is_release;]${IS_RELEASE}"
 echo "##[set-output name=docker_release;]${DOCKER_RELEASE}"
+echo "##[set-output name=sha;]${SHA}"

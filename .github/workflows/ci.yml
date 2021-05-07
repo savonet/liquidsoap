@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.branch_name.outputs.branch }}
+      sha: ${{ steps.branch_name.outputs.sha }}
       is_release: ${{ steps.branch_name.outputs.is_release }}
       docker_release: ${{ steps.branch_name.outputs.docker_release }}
     steps:
@@ -65,7 +66,6 @@ jobs:
 
   build_minimal:
     runs-on: ubuntu-latest
-    needs: get_branch_name
     container:
       image: savonet/liquidsoap-ci:debian_testing_amd64
       options: --user opam
@@ -195,9 +195,9 @@ jobs:
       - name: Download all artifact
         uses: actions/download-artifact@v2
         with:
-          path: artifacts
+          path: artifacts/${{ needs.get_branch_name.outputs.sha }}
       - name: List assets to upload
-        run: echo "##[set-output name=assets;]$(find artifacts -type f | xargs)"
+        run: echo "##[set-output name=assets;]$(find artifacts/${{ needs.get_branch_name.outputs.sha }} -type f | xargs)"
         id: list_assets
       - name: Upload assets to release
         uses: meeDamian/github-release@2.0
@@ -229,11 +229,9 @@ jobs:
       - name: Download all artifact
         uses: actions/download-artifact@v2
         with:
-          path: artifacts
+          path: artifacts/${{ needs.get_branch_name.outputs.sha }}
       - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep $PLATFORM | grep -v dbgsym | grep deb)"
-        env:
-          PLATFORM: ${{ matrix.platform }}
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.get_branch_name.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep -v dbgsym | grep deb)"
         id: debian_package
       - name: Build docker image
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
