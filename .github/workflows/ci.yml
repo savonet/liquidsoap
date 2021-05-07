@@ -233,8 +233,11 @@ jobs:
       - name: Get debian testing package
         run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.get_branch_name.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep -v dbgsym | grep deb)"
         id: debian_package
+      - name: Get debian testing debug package
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.get_branch_name.outputs.sha }} -type f | grep debian-testing | grep ${{ matrix.platform }} | grep dbgsym | grep deb)"
+        id: debian_debug_package
       - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_release:
     runs-on: ubuntu-latest
