@@ -34,28 +34,53 @@ let decode_audio_frame ~mode c =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
   let internal_samplerate = Lazy.force Frame.audio_rate in
+  let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
+  let pts_offset = ref None in
 
-  let mk_converter ~in_sample_format ~channel_layout ~samplerate =
+  let mk_converter ~in_sample_format ~time_base ~channel_layout ~samplerate =
     let converter =
       InternalResampler.create ~in_sample_format channel_layout samplerate
         internal_channel_layout internal_samplerate
     in
+    let last_pts = ref None in
 
     fun data ->
-      let data = InternalResampler.convert converter data in
+      let pts, data =
+        match data with
+          | `Frame data ->
+              let pts =
+                match (Ffmpeg_utils.best_pts data, !pts_offset) with
+                  | Some pts, Some offset ->
+                      Some
+                        (Int64.add
+                           (Ffmpeg_utils.convert_time_base ~src:time_base
+                              ~dst:liq_frame_time_base pts)
+                           offset)
+                  | Some pts, None ->
+                      Some
+                        (Ffmpeg_utils.convert_time_base ~src:time_base
+                           ~dst:liq_frame_time_base pts)
+                  | None, Some offset -> Some offset
+                  | None, None -> None
+              in
+              last_pts := pts;
+              (pts, InternalResampler.convert converter data)
+          | `Flush ->
+              pts_offset := !last_pts;
+              (!last_pts, InternalResampler.flush converter)
+      in
       let len = Audio.length data in
       let data = Frame_content.Audio.lift_data data in
       Producer_consumer.(
-        Generator.put_audio c.generator ?pts:None data 0
-          (Frame.main_of_audio len))
+        Generator.put_audio c.generator ?pts data 0 (Frame.main_of_audio len))
   in
 
   let mk_copy_decoder () =
     let current_converter = ref None in
-    let current_stream_idx = ref None in
+    let current_stream = ref None in
     let current_params = ref None in
 
-    let mk_decoder ~stream_idx params =
+    let mk_decoder ~time_base ~stream_idx params =
       let params = Option.get params in
       let channels = Avcodec.Audio.get_nb_channels params in
       let channel_layout = Avutil.Channel_layout.get_default channels in
@@ -67,22 +92,24 @@ let decode_audio_frame ~mode c =
 
       let in_sample_format = Avcodec.Audio.sample_format decoder in
       let converter =
-        mk_converter ~channel_layout ~samplerate ~in_sample_format
+        mk_converter ~time_base ~channel_layout ~samplerate ~in_sample_format
       in
 
       current_converter := Some (converter, decoder);
-      current_stream_idx := Some stream_idx;
+      current_stream := Some (stream_idx, time_base);
       current_params := Some params;
       (converter, decoder)
     in
 
-    let get_converter ~stream_idx params =
+    let get_converter ~time_base ~stream_idx params =
       match !current_converter with
-        | None -> mk_decoder ~stream_idx params
-        | Some (converter, decoder) when !current_stream_idx <> Some stream_idx
-          ->
-            Avcodec.flush_decoder decoder converter;
-            mk_decoder ~stream_idx params
+        | None -> mk_decoder ~time_base ~stream_idx params
+        | Some (converter, decoder)
+          when !current_stream <> Some (stream_idx, time_base) ->
+            Avcodec.flush_decoder decoder (fun frame ->
+                converter (`Frame frame));
+            converter `Flush;
+            mk_decoder ~time_base ~stream_idx params
         | Some c -> c
     in
 
@@ -95,25 +122,31 @@ let decode_audio_frame ~mode c =
           List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
         in
         List.iter
-          (fun (_, { Ffmpeg_copy_content.packet; stream_idx }) ->
-            let converter, decoder = get_converter ~stream_idx params in
-            Avcodec.decode decoder converter packet)
+          (fun (_, { Ffmpeg_copy_content.packet; stream_idx; time_base }) ->
+            let converter, decoder =
+              get_converter ~time_base ~stream_idx params
+            in
+            Avcodec.decode decoder
+              (fun frame -> converter (`Frame frame))
+              packet)
           data
     | `Flush ->
         ignore
           (Option.map
-             (fun stream_idx ->
+             (fun (stream_idx, time_base) ->
                let converter, decoder =
-                 get_converter ~stream_idx !current_params
+                 get_converter ~time_base ~stream_idx !current_params
                in
-               Avcodec.flush_decoder decoder converter)
-             !current_stream_idx)
+               Avcodec.flush_decoder decoder (fun frame ->
+                   converter (`Frame frame));
+               converter `Flush)
+             !current_stream)
   in
 
   let mk_raw_decoder () =
     let current_converter = ref None in
 
-    let mk_decoder
+    let mk_converter ~time_base ~stream_idx
         {
           Ffmpeg_raw_content.AudioSpecs.channel_layout;
           sample_rate;
@@ -123,14 +156,19 @@ let decode_audio_frame ~mode c =
       let samplerate = Option.get sample_rate in
       let in_sample_format = Option.get sample_format in
       let converter =
-        mk_converter ~channel_layout ~samplerate ~in_sample_format
+        mk_converter ~channel_layout ~samplerate ~time_base ~in_sample_format
       in
-      current_converter := Some converter;
+      current_converter := Some (converter, time_base, stream_idx);
       converter
     in
 
-    let get_converter params =
-      match !current_converter with None -> mk_decoder params | Some c -> c
+    let get_converter ~time_base ~stream_idx params =
+      match !current_converter with
+        | None -> mk_converter ~time_base ~stream_idx params
+        | Some (c, t, i) when (t, i) <> (time_base, stream_idx) ->
+            c `Flush;
+            mk_converter ~time_base ~stream_idx params
+        | Some (c, _, _) -> c
     in
 
     function
@@ -141,11 +179,12 @@ let decode_audio_frame ~mode c =
         let data =
           List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
         in
-        let converter = get_converter params in
         List.iter
-          (fun (_, { Ffmpeg_raw_content.frame; _ }) -> converter frame)
+          (fun (_, { Ffmpeg_raw_content.frame; time_base; stream_idx; _ }) ->
+            (get_converter ~time_base ~stream_idx params) (`Frame frame))
           data
-    | `Flush -> ()
+    | `Flush -> (
+        match !current_converter with None -> () | Some (c, _, _) -> c `Flush )
   in
 
   let convert
@@ -194,6 +233,9 @@ let decode_video_frame ~mode c =
       converter := Some (scaler, fps_converter);
       (scaler, fps_converter)
     in
+    let pts_offset = ref None in
+    let last_pts = ref None in
+    let liq_frame_time_base = Ffmpeg_utils.liq_frame_time_base () in
 
     let get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
         ~stream_idx () =
@@ -210,7 +252,8 @@ let decode_video_frame ~mode c =
                       time_base,
                       pixel_aspect,
                       stream_idx ) ->
-            log#info "Audio frame format change detected..";
+            log#info "Video frame format change detected..";
+            pts_offset := !last_pts;
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
               ~stream_idx ()
         | Some v -> v
@@ -225,7 +268,24 @@ let decode_video_frame ~mode c =
         get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
           ~stream_idx ()
       in
+      let fps_time_base = Ffmpeg_utils.Fps.time_base fps_converter in
       Ffmpeg_utils.Fps.convert fps_converter frame (fun data ->
+          let pts =
+            match (Ffmpeg_utils.best_pts data, !pts_offset) with
+              | Some pts, Some offset ->
+                  Some
+                    (Int64.add
+                       (Ffmpeg_utils.convert_time_base ~src:fps_time_base
+                          ~dst:liq_frame_time_base pts)
+                       offset)
+              | Some pts, None ->
+                  Some
+                    (Ffmpeg_utils.convert_time_base ~src:fps_time_base
+                       ~dst:liq_frame_time_base pts)
+              | None, Some offset -> Some offset
+              | None, None -> None
+          in
+          last_pts := pts;
           let img =
             Ffmpeg_utils.unpack_image ~width:internal_width
               ~height:internal_height
@@ -234,8 +294,7 @@ let decode_video_frame ~mode c =
           let data = Video.single img in
           let data = Frame_content.Video.lift_data data in
           Producer_consumer.(
-            Generator.put_video c.generator ?pts:None data 0
-              (Frame.main_of_video 1)))
+            Generator.put_video c.generator ?pts data 0 (Frame.main_of_video 1)))
   in
 
   let mk_copy_decoder () =
