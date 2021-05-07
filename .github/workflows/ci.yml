@@ -141,18 +141,18 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           chown -R opam /tmp/debian
           sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}
-      - name: Export potential core dumps
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
-          path: ${{ github.workspace }}/core
       - name: Upload debian packages artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/debian
           if-no-files-found: error
+      - name: Export potential core dumps
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
+          path: ${{ github.workspace }}/core
 
   build_win32:
     runs-on: ubuntu-latest
