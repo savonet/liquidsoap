@@ -164,8 +164,8 @@ let () =
             "Set to `true` if the input is a real-time stream, i.e. icecast, \
              SRT, etc. and `false` is not, i.e. local file, etc.." );
         ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool false),
+          Lang.nullable_t Lang.bool_t,
+          Some Lang.null,
           Some
             "Set to `true` if the source needs to be attached to its own \
              clock. Should be set to `true` when `self_sync` is set to `true` \
@@ -190,7 +190,11 @@ let () =
     (fun p ->
       let start = Lang.to_bool (List.assoc "start" p) in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let clock_safe =
+        match Lang.to_option (List.assoc "clock_safe" p) with
+          | None -> self_sync
+          | Some v -> Lang.to_bool v
+      in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])

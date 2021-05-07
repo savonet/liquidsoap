@@ -91,11 +91,13 @@ module Make (Generator : Generator.S) = struct
 
       val mutable clock = None
 
+      method virtual id : string
+
       method private get_clock =
         match clock with
           | Some c -> c
           | None ->
-              let c = new Clock.clock "srt" in
+              let c = new Clock.clock self#id in
               clock <- Some c;
               c
 
