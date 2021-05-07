@@ -26,6 +26,8 @@ LIQ_PACKAGE="liquidsoap-${TAG}"
 
 echo "Building ${LIQ_PACKAGE}.."
 
+cp -rf .github/debian .
+
 rm -rf debian/changelog
 
 cp -f debian/control.in debian/control
@@ -36,8 +38,8 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-mkdir -p "/tmp/debian/pkgs/${DOCKER_TAG}"
+cp /tmp/liquidsoap-full/*.deb /tmp/debian
 
-cp /tmp/liquidsoap-full/*.deb "/tmp/debian/pkgs/${DOCKER_TAG}"
+ls -lA /tmp/debian
 
 echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-1_$ARCH"

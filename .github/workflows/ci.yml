@@ -26,100 +26,133 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Extract branch name
-        shell: bash
         run: .github/scripts/branch-name.sh
         id: branch_name
 
   export_tarball:
     runs-on: ubuntu-latest
+    container:
+      image: savonet/liquidsoap-ci:debian_testing_amd64
+      options: --user root -v ${{ github.workspace }}/tarball:/tmp/tarball
+    env:
+      HOME: /home/opam
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E git fetch origin $GITHUB_SHA
+          sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build tarball
-        id: build_tarball
-        run: docker build . --build-arg DOCKER_TAG=debian_stable_amd64  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:tarball -f .github/docker/Dockerfile.tarball
-      - name: Fetch tarball
-        run: .github/scripts/get-tarball.sh ${{ steps.build_tarball.outputs.filename }}
-      - name: Upload tarball artifact
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/build-tarball.sh
+      - name: Get filename
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/tarball-filename.sh
+        id: tarball_filename
+      - name: Copy tarball
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          cp ${{ steps.tarball_filename.outputs.filename }} /tmp/tarball
+      - name: Export tarball
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ steps.build_tarball.outputs.basename }}
-          path: tarball/${{ steps.build_tarball.outputs.basename }}
+          name: ${{ steps.tarball_filename.outputs.filename }}
+          path: ${{ github.workspace }}/tarball/${{ steps.tarball_filename.outputs.filename }}
+          if-no-files-found: error
+
 
   build_minimal:
     runs-on: ubuntu-latest
     needs: get_branch_name
-    strategy:
-      fail-fast: false
+    container:
+      image: savonet/liquidsoap-ci:debian_testing_amd64
+      options: --user opam
+    env:
+      HOME: /home/opam
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          git fetch origin $GITHUB_SHA
+          git checkout $GITHUB_SHA
       - name: Build
-        run: docker build . --build-arg DOCKER_TAG=debian_testing_amd64  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:debian_testing_amd64 -f .github/docker/Dockerfile.minimal
+        run: |
+          cd /tmp/liquidsoap-full
+          git pull
+          cp PACKAGES.minimal PACKAGES
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove --force -y
+          cd liquidsoap
+          ./.github/scripts/build-posix.sh
+      - name: Build doc
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          ./.github/scripts/build-doc.sh
 
-  build_posix_amd64:
-    runs-on: ubuntu-latest
+  build_posix:
+    runs-on: ${{ matrix.runs-on }}
     needs: get_branch_name
     strategy:
       fail-fast: false
       matrix:
         os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runs-on: ubuntu-latest
+          - platform: arm64
+            runs-on: self-hosted
+    container:
+      image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian
+    env:
+      HOME: /home/opam
     steps:
+      - name: Enable core dump
+        run: |
+          ulimit -c unlimited
+          mkdir -p /tmp/core
+          chown -R opam /tmp/core
+          echo '/tmp/core/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
       - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Compute docker tag
-        run: echo "##[set-output name=name;]${{ matrix.os }}_amd64"
-        id: tag
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E git fetch origin $GITHUB_SHA
+          sudo -u opam -E git checkout $GITHUB_SHA
       - name: Build
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }}  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.build
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          # Remove after liquidsoap 2.0 release
+          sudo -u opam -E opam install -y posix-time2
+          sudo -u opam -E ./.github/scripts/build-posix.sh
+          cp /tmp/liquidsoap-full/liquidsoap/src/liquidsoap /tmp/core
+      - name: Build doc
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Run tests
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.test
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/test-posix.sh
       - name: Build debian package
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} --build-arg GITHUB_SHA --build-arg BRANCH=${{ needs.get_branch_name.outputs.branch }} -t savonet/liquidsoap-github-actions-deb:${{ steps.tag.outputs.name }}  -f .github/docker/Dockerfile.deb
         id: build_deb
-      - name: Fetch debian package
-        run: .github/scripts/get-deb.sh ${{ steps.tag.outputs.name }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          chown -R opam /tmp/debian
+          sudo -u opam -E ./.github/scripts/build-deb.sh "$GITHUB_SHA" ${{ needs.get_branch_name.outputs.branch }} ${{ matrix.os }}
+      - name: Export potential core dumps
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
+          path: ${{ github.workspace }}/core
       - name: Upload debian packages artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
-          path: debian/pkgs/${{ steps.tag.outputs.name }}/${{ steps.build_deb.outputs.basename }}.deb
-
-  build_posix_arm64:
-    runs-on: self-hosted
-    needs: get_branch_name
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [debian_stable, debian_testing, ubuntu_groovy, ubuntu_focal]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Compute docker tag
-        run: echo "##[set-output name=name;]${{ matrix.os }}_arm64"
-        id: tag
-      - name: Build
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }}  --build-arg GITHUB_SHA -t savonet/liquidsoap-github-actions-build:${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.build
-      - name: Run tests
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} -f .github/docker/Dockerfile.test
-      - name: Build debian package
-        run: docker build . --build-arg DOCKER_TAG=${{ steps.tag.outputs.name }} --build-arg GITHUB_SHA --build-arg BRANCH=${{ needs.get_branch_name.outputs.branch }} -t savonet/liquidsoap-github-actions-deb:${{ steps.tag.outputs.name }}  -f .github/docker/Dockerfile.deb
-        id: build_deb
-      - name: Fetch debian package
-        run: .github/scripts/get-deb.sh ${{ steps.tag.outputs.name }}
-      - name: Upload debian packages artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ steps.build_deb.outputs.basename }}
-          path: debian/pkgs/${{ steps.tag.outputs.name }}/${{ steps.build_deb.outputs.basename }}.deb
+          path: ${{ github.workspace }}/debian
+          if-no-files-found: error
 
   build_win32:
     runs-on: ubuntu-latest
@@ -144,7 +177,7 @@ jobs:
 
   update_release:
     runs-on: ubuntu-latest
-    needs: [get_branch_name, build_posix_amd64, build_posix_arm64, build_win32]
+    needs: [get_branch_name, build_posix, build_win32]
     if: ${{ needs.get_branch_name.outputs.is_release }}
     steps:
       - name: Checkout code
@@ -176,9 +209,17 @@ jobs:
           gzip: false
           allow_override: true
 
-  build_docker_amd64:
-    runs-on: ubuntu-latest
-    needs: [get_branch_name, build_posix_amd64]
+  build_docker:
+    runs-on: ${{ matrix.runs-on }}
+    needs: [get_branch_name, build_posix]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runs-on: ubuntu-latest
+          - platform: arm64
+            runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -190,33 +231,16 @@ jobs:
         with:
           path: artifacts
       - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep amd64 | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep $PLATFORM | grep -v dbgsym | grep deb)"
+        env:
+          PLATFORM: ${{ matrix.platform }}
         id: debian_package
       - name: Build docker image
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} amd64
 
-  build_docker_arm64:
-    runs-on: self-hosted
-    needs: [get_branch_name, build_posix_arm64]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-      - name: Download all artifact
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-      - name: Get debian testing package
-        run: echo "##[set-output name=deb-file;]$(find artifacts -type f | grep debian-testing | grep arm64 | grep deb)"
-        id: debian_package
-      - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ needs.get_branch_name.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} arm64
-
-  build_docker:
+  build_docker_release:
     runs-on: ubuntu-latest
-    needs: [get_branch_name, build_docker_amd64, build_docker_arm64]
+    needs: [get_branch_name, build_docker]
     if: ${{ needs.get_branch_name.outputs.docker_release }}
     steps:
       - name: Checkout code
