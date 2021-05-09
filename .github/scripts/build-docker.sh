@@ -3,13 +3,15 @@
 set -e
 
 DEB_FILE=$1
-TAG=$2
-USER=$3
-PASSWORD=$4
-ARCHITECTURE=$5
+DEB_DEBUG_FILE=$2
+TAG=$3
+USER=$4
+PASSWORD=$5
+ARCHITECTURE=$6
 
-cp $DEB_FILE .
-docker build --no-cache -f .github/docker/Dockerfile.production -t savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} .
+cp $DEB_FILE $DEB_DEBUG_FILE .
+
+docker build --no-cache  --build-arg "DEB_FILE=$DEB_FILE"  --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" -f .github/docker/Dockerfile.production -t savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE} .
 
 docker login -u "$USER" -p "$PASSWORD" 
 

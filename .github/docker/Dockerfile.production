@@ -1,5 +1,8 @@
 FROM debian:testing-slim
 
+ARG DEB_FILE
+ARG DEB_DEBUG_FILE
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 USER root
@@ -12,9 +15,10 @@ RUN addgroup --gid 10001 --system liquidsoap && \
 # For libfdk-aac-dev
 RUN sed -e 's#main#main contrib non-free#' -i /etc/apt/sources.list
 
-COPY *debian-testing*deb liquidsoap.deb
+COPY $DEB_FILE liquidsoap.deb
+COPY $DEB_DEBUG_FILE liquidsoap-debug.deb
 
-RUN apt-get update && apt install -y ./liquidsoap.deb && apt-get install -y tini && apt-get clean
+RUN apt-get update && apt install -y ./liquidsoap.deb ./liquidsoap-debug.deb && apt-get install -y tini && apt-get clean
 
 USER liquidsoap
 
