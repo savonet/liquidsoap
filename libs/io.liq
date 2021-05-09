@@ -38,7 +38,7 @@ let output.video = output.dummy
       output.sdl(%argsof(output.sdl), s)
     else
       # Avoid using SDL when there is no video output.
-      output.dummy(s)
+      output.dummy(fallible=fallible, s)
     end
   end
 %endif
