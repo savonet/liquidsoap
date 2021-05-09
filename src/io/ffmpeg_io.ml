@@ -86,7 +86,8 @@ class input ~self_sync ~clock_safe ~bufferize ~log_overfull ~kind ~start
 
     method private stop =
       (Option.get kill_feeding) ();
-      kill_feeding <- None
+      kill_feeding <- None;
+      self#signal_get_frame
 
     method private output_reset =
       self#stop;
