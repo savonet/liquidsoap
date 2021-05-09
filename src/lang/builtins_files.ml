@@ -356,7 +356,6 @@ let () =
         |> Option.map (fun s -> "^" ^ s ^ "$")
       in
       let pattern = Option.value ~default:"" pattern in
-      Printf.printf "Pattern: %s\n%!" pattern;
       let rex = Pcre.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Utils.home_unrelate dir in
