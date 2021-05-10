@@ -58,7 +58,7 @@ val scheduler : priority Duppy.scheduler
 
 (** Register queue error handlers. Should return [true] if 
     the exception was handler by the given callback. *)
-val error_handlers : (bt:string -> name:string -> exn -> bool) Queue.t
+val error_handlers : (bt:string -> name:string -> exn -> bool) Stack.t
 
 (** {1 Misc} *)
 

@@ -146,6 +146,22 @@ let no_problem = Condition.create ()
 
 exception Exit
 
+let error_handlers = Stack.create ()
+
+exception Error_processed
+
+let rec error_handler ~bt ~name exn =
+  try
+    Stack.iter
+      (fun handler -> if handler ~bt ~name exn then raise Error_processed)
+      error_handlers;
+    false
+  with
+    | Error_processed -> true
+    | exn ->
+        let bt = Printexc.get_backtrace () in
+        error_handler ~bt ~name exn
+
 let create ~queue f x s =
   let c = Condition.create () in
   let set = if queue then queues else all in
@@ -164,17 +180,25 @@ let create ~queue f x s =
                   Condition.signal c)
                 ()
             with e ->
-              let backtrace = Printexc.get_backtrace () in
+              let bt = Printexc.get_backtrace () in
               begin
                 match e with
                 | Exit -> log#info "Thread %S exited." s
                 | Failure e -> log#important "Thread %S failed: %s!" s e
+                | e when error_handler ~bt ~name:s e -> ()
+                | e when queue ->
+                    log#severe "Queue %s crashed with exception %s\n%s" s
+                      (Printexc.to_string e) bt;
+                    log#critical
+                      "PANIC: Liquidsoap has crashed, exiting.,\n\
+                       Please report at: savonet-users@lists.sf.net";
+                    exit 1
                 | e ->
                     log#important "Thread %S aborts with exception %s!" s
                       (Printexc.to_string e)
               end;
               if e <> Exit then (
-                let l = Pcre.split ~pat:"\n" backtrace in
+                let l = Pcre.split ~pat:"\n" bt in
                 List.iter (log#info "%s") l );
               mutexify lock
                 (fun () ->
@@ -216,40 +240,12 @@ let scheduler_log n =
     fun m -> log#info "%s" m )
   else fun _ -> ()
 
-let error_handlers = Queue.create ()
-
-let default_error_handler ~bt ~name exn =
-  log#severe "Queue %s crashed with exception %s\n%s" name
-    (Printexc.to_string exn) bt;
-  log#critical
-    "PANIC: Liquidsoap has crashed, exiting.,\n\
-     Please report at: savonet-users@lists.sf.net";
-  exit 1
-
-exception Error_processed
-
-let rec error_handler ~bt ~name exn =
-  try
-    Queue.iter
-      (fun handler -> if handler ~bt ~name exn then raise Error_processed)
-      error_handlers;
-    default_error_handler ~bt ~name exn
-  with
-    | Error_processed -> ()
-    | exn ->
-        let bt = Printexc.get_backtrace () in
-        error_handler ~bt ~name exn
-
 let new_queue ?priorities ~name () =
   let qlog = scheduler_log name in
   let queue () =
-    try
-      match priorities with
-        | None -> Duppy.queue scheduler ~log:qlog name
-        | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
-    with exn ->
-      let bt = Printexc.get_backtrace () in
-      error_handler ~bt ~name exn
+    match priorities with
+      | None -> Duppy.queue scheduler ~log:qlog name
+      | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
   in
   ignore (create ~queue:true queue () name)
 

@@ -30,3 +30,9 @@ def thread.when(~fast=true, ~every=1., ~once=false, ~changed=true, p, f)
   end
   thread.run.recurrent(fast=fast, delay=0., check)
 end
+
+# @flag hidden
+def default_error_handler(~backtrace, ~thread_name, err) =
+  log(label="runtime", level=1, "Uncaught error #{err} in thread #{thread_name}!\n#{backtrace}")
+end
+thread.on_error(null(), default_error_handler)
