@@ -130,8 +130,8 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
 * **AAC encoding at `22050kHz` using `fdk-aac` encoder and `mpegts` muxer**
 ```liquidsoap
 %ffmpeg(format="mpegts",
-        %audio(codec="libfdk_aac",samplerate=22050,b="32k",
-               afterburner=1,profile="aac_he_v2"))
+  %audio(codec="libfdk_aac",samplerate=22050,b="32k",
+         afterburner=1,profile="aac_he_v2"))
 ```
 
 * **Mp3 encoding using `libshine` at `48000kHz`**
@@ -142,46 +142,47 @@ The encoder should support all the options for `ffmpeg`'s [muxers](https://ffmpe
 * **AC3 audio and H264 video encapsulated in a MPEG-TS stream**
 ```liquidsoap
 %ffmpeg(format="mpegts",
-        %audio(codec="ac3",channel_coupling=0),
-        %video(codec="libx264",b="2600k",
-               "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
-               preset="ultrafast"))
+  %audio(codec="ac3",channel_coupling=0),
+  %video(codec="libx264",b="2600k",
+         "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
+         preset="ultrafast"))
 ```
 
 * **AC3 audio and H264 video encapsulated in a MPEG-TS stream using ffmpeg raw frames**
 ```liquidsoap
 %ffmpeg(format="mpegts",
-        %audio.raw(codec="ac3",channel_coupling=0),
-        %video.raw(codec="libx264",b="2600k",
-                   "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
-                   preset="ultrafast"))
+  %audio.raw(codec="ac3",channel_coupling=0),
+  %video.raw(codec="libx264",b="2600k",
+             "x264-params"="scenecut=0:open_gop=0:min-keyint=150:keyint=150",
+             preset="ultrafast"))
 ```
 
 * **Mp3 encoding using `libmp3lame` and video copy**
 ```liquidsoap
 %ffmpeg(format="mp3",
-        %audio(codec="libmp3lame"),
-        %video.copy)
+  %audio(codec="libmp3lame"),
+  %video.copy)
 ```
 
 The full syntax is as follows:
 
 ```liquidsoap
 %ffmpeg(format=<format>,
-        # Audio section
-        %audio(codec=<codec>,<option_name>=<option_value>,..),
-        # Or:
-        %audio.raw(codec=<codec>,<option_name>=<option_value>,..),
-        # Or:
-        %audio.copy,
-        # Video section
-        %video(codec=<codec>,<option_name>=<option_value>,..),
-        # Or:
-        %video.raw(codec=<codec>,<option_name>=<option_value>,..),
-        # Or:
-        %video.copy,
-        # Generic options
-        <option_name>=<option_value>,..)
+  # Audio section
+  %audio(codec=<codec>,<option_name>=<option_value>,..),
+  # Or:
+  %audio.raw(codec=<codec>,<option_name>=<option_value>,..),
+  # Or:
+  %audio.copy,
+  # Video section
+  %video(codec=<codec>,<option_name>=<option_value>,..),
+  # Or:
+  %video.raw(codec=<codec>,<option_name>=<option_value>,..),
+  # Or:
+  %video.copy,
+  # Generic options
+  <option_name>=<option_value>,..
+)
 ```
 Where:
 
