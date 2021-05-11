@@ -142,7 +142,7 @@ module Make (Generator : Generator.S) = struct
       val frame_filled_m = Mutex.create ()
 
       method private should_fill_buffer =
-        if (not self#self_sync) && self#is_ready then
+        if self#self_sync && self#is_ready then
           Tutils.mutexify frame_filled_m
             (fun () -> Condition.wait frame_filled frame_filled_m)
             ();

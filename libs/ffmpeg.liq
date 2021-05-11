@@ -20,7 +20,7 @@ def video.testsrc.ffmpeg(~id="", ~kind="testsrc", ~buffer=0.5, ~duration=null())
   rate = "rate=#{video.frame.rate()}"
   duration = if null.defined(duration) then ":duration=#{duration}" else "" end
   src = "#{kind}=#{size}:#{rate}#{duration}"
-  (input.ffmpeg(self_sync=false, buffer=buffer, format="lavfi", src):source(audio=none))
+  (input.ffmpeg(buffer=buffer, format="lavfi", src):source(audio=none))
 end
 %endif
 
