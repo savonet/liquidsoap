@@ -65,7 +65,7 @@ let () =
       Decoder.media_type = `Midi;
       priority = (fun () -> 1);
       file_extensions = (fun () -> Some ["mid"]);
-      mime_types = (fun () -> None);
+      mime_types = (fun () -> Some ["audio/midi"]);
       file_type =
         (fun ~ctype:_ _ ->
           Some
@@ -74,7 +74,7 @@ let () =
                 audio = Frame_content.None.format;
                 video = Frame_content.None.format;
                 midi =
-                  Frame_content.(Midi.lift_params { Contents.channels = 1 });
+                  Frame_content.(Midi.lift_params { Contents.channels = 16 });
               });
       file_decoder =
         Some (fun ~metadata:_ ~ctype:_ filename -> decoder filename);
