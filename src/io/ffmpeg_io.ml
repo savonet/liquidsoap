@@ -23,21 +23,21 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~self_sync ~clock_safe ~bufferize ~log_overfull ~kind ~start
-  ~on_start ~on_stop ?format ~opts url =
+class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
+  ~opts url =
   let max_ticks = 2 * Frame.main_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   object (self)
-    inherit Source.source ~name:"input.ffmpeg" kind as super
+    inherit Source.source ~name:"input.ffmpeg" kind
 
     inherit
       Generated.source
         (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
            `Undefined)
-        ~self_sync ~clock_safe ~empty_on_abort:false ~bufferize as buffered
+        ~empty_on_abort:false ~bufferize
 
     inherit
       Start_stop.async ~name:"input.ffmpeg" ~on_start ~on_stop ~autostart:start
@@ -96,15 +96,11 @@ class input ~self_sync ~clock_safe ~bufferize ~log_overfull ~kind ~start
 
     method private stype = Source.Fallible
 
-    method private set_clock =
-      super#set_clock;
-      buffered#set_buffered_clock
-
     method private feed (should_stop, has_stopped) =
       try
         let decoder = self#get_decoder in
         let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
-        while buffered#should_fill_buffer do
+        while true do
           if should_stop () then failwith "stop";
           decoder buffer
         done
@@ -157,19 +153,6 @@ let () =
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
         args ~t:Lang.string_t "string";
-        ( "self_sync",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some
-            "Set to `true` if the input is a real-time stream, i.e. icecast, \
-             SRT, etc. and `false` is not, i.e. local file, etc.." );
-        ( "clock_safe",
-          Lang.nullable_t Lang.bool_t,
-          Some Lang.null,
-          Some
-            "Set to `true` if the source needs to be attached to its own \
-             clock. Should be set to `true` when `self_sync` is set to `true` \
-             in most cases." );
         ( "buffer",
           Lang.float_t,
           Some (Lang.float 5.),
@@ -189,12 +172,6 @@ let () =
     ~return_t:k
     (fun p ->
       let start = Lang.to_bool (List.assoc "start" p) in
-      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
-      let clock_safe =
-        match Lang.to_option (List.assoc "clock_safe" p) with
-          | None -> self_sync
-          | Some v -> Lang.to_bool v
-      in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -226,6 +203,6 @@ let () =
       let url = Lang.to_string (Lang.assoc "" 1 p) in
       let kind = Source.Kind.of_kind kind in
       ( new input
-          ~self_sync ~clock_safe ~kind ~start ~on_start ~on_stop ~bufferize
-          ~log_overfull ?format ~opts url
+          ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
+          url
         :> Source.source ))
