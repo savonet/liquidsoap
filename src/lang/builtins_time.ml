@@ -54,17 +54,17 @@ let () =
 
 let () =
   let time_t =
-    Lang.record_t
+    Lang.method_t Lang.unit_t
       [
-        ("sec", Lang.int_t);
-        ("min", Lang.int_t);
-        ("hour", Lang.int_t);
-        ("mday", Lang.int_t);
-        ("mon", Lang.int_t);
-        ("year", Lang.int_t);
-        ("wday", Lang.int_t);
-        ("yday", Lang.int_t);
-        ("isdst", Lang.bool_t);
+        ("sec", ([], Lang.int_t), "Seconds.");
+        ("min", ([], Lang.int_t), "Minutes.");
+        ("hour", ([], Lang.int_t), "Hours.");
+        ("mday", ([], Lang.int_t), "Day of month (between 1 and 31).");
+        ("mon", ([], Lang.int_t), "Month of year (between 0 and 11).");
+        ("year", ([], Lang.int_t), "Year - 1900.");
+        ("wday", ([], Lang.int_t), "Day of week (Sunday is 0).");
+        ("yday", ([], Lang.int_t), "Day of year (between 0 and 365).");
+        ("isdst", ([], Lang.bool_t), "Daylight time savings in effect.");
       ]
   in
   let return tm =
