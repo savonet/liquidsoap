@@ -374,12 +374,20 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             let f a b =
               let params =
                 [
-                  ("", Lang.float db_before);
-                  ("", Lang.float db_after);
-                  ("", Lang.metadata before_metadata);
-                  ("", Lang.metadata after_metadata);
-                  ("", Lang.source a);
-                  ("", Lang.source b);
+                  ( "",
+                    Lang.meth Lang.unit
+                      [
+                        ("source", Lang.source a);
+                        ("db_level", Lang.float db_before);
+                        ("metadata", Lang.metadata before_metadata);
+                      ] );
+                  ( "",
+                    Lang.meth Lang.unit
+                      [
+                        ("source", Lang.source b);
+                        ("db_level", Lang.float db_after);
+                        ("metadata", Lang.metadata after_metadata);
+                      ] );
                 ]
               in
               Lang.to_source (Lang.apply transition params)
@@ -426,6 +434,14 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
+  let transition_arg =
+    Lang.method_t Lang.unit_t
+      [
+        ("source", ([], Lang.source_t k), "Source");
+        ("db_level", ([], Lang.float_t), "dB level of the source.");
+        ("metadata", ([], Lang.metadata_t), "Metadata of the source.");
+      ]
+  in
   Lang.add_operator "cross"
     [
       ( "duration",
@@ -471,25 +487,19 @@ let () =
            stopped." );
       ( "",
         Lang.fun_t
-          [
-            (false, "", Lang.float_t);
-            (false, "", Lang.float_t);
-            (false, "", Lang.metadata_t);
-            (false, "", Lang.metadata_t);
-            (false, "", Lang.source_t k);
-            (false, "", Lang.source_t k);
-          ]
+          [(false, "", transition_arg); (false, "", transition_arg)]
           (Lang.source_t k),
         None,
         Some
           "Transition function, composing from the end of a track and the next \
-           track. It also takes the power of the signal before and after the \
-           transition, and the metadata." );
+           track. The sources corresponding to the two tracks are decorated \
+           with fields indicating the power of the signal before and after the \
+           transition (`power`), and the metadata (`metadata`)." );
       ("", Lang.source_t k, None, None);
     ]
     ~return_t:k ~category:Lang.SoundProcessing
     ~descr:
-      "Cross operator, allowing the composition of the N last seconds of a \
+      "Cross operator, allowing the composition of the _n_ last seconds of a \
        track with the beginning of the next track, using a transition function \
        depending on the relative power of the signal before and after the end \
        of track."
