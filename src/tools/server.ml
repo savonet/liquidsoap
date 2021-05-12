@@ -113,6 +113,11 @@ let conf_telnet_revdns =
     "Perform reverse DNS lookup to get the client's hostname from its IP."
 
 let log = Log.make ["server"]
+let conf_log = Dtools.Conf.void ~p:(conf#plug "log") "Log configuration."
+
+let conf_log_level =
+  Dtools.Conf.int ~p:(conf_log#plug "level") ~d:3
+    "Default log level for messages."
 
 exception Duppy of Duppy.Io.failure
 
@@ -138,7 +143,7 @@ let add ~ns ?usage ~descr cmd handler =
     (fun () ->
       let name = prefix_ns cmd ns in
       if Hashtbl.mem commands name then
-        log#severe
+        log#f (conf_log_level#get - 1)
           "Server command %s already registered! Previous definition replaced."
           name
       else ();
@@ -274,10 +279,13 @@ let handle_client socket ip =
     ( match e with
       | Duppy.Io.Io_error -> ()
       | Duppy.Io.Timeout ->
-          log#info "Timeout reached while communicating to client %s." ip
+          log#f (conf_log_level#get + 1)
+            "Timeout reached while communicating to client %s." ip
       | Duppy.Io.Unix (c, p, m) ->
-          log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown e -> log#important "%s" (Printexc.to_string e) );
+          log#f (conf_log_level#get + 1) "%s"
+            (Printexc.to_string (Unix.Unix_error (c, p, m)))
+      | Duppy.Io.Unknown e ->
+          log#f conf_log_level#get "%s" (Printexc.to_string e) );
     Duppy e
   in
   let h =
@@ -340,7 +348,8 @@ let handle_client socket ip =
       | (Exit | Duppy Duppy.Io.Timeout) as e ->
           let on_error e =
             ignore (on_error e);
-            log#important "Client %s disconnected while saying goodbye..!" ip;
+            log#f conf_log_level#get
+              "Client %s disconnected while saying goodbye..!" ip;
             close ()
           in
           let msg =
@@ -350,14 +359,15 @@ let handle_client socket ip =
               | _ -> assert false
           in
           let exec () =
-            log#important "Client %s disconnected." ip;
+            log#f conf_log_level#get "Client %s disconnected." ip;
             close ()
           in
           Duppy.Io.write ~timeout:(get_timeout ()) ~priority:Tutils.Non_blocking
             ~on_error ~exec Tutils.scheduler ~string:(Bytes.of_string msg)
             socket
       | _ ->
-          log#important "Client %s disconnected without saying goodbye..!" ip;
+          log#f conf_log_level#get
+            "Client %s disconnected without saying goodbye..!" ip;
           close ()
     in
     Duppy.Monad.run ~return:run ~raise process
@@ -379,10 +389,11 @@ let start_socket () =
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
-        log#important "New client %s." ip;
+        log#f conf_log_level#get "New client %s." ip;
         handle_client socket ip
       with e ->
-        log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
+        log#f (conf_log_level#get - 1) "Failed to accept new client: %S"
+          (Printexc.to_string e) );
     [
       {
         Duppy.Task.priority = Tutils.Non_blocking;
@@ -401,10 +412,10 @@ let start_socket () =
     try Unix.bind sock bind_addr
     with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
-  log#important "Socket created at %s." socket_path;
+  log#f conf_log_level#get "Socket created at %s." socket_path;
   Unix.listen sock max_conn;
   Lifecycle.after_scheduler_shutdown (fun () ->
-      log#important "Unlink %s" socket_name;
+      log#f conf_log_level#get "Unlink %s" socket_name;
       Unix.unlink socket_path);
   Unix.chmod socket_path rights;
   Duppy.Task.add Tutils.scheduler
@@ -424,7 +435,7 @@ let start_telnet () =
     (* The socket has to be closed for restart to work, and this has to be
        done after duppy has stopped using it. *)
     Lifecycle.after_scheduler_shutdown (fun () ->
-        log#important "Closing socket.";
+        log#f conf_log_level#get "Closing socket.";
         Unix.close sock)
   in
   (* Set TCP_NODELAY on the socket *)
@@ -435,10 +446,11 @@ let start_telnet () =
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
-        log#important "New client: %s." ip;
+        log#f conf_log_level#get "New client: %s." ip;
         handle_client socket ip
       with e ->
-        log#severe "Failed to accept new client: %S" (Printexc.to_string e) );
+        log#f (conf_log_level#get - 1) "Failed to accept new client: %S"
+          (Printexc.to_string e) );
     [
       {
         Duppy.Task.priority = Tutils.Non_blocking;
