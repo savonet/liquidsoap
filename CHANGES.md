@@ -83,6 +83,7 @@ New:
 - Added `video.cover`.
 - Added `video.still_frame`.
 - Added `request.status`.
+- Added `playlog` to record how long ago a song was last played (#333 and #1530).
 
 Changed:
 

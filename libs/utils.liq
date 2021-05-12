@@ -43,3 +43,22 @@ let frame = ()
 def frame.duration =
   setting.getter.float("frame.duration")
 end
+
+# Keep a record of played files. This is primarily useful to know when a song
+# was last played and avoid repetitions.
+# @param ~hash Function to extract an identifier from the metadata.
+# @category Source / Track Processing
+# @method play Record that file with given metadata has been played.
+# @method last How long ago a file was played (in seconds).
+def playlog(~hash=fun(m)->m["filename"])
+  l = ref([])
+  def play(m)
+    f = hash(m)
+    l := list.add((f, time()), !l)
+  end
+  def last(m)
+    f = hash(m)
+    time() - list.assoc(default = 0.-infinity, f, !l)
+  end
+  { play=play, last=last }
+end
