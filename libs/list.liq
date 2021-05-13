@@ -199,6 +199,13 @@ def list.assoc(~default=null(), key, l)
   aux(l)
 end
 
+# Keep only the elements of an association list satisfying a given predicate.
+# @category List
+def list.assoc.filter(p, l)
+  def p(kv) = p(fst(kv), snd(kv)) end
+  list.filter(p, l)
+end
+
 # Remove the first pair from an associative list.
 # @category List
 # @param key Key of pair to be removed.
@@ -219,14 +226,7 @@ end
 # @param key Key of pairs to be removed.
 # @param l List of pairs (key,value).
 def list.assoc.remove.all(key, l)
-  def rec aux(l)
-    def f(x, l)
-      let (k, v) = x
-      if k == key then aux(l) else list.cons((k,v), aux(l)) end
-    end
-    list.case(l, [], f)
-  end
-  aux(l)
+  list.assoc.filter(fun(k,_) -> k != key, l)
 end
 
 # Check that a predicate is satisfied for every element in a list.
@@ -299,14 +299,6 @@ def list.assoc.mem(a,l)
     end
   end
   list.fold(f, false, l)
-end
-
-# list.assoc.filter(key,l) returns all the elements of the form (key, value) from l.
-# @category List
-# @param k Key to look for
-# @param l List of pairs (key,value)
-def list.assoc.filter(k,l)
-  list.filter(fun (el) -> fst(el) == k, l)
 end
 
 # Create an iterator over the elements of a list.
