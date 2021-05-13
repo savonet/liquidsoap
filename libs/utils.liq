@@ -46,13 +46,13 @@ end
 
 # Keep a record of played files. This is primarily useful to know when a song
 # was last played and avoid repetitions.
-# @param ~hash Function to extract an identifier from the metadata.
+# @param ~hash Function to extract an identifier from the metadata. By default, the filename is used but we could return the artist to know when a song from a given artist was last played for instance.
 # @category Source / Track Processing
-# @method play Record that file with given metadata has been played.
-# @method last How long ago a file was played (in seconds).
+# @method add Record that file with given metadata has been played.
+# @method last How long ago a file was played (in seconds), `infinity` is returned if the song has never been played.
 def playlog(~hash=fun(m)->m["filename"])
   l = ref([])
-  def play(m)
+  def add(m)
     f = hash(m)
     l := list.add((f, time()), !l)
   end
@@ -60,5 +60,5 @@ def playlog(~hash=fun(m)->m["filename"])
     f = hash(m)
     time() - list.assoc(default = 0.-infinity, f, !l)
   end
-  { play=play, last=last }
+  { add=add, last=last }
 end
