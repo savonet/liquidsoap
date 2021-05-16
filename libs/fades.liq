@@ -280,16 +280,16 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
   log = log(label="crossfade")
 
   def simple_transition(a,b)
-    list.iter(fun(x)-> log(level=4,"Before: #{x}"),a.metadata)
-    list.iter(fun(x)-> log(level=4,"After : #{x}"),b.metadata)
+    list.iter(fun(x)-> log(level=4,"Before: #{x}"), metadata.cover.remove(a.metadata))
+    list.iter(fun(x)-> log(level=4,"After : #{x}"), metadata.cover.remove(b.metadata))
 
     log("Simple transition: crossed, fade-in, fade-out.")
     (add(fade.out(a.source),fade.in(b.source)):source)
   end
 
   def smart_transition(a,b)
-    list.iter(fun(x)-> log(level=4,"Before: #{x}"),a.metadata)
-    list.iter(fun(x)-> log(level=4,"After : #{x}"),b.metadata)
+    list.iter(fun(x)-> log(level=4,"Before: #{x}"), metadata.cover.remove(a.metadata))
+    list.iter(fun(x)-> log(level=4,"After : #{x}"), metadata.cover.remove(b.metadata))
 
     if
       # If A and B are not too loud and close, fully cross-fade them.
