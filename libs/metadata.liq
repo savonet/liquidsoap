@@ -103,3 +103,10 @@ end
 def file.cover(~id="", fname)
   metadata.cover(file.metadata(fname))
 end
+
+# Remove cover metadata. This is mostly useful in order not to flood logs
+# with coverart when logging metadata.
+# @category Source / Track Processing
+def metadata.cover.remove(m)
+  list.assoc.filter(fun (k, v) -> k != "metadata_block_picture" and k != "apic", m)
+end
