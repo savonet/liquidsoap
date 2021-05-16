@@ -37,13 +37,18 @@ def metadata.getter.float(init, m, s)
   metadata.getter.base(init, float_of_string, m, s)
 end
 
-# Obtain cover-art for a file. An empty string is returned in case there is no
-# such information.
-# @category System
-# @param file File from which the cover should be obtained
-def file.cover(~id="file.cover", fname)
-  m = file.metadata(fname)
-  m = list.map (fun (lv) -> (string.case(lower=true, fst(lv)), snd(lv)), m)
+# Extract filename from metadata.
+# @cateogry Source / Track Processing
+def metadata.filename(m)
+  m["filename"]
+end
+
+# Extract cover from metadata.
+# @category Source / Track Processing
+# @param m Metadata from which the cover should be extracted.
+# @method mime MIME type for the cover.
+def metadata.cover(~id="", m)
+  fname = metadata.filename(m)
   if list.assoc.mem("coverart", m) or list.assoc.mem("metadata_block_picture", m)then
     # We are likely to have an ogg/vorbis file
     cover = list.assoc(default="", "coverart", m)
@@ -89,4 +94,12 @@ def file.cover(~id="file.cover", fname)
       data.{mime=mime}
     end
   end
+end
+
+# Obtain cover-art for a file. An empty string is returned in case there is no
+# such information.
+# @category System
+# @param file File from which the cover should be obtained
+def file.cover(~id="", fname)
+  metadata.cover(file.metadata(fname))
 end
