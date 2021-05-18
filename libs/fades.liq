@@ -357,10 +357,11 @@ end
 # it.
 # @category Source / Track Processing
 # @flag extra
+# @param ~duration Duration of the fade in seconds.
 # @param ~p       Portion of amplitude of the normal source in the mix.
 # @param ~normal  The normal source, which could be called the carrier too.
 # @param ~special The special source.
-def smooth_add(~p=getter(0.2), ~normal, ~special)
+def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special)
   p = getter.function(p)
   last_p = ref(p())
 
@@ -381,14 +382,14 @@ def smooth_add(~p=getter(0.2), ~normal, ~special)
   def to_special(b,special) =
     last_p := p()
     q = 1. - !last_p
-    normal_volume := mkfade(start=1.,stop=!last_p,normal)
-    special_volume := mkfade(stop=q,special)
+    normal_volume := mkfade(start=1.,stop=!last_p,duration=duration,normal)
+    special_volume := mkfade(stop=q,duration=duration,special)
     special
   end
 
   def to_blank(special,b)
-    normal_volume := mkfade(start=!last_p,normal)
-    special_volume := mkfade(start=1.-!last_p,special)
+    normal_volume := mkfade(start=!last_p,duration=duration,normal)
+    special_volume := mkfade(start=1.-!last_p,duration=duration,special)
     sequence([special,b])
   end
 
