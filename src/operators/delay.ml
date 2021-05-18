@@ -33,7 +33,9 @@ class delay ~kind ~initial (source : source) delay =
 
     method remaining = source#remaining
 
-    method abort_track = source#abort_track
+    method abort_track =
+      self#end_track;
+      source#abort_track
 
     method seek = source#seek
 
@@ -47,14 +49,15 @@ class delay ~kind ~initial (source : source) delay =
 
     method is_ready = in_track || (self#delay_ok && source#is_ready)
 
+    method private end_track =
+      in_track <- false;
+      last <- Unix.time ()
+
     method private get_frame buf =
       source#get buf;
       in_track <- true;
-
       (* The current track ends. *)
-      if Frame.is_partial buf then (
-        in_track <- false;
-        last <- Unix.time () )
+      if Frame.is_partial buf then self#end_track
   end
 
 let () =
