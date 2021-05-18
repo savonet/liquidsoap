@@ -43,6 +43,24 @@ def metadata.filename(m)
   m["filename"]
 end
 
+# Extract title from metadata.
+# @cateogry Source / Track Processing
+def metadata.title(m)
+  m["title"]
+end
+
+# Extract artist from metadata.
+# @cateogry Source / Track Processing
+def metadata.artist(m)
+  m["artist"]
+end
+
+# Extract comment from metadata.
+# @cateogry Source / Track Processing
+def metadata.comment(m)
+  m["comment"]
+end
+
 # Extract cover from metadata.
 # @category Source / Track Processing
 # @param m Metadata from which the cover should be extracted.
