@@ -357,11 +357,10 @@ end
 # it.
 # @category Source / Track Processing
 # @flag extra
-# @param ~delay   Delay before starting the special source.
 # @param ~p       Portion of amplitude of the normal source in the mix.
 # @param ~normal  The normal source, which could be called the carrier too.
 # @param ~special The special source.
-def smooth_add(~delay=0.5, ~p=getter(0.2), ~normal, ~special)
+def smooth_add(~p=getter(0.2), ~normal, ~special)
   p = getter.function(p)
   last_p = ref(p())
 
