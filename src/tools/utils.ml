@@ -604,23 +604,6 @@ let file_extension ?(leading_dot = true) ?(dir_sep = Filename.dir_sep) name =
       | _ -> s
   with Invalid_argument _ -> s
 
-let quote s =
-  let quote = '"' in
-  let quotequote = "\\\"" in
-  let escp = '\\' in
-  let quoteescp = "\\\\" in
-  let l = String.length s in
-  let b = Buffer.create (l + 20) in
-  Buffer.add_char b quote;
-  for i = 0 to l - 1 do
-    match s.[i] with
-      | c when c = quote -> Buffer.add_string b quotequote
-      | c when c = escp -> Buffer.add_string b quoteescp
-      | c -> Buffer.add_char b c
-  done;
-  Buffer.add_char b quote;
-  Buffer.contents b
-
 let environment () =
   let l = Unix.environment () in
   (* Split at first occurence of '='. Return v,"" if

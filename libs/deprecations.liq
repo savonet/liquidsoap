@@ -43,6 +43,13 @@ def quote(s) =
   string.quote(s)
 end
 
+# Deprecated: this function has been replaced by `string.quote`.
+# @flag deprecated
+def process.quote(s) =
+  deprecated("process.quote", "string.quote")
+  string.quote(s)
+end
+
 # Deprecated: use mksafe and playlist instead.
 # @flag deprecated
 def playlist.safe(~id="", ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
