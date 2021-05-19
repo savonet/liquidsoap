@@ -2,6 +2,8 @@
 variables        = ref([])
 # Float variables
 variables_float  = ref([])
+# Int varialbles
+variables_int    = ref([])
 # Bool variables
 variables_bool   = ref([])
 # String variables
@@ -9,6 +11,7 @@ variables_string = ref([])
 
 let interactive        = ()
 let interactive.float  = ()
+let interactive.int    = ()
 let interactive.bool   = ()
 let interactive.string = ()
 
@@ -43,6 +46,11 @@ def interactive.float.ref(name)
 end
 
 # @flag hidden
+def interactive.int.ref(name)
+  list.assoc(name, !variables_int).ref
+end
+
+# @flag hidden
 def interactive.bool.ref(name)
   list.assoc(name, !variables_bool).ref
 end
@@ -58,6 +66,13 @@ let interactive.persistency = ref(fun()->())
 # @flag hidden
 def interactive.float.set(name, v)
   interactive.float.ref(name) := v
+  p = !interactive.persistency
+  p()
+end
+
+# @flag hidden
+def interactive.int.set(name, v)
+  interactive.int.ref(name) := v
   p = !interactive.persistency
   p()
 end
@@ -94,6 +109,8 @@ def interactive.create(~name, ~description="", ~osc="", ~type)
   if osc != "" then
     if type == "float" then
       stdlib_osc.on_float(osc, interactive.float.set(name))
+    elsif type == "int" then
+      stdlib_osc.on_int(osc, interactive.int.set(name))
     elsif type == "bool" then
       stdlib_osc.on_bool(osc, interactive.bool.set(name))
     elsif type == "string" then
@@ -111,6 +128,9 @@ try
     t = interactive.type(name)
     if t == "float" then
       r = interactive.float.ref(name)
+      string_of(!r)
+    elsif t == "int" then
+      r = interactive.int.ref(name)
       string_of(!r)
     elsif t == "bool" then
       r = interactive.bool.ref(name)
@@ -136,6 +156,8 @@ def interactive.set(arg)
     t = interactive.type(name)
     if t == "float" then
       interactive.float.set(name, float_of_string(value))
+    elsif t == "int" then
+      interactive.int.set(name, int_of_string(value))
     elsif t == "bool" then
       interactive.bool.set(name, bool_of_string(value))
     elsif t == "string" then
@@ -154,11 +176,11 @@ server.register(usage="set <name> = <value>", description="Set the value of a va
 # @category Interactive
 # @param fname Name of the file.
 def interactive.save(fname)
-  int = [] # Be ready when we add support for those
   float = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_float)
+  int = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_int)
   bool = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_bool)
   string = list.map(fun (nv) -> begin let (name, v) = nv; (name, !v.ref) end, !variables_string)
-  vars = (int, float, bool, string)
+  vars = (float, int, bool, string)
   file.write(data=json_of(vars), fname)
 end
 
@@ -167,9 +189,9 @@ end
 # @param fname Name of the file.
 def interactive.load(fname)
   vars = file.contents(fname)
-  let (int, float, bool, string) = of_json(default=([("",0)],[("",0.)],[("",false)],[("","")]), vars)
-  ignore(int)
+  let (float, int, bool, string) = of_json(default=([("",0.)],[("",0)],[("",false)],[("","")]), vars)
   list.iter(fun (nv) -> try interactive.float.set (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, float )
+  list.iter(fun (nv) -> try interactive.int.set   (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, int   )
   list.iter(fun (nv) -> try interactive.bool.set  (fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, bool  )
   list.iter(fun (nv) -> try interactive.string.set(fst(nv), snd(nv)) catch _ do log.important(label="interactive.load", "Variable #{fst(nv)} not found.") end, string)
 end
@@ -282,6 +304,10 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
           unit = if v.unit == "" then "" else " "^v.unit end
           add("<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value+\"#{unit}\"'><text id='#{name}-value' style='inline'>#{value}#{unit}</text></div>")
         end
+      elsif v.type == "int" then
+        v = list.assoc(name, !variables_int)
+        value = string_of(!v.ref)
+        add("<input type='number' #{common} step='1' value='#{value}'>")
       elsif v.type == "bool" then
         v = list.assoc(name, !variables_bool)
         c = (!v.ref) ? "checked" : ""
@@ -312,6 +338,8 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
         t = interactive.type(name)
         if t == "float" then
           interactive.float.set(name, float_of_string(v))
+        elsif t == "int" then
+          interactive.int.set(name, int_of_string(v))
         elsif t == "bool" then
           interactive.bool.set(name, bool_of_string(v))
         elsif t == "string" then
@@ -344,6 +372,19 @@ def replaces interactive.float(~min=0.-infinity, ~max=infinity, ~step=0.1, ~desc
   r = ref(v)
   variables_float := list.add((name, {ref=r, unit=unit, min=min, max=max, step=step }), !variables_float)
   ref.getter(r).{set = interactive.float.set(name)}
+end
+
+# Read an integer from an interactive input.
+# @category Interaction
+# @param ~description Description of the variable.
+# @param ~osc OSC address.
+# @param name Name of the variable.
+# @param v Initial value.
+def replaces interactive.int(~description="", ~osc="", name, v)
+  interactive.create(name=name, description=description, osc=osc, type="int")
+  r = ref(v)
+  variables_int := list.add((name, {ref=r }), !variables_int)
+  ref.getter(r).{set = interactive.int.set(name)}
 end
 
 # Read a boolean from an interactive input.
