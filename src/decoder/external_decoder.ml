@@ -130,7 +130,9 @@ let register_stdin ~name ~sdoc ~priority ~mimes ~file_extensions ~test process =
     };
 
   let duration filename =
-    let process = Printf.sprintf "cat %s | %s" (Utils.quote filename) process in
+    let process =
+      Printf.sprintf "cat %s | %s" (Filename.quote filename) process
+    in
     duration process
   in
   Request.dresolvers#register name duration

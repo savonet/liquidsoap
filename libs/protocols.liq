@@ -213,13 +213,13 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   title = list.hd(default="",x)
   ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
-  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{string.quote(arg)}"
-  process = process_uri(extname=ext,cmd)
+  cmd = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{string.quote(arg)}"
+  cmd = process_uri(extname=ext,cmd)
 
   if title != "" then
-    ["annotate:title=#{string.quote(title)}:#{process}"]
+    ["annotate:title=#{string.quote(title)}:#{cmd}"]
   else
-    [process]
+    [cmd]
   end
 end
 add_protocol("youtube-dl", youtube_dl_protocol,

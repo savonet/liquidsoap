@@ -408,7 +408,7 @@ Changed:
   protocol. Rename protocol to `ffmpeg`. (#909)
 - `list.assoc` and `list.assoc.remove` require an ordered type as first
   component.
-- Renamed `quote` to `string.quote`.
+- Renamed `quote` to `string.quote`, removed `process.quote` in favor or `string.quote` (#1635)
 - Added `phase_inversion={true/false}` to `%opus` encoder (#937)
 - Fixed encoders forcing frame rate and audio channels too early (#933)
 - Change filename to a string getter in file-based outputs. (#198)
