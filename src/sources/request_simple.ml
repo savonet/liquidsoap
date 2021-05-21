@@ -54,7 +54,7 @@ let () =
 exception Invalid_URI of string
 
 (** [r] must resolve and be always ready. *)
-class unqueued ~kind request =
+class unqueued ~kind ~timeout request =
   object (self)
     inherit Request_source.unqueued ~name:"single" ~kind as super
 
@@ -62,7 +62,8 @@ class unqueued ~kind request =
       let uri = Request.initial_uri request in
       self#log#important "%S is static, resolving once for all..." uri;
       if
-        Request.Resolved <> Request.resolve ~ctype:(Some self#ctype) request 60.
+        Request.Resolved
+        <> Request.resolve ~ctype:(Some self#ctype) request timeout
       then raise (Invalid_URI uri);
       let filename = Option.get (Request.get_filename request) in
       if String.length filename < 15 then self#set_id filename;
@@ -111,7 +112,7 @@ let () =
       let kind = Source.Kind.of_kind kind in
       if (not fallible) && Request.is_static uri then (
         let request = Request.create ~persistent:true uri in
-        (new unqueued ~kind request :> source) )
+        (new unqueued ~kind ~timeout:t request :> source) )
       else (new queued uri ~kind l d t c :> source))
 
 let () =
@@ -125,7 +126,7 @@ let () =
     [("", Lang.request_t, None, None)] ~return_t:t (fun p ->
       let request = Lang.to_request (List.assoc "" p) in
       let kind = Source.Kind.of_kind kind in
-      (new unqueued ~kind request :> source))
+      (new unqueued ~kind ~timeout:60. request :> source))
 
 class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   default_duration timeout conservative =
