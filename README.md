@@ -21,7 +21,7 @@ Copyright 2003-2021 Savonet team
 |              |                                              |
 | ------------ | -------------------------------------------- |
 | Slack Chat   | http://slack.liquidsoap.info                 |
-| IRC          | #savonet on [irc.freenode.net](https://freenode.net/) (slack bridge)  |
+| IRC          | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge)  |
 | Mailing list | savonet-users@lists.sourceforge.net          |
 | Homepage     | http://liquidsoap.info                       |
 | Bug reports  | https://github.com/savonet/liquidsoap/issues |
