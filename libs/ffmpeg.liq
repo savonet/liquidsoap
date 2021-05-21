@@ -9,12 +9,12 @@ def input.v4l2(~id="", ~buffer=0.5, ~device="/dev/video0")
   (input.ffmpeg(format="v4l2", buffer=buffer, device):source(audio=none))
 end
 
-# Test video source
+# A test video source, which generates various patterns.
 # @category Source / Video Processing
 # @param ~kind Kind of the source: `"testsrc"`, `"testsrc2"`, `"smptebars"` or `"rgbtestsrc"`.
 # @param ~buffer How much to buffer in advance (in seconds).
 # @param ~duration Duration of the source.
-def video.testsrc.ffmpeg(~id="", ~kind="testsrc", ~buffer=0.5, ~duration=null())
+def video.testsrc(~id="", ~kind="testsrc", ~buffer=0.5, ~duration=null())
   if not list.mem(kind, ["testsrc", "testsrc2", "smptebars", "rgbtestsrc"]) then failwith("invalid kind for video.testsrc.ffmpeg") end
   size = "size=#{video.frame.width()}x#{video.frame.height()}"
   rate = "rate=#{video.frame.rate()}"
