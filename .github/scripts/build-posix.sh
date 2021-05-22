@@ -24,6 +24,8 @@ echo "\n### Setting up specific dependencies\n"
 
 cd /tmp/liquidsoap-full
 
+sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
+
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "\n### Compiling\n"
