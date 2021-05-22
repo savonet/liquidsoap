@@ -76,7 +76,8 @@ let stream_request ?headers ?http_version ?interface ~url ~request
       ~on_response_header_data ~on_body_data ()
   in
   connection#set_followlocation true;
-  Curl.Multi.add (Lazy.force mt) connection#handle
+  Curl.Multi.add (Lazy.force mt) connection#handle;
+  connection
 
 (** Utility for reading icy metadata *)
 let parse_metadata chunk =
@@ -218,6 +219,8 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     val m = Mutex.create ()
 
+    val mutable handler = None
+
     method decode ~url should_stop create_decoder =
       let response_headers = Buffer.create 1024 in
       let response_parsed = ref false in
@@ -275,10 +278,12 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                 Printf.fprintf f "%f %d\n%!" time self#length;
                 ret
       in
-      stream_request
-        ~headers:[("User-Agent", user_agent); ("Icy-MetaData", "1")]
-        ~url ~request:`Get ?interface:bind_address ~on_response_header_data
-        ~on_body_data ();
+      handler <-
+        Some
+          (stream_request
+             ~headers:[("User-Agent", user_agent); ("Icy-MetaData", "1")]
+             ~url ~request:`Get ?interface:bind_address ~on_response_header_data
+             ~on_body_data ());
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
       try
         let decoder = create_decoder input in
@@ -296,6 +301,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
         Tutils.mutexify m
           (fun () -> if !response_parsed then on_disconnect ())
           ();
+        self#disconnect;
         begin
           match e with
           | Failure s -> self#log#severe "Feeding stopped: %s" s
@@ -315,35 +321,45 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
           | None -> () )
 
     method private connect should_stop url =
-      let content_type =
-        match force_mime with
-          | Some m -> m
-          | None -> (
-              let _, _, _, headers =
-                Liqcurl.http_request ~follow_redirect:true ~timeout ~url
-                  ~request:`Head ?interface:bind_address
-                  ~on_body_data:(fun _ -> ())
-                  ()
-              in
-              match
-                List.find_opt
-                  (fun (lbl, _) -> String.lowercase_ascii lbl = "content-type")
-                  headers
-              with
-                | Some (_, m) -> m
-                | None -> "application/octet-stream" )
-      in
-      Generator.set_mode generator `Undefined;
-      let dec =
-        match Decoder.get_stream_decoder ~ctype:self#ctype content_type with
-          | Some d -> d
-          | None -> failwith "Unknown format!"
-      in
-      self#log#important "Decoding...";
-      Generator.set_rewrite_metadata generator (fun m ->
-          Hashtbl.add m "source_url" url;
-          m);
-      self#decode ~url should_stop dec
+      try
+        let content_type =
+          match force_mime with
+            | Some m -> m
+            | None -> (
+                let _, _, _, headers =
+                  Liqcurl.http_request ~follow_redirect:true ~timeout ~url
+                    ~request:`Head ?interface:bind_address
+                    ~on_body_data:(fun _ -> ())
+                    ()
+                in
+                match
+                  List.find_opt
+                    (fun (lbl, _) ->
+                      String.lowercase_ascii lbl = "content-type")
+                    headers
+                with
+                  | Some (_, m) -> m
+                  | None -> "application/octet-stream" )
+        in
+        Generator.set_mode generator `Undefined;
+        let dec =
+          match Decoder.get_stream_decoder ~ctype:self#ctype content_type with
+            | Some d -> d
+            | None -> failwith "Unknown format!"
+        in
+        self#log#important "Decoding...";
+        Generator.set_rewrite_metadata generator (fun m ->
+            Hashtbl.add m "source_url" url;
+            m);
+        self#decode ~url should_stop dec
+      with e ->
+        self#log#info "Connection failed: %s" (Printexc.to_string e);
+        if debug then raise e
+
+    method disconnect =
+      Tutils.mutexify m
+        (fun () -> ignore (Option.map (fun h -> h#cleanup) handler))
+        ()
 
     (* Take care of (re)starting the decoding *)
     method feed (should_stop, has_stopped) =
@@ -377,6 +393,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
     method sleep =
       (Option.get kill_polling) ();
       kill_polling <- None;
+      self#disconnect;
       Tutils.mutexify m (Condition.wait c) m
   end
 
