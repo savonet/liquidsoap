@@ -23,22 +23,23 @@
 let default_timeout = 0.1
 
 let mt =
+  let m = Mutex.create () in
+  let is_shutdown = ref false in
+  let should_proceed = Tutils.mutexify m (fun () -> not !is_shutdown) in
+  Lifecycle.before_core_shutdown
+    (Tutils.mutexify m (fun () -> is_shutdown := true));
   lazy
     (let mt = Curl.Multi.create () in
+     Lifecycle.after_stop (Tutils.mutexify m (fun () -> Curl.Multi.cleanup mt));
      let events = ref [`Delay default_timeout] in
      let rec handler ev =
-       List.iter
-         (function
-           | `Read fd -> ignore (Curl.Multi.action mt fd Curl.Multi.EV_IN)
-           | `Write fd -> ignore (Curl.Multi.action mt fd Curl.Multi.EV_OUT)
-           | `Delay _ -> Curl.Multi.action_timeout mt)
-         ev;
-       let rec cleanup () =
-         match Curl.Multi.remove_finished mt with
-           | Some _ -> cleanup ()
-           | None -> ()
-       in
-       cleanup ();
+       if should_proceed () then
+         List.iter
+           (function
+             | `Read fd -> ignore (Curl.Multi.action mt fd Curl.Multi.EV_IN)
+             | `Write fd -> ignore (Curl.Multi.action mt fd Curl.Multi.EV_OUT)
+             | `Delay _ -> Curl.Multi.action_timeout mt)
+           ev;
        [
          {
            Duppy.Task.priority = Tutils.Maybe_blocking;
