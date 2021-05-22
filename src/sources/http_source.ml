@@ -35,9 +35,7 @@ let mt =
          ev;
        let rec cleanup () =
          match Curl.Multi.remove_finished mt with
-           | Some (h, _) ->
-               Curl.cleanup h;
-               cleanup ()
+           | Some _ -> cleanup ()
            | None -> ()
        in
        cleanup ();
@@ -125,24 +123,22 @@ let read data buf ofs len =
   Utils.buffer_drop data ret;
   ret
 
-let read_stream ~on_metadata c m =
+let read_stream ~on_metadata ~wait_for_data =
   let position = ref 0 in
   let read_metadata = read_metadata on_metadata in
   fun metaint data buf ofs len ->
     match metaint with
       | None ->
-          while Buffer.length data = 0 do
-            Condition.wait c m
-          done;
+          wait_for_data ();
           read data buf ofs len
       | Some metaint ->
           let rec fn () =
             match Buffer.length data with
               | 0 ->
-                  Condition.wait c m;
+                  wait_for_data ();
                   fn ()
               | _ when !position = metaint ->
-                  if not (read_metadata position data) then Condition.wait c m;
+                  if not (read_metadata position data) then wait_for_data ();
                   fn ()
               | _ ->
                   let len = min len (metaint - !position) in
@@ -257,12 +253,18 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
             Buffer.add_string data s;
             Condition.signal c)
       in
-      let read_stream = read_stream ~on_metadata:self#insert_metadata c m in
+      let wait_for_data () =
+        if should_stop () then failwith "source stopped";
+        Condition.wait c m
+      in
+      let read_stream =
+        read_stream ~on_metadata:self#insert_metadata ~wait_for_data
+      in
       let read buf ofs len =
         Tutils.mutexify m
           (fun () ->
             while not !response_parsed do
-              Condition.wait c m
+              wait_for_data ()
             done;
             read_stream !metaint data buf ofs len)
           ()
@@ -358,7 +360,13 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     method disconnect =
       Tutils.mutexify m
-        (fun () -> ignore (Option.map (fun h -> h#cleanup) handler))
+        (fun () ->
+          ignore
+            (Option.map
+               (fun h ->
+                 Curl.Multi.remove (Lazy.force mt) h#handle;
+                 h#cleanup)
+               handler))
         ()
 
     (* Take care of (re)starting the decoding *)
