@@ -394,7 +394,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       (Option.get kill_polling) ();
       kill_polling <- None;
       self#disconnect;
-      Tutils.mutexify m (Condition.wait c) m
+      Tutils.mutexify m (fun () -> Condition.signal c) ()
   end
 
 let () =
