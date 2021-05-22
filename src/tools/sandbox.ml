@@ -23,11 +23,9 @@
 let log = Log.make ["sandbox"]
 
 let conf_sandbox =
-  Dtools.Conf.string
+  Dtools.Conf.bool
     ~p:(Configure.conf#plug "sandbox")
-    ~d:"disabled"
-    "Use sandboxing for external process. One of: `\"enabled\"`, \
-     `\"disabled\"` or `\"auto\"`."
+    ~d:false "Sandboxing for external processes."
 
 let tmpdir = Filename.get_temp_dir_name ()
 
@@ -96,13 +94,12 @@ let () =
       if Lazy.force is_docker then (
         log#important
           "Running inside a docker container, disabling sandboxing..";
-        conf_sandbox#set "disabled" )
+        conf_sandbox#set false )
       else if not (Lazy.force has_binary) then (
         log#important "Could not find binary %s, disabling sandboxing.."
           conf_binary#get;
-        conf_sandbox#set "disabled" )
-      else if conf_sandbox#get = "disabled" then
-        log#important "Sandboxing disabled"
+        conf_sandbox#set false )
+      else if not conf_sandbox#get then log#important "Sandboxing disabled"
       else (
         log#important "Sandboxing external processes using bubblewrap at %s"
           (Utils.which ~path:Configure.path conf_binary#get);
@@ -163,14 +160,7 @@ let bwrap =
   }
 
 let cmd ?rw ?ro ?network cmd =
-  let sandboxer =
-    (* This is intended to be extendable with more tools in the
-       future.. *)
-    match conf_sandbox#get with
-      | "disabled" -> disabled
-      | _ when Lazy.force has_binary -> bwrap
-      | _ -> disabled
-  in
+  let sandboxer = if conf_sandbox#get then bwrap else disabled in
   let f d v = match v with None -> d | Some v -> v in
   let rw = f conf_rw#get rw in
   let ro = f conf_ro#get ro in
