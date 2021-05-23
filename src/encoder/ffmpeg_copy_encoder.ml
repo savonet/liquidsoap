@@ -54,6 +54,7 @@ let mk_stream_copy ~video_size ~get_data output =
   let pts_offset = ref 0L in
   let last_pts_stream_idx = ref None in
   let last_dts_stream_idx = ref None in
+  let last_packet_duration = ref None in
 
   let to_main_time_base ~time_base v =
     Ffmpeg_utils.convert_time_base ~src:time_base ~dst:main_time_base v
@@ -64,12 +65,18 @@ let mk_stream_copy ~video_size ~get_data output =
       last_stream_idx := Some stream_idx;
       ts_offset :=
         (* Account for potential offset in new stream's TS. *)
-        match (!last_ts, ts) with
-          | Some old_ts, None -> old_ts
-          | Some old_ts, Some new_ts ->
+        match (!last_ts, ts, !last_packet_duration) with
+          | Some old_ts, None, None -> old_ts
+          | Some old_ts, None, Some d ->
+              Int64.add old_ts (to_main_time_base ~time_base d)
+          | Some old_ts, Some new_ts, None ->
               Int64.sub old_ts (to_main_time_base ~time_base new_ts)
-          | None, Some new_ts -> new_ts
-          | None, None -> 0L );
+          | Some old_ts, Some new_ts, Some d ->
+              Int64.add
+                (to_main_time_base ~time_base d)
+                (Int64.sub old_ts (to_main_time_base ~time_base new_ts))
+          | None, Some new_ts, _ -> new_ts
+          | None, None, _ -> 0L );
     let ret =
       match ts with
         | None -> Some !ts_offset
@@ -97,6 +104,7 @@ let mk_stream_copy ~video_size ~get_data output =
           let packet = Avcodec.Packet.dup packet in
           let packet_pts = Avcodec.Packet.get_pts packet in
           let packet_dts = Avcodec.Packet.get_dts packet in
+          let packet_duration = Avcodec.Packet.get_duration packet in
 
           let packet_pts =
             adjust ~stream_idx ~time_base ~last_stream_idx:last_pts_stream_idx
@@ -106,6 +114,8 @@ let mk_stream_copy ~video_size ~get_data output =
             adjust ~stream_idx ~time_base ~last_stream_idx:last_dts_stream_idx
               ~last_ts:last_dts ~ts_offset:dts_offset packet_dts
           in
+
+          last_packet_duration := packet_duration;
 
           Packet.set_pts packet packet_pts;
           Packet.set_dts packet packet_dts;
