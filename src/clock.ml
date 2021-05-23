@@ -96,6 +96,11 @@ let allow_streaming_errors =
         "use at your own risk!";
       ]
 
+let conf_log_delay =
+  Dtools.Conf.float
+    ~p:(conf_clock#plug "log_delay")
+    ~d:1. "How often (in seconds) we should indicate catchup errors."
+
 (** Leave a source, ignoring errors *)
 
 let leave (s : active_source) =
@@ -222,6 +227,7 @@ class clock ?(sync = `Auto) id =
 
     method private run =
       let acc = ref 0 in
+      let log_delay = Time.of_float conf_log_delay#get in
       let max_latency = Time.of_float (-.conf_max_latency#get) in
       let last_latency_log = ref (time ()) in
       t0 <- time ();
@@ -257,7 +263,7 @@ class clock ?(sync = `Auto) id =
               acc := 0 )
             else if
               (rem |<=| (time_zero |-| time_unit) || !acc >= 100)
-              && !last_latency_log |+| time_unit |<| time ()
+              && !last_latency_log |+| log_delay |<| time ()
             then (
               last_latency_log := time ();
               log#severe "We must catchup %.2f seconds%s!"

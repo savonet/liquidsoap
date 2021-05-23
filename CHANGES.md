@@ -84,6 +84,8 @@ New:
 - Added `video.still_frame`.
 - Added `request.status`.
 - Added `playlog` to record how long ago a song was last played (#333 and #1530).
+- Added `clock.log_delay` to configure how often clock catchup error messages
+  should be printed.
 
 Changed:
 
