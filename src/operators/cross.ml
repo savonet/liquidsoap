@@ -406,7 +406,6 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
             Clock.unify compound#clock s#clock;
             compound)
       in
-      compound#get_ready ~dynamic:true [(self :> source)];
       self#cleanup_transition_source;
       self#prepare_transition_source compound;
       pending_after <- gen_after;
