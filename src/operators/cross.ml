@@ -36,6 +36,8 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   object (self)
     inherit source ~name:"cross" kind as super
 
+    initializer Source.Kind.unify s#kind kind
+
     method stype = Source.Fallible
 
     (* This is complicated. crossfade should never be used with [self_sync]
