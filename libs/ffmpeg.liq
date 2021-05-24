@@ -1,7 +1,6 @@
 %ifdef input.ffmpeg
 # Stream from a video4linux2 input device, such as a webcam.
 # @category Source / Input
-# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~buffer How much to buffer in advance (in seconds).
 # @param ~device V4L2 device to use.
@@ -21,6 +20,14 @@ def video.testsrc(~id="", ~pattern="testsrc", ~buffer=0.5, ~duration=null())
   duration = if null.defined(duration) then ":duration=#{duration}" else "" end
   src = "#{pattern}=#{size}:#{rate}#{duration}"
   (input.ffmpeg(buffer=buffer, format="lavfi", src):source(audio=none))
+end
+
+# Read an RTMP stream.
+# @category Source / Input
+# @param ~buffer How much to buffer in advance (in seconds).
+# @param url URL to read RTMP from, in the form `rtmp://IP:PORT/ENDPOINT`
+def input.rtmp(~buffer=5., url)
+  input.ffmpeg(fallible=true, buffer=buffer, log_overfull=false, format="live_flv", int_args=[("listen", 1)], url)
 end
 %endif
 

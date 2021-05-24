@@ -86,6 +86,7 @@ New:
 - Added `playlog` to record how long ago a song was last played (#333 and #1530).
 - Added `clock.log_delay` to configure how often clock catchup error messages
   should be printed.
+- Added `input.rtmp` (#1640).
 
 Changed:
 
