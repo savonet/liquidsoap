@@ -86,6 +86,8 @@ class virtual source :
   -> ?midi_in:Frame.kind
   -> Kind.t
   -> object
+       method mutex : Mutex.t
+
        method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
        (** {1 Naming} *)

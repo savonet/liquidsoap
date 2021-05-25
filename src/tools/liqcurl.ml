@@ -22,6 +22,12 @@
 
 let () = Curl.global_init Curl.CURLINIT_GLOBALALL
 
+let is_shutdown =
+  let is_done = ref false in
+  let m = Mutex.create () in
+  Lifecycle.before_core_shutdown (Tutils.mutexify m (fun () -> is_done := true));
+  Tutils.mutexify m (fun () -> !is_done)
+
 let string_of_curl_code = function
   | Curl.CURLE_OK -> "Ok"
   | Curl.CURLE_UNSUPPORTED_PROTOCOL -> "Unsupported_protocol"
@@ -145,14 +151,18 @@ let parse_response_headers s =
   in
   (protocol_version, status_code, status_message, response_headers)
 
-let http_connection ?headers ?http_version ?timeout ?interface ~url ~request
-    ~on_response_header_data ~on_body_data () =
+type after_write = [ `Continue | `Pause ]
+
+let http_connection ?headers ?http_version ?(connection_timeout = 2) ?timeout
+    ?interface ~url ~request ~on_response_header_data ~on_body_data () =
   let connection = new Curl.handle in
   try
     connection#set_url url;
     connection#set_writefunction (fun s ->
-        on_body_data s;
-        String.length s);
+        match on_body_data s with
+          | `Continue -> String.length s
+          | `Pause -> 0x10000001
+        (* TODO replace when const is merged upstream. *));
     ignore
       (Option.map
          (fun headers ->
@@ -166,7 +176,13 @@ let http_connection ?headers ?http_version ?timeout ?interface ~url ~request
         | Some "1.1" -> Curl.HTTP_VERSION_1_1
         | Some "2.0" -> Curl.HTTP_VERSION_2
         | Some v -> fail (Printf.sprintf "Unsupported http version %s" v) );
-    ignore (Option.map connection#set_timeout timeout);
+    connection#set_connecttimeout connection_timeout;
+    ignore
+      (Option.map
+         (fun timeout ->
+           connection#set_lowspeedlimit 30;
+           connection#set_lowspeedtime timeout)
+         timeout);
     ignore (Option.map connection#set_interface interface);
     ( match request with
       | `Get -> connection#set_httpget true
@@ -183,18 +199,20 @@ let http_connection ?headers ?http_version ?timeout ?interface ~url ~request
     connection#set_headerfunction (fun s ->
         on_response_header_data s;
         String.length s);
+    connection#set_progressfunction (fun _ _ _ _ -> is_shutdown ());
+    connection#set_noprogress false;
     connection
   with exn ->
     connection#cleanup;
     raise exn
 
-let rec http_request ?headers ?http_version ?timeout ?interface ~follow_redirect
-    ~url ~request ~on_body_data () =
+let rec http_request ?headers ?http_version ?connection_timeout ?timeout
+    ?interface ~follow_redirect ~url ~request ~on_body_data () =
   let response_headers = Buffer.create 1024 in
   let on_response_header_data = Buffer.add_string response_headers in
   let connection =
-    http_connection ?headers ?http_version ?timeout ?interface ~url ~request
-      ~on_response_header_data ~on_body_data ()
+    http_connection ?headers ?http_version ?connection_timeout ?timeout
+      ?interface ~url ~request ~on_response_header_data ~on_body_data ()
   in
   try
     connection#perform;

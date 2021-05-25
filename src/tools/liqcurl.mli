@@ -20,29 +20,36 @@
 
  *****************************************************************************)
 
+val is_shutdown : unit -> bool
+val string_of_curl_code : Curl.curlCode -> string
+
 val parse_response_headers :
   string -> string * int * string * (string * string) list
+
+type after_write = [ `Continue | `Pause ]
 
 val http_connection :
   ?headers:(string * string) list ->
   ?http_version:string ->
+  ?connection_timeout:int ->
   ?timeout:int ->
   ?interface:string ->
   url:string ->
   request:[< `Delete | `Get | `Head | `Post of string | `Put of string ] ->
   on_response_header_data:(string -> unit) ->
-  on_body_data:(string -> unit) ->
+  on_body_data:(string -> after_write) ->
   unit ->
   Curl.handle
 
 val http_request :
   ?headers:(string * string) list ->
   ?http_version:string ->
+  ?connection_timeout:int ->
   ?timeout:int ->
   ?interface:string ->
   follow_redirect:bool ->
   url:string ->
   request:[< `Delete | `Get | `Head | `Post of string | `Put of string ] ->
-  on_body_data:(string -> 'a) ->
+  on_body_data:(string -> after_write) ->
   unit ->
   string * int * string * (string * string) list

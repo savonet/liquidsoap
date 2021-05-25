@@ -68,7 +68,6 @@ sources = \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
 	sources/request_simple.ml \
 	sources/generated.ml \
-        $(if $(W_CURL),sources/http_source.ml) \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
 	$(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \
@@ -257,6 +256,7 @@ liquidsoap_sources += \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(protocols) \
 	$(sources) $(outputs) tools/producer_consumer.ml \
+        $(if $(W_CURL),sources/http_source.ml) \
 	$(conversions) $(operators) \
 	$(encoders) $(decoders) $(ogg_demuxer) $(ogg_muxer) \
 	$(playlists) $(visualization) $(synth) $(io) \
