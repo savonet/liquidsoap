@@ -29,7 +29,6 @@ exception Not_connected
 
 module G = Generator
 module Generator = Generator.From_audio_video_plus
-module Generated = Generated.Make (Generator)
 
 let mode_of_value v =
   match Lang.to_string v with

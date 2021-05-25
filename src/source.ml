@@ -407,6 +407,8 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
     val mutex = Mutex.create ()
 
+    method mutex = mutex
+
     method mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b = Tutils.mutexify mutex
 
     (** Is the source infallible, i.e. is it always guaranteed that there

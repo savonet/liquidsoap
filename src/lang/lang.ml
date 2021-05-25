@@ -474,6 +474,10 @@ let to_num t =
 let to_list t = match (demeth t).value with List l -> l | _ -> assert false
 let to_tuple t = match (demeth t).value with Tuple l -> l | _ -> assert false
 let to_option t = match (demeth t).value with Null -> None | _ -> Some t
+let to_valued_option convert v = Option.map convert (to_option v)
+
+let to_default_option ~default convert v =
+  Option.value ~default (to_valued_option convert v)
 
 let to_product t =
   match (demeth t).value with Tuple [a; b] -> (a, b) | _ -> assert false

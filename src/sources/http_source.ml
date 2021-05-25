@@ -153,34 +153,28 @@ let read_stream ~on_metadata ~wait_for_data =
 
 module G = Generator
 module Generator = Generator.From_audio_video_plus
-module Generated = Generated.Make (Generator)
 
 class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
-  ~autostart ~bufferize ~max ~timeout ~debug ~log_overfull ~on_connect
-  ~on_disconnect ?(logfile = None) ~user_agent url =
-  let max_ticks = Frame.main_of_seconds (Stdlib.max max bufferize) in
+  ~autostart ~max_buffer ~clock_safe ~self_sync ~timeout ~debug ~log_overfull
+  ~on_connect ~on_disconnect ?(logfile = None) ~user_agent url =
+  let max_ticks = Frame.main_of_seconds max_buffer in
   (* We need a temporary log until the source has an ID. *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
+  let generator =
+    Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
+      `Undefined
+  in
   object (self)
     inherit Source.source ~name:"input.http" kind as super
 
-    inherit
-      Generated.source
-        (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
-           `Undefined)
-        ~empty_on_abort:false ~bufferize
+    val mutable should_stop = false
 
-    method stype = Source.Fallible
+    val c = Condition.create ()
 
-    (** [kill_polling] is for requesting that the feeding thread stops;
-      * it is called on #sleep. *)
-    val mutable kill_polling = None
+    val mutable handler = None
 
-    (** [wait_polling] is to make sure that the thread did stop;
-      * it is only called in #wake_up before creating a new thread,
-      * so that #sleep is instantaneous. *)
-    val mutable wait_polling = None
+    val mutable decoder = None
 
     (** Log file for the timestamps of read events. *)
     val mutable logf = None
@@ -188,6 +182,26 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
     val mutable relaying = autostart
 
     val mutable url = url
+
+    val mutable connect_task = None
+
+    val mutable clock = None
+
+    method stype = Source.Fallible
+
+    method self_sync = self_sync && self#is_ready
+
+    method is_ready =
+      self#mutexify (fun () -> (not should_stop) && decoder <> None) ()
+
+    method abort_track =
+      Generator.add_break generator;
+      self#disconnect
+
+    method remaining =
+      self#mutexify
+        (fun () -> if should_stop then 0 else Generator.remaining generator)
+        ()
 
     method private relaying = self#mutexify (fun () -> relaying) ()
 
@@ -199,10 +213,19 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     method url_cmd = self#mutexify (fun () -> url ()) ()
 
-    method status_cmd = self#mutexify (fun () -> "TODO") ()
+    method status_cmd =
+      self#mutexify
+        (fun () ->
+          match (handler, relaying) with
+            | Some _, _ -> "connected"
+            | None, true -> "connecting"
+            | None, false -> "stopped")
+        ()
 
     method buffer_length_cmd =
       self#mutexify (fun () -> Frame.seconds_of_audio self#length) ()
+
+    method length = Generator.length generator
 
     (* Insert metadata *)
     method insert_metadata m =
@@ -212,13 +235,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       Generator.add_metadata generator m;
       if track_on_meta then Generator.add_break generator
 
-    val c = Condition.create ()
-
-    val m = Mutex.create ()
-
-    val mutable handler = None
-
-    method decode ~url should_stop create_decoder =
+    method mk_decoder ~url create_decoder =
       let response_headers = Buffer.create 1024 in
       let response_parsed = ref false in
       let metaint = ref None in
@@ -232,11 +249,11 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
         | None -> ()
       end;
       let on_response_header_data =
-        Tutils.mutexify m (Buffer.add_string response_headers)
+        self#mutexify (Buffer.add_string response_headers)
       in
       let data = Buffer.create 1024 in
       let on_body_data =
-        Tutils.mutexify m (fun s ->
+        self#mutexify (fun s ->
             if not !response_parsed then (
               let _, _, _, headers =
                 Liqcurl.parse_response_headers
@@ -255,14 +272,14 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
             Condition.signal c)
       in
       let wait_for_data () =
-        if should_stop () then failwith "source stopped";
-        Condition.wait c m
+        if should_stop then failwith "source stopped";
+        Condition.wait c self#mutex
       in
       let read_stream =
         read_stream ~on_metadata:self#insert_metadata ~wait_for_data
       in
       let read buf ofs len =
-        Tutils.mutexify m
+        self#mutexify
           (fun () ->
             while not !response_parsed do
               wait_for_data ()
@@ -288,61 +305,40 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
              ~url ~request:`Get ?interface:bind_address ~on_response_header_data
              ~on_body_data ());
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
-      try
-        let decoder = create_decoder input in
-        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
-        while true do
-          if should_fail then failwith "end of track";
-          if should_stop () || not self#relaying then failwith "source stopped";
-          decoder.Decoder.decode buffer
-        done
-      with e -> (
-        if debug then raise e;
-
-        (* Feeding has stopped: adding a break here. *)
-        Generator.add_break ~sync:true generator;
-        Tutils.mutexify m
-          (fun () -> if !response_parsed then on_disconnect ())
-          ();
+      try decoder <- Some (create_decoder input)
+      with e ->
+        self#mutexify (fun () -> if !response_parsed then on_disconnect ()) ();
         self#disconnect;
         begin
-          match e with
-          | Failure s -> self#log#severe "Feeding stopped: %s" s
-          | G.Incorrect_stream_type ->
-              self#log#severe
-                "Feeding stopped: the decoded stream was not of the right \
-                 type. The typical situation is when you expect a stereo \
-                 stream whereas the stream is mono (in this case the situation \
-                 can easily be solved by using the audio_to_stereo operator to \
-                 convert the stream to a stereo one)."
-          | e -> self#log#severe "Feeding stopped: %s" (Printexc.to_string e)
-        end;
-        match logf with
+          match logf with
           | Some f ->
               close_out f;
               logf <- None
-          | None -> () )
+          | None -> ()
+        end;
+        raise e
 
-    method private connect should_stop url =
+    method private connect_fn () =
       try
+        let url = url () in
         let content_type =
           match force_mime with
             | Some m -> m
             | None -> (
-                let _, _, _, headers =
-                  Liqcurl.http_request ~follow_redirect:true ~timeout ~url
-                    ~request:`Head ?interface:bind_address
-                    ~on_body_data:(fun _ -> ())
-                    ()
-                in
                 match
+                  let _, _, _, headers =
+                    Liqcurl.http_request ~follow_redirect:true ~timeout ~url
+                      ~request:`Head ?interface:bind_address
+                      ~on_body_data:(fun _ -> ())
+                      ()
+                  in
                   List.find_opt
                     (fun (lbl, _) ->
                       String.lowercase_ascii lbl = "content-type")
                     headers
                 with
                   | Some (_, m) -> m
-                  | None -> "application/octet-stream" )
+                  | None | (exception _) -> "application/octet-stream" )
         in
         Generator.set_mode generator `Undefined;
         let dec =
@@ -350,18 +346,35 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
             | Some d -> d
             | None -> failwith "Unknown format!"
         in
-        self#log#important "Decoding...";
         Generator.set_rewrite_metadata generator (fun m ->
             Hashtbl.add m "source_url" url;
             m);
-        self#decode ~url should_stop dec
+        self#mk_decoder ~url dec;
+        -1.
       with e ->
         self#log#info "Connection failed: %s" (Printexc.to_string e);
-        if debug then raise e
+        if debug then raise e;
+        poll_delay
+
+    method private connect =
+      self#mutexify
+        (fun () ->
+          should_stop <- false;
+          match connect_task with
+            | Some t -> Duppy.Async.wake_up t
+            | None ->
+                let t =
+                  Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+                    self#connect_fn
+                in
+                connect_task <- Some t;
+                Duppy.Async.wake_up t)
+        ()
 
     method disconnect =
-      Tutils.mutexify m
+      self#mutexify
         (fun () ->
+          should_stop <- true;
           ignore
             (Option.map
                (fun h ->
@@ -370,15 +383,34 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                handler))
         ()
 
-    (* Take care of (re)starting the decoding *)
-    method feed (should_stop, has_stopped) =
-      (* Try to read the stream *)
-      let url = url () in
-      if self#relaying then self#connect should_stop url;
-      if should_stop () then has_stopped ()
-      else (
-        Thread.delay poll_delay;
-        self#feed (should_stop, has_stopped) )
+    method private get_frame frame =
+      let pos = Frame.position frame in
+      try
+        let decoder = self#mutexify (fun () -> Option.get decoder) () in
+        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+        while Generator.length generator < Lazy.force Frame.size do
+          decoder.Decoder.decode buffer
+        done;
+        Generator.fill generator frame
+      with exn ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
+        Frame.add_break frame pos
+
+    method private get_clock =
+      match clock with
+        | Some c -> c
+        | None ->
+            let c = new Clock.clock "input.http" in
+            clock <- Some c;
+            c
+
+    method private set_clock =
+      super#set_clock;
+      if clock_safe then
+        Clock.unify self#clock
+          (Clock.create_known (self#get_clock :> Clock.clock))
 
     method wake_up act =
       super#wake_up act;
@@ -386,24 +418,12 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       (* Now we can create the log function *)
       (log_ref := fun s -> self#log#important "%s" s);
 
-      (* Wait for the old polling thread to return, then create a new one. *)
-      assert (kill_polling = None);
-      begin
-        match wait_polling with
-        | None -> ()
-        | Some f ->
-            f ();
-            wait_polling <- None
-      end;
-      let kill, wait = Tutils.stoppable_thread self#feed "http feed" in
-      kill_polling <- Some kill;
-      wait_polling <- Some wait
+      self#connect
 
     method sleep =
-      (Option.get kill_polling) ();
-      kill_polling <- None;
       self#disconnect;
-      Tutils.mutexify m (fun () -> Condition.signal c) ()
+      self#mutexify (fun () -> Condition.signal c) ();
+      super#sleep
   end
 
 let () =
@@ -459,10 +479,6 @@ let () =
           "Address to bind on the local machine. This option can be useful if \
            your machine is bound to multiple IPs. Empty means no bind address."
       );
-      ( "buffer",
-        Lang.float_t,
-        Some (Lang.float 2.),
-        Some "Duration of the pre-buffered data." );
       ( "timeout",
         Lang.int_t,
         Some (Lang.int 30),
@@ -483,14 +499,14 @@ let () =
         Some (Lang.bool true),
         Some "Treat new metadata as new track." );
       ( "force_mime",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Force mime data type. Not used if empty." );
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Force mime data type." );
       ( "poll_delay",
         Lang.float_t,
         Some (Lang.float 2.),
         Some "Polling delay when trying to connect to the stream." );
-      ( "max",
+      ( "max_buffer",
         Lang.float_t,
         Some (Lang.float 20.),
         Some "Maximum duration of the buffered data." );
@@ -512,6 +528,20 @@ let () =
         Lang.string_t,
         Some (Lang.string Http.user_agent),
         Some "User agent." );
+      ( "self_sync",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Should the source control its own timing? Typically, should be \
+           `true` for icecast sources and `false` for regular `http` requests."
+      );
+      ( "clock_safe",
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some
+          "Should the source be in its own clock. Should be the same value as \
+           `self_sync` unless the source is mixed with other `clock_safe` \
+           sources like `input.ao`" );
       ("", Lang.getter_t Lang.string_t, None, Some "URL of an HTTP stream");
     ]
     (fun p ->
@@ -530,17 +560,14 @@ let () =
       in
       let bind_address = match bind_address with "" -> None | s -> Some s in
       let force_mime =
-        match Lang.to_string (List.assoc "force_mime" p) with
-          | "" -> None
-          | s -> Some s
+        Lang.to_valued_option Lang.to_string (List.assoc "force_mime" p)
       in
-      let bufferize = Lang.to_float (List.assoc "buffer" p) in
-      let max = Lang.to_float (List.assoc "max" p) in
-      if bufferize >= max then
-        raise
-          (Lang_errors.Invalid_value
-             ( List.assoc "max" p,
-               "Maximum buffering inferior to pre-buffered data" ));
+      let max_buffer = Lang.to_float (List.assoc "max_buffer" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
+      let clock_safe =
+        Lang.to_default_option ~default:self_sync Lang.to_bool
+          (List.assoc "clock_safe" p)
+      in
       let on_connect l =
         let l =
           List.map
@@ -557,5 +584,5 @@ let () =
       let kind = Source.Kind.of_kind Lang.any in
       new http
         ~kind ~autostart ~track_on_meta ~force_mime ~bind_address ~poll_delay
-        ~timeout ~on_connect ~on_disconnect ~bufferize ~max ~debug ~log_overfull
-        ~logfile ~user_agent url)
+        ~timeout ~on_connect ~on_disconnect ~max_buffer ~self_sync ~clock_safe
+        ~debug ~log_overfull ~logfile ~user_agent url)
