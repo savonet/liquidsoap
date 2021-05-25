@@ -513,7 +513,7 @@ let () =
 
 let () =
   add_builtin "file.digest" ~cat:Sys
-    ~descr:"Return a digest for the given file."
+    ~descr:"Return an MD5 digest for the given file."
     [("", Lang.string_t, None, None)] Lang.string_t (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
       if Sys.file_exists file then
