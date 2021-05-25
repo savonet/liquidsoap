@@ -140,6 +140,15 @@ let () =
     ~escape_char:Utils.escape_utf8_char
 
 let () =
+  add_builtin "string.escape_annotation" ~cat:String
+    ~descr:
+      "Escape a string so that it is suitable for use as value for the \
+       `annotate:` protocol." [("", Lang.string_t, None, None)] Lang.string_t
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_string in
+      Lang.string ("\"" ^ String.escaped s ^ "\""))
+
+let () =
   add_builtin "string.split" ~cat:String
     ~descr:
       "Split a string at 'separator'. Perl compatible regular expressions are \

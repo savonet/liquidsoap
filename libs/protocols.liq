@@ -217,7 +217,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   cmd = process_uri(extname=ext,cmd)
 
   if title != "" then
-    ["annotate:title=\"#{string.escape_quotes(title)}\":#{cmd}"]
+    ["annotate:title=#{string.escape_annotation(title)}:#{cmd}"]
   else
     [cmd]
   end
@@ -271,7 +271,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   def annotate(m) =
     def f(x) =
       let (key,value) = x
-      "#{key}=\"#{string.escape_quotes(value)}\""
+      "#{key}=#{string.escape_annotation(value)}"
     end
     m = string.concat(separator=",",list.map(f,m))
     if string.length(m) > 0 then

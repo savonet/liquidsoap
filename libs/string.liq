@@ -53,10 +53,3 @@ end
 def string.null_terminated(s)
   s ^ "\000"
 end
-
-# Replace all `"` characters by `\"` in a string.
-# @category String
-# @param s String.
-def string.escape_quotes(s)
-  string.replace(pattern="\"", fun (_) -> "\\\"", s)
-end
