@@ -56,7 +56,9 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   l = ref([])
   # Load from persistency file
   if null.defined(persistency) then
-    l := of_json(default=[("", 0.)], file.contents(null.get(persistency)))
+    if file.exists(null.get(persistency)) then
+      l := of_json(default=[("", 0.)], file.contents(null.get(persistency)))
+    end
   end
   # Save into persistency file
   def save()
