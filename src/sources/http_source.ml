@@ -20,33 +20,58 @@
 
  *****************************************************************************)
 
+(* This is a tricky implementation due to some technical details of libcurl.
+   Here's the gist of it:
+
+*)
+
 let default_timeout = 0.1
 
-let mt =
+(* Libcurl does not have an API to query if a transfer is done.. *)
+let transfers = Hashtbl.create 10
+let transfers_m = Mutex.create ()
+let transfer_active = Tutils.mutexify transfers_m (Hashtbl.mem transfers)
+let on_transfer_done = Tutils.mutexify transfers_m (Hashtbl.remove transfers)
+
+let on_transfer_started =
+  Tutils.mutexify transfers_m (fun c -> Hashtbl.add transfers c true)
+
+let curl_shutdown =
   let m = Mutex.create () in
   let is_shutdown = ref false in
-  let should_proceed = Tutils.mutexify m (fun () -> not !is_shutdown) in
   Lifecycle.before_core_shutdown
     (Tutils.mutexify m (fun () -> is_shutdown := true));
+  Tutils.mutexify m (fun () -> !is_shutdown)
+
+let mt =
   lazy
     (let mt = Curl.Multi.create () in
-     Lifecycle.after_stop (Tutils.mutexify m (fun () -> Curl.Multi.cleanup mt));
      let events = ref [`Delay default_timeout] in
      let rec handler ev =
-       if should_proceed () then
+       if not (curl_shutdown ()) then (
          List.iter
            (function
              | `Read fd -> ignore (Curl.Multi.action mt fd Curl.Multi.EV_IN)
              | `Write fd -> ignore (Curl.Multi.action mt fd Curl.Multi.EV_OUT)
              | `Delay _ -> Curl.Multi.action_timeout mt)
            ev;
-       [
-         {
-           Duppy.Task.priority = Tutils.Maybe_blocking;
-           events = !events;
-           handler;
-         };
-       ]
+         let rec mark_transfers_done () =
+           match Curl.Multi.remove_finished mt with
+             | Some (h, _) ->
+                 on_transfer_done h;
+                 Curl.cleanup h;
+                 mark_transfers_done ()
+             | None -> ()
+         in
+         mark_transfers_done ();
+         [
+           {
+             Duppy.Task.priority = Tutils.Maybe_blocking;
+             events = !events;
+             handler;
+           };
+         ] )
+       else []
      in
      Duppy.Task.(
        add Tutils.scheduler
@@ -76,6 +101,7 @@ let stream_request ?headers ?http_version ?interface ~url ~request
   in
   connection#set_followlocation true;
   Curl.Multi.add (Lazy.force mt) connection#handle;
+  on_transfer_started connection#handle;
   connection
 
 (** Utility for reading icy metadata *)
@@ -102,21 +128,19 @@ let parse_metadata chunk =
   parse chunk;
   h
 
-let read_metadata on_metadata =
+let read_metadata ~wait_for_data on_metadata =
   let old_chunk = ref "" in
   fun position data ->
     let size = 16 * int_of_char (Buffer.nth data 0) in
-    if Buffer.length data < size + 1 then false
-    else (
-      let chunk = Bytes.create size in
-      Buffer.blit data 1 chunk 0 size;
-      Utils.buffer_drop data (size + 1);
-      position := 0;
-      let chunk = Bytes.unsafe_to_string chunk in
-      if chunk <> "" && chunk <> !old_chunk then (
-        old_chunk := chunk;
-        on_metadata (parse_metadata chunk) );
-      true )
+    wait_for_data (size + 1);
+    let chunk = Bytes.create size in
+    Buffer.blit data 1 chunk 0 size;
+    Utils.buffer_drop data (size + 1);
+    position := 0;
+    let chunk = Bytes.unsafe_to_string chunk in
+    if chunk <> "" && chunk <> !old_chunk then (
+      old_chunk := chunk;
+      on_metadata (parse_metadata chunk) )
 
 let read data buf ofs len =
   let ret = min (Buffer.length data) len in
@@ -126,20 +150,20 @@ let read data buf ofs len =
 
 let read_stream ~on_metadata ~wait_for_data =
   let position = ref 0 in
-  let read_metadata = read_metadata on_metadata in
+  let read_metadata = read_metadata ~wait_for_data on_metadata in
   fun metaint data buf ofs len ->
     match metaint with
       | None ->
-          wait_for_data ();
+          wait_for_data 1;
           read data buf ofs len
       | Some metaint ->
           let rec fn () =
             match Buffer.length data with
               | 0 ->
-                  wait_for_data ();
+                  wait_for_data 1;
                   fn ()
               | _ when !position = metaint ->
-                  if not (read_metadata position data) then wait_for_data ();
+                  read_metadata position data;
                   fn ()
               | _ ->
                   let len = min len (metaint - !position) in
@@ -155,26 +179,36 @@ module G = Generator
 module Generator = Generator.From_audio_video_plus
 
 class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
-  ~autostart ~max_buffer ~clock_safe ~self_sync ~timeout ~debug ~log_overfull
-  ~on_connect ~on_disconnect ?(logfile = None) ~user_agent url =
-  let max_ticks = Frame.main_of_seconds max_buffer in
+  ~autostart ~clock_safe ~self_sync ~timeout ~debug ~on_connect ~on_disconnect
+  ?(logfile = None) ~user_agent url =
+  (* Since we control the size of the buffer, this should
+     never happen. *)
+  let max_ticks = Frame.main_of_seconds 20. in
   (* We need a temporary log until the source has an ID. *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   let generator =
-    Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
+    Generator.create ~log ~log_overfull:true ~overfull:(`Drop_old max_ticks)
       `Undefined
   in
   object (self)
     inherit Source.source ~name:"input.http" kind as super
 
-    val mutable should_stop = false
+    val read_c = Condition.create ()
 
-    val c = Condition.create ()
+    val write_c = Condition.create ()
 
     val mutable handler = None
 
     val mutable decoder = None
+
+    val mutable response_parsed = false
+
+    val mutable stream_started = false
+
+    val mutable metaint = None
+
+    val mutable max_data_buffer = 64000
 
     (** Log file for the timestamps of read events. *)
     val mutable logf = None
@@ -191,17 +225,14 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     method self_sync = self_sync && self#is_ready
 
-    method is_ready =
-      self#mutexify (fun () -> (not should_stop) && decoder <> None) ()
+    method is_ready = self#mutexify (fun () -> decoder <> None) ()
 
     method abort_track =
       Generator.add_break generator;
-      self#disconnect
+      self#reconnect
 
     method remaining =
-      self#mutexify
-        (fun () -> if should_stop then 0 else Generator.remaining generator)
-        ()
+      self#mutexify (fun () -> Generator.remaining generator) ()
 
     method private relaying = self#mutexify (fun () -> relaying) ()
 
@@ -237,8 +268,6 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     method mk_decoder ~url create_decoder =
       let response_headers = Buffer.create 1024 in
-      let response_parsed = ref false in
-      let metaint = ref None in
       begin
         match logfile with
         | Some f -> (
@@ -254,26 +283,41 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       let data = Buffer.create 1024 in
       let on_body_data =
         self#mutexify (fun s ->
-            if not !response_parsed then (
+            if not response_parsed then (
               let _, _, _, headers =
                 Liqcurl.parse_response_headers
                   (Buffer.contents response_headers)
               in
               on_connect headers;
-              metaint :=
+              metaint <-
                 Option.map
                   (fun (_, v) -> int_of_string v)
                   (List.find_opt
                      (fun (lbl, _) ->
                        String.lowercase_ascii lbl = "icy-metaint")
                      headers);
-              response_parsed := true );
+              response_parsed <- true );
             Buffer.add_string data s;
-            Condition.signal c)
+            Condition.signal read_c;
+            while stream_started && max_data_buffer <= Buffer.length data do
+              Condition.wait write_c self#mutex;
+              if 0 < Buffer.length data then Condition.signal read_c
+            done)
       in
-      let wait_for_data () =
-        if should_stop then failwith "source stopped";
-        Condition.wait c self#mutex
+      let connection =
+        stream_request
+          ~headers:[("User-Agent", user_agent); ("Icy-MetaData", "1")]
+          ~url ~request:`Get ?interface:bind_address ~on_response_header_data
+          ~on_body_data ()
+      in
+      handler <- Some connection;
+      let wait_for_data len =
+        max_data_buffer <- max len max_data_buffer;
+        Condition.signal write_c;
+        while Buffer.length data < len && transfer_active connection#handle do
+          Condition.wait read_c self#mutex;
+          Condition.signal write_c
+        done
       in
       let read_stream =
         read_stream ~on_metadata:self#insert_metadata ~wait_for_data
@@ -281,10 +325,10 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       let read buf ofs len =
         self#mutexify
           (fun () ->
-            while not !response_parsed do
-              wait_for_data ()
+            while not response_parsed do
+              wait_for_data max_data_buffer
             done;
-            read_stream !metaint data buf ofs len)
+            read_stream metaint data buf ofs len)
           ()
       in
       let read =
@@ -298,17 +342,9 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                 Printf.fprintf f "%f %d\n%!" time self#length;
                 ret
       in
-      handler <-
-        Some
-          (stream_request
-             ~headers:[("User-Agent", user_agent); ("Icy-MetaData", "1")]
-             ~url ~request:`Get ?interface:bind_address ~on_response_header_data
-             ~on_body_data ());
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
       try decoder <- Some (create_decoder input)
       with e ->
-        self#mutexify (fun () -> if !response_parsed then on_disconnect ()) ();
-        self#disconnect;
         begin
           match logf with
           | Some f ->
@@ -350,16 +386,17 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
             Hashtbl.add m "source_url" url;
             m);
         self#mk_decoder ~url dec;
+        stream_started <- true;
         -1.
       with e ->
         self#log#info "Connection failed: %s" (Printexc.to_string e);
+        self#disconnect;
         if debug then raise e;
         poll_delay
 
     method private connect =
       self#mutexify
         (fun () ->
-          should_stop <- false;
           match connect_task with
             | Some t -> Duppy.Async.wake_up t
             | None ->
@@ -371,17 +408,30 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                 Duppy.Async.wake_up t)
         ()
 
-    method disconnect =
+    method private disconnect =
       self#mutexify
         (fun () ->
-          should_stop <- true;
+          if response_parsed then on_disconnect ();
+          decoder <- None;
+          stream_started <- false;
+          response_parsed <- false;
+          metaint <- None;
+          Condition.broadcast read_c;
+          Condition.broadcast write_c;
           ignore
             (Option.map
                (fun h ->
-                 Curl.Multi.remove (Lazy.force mt) h#handle;
-                 h#cleanup)
+                 if transfer_active h#handle then (
+                   if not (curl_shutdown ()) then (
+                     Curl.Multi.remove (Lazy.force mt) h#handle;
+                     h#cleanup );
+                   on_transfer_done h#handle ))
                handler))
         ()
+
+    method private reconnect =
+      self#disconnect;
+      self#connect
 
     method private get_frame frame =
       let pos = Frame.position frame in
@@ -391,12 +441,14 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
         while Generator.length generator < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
-        Generator.fill generator frame
+        Generator.fill generator frame;
+        self#mutexify (fun () -> Condition.signal write_c) ()
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
-        Frame.add_break frame pos
+        Frame.add_break frame pos;
+        self#reconnect
 
     method private get_clock =
       match clock with
@@ -414,15 +466,12 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     method wake_up act =
       super#wake_up act;
-
       (* Now we can create the log function *)
       (log_ref := fun s -> self#log#important "%s" s);
-
       self#connect
 
     method sleep =
       self#disconnect;
-      self#mutexify (fun () -> Condition.signal c) ();
       super#sleep
   end
 
@@ -494,6 +543,13 @@ let () =
         Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),
         Some "Function to excecute when a source is disconnected" );
+      ( "active",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "If `true`, the source's data is continuously pulled. Otherwise, it \
+           accumulates and you need to explicitely connect it to an output to \
+           make sure it is consumed." );
       ( "new_track_on_metadata",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -506,10 +562,6 @@ let () =
         Lang.float_t,
         Some (Lang.float 2.),
         Some "Polling delay when trying to connect to the stream." );
-      ( "max_buffer",
-        Lang.float_t,
-        Some (Lang.float 20.),
-        Some "Maximum duration of the buffered data." );
       ( "logfile",
         Lang.string_t,
         Some (Lang.string ""),
@@ -520,10 +572,6 @@ let () =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Run in debugging mode, not catching some exceptions." );
-      ( "log_overfull",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Log when the source's buffer is overfull." );
       ( "user_agent",
         Lang.string_t,
         Some (Lang.string Http.user_agent),
@@ -551,8 +599,8 @@ let () =
       let user_agent = Lang.to_string (List.assoc "user_agent" p) in
       let timeout = Lang.to_int (List.assoc "timeout" p) in
       let track_on_meta = Lang.to_bool (List.assoc "new_track_on_metadata" p) in
+      let active = Lang.to_bool (List.assoc "active" p) in
       let debug = Lang.to_bool (List.assoc "debug" p) in
-      let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let logfile =
         match Lang.to_string (List.assoc "logfile" p) with
           | "" -> None
@@ -562,7 +610,6 @@ let () =
       let force_mime =
         Lang.to_valued_option Lang.to_string (List.assoc "force_mime" p)
       in
-      let max_buffer = Lang.to_float (List.assoc "max_buffer" p) in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let clock_safe =
         Lang.to_default_option ~default:self_sync Lang.to_bool
@@ -582,7 +629,17 @@ let () =
       in
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let kind = Source.Kind.of_kind Lang.any in
-      new http
-        ~kind ~autostart ~track_on_meta ~force_mime ~bind_address ~poll_delay
-        ~timeout ~on_connect ~on_disconnect ~max_buffer ~self_sync ~clock_safe
-        ~debug ~log_overfull ~logfile ~user_agent url)
+      let source =
+        new http
+          ~kind ~autostart ~track_on_meta ~force_mime ~bind_address ~poll_delay
+          ~timeout ~on_connect ~on_disconnect ~self_sync ~clock_safe ~debug
+          ~logfile ~user_agent url
+      in
+      if active then
+        ignore
+          (new Output.dummy
+             ~kind ~autostart:true ~infallible:false
+             ~on_start:(fun _ -> ())
+             ~on_stop:(fun _ -> ())
+             (Lang.source (source :> Source.source)));
+      source)

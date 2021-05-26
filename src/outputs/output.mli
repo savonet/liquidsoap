@@ -109,3 +109,22 @@ class virtual encoded :
 
        method virtual private output_stop : unit
      end
+
+class dummy :
+  infallible:bool
+  -> on_start:(unit -> unit)
+  -> on_stop:(unit -> unit)
+  -> autostart:bool
+  -> kind:Source.Kind.t
+  -> Lang.value
+  -> object
+       inherit output
+
+       method private output_reset : unit
+
+       method private output_start : unit
+
+       method private output_stop : unit
+
+       method private output_send : Frame.t -> unit
+     end
