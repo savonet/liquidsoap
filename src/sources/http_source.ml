@@ -22,7 +22,7 @@
 
 (* This is a tricky implementation due to some technical details of libcurl.
    Here's the gist of it:
-
+   - Stream data is passed  
 *)
 
 let default_timeout = 0.1
@@ -196,15 +196,13 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     val read_c = Condition.create ()
 
-    val write_c = Condition.create ()
-
     val mutable handler = None
 
     val mutable decoder = None
 
     val mutable response_parsed = false
 
-    val mutable stream_started = false
+    val mutable stream_paused = false
 
     val mutable metaint = None
 
@@ -298,11 +296,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                      headers);
               response_parsed <- true );
             Buffer.add_string data s;
-            Condition.signal read_c;
-            while stream_started && max_data_buffer <= Buffer.length data do
-              Condition.wait write_c self#mutex;
-              if 0 < Buffer.length data then Condition.signal read_c
-            done)
+            Condition.signal read_c)
       in
       let connection =
         stream_request
@@ -313,11 +307,18 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       handler <- Some connection;
       let wait_for_data len =
         max_data_buffer <- max len max_data_buffer;
-        Condition.signal write_c;
-        while Buffer.length data < len && transfer_active connection#handle do
-          Condition.wait read_c self#mutex;
-          Condition.signal write_c
-        done
+        match Buffer.length data with
+          | n when n < len ->
+              if transfer_active connection#handle then
+                Condition.wait read_c self#mutex
+          | n when max_data_buffer <= n ->
+              if not stream_paused then (
+                Curl.pause connection#handle [Curl.PAUSE_ALL];
+                stream_paused <- true )
+          | _ ->
+              if stream_paused then (
+                Curl.pause connection#handle [];
+                stream_paused <- false )
       in
       let read_stream =
         read_stream ~on_metadata:self#insert_metadata ~wait_for_data
@@ -386,7 +387,6 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
             Hashtbl.add m "source_url" url;
             m);
         self#mk_decoder ~url dec;
-        stream_started <- true;
         -1.
       with e ->
         self#log#info "Connection failed: %s" (Printexc.to_string e);
@@ -413,11 +413,10 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
         (fun () ->
           if response_parsed then on_disconnect ();
           decoder <- None;
-          stream_started <- false;
+          stream_paused <- false;
           response_parsed <- false;
           metaint <- None;
-          Condition.broadcast read_c;
-          Condition.broadcast write_c;
+          Condition.signal read_c;
           ignore
             (Option.map
                (fun h ->
@@ -441,8 +440,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
         while Generator.length generator < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
-        Generator.fill generator frame;
-        self#mutexify (fun () -> Condition.signal write_c) ()
+        Generator.fill generator frame
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
