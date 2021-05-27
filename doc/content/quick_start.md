@@ -50,7 +50,7 @@ When an output complains about its source, you have to turn it into
 an infallible one. Depending on the situation, many solutions are available.
 The function `mksafe` takes a source and returns an infallible
 source, streaming silence when the input stream becomes unavailable.
-In a radio-like stream, silence is not the prefered solution, and you
+In a radio-like stream, silence is not the preferred solution, and you
 will probably prefer to `fallback` on an infallible
 "security" source:
 

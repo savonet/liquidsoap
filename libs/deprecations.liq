@@ -502,9 +502,9 @@ def input.http(%argsof(input.http), s) =
 end
 
 # @flag deprecated
-def output.prefered(~id="",~fallible=false,
+def output.preferred(~id="",~fallible=false,
                     ~on_start={()},~on_stop={()},~start=true,s)
-  deprecated("output.prefered","output")
+  deprecated("output.preferred","output")
   output(id=id,fallible=fallible,
          start=start,on_start=on_start,on_stop=on_stop,
          s)

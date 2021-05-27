@@ -143,7 +143,7 @@ sources =
   end
 mixer = mix(id="mixer",sources)
 
-output.prefered(id="speaker",mixer)
+output.preferred(id="speaker",mixer)
 output.icecast(%%vorbis,
   id="broadcast",
   host="%s",port=%d,mount="%s",start=false,mixer)

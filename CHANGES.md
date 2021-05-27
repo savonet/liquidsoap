@@ -1031,7 +1031,7 @@ Input/output:
 - New ALSA settings alsa.alsa_buffer, alsa.buffer_length and alsa.periods
   Setting periods=0 allows to not attempt to set the number periods,
   which is impossible on some devices
-- New preference order in input/output.prefered(): pulseaudio, portaudio,
+- New preference order in input/output.preferred(): pulseaudio, portaudio,
   oss, alsa, ao, dummy
 
 Operators:

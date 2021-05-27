@@ -982,15 +982,15 @@ AC_SUBST(W_PYTHON)
 AC_SUBST(PYMDIR)
 
 if test "x$W_AO" = "xyes" ; then
-  prefered_output=output.ao
+  preferred_output=output.ao
 else
   if test "x$W_ALSA" = "xyes" ; then
-    prefered_output=output.alsa
+    preferred_output=output.alsa
   else
-    prefered_output=output.dummy
+    preferred_output=output.dummy
   fi
 fi
-AC_SUBST(prefered_output)
+AC_SUBST(preferred_output)
 
 #
 # All done.
