@@ -312,7 +312,14 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                      headers);
               response_parsed <- true );
             Buffer.add_string data s;
-            Condition.signal read_c)
+            Condition.signal read_c;
+            let n = Buffer.length data in
+            if (not stream_paused) && max_data_buffer <= n then (
+              self#log#debug "Pausing transfer (min: %d, max: %d, buffer: %d)"
+                min_data_buffer max_data_buffer n;
+              stream_paused <- true;
+              `Pause )
+            else `Continue)
       in
       let connection =
         stream_request
@@ -324,32 +331,16 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       let wait_for_data len =
         max_data_buffer <- max len max_data_buffer;
         if transfer_active connection#handle then (
-          match Buffer.length data with
-            | n when n < len ->
-                if stream_paused then (
-                  self#log#debug
-                    "Resuming transfer (min: %d, max: %d, buffer: %d)"
-                    min_data_buffer max_data_buffer n;
-                  Curl.pause connection#handle [];
-                  stream_paused <- false );
-                while Buffer.length data < len do
-                  Condition.wait read_c self#mutex
-                done;
-                if Buffer.length data < len then raise Transfer_done
-            | n when max_data_buffer <= n && not self_sync ->
-                if not stream_paused then (
-                  self#log#debug
-                    "Pausing transfer (min: %d, max: %d, buffer: %d)"
-                    min_data_buffer max_data_buffer n;
-                  Curl.pause connection#handle [Curl.PAUSE_ALL];
-                  stream_paused <- true )
-            | n ->
-                if stream_paused then (
-                  self#log#debug
-                    "Resuming transfer (min: %d, max: %d, buffer: %d)"
-                    min_data_buffer max_data_buffer n;
-                  Curl.pause connection#handle [];
-                  stream_paused <- false ) )
+          let n = Buffer.length data in
+          if n < max_data_buffer && stream_paused then (
+            self#log#debug "Resuming transfer (min: %d, max: %d, buffer: %d)"
+              min_data_buffer max_data_buffer n;
+            Curl.pause connection#handle [];
+            stream_paused <- false );
+          while transfer_active connection#handle && Buffer.length data < len do
+            Condition.wait read_c self#mutex
+          done;
+          if Buffer.length data < len then raise Transfer_done )
       in
       let read_stream =
         read_stream ~on_metadata:self#insert_metadata ~wait_for_data
@@ -397,7 +388,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                   let _, _, _, headers =
                     Liqcurl.http_request ~follow_redirect:true ~timeout ~url
                       ~request:`Head ?interface:bind_address
-                      ~on_body_data:(fun _ -> ())
+                      ~on_body_data:(fun _ -> `Continue)
                       ()
                   in
                   List.find_opt

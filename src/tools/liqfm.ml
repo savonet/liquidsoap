@@ -45,7 +45,10 @@ module Liq_http = struct
       let data = Buffer.create 1024 in
       let x, code, y, _ =
         Liqcurl.http_request ?headers ~follow_redirect:true
-          ~on_body_data:(Buffer.add_string data) ~timeout ~url ~request ()
+          ~on_body_data:(fun s ->
+            Buffer.add_string data s;
+            `Continue)
+          ~timeout ~url ~request ()
       in
       if code <> 200 then
         raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y));

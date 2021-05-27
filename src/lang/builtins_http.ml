@@ -132,7 +132,9 @@ let add_http_request ~stream_body ~descr ~request name =
           let ans =
             Liqcurl.http_request ~follow_redirect:redirect ~timeout ~headers
               ~url
-              ~on_body_data:(fun s -> on_body_data (Some s))
+              ~on_body_data:(fun s ->
+                on_body_data (Some s);
+                `Continue)
               ~request ?http_version ()
           in
           on_body_data None;

@@ -145,14 +145,18 @@ let parse_response_headers s =
   in
   (protocol_version, status_code, status_message, response_headers)
 
+type after_write = [ `Continue | `Pause ]
+
 let http_connection ?headers ?http_version ?timeout ?interface ~url ~request
     ~on_response_header_data ~on_body_data () =
   let connection = new Curl.handle in
   try
     connection#set_url url;
     connection#set_writefunction (fun s ->
-        on_body_data s;
-        String.length s);
+        match on_body_data s with
+          | `Continue -> String.length s
+          | `Pause -> 0x10000001
+        (* TODO replace when const is merged upstream. *));
     ignore
       (Option.map
          (fun headers ->

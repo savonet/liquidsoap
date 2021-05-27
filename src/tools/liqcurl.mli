@@ -23,6 +23,8 @@
 val parse_response_headers :
   string -> string * int * string * (string * string) list
 
+type after_write = [ `Continue | `Pause ]
+
 val http_connection :
   ?headers:(string * string) list ->
   ?http_version:string ->
@@ -31,7 +33,7 @@ val http_connection :
   url:string ->
   request:[< `Delete | `Get | `Head | `Post of string | `Put of string ] ->
   on_response_header_data:(string -> unit) ->
-  on_body_data:(string -> unit) ->
+  on_body_data:(string -> after_write) ->
   unit ->
   Curl.handle
 
@@ -43,6 +45,6 @@ val http_request :
   follow_redirect:bool ->
   url:string ->
   request:[< `Delete | `Get | `Head | `Post of string | `Put of string ] ->
-  on_body_data:(string -> 'a) ->
+  on_body_data:(string -> after_write) ->
   unit ->
   string * int * string * (string * string) list
