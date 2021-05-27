@@ -147,29 +147,28 @@ let parse_metadata chunk =
   parse chunk;
   h
 
+exception Transfer_done
+
 let read_metadata ~wait_for_data on_metadata =
   let old_chunk = ref "" in
   fun position data ->
     let size = 16 * int_of_char (Buffer.nth data 0) in
     wait_for_data (size + 1);
-    if size + 1 <= Buffer.length data then (
-      let chunk = Bytes.create size in
-      Buffer.blit data 1 chunk 0 size;
-      Utils.buffer_drop data (size + 1);
-      position := 0;
-      let chunk = Bytes.unsafe_to_string chunk in
-      if chunk <> "" && chunk <> !old_chunk then (
-        old_chunk := chunk;
-        on_metadata (parse_metadata chunk) ) )
+    let chunk = Bytes.create size in
+    Buffer.blit data 1 chunk 0 size;
+    Utils.buffer_drop data (size + 1);
+    position := 0;
+    let chunk = Bytes.unsafe_to_string chunk in
+    if chunk <> "" && chunk <> !old_chunk then (
+      old_chunk := chunk;
+      on_metadata (parse_metadata chunk) )
 
 let read data ~wait_for_data buf ofs len =
   wait_for_data 1;
-  if Buffer.length data = 0 then 0
-  else (
-    let ret = min (Buffer.length data) len in
-    Buffer.blit data 0 buf ofs ret;
-    Utils.buffer_drop data ret;
-    ret )
+  let ret = min (Buffer.length data) len in
+  Buffer.blit data 0 buf ofs ret;
+  Utils.buffer_drop data ret;
+  ret
 
 let read_stream ~on_metadata ~wait_for_data =
   let position = ref 0 in
@@ -219,7 +218,9 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     val mutable metaint = None
 
-    val mutable max_data_buffer = 64000
+    val mutable min_data_buffer = 64000
+
+    val mutable max_data_buffer = 128000
 
     (** Log file for the timestamps of read events. *)
     val mutable logf = None
@@ -322,21 +323,33 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       curl_handler <- Some connection;
       let wait_for_data len =
         max_data_buffer <- max len max_data_buffer;
-        match Buffer.length data with
-          | n when n < len ->
-              while
-                transfer_active connection#handle && Buffer.length data < len
-              do
-                Condition.wait read_c self#mutex
-              done
-          | n when max_data_buffer <= n ->
-              if not stream_paused then (
-                Curl.pause connection#handle [Curl.PAUSE_ALL];
-                stream_paused <- true )
-          | _ ->
-              if stream_paused then (
-                Curl.pause connection#handle [];
-                stream_paused <- false )
+        if transfer_active connection#handle then (
+          match Buffer.length data with
+            | n when n < len ->
+                if stream_paused then (
+                  self#log#debug
+                    "Resuming transfer (min: %d, max: %d, buffer: %d)"
+                    min_data_buffer max_data_buffer n;
+                  Curl.pause connection#handle [];
+                  stream_paused <- false );
+                while Buffer.length data < len do
+                  Condition.wait read_c self#mutex
+                done;
+                if Buffer.length data < len then raise Transfer_done
+            | n when max_data_buffer <= n && not self_sync ->
+                if not stream_paused then (
+                  self#log#debug
+                    "Pausing transfer (min: %d, max: %d, buffer: %d)"
+                    min_data_buffer max_data_buffer n;
+                  Curl.pause connection#handle [Curl.PAUSE_ALL];
+                  stream_paused <- true )
+            | n ->
+                if stream_paused then (
+                  self#log#debug
+                    "Resuming transfer (min: %d, max: %d, buffer: %d)"
+                    min_data_buffer max_data_buffer n;
+                  Curl.pause connection#handle [];
+                  stream_paused <- false ) )
       in
       let read_stream =
         read_stream ~on_metadata:self#insert_metadata ~wait_for_data
@@ -344,8 +357,10 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       let read buf ofs len =
         self#mutexify
           (fun () ->
-            if not response_parsed then wait_for_data max_data_buffer;
-            read_stream metaint data buf ofs len)
+            try
+              if not response_parsed then wait_for_data min_data_buffer;
+              read_stream metaint data buf ofs len
+            with Transfer_done -> 0)
           ()
       in
       let read =
