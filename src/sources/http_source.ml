@@ -152,45 +152,39 @@ let read_metadata ~wait_for_data on_metadata =
   fun position data ->
     let size = 16 * int_of_char (Buffer.nth data 0) in
     wait_for_data (size + 1);
-    let chunk = Bytes.create size in
-    Buffer.blit data 1 chunk 0 size;
-    Utils.buffer_drop data (size + 1);
-    position := 0;
-    let chunk = Bytes.unsafe_to_string chunk in
-    if chunk <> "" && chunk <> !old_chunk then (
-      old_chunk := chunk;
-      on_metadata (parse_metadata chunk) )
+    if size + 1 <= Buffer.length data then (
+      let chunk = Bytes.create size in
+      Buffer.blit data 1 chunk 0 size;
+      Utils.buffer_drop data (size + 1);
+      position := 0;
+      let chunk = Bytes.unsafe_to_string chunk in
+      if chunk <> "" && chunk <> !old_chunk then (
+        old_chunk := chunk;
+        on_metadata (parse_metadata chunk) ) )
 
-let read data buf ofs len =
-  let ret = min (Buffer.length data) len in
-  Buffer.blit data 0 buf ofs ret;
-  Utils.buffer_drop data ret;
-  ret
+let read data ~wait_for_data buf ofs len =
+  wait_for_data 1;
+  if Buffer.length data = 0 then 0
+  else (
+    let ret = min (Buffer.length data) len in
+    Buffer.blit data 0 buf ofs ret;
+    Utils.buffer_drop data ret;
+    ret )
 
 let read_stream ~on_metadata ~wait_for_data =
   let position = ref 0 in
   let read_metadata = read_metadata ~wait_for_data on_metadata in
+  let read = read ~wait_for_data in
   fun metaint data buf ofs len ->
     match metaint with
-      | None ->
-          wait_for_data 1;
-          read data buf ofs len
+      | None -> read data buf ofs len
       | Some metaint ->
-          let rec fn () =
-            match Buffer.length data with
-              | 0 ->
-                  wait_for_data 1;
-                  fn ()
-              | _ when !position = metaint ->
-                  read_metadata position data;
-                  fn ()
-              | _ ->
-                  let len = min len (metaint - !position) in
-                  let ret = read data buf ofs len in
-                  position := !position + ret;
-                  ret
-          in
-          fn ()
+          if !position = metaint then read_metadata position data;
+
+          let len = min len (metaint - !position) in
+          let ret = read data buf ofs len in
+          position := !position + ret;
+          ret
 
 (** HTTP input *)
 
@@ -330,8 +324,11 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
         max_data_buffer <- max len max_data_buffer;
         match Buffer.length data with
           | n when n < len ->
-              if transfer_active connection#handle then
+              while
+                transfer_active connection#handle && Buffer.length data < len
+              do
                 Condition.wait read_c self#mutex
+              done
           | n when max_data_buffer <= n ->
               if not stream_paused then (
                 Curl.pause connection#handle [Curl.PAUSE_ALL];
@@ -347,9 +344,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       let read buf ofs len =
         self#mutexify
           (fun () ->
-            while not response_parsed do
-              wait_for_data max_data_buffer
-            done;
+            if not response_parsed then wait_for_data max_data_buffer;
             read_stream metaint data buf ofs len)
           ()
       in
