@@ -22,7 +22,26 @@
 
 (* This is a tricky implementation due to some technical details of libcurl.
    Here's the gist of it:
-   - Stream data is passed  
+     - Stream data is passed immediately by libcurl via a asynchronous handler.
+     - Decoder expect a blocking API when reading data. No way around it..
+     - We want to keep our internal data buffer capped.
+
+   Thus, we need to:
+     - Use a condition to wait on data when we don't have enough of it.
+     - Track how much data we actually need to possibly increase the max buffer if needed.
+     - Pause/resume transfer if the data buffer exceeds the max buffer limit.
+
+  This is the spirit of this implementation. If there's ever a bug, well somethin
+  wasn't implemented properly.. 😅
+
+  Couple of gotchas:
+     - We need to know if the transfer is still active before waiting on the read
+       conditional. Libcurl doesn't provide an easy API for this so we manually 
+       keep track of it..
+     - We can't use [remove] after [remove_finished]. Again, no way to know unless
+       we keep track of it as said above.
+     - Libcurl operations seem to SEGFAULT when doing anything past liquidsoap core
+       shutdown so we simply stop doing anything when shutting down.
 *)
 
 let default_timeout = 0.1
@@ -196,7 +215,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     val read_c = Condition.create ()
 
-    val mutable handler = None
+    val mutable curl_handler = None
 
     val mutable decoder = None
 
@@ -232,11 +251,13 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
     method remaining =
       self#mutexify (fun () -> Generator.remaining generator) ()
 
-    method private relaying = self#mutexify (fun () -> relaying) ()
+    method start_cmd =
+      self#mutexify (fun () -> relaying <- true) ();
+      self#connect
 
-    method start_cmd = self#mutexify (fun () -> relaying <- true) ()
-
-    method stop_cmd = self#mutexify (fun () -> relaying <- false) ()
+    method stop_cmd =
+      self#mutexify (fun () -> relaying <- false) ();
+      self#disconnect
 
     method set_url_cmd fn = self#mutexify (fun () -> url <- fn) ()
 
@@ -245,7 +266,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
     method status_cmd =
       self#mutexify
         (fun () ->
-          match (handler, relaying) with
+          match (curl_handler, relaying) with
             | Some _, _ -> "connected"
             | None, true -> "connecting"
             | None, false -> "stopped")
@@ -304,7 +325,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
           ~url ~request:`Get ?interface:bind_address ~on_response_header_data
           ~on_body_data ()
       in
-      handler <- Some connection;
+      curl_handler <- Some connection;
       let wait_for_data len =
         max_data_buffer <- max len max_data_buffer;
         match Buffer.length data with
@@ -397,15 +418,16 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
     method private connect =
       self#mutexify
         (fun () ->
-          match connect_task with
-            | Some t -> Duppy.Async.wake_up t
-            | None ->
-                let t =
-                  Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
-                    self#connect_fn
-                in
-                connect_task <- Some t;
-                Duppy.Async.wake_up t)
+          if relaying && curl_handler = None then (
+            match connect_task with
+              | Some t -> Duppy.Async.wake_up t
+              | None ->
+                  let t =
+                    Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+                      self#connect_fn
+                  in
+                  connect_task <- Some t;
+                  Duppy.Async.wake_up t ))
         ()
 
     method private disconnect =
@@ -413,6 +435,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
         (fun () ->
           if response_parsed then on_disconnect ();
           decoder <- None;
+          curl_handler <- None;
           stream_paused <- false;
           response_parsed <- false;
           metaint <- None;
@@ -425,7 +448,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                      Curl.Multi.remove (Lazy.force mt) h#handle;
                      h#cleanup );
                    on_transfer_done h#handle ))
-               handler))
+               curl_handler))
         ()
 
     method private reconnect =
