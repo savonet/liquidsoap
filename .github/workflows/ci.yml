@@ -82,7 +82,6 @@ jobs:
           cd /tmp/liquidsoap-full
           git pull
           cp PACKAGES.minimal PACKAGES
-          eval $(opam config env) && ocamlfind query curl | xargs rm -rf
           opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove --force -y
           cd liquidsoap
           ./.github/scripts/build-posix.sh

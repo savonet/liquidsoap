@@ -119,34 +119,29 @@ let fail msg =
   raise
     Runtime_error.(Runtime_error { kind = "http"; msg = Some msg; pos = [] })
 
+let ftp_request ~timeout ~url () =
+  let connection = new Curl.handle in
+  try
+    connection#set_url url;
+    let body = Buffer.create 1024 in
+    connection#set_writefunction (fun s ->
+        Buffer.add_string body s;
+        String.length s);
+    connection#set_timeout timeout;
+    connection#perform;
+    connection#cleanup
+  with exn ->
+    connection#cleanup;
+    raise exn
+
 let parse_http_answer s =
   let f v c s = (v, c, s) in
   try Scanf.sscanf s "HTTP/%s %i %[^\r^\n]" f with
     | Scanf.Scan_failure s -> fail s
     | _ -> fail "Unknown errror"
 
-let parse_response_headers s =
-  let response_headers = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
-  let protocol_version, status_code, status_message =
-    parse_http_answer (List.hd response_headers)
-  in
-  let response_headers =
-    List.fold_left
-      (fun ret header ->
-        if header <> "" then (
-          try
-            let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
-            ( String.lowercase_ascii (Pcre.get_substring res 1),
-              Pcre.get_substring res 2 )
-            :: ret
-          with Not_found -> ret )
-        else ret)
-      [] (List.tl response_headers)
-  in
-  (protocol_version, status_code, status_message, response_headers)
-
-let http_connection ?headers ?http_version ?timeout ?interface ~url ~request
-    ~on_response_header_data ~on_body_data () =
+let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
+    ~request ~on_body_data () =
   let connection = new Curl.handle in
   try
     connection#set_url url;
@@ -166,8 +161,7 @@ let http_connection ?headers ?http_version ?timeout ?interface ~url ~request
         | Some "1.1" -> Curl.HTTP_VERSION_1_1
         | Some "2.0" -> Curl.HTTP_VERSION_2
         | Some v -> fail (Printf.sprintf "Unsupported http version %s" v) );
-    ignore (Option.map connection#set_timeout timeout);
-    ignore (Option.map connection#set_interface interface);
+    connection#set_timeout timeout;
     ( match request with
       | `Get -> connection#set_httpget true
       | `Post data ->
@@ -178,34 +172,38 @@ let http_connection ?headers ?http_version ?timeout ?interface ~url ~request
           connection#set_put true;
           connection#set_postfieldsize (String.length data);
           connection#set_postfields data
-      | `Head -> connection#set_customrequest "HEAD"
+      | `Head -> connection#set_nobody true
       | `Delete -> connection#set_customrequest "DELETE" );
+    let response_headers = Buffer.create 1024 in
     connection#set_headerfunction (fun s ->
-        on_response_header_data s;
+        Buffer.add_string response_headers s;
         String.length s);
-    connection
-  with exn ->
-    connection#cleanup;
-    raise exn
-
-let rec http_request ?headers ?http_version ?timeout ?interface ~follow_redirect
-    ~url ~request ~on_body_data () =
-  let response_headers = Buffer.create 1024 in
-  let on_response_header_data = Buffer.add_string response_headers in
-  let connection =
-    http_connection ?headers ?http_version ?timeout ?interface ~url ~request
-      ~on_response_header_data ~on_body_data ()
-  in
-  try
     connection#perform;
     match connection#get_redirecturl with
       | url when url <> "" && follow_redirect ->
           connection#cleanup;
-          http_request ?headers ?http_version ~follow_redirect ?timeout ~url
+          http_request ?headers ?http_version ~follow_redirect ~timeout ~url
             ~request ~on_body_data ()
       | _ ->
-          let protocol_version, status_code, status_message, response_headers =
-            parse_response_headers (Buffer.contents response_headers)
+          let response_headers =
+            Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
+              (Buffer.contents response_headers)
+          in
+          let protocol_version, status_code, status_message =
+            parse_http_answer (List.hd response_headers)
+          in
+          let response_headers =
+            List.fold_left
+              (fun ret header ->
+                if header <> "" then (
+                  try
+                    let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                    ( String.lowercase_ascii (Pcre.get_substring res 1),
+                      Pcre.get_substring res 2 )
+                    :: ret
+                  with Not_found -> ret )
+                else ret)
+              [] (List.tl response_headers)
           in
           connection#cleanup;
           (protocol_version, status_code, status_message, response_headers)

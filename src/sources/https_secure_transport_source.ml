@@ -20,29 +20,13 @@
 
  *****************************************************************************)
 
-val parse_response_headers :
-  string -> string * int * string * (string * string) list
+module Config = struct
+  module Http = Https_secure_transport
 
-val http_connection :
-  ?headers:(string * string) list ->
-  ?http_version:string ->
-  ?timeout:int ->
-  ?interface:string ->
-  url:string ->
-  request:[< `Delete | `Get | `Head | `Post of string | `Put of string ] ->
-  on_response_header_data:(string -> unit) ->
-  on_body_data:(string -> unit) ->
-  unit ->
-  Curl.handle
+  let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp][sS]://\\([^/]+\\)\\(/.*\\)?$"
+  let default_port = 443
+end
 
-val http_request :
-  ?headers:(string * string) list ->
-  ?http_version:string ->
-  ?timeout:int ->
-  ?interface:string ->
-  follow_redirect:bool ->
-  url:string ->
-  request:[< `Delete | `Get | `Head | `Post of string | `Put of string ] ->
-  on_body_data:(string -> 'a) ->
-  unit ->
-  string * int * string * (string * string) list
+module Input_https = Http_source.Make (Config)
+
+let () = Input_https.register "https"

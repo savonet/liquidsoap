@@ -147,10 +147,7 @@ let get_decoders () =
           log#severe "Cannot find decoder %s" name;
           cur
   in
-  let decoders = List.fold_left f [] conf_decoders#get in
-  List.sort
-    (fun (_, a) (_, b) -> compare (b.priority ()) (a.priority ()))
-    decoders
+  List.fold_left f [] conf_decoders#get
 
 let conf_image_file_decoders =
   Dtools.Conf.list
@@ -303,6 +300,11 @@ let get_file_decoder ~metadata ~ctype filename =
     log#important "No decoder available for %S!" filename;
     None )
   else (
+    let decoders =
+      List.sort
+        (fun (_, a) (_, b) -> compare (b.priority ()) (a.priority ()))
+        decoders
+    in
     log#info "Available decoders: %s"
       (String.concat ", "
          (List.map
@@ -401,6 +403,11 @@ let get_stream_decoder ~ctype mime =
       (Frame.string_of_content_type ctype);
     None )
   else (
+    let decoders =
+      List.sort
+        (fun (_, a) (_, b) -> compare (a.priority ()) (b.priority ()))
+        decoders
+    in
     log#info "Available decoders:";
     List.iter
       (fun (name, specs) ->

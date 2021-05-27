@@ -125,9 +125,7 @@ Changed:
 - Renamed `base64.decode`/`base64.encode` to
   `string.base64.decode`/`string.base64.encode`.
 - Vumeter is now implemented in Liquidsoap (#1103).
-- Reimplement `input.http` using `libcurl`, deprecate `input.https` in favor
-  of unified `input.http` (#1601)
-- Change `input.http` `url` parameter into a string getter
+- Change `input.http` and `input.https` `url` parameter into a string getter
   (#1084).
 - Added `path.home.unrelate`.
 - Use getters for arguments of `video.add_image` (#1176).
