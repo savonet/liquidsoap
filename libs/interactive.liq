@@ -2,7 +2,7 @@
 variables        = ref([])
 # Float variables
 variables_float  = ref([])
-# Int varialbles
+# Int variables
 variables_int    = ref([])
 # Bool variables
 variables_bool   = ref([])
@@ -251,7 +251,7 @@ def interactive.harbor(~port=8000, ~uri="/interactive")
       width: 300px;
     }
     </style>")
-    # TODO: we could send only the udpated value instead of sending them all
+    # TODO: we could send only the updated value instead of sending them all
     add("<script>
     function send() {
       var interactive = document.getElementsByClassName('interactive');

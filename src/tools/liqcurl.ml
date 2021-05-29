@@ -138,7 +138,7 @@ let parse_http_answer s =
   let f v c s = (v, c, s) in
   try Scanf.sscanf s "HTTP/%s %i %[^\r^\n]" f with
     | Scanf.Scan_failure s -> fail s
-    | _ -> fail "Unknown errror"
+    | _ -> fail "Unknown error"
 
 let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     ~request ~on_body_data () =

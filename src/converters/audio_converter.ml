@@ -42,7 +42,7 @@ let converter_conf =
 module Samplerate = struct
   exception Invalid_data
 
-  (** A converter takes a convertion ratio (output samplerate / input
+  (** A converter takes a conversion ratio (output samplerate / input
       samplerate), an audio buffer, and returns a resampled buffer. *)
   type converter = float -> Audio.Mono.buffer -> Audio.Mono.buffer
 

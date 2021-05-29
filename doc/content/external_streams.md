@@ -16,7 +16,7 @@ The basic operator for creating an external stream is `input.external`. Its para
 * `max`: Maximum duration of the buffered data.
 * `channels`: Number of channels.
 * `samplerate`: Sample rate.
-* `restart`: Restart the process when it has exited normaly.
+* `restart`: Restart the process when it has exited normally.
 * `restart_on_error`: Restart the process when it has exited with error.
 
 The last parameter is unlabeled. It is a string containing the command that will be executed to

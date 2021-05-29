@@ -223,7 +223,7 @@ let streams_start encoder =
     log#info "%s: Starting stream with no ogg track.." encoder.id;
   log#info "%s: Starting all streams" encoder.id;
 
-  (* Add skeleton informations first. *)
+  (* Add skeleton information first. *)
   begin
     match encoder.skeleton with
     | Some os ->
@@ -341,7 +341,7 @@ let add_available src encoder =
   if is_empty src then
     Hashtbl.remove encoder.tracks (Ogg.Stream.serialno src.os)
 
-(** Encode data. Implicitely calls [streams_start]
+(** Encode data. Implicitly calls [streams_start]
   * if not called before. *)
 let encode encoder id data =
   if encoder.state = Bos then streams_start encoder;
@@ -364,7 +364,7 @@ let encode encoder id data =
           | _ -> raise Invalid_data )
 
 (** Finish a track.
-  * Not all data will necessarily be outputed here. It is possible
+  * Not all data will necessarily be outputted here. It is possible
   * that muxing needs also another track to end.. *)
 let end_of_track encoder id =
   let track = Hashtbl.find encoder.tracks id in

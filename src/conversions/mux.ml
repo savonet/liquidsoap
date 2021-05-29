@@ -116,8 +116,8 @@ let () =
   in
   Lang.add_operator "mux_video" ~category:Lang.Conversions
     ~descr:
-      "Add video channnels to a stream. Track marks and metadata are taken \
-       from both sources."
+      "Add video channels to a stream. Track marks and metadata are taken from \
+       both sources."
     ~return_t:out_t
     ( base_proto
     @ [

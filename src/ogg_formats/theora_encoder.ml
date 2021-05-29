@@ -77,7 +77,7 @@ let create_encoder ~theora ~metadata () =
   in
   let enc =
     if width mod 16 <> 0 || height mod 16 <> 0 then
-      failwith "Invalide theora width/height (should be a multiple of 16).";
+      failwith "Invalid theora width/height (should be a multiple of 16).";
     Theora.Encoder.create info params metadata
   in
   let started = ref false in

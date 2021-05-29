@@ -47,7 +47,7 @@ def list.nth(~default=null(), l, n) =
   aux(l, n)
 end
 
-# Determing whether a list is empty or not.
+# Determining whether a list is empty or not.
 # @category List
 def list.is_empty(l)
   list.case(l, true, fun (_, _) -> false)
@@ -135,7 +135,7 @@ def list.fold(f, x, l)
 end
 
 # Fold a function on every element of a list. Similar to `list.fold` but
-# iterates from the right of the list. It is slighly more efficient than
+# iterates from the right of the list. It is slightly more efficient than
 # `list.fold`.
 # @category List
 # @param f Function `f` for which `f(x,e)` which will be called on every element `e` with the current value of `x`, returning the new value of `x`.

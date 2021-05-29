@@ -104,7 +104,7 @@ Its code is the following:
               decoder binary.", test=test_flac,flac_p)
 ```
 
-Additionaly, a metadata resolver is registered when the `metaflac` command can be found in the `$PATH`:
+Additionally, a metadata resolver is registered when the `metaflac` command can be found in the `$PATH`:
 
 ```liquidsoap
 if test_process("which metaflac") then

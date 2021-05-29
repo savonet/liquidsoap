@@ -72,7 +72,7 @@ def f() =
   # list.iter(fun (f) -> log(string_of(f(42))), [f2])
   
   # Unlike l1, this is not OK, since we don't leave open subtyping constraints
-  # while infering types.
+  # while inferring types.
   # I hope we can make the inference smarter in the future, without obfuscating
   # the error messages too much.
   # The type error here shows the use of all the displayed positions:
@@ -83,7 +83,7 @@ def f() =
   # [fun (x) -> x+1, fun (y) -> y^"."]
   
   # An error without much locations..
-  # TODO An explaination about the missing label would help a lot here.
+  # TODO An explanation about the missing label would help a lot here.
   # def f(f)
   #   f(output.icecast.vorbis)
   #   f(output.icecast.mp3)

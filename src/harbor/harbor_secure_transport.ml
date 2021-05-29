@@ -46,7 +46,7 @@ let conf_harbor_secure_transport_private_key =
 let conf_harbor_secure_transport_password =
   Conf.string
     ~p:(conf_harbor_secure_transport#plug "password")
-    ~d:"" "Path to the server's SSL password. (optional, blank if omited)"
+    ~d:"" "Path to the server's SSL password. (optional, blank if omitted)"
 
 module Monad = Duppy.Monad
 

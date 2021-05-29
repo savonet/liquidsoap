@@ -56,7 +56,7 @@ let () =
           Some (Lang.string "broadcast"),
           Some
             "Source for tracks. Should be one of: \"broadcast\", \"user\", \
-             \"recommendation\" or \"unknown\". Since liquidsoap is intented \
+             \"recommendation\" or \"unknown\". Since liquidsoap is intended \
              for radio broadcasting, this is the default. Sources other than \
              user don't need duration to be set." )
         :: proto

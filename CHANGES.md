@@ -360,7 +360,7 @@ Changed:
 - Remove dynamic plugin build option.
 - Made `on_end` delay a float getter.
 - Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
-- Removed `cross`/`crossfade` operators, superseeded by
+- Removed `cross`/`crossfade` operators, superseded by
   `smart_cross`/`smart_crossfade`
 - Rename `smart_cross`/`smart_crossfade` operators as `cross`/`crossfade`
 - Default behavior of `crossfade` is old (simple) crossfade. Use `smart=true`
@@ -486,7 +486,7 @@ New:
 Fixed:
 
 - Fixed inotify watch semantics (#677)
-- Enhanced `#EXTINF` parsing in ambigious cases (#625)
+- Enhanced `#EXTINF` parsing in ambiguous cases (#625)
 - Fixed `output.youtube.live` (#630)
 - Make sure server writes are synchronous (#643)
 - Fixed crash when loading some frei0r plugins (#435)
@@ -638,7 +638,7 @@ New:
 - Added s3:// protocol to fetch files from AWS S3 using the AWS CLI.
 - Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
 - Added youtube-dl: protocol to resolved requests using youtube-dl
-- Added which() to find an exectuable within the $PATH
+- Added which() to find an executable within the $PATH
 - Added register() to allow to register new configuration settings
 
 Changed:
@@ -1065,7 +1065,7 @@ Server interface:
 
 - Print the playlist's URI when calling <playlist>.uri without an
   argument.
-- Ehance <queue>.ignore now works also in the primary queue
+- Enhance <queue>.ignore now works also in the primary queue
 - New command for changing the URL of an input.http(), ref #466. The
   command is <id>.url and it needs a restart (<id>.stop, then start)
   to take effect.

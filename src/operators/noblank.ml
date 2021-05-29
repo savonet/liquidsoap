@@ -148,7 +148,7 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       if self#is_blank then AFrame.set_breaks ab (p0 :: b0)
 
     method private output =
-      (* We only #get once in memo; this is why we can set_breaks everytime
+      (* We only #get once in memo; this is why we can set_breaks every time
        * in #get_frame.
        * This behavior makes time flow slower than expected, but doesn't seem
        * harmful. The advantage of doing this is that if stripping stops because

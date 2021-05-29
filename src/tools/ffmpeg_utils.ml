@@ -237,7 +237,7 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
               hw_configs))
     in
     find `Internal (fun _ ->
-        (* Setting a hwaccel_device explicitely disables this method. *)
+        (* Setting a hwaccel_device explicitly disables this method. *)
         if hwaccel_device = None && hwaccel <> `None then (
           log#info
             "Codec %s has internal hardware capabilities that should work \

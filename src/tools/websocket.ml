@@ -44,7 +44,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
     | `Pong of string
     | `Text of string ]
 
-  (* Compute websocket anwser. *)
+  (* Compute websocket answer. *)
   let wsa wsk =
     let wsa = wsk ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in
     let wsa = Sha1.digest wsa in

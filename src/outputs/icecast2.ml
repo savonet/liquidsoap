@@ -259,7 +259,7 @@ let proto kind =
         Some (Lang.val_cst_fun [("", None)] (Lang.float 3.)),
         Some
           "Callback executed when an error happens. The callback receives a \
-           string representation of the error that occured and returns a \
+           string representation of the error that occurred and returns a \
            float. If returned value is positive, connection will be tried \
            again after this amount of time (in seconds)." );
       ("public", Lang.bool_t, Some (Lang.bool true), None);

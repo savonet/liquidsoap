@@ -105,7 +105,7 @@ let hls_proto kind =
         Some
           "Callback executed when a file changes. `state` is one of: \
            `\"opened\"`, `\"closed\"` or `\"deleted\"`, second argument is \
-           file path. Typical use: upload files to a CDN when done writting \
+           file path. Typical use: upload files to a CDN when done writing \
            (`\"close\"` state and remove when `\"deleted\"`." );
       ( "streams_info",
         Lang.list_t stream_info_t,
@@ -566,7 +566,7 @@ class hls_output p =
           | [] -> (0, 0)
       in
       let filename = self#playlist_name s in
-      self#log#debug "Writting playlist %s.." s.name;
+      self#log#debug "Writing playlist %s.." s.name;
       let oc = self#open_out filename in
       output_string oc "#EXTM3U\r\n";
       output_string oc
@@ -603,7 +603,7 @@ class hls_output p =
 
     method private write_main_playlist =
       if not main_playlist_writen then (
-        self#log#debug "Writting playlist %s.." main_playlist_path;
+        self#log#debug "Writing playlist %s.." main_playlist_path;
         let oc = self#open_out main_playlist_path in
         output_string oc "#EXTM3U\r\n";
         output_string oc

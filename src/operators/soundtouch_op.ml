@@ -43,7 +43,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
 
     method private set_clock =
       let child_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should stricly contain the child clock. *)
+      (* Our external clock should strictly contain the child clock. *)
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
       Clock.unify child_clock source#clock;

@@ -240,7 +240,7 @@ let () =
 let () =
   Lang.add_builtin "dssi.register"
     ~category:(Lang.string_of_category Lang.SoundSynthesis)
-    ~descr:"Resgister a DSSI plugin."
+    ~descr:"Register a DSSI plugin."
     [("", Lang.string_t, None, Some "Path of the DSSI plugin file.")]
     Lang.unit_t (fun p ->
       dssi_init ();

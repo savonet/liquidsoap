@@ -141,7 +141,7 @@ let () =
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.SoundProcessing
-    ~descr:"Spacializer which allows controling the width of the signal."
+    ~descr:"Spacializer which allows controlling the width of the signal."
     (fun p ->
       let width = Lang.assoc "" 1 p |> Lang.to_float_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in

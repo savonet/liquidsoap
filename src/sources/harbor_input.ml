@@ -324,7 +324,7 @@ module Make (Harbor : T) = struct
         ( "on_disconnect",
           Lang.fun_t [] Lang.unit_t,
           Some (Lang.val_cst_fun [] Lang.unit),
-          Some "Functions to excecute when a source is disconnected" );
+          Some "Functions to execute when a source is disconnected" );
         ("user", Lang.string_t, Some (Lang.string "source"), Some "Source user.");
         ( "password",
           Lang.string_t,

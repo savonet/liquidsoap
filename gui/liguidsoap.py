@@ -156,7 +156,7 @@ output.file(%%vorbis,id="backup",start=false,"%s",mixer)
     print "Cannot find liquidsoap binary in $PATH!"
     exit(1)
 
-  print "Excuting %s with the following script:" % binary
+  print "Executing %s with the following script:" % binary
   print "=== BEGIN ==="
   print script
   print "=== END ==="
@@ -229,7 +229,7 @@ def liguidsoap():
       win.add(LiqGui(host,port))
     except socket.error, x:
       error = gtk.MessageDialog(message_format=
-          ("Couln't connect to "+host+' on port '+str(port)+'!'))
+          ("Couldn't connect to "+host+' on port '+str(port)+'!'))
       # TODO there's a strange cursor in the message
       error.connect("response",gtk.main_quit)
       error.show()

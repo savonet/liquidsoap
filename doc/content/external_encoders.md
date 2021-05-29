@@ -28,8 +28,8 @@ The available options are:
 
 * `process`: this parameter is a function that takes the current metadata and return the process to start.
 * `header`: if set to `false` then no WAV header will be added to the data fed to the encoding process, thus the encoding process shall operate on RAW data.
-* `restart_on_crash`: wether to restart the encoding process if it crashed. Useful when the external process fails to encode properly data after some time.
-* `restart_on_metadata`: restart encoding process on each new metadata:. Useful in conjonction with the `process` parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
+* `restart_on_crash`: whether to restart the encoding process if it crashed. Useful when the external process fails to encode properly data after some time.
+* `restart_on_metadata`: restart encoding process on each new metadata:. Useful in conjunction with the `process` parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
 * `restart_encoder_delay`: Restart the encoder after some delay. This can be useful for encoders that cannot operate on infinite streams, or are buggy after some time, like the `lame` binary. The default for `lame` and `accplusenc`-based encoders is to restart the encoder every hour.
 
 Only one of `restart_encoder_delay` or `restart_on_new_track` should be used.
@@ -51,7 +51,7 @@ Video support
 -------------
 Videos can also be encoded by programs able to read files in avi format from
 standard input. To use it, the flag `video=true` of `%external` should be
-used. For instance, a compresed avi file can be generated with `ffmpeg` using
+used. For instance, a compressed avi file can be generated with `ffmpeg` using
 
 ```liquidsoap
 output.file(

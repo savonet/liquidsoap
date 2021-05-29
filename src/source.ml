@@ -146,7 +146,7 @@ type 'a var =
 and 'a link_t =
   | Unknown of 'a list * 'a var list
       (** the clock variable is unknown but depends on other variables *)
-  | Same_as of 'a var  (** the clock variable is subtituted by another *)
+  | Same_as of 'a var  (** the clock variable is substituted by another *)
 
 let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG" <> None
 let create_known c = Known c
@@ -629,7 +629,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     method virtual abort_track : unit
 
     (* In caching mode, remember what has been given during the current
-       tick. The generation is defered until we actually have computed the kind
+       tick. The generation is deferred until we actually have computed the kind
        by unfication. *)
     val mutable memo = None
 

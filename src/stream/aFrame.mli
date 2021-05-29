@@ -70,7 +70,7 @@ val to_s16le : t -> string
 val blankify : t -> int -> int -> unit
 
 (** [multiply frame off len x] multiplies the audio data of the frame from
-    offset [off] during length [len] by coefficent [x]. *)
+    offset [off] during length [len] by coefficient [x]. *)
 val multiply : t -> int -> int -> float -> unit
 
 (** Add two portions of frames of same length. *)

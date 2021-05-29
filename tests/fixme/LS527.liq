@@ -20,7 +20,7 @@ on_shutdown(test.pass)
 
 s = input.alsa()
 
-output.icecast(%wav, host="nonexistant", 
+output.icecast(%wav, host="nonexistent", 
                mount="foo", on_stop=shutdown,
                s)
 %endif

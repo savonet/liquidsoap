@@ -17,7 +17,7 @@ def video.frame.rate =
 end
 
 # Generate a source from a static image.
-# @cateogry Source / Video Processing
+# @category Source / Video Processing
 # @param ~id Force the value of the source ID.
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param file Path to the image.

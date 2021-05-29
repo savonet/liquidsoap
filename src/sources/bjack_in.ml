@@ -45,7 +45,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
 
     method private wake_up l =
       active_source#wake_up l;
-      (* We need to know the number of channels to intialize the ioring. We
+      (* We need to know the number of channels to initialize the ioring. We
            defer this until the kind is known. *)
       let blank () =
         Bytes.make

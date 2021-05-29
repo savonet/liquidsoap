@@ -83,15 +83,15 @@ Parameters for `%mp3.vbr` are:
 Parameters for `%mp3.abr` are:
 
 * `bitrate`: Average bitrate
-* `min_bitrate`: Minimun bitrate
-* `max_bitrate`: Maximun bitrate
+* `min_bitrate`: Minimum bitrate
+* `max_bitrate`: Maximum bitrate
 * `hard_min`: Enforce minimal bitrate
 
 Examples:
 
-* Contstant `128` kbps bitrate encoding: `%mp3(bitrate=128)`
+* Constant `128` kbps bitrate encoding: `%mp3(bitrate=128)`
 * Variable bitrate with quality `6` and samplerate of `22050` Hz: `%mp3.vbr(quality=7,samplerate=22050)`
-* Average bitrate with mean of `128` kbps, maximun bitrate `192` kbps and `id3v2` tags: `%mp3.abr(bitrate=128,max_bitrate=192,id3v2=true)`
+* Average bitrate with mean of `128` kbps, maximum bitrate `192` kbps and `id3v2` tags: `%mp3.abr(bitrate=128,max_bitrate=192,id3v2=true)`
 
 
 Optionally, liquidsoap can insert a message within mp3 data. You can set its value using the `msg` parameter.
@@ -117,7 +117,7 @@ and is used to set the WAV length header.
 
 Because Liquidsoap encodes a possibly infinite stream, there
 is no way to know in advance the duration of encoded data. Since WAV header
-has to be written first, by default its length is set to the maximun possible 
+has to be written first, by default its length is set to the maximum possible 
 value. If you know the expected duration of the encoded data and you actually 
 care about the WAV length header then you should use this parameter.
 

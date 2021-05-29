@@ -80,7 +80,7 @@ a pair constituted of a function to update metadata and the source with inserted
 metadata.
 
 For instance, suppose that you want to insert metadata on the stream using the
-OSC protocol. When a pair of strings ``title'' ``The new title'' is recieved on
+OSC protocol. When a pair of strings ``title'' ``The new title'' is received on
 `/metadata`, we want to change the title of the stream accordingly. This can be
 achieved as follows.
 

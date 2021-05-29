@@ -56,7 +56,7 @@ val read_header : 'a read_ops -> 'a -> 'a t
 (** Read data from an input channel. *)
 val in_chan_read_header : in_channel -> in_channel t
 
-(** [info w] returns a string containing some informations on wav [w] *)
+(** [info w] returns a string containing some information on wav [w] *)
 val info : 'a t -> string
 
 (** Parameters of the output PCM format. *)

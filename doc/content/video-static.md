@@ -37,7 +37,7 @@ Here is the code:
    end
  title = 
    if title == "" then
-      "Unknow title"
+      "Unknown title"
    else
       title
    end
@@ -52,7 +52,7 @@ Here is the code:
  #source = mux_audio(audio=audio,video)
  source = mux_video(video=video,audio)
 
- # Disable real-time processing, to process with the maximun speed
+ # Disable real-time processing, to process with the maximum speed
  source = clock(sync=false,source)
 
  # Output to a theora file, shutdown on stop

@@ -31,8 +31,8 @@ let conf_colorize =
   Dtools.Conf.string
     ~p:(conf_console#plug "colorize")
     ~d:"auto"
-    "Use color in console output when available. One of: \"allways\", \
-     \"never\" or \"auto\"."
+    "Use color in console output when available. One of: \"always\", \"never\" \
+     or \"auto\"."
 
 let dumb_term =
   lazy (try Sys.getenv "TERM" = "dumb" with Not_found -> Sys.win32)

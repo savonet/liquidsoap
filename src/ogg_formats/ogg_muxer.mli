@@ -119,7 +119,7 @@ type state = Eos | Streaming | Bos
    * You get encoded data by calling [get_data], [peek_data].
    *
    * See: http://xiph.org/ogg/doc/oggstream.html for more details on the
-   * specifications of an ogg stream. This API reflects exactly what is recomended to do. *)
+   * specifications of an ogg stream. This API reflects exactly what is recommended to do. *)
 
 (** Create a new encoder.
   * Add an ogg skeleton if [skeleton] is [true]. *)
@@ -151,7 +151,7 @@ val register_track : ?fill:int -> t -> stream_encoder -> nativeint
 (** Start streams, set state to [Streaming]. *)
 val streams_start : t -> unit
 
-(** Encode data. Implicitely calls [streams_start]
+(** Encode data. Implicitly calls [streams_start]
   * if not called before. Fails if state is not [Streaming] *)
 val encode : t -> nativeint -> track_data -> unit
 

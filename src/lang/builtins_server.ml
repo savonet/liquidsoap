@@ -34,7 +34,7 @@ let () =
         Some Lang.null,
         Some
           "Used to group multiple commands for the same functionality. If \
-           sepecified, the command will be named `namespace.command`." );
+           specified, the command will be named `namespace.command`." );
       ( "description",
         Lang.string_t,
         Some (Lang.string "No documentation available."),

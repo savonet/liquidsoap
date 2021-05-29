@@ -35,7 +35,7 @@ type converter = proportional:bool -> Image.Generic.t -> Image.Generic.t -> unit
 
 (** A converter plugin is a name, a list of input formats,
   * a list of output formats,
-  * a fonction to create a converter. *)
+  * a function to create a converter. *)
 type converter_plug =
   Image.Generic.Pixel.format list
   * Image.Generic.Pixel.format list
@@ -47,7 +47,7 @@ val video_converters : converter_plug Plug.plug
 (** [find_converter source destination] tries
   * to find a converter from source format
   * to destination format. Proportional scale
-  * is implicitely set via global configuration key
+  * is implicitly set via global configuration key
   * for now. Returns a conversion function: frame -> frame -> unit. *)
 val find_converter :
   Image.Generic.Pixel.format ->

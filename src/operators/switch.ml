@@ -53,13 +53,13 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
     val mutable selected : (child * source) option = None
 
-    (** We have to explictly manage our children as they are dynamically created
+    (** We have to explicitly manage our children as they are dynamically created
     * by application of the transition functions. In particular we need a list
     * of all children that have output data in the current round. *)
     val mutable to_finish = []
 
     (** Indicates that the former child was left without having finished its
-    * track, in which case the switch will artifically produce an EOT. *)
+    * track, in which case the switch will artificially produce an EOT. *)
     val mutable need_eot = false
 
     (** The selection method should return None or Some c,
@@ -359,7 +359,7 @@ let () =
       ( "transition_length",
         Lang.float_t,
         Some (Lang.float 5.),
-        Some "Maximun transition duration." );
+        Some "Maximum transition duration." );
       ( "override",
         Lang.string_t,
         Some (Lang.string "liq_transition_length"),

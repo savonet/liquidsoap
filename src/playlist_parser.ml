@@ -38,7 +38,7 @@ let conf_mime_types =
         "This section contains the listings used for that detection, which you";
         "might want to tweak if you encounter a new mime-type.";
         "If you feel that new mime-types should be permanently added, please";
-        "contact the developpers.";
+        "contact the developers.";
       ]
 
 let conf_cue_in_metadata =

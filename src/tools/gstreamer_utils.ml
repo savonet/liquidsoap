@@ -27,7 +27,7 @@ let log = Log.make ["gstreamer"]
 let conf_gstreamer =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "gstreamer")
-    "Media decoding/endcoding through gstreamer."
+    "Media decoding/encoding through gstreamer."
 
 let conf_max_buffers =
   Dtools.Conf.int

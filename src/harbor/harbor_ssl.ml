@@ -39,7 +39,7 @@ let conf_harbor_ssl_private_key =
 let conf_harbor_ssl_password =
   Conf.string
     ~p:(conf_harbor_ssl#plug "password")
-    ~d:"" "Path to the server's SSL password. (optional, blank if omited)"
+    ~d:"" "Path to the server's SSL password. (optional, blank if omitted)"
 
 let conf_harbor_ssl_read_timeout =
   Conf.float

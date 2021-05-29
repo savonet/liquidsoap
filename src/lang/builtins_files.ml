@@ -239,7 +239,7 @@ let () =
     (Lang.fun_t [(false, "", Lang.nullable_t Lang.string_t)] Lang.unit_t)
     ~descr:
       "Stream data to a file. Returns a callback to write to the file. Execute \
-       with `null` to signify the end of the writting operation."
+       with `null` to signify the end of the writing operation."
     (fun p ->
       let append = Lang.to_bool (List.assoc "append" p) in
       let perms = Lang.to_int (List.assoc "perms" p) in

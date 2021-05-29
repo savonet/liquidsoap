@@ -42,7 +42,7 @@ val exe_ext : string
 (** Default font file *)
 val default_font : string
 
-(** Function to reencode tags into utf8. *)
+(** Function to re-encode tags into utf8. *)
 val recode_tag : ?in_enc:string -> ?out_enc:string -> string -> string
 
 (** Maximal id for a request. *)

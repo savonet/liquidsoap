@@ -261,14 +261,14 @@ end
 # Basic source
 jazz = channel_radiopilote("jazz")
 discoqueen = channel_radiopilote("discoqueen")
-# Avoid skiping blank with classic music !!
+# Avoid skipping blank with classic music !!
 classique = channel_radiopilote(skip=false,"classique")
 That70Sound = channel_radiopilote("That70Sound")
 metal = channel_radiopilote("metal")
 reggae = channel_radiopilote("reggae")
 Rock = channel_radiopilote("Rock")
 
-# Group those sources in a seperate
+# Group those sources in a separate
 # clock (good for multithreading/multicore)
 clock.assign_new([jazz,That70Sound,metal,reggae])
 
@@ -331,7 +331,7 @@ mkoutput(out=out_aac32,"reggae.aacp32", reggae, "RadioPi - Canal Reggae \
                                       (32 kbits AAC+ test stream)","reggae")
 ```
 
-The other machine has a similar configuration exept that files are local, but this is exactly the same for liquidsoap !
+The other machine has a similar configuration except that files are local, but this is exactly the same for liquidsoap !
 
 Using harbor, the live connects directly to liquidsoap, using port `8000` (icecast runs on port `8080`). 
 Then, liquidsoap starts a relay to the other encoder, and both switch their channels to the new live.

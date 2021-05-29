@@ -62,7 +62,7 @@ before being played by liquidsoap.
 When defining custom protocols, you should pay attention to two variables:
 
 * `rlog` is the logging function. Messages passed to this function will be registered with the request and can be used to debug any issue
-* `maxtime` is the maximun time (in UNIX epoch) that the requests should run. After that time, it should return and be considered timed out. You may want to read from `protocols.liq` to see how to enforce this when calling external processes.
+* `maxtime` is the maximum time (in UNIX epoch) that the requests should run. After that time, it should return and be considered timed out. You may want to read from `protocols.liq` to see how to enforce this when calling external processes.
 
 Interaction with the server
 ---------------------------
@@ -81,7 +81,7 @@ the local host by default.
 The Unix socket interface (*cf.* the `server.socket` setting)
 is through some sort of virtual file.
 This is more constraining, which allows one to restrict the use of the socket
-to some priviledged users.
+to some privileged users.
 
 You can find more details on how to configure the server in the
 [documentation](help.html#settings) of the settings key `server`,

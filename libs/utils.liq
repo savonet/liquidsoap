@@ -9,7 +9,7 @@ end
 # `[("arg","bar"),("arg2","bar2")]`. The returned strings are decoded (see
 # `url.decode`).
 # @category String
-# @param args Agument string to split.
+# @param args Argument string to split.
 def url.split_args(args) =
   def f(x) =
     ret = string.split(separator="=",x)

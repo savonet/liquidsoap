@@ -38,25 +38,25 @@ def metadata.getter.float(init, m, s)
 end
 
 # Extract filename from metadata.
-# @cateogry Source / Track Processing
+# @category Source / Track Processing
 def metadata.filename(m)
   m["filename"]
 end
 
 # Extract title from metadata.
-# @cateogry Source / Track Processing
+# @category Source / Track Processing
 def metadata.title(m)
   m["title"]
 end
 
 # Extract artist from metadata.
-# @cateogry Source / Track Processing
+# @category Source / Track Processing
 def metadata.artist(m)
   m["artist"]
 end
 
 # Extract comment from metadata.
-# @cateogry Source / Track Processing
+# @category Source / Track Processing
 def metadata.comment(m)
   m["comment"]
 end

@@ -109,7 +109,7 @@ class virtual ['a, 'b] element_factory ~on_error =
           Tutils.mutexify restart_m (fun () -> restarting <- false) ();
           if retry_in >= 0. then
             self#log#info
-              "An error occured while restarting pipeline, will retry in %.02f"
+              "An error occurred while restarting pipeline, will retry in %.02f"
               retry_in
           else self#log#info "Done restarting pipeline";
           retry_in
@@ -322,7 +322,7 @@ let output_proto ~return_t ~pipeline =
         Some (Lang.val_cst_fun [("", None)] (Lang.float 3.)),
         Some
           "Callback executed when an error happens. The callback receives a \
-           string representation of the error that occured and returns a \
+           string representation of the error that occurred and returns a \
            float. If returned value is positive, connection will be tried \
            again after this amount of time (in seconds)." );
       ( "pipeline",
@@ -661,7 +661,7 @@ let input_proto =
       Some (Lang.val_cst_fun [("", None)] (Lang.float 3.)),
       Some
         "Callback executed when an error happens. The callback receives a \
-         string representation of the error that occured and returns a float. \
+         string representation of the error that occurred and returns a float. \
          If returned value is positive, connection will be tried again after \
          this amount of time (in seconds)." );
     ( "restart",

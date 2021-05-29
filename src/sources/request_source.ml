@@ -211,7 +211,7 @@ class virtual unqueued ~kind ~name =
             send_metadata <- true;
             true
         | Some req ->
-            (* We got an unresolved request.. this shoudn't actually happen *)
+            (* We got an unresolved request.. this shouldn't actually happen *)
             self#log#critical "Failed to prepare track: request not ready.";
             Request.destroy req;
             false
@@ -387,7 +387,7 @@ class virtual queued ~kind ~name ?(length = 10.) ?(default_duration = 30.)
 
     (** A function that returns delays for tasks, making sure that these tasks
       don't repeat too fast. The current scheme is to return 0. as long as there
-      are no more than [max] consecutive occurences separated by less than
+      are no more than [max] consecutive occurrences separated by less than
       [delay], otherwise return [delay]. *)
     val adaptative_delay =
       let last = ref 0. in

@@ -98,7 +98,7 @@ module Metadata : sig
   (** Time until next break, or -1 if there is none. *)
   val remaining : t -> int
 
-  (** Drop a portion at the begining. *)
+  (** Drop a portion at the beginning. *)
   val advance : t -> int -> unit
 
   (** Drop break at the beginning. This should be called after filling a partial

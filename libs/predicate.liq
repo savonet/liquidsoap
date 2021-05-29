@@ -2,7 +2,7 @@ predicate = ()
 
 # Detect when a predicate becomes true.
 # @category Liquidsoap
-# @param ~init Detect at begining.
+# @param ~init Detect at beginning.
 # @param p Predicate.
 def predicate.activates(~init=false, p)
   last = ref(not init)

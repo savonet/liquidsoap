@@ -80,7 +80,7 @@ let conf_video_default =
     ~p:(conf_video#plug "default")
     ~d:false
     "Set to `true` to force video content even when no video content is \
-     explicitely requested, for instance: `output.dummy(noise())`"
+     explicitly requested, for instance: `output.dummy(noise())`"
 
 let conf_video_framerate =
   Conf.int ~p:(conf_video#plug "framerate") ~d:25 "Frame rate"
@@ -209,12 +209,12 @@ let size =
         try
           let d = conf_audio_size#get in
           log#important
-            "Targetting 'frame.audio.size': %d audio samples = %d ticks." d
+            "Targeting 'frame.audio.size': %d audio samples = %d ticks." d
             (main_of_audio d);
           main_of_audio d
         with Conf.Undefined _ ->
           log#important
-            "Targetting 'frame.duration': %.2fs = %d audio samples = %d ticks."
+            "Targeting 'frame.duration': %.2fs = %d audio samples = %d ticks."
             conf_duration#get
             (audio_of_seconds conf_duration#get)
             (main_of_seconds conf_duration#get);

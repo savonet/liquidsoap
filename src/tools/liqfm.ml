@@ -85,7 +85,7 @@ exception Duration
 let client = { client = "lsp"; version = "0.1" }
 
 let init host =
-  (* The list of waiting submitions *)
+  (* The list of waiting submissions *)
   let submissions = Queue.create () in
   (* A mutex to manage thread concurrency *)
   let submit_m = Mutex.create () in

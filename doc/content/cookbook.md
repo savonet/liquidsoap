@@ -276,7 +276,7 @@ output.file(%mp3, filename, s, reopen_on_metadata=true)
 ```
 
 In the two examples we use [string interpolation](language.html) and time
-litterals to generate the output file name.
+literals to generate the output file name.
 
 In order to limit the disk space used by this archive, on unix systems we can
 regularly call `find` to cleanup the folder ; if we can to keep 31 days of
@@ -352,7 +352,7 @@ There are two kinds of transitions. Transitions between two different children o
 ### Switch-based transitions
 The switch-based operators (`switch`, `fallback` and `random`) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two `source` parameters: the child which is about to be left, and the new selected child. The default transition is `fun (a,b) -> b`, it simply relays the new selected child source.
 
-Transitions have limited duration, defined by the `transition_length` parameter. Transition duration can be overriden by passing a metadata. Default field for it is `"liq_transition_length"` but it can also be set to a different value via the `override` parameter. 
+Transitions have limited duration, defined by the `transition_length` parameter. Transition duration can be overridden by passing a metadata. Default field for it is `"liq_transition_length"` but it can also be set to a different value via the `override` parameter. 
 
 Here are some possible transition functions:
 
@@ -432,13 +432,13 @@ my_source =
 The `crossfade()` function is already in liquidsoap. Unless you need a custom one, you should never have to copy the above example. It is implemented in the scripting language, much like this example. You can find its code in `utils.liq`.
 
 The fade-in and fade-out parameters indicate the duraction of the fading effects. The start-next parameters tells how much overlap there will be between the two tracks. If you want a long cross-fading with a smaller overlap, you should use a sequence to stick some blank section before the beginning of `b` in `fader`.
-The three parameters given here are only default values, and will be overriden by values coming from the metadata tags `liq_fade_in`, `liq_fade_out` and `liq_start_next`.
+The three parameters given here are only default values, and will be overridden by values coming from the metadata tags `liq_fade_in`, `liq_fade_out` and `liq_start_next`.
 
 For an advanced crossfading function, you can see the [crossfade documentation](crossfade.html)
 
 Alsa unbuffered output 
 -----------------------
-You can use [Liquidsoap](index.html) to capture and play through alsa with a minimal delay. This particulary useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
+You can use [Liquidsoap](index.html) to capture and play through alsa with a minimal delay. This particularly useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
 
 This configuration is not trivial since it relies on your hardware. Some hardware will allow both recording and playing at the same time, some only one at once, and some none at all.. Those note to configure are what works for us, we don't know if they'll fit all hardware.
 
@@ -466,7 +466,7 @@ output.alsa(bufferize=false,input)
 
 If everything goes right, you may hear on your output the captured sound without any delay ! If you want to test the difference, just run the same script with `bufferize=true` (or without this parameter since it is the default). The setting will be acknowledged in the log as follows:
 ```
-Targetting 'frame.audio.size': 2048 audio samples = 2048 ticks.
+Targeting 'frame.audio.size': 2048 audio samples = 2048 ticks.
 ```
 
 If you experience problems it might be a good idea to double the value of the frame size. This increases stability, but also latency.

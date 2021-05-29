@@ -92,7 +92,7 @@ module Filename = struct
     let dir = match dir with Some d -> d | None -> get_temp_dir_name () in
     let raise_err msg = raise (Sys_error msg) in
     let rec loop count =
-      if count < 0 then raise_err "mk_temp_dir: too many failing attemps"
+      if count < 0 then raise_err "mk_temp_dir: too many failing attempts"
       else (
         let dir =
           Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix

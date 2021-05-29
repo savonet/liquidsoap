@@ -9,7 +9,7 @@ into your final streams:
 you configure the live source client to connect directly to liquidsoap,
 and manage the switch to and from the live inside your script.
 
-Additionally, liquidsoap can handle many simulataneous harbor sources on different ports, 
+Additionally, liquidsoap can handle many simultaneous harbor sources on different ports, 
 with finer-grained authentication schemes that can be particularly useful when used with
 source clients designed for the shoutcast servers.
 
@@ -19,7 +19,7 @@ If enabled using `ssl`, `input.harbor.ssl` will be available. If enabled with `o
 
 Parameters
 ----------
-The global parameters for harbor can be retreived using
+The global parameters for harbor can be retrieved using
 `liquidsoap --conf-descr-key harbor`. They are:
 
 * `harbor.bind_addr`: IP address on which the HTTP stream receiver should listen. The default is `"0.0.0.0"`. You can use this parameter to restrict connections only to your LAN.
@@ -47,7 +47,7 @@ To create a self-signed certificate for local testing you can use the following 
 openssl req -x509 -newkey rsa:4096 -sha256 -nodes -keyout server.key -out server.crt -subj "/CN=localhost" -days 3650
 ```
 
-You also have per-source parameters. You can retreive them using the command 
+You also have per-source parameters. You can retrieve them using the command 
 `liquidsoap -h input.harbor`. The most important one are:
 
 * `user`, `password`: set a permanent login and password for this harbor source.
@@ -58,7 +58,7 @@ You also have per-source parameters. You can retreive them using the command
 
 When using different ports with different harbor inputs, mountpoints are attributed
 per-port. Hence, there can be a harbor input with mountpoint `"foo"` on port `1356`
-and a harbor input with mountpoint `"foo"` on port `3567`. Additionaly, if an harbor 
+and a harbor input with mountpoint `"foo"` on port `3567`. Additionally, if an harbor 
 source uses custom port `n` with shoutcast (ICY) source protocol enabled, shoutcast
 source clients should set their connection port to `n+1`.
 

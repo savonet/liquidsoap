@@ -845,7 +845,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                           Duppy.Monad.Io.exec
                             ~priority:
                               (* ICY = true means that authentication has already
-                                 hapenned *)
+                                 happened *)
                               Tutils.Maybe_blocking h
                             (let valid_user, auth_f = s#login in
                              if

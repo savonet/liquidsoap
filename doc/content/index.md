@@ -1,7 +1,7 @@
 Liquidsoap
 ==========
 Liquidsoap is a powerful tool for building complex audio and video stream generators,
-typically targetting internet radios and webtvs. It consists of a simple script language,
+typically targeting internet radios and webtvs. It consists of a simple script language,
 which has a first-class notion of source (basically a *stream*) and
 provides elementary source constructors and source compositions
 from which you can build the stream generator you want.
@@ -24,7 +24,7 @@ just jump to the [documentation index](documentation.html).
 It guides you through these pages,
 starting with the [quickstart tour](quick_start.html).
 
-Liquidsoap is an open-source sofware
+Liquidsoap is an open-source software
 from the [Savonet](http://liquidsoap.info) project.
 
 Features

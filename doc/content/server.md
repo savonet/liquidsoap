@@ -14,7 +14,7 @@ two media: TCP and Unix sockets. The TCP socket provides a simple telnet-like
 interface, available only on the local host by default. The Unix socket
 interface (*cf.* the `server.socket` setting) is through some sort of virtual
 file. This is more constraining, which allows one to restrict the use of the
-socket to some priviledged users.
+socket to some privileged users.
 
 You can find more details on how to configure the server in the
 [documentation](help.html#settings) of the settings key `server`, in particular
@@ -70,7 +70,7 @@ command which will start a web interface accessible at
 Interactive variables
 ---------------------
 Sometimes it is useful to control a variable using telnet. A simple way to
-achive this is to use the `interactive.float` function. For instance, in order
+achieve this is to use the `interactive.float` function. For instance, in order
 to dynamically the volume of a source:
 ```liquidsoap
 # Register a telnet variable named volume with 1 as initial value
@@ -154,7 +154,7 @@ methods have been, at some point, exposed to security issues. Thus, implementing
 our own secure access would require a constant care about possible security
 issues.
 
-Rather than doing our own home-made secure acces, we believe that our users
+Rather than doing our own home-made secure access, we believe that our users
 should be able to define their own secure access to the command server, taking
 advantage of a mainstream authentication mechanism, for instance HTTP or SSH
 login. In order to give an example of this approach, we show here how to create
@@ -176,7 +176,7 @@ socat /path/to/socket -
 
 The interface is then exactly the same has for the telnet server.
 
-We define now a new ``shell''. This shell is in fact the invokation of the socat
+We define now a new ``shell''. This shell is in fact the invocation of the socat
 command. Thus, we create a `/usr/local/bin/liq_shell` file with the following
 content:
 ```bash
@@ -247,4 +247,4 @@ that you are using a mainstream secure application, here SSH.
 
 This example may be adapted similarly to use an online HTTP login 
 mechanism, which is probably the most comment type of mechanism
-intented for the command line server.
+intended for the command line server.

@@ -10,9 +10,9 @@ To use it in your script, simply create a source that way:
 source = input.http(url)
 ```
 
-This operator will pull regulary the given location for its data, so it should be used for 
+This operator will pull regularly the given location for its data, so it should be used for 
 locations that are assumed to be available most of the time. If not, it might generate unnecessary 
-traffic and polute the logs. In this case, it is perhaps better to inverse the paradigm and 
+traffic and pollute the logs. In this case, it is perhaps better to inverse the paradigm and 
 use the [input.harbor](harbor.html) operator.
 
 

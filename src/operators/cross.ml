@@ -74,7 +74,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
     val mutable after_metadata = None
 
     (* An audio frame for intermediate computations. It is used to buffer the
-       end and beginnings of tracks. Its past metadata should mimick that of the
+       end and beginnings of tracks. Its past metadata should mimic that of the
        main stream in order to avoid metadata duplication. *)
     val mutable buf_frame = Frame.dummy
 
@@ -132,7 +132,7 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
 
     method private set_clock =
       let child_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should stricly contain the child clock. *)
+      (* Our external clock should strictly contain the child clock. *)
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
 
@@ -450,7 +450,7 @@ let () =
         Some (Lang.float 5.),
         Some
           "Duration (in seconds) of buffered data from each track that is used \
-           to compute the transision between tracks." );
+           to compute the transition between tracks." );
       ( "override_duration",
         Lang.string_t,
         Some (Lang.string "liq_cross_duration"),

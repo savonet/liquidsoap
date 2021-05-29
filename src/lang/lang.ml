@@ -844,7 +844,7 @@ type 'a operator_method = string * scheme * string * ('a -> value)
   * carry a type constraint.
   * Once the type has been inferred, the function might be executed,
   * and at this point the type might still not be known completely
-  * so we have to force its value withing the acceptable range. *)
+  * so we have to force its value within the acceptable range. *)
 let add_operator =
   let _meth = meth in
   fun ~category ~descr ?(flags = []) ?(active = false)

@@ -64,7 +64,7 @@ let from_iff ~format ~channels ~samplesize =
         | 16 when format = `Aiff -> Audio.S16BE.to_audio
         | 24 when format = `Wav -> Audio.S24LE.to_audio
         | 32 when format = `Wav -> Audio.S32LE.to_audio
-        | _ -> failwith "unsuported sample size"
+        | _ -> failwith "unsupported sample size"
     in
     to_audio src 0 dst;
     dst

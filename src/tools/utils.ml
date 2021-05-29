@@ -482,7 +482,7 @@ let encode64 s =
   else if extra = 2 then Bytes.set dst ((4 * (n / 3)) - 1) '=';
   Bytes.unsafe_to_string dst
 
-(* This is not garanteed to work 100% but should
+(* This is not guaranteed to work 100% but should
  * be ok on reasonable cases. A problematic cases
  * is for instance: http://bla.com/foo.mp3?gni=bla.truc *)
 
@@ -606,7 +606,7 @@ let file_extension ?(leading_dot = true) ?(dir_sep = Filename.dir_sep) name =
 
 let environment () =
   let l = Unix.environment () in
-  (* Split at first occurence of '='. Return v,"" if
+  (* Split at first occurrence of '='. Return v,"" if
    * no '=' could be found. *)
   let split s =
     try

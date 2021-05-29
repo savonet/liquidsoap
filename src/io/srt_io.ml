@@ -76,7 +76,7 @@ let common_options ~mode =
     ( "on_disconnect",
       Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
-      Some "Function to excecute when disconnected" );
+      Some "Function to execute when disconnected" );
   ]
 
 let stats_specs =

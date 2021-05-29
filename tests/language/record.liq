@@ -38,7 +38,7 @@ def f() =
   def replaces r.a (x) = 2*x end
   ignore(r.a.b)
 
-  # A resetable counter
+  # A resettable counter
   n = ref(0)
   def counter()
     n := !n + 1

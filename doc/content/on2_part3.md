@@ -201,7 +201,7 @@ Manipulating MIDI data
 ======================
 Playing with the keyboard
 -------------------------
-MIDI is a format for describing steams of notes, scores, etc. Liquidsoap has
+MIDI is a format for describing streams of notes, scores, etc. Liquidsoap has
 a basic support for such streams.
 
 In order to generate a MIDI stream, the `input.keyboard.sdl` operator can be

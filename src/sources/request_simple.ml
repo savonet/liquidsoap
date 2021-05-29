@@ -180,7 +180,7 @@ class dynamic ~kind ~retry_delay ~available (f : Lang.value) length
   end
 
 let () =
-  let log = Log.make ["reqest"; "dynamic"] in
+  let log = Log.make ["request"; "dynamic"] in
   let kind = Lang.any in
   let t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "request.dynamic.list" ~category:Lang.Input

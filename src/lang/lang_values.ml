@@ -692,7 +692,7 @@ let add_task, pop_tasks =
         done
       with Queue.Empty -> () )
 
-(** Generate a type with fresh variables for a patten. *)
+(** Generate a type with fresh variables for a pattern. *)
 let rec type_of_pat ~level ~pos = function
   | PVar x ->
       let a = T.fresh_evar ~level ~pos in

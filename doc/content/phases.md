@@ -16,7 +16,7 @@ In **interactive** mode (passing the `--interactive` option)
 it is also possible to input expressions in a liquidsoap prompt,
 and their execution can trigger the creation of new outputs.
 
-Outputs can be desactivated using `source.shutdown()`:
+Outputs can be deactivated using `source.shutdown()`:
 they will stop streaming and will be destroyed.
 
 The full liquidsoap instance

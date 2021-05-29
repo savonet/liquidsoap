@@ -32,7 +32,7 @@ let conf_meta =
 
 (** The list of metadata fields that should be exported when encoding. *)
 let conf_export_metadata =
-  Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
+  Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metadata"
     ~d:
       [
         "artist";

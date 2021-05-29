@@ -28,18 +28,18 @@ let argv =
   if
     (* The env variable "_" contains the name under which we've been invoked.
      * When liquidsoap is invoked via the shebang line of a script,
-     * the invokation name is that liq script.
-     * When liquidsoap is invoked via "liquidsoap", the invokation name is the
+     * the invocation name is that liq script.
+     * When liquidsoap is invoked via "liquidsoap", the invocation name is the
      * full path to the binary. Doing the check against $0 rather than directly
      * "liquidsoap" avoids problems if the user decides to change the name or
      * use a symlink to liquidsoap.
      * Aliases do not seem to have any effect on that system. *)
     try
-      (* Normal invokation. *)
+      (* Normal invocation. *)
       Sys.argv.(0) === Sys.getenv "_"
-      || (* Invokation from gdb/strace/valgrind...
+      || (* Invocation from gdb/strace/valgrind...
           * When liquidsoap is invoked through gdb, env[_] is "../gdb".
-          * For a real #! invokation, env[_] (the script name) should be
+          * For a real #! invocation, env[_] (the script name) should be
           * found on the command-line, either at position 1 or 2. *)
       not
         ( (Array.length Sys.argv > 1 && Sys.getenv "_" === Sys.argv.(1))

@@ -143,14 +143,14 @@ An MP3 encoder with id3v2 tags:
 
 In the last example, we tell the `%gstreamer` encoder that the element for injecting metadata is named
 `"muxer"` because, for id3v2 tags, the gstreamer muxer element is also the element used to inject metadata
-and the `"muxer"` name is implicitely added by liquidsoap to the muxer element. You can see that by printing
+and the `"muxer"` name is implicitly added by liquidsoap to the muxer element. You can see that by printing
 out the constructed pipeline, as shown before.
 
 Caveats
 -------
 When using the `%gstreamer` encoder, one must think of it as an encoder for an infinite stream. This, in particular,
 means that not all containers (muxers) will work. For instance, the AVI and MP4 containers need to write in their
-header informations that are only known with finite streams, such as the stream total's time and etc.. These containers
+header information that are only known with finite streams, such as the stream total's time and etc.. These containers
 are usually not fit for streaming, which is liquidsoap's main functionality.
 
 

@@ -246,7 +246,7 @@ end
 # the choice of the transition.
 # @category Source / Track Processing
 # @param ~duration     Duration (in seconds) of buffered data from each track \
-#                      that is used to compute the transision between tracks.
+#                      that is used to compute the transition between tracks.
 # @param ~override_duration \
 #                      Metadata field which, if present and containing a \
 #                      float, overrides the 'duration' parameter for current \
@@ -326,7 +326,7 @@ def crossfade(~duration=5.,~override_duration="liq_cross_duration",
       log("new >= old + margin, old <= medium and new <= high.")
       log("Do not fade if it's already very low.")
       log("Transition: crossed, no fade.")
-      add(a.souce,b.source)
+      add(a.source,b.source)
 
     # What to do with a loud end and a quiet beginning ?
     # A good idea is to use a jingle to separate the two tracks,

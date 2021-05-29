@@ -36,7 +36,7 @@ let make_action ?(before = []) ?(after = []) name =
   let after_action f = ignore (Dtools.Init.make ~after:[atom] f) in
   (atom, before_action, on_action, after_action)
 
-(* This atom is explicitely triggered in [Main] *)
+(* This atom is explicitly triggered in [Main] *)
 let init_atom, before_init, on_init, after_init =
   make_action "Liquidsoap initialization"
 

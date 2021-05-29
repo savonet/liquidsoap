@@ -136,7 +136,7 @@ let () =
     Utils.escape_utf8 ~special_char ~escape_char f s
   in
   register_escape_fun ~name:"string.utf8.escape"
-    ~descr:"Escape special charaters in an UTF8 string." ~escape
+    ~descr:"Escape special characters in an UTF8 string." ~escape
     ~escape_char:Utils.escape_utf8_char
 
 let () =
@@ -386,7 +386,7 @@ let () =
 let () =
   add_builtin "%" ~cat:String
     ~descr:
-      "`pattern % [...,(k,v),...]` changes in the pattern occurences of:\n\n\
+      "`pattern % [...,(k,v),...]` changes in the pattern occurrences of:\n\n\
        - `$(k)` into `v`\n\
        - `$(if $(k2),\"a\",\"b\") into \"a\" if k2 is found in the list, \"b\" \
        otherwise."

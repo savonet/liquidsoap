@@ -586,7 +586,7 @@ usual data formats, when enabled as encoder:
 * Aac and Aac+
 
 You may also communicate data between two liquidsoap instance, one using `output.icecast`
-to send data and the other one `input.harbor` to receive it. In this case, you wan also
+to send data and the other one `input.harbor` to receive it. In this case, you want also
 use the WAVE or FLAC format to send lossless data.
 
 We add a live source in `radio.liq`, anywhere before the outputs:

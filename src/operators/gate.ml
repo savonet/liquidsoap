@@ -130,7 +130,7 @@ let () =
       ( "range",
         Lang.getter_t Lang.float_t,
         Some (Lang.float (-30.)),
-        Some "Difference betwee closed and open level (dB)." );
+        Some "Difference between closed and open level (dB)." );
       ( "window",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 1.),

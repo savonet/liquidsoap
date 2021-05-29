@@ -34,7 +34,7 @@ let conf_harbor_bind_addrs =
 let conf_harbor_max_conn =
   Dtools.Conf.int
     ~p:(conf_harbor#plug "max_connections")
-    ~d:2 "Maximun of pending source requests per port."
+    ~d:2 "Maximum of pending source requests per port."
 
 let conf_pass_verbose =
   Dtools.Conf.bool

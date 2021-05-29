@@ -120,7 +120,7 @@ module Make (T : T) = struct
         ( "buffer",
           Lang.int_t,
           Some (Lang.int (5 * 65535)),
-          Some "Maximun buffer per-client." );
+          Some "Maximum buffer per-client." );
         ( "burst",
           Lang.int_t,
           Some (Lang.int 65534),

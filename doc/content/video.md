@@ -245,7 +245,7 @@ The video can be read after that at
 ### Streaming with GStreamer
 
 The usual way to stream a video is using icecast, as for audio. However, it can
-happen that you want to use weired formats or ways to to stream. In this case,
+happen that you want to use weird formats or ways to to stream. In this case,
 using GStreamer as output (as opposed to simply a codec as above) might be a
 good idea. For instance, suppose that you want to stream mp4 video using
 RTP. This can be done as follows:

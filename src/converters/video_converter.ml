@@ -59,7 +59,7 @@ type converter = proportional:bool -> Img.t -> Img.t -> unit
 
 (* A converter plugin is a name, a list of input formats, 
   * a list of output formats,
-  * a fonction to create a converter. *)
+  * a function to create a converter. *)
 type converter_plug =
   Img.Pixel.format list * Img.Pixel.format list * (unit -> converter)
 

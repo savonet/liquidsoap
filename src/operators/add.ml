@@ -154,7 +154,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
           (0, offset) sources
       in
       (* If the other sources have filled more than the first one, the end of
-         track in buf gets overriden. *)
+         track in buf gets overridden. *)
       match Frame.breaks buf with
         | pos :: breaks when pos < end_offset ->
             Frame.set_breaks buf (end_offset :: breaks)

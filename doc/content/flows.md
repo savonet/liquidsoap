@@ -219,7 +219,7 @@ A command-line client is also available. It can be used to:
 * Change your radio's location
 * Register and unregister twitter notifications
 
-The code is still being developped. It can be accessed at this url:
+The code is still being developed. It can be accessed at this url:
 [https://github.com/savonet/flows-client](https://github.com/savonet/flows-client)
 
 

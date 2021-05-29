@@ -465,7 +465,7 @@ let options =
         ( ["--no-deprecated"],
           Arg.Clear deprecated,
           "Do not load wrappers for deprecated operators." );
-        (["-i"], Arg.Set Configure.display_types, "Display infered types.");
+        (["-i"], Arg.Set Configure.display_types, "Display inferred types.");
         ( ["--version"],
           Arg.Unit
             (fun () ->

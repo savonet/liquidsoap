@@ -58,7 +58,7 @@ type buffer = {
 type decoder = {
   decode : buffer -> unit;
   (* [seek x]: Skip [x] main ticks.
-   * Returns the number of ticks atcually skiped. *)
+   * Returns the number of ticks atcually skipped. *)
   seek : int -> int;
 }
 
@@ -125,7 +125,7 @@ val get_image_file_decoder : file -> Video.Image.t option
 (* Initialize a decoding buffer *)
 val mk_buffer : ctype:Frame.content_type -> G.t -> buffer
 
-(* Create a file decoder when remaning time is known. *)
+(* Create a file decoder when remaining time is known. *)
 val file_decoder :
   filename:string ->
   close:(unit -> unit) ->

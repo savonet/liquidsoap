@@ -23,15 +23,15 @@
 (** Asynchronous process handler. This module wraps around [Unix.open_process_full]
   * and [Unix.select] to manipulate external processes. Its API can be used in two
   * different ways:
-  *  - Provide callbacks for reading and writting to the process' standard outputs.
+  *  - Provide callbacks for reading and writing to the process' standard outputs.
   *    These callbacks are executed when [Unix.select] returns their respective
-  *    file descriptors as available for writting/reading. Thus, read and write
+  *    file descriptors as available for writing/reading. Thus, read and write
   *    inside these callbacks should not be blocking although [Unix.select] 
   *    documentation stipulates that "large" writes may still be blocking.
   *  - Use direct, blocking, read/write on the process' standard output.
-  *    in this case, reading and writting may be blocking, following the
+  *    in this case, reading and writing may be blocking, following the
   *    usual [Unix.write] and [Unix.read] semantics.
-  * The API abstracts the file descriptors and provides writting/reading
+  * The API abstracts the file descriptors and provides writing/reading
   * callbacks instead. Please note that there is no way to detect when the
   * process has exited unless reaching a zero-length read in its standard 
   * output or error. Also, the default [on_stdout] and [on_stderr] callbacks

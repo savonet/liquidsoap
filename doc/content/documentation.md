@@ -51,7 +51,7 @@ Specific tutorials
 * [External decoders](external_decoders.html): use an external program for decoding audio files.
 * [External encoders](external_encoders.html): use an external audio encoding program.
 * [External streams](external_streams.html): use an external program for streaming audio data.
-* [HLS ouptut](hls_output.html): output your stream as HTTP Live Stream.
+* [HLS output](hls_output.html): output your stream as HTTP Live Stream.
 * [HTTP input](http_input.html): relay external streams.
 * [Harbor input](harbor.html): receive streams from icecast and shoutcast source clients.
 * [ICY metadata update](icy_metadata.html): manipulate and configure metadata update in Icecast.

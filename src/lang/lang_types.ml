@@ -890,7 +890,7 @@ let doc_of_meths m =
  *
  * This relation must be transitive. Note that it is not safe to allow the
  * promotion of optional parameters into mandatory ones, because the function
- * with the optional parameter, when fully applied, applies implicitely its
+ * with the optional parameter, when fully applied, applies implicitly its
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
 
@@ -901,7 +901,7 @@ let constr_sub x y =
     | _ -> false
 
 (** Ensure that a<:b, perform unification if needed.
-  * In case of error, generate an explaination. *)
+  * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
   if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
   match ((deref a).descr, (deref b).descr) with

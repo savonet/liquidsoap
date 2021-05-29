@@ -46,7 +46,7 @@ in HTTP content)
 
 The handler is a _string getter_, which means that it can be of either type `string` or type `()->string`.
 The former is used to returned the response in one call while the later can be used to returned bigger response
-without having to load the whole response string in memory, for instane in the case of a file.
+without having to load the whole response string in memory, for instance in the case of a file.
 
 For convenience, two functions, `http_response` and `http_response_stream` are provided to 
 create a HTTP response string. `http_response` has the following type:
@@ -78,7 +78,7 @@ where:
 * `data_len` is the length of the streamed response
 * `data` is the response stream
 
-Thess functions can be used to create your own HTTP interface. Some examples
+These functions can be used to create your own HTTP interface. Some examples
 are:
 
 Redirect Icecast's pages

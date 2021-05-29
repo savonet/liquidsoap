@@ -86,7 +86,7 @@ let () =
       Lang.float f)
 
 let () =
-  add_builtin "source.shutdown" ~cat:Liq ~descr:"Desactivate a source."
+  add_builtin "source.shutdown" ~cat:Liq ~descr:"Deactivate a source."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.unit_t
     (fun p ->
@@ -148,7 +148,7 @@ let () =
     Lang.unit_t
     ~descr:
       "Register a function to be called when source is not used anymore by \
-       another souce."
+       another source."
     (fun p ->
       let s = Lang.to_source (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in

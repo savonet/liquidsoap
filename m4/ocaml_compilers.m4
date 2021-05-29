@@ -52,7 +52,7 @@ fi
 AC_ARG_ENABLE([profiling],
    AC_HELP_STRING(
       [--enable-profiling],
-      [compile to generate profiling infomation]))
+      [compile to generate profiling information]))
 if test "x$enable_profiling" = "xyes" ; then
   OCAMLNCFLAGS="$OCAMLNCFLAGS -p"
 fi

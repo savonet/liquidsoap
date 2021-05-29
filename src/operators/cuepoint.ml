@@ -76,7 +76,7 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out
 
     method private set_clock =
       let child_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should stricly contain the child clock. *)
+      (* Our external clock should strictly contain the child clock. *)
       Clock.unify self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
 
@@ -265,7 +265,7 @@ let () =
   Lang.add_operator "cue_cut" ~return_t ~category:Lang.TrackProcessing
     ~descr:
       "Start track after a cue in point and stop it at cue out point. The cue \
-       points are given as metadata, in seconds from the begining of tracks."
+       points are given as metadata, in seconds from the beginning of tracks."
     [
       ( "cue_in_metadata",
         Lang.string_t,

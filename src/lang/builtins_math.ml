@@ -82,7 +82,7 @@ let () =
   register_op "Multiplication" "*" ( * ) ( *. );
   register_op "Division" "/" ( / ) ( /. );
   register_op "Addition" "+" ( + ) ( +. );
-  register_op "Substraction " "-" ( - ) ( -. );
+  register_op "Subtraction " "-" ( - ) ( -. );
   register_op "Exponentiation" "pow"
     (fun a b -> int_of_float (float_of_int a ** float_of_int b))
     ( ** );

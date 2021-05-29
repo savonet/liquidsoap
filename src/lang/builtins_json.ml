@@ -169,7 +169,7 @@ let rec of_json d j =
   match (d.Lang.value, j) with
     | Lang.Tuple [], `Null -> Lang.unit
     | Lang.Ground (Lang.Ground.Bool _), `Bool b -> Lang.bool b
-    (* JSON specs do not differenciate between ints and floats. Therefore, we
+    (* JSON specs do not differentiate between ints and floats. Therefore, we
        should parse int as floats when required. *)
     | Lang.Ground (Lang.Ground.Int _), `Int i -> Lang.int i
     | Lang.Ground (Lang.Ground.Float _), `Int i -> Lang.float (float_of_int i)

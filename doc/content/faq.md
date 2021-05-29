@@ -116,7 +116,7 @@ Troubleshooting
 
 ### Pulseaudio
 
-When using ALSA input or output or, more generaly any audio input or output 
+When using ALSA input or output or, more generally any audio input or output 
 that is not using pulseaudio, you should disable pulseaudio, which is often installed
 by default. Pulseaudio emulates ALSA but this also generates bugs, 
 in particular errors of this form:
@@ -151,7 +151,7 @@ pcm.liquidsoap {
 ```
 
 This creates a new alsa device that you can use with liquidsoap. The `plug` operator
-in ALSA is used to work-around any hardward limitations in your device (mixing multiple
+in ALSA is used to work-around any hardware limitations in your device (mixing multiple
 outputs, resampling etc.). In some cases you may need to read more about ALSA and define
 your own PCM device.
 

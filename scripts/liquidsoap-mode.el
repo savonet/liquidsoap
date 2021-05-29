@@ -29,7 +29,7 @@
   "Indent current Liquidsoap line"
   (interactive)
   (beginning-of-line)
-  ; At begining, no indentation
+  ; At beginning, no indentation
   (if (bobp) (indent-line-to 0)
     ; not-indented is a boolean saying we found a match looking backward
     ; cur-indent is the current indetation

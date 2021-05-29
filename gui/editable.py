@@ -181,4 +181,4 @@ if __name__ == "__main__":
     win.show()
     gtk.main()
   except socket.error, x:
-    print "Couln't connect to "+host+':'+str(port)+'!'
+    print "Couldn't connect to "+host+':'+str(port)+'!'

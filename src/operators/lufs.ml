@@ -54,7 +54,7 @@ module IIR = struct
     let y = (blank, blank) in
     if samplerate = 48000. then { channels; x; y; a1; a2; b0; b1; b2 }
     else (
-      (* The coeffients of the specification are given for a 48 kHz samplerate,
+      (* The coefficients of the specification are given for a 48 kHz samplerate,
          this computes the values for other samplerates. This is "strongly
          inspired" of https://github.com/klangfreund/LUFSMeter/ *)
       let k_q = (2. -. (2. *. a2)) /. (a2 -. a1 +. 1.) in

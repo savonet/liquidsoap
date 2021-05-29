@@ -180,7 +180,7 @@ AC_SUBST(bashcompdir)
 emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
 AC_SUBST(emacsdir)
 
-# Check endianess
+# Check endianness
 AC_C_BIGENDIAN
 if test "x$ac_cv_c_bigendian" = "xyes"; then
 cat >> src/configure.ml <<__BLAH__
@@ -777,7 +777,7 @@ let conf_tag =
   Dtools.Conf.void ~p:(conf#plug "tag") "Settings related to metadata tags"
 let conf_encoding =
   (* The [["foo";"bla"]] may be stripped by configure here.. We avoided it by chance because
-   * the configure script takes conf_tag#plug as the begining of a comment.
+   * the configure script takes conf_tag#plug as the beginning of a comment.
    * Don't forget this when modifying this inclusion later... *)
   Dtools.Conf.list ~p:(conf_tag#plug "encodings") ~d:["UTF-8";"ISO-8859-1"]
     "List of encodings to try for automatic encoding detection"

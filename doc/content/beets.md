@@ -24,7 +24,7 @@ using 3 techniques fitting different Liquidsoap sources :
  * We can also add Beets as a protocol so you can query beets from [requests](requests.html)
  * Finally we use Beets to generate a file suitable for `playlist`.
 
-Before that, let's see Beets queries that are the most intersting for a radio.
+Before that, let's see Beets queries that are the most interesting for a radio.
 
 Beet queries
 ------------

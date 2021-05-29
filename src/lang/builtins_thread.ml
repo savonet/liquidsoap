@@ -42,7 +42,7 @@ let () =
       ( "delay",
         Lang.float_t,
         Some (Lang.float 0.),
-        Some "Delay (in sec.) after which the thread should be lauched." );
+        Some "Delay (in sec.) after which the thread should be launched." );
       ( "",
         Lang.fun_t [] Lang.float_t,
         None,

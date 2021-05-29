@@ -28,7 +28,7 @@ class Model(gtk.ListStore):
 # k is a string, column name
 # v type (int,string,bool) defines the column type
 #   its value defines the width of the column (100 or '100' for example)
-# p is optionnal, is a property hash for the renderer
+# p is optional, is a property hash for the renderer
 # There is currently no way to control column attributes.
 class View(gtk.TreeView):
   def __init__(self,model,a):
@@ -43,7 +43,7 @@ class View(gtk.TreeView):
       renderer = {type('str'): gtk.CellRendererText(),
                   type(0): gtk.CellRendererText(),
                   type(True): gtk.CellRendererText()}[type(k[1])]
-      # Optionnal third argument for rendering properties
+      # Optional third argument for rendering properties
       if len(model[i])>2:
         for p in model[i][2].keys():
           renderer.set_property(p,model[i][2][p])
