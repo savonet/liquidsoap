@@ -253,6 +253,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       match selected with Some (_, s) -> s#abort_track | None -> ()
 
     method seek n = match selected with Some (_, s) -> s#seek n | None -> 0
+
+    method selected = Option.map (fun (_, s) -> s) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -335,6 +337,20 @@ let () =
     ~descr:
       "At the beginning of a track, select the first source whose predicate is \
        true."
+    ~meth:
+      [
+        ( "selected",
+          ( [],
+            Lang.fun_t []
+              (Lang.nullable_t Lang.(source_t (kind_type_of_kind_format kind)))
+          ),
+          "Currently selected source.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                match s#selected with
+                  | Some s -> Lang.source s
+                  | None -> Lang.null) );
+      ]
     [
       ( "track_sensitive",
         Lang.getter_t Lang.bool_t,
