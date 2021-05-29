@@ -105,7 +105,7 @@ class virtual base dev mode =
                       (Audio.sub [| buf.(c) |] ofs len)
                       sbuf.(c) 0
                   done;
-                  Pcm.written pcm sbuf 0 len);
+                  Pcm.writen pcm sbuf 0 len);
               read <-
                 (fun pcm buf ofs len ->
                   let sbuf =
