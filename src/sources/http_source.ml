@@ -191,6 +191,8 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
 
     val mutable metaint = None
 
+    val mutable mime = force_mime
+
     (* 64k bytes *)
     val mutable min_data_buffer = 64_000
 
@@ -287,6 +289,19 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                        (fun (lbl, _) ->
                          String.lowercase_ascii lbl = "icy-metaint")
                        headers);
+                mime <-
+                  Some
+                    ( try
+                        let _, _, _, headers =
+                          Liqcurl.parse_response_headers
+                            (Buffer.contents response_headers)
+                        in
+                        snd
+                          (List.find
+                             (fun (lbl, _) ->
+                               String.lowercase_ascii lbl = "content-type")
+                             headers)
+                      with _ -> "application/octet-stream" );
                 response_parsed <- true );
               Condition.signal read_c;
               let n = Buffer.length data in
@@ -379,7 +394,14 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
                 ret
       in
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
-      try decoder <- Some (create_decoder input)
+      let content_type =
+        match mime with
+          | Some m -> m
+          | None ->
+              if not response_parsed then wait_for_data min_data_buffer;
+              Option.get mime
+      in
+      try decoder <- Some (create_decoder content_type input)
       with e ->
         begin
           match logf with
@@ -395,28 +417,26 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       else (
         try
           let url = url () in
-          let content_type =
-            match force_mime with
-              | Some m -> m
-              | None -> (
-                  match
-                    let _, _, _, headers =
-                      Liqcurl.http_request ~follow_redirect:true
-                        ~connection_timeout ~timeout ~url ~request:`Head
-                        ?interface:bind_address
-                        ~on_body_data:(fun _ -> `Continue)
-                        ()
-                    in
-                    List.find_opt
-                      (fun (lbl, _) ->
-                        String.lowercase_ascii lbl = "content-type")
-                      headers
-                  with
-                    | Some (_, m) -> m
-                    | None | (exception _) -> "application/octet-stream" )
-          in
+          ( match mime with
+            | Some _ -> ()
+            | None -> (
+                match
+                  let _, _, _, headers =
+                    Liqcurl.http_request ~follow_redirect:true
+                      ~connection_timeout ~timeout ~url ~request:`Head
+                      ?interface:bind_address
+                      ~on_body_data:(fun _ -> `Continue)
+                      ()
+                  in
+                  List.find_opt
+                    (fun (lbl, _) ->
+                      String.lowercase_ascii lbl = "content-type")
+                    headers
+                with
+                  | Some (_, m) -> mime <- Some m
+                  | None | (exception _) -> () ) );
           Generator.set_mode generator `Undefined;
-          let dec =
+          let dec content_type =
             match Decoder.get_stream_decoder ~ctype:self#ctype content_type with
               | Some d -> d
               | None -> failwith "Unknown format!"
@@ -456,6 +476,7 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
           stream_paused <- false;
           response_parsed <- false;
           metaint <- None;
+          mime <- None;
           ignore
             (Option.map
                (fun h ->
@@ -585,13 +606,6 @@ let () =
         Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),
         Some "Function to excecute when a source is disconnected" );
-      ( "active",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some
-          "If `true`, the source's data is continuously pulled. Otherwise, it \
-           accumulates and you need to explicitely connect it to an output to \
-           make sure it is consumed." );
       ( "new_track_on_metadata",
         Lang.bool_t,
         Some (Lang.bool true),
@@ -644,7 +658,6 @@ let () =
       in
       let timeout = Lang.to_int (List.assoc "timeout" p) in
       let track_on_meta = Lang.to_bool (List.assoc "new_track_on_metadata" p) in
-      let active = Lang.to_bool (List.assoc "active" p) in
       let debug = Lang.to_bool (List.assoc "debug" p) in
       let logfile =
         match Lang.to_string (List.assoc "logfile" p) with
@@ -674,17 +687,7 @@ let () =
       in
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let kind = Source.Kind.of_kind Lang.any in
-      let source =
-        new http
-          ~kind ~autostart ~track_on_meta ~force_mime ~bind_address ~poll_delay
-          ~connection_timeout ~timeout ~on_connect ~on_disconnect ~self_sync
-          ~clock_safe ~debug ~logfile ~user_agent url
-      in
-      if active then
-        ignore
-          (new Output.dummy
-             ~register_commands:false ~kind ~autostart:true ~infallible:false
-             ~on_start:(fun _ -> ())
-             ~on_stop:(fun _ -> ())
-             (Lang.source (source :> Source.source)));
-      source)
+      new http
+        ~kind ~autostart ~track_on_meta ~force_mime ~bind_address ~poll_delay
+        ~connection_timeout ~timeout ~on_connect ~on_disconnect ~self_sync
+        ~clock_safe ~debug ~logfile ~user_agent url)
