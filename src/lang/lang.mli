@@ -209,6 +209,8 @@ val to_int_getter : value -> unit -> int
 val to_num : value -> [ `Int of int | `Float of float ]
 val to_list : value -> value list
 val to_option : value -> value option
+val to_valued_option : (value -> 'a) -> value -> 'a option
+val to_default_option : default:'a -> (value -> 'a) -> value -> 'a
 val to_product : value -> value * value
 val to_tuple : value -> value list
 val to_ref : value -> value ref
