@@ -26,8 +26,7 @@
 val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
-  ?register_commands:bool
-  -> content_kind:Source.Kind.t
+  content_kind:Source.Kind.t
   -> output_kind:string
   -> ?name:string
   -> infallible:bool
@@ -112,8 +111,7 @@ class virtual encoded :
      end
 
 class dummy :
-  ?register_commands:bool
-  -> infallible:bool
+  infallible:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool

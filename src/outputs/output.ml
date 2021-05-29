@@ -54,9 +54,8 @@ let proto =
   * Takes care of pulling the data out of the source, type checkings,
   * maintains a queue of last ten metadata and setups standard Server commands,
   * including start/stop. *)
-class virtual output ?(register_commands = true) ~content_kind ~output_kind
-  ?(name = "") ~infallible ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
-  val_source autostart =
+class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
+  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
@@ -85,35 +84,34 @@ class virtual output ?(register_commands = true) ~content_kind ~output_kind
     method self_sync = source#self_sync
 
     initializer
-    if register_commands then (
-      (* Add a few more server controls *)
-      let ns = [self#id] in
-      Server.add ~ns "skip"
-        (fun _ ->
-          self#skip;
-          "Done")
-        ~descr:"Skip current song.";
-      Server.add ~ns "metadata" ~descr:"Print current metadata." (fun _ ->
-          let q = self#metadata_queue in
-          fst
-            (Queue.fold
-               (fun (s, i) m ->
-                 let s =
-                   s
-                   ^ (if s = "" then "--- " else "\n--- ")
-                   ^ string_of_int i ^ " ---\n"
-                   ^ Request.string_of_metadata m
-                 in
-                 (s, i - 1))
-               ("", Queue.length q)
-               q));
-      Server.add ~ns "remaining" ~descr:"Display estimated remaining time."
-        (fun _ ->
-          let r = source#remaining in
-          if r < 0 then "(undef)"
-          else (
-            let t = Frame.seconds_of_main r in
-            Printf.sprintf "%.2f" t )) )
+    (* Add a few more server controls *)
+    let ns = [self#id] in
+    Server.add ~ns "skip"
+      (fun _ ->
+        self#skip;
+        "Done")
+      ~descr:"Skip current song.";
+    Server.add ~ns "metadata" ~descr:"Print current metadata." (fun _ ->
+        let q = self#metadata_queue in
+        fst
+          (Queue.fold
+             (fun (s, i) m ->
+               let s =
+                 s
+                 ^ (if s = "" then "--- " else "\n--- ")
+                 ^ string_of_int i ^ " ---\n"
+                 ^ Request.string_of_metadata m
+               in
+               (s, i - 1))
+             ("", Queue.length q)
+             q));
+    Server.add ~ns "remaining" ~descr:"Display estimated remaining time."
+      (fun _ ->
+        let r = source#remaining in
+        if r < 0 then "(undef)"
+        else (
+          let t = Frame.seconds_of_main r in
+          Printf.sprintf "%.2f" t ))
 
     method is_ready =
       if infallible then (
@@ -200,14 +198,12 @@ class virtual output ?(register_commands = true) ~content_kind ~output_kind
         self#abort_track )
   end
 
-class dummy ?register_commands ~infallible ~on_start ~on_stop ~autostart ~kind
-  source =
+class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
   object
     inherit
       output
-        source autostart ?register_commands ~name:"dummy"
-          ~output_kind:"output.dummy" ~infallible ~on_start ~on_stop
-          ~content_kind:kind
+        source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
+          ~on_start ~on_stop ~content_kind:kind
 
     method private output_reset = ()
 
