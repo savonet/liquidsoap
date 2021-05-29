@@ -23,100 +23,148 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~bufferize ~log_overfull ~kind ~start ~on_start ~on_stop ?format
-  ~opts url =
+class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
+  ~kind ~on_stop ~on_start ?format ~opts url =
   let max_ticks = 2 * Frame.main_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
+  let generator =
+    Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
+      `Undefined
+  in
   object (self)
-    inherit Source.source ~name:"input.ffmpeg" kind
+    inherit Source.active_source ~name:"input.ffmpeg" kind as super
 
-    inherit
-      Generated.source
-        (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
-           `Undefined)
-        ~empty_on_abort:false ~bufferize
-
-    inherit
-      Start_stop.async ~name:"input.ffmpeg" ~on_start ~on_stop ~autostart:start
+    val mutable connect_task = None
 
     val mutable container = None
 
-    method private close_container =
-      match container with
-        | None -> ()
-        | Some input ->
-            Av.close input;
-            container <- None
+    val mutable clock = None
 
-    method private get_decoder =
-      self#close_container;
-      let opts = Hashtbl.copy opts in
-      let input = Av.open_input ?format ~opts url in
-      if Hashtbl.length opts > 0 then
-        failwith
-          (Printf.sprintf "Unrecognized options: %s"
-             (Ffmpeg_format.string_of_options opts));
-      let content_type = Ffmpeg_decoder.get_type ~ctype:self#ctype ~url input in
-      if not (Decoder.can_decode_type content_type self#ctype) then
-        failwith
-          (Printf.sprintf "url %S cannot produce content of type %s" url
-             (Frame.string_of_content_type self#ctype));
-      container <- Some input;
-      let audio, video = Ffmpeg_decoder.mk_streams ~ctype:self#ctype input in
-      Ffmpeg_decoder.mk_decoder ?audio ?video ~target_position:(ref None) input
+    (* Regular source methods. *)
+    method stype = Source.Fallible
 
-    val mutable kill_feeding = None
+    method seek _ = 0
 
-    val mutable wait_feeding = None
+    method remaining = -1
 
-    method private start =
-      begin
-        match wait_feeding with
-        | None -> ()
-        | Some f ->
-            f ();
-            wait_feeding <- None
-      end;
-      let kill, wait = Tutils.stoppable_thread self#feed "Ffmpeg input" in
-      kill_feeding <- Some kill;
-      wait_feeding <- Some wait
+    method abort_track = Generator.add_break generator
 
-    method private stop =
-      (Option.get kill_feeding) ();
-      kill_feeding <- None
+    method is_ready = self#mutexify (fun () -> container <> None) ()
 
-    method private output_reset =
-      self#stop;
-      self#start
+    method self_sync = self_sync && self#is_ready
 
-    method private is_active = true
+    (* Active source methods. *)
+    method is_active = self#is_ready
 
-    method private stype = Source.Fallible
+    method output =
+      if self#is_ready && AFrame.is_partial self#memo then
+        self#get_frame self#memo
 
-    method private feed (should_stop, has_stopped) =
+    method output_reset = self#reconnect
+
+    method output_get_ready = ()
+
+    method private connect_fn () =
       try
-        let decoder = self#get_decoder in
-        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
-        while true do
-          if should_stop () then failwith "stop";
-          decoder buffer
-        done
+        let opts = Hashtbl.copy opts in
+        let input = Av.open_input ?format ~opts url in
+        if Hashtbl.length opts > 0 then
+          failwith
+            (Printf.sprintf "Unrecognized options: %s"
+               (Ffmpeg_format.string_of_options opts));
+        let content_type =
+          Ffmpeg_decoder.get_type ~ctype:self#ctype ~url input
+        in
+        if not (Decoder.can_decode_type content_type self#ctype) then
+          failwith
+            (Printf.sprintf "url %S cannot produce content of type %s" url
+               (Frame.string_of_content_type self#ctype));
+        let audio, video = Ffmpeg_decoder.mk_streams ~ctype:self#ctype input in
+        let decoder =
+          Ffmpeg_decoder.mk_decoder ?audio ?video ~target_position:(ref None)
+            input
+        in
+        container <- Some (input, decoder);
+        on_start ();
+        -1.
       with e ->
-        Generator.add_break ~sync:true generator;
-        self#close_container;
-        begin
-          match e with
-          | Failure s -> self#log#severe "Feeding stopped: %s." s
-          | e ->
-              let bt = Printexc.get_backtrace () in
-              Utils.log_exception ~log:self#log ~bt
-                (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string e))
-        end;
-        if should_stop () then has_stopped ()
-        else self#feed (should_stop, has_stopped)
+        self#log#info "Connection failed: %s" (Printexc.to_string e);
+        self#disconnect;
+        if debug then raise e;
+        poll_delay
+
+    method private connect =
+      self#mutexify
+        (fun () ->
+          if container = None then (
+            match connect_task with
+              | Some t -> Duppy.Async.wake_up t
+              | None ->
+                  let t =
+                    Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler
+                      self#connect_fn
+                  in
+                  connect_task <- Some t;
+                  Duppy.Async.wake_up t ))
+        ()
+
+    method private disconnect =
+      self#mutexify
+        (fun () ->
+          match container with
+            | None -> ()
+            | Some (input, _) ->
+                Av.close input;
+                container <- None;
+                on_stop ())
+        ()
+
+    method private reconnect =
+      self#disconnect;
+      self#connect
+
+    method private get_frame frame =
+      let pos = Frame.position frame in
+      try
+        let _, decoder = self#mutexify (fun () -> Option.get container) () in
+        let buffer = Decoder.mk_buffer ~ctype:self#ctype generator in
+        while Generator.length generator < Lazy.force Frame.size do
+          decoder buffer
+        done;
+        Generator.fill generator frame
+      with exn ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
+        Frame.add_break frame pos;
+        self#reconnect
+
+    method private get_clock =
+      match clock with
+        | Some c -> c
+        | None ->
+            let c = new Clock.clock "input.ffmpeg" in
+            clock <- Some c;
+            c
+
+    method private set_clock =
+      super#set_clock;
+      if clock_safe then
+        Clock.unify self#clock
+          (Clock.create_known (self#get_clock :> Clock.clock))
+
+    method wake_up act =
+      super#wake_up act;
+      (* Now we can create the log function *)
+      (log_ref := fun s -> self#log#important "%s" s);
+      self#connect
+
+    method sleep =
+      self#disconnect;
+      super#sleep
   end
 
 let parse_args ~t name p opts =
@@ -157,10 +205,40 @@ let () =
           Lang.float_t,
           Some (Lang.float 5.),
           Some "Duration of buffered data before starting playout." );
+        ( "self_sync",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some
+            "Should the source control its own timing? Typically, should be \
+             `true` for streaming protocols such as `rtmp` and `false` \
+             otherwise." );
+        ( "clock_safe",
+          Lang.nullable_t Lang.bool_t,
+          Some Lang.null,
+          Some
+            "Should the source be in its own clock. Should be the same value \
+             as `self_sync` unless the source is mixed with other `clock_safe` \
+             sources like `input.ao`" );
+        ( "debug",
+          Lang.bool_t,
+          Some (Lang.bool false),
+          Some "Run in debugging mode, not catching some exceptions." );
+        ( "poll_delay",
+          Lang.float_t,
+          Some (Lang.float 2.),
+          Some "Polling delay when trying to connect to the stream." );
         ( "log_overfull",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Log when the source's buffer is overfull." );
+        ( "on_start",
+          Lang.fun_t [] Lang.unit_t,
+          Some (Lang.val_cst_fun [] Lang.unit),
+          Some "Callback executed when input starts." );
+        ( "on_stop",
+          Lang.fun_t [] Lang.unit_t,
+          Some (Lang.val_cst_fun [] Lang.unit),
+          Some "Callback executed when input stops." );
         ( "format",
           Lang.nullable_t Lang.string_t,
           Some Lang.null,
@@ -171,7 +249,6 @@ let () =
       ] )
     ~return_t:k
     (fun p ->
-      let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -200,9 +277,15 @@ let () =
       parse_args ~t:`String "string" p opts;
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
+      let debug = Lang.to_bool (List.assoc "debug" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
+      let clock_safe =
+        Lang.to_default_option ~default:self_sync Lang.to_bool
+          (List.assoc "clock_safe" p)
+      in
+      let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
       let kind = Source.Kind.of_kind kind in
-      ( new input
-          ~kind ~start ~on_start ~on_stop ~bufferize ~log_overfull ?format ~opts
-          url
-        :> Source.source ))
+      new input
+        ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_start ~on_stop
+        ~bufferize ~log_overfull ?format ~opts url)
