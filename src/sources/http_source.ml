@@ -70,8 +70,13 @@ let mt =
              mark_transfers_done ()
          | None -> ()
      in
+     let do_work () =
+       let ret = Curl.Multi.perform mt in
+       mark_transfers_done ();
+       ret
+     in
      let rec perform () =
-       while (not (Liqcurl.is_shutdown ())) && Curl.Multi.perform mt > 0 do
+       while (not (Liqcurl.is_shutdown ())) && do_work () > 0 do
          mark_transfers_done ();
          ignore (Curl.Multi.wait ~timeout_ms:200 mt)
        done;
