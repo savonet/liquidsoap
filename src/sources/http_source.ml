@@ -395,11 +395,14 @@ class http ~kind ~poll_delay ~track_on_meta ?(force_mime = None) ~bind_address
       in
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
       let content_type =
-        match mime with
-          | Some m -> m
-          | None ->
-              if not response_parsed then wait_for_data min_data_buffer;
-              Option.get mime
+        self#mutexify
+          (fun () ->
+            match mime with
+              | Some m -> m
+              | None ->
+                  if not response_parsed then wait_for_data min_data_buffer;
+                  Option.get mime)
+          ()
       in
       try decoder <- Some (create_decoder content_type input)
       with e ->
