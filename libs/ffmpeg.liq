@@ -27,7 +27,7 @@ end
 # @param ~buffer How much to buffer in advance (in seconds).
 # @param url URL to read RTMP from, in the form `rtmp://IP:PORT/ENDPOINT`
 def input.rtmp(~buffer=5., url)
-  input.ffmpeg(fallible=true, buffer=buffer, log_overfull=false, format="live_flv", int_args=[("listen", 1)], url)
+  input.ffmpeg(buffer=buffer, log_overfull=false, format="live_flv", int_args=[("listen", 1)], url)
 end
 %endif
 
