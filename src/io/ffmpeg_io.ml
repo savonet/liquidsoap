@@ -43,6 +43,8 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
 
     val mutable clock = None
 
+    val generator = generator
+
     (* Regular source methods. *)
     method stype = Source.Fallible
 
@@ -167,6 +169,66 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
       super#sleep
   end
 
+class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
+  ~log_overfull ~kind ~on_stop ~on_start ?format ~opts ~user_agent
+  ~new_track_on_metadata url =
+  let () =
+    Hashtbl.add opts "icy" (`Int 1);
+    Hashtbl.add opts "user_agent" (`String user_agent)
+  in
+  object (self)
+    inherit
+      input
+        ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull ~kind
+          ~on_stop ~on_start ?format ~opts url as super
+
+    val mutable latest_metadata = ""
+
+    method private insert_metadata chunk =
+      let h = Hashtbl.create 10 in
+      let rec parse chunk =
+        try
+          let mid = String.index chunk '=' in
+          let close = String.index chunk ';' in
+          let key = Configure.recode_tag (String.sub chunk 0 mid) in
+          let value =
+            Configure.recode_tag (String.sub chunk (mid + 2) (close - mid - 3))
+          in
+          let key =
+            match key with
+              | "StreamTitle" -> "title"
+              | "StreamUrl" -> "url"
+              | _ -> key
+          in
+          Hashtbl.add h key value;
+          parse (String.sub chunk (close + 1) (String.length chunk - close - 1))
+        with _ -> ()
+      in
+      parse chunk;
+      self#log#important "New metadata chunk: %s -- %s."
+        (try Hashtbl.find h "artist" with _ -> "?")
+        (try Hashtbl.find h "title" with _ -> "?");
+      Generator.add_metadata generator h;
+      if new_track_on_metadata then Generator.add_break generator
+
+    method get_frame frame =
+      super#get_frame frame;
+      try
+        let input, _ = self#mutexify (fun () -> Option.get container) () in
+        let m =
+          Avutil.Options.get_string ~search_children:true
+            ~name:"icy_metadata_packet" (Av.input_obj input)
+        in
+        if latest_metadata <> m && m <> "" then (
+          latest_metadata <- m;
+          self#insert_metadata m )
+      with exn ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Error while fetching metadata: %s"
+             (Printexc.to_string exn))
+  end
+
 let parse_args ~t name p opts =
   let name = name ^ "_args" in
   let args = List.assoc name p in
@@ -183,7 +245,7 @@ let parse_args ~t name p opts =
   in
   List.iter extract args
 
-let () =
+let register_input is_http =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
   let args ?t name =
@@ -194,9 +256,23 @@ let () =
     in
     (name ^ "_args", Lang.list_t t, Some (Lang.list []), None)
   in
-  Lang.add_operator "input.ffmpeg" ~active:true
-    ~descr:"Decode a url using ffmpeg." ~category:Lang.Input
-    ( Start_stop.input_proto
+  let name, descr =
+    if is_http then ("input.http", "Create a http stream using ffmpeg")
+    else ("input.ffmpeg", "Create a stream using ffmpeg")
+  in
+  Lang.add_operator name ~active:true ~descr ~category:Lang.Input
+    ( ( if is_http then
+        [
+          ( "user_agent",
+            Lang.string_t,
+            Some (Lang.string Http.user_agent),
+            Some "User agent." );
+          ( "new_track_on_metadata",
+            Lang.bool_t,
+            Some (Lang.bool true),
+            Some "Treat new metadata as new track." );
+        ]
+      else [] )
     @ [
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
@@ -286,6 +362,22 @@ let () =
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let url = Lang.to_string (Lang.assoc "" 1 p) in
       let kind = Source.Kind.of_kind kind in
-      new input
-        ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_start ~on_stop
-        ~bufferize ~log_overfull ?format ~opts url)
+      if is_http then (
+        let user_agent = Lang.to_string (List.assoc "user_agent" p) in
+        let new_track_on_metadata =
+          Lang.to_bool (List.assoc "new_track_on_metadata" p)
+        in
+        ( new http_input
+            ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_start ~on_stop
+            ~user_agent ~new_track_on_metadata ~bufferize ~log_overfull ?format
+            ~opts url
+          :> Source.source ) )
+      else
+        ( new input
+            ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_start ~on_stop
+            ~bufferize ~log_overfull ?format ~opts url
+          :> Source.source ))
+
+let () =
+  register_input true;
+  register_input false
