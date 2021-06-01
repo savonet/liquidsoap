@@ -107,6 +107,9 @@ Changed:
 - Native Liquidsoap implementation of list functions (#920).
 - Added `fallible` option to `single` operator.
 - Allow `input.ffmpeg` to control its own clock or delegate to CPU clock (#1628)
+- Reimplement `input.http` using `ffmpeg`, deprecate `input.https` in favor
+  of unified `input.http` (#1628)
+- Changed `input.http` and `input.ffmpeg` `url` parameter into a string getter
 - Changed `request.queue` into a Liquidsoap implementation (#1013).
 - Removed `request.equeue`, such a feature could be re-implemented in
   Liquidsoap, see `request.queue`.

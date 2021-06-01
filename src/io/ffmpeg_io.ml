@@ -72,6 +72,7 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
     method private connect_fn () =
       try
         let opts = Hashtbl.copy opts in
+        let url = url () in
         let input = Av.open_input ?format ~opts url in
         if Hashtbl.length opts > 0 then
           failwith
@@ -89,6 +90,9 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
           Ffmpeg_decoder.mk_decoder ?audio ?video ~target_position:(ref None)
             input
         in
+        Generator.set_rewrite_metadata generator (fun m ->
+            Hashtbl.add m "source_url" url;
+            m);
         container <- Some (input, decoder);
         on_start input;
         -1.
@@ -360,7 +364,7 @@ let register_input is_http =
           Some
             "Force a specific input format. Autodetected when passed a null \
              argument" );
-        ("", Lang.string_t, None, Some "URL to decode.");
+        ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
       ] )
     ~return_t:k
     (fun p ->
@@ -391,7 +395,7 @@ let register_input is_http =
           (List.assoc "clock_safe" p)
       in
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
-      let url = Lang.to_string (Lang.assoc "" 1 p) in
+      let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
       let kind = Source.Kind.of_kind kind in
       if is_http then (
         let user_agent = Lang.to_string (List.assoc "user_agent" p) in
