@@ -90,7 +90,7 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
             input
         in
         container <- Some (input, decoder);
-        on_start ();
+        on_start input;
         -1.
       with e ->
         self#log#info "Connection failed: %s" (Printexc.to_string e);
@@ -169,18 +169,45 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
       super#sleep
   end
 
+let http_log = Log.make ["input"; "http"]
+
 class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
-  ~log_overfull ~kind ~on_stop ~on_start ?format ~opts ~user_agent
+  ~log_overfull ~kind ~on_connect ~on_disconnect ?format ~opts ~user_agent
   ~new_track_on_metadata url =
   let () =
     Hashtbl.add opts "icy" (`Int 1);
     Hashtbl.add opts "user_agent" (`String user_agent)
   in
+  let on_start input =
+    try
+      let icy_headers =
+        Avutil.Options.get_string ~search_children:true
+          ~name:"icy_metadata_headers" (Av.input_obj input)
+      in
+      let icy_headers = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") icy_headers in
+      let icy_headers =
+        List.fold_left
+          (fun ret header ->
+            if header <> "" then (
+              try
+                let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                (Pcre.get_substring res 1, Pcre.get_substring res 2) :: ret
+              with Not_found -> ret )
+            else ret)
+          [] icy_headers
+      in
+      on_connect icy_headers
+    with exn ->
+      let bt = Printexc.get_backtrace () in
+      Utils.log_exception ~log:http_log ~bt
+        (Printf.sprintf "Error while fetching icy headers: %s"
+           (Printexc.to_string exn))
+  in
   object (self)
     inherit
       input
         ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull ~kind
-          ~on_stop ~on_start ?format ~opts url as super
+          ~on_stop:on_disconnect ~on_start ?format ~opts url as super
 
     val mutable latest_metadata = ""
 
@@ -271,8 +298,28 @@ let register_input is_http =
             Lang.bool_t,
             Some (Lang.bool true),
             Some "Treat new metadata as new track." );
+          ( "on_connect",
+            Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
+            Some (Lang.val_cst_fun [("", None)] Lang.unit),
+            Some
+              "Function to execute when a source is connected. Its receives \
+               the list of ICY-specific headers, if available." );
+          ( "on_disconnect",
+            Lang.fun_t [] Lang.unit_t,
+            Some (Lang.val_cst_fun [] Lang.unit),
+            Some "Function to excecute when a source is disconnected" );
         ]
-      else [] )
+      else
+        [
+          ( "on_start",
+            Lang.fun_t [] Lang.unit_t,
+            Some (Lang.val_cst_fun [] Lang.unit),
+            Some "Callback executed when input starts." );
+          ( "on_stop",
+            Lang.fun_t [] Lang.unit_t,
+            Some (Lang.val_cst_fun [] Lang.unit),
+            Some "Callback executed when input stops." );
+        ] )
     @ [
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
@@ -307,14 +354,6 @@ let register_input is_http =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Log when the source's buffer is overfull." );
-        ( "on_start",
-          Lang.fun_t [] Lang.unit_t,
-          Some (Lang.val_cst_fun [] Lang.unit),
-          Some "Callback executed when input starts." );
-        ( "on_stop",
-          Lang.fun_t [] Lang.unit_t,
-          Some (Lang.val_cst_fun [] Lang.unit),
-          Some "Callback executed when input stops." );
         ( "format",
           Lang.nullable_t Lang.string_t,
           Some Lang.null,
@@ -325,14 +364,6 @@ let register_input is_http =
       ] )
     ~return_t:k
     (fun p ->
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let format = Lang.to_option (List.assoc "format" p) in
       let format =
         Option.map
@@ -367,16 +398,36 @@ let register_input is_http =
         let new_track_on_metadata =
           Lang.to_bool (List.assoc "new_track_on_metadata" p)
         in
+        let on_connect l =
+          let l =
+            List.map
+              (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
+              l
+          in
+          let arg = Lang.list l in
+          ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
+        in
+        let on_disconnect () =
+          ignore (Lang.apply (List.assoc "on_disconnect" p) [])
+        in
         ( new http_input
-            ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_start ~on_stop
-            ~user_agent ~new_track_on_metadata ~bufferize ~log_overfull ?format
-            ~opts url
+            ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_connect
+            ~on_disconnect ~user_agent ~new_track_on_metadata ~bufferize
+            ~log_overfull ?format ~opts url
           :> Source.source ) )
-      else
+      else (
+        let on_start =
+          let f = List.assoc "on_start" p in
+          fun _ -> ignore (Lang.apply f [])
+        in
+        let on_stop =
+          let f = List.assoc "on_stop" p in
+          fun () -> ignore (Lang.apply f [])
+        in
         ( new input
             ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_start ~on_stop
             ~bufferize ~log_overfull ?format ~opts url
-          :> Source.source ))
+          :> Source.source ) ))
 
 let () =
   register_input true;
