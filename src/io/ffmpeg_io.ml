@@ -183,13 +183,13 @@ class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
     Hashtbl.add opts "user_agent" (`String user_agent)
   in
   let on_start input =
-    try
-      let icy_headers =
-        Avutil.Options.get_string ~search_children:true
-          ~name:"icy_metadata_headers" (Av.input_obj input)
-      in
-      let icy_headers = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") icy_headers in
-      let icy_headers =
+    let icy_headers =
+      try
+        let icy_headers =
+          Avutil.Options.get_string ~search_children:true
+            ~name:"icy_metadata_headers" (Av.input_obj input)
+        in
+        let icy_headers = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") icy_headers in
         List.fold_left
           (fun ret header ->
             if header <> "" then (
@@ -199,13 +199,37 @@ class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
               with Not_found -> ret )
             else ret)
           [] icy_headers
-      in
-      on_connect icy_headers
-    with exn ->
-      let bt = Printexc.get_backtrace () in
-      Utils.log_exception ~log:http_log ~bt
-        (Printf.sprintf "Error while fetching icy headers: %s"
-           (Printexc.to_string exn))
+      with exn ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:http_log ~bt
+          (Printf.sprintf "Error while fetching icy headers: %s"
+             (Printexc.to_string exn));
+        []
+    in
+    on_connect icy_headers
+  in
+  let parse_icy_metadata chunk =
+    let h = Hashtbl.create 10 in
+    let rec parse chunk =
+      try
+        let mid = String.index chunk '=' in
+        let close = String.index chunk ';' in
+        let key = Configure.recode_tag (String.sub chunk 0 mid) in
+        let value =
+          Configure.recode_tag (String.sub chunk (mid + 2) (close - mid - 3))
+        in
+        let key =
+          match key with
+            | "StreamTitle" -> "title"
+            | "StreamUrl" -> "url"
+            | _ -> key
+        in
+        Hashtbl.add h key value;
+        parse (String.sub chunk (close + 1) (String.length chunk - close - 1))
+      with _ -> ()
+    in
+    parse chunk;
+    h
   in
   object (self)
     inherit
@@ -216,30 +240,11 @@ class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
     val mutable latest_metadata = ""
 
     method private insert_metadata chunk =
-      let h = Hashtbl.create 10 in
-      let rec parse chunk =
-        try
-          let mid = String.index chunk '=' in
-          let close = String.index chunk ';' in
-          let key = Configure.recode_tag (String.sub chunk 0 mid) in
-          let value =
-            Configure.recode_tag (String.sub chunk (mid + 2) (close - mid - 3))
-          in
-          let key =
-            match key with
-              | "StreamTitle" -> "title"
-              | "StreamUrl" -> "url"
-              | _ -> key
-          in
-          Hashtbl.add h key value;
-          parse (String.sub chunk (close + 1) (String.length chunk - close - 1))
-        with _ -> ()
-      in
-      parse chunk;
+      let m = parse_icy_metadata chunk in
       self#log#important "New metadata chunk: %s -- %s."
-        (try Hashtbl.find h "artist" with _ -> "?")
-        (try Hashtbl.find h "title" with _ -> "?");
-      Generator.add_metadata generator h;
+        (try Hashtbl.find m "artist" with _ -> "?")
+        (try Hashtbl.find m "title" with _ -> "?");
+      Generator.add_metadata generator m;
       if new_track_on_metadata then Generator.add_break generator
 
     method get_frame frame =
