@@ -78,7 +78,10 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=null(), ~conservat
   # requests at the right content type.
   next_fun = ref(fun () -> [])
 
-  next = fun () -> begin f = !next_fun; f() end
+  def next()
+    f = !next_fun
+    f()
+  end
 
   # Instantiate the source
   s =
