@@ -49,9 +49,9 @@ let () =
         Some (Lang.string "http"),
         Some "Protocol to use. One of: \"icy\", \"http\" or \"https\"" );
       ( "encoding",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Encoding used to send metadata, default (UTF-8) if empty." );
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Encoding used to send metadata, default (UTF-8) if null." );
       ( "headers",
         Lang.metadata_t,
         Some (Lang.list [user_agent]),
@@ -66,9 +66,7 @@ let () =
       let icy_id = Lang.to_int (List.assoc "icy_id" p) in
       let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
       let out_enc =
-        match Lang.to_string (List.assoc "encoding" p) with
-          | "" -> None
-          | s -> Some s
+        Lang.to_valued_option Lang.to_string (List.assoc "encoding" p)
       in
       let metas =
         let ret = Hashtbl.create (Hashtbl.length metas) in

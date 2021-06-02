@@ -613,9 +613,9 @@ module Make (Config : Config_t) = struct
           Some (Lang.bool true),
           Some "Treat new metadata as new track." );
         ( "force_mime",
-          Lang.string_t,
-          Some (Lang.string ""),
-          Some "Force mime data type. Not used if empty." );
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some "Force mime data type. Not used if null." );
         ( "playlist_mode",
           Lang.string_t,
           Some (Lang.string "normal"),
@@ -689,9 +689,7 @@ module Make (Config : Config_t) = struct
         in
         let bind_address = match bind_address with "" -> None | s -> Some s in
         let force_mime =
-          match Lang.to_string (List.assoc "force_mime" p) with
-            | "" -> None
-            | s -> Some s
+          Lang.to_valued_option Lang.to_string (List.assoc "force_mime" p)
         in
         let bufferize = Lang.to_float (List.assoc "buffer" p) in
         let max = Lang.to_float (List.assoc "max" p) in

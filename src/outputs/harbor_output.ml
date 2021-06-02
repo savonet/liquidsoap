@@ -158,9 +158,9 @@ module Make (T : T) = struct
           Some (Lang.list []),
           Some "Additional headers." );
         ( "dumpfile",
-          Lang.string_t,
-          Some (Lang.string ""),
-          Some "Dump stream to file, for debugging purpose. Disabled if empty."
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some "Dump stream to file, for debugging purpose. Disabled if null."
         );
         ("", Lang.source_t kind, None, None);
       ]
@@ -398,7 +398,9 @@ module Make (T : T) = struct
               | Some default_user, Some default_password ->
                   user = default_user && password = default_password )
     in
-    let dumpfile = match s "dumpfile" with "" -> None | s -> Some s in
+    let dumpfile =
+      Lang.to_valued_option Lang.to_string (List.assoc "dumpfile" p)
+    in
     let extra_headers =
       List.map
         (fun v ->

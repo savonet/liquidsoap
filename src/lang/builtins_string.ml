@@ -204,9 +204,9 @@ let () =
     ~descr:"Convert a string. Effective only if Camomile is enabled."
     [
       ( "in_enc",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Input encoding. Autodetected if empty." );
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Input encoding. Autodetected if null." );
       ( "out_enc",
         Lang.string_t,
         Some (Lang.string "UTF-8"),
@@ -216,9 +216,7 @@ let () =
     Lang.string_t
     (fun p ->
       let in_enc =
-        match Lang.to_string (List.assoc "in_enc" p) with
-          | "" -> None
-          | s -> Some s
+        Lang.to_valued_option Lang.to_string (List.assoc "in_enc" p)
       in
       let out_enc = Lang.to_string (List.assoc "out_enc" p) in
       let string = Lang.to_string (List.assoc "" p) in

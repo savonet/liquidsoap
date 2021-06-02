@@ -268,9 +268,9 @@ let proto kind =
         Some (Lang.list [user_agent]),
         Some "Additional headers." );
       ( "dumpfile",
-        Lang.string_t,
-        Some (Lang.string ""),
-        Some "Dump stream to file, for debugging purpose. Disabled if empty." );
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Dump stream to file, for debugging purpose. Disabled if null." );
       ("", Lang.source_t kind, None, None);
     ]
 
@@ -384,7 +384,9 @@ class output ~kind p =
     let v = e Lang.to_float "connection_timeout" in
     if v > 0. then Some v else None
   in
-  let dumpfile = match s "dumpfile" with "" -> None | s -> Some s in
+  let dumpfile =
+    Lang.to_valued_option Lang.to_string (List.assoc "dumpfile" p)
+  in
   let description = Configure.recode_tag ~out_enc (s "description") in
   let public = e Lang.to_bool "public" in
   let headers =

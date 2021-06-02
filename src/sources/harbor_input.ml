@@ -339,19 +339,19 @@ module Make (Harbor : T) = struct
           Some (Lang.bool false),
           Some "Enable ICY (shoutcast) protocol." );
         ( "icy_metadata_charset",
-          Lang.string_t,
-          Some (Lang.string ""),
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
           Some
-            "ICY (shoutcast) metadata charset. Guessed if empty. Default for \
+            "ICY (shoutcast) metadata charset. Guessed if null. Default for \
              shoutcast is ISO-8859-1. Set to that value if all your clients \
              send metadata using this charset and automatic detection is not \
              working for you." );
         ( "metadata_charset",
-          Lang.string_t,
-          Some (Lang.string ""),
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
           Some
             "Metadata charset for non-ICY (shoutcast) source protocols. \
-             Guessed if empty." );
+             Guessed if null." );
         ( "replay_metadata",
           Lang.bool_t,
           Some (Lang.bool false),
@@ -380,16 +380,16 @@ module Make (Harbor : T) = struct
              `true` if the user should be granted access for this login. \
              Override any other method if used." );
         ( "dumpfile",
-          Lang.string_t,
-          Some (Lang.string ""),
-          Some "Dump stream to file, for debugging purpose. Disabled if empty."
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some "Dump stream to file, for debugging purpose. Disabled if null."
         );
         ( "logfile",
-          Lang.string_t,
-          Some (Lang.string ""),
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
           Some
             "Log buffer status to file, for debugging purpose. Disabled if \
-             empty." );
+             null." );
         ( "debug",
           Lang.bool_t,
           Some (Lang.bool false),
@@ -413,14 +413,11 @@ module Make (Harbor : T) = struct
         let timeout = Lang.to_float (List.assoc "timeout" p) in
         let icy = Lang.to_bool (List.assoc "icy" p) in
         let icy_charset =
-          match Lang.to_string (List.assoc "icy_metadata_charset" p) with
-            | "" -> None
-            | s -> Some s
+          Lang.to_valued_option Lang.to_string
+            (List.assoc "icy_metadata_charset" p)
         in
         let meta_charset =
-          match Lang.to_string (List.assoc "metadata_charset" p) with
-            | "" -> None
-            | s -> Some s
+          Lang.to_valued_option Lang.to_string (List.assoc "metadata_charset" p)
         in
         let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
         let port = Lang.to_int (List.assoc "port" p) in
@@ -463,14 +460,10 @@ module Make (Harbor : T) = struct
         in
         let login = (default_user, login) in
         let dumpfile =
-          match Lang.to_string (List.assoc "dumpfile" p) with
-            | "" -> None
-            | s -> Some s
+          Lang.to_valued_option Lang.to_string (List.assoc "dumpfile" p)
         in
         let logfile =
-          match Lang.to_string (List.assoc "logfile" p) with
-            | "" -> None
-            | s -> Some s
+          Lang.to_valued_option Lang.to_string (List.assoc "logfile" p)
         in
         let bufferize = Lang.to_float (List.assoc "buffer" p) in
         let max = Lang.to_float (List.assoc "max" p) in
