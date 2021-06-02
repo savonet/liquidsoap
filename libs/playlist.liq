@@ -88,7 +88,7 @@ def playlist.list(~id="playlist.list.reloadable", ~check_next=null(), ~conservat
     if native then
       stdlib_native.request.dynamic.list(id=id, next)
     else
-      (request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not !has_stopped}, next):source_methods)
+      (request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, retry_delay=1., available={not !has_stopped}, next):source_methods)
     end
 
   # The (real) next function
