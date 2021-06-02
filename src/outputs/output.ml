@@ -83,35 +83,41 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     method self_sync = source#self_sync
 
-    initializer
-    (* Add a few more server controls *)
-    let ns = [self#id] in
-    Server.add ~ns "skip"
-      (fun _ ->
-        self#skip;
-        "Done")
-      ~descr:"Skip current song.";
-    Server.add ~ns "metadata" ~descr:"Print current metadata." (fun _ ->
-        let q = self#metadata_queue in
-        fst
-          (Queue.fold
-             (fun (s, i) m ->
-               let s =
-                 s
-                 ^ (if s = "" then "--- " else "\n--- ")
-                 ^ string_of_int i ^ " ---\n"
-                 ^ Request.string_of_metadata m
-               in
-               (s, i - 1))
-             ("", Queue.length q)
-             q));
-    Server.add ~ns "remaining" ~descr:"Display estimated remaining time."
-      (fun _ ->
-        let r = source#remaining in
-        if r < 0 then "(undef)"
-        else (
-          let t = Frame.seconds_of_main r in
-          Printf.sprintf "%.2f" t ))
+    (* Registration of Telnet commands must be delayed because some operators
+       change their id at initialization time. *)
+    val mutable registered_telnet = false
+
+    method private register_telnet =
+      if not registered_telnet then (
+        registered_telnet <- true;
+        (* Add a few more server controls *)
+        let ns = [self#id] in
+        Server.add ~ns "skip"
+          (fun _ ->
+            self#skip;
+            "Done")
+          ~descr:"Skip current song.";
+        Server.add ~ns "metadata" ~descr:"Print current metadata." (fun _ ->
+            let q = self#metadata_queue in
+            fst
+              (Queue.fold
+                 (fun (s, i) m ->
+                   let s =
+                     s
+                     ^ (if s = "" then "--- " else "\n--- ")
+                     ^ string_of_int i ^ " ---\n"
+                     ^ Request.string_of_metadata m
+                   in
+                   (s, i - 1))
+                 ("", Queue.length q)
+                 q));
+        Server.add ~ns "remaining" ~descr:"Display estimated remaining time."
+          (fun _ ->
+            let r = source#remaining in
+            if r < 0 then "(undef)"
+            else (
+              let t = Frame.seconds_of_main r in
+              Printf.sprintf "%.2f" t )) )
 
     method is_ready =
       if infallible then (
@@ -140,7 +146,9 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     method private may_start = if self#is_ready then start_stop#may_start
 
-    method output_get_ready = self#may_start
+    method output_get_ready =
+      self#register_telnet;
+      self#may_start
 
     method private sleep =
       self#do_stop;
