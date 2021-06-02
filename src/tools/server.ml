@@ -158,7 +158,9 @@ let remove ~ns cmd =
 let operators = ref []
 
 let register_op id kind =
-  Tutils.mutexify lock (fun () -> operators := (id, kind) :: !operators) ()
+  Tutils.mutexify lock
+    (fun () -> operators := (id, kind) :: List.remove_assoc id !operators)
+    ()
 
 (* That's if you want to have your command wait. *)
 type condition = {
