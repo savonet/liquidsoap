@@ -73,7 +73,7 @@ script.
 \--list-plugins-xml
 : List all plugins (builtin scripting values, supported formats and protocols), output as XML.
 
-\--no-pervasives
+\--no-stdlib
 : Do not load pervasive script libraries.
 
 \--version

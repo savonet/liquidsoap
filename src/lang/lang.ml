@@ -571,9 +571,10 @@ let from_file ?parse_only ~ns ~lib filename =
 
 let load_libs ?parse_only ?(deprecated = true) () =
   let dir = Configure.liq_libs_dir in
-  let file = Filename.concat dir "pervasives.liq" in
-  if Sys.file_exists file then
-    from_file ?parse_only ~ns:(Some file) ~lib:true file;
+  let file = Filename.concat dir "stdlib.liq" in
+  if not (Sys.file_exists file) then
+    failwith "Could not find default stdlib.liq library!";
+  from_file ?parse_only ~ns:(Some file) ~lib:true file;
   let file = Filename.concat dir "deprecations.liq" in
   if deprecated && Sys.file_exists file then
     from_file ?parse_only ~ns:(Some file) ~lib:true file

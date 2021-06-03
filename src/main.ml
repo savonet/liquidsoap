@@ -63,8 +63,8 @@ let allow_root =
 (* Do not run, don't even check the scripts. *)
 let parse_only = ref false
 
-(* Should we load the pervasives? *)
-let pervasives = ref true
+(* Should we load the stdlib? *)
+let stdlib = ref true
 
 (* Should we load the deprecated wrapper? *)
 let deprecated = ref true
@@ -78,7 +78,7 @@ let interactive = ref false
 let load_libs =
   let loaded = ref false in
   fun () ->
-    if !pervasives && not !loaded then (
+    if !stdlib && not !loaded then (
       let save = !Configure.display_types in
       Configure.display_types := false;
       Lang.load_libs ~deprecated:!deprecated ~parse_only:!parse_only ();
@@ -457,10 +457,9 @@ let options =
               Utils.kprint_string ~pager:true
                 (Doc.print_protocols_md (Plug.plugs : Doc.item))),
           Printf.sprintf "Documentation of all protocols in markdown." );
-        ( ["--no-pervasives"],
-          Arg.Clear pervasives,
-          Printf.sprintf
-            "Do not load pervasives script libraries (i.e., %s/*.liq)."
+        ( ["--no-stdlib"],
+          Arg.Clear stdlib,
+          Printf.sprintf "Do not load stdlib script libraries (i.e., %s/*.liq)."
             Configure.liq_libs_dir );
         ( ["--no-deprecated"],
           Arg.Clear deprecated,
