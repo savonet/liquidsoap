@@ -740,6 +740,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     log#info "%s %s request on %s." protocol_name smethod base_uri;
     let args = Http.args_split args in
+    ( try
+        if
+          assoc_uppercase "CONTENT-TYPE" headers
+          = "application/x-www-form-urlencoded"
+        then Hashtbl.iter (Hashtbl.add args) (Http.args_split data)
+      with Not_found -> () );
     (* Filter out password *)
     let log_args =
       if conf_pass_verbose#get then args
