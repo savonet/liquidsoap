@@ -86,7 +86,7 @@ jobs:
           opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | grep -v lilv | xargs opam remove --force -y
           cd liquidsoap
           ./.github/scripts/build-posix.sh
-          ./src/liquidsoap --no-pervasives ./libs/pervasives.liq ./libs/deprecations.liq --check 'print("hello world")'
+          ./src/liquidsoap --no-stdlib ./libs/stdlib.liq ./libs/deprecations.liq --check 'print("hello world")'
       - name: Build doc
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
