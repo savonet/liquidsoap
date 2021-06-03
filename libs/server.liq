@@ -1,5 +1,7 @@
-def server.telnet =
-  setting.getter.bool("server.telnet")
+# Enable telnet server.
+# @category Interaction
+def server.telnet() =
+  set("server.telnet", true)
 end
 
 # Register a command that outputs the RMS of the returned source.
