@@ -459,48 +459,6 @@ def input.harbor(%argsof(input.harbor), s) =
   s
 end
 
-# @docof input.http
-def input.http(%argsof(input.http), s) =
-  s = input.http(%argsof(input.http), s)
-
-  server.register(namespace=s.id(), description="Start the source, if needed.",
-                  "start", fun (_) -> begin
-                    s.start()
-                    "Done!"
-                  end)
-
-  server.register(namespace=s.id(), description="Stop the source if connected.",
-                  "stop", fun (_) -> begin
-                    s.stop()
-                    "Done!"
-                  end)
-
-  server.register(namespace=s.id(), description="Get or set the stream's HTTP URL. Setting a new URL will not affect an ongoing connection.",
-                  usage="url [url]", "url", fun (url) -> begin
-                    if url == "" then
-                      s.url()
-                    else begin
-                      s.set_url({url})
-                      "Done!"
-                    end end
-                  end)
-
-  server.register(namespace=s.id(), description="Return the current status of the source, either \"stopped\" \
-                                                 (the source isn't trying to relay the HTTP stream), \"polling\" \
-                                                 (attempting to connect to the HTTP stream) or \"connected <url>\" \
-                                                 (connected to <url>, buffering or playing back the stream).",
-                  "status", fun (_) -> begin
-                    s.status()
-                  end)
-
-  server.register(namespace=s.id(), description="Get the buffer's length, in seconds.",
-                  "buffer_length", fun (_) -> begin
-                    "#{s.buffer_length()}"
-                  end)
-
-  s
-end
-
 # @flag deprecated
 def output.preferred(~id="",~fallible=false,
                     ~on_start={()},~on_stop={()},~start=true,s)
