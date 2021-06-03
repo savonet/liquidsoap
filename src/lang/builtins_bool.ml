@@ -27,11 +27,13 @@ let () =
   let register_op name op =
     add_builtin name ~cat:Bool ~descr:"Comparison of comparable values."
       [("", t, None, None); ("", t, None, None)] Lang.bool_t (fun p ->
-        let a = Lang.assoc "" 1 p |> Lang.demeth in
-        let b = Lang.assoc "" 2 p |> Lang.demeth in
+        let a = Lang.assoc "" 1 p in
+        let b = Lang.assoc "" 2 p in
+        let a' = Lang.demeth a in
+        let b' = Lang.demeth b in
         (* For records, we also compare fields. *)
         let ans =
-          if a.Lang.value = Lang.Tuple [] && b.Lang.value = Lang.Tuple [] then (
+          if a'.Lang.value = Lang.Tuple [] && b'.Lang.value = Lang.Tuple [] then (
             let r a =
               let m, _ = Lang_values.V.split_meths a in
               m
@@ -45,7 +47,7 @@ let () =
                 let v' = List.assoc l b in
                 op (Lang.compare_values v v'))
               a )
-          else op (Lang.compare_values a b)
+          else op (Lang.compare_values a' b')
         in
         Lang.bool ans)
   in
