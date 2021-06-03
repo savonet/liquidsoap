@@ -29,7 +29,25 @@ let () =
       [("", t, None, None); ("", t, None, None)] Lang.bool_t (fun p ->
         let a = Lang.assoc "" 1 p |> Lang.demeth in
         let b = Lang.assoc "" 2 p |> Lang.demeth in
-        Lang.bool (op (Lang.compare_values a b)))
+        (* For records, we also compare fields. *)
+        let ans =
+          if a.Lang.value = Lang.Tuple [] && b.Lang.value = Lang.Tuple [] then (
+            let r a =
+              let m, _ = Lang_values.V.split_meths a in
+              m
+            in
+            let a = r a in
+            let b = r b in
+            (* TODO: the order is not the expected one on records (for < we want
+               one field to be < and the other to be <=). *)
+            List.for_all
+              (fun (l, v) ->
+                let v' = List.assoc l b in
+                op (Lang.compare_values v v'))
+              a )
+          else op (Lang.compare_values a b)
+        in
+        Lang.bool ans)
   in
   register_op "==" (fun c -> c = 0);
   register_op "!=" (fun c -> c <> 0);
