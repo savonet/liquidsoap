@@ -164,19 +164,30 @@ let upper_multiple k m = if m mod k = 0 then m else (1 + (m / k)) * k
 
 (** The main clock is the slowest possible that can convert to both
   * the audio and video clocks. *)
-let main_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
+let main_rate =
+  delayed (fun () ->
+      match (!!audio_rate, !!video_rate) with
+        | 0, 0 ->
+            failwith
+              "At least one of \"frame.audio.samplerate\" or \
+               \"frame.video.framerate\" should not be 0!"
+        | 0, r | r, 0 -> r
+        | a, v -> lcm a v)
 
 (** Precompute those ratios to avoid too large integers below. *)
-let m_o_a = delayed (fun () -> !!main_rate / !!audio_rate)
+let m_o_a =
+  delayed (fun () -> match !!audio_rate with 0 -> 0 | r -> !!main_rate / r)
 
-let m_o_v = delayed (fun () -> !!main_rate / !!video_rate)
+let m_o_v =
+  delayed (fun () -> match !!video_rate with 0 -> 0 | r -> !!main_rate / r)
+
 let main_of_audio a = a * !!m_o_a
 let main_of_video v = v * !!m_o_v
 
 (* TODO: for now MIDI rate is the same as audio rate. *)
 let main_of_midi = main_of_audio
-let audio_of_main m = m / !!m_o_a
-let video_of_main m = m / !!m_o_v
+let audio_of_main m = match !!m_o_a with 0 -> 0 | x -> m / x
+let video_of_main m = match !!m_o_v with 0 -> 0 | x -> m / x
 
 (* TODO: for now MIDI rate is the same as audio rate. *)
 let midi_of_main = audio_of_main
@@ -196,7 +207,13 @@ let size =
       let audio = !!audio_rate in
       let video = !!video_rate in
       let main = !!main_rate in
-      let granularity = lcm (main / audio) (main / video) in
+      let granularity =
+        match (audio, video) with
+          | 0, 0 -> assert false (* main_rate would error before this. *)
+          | audio, 0 -> main / audio
+          | 0, video -> main / video
+          | audio, video -> lcm (main / audio) (main / video)
+      in
       let target =
         log#important "Using %dHz audio, %dHz video, %dHz main." audio video
           main;
