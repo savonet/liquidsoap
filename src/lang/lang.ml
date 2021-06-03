@@ -722,7 +722,9 @@ let source_methods =
       fun s -> val_fun [] (fun _ -> string s#id) );
     ( "is_ready",
       ([], fun_t [] bool_t),
-      "Indicate if a source is ready to stream, or currently streaming.",
+      "Indicate if a source is ready to stream. This does not mean that the \
+       source is currently streaming, just that its resources are all properly \
+       initialized.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
     ( "on_metadata",
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
@@ -764,7 +766,9 @@ let source_methods =
     );
     ( "is_up",
       ([], fun_t [] bool_t),
-      "Check whether a source is up.",
+      "Indicate that the source can be asked to produce some data at any time. \
+       This is `true` when the source is currently being used or if it could \
+       be used at any time, typically inside a `switch` or `fallback`.",
       fun s -> val_fun [] (fun _ -> bool s#is_up) );
     ( "seek",
       ([], fun_t [(false, "", float_t)] float_t),
