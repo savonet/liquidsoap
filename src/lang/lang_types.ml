@@ -222,7 +222,8 @@ let rec meths ?pos ?level l v t =
 (** Split the methods from the type. *)
 let split_meths t =
   let rec aux hide t =
-    match (deref t).descr with
+    let t = deref t in
+    match t.descr with
       | Meth (l, v, d, t) ->
           let m, t = aux (l :: hide) t in
           let m = if List.mem l hide then m else (l, (v, d)) :: m in
