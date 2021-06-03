@@ -124,7 +124,13 @@ let () =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "buffer"
-    ( Output.proto
+    ( [
+        ( "fallible",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Allow the child source to fail." );
+      ]
+    @ Output.proto
     @ [
         ( "buffer",
           Lang.float_t,
