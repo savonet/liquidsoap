@@ -44,10 +44,13 @@ let add_http_request ~stream_body ~descr ~request name =
       (if (not has_body) || stream_body then Lang.unit_t else Lang.string_t)
       [
         ( "protocol_version",
-          ([], Lang.string_t),
+          ([], Lang.nullable_t Lang.string_t),
           "Version of the HTTP protocol." );
-        ("status_code", ([], Lang.int_t), "Status code.");
-        ("status_message", ([], Lang.string_t), "Status message.");
+        ("status_code", ([], Lang.nullable_t Lang.int_t), "Status code.");
+        ( "status_message",
+          ([], Lang.nullable_t Lang.string_t),
+          "Status message." );
+        ("timeout", ([], Lang.bool_t), "`true` if the query timed out.");
         ("headers", ([], headers_t), "HTTP headers.");
       ]
   in
@@ -115,52 +118,69 @@ let add_http_request ~stream_body ~descr ~request name =
           ( (fun s -> ignore (Option.map (Buffer.add_string body) s)),
             fun () -> Buffer.contents body ) )
       in
-      let protocol_version, status_code, status_message, headers =
+      let ret, protocol_version, status_code, status_message, headers, timeout =
         try
-          let request =
-            match request with
-              | Get -> `Get
-              | Post ->
-                  let data = Lang.to_string (List.assoc "data" p) in
-                  `Post data
-              | Put ->
-                  let data = Lang.to_string (List.assoc "data" p) in
-                  `Put data
-              | Head -> `Head
-              | Delete -> `Delete
+          let protocol_version, status_code, status_message, headers =
+            let request =
+              match request with
+                | Get -> `Get
+                | Post ->
+                    let data = Lang.to_string (List.assoc "data" p) in
+                    `Post data
+                | Put ->
+                    let data = Lang.to_string (List.assoc "data" p) in
+                    `Put data
+                | Head -> `Head
+                | Delete -> `Delete
+            in
+            let ans =
+              Liqcurl.http_request ~follow_redirect:redirect ~timeout ~headers
+                ~url
+                ~on_body_data:(fun s -> on_body_data (Some s))
+                ~request ?http_version ()
+            in
+            on_body_data None;
+            ans
           in
-          let ans =
-            Liqcurl.http_request ~follow_redirect:redirect ~timeout ~headers
-              ~url
-              ~on_body_data:(fun s -> on_body_data (Some s))
-              ~request ?http_version ()
+          let protocol_version = Lang.string protocol_version in
+          let status_code = Lang.int status_code in
+          let status_message = Lang.string status_message in
+          let headers =
+            List.map
+              (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
+              headers
           in
-          on_body_data None;
-          ans
-        with e ->
-          let bt = Printexc.get_raw_backtrace () in
-          log#severe "Could not perform http request: %s."
-            (Printexc.to_string e);
-          Lang.raise_as_runtime ~bt ~kind:"http" e
-      in
-      let protocol_version = Lang.string protocol_version in
-      let status_code = Lang.int status_code in
-      let status_message = Lang.string status_message in
-      let headers =
-        List.map
-          (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
-          headers
-      in
-      let headers = Lang.list headers in
-      let ret =
-        if (not has_body) || stream_body then Lang.unit
-        else Lang.string (get_body ())
+          let headers = Lang.list headers in
+          let ret =
+            if (not has_body) || stream_body then Lang.unit
+            else Lang.string (get_body ())
+          in
+          ( ret,
+            protocol_version,
+            status_code,
+            status_message,
+            headers,
+            Lang.bool false )
+        with
+          | Curl.(CurlException (CURLE_OPERATION_TIMEOUTED, _, _)) ->
+              ( Lang.string "",
+                Lang.null,
+                Lang.null,
+                Lang.null,
+                Lang.list [],
+                Lang.bool true )
+          | e ->
+              let bt = Printexc.get_raw_backtrace () in
+              log#severe "Could not perform http request: %s."
+                (Printexc.to_string e);
+              Lang.raise_as_runtime ~bt ~kind:"http" e
       in
       Lang.meth ret
         [
           ("protocol_version", protocol_version);
           ("status_code", status_code);
           ("status_message", status_message);
+          ("timeout", timeout);
           ("headers", headers);
         ])
 
