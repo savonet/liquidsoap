@@ -156,12 +156,16 @@ def register_flow(~server="",~user="default",~password="default",
   server =
     if server == "" then
       let data = http.get("http://liquidsoap.info/flows_server")
-      if data.status_code == 200 then
-        data
-      else
-        # If sf is down, we use the hardcoded server
-        "http://savonet.rastageeks.org/liqflows.py"
-      end
+
+      null.case(data,
+        fun () -> "http://savonet.rastageeks.org/liqflows.py",
+        fun (data) ->
+          if data.status_code == 200 then
+            "#{data}"
+          else
+            # If sf is down, we use the hardcoded server
+            "http://savonet.rastageeks.org/liqflows.py"
+          end)
     else
       server
     end
@@ -196,12 +200,20 @@ def register_flow(~server="",~user="default",~password="default",
     params = string.concat(separator="&",list.map(f,params))
     url = "#{server}?cmd=#{cmd}&#{params}"
 
-    # TODO: do something with errors!
     answer = http.get(url)
-    log(level=4,"Response status: #{answer.protocol_version} #{answer.status_code} #{answer.status_message}")
-    log(level=4,"Response headers:")
-    list.iter(log_arg, answer.headers)
-    log(level=4,"Response content: #{answer}")
+
+    def on_timeout() =
+      log(level=4, "Response timed out..")
+    end
+
+    def on_answer(answer) =
+      log(level=4,"Response status: #{answer.protocol_version} #{answer.status_code} #{answer.status_message}")
+      log(level=4,"Response headers:")
+      list.iter(log_arg, answer.headers)
+      log(level=4,"Response content: #{answer}")
+    end
+
+    null.case(answer,on_timeout,on_answer)
   end
 
   # Register radio
