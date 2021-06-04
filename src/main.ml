@@ -66,6 +66,9 @@ let parse_only = ref false
 (* Should we load the stdlib? *)
 let stdlib = ref true
 
+(* Should we error if stdlib is not found? *)
+let error_on_no_stdlib = not (Filename.is_relative Sys.argv.(0))
+
 (* Should we load the deprecated wrapper? *)
 let deprecated = ref true
 
@@ -81,7 +84,8 @@ let load_libs =
     if !stdlib && not !loaded then (
       let save = !Configure.display_types in
       Configure.display_types := false;
-      Lang.load_libs ~deprecated:!deprecated ~parse_only:!parse_only ();
+      Lang.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
+        ~parse_only:!parse_only ();
       loaded := true;
       Configure.display_types := save )
 

@@ -302,7 +302,12 @@ val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
 (** {2 Main script evaluation} *)
 
 (** Load the external libraries. *)
-val load_libs : ?parse_only:bool -> ?deprecated:bool -> unit -> unit
+val load_libs :
+  ?error_on_no_stdlib:bool ->
+  ?parse_only:bool ->
+  ?deprecated:bool ->
+  unit ->
+  unit
 
 (** Evaluate a script from an [in_channel]. *)
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
