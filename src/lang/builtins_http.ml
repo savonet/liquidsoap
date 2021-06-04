@@ -163,7 +163,8 @@ let add_http_request ~stream_body ~descr ~request name =
             Lang.bool false )
         with
           | Curl.(CurlException (CURLE_OPERATION_TIMEOUTED, _, _)) ->
-              ( Lang.string "",
+              ( ( if (not has_body) || stream_body then Lang.unit
+                else Lang.string "" ),
                 Lang.null,
                 Lang.null,
                 Lang.null,
