@@ -42,7 +42,12 @@ let show_record_schemes = ref true
  * Finally, constraints can be attached to existential (unknown, '_a)
  * and universal ('a) type variables. *)
 
-include Runtime_error
+type pos = Runtime_error.pos
+
+let print_single_pos = Runtime_error.print_single_pos
+let print_pos = Runtime_error.print_pos
+let print_pos_opt = Runtime_error.print_pos_opt
+let print_pos_list = Runtime_error.print_pos_list
 
 (** Ground types *)
 
