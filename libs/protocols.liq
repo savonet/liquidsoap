@@ -129,7 +129,7 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
   timeout = maxtime - time()
 
   ret = http.head(timeout=int_of_float(timeout),uri)
-  code = ret.status_code
+  code = ret.status_code ?? 999
   headers = ret.headers
 
   mime =
