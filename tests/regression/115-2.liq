@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
 sa = sine()

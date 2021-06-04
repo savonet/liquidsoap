@@ -20,7 +20,7 @@ Now, let's create an audio stream.
 
 Starting to use Liquidsoap
 --------------------------
-In this tutorial we assume that you have a fully installed Liquidsoap. In particular the library `pervasives.liq` and its accompanying scripts should have been installed, otherwise Liquidsoap won't know the operators which have been defined there. If you installed into the default `/usr/local` you will find it inside `/usr/local/lib/liquidsoap/<version>`.
+In this tutorial we assume that you have a fully installed Liquidsoap. In particular the library `stdlib.liq` and its accompanying scripts should have been installed, otherwise Liquidsoap won't know the operators which have been defined there. If you installed into the default `/usr/local` you will find it inside `/usr/local/lib/liquidsoap/<version>`.
 
 ### Sources
 A stream is built with Liquidsoap by using or creating sources. A source is an annotated audio stream. In the following picture we represent a stream which has at least three tracks (one of which starts before the snapshot), and a few metadata packets (notice that they do not necessarily coincide with new tracks).

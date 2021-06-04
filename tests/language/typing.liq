@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq 
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq 
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 

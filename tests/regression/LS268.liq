@@ -1,4 +1,4 @@
-#!../../src/liquidsoap ../../libs/pervasives.liq
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 # In LS-268 we realized that an incorrect assumption had
 # been made in code from LS-394, resulting in a crash in
 # case of source re-awakening.

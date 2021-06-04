@@ -23,7 +23,7 @@ Liquidsoap finds them in `LIBDIR/liquidsoap/VERSION` where `LIBDIR` depends on
 your configuration (it is typically `/usr/local/lib` or `/usr/lib`) and 
 `VERSION` is the version of liquidsoap (*e.g.* `0.3.8` or `svn`).
 
-Currently, liquidsoap loads `pervasives.liq` from the library directory,
+Currently, liquidsoap loads `stdlib.liq` from the library directory,
 and this file includes some others.
 You can add your personal standard library in that directory
 if you find it useful.
