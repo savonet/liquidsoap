@@ -177,7 +177,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.portaudio" ~active:true
+  Lang.add_operator "output.portaudio"
     ( Output.proto
     @ [
         ( "clock_safe",

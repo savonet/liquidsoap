@@ -1106,7 +1106,7 @@ let () =
       (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
       Output.meth
   in
-  Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
+  Lang.add_operator "output.srt" ~return_t ~category:Lang.Output
     ~meth:(meth () @ output_meth)
     ~descr:"Send a SRT stream to a distant agent."
     ( Output.proto

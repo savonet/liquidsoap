@@ -314,7 +314,7 @@ let mk_kind ~pos (kind, params) =
       raise (Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")) )
 
 let mk_source_ty ~pos name args =
-  if name <> "source" && name <> "active_source" then
+  if name <> "source" then
     raise (Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
 
   let audio = ref ("any", []) in
@@ -334,8 +334,7 @@ let mk_source_ty ~pos name args =
   let video = mk_kind ~pos !video in
   let midi = mk_kind ~pos !midi in
 
-  Lang_values.source_t ~active:(name <> "source")
-    (Lang_values.frame_kind_t audio video midi)
+  Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
 
 let mk_ty ~pos name =
   match name with

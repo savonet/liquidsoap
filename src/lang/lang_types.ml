@@ -865,18 +865,12 @@ let doc_of_meths m =
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
 
-let constr_sub x y =
-  match (x, y) with
-    | _, _ when x = y -> true
-    | "active_source", "source" -> true
-    | _ -> false
-
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explanation. *)
 let rec ( <: ) a b =
   if !debug then Printf.eprintf "%s <: %s\n%!" (print a) (print b);
   match ((deref a).descr, (deref b).descr) with
-    | Constr c1, Constr c2 when constr_sub c1.name c2.name ->
+    | Constr c1, Constr c2 when c1.name = c2.name ->
         let rec aux pre p1 p2 =
           match (p1, p2) with
             | (v, h1) :: t1, (_, h2) :: t2 ->

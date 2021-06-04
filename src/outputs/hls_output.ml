@@ -790,8 +790,8 @@ class hls_output p =
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.file.hls" (hls_proto return_t) ~active:true
-    ~return_t ~category:Lang.Output
+  Lang.add_operator "output.file.hls" (hls_proto return_t) ~return_t
+    ~category:Lang.Output
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
        directory." (fun p -> (new hls_output p :> Source.source))

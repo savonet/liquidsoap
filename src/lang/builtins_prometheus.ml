@@ -162,7 +162,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   let last_start_time = ref 0. in
   let last_end_time = ref 0. in
   let last_data = Gauge.labels (get_last_data ~label_names) labels in
-  let get_ready ~stype:_ ~is_output:_ ~id:_ ~ctype:_ ~clock_id:_
+  let get_ready ~stype:_ ~is_active:_ ~id:_ ~ctype:_ ~clock_id:_
       ~clock_sync_mode:_ =
     ()
   in

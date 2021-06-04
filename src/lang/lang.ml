@@ -70,7 +70,7 @@ let univ_t ?(constraints = []) () = T.fresh ~level:0 ~constraints ~pos:None
 let getter_t a = T.make (T.Getter a)
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
-let source_t ?active t = Term.source_t ?active t
+let source_t t = Term.source_t t
 let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 let request_t = Term.request_t ()
@@ -272,6 +272,7 @@ type category =
   | Input
   | Output
   | Conversions
+  | FFmpegFilter
   | TrackProcessing
   | SoundProcessing
   | VideoProcessing
@@ -287,6 +288,7 @@ let string_of_category x =
     | Input -> "Input"
     | Output -> "Output"
     | Conversions -> "Conversions"
+    | FFmpegFilter -> "FFmpeg Filter"
     | TrackProcessing -> "Track Processing"
     | SoundProcessing -> "Sound Processing"
     | VideoProcessing -> "Video Processing"
@@ -776,6 +778,12 @@ let source_methods =
        This is `true` when the source is currently being used or if it could \
        be used at any time, typically inside a `switch` or `fallback`.",
       fun s -> val_fun [] (fun _ -> bool s#is_up) );
+    ( "is_active",
+      ([], fun_t [] bool_t),
+      "`true` if the source is active, i.e. it is continuously animated by its \
+       own clock whenever it is ready. Typically, `true` for outputs and \
+       sources such as `input.http`.",
+      fun s -> val_fun [] (fun _ -> bool s#is_active) );
     ( "seek",
       ([], fun_t [(false, "", float_t)] float_t),
       "Seek forward, in seconds (returns the amount of time effectively \
@@ -824,8 +832,8 @@ let source_methods =
             float (frame_position +. in_frame_position)) );
   ]
 
-let source_t ?(methods = false) ?active t =
-  let t = source_t ?active t in
+let source_t ?(methods = false) t =
+  let t = source_t t in
   if methods then
     method_t t
       (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
@@ -857,8 +865,8 @@ type 'a operator_method = string * scheme * string * ('a -> value)
   * so we have to force its value within the acceptable range. *)
 let add_operator =
   let _meth = meth in
-  fun ~category ~descr ?(flags = []) ?(active = false)
-      ?(meth = ([] : 'a operator_method list)) name proto ~return_t f ->
+  fun ~category ~descr ?(flags = []) ?(meth = ([] : 'a operator_method list))
+      name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0
@@ -887,17 +895,30 @@ let add_operator =
     in
     let f env =
       let pos = None in
-      try f env with
+      try
+        let ret = f env in
+        if category = Output then (
+          let m, _ = Lang_values.V.split_meths ret in
+          _meth unit m )
+        else ret
+      with
         | Source.Clock_conflict (a, b) ->
             raise (Lang_errors.Clock_conflict (pos, a, b))
         | Source.Clock_loop (a, b) -> raise (Lang_errors.Clock_loop (pos, a, b))
         | Source.Kind.Conflict (a, b) ->
             raise (Lang_errors.Kind_conflict (pos, a, b))
     in
-    let return_t = source_t ~methods:true ~active return_t in
+    let return_t = source_t ~methods:true return_t in
     let return_t =
       method_t return_t
         (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
+    in
+    let return_t =
+      if category = Output then (
+        let m, _ = Lang_types.split_meths return_t in
+        let m = List.map (fun (x, (y, z)) -> (x, y, z)) m in
+        method_t unit_t m )
+      else return_t
     in
     let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f

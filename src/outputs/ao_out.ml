@@ -107,7 +107,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
 let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.ao" ~active:true
+  Lang.add_operator "output.ao"
     ( Output.proto
     @ [
         ( "clock_safe",

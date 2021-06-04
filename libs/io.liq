@@ -35,10 +35,10 @@ let output.video = output.dummy
 %ifdef output.sdl
   def output.video(%argsof(output.sdl), s)
     if output.sdl.has_video() then
-      (output.sdl(%argsof(output.sdl), s):source)
+      (output.sdl(%argsof(output.sdl), s):unit)
     else
       # Avoid using SDL when there is no video output.
-      (output.dummy(fallible=fallible, s):source)
+      (output.dummy(fallible=fallible, s):unit)
     end
   end
 %endif

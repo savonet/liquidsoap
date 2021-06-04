@@ -320,7 +320,7 @@ type clock_sync_mode = [ sync | `Unknown ]
 type watcher = {
   get_ready :
     stype:source_t ->
-    is_output:bool ->
+    is_active:bool ->
     id:string ->
     ctype:Frame.content_type ->
     clock_id:string ->
@@ -427,7 +427,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
     method virtual stype : source_t
 
     (** Is the source active *)
-    method is_output = false
+    method is_active = false
 
     (** Children sources *)
     val mutable sources : operator list = sources
@@ -528,7 +528,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
       (* Decide whether caching mode is needed, and why *)
       match
-        if self#is_output then Some "active source"
+        if self#is_active then Some "active source"
         else (
           match static_activations with
             | [] -> None
@@ -570,7 +570,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
           | _ -> ("unknown", `Unknown)
       in
       self#iter_watchers (fun w ->
-          w.get_ready ~stype:self#stype ~is_output:self#is_output ~id:self#id
+          w.get_ready ~stype:self#stype ~is_active:self#is_active ~id:self#id
             ~ctype:self#ctype ~clock_id ~clock_sync_mode)
 
     val mutable on_leave = []
@@ -797,7 +797,7 @@ and virtual active_operator ?name ?audio_in ?video_in ?midi_in content_kind
       (unify self#clock
          (create_unknown ~sources:[(self :> active_operator)] ~sub_clocks:[]))
 
-    method is_output = true
+    method is_active = true
 
     (** Start a new output round, may trigger the computation of a frame. *)
     method virtual output : unit
