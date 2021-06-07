@@ -128,7 +128,7 @@ try
     t = interactive.type(name)
     if t == "float" then
       r = interactive.float.ref(name)
-      string_of(!r)
+      string_of_float(decimal_places=3, !r)
     elsif t == "int" then
       r = interactive.int.ref(name)
       string_of(!r)

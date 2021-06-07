@@ -501,3 +501,31 @@ let () =
       match v with
         | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
         | v -> Lang.string (Lang.print_value v))
+
+let () =
+  add_builtin "string_of_float" ~cat:String
+    ~descr:"String representation of a float"
+    [
+      ( "decimal_places",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some "Number of decimal places." );
+      ("", Lang.float_t, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      let dp =
+        List.assoc "decimal_places" p
+        |> Lang.to_option |> Option.map Lang.to_int
+      in
+      let x = List.assoc "" p |> Lang.to_float in
+      let s =
+        match dp with
+          | Some 0 -> Printf.sprintf "%.00f" x
+          | Some 1 -> Printf.sprintf "%.01f" x
+          | Some 2 -> Printf.sprintf "%.02f" x
+          | Some 3 -> Printf.sprintf "%.03f" x
+          | Some 4 -> Printf.sprintf "%.04f" x
+          | _ -> string_of_float x
+      in
+      Lang.string s)
