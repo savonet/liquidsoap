@@ -56,7 +56,7 @@ class virtual base ~kind ~source ~name p =
 
     method virtual private encoder_factory : Encoder.factory
 
-    method output_start =
+    method start =
       let enc = self#encoder_factory self#id in
       let meta =
         match current_metadata with
@@ -65,9 +65,9 @@ class virtual base ~kind ~source ~name p =
       in
       encoder <- Some (enc meta)
 
-    method output_stop = encoder <- None
+    method stop = encoder <- None
 
-    method output_reset = ()
+    method reset = ()
 
     val mutable need_reset = false
 
@@ -193,12 +193,12 @@ class virtual piped_output ~kind p =
       self#open_pipe;
       open_date <- Unix.gettimeofday ()
 
-    method output_stop =
+    method stop =
       if self#is_open then (
         let flush = (Option.get encoder).Encoder.stop () in
         self#send flush;
         self#close_pipe );
-      super#output_stop
+      super#stop
 
     val m = Mutex.create ()
 
@@ -207,10 +207,10 @@ class virtual piped_output ~kind p =
         (fun () ->
           self#log#important "Re-opening output pipe.";
 
-          (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
+          (* #stop can trigger #send, the [reopening] flag avoids loops *)
           reopening <- true;
-          self#output_stop;
-          self#output_start;
+          self#stop;
+          self#start;
           reopening <- false;
           need_reset <- false)
         ()

@@ -367,8 +367,7 @@ let stats_specs =
       Lang.int (-1) );
   ]
 
-let meth :
-    < Source.source ; stats : Srt.Stats.t option > Lang.operator_method list =
+let meth () =
   [
     ( "stats",
       ( [],
@@ -545,8 +544,6 @@ let close_socket s = Srt.close s
 class virtual base =
   object (self)
     method virtual id : string
-
-    val mutable clock = None
 
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
@@ -756,7 +753,8 @@ class virtual listener ~payload_size ~messageapi ~bind_address ~on_connect
   end
 
 class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
-  ~on_disconnect ~payload_size ~dump ~stats_interval format =
+  ~on_disconnect ~payload_size ~dump ~stats_interval ~on_start ~on_stop
+  ~autostart format =
   let max_ticks = Frame.main_of_seconds max in
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -769,7 +767,10 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
 
     inherit base
 
-    inherit Source.source ~name:"input.srt" (Source.Kind.of_kind kind) as super
+    inherit
+      Start_stop.active_source
+        ~name:"input.srt" ~content_kind:(Source.Kind.of_kind kind) ~clock_safe
+          ~on_start ~on_stop ~autostart ~fallible:true () as super
 
     val mutable decoder_data = None
 
@@ -796,15 +797,14 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
           | None -> () );
         on_disconnect_cur ()
 
-    method stype = Source.Fallible
-
     method seek _ = 0
 
     method remaining = -1
 
     method abort_track = Generator.add_break generator
 
-    method is_ready = (not self#should_stop) && self#is_connected
+    method is_ready =
+      super#is_ready && (not self#should_stop) && self#is_connected
 
     method self_sync = self#is_connected
 
@@ -859,39 +859,24 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
         if not self#should_stop then self#connect;
         Frame.add_break frame pos
 
-    method private get_clock =
-      match clock with
-        | Some c -> c
-        | None ->
-            let c = new Clock.clock "srt" in
-            clock <- Some c;
-            c
-
-    method private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (self#get_clock :> Clock.clock))
-
-    method wake_up act =
-      super#wake_up act;
+    method private start =
       self#set_should_stop false;
       self#connect
 
-    method sleep =
+    method private stop =
       self#set_should_stop true;
-      self#disconnect;
-      super#sleep
+      self#disconnect
   end
 
 class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
   ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
-  format =
+  ~on_start ~on_stop ~autostart format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~stats_interval format
+          ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop ~autostart
+          format
 
     inherit
       listener
@@ -900,12 +885,13 @@ class input_listener ~bind_address ~kind ~max ~log_overfull ~payload_size
 
 class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
   ~clock_safe ~stats_interval ~on_connect ~on_disconnect ~messageapi ~dump
-  format =
+  ~on_start ~on_stop ~autostart format =
   object
     inherit
       input_base
         ~kind ~max ~log_overfull ~payload_size ~clock_safe ~on_connect
-          ~on_disconnect ~dump ~stats_interval format
+          ~on_disconnect ~dump ~stats_interval ~on_start ~on_stop ~autostart
+          format
 
     inherit
       caller
@@ -915,14 +901,12 @@ class input_caller ~hostname ~port ~kind ~max ~log_overfull ~payload_size
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input ~meth
+  Lang.add_operator "input.srt" ~return_t ~category:Lang.Input
+    ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     ( common_options ~mode:`Listener
+    @ Start_stop.active_source_proto ~fallible:false
     @ [
-        ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of a decicated clock." );
         ( "max",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -968,20 +952,29 @@ let () =
       let max = Lang.to_float (List.assoc "max" p) in
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let on_start =
+        let f = List.assoc "on_start" p in
+        fun () -> ignore (Lang.apply f [])
+      in
+      let on_stop =
+        let f = List.assoc "on_stop" p in
+        fun () -> ignore (Lang.apply f [])
+      in
+      let autostart = Lang.to_bool (List.assoc "start" p) in
       let format = Lang.to_string (List.assoc "content_type" p) in
       match mode with
         | `Listener ->
             ( new input_listener
                 ~kind ~bind_address ~payload_size ~clock_safe ~on_connect
                 ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-                ~dump format
-              :> < Source.source ; stats : Srt.Stats.t option > )
+                ~dump ~on_start ~on_stop ~autostart format
+              :> < Start_stop.active_source ; stats : Srt.Stats.t option > )
         | `Caller ->
             ( new input_caller
                 ~kind ~hostname ~port ~payload_size ~clock_safe ~on_connect
                 ~stats_interval ~on_disconnect ~messageapi ~max ~log_overfull
-                ~dump format
-              :> < Source.source ; stats : Srt.Stats.t option > ))
+                ~dump ~on_start ~on_stop ~autostart format
+              :> < Start_stop.active_source ; stats : Srt.Stats.t option > ))
 
 class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~stats_interval ~autostart ~on_connect ~on_disconnect
@@ -1050,15 +1043,15 @@ class virtual output_base ~kind ~payload_size ~messageapi ~on_start ~on_stop
                 enc)
         ()
 
-    method private output_start =
+    method private start =
       self#mutexify (fun () -> should_stop <- false) ();
       self#connect
 
-    method private output_reset =
-      self#output_start;
-      self#output_stop
+    method private reset =
+      self#start;
+      self#stop
 
-    method private output_stop =
+    method private stop =
       self#mutexify (fun () -> should_stop <- true) ();
       self#disconnect
 
@@ -1108,8 +1101,14 @@ class output_listener ~kind ~payload_size ~messageapi ~on_start ~on_stop
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
+  let output_meth =
+    List.map
+      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      Output.meth
+  in
   Lang.add_operator "output.srt" ~active:true ~return_t ~category:Lang.Output
-    ~meth ~descr:"Send a SRT stream to a distant agent."
+    ~meth:(meth () @ output_meth)
+    ~descr:"Send a SRT stream to a distant agent."
     ( Output.proto
     @ common_options ~mode:`Caller
     @ [
@@ -1155,10 +1154,10 @@ let () =
                 ~kind ~hostname ~port ~payload_size ~autostart ~on_start
                 ~on_stop ~stats_interval ~infallible ~messageapi
                 ~encoder_factory ~on_connect ~on_disconnect source
-              :> < Source.source ; stats : Srt.Stats.t option > )
+              :> < Output.output ; stats : Srt.Stats.t option > )
         | `Listener ->
             ( new output_listener
                 ~kind ~bind_address ~payload_size ~autostart ~on_start ~on_stop
                 ~infallible ~stats_interval ~messageapi ~encoder_factory
                 ~on_connect ~on_disconnect source
-              :> < Source.source ; stats : Srt.Stats.t option > ))
+              :> < Output.output ; stats : Srt.Stats.t option > ))

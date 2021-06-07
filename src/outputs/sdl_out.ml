@@ -40,7 +40,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
 
     val mutable window = None
 
-    method output_start =
+    method start =
       window <-
         Some
           (Sdl_utils.check
@@ -51,10 +51,10 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
       self#log#info "Initialized SDL video surface."
 
     (** We don't care about latency. *)
-    method output_reset = ()
+    method reset = ()
 
     (** Stop SDL. We have to assume that there's only one SDL output anyway. *)
-    method output_stop = Sdl.quit ()
+    method stop = Sdl.quit ()
 
     method process_events =
       let e = Sdl.Event.create () in
@@ -65,8 +65,8 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
                  do not cancel autostart. We should perhaps have a method in the
                  output class for that kind of thing, and try to get an uniform
                  behavior. *)
-              request_start <- false;
-              request_stop <- true
+              self#transition_to `Stopped;
+              self#transition_to `Started
           | `Key_down ->
               (let k = Sdl.Event.(get e keyboard_keycode) in
                match k with
@@ -86,7 +86,7 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
               self#process_events
           | _ -> self#process_events )
 
-    method output_send buf =
+    method send_frame buf =
       self#process_events;
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in

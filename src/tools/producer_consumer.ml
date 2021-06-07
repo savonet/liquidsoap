@@ -81,17 +81,17 @@ class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
         ~on_stop:(fun () -> write_frame `Flush)
         source autostart
 
-    method output_reset = ()
+    method reset = ()
 
-    method output_start = ()
+    method start = ()
 
-    method output_stop = ()
+    method stop = ()
 
     method private set_clock =
       Clock.unify self#clock producer#clock;
       Clock.unify self#clock s#clock
 
-    method output_send frame =
+    method send_frame frame =
       proceed c (fun () ->
           if c.abort then (
             c.abort <- false;

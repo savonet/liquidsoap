@@ -50,13 +50,13 @@ class audio_output ~name ~kind source_val =
 
     method set_init v = init <- v
 
-    method output_start = Lazy.force init
+    method start = Lazy.force init
 
-    method output_stop = ()
+    method stop = ()
 
-    method output_reset = ()
+    method reset = ()
 
-    method output_send memo =
+    method send_frame memo =
       let frames =
         Ffmpeg_raw_content.(
           (Audio.get_data Frame.(memo.content.audio)).VideoSpecs.data)
@@ -93,13 +93,13 @@ class video_output ~kind ~name source_val =
 
     method set_init v = init <- v
 
-    method output_start = Lazy.force init
+    method start = Lazy.force init
 
-    method output_stop = ()
+    method stop = ()
 
-    method output_reset = ()
+    method reset = ()
 
-    method output_send memo =
+    method send_frame memo =
       let frames =
         Ffmpeg_raw_content.(
           (Video.get_data Frame.(memo.content.video)).VideoSpecs.data)
@@ -215,12 +215,6 @@ class audio_input ~bufferize kind =
         self#log#important "Buffer emptied..."
 
     method abort_track = ()
-
-    val mutable init = lazy ()
-
-    method set_init v = init <- v
-
-    method output_start = Lazy.force init
   end
 
 type video_config = {

@@ -71,13 +71,13 @@ class virtual ['a] base ~nb_blocks =
      *   `Running (thread ID) when running;
      *   `Crashed when process has crashed.
      *   `Tired while shutting down. *)
-    val mutable state = `Idle
+    val mutable io_state = `Idle
 
     method sourcering_stop =
-      match state with
+      match io_state with
         | `Running id ->
             Mutex.lock wait_m;
-            state <- `Tired;
+            io_state <- `Tired;
             Mutex.unlock wait_m;
 
             (* One signal is enough since there is only one half of
@@ -85,7 +85,7 @@ class virtual ['a] base ~nb_blocks =
              * called concurrently with this method. *)
             Condition.signal wait_c;
             Thread.join id;
-            state <- `Idle
+            io_state <- `Idle
         | `Tired | `Idle -> assert false
         | `Crashed -> ()
   end
@@ -102,11 +102,13 @@ class virtual ['a] input ~nb_blocks =
 
     method private sleep = self#sourcering_stop
 
-    method output_get_ready =
-      assert (state = `Idle);
+    method private stop = self#sourcering_stop
+
+    method private start =
+      assert (io_state = `Idle);
       read <- 0;
       write <- 0;
-      state <- `Running (Tutils.create (fun _ -> self#writer) () self#id)
+      io_state <- `Running (Tutils.create (fun _ -> self#writer) () self#id)
 
     method private writer =
       try
@@ -114,14 +116,14 @@ class virtual ['a] input ~nb_blocks =
           (* Wait for the reader to read the block we fancy, or for shutdown. *)
           Mutex.lock wait_m;
           if
-            state <> `Tired
+            io_state <> `Tired
             && read <> write
             && write mod nb_blocks = read mod nb_blocks
           then Condition.wait wait_c wait_m;
           Mutex.unlock wait_m;
 
           (* Exit or... *)
-          if state = `Tired then raise Exit;
+          if io_state = `Tired then raise Exit;
 
           (* ...write a block. *)
           self#pull_block self#buffer.(write mod nb_blocks);
@@ -145,7 +147,7 @@ class virtual ['a] input ~nb_blocks =
              * Let's resume it, even though he'll get an arbitrary block. *)
             Mutex.lock wait_m;
             write <- (write + 1) mod (2 * nb_blocks);
-            state <- `Crashed;
+            io_state <- `Crashed;
             Mutex.unlock wait_m;
             Condition.signal wait_c;
             raise e
@@ -154,11 +156,11 @@ class virtual ['a] input ~nb_blocks =
      * so it makes sense to require that #sleep hasn't been called
      * and won't be called before #get_block returns. *)
     method private get_block =
-      assert (match state with `Running _ | `Crashed -> true | _ -> false);
+      assert (match io_state with `Running _ | `Crashed -> true | _ -> false);
 
       (* Check that the writer still has an advance. *)
       Mutex.lock wait_m;
-      if write = read && state <> `Crashed then Condition.wait wait_c wait_m;
+      if write = read && io_state <> `Crashed then Condition.wait wait_c wait_m;
       let b = self#buffer.(read mod nb_blocks) in
       read <- (read + 1) mod (2 * nb_blocks);
       Mutex.unlock wait_m;
@@ -176,24 +178,25 @@ class virtual ['a] output ~nb_blocks =
 
     method virtual close : unit
 
-    method output_stop = self#sourcering_stop
+    method stop = self#sourcering_stop
 
-    method output_start =
-      assert (state = `Idle);
+    method start =
+      assert (io_state = `Idle);
       read <- 0;
       write <- 0;
-      state <- `Running (Tutils.create (fun () -> self#reader) () self#id)
+      io_state <- `Running (Tutils.create (fun () -> self#reader) () self#id)
 
     method reader =
       try
         while true do
           (* Wait for the writer to emit the block we fancy, or for shutdown. *)
           Mutex.lock wait_m;
-          if state <> `Tired && read = write then Condition.wait wait_c wait_m;
+          if io_state <> `Tired && read = write then
+            Condition.wait wait_c wait_m;
           Mutex.unlock wait_m;
 
           (* Exit or... *)
-          if state = `Tired then raise Exit;
+          if io_state = `Tired then raise Exit;
 
           (* ...read a block. *)
           self#push_block self#buffer.(read mod nb_blocks);
@@ -217,21 +220,21 @@ class virtual ['a] output ~nb_blocks =
              * Let's resume it, even though he'll get an arbitrary block. *)
             Mutex.lock wait_m;
             read <- (read + 1) mod (2 * nb_blocks);
-            state <- `Crashed;
+            io_state <- `Crashed;
             Mutex.unlock wait_m;
             Condition.signal wait_c;
             raise e
 
-    (* This is meant to be called from #output_send,
+    (* This is meant to be called from #send_frame,
      * so it makes sense to require that #sleep hasn't been called
      * and won't be called before #put_block returns. *)
     method put_block (f : 'a -> unit) =
-      assert (match state with `Running _ | `Crashed -> true | _ -> false);
+      assert (match io_state with `Running _ | `Crashed -> true | _ -> false);
       Mutex.lock wait_m;
       if
         read <> write
         && write mod nb_blocks = read mod nb_blocks
-        && state <> `Crashed
+        && io_state <> `Crashed
       then Condition.wait wait_c wait_m;
       Mutex.unlock wait_m;
       f self#buffer.(write mod nb_blocks);

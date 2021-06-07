@@ -102,7 +102,7 @@ class keyboard ~kind velocity =
 
     val mutable window = None
 
-    method output_get_ready =
+    method wake_up _ =
       window <-
         Some
           (Sdl_utils.check
@@ -116,9 +116,7 @@ class keyboard ~kind velocity =
 
     val mutable velocity = velocity
 
-    method output_reset = ()
-
-    method is_active = true
+    method reset = ()
 
     method get_frame frame =
       assert (0 = MFrame.position frame);

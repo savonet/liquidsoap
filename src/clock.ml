@@ -254,10 +254,7 @@ class clock ?(sync = `Auto) id =
             incr acc;
             if rem |<| max_latency then (
               log#severe "Too much latency! Resetting active sources...";
-              List.iter
-                (function
-                  | `Active, s when s#is_active -> s#output_reset | _ -> ())
-                outputs;
+              List.iter (function `Active, s -> s#reset | _ -> ()) outputs;
               t0 <- time ();
               ticks <- 0L;
               acc := 0 )
@@ -365,7 +362,7 @@ class clock ?(sync = `Auto) id =
             (fun (s : active_source) ->
               try
                 s#get_ready [(s :> source)];
-                `Woken_up s
+                `Started s
               with e ->
                 let bt = Printexc.get_backtrace () in
                 Utils.log_exception ~log ~bt
@@ -373,23 +370,6 @@ class clock ?(sync = `Auto) id =
                      (Printexc.to_string e));
                 leave s;
                 `Error s)
-            to_start
-        in
-        let to_start =
-          List.map
-            (function
-              | `Error s -> `Error s
-              | `Woken_up (s : active_source) -> (
-                  try
-                    s#output_get_ready;
-                    `Started s
-                  with e ->
-                    let bt = Printexc.get_backtrace () in
-                    Utils.log_exception ~log ~bt
-                      (Printf.sprintf "Error when starting output %s: %s!" s#id
-                         (Printexc.to_string e));
-                    leave s;
-                    `Error s ))
             to_start
         in
         (* Now mark the started sources as `Active,

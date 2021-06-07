@@ -91,15 +91,15 @@ class output ~infallible ~start ~on_start ~on_stop ~kind p =
             Pulseaudio.Simple.free s;
             stream <- None
 
-    method output_start = self#open_device
+    method start = self#open_device
 
-    method output_stop = self#close_device
+    method stop = self#close_device
 
-    method output_reset =
+    method reset =
       self#close_device;
       self#open_device
 
-    method output_send memo =
+    method send_frame memo =
       let stream = Option.get stream in
       let buf = AFrame.pcm memo in
       let chans = Array.length buf in
@@ -135,28 +135,21 @@ class input ~kind p =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
-      Start_stop.input
-        ~content_kind:kind ~source_kind:"pulse"
-        ~name:(Printf.sprintf "pulse_in(%s)" device)
-        ~on_start ~on_stop ~autostart:start ~fallible as super
+      Start_stop.active_source
+        ~get_clock ~name:"input.pulseaudio" ~content_kind:kind ~clock_safe
+          ~on_start ~on_stop ~autostart:start ~fallible ()
 
     inherit base ~client ~device
-
-    method private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Clock.clock))
 
     method private start = self#open_device
 
     method private stop = self#close_device
 
-    method output_reset =
-      self#close_device;
-      self#open_device
-
     val mutable stream = None
+
+    method remaining = -1
+
+    method abort_track = ()
 
     method private open_device =
       let ss =
@@ -175,7 +168,7 @@ class input ~kind p =
       Pulseaudio.Simple.free (Option.get stream);
       stream <- None
 
-    method input frame =
+    method get_frame frame =
       assert (0 = AFrame.position frame);
       let stream = Option.get stream in
       let len = AFrame.size () in
@@ -213,7 +206,7 @@ let () =
   in
   Lang.add_operator "output.pulseaudio" ~active:true
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:Lang.Output
+    ~return_t:k ~category:Lang.Output ~meth:Output.meth
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -227,10 +220,11 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       let kind = Source.Kind.of_kind kind in
-      (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Source.source));
+      (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Output.output));
   Lang.add_operator "input.pulseaudio" ~active:true
-    (Start_stop.input_proto @ proto)
-    ~return_t:k ~category:Lang.Input
-    ~descr:"Stream from a portaudio input device." (fun p ->
+    (Start_stop.active_source_proto ~fallible:true @ proto)
+    ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
+    ~descr:"Stream from a portaudio input device."
+    (fun p ->
       let kind = Source.Kind.of_kind kind in
-      (new input ~kind p :> Source.source))
+      new input ~kind p)

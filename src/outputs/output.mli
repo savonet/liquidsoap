@@ -43,44 +43,33 @@ class virtual output :
 
        method remaining : int
 
-       method output_get_ready : unit
-
        method output : unit
 
        method private get_frame : Frame.t -> unit
 
        method abort_track : unit
 
-       val mutable request_start : bool
-
-       val mutable request_stop : bool
-
-       (** An infallible (normal) output can always stream.
-    * Both fallible and infallible outputs may not always be outputting
-    * (sending data to the world using [#output_send]).
-    * Outputting can only be done when streaming.
-    * The following two methods give those two aspects of the current status,
-    * [#is_active] tells if the source is outputting and [#is_ready] tells
-    * whether it is streaming or can start streaming. *)
-       method is_active : bool
-
        method is_ready : bool
+
+       method state : Start_stop.state
+
+       method transition_to : Start_stop.state -> unit
 
        method private add_metadata : Request.metadata -> unit
 
        method private metadata_queue : Request.metadata Queue.t
 
-       (* TODO except for #output_reset those methods should be private
-        *   while we're at it I'm tempted to remove #is_active and let each
-        *   output deal with it *)
-       method virtual private output_reset : unit
+       method private reset : unit
 
-       method virtual private output_send : Frame.t -> unit
+       method virtual private send_frame : Frame.t -> unit
 
-       method virtual private output_start : unit
+       method virtual private start : unit
 
-       method virtual private output_stop : unit
+       method virtual private stop : unit
      end
+
+(** Default methods on output values. *)
+val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
 
 class virtual encoded :
   content_kind:Source.Kind.t
@@ -94,7 +83,7 @@ class virtual encoded :
   -> object
        inherit output
 
-       method private output_send : Frame.t -> unit
+       method private send_frame : Frame.t -> unit
 
        method virtual private encode : Frame.t -> int -> int -> 'a
 
@@ -103,11 +92,11 @@ class virtual encoded :
 
        method virtual private send : 'a -> unit
 
-       method virtual private output_reset : unit
+       method private reset : unit
 
-       method virtual private output_start : unit
+       method virtual private start : unit
 
-       method virtual private output_stop : unit
+       method virtual private stop : unit
      end
 
 class dummy :
@@ -120,11 +109,11 @@ class dummy :
   -> object
        inherit output
 
-       method private output_reset : unit
+       method private reset : unit
 
-       method private output_start : unit
+       method private start : unit
 
-       method private output_stop : unit
+       method private stop : unit
 
-       method private output_send : Frame.t -> unit
+       method private send_frame : Frame.t -> unit
      end

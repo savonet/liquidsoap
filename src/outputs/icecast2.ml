@@ -515,13 +515,13 @@ class output ~kind p =
 
     (** It there's too much latency, we'll stop trying to catchup.
     * Reconnect to cancel the latency on the server's side too. *)
-    method output_reset =
-      self#output_stop;
-      self#output_start
+    method reset =
+      self#stop;
+      self#start
 
-    method output_start = self#icecast_start
+    method start = self#icecast_start
 
-    method output_stop = self#icecast_stop
+    method stop = self#icecast_stop
 
     method icecast_start =
       assert (encoder = None);
