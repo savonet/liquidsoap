@@ -96,6 +96,8 @@ class virtual source :
        (** Identifier of the source. *)
        method id : string
 
+       method set_name : string -> unit
+
        method set_id : ?definitive:bool -> string -> unit
 
        (* {1 Liveness type}

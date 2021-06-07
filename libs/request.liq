@@ -33,7 +33,8 @@ end
 # @param ~timeout Timeout (in sec.) for a single download.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
-def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~native=false, ~queue=[], ~timeout=20.)
+def request.queue(~id=null(), ~conservative=false, ~default_duration=30., ~interactive=true, ~length=40., ~native=false, ~queue=[], ~timeout=20.)
+  id = string.id.default(default="request.queue", id)
   queue = ref(queue)
   def next()
     reqs = !queue
@@ -54,6 +55,7 @@ def request.queue(~id="", ~conservative=false, ~default_duration=30., ~interacti
     else
       (request.dynamic.list(id=id, conservative=conservative, default_duration=default_duration, length=length, timeout=timeout, available={not list.is_empty(!queue)}, next) : source_methods)
     end
+  source.set_name(s, "request.queue")
   if interactive then
     namespace = if id == "" then "queue" else id end
     def push(uri)

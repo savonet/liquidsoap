@@ -393,6 +393,10 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
     val mutable definitive_id = false
 
+    val mutable name = name
+
+    method set_name n = name <- n
+
     initializer id <- generate_id name
 
     method id = id
