@@ -398,3 +398,20 @@ let lazy_cell f =
             let v = f () in
             c := Some v;
             v)
+
+(* Thread with preemptive kill/wait mechanism, see mli for details. *)
+let stoppable_thread f name =
+  let cond = Condition.create () in
+  let lock = Mutex.create () in
+  let should_stop = ref false in
+  let has_stopped = ref false in
+  let kill = mutexify lock (fun () -> should_stop := true) in
+  let wait () = wait cond lock (fun () -> !has_stopped) in
+  let should_stop = mutexify lock (fun () -> !should_stop) in
+  let has_stopped =
+    mutexify lock (fun () ->
+        has_stopped := true;
+        Condition.signal cond)
+  in
+  let _ = create f (should_stop, has_stopped) name in
+  (kill, wait)

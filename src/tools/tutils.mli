@@ -93,3 +93,17 @@ val seems_locked : Mutex.t -> bool
 
 (** Thread-safe equivalent to Lazy.from_fun. *)
 val lazy_cell : (unit -> 'a) -> unit -> 'a
+
+(** Preemptive stoppable thread.
+  *
+  * The thread function receives a [should_stop,has_stop] pair on startup.
+  * It should regularly poll the [should_stop] and stop when asked to.
+  * Before stopping it should call [has_stopped].
+  *
+  * The function returns a [kill,wait] pair. The first function should be
+  * called to request that the thread stops, and the second to wait
+  * that it has effectively stopped. *)
+val stoppable_thread :
+  ((unit -> bool) * (unit -> unit) -> unit) ->
+  string ->
+  (unit -> unit) * (unit -> unit)
