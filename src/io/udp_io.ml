@@ -22,6 +22,37 @@
 
 let max_packet_size = if Configure.host = "osx" then 9216 else 65535
 
+module Tutils = struct
+  include Tutils
+
+  (* Thread with preemptive kill/wait mechanism, see mli for details. *)
+
+  (** Preemptive stoppable thread.
+   *
+   * The thread function receives a [should_stop,has_stop] pair on startup.
+   * It should regularly poll the [should_stop] and stop when asked to.
+   * Before stopping it should call [has_stopped].
+   *
+   * The function returns a [kill,wait] pair. The first function should be
+   * called to request that the thread stops, and the second to wait
+   * that it has effectively stopped. *)
+  let stoppable_thread f name =
+    let cond = Condition.create () in
+    let lock = Mutex.create () in
+    let should_stop = ref false in
+    let has_stopped = ref false in
+    let kill = mutexify lock (fun () -> should_stop := true) in
+    let wait () = wait cond lock (fun () -> !has_stopped) in
+    let should_stop = mutexify lock (fun () -> !should_stop) in
+    let has_stopped =
+      mutexify lock (fun () ->
+          has_stopped := true;
+          Condition.signal cond)
+    in
+    let _ = create f (should_stop, has_stopped) name in
+    (kill, wait)
+end
+
 class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
   ~encoder_factory source =
   object (self)
@@ -187,7 +218,8 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "output.udp" ~active:true
     ~descr:"Output encoded data to UDP, without any control whatsoever."
-    ~category:Lang.Output ~flags:[Lang.Experimental]
+    ~category:Lang.Output
+    ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
     ( Output.proto
     @ [
         ("port", Lang.int_t, None, None);
@@ -231,7 +263,8 @@ let () =
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.udp" ~active:true
     ~descr:"Input encoded data from UDP, without any control whatsoever."
-    ~category:Lang.Input ~flags:[Lang.Experimental]
+    ~category:Lang.Input
+    ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
     [
       ("port", Lang.int_t, None, None);
       ("host", Lang.string_t, None, None);
