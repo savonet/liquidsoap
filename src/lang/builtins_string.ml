@@ -529,3 +529,10 @@ let () =
           | _ -> string_of_float x
       in
       Lang.string s)
+
+let () =
+  add_builtin "string.id" ~cat:String
+    ~descr:"Generate an identifier with given operator name."
+    [("", Lang.string_t, None, Some "Operator name.")] Lang.string_t (fun p ->
+      let name = List.assoc "" p |> Lang.to_string in
+      Lang.string (Source.generate_id name))
