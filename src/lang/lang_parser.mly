@@ -62,7 +62,7 @@ open Lang_parser_helper
 %token GET SET
 %token <string> PP_IFDEF PP_IFNDEF
 %token ARGS_OF
-%token PP_IFENCODER PP_IFNENCODER PP_ENDIF
+%token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT

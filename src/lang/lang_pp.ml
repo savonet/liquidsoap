@@ -94,6 +94,7 @@ let eval_ifdefs tokenizer =
     let rec skip () =
       match tokenizer () with
         | Lang_parser.PP_ENDIF, _ -> token ()
+        | Lang_parser.PP_ELSE, _ -> go_on ()
         | _ -> skip ()
     in
     match tokenizer () with
@@ -118,6 +119,10 @@ let eval_ifdefs tokenizer =
             if fst tok = Lang_parser.PP_IFENCODER then fun x -> x else not
           in
           if test has_enc then go_on () else skip ()
+      | Lang_parser.PP_ELSE, _ ->
+          if !state = 0 then failwith "no %ifdef to end here";
+          decr state;
+          skip ()
       | Lang_parser.PP_ENDIF, _ ->
           if !state = 0 then failwith "no %ifdef to end here";
           decr state;

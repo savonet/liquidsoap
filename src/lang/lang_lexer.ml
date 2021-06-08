@@ -143,6 +143,7 @@ let rec token lexbuf =
         PP_IFNDEF (String.sub matched n (r - n + 1))
     | "%ifencoder" -> PP_IFENCODER
     | "%ifnencoder" -> PP_IFNENCODER
+    | "%else" -> PP_ELSE
     | "%endif" -> PP_ENDIF
     | "%include", Star (white_space | '\t'), '"', Star (Compl '"'), '"' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
