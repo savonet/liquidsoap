@@ -500,6 +500,5 @@ let expand_define tokenizer =
 
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ~pwd lexbuf =
-  let ( => ) a b = b a in
-  mk_tokenizer lexbuf => includer pwd => eval_ifdefs => parse_comments
-  => expand_string => uminus => strip_newlines => expand_define
+  mk_tokenizer lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
+  |> expand_string |> uminus |> strip_newlines |> expand_define
