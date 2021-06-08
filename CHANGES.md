@@ -87,6 +87,7 @@ New:
 - Added `clock.log_delay` to configure how often clock catchup error messages
   should be printed.
 - Added `input.rtmp` (#1640).
+- Added `%ifversion` and `%else` preprocessing commands (#1682).
 
 Changed:
 
