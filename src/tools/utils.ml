@@ -710,3 +710,39 @@ let string_of_matrix a =
 let log_exception ~(log : Log.t) ~bt msg =
   if log#active 4 (* info *) then log#info "%s\n%s" msg bt
   else log#severe "%s" msg
+
+(** Operations on versions of Liquidsoap. *)
+module Version = struct
+  type t = int list * string
+
+  (* We assume something like, 2.0.0+git@7e211ffd *)
+  let of_string s : t =
+    let num, str =
+      match String.split_on_char '+' s with
+        | [num; str] -> (num, str)
+        | [num] -> (num, "")
+        | _ -> assert false
+    in
+    let num = String.split_on_char '.' num |> List.map int_of_string in
+    (num, str)
+
+  (** Number part. *)
+  let num (v : t) = fst v
+
+  (** String part. *)
+  let srt (v : t) = snd v
+
+  (** Compare two versions. *)
+  let compare v w =
+    (* Compare numbers. *)
+    let rec aux v w =
+      match (v, w) with
+        | m :: _, n :: _ when m < n -> -1
+        | m :: _, n :: _ when m > n -> 1
+        | _ :: v, _ :: w -> aux v w
+        | [], [] -> 0
+        | [], _ -> -1
+        | _, [] -> 1
+    in
+    aux (num v) (num w)
+end

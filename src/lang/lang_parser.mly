@@ -61,6 +61,7 @@ open Lang_parser_helper
 %token NOT
 %token GET SET
 %token <string> PP_IFDEF PP_IFNDEF
+%token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * string> PP_IFVERSION
 %token ARGS_OF
 %token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
 %token PP_ENDL PP_DEF PP_DEFINE

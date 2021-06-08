@@ -107,6 +107,19 @@ let eval_ifdefs tokenizer =
           in
           (* XXX Less natural meaning than the original one. *)
           if test (Lang_values.has_builtin v) then go_on () else skip ()
+      | Lang_parser.PP_IFVERSION (cmp, ver), _ ->
+          let current = Utils.Version.of_string Configure.version in
+          let ver = Utils.Version.of_string ver in
+          let test =
+            let compare = Utils.Version.compare current ver in
+            match cmp with
+              | `Eq -> compare = 0
+              | `Geq -> compare >= 0
+              | `Leq -> compare <= 0
+              | `Gt -> compare > 0
+              | `Lt -> compare < 0
+          in
+          if test then go_on () else skip ()
       | (Lang_parser.PP_IFENCODER, _ | Lang_parser.PP_IFNENCODER, _) as tok ->
           let fmt = get_encoder_format tokenizer in
           let has_enc =

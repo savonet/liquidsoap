@@ -141,6 +141,29 @@ let rec token lexbuf =
         let n = String.indexp_from matched 7 (fun c -> c <> ' ') in
         let r = String.rindexp matched (fun c -> c <> ' ') in
         PP_IFNDEF (String.sub matched n (r - n + 1))
+    | ( "%ifversion",
+        Plus ' ',
+        ("==" | ">=" | "<=" | "<" | ">"),
+        Plus ' ',
+        Plus (decimal_digit | '.') ) ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n1 = String.indexp_from matched 10 (fun c -> c <> ' ') in
+        let n2 = String.indexp_from matched n1 (fun c -> c = ' ') in
+        let n3 = String.indexp_from matched n2 (fun c -> c <> ' ') in
+        let r = String.rindexp matched (fun c -> c <> ' ') in
+        let cmp = String.sub matched n1 (n2 - n1) in
+        let ver = String.sub matched n3 (r - n3 + 1) in
+        Printf.printf "IFVERSION: %s / %s\n%!" cmp ver;
+        let cmp =
+          match cmp with
+            | "==" -> `Eq
+            | ">=" -> `Geq
+            | "<=" -> `Leq
+            | "<" -> `Lt
+            | ">" -> `Gt
+            | _ -> assert false
+        in
+        PP_IFVERSION (cmp, ver)
     | "%ifencoder" -> PP_IFENCODER
     | "%ifnencoder" -> PP_IFNENCODER
     | "%else" -> PP_ELSE
