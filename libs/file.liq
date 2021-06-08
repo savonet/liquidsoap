@@ -3,6 +3,7 @@
 let file.error = error.register("file")
 
 # Read the whole contents of a file.
+# @param fname File to read.
 # @category System
 def file.contents(fname) =
   fn = file.read(fname)

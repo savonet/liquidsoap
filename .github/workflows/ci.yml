@@ -107,7 +107,7 @@ jobs:
             runs-on: self-hosted
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/core:/tmp/core -v ${{ github.workspace }}/debian:/tmp/debian -v ${{ github.workspace }}/doc:/tmp/doc
     env:
       HOME: /home/opam
     steps:
@@ -133,6 +133,23 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-doc.sh
+      - name: Get reference diff
+        if: github.event_name == 'pull_request' && matrix.os == 'debian_testing' && matrix.platform == 'amd64'
+        run: |
+          mkdir -p /tmp/doc
+          cd /tmp/doc
+          curl https://raw.githubusercontent.com/savonet/savonet.github.io/master/reference.md -o reference-main.md
+          cp /tmp/liquidsoap-full/liquidsoap/doc/content/reference.md .
+          echo "Reference changes for this PR:\n```" >| reference-diff.md
+          diff -urN reference-main.md reference.md >> reference-diff.md
+          echo "```" >> reference-diff.md
+      - name: Post reference diff
+        if: github.event_name == 'pull_request' && matrix.os == 'debian_testing' && matrix.platform == 'amd64'
+        uses: harupy/comment-on-pr@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          filename: ${{ github.workspace }}/doc/reference-diff.md
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
