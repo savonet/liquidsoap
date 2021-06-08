@@ -45,10 +45,10 @@ let parse_extinf s =
       | [artist; title] ->
           [
             ("extinf_duration", duration);
-            ("artist", Utils.trim artist);
-            ("title", Utils.trim title);
+            ("artist", String.trim artist);
+            ("title", String.trim title);
           ]
-      | _ -> [("extinf_duration", duration); ("song", Utils.trim song)]
+      | _ -> [("extinf_duration", duration); ("song", String.trim song)]
   with Not_found -> []
 
 (* This parser cannot detect the format !! *)

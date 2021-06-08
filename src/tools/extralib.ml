@@ -7,17 +7,14 @@ module List = struct
     let rec aux k = if k = n then [] else f k :: aux (k + 1) in
     aux 0
 
-  let rec may_map f = function
-    | x :: t -> (
-        match f x with Some x -> x :: may_map f t | None -> may_map f t )
-    | [] -> []
-
   let rec assoc_nth l n = function
     | [] -> raise Not_found
     | (x, v) :: t when x = l -> if n = 0 then v else assoc_nth l (n - 1) t
     | _ :: t -> assoc_nth l n t
 
-  let assoc_all x l = may_map (fun (y, v) -> if x = y then Some v else None) l
+  let assoc_all x l =
+    filter_map (fun (y, v) -> if x = y then Some v else None) l
+
   let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
 
   let rec prefix n l =

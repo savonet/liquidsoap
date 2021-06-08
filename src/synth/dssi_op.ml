@@ -101,11 +101,11 @@ class dssi ~kind ?chan plugin descr outputs params source =
         match chan with
           | Some chan ->
               let evs = MIDI.data evs.(chan) in
-              [| Array.of_list (Utils.may_map dssi_of_midi evs) |]
+              [| Array.of_list (List.filter_map dssi_of_midi evs) |]
           | None ->
               Array.init all_chans (fun chan ->
                   Array.of_list
-                    (Utils.may_map dssi_of_midi (MIDI.data evs.(chan))))
+                    (List.filter_map dssi_of_midi (MIDI.data evs.(chan))))
       in
       Array.iter
         (fun inst ->

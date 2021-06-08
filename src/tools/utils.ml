@@ -106,11 +106,6 @@ let split ~sep s =
   in
   List.map (unescape_char sep) (List.rev (split [] s))
 
-(** Remove trailing and leading spaces. *)
-let trim s =
-  Pcre.replace ~rex:(Pcre.regexp "\\s+$")
-    (Pcre.replace ~rex:(Pcre.regexp "^\\s+") s)
-
 (** Remove the first element satisfying a predicate, raising Not_found
   * if none is found. *)
 let remove_one f l =
@@ -119,11 +114,6 @@ let remove_one f l =
     | x :: l -> if f x then List.rev_append acc l else aux (x :: acc) l
   in
   aux [] l
-
-let rec may_map f = function
-  | h :: t -> (
-      match f h with Some h -> h :: may_map f t | None -> may_map f t )
-  | [] -> []
 
 (* Read all data from a given filename.
  * We cannot use really_input with the 
