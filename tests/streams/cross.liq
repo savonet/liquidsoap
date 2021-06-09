@@ -9,6 +9,7 @@ s = sequence([a,b])
 def t(a, b)
   log.important("Crossing!")
   log.important("Levels: #{a.db_level} / #{b.db_level}")
+  log.important("Metadata: #{a.metadata} / #{b.metadata}")
   add(normalize=false, [a.source, b.source])
 end
 
