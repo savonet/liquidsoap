@@ -34,6 +34,25 @@ exception Parse_error of (pos * string)
 (** Unsupported format *)
 exception Unsupported_format of (pos * Encoder.format)
 
+let () =
+  Printexc.register_printer (function
+    | Internal_error (pos, e) ->
+        Some
+          (Printf.sprintf "Lang_values.Internal_error at %s: %s"
+             (Runtime_error.print_pos_list pos)
+             e)
+    | Parse_error (pos, e) ->
+        Some
+          (Printf.sprintf "Lang_values.Parse_error at %s: %s"
+             (Runtime_error.print_pos pos)
+             e)
+    | Unsupported_format (pos, f) ->
+        Some
+          (Printf.sprintf "Lang_values.Unsupported_format at %s: %s"
+             (Runtime_error.print_pos pos)
+             (Encoder.string_of_format f))
+    | _ -> None)
+
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "lang") "Language configuration."
 
