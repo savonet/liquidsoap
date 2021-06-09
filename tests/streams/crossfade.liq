@@ -7,14 +7,7 @@
 a = sine(duration=5.,440.)
 b = sine(880.)
 s = sequence([a,b])
-
-def t(a, b)
-  log.important("Crossing!")
-  log.important("Levels: #{a.db_level} / #{b.db_level}")
-  add(normalize=false, [a.source, b.source])
-end
-
-s = cross(duration=3., width=1., t, s)
+s = crossfade(duration=3., s)
 
 output.dummy(fallible=true, s)
 
