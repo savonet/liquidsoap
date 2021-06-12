@@ -145,7 +145,7 @@ jobs:
           echo "```" >> reference-diff.md
       - name: Post reference diff
         if: github.event_name == 'pull_request' && matrix.os == 'debian_testing' && matrix.platform == 'amd64'
-        uses: harupy/comment-on-pr@master
+        uses: savonet/comment-on-pr@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
