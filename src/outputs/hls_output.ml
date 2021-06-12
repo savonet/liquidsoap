@@ -586,6 +586,9 @@ class hls_output p =
           if pos = 0 || segment.discontinuous then (
             match segment.init_filename with
               | Some filename ->
+                  let filename =
+                    Printf.sprintf "%s%s" prefix (Filename.basename filename)
+                  in
                   output_string oc
                     (Printf.sprintf "#EXT-X-MAP:URI=%S\r\n" filename)
               | _ -> () );
