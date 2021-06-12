@@ -129,23 +129,17 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
   timeout = maxtime - time()
 
   ret = http.head(timeout=int_of_float(timeout),uri)
-
-  def on_timeout() =
-    log(level=3,"Failed to fetch mime-type for #{uri}, response timed out.")
-    null()
-  end
+  code = ret.status_code ?? 999
+  headers = ret.headers
 
   mime =
-    null.case(ret,
-      on_timeout,
-      fun (ret) ->
-        if 200 <= ret.code and ret.code < 300 then
-          null(ret.headers["content-type"])
-        else
-          log(level=3,"Failed to fetch mime-type for #{uri}.")
-          log(level=4,"Request response: #{ret}")
-          null()
-        end)
+    if 200 <= code and code < 300 then
+      null(headers["content-type"])
+    else
+      log(level=3,"Failed to fetch mime-type for #{uri}.")
+      log(level=4,"Request response: #{ret}")
+      null()
+    end
 
   extname = null.case(mime, (fun () -> "osb"), (fun (mime) ->
     if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
@@ -170,12 +164,12 @@ def http_protocol(proto,~rlog,~maxtime,arg) =
   file_writer = file.write.stream(output)
 
   timeout = maxtime - time()
-
-  ignore(http.get.stream(
+  
+  http.get.stream(
     on_body_data=file_writer,
     timeout=int_of_float(timeout),
     uri
-  ))
+  )
 
   [output]
 end
