@@ -140,9 +140,9 @@ jobs:
           cd /tmp/doc
           curl https://raw.githubusercontent.com/savonet/savonet.github.io/master/reference.md -o reference-main.md
           cp /tmp/liquidsoap-full/liquidsoap/doc/content/reference.md .
-          echo "Reference changes for this PR:\n```" >| reference-diff.md
-          diff -urN reference-main.md reference.md >> reference-diff.md
-          echo "```" >> reference-diff.md
+          echo "Reference changes for this PR:\n\`\`\`" > reference-diff.md
+          diff -urN reference-main.md reference.md >> reference-diff.md || true
+          echo "\`\`\`" >> reference-diff.md
           cat reference-diff.md
       - name: Post reference diff
         if: github.event_name == 'pull_request' && matrix.os == 'debian_testing' && matrix.platform == 'amd64'
