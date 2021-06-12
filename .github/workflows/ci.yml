@@ -143,6 +143,7 @@ jobs:
           echo "Reference changes for this PR:\n```" >| reference-diff.md
           diff -urN reference-main.md reference.md >> reference-diff.md
           echo "```" >> reference-diff.md
+          cat reference-diff.md
       - name: Post reference diff
         if: github.event_name == 'pull_request' && matrix.os == 'debian_testing' && matrix.platform == 'amd64'
         uses: savonet/comment-on-pr@master
