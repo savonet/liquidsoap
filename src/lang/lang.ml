@@ -766,6 +766,10 @@ let source_methods =
       "Estimation of remaining time in the current track.",
       fun s -> val_fun [] (fun _ -> float (Frame.seconds_of_main s#remaining))
     );
+    ( "self_sync",
+      ([], fun_t [] bool_t),
+      "Is the source currently controling its own real-time loop.",
+      fun s -> val_fun [] (fun _ -> bool s#self_sync) );
     ( "is_up",
       ([], fun_t [] bool_t),
       "Indicate that the source can be asked to produce some data at any time. \
