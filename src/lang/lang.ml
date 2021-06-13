@@ -790,9 +790,9 @@ let source_methods =
             s#abort_track;
             unit) );
     ( "fallible",
-      ([], fun_t [] bool_t),
+      ([], bool_t),
       "Indicate if a source may fail, i.e. may not be ready to stream.",
-      fun s -> val_fun [] (fun _ -> bool (s#stype = Source.Fallible)) );
+      fun s -> bool (s#stype = Source.Fallible) );
     ( "shutdown",
       ([], fun_t [] unit_t),
       "Deactivate a source.",
