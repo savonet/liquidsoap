@@ -29,6 +29,7 @@
 %include "lastfm.liq"
 %include "http.liq"
 %include "server.liq"
+%include "telnet.liq"
 %include "interactive.liq"
 %include "hls.liq"
 %include "video.liq"
