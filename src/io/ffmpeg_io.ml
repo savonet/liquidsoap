@@ -310,11 +310,11 @@ let register_input is_http =
           Some "Duration of buffered data before starting playout." );
         ( "self_sync",
           Lang.bool_t,
-          Some (Lang.bool true),
+          Some (Lang.bool false),
           Some
-            "Should the source control its own timing? Typically, should be \
-             `true` for streaming protocols such as `rtmp` and `false` \
-             otherwise." );
+            "Should the source control its own timing? Set to `true` if you \
+             are having synchronization issues. Should be `false` for most \
+             typicaly cases." );
         ( "clock_safe",
           Lang.nullable_t Lang.bool_t,
           Some Lang.null,
