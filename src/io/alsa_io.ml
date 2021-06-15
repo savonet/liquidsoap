@@ -164,7 +164,7 @@ class virtual base dev mode =
             pcm <- None
         | None -> ()
 
-    method output_reset =
+    method reset =
       self#close_device;
       self#open_device
   end
@@ -197,11 +197,11 @@ class output ~kind ~clock_safe ~start ~infallible ~on_stop ~on_start dev
             samplerate_converter <- Some sc;
             sc
 
-    method output_start = self#open_device
+    method start = self#open_device
 
-    method output_stop = self#close_device
+    method stop = self#close_device
 
-    method output_send memo =
+    method send_frame memo =
       let pcm = Option.get pcm in
       let buf = AFrame.pcm memo in
       let buf =
@@ -243,23 +243,22 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     inherit base dev [Pcm.Capture]
 
     inherit
-      Start_stop.input
-        ~content_kind:(Source.Kind.of_kind kind) ~source_kind:"alsa"
+      Start_stop.active_source
+        ~get_clock:Alsa_settings.get_clock
+          ~content_kind:(Source.Kind.of_kind kind)
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
-        ~on_start ~on_stop ~fallible ~autostart:start as super
-
-    method private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
+        ~clock_safe ~on_start ~on_stop ~fallible ~autostart:start ()
 
     method private start = self#open_device
 
     method private stop = self#close_device
 
+    method remaining = -1
+
+    method abort_track = ()
+
     (* TODO: convert samplerate *)
-    method private input frame =
+    method private get_frame frame =
       let pcm = Option.get pcm in
       let buf = AFrame.pcm frame in
       try
@@ -308,7 +307,7 @@ let () =
           Some "Alsa device to use" );
         ("", Lang.source_t k, None, None);
       ] )
-    ~return_t:k ~category:Lang.Output
+    ~return_t:k ~category:Lang.Output ~meth:Output.meth
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -330,30 +329,27 @@ let () =
         ( new Alsa_out.output
             ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible device
             source
-          :> Source.source )
+          :> Output.output )
       else
         ( new output
             ~kind ~clock_safe ~infallible ~start ~on_start ~on_stop device
             source
-          :> Source.source ))
+          :> Output.output ))
 
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.alsa" ~active:true
-    ( Start_stop.input_proto
+    ( Start_stop.active_source_proto ~fallible:true
     @ [
         ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");
-        ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of the dedicated ALSA clock" );
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
           Some "Alsa device to use" );
       ] )
-    ~return_t:k ~category:Lang.Input ~descr:"Stream from an ALSA input device."
+    ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input
+    ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in
@@ -370,7 +366,9 @@ let () =
         fun () -> ignore (Lang.apply f [])
       in
       if bufferize then
-        (new Alsa_in.mic ~kind ~clock_safe device :> Source.source)
+        ( new Alsa_in.mic
+            ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device
+          :> Start_stop.active_source )
       else
         ( new input ~kind ~clock_safe ~on_start ~on_stop ~fallible ~start device
-          :> Source.source ))
+          :> Start_stop.active_source ))

@@ -67,7 +67,7 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
 
     val mutable encoder = None
 
-    method private output_start =
+    method private start =
       let socket =
         Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_DGRAM
           (Unix.getprotobyname "udp").Unix.p_proto
@@ -87,11 +87,11 @@ class output ~kind ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
             f 0);
       encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
 
-    method private output_reset =
-      self#output_start;
-      self#output_stop
+    method private reset =
+      self#start;
+      self#stop
 
-    method private output_stop =
+    method private stop =
       socket_send <- None;
       encoder <- None
 
@@ -116,8 +116,6 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
   object (self)
-    inherit Source.source ~name:"input.udp" kind as super
-
     inherit
       Generated.source
         (Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
@@ -125,9 +123,9 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
         ~empty_on_abort:false ~bufferize
 
     inherit
-      Start_stop.async
-        ~name:(Printf.sprintf "udp://%s:%d" hostname port)
-        ~on_start:ignore ~on_stop:ignore ~autostart:true
+      Start_stop.active_source
+        ~name:"input.udp" ~content_kind:kind ~clock_safe:false ~fallible:true
+          ~on_start:ignore ~on_stop:ignore ~autostart:true ()
 
     initializer log_ref := fun s -> self#log#important "%s" s
 
@@ -139,17 +137,14 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
     method private decoder_factory = Option.get decoder_factory
 
-    method private wake_up a =
-      super#wake_up a;
-      decoder_factory <- Some (get_stream_decoder self#ctype)
-
     method private start =
       begin
+        decoder_factory <- Some (get_stream_decoder self#ctype);
         match wait_feeding with
-        | None -> ()
-        | Some f ->
-            f ();
-            wait_feeding <- None
+          | None -> ()
+          | Some f ->
+              f ();
+              wait_feeding <- None
       end;
       let kill, wait = Tutils.stoppable_thread self#feed "UDP input" in
       kill_feeding <- Some kill;
@@ -157,15 +152,8 @@ class input ~kind ~hostname ~port ~get_stream_decoder ~bufferize ~log_overfull =
 
     method private stop =
       (Option.get kill_feeding) ();
-      kill_feeding <- None
-
-    method private output_reset =
-      request_stop <- true;
-      request_start <- true
-
-    method private is_active = true
-
-    method private stype = Source.Fallible
+      kill_feeding <- None;
+      decoder_factory <- None
 
     method private feed (should_stop, has_stopped) =
       let socket =

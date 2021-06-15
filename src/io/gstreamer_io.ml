@@ -197,7 +197,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
         Clock.unify self#clock
           (Clock.create_known (gst_clock () :> Clock.clock))
 
-    method output_start =
+    method start =
       let el = self#get_element in
       self#log#info "Playing.";
       started <- true;
@@ -209,7 +209,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       (* ignore (Element.get_state el.bin); *)
       self#register_task ~priority:Tutils.Blocking Tutils.scheduler
 
-    method output_stop =
+    method stop =
       self#stop_task;
       started <- false;
       let todo =
@@ -269,7 +269,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
     val mutable presentation_time = Int64.zero
 
-    method output_send frame =
+    method send_frame frame =
       let el = self#get_element in
       try
         if not (Frame.is_partial frame) then (
@@ -307,7 +307,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
              (Printexc.to_string e));
         self#on_error e
 
-    method output_reset = ()
+    method reset = ()
   end
 
 let output_proto ~return_t ~pipeline =
@@ -596,8 +596,6 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
         else None
       in
       { bin; audio = audio_sink; video = video_sink }
-
-    method is_active = true
 
     method private is_generator_at_max = Generator.length gen >= max_ticks
 

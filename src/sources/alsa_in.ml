@@ -29,25 +29,21 @@ open Mm
  * problems (and vice versa), we thread and bufferize a LITTLE bit. *)
 
 open Alsa
-open Source
 
-class mic ~kind ~clock_safe device =
+class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
   let buffer_length = AFrame.size () in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   object (self)
     inherit
-      active_source ~name:"input.alsa" (Source.Kind.of_kind kind) as active_source
+      Start_stop.active_source
+        ~name:"input.alsa" ~fallible ~on_start ~on_stop ~autostart:start
+          ~clock_safe ~get_clock:Alsa_settings.get_clock
+          ~content_kind:(Source.Kind.of_kind kind) () as active_source
 
     inherit [Frame_content.Audio.data] IoRing.input ~nb_blocks as ioring
 
     val mutable initialized = false
-
-    method private set_clock =
-      active_source#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (Alsa_settings.get_clock () :> Clock.clock))
 
     method self_sync = true
 
@@ -59,10 +55,6 @@ class mic ~kind ~clock_safe device =
     method private sleep =
       active_source#sleep;
       ioring#sleep
-
-    method stype = Infallible
-
-    method is_ready = true
 
     method abort_track = ()
 
@@ -156,11 +148,7 @@ class mic ~kind ~clock_safe device =
       done;
       AFrame.add_break buf buffer_length
 
-    method output = if AFrame.is_partial self#memo then self#get_frame self#memo
-
-    method output_reset = ()
-
-    method is_active = true
+    method reset = ()
   end
 
 (* This source is registered in Alsa_io. *)

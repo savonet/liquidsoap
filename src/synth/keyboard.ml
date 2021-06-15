@@ -90,10 +90,7 @@ class keyboard ~kind =
 
     val lock = Mutex.create ()
 
-    method private sleep =
-      Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
-
-    method private output_get_ready =
+    method private wake_up _ =
       let id = run_id in
       let rec task _ =
         if run_id <> id then []
@@ -124,9 +121,10 @@ class keyboard ~kind =
           events = [`Read Unix.stdin];
         }
 
-    method output_reset = ()
+    method private sleep =
+      Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
 
-    method is_active = true
+    method reset = ()
 
     method private get_frame frame =
       assert (0 = MFrame.position frame);

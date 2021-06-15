@@ -81,15 +81,15 @@ module Buffer = struct
           ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
             ~on_stop source_val autostart
 
-      method output_reset = ()
+      method reset = ()
 
-      method output_start = ()
+      method start = ()
 
-      method output_stop = ()
+      method stop = ()
 
       val source = Lang.to_source source_val
 
-      method output_send frame =
+      method send_frame frame =
         proceed c (fun () ->
             if c.abort then (
               c.abort <- false;
@@ -307,15 +307,15 @@ module AdaptativeBuffer = struct
           ~output_kind:"buffer" ~content_kind:kind ~infallible ~on_start
             ~on_stop source_val autostart
 
-      method output_reset = ()
+      method reset = ()
 
-      method output_start = ()
+      method start = ()
 
-      method output_stop = ()
+      method stop = ()
 
       val source = Lang.to_source source_val
 
-      method output_send frame =
+      method send_frame frame =
         proceed c (fun () ->
             if c.abort then (
               c.abort <- false;

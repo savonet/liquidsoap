@@ -600,7 +600,7 @@ module Make (T : T) = struct
             () )
         else ()
 
-      method output_start =
+      method start =
         assert (encoder = None);
         let enc = data.factory self#id in
         encoder <- Some (enc Meta_format.empty_metadata);
@@ -620,7 +620,7 @@ module Make (T : T) = struct
           | Some f -> dump <- Some (open_out_bin f)
           | None -> ()
 
-      method output_stop =
+      method stop =
         ignore ((Option.get encoder).Encoder.stop ());
         encoder <- None;
         Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
@@ -642,9 +642,9 @@ module Make (T : T) = struct
           ();
         match dump with Some f -> close_out f | None -> ()
 
-      method output_reset =
-        self#output_stop;
-        self#output_start
+      method reset =
+        self#stop;
+        self#start
     end
 
   let () =

@@ -154,7 +154,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
           Pcm.recover dev e )
         else Printexc.raise_with_backtrace e bt
 
-    method output_send buf =
+    method send_frame buf =
       let buf = AFrame.pcm buf in
       let ratio = float alsa_rate /. float samples_per_second in
       let buf =
@@ -163,7 +163,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
       let f data = Audio.blit buf data in
       ioring#put_block f
 
-    method output_reset =
+    method reset =
       self#close;
       ignore self#get_device
   end

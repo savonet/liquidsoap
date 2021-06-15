@@ -158,11 +158,7 @@ class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       if source#is_ready && self#is_blank && AFrame.is_partial self#memo then
         self#get_frame self#memo
 
-    method output_reset = ()
-
-    method output_get_ready = ()
-
-    method is_active = true
+    method reset = ()
   end
 
 class eat ~kind ~track_sensitive ~at_beginning ~start_blank ~max_blank

@@ -631,7 +631,7 @@ class hls_output p =
       List.iter (fun s -> self#unlink (self#playlist_name s)) streams;
       self#unlink main_playlist_path
 
-    method output_start =
+    method start =
       ( match persist_at with
         | Some persist_at when Sys.file_exists persist_at -> (
             try
@@ -647,7 +647,7 @@ class hls_output p =
       List.iter self#open_segment streams;
       self#toggle_state `Streaming
 
-    method output_stop =
+    method stop =
       self#toggle_state `Stop;
       ( try
           let data =
@@ -664,7 +664,7 @@ class hls_output p =
             self#cleanup_streams;
             self#cleanup_playlists
 
-    method output_reset = self#toggle_state `Restart
+    method reset = self#toggle_state `Restart
 
     method private write_state persist_at =
       self#log#info "Reading state file at %S.." persist_at;

@@ -32,21 +32,21 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
 
     val mutable sleep = false
 
-    method output_stop = sleep <- true
+    method stop = sleep <- true
 
-    method output_start =
+    method start =
       Graphics.open_graph "";
       Graphics.set_window_title "Liquidsoap";
       Graphics.resize_window video_width video_height;
       sleep <- false
 
-    method output_send buf =
+    method send_frame buf =
       let rgb = Video.get (VFrame.yuva420p buf) 0 in
       let img = Video.Image.to_int_image rgb in
       let img = Graphics.make_image img in
       Graphics.draw_image img 0 0
 
-    method output_reset = ()
+    method reset = ()
   end
 
 let () =

@@ -230,23 +230,11 @@ and virtual active_source :
   -> object
        inherit source
 
-       (** Special init phase for outputs. This method is called by Root after the
-           standard get_ready propagation, after the Root clock is started.
-           It allows enhancements of the initial latency. *)
-       method virtual output_get_ready : unit
-
        (** Start a new output round, triggers computation of a new frame. *)
        method virtual output : unit
 
        (** Do whatever needed when the latency gets too big and is reset. *)
-       method virtual output_reset : unit
-
-       (** Is the source active ?
-           If the returned value is [false], then [output_reset]
-           should not be called on that source.
-           If [output_reset] does nothing, this function can return any value.
-           TODO that kind of detail could be left inside #output_reset *)
-       method virtual is_active : bool
+       method virtual reset : unit
      end
 
 (* This is for defining a source which has children *)

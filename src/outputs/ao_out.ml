@@ -92,7 +92,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
       let dev = self#get_device in
       play dev (Bytes.unsafe_to_string data)
 
-    method output_send wav =
+    method send_frame wav =
       if not (Frame.is_partial wav) then (
         let push data =
           let pcm = AFrame.pcm wav in
@@ -101,7 +101,7 @@ class output ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
         in
         ioring#put_block push )
 
-    method output_reset = ()
+    method reset = ()
   end
 
 let () =
@@ -132,7 +132,7 @@ let () =
           Some "List of parameters, depends on the driver." );
         ("", Lang.source_t return_t, None, None);
       ] )
-    ~category:Lang.Output
+    ~category:Lang.Output ~meth:Output.meth
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -164,4 +164,4 @@ let () =
       ( new output
           ~kind ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
           ?channels_matrix ~options source start
-        :> Source.source ))
+        :> Output.output ))

@@ -23,8 +23,9 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
-class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
-  ~kind ~on_stop ~on_start ?format ~opts url =
+class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
+  ~clock_safe ~bufferize ~log_overfull ~kind ~on_stop ~on_start ?format ~opts
+  url =
   let max_ticks = 2 * Frame.main_of_seconds bufferize in
   (* A log function for our generator: start with a stub, and replace it
    * when we have a proper logger with our ID on it. *)
@@ -34,40 +35,31 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
     Generator.create ~log ~log_overfull ~overfull:(`Drop_old max_ticks)
       `Undefined
   in
+  let ignore () = () in
   object (self)
-    inherit Source.active_source ~name:"input.ffmpeg" kind as super
+    inherit
+      Start_stop.active_source
+        ~name ~content_kind:kind ~fallible:true ~clock_safe ~on_start:ignore
+          ~on_stop:ignore ~autostart () as super
 
     val mutable connect_task = None
 
     val mutable container = None
 
-    val mutable clock = None
-
     val generator = generator
-
-    (* Regular source methods. *)
-    method stype = Source.Fallible
-
-    method seek _ = 0
 
     method remaining = -1
 
     method abort_track = Generator.add_break generator
 
-    method is_ready = self#mutexify (fun () -> container <> None) ()
+    method is_ready =
+      super#is_ready && self#mutexify (fun () -> container <> None) ()
 
     method self_sync = self_sync && self#is_ready
 
-    (* Active source methods. *)
-    method is_active = self#is_ready
+    method private start = self#connect
 
-    method output =
-      if self#is_ready && AFrame.is_partial self#memo then
-        self#get_frame self#memo
-
-    method output_reset = self#reconnect
-
-    method output_get_ready = ()
+    method private stop = self#disconnect
 
     method private connect_fn () =
       try
@@ -148,36 +140,17 @@ class input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull
         Frame.add_break frame pos;
         self#reconnect
 
-    method private get_clock =
-      match clock with
-        | Some c -> c
-        | None ->
-            let c = new Clock.clock "input.ffmpeg" in
-            clock <- Some c;
-            c
-
-    method private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (self#get_clock :> Clock.clock))
-
     method wake_up act =
       super#wake_up act;
       (* Now we can create the log function *)
-      (log_ref := fun s -> self#log#important "%s" s);
-      self#connect
-
-    method sleep =
-      self#disconnect;
-      super#sleep
+      log_ref := fun s -> self#log#important "%s" s
   end
 
 let http_log = Log.make ["input"; "http"]
 
-class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
+class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
   ~log_overfull ~kind ~on_connect ~on_disconnect ?format ~opts ~user_agent
-  ~new_track_on_metadata url =
+  ~on_start ~on_stop ~new_track_on_metadata url =
   let () =
     Hashtbl.add opts "icy" (`Int 1);
     Hashtbl.add opts "user_agent" (`String user_agent)
@@ -206,7 +179,8 @@ class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
              (Printexc.to_string exn));
         []
     in
-    on_connect icy_headers
+    on_connect icy_headers;
+    on_start input
   in
   let parse_icy_metadata chunk =
     let h = Hashtbl.create 10 in
@@ -231,11 +205,15 @@ class http_input ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize
     parse chunk;
     h
   in
+  let on_stop () =
+    on_disconnect ();
+    on_stop ()
+  in
   object (self)
     inherit
       input
-        ~self_sync ~poll_delay ~debug ~clock_safe ~bufferize ~log_overfull ~kind
-          ~on_stop:on_disconnect ~on_start ?format ~opts url as super
+        ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
+          ~bufferize ~log_overfull ~kind ~on_stop ~on_start ?format ~opts url as super
 
     val mutable latest_metadata = ""
 
@@ -297,7 +275,10 @@ let register_input is_http =
     else ("input.ffmpeg", "Create a stream using ffmpeg")
   in
   Lang.add_operator name ~active:true ~descr ~category:Lang.Input
-    ( ( if is_http then
+    ( List.filter
+        (fun (lbl, _, _, _) -> lbl <> "clock_safe")
+        (Start_stop.active_source_proto ~fallible:true)
+    @ ( if is_http then
         [
           ( "user_agent",
             Lang.string_t,
@@ -318,17 +299,7 @@ let register_input is_http =
             Some (Lang.val_cst_fun [] Lang.unit),
             Some "Function to excecute when a source is disconnected" );
         ]
-      else
-        [
-          ( "on_start",
-            Lang.fun_t [] Lang.unit_t,
-            Some (Lang.val_cst_fun [] Lang.unit),
-            Some "Callback executed when input starts." );
-          ( "on_stop",
-            Lang.fun_t [] Lang.unit_t,
-            Some (Lang.val_cst_fun [] Lang.unit),
-            Some "Callback executed when input stops." );
-        ] )
+      else [] )
     @ [
         args ~t:Lang.int_t "int";
         args ~t:Lang.float_t "float";
@@ -371,7 +342,7 @@ let register_input is_http =
              argument" );
         ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
       ] )
-    ~return_t:k
+    ~return_t:k ~meth:(Start_stop.meth ())
     (fun p ->
       let format = Lang.to_option (List.assoc "format" p) in
       let format =
@@ -395,9 +366,18 @@ let register_input is_http =
       let log_overfull = Lang.to_bool (List.assoc "log_overfull" p) in
       let debug = Lang.to_bool (List.assoc "debug" p) in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
+      let autostart = Lang.to_bool (List.assoc "start" p) in
       let clock_safe =
         Lang.to_default_option ~default:self_sync Lang.to_bool
           (List.assoc "clock_safe" p)
+      in
+      let on_start =
+        let f = List.assoc "on_start" p in
+        fun _ -> ignore (Lang.apply f [])
+      in
+      let on_stop =
+        let f = List.assoc "on_stop" p in
+        fun () -> ignore (Lang.apply f [])
       in
       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
       let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
@@ -420,23 +400,14 @@ let register_input is_http =
           ignore (Lang.apply (List.assoc "on_disconnect" p) [])
         in
         ( new http_input
-            ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_connect
-            ~on_disconnect ~user_agent ~new_track_on_metadata ~bufferize
-            ~log_overfull ?format ~opts url
-          :> Source.source ) )
-      else (
-        let on_start =
-          let f = List.assoc "on_start" p in
-          fun _ -> ignore (Lang.apply f [])
-        in
-        let on_stop =
-          let f = List.assoc "on_stop" p in
-          fun () -> ignore (Lang.apply f [])
-        in
-        ( new input
-            ~kind ~debug ~self_sync ~clock_safe ~poll_delay ~on_start ~on_stop
-            ~bufferize ~log_overfull ?format ~opts url
-          :> Source.source ) ))
+            ~kind ~debug ~autostart ~self_sync ~clock_safe ~poll_delay
+            ~on_connect ~on_disconnect ~user_agent ~new_track_on_metadata
+            ~bufferize ~log_overfull ?format ~opts ~on_start ~on_stop url
+          :> input ) )
+      else
+        new input
+          ~kind ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_start
+          ~on_stop ~bufferize ~log_overfull ?format ~opts url)
 
 let () =
   register_input true;

@@ -230,7 +230,6 @@ let () =
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
       let fo = Pipe_output.new_file_output p in
       fo#get_ready [s];
-      fo#output_get_ready;
       log#info "Start dumping source.";
       while s#is_ready do
         fo#output;

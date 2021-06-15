@@ -70,15 +70,11 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
             Unix.close x;
             fd <- None
 
-    method output_start = self#open_device
+    method start = self#open_device
 
-    method output_stop = self#close_device
+    method stop = self#close_device
 
-    method output_reset =
-      self#close_device;
-      self#open_device
-
-    method output_send memo =
+    method send_frame memo =
       let fd = Option.get fd in
       let buf = AFrame.pcm memo in
       let r = Audio.S16LE.size (Audio.channels buf) (Audio.length buf) in
@@ -92,20 +88,18 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
-      Start_stop.input
-        ~content_kind:(Source.Kind.of_kind kind) ~source_kind:"oss"
+      Start_stop.active_source
+        ~get_clock ~clock_safe ~content_kind:(Source.Kind.of_kind kind)
         ~name:(Printf.sprintf "oss_in(%s)" dev)
-        ~on_start ~on_stop ~fallible ~autostart:start as super
-
-    method private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Clock.clock))
+        ~on_start ~on_stop ~fallible ~autostart:start ()
 
     val mutable fd = None
 
     method self_sync = fd <> None
+
+    method abort_track = ()
+
+    method remaining = -1
 
     method private start = self#open_device
 
@@ -122,11 +116,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Unix.close (Option.get fd);
       fd <- None
 
-    method output_reset =
-      self#close_device;
-      self#open_device
-
-    method input frame =
+    method get_frame frame =
       assert (0 = AFrame.position frame);
       let fd = Option.get fd in
       let buf = AFrame.pcm frame in
@@ -177,18 +167,15 @@ let () =
         :> Source.source ));
   let k = Lang.kind_type_of_kind_format Lang.audio_pcm in
   Lang.add_operator "input.oss" ~active:true
-    ( Start_stop.input_proto
+    ( Start_stop.active_source_proto ~fallible:true
     @ [
-        ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of the dedicated OSS clock." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
       ] )
-    ~return_t:k ~category:Lang.Input ~descr:"Stream from an OSS input device."
+    ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input
+    ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let clock_safe = e Lang.to_bool "clock_safe" in
@@ -203,5 +190,4 @@ let () =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      ( new input ~kind ~start ~on_start ~on_stop ~fallible ~clock_safe device
-        :> Source.source ))
+      new input ~kind ~start ~on_start ~on_stop ~fallible ~clock_safe device)
