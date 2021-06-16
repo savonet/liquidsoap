@@ -24,6 +24,10 @@ echo -en "Running test \033[1m${TEST_NAME}\033[0m... "
 
 ${CMD} < "${PWD}/${TEST}"  > "${LOG_FILE}" 2>&1 &
 
+PID=$!
+wait $PID
+STATUS=$?
+
 if [ "${STATUS}" == "0" ]; then
   echo -e "\033[0;32m[ok]\033[0m"
   exit 0
