@@ -124,7 +124,7 @@ let hls_proto kind =
            generated file." );
       ( "strict_persist",
         Lang.bool_t,
-        Some (Lang.bool true),
+        Some (Lang.bool false),
         Some "Fail if an invalid saved state exists." );
       ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
