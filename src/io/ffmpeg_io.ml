@@ -129,7 +129,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           match container with
             | None -> ()
             | Some (input, _) ->
-                Av.close input;
+                ( try Av.close input
+                  with exn ->
+                    let bt = Printexc.get_backtrace () in
+                    Utils.log_exception ~log:self#log ~bt
+                      (Printf.sprintf "Error while disconnecting: %s"
+                         (Printexc.to_string exn)) );
                 container <- None;
                 source_status <- `Stopped;
                 on_disconnect ())
