@@ -204,7 +204,7 @@ let () =
         Some "Force the use of the dedicated Pulseaudio clock." );
     ]
   in
-  Lang.add_operator "output.pulseaudio" ~active:true
+  Lang.add_operator "output.pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output ~meth:Output.meth
     ~descr:"Output the source's stream to a portaudio output device."
@@ -221,7 +221,7 @@ let () =
       in
       let kind = Source.Kind.of_kind kind in
       (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Output.output));
-  Lang.add_operator "input.pulseaudio" ~active:true
+  Lang.add_operator "input.pulseaudio"
     (Start_stop.active_source_proto ~fallible:true @ proto)
     ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."

@@ -79,10 +79,6 @@ def f() =
   l = [ "a".{b = true, k = 0} , "b".{b = true, l = 1} ]
   t(list.for_all(fun (x) -> x.b, l), true)
 
-  # Ensure that we can have active sources and sources
-  ignore([output.dummy(noise()), blank()])
-  ignore([blank(), output.dummy(noise())])
-
   # There used to be a bug where [x] would loose all its methods.
   x = 1
   let x.foo = "bla"

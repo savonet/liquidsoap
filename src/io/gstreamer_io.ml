@@ -339,7 +339,7 @@ let () =
 let () =
   let kind = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any } in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.gstreamer.audio" ~active:true
+  Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
     ~return_t (fun p ->
@@ -370,7 +370,7 @@ let () =
 let () =
   let kind = { Frame.audio = Frame.audio_pcm; video = `Any; midi = `Any } in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.gstreamer.video" ~active:true
+  Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
     ~return_t (fun p ->
@@ -403,7 +403,7 @@ let () =
     { Frame.audio = Frame.audio_pcm; video = Frame.video_yuva420p; midi = `Any }
   in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.gstreamer.audio_video" ~active:true
+  Lang.add_operator "output.gstreamer.audio_video"
     ( output_proto ~return_t ~pipeline:""
     @ [
         ( "audio_pipeline",

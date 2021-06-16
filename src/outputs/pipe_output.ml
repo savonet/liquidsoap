@@ -117,7 +117,7 @@ class url_output p =
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.url" ~active:true (url_proto return_t) ~return_t
+  Lang.add_operator "output.url" (url_proto return_t) ~return_t
     ~category:Lang.Output
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
@@ -385,7 +385,7 @@ let new_file_output p =
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.file" (file_proto return_t) ~active:true ~return_t
+  Lang.add_operator "output.file" (file_proto return_t) ~return_t
     ~category:Lang.Output ~descr:"Output the source stream to a file." (fun p ->
       (new_file_output p :> Source.source))
 
@@ -428,7 +428,7 @@ let pipe_proto kind descr =
 
 let () =
   let return_t = Lang.univ_t () in
-  Lang.add_operator "output.external" ~active:true
+  Lang.add_operator "output.external"
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:Lang.Output
     ~meth:

@@ -205,7 +205,7 @@ class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.dummy" ~active:true
+  Lang.add_operator "output.dummy"
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:Lang.Output ~descr:"Dummy output for debugging purposes." ~meth
     ~return_t

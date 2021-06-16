@@ -47,7 +47,7 @@ type clock_sync_mode = [ sync | `Unknown ]
 type watcher = {
   get_ready :
     stype:source_t ->
-    is_output:bool ->
+    is_active:bool ->
     id:string ->
     ctype:Frame.content_type ->
     clock_id:string ->
@@ -193,7 +193,7 @@ class virtual source :
        (** Tells the source to finish the reading of current track. *)
        method virtual abort_track : unit
 
-       method is_output : bool
+       method is_active : bool
 
        (** Wait for output round to finish.
            Typically, output nodes compute an audio frame (a full buffer),

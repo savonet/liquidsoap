@@ -298,7 +298,7 @@ let () =
       new detect
         ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         ~on_blank ~on_noise s);
-  Lang.add_operator "blank.strip" ~active:true ~return_t
+  Lang.add_operator "blank.strip" ~return_t
     ~meth:
       [
         ( "is_blank",

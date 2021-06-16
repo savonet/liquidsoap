@@ -146,9 +146,9 @@ let format_t ?pos ?level k =
     (T.Constr { T.name = "format"; T.params = [(T.Covariant, k)] })
 
 (** Type of sources carrying frames of a given kind. *)
-let source_t ?(active = false) ?pos ?level k =
-  let name = if active then "active_source" else "source" in
-  T.make ?pos ?level (T.Constr { T.name; T.params = [(T.Invariant, k)] })
+let source_t ?pos ?level k =
+  T.make ?pos ?level
+    (T.Constr { T.name = "source"; T.params = [(T.Invariant, k)] })
 
 (* Filled in later to avoid dependency cycles. *)
 let source_methods_t = ref (fun () : Lang_types.t -> assert false)
@@ -156,7 +156,6 @@ let source_methods_t = ref (fun () : Lang_types.t -> assert false)
 let of_source_t t =
   match (T.deref t).T.descr with
     | T.Constr { T.name = "source"; T.params = [(_, t)] } -> t
-    | T.Constr { T.name = "active_source"; T.params = [(_, t)] } -> t
     | _ -> assert false
 
 let request_t ?pos ?level () = T.make ?pos ?level (T.Ground T.Request)
@@ -396,10 +395,7 @@ let free_vars ?(bound = []) body =
 (** Values which can be ignored (and will thus not raise a warning if
    ignored). *)
 let can_ignore t =
-  match (T.demeth t).T.descr with
-    | T.Tuple [] | T.Constr { T.name = "active_source"; _ } -> true
-    | T.EVar _ -> true
-    | _ -> false
+  match (T.demeth t).T.descr with T.Tuple [] | T.EVar _ -> true | _ -> false
 
 (* TODO: what about functions with methods? *)
 let is_fun t = match (T.deref t).T.descr with T.Arrow _ -> true | _ -> false
@@ -467,7 +463,7 @@ let check_unused ~throw ~lib tm =
               (fun s ->
                 (* Do we have an unused definition? *)
                 if Vars.mem s v then
-                  (* There are exceptions: unit, active_source and functions when
+                  (* There are exceptions: unit and functions when
                      at toplevel (sort of a lib situation...) *)
                   if
                     s <> "_"

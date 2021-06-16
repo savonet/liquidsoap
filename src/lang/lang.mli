@@ -140,6 +140,7 @@ type category =
   | Input  (** Input. *)
   | Output  (** Output. *)
   | Conversions  (** Conversions of stream type *)
+  | FFmpegFilter  (** FFmpeg filter *)
   | TrackProcessing  (** Operations on tracks (e.g. mixing, etc.). *)
   | SoundProcessing  (** Operations on sound (e.g. compression, etc.). *)
   | VideoProcessing  (** Operations on video. *)
@@ -184,7 +185,6 @@ val add_operator :
   category:category ->
   descr:string ->
   ?flags:doc_flag list ->
-  ?active:bool ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
   string ->
   proto ->
@@ -242,7 +242,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val request_t : t
-val source_t : ?methods:bool -> ?active:bool -> t -> t
+val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t
 val kind_t : Frame.kind -> t

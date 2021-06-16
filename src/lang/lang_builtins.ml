@@ -33,6 +33,7 @@ type category =
   | Control
   | Interaction
   | Other
+  | FFmpegFilter
 
 let string_of_category = function
   | Sys -> "System"
@@ -45,6 +46,7 @@ let string_of_category = function
   | Control -> "Control"
   | Interaction -> "Interaction"
   | Other -> "Other"
+  | FFmpegFilter -> "FFmpeg Filter"
 
 let add_builtin ~cat ~descr ?(meth = []) ?flags name proto ret_t f =
   let ret_t =

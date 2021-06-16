@@ -94,6 +94,7 @@ Changed:
 - Implemented per-frame clock synchronization mechanism, should allow for more
   advanced flexibility when working with source synchronization while keeping
   the default safe behavior. (#1012)
+- Remove `active_source` type, make all output return `unit` type. (#1671)
 - Switch to YUV420 as internal image format, much more efficient (#848).
 - Use bigarrays for audio buffers (#950).
 - Re-implemented switch-derived operators (`fallback`, `rotate`, `random`) as

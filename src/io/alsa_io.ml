@@ -290,7 +290,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "output.alsa" ~active:true
+  Lang.add_operator "output.alsa"
     ( Output.proto
     @ [
         ( "bufferize",
@@ -339,7 +339,7 @@ let () =
 let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.alsa" ~active:true
+  Lang.add_operator "input.alsa"
     ( Start_stop.active_source_proto ~fallible:true
     @ [
         ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");
