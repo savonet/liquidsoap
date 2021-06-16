@@ -293,7 +293,7 @@ let register_input is_http =
   Lang.add_operator name ~descr ~category:Lang.Input
     ( List.filter
         (fun (lbl, _, _, _) -> lbl <> "clock_safe")
-        (Start_stop.active_source_proto ~fallible:true)
+        (Start_stop.active_source_proto ~fallible_opt:`Nope)
     @ ( if is_http then
         [
           ( "user_agent",

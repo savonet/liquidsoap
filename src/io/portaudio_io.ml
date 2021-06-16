@@ -212,7 +212,7 @@ let () =
           ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
         :> Output.output ));
   Lang.add_operator "input.portaudio"
-    ( Start_stop.active_source_proto ~fallible:true
+    ( Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
         ( "buflen",
           Lang.int_t,

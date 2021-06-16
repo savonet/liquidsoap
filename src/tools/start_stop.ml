@@ -122,7 +122,7 @@ let output_proto =
       Some "Start input as soon as it is available." );
   ]
 
-let active_source_proto ~fallible =
+let active_source_proto ~fallible_opt =
   output_proto
   @ [
       ( "clock_safe",
@@ -131,16 +131,17 @@ let active_source_proto ~fallible =
         Some "Force the use of a dedicated clock" );
     ]
   @
-  if fallible then
-    [
-      ( "fallible",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some
-          "Allow the source to fail. If set to `false`, `start` must be `true` \
-           and `stop` method raises an error." );
-    ]
-  else []
+  match fallible_opt with
+    | `Nope -> []
+    | `Yep v ->
+        [
+          ( "fallible",
+            Lang.bool_t,
+            Some (Lang.bool v),
+            Some
+              "Allow the source to fail. If set to `false`, `start` must be \
+               `true` and `stop` method raises an error." );
+        ]
 
 type 'a meth = string * Lang.scheme * string * ('a -> Lang.value)
 

@@ -222,7 +222,7 @@ let () =
       let kind = Source.Kind.of_kind kind in
       (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Output.output));
   Lang.add_operator "input.pulseaudio"
-    (Start_stop.active_source_proto ~fallible:true @ proto)
+    (Start_stop.active_source_proto ~fallible_opt:(`Yep false) @ proto)
     ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->

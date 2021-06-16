@@ -340,7 +340,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.alsa"
-    ( Start_stop.active_source_proto ~fallible:true
+    ( Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
         ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");
         ( "device",

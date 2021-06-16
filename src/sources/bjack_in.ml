@@ -122,7 +122,7 @@ let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.jack"
-    ( Start_stop.active_source_proto ~fallible:true
+    ( Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
         ( "buffer_size",
           Lang.int_t,
