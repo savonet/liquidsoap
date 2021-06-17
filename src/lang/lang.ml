@@ -851,8 +851,6 @@ let source v =
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
 
-type fuzzy_bool = [ `Yes | `No | `Maybe ]
-
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
   * Creating the associated function type (and function) requires some work:
@@ -868,8 +866,8 @@ type fuzzy_bool = [ `Yes | `No | `Maybe ]
 let add_operator =
   let _meth = meth in
   fun ~category ~descr ?(flags = []) ?(meth = ([] : 'a operator_method list))
-      ~(fallible : fuzzy_bool) ~(active : fuzzy_bool) ~(self_sync : fuzzy_bool)
-      name proto ~return_t f ->
+      ~(fallible : bool) ~(active : bool) ~(self_sync : bool)
+      ~(clock_safe : bool) name proto ~return_t f ->
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0

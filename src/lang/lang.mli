@@ -179,7 +179,6 @@ val midi_n : int -> Frame.content_kind
 val kind_type_of_kind_format : Frame.content_kind -> t
 
 type 'a operator_method = string * scheme * string * ('a -> value)
-type fuzzy_bool = [ `Yes | `No | `Maybe ]
 
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
@@ -187,9 +186,10 @@ val add_operator :
   descr:string ->
   ?flags:doc_flag list ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
-  fallible:fuzzy_bool ->
-  active:fuzzy_bool ->
-  self_sync:fuzzy_bool ->
+  fallible:bool ->
+  active:bool ->
+  self_sync:bool ->
+  clock_safe:bool ->
   string ->
   proto ->
   return_t:t ->
