@@ -92,7 +92,7 @@ let log = Log.make ["single"]
 let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "single" ~category:Lang.Input
+  Lang.add_operator "single" ~category:Lang.Input ~fallible:false
     ~descr:
       "Loop on a request. It never fails if the request is static, meaning \
        that it can be fetched once. Typically, http, ftp, say requests are \
@@ -118,7 +118,7 @@ let () =
 let () =
   let kind = Lang.any in
   let t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "single.infallible" ~category:Lang.Input
+  Lang.add_operator "single.infallible" ~category:Lang.Input ~fallible:false
     ~flags:[Lang.Hidden]
     ~descr:
       "Loops on a request, which has to be ready and should be persistent. \
