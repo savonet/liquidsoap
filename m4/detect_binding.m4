@@ -5,10 +5,9 @@ m4_defun([AC_OCAML_COMPARE_VERSION],
   [if test -z "$2" ; then
     VERSION_OK=yes
   else
-    AS_VERSION_COMPARE([$1],[$2],
-        [VERSION_OK=],
+    AX_COMPARE_VERSION([$1],[ge],[$2],
         [VERSION_OK=yes],
-        [VERSION_OK=yes])
+        [VERSION_OK=])
 fi])
 
 m4_defun([AC_OCAML_CHECK_DEPS],
