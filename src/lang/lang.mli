@@ -110,6 +110,10 @@ type doc_flag =
   | Deprecated  (** The plugin should not be used. *)
   | Experimental  (** The plugin should not considered as stable. *)
   | Extra  (** Anything that is not part of the essential set of plugins. *)
+  | Active of bool
+  | Fallible of bool
+  | Clock_safe of bool
+  | Self_sync of bool
 
 (** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :
@@ -186,10 +190,10 @@ val add_operator :
   descr:string ->
   ?flags:doc_flag list ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
-  fallible:bool ->
-  active:bool ->
-  self_sync:bool ->
-  clock_safe:bool ->
+  ?active:bool ->
+  ?fallible:bool ->
+  ?self_sync:bool ->
+  ?clock_safe:bool ->
   string ->
   proto ->
   return_t:t ->
