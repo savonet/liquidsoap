@@ -206,7 +206,7 @@ let () =
   in
   Lang.add_operator "output.pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
-    ~return_t:k ~category:Lang.Output ~meth:Output.meth
+    ~return_t:k ~category:Lang.Output ~meth:Output.meth ~active:true
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

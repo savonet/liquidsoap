@@ -190,7 +190,7 @@ let () =
           Some "Length of a buffer in samples." );
         ("", Lang.source_t k, None, None);
       ] )
-    ~return_t:k ~category:Lang.Output ~meth:Output.meth
+    ~return_t:k ~category:Lang.Output ~meth:Output.meth ~active:true
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -219,7 +219,7 @@ let () =
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
       ] )
-    ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
+    ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ()) ~active:true
     ~descr:"Stream from a portaudio input device."
     (fun p ->
       let e f v = f (List.assoc v p) in

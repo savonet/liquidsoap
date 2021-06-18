@@ -249,7 +249,7 @@ let () =
 let () =
   let kind = Lang.any in
   let k = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "input.udp"
+  Lang.add_operator "input.udp" ~active:true
     ~descr:"Input encoded data from UDP, without any control whatsoever."
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Deprecated; Lang.Experimental]
