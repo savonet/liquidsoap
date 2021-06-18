@@ -412,8 +412,8 @@ module Make (T : T) = struct
       (** File descriptor where to dump. *)
       inherit
         Output.encoded
-          ~content_kind:kind ~output_kind:T.source_name ~infallible ~autostart
-            ~on_start ~on_stop ~name:mount source
+          ~content_kind:(Source.Kind.of_kind kind) ~output_kind:T.source_name
+            ~infallible ~autostart ~on_start ~on_stop ~name:mount source
 
       val mutable dump = None
 
@@ -651,9 +651,11 @@ module Make (T : T) = struct
     let kind = Lang.any in
     let return_t = Lang.kind_type_of_kind_format kind in
     Lang.add_operator ~category:Lang.Output ~descr:T.source_description
-      T.source_name (proto return_t) ~return_t (fun p ->
-        let kind = Source.Kind.of_kind kind in
-        (new output ~kind p :> Source.source))
+      ~meth:Output.meth T.source_name (proto return_t) ~return_t (fun p ->
+        let format_val = Lang.assoc "" 1 p in
+        let format = Lang.to_format format_val in
+        let kind = Encoder.kind_of_format format in
+        (new output ~kind p :> Output.output))
 end
 
 module Unix_output = struct
