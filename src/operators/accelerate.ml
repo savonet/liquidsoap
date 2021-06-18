@@ -23,9 +23,12 @@
 open Source
 module Generator = Generator.From_frames
 
-class accelerate ~kind ~ratio ~randomize (source : source) =
+class accelerate ~kind ~ratio ~randomize source_val =
+  let source = Lang.to_source source_val in
   object (self)
     inherit operator ~name:"accelerate" kind [source] as super
+
+    inherit Child_support.base [source_val] as child_support
 
     method self_sync = source#self_sync
 
@@ -47,17 +50,7 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
 
     method private sleep = source#leave (self :> source)
 
-    method private set_clock =
-      let c = Clock.create_known (new Clock.clock self#id) in
-      Clock.unify self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]);
-      Clock.unify source#clock c;
-      Gc.finalise (fun self -> Clock.forget self#clock c) self
-
     method is_ready = source#is_ready
-
-    method private child_tick =
-      (Clock.get source#clock)#end_tick;
-      source#after_output
 
     (** Filled ticks. *)
     val mutable filled = 0
@@ -97,6 +90,10 @@ class accelerate ~kind ~ratio ~randomize (source : source) =
       let after = Frame.position frame in
       filled <- filled + (after - before);
       self#child_tick
+
+    method after_output =
+      super#after_output;
+      child_support#after_output
   end
 
 let () =
@@ -114,13 +111,14 @@ let () =
         Some "Randomization (0 means no randomization)." );
       ("", Lang.source_t return_t, None, None);
     ]
+    ~flags:[Lang.Experimental; Lang.Extra]
     ~return_t ~category:Lang.SoundProcessing
     ~descr:
       "Accelerate a stream by dropping frames. This is useful for testing \
        scripts."
     (fun p ->
       let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
+      let src = f "" in
       let ratio = Lang.to_float_getter (f "ratio") in
       let randomize = Lang.to_float_getter (f "randomize") in
       let kind = Source.Kind.of_kind kind in

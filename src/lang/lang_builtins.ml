@@ -141,8 +141,8 @@ let () =
   let proto =
     [
       ( "id",
-        Lang.string_t,
-        Some (Lang.string ""),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some
           "Identifier for the new clock. The default empty string means that \
            the identifier of the first source will be used." );
@@ -161,7 +161,7 @@ let () =
     match l with
       | [] -> Lang.unit
       | hd :: _ as sources ->
-          let id = if id = "" then (Lang.to_source hd)#id else id in
+          let id = Option.value ~default:(Lang.to_source hd)#id id in
           let sync =
             match Lang.to_string sync with
               | s when s = "auto" -> `Auto
@@ -195,7 +195,7 @@ let () =
       ] )
     Lang.unit_t
     (fun p ->
-      let id = Lang.to_string (List.assoc "id" p) in
+      let id = Lang.to_valued_option Lang.to_string (List.assoc "id" p) in
       let sync = List.assoc "sync" p in
       let l = Lang.to_list (List.assoc "" p) in
       assign id sync l)

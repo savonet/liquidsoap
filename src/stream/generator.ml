@@ -580,7 +580,9 @@ module From_audio_video = struct
             (Frame_content.copy (AFrame.content frame))
             0 (Lazy.force Frame.size)
       | `Video ->
-          put_video ~pts t (VFrame.content frame) 0 (Lazy.force Frame.size)
+          put_video ~pts t
+            (Frame_content.copy (VFrame.content frame))
+            0 (Lazy.force Frame.size)
       | `Both ->
           put_audio ~pts t
             (Frame_content.copy (AFrame.content frame))

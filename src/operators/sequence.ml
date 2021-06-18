@@ -34,7 +34,8 @@ class sequence ~kind ?(merge = false) sources =
     val mutable seq_sources = sources
 
     method self_sync =
-      match sources with hd :: _ -> hd#self_sync | [] -> false
+      ( Utils.self_sync_type sources,
+        match sources with hd :: _ -> snd hd#self_sync | [] -> false )
 
     method stype =
       match List.rev sources with hd :: _ -> hd#stype | [] -> Source.Fallible

@@ -4,7 +4,7 @@
 # @param ~id Force the value of the source ID.
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~device V4L2 device to use.
-def input.v4l2(~id="", ~max_buffer=0.5, ~device="/dev/video0")
+def input.v4l2(~id=null(), ~max_buffer=0.5, ~device="/dev/video0")
   (input.ffmpeg(format="v4l2", max_buffer=max_buffer, device):source(audio=none))
 end
 
@@ -13,7 +13,7 @@ end
 # @param ~pattern Pattern drawn in the video: `"testsrc"`, `"testsrc2"`, `"smptebars"` or `"rgbtestsrc"`.
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~duration Duration of the source.
-def video.testsrc(~id="", ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
+def video.testsrc(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
   if not list.mem(pattern, ["testsrc", "testsrc2", "smptebars", "rgbtestsrc"]) then failwith("invalid pattern for video.testsrc.ffmpeg") end
   size = "size=#{video.frame.width()}x#{video.frame.height()}"
   rate = "rate=#{video.frame.rate()}"
@@ -66,7 +66,7 @@ let ffmpeg.filter.audio_video = ()
 # @param id Force the value of the source ID.
 # @param buffer Duration of the pre-buffered data.
 # @param fps Output frame per seconds. Defaults to global value.
-def ffmpeg.filter.audio_video.output(~id="", ~buffer=0.1, ~fps=null(), graph, audio, video)
+def ffmpeg.filter.audio_video.output(~id=null(), ~buffer=0.1, ~fps=null(), graph, audio, video)
   a = ffmpeg.filter.audio.output(id=id, buffer=buffer, graph, audio)
   v = ffmpeg.filter.video.output(id=id, buffer=buffer, fps=fps, graph, video)
   mux_audio(audio=a, v)

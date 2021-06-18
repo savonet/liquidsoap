@@ -17,7 +17,7 @@ end
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
-def native.fallback(~id="", ~track_sensitive=true, sources)
+def native.fallback(~id=null(), ~track_sensitive=true, sources)
   fail = (fail():source)
 
   def s()
@@ -34,7 +34,7 @@ end
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param sources List of sources to play tracks from.
-def native.sequence(~id="", sources)
+def native.sequence(~id=null(), sources)
   len  = list.length(sources)
   n    = ref(0)
   fail = (fail():source)
@@ -70,7 +70,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
 # @param sources Sources with the predicate telling when they can be played.
-def native.switch(~id="", ~track_sensitive=true, sources)
+def native.switch(~id=null(), ~track_sensitive=true, sources)
   sources = list.map(fun(ps) -> source.available(snd(ps), fst(ps)), sources)
   native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
@@ -85,7 +85,7 @@ let native.request = request
 # @param ~prefetch Number of tracks to prepare in advance.
 # @param ~timeout Timeout for resolving requests in seconds.
 # @param f Function returning the next request.
-def native.request.dynamic(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
+def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
   # Prepared requests
   queue = ref([])
   def queue_size()
@@ -128,7 +128,7 @@ end
 # @param ~prefetch Number of tracks to prepare in advance.
 # @param ~timeout Timeout for resolving requests in seconds.
 # @param f Function returning the list of next requests.
-def native.request.dynamic.list(~id="", ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
+def native.request.dynamic.list(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=20., f)
   l = ref([])
   def f()
     if !l == [] then l := f() end

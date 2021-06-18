@@ -40,7 +40,7 @@ type chunk = {
 }
 
 class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
-  ~restart ~restart_on_error (source : source) =
+  ~restart ~restart_on_error source_val =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log x = !log_ref x in
@@ -55,8 +55,11 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   let next_stop = ref `Nothing in
   let header_read = ref false in
   let bytes = Bytes.create Utils.pagesize in
+  let source = Lang.to_source source_val in
   object (self)
     inherit source ~name:"pipe" kind as super
+
+    inherit Child_support.base [source_val] as child_support
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
@@ -236,18 +239,6 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
                 true
             | _, `Nothing -> restart)
 
-    method private child_tick =
-      (Clock.get source#clock)#end_tick;
-      source#after_output
-
-    (* See smactross.ml for details. *)
-    method private set_clock =
-      let child_clock = Clock.create_known (new Clock.clock self#id) in
-      Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
-      Clock.unify child_clock source#clock;
-      Gc.finalise (fun self -> Clock.forget self#clock child_clock) self
-
     method wake_up a =
       super#wake_up a;
       converter <-
@@ -276,6 +267,10 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
             handler <- None
           with Process_handler.Finished -> ())
         ()
+
+    method after_output =
+      super#after_output;
+      child_support#after_output
   end
 
 let () =
@@ -343,7 +338,7 @@ let () =
           Lang.to_bool (f "log_overfull"),
           Lang.to_bool (f "restart"),
           Lang.to_bool (f "restart_on_error"),
-          Lang.to_source (f "") )
+          f "" )
       in
       let replay_delay =
         match replay_delay with None -> -1. | Some v -> Lang.to_float v

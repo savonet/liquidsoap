@@ -180,4 +180,11 @@ correct('%ffmpeg(
         %audio.copy,
         %video.copy)');
 
+# The following is not technically checking on type errors but runtime invalid values.
+section("INVALID VALUES");
+incorrect('crossfade(input.http(self_sync=true,"http://foo.bar"))');
+incorrect('crossfade(fallback([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
+incorrect('crossfade(sequence([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
+incorrect('crossfade(add([input.http("http://foo.bar"), input.http(self_sync=true,"http://foo.bar")]))');
+
 print "Everything's good!\n" ;

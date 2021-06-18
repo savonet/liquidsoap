@@ -22,7 +22,7 @@ end
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param file Path to the image.
 # @method set Change the image.
-def image(~id="", ~fallible=false, file="")
+def image(~id=null(), ~fallible=false, file="")
   s = source.dynamic()
   def set(file)
     s.set(single(id=id, fallible=fallible, file))
@@ -40,7 +40,7 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id="", ~width=getter(-1), ~height=getter(-1), ~x=getter(0), ~y=getter(0), ~file, s)
+def video.add_image(~id=null(), ~width=getter(-1), ~height=getter(-1), ~x=getter(0), ~y=getter(0), ~file, s)
   image =
     if getter.is_constant(x) and getter.is_constant(y) and getter.is_constant(width) and getter.is_constant(height) then
       x      = getter.get(x)
@@ -149,7 +149,7 @@ end
 # @param ~reopen_on_metadata Re-open on every new metadata information.
 # @param ~reopen_when When should the output be re-opened.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-def output.external.ffmpeg(~id="", ~show_command=false, ~flush=false, ~fallible=false, 
+def output.external.ffmpeg(~id=null(), ~show_command=false, ~flush=false, ~fallible=false, 
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
                            ~start=true, outputopts, s)
@@ -174,7 +174,7 @@ end
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
-def output.file.hls.ffmpeg(~id="", ~flush=false, ~fallible=false,
+def output.file.hls.ffmpeg(~id=null(), ~flush=false, ~fallible=false,
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
                            ~start=true, ~playlist="stream.m3u8", ~directory, s)
@@ -202,7 +202,7 @@ let output.file.dash = ()
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
-def output.file.dash.ffmpeg(~id="", ~flush=false, ~fallible=false,
+def output.file.dash.ffmpeg(~id=null(), ~flush=false, ~fallible=false,
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
                            ~start=true, ~playlist="stream.mpd", ~directory, s)
@@ -232,7 +232,7 @@ let output.youtube.live = ()
 # @param ~bitrate Bitrate of the video (in kbps)
 # @param ~quality Quality of the video (low / medium / high)
 # @param ~key Your secret youtube key
-def output.youtube.live.ffmpeg(~id="",~flush=false, ~fallible=false,
+def output.youtube.live.ffmpeg(~id=null(),~flush=false, ~fallible=false,
                            ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
                            ~reopen_on_metadata=false, ~reopen_when={false},
                            ~start=true, ~url="rtmp://a.rtmp.youtube.com/live2",
@@ -275,7 +275,7 @@ let video.add_text.best = video.add_text.sdl
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def replaces video.add_text(~id="",~color=0xffffff,~cycle=true,~font="",
+def replaces video.add_text(~id=null(),~color=0xffffff,~cycle=true,~font="",
                    ~metadata="",~size=18,~speed=70,~x=getter(10),~y=getter(10),
                    d,s) =
   video.add_text.best(id=id,cycle=cycle,font=font,

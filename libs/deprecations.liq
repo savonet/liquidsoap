@@ -52,7 +52,7 @@ end
 
 # Deprecated: use mksafe and playlist instead.
 # @flag deprecated
-def playlist.safe(~id="", ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
+def playlist.safe(~id=null(), ~mime_type="", ~mode="randomize", ~on_track={()}, ~prefix="", ~reload=0, ~reload_mode="seconds", uri)
   deprecated("playlist.safe", "")
   mksafe(playlist(id=id, mime_type=mime_type, mode=mode, prefix=prefix, reload=reload, reload_mode=reload_mode, uri))
 end
@@ -103,7 +103,7 @@ end
 
 # Deprecated: this function has been replaced with `playlist`, setting
 # `reload_mode` argument to `"never"` and `loop` to `false`.
-def playlist.once(~id="",~random=false,~reload_mode="",
+def playlist.once(~id=null(),~random=false,~reload_mode="",
                   ~default_duration=30.,~length=10.,~conservative=false,
                   ~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
@@ -128,7 +128,7 @@ end
 
 # Deprecated: this function will be removed in a future release
 # @flag deprecated
-def id(~id="",s)
+def id(~id=null(),s)
  deprecated("id","")
  s
 end 
@@ -239,7 +239,7 @@ end
 
 # Deprecated: this function has been replaced by `fail`.
 # @flag deprecated
-def empty(~id="")
+def empty(~id=null())
   fail()
 end
 
@@ -366,7 +366,7 @@ def gettimeofday()
 end
 
 # @flag deprecated
-def output.preferred(~id="",~fallible=false,
+def output.preferred(~id=null(),~fallible=false,
                     ~on_start={()},~on_stop={()},~start=true,s)
   deprecated("output.preferred","output")
   output(id=id,fallible=fallible,
@@ -383,7 +383,7 @@ end
 
 # Deprecated: use `input` instead.
 # @flag deprecated
-def in(~id="",~start=true,~on_start={()},~on_stop={()},~fallible=false)
+def in(~id=null(),~start=true,~on_start={()},~on_stop={()},~fallible=false)
   deprecated("in", "input")
   input(id=id,start=start,on_start=on_start,on_stop=on_stop,fallible=fallible)
 end
