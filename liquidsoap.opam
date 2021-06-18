@@ -127,6 +127,7 @@ conflicts: [
   "ffmpeg-avutil" {< "1.0.0~beta1"}
   "ffmpeg-av" {< "1.0.0~beta1"}
   "ffmpeg-avcodec" {< "1.0.0~beta1"}
+  "ffmpeg-avdevice" {< "1.0.0~beta1"}
   "ffmpeg-avfilter" {< "1.0.0~beta1"}
   "ffmpeg-swresample" {< "1.0.0~beta1"}
   "ffmpeg-swscale" {< "1.0.0~beta1"}
