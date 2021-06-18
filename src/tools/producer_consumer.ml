@@ -73,10 +73,11 @@ class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
               Generator.feed_from_frame ~mode:content c.generator frame
           | `Flush -> () )
   in
+  let infallible = s#stype = Source.Infallible in
   object (self)
     inherit
       Output.output
-        ~output_kind ~content_kind:kind ~infallible:false
+        ~output_kind ~content_kind:kind ~infallible
         ~on_start:(fun () -> ())
         ~on_stop:(fun () -> write_frame `Flush)
         source autostart
