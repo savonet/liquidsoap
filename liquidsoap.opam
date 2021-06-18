@@ -54,7 +54,7 @@ depends: [
   "ocaml" {>= "4.08.0"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.2"}
-  "duppy" {>= "0.8.1"}
+  "duppy" {>= "0.9.1"}
   "menhir"
   "mm" {>= "0.7.0"}
   "ocamlfind" {build}

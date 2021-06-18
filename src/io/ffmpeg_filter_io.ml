@@ -38,7 +38,7 @@ class audio_output ~name ~kind source_val =
     inherit
       Output.output
         ~infallible:false ~on_stop:noop ~on_start:noop ~content_kind:kind ~name
-          ~output_kind:"ffmpeg.filter.input" source_val true
+          ~output_kind:"ffmpeg.filter.input" source_val true as super
 
     initializer Source.Kind.unify (Lang.to_source source_val)#kind self#kind
 
@@ -50,7 +50,11 @@ class audio_output ~name ~kind source_val =
 
     method set_init v = init <- v
 
-    method start = Lazy.force init
+    method private wake_up a =
+      super#wake_up a;
+      Lazy.force init
+
+    method start = ()
 
     method stop = ()
 
@@ -145,7 +149,7 @@ class audio_input ~bufferize kind =
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method stype = Source.Fallible
 
@@ -246,7 +250,7 @@ class video_input ~bufferize ~fps kind =
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method stype = Source.Fallible
 

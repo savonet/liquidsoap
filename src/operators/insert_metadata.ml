@@ -120,10 +120,8 @@ let () =
     [("", Lang.source_t return_t, None, None)]
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
-      let id = Lang.to_string (List.assoc "id" p) in
       let kind = Source.Kind.of_kind kind in
       let s = new insert_metadata ~kind s in
-      if id <> "" then s#set_id id;
       s)
 
 (** Insert metadata at the beginning if none is set. Currently used by the

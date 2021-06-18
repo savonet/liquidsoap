@@ -24,10 +24,19 @@ open Mm
 open Source
 module Generator = Generator.From_frames
 
-class resample ~kind ~active ~ratio (source : source) =
+class resample ~kind ~ratio source_val =
+  let source = Lang.to_source source_val in
+  let write_frame_ref = ref (fun _ -> ()) in
+  let consumer =
+    new Producer_consumer.consumer
+      ~write_frame:(fun frame -> !write_frame_ref frame)
+      ~name:"stretch.consumer" ~kind ~source:source_val ()
+  in
+  let generator = Generator.create () in
   object (self)
-    (* Hide our child: we'll treat it specially. *)
-    inherit source ~name:"resample" kind as super
+    inherit operator ~name:"stretch" kind [(consumer :> Source.source)] as super
+
+    inherit Child_support.base [source_val] as child_support
 
     method self_sync = source#self_sync
 
@@ -35,106 +44,34 @@ class resample ~kind ~active ~ratio (source : source) =
 
     method remaining =
       let rem = source#remaining in
-      if rem = -1 then rem else int_of_float (float rem *. ratio ())
+      if rem = -1 then rem
+      else int_of_float (float (rem + Generator.length generator) *. ratio ())
 
     method abort_track = source#abort_track
 
-    method private sleep = source#leave (self :> source)
-
-    (* Clock setting: we need total control on our source's flow. *)
-    method private set_clock =
-      let c = Clock.create_known (new Clock.clock self#id) in
-      Clock.unify self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]);
-      Clock.unify source#clock c;
-
-      (* Make sure the child clock can be garbage collected, cf. cue_cut(). *)
-      Gc.finalise (fun self -> Clock.forget self#clock c) self
-
-    (* Actual processing: put data in a buffer until there is enough,
-     * then produce a frame using that buffer.
-     * Although this is (currently) an audio-only operator,
-     * we do everything using Frame and ticks to avoid any confusion,
-     * since the Generator uses that convention. *)
-    val mutable generator = Generator.create ()
-
-    method is_ready = Generator.length generator > 0 || source#is_ready
+    method is_ready = source#is_ready
 
     val mutable converter = None
 
-    (** Whenever we need data we call our source, using a special
-    * [frame]. We always source#get from the current position of
-    * [frame], and perform #child_tick when we need to advance.
-    * Alone, this is a very clean way to proceed.
-    *
-    * When [active] we also tick whenever our main clock ticks,
-    * if we haven't ticked the child clock yet. This seems natural
-    * in many cases but can cause data losses: if we get data in
-    * [frame] from position 0 to X<size (i.e. end of track) then
-    * we have enough to perform one self#get_frame after which
-    * the main clock might tick (we might have reach the end of
-    * the main frame, because of resampling or the different
-    * initial offset) and ticking the child clock at this point
-    * could discard data that has been cached for the range X..size
-    * if this data has been required by an output operator in the
-    * child clock. *)
-
-    val mutable frame = Frame.dummy
-
-    method private wake_up x =
-      (* Call super just for the debugging log messages *)
-      super#wake_up x;
-      frame <- Frame.create self#ctype;
-      source#get_ready [(self :> source)]
-
-    val mutable main_time = 0
-
-    val mutable last_child_tick = 0
-
-    (* in main time *)
-    method private child_tick =
-      (Clock.get source#clock)#end_tick;
-      source#after_output;
-      Frame.advance frame;
-      last_child_tick <- (Clock.get self#clock)#get_tick
+    method wake_up a =
+      super#wake_up a;
+      converter <- Some (Audio_converter.Samplerate.create self#audio_channels);
+      write_frame_ref := self#write_frame
 
     method after_output =
       super#after_output;
-      let main_clock = Clock.get self#clock in
-      (* Is it really a new tick? *)
-      if main_time <> main_clock#get_tick then (
-        (* Did the child clock tick during this instant? *)
-        if active && last_child_tick <> main_time then (
-          self#child_tick;
-          last_child_tick <- main_time );
-        main_time <- main_clock#get_tick )
+      child_support#after_output
 
-    method private fill_buffer =
-      if Lazy.force Frame.size = Frame.position frame then self#child_tick;
-      let start = Frame.position frame in
-      let stop =
-        source#get frame;
-        Frame.position frame
-      in
+    method private write_frame =
+      function `Frame frame -> self#process_frame frame | `Flush -> ()
+
+    method private process_frame frame =
       let ratio = ratio () in
       let content, len =
-        let start = Frame.audio_of_main start in
-        let stop = Frame.audio_of_main stop in
         let content = AFrame.pcm frame in
-        let converter =
-          match converter with
-            | Some c -> c
-            | None ->
-                let c =
-                  Audio_converter.Samplerate.create (Array.length content)
-                in
-                converter <- Some c;
-                c
-        in
-        let len = stop - start in
-        let pcm =
-          Audio_converter.Samplerate.resample converter ratio
-            (Audio.sub content start len)
-        in
+        let content = Audio.sub content 0 (AFrame.position frame) in
+        let converter = Option.get converter in
+        let pcm = Audio_converter.Samplerate.resample converter ratio content in
         let len = Audio.length pcm in
         ( {
             Frame.audio = Frame_content.Audio.lift_data pcm;
@@ -143,7 +80,7 @@ class resample ~kind ~active ~ratio (source : source) =
           },
           len )
       in
-      let convert x = int_of_float (float (x - start) *. ratio) in
+      let convert x = int_of_float (float x *. ratio) in
       let metadata =
         List.map (fun (i, m) -> (convert i, m)) (Frame.get_all_metadata frame)
       in
@@ -151,18 +88,12 @@ class resample ~kind ~active ~ratio (source : source) =
       if Frame.is_partial frame then Generator.add_break generator
 
     method private get_frame frame =
-      let needed = Lazy.force Frame.size - Frame.position frame in
-      let need_fill () =
-        if Generator.remaining generator = -1 then
-          Generator.length generator < needed
-        else false
-      in
-      (* If self#get_frame is called it means that we and our source
-       * are ready, and if our source fails we will stop filling,
-       * so there's no need to check that it's ready. *)
-      while need_fill () do
-        self#fill_buffer
+      while
+        Generator.length generator < Lazy.force Frame.size && source#is_ready
+      do
+        self#child_tick
       done;
+      needs_tick <- false;
       Generator.fill generator frame
   end
 
@@ -175,15 +106,6 @@ let () =
         Lang.getter_t Lang.float_t,
         None,
         Some "A value higher than 1 means slowing down." );
-      ( "active",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some
-          "The active behavior is to keep ticking the child's clock when the \
-           operator is not streaming. Otherwise the child's clock is strictly \
-           based on what is streamed off the child source, which results in \
-           time-dependent active sources to be frozen when that source is \
-           stopped." );
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:Lang.SoundProcessing
@@ -192,8 +114,7 @@ let () =
        squeezing it (sounds higher)."
     (fun p ->
       let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
+      let src = f "" in
       let ratio = Lang.to_float_getter (f "ratio") in
-      let active = Lang.to_bool (f "active") in
       let kind = Source.Kind.of_kind kind in
-      new resample ~kind ~active ~ratio src)
+      new resample ~kind ~ratio src)

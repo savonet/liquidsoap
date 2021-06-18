@@ -32,7 +32,7 @@ class once :
 
        method stype : Source.source_t
 
-       method self_sync : bool
+       method self_sync : Source.self_sync
 
        method is_ready : bool
 
@@ -65,7 +65,7 @@ class virtual unqueued :
 
        method remaining : int
 
-       method self_sync : bool
+       method self_sync : Source.self_sync
      end
 
 class virtual queued :

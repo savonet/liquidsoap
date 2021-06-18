@@ -771,7 +771,7 @@ let source_methods =
     ( "self_sync",
       ([], fun_t [] bool_t),
       "Is the source currently controling its own real-time loop.",
-      fun s -> val_fun [] (fun _ -> bool s#self_sync) );
+      fun s -> val_fun [] (fun _ -> bool (snd s#self_sync)) );
     ( "is_up",
       ([], fun_t [] bool_t),
       "Indicate that the source can be asked to produce some data at any time. \
@@ -875,21 +875,18 @@ let add_operator =
         | x, y -> Stdlib.compare x y
     in
     let proto =
-      let t = T.make (T.Ground T.String) in
       ( "id",
-        t,
-        Some { pos = t.T.pos; value = Ground (String "") },
+        nullable_t string_t,
+        Some null,
         Some "Force the value of the source ID." )
       :: List.stable_sort compare proto
     in
     let f env =
       let src : < Source.source ; .. > = f env in
-      let id =
-        match (List.assoc "id" env).value with
-          | Ground (String s) -> s
-          | _ -> assert false
-      in
-      if id <> "" then src#set_id id;
+      ignore
+        (Option.map
+           (fun id -> src#set_id id)
+           (to_valued_option to_string (List.assoc "id" env)));
       let v = source (src :> Source.source) in
       _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
     in

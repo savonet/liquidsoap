@@ -78,6 +78,7 @@ type source_t = Fallible | Infallible
   * are forced to clock. *)
 
 type sync = [ `Auto | `CPU | `None ]
+type self_sync = [ `Static | `Dynamic ] * bool
 
 class type ['a, 'b] proto_clock =
   object
@@ -445,7 +446,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
     method clock = clock
 
-    method virtual self_sync : bool
+    method virtual self_sync : self_sync
 
     method private set_clock =
       List.iter (fun s -> unify self#clock s#clock) sources

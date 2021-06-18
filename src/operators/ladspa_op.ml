@@ -82,7 +82,7 @@ class virtual base_nosource ~kind =
 
     method is_ready = true
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     val mutable must_fail = false
 

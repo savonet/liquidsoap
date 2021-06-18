@@ -6,7 +6,7 @@
 # @param ~id Force the value of the source ID.
 # @param ~device V4L2 device to use.
 # @param ~on_error Callback executed when an error happens.
-def input.v4l2(~id="",~device="/dev/video0",~on_error=fun(_)->3.)
+def input.v4l2(~id=null(),~device="/dev/video0",~on_error=fun(_)->3.)
   pipeline = "v4l2src device=#{device}"
   input.gstreamer.video(id=id, pipeline=pipeline, on_error=on_error)
 end
@@ -17,7 +17,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~device V4L2 device to use.
 # @param ~on_error Callback executed when an error happens.
-def input.v4l2_with_audio(~id="",~device="/dev/video0",~on_error=fun(_)->3.)
+def input.v4l2_with_audio(~id=null(),~device="/dev/video0",~on_error=fun(_)->3.)
   audio_pipeline = "autoaudiosrc"
   video_pipeline = "v4l2src device=#{device}"
   input.gstreamer.audio_video(id=id, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline, on_error=on_error)
@@ -32,7 +32,7 @@ let gstreamer.single = ()
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the file to be played.
-def gstreamer.single.audio(~id="",~on_error=fun(_)->3.,uri) =
+def gstreamer.single.audio(~id=null(),~on_error=fun(_)->3.,uri) =
   uri = getter.function(uri)
   input.gstreamer.audio(pipeline={"filesrc location=\"#{uri()}\""})
 end
@@ -44,7 +44,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
-def output.file.hls.gstreamer(~id="",~on_error=fun(_)->3.,uri) =
+def output.file.hls.gstreamer(~id=null(),~on_error=fun(_)->3.,uri) =
   uri = getter.function(uri)
   pipeline = {"souphttpsrc location=\"#{uri()}\" ! tee name=t"}
   audio_pipeline = "t. ! queue"
@@ -58,7 +58,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
-def output.file.hls.gstreamer.audio(~id="",~on_error=fun(_)->3.,uri) =
+def output.file.hls.gstreamer.audio(~id=null(),~on_error=fun(_)->3.,uri) =
   uri = getter.function(uri)
   pipeline = {"souphttpsrc location=\"#{uri()}\""}
   input.gstreamer.audio(id=id, pipeline=pipeline, on_error=on_error)
@@ -117,7 +117,7 @@ end
 # @param source Source to stream
 # @category Source / Output
 # @flag extra
-def output.youtube.live(~id="",
+def output.youtube.live(~id=null(),
   ~video_bitrate=2000,
   ~audio_encoder="fdkaacenc",
   ~audio_bitrate=128000,
@@ -138,7 +138,7 @@ end
 # Test audio-video source using GStreamer.
 # @category Source / Input
 # @flag extra
-def video.testsrc.gstreamer(~id="")
+def video.testsrc.gstreamer(~id=null())
   video_pipeline="videotestsrc"
   audio_pipeline="audiotestsrc"
   input.gstreamer.audio_video(id=id,video_pipeline=video_pipeline, audio_pipeline=audio_pipeline)

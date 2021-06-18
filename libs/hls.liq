@@ -6,10 +6,11 @@ let input.hls = ()
 # @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI.
 # @flag experimental
-def input.hls.native(~id="",~reload=10.,uri)
+def input.hls.native(~id=null(),~reload=10.,uri)
   playlistr = ref([])
   sequence = ref(0)
   playlist_uri = ref(uri)
+  label_id = id ?? "input.hls.native"
 
   def load_playlist () =
     pl = request.create(!playlist_uri)
@@ -18,7 +19,7 @@ def input.hls.native(~id="",~reload=10.,uri)
 
       m = string.extract(pattern="#EXT-X-MEDIA-SEQUENCE:(\\d+)",file.contents(pl))
       pl_sequence = m[1]
-      log.info(label=id,"Sequence: " ^ pl_sequence)
+      log.info(label=label_id,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
 
       files = playlist.parse(path=path.dirname(!playlist_uri)^"/",pl)
@@ -45,7 +46,7 @@ def input.hls.native(~id="",~reload=10.,uri)
 
       playlistr := list.fold(add_file, !playlistr, files)
     else
-      log.severe(label=id,"Couldn't read playlist: request resolution failed.")
+      log.severe(label=label_id,"Couldn't read playlist: request resolution failed.")
       playlistr := []
     end
     request.destroy(pl)
@@ -73,7 +74,7 @@ def input.hls.native(~id="",~reload=10.,uri)
       if not (string.contains(substring="/", !playlist_uri)) then
         playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ !playlist_uri
       end
-      log(label=id,"Playlist: " ^ !playlist_uri)
+      log(label=label_id,"Playlist: " ^ !playlist_uri)
     end
   end
   find_stream ()
@@ -96,7 +97,7 @@ let replaces input.hls = input.ffmpeg
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param uri Playlist URI.
-def input.hls(~id="", uri)
+def input.hls(~id=null(), uri)
   input.hls(id=id, uri)
 end
 

@@ -25,7 +25,7 @@
   * which prevents inconsistent uses of the source. Clocks are assigned to
   * sources at the end of the typing phase. *)
 
-class clock : ?sync:Source.sync -> string -> Source.clock
+class clock : ?start:bool -> ?sync:Source.sync -> string -> Source.clock
 
 (** Indicates whether the application has started to run or not. *)
 val running : unit -> bool

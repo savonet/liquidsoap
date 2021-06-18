@@ -120,6 +120,11 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
        * Our ID will be used for the server interface. *)
       if name <> "" then self#set_id ~definitive:false name;
 
+      self#log#debug "Clock is %s."
+        (Source.Clock_variables.to_string self#clock);
+      self#log#info "Content type is %s."
+        (Frame.string_of_content_type self#ctype);
+
       (* Get our source ready.
        * This can take a while (preparing playlists, etc). *)
       source#get_ready ((self :> operator) :: activation);
@@ -128,6 +133,8 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
           self#log#important "Waiting for %S to be ready..." source#id;
           Thread.delay 1.
         done;
+
+      start_stop#transition_to (if autostart then `Started else `Stopped);
 
       self#register_telnet
 
@@ -154,7 +161,8 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
     method private get_frame buf = source#get buf
 
     method private output =
-      if autostart && source#is_ready then start_stop#transition_to `Started;
+      if self#is_ready && state <> `Stopped then
+        start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         (* Complete filling of the frame *)
         let get_count = ref 0 in
@@ -173,7 +181,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
         if Frame.position self#memo > 0 then self#send_frame self#memo;
         if Frame.is_partial self#memo then (
           self#log#important "Source failed (no more tracks) stopping output...";
-          start_stop#transition_to `Stopped ) )
+          self#transition_to `Idle ) )
 
     method after_output =
       (* Let [memo] be cleared and signal propagated *)

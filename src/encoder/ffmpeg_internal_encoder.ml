@@ -105,7 +105,14 @@ let mk_audio ~ffmpeg ~options output =
   in
   let target_channels = ffmpeg.Ffmpeg_format.channels in
   let target_channel_layout = get_channel_layout target_channels in
-  let target_sample_format = Avcodec.Audio.find_best_sample_format codec `Dbl in
+  let target_sample_format =
+    match ffmpeg.Ffmpeg_format.sample_format with
+      | Some format -> Avutil.Sample_format.find format
+      | None -> `Dbl
+  in
+  let target_sample_format =
+    Avcodec.Audio.find_best_sample_format codec target_sample_format
+  in
 
   let opts = Hashtbl.create 10 in
   Hashtbl.iter (Hashtbl.add opts) ffmpeg.Ffmpeg_format.audio_opts;

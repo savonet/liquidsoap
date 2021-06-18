@@ -34,6 +34,10 @@ type clock_variable
   * protocol such as [input.srt]. *)
 type sync = [ `Auto | `CPU | `None ]
 
+(* Type for source's self_sync. A [`Static] self_sync should never change over
+   the source's lifetime. *)
+type self_sync = [ `Static | `Dynamic ] * bool
+
 (** The liveness type of a source indicates whether or not it can
   * fail to broadcast.
   * A Infallible source never fails; it is always ready. *)
@@ -125,7 +129,7 @@ class virtual source :
            clock), we simply decide based on whether there is one [self_sync]
            source or not. This logic should dictate how the method is
            implemented by the various operators. *)
-       method virtual self_sync : bool
+       method virtual self_sync : self_sync
 
        (** Choose your clock, by adjusting to your children source,
            or anything custom. *)

@@ -22,86 +22,87 @@
 
 module Generator = Generator.From_audio_video
 
-(* The kind of value shared by a producer and a consumer. *)
-type control = {
-  lock : Mutex.t;
-  generator : Generator.t;
-  mutable buffering : bool;
-  mutable abort : bool;
-}
-
-let proceed control f = Tutils.mutexify control.lock f ()
-
-(** The source which produces data by reading the buffer. *)
-class producer ~name ~kind c =
+(** The source which produces data by reading the buffer.
+    We do NOT want to use [operator] here b/c the [consumers]
+    may have different content-kind when this is used in the muxers. *)
+class producer ~consumers_val ~name ~kind g =
+  let consumers = List.map Lang.to_source consumers_val in
+  let infallible =
+    List.for_all (fun s -> s#stype = Source.Infallible) consumers
+  in
   object (self)
-    inherit Source.source kind ~name
+    inherit Source.source kind ~name as super
 
-    method self_sync = false
+    inherit Child_support.base consumers_val as child_support
 
-    method stype = Source.Fallible
+    method self_sync =
+      ( Utils.self_sync_type consumers,
+        List.fold_left (fun cur s -> cur || snd s#self_sync) false consumers )
 
-    method remaining = proceed c (fun () -> Generator.remaining c.generator)
+    method stype = if infallible then Source.Infallible else Source.Fallible
 
-    method is_ready = proceed c (fun () -> not c.buffering)
+    method remaining =
+      match List.fold_left (fun r p -> min r p#remaining) (-1) consumers with
+        | -1 -> -1
+        | r -> Generator.remaining g + r
 
-    method private get_frame frame =
-      proceed c (fun () ->
-          Generator.fill c.generator frame;
-          if Frame.is_partial frame && Generator.length c.generator = 0 then (
-            self#log#important "Buffer emptied, start buffering...";
-            c.buffering <- true ))
+    method is_ready = List.for_all (fun c -> c#is_ready) consumers
 
-    method abort_track = proceed c (fun () -> c.abort <- true)
+    method wake_up a =
+      super#wake_up a;
+      List.iter
+        (fun c -> c#get_ready ?dynamic:None [(self :> Source.source)])
+        consumers
+
+    method sleep =
+      super#sleep;
+      List.iter
+        (fun c -> c#leave ?dynamic:None (self :> Source.source))
+        consumers
+
+    method private get_frame buf =
+      let b = Frame.breaks buf in
+      while Frame.is_partial buf && self#is_ready do
+        self#child_tick;
+        Generator.fill g buf
+      done;
+      if List.length b + 1 <> List.length (Frame.breaks buf) then (
+        let cur_pos = Frame.position buf in
+        Frame.set_breaks buf (b @ [cur_pos]) )
+
+    (* No [#after_output] for the [consumers] as this
+       is taken care of by their own clock. *)
+    method after_output =
+      super#after_output;
+      child_support#after_output
+
+    method abort_track =
+      Generator.add_break g;
+      List.iter (fun c -> c#abort_track) consumers
   end
 
 type write_payload = [ `Frame of Frame.t | `Flush ]
 type write_frame = write_payload -> unit
 
-class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
-  ~content ~max_buffer ~pre_buffer ~source c =
-  let prebuf = Frame.main_of_seconds pre_buffer in
-  let max_buffer = Frame.main_of_seconds max_buffer in
-  let autostart = true in
+let write_to_buffer ~content g = function
+  | `Frame frame -> Generator.feed_from_frame ~mode:content g frame
+  | `Flush -> ()
+
+class consumer ~write_frame ~name ~kind ~source () =
   let s = Lang.to_source source in
-  let write_frame =
-    match write_frame with
-      | Some f -> f
-      | None -> (
-          function
-          | `Frame frame ->
-              Generator.feed_from_frame ~mode:content c.generator frame
-          | `Flush -> () )
-  in
   let infallible = s#stype = Source.Infallible in
-  object (self)
+  let noop () = () in
+  object
     inherit
       Output.output
-        ~output_kind ~content_kind:kind ~infallible
-        ~on_start:(fun () -> ())
-        ~on_stop:(fun () -> write_frame `Flush)
-        source autostart
+        ~content_kind:kind ~output_kind:name ~infallible ~on_start:noop
+          ~on_stop:noop source true
 
     method reset = ()
 
     method start = ()
 
-    method stop = ()
+    method stop = write_frame `Flush
 
-    method private set_clock =
-      Clock.unify self#clock producer#clock;
-      Clock.unify self#clock s#clock
-
-    method send_frame frame =
-      proceed c (fun () ->
-          if c.abort then (
-            c.abort <- false;
-            s#abort_track );
-
-          write_frame (`Frame frame);
-          if Generator.length c.generator > prebuf then (
-            c.buffering <- false;
-            if Generator.buffered_length c.generator > max_buffer then
-              Generator.remove c.generator
-                (Generator.length c.generator - max_buffer) ))
+    method private send_frame frame = write_frame (`Frame frame)
   end

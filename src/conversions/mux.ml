@@ -26,20 +26,8 @@
 
 open Producer_consumer
 
-let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
-    ~aux_content () =
-  let lock = Mutex.create () in
-  let control =
-    {
-      Producer_consumer.generator = Generator.create `Both;
-      lock;
-      buffering = true;
-      abort = false;
-    }
-  in
-  let producer =
-    new producer ~kind:(Source.Kind.of_kind Lang.any) ~name control
-  in
+let create ~name ~main_source ~main_content ~aux_source ~aux_content () =
+  let g = Generator.create `Both in
   let main_kind =
     Source.Kind.of_kind
       Frame.
@@ -57,8 +45,8 @@ let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
   in
   let main =
     new consumer
-      ~producer ~output_kind:main_output_kind ~kind:main_kind
-      ~content:main_content ~max_buffer ~pre_buffer ~source:main_source control
+      ~write_frame:(write_to_buffer ~content:main_content g)
+      ~name:main_output_kind ~kind:main_kind ~source:main_source ()
   in
   let aux_kind =
     Source.Kind.of_kind
@@ -77,8 +65,8 @@ let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
   in
   let aux =
     new consumer
-      ~producer ~output_kind:aux_output_kind ~kind:aux_kind ~content:aux_content
-      ~max_buffer ~pre_buffer ~source:aux_source control
+      ~write_frame:(write_to_buffer ~content:aux_content g)
+      ~name:aux_output_kind ~kind:aux_kind ~source:aux_source ()
   in
   let muxed_kind =
     {
@@ -91,20 +79,15 @@ let create ~name ~pre_buffer ~max_buffer ~main_source ~main_content ~aux_source
       midi = main#kind.Frame.midi;
     }
   in
+  let producer =
+    new producer
+      ~consumers_val:
+        (List.map (fun c -> Lang.source (c :> Source.source)) [main; aux])
+      ~kind:(Source.Kind.of_kind Lang.any)
+      ~name g
+  in
   Source.Kind.unify muxed_kind producer#kind;
   producer
-
-let base_proto =
-  [
-    ( "buffer",
-      Lang.float_t,
-      Some (Lang.float 1.),
-      Some "Amount of data to pre-buffer, in seconds." );
-    ( "max",
-      Lang.float_t,
-      Some (Lang.float 10.),
-      Some "Maximum amount of buffered data, in seconds." );
-  ]
 
 let () =
   let kind = Lang.any in
@@ -119,21 +102,17 @@ let () =
       "Add video channels to a stream. Track marks and metadata are taken from \
        both sources."
     ~return_t:out_t
-    ( base_proto
-    @ [
-        ("video", Lang.source_t aux_t, None, None);
-        ("", Lang.source_t main_t, None, None);
-      ] )
+    [
+      ("video", Lang.source_t aux_t, None, None);
+      ("", Lang.source_t main_t, None, None);
+    ]
     (fun p ->
-      let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
-      let max_buffer = Lang.to_float (List.assoc "max" p) in
-      let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Audio in
       let aux_source = List.assoc "video" p in
       let aux_content = `Video in
-      create ~name:"mux_video" ~pre_buffer ~max_buffer ~main_source
-        ~main_content ~aux_source ~aux_content ())
+      create ~name:"mux_video" ~main_source ~main_content ~aux_source
+        ~aux_content ())
 
 let () =
   let kind = Lang.any in
@@ -148,18 +127,14 @@ let () =
       "Mux an audio stream into an audio-free stream. Track marks and metadata \
        are taken from both sources."
     ~return_t:out_t
-    ( base_proto
-    @ [
-        ("audio", Lang.source_t aux_t, None, None);
-        ("", Lang.source_t main_t, None, None);
-      ] )
+    [
+      ("audio", Lang.source_t aux_t, None, None);
+      ("", Lang.source_t main_t, None, None);
+    ]
     (fun p ->
-      let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
-      let max_buffer = Lang.to_float (List.assoc "max" p) in
-      let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let main_source = List.assoc "" p in
       let main_content = `Video in
       let aux_source = List.assoc "audio" p in
       let aux_content = `Audio in
-      create ~name:"mux_audio" ~pre_buffer ~max_buffer ~main_source
-        ~main_content ~aux_source ~aux_content ())
+      create ~name:"mux_audio" ~main_source ~main_content ~aux_source
+        ~aux_content ())
