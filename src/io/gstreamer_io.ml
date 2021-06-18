@@ -187,7 +187,9 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
 
-    method self_sync = (`Static, true)
+    val mutable started = false
+
+    method self_sync = started
 
     method private set_clock =
       super#set_clock;
@@ -198,6 +200,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
     method start =
       let el = self#get_element in
       self#log#info "Playing.";
+      started <- true;
       ignore (Element.set_state el.bin Element.State_playing);
 
       (* Don't uncomment the following line, it locks the program. I guess that
@@ -208,6 +211,7 @@ class output ~kind ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 
     method stop =
       self#stop_task;
+      started <- false;
       let todo =
         Tutils.mutexify element_m
           (fun () ->
@@ -513,7 +517,7 @@ class audio_video_input p kind (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Static, true)
+    method self_sync = self#is_ready
 
     method abort_track = ()
 

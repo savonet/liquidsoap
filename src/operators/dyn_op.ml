@@ -118,8 +118,7 @@ class dyn ~kind ~init ~track_sensitive ~infallible ~resurection_time f =
 
     method seek n = match source with Some s -> s#seek n | None -> 0
 
-    method self_sync =
-      (`Dynamic, match source with Some s -> snd s#self_sync | None -> false)
+    method self_sync = match source with Some s -> s#self_sync | None -> false
   end
 
 let () =

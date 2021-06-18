@@ -37,7 +37,7 @@ class blank ~kind duration =
 
     method is_ready = true
 
-    method self_sync = (`Static, false)
+    method self_sync = false
 
     method seek x = x
 
@@ -95,7 +95,7 @@ class fail ~kind =
 
     method is_ready = false
 
-    method self_sync = (`Static, false)
+    method self_sync = false
 
     method remaining = 0
 

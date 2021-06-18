@@ -34,7 +34,7 @@ class once ~kind ~name ~timeout request =
   object (self)
     inherit source kind ~name as super
 
-    method self_sync = (`Static, false)
+    method self_sync = false
 
     method stype = Fallible
 
@@ -150,7 +150,7 @@ class virtual unqueued ~kind ~name =
 
     val plock = Mutex.create ()
 
-    method self_sync = (`Static, false)
+    method self_sync = false
 
     (** How to unload a request. *)
     method private end_track forced =

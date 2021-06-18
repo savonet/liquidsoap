@@ -168,7 +168,7 @@ class lilv_nosource ~kind plugin outputs params =
   object
     inherit base_nosource ~kind
 
-    method self_sync = (`Static, false)
+    method self_sync = false
 
     val inst =
       Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))

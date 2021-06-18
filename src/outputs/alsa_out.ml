@@ -57,7 +57,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~start dev source
 
     val mutable device = None
 
-    method self_sync = (`Static, true)
+    method self_sync = device <> None
 
     val mutable alsa_rate = samples_per_second
 

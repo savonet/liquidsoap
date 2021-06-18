@@ -404,7 +404,7 @@ class external_output p =
 
     method encoder_factory = encoder_factory format_val
 
-    method self_sync = (`Static, self_sync)
+    method self_sync = self_sync
 
     method open_chan =
       let process = process () in

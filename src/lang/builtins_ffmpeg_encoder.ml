@@ -27,7 +27,7 @@ module InternalResampler =
 
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
-let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
+let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format c =
   let internal_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
@@ -86,7 +86,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                   let data = { Ffmpeg_content_base.params; data } in
                   let data = Ffmpeg_copy_content.Audio.lift_data data in
                   Producer_consumer.(
-                    Generator.put_audio generator data 0 duration)
+                    Generator.put_audio c.generator data 0 duration)
               | None -> ()
           in
 
@@ -135,7 +135,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
                       let data = { Ffmpeg_content_base.params; data } in
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
                       Producer_consumer.(
-                        Generator.put_audio generator data 0 duration)
+                        Generator.put_audio c.generator data 0 duration)
                   | None -> () )
             | `Flush -> () ) )
   in
@@ -159,7 +159,7 @@ let encode_audio_frame ~kind_t ~mode ~opts ?codec ~format generator =
       encode_ffmpeg_frame frame
   | `Flush -> encode_frame `Flush
 
-let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
+let encode_video_frame ~kind_t ~mode ~opts ?codec ~format c =
   let internal_fps = Lazy.force Frame.video_rate in
   let internal_time_base = { Avutil.num = 1; den = internal_fps } in
   let internal_width = Lazy.force Frame.video_width in
@@ -259,7 +259,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                   let data = { Ffmpeg_content_base.params; data } in
                   let data = Ffmpeg_copy_content.Video.lift_data data in
                   Producer_consumer.(
-                    Generator.put_video generator data 0 duration)
+                    Generator.put_video c.generator data 0 duration)
               | None -> ()
           in
 
@@ -310,7 +310,7 @@ let encode_video_frame ~kind_t ~mode ~opts ?codec ~format generator =
                     let data = { Ffmpeg_content_base.params; data } in
                     let data = Ffmpeg_raw_content.Video.lift_data data in
                     Producer_consumer.(
-                      Generator.put_video generator data 0 duration)
+                      Generator.put_video c.generator data 0 duration)
                 | None -> () )
           | `Flush -> () )
   in
@@ -438,6 +438,14 @@ let mk_encoder mode =
     [
       ("", Lang.format_t format_t, None, Some "Encoding format.");
       ("", Lang.source_t source_t, None, None);
+      ( "buffer",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Amount of data to pre-buffer, in seconds." );
+      ( "max",
+        Lang.float_t,
+        Some (Lang.float 10.),
+        Some "Maximum amount of buffered data, in seconds." );
     ]
   in
   let extension =
@@ -451,8 +459,11 @@ let mk_encoder mode =
   in
   Lang.add_operator ("ffmpeg." ^ extension) proto ~return_t
     ~category:Lang.Conversions ~descr:"Convert a source's content" (fun p ->
+      let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
+      let max_buffer = Lang.to_float (List.assoc "max" p) in
+      let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       let format_val = Lang.assoc "" 1 p in
-      let source = Lang.to_source (Lang.assoc "" 2 p) in
+      let source = Lang.assoc "" 2 p in
       let format =
         match Lang.to_format format_val with
           | Encoder.Ffmpeg ffmpeg -> ffmpeg
@@ -461,13 +472,23 @@ let mk_encoder mode =
                 (Lang_errors.Invalid_value
                    (format_val, "Only %ffmpeg encoder is currently supported!"))
       in
-      let content =
-        match mode with
-          | `Audio_raw | `Audio_encoded -> `Audio
-          | `Video_raw | `Video_encoded -> `Video
-          | `Both_raw | `Both_encoded -> `Both
+      let generator =
+        Producer_consumer.Generator.create
+          ( match mode with
+            | `Audio_raw | `Audio_encoded -> `Audio
+            | `Video_raw | `Video_encoded -> `Video
+            | `Both_raw | `Both_encoded -> `Both )
       in
-      let generator = Producer_consumer.Generator.create content in
+      let control =
+        Producer_consumer.
+          { generator; lock = Mutex.create (); buffering = true; abort = false }
+      in
+      let producer =
+        new Producer_consumer.producer
+          ~kind:(Source.Kind.of_kind return_kind)
+          ~name:("ffmpeg." ^ extension ^ ".producer")
+          control
+      in
 
       if Hashtbl.length format.Ffmpeg_format.other_opts > 0 then
         raise
@@ -508,12 +529,12 @@ let mk_encoder mode =
               | Some (`Raw None) when has_raw_audio ->
                   Some
                     (encode_audio_frame ~kind_t:audio_kind_t ~mode:`Raw
-                       ~opts:audio_opts ~format generator)
+                       ~opts:audio_opts ~format control)
               | Some (`Internal (Some codec)) when has_encoded_audio ->
                   let codec = Avcodec.Audio.find_encoder_by_name codec in
                   Some
                     (encode_audio_frame ~kind_t:audio_kind_t ~mode:`Encoded
-                       ~opts:audio_opts ~codec ~format generator)
+                       ~opts:audio_opts ~codec ~format control)
               | _ ->
                   let encoder =
                     if has_encoded_audio then "%audio(codec=..., ...)"
@@ -532,12 +553,12 @@ let mk_encoder mode =
               | Some (`Raw None) when has_raw_video ->
                   Some
                     (encode_video_frame ~kind_t:video_kind_t ~mode:`Raw
-                       ~opts:video_opts ~format generator)
+                       ~opts:video_opts ~format control)
               | Some (`Internal (Some codec)) when has_encoded_video ->
                   let codec = Avcodec.Video.find_encoder_by_name codec in
                   Some
                     (encode_video_frame ~kind_t:video_kind_t ~mode:`Encoded
-                       ~opts:video_opts ~codec ~format generator)
+                       ~opts:video_opts ~codec ~format control)
               | _ ->
                   let encoder =
                     if has_encoded_video then "%video" else "%video.raw"
@@ -606,18 +627,14 @@ let mk_encoder mode =
             encode_frame_ref := mk_encode_frame ()
       in
 
-      let consumer =
+      let _ =
         new Producer_consumer.consumer
-          ~write_frame:encode_frame
-          ~name:("ffmpeg." ^ extension ^ ".consumer")
+          ~write_frame:encode_frame ~producer
+          ~output_kind:("ffmpeg." ^ extension ^ ".consumer")
           ~kind:(Source.Kind.of_kind source_kind)
-          ~content ~source generator
+          ~content:`Audio ~max_buffer ~pre_buffer ~source control
       in
-      new Producer_consumer.producer
-        ~consumers:[consumer]
-        ~kind:(Source.Kind.of_kind return_kind)
-        ~name:("ffmpeg." ^ extension ^ ".producer")
-        generator)
+      producer)
 
 let () =
   List.iter mk_encoder

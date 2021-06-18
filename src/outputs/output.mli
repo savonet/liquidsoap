@@ -39,7 +39,7 @@ class virtual output :
 
        method stype : Source.source_t
 
-       method self_sync : Source.self_sync
+       method self_sync : bool
 
        method remaining : int
 

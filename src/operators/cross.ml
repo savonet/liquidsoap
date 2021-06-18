@@ -31,19 +31,12 @@ let finalise_child_clock child_clock source =
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross ~kind val_source ~cross_length ~override_duration ~rms_width
+class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
   ~minimum_length ~conservative ~active transition =
-  let s = Lang.to_source val_source in
   object (self)
     inherit source ~name:"cross" kind as super
 
-    initializer
-    Source.Kind.unify s#kind kind;
-    if s#self_sync <> (`Static, false) then
-      raise
-        (Lang_errors.Invalid_value
-           ( val_source,
-             "Crossfades only apply to satic, non self-synced sources." ))
+    initializer Source.Kind.unify s#kind kind
 
     method stype = Source.Fallible
 
@@ -524,7 +517,7 @@ let () =
       let transition = Lang.assoc "" 1 p in
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let active = Lang.to_bool (List.assoc "active" p) in
-      let source = Lang.assoc "" 2 p in
+      let source = Lang.to_source (Lang.assoc "" 2 p) in
       let kind = Source.Kind.of_kind kind in
       let c =
         new cross

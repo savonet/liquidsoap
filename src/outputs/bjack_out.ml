@@ -56,7 +56,7 @@ class output ~kind ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
 
     val mutable device = None
 
-    method self_sync = (`Static, true)
+    method self_sync = device <> None
 
     method get_device =
       match device with

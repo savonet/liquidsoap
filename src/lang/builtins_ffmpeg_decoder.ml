@@ -29,7 +29,7 @@ module InternalScaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
 let log = Log.make ["ffmpeg"; "internal"; "decoder"]
 
-let decode_audio_frame ~mode generator =
+let decode_audio_frame ~mode c =
   let internal_channel_layout =
     Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
   in
@@ -72,7 +72,7 @@ let decode_audio_frame ~mode generator =
       let len = Audio.length data in
       let data = Frame_content.Audio.lift_data data in
       Producer_consumer.(
-        Generator.put_audio generator ?pts data 0 (Frame.main_of_audio len))
+        Generator.put_audio c.generator ?pts data 0 (Frame.main_of_audio len))
   in
 
   let mk_copy_decoder () =
@@ -208,7 +208,7 @@ let decode_audio_frame ~mode generator =
         convert ~get_data:Ffmpeg_raw_content.Audio.get_data
           ~decoder:(mk_raw_decoder ())
 
-let decode_video_frame ~mode generator =
+let decode_video_frame ~mode c =
   let internal_width = Lazy.force Frame.video_width in
   let internal_height = Lazy.force Frame.video_height in
   let target_fps = Lazy.force Frame.video_rate in
@@ -294,7 +294,7 @@ let decode_video_frame ~mode generator =
           let data = Video.single img in
           let data = Frame_content.Video.lift_data data in
           Producer_consumer.(
-            Generator.put_video generator ?pts data 0 (Frame.main_of_video 1)))
+            Generator.put_video c.generator ?pts data 0 (Frame.main_of_video 1)))
   in
 
   let mk_copy_decoder () =
@@ -443,7 +443,19 @@ let mk_encoder mode =
       }
   in
   let return_t = Lang.kind_type_of_kind_format return_kind in
-  let proto = [("", Lang.source_t source_t, None, None)] in
+  let proto =
+    [
+      ("", Lang.source_t source_t, None, None);
+      ( "buffer",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some "Amount of data to pre-buffer, in seconds." );
+      ( "max",
+        Lang.float_t,
+        Some (Lang.float 10.),
+        Some "Maximum amount of buffered data, in seconds." );
+    ]
+  in
   let extension =
     match mode with
       | `Audio_encoded -> "decode.audio"
@@ -455,26 +467,39 @@ let mk_encoder mode =
   in
   Lang.add_operator ("ffmpeg." ^ extension) proto ~return_t
     ~category:Lang.Conversions ~descr:"Convert a source's content" (fun p ->
-      let source = Lang.to_source (List.assoc "" p) in
-      let content =
-        match mode with
-          | `Audio_raw | `Audio_encoded -> `Audio
-          | `Video_raw | `Video_encoded -> `Video
-          | `Both_raw | `Both_encoded -> `Both
+      let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
+      let max_buffer = Lang.to_float (List.assoc "max" p) in
+      let max_buffer = max max_buffer (pre_buffer *. 1.1) in
+      let source = List.assoc "" p in
+      let generator =
+        Producer_consumer.Generator.create
+          ( match mode with
+            | `Audio_raw | `Audio_encoded -> `Audio
+            | `Video_raw | `Video_encoded -> `Video
+            | `Both_raw | `Both_encoded -> `Both )
       in
-      let generator = Producer_consumer.Generator.create content in
+      let control =
+        Producer_consumer.
+          { generator; lock = Mutex.create (); buffering = true; abort = false }
+      in
+      let producer =
+        new Producer_consumer.producer
+          ~kind:(Source.Kind.of_kind return_kind)
+          ~name:("ffmpeg." ^ extension ^ ".producer")
+          control
+      in
 
       let mk_decode_frame () =
         let decode_audio_frame =
           if has_audio then (
             let mode = if has_encoded_audio then `Decode else `Raw in
-            Some (decode_audio_frame ~mode generator) )
+            Some (decode_audio_frame ~mode control) )
           else None
         in
         let decode_video_frame =
           if has_video then (
             let mode = if has_encoded_video then `Decode else `Raw in
-            Some (decode_video_frame ~mode generator) )
+            Some (decode_video_frame ~mode control) )
           else None
         in
         let size = Lazy.force Frame.size in
@@ -510,18 +535,14 @@ let mk_encoder mode =
             decode_frame_ref := mk_decode_frame ()
       in
 
-      let consumer =
+      let _ =
         new Producer_consumer.consumer
-          ~write_frame:decode_frame
-          ~name:("ffmpeg." ^ extension ^ ".consumer")
+          ~write_frame:decode_frame ~producer
+          ~output_kind:("ffmpeg." ^ extension ^ ".consumer")
           ~kind:(Source.Kind.of_kind source_kind)
-          ~content ~source generator
+          ~content:`Audio ~max_buffer ~pre_buffer ~source control
       in
-      new Producer_consumer.producer
-        ~consumers:[consumer]
-        ~kind:(Source.Kind.of_kind return_kind)
-        ~name:("ffmpeg." ^ extension ^ ".producer")
-        generator)
+      producer)
 
 let () =
   List.iter mk_encoder

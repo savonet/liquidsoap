@@ -48,6 +48,15 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
             on_start ();
             state <- `Started
         | `Stopped, `Started ->
+            if self#stype = Source.Infallible then
+              raise
+                Lang_values.(
+                  Runtime_error
+                    {
+                      kind = "input";
+                      msg = Some "Input is infallible and cannot be stopped";
+                      pos = [];
+                    });
             self#stop;
             on_stop ();
             state <- `Stopped
@@ -113,12 +122,12 @@ let output_proto =
       Some "Start input as soon as it is available." );
   ]
 
-let active_source_proto ~fallible_opt ~clock_safe =
+let active_source_proto ~fallible_opt =
   output_proto
   @ [
       ( "clock_safe",
         Lang.bool_t,
-        Some (Lang.bool clock_safe),
+        Some (Lang.bool true),
         Some "Force the use of a dedicated clock" );
     ]
   @
@@ -157,15 +166,6 @@ let meth :
         "Ask the source or output to stop.",
         fun s ->
           val_fun [] (fun _ ->
-              if s#stype = Source.Infallible then
-                raise
-                  Lang_values.(
-                    Runtime_error
-                      {
-                        kind = "input";
-                        msg = Some "Source is infallible and cannot be stopped";
-                        pos = [];
-                      });
               s#transition_to `Stopped;
               unit) );
     ]

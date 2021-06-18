@@ -58,7 +58,7 @@ class soundtouch ~kind (source : source) rate tempo pitch =
 
     method stype = source#stype
 
-    method self_sync = (`Static, false)
+    method self_sync = false
 
     method is_ready = Generator.length abg > 0 || source#is_ready
 

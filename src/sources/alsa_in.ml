@@ -45,7 +45,7 @@ class mic ~kind ~clock_safe ~fallible ~on_start ~on_stop ~start device =
 
     val mutable initialized = false
 
-    method self_sync = (`Static, true)
+    method self_sync = true
 
     method private wake_up l =
       active_source#wake_up l;

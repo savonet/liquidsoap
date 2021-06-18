@@ -22,126 +22,86 @@
 
 module Generator = Generator.From_audio_video
 
-let finalise_child_clock child_clock source =
-  Clock.forget source#clock child_clock
+(* The kind of value shared by a producer and a consumer. *)
+type control = {
+  lock : Mutex.t;
+  generator : Generator.t;
+  mutable buffering : bool;
+  mutable abort : bool;
+}
+
+let proceed control f = Tutils.mutexify control.lock f ()
 
 (** The source which produces data by reading the buffer. *)
-class producer ~consumers ~name ~kind g =
-  let infallible =
-    List.for_all (fun s -> s#stype = Source.Infallible) consumers
-  in
+class producer ~name ~kind c =
   object (self)
-    inherit Source.source kind ~name as super
+    inherit Source.source kind ~name
 
-    method self_sync =
-      List.fold_left
-        (fun (t, v) s ->
-          let t', v' = s#self_sync in
-          ((if t = `Static && t' = `Static then `Static else `Dynamic), v || v'))
-        (`Static, false)
-        consumers
+    method self_sync = false
 
-    method stype = if infallible then Source.Infallible else Source.Fallible
+    method stype = Source.Fallible
 
-    method remaining =
-      match List.fold_left (fun r p -> min r p#remaining) (-1) consumers with
-        | -1 -> -1
-        | r -> Generator.remaining g + r
+    method remaining = proceed c (fun () -> Generator.remaining c.generator)
 
-    method is_ready = List.for_all (fun c -> c#is_ready) consumers
-
-    val mutable child_clock = None
-
-    method private child_clock = Option.get child_clock
-
-    method private set_clock =
-      (* Same as [cross[] *)
-      child_clock <- Some (Clock.create_known (new Clock.clock self#id));
-      Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock]);
-
-      List.iter (fun c -> Clock.unify self#child_clock c#clock) consumers;
-
-      Gc.finalise (finalise_child_clock self#child_clock) self
-
-    method wake_up a =
-      super#wake_up a;
-      List.iter
-        (fun c -> c#get_ready ?dynamic:(Some false) [(self :> Source.source)])
-        consumers
-
-    method sleep =
-      super#sleep;
-      List.iter
-        (fun c -> c#leave ?dynamic:(Some false) (self :> Source.source))
-        consumers
-
-    method private child_tick =
-      List.iter (fun c -> c#output) consumers;
-      (Clock.get self#child_clock)#end_tick;
-      List.iter (fun c -> c#after_output) consumers
+    method is_ready = proceed c (fun () -> not c.buffering)
 
     method private get_frame frame =
-      while Generator.length g < Lazy.force Frame.size && self#is_ready do
-        self#child_tick
-      done;
-      Generator.fill g frame
+      proceed c (fun () ->
+          Generator.fill c.generator frame;
+          if Frame.is_partial frame && Generator.length c.generator = 0 then (
+            self#log#important "Buffer emptied, start buffering...";
+            c.buffering <- true ))
 
-    method abort_track =
-      Generator.add_break g;
-      List.iter (fun c -> c#abort_track) consumers
+    method abort_track = proceed c (fun () -> c.abort <- true)
   end
 
 type write_payload = [ `Frame of Frame.t | `Flush ]
 type write_frame = write_payload -> unit
 
-class consumer ?(write_frame : write_frame option) ~name ~kind ~content ~source
-  g =
+class consumer ?(write_frame : write_frame option) ~output_kind ~producer ~kind
+  ~content ~max_buffer ~pre_buffer ~source c =
+  let prebuf = Frame.main_of_seconds pre_buffer in
+  let max_buffer = Frame.main_of_seconds max_buffer in
+  let autostart = true in
+  let s = Lang.to_source source in
   let write_frame =
     match write_frame with
       | Some f -> f
       | None -> (
           function
-          | `Frame frame -> Generator.feed_from_frame ~mode:content g frame
+          | `Frame frame ->
+              Generator.feed_from_frame ~mode:content c.generator frame
           | `Flush -> () )
   in
+  let infallible = s#stype = Source.Infallible in
   object (self)
-    inherit Source.operator ~name kind [source] as super
+    inherit
+      Output.output
+        ~output_kind ~content_kind:kind ~infallible
+        ~on_start:(fun () -> ())
+        ~on_stop:(fun () -> write_frame `Flush)
+        source autostart
 
-    method stype = source#stype
+    method reset = ()
 
-    method self_sync = source#self_sync
+    method start = ()
 
-    method abort_track = source#abort_track
+    method stop = ()
 
-    method is_ready = source#is_ready
+    method private set_clock =
+      Clock.unify self#clock producer#clock;
+      Clock.unify self#clock s#clock
 
-    method remaining = source#remaining
+    method send_frame frame =
+      proceed c (fun () ->
+          if c.abort then (
+            c.abort <- false;
+            s#abort_track );
 
-    val mutable frame_buffer = Frame.dummy
-
-    method private wake_up x =
-      super#wake_up x;
-      frame_buffer <- Frame.create self#ctype
-
-    method sleep =
-      super#sleep;
-      write_frame `Flush
-
-    method output =
-      let get_count = ref 0 in
-      while Frame.is_partial frame_buffer && self#is_ready do
-        incr get_count;
-        if !get_count > Lazy.force Frame.size then
-          self#log#severe
-            "Warning: there may be an infinite sequence of empty tracks!";
-        self#get frame_buffer
-      done;
-      if Frame.position frame_buffer > 0 then write_frame (`Frame frame_buffer)
-
-    method get_frame frame = source#get frame
-
-    method after_output =
-      super#after_output;
-      Frame.advance frame_buffer
+          write_frame (`Frame frame);
+          if Generator.length c.generator > prebuf then (
+            c.buffering <- false;
+            if Generator.buffered_length c.generator > max_buffer then
+              Generator.remove c.generator
+                (Generator.length c.generator - max_buffer) ))
   end

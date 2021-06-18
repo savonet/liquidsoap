@@ -806,7 +806,7 @@ class virtual input_base ~kind ~max ~log_overfull ~clock_safe ~on_connect
     method is_ready =
       super#is_ready && (not self#should_stop) && self#is_connected
 
-    method self_sync = (`Static, true)
+    method self_sync = self#is_connected
 
     method private create_decoder socket =
       let create_decoder =
@@ -905,7 +905,7 @@ let () =
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     ( common_options ~mode:`Listener
-    @ Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
+    @ Start_stop.active_source_proto ~fallible_opt:`Nope
     @ [
         ( "max",
           Lang.float_t,

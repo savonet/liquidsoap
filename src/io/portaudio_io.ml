@@ -73,7 +73,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
 
     val mutable stream = None
 
-    method self_sync = (`Static, true)
+    method self_sync = stream <> None
 
     method private open_device =
       self#handle "open_default_stream" (fun () ->
@@ -132,7 +132,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
 
     val mutable stream = None
 
-    method self_sync = (`Static, true)
+    method self_sync = stream <> None
 
     method abort_track = ()
 
@@ -212,7 +212,7 @@ let () =
           ~kind ~start ~on_start ~on_stop ~infallible ~clock_safe buflen source
         :> Output.output ));
   Lang.add_operator "input.portaudio"
-    ( Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    ( Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
         ( "buflen",
           Lang.int_t,
