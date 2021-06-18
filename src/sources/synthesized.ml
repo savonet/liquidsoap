@@ -40,7 +40,7 @@ class virtual source ?name ~seek kind duration =
 
     method seek x = if seek then x else 0
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method remaining =
       match remaining with None -> -1 | Some remaining -> remaining

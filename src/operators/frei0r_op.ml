@@ -101,7 +101,10 @@ class frei0r_mixer ~kind ~name bgra instance params (source : source) source2 =
 
     method is_ready = source#is_ready && source2#is_ready
 
-    method self_sync = source#self_sync || source2#self_sync
+    method self_sync =
+      match (source#self_sync, source2#self_sync) with
+        | (`Static, v), (`Static, v') -> (`Static, v || v')
+        | (_, v), (_, v') -> (`Dynamic, v || v')
 
     method abort_track =
       source#abort_track;
@@ -167,7 +170,7 @@ class frei0r_source ~kind ~name bgra instance params =
 
     method is_ready = true
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     val mutable must_fail = false
 

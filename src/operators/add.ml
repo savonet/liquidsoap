@@ -47,7 +47,13 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
         Infallible
       else Fallible
 
-    method self_sync = List.exists (fun (_, s) -> s#self_sync) sources
+    method self_sync =
+      List.fold_left
+        (fun (t, v) (_, s) ->
+          let t', v' = s#self_sync in
+          ((if t = `Static && t' = `Static then `Static else `Dynamic), v || v'))
+        (`Static, false)
+        sources
 
     method remaining =
       List.fold_left max 0

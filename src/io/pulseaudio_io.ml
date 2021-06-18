@@ -45,7 +45,7 @@ class virtual base ~client ~device =
 
     method virtual log : Log.t
 
-    method self_sync = dev <> None
+    method self_sync : Source.self_sync = (`Static, true)
   end
 
 class output ~infallible ~start ~on_start ~on_stop ~kind p =
@@ -222,7 +222,8 @@ let () =
       let kind = Source.Kind.of_kind kind in
       (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Output.output));
   Lang.add_operator "input.pulseaudio"
-    (Start_stop.active_source_proto ~fallible_opt:(`Yep false) @ proto)
+    ( Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    @ proto )
     ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a portaudio input device."
     (fun p ->

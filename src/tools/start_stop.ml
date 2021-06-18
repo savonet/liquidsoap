@@ -122,12 +122,12 @@ let output_proto =
       Some "Start input as soon as it is available." );
   ]
 
-let active_source_proto ~fallible_opt =
+let active_source_proto ~fallible_opt ~clock_safe =
   output_proto
   @ [
       ( "clock_safe",
         Lang.bool_t,
-        Some (Lang.bool true),
+        Some (Lang.bool clock_safe),
         Some "Force the use of a dedicated clock" );
     ]
   @

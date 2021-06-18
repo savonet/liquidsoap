@@ -52,7 +52,7 @@ module Buffer = struct
     object (self)
       inherit Source.source kind ~name:"warp_prod"
 
-      method self_sync = false
+      method self_sync = (`Static, false)
 
       method stype = Source.Fallible
 
@@ -208,7 +208,7 @@ module AdaptativeBuffer = struct
 
       method stype = Source.Fallible
 
-      method self_sync = false
+      method self_sync = (`Static, false)
 
       method remaining = proceed c (fun () -> MG.remaining c.mg)
 

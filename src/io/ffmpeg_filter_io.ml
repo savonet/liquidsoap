@@ -145,7 +145,7 @@ class audio_input ~bufferize kind =
         (Ffmpeg_raw_content.Audio.lift_params output_format);
       output <- Some v
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method stype = Source.Fallible
 
@@ -246,7 +246,7 @@ class video_input ~bufferize ~fps kind =
         (Ffmpeg_raw_content.Video.lift_params output_format);
       output <- Some v
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method stype = Source.Fallible
 

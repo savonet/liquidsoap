@@ -54,7 +54,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method is_ready =
       super#is_ready && self#mutexify (fun () -> container <> None) ()
 
-    method self_sync = self_sync && self#is_ready
+    method self_sync = (`Static, self_sync)
 
     method private start = self#connect
 
@@ -291,9 +291,7 @@ let register_input is_http =
     else ("input.ffmpeg", "Create a stream using ffmpeg")
   in
   Lang.add_operator name ~descr ~category:Lang.Input
-    ( List.filter
-        (fun (lbl, _, _, _) -> lbl <> "clock_safe")
-        (Start_stop.active_source_proto ~fallible_opt:`Nope)
+    ( Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
     @ ( if is_http then
         [
           ( "user_agent",
@@ -341,13 +339,6 @@ let register_input is_http =
             "Should the source control its own timing? Set to `true` if you \
              are having synchronization issues. Should be `false` for most \
              typicaly cases." );
-        ( "clock_safe",
-          Lang.nullable_t Lang.bool_t,
-          Some Lang.null,
-          Some
-            "Should the source be in its own clock. Should be the same value \
-             as `self_sync` unless the source is mixed with other `clock_safe` \
-             sources like `input.ao`" );
         ( "debug",
           Lang.bool_t,
           Some (Lang.bool false),
@@ -428,10 +419,7 @@ let register_input is_http =
       let debug = Lang.to_bool (List.assoc "debug" p) in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let clock_safe =
-        Lang.to_default_option ~default:self_sync Lang.to_bool
-          (List.assoc "clock_safe" p)
-      in
+      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun _ -> ignore (Lang.apply f [])

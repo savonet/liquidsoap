@@ -207,7 +207,7 @@ class clock ?(sync = `Auto) id =
         match sync with
           | `Auto ->
               List.exists
-                (fun (state, s) -> state = `Active && s#self_sync)
+                (fun (state, s) -> state = `Active && snd s#self_sync)
                 outputs
           | `CPU -> false
           | `None -> true

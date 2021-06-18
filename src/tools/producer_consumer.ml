@@ -37,7 +37,7 @@ class producer ~name ~kind c =
   object (self)
     inherit Source.source kind ~name
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method stype = Source.Fallible
 
