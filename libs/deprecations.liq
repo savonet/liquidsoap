@@ -31,9 +31,9 @@ register(name="[DEPRECATED] Framerate",
 
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag deprecated
-def replaces input.external(%argsof(input.external.rawaudio))
+def replaces input.external(%argsof(input.external.rawaudio), cmd)
   deprecated("input.external", "input.external.rawaudio")
-  input.external.rawaudio(%argsof(input.external.rawaudio))
+  input.external.rawaudio(%argsof(input.external.rawaudio), cmd)
 end
 
 # Deprecated: this function has been replaced by `string.quote`.
@@ -245,9 +245,9 @@ end
 
 # Deprecated: use `request.create` instead.
 # @flag deprecated
-def request.create.raw(%argsof(request.create))
+def request.create.raw(%argsof(request.create), uri)
   deprecated("request.create.raw", "request.create")
-  request.create(%argsof(request.create))
+  request.create(%argsof(request.create), uri)
 end
 
 # Deprecated: use `file.remove` instead.
@@ -290,23 +290,23 @@ end
 
 # Deprecated: use `process.read` instead.
 # @flag deprecated
-def get_process_output(%argsof(process.read))
+def get_process_output(%argsof(process.read), cmd)
   deprecated("get_process_output", "process.read")
-  process.read(%argsof(process.read))
+  process.read(%argsof(process.read), cmd)
 end
 
 # Deprecated: use `process.read.lines` instead.
 # @flag deprecated
-def get_process_lines(%argsof(process.read.lines))
+def get_process_lines(%argsof(process.read.lines), cmd)
   deprecated("get_process_lines", "process.read.lines")
-  process.read.lines(%argsof(process.read.lines))
+  process.read.lines(%argsof(process.read.lines), cmd)
 end
 
 # Deprecated: use `process.test` instead.
 # @flag deprecated
-def test_process(%argsof(process.test))
+def test_process(%argsof(process.test), cmd)
   deprecated("test_process", "process.test")
-  process.test(%argsof(process.test))
+  process.test(%argsof(process.test), cmd)
 end
 
 # Deprecated: use `process.run` instead.
@@ -318,30 +318,30 @@ end
 
 # Deprecated: use `blank.detect` instead
 # @flag deprecated
-def on_blank(%argsof(blank.detect))
+def on_blank(%argsof(blank.detect), s)
   deprecated("on_blank", "blank.detect")
-  blank.detect(%argsof(blank.detect))
+  blank.detect(%argsof(blank.detect), s)
 end
 
 # Deprecated: use `blank.skip` instead
 # @flag deprecated
-def skip_blank(%argsof(blank.skip))
+def skip_blank(%argsof(blank.skip), s)
   deprecated("skip_blank", "blank.skip")
-  blank.skip(%argsof(blank.skip))
+  blank.skip(%argsof(blank.skip), s)
 end
 
 # Deprecated: use `blank.eat` instead
 # @flag deprecated
-def eat_blank(%argsof(blank.eat))
+def eat_blank(%argsof(blank.eat), s)
   deprecated("eat_blank", "blank.eat")
-  blank.eat(%argsof(blank.eat))
+  blank.eat(%argsof(blank.eat), s)
 end
 
 # Deprecated: use `blank.strip` instead
 # @flag deprecated
-def strip_blank(%argsof(blank.strip))
+def strip_blank(%argsof(blank.strip), s)
   deprecated("strip_blank", "blank.strip")
-  blank.strip(%argsof(blank.strip))
+  blank.strip(%argsof(blank.strip), s)
 end
 
 # Deprecated: use `time.local` instead
@@ -398,9 +398,9 @@ end
 
 # Deprecated: use `source.on_end` instead.
 # @flag deprecated
-def on_end(%argsof(source.on_end))
+def on_end(%argsof(source.on_end), s, f)
   deprecated("on_end", "source.on_end")
-  source.on_end(%argsof(source.on_end))
+  source.on_end(%argsof(source.on_end), s, f)
 end
 
 https = ()
@@ -408,45 +408,45 @@ https = ()
 %ifdef http.get
 # Deprecated: use `http.get` instead.
 # @flag deprecated
-def https.get(%argsof(http.get))
+def https.get(%argsof(http.get), url)
   deprecated("https.get", "http.get")
-  http.get(%argsof(http.get))
+  http.get(%argsof(http.get), url)
 end
 %endif
 
 %ifdef http.put
 # Deprecated: use `http.put` instead.
 # @flag deprecated
-def https.put(%argsof(http.put))
+def https.put(%argsof(http.put), url)
   deprecated("https.put", "http.put")
-  http.put(%argsof(http.put))
+  http.put(%argsof(http.put), url)
 end
 %endif
 
 %ifdef http.post
 # Deprecated: use `http.post` instead.
 # @flag deprecated
-def https.post(%argsof(http.post))
+def https.post(%argsof(http.post), url)
   deprecated("https.post", "http.post")
-  http.post(%argsof(http.post))
+  http.post(%argsof(http.post), url)
 end
 %endif
 
 %ifdef http.head
 # Deprecated: use `http.head` instead.
 # @flag deprecated
-def https.head(%argsof(http.head))
+def https.head(%argsof(http.head), url)
   deprecated("https.head", "http.head")
-  http.head(%argsof(http.head))
+  http.head(%argsof(http.head), url)
 end
 %endif
 
 %ifdef http.delete
 # Deprecated: use `http.delete` instead.
 # @flag deprecated
-def https.delete(%argsof(http.delete))
+def https.delete(%argsof(http.delete), url)
   deprecated("https.delete", "http.delete")
-  http.delete(%argsof(http.delete))
+  http.delete(%argsof(http.delete), url)
 end
 %endif
 
