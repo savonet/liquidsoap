@@ -168,24 +168,25 @@ let create ~queue f x s =
   mutexify lock
     (fun () ->
       let id =
-        Thread.create
-          (fun x ->
+        let rec process x =
+          try
+            f x;
+            mutexify lock
+              (fun () ->
+                set := Set.remove (s, c) !set;
+                log#info "Thread %S terminated (%d remaining)." s
+                  (Set.cardinal !set);
+                Condition.signal c)
+              ()
+          with e -> (
+            let bt = Printexc.get_backtrace () in
             try
-              f x;
-              mutexify lock
-                (fun () ->
-                  set := Set.remove (s, c) !set;
-                  log#info "Thread %S terminated (%d remaining)." s
-                    (Set.cardinal !set);
-                  Condition.signal c)
-                ()
-            with e ->
-              let bt = Printexc.get_backtrace () in
-              begin
-                match e with
+              match e with
                 | Exit -> log#info "Thread %S exited." s
-                | Failure e -> log#important "Thread %S failed: %s!" s e
-                | e when error_handler ~bt ~name:s e -> ()
+                | Failure e ->
+                    log#important "Thread %S failed: %s!" s e;
+                    raise e
+                | e when queue && error_handler ~bt ~name:s e -> process x
                 | e when queue ->
                     log#severe "Queue %s crashed with exception %s\n%s" s
                       (Printexc.to_string e) bt;
@@ -195,11 +196,11 @@ let create ~queue f x s =
                     exit 1
                 | e ->
                     log#important "Thread %S aborts with exception %s!" s
-                      (Printexc.to_string e)
-              end;
-              if e <> Exit then (
-                let l = Pcre.split ~pat:"\n" bt in
-                List.iter (log#info "%s") l );
+                      (Printexc.to_string e);
+                    raise e
+            with e ->
+              let l = Pcre.split ~pat:"\n" bt in
+              List.iter (log#info "%s") l;
               mutexify lock
                 (fun () ->
                   set := Set.remove (s, c) !set;
@@ -207,8 +208,9 @@ let create ~queue f x s =
                   Condition.signal no_problem;
                   Condition.signal c)
                 ();
-              if e <> Exit then raise e)
-          x
+              raise e )
+        in
+        Thread.create process x
       in
       set := Set.add (s, c) !set;
       log#info "Created thread %S (%d total)." s (Set.cardinal !set);
