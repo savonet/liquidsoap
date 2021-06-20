@@ -255,7 +255,7 @@ let mk_decoder ?audio ?video ~target_position container =
               "Current position: %f is less than target position: %f, \
                skipping.."
               position target_position;
-          position <= target_position
+          target_position <= position
       | _ -> true
   in
   fun buffer ->
