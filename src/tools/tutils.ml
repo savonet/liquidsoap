@@ -183,9 +183,9 @@ let create ~queue f x s =
             try
               match e with
                 | Exit -> log#info "Thread %S exited." s
-                | Failure e ->
+                | Failure e as exn ->
                     log#important "Thread %S failed: %s!" s e;
-                    raise e
+                    raise exn
                 | e when queue && error_handler ~bt ~name:s e -> process x
                 | e when queue ->
                     log#severe "Queue %s crashed with exception %s\n%s" s
