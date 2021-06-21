@@ -902,6 +902,7 @@ let () =
   let kind = Lang.any in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.srt" ~return_t ~category:Lang.Input ~active:true
+    ~self_sync:true
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     ( common_options ~mode:`Listener

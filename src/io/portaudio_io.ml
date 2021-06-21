@@ -191,6 +191,7 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k ~category:Lang.Output ~meth:Output.meth ~active:true
+    ~self_sync:true
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -220,7 +221,7 @@ let () =
           Some "Length of a buffer in samples." );
       ] )
     ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ()) ~active:true
-    ~descr:"Stream from a portaudio input device."
+    ~self_sync:true ~descr:"Stream from a portaudio input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in

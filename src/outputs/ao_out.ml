@@ -132,7 +132,7 @@ let () =
           Some "List of parameters, depends on the driver." );
         ("", Lang.source_t return_t, None, None);
       ] )
-    ~category:Lang.Output ~meth:Output.meth
+    ~category:Lang.Output ~meth:Output.meth ~active:true ~self_sync:true
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in

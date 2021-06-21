@@ -207,7 +207,8 @@ let () =
   Lang.add_operator "output.pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t k, None, None)])
     ~return_t:k ~category:Lang.Output ~meth:Output.meth ~active:true
-    ~descr:"Output the source's stream to a portaudio output device."
+    ~self_sync:true
+    ~descr:"Output the source's stream to a Pulseaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
@@ -223,8 +224,8 @@ let () =
       (new output ~infallible ~on_start ~on_stop ~start ~kind p :> Output.output));
   Lang.add_operator "input.pulseaudio"
     (Start_stop.active_source_proto ~fallible_opt:(`Yep false) @ proto)
-    ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ())
-    ~descr:"Stream from a portaudio input device."
+    ~return_t:k ~category:Lang.Input ~meth:(Start_stop.meth ()) ~active:true
+    ~self_sync:true ~descr:"Stream from a Pulseaudio input device."
     (fun p ->
       let kind = Source.Kind.of_kind kind in
       new input ~kind p)
