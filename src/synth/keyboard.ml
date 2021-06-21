@@ -54,7 +54,7 @@ let note_of_char c = array_index c + 72
 
 class keyboard ~kind =
   object (self)
-    inherit Source.active_source ~name:"input.keyboard" kind
+    inherit Source.source ~name:"input.keyboard" kind
 
     method stype = Source.Infallible
 
@@ -140,7 +140,7 @@ let () =
   let kind = Lang.midi_n 1 in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.keyboard" [] ~return_t ~category:Lang.Input
-    ~flags:[Lang.Hidden; Lang.Experimental]
+    ~fallible:false ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Play notes from the keyboard." (fun _ ->
       let kind = Source.Kind.of_kind kind in
       (new keyboard ~kind :> Source.source))

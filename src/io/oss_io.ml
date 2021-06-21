@@ -146,7 +146,7 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k ~category:Lang.Output
-    ~descr:"Output the source's stream to an OSS output device."
+    ~descr:"Output the source's stream to an OSS output device." ~self_sync:true
     (fun p ->
       let e f v = f (List.assoc v p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -174,8 +174,8 @@ let () =
           Some (Lang.string "/dev/dsp"),
           Some "OSS device to use." );
       ] )
-    ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input
-    ~descr:"Stream from an OSS input device."
+    ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input ~active:true
+    ~self_sync:true ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let clock_safe = e Lang.to_bool "clock_safe" in

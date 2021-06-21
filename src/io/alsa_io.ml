@@ -308,7 +308,8 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k ~category:Lang.Output ~meth:Output.meth
-    ~descr:"Output the source's stream to an ALSA output device."
+    ~descr:"Output the source's stream to an ALSA output device." ~active:true
+    ~self_sync:true
     (fun p ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in
@@ -349,7 +350,7 @@ let () =
           Some "Alsa device to use" );
       ] )
     ~meth:(Start_stop.meth ()) ~return_t:k ~category:Lang.Input
-    ~descr:"Stream from an ALSA input device."
+    ~descr:"Stream from an ALSA input device." ~active:true ~self_sync:true
     (fun p ->
       let e f v = f (List.assoc v p) in
       let bufferize = e Lang.to_bool "bufferize" in

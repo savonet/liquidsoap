@@ -207,13 +207,29 @@ let doc_of_prototype_item ~generalized t d doc =
       | Some d -> Doc.trivial (print_value d) );
   item
 
-type doc_flag = Hidden | Deprecated | Experimental | Extra
+type doc_flag =
+  | Hidden
+  | Deprecated
+  | Experimental
+  | Extra
+  | Active of bool
+  | Fallible of bool
+  | Clock_safe of bool
+  | Self_sync of bool
 
 let string_of_flag = function
   | Hidden -> "hidden"
   | Deprecated -> "deprecated"
   | Experimental -> "experimental"
   | Extra -> "extra"
+  | Active true -> "active"
+  | Active false -> "passive"
+  | Fallible true -> "fallible"
+  | Fallible false -> "infallible"
+  | Clock_safe true -> "clock-safe"
+  | Clock_safe false -> "clock-unsafe"
+  | Self_sync true -> "self-syncing"
+  | Self_sync false -> "not self-syncing"
 
 let builtin_type p t =
   T.make
@@ -866,7 +882,17 @@ type 'a operator_method = string * scheme * string * ('a -> value)
 let add_operator =
   let _meth = meth in
   fun ~category ~descr ?(flags = []) ?(meth = ([] : 'a operator_method list))
-      name proto ~return_t f ->
+      ?(active = false) ?(fallible = true) ?(self_sync = false)
+      ?(clock_safe = true) name proto ~return_t f ->
+    let flags =
+      [
+        Active active;
+        Fallible fallible;
+        Self_sync self_sync;
+        Clock_safe clock_safe;
+      ]
+      @ flags
+    in
     let compare (x, _, _, _) (y, _, _, _) =
       match (x, y) with
         | "", "" -> 0

@@ -202,8 +202,15 @@ let print_functions_md ~extra (doc : item) print_string =
                   let s = if s = "" then "" else ": " ^ s in
                   Printf.ksprintf print_string "- `%s` (of type `%s`)%s\n" l t s)
                 methods );
-            if List.mem "experimental" flags then
-              print_string "\nThis function is experimental.\n";
+            (let rec concat = function
+               | [] -> ""
+               | [x] -> x
+               | [x; y] -> x ^ " and " ^ y
+               | x :: l -> x ^ ", " ^ concat l
+             in
+             let flags = concat flags in
+             if flags <> "" then
+               Printf.ksprintf print_string "\nThis function is %s.\n" flags);
             print_string "\n" ))
         ff)
     by_cat

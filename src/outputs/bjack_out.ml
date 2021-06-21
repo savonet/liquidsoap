@@ -128,6 +128,7 @@ let () =
         ("", Lang.source_t k, None, None);
       ] )
     ~return_t:k ~category:Lang.Output ~descr:"Output stream to jack."
+    ~active:true ~clock_safe:true
     (fun p ->
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in

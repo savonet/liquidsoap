@@ -342,7 +342,7 @@ let () =
   Lang.add_operator "output.gstreamer.audio"
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p ->
+    ~self_sync:true ~return_t (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -373,7 +373,7 @@ let () =
   Lang.add_operator "output.gstreamer.video"
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t (fun p ->
+    ~self_sync:true ~return_t (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -420,7 +420,7 @@ let () =
           Some "Pushing buffers is blocking." );
       ] )
     ~category:Lang.Output ~descr:"Output stream to a GStreamer pipeline."
-    ~return_t
+    ~self_sync:true ~return_t
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
@@ -700,7 +700,7 @@ let () =
       ]
   in
   Lang.add_operator "input.gstreamer.audio_video" proto ~return_t
-    ~category:Lang.Input ~flags:[]
+    ~category:Lang.Input ~flags:[] ~self_sync:true
     ~meth:
       [
         ( "pause",

@@ -134,7 +134,7 @@ let () =
           Some "Jack server to connect to." );
       ] )
     ~meth:(Start_stop.meth ()) ~return_t ~category:Lang.Input
-    ~descr:"Get stream from jack."
+    ~descr:"Get stream from jack." ~active:true ~self_sync:true
     (fun p ->
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
