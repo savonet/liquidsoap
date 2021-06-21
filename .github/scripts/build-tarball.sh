@@ -12,11 +12,12 @@ cd /tmp/liquidsoap-full
 git pull
 make clean
 make update
-./liquidsoap/.github/scripts/checkout-deps.sh
 
 cd liquidsoap
 git fetch origin $GITHUB_SHA
 git checkout $GITHUB_SHA
+
+./.github/scripts/checkout-deps.sh
 
 cd /tmp/liquidsoap-full
 
