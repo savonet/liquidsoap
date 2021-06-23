@@ -215,18 +215,28 @@ let seek ~audio ~video ~target_position ticks =
   log#debug "Setting target position to %f" tpos;
   target_position := Some tpos;
   let position = Int64.of_float (tpos *. 1000.) in
-  let seek stream =
+  let seek ~any stream =
+    let flags =
+      [Av.Seek_flag_backward] @ if any then [Av.Seek_flag_any] else []
+    in
     try
-      Av.seek stream `Millisecond position [| Av.Seek_flag_backward |];
+      Av.seek stream `Millisecond position (Array.of_list flags);
       ticks
     with Avutil.Error _ -> 0
   in
-  match (audio, video) with
-    | Some (`Packet (_, s, _)), _ -> seek s
-    | _, Some (`Packet (_, s, _)) -> seek s
-    | Some (`Frame (_, s, _)), _ -> seek s
-    | _, Some (`Frame (_, s, _)) -> seek s
-    | _ -> raise No_stream
+  let audio_seek =
+    match audio with
+      | Some (`Packet (_, s, _)) -> seek ~any:true s
+      | Some (`Frame (_, s, _)) -> seek ~any:true s
+      | _ -> 0
+  in
+  let video_seek =
+    match video with
+      | Some (`Packet (_, s, _)) -> seek ~any:false s
+      | Some (`Frame (_, s, _)) -> seek ~any:false s
+      | _ -> 0
+  in
+  min audio_seek video_seek
 
 let mk_decoder ?audio ?video ~target_position container =
   let no_decoder = (-1, [], fun ~buffer:_ _ -> assert false) in
@@ -328,12 +338,14 @@ let create_decoder ~ctype fname =
       (fun () ->
         match (duration, pts) with
           | None, _ | Some _, None -> ()
-          | Some d, Some pts ->
+          | Some d, Some pts -> (
               let { Avutil.num; den } = Av.get_time_base stream in
               let position =
                 Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
               in
-              remaining := Some (d -. position))
+              match !remaining with
+                | None -> remaining := Some (d -. position)
+                | Some r -> remaining := Some (max (d -. position) r) ))
       ()
   in
   let get_remaining =
