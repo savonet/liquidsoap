@@ -54,7 +54,7 @@ class virtual base dev mode =
         let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
         Pcm.readn_float_ba pcm buf
 
-    method self_sync = pcm <> None
+    method self_sync : Source.self_sync = (`Static, true)
 
     method open_device =
       self#log#important "Using ALSA %s." (Alsa.get_version ());
@@ -340,7 +340,7 @@ let () =
   let kind = Lang.audio_pcm in
   let k = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.alsa"
-    ( Start_stop.active_source_proto ~fallible_opt:(`Yep false)
+    ( Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
         ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");
         ( "device",

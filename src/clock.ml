@@ -135,7 +135,7 @@ let sync_descr = function
   | `CPU -> "CPU sync"
   | `None -> "no sync"
 
-class clock ?(sync = `Auto) id =
+class clock ?(start = true) ?(sync = `Auto) id =
   object (self)
     initializer Clocks.add clocks (self :> Source.clock)
 
@@ -207,7 +207,7 @@ class clock ?(sync = `Auto) id =
         match sync with
           | `Auto ->
               List.exists
-                (fun (state, s) -> state = `Active && s#self_sync)
+                (fun (state, s) -> state = `Active && snd s#self_sync)
                 outputs
           | `CPU -> false
           | `None -> true
@@ -402,7 +402,10 @@ class clock ?(sync = `Auto) id =
         if leaving <> [] then (
           log#info "Stopping %d sources..." (List.length leaving);
           List.iter (fun (s : active_source) -> leave s) leaving );
-        if List.exists (function `Active, _ -> true | _ -> false) outputs then
+        if
+          start
+          && List.exists (function `Active, _ -> true | _ -> false) outputs
+        then
           do_running (fun () ->
               if not running then (
                 running <- true;

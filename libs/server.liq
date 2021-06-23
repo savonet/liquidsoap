@@ -7,7 +7,7 @@ end
 # Register a command that outputs the RMS of the returned source.
 # @category Source / Visualization
 # @param ~id Force the value of the source ID.
-def server.rms(~id="",s) =
+def server.rms(~id=null(),s) =
   let s = rms(id=id,s)
   id = s.id()
   def rms(_) =
@@ -26,7 +26,7 @@ end
 # format: insert key1="val1",key2="val2",...
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
-def server.insert_metadata(~id="",s) =
+def server.insert_metadata(~id=null(),s) =
   s = insert_metadata(id=id,s)
   insert = s.insert_metadata
   def insert(s) =

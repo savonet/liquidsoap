@@ -63,7 +63,7 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
 
     val mutable device = None
 
-    method self_sync = device <> None
+    method self_sync = (`Static, true)
 
     method close =
       match device with
@@ -122,7 +122,7 @@ let () =
   let kind = Lang.audio_pcm in
   let return_t = Lang.kind_type_of_kind_format kind in
   Lang.add_operator "input.jack"
-    ( Start_stop.active_source_proto ~fallible_opt:(`Yep false)
+    ( Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
     @ [
         ( "buffer_size",
           Lang.int_t,

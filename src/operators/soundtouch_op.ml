@@ -24,58 +24,45 @@ open Mm
 open Source
 module Generator = Generator.From_audio_video
 
-class soundtouch ~kind (source : source) rate tempo pitch =
+class soundtouch ~kind source_val rate tempo pitch =
   let abg = Generator.create `Audio in
+  let source = Lang.to_source source_val in
+  let write_frame_ref = ref (fun _ -> ()) in
+  let consumer =
+    new Producer_consumer.consumer
+      ~write_frame:(fun frame -> !write_frame_ref frame)
+      ~name:"soundtouch.consumer" ~kind ~source:source_val ()
+  in
   object (self)
-    inherit operator ~name:"soundtouch" kind [source] as super
+    inherit
+      operator ~name:"soundtouch" kind [(consumer :> Source.source)] as super
+
+    inherit Child_support.base [source_val] as child_support
 
     val mutable st = None
 
-    val mutable databuf = Frame.dummy
-
-    method wake_up a =
-      super#wake_up a;
-      databuf <- Frame.create self#ctype;
-      st <-
-        Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
-      self#log#important "Using soundtouch %s."
-        (Soundtouch.get_version_string (Option.get st))
-
-    method private set_clock =
-      let child_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should strictly contain the child clock. *)
-      Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
-      Clock.unify child_clock source#clock;
-
-      (* Make sure the child clock can be garbage collected, cf. cue_cut(). *)
-      Gc.finalise (fun self -> Clock.forget self#clock child_clock) self
-
-    method private child_tick =
-      (Clock.get source#clock)#end_tick;
-      source#after_output;
-      Frame.advance databuf
-
     method stype = source#stype
 
-    method self_sync = false
+    method self_sync = source#self_sync
 
-    method is_ready = Generator.length abg > 0 || source#is_ready
+    method is_ready = source#is_ready
 
-    method remaining = Generator.remaining abg
+    method remaining = -1
 
     method abort_track =
-      Generator.clear abg;
+      Generator.add_break abg;
       source#abort_track
 
-    method private feed =
+    method private write_frame =
+      function `Frame databuf -> self#process_frame databuf | `Flush -> ()
+
+    method process_frame databuf =
       let st = Option.get st in
       Soundtouch.set_rate st (rate ());
       Soundtouch.set_tempo st (tempo ());
       Soundtouch.set_pitch st (pitch ());
-      AFrame.clear databuf;
-      source#get databuf;
       let db = AFrame.pcm databuf in
+      let db = Audio.sub db 0 (AFrame.position databuf) in
       let db = Audio.interleave db in
       Soundtouch.put_samples_ba st db;
       let available = Soundtouch.get_available_samples st in
@@ -96,15 +83,26 @@ class soundtouch ~kind (source : source) rate tempo pitch =
        * b/c of tempo so we add then right here. *)
       List.iter
         (fun (_, m) -> Generator.add_metadata abg m)
-        (AFrame.get_all_metadata databuf);
-      self#child_tick
+        (AFrame.get_all_metadata databuf)
 
     method private get_frame buf =
-      let need = AFrame.size () - AFrame.position buf in
-      while Generator.length abg < need && source#is_ready do
-        self#feed
+      while Generator.length abg < Lazy.force Frame.size && source#is_ready do
+        self#child_tick
       done;
+      needs_tick <- false;
       Generator.fill abg buf
+
+    method wake_up a =
+      super#wake_up a;
+      st <-
+        Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
+      self#log#important "Using soundtouch %s."
+        (Soundtouch.get_version_string (Option.get st));
+      write_frame_ref := self#write_frame
+
+    method private after_output =
+      super#after_output;
+      child_support#after_output
   end
 
 let () =
@@ -126,6 +124,6 @@ let () =
       let rate = Lang.to_float_getter (f "rate") in
       let tempo = Lang.to_float_getter (f "tempo") in
       let pitch = Lang.to_float_getter (f "pitch") in
-      let s = Lang.to_source (f "") in
+      let s = f "" in
       let kind = Source.Kind.of_kind kind in
       (new soundtouch ~kind s rate tempo pitch :> Source.source))

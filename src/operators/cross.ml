@@ -31,10 +31,13 @@ let finalise_child_clock child_clock source =
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
+class cross ~kind val_source ~cross_length ~override_duration ~rms_width
   ~minimum_length ~conservative ~active transition =
+  let s = Lang.to_source val_source in
   object (self)
     inherit source ~name:"cross" kind as super
+
+    inherit Child_support.base [val_source] as child_support
 
     initializer Source.Kind.unify s#kind kind
 
@@ -131,47 +134,26 @@ class cross ~kind (s : source) ~cross_length ~override_duration ~rms_width
       self#cleanup_transition_source
 
     method private set_clock =
-      let child_clock = Clock.create_known (new Clock.clock self#id) in
-      (* Our external clock should strictly contain the child clock. *)
-      Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[child_clock]);
-
-      (* The source must belong to our clock, since we need occasional
-       * control on its flow (to fold an end of track over a beginning).
-       *
-       * To be safe, also require that the transition's sources belong
-       * to that same clock, since we (dynamically) activate them as well.
-       * The activation mechanism is designed for a single thread,
-       * which multiples clocks wouldn't ensure. *)
-      Clock.unify child_clock s#clock;
-      Lang.iter_sources (fun s -> Clock.unify child_clock s#clock) transition;
-
-      (* Make sure the child clock can be garbage collected, cf. cue_cut(). *)
-      Gc.finalise (finalise_child_clock child_clock) self
+      child_support#set_clock;
+      Lang.iter_sources
+        (fun s -> Clock.unify self#child_clock s#clock)
+        transition
 
     val mutable main_time = 0
 
     val mutable last_child_tick = 0
 
     (* in main time *)
-
-    (* Indicate that the source should be managed by relaying main ticks,
-     * and it has been used during the current tick, so it should be ticked
-     * even if we're not in active mode. *)
-    val mutable needs_tick = false
-
     val mutable status = `Idle
 
     method private child_tick =
-      (Clock.get source#clock)#end_tick;
-      source#after_output;
+      child_support#child_tick;
       Frame.advance buf_frame;
-      needs_tick <- false;
       last_child_tick <- (Clock.get self#clock)#get_tick
 
     method after_output =
       super#after_output;
-      if needs_tick then self#child_tick;
+      child_support#after_output;
       let main_clock = Clock.get self#clock in
       (* Is it really a new tick? *)
       if main_time <> main_clock#get_tick then (
@@ -517,7 +499,7 @@ let () =
       let transition = Lang.assoc "" 1 p in
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let active = Lang.to_bool (List.assoc "active" p) in
-      let source = Lang.to_source (Lang.assoc "" 2 p) in
+      let source = Lang.assoc "" 2 p in
       let kind = Source.Kind.of_kind kind in
       let c =
         new cross

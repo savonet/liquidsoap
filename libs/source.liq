@@ -41,7 +41,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param fn The applied function.
 # @param s The input source.
-def map_first_track(~id="",fn,s)
+def map_first_track(~id=null(),fn,s)
   fallback(id=id,track_sensitive=true,[fn((once(s):source)),s])
 end
 
@@ -60,7 +60,7 @@ end
 # @param ~max_blank Maximum silence length allowed, in seconds.
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
-def blank.skip(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
+def blank.skip(~id=null(),~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
   blank.detect({s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
@@ -72,7 +72,7 @@ end
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
-def rotate.merge(~id="",~transitions=[],~weights=[],sources)
+def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
   ready = ref(true)
   duration = get(default=0.04,"frame.duration")
 
@@ -120,7 +120,7 @@ end
 # @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
 # @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
 # @param sources Sources to toggle from
-def overlap_sources(~id="",~normalize=false,
+def overlap_sources(~id=null(),~normalize=false,
                     ~start_next="liq_start_next",
                     ~weights=[],sources) =
   position = ref(0)

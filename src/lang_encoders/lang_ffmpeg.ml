@@ -53,6 +53,7 @@ let ffmpeg_gen params =
       height = Frame.video_height;
       pixel_format = None;
       audio_codec = None;
+      sample_format = None;
       video_codec = None;
       hwaccel = `Auto;
       hwaccel_device = None;
@@ -96,6 +97,10 @@ let ffmpeg_gen params =
     | ("ar", t) :: l when mode = `Audio ->
         parse_args ~format ~mode
           { f with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
+          l
+    | ("sample_format", t) :: l when mode = `Audio ->
+        parse_args ~format ~mode
+          { f with Ffmpeg_format.sample_format = Some (to_string t) }
           l
     (* Video options *)
     | ("framerate", t) :: l when mode = `Video ->

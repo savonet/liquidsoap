@@ -18,7 +18,7 @@ end
 
 s = once(blank(duration=10.))
 
-clock.assign_new(sync='none',[s])
+todo = ref(2)
 
 def on_done () =
   def check(out) =
@@ -49,14 +49,19 @@ def on_done () =
     streams == expected
   end
 
-  if check(out_copy) and check(out_encode) then
-    test.pass()
-  else
-    test.fail()
+  todo := !todo - 1
+
+  if !todo == 0 then
+    if check(out_copy) and check(out_encode) then
+      test.pass()
+    else
+      test.fail()
+    end
   end
 end
 
 s = ffmpeg.encode.audio_video(
+  id="encoder",
   %ffmpeg(
     %video(codec="libx264", b="5m"),
     %audio(codec="aac")
@@ -66,6 +71,7 @@ s = ffmpeg.encode.audio_video(
 
 output.file(
   fallible=true,
+  on_stop=on_done,
   %ffmpeg(
     %video.copy,
     %audio.copy,
@@ -74,7 +80,9 @@ output.file(
   s
 )
 
-s = ffmpeg.decode.audio_video(s)
+s = ffmpeg.decode.audio_video(id="decoder", s)
+
+clock.assign_new(sync='none',[s])
 
 output.file(
   fallible=true,

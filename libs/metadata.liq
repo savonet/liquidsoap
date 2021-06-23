@@ -118,7 +118,7 @@ end
 # such information.
 # @category System
 # @param file File from which the cover should be obtained
-def file.cover(~id="", fname)
+def file.cover(~id=null(), fname)
   metadata.cover(file.metadata(fname))
 end
 

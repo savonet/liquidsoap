@@ -21,7 +21,7 @@
 # @method gain Current amplification coefficient (in linear scale).
 # @method target_gain Current target amplification coefficient (in linear scale).
 # @method rms Current rms (in linear scale).
-def replaces normalize(~id="", ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lookahead=getter(0.), ~window=getter(.5), ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
+def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lookahead=getter(0.), ~window=getter(.5), ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
   s = rms.smooth(duration=window, s)
   v = ref(1.)
   frame = frame.duration()
@@ -68,7 +68,7 @@ end
 # @param ~low Lower frequency of the bandpass filter.
 # @param ~high Higher frequency of the bandpass filter.
 # @param ~q Q factor.
-def filter.iir.eq.low_high(~id="", ~low, ~high, ~q=1., s)
+def filter.iir.eq.low_high(~id=null(), ~low, ~high, ~q=1., s)
   s = if not (getter.is_constant(high) and getter.get(high) == infinity) then filter.iir.eq.low(frequency=high, q=q, s) else s end
   s = if not (getter.is_constant(low) and getter.get(low) == 0.) then filter.iir.eq.high(frequency=low, q=q, s) else s end
   s

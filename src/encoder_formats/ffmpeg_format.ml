@@ -40,6 +40,7 @@ type t = {
   hwaccel : hwaccel;
   hwaccel_device : string option;
   audio_codec : codec option;
+  sample_format : string option;
   audio_opts : opts;
   video_codec : codec option;
   video_opts : opts;

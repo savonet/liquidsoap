@@ -20,13 +20,20 @@
 
  *****************************************************************************)
 
-type state = [ `Started | `Stopped ]
+(* [`Start] and [`Stop] are explicit states resulting of a
+   user command. [`Idle] is a default state at init or after a source
+   failure. [`Idle] is used to captures situations where the output is
+   stopped by can be restarted immediately when its underlying source
+   becomes available again. In contrast, [`Stopped] indicates an
+   explicit user-requested stop and the output will not automatically
+   restart. *)
+type state = [ `Started | `Stopped | `Idle ]
 
 (** Base class for sources with start/stop methods. Class ineheriting it should
     declare their own [start]/[stop] method and users should call [#set_start]  *)
 class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
   object (self)
-    val mutable state : state = `Stopped
+    val mutable state : state = `Idle
 
     method state = state
 
@@ -43,24 +50,22 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
 
     method transition_to (s : state) =
       match (s, state) with
-        | `Started, `Stopped ->
+        | `Started, `Stopped | `Started, `Idle ->
             self#start;
             on_start ();
             state <- `Started
+        | `Started, `Started -> ()
         | `Stopped, `Started ->
-            if self#stype = Source.Infallible then
-              raise
-                Lang_values.(
-                  Runtime_error
-                    {
-                      kind = "input";
-                      msg = Some "Input is infallible and cannot be stopped";
-                      pos = [];
-                    });
             self#stop;
             on_stop ();
             state <- `Stopped
-        | _ -> ()
+        | `Stopped, `Idle -> state <- `Stopped
+        | `Stopped, `Stopped -> ()
+        | `Idle, `Started ->
+            self#stop;
+            on_stop ();
+            state <- `Idle
+        | `Idle, `Stopped | `Idle, `Idle -> ()
   end
 
 class virtual active_source ?get_clock ~name ~content_kind ~clock_safe
@@ -122,12 +127,12 @@ let output_proto =
       Some "Start input as soon as it is available." );
   ]
 
-let active_source_proto ~fallible_opt =
+let active_source_proto ~fallible_opt ~clock_safe =
   output_proto
   @ [
       ( "clock_safe",
         Lang.bool_t,
-        Some (Lang.bool true),
+        Some (Lang.bool clock_safe),
         Some "Force the use of a dedicated clock" );
     ]
   @
@@ -166,6 +171,15 @@ let meth :
         "Ask the source or output to stop.",
         fun s ->
           val_fun [] (fun _ ->
+              if s#stype = Source.Infallible then
+                raise
+                  Lang_values.(
+                    Runtime_error
+                      {
+                        kind = "input";
+                        msg = Some "Source is infallible and cannot be stopped";
+                        pos = [];
+                      });
               s#transition_to `Stopped;
               unit) );
     ]

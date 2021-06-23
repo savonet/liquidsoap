@@ -250,11 +250,6 @@ let mk_decoder ?audio ?video ~target_position container =
       | Some pts, Some target_position ->
           let { Avutil.num; den } = Av.get_time_base stream in
           let position = Int64.to_float pts *. float num /. float den in
-          if position < target_position then
-            log#debug
-              "Current position: %f is less than target position: %f, \
-               skipping.."
-              position target_position;
           target_position <= position
       | _ -> true
   in
@@ -386,11 +381,13 @@ let create_decoder ~ctype fname =
         (fun ticks ->
           match duration with
             | None -> -1
-            | Some d ->
-                let ticks =
+            | Some d -> (
+                let target =
                   ticks + Frame.main_of_seconds d - get_remaining ()
                 in
-                seek ~audio ~video ~target_position ticks);
+                match seek ~audio ~video ~target_position target with
+                  | 0 -> 0
+                  | _ -> ticks ));
       decode = mk_decoder ?audio ?video ~target_position container;
     },
     close,

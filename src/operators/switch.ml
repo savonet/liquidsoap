@@ -126,13 +126,15 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 
+    (* This is an approximation as it can be broken by transitions. *)
     method self_sync =
-      match selected with
-        | Some (_, source) -> source#self_sync
-        | None -> (
-            match self#cached_select with
-              | Some { source } -> source#self_sync
-              | None -> false )
+      ( Utils.self_sync_type (List.map (fun c -> c.source) cases),
+        match selected with
+          | Some (_, source) -> snd source#self_sync
+          | None -> (
+              match self#cached_select with
+                | Some { source } -> snd source#self_sync
+                | None -> false ) )
 
     method private get_frame ab =
       (* Choose the next child to be played.

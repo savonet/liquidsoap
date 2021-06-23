@@ -6,10 +6,11 @@ let input.hls = ()
 # @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI.
 # @flag experimental
-def input.hls.native(~id="",~reload=10.,uri)
+def input.hls.native(~id=null(),~reload=10.,uri)
   playlistr = ref([])
   sequence = ref(0)
   playlist_uri = ref(uri)
+  id = string.id.default(default="input.hls.native", id)
 
   def load_playlist () =
     pl = request.create(!playlist_uri)
@@ -96,7 +97,7 @@ let replaces input.hls = input.ffmpeg
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param uri Playlist URI.
-def input.hls(~id="", uri)
+def input.hls(~id=null(), uri)
   input.hls(id=id, uri)
 end
 

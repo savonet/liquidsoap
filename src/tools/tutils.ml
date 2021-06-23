@@ -231,10 +231,7 @@ let () =
   Lifecycle.on_scheduler_shutdown (fun () ->
       log#important "Shutting down scheduler...";
       Duppy.stop scheduler;
-      log#important "Scheduler shut down.";
-      log#important "Waiting for queue threads to terminate...";
-      join_all ~set:queues ();
-      log#important "Queues shut down")
+      log#important "Scheduler shut down.")
 
 let scheduler_log n =
   if scheduler_log#get then (

@@ -64,7 +64,7 @@ class keyboard ~kind =
 
     method abort_track = ()
 
-    method self_sync = false
+    method self_sync = (`Static, false)
 
     method output = if AFrame.is_partial self#memo then self#get_frame self#memo
 
