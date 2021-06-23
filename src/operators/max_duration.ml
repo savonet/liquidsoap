@@ -78,7 +78,7 @@ class max_duration ~kind ~override_meta ~duration source =
       remaining <- remaining - Frame.position buf + offset;
       if remaining <= 0 then (
         s#leave (self :> Source.source);
-        s <- Blank.empty kind;
+        s <- Debug_sources.empty kind;
         s#get_ready [(self :> Source.source)] )
   end
 

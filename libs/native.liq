@@ -18,7 +18,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
 def native.fallback(~id=null(), ~track_sensitive=true, sources)
-  fail = (fail():source)
+  fail = (source.fail():source)
 
   def s()
     list.find(default=fail, source.is_ready, sources)
@@ -37,7 +37,7 @@ end
 def native.sequence(~id=null(), sources)
   len  = list.length(sources)
   n    = ref(0)
-  fail = (fail():source)
+  fail = (source.fail():source)
 
   def rec s()
     sn = list.nth(default=list.last(default=fail, sources), sources, !n)
@@ -115,7 +115,7 @@ def native.request.dynamic(~id=null(), ~prefetch=1, ~polling_delay=1., ~timeout=
       queue := list.tl(!queue)
       s
     else
-      fail()
+      source.fail()
     end
   end
   source.dynamic(id=id, track_sensitive=true, s).{queue_size=queue_size}

@@ -166,7 +166,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
                     to_finish <- old_s :: to_finish;
                     Clock.collect_after (fun () ->
                         let old_source =
-                          if forget then Blank.empty kind else old_c.source
+                          if forget then Debug_sources.empty kind
+                          else old_c.source
                         in
                         let new_source =
                           (* Force insertion of old metadata if relevant.

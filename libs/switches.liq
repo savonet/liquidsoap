@@ -61,7 +61,7 @@ def rotate(~id=null(), ~override="liq_transition_length", ~replay_metadata=true,
 
     if list.exists(source.is_ready, sources) then
       def rec f(index) =
-        s = list.nth(default=(fail():source), sources, index)
+        s = list.nth(default=(source.fail():source), sources, index)
         if source.is_ready(s) then
           picked_index := index
         else

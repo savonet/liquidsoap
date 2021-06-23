@@ -57,7 +57,8 @@ class producer ~consumers_val ~name ~kind g =
     method sleep =
       super#sleep;
       List.iter
-        (fun c -> c#leave ?dynamic:None (self :> Source.source))
+        (fun c ->
+          c#leave ?failed_to_start:None ?dynamic:None (self :> Source.source))
         consumers
 
     method private get_frame buf =

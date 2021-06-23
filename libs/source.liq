@@ -33,7 +33,7 @@ end
 # @category Source / Track Processing
 # @param s The input source.
 def once(s)
-  sequence([s,(fail():source)])
+  sequence([s,(source.fail():source)])
 end
 
 # Apply a function to the first track of a source

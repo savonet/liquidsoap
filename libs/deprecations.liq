@@ -237,10 +237,11 @@ def register_flow(~server="",~user="default",~password="default",
 end
 %endif
 
-# Deprecated: this function has been replaced by `fail`.
+# Deprecated: this function has been replaced by `source.fail`.
 # @flag deprecated
 def empty(~id=null())
-  fail()
+  deprecated("empty", "source.fail")
+  source.fail()
 end
 
 # Deprecated: use `request.create` instead.

@@ -582,11 +582,12 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
      * The current implementation makes it dangerous to call #leave from
      * another thread than the Root one, as interleaving with #get is
      * forbidden. *)
-    method leave ?(dynamic = false) src =
+    method leave ?(failed_to_start = true) ?(dynamic = false) src =
       self#mutexify
         (fun () -> List.iter (fun fn -> try fn () with _ -> ()) on_leave)
         ();
       let rec remove acc = function
+        | [] when failed_to_start -> []
         | [] ->
             self#log#critical "Got ill-balanced activations (from %s)!" src#id;
             assert false
@@ -617,7 +618,10 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
       List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
 
     method private sleep =
-      List.iter (fun s -> s#leave ?dynamic:None (self :> operator)) sources
+      List.iter
+        (fun s ->
+          s#leave ?failed_to_start:None ?dynamic:None (self :> operator))
+        sources
 
     (** Streaming *)
 

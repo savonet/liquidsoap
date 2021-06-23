@@ -147,7 +147,7 @@ class virtual source :
        method on_leave : (unit -> unit) -> unit
 
        (** Opposite of [get_ready] : the operator no longer needs the source. *)
-       method leave : ?dynamic:bool -> source -> unit
+       method leave : ?failed_to_start:bool -> ?dynamic:bool -> source -> unit
 
        method private sleep : unit
 

@@ -64,7 +64,7 @@ protocols = \
 	protocols/mpd.ml
 
 sources = \
-	sources/synthesized.ml sources/noise.ml sources/blank.ml \
+	sources/synthesized.ml sources/noise.ml sources/blank.ml sources/debug_sources.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \
 	sources/request_simple.ml sources/generated.ml \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \

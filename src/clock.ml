@@ -103,8 +103,8 @@ let conf_log_delay =
 
 (** Leave a source, ignoring errors *)
 
-let leave (s : active_source) =
-  try s#leave (s :> source)
+let leave ?failed_to_start (s : active_source) =
+  try s#leave ?failed_to_start (s :> source)
   with e ->
     let bt = Printexc.get_backtrace () in
     Utils.log_exception ~log ~bt
@@ -308,7 +308,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
               Utils.log_exception ~log ~bt
                 (Printf.sprintf "Source %s failed while streaming: %s!" s#id
                    (Printexc.to_string exn));
-              leave s;
+              leave ~failed_to_start:true s;
               (s :: e, a))
           ([], []) active
       in
@@ -368,7 +368,7 @@ class clock ?(start = true) ?(sync = `Auto) id =
                 Utils.log_exception ~log ~bt
                   (Printf.sprintf "Error when starting %s: %s!" s#id
                      (Printexc.to_string e));
-                leave s;
+                leave ~failed_to_start:true s;
                 `Error s)
             to_start
         in

@@ -86,34 +86,3 @@ let () =
       let d = Lang.to_float (List.assoc "duration" p) in
       let kind = Source.Kind.of_kind kind in
       (new blank ~kind d :> source))
-
-class fail ~kind =
-  object
-    inherit source ~name:"fail" kind
-
-    method stype = Fallible
-
-    method is_ready = false
-
-    method self_sync = (`Static, false)
-
-    method remaining = 0
-
-    method abort_track = ()
-
-    method get_frame _ = assert false
-  end
-
-let fail kind = (new fail ~kind :> source)
-let empty = fail
-
-let () =
-  let kind = Lang.any in
-  let return_t = Lang.kind_type_of_kind_format kind in
-  Lang.add_operator "fail" ~category:Lang.Input
-    ~descr:
-      "A source that does not produce anything. No silence, no track at all."
-    ~return_t [] (fun _ ->
-      ( let kind = Source.Kind.of_kind kind in
-        new fail ~kind
-        :> source ))

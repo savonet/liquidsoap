@@ -28,6 +28,7 @@ let () =
       "audio";
       "clock";
       "configure";
+      "debug";
       "encoder";
       "harbor";
       "http";

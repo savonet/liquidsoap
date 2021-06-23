@@ -74,7 +74,7 @@ def video.cover(s)
     cover = if file.exists(filename) then file.cover(filename) else "".{mime=""} end
     if cover == "" then
       log.debug("No cover for #{filename}.")
-      video.set(fail())
+      video.set(source.fail())
     else
       ext =
         if cover.mime == "image/png" then
