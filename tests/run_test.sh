@@ -24,14 +24,6 @@ run_test() {
     rm -rf "${LOG_FILE}"
   }
 
-  on_timeout() {
-    echo -e "\033[1;34m[timeout]\033[0m"
-    cat "${LOG_FILE}"
-    exit 1
-  }
-
-  trap on_timeout 15
-
   echo -en "Running test \033[1m${TEST_NAME}\033[0m... "
 
   ${CMD} < "${PWD}/${TEST}"  > "${LOG_FILE}" 2>&1 &
@@ -39,6 +31,15 @@ run_test() {
   PID=$!
   wait $PID
   STATUS=$?
+
+  on_timeout() {
+    echo -e "\033[1;34m[timeout]\033[0m"
+    kill -QUIT $PID
+    cat "${LOG_FILE}"
+    exit 1
+  }
+
+  trap on_timeout 15
 
   if [ "${STATUS}" == "0" ]; then
     echo -e "\033[0;32m[ok]\033[0m"
