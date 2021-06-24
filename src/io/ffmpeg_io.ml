@@ -55,7 +55,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       super#is_ready && self#mutexify (fun () -> container <> None) ()
 
     method self_sync =
-      (`Dynamic, self_sync && self#mutexify (fun () -> container <> None))
+      (`Dynamic, self_sync && self#mutexify (fun () -> container <> None) ())
 
     method private start = self#connect
 
