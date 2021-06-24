@@ -54,17 +54,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method is_ready =
       super#is_ready && self#mutexify (fun () -> container <> None) ()
 
-    (* This is a hack. We really want to avoid using these sources in operators
-       that control latency such as [cross], [soundtouch] and etc. It's not just
-       about pulling data at a higher rate than real-time, which would work on a
-       regular HTTP server-based media file, it's also about pulling data at a
-       lower rate than real-time, typically when dropping the pitch, in which case
-       network connection would eventually timeout.
-
-       Thus, we use [`Dynamic] here to make sure the operator fails to be used in
-       such cases, even though the value is not technically dynamic. This does not
-       impact the behavior with the controlling clock during runtime execution. *)
-    method self_sync = (`Dynamic, self_sync)
+    method self_sync =
+      (`Dynamic, self_sync && self#mutexify (fun () -> container <> None))
 
     method private start = self#connect
 
