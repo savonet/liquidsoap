@@ -31,7 +31,7 @@ end
 
 s = single(fname)
 
-s = sequence([s,s,s,s,s,fail()])
+s = sequence([s,s,s,s,s,source.fail()])
 
 s = f(s)
 

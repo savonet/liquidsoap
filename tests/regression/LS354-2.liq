@@ -1,6 +1,6 @@
 %include "test.liq"
 
-s1 = fail()
+s1 = source.fail()
 s2 = blank(duration=1.)
 
 s2.on_track(
