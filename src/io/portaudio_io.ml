@@ -73,7 +73,7 @@ class output ~kind ~clock_safe ~start ~on_start ~on_stop ~infallible buflen
 
     val mutable stream = None
 
-    method self_sync = (`Static, true)
+    method self_sync = (`Dynamic, stream <> None)
 
     method private open_device =
       self#handle "open_default_stream" (fun () ->
@@ -132,7 +132,7 @@ class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
 
     val mutable stream = None
 
-    method self_sync = (`Static, true)
+    method self_sync = (`Dynamic, stream <> None)
 
     method abort_track = ()
 

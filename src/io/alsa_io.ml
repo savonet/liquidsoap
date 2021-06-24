@@ -54,7 +54,7 @@ class virtual base dev mode =
         let buf = Array.map (fun buf -> Bigarray.Array1.sub buf ofs len) buf in
         Pcm.readn_float_ba pcm buf
 
-    method self_sync : Source.self_sync = (`Static, true)
+    method self_sync : Source.self_sync = (`Dynamic, pcm <> None)
 
     method open_device =
       self#log#important "Using ALSA %s." (Alsa.get_version ());

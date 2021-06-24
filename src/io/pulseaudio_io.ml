@@ -45,7 +45,7 @@ class virtual base ~client ~device =
 
     method virtual log : Log.t
 
-    method self_sync : Source.self_sync = (`Static, true)
+    method self_sync : Source.self_sync = (`Dynamic, dev <> None)
   end
 
 class output ~infallible ~start ~on_start ~on_stop ~kind p =

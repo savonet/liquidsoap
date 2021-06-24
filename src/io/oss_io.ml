@@ -54,7 +54,7 @@ class output ~kind ~clock_safe ~on_start ~on_stop ~infallible ~start dev
 
     val mutable fd = None
 
-    method self_sync = (`Static, true)
+    method self_sync = (`Dynamic, fd <> None)
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
@@ -95,7 +95,7 @@ class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
 
     val mutable fd = None
 
-    method self_sync = (`Static, true)
+    method self_sync = (`Dynamic, fd <> None)
 
     method abort_track = ()
 

@@ -63,7 +63,7 @@ class jack_in ~kind ~clock_safe ~on_start ~on_stop ~fallible ~autostart
 
     val mutable device = None
 
-    method self_sync = (`Static, true)
+    method self_sync = (`Dynamic, device <> None)
 
     method close =
       match device with
