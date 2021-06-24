@@ -905,7 +905,7 @@ let () =
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     ( common_options ~mode:`Listener
-    @ Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
+    @ Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:`Nope
     @ [
         ( "max",
           Lang.float_t,
