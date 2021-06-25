@@ -28,13 +28,14 @@ open Source
   * while looping on the last source -- this behavior would not be suited
   * to the current use of [sequence] in transitions. *)
 class sequence ~kind ?(merge = false) sources =
+  let self_sync_type = Utils.self_sync_type sources in
   object (self)
     inherit operator ~name:"sequence" kind sources
 
     val mutable seq_sources = sources
 
     method self_sync =
-      ( Utils.self_sync_type sources,
+      ( self_sync_type,
         match sources with hd :: _ -> snd hd#self_sync | [] -> false )
 
     method stype =

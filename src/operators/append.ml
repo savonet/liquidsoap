@@ -23,6 +23,9 @@
 open Source
 
 class append ~kind ~insert_missing ~merge source f =
+  let sources = ref [] in
+  let () = Lang.iter_sources (fun s -> sources := s :: !sources) f in
+  let self_sync_type = Utils.self_sync_type !sources in
   object (self)
     inherit operator ~name:"append" kind [source]
 
@@ -110,7 +113,7 @@ class append ~kind ~insert_missing ~merge source f =
         | `Append s -> s#seek n
 
     method self_sync =
-      ( `Dynamic,
+      ( self_sync_type,
         match state with
           | `Append s -> snd s#self_sync
           | _ -> snd source#self_sync )

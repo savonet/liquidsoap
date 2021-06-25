@@ -46,6 +46,13 @@ type track_mode = Sensitive | Insensitive
 
 class virtual switch ~kind ~name ~override_meta ~transition_length
   ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
+  let sources = ref (List.map (fun c -> c.source) cases) in
+  let () =
+    List.iter
+      (Lang.iter_sources (fun s -> sources := s :: !sources))
+      (List.map (fun c -> c.transition) cases)
+  in
+  let self_sync_type = Utils.self_sync_type !sources in
   object (self)
     inherit operator ~name kind (List.map (fun x -> x.source) cases)
 
@@ -126,9 +133,8 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
 
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 
-    (* This is an approximation as it can be broken by transitions. *)
     method self_sync =
-      ( Utils.self_sync_type (List.map (fun c -> c.source) cases),
+      ( self_sync_type,
         match selected with
           | Some (_, source) -> snd source#self_sync
           | None -> (

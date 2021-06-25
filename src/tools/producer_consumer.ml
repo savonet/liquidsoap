@@ -30,13 +30,14 @@ class producer ~consumers_val ~name ~kind g =
   let infallible =
     List.for_all (fun s -> s#stype = Source.Infallible) consumers
   in
+  let self_sync_type = Utils.self_sync_type consumers in
   object (self)
     inherit Source.source kind ~name as super
 
     inherit Child_support.base consumers_val as child_support
 
     method self_sync =
-      ( Utils.self_sync_type consumers,
+      ( self_sync_type,
         List.fold_left (fun cur s -> cur || snd s#self_sync) false consumers )
 
     method stype = if infallible then Source.Infallible else Source.Fallible

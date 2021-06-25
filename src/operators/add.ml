@@ -34,6 +34,7 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
   video_init video_loop =
+  let self_sync_type = Utils.self_sync_type (List.map snd sources) in
   object (self)
     inherit operator ~name:"add" kind (List.map snd sources) as super
 
@@ -48,8 +49,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
       else Fallible
 
     method self_sync =
-      ( Utils.self_sync_type (List.map snd sources),
-        List.exists (fun (_, s) -> snd s#self_sync) sources )
+      (self_sync_type, List.exists (fun (_, s) -> snd s#self_sync) sources)
 
     method remaining =
       List.fold_left max 0
