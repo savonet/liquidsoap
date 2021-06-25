@@ -25,9 +25,12 @@ end
 # Read an RTMP stream.
 # @category Source / Input
 # @param ~max_buffer Maximum data buffer in seconds
+# @param ~timeout Timeout for source connection
 # @param url URL to read RTMP from, in the form `rtmp://IP:PORT/ENDPOINT`
-def input.rtmp(~max_buffer=5., url)
-  input.ffmpeg(max_buffer=max_buffer, log_overfull=false, format="live_flv", int_args=[("listen", 1)], url)
+def input.rtmp(~max_buffer=5., ~timeout=10., url)
+  input.ffmpeg(max_buffer=max_buffer, log_overfull=false, format="live_flv",
+               int_args=[("listen", 1), ("rw_timeout", int_of_float(timeout *. 1000000.)],
+                url)
 end
 %endif
 

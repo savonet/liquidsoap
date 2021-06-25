@@ -171,10 +171,12 @@ let http_log = Log.make ["input"; "http"]
 
 class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
   ~max_buffer ~log_overfull ~kind ~on_connect ~on_disconnect ?format ~opts
-  ~user_agent ~on_start ~on_stop ~new_track_on_metadata url =
+  ~user_agent ~timeout ~on_start ~on_stop ~new_track_on_metadata url =
   let () =
     Hashtbl.add opts "icy" (`Int 1);
-    Hashtbl.add opts "user_agent" (`String user_agent)
+    Hashtbl.add opts "user_agent" (`String user_agent);
+    Hashtbl.add opts "rw_timeout"
+      (`Int64 (Int64.of_float (timeout *. 1000000.)))
   in
   let on_connect input =
     let icy_headers =
@@ -303,6 +305,10 @@ let register_input is_http =
             Lang.bool_t,
             Some (Lang.bool true),
             Some "Treat new metadata as new track." );
+          ( "timeout",
+            Lang.float_t,
+            Some (Lang.float 10.),
+            Some "Timeout for source connection." );
         ]
       else [] )
     @ ( if is_http then
@@ -436,6 +442,7 @@ let register_input is_http =
       let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
       let kind = Source.Kind.of_kind kind in
       if is_http then (
+        let timeout = Lang.to_float (List.assoc "timeout" p) in
         let user_agent = Lang.to_string (List.assoc "user_agent" p) in
         let new_track_on_metadata =
           Lang.to_bool (List.assoc "new_track_on_metadata" p)
@@ -452,7 +459,8 @@ let register_input is_http =
         ( new http_input
             ~kind ~debug ~autostart ~self_sync ~clock_safe ~poll_delay
             ~on_connect ~on_disconnect ~user_agent ~new_track_on_metadata
-            ~max_buffer ~log_overfull ?format ~opts ~on_start ~on_stop url
+            ~max_buffer ~log_overfull ?format ~opts ~timeout ~on_start ~on_stop
+            url
           :> input ) )
       else (
         let on_connect _ = ignore (Lang.apply (List.assoc "on_connect" p) []) in
