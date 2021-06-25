@@ -55,7 +55,7 @@ depends: [
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.2"}
   "duppy" {>= "0.9.1"}
-  "menhir"
+  "menhir" {>= "20180703"}
   "mm" {>= "0.7.0"}
   "ocamlfind" {build}
   "conf-pkg-config" {build}
