@@ -47,12 +47,17 @@ type track_mode = Sensitive | Insensitive
 class virtual switch ~kind ~name ~override_meta ~transition_length
   ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
   let sources = ref (List.map (fun c -> c.source) cases) in
+  let failed = ref false in
   let () =
     List.iter
-      (Lang.iter_sources (fun s -> sources := s :: !sources))
+      (Lang.iter_sources
+         ~on_reference:(fun () -> failed := true)
+         (fun s -> sources := s :: !sources))
       (List.map (fun c -> c.transition) cases)
   in
-  let self_sync_type = Utils.self_sync_type !sources in
+  let self_sync_type =
+    if !failed then `Dynamic else Utils.self_sync_type !sources
+  in
   object (self)
     inherit operator ~name kind (List.map (fun x -> x.source) cases)
 

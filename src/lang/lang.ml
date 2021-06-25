@@ -300,7 +300,7 @@ let string_of_category x =
 (** List of references for which iter_sources had to give up --- see below. *)
 let static_analysis_failed = ref []
 
-let iter_sources f v =
+let iter_sources ?on_reference f v =
   let itered_values = ref [] in
   let rec iter_term env v =
     match v.Term.term with
@@ -386,12 +386,15 @@ let iter_sources f v =
                 aux v
               in
               static_analysis_failed := r :: !static_analysis_failed;
-              if may_have_source then
-                log#severe
-                  "WARNING! Found a reference, potentially containing sources, \
-                   inside a dynamic source-producing function. Static analysis \
-                   cannot be performed: make sure you are not sharing sources \
-                   contained in references!" ) )
+              if may_have_source then (
+                match on_reference with
+                  | Some f -> f ()
+                  | None ->
+                      log#severe
+                        "WARNING! Found a reference, potentially containing \
+                         sources, inside a dynamic source-producing function. \
+                         Static analysis cannot be performed: make sure you \
+                         are not sharing sources contained in references!" ) ) )
   in
   iter_value v
 

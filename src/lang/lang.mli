@@ -81,8 +81,10 @@ val compare_values : value -> value -> int
 
 (** Iter a function over all sources contained in a value. This only applies to
     statically referenced objects, i.e. it does not explore inside reference
-    cells. *)
-val iter_sources : (Source.source -> unit) -> value -> unit
+    cells. [on_reference] is used when we encounter a reference cell that may
+    contain a source. If not passed, we display a warning log. *)
+val iter_sources :
+  ?on_reference:(unit -> unit) -> (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
 

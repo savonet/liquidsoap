@@ -24,8 +24,16 @@ open Source
 
 class append ~kind ~insert_missing ~merge source f =
   let sources = ref [] in
-  let () = Lang.iter_sources (fun s -> sources := s :: !sources) f in
-  let self_sync_type = Utils.self_sync_type !sources in
+  let failed = ref false in
+  let () =
+    Lang.iter_sources
+      ~on_reference:(fun () -> failed := true)
+      (fun s -> sources := s :: !sources)
+      f
+  in
+  let self_sync_type =
+    if !failed then `Dynamic else Utils.self_sync_type !sources
+  in
   object (self)
     inherit operator ~name:"append" kind [source]
 
