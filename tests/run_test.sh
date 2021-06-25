@@ -34,7 +34,7 @@ run_test() {
 
   on_timeout() {
     echo -e "\033[1;34m[timeout]\033[0m"
-    kill -QUIT $PID
+    killall -QUIT liquidsoap
     cat "${LOG_FILE}"
     exit 1
   }
