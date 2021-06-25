@@ -49,8 +49,7 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
 
     method self_sync =
       ( Utils.self_sync_type (List.map snd sources),
-        List.fold_left (fun cur (_, s) -> cur || snd s#self_sync) false sources
-      )
+        List.exists (fun (_, s) -> snd s#self_sync) sources )
 
     method remaining =
       List.fold_left max 0
