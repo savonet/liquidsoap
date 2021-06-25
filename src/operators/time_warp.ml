@@ -130,7 +130,7 @@ let () =
           Some (Lang.bool true),
           Some "Allow the child source to fail." );
       ]
-    @ Output.proto
+    @ List.filter (fun (lbl, _, _, _) -> lbl <> "fallible") Output.proto
     @ [
         ( "buffer",
           Lang.float_t,
