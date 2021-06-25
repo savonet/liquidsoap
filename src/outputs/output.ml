@@ -61,7 +61,7 @@ class virtual output ~content_kind ~output_kind ?(name = "") ~infallible
 
     method virtual private send_frame : Frame.t -> unit
 
-    method self_sync = (`Dynamic, snd source#self_sync)
+    method self_sync = source#self_sync
 
     method stype = if infallible then Source.Infallible else Source.Fallible
 
