@@ -29,4 +29,5 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
             --with-camomile-data-dir=/usr/share/liquidsoap/camomile
 
 cd liquidsoap
+make -C doc language.dtd liquidsoap.1
 make tarball
