@@ -297,10 +297,7 @@ let string_of_category x =
     | Visualization -> "Visualization"
     | Liquidsoap -> "Liquidsoap"
 
-(** List of references for which iter_sources had to give up --- see below. *)
-let static_analysis_failed = ref []
-
-let iter_sources ?on_reference f v =
+let iter_sources ?on_reference ~static_analysis_failed f v =
   let itered_values = ref [] in
   let rec iter_term env v =
     match v.Term.term with
@@ -398,6 +395,7 @@ let iter_sources ?on_reference f v =
   in
   iter_value v
 
+let iter_sources = iter_sources ~static_analysis_failed:(ref [])
 let apply f p = Clock.collect_after (fun () -> Term.apply f p)
 
 (** {1 High-level manipulation of values} *)
