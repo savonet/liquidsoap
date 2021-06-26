@@ -11,6 +11,7 @@ From 1.4.x to 2.0.0
 
 In order to provide as much compatibility with the different HTTP procotols and implementation, we have decided
 to delegate HTTP support to external libraries which have large scale support and implementation. This means that:
+
 * You need to install `ocurl` to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
 * You need to install `ffmpeg` (version `1.0.0` or above) to enable `input.http`
 * You do not need to install `ssl` anymore to enable their `https` counter-part. These operators have been deprecated.
@@ -20,6 +21,7 @@ to delegate HTTP support to external libraries which have large scale support an
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
 but it is good practice to update your script. You should see logs in your script when running
 deprecated operatords. Here's a list of most important ones:
+
 * `playlist.safe` is replaced by: `playlist(mksafe(..))`
 * `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
 * `rewrite_metadata` should be rewritten using `map_metadata`
