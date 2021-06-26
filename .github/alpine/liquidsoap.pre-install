@@ -1,0 +1,7 @@
+#!/bin/sh
+
+addgroup -S liquidsoap 2>/dev/null
+adduser -S -D -h /var/liquidsoap -s /sbin/nologin -G liquidsoap -g liquidsoap liquidsoap 2>/dev/null
+addgroup liquidsoap audio 2>/dev/null
+
+exit 0

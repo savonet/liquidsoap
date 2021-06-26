@@ -89,6 +89,11 @@ These images contain a minimal `debian/testing` image with the liquidsoap debian
 Installed packages are those generated during our CI process, not the official debian package! Images are tagged
 by the branch that was used to generate them. 
 
+We also provide images based on [Aline Linux](https://hub.docker.com/re/savonet/liquidsoap-alpine). These images
+are much smaller in size, due to the particularity of the standard C library [musl](https://www.musl-libc.org/)
+used to build them and can be useful in situations where size matters. However, because `musl` is not as widespread
+as the GNU libc, we have not (yet?) made those images our default production images.
+
 Windows
 -------
 

@@ -45,3 +45,5 @@ else
 fi
 
 echo "##[set-output name=should_build_code;]${SHOULD_BUILD_CODE}"
+
+echo "##[set-output name=s3-artifact-basepath;]s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"

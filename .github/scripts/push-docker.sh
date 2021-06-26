@@ -15,3 +15,5 @@ docker login -u "$USER" -p "$PASSWORD"
 docker manifest create savonet/liquidsoap:$TAG --amend savonet/liquidsoap-ci-build:${TAG}_amd64 --amend savonet/liquidsoap-ci-build:${TAG}_arm64
 docker manifest push savonet/liquidsoap:$TAG
 
+docker manifest create savonet/liquidsoap-alpine:$TAG --amend savonet/liquidsoap-ci-build:${TAG}_alpine_amd64 --amend savonet/liquidsoap-ci-build:${TAG}_alpine_arm64
+docker manifest push savonet/liquidsoap-alpine:$TAG
