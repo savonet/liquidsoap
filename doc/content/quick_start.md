@@ -128,7 +128,7 @@ liquidsoap \
 ```
 
 Once started, this will place all the files required for HLS stream into the local path `"/path/to/hls/directory"` which you can then server over HTTP.
-The HLS output has many interesting options, including callbacks to upload its files and more. See the [HLS Output](hls_output.html) for more details.
+The HLS output has many interesting options, including callbacks to upload its files and more. See the [HLS Output](hls_output.html) page for more details.
 
 ### Input from another streaming server
 Liquidsoap can use another stream as an audio source. This may be useful if you do some live shows.

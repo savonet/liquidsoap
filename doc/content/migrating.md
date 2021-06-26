@@ -4,9 +4,37 @@ Migrating to a new Liquidsoap version
 In this page, we list the most common catches when migrating to a new version of
 Liquidsoap.
 
-2.0
----
+From 1.4.x to 2.0.0
+-------------------
 
-- `input.http`: by default the source now has its own clock, which means that
-  you might encounter new clock errors due to this. You can pass the argument
-  `self_sync=true` in order to disable this and restore previous behavior.
+### Http input and operators
+
+In order to provide as much compatibility with the different HTTP procotols and implementation, we have decided
+to delegate HTTP support to external libraries which have large scale support and implementation. This means that:
+* You need to install `ocurl` to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
+* You need to install `ffmpeg` (version `1.0.0` or above) to enable `input.http`
+* You do not need to install `ssl` anymore to enable their `https` counter-part. These operators have been deprecated.
+
+### Deprecated operators
+
+Some operators have been deprecated. For most of them, we provide a backward-compatible support 
+but it is good practice to update your script. You should see logs in your script when running
+deprecated operatords. Here's a list of most important ones:
+* `playlist.safe` is replaced by: `playlist(mksafe(..))`
+* `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
+* `rewrite_metadata` should be rewritten using `map_metadata`
+* `fade.inital` and `fade.final` are not needed anymore
+* `get_process_output` is replaced by: `process.read`
+* `get_process_lines` is replaced by: `process.read.lines`
+* `test_process` is replaced by: `process.test`
+* `system` is replaced by: `process.run`
+* `add_timeout` is replaced by: `thread.run.recurrent`
+* `on_blank` is replaced by: `blank.detect`
+* `skip_blank` is replaced by: `blank.skip`
+* `eat_blank` is replaced by: `blank.eat`
+* `strip_blank` is replaced by: `blank.strip`
+* `which` is replaced by: `file.which`
+* `register_flow`: flow is no longer maintained
+* `empty` is replaced by: `source.fail`
+* `file.unlink` is replaced by: `file.remove`
+
