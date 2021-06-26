@@ -10,11 +10,12 @@ From 1.4.x to 2.0.0
 ### Http input and operators
 
 In order to provide as much compatibility with the different HTTP procotols and implementation, we have decided
-to delegate HTTP support to external libraries which have large scale support and implementation. This means that:
+to delegate HTTP support to external libraries which have large scale support and implementation. This means that,
+if you have installed `liquidsoap` using `opam`:
 
-* You need to install `ocurl` to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
-* You need to install `ffmpeg` (version `1.0.0` or above) to enable `input.http`
-* You do not need to install `ssl` anymore to enable their `https` counter-part. These operators have been deprecated.
+* You need to install the `ocurl` package to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
+* You need to install the `ffmpeg` package (version `1.0.0` or above) to enable `input.http`
+* You do not need to install the `ssl` package anymore to enable their `https` counter-part. These operators have been deprecated.
 
 ### Deprecated operators
 
