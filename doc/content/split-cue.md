@@ -7,9 +7,9 @@ Here's for instance an example of a simple code to split a CUE sheet into severa
 with `id3v2` tags:
 ```liquidsoap
  # Log to stdout
- set("log.file",false)
- set("log.stdout",true)
- set("log.level",4)
+ log.file.set(false)
+ log.stdout.set(true)
+ log.level.set(4)
 
  # Initial playlist
  cue = "/path/to/sheet.cue"

@@ -161,7 +161,7 @@ parameters in realtime. There are many OSC clients around, for instance I used
 
 ```liquidsoap
 # Set the OSC port to match TouchOSC's default port
-set("osc.port",8000)
+settings.osc.port.set(8000)
 
 # Input from the webcam
 s = input.v4l2_with_audio()
@@ -222,9 +222,9 @@ x264 / mp3. This can be achieved as follows:
 # Set the values for video size and fps.
 # On my standard computer, higher values means
 # that we cannot encode in realtime.
-set("frame.video.width", 320)
-set("frame.video.height",240)
-set("frame.video.samplerate",12)
+video.frame.width.set(320)
+video.frame.height.set(240)
+video.frame.rate.set(12)
 
 # The video we want to stream.
 s = single("big_buck_bunny_720p_stereo.ogg")
@@ -316,9 +316,9 @@ Internally, Liquidsoap uses a video format which is the same for all frames. You
 can change it by doing
 
 ```liquidsoap
-set("frame.video.width",320)
-set("frame.video.height",240)
-set("frame.video.samplerate",24)
+video.frame.width.set(320)
+video.frame.height.set(240)
+video.frame.rate.set(24)
 ```
 
 Using higher values result in higher quality videos produced, but this also

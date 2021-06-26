@@ -773,6 +773,35 @@ let source_methods =
       ([], fun_t [] bool_t),
       "Is the source currently controling its own real-time loop.",
       fun s -> val_fun [] (fun _ -> bool (snd s#self_sync)) );
+    ( "log",
+      ( [],
+        record_t
+          [
+            ( "level",
+              method_t
+                (fun_t [] (nullable_t int_t))
+                [
+                  ( "set",
+                    ([], fun_t [(false, "", int_t)] unit_t),
+                    "Set the source's log level" );
+                ] );
+          ] ),
+      "Get or set the source's log level, from `1` to `5`.",
+      fun s ->
+        record
+          [
+            ( "level",
+              meth
+                (val_fun [] (fun _ ->
+                     match s#log#level with Some lvl -> int lvl | None -> null))
+                [
+                  ( "set",
+                    val_fun [("", "", None)] (fun p ->
+                        let lvl = min 5 (max 1 (to_int (List.assoc "" p))) in
+                        s#log#set_level lvl;
+                        unit) );
+                ] );
+          ] );
     ( "is_up",
       ([], fun_t [] bool_t),
       "Indicate that the source can be asked to produce some data at any time. \

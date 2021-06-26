@@ -125,10 +125,10 @@ def liquidsoap(
     enable_mic_str = "true"
 
   script = """
-set("log.file",true)
-set("log.file.path","/tmp/lig.<pid>.log")
-set("log.stdout",true)
-set("server.telnet",true)
+log.file.set(true)
+log.file.path.set("/tmp/lig.<pid>.log")
+log.stdout.set(true)
+settings.server.telnet.set(true)
 
 bg = request.equeue(id="bed")
 music = request.equeue(id="music")

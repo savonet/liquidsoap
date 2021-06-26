@@ -4,7 +4,7 @@
 # was retuning remaining = 0 too early,
 # trigering an early `on_end` call.
 
-set("decoder.decoders",["FLAC"])
+settings.decoder.decoders.set(["FLAC"])
 
 s = single("../media/files/audio/@flac(stereo).flac")
 

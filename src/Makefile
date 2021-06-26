@@ -212,7 +212,7 @@ builtins = lang/lang_builtins.ml lang/builtins_ref.ml \
            lang/builtins_bool.ml lang/builtins_list.ml \
            lang/builtins_string.ml lang/builtins_json.ml \
            lang/builtins_request.ml lang/builtins_error.ml \
-           lang/builtins_null.ml lang/builtins_dtools.ml \
+           lang/builtins_null.ml lang/builtins_settings.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
            lang/builtins_server.ml lang/builtins_math.ml \
 	   lang/builtins_files.ml lang/builtins_resolvers.ml \

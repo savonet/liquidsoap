@@ -1,9 +1,9 @@
 #!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-set("log.level",4)
-set("ffmpeg.log.level",4)
-set("frame.audio.samplerate",48000)
+log.level.set(4)
+settings.ffmpeg.log.level.set(12)
+audio.samplerate.set(48000)
 
 out = "files/test.mp4"
 

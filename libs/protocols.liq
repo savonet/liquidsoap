@@ -1,15 +1,41 @@
-register(name="Protocol Settings","protocol",())
+# @flag hidden
+def mk_protocol_setting(name) =
+  settings.make.void(
+    "Settings for the #{name} protocol"
+  )
+end
 
-register(name="ReplayGain protocol settings","protocol.replaygain",())
-register(name="ReplayGain path","protocol.replaygain.path","#{configure.bindir}/extract-replaygain")
+let settings.protocol = settings.make.void(
+  "Settings for registered protocols"
+) 
+
+let settings.protocol.replaygain = mk_protocol_setting("ReplayGain")
+let settings.protocol.replaygain.path = settings.make(
+  description="ReplayGain path",
+  "#{configure.bindir}/extract-replaygain"
+)
+
+# @flag hidden
+def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
+                       ~delay,file)
+  log = log.info(label="extract.replaygain")
+  p = process.run("#{extract_replaygain} #{string.quote(file)}")
+  stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)
+  if p.status == "exit" and p.status.code == 0 then
+    stdout
+  else
+    stderr = string.replace(pattern='\\n', fun (_) -> "", p.stderr)
+    log("ReplayGain extraction by #{extract_replaygain} failed with: #{stderr}")
+    ""
+  end
+end
 
 # Register the replaygain protocol.
 # @flag hidden
 def replaygain_protocol(~rlog,~maxtime,arg)
  delay = maxtime - time()
  # The extraction program
- extract_replaygain =
-   get(default="#{configure.bindir}/extract-replaygain","protocol.replaygain.path")
+ extract_replaygain = settings.protocol.replaygain.path()
  ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
  if ret != "" then
   ["annotate:replaygain_track_gain=\"#{ret}\":#{arg}"]
@@ -22,16 +48,18 @@ add_protocol("replaygain", replaygain_protocol,
              doc="Compute replaygain value using the extract-replaygain script. \
                   Adds returned value as `\"replaygain_track_gain\"` metadata")
 
-register(name="Process protocol settings","protocol.process",())
-register(name="Process Environment",
-         descr="List of environment variables \
-                passed down to the executed process.",
-         "protocol.process.env",
-         [])
-register(name="Inherit Environment",
-         descr="Inherit calling process's environment when `env` parameter is empty.",
-         "protocol.process.inherit_env",
-         true)
+let settings.protocol.process = mk_protocol_setting("process")
+
+let settings.protocol.process.env = settings.make(
+  description="List of environment variables \
+               passed down to the executed process.",
+  []
+)
+
+let settings.protocol.process.inherit_env = settings.make(
+  description="Inherit calling process's environment when `env` parameter is empty.",
+  true
+)
 
 # Register the process protocol. Syntax:
 # process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
@@ -56,11 +84,11 @@ def process_protocol(~rlog,~maxtime,arg)
 
     log.info("Executing #{cmd}")
 
-    env_vars = get(default=[],"protocol.process.env")
+    env_vars = settings.protocol.process.env()
     env = environment()
     def get_env(k) = (k,env[k]) end
     env = list.map(get_env,env_vars)
-    inherit_env = get(default=true,"protocol.process.inherit_env")
+    inherit_env = settings.protocol.process.inherit_env()
 
     delay = maxtime - time()
     p = process.run(timeout=delay,env=env,inherit_env=inherit_env,cmd)
@@ -182,14 +210,18 @@ end
 list.iter(add_http_protocol,["http","https"])
 %endif
 
-register(name="Youtube_dl protocol settings","protocol.youtube-dl",())
-register(name="Youtube-dl path","protocol.youtube-dl.path","youtube-dl")
+let settings.protocol.youtube_dl = mk_protocol_setting("youtube-dl")
+
+let settings.protocol.youtube_dl.path = settings.make(
+  description="Path of the youtube-dl binary",
+  "youtube-dl"
+)
 
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
 # @flag hidden
 def youtube_dl_protocol(~rlog,~maxtime,arg)
-  binary = get(default="youtube-dl","protocol.youtube-dl.path")
+  binary = settings.protocol.youtube_dl.path()
 
   log = log(label="protocol.youtube-dl")
 
@@ -247,19 +279,29 @@ add_protocol("tmp",tmp_protocol,
              doc="Mark the given uri as temporary. Useful when chaining protocols",
              temporary=true,syntax="tmp:uri")
 
-register(name="ffmpeg protocol settings","protocol.ffmpeg",())
-register(name="Path to ffmpeg","protocol.ffmpeg.path","ffmpeg")
-register(name="Number of channels","protocol.ffmpeg.channels",2)
-register(name="Extract metadata","protocol.ffmpeg.metadata",true)
-register(name="Adjust ReplayGain","protocol.ffmpeg.replaygain",false)
+let settings.protocol.ffmpeg = mk_protocol_setting("FFmpeg")
+
+let settings.protocol.ffmpeg.path = settings.make(
+  description="Path to the ffmpeg binary",
+  "ffmpeg"
+)
+
+let settings.protocol.ffmpeg.metadata = settings.make(
+  description="Should the protocol extract metadata",
+  true
+)
+
+let settings.protocol.ffmpeg.replaygain = settings.make(
+  description="Should the protocol adjust ReplayGain",
+  false
+)
 
 # Register ffmpeg
 # @flag hidden
 def ffmpeg_protocol(~rlog,~maxtime,arg) =
-  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg.path")
-  channels = get(default=2,"protocol.ffmpeg.channels")
-  metadata = get(default=true,"protocol.ffmpeg.metadata")
-  replaygain = get(default=false,"protocol.ffmpeg.replaygain")
+  ffmpeg   = settings.protocol.ffmpeg.path()
+  metadata = settings.protocol.ffmpeg.metadata()
+  replaygain = settings.protocol.ffmpeg.replaygain()
 
   log = log(label="protocol.ffmpeg")
 
@@ -302,8 +344,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
   def replaygain_filter(file) =
     if replaygain then
       # The extraction program
-      extract_replaygain =
-        get(default="#{configure.libdir}/extract-replaygain","protocol.replaygain.path")
+      extract_replaygain = settings.protocol.replaygain.path()
       delay = maxtime - time()
       ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
       if ret != "" then
@@ -423,7 +464,7 @@ def ffmpeg_protocol(~rlog,~maxtime,arg) =
     fades = fades(r)
     replaygain_filter = replaygain_filter(filename)
 
-    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{cue_points} #{fades} #{replaygain_filter} #{string.quote(wav)}"
+    cmd = "#{ffmpeg} -y -i $(input) #{cue_points} #{fades} #{replaygain_filter} #{string.quote(wav)}"
 
     uri = process_uri(extname="wav",uri=filename,cmd)
 
@@ -463,31 +504,34 @@ def stereo_protocol(~rlog, ~maxtime, arg)
 end
 add_protocol(static=true, temporary=true, "stereo", stereo_protocol, doc="Convert a file to stereo (currently decodes to wav).", syntax="stereo:<uri>")
 
-register(name="Text2wave protocol settings","protocol.text2wave",())
-register(name="Text2wave path","protocol.text2wave.path","text2wave")
+let settings.protocol.text2wave = mk_protocol_setting("text2wave")
+
+let settings.protocol.text2wave.path = settings.make(
+  description="Path to the text2wave binary",
+  "text2wave"
+)
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
 def text2wave_protocol(~rlog,~maxtime,arg) =
-  binary = get(default="text2wave", "protocol.text2wave.path")
+  binary = settings.protocol.text2wave.path()
   [process_uri(extname="wav", "echo #{string.quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
              syntax="text2wave:Text to read")
 
-register(name="gTTS protocol settings", "protocol.gtts",())
-register(name="gtts-cli binary path", "protocol.gtts.path", "gtts-cli")
+let settings.protocol.gtts = mk_protocol_setting("gtts")
 
-# @flag hidden
-def gtts_binary()
-  get(default="gtts-cli", "protocol.gtts.path")
-end
+let settings.protocol.gtts.path = settings.make(
+  description="Path to the gtts binary",
+  "gtts-cli"
+)
 
 # Register the gtts: protocol using gtts
 # @flag hidden
 def gtts_protocol(~rlog,~maxtime,arg) =
-  binary = gtts_binary()
+  binary = settings.protocol.gtts.path()
   [process_uri(extname="mp3", "#{binary} -o $(output) #{string.quote(arg)}")]
 end
 add_protocol(static=true,"gtts",gtts_protocol,
@@ -503,48 +547,67 @@ add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave. Result is always stereo.",
              syntax="say:Text to read")
 
-register(name="AWS protocols settings","protocol.aws",())
-register(name="Profile",descr="Use a specific profile from your credential file.",
-         "protocol.aws.profile","")
-register(name="Endpoint URL",descr="Alternative endpoint URL (useful for other S3 implementations).",
-         "protocol.aws.endpoint","")
-register(name="Region",descr="AWS Region",
-         "protocol.aws.region","")
-register(name="Binary",descr="Path to aws CLI binary",
-         "protocol.aws.path","aws")
-register(name="Polly protocol settings","protocol.aws.polly",())
-register(name="Format",descr="Output format",
-         "protocol.aws.polly.format","mp3")
-register(name="Voice",descr="Voice ID",
-         "protocol.aws.polly.voice","Joanna")
+let settings.protocol.aws = mk_protocol_setting("AWS")
+
+let settings.protocol.aws.profile = settings.make(
+  description="Use a specific profile from your credential file.",
+  null()
+)
+
+let settings.protocol.aws.endpoint = settings.make(
+  description="Alternative endpoint URL (useful for other S3 implementations).",
+  null()
+)
+
+let settings.protocol.aws.region = settings.make(
+  description="AWS Region",
+  null()
+)
+
+let settings.protocol.aws.path = settings.make(
+  description="Path to aws CLI binary",
+  "aws"
+)
+
+let settings.protocol.aws.polly = mk_protocol_setting("polly")
+
+let settings.protocol.aws.polly.format = settings.make(
+  description="Output format",
+  "mp3"
+)
+
+let settings.protocol.aws.polly.voice = settings.make(
+  description="Voice ID",
+  "Joanna"
+)
 
 # Build a aws base call
 # @flag hidden
 def aws_base() =
-  aws = get(default="aws","protocol.aws.path")
+  aws = settings.protocol.aws.path()
 
-  region = get(default="","protocol.aws.region")
+  region = settings.protocol.aws.region()
 
   aws =
-    if region !="" then
-      "#{aws} --region #{region}"
+    if null.defined(region) then
+      "#{aws} --region #{null.get(region)}"
     else
       aws
     end
 
-  endpoint = get(default="","protocol.aws.endpoint")
+  endpoint = settings.protocol.aws.endpoint()
 
   aws =
-    if endpoint !="" then
-      "#{aws} --endpoint-url #{string.quote(endpoint)}"
+    if null.defined(endpoint) then
+      "#{aws} --endpoint-url #{string.quote(null.get(endpoint))}"
     else
       aws
     end
 
-  profile = get(default="","protocol.aws.profile")
+  profile = settings.protocol.aws.profile()
 
-  if profile !="" then
-    "#{aws} --profile #{string.quote(profile)}"
+  if null.defined(profile) then
+    "#{aws} --profile #{string.quote(null.get(profile))}"
   else
     aws
   end
@@ -565,7 +628,7 @@ add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
 def polly_protocol(~rlog,~maxtime,text) =
   aws = aws_base()
 
-  format = get(default="mp3","protocol.aws.polly.format")
+  format = settings.protocol.aws.polly.format()
 
   extname =
     if format == "mp3" then
@@ -578,7 +641,7 @@ def polly_protocol(~rlog,~maxtime,text) =
 
   aws = "#{aws} polly synthesize-speech --output-format #{format}"
 
-  voice_id = get(default="Joanna","protocol.aws.polly.voice")
+  voice_id = settings.protocol.aws.polly.voice()
 
   cmd = "#{aws} --text #{string.quote(text)} --voice-id #{string.quote(voice_id)} $(output)"
 

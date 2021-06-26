@@ -10,25 +10,6 @@ def deprecated(old, new)
   log.severe(label="lang.deprecated", "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{new}")
 end
 
-# @flag deprecated
-def on_change_harbor_bind_addr(v) =
-  deprecated("harbor.bind_addr", "harbor.bind_addrs")
-  set("harbor.bind_addrs",[v])
-end
-
-register(name="[DEPRECATED] Harbor bind_addr",
-         descr="IP addresses on which the harbor should listen.",
-         on_change=on_change_harbor_bind_addr,"harbor.bind_addr","0.0.0.0")
-
-# @flag deprecated
-def on_change_video_samplerate(r) =
-  deprecated("frame.video.samplerate", "frame.video.framerate")
-  set("frame.video.framerate",r)
-end
-
-register(name="[DEPRECATED] Framerate",
-         on_change=on_change_video_samplerate,"frame.video.samplerate",25)
-
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag deprecated
 def replaces input.external(%argsof(input.external.rawaudio), cmd)

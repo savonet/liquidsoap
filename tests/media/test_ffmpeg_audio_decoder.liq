@@ -1,10 +1,9 @@
 #!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
 %include "test.liq"
 
-set("log.level",5)
-set("frame.audio.samplerate",48000)
-
-set("decoder.decoders",["FFMPEG"])
+log.level.set(5)
+settings.frame.audio.samplerate.set(48000)
+settings.decoder.decoders.set(["FFMPEG"])
 
 fname = argv(default="",1)
 out = "files/test.wav"

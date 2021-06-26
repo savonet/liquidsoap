@@ -74,7 +74,7 @@ end
 # @param sources Sequence of sources to be merged
 def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
   ready = ref(true)
-  duration = get(default=0.04,"frame.duration")
+  duration = frame.duration()
 
   def to_first(old,new) =
     ignore((old:source))

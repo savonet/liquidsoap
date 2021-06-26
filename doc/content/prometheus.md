@@ -8,8 +8,8 @@ The basic settings to enable exports are:
 
 ```liquidsoap
 # Prometheus settings
-set("prometheus.server",true)
-set("prometheus.server.port",9090)
+settings.prometheus.server.set(true)
+settings.prometheus.server.port.set(9090)
 ```
 
 Common metrics, namely `gauge`, `counter` and `summary` are provided via the script language, as well

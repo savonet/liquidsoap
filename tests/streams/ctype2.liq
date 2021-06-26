@@ -6,7 +6,7 @@
 
 %include "test.liq"
 
-set("log.level", 4)
+log.level.set(4)
 
 first = ref(true)
 

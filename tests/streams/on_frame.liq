@@ -2,7 +2,7 @@
 
 %include "test.liq"
 
-set("log.level", 4)
+log.level.set(4)
 
 n = ref(0)
 

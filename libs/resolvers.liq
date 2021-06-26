@@ -1,18 +1,3 @@
-# @flag hidden
-def exec_replaygain(~extract_replaygain="#{configure.bindir}/extract-replaygain",
-                       ~delay,file)
-  log = log.info(label="extract.replaygain")
-  p = process.run("#{extract_replaygain} #{string.quote(file)}")
-  stdout = string.replace(pattern='\\n', fun (_) -> "", p.stdout)
-  if p.status == "exit" and p.status.code == 0 then
-    stdout
-  else
-    stderr = string.replace(pattern='\\n', fun (_) -> "", p.stderr)
-    log("ReplayGain extraction by #{extract_replaygain} failed with: #{stderr}")
-    ""
-  end
-end
-
 # Enable ReplayGain metadata resolver. This resolver will process any file
 # decoded by Liquidsoap and add a `replaygain_track_gain` metadata when this
 # value could be computed. For a finer-grained replay gain processing, use the
@@ -36,7 +21,7 @@ end
 
 # @flag hidden
 def youtube_playlist_parser(~pwd="",url) =
-  binary = get(default="youtube-dl","protocol.youtube-dl.path")
+  binary = null.get(settings.protocol.youtube_dl.path())
 
   def parse_line(line) =
     parsed = of_json(default=[("url","foo")],line)

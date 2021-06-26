@@ -41,7 +41,7 @@ let frame = ()
 # Duration of a frame.
 # @category Liquidsoap
 def frame.duration =
-  setting.getter.float("frame.duration")
+  settings.frame.duration
 end
 
 # Keep a record of played files. This is primarily useful to know when a song
@@ -87,3 +87,7 @@ def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"]
   end
   { add=add, last=last }
 end
+
+# Top-level init module for convenience
+# @flag hidden
+init = settings.init

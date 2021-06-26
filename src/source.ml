@@ -388,7 +388,7 @@ class virtual operator ?(name = "src") ?audio_in ?video_in ?midi_in out_kind
 
     method private create_log = log <- Log.make [self#id]
 
-    method private log = log
+    method log = log
 
     val mutable id = ""
 

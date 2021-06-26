@@ -34,27 +34,27 @@ Note that we use annotate to pass some variables to liquidsoap...
 #!/usr/bin/liquidsoap
 
 # Standard settings
-set("log.file.path","/var/log/liquidsoap/pi.log")
-set("init.daemon",true)
-set("log.stdout",false)
-set("log.file",true)
-set("init.daemon.pidfile.path","/var/run/liquidsoap/pi.pid")
+log.file.set(true)
+log.file.path.set("/var/log/liquidsoap/pi.log")
+log.stdout.set(false)
+init.daemon.set(true)
+init.daemon.pidfile.path.set("/var/run/liquidsoap/pi.pid")
 
 # Enable telnet server
-set("server.telnet",true)
+settings.server.telnet.set(true)
 
 # Enable harbor for any external
 # connection
-set("harbor.bind_addr","0.0.0.0")
+settings.harbor.bind_addr.set("0.0.0.0")
 
 # Verbose logs
-set("log.level",4)
+log.level.set(4)
 
 # We use the scheduler intensively,
 # therefore we create many queues.
-set("scheduler.generic_queues",5)
-set("scheduler.fast_queues",3)
-set("scheduler.non_blocking_queues",3)
+settings.scheduler.generic_queues.set(5)
+settings.scheduler.fast_queues.set(3)
+settings.scheduler.non_blocking_queues.set(3)
 
 # === Settings ===
 

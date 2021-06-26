@@ -1,19 +1,19 @@
 # Width for all video frames.
 # @category Source / Video Processing
 def video.frame.width =
-  setting.getter.int("frame.video.width")
+  settings.frame.video.width
 end
 
 # Height for all video frames.
 # @category Source / Video Processing
 def video.frame.height =
-  setting.getter.int("frame.video.height")
+  settings.frame.video.height
 end
 
-# Rate for all video frames.
+# Framerate for all video frames.
 # @category Source / Video Processing
 def video.frame.rate =
-  setting.getter.int("frame.video.framerate")
+  settings.frame.video.framerate
 end
 
 # Generate a source from a static image.
@@ -104,7 +104,7 @@ def input.external.ffmpeg(~id="input.external.ffmpeg", ~show_command=false,
                           ~restart=true,~restart_on_error=false,
                           ~buffer=0.2,~max=10.,inputopts)
   inputopts = (inputopts : string)
-  ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
+  ffmpeg = null.get(settings.decoder.external.ffmpeg.path())
   cmd = "#{ffmpeg} #{inputopts} -f avi \
          -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
                force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\

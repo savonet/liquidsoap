@@ -3,8 +3,7 @@
 #
 
 # Simple settings for example scripts
-set("log.stdout",true)
-set("log.dir","/tmp")
+log.stdout.set(true)
 
 auto = fallback([ playlist("/some/playlist.m3u"),
                   single("/local/file.ogg") ])

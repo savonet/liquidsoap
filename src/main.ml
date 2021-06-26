@@ -79,6 +79,9 @@ let interactive = ref false
   * the documentation, to make sure that pervasive libraries have been
   * loaded, unless the user explicitly opposed to it. *)
 let load_libs =
+  (* Register settings module. Needs to be done last to make sure every
+     dependent OCaml module has been linked. *)
+  Lazy.force Builtins_settings.settings_module;
   let loaded = ref false in
   fun () ->
     if !stdlib && not !loaded then (
@@ -164,146 +167,6 @@ let process_request s =
           with Not_found -> Printf.printf "failed.\n"
         end;
         Request.destroy req
-
-module LiqConf = struct
-  (** Contains clones of Dtools.Conf.(descr|dump) but with a liq syntax. *)
-
-  let format_string = Printf.sprintf "%S"
-  let format_list l = "[" ^ String.concat "," (List.map format_string l) ^ "]"
-
-  let get_string t =
-    try
-      match t#kind with
-        | None -> None
-        | Some "unit" -> Some "()"
-        | Some "int" -> Some (string_of_int (Dtools.Conf.as_int t)#get)
-        | Some "float" -> Some (string_of_float (Dtools.Conf.as_float t)#get)
-        | Some "bool" -> Some (string_of_bool (Dtools.Conf.as_bool t)#get)
-        | Some "string" -> Some (format_string (Dtools.Conf.as_string t)#get)
-        | Some "list" -> Some (format_list (Dtools.Conf.as_list t)#get)
-        | _ -> assert false
-    with Dtools.Conf.Undefined _ -> None
-
-  let get_d_string t =
-    let mapopt f = function None -> None | Some x -> Some (f x) in
-    try
-      match t#kind with
-        | None -> None
-        | Some "unit" -> mapopt (fun () -> "()") (Dtools.Conf.as_unit t)#get_d
-        | Some "int" -> mapopt string_of_int (Dtools.Conf.as_int t)#get_d
-        | Some "float" -> mapopt string_of_float (Dtools.Conf.as_float t)#get_d
-        | Some "bool" -> mapopt string_of_bool (Dtools.Conf.as_bool t)#get_d
-        | Some "string" -> mapopt format_string (Dtools.Conf.as_string t)#get_d
-        | Some "list" -> mapopt format_list (Dtools.Conf.as_list t)#get_d
-        | _ -> assert false
-    with Dtools.Conf.Undefined _ -> None
-
-  let string_of_path p = String.concat "." p
-
-  let dump ?(prefix = []) t =
-    let rec aux prefix t =
-      let p s = if prefix = "" then s else prefix ^ "." ^ s in
-      let subs = List.map (function s -> aux (p s) (t#path [s])) t#subs in
-      begin
-        match (get_d_string t, get_string t) with
-        | None, None -> "" (* Printf.sprintf "# set %-30s\n" prefix *)
-        | Some p, None -> Printf.sprintf "# set(%S, %s)\n" prefix p
-        | Some p, Some p' when p' = p ->
-            Printf.sprintf "# set(%S, %s)\n" prefix p
-        | _, Some p -> Printf.sprintf "set(%S, %s)\n" prefix p
-      end
-      ^ String.concat "" subs
-    in
-    aux (string_of_path prefix) (t#path prefix)
-
-  let list_conf_keys ?(prefix = []) t =
-    let rec aux prefix t =
-      let p s = if prefix = "" then s else prefix ^ "." ^ s in
-      let subs = List.map (function s -> aux (p s) (t#path [s])) t#subs in
-      prefix :: List.flatten subs
-    in
-    let l = aux (string_of_path prefix) (t#path prefix) in
-    let l = List.sort compare l in
-    String.concat "\n" l ^ "\n"
-
-  let descr ?(md = false) ?(prefix = []) t =
-    let rec aux level prefix t =
-      let p s = if prefix = "" then s else prefix ^ "." ^ s in
-      let subs =
-        List.map (function s -> aux (level + 1) (p s) (t#path [s])) t#subs
-      in
-      let title n s = Printf.sprintf "%s %s\n\n" (String.make n '#') s in
-      begin
-        match (t#kind, get_string t) with
-        | None, None -> title level t#descr
-        | Some _, Some p ->
-            let comments =
-              match t#comments with
-                | [] -> ""
-                | l -> String.concat "\n" l ^ "\n"
-            in
-            let set =
-              if md then
-                Printf.sprintf "```liquidsoap\nset(%S, %s)\n```\n" prefix p
-              else Printf.sprintf "\n    set(%S, %s)\n\n" prefix p
-            in
-            title level t#descr ^ comments ^ set ^ "\n"
-            (*
-           begin match get_d_string t with
-           | None -> ""
-           | Some d -> default d
-           end
-          *)
-        | _ -> ""
-      end
-      ^ String.concat "" subs
-    in
-    aux 1 (string_of_path prefix) (t#path prefix)
-
-  let descr_key t p =
-    try
-      load_libs ();
-      Utils.print_string (descr ~prefix:(Dtools.Conf.path_of_string p) t);
-      exit 0
-    with Dtools.Conf.Unbound _ ->
-      Printf.eprintf "The key '%s' is not a valid configuration key.\n%!" p;
-      exit 1
-
-  let args t =
-    [
-      ( ["--conf-descr-key"],
-        Arg.String (descr_key t),
-        "Describe a configuration key." );
-      ( ["--conf-descr"],
-        Arg.Unit
-          (fun () ->
-            load_libs ();
-            Utils.print_string ~pager:true (descr t);
-            exit 0),
-        "Display a described table of the configuration keys." );
-      ( ["--conf-descr-md"],
-        Arg.Unit
-          (fun () ->
-            load_libs ();
-            Utils.print_string ~pager:true (descr ~md:true t);
-            exit 0),
-        "Display configuration keys in markdown format." );
-      ( ["--conf-dump"],
-        Arg.Unit
-          (fun () ->
-            load_libs ();
-            Utils.print_string ~pager:true (dump t);
-            exit 0),
-        "Dump the configuration state" );
-      ( ["--list-conf-keys"],
-        Arg.Unit
-          (fun () ->
-            load_libs ();
-            Utils.print_string ~pager:true (list_conf_keys t);
-            exit 0),
-        "List configuration keys." );
-    ]
-end
 
 let format_doc s =
   let prefix = "\t  " in
@@ -488,8 +351,15 @@ let options =
           Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
           "Stop parsing the command-line and pass subsequent items to the \
            script." );
-      ]
-    @ LiqConf.args Configure.conf )
+        ( ["--list-settings"],
+          Arg.Unit
+            (fun () ->
+              load_libs ();
+              Utils.print_string ~pager:true
+                (Builtins_settings.print_settings ());
+              exit 0),
+          "Display configuration keys in markdown format." );
+      ] )
 
 let expand_options options =
   let options = List.sort (fun (x, _, _) (y, _, _) -> compare x y) options in

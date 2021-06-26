@@ -46,6 +46,44 @@ def transition(ending, starting) =
 end
 ```
 
+### Settings
+
+Settings are now exported as records. Where you would before write:
+
+```liquidsoap
+set("decoder.decoders", ["MAD", "FFMPEG"])
+```
+
+You can now write:
+
+```liquidsoap
+settings.decoder.decoders.set(["MAD", "FFMPEG"])
+```
+
+Likewise, to get a setting's value you can now do:
+
+```liquidsoap
+current_decoders = settings.decoder.decoders()
+```
+
+This provides many good features, in particular type-safety. 
+
+For convenience, we have added shorter versions of the most used settings. These are all shortcuts to their respective `settings` values:
+
+```liquidsoap
+log.level.set(4)
+log.file.set(true)
+log.stdout.set(true)
+init.daemon.set(true)
+audio.samplerate.set(48000)
+audio.channels.set(2)
+video.frame.width.set(720)
+video.frame.height.set(1280)
+```
+
+The `register` operator could not be adapted to this new API and had to be removed, however, backward-compatible
+`set` and `get` operators are provided. Make sure to replace them as they should be removed in a future version.
+
 ### Deprecated operators
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
