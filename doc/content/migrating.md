@@ -20,7 +20,7 @@ to delegate HTTP support to external libraries which have large scale support an
 
 Some operators have been deprecated. For most of them, we provide a backward-compatible support 
 but it is good practice to update your script. You should see logs in your script when running
-deprecated operatords. Here's a list of most important ones:
+deprecated operatords. Here's a list of the most important ones:
 
 * `playlist.safe` is replaced by: `playlist(mksafe(..))`
 * `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
