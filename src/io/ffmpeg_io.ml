@@ -23,6 +23,8 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make (Generator)
 
+exception Not_connected
+
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   ~clock_safe ~max_buffer ~log_overfull ~kind ~on_stop ~on_start ~on_connect
   ~on_disconnect ?format ~opts url =
@@ -247,7 +249,14 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
     method get_frame frame =
       super#get_frame frame;
       try
-        let input, _ = self#mutexify (fun () -> Option.get container) () in
+        let input =
+          self#mutexify
+            (fun () ->
+              match container with
+                | None -> raise Not_connected
+                | Some (input, _) -> input)
+            ()
+        in
         let m =
           Avutil.Options.get_string ~search_children:true
             ~name:"icy_metadata_packet" (Av.input_obj input)
@@ -255,11 +264,13 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
         if latest_metadata <> m && m <> "" then (
           latest_metadata <- m;
           self#insert_metadata m )
-      with exn ->
-        let bt = Printexc.get_backtrace () in
-        Utils.log_exception ~log:self#log ~bt
-          (Printf.sprintf "Error while fetching metadata: %s"
-             (Printexc.to_string exn))
+      with
+        | Not_connected -> ()
+        | exn ->
+            let bt = Printexc.get_backtrace () in
+            Utils.log_exception ~log:self#log ~bt
+              (Printf.sprintf "Error while fetching metadata: %s"
+                 (Printexc.to_string exn))
   end
 
 let parse_args ~t name p opts =
