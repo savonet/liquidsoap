@@ -387,11 +387,11 @@ def next(j,a,b)
 
   transition =
     add(normalize=false,
-	  [ sequence(merge=true,
-	             [ blank(duration=3.),
-	               fade.in(duration=6.,b) ]),
-	    sequence([fade.out(duration=9.,a),
-	              j,blank()]) ])
+      [ sequence(merge=true,
+                 [ blank(duration=3.),
+                   fade.in(duration=6.,b) ]),
+        sequence([fade.out(duration=9.,a),
+                  j,blank()]) ])
 
   map_first_track(map_metadata(add_transition_length),transition)
 end
@@ -401,8 +401,8 @@ end
 # is over crossade duration (3 seconds)
 def transition(j,a,b)
   add(normalize=false,
-	  [ fade.in(duration=3.,b),
-	    fade.out(duration=3.,a) ])
+      [ fade.in(duration=3.,b),
+        fade.out(duration=3.,a) ])
 end
 ```
 
@@ -410,9 +410,9 @@ Finally, we build a source which plays a playlist, and switches to the live show
 
 ```liquidsoap
 fallback(track_sensitive=false,
-	     transitions=[ crossfade, transition(jingle) ],
-	     [ input.http("http://localhost:8000/live.ogg"),
-	       playlist("playlist.pls") ])
+         transitions=[ crossfade, transition(jingle) ],
+         [ input.http("http://localhost:8000/live.ogg"),
+           playlist("playlist.pls") ])
 ```
 
 ### Cross-based transitions

@@ -111,8 +111,8 @@ Streaming to Shoutcast is quite similar, using the `output.shoutcast` function:
 ```liquidsoap
 liquidsoap 'output.shoutcast(%mp3,
                 host="localhost", port = 8000,
-	        password = "changeme",
-	        mksafe(playlist("playlist.m3u")))'
+            password = "changeme",
+            mksafe(playlist("playlist.m3u")))'
 ```
 
 ### Input from another streaming server

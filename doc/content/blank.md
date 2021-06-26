@@ -30,7 +30,7 @@ interlude = single("/path/to/sorryfortheblank.ogg")
 # As soon as noise comes back to the microphone the stream comes
 # back to the live -- thanks to track_sensitive=false.
 stream = fallback(track_sensitive=false,
-	              [ strip_blank(max_blank=5.,live) , interlude ])
+                  [ strip_blank(max_blank=5.,live) , interlude ])
 
 # Put that stream to a local file
 output.file(%vorbis, "/tmp/hop.ogg", stream)

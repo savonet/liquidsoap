@@ -128,10 +128,10 @@ def lastfm (m) =
     if (m["canal"] == "reggae" or m["canal"] == "Jazz" or m["canal"] == "That70Sound") then
       canal = 
         if (m["canal"] == "That70Sound") then 
-	   "70sound" 
-	else 
-	   m["canal"]
-	end
+       "70sound" 
+    else 
+       m["canal"]
+    end
       user = "radiopi-" ^ canal
       lastfm.submit(user=user,password="xXXxx",m)
     end

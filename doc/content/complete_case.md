@@ -45,9 +45,9 @@ stop    = single("~/radio/live_stop.ogg")
 # otherwise one of our playlists,
 # and the default file if anything goes wrong.
 radio = fallback([ request.queue(id="request"),
-	                switch([({ 6h-22h }, day),
-	                        ({ 22h-6h }, night)]),
-	                default])
+                    switch([({ 6h-22h }, day),
+                            ({ 22h-6h }, night)]),
+                    default])
 # Add the normal jingles
 radio = random(weights=[1,5],[ jingles, radio ])
 # And the clock jingle

@@ -47,7 +47,7 @@ def metas() =
   s = list.hd(
         default="",
         get_process_lines(
-	   "wget -q http://www.novaplanet.com -O - | grep 'scroll_play'"))
+       "wget -q http://www.novaplanet.com -O - | grep 'scroll_play'"))
   s = string.extract(pattern='scroll_play\("([^"]*)",\s*"([^"]*)"',s)
   (cap(list.assoc(default="","1",s)),cap(list.assoc(default="","2",s)))
 end
