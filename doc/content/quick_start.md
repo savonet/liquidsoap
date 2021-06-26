@@ -7,8 +7,8 @@ The Internet radio toolchain
 The chain is made of:
 
 * the stream generator (Liquidsoap, [ices](https://www.icecast.org/ices/), or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
-* the streaming media server ([Icecast](http://www.icecast.org), [Shoutcast](http://www.shoutcast.com), ...) which relays several streams from their sources to their listeners;
-* the media player (iTunes, Winamp, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
+* the streaming media server ([Icecast](http://www.icecast.org), [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) (via a HTTP server), ...) which relays several streams from their sources to their listeners;
+* the media player (iTunes, VLC, a web browser, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
 
 ![Internet radio toolchain](/assets/img/schema-webradio-inkscape.png)
 
@@ -20,34 +20,37 @@ Now, let's create an audio stream.
 
 Starting to use Liquidsoap
 --------------------------
-In this tutorial we assume that you have a fully installed Liquidsoap. In particular the library `stdlib.liq` and its accompanying scripts should have been installed, otherwise Liquidsoap won't know the operators which have been defined there. If you installed into the default `/usr/local` you will find it inside `/usr/local/lib/liquidsoap/<version>`.
+
+We assume that you have a fully installed Liquidsoap. In particular the library `stdlib.liq` and its accompanying scripts should have been installed, otherwise Liquidsoap won't know the operators which have been defined there.
 
 ### Sources
-A stream is built with Liquidsoap by using or creating sources. A source is an annotated audio stream. In the following picture we represent a stream which has at least three tracks (one of which starts before the snapshot), and a few metadata packets (notice that they do not necessarily coincide with new tracks).
+
+A stream is built with Liquidsoap by using or creating sources. A source is a media stream containing audio and/or video, track marks and metadata. In the following picture we represent a stream which has at least three tracks (one of which starts before the snapshot), and a few metadata packets (notice that they do not necessarily coincide with new tracks).
 
 ![A stream](/assets/img/stream.png)
 
-In a Liquidsoap script, you build source objects. Liquidsoap provides many functions for creating sources from scratch (e.g. `playlist`), and also for creating complex sources by putting together simpler ones (e.g. `switch` in the following example). Some of these functions (typically the `output.*`) create an active source, which will continuously pull its children's stream and output it to speakers, to a file, to a streaming server, etc. These active sources are the roots of a Liquidsoap instance, the sources which bring life into it.
+Liquidsoap provides many functions for creating sources from scratch (e.g. `playlist`), and also for creating complex sources by putting together simpler ones (e.g. `switch` in the following example). Eventually, sources are plugged into outputs (typically named `output.*`) which continuously pull the source's content and output it to speakers, to a file, to a streaming server, etc. These outputs what brings life into your sources.
 
 ### That source is fallible!
+
 A couple of things can go wrong in your streaming system.
 In Liquidsoap,
 we say that a source is *infallible* if it is always available.
-Otherwise, it is *fallible*, something can go wrong.
+Otherwise, it is *fallible*, meaning that something could go wrong and the source would not be available.
 By default, an output requires that its input source is infallible,
 otherwise it complains that "That source is fallible!"
 
 For example, a normal `playlist` is fallible.
 Firstly, because it could contain only invalid files, or at least spend too
-much time on invalid files for preparing a valid one on time.
+much time on invalid files to be able to prepare a valid one on time.
 Moreover, a playlist could contain remote files, which may not
 be accessible quickly at all times.
 A queue of user requests is another example of fallible source. 
 Also, if `file.ogg` is a valid local file,
 then `single("file.ogg")` is an infallible source.
 
-When an output complains about its source, you have to turn it into
-an infallible one. Depending on the situation, many solutions are available.
+When an output complains about its source being fallible, you have to turn it into
+an infallible one. Many solutions are available.
 The function `mksafe` takes a source and returns an infallible
 source, streaming silence when the input stream becomes unavailable.
 In a radio-like stream, silence is not the preferred solution, and you
@@ -60,14 +63,12 @@ fallback([your_fallible_source_here, single("failure.ogg")])
 
 Finally, if you do not care about failures, you can pass the parameter
 `fallible=true` to most outputs. In that case, the output
-will accept a fallible source, and stop whenever the source fails,
-to restart when it is ready to emit a stream again.
-This is usually done if you are not emitting a radio-like stream,
-but for example capturing or relaying another stream,
-or encoding files.
+will accept a fallible source, and stop whenever the source fails
+and restart when it is ready to produce data again.
 
 One-line expressions
 --------------------
+
 Liquidsoap is a scripting language. Many simple setups can be achieved by evaluating one-line expressions.
 
 ### Playlists
@@ -78,7 +79,7 @@ ignored. You can also put remote files' URLs, if your liquidsoap has
 Then just run:
 
 ```liquidsoap
-liquidsoap 'out(playlist("playlist.pls"))'
+liquidsoap 'output(playlist("playlist.pls"))'
 ```
 
 Other playlist formats are supported, such as M3U and, depending on your
@@ -86,9 +87,15 @@ configuration, XSPF.
 Instead of giving the filename of a playlist, you can also use a directory 
 name, and liquidsoap will recursively look for audio files in it.
 
-Depending on your configuration, the output `out` will use AO, Alsa or OSS, or won't do anything if you do not have support for these libs. In that case, the next example is for you.
+Depending on your configuration, the output `output` will use AO, Alsa or OSS, or won't do anything if you do not have support for these libs. In that case, the next example is for you.
 
 ### Streaming out to a server
+
+**Note:** in the following, we assume that you have installed the following optional dependencies:
+* `cry` for icecast output
+* `vorbis` for ogg/vorbis encoding
+* `ffmpeg` for ffmpeg encoding
+
 Liquidsoap is capable of playing audio on your speakers, but it can also send audio to a streaming server such as Icecast or Shoutcast.
 One instance of liquidsoap can stream one audio feed in many formats (and even many audio feeds in many formats!).
 
@@ -104,26 +111,35 @@ liquidsoap \
      mksafe(playlist("playlist.m3u")))'
 ```
 
-The main difference with the previous is that we used `output.icecast` instead of `out`. The second difference is the use of the `mksafe` which turns your fallible playlist source into an infallible source.
+The main difference with the previous is that we used `output.icecast` instead of `output`. The second difference is the use of the `mksafe` which turns your fallible playlist source into an infallible source.
 
-Streaming to Shoutcast is quite similar, using the `output.shoutcast` function:
+If you want to use HLS instead for streaming, you can do:
 
 ```liquidsoap
-liquidsoap 'output.shoutcast(%mp3,
-                host="localhost", port = 8000,
-            password = "changeme",
-            mksafe(playlist("playlist.m3u")))'
+liquidsoap \
+  'output.file.hls(
+    "/path/to/hls/directory",
+    [("aac",
+      %ffmpeg(
+        format="mpegts",
+        %audio(codec="aac", b="128k")
+      ))],
+     mksafe(playlist("playlist.m3u")))'
 ```
+
+Once started, this will place all the files required for HLS stream into the local path `"/path/to/hls/directory"` which you can then server over HTTP.
+The HLS output has many interesting options, including callbacks to upload its files and more. See the [HLS Output](hls_output.html) for more details.
 
 ### Input from another streaming server
 Liquidsoap can use another stream as an audio source. This may be useful if you do some live shows.
 
 ```liquidsoap
-liquidsoap '
-  out(input.http("http://dolebrai.net:8000/dolebrai.ogg"))'
+liquidsoap \
+  'output(input.http("https://icecast.radiofrance.fr/fip-hifi.aac"))'
 ```
 
 ### Input from the soundcard
+
 If you're lucky and have a working ALSA support, try one of these... but beware that ALSA may not work out of the box.
 
 ```liquidsoap
@@ -141,13 +157,13 @@ lookup the [API documentation](reference.html) to check what functions are avail
 
 ```liquidsoap
 # Listen to your playlist, but normalize the volume
-liquidsoap 'out(normalize(playlist("playlist_file")))'
+liquidsoap 'output(normalize(playlist("playlist_file")))'
 ```
 
 ```liquidsoap
 # ... same, but also add smart cross-fading
-liquidsoap 'out(crossfade(
-                  normalize(playlist("playlist_file"))))'
+liquidsoap 'output(crossfade(
+              normalize(playlist("playlist_file"))))'
 ```
 
 Script files
