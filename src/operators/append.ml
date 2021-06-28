@@ -32,7 +32,7 @@ class append ~kind ~insert_missing ~merge source f =
       f
   in
   let self_sync_type =
-    if !failed then `Dynamic else Utils.self_sync_type !sources
+    if !failed then lazy `Dynamic else Utils.self_sync_type !sources
   in
   object (self)
     inherit operator ~name:"append" kind [source]
@@ -121,7 +121,7 @@ class append ~kind ~insert_missing ~merge source f =
         | `Append s -> s#seek n
 
     method self_sync =
-      ( self_sync_type,
+      ( Lazy.force self_sync_type,
         match state with
           | `Append s -> snd s#self_sync
           | _ -> snd source#self_sync )

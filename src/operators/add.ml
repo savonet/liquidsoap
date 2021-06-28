@@ -49,7 +49,8 @@ class add ~kind ~renorm ~power (sources : ((unit -> float) * source) list)
       else Fallible
 
     method self_sync =
-      (self_sync_type, List.exists (fun (_, s) -> snd s#self_sync) sources)
+      ( Lazy.force self_sync_type,
+        List.exists (fun (_, s) -> snd s#self_sync) sources )
 
     method remaining =
       List.fold_left max 0

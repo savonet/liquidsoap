@@ -738,12 +738,13 @@ module Version = struct
 end
 
 let self_sync_type sources =
-  fst
-    (List.fold_left
-       (fun cur s ->
-         match (cur, s#self_sync) with
-           | (`Static, None), (`Static, v) -> (`Static, Some v)
-           | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
-           | _ -> (`Dynamic, None))
-       (`Static, None)
-       sources)
+  lazy
+    (fst
+       (List.fold_left
+          (fun cur s ->
+            match (cur, s#self_sync) with
+              | (`Static, None), (`Static, v) -> (`Static, Some v)
+              | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
+              | _ -> (`Dynamic, None))
+          (`Static, None)
+          sources))

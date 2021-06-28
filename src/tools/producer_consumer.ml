@@ -37,7 +37,7 @@ class producer ~consumers_val ~name ~kind g =
     inherit Child_support.base consumers_val as child_support
 
     method self_sync =
-      ( self_sync_type,
+      ( Lazy.force self_sync_type,
         List.fold_left (fun cur s -> cur || snd s#self_sync) false consumers )
 
     method stype = if infallible then Source.Infallible else Source.Fallible

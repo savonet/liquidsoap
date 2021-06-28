@@ -56,7 +56,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
       (List.map (fun c -> c.transition) cases)
   in
   let self_sync_type =
-    if !failed then `Dynamic else Utils.self_sync_type !sources
+    if !failed then lazy `Dynamic else Utils.self_sync_type !sources
   in
   object (self)
     inherit operator ~name kind (List.map (fun x -> x.source) cases)
@@ -139,7 +139,7 @@ class virtual switch ~kind ~name ~override_meta ~transition_length
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 
     method self_sync =
-      ( self_sync_type,
+      ( Lazy.force self_sync_type,
         match selected with
           | Some (_, source) -> snd source#self_sync
           | None -> (
