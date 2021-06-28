@@ -4,64 +4,109 @@ Liquidsoap is a self-documented application,
 which means that it can provide help about several of its aspects.
 You will learn here how to get help by yourself, by asking liquidsoap.
 If you do not succeed in asking the tool, you can of course get help from 
-humans, preferably on the mailing list `savonet-users@lists.sf.net`.
+humans. We maintain the following communication channels:
+
+* Slack: [slack.liquidsoap.info](http://slack.liquidsoap.info/)
+* IRC: #savonet on [irc.libera.chat](https://libera.chat/) (through a slack bridge)
+* Mailing list: [savonet-users@lists.sourceforge.net](mailto:savonet-users@lists.sourceforge.net)
 
 Scripting API
 -------------
 When scripting in liquidsoap, one uses functions that are either *builtin*
-(*e.g.* `fallback` or `output.icecast`)
-or defined in the [script library](script_loading.html) (*e.g* `out`).
+(*e.g.* `input.http` or `output.icecast`)
+or defined in the [script library](script_loading.html) (*e.g* `output`).
 All these functions come with a documentation, that you can access by
 executing `liquidsoap -h FUNCTION` on the command-line. For example:
 
 ```
 $ liquidsoap -h sine
-*** One entry in scripting values:
+
 Generate a sine wave.
+
+Type: (?id : string?, ?amplitude : {float}, ?duration : float,
+ ?{float}) -> source(audio=internal('a),
+video=internal('b), midi=internal('c))
+
 Category: Source / Input
-Type: (?id:string, ?duration:float, ?float)->source
+
 Parameters:
-* id :: string (default "")
-    Force the value of the source ID.
-* duration :: float (default 0.)
-* (unlabeled) :: float (default 440.)
-    Frequency of the sine.
+
+ * id : string? (default: null)
+     Force the value of the source ID.
+
+ * amplitude : {float} (default: 1.)
+     Maximal value of the waveform.
+
+ * duration : float (default: -1.)
+     Duration in seconds (negative means infinite).
+
+ * (unlabeled) : {float} (default: 440.)
+     Frequency of the sine.
+
+Methods:
+
+ * fallible : bool
+     Indicate if a source may fail, i.e. may not be ready to stream.
+
+ * id : () -> string
+     Identifier of the source.
+
+ * is_active : () -> bool
+     `true` if the source is active, i.e. it is continuously animated by its
+     own clock whenever it is ready. Typically, `true` for outputs and
+     sources such as `input.http`.
+
+ * is_ready : () -> bool
+     Indicate if a source is ready to stream. This does not mean that the
+     source is currently streaming, just that its resources are all properly
+     initialized.
+
+ * is_up : () -> bool
+     Indicate that the source can be asked to produce some data at any time.
+     This is `true` when the source is currently being used or if it could be
+     used at any time, typically inside a `switch` or `fallback`.
+
+ * on_leave : ((() -> unit)) -> unit
+     Register a function to be called when source is not used anymore by
+     another source.
+
+ * on_metadata : ((([string * string]) -> unit)) -> unit
+     Call a given handler on metadata packets.
+
+ * on_shutdown : ((() -> unit)) -> unit
+     Register a function to be called when source shuts down.
+
+ * on_track : ((([string * string]) -> unit)) -> unit
+     Call a given handler on new tracks.
+
+ * remaining : () -> float
+     Estimation of remaining time in the current track.
+
+ * seek : (float) -> float
+     Seek forward, in seconds (returns the amount of time effectively
+     seeked).
+
+ * self_sync : () -> bool
+     Is the source currently controling its own real-time loop.
+
+ * shutdown : () -> unit
+     Deactivate a source.
+
+ * skip : () -> unit
+     Skip to the next track.
+
+ * time : () -> float
+     Get a source's time, based on its assigned clock.
 ```
 
 Of course if you do not know what function you need, you'd better go 
 through the [API reference](reference.html).
 
-Server commands
----------------
-The server (*cf.* the [server](server.html) tutorial)
-offers some help about its commands.
-Once connected (either via a TCP or UNIX socket) the `help` command
-gives you a list of available commands together with a short usage line.
-You can then get more detailed information about a specific command
-by typing `help COMMAND`:
-
-```
-$ telnet localhost 1234
-Trying 127.0.0.1...
-Connected to localhost.localdomain.
-Escape character is '^]'.
-help
-Available commands:
-[...]
-| queue.ignore <rid>
-| queue.push <uri>
-| queue.queue
-[...]
-Type "help <command>" for more information.
-END
-help queue.push
-
-Help for command queue.push.
-
-Usage: queue.push <uri>
-  Push a new request in the queue.
-END
-```
+Please note that some functions
+in that list are optional and may not be available with your local `liquidsoap` 
+install unless you install the optional dependency that enables it. The list of
+optional dependecies is listed via `opam info liquidsoap` if you have installed 
+it this way or can in our [build page](build.html). 
 
 Settings
 --------
@@ -81,17 +126,4 @@ which you can edit to set the values that you want,
 and load it ([implicitly](script_loading.html) or not) before you other scripts.
 
 You can browse online the [list of available settings](settings.html).
-
-All plugins
------------
-Several aspects of liquidsoap work with a notion of plugin: builtin scripting 
-functions, audio decoders for files and streams, metadata decoders, protocols, 
-etc. The list of plugins can be used to check that your build of 
-liquidsoap has such or such feature, or simply to browse available functions 
--- actually, the [reference](reference.html) is built from that output.
-
-You can get the pretty hairy list of all available plugins from the 
-command `liquidsoap --list-plugins`, or `liquidsoap --list-plugins-xml` for a 
-more parsable XML output.
-
 

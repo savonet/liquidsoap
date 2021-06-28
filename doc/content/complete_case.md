@@ -36,10 +36,7 @@ default = single("~/radio/default.ogg")
 day     = playlist("~/radio/day.pls")
 night   = playlist("~/radio/night.pls")
 jingles = playlist("~/radio/jingles.pls")
-
 clock   = single("~/radio/clock.ogg")
-start   = single("~/radio/live_start.ogg")
-stop    = single("~/radio/live_stop.ogg")
 
 # Play user requests if there are any,
 # otherwise one of our playlists,
@@ -78,7 +75,7 @@ To try this example you need to edit the file names. In order to witness the swi
 To try the transition to a live show you need to start a new stream on the `live.ogg` mount of your server. You can send a playlist to it using examples from the [quickstart](quick_start.html). To start a real live show from soundcard input you can use `darkice`, or simply liquidsoap if you have a working ALSA input, with:
 
 ```liquidsoap
-liquidsoap 'output.icecast(%vorbis, 
+liquidsoap 'output.icecast(%vorbis, \ 
   mount="live.ogg",host="...",password="...",input.alsa())'
 ```
 
