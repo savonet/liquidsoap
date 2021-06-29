@@ -79,7 +79,7 @@ url = "http://radiopi.org"
 # A live source, on which we stip blank (make the source
 # unavailable when streaming blank)
 live = 
-  strip_blank(
+  blank.strip(
     input.harbor(id="live", port=8000, password=pass,
                  buffer=8.,max=20.,"live.ogg"),
     length=10., threshold=-50.)
@@ -219,7 +219,7 @@ def channel_radiopilote(~skip=true,name)
   # Request function
   def request () = 
     log("Request for #{name}")
-    ret = list.hd(get_process_lines(scripts^"radiopilote-getnext "^quote(name)^sed))
+    ret = list.hd(process.read.lines(scripts^"radiopilote-getnext "^quote(name)^sed))
     log("Got answer: #{ret} for #{name}")
     [request.create(ret)]
   end
@@ -239,7 +239,7 @@ def channel_radiopilote(~skip=true,name)
   # Skip blank when asked to
   source = 
     if skip then
-      skip_blank(source, length=10., threshold=-40.)
+      blank.skip(source, length=10., threshold=-40.)
     else
       source
     end

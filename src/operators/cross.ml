@@ -458,7 +458,7 @@ let () =
         Some
           "Do not trust remaining time estimations, always buffering data in \
            advance. This avoids being tricked by skips, either manual or \
-           caused by skip_blank()." );
+           caused by blank.skip()." );
       ( "active",
         Lang.bool_t,
         Some (Lang.bool false),

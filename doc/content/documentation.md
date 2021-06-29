@@ -74,7 +74,6 @@ User scripts
 * [Geekradio](geekradio.html)
 * [RadioPi](radiopi.html)
 * [Frequence3](frequence3.html)
-* [Listen to Radio Nova](radio-nova.html)
 * [Video with a single static image](video-static.html)
 * [Split a CUE sheet](split-cue.html)
 

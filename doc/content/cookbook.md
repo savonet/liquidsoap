@@ -299,8 +299,8 @@ recording :
 thread.when(every=3600., pred={ true },
     fun () -> list.iter(fun(msg) -> log(msg, label="archive_cleaner"),
         list.append(
-            get_process_lines("find /archive/* -type f -mtime +31 -delete"),
-            get_process_lines("find /archive/* -type d -empty -delete")
+            process.read.lines("find /archive/* -type f -mtime +31 -delete"),
+            process.read.lines("find /archive/* -type d -empty -delete")
         )
     )
 )
