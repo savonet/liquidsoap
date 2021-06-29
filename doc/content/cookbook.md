@@ -63,7 +63,7 @@ output.icecast(
 
 # Second transcoder : MP3 128 kbps using %ffmpeg
 output.icecast(
-  %ffmpeg(format="mp3", %audio(b="128k")), 
+  %ffmpeg(format="mp3", %audio(codec="libmp3lame", b="128k")), 
   mount="/your-stream-128.mp3",
   host="streaming.example.com", port=8000, password="xxx",
   input)
@@ -339,14 +339,14 @@ jingles = source_tag(..., "jingles")
 # Combine them with one jingle every 3 music tracks
 radio = rotate(weights = [1,3],[jingles,music])
 
-# Now a custom crossfade function:
+# Now a custom crossfade transition:
 def transition(a,b)
   # If old or new source is not music, no fade
   if a.metadata["source_tag"] != "music" or a.metadata["source_tag"] != "music" then
     sequence([a.source, b.source])
   else
-    # Else, apply the standard fade
-    cross.smart(fade_in=3., fade_out=2., a, b)
+    # Else, apply the standard smart transition
+    cross.smart(a, b)
   end
 end
 
