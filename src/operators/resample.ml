@@ -36,7 +36,8 @@ class resample ~kind ~ratio source_val =
   object (self)
     inherit operator ~name:"stretch" kind [(consumer :> Source.source)] as super
 
-    inherit Child_support.base [source_val] as child_support
+    inherit
+      Child_support.base ~check_self_sync:true [source_val] as child_support
 
     method self_sync = source#self_sync
 

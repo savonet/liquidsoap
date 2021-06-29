@@ -25,7 +25,7 @@ module Generator = Generator.From_audio_video
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)
-class producer ~consumers_val ~name ~kind g =
+class producer ~check_self_sync ~consumers_val ~name ~kind g =
   let consumers = List.map Lang.to_source consumers_val in
   let infallible =
     List.for_all (fun s -> s#stype = Source.Infallible) consumers
@@ -34,7 +34,7 @@ class producer ~consumers_val ~name ~kind g =
   object (self)
     inherit Source.source kind ~name as super
 
-    inherit Child_support.base consumers_val as child_support
+    inherit Child_support.base ~check_self_sync consumers_val as child_support
 
     method self_sync =
       ( Lazy.force self_sync_type,

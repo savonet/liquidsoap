@@ -37,7 +37,8 @@ class cross ~kind val_source ~cross_length ~override_duration ~rms_width
   object (self)
     inherit source ~name:"cross" kind as super
 
-    inherit Child_support.base [val_source] as child_support
+    inherit
+      Child_support.base ~check_self_sync:true [val_source] as child_support
 
     initializer Source.Kind.unify s#kind kind
 

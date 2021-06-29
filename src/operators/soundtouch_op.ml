@@ -37,7 +37,8 @@ class soundtouch ~kind source_val rate tempo pitch =
     inherit
       operator ~name:"soundtouch" kind [(consumer :> Source.source)] as super
 
-    inherit Child_support.base [source_val] as child_support
+    inherit
+      Child_support.base ~check_self_sync:true [source_val] as child_support
 
     val mutable st = None
 

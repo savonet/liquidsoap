@@ -59,7 +59,9 @@ class pipe ~kind ~replay_delay ~data_len ~process ~bufferize ~log_overfull ~max
   object (self)
     inherit source ~name:"pipe" kind as super
 
-    inherit Child_support.base [source_val] as child_support
+    (* We are expecting real-rate with a couple of hickups.. *)
+    inherit
+      Child_support.base ~check_self_sync:false [source_val] as child_support
 
     inherit Generated.source abg ~empty_on_abort:false ~bufferize
 

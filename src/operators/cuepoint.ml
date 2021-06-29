@@ -41,7 +41,8 @@ class cue_cut ~kind ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
   object (self)
     inherit operator ~name:"cue_cut" kind [source] as super
 
-    inherit Child_support.base [source_val] as child_support
+    inherit
+      Child_support.base ~check_self_sync:true [source_val] as child_support
 
     val mutable track_state : state = `Idle
 

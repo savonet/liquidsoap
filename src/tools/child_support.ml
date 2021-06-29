@@ -26,19 +26,20 @@
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
-class virtual base children_val =
+class virtual base ~check_self_sync children_val =
   let children = List.map Lang.to_source children_val in
   object (self)
     initializer
-    List.iter
-      (fun c ->
-        if (Lang.to_source c)#self_sync <> (`Static, false) then
-          raise
-            (Lang_errors.Invalid_value
-               ( c,
-                 "This source may control its own latency and cannot be used \
-                  with this operator." )))
-      children_val
+    if check_self_sync then
+      List.iter
+        (fun c ->
+          if (Lang.to_source c)#self_sync <> (`Static, false) then
+            raise
+              (Lang_errors.Invalid_value
+                 ( c,
+                   "This source may control its own latency and cannot be used \
+                    with this operator." )))
+        children_val
 
     val mutable child_clock = None
 
