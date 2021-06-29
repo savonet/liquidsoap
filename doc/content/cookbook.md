@@ -326,7 +326,7 @@ We provide a default operator named `smart_cross` which may be suitable for most
 # A function to add a source_tag metadata to a source:
 def source_tag(s,tag) =
   def f(_)
-    [("source_tag",tag)]
+    [("source_tag",(tag:string))]
   end
   map_metadata(id=tag,insert_missing=true,f,s)
 end
